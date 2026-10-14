@@ -32,5 +32,5 @@ Single-context: `CONTEXT.md` is the glossary and `docs/adr/` holds decisions. Se
 
 ## More
 
-- Hyprland Repo - `docs/agents/hyprland/` (https://github.com/hyprwm/Hyprland, branch main).
+- Hyprland Repo - `docs/agents/hyprland/` (https://github.com/hyprwm/Hyprland, tag v0.56.2).
 - Hyprland Docs - `docs/agents/hyprland/site/`
