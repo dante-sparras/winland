@@ -1,0 +1,22 @@
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest</AnalysisLevel>
+  </PropertyGroup>
+
+  <!--
+    Winland.Core, Winland.Ipc, and Winland.Platform are packages on GitHub Packages, and Winshell and Winoma pin them
+    (ADR 0177). pack.ps1 and CI pass Version=0.1.<commits on HEAD>, so one commit is one version wherever it is packed.
+    Only those three projects set IsPackable.
+  -->
+  <PropertyGroup>
+    <Version Condition="'$(Version)' == ''">0.0.0-dev</Version>
+    <IsPackable>false</IsPackable>
+    <Authors>dante-sparras</Authors>
+    <RepositoryUrl>https://github.com/dante-sparras/winland</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/dante-sparras/winland</PackageProjectUrl>
+  </PropertyGroup>
+</Project>

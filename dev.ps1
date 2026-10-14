@@ -1,0 +1,28 @@
+# Prepares this repo for development. Git does not run scripts on clone.
+# After cloning, run: pwsh dev.ps1
+#
+# Clones Hyprland into docs/agents/hyprland and fetches its wiki into docs/agents/hyprland/site.
+# The folder is gitignored, and the checkout is left in place on a second run. Pass -Refresh to download the wiki again.
+
+param([switch]$Refresh)
+
+$ErrorActionPreference = 'Stop'
+$root = $PSScriptRoot
+$dest = Join-Path $root 'docs/agents/hyprland'
+if (-not (Test-Path (Join-Path $dest '.git'))) {
+    if (Test-Path $dest) { throw "$dest exists but is not a git checkout" }
+    git clone --depth 1 --branch main https://github.com/hyprwm/Hyprland.git $dest
+    if ($LASTEXITCODE -ne 0) { throw "clone of Hyprland failed with $LASTEXITCODE" }
+}
+
+if (-not $Refresh -and (Test-Path (Join-Path $dest 'site/README.md'))) {
+    Write-Output 'Manual already present'
+    return
+}
+python -c "import markdownify, bs4" 2>$null
+if ($LASTEXITCODE -ne 0) {
+    python -m pip install markdownify beautifulsoup4
+    if ($LASTEXITCODE -ne 0) { throw 'markdownify and beautifulsoup4 are required' }
+}
+python (Join-Path $root 'docs/fetch_reference.py') --site hyprland --root (Join-Path $dest 'site')
+if ($LASTEXITCODE -ne 0) { throw "Hyprland manual fetch failed with $LASTEXITCODE" }

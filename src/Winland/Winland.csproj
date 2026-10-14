@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>Winland</RootNamespace>
+    <AssemblyName>Winland.Host</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!--
+      The file is Winland.Host.exe, not Winland.exe. NTFS folds Winland.exe and winland.exe into one name,
+      and the native winland CLI shares this folder.
+    -->
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant())</RuntimeIdentifier>
+    <SelfContained Condition="'$(_IsPublishing)' == 'true'">true</SelfContained>
+    <SelfContained Condition="'$(_IsPublishing)' != 'true'">false</SelfContained>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Winland.Core\Winland.Core.csproj" />
+    <ProjectReference Include="..\Winland.Platform\Winland.Platform.csproj" />
+    <ProjectReference Include="..\Winland.Ipc\Winland.Ipc.csproj" />
+  </ItemGroup>
+  <!--
+    The window-manager watcher is this program under its own name. Stopping every Winland.Host process leaves it running,
+    and it shows the windows Winland hid. ADR 0059.
+  -->
+  <Target Name="CopyWatchExe" AfterTargets="Build">
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).exe" DestinationFiles="$(OutputPath)Winland.Watch.exe" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="PublishWatchExe" AfterTargets="Publish">
+    <Copy SourceFiles="$(PublishDir)$(AssemblyName).exe" DestinationFiles="$(PublishDir)Winland.Watch.exe" />
+  </Target>
+</Project>
