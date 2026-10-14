@@ -6,7 +6,7 @@ An ADR states one standing decision and why, in the present tense, and is true a
 
 ## Products
 
-- [Winoma ADR 0176](https://github.com/dante-sparras/winoma/blob/main/docs/adr/0176-the-repo-builds-three-products.md) Winland, Winshell, and Winoma are three products. Winland owns every bind and matches Hyprland. The two processes talk over a private pipe, and Winland refuses a client that speaks another protocol.
+- [Winoma ADR 0176](https://github.com/dante-sparras/winoma/blob/main/docs/adr/0176-three-products.md) Winland, Winshell, and Winoma are three products. Winland owns every bind and matches Hyprland. The two processes talk over a private pipe, and Winland refuses a client that speaks another protocol.
 - [Winoma ADR 0177](https://github.com/dante-sparras/winoma/blob/main/docs/adr/0177-three-products-are-three-repos.md) The three products are three repos. Winland publishes Winland.Core, Winland.Ipc, and Winland.Platform as packages, and Winshell and Winoma pin them. A bug in another product is an issue in that product's repo.
 
 ## Chords and the keyboard hook
