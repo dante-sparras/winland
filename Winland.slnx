@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Winland.Core/Winland.Core.csproj" />
+    <Project Path="src/Winland.Windows/Winland.Windows.csproj" />
+    <Project Path="src/winlandctl/winlandctl.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Winland.Core.Tests/Winland.Core.Tests.csproj" />
+  </Folder>
+</Solution>
