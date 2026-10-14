@@ -7,9 +7,8 @@
   </PropertyGroup>
 
   <!--
-    Winland.Core, Winland.Ipc, and Winland.Platform are packages on GitHub Packages, and Winshell and Winoma pin them
-    (ADR 0177). pack.ps1 and CI pass Version=0.1.<commits on HEAD>, so one commit is one version wherever it is packed.
-    Only those three projects set IsPackable.
+    version.ps1 prints 0.1.<commits on HEAD>. Pass that as Version when packing.
+    An unpacked build is 0.0.0-dev. Projects are not packable unless they opt in.
   -->
   <PropertyGroup>
     <Version Condition="'$(Version)' == ''">0.0.0-dev</Version>

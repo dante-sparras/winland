@@ -1,14 +1,14 @@
 # Issue tracker: GitHub Issues
 
-Issues are GitHub Issues, one tracker per repo (ADR 0177): `dante-sparras/winoma`, `dante-sparras/winland`, and `dante-sparras/winshell`. A bug or a task goes on the repo whose code changes, wherever it was found. `gh` reaches any of them from any checkout with `-R`.
+Issues are GitHub Issues on `dante-sparras/winland`. A bug or a task goes here when this repo's code changes. `gh` reaches it from this checkout with `-R dante-sparras/winland`.
 
-- **Publish**: `gh issue create -R dante-sparras/<repo> --title "<what is wrong or wanted>" --body-file <file> --label needs-triage`. The body says what was run, what was seen, what was expected, and the log lines with their `pid=`. One issue per problem.
-- **Fetch**: `gh issue view <number> -R dante-sparras/<repo> --comments`.
-- **Triage state**: one label from `triage-labels.md`. `gh issue edit <number> -R dante-sparras/<repo> --add-label ready-for-agent --remove-label needs-triage`.
-- **Comment**: `gh issue comment <number> -R dante-sparras/<repo> --body-file <file>`.
-- **Close**: the commit that fixes it says `Fixes dante-sparras/<repo>#<number>`, or `gh issue close <number> -R dante-sparras/<repo> --comment "<how it was checked>"`.
+- **Publish**: `gh issue create -R dante-sparras/winland --title "<what is wrong or wanted>" --body-file <file> --label needs-triage`. The body says what was run, what was seen, what was expected, and the log lines with their `pid=`. One issue per problem.
+- **Fetch**: `gh issue view <number> -R dante-sparras/winland --comments`.
+- **Triage state**: one label from `triage-labels.md`. `gh issue edit <number> -R dante-sparras/winland --add-label ready-for-agent --remove-label needs-triage`.
+- **Comment**: `gh issue comment <number> -R dante-sparras/winland --body-file <file>`.
+- **Close**: the commit that fixes it says `Fixes dante-sparras/winland#<number>`, or `gh issue close <number> -R dante-sparras/winland --comment "<how it was checked>"`.
 
-An issue labelled `ready-for-agent` is specified well enough for an agent in that repo to fix without asking: the behavior wanted, how to see it, and what is out of scope. A fix in Winland or Winshell reaches Winoma once it is released and Winoma moves its pin, so an issue on Winoma that waits on one names it: `Blocked by dante-sparras/winshell#12`.
+An issue labelled `ready-for-agent` is specified well enough for an agent to fix without asking: the behavior wanted, how to see it, and what is out of scope.
 
 ## Wayfinding
 

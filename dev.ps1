@@ -24,5 +24,5 @@ if ($LASTEXITCODE -ne 0) {
     python -m pip install markdownify beautifulsoup4
     if ($LASTEXITCODE -ne 0) { throw 'markdownify and beautifulsoup4 are required' }
 }
-python (Join-Path $root 'docs/fetch_reference.py') --site hyprland --root (Join-Path $dest 'site')
+python (Join-Path $root 'docs/fetch_reference.py') --root (Join-Path $dest 'site')
 if ($LASTEXITCODE -ne 0) { throw "Hyprland manual fetch failed with $LASTEXITCODE" }

@@ -3,6 +3,8 @@ obj/
 .vs/
 *.user
 TestResults/
+__pycache__/
+*.pyc
 
 # The Hyprland checkout and its manual. Not part of this repo. pwsh dev.ps1 brings them back after a clone.
 docs/agents/hyprland/

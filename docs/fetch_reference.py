@@ -1,4 +1,4 @@
-# Fetches a published doc site into markdown. dev.ps1 calls this for Omarchy, Quickshell, and Hyprland.
+# Fetches the Hyprland wiki into markdown. dev.ps1 calls this.
 # Do not edit the pages it writes.
 
 import argparse
@@ -16,45 +16,20 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 
-USER_AGENT = "winoma-docs-fetch"
+USER_AGENT = "winland-docs-fetch"
 TODAY = date.today().isoformat()
 
-SITES = {
-    "omarchy": {
-        "entry": "https://omarchy.org/manual/",
-        "sitemap": None,
-        "prefix": "https://omarchy.org/manual/",
-        "extra": [
-            "https://plugins.omarchy.org/develop.html",
-            "https://plugins.omarchy.org/publish.html",
-        ],
-        "hosts": {"omarchy.org", "plugins.omarchy.org"},
-        "select": "omarchy",
-        "blurb": "A copy of the Omarchy manual and the plugin guides, kept here so Winoma can be checked against it.",
-        "owners": "The text belongs to the Omarchy authors.",
-        "refresh": "pwsh dev.ps1 -Refresh",
-    },
-    "quickshell": {
-        "entry": "https://quickshell.org/docs/v0.3.2/",
-        "sitemap": "https://quickshell.org/sitemap-0.xml",
-        "prefix": "https://quickshell.org/docs/v0.3.2/",
-        "hosts": {"quickshell.org"},
-        "select": "quickshell",
-        "blurb": "A copy of the Quickshell v0.3.2 documentation, kept here so Winoma can be checked against it.",
-        "owners": "The text belongs to the Quickshell authors.",
-        "refresh": "pwsh dev.ps1 -Refresh",
-    },
-    "hyprland": {
-        "entry": "https://wiki.hypr.land/",
-        "sitemap": "https://wiki.hypr.land/sitemap.xml",
-        "prefix": "https://wiki.hypr.land/",
-        "hosts": {"wiki.hypr.land"},
-        "select": "hyprland",
-        "blurb": "A copy of the Hyprland wiki, kept here so Winoma can be checked against it. The wiki tracks the latest Hyprland git commit, not a tagged release.",
-        "owners": "The text belongs to the Hyprland authors.",
-        "refresh": "pwsh dev.ps1 -Refresh",
-    },
-}
+ENTRY = "https://wiki.hypr.land/"
+SITEMAP = "https://wiki.hypr.land/sitemap.xml"
+PREFIX = "https://wiki.hypr.land/"
+HOSTS = {"wiki.hypr.land"}
+BLURB = (
+    "A copy of the Hyprland wiki, kept here so Winland can be checked against it. "
+    "The wiki tracks the latest Hyprland git commit, not a tagged release."
+)
+OWNERS = "The text belongs to the Hyprland authors."
+REFRESH = "pwsh dev.ps1 -Refresh"
+SKIP = {"https://wiki.hypr.land/tags", "https://wiki.hypr.land/categories"}
 
 
 def fetch(url):
@@ -74,45 +49,31 @@ def add_url(urls, seen, url):
     if bare in seen:
         return
     seen.add(bare)
-    # A trailing slash on a file such as develop.html is a 404.
+    # A trailing slash on a file is a 404.
     if Path(urllib.parse.urlparse(bare).path).suffix:
         urls.append(bare)
     else:
         urls.append(bare + "/")
 
 
-def sitemap_urls(site):
+def sitemap_urls():
     urls = []
     seen = set()
-    prefix = site["prefix"]
-    if site.get("sitemap"):
-        raw = fetch(site["sitemap"]).decode("utf-8", errors="replace")
-        for url in re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", raw):
-            url = url.split("#", 1)[0]
-            if not url.startswith(prefix):
-                continue
-            if url.rstrip("/") in {"https://wiki.hypr.land/tags", "https://wiki.hypr.land/categories"}:
-                continue
-            add_url(urls, seen, url)
-    else:
-        soup = BeautifulSoup(fetch(site["entry"]), "html.parser")
-        for anchor in soup.select("a[href]"):
-            absolute = urllib.parse.urljoin(site["entry"], anchor.get("href") or "")
-            absolute = absolute.split("#", 1)[0]
-            if absolute.startswith(prefix):
-                add_url(urls, seen, absolute)
-    for url in site.get("extra") or []:
+    raw = fetch(SITEMAP).decode("utf-8", errors="replace")
+    for url in re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", raw):
+        url = url.split("#", 1)[0]
+        if not url.startswith(PREFIX):
+            continue
+        if url.rstrip("/") in SKIP:
+            continue
         add_url(urls, seen, url)
-    add_url(urls, seen, site["entry"])
+    add_url(urls, seen, ENTRY)
     return urls
 
 
-def page_key(site, url):
-    parsed = urllib.parse.urlparse(url)
-    if parsed.netloc == "plugins.omarchy.org":
-        return "plugins/" + Path(parsed.path).stem
-    path = parsed.path
-    prefix = urllib.parse.urlparse(site["prefix"]).path
+def page_key(url):
+    path = urllib.parse.urlparse(url).path
+    prefix = urllib.parse.urlparse(PREFIX).path
     if path.startswith(prefix):
         path = path[len(prefix):]
     return path.strip("/")
@@ -126,46 +87,27 @@ def file_for(key, keys):
     return key + ".md"
 
 
-def clean_title(text, site_name):
+def clean_title(text):
     text = re.sub(r"\s+", " ", text or "").strip()
-    for suffix in (" – Hyprland Wiki", " - Hyprland Wiki", " – Quickshell", " - Quickshell", " | Quickshell", " - Omarchy Manual", " - Omarchy", " | Omarchy Plugins"):
+    for suffix in (" – Hyprland Wiki", " - Hyprland Wiki"):
         if text.endswith(suffix):
             text = text[: -len(suffix)].strip()
-    if site_name == "quickshell" and text.startswith("Quickshell - "):
-        text = text[len("Quickshell - "):]
     return text or "Untitled"
 
 
-def prepare(site, html, page_url, image_dir, page_file):
+def prepare(html, page_url, image_dir, page_file):
     soup = BeautifulSoup(html, "html.parser")
-    if site["select"] == "quickshell":
-        node = soup.select_one("div.docs-content")
-    elif site["select"] == "omarchy":
-        node = soup.select_one("article") or soup.select_one("main.page-content") or soup.select_one("main")
-    else:
-        nodes = soup.select("div.content")
-        node = next((item for item in nodes if item.find(["h1", "h2"])), None)
-        if node is None and nodes:
-            node = nodes[-1]
+    nodes = soup.select("div.content")
+    node = next((item for item in nodes if item.find(["h1", "h2"])), None)
+    if node is None and nodes:
+        node = nodes[-1]
     if node is None:
         node = soup.select_one("main") or soup.select_one("article") or soup.body
     title_node = soup.find("title")
-    title = clean_title(title_node.get_text(" ", strip=True) if title_node else "", site["select"])
+    title = clean_title(title_node.get_text(" ", strip=True) if title_node else "")
 
     for tag in node.select("script, style, svg, button, nav, form, astro-island"):
         tag.decompose()
-
-    if site["select"] == "omarchy":
-        for header in node.select("header"):
-            header.decompose()
-        for mark in node.select(".manual__hash"):
-            mark.decompose()
-        for link in node.select("a.manual__heading-link"):
-            link.unwrap()
-
-    heading = node.select_one("h2.typedocs-title-text")
-    if heading is not None and node.find("h1") is None:
-        heading.name = "h1"
 
     # Hextra callouts: a bordered box whose first line is Note, Warning, and so on.
     callouts = []
@@ -173,8 +115,8 @@ def prepare(site, html, page_url, image_dir, page_file):
         classes = box.get("class") or []
         if "hx:rounded-lg" not in classes or "hx:border" not in classes:
             continue
-        title = box.find("p")
-        label = title.get_text(" ", strip=True) if title is not None else ""
+        title_line = box.find("p")
+        label = title_line.get_text(" ", strip=True) if title_line is not None else ""
         kind = {
             "Note": "NOTE",
             "Info": "NOTE",
@@ -186,14 +128,14 @@ def prepare(site, html, page_url, image_dir, page_file):
         }.get(label)
         if kind is None:
             continue
-        callouts.append((box, title, kind))
-    for box, title, kind in reversed(callouts):
+        callouts.append((box, title_line, kind))
+    for box, title_line, kind in reversed(callouts):
         quote = soup.new_tag("blockquote")
         marker = soup.new_tag("p")
         marker.string = f"[!{kind}]"
         quote.append(marker)
         for child in list(box.contents):
-            if child is title:
+            if child is title_line:
                 continue
             quote.append(child.extract())
         box.replace_with(quote)
@@ -247,7 +189,7 @@ def prepare(site, html, page_url, image_dir, page_file):
             continue
         absolute = urllib.parse.urljoin(page_url, src)
         host = urllib.parse.urlparse(absolute).netloc
-        if host not in site["hosts"]:
+        if host not in HOSTS:
             image["src"] = absolute
             continue
         suffix = Path(urllib.parse.urlparse(absolute).path).suffix.lower()
@@ -297,7 +239,7 @@ def to_markdown(node):
     return text.strip() + "\n"
 
 
-def rewrite_links(text, site, page_url, page_file, files_by_key):
+def rewrite_links(text, page_url, page_file, files_by_key):
     def replace(match):
         href = match.group(1)
         if href.startswith("#"):
@@ -306,18 +248,18 @@ def rewrite_links(text, site, page_url, page_file, files_by_key):
         parsed = urllib.parse.urlparse(absolute)
         anchor = f"#{parsed.fragment}" if parsed.fragment else ""
         key_url = parsed._replace(fragment="", query="").geturl().rstrip("/")
-        prefix = site["prefix"].rstrip("/")
-        if parsed.netloc in site["hosts"]:
-            key = page_key(site, key_url + "/")
+        prefix = PREFIX.rstrip("/")
+        if parsed.netloc in HOSTS:
+            key = page_key(key_url + "/")
             target = files_by_key.get(key)
             if target is not None:
                 link = link_to(target, page_file)
                 return f"]({link}{anchor})"
         if not key_url.startswith(prefix):
-            if href.startswith("/") and parsed.netloc in site["hosts"]:
+            if href.startswith("/") and parsed.netloc in HOSTS:
                 return f"]({parsed._replace(query='').geturl()})"
             return match.group(0)
-        key = page_key(site, key_url + "/")
+        key = page_key(key_url + "/")
         target = files_by_key.get(key)
         if target is not None:
             link = link_to(target, page_file)
@@ -331,59 +273,43 @@ def rewrite_links(text, site, page_url, page_file, files_by_key):
     return re.sub(r"\]\(([^)\s]+)\)", replace, text)
 
 
-def sidebar(site, html):
+def sidebar(html):
     soup = BeautifulSoup(html, "html.parser")
-    if site["select"] == "hyprland":
-        anchors = soup.select("aside a[href]")
-    elif site["select"] == "omarchy":
-        anchors = []
-        for nav in soup.select("nav"):
-            found = nav.select("a[href]")
-            if len(found) > len(anchors):
-                anchors = found
-    else:
-        anchors = soup.select("a[href]")
     items = []
     seen = set()
-    for anchor in anchors:
+    for anchor in soup.select("aside a[href]"):
         href = anchor.get("href") or ""
         if href.startswith("#"):
             continue
-        absolute = urllib.parse.urljoin(site["entry"], href).split("#", 1)[0].rstrip("/")
-        if not absolute.startswith(site["prefix"].rstrip("/")):
+        absolute = urllib.parse.urljoin(ENTRY, href).split("#", 1)[0].rstrip("/")
+        if not absolute.startswith(PREFIX.rstrip("/")):
             continue
-        key = page_key(site, absolute + "/")
+        key = page_key(absolute + "/")
         if key in seen:
             continue
-        if site["select"] == "quickshell" and key.startswith("types/") and key != "types":
-            continue
         title = re.sub(r"\s+", " ", anchor.get_text(" ", strip=True))
-        if not title or title in {"v0.3.2"}:
+        if not title:
             continue
         seen.add(key)
         items.append((key, title))
     return items
 
 
-def write_readme(site, root, pages, order):
+def write_readme(root, pages, order):
     lines = [
-        f"# {site['select'].capitalize()} documentation",
+        "# Hyprland documentation",
         "",
-        f"{site['blurb']} Fetched {TODAY}.",
+        f"{BLURB} Fetched {TODAY}.",
         "",
-        f"{site['owners']} Do not edit these files. Run `{site['refresh']}` to refresh them.",
+        f"{OWNERS} Do not edit these files. Run `{REFRESH}` to refresh them.",
         "",
-        f"From <{site['entry']}>.",
+        f"From <{ENTRY}>.",
+        "",
+        "Videos stay linked to `dl.hypr.land`. They are not copied into this folder.",
+        "",
+        "## Pages",
         "",
     ]
-    if site["select"] == "hyprland":
-        lines += [
-            "Videos stay linked to `dl.hypr.land`. They are not copied into this folder.",
-            "",
-        ]
-    listed = set()
-    lines.append("## Pages")
-    lines.append("")
     for key, title in order:
         target = pages.get(key)
         if target is None:
@@ -391,7 +317,6 @@ def write_readme(site, root, pages, order):
         depth = 0 if key == "" else key.count("/")
         indent = "  " * depth
         lines.append(f"{indent}- [{title}]({target.replace(chr(92), '/')})")
-        listed.add(key)
     lines.append("")
     (root / "README.md").write_text("\n".join(lines), encoding="utf-8")
 
@@ -408,35 +333,33 @@ def clear_previous(root):
             path.rmdir()
 
 
-def one(site, url, files_by_key, image_dir):
-    key = page_key(site, url)
+def one(url, files_by_key, image_dir):
+    key = page_key(url)
     target = files_by_key[key]
     html = fetch(url)
-    title, node = prepare(site, html, url, image_dir, target)
+    title, node = prepare(html, url, image_dir, target)
     body = to_markdown(node)
     if not body.lstrip().startswith("#"):
         body = f"# {title}\n\n{body}"
-    body = rewrite_links(body, site, url, target, files_by_key)
+    body = rewrite_links(body, url, target, files_by_key)
     header = f"<!-- Source: {url} · fetched {TODAY}. Do not edit, run pwsh dev.ps1. -->\n\n"
     return key, title, target, header + body
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--site", required=True, choices=sorted(SITES))
+    parser = argparse.ArgumentParser(description="Fetch the Hyprland wiki into markdown.")
     parser.add_argument("--root", required=True)
     parser.add_argument("--only", action="append", default=[])
     args = parser.parse_args()
-    site = SITES[args.site]
     root = Path(args.root)
-    all_urls = sitemap_urls(site)
+    all_urls = sitemap_urls()
     urls = all_urls
     if args.only:
         wanted = {item.rstrip("/") for item in args.only}
         urls = [url for url in all_urls if url.rstrip("/") in wanted]
         if not urls:
             sys.exit("none of --only matched the sitemap")
-    key_set = {page_key(site, url) for url in all_urls}
+    key_set = {page_key(url) for url in all_urls}
     files_by_key = {key: file_for(key, key_set) for key in key_set}
     if not args.only:
         clear_previous(root)
@@ -448,7 +371,7 @@ def main():
     failures = []
     done = 0
     with ThreadPoolExecutor(max_workers=6) as pool:
-        futures = {pool.submit(one, site, url, files_by_key, image_dir): url for url in urls}
+        futures = {pool.submit(one, url, files_by_key, image_dir): url for url in urls}
         for future in as_completed(futures):
             url = futures[future]
             done += 1
@@ -467,8 +390,7 @@ def main():
                 print(f"{done}/{len(urls)}", flush=True)
 
     if not args.only:
-        home = fetch(site["entry"])
-        order = sidebar(site, home)
+        order = sidebar(fetch(ENTRY))
         for key, title in list(order):
             if key in titles:
                 order[order.index((key, title))] = (key, titles[key])
@@ -476,7 +398,7 @@ def main():
         for key in sorted(pages):
             if key not in known:
                 order.append((key, titles.get(key, key or "index")))
-        write_readme(site, root, pages, order)
+        write_readme(root, pages, order)
 
     print(f"{len(pages)} pages, {len(failures)} failures, in {root}")
     if failures:
