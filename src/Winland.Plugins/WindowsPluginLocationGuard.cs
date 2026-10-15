@@ -81,20 +81,23 @@ public sealed class WindowsPluginLocationGuard : IPluginLocationGuard
         return grants;
     }
 
-    private static bool CanWrite(FileSystemRights rights)
+    internal static bool CanWrite(FileSystemRights rights)
     {
+        // Only the bits that write. Modify and FullControl also hold the read bits,
+        // so a mask that included them would count a read-only grant as a write.
         const FileSystemRights write =
-            FileSystemRights.Write
-            | FileSystemRights.Modify
-            | FileSystemRights.FullControl
-            | FileSystemRights.WriteData
-            | FileSystemRights.CreateFiles
+            FileSystemRights.WriteData
             | FileSystemRights.AppendData
+            | FileSystemRights.WriteExtendedAttributes
+            | FileSystemRights.WriteAttributes
             | FileSystemRights.Delete
             | FileSystemRights.DeleteSubdirectoriesAndFiles
             | FileSystemRights.ChangePermissions
             | FileSystemRights.TakeOwnership;
 
-        return (rights & write) != 0;
+        // GENERIC_ALL and GENERIC_WRITE, which an inherit-only entry can hold unmapped.
+        const int generic = 0x10000000 | 0x40000000;
+
+        return (rights & write) != 0 || ((int)rights & generic) != 0;
     }
 }
