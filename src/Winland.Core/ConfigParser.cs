@@ -24,6 +24,7 @@ public static partial class ConfigParser
 
         private readonly List<Setting> _settings = [];
         private readonly List<BindDirective> _binds = [];
+        private readonly List<TrackpadGesture> _gestures = [];
         private readonly List<ConfigWarning> _warnings = [];
         private readonly List<WindowRule> _windowRules = [];
         private readonly List<WorkspaceRule> _workspaceRules = [];
@@ -49,6 +50,7 @@ public static partial class ConfigParser
                 WorkspaceRules = _workspaceRules.Count == 0 ? WorkspaceRule.None : [.. _workspaceRules],
                 Sources = [.. _sources],
                 Environment = _environment.Count == 0 ? EnvironmentAssignment.None : [.. _environment],
+                Gestures = [.. _gestures],
             };
         }
 
@@ -159,6 +161,12 @@ public static partial class ConfigParser
             if (lhs == "unbind")
             {
                 HandleUnbind(rhs, lineNumber);
+                return;
+            }
+
+            if (lhs.StartsWith("gesture", StringComparison.Ordinal) && !lhs.Contains(':'))
+            {
+                HandleGesture(lhs, rhs, lineNumber);
                 return;
             }
 

@@ -30,6 +30,7 @@ internal static class HonoredKeywords
         Add(table, SessionOptions.Keywords);
         Add(table, CursorOptions.Keywords);
         Add(table, InputOptions.Keywords);
+        Add(table, GestureOptions.Keywords);
         return table;
     }
 
