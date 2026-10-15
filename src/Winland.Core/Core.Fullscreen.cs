@@ -36,7 +36,7 @@ public sealed partial class Core
         return CommitFullscreen(window, target.Internal, target.Client, name, allowsElevation);
     }
 
-    private Outcome CommitFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, string dispatcher, bool allowsElevation)
+    private Outcome CommitFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, string? dispatcher, bool allowsElevation)
     {
         var desk = WorkspaceContaining(window);
         if (desk is null)
@@ -50,7 +50,7 @@ public sealed partial class Core
         return Present(desk, covered, placements, dispatcher: dispatcher, allowsElevation: allowsElevation);
     }
 
-    private Outcome MissingWindow(string dispatcher, bool allowsElevation) =>
+    private Outcome MissingWindow(string? dispatcher, bool allowsElevation) =>
         View([], dispatcher: dispatcher, allowsElevation: allowsElevation) with { Error = "error: window not found" };
 
     private Rectangle CoveringBounds(LiveWorkspace desk)

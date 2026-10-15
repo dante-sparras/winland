@@ -341,6 +341,12 @@ internal static class ProbeNative
     internal static extern bool ShowWindow(IntPtr hwnd, int command);
 
     [DllImport("user32.dll")]
+    internal static extern bool IsIconic(IntPtr hwnd);
+
+    [DllImport("user32.dll")]
+    internal static extern bool IsZoomed(IntPtr hwnd);
+
+    [DllImport("user32.dll")]
     internal static extern bool DestroyWindow(IntPtr hwnd);
 
     [DllImport("user32.dll")]

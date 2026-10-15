@@ -1,0 +1,44 @@
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.WindowsAndMessaging;
+
+namespace Winland.Windows;
+
+// Hyprland has no minimize: a client's request to minimize is ignored. A client's request to maximize
+// is maximize mode 1. Windows carries both out before it tells anyone, so they are undone here.
+public sealed partial class WindowAdapter
+{
+    /// <summary>Brings back a managed window the system just minimized.</summary>
+    internal void UndoMinimize(nint handle)
+    {
+        var hwnd = new HWND(handle);
+        if (_core.Manages(new WindowId(handle)) && PInvoke.IsIconic(hwnd))
+            _ = PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_RESTORE);
+    }
+
+    private void AdoptShown(HWND hwnd, WindowId window)
+    {
+        if (!TryDescribe(hwnd, window, out var appeared))
+            return;
+
+        var outcome = _core.Handle(appeared);
+        NoteManaged(window, outcome, appeared);
+        Apply(outcome);
+    }
+
+    /// <summary>Takes a managed window out of the system's maximized state and asks the core to maximize it its own way.</summary>
+    internal Outcome RequestMaximize(nint handle)
+    {
+        var window = new WindowId(handle);
+        if (!_core.Manages(window))
+            return _core.Handle(new WindowMaximizeRequested(window));
+
+        var hwnd = new HWND(handle);
+        if (PInvoke.IsZoomed(hwnd))
+            _ = PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_RESTORE);
+
+        var outcome = _core.Handle(new WindowMaximizeRequested(window));
+        Apply(outcome);
+        return outcome;
+    }
+}
