@@ -1,5 +1,6 @@
-# GitHub Actions only. NuGet versions live in the project files and move in a
-# reviewed pull request. CVE-only security updates are a repository setting.
+# GitHub Actions only. Application dependencies move in a reviewed pull request,
+# not on a schedule. Actions are pinned to a full commit SHA.
+# CVE-only security updates are a repository setting.
 version: 2
 updates:
   - package-ecosystem: github-actions

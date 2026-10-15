@@ -3,8 +3,13 @@ obj/
 .vs/
 *.user
 TestResults/
+StrykerOutput/
 __pycache__/
 *.pyc
+.firecrawl/
+.scratch/**/out/
 
-# The Hyprland checkout and its manual. Not part of this repo. pwsh dev.ps1 brings them back after a clone.
+# Reference checkouts. Not part of this repo. pwsh dev.ps1 brings the one this repo uses back after a clone.
+docs/agents/omarchy/
+docs/agents/quickshell/
 docs/agents/hyprland/

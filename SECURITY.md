@@ -1,3 +1,3 @@
 # Security
 
-Report a vulnerability through [Security Advisories](https://github.com/dante-sparras/winland/security/advisories/new). Do not open a public issue.
+Report a vulnerability through this repository's Security Advisories. Do not open a public issue for a security problem.

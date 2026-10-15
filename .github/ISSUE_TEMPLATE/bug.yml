@@ -1,10 +1,9 @@
-name: Bug report
-description: Winland did something it should not have done
-title: "bug: "
-labels: [bug, needs-triage]
+name: Bug
+description: Something in this repo is broken
+labels: [needs-triage]
 body:
   - type: textarea
-    id: happened
+    id: what-happened
     attributes:
       label: What happened
       description: What you ran, what you saw, and what you expected.
@@ -13,7 +12,7 @@ body:
   - type: textarea
     id: logs
     attributes:
-      label: Log lines
-      description: Include the pid= on each line when you have it.
+      label: Logs
+      description: The lines that show it. Leave out secrets.
     validations:
       required: false

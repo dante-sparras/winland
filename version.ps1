@@ -1,4 +1,5 @@
-# Prints this checkout's version: 0.1.<commits on HEAD> (ADR 0177). A checkout whose tracked files have changes not committed is
+# Prints this checkout's version: 0.1.<commits on HEAD>.
+# A checkout whose tracked files have changes not committed is
 # 0.1.<commits>-dev.<time>, so a local pack never takes the name of a version CI published.
 $ErrorActionPreference = 'Stop'
 $count = (& git -C $PSScriptRoot rev-list --count HEAD).Trim()

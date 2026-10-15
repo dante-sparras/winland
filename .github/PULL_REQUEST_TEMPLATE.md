@@ -6,5 +6,6 @@
 
 ## Checklist
 
-- [ ] `dotnet build Winland.slnx --configuration Release`
-- [ ] `dotnet test Winland.slnx --configuration Release --filter "FullyQualifiedName!~Winland.Smoke"`
+- [ ] Rebased onto current `main`
+- [ ] `pwsh -NoProfile -File scripts/check.ps1`
+- [ ] `pwsh -NoProfile -File scripts/test.ps1`
