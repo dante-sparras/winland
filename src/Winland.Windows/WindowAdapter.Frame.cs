@@ -169,23 +169,29 @@ public sealed partial class WindowAdapter
 
     // DWMWA_BORDER_COLOR is a COLORREF, 0x00BBGGRR. The alpha byte is not used.
     // DWMWA_COLOR_DEFAULT and DWMWCP_DEFAULT put the frame back to the system choice.
+    // A running motion owns the alpha and border it animates, and moves them toward this decoration.
     private static void Paint(WindowId window, Decoration decoration)
     {
         var hwnd = new HWND((nint)window.Value);
-        var color = decoration.Borderless
-            ? NoneBorderColor
-            : (uint)(decoration.Border.R | (decoration.Border.G << 8) | (decoration.Border.B << 16));
-        SetAttribute(hwnd, BorderColorAttribute, color);
-        var corners = decoration.Corners switch
+        lock (Motions.For(window))
         {
-            CornerPreference.Round => RoundCorners,
-            CornerPreference.RoundSmall => SmallCorners,
-            _ => SquareCorners,
-        };
-        SetAttribute(hwnd, CornerAttribute, corners);
-        Effects.Apply(window, decoration);
-        Opacity.Apply(window, decoration.Alpha);
+            var held = Motions.Paint(window, decoration.Alpha, decoration.Border);
+            if (decoration.Borderless || !held.Border)
+                SetAttribute(hwnd, BorderColorAttribute, decoration.Borderless ? NoneBorderColor : ColorRef(decoration.Border));
+            var corners = decoration.Corners switch
+            {
+                CornerPreference.Round => RoundCorners,
+                CornerPreference.RoundSmall => SmallCorners,
+                _ => SquareCorners,
+            };
+            SetAttribute(hwnd, CornerAttribute, corners);
+            Effects.Apply(window, decoration);
+            if (!held.Alpha)
+                Opacity.Apply(window, decoration.Alpha);
+        }
     }
+
+    private static uint ColorRef(BorderColor color) => (uint)(color.R | (color.G << 8) | (color.B << 16));
 
     private static void ResetDecoration(WindowId window)
     {

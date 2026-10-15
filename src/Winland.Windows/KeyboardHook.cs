@@ -10,7 +10,6 @@ namespace Winland.Windows;
 
 public sealed class KeyboardHook : IDisposable
 {
-    private const uint CloseMessage = 0x0010;
 
     // Marks events Winland injects, so its own hook lets them through untouched.
     internal const nuint InjectedTag = 0x574C4E44;
@@ -481,13 +480,8 @@ public sealed class KeyboardHook : IDisposable
         _worker = null;
     }
 
-    private static void Apply(Outcome outcome)
-    {
-        if (outcome.Close is WindowId window)
-            _ = PInvoke.PostMessage(new HWND((nint)window.Value), CloseMessage, default, default);
-
-        WindowAdapter.Apply(outcome);
-    }
+    // The adapter asks the window to close, after its close animation when it has one.
+    private static void Apply(Outcome outcome) => WindowAdapter.Apply(outcome);
 
     private LRESULT Next(int code, WPARAM wParam, LPARAM lParam) =>
         PInvoke.CallNextHookEx(_hook, code, wParam, lParam);
