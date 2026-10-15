@@ -55,7 +55,7 @@ public static partial class ConfigParser
                 var part = parts[index];
                 if (part.StartsWith("mod:", StringComparison.Ordinal))
                 {
-                    if (!TryParseModifiers(part[4..], out modifiers, out var modifierError))
+                    if (!ModifierNames.TryParse(part[4..], out modifiers, out var modifierError))
                     {
                         Warn(lineNumber, modifierError);
                         return;

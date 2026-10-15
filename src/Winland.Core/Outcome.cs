@@ -16,7 +16,9 @@ public sealed record Client(
     Rectangle Bounds = default,
     FullscreenMode Fullscreen = FullscreenMode.None,
     FullscreenMode FullscreenClient = FullscreenMode.None,
-    bool Pinned = false);
+    bool Pinned = false,
+    WindowId? Swallowing = null,
+    bool InhibitingIdle = false);
 
 public readonly record struct Placement(ClientId Client, Rectangle Bounds);
 
@@ -89,6 +91,9 @@ public sealed record Outcome(
     public bool Exit { get; init; }
 
     public IReadOnlyList<DisplayPowerRequest> DisplayPower { get; init; } = [];
+
+    /// <summary>Keys to send on to a window. The adapter sends them; tests read them.</summary>
+    public IReadOnlyList<KeyRelay> Relays { get; init; } = [];
 
     /// <summary>Text a plugin dispatcher reports on success. Empty when the dispatcher has nothing to say.</summary>
     public string? Notice { get; init; }

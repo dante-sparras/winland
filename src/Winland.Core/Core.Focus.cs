@@ -49,7 +49,7 @@ public sealed partial class Core
             if (_active == window)
                 return View([]);
 
-            (_extraEvents ??= []).Add(new ClientUrgent(window));
+            MarkUrgent(window);
             return Restore(Kept());
         }
 
@@ -95,10 +95,12 @@ public sealed partial class Core
         _focusRules.Remove(window);
         _awaitingMapFocus.Remove(window);
         _focusHistory.Remove(window);
+        _urgent.Remove(window);
     }
 
     private void TouchHistory(WindowId window)
     {
+        _urgent.Remove(window);
         _focusHistory.Remove(window);
         _focusHistory.Insert(0, window);
     }

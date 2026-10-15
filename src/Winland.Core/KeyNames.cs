@@ -289,6 +289,39 @@ public static class KeyNames
         return true;
     }
 
+    /// <summary>The scan code for an XKB keycode, the inverse of <see cref="XkbCode"/>. Pause also needs its virtual key.</summary>
+    internal static bool TryScan(int xkbCode, out int scan, out bool extended, out int virtualKey)
+    {
+        virtualKey = 0;
+        extended = false;
+        scan = 0;
+        var evdev = xkbCode - 8;
+        if (evdev == 119)
+        {
+            virtualKey = 0x13;
+            scan = 0x45;
+            return true;
+        }
+
+        if (evdev is >= 0x01 and <= 0x53 or 0x57 or 0x58)
+        {
+            scan = evdev;
+            return true;
+        }
+
+        for (var candidate = 0x01; candidate <= 0x5D; candidate++)
+        {
+            if (Evdev(0, candidate, extended: true) != evdev || evdev == 0)
+                continue;
+
+            scan = candidate;
+            extended = true;
+            return true;
+        }
+
+        return false;
+    }
+
     private static int Evdev(int virtualKey, int scan, bool extended)
     {
         // Pause shares num lock's scan. The virtual key tells them apart.

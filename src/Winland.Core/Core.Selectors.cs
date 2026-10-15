@@ -7,8 +7,15 @@ public sealed partial class Core
     private Outcome FocusWindow(string arguments, bool allowsElevation)
     {
         const string name = "focuswindow";
-        var window = Select(arguments, emptyMeansActive: false);
-        if (window is not WindowId id || WorkspaceContaining(id) is not LiveWorkspace desk)
+        if (Select(arguments, emptyMeansActive: false) is not WindowId id)
+            return Rejected(name, "error: no such window", allowsElevation);
+
+        return FocusClient(id, name, allowsElevation);
+    }
+
+    private Outcome FocusClient(WindowId id, string name, bool allowsElevation)
+    {
+        if (WorkspaceContaining(id) is not LiveWorkspace desk)
             return Rejected(name, "error: no such window", allowsElevation);
 
         if (_pinned.Contains(id) && Find(id) is { Floating: true })

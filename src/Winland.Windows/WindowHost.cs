@@ -75,7 +75,7 @@ public sealed class WindowHost : IDisposable
 
         // A message-only window does not receive power broadcasts. This hidden
         // top-level window does, and it is the target for session notifications.
-        using var session = new SessionWindow(OnSignal);
+        using var session = new SessionWindow(OnSignal, OnFlash);
         var shell = WaitForShell();
         var thread = PInvoke.GetCurrentThreadId();
         SessionHalt.Stop = () => _ = PInvoke.PostThreadMessage(thread, QuitMessage, default, default);
@@ -128,6 +128,8 @@ public sealed class WindowHost : IDisposable
     }
 
     public void RevealHidden() => _windows.RevealHidden();
+
+    private void OnFlash(WindowId window) => WindowAdapter.Apply(_core.Handle(new WindowFlashed(window)));
 
     public void ResetDecorations() => _windows.ResetDecorations();
 

@@ -127,3 +127,7 @@ CreatePolygonRgn
 GetWindowRgn
 SetWindowRgn
 DeleteObject
+SetThreadExecutionState
+RegisterShellHookWindow
+DeregisterShellHookWindow
+RegisterWindowMessage

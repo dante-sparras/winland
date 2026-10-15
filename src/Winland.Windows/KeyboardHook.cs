@@ -17,7 +17,7 @@ public sealed class KeyboardHook : IDisposable
 
     // An unassigned virtual key. Pressed under Super or Alt, it makes the shell treat the
     // modifier as part of a chord, so its release does not open Start or a menu bar.
-    private const ushort MaskKey = 0xE8;
+    internal const ushort MaskKey = 0xE8;
 
     // Long enough for a held key to start repeating, so a held key is never taken as stale.
     private const int SweepDelayMs = 1500;
@@ -309,13 +309,13 @@ public sealed class KeyboardHook : IDisposable
 
     internal static void Mask() => Send(Key(MaskKey, up: false), Key(MaskKey, up: true));
 
-    private static void Send(params ReadOnlySpan<INPUT> inputs)
+    internal static void Send(params ReadOnlySpan<INPUT> inputs)
     {
         if (PInvoke.SendInput(inputs, Marshal.SizeOf<INPUT>()) != inputs.Length)
             Console.Error.WriteLine($"Input was not sent ({Marshal.GetLastPInvokeError()}).");
     }
 
-    private static INPUT Key(ushort vk, bool up)
+    internal static INPUT Key(ushort vk, bool up)
     {
         var flags = up ? KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP : 0;
         if (vk is 0x5B or 0x5C or 0xA3 or 0xA5)
@@ -466,7 +466,7 @@ public sealed class KeyboardHook : IDisposable
                 return;
             }
 
-            Apply(_core.Handle(new Dispatch(queued.Dispatcher, queued.Arguments)));
+            Apply(_core.Handle(new Dispatch(queued.Dispatcher, queued.Arguments) { Trigger = queued.Trigger }));
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -509,18 +509,18 @@ public sealed class KeyboardHook : IDisposable
                 if (dispatch.Dispatcher.Length == 0)
                     continue;
 
-                PostDispatch(dispatch.Dispatcher, dispatch.Arguments);
+                PostDispatch(dispatch.Dispatcher, dispatch.Arguments, decision.Trigger);
             }
 
             return;
         }
 
         if (!string.IsNullOrEmpty(decision.Dispatcher))
-            PostDispatch(decision.Dispatcher, decision.Arguments);
+            PostDispatch(decision.Dispatcher, decision.Arguments, decision.Trigger);
     }
 
-    internal void PostDispatch(string dispatcher, string arguments) =>
-        _queued.Writer.TryWrite(new Queued(QueuedKind.Dispatch, dispatcher, arguments, false));
+    internal void PostDispatch(string dispatcher, string arguments, BindTrigger? trigger = null) =>
+        _queued.Writer.TryWrite(new Queued(QueuedKind.Dispatch, dispatcher, arguments, false, Trigger: trigger));
 
     internal void PostGesture(string dispatcher, string arguments, Point position, PointerDragPhase phase, string button) =>
         _queued.Writer.TryWrite(new Queued(QueuedKind.Gesture, dispatcher, arguments, false, position, phase, button));
@@ -579,5 +579,6 @@ public sealed class KeyboardHook : IDisposable
         string Button = "",
         long TimeMs = 0,
         bool HasTime = false,
-        Input? Event = null);
+        Input? Event = null,
+        BindTrigger? Trigger = null);
 }

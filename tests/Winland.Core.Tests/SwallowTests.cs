@@ -1,0 +1,213 @@
+using System.Text.Json;
+using Winland;
+
+namespace Winland.Tests;
+
+public class SwallowTests
+{
+    private static readonly Rectangle Area = new(0, 0, 1920, 1080);
+    private const string Swallowing = "misc:enable_swallow = true\nmisc:swallow_regex = ^(kitty)$\n";
+
+    [Fact]
+    public void AChildOfTheTerminalHidesTheTerminal()
+    {
+        var core = WithTerminal(Swallowing);
+
+        var opened = core.Handle(Child(2, parentProcess: 100));
+
+        Assert.Contains(new WindowId(1), opened.Hide);
+        var hidden = Assert.Single(opened.State.Hidden);
+        Assert.Equal(new WindowId(1), hidden.Window);
+        Assert.Equal(new WindowId(1), Client(opened, 2).Swallowing);
+        Assert.Equal(new Rectangle(0, 0, 1920, 1080), Placement(opened, Client(opened, 2).Id));
+        Assert.DoesNotContain(opened.Events, item => item is ClientClosed);
+    }
+
+    [Fact]
+    public void ClosingTheChildShowsAndFocusesTheTerminalAgain()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(Child(2, parentProcess: 100));
+
+        var closed = core.Handle(new WindowClosed(new WindowId(2)));
+
+        Assert.Contains(new WindowId(1), closed.Show);
+        Assert.Equal(new WindowId(1), closed.Focus);
+        Assert.Empty(closed.State.Hidden);
+        Assert.Null(Client(closed, 1).Swallowing);
+        Assert.Equal(new Rectangle(0, 0, 1920, 1080), Placement(closed, Client(closed, 1).Id));
+    }
+
+    [Fact]
+    public void ATerminalHiddenWhenTheDaemonDiesIsInTheRecoverySnapshot()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(Child(2, parentProcess: 100));
+
+        var snapshot = core.Recovery();
+
+        var terminal = Assert.Single(snapshot.Clients, client => client.Window == new WindowId(1));
+        Assert.True(terminal.Hidden);
+        Assert.False(Assert.Single(snapshot.Clients, client => client.Window == new WindowId(2)).Hidden);
+        Assert.True(RecoverySnapshot.TryParse(snapshot.ToJson(), out var read));
+        Assert.True(Assert.Single(read.Clients, client => client.Window == new WindowId(1)).Hidden);
+    }
+
+    [Fact]
+    public void AfterACrashTheTerminalComesBackAndTheLiveChildSwallowsItAgain()
+    {
+        var before = WithTerminal(Swallowing);
+        before.Handle(Child(2, parentProcess: 100));
+        var snapshot = before.Recovery();
+
+        var after = new Core(ConfigParser.Parse(Swallowing));
+        after.Restore(snapshot);
+        after.Handle(Terminal());
+        var reopened = after.Handle(Child(2, parentProcess: 100));
+        var closed = after.Handle(new WindowClosed(new WindowId(2)));
+
+        Assert.Contains(new WindowId(1), reopened.Hide);
+        Assert.Contains(new WindowId(1), closed.Show);
+    }
+
+    [Fact]
+    public void ATerminalShownAgainByItselfIsHiddenAgain()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(Child(2, parentProcess: 100));
+
+        var shown = core.Handle(Terminal());
+
+        Assert.Equal([new WindowId(1)], shown.Hide);
+        Assert.Single(shown.State.Hidden);
+    }
+
+    [Fact]
+    public void ATerminalThatClosesWhileHiddenIsForgotten()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(Child(2, parentProcess: 100));
+
+        core.Handle(new WindowClosed(new WindowId(1)));
+        var closed = core.Handle(new WindowClosed(new WindowId(2)));
+
+        Assert.Empty(closed.State.Clients);
+        Assert.Empty(closed.Show);
+    }
+
+    [Theory]
+    [InlineData("misc:swallow_regex = ^(kitty)$\n")]
+    [InlineData("misc:enable_swallow = true\n")]
+    [InlineData("misc:enable_swallow = true\nmisc:swallow_regex = ^(foot)$\n")]
+    [InlineData("misc:enable_swallow = true\nmisc:swallow_regex = ^(kitty)$\nmisc:swallow_exception_regex = ^(vim.*)$\n")]
+    public void NothingIsSwallowedWhenDisabledUnmatchedOrExcepted(string config)
+    {
+        var core = WithTerminal(config, title: "vim notes");
+
+        var opened = core.Handle(Child(2, parentProcess: 100));
+
+        Assert.Empty(opened.State.Hidden);
+        Assert.DoesNotContain(new WindowId(1), opened.Hide);
+    }
+
+    [Fact]
+    public void AWindowFromAnUnrelatedProcessDoesNotSwallow()
+    {
+        var core = WithTerminal(Swallowing);
+
+        var opened = core.Handle(Child(2, parentProcess: 555));
+
+        Assert.Empty(opened.State.Hidden);
+    }
+
+    [Fact]
+    public void ASecondChildDoesNotSwallowATerminalAlreadySwallowed()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(Child(2, parentProcess: 100));
+
+        var second = core.Handle(Child(3, parentProcess: 100));
+
+        Assert.Null(Client(second, 3).Swallowing);
+    }
+
+    [Fact]
+    public void ToggleSwallowShowsTheTerminalAndHidesItAgain()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(Child(2, parentProcess: 100));
+
+        var shown = core.Handle(new Dispatch("toggleswallow"));
+        var hidden = core.Handle(new Dispatch("toggleswallow"));
+
+        Assert.Contains(new WindowId(1), shown.Show);
+        Assert.Empty(shown.State.Hidden);
+        Assert.Equal(new WindowId(1), Client(shown, 2).Swallowing);
+        Assert.Contains(new WindowId(1), hidden.Hide);
+        Assert.Single(hidden.State.Hidden);
+    }
+
+    [Fact]
+    public void ClosingAChildAfterToggleSwallowLeavesTheTerminalWhereItIs()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(Child(2, parentProcess: 100));
+        core.Handle(new Dispatch("toggleswallow"));
+
+        var closed = core.Handle(new WindowClosed(new WindowId(2)));
+
+        Assert.Single(closed.State.Clients);
+        Assert.DoesNotContain(new WindowId(1), closed.Show);
+    }
+
+    [Fact]
+    public void TheClientsQueryReportsTheSwallowedTerminal()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(Child(2, parentProcess: 100));
+
+        var reply = core.Execute("j/clients");
+
+        using var json = JsonDocument.Parse(reply.Text);
+        var child = json.RootElement.EnumerateArray().Single(client => client.GetProperty("address").GetString() == "0x2");
+        var terminal = json.RootElement.EnumerateArray().Single(client => client.GetProperty("address").GetString() == "0x1");
+        Assert.Equal("0x1", child.GetProperty("swallowing").GetString());
+        Assert.True(terminal.GetProperty("hidden").GetBoolean());
+    }
+
+    [Fact]
+    public void SwallowKeywordsAreHonored()
+    {
+        var document = ConfigParser.Parse(Swallowing + "misc:swallow_exception_regex = ^(wev)$\n");
+
+        Assert.Empty(document.Warnings);
+    }
+
+    private static Core WithTerminal(string config, string title = "")
+    {
+        var core = new Core(ConfigParser.Parse(config));
+        core.Handle(Terminal(title));
+        return core;
+    }
+
+    private static WindowAppeared Terminal(string title = "") =>
+        new(new WindowId(1), Area)
+        {
+            ProcessId = 100,
+            Traits = WindowTraits.Normal with { Class = "kitty", Title = title },
+        };
+
+    private static WindowAppeared Child(long window, int parentProcess) =>
+        new(new WindowId(window), Area)
+        {
+            ProcessId = 200 + window,
+            AncestorProcessIds = [150, parentProcess, 4],
+            Traits = WindowTraits.Normal with { Class = "mpv" },
+        };
+
+    private static Client Client(Outcome outcome, long window) =>
+        Assert.Single(outcome.State.Clients, client => client.Window == new WindowId(window));
+
+    private static Rectangle Placement(Outcome outcome, ClientId id) =>
+        Assert.Single(outcome.Placements, placement => placement.Client == id).Bounds;
+}

@@ -19,6 +19,7 @@ public enum WindowRuleEffect
     Maximize,
     FullscreenState,
     Pin,
+    IdleInhibit,
 }
 
 public sealed record WindowRule(
@@ -32,7 +33,8 @@ public sealed record WindowRule(
     Size? Size = null,
     double? ScrollingWidth = null,
     OpacityRule? Opacity = null,
-    FullscreenRule? Fullscreen = null);
+    FullscreenRule? Fullscreen = null,
+    IdleInhibitMode IdleInhibit = IdleInhibitMode.None);
 
 internal readonly record struct WindowDecision(
     bool Adopt,
@@ -47,4 +49,5 @@ internal readonly record struct WindowDecision(
     OpacityRule? Opacity = null,
     bool Opaque = false,
     FullscreenRule? FullscreenRequest = null,
-    bool Pin = false);
+    bool Pin = false,
+    IdleInhibitMode IdleInhibit = IdleInhibitMode.None);

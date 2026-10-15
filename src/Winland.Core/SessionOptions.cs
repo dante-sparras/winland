@@ -12,6 +12,14 @@ public sealed record SessionOptions
 
     public bool MouseMoveFocusesMonitor { get; init; } = true;
 
+    public bool EnableSwallow { get; init; }
+
+    /// <summary>The class a parent Client must fully match to be swallowed. Empty swallows nothing.</summary>
+    public string SwallowRegex { get; init; } = "";
+
+    /// <summary>The title that keeps a parent Client from being swallowed. Empty excludes nothing.</summary>
+    public string SwallowExceptionRegex { get; init; } = "";
+
     public static SessionOptions Documented { get; } = new();
 
     // Adding an entry here applies that keyword and stops the config warning.
@@ -21,6 +29,9 @@ public sealed record SessionOptions
         ["misc:close_special_on_empty"] = (options, value) => TryParseBool(value, out var close) ? options with { CloseSpecialOnEmpty = close } : options,
         ["binds:hide_special_on_workspace_change"] = (options, value) => TryParseBool(value, out var hide) ? options with { HideSpecialOnWorkspaceChange = hide } : options,
         ["misc:mouse_move_focuses_monitor"] = (options, value) => TryParseBool(value, out var mouse) ? options with { MouseMoveFocusesMonitor = mouse } : options,
+        ["misc:enable_swallow"] = (options, value) => TryParseBool(value, out var swallow) ? options with { EnableSwallow = swallow } : options,
+        ["misc:swallow_regex"] = (options, value) => options with { SwallowRegex = Unset(value) },
+        ["misc:swallow_exception_regex"] = (options, value) => options with { SwallowExceptionRegex = Unset(value) },
     };
 
     internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);
@@ -36,6 +47,9 @@ public sealed record SessionOptions
 
     private static SessionOptions Apply(SessionOptions options, Setting setting) =>
         Appliers.TryGetValue(setting.Keyword, out var apply) ? apply(options, setting.Value) : options;
+
+    // The reference config writes an unset string as [[EMPTY]].
+    private static string Unset(string value) => value == "[[EMPTY]]" ? "" : value;
 
     private static bool TryParseBool(string text, out bool value)
     {

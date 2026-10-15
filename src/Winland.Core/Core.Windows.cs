@@ -80,6 +80,9 @@ public sealed partial class Core
 
     private Outcome Appear(WindowAppeared appeared)
     {
+        if (IsSwallowedParent(appeared.Window))
+            return View([], hide: [appeared.Window]);
+
         var processId = appeared.ProcessId is > 0 and <= int.MaxValue ? (int)appeared.ProcessId : 0;
         if (processId > 0)
             _follow.NoteLineage(processId, appeared.AncestorProcessIds);
@@ -92,6 +95,7 @@ public sealed partial class Core
             return IsShown(existing.Workspace) ? View([]) : View([], hide: [appeared.Window]);
 
         var restored = FindRestored(appeared.Window);
+        var swallowee = Swallowee(appeared);
         var screen = MonitorFor(appeared);
         if (_monitors.Count > 0 && screen is null && !RestoredMonitorExists(restored))
             return View([]);
@@ -127,8 +131,12 @@ public sealed partial class Core
         if (decision.FullscreenRequest is { } fullscreen)
             placements = desk.Layout.SetFullscreen(appeared.Window, fullscreen.Internal, fullscreen.Client);
 
+        if (swallowee is not null)
+            placements = SwallowParent(appeared.Window, swallowee, desk, placements);
+
         RememberFocus(appeared.Window, decision);
         RememberOpacity(appeared.Window, decision);
+        RememberIdle(appeared.Window, decision);
         if (decision.Pin && decision.Floating)
             _pinned.Add(appeared.Window);
         var restore = _awaitingMapFocus.Contains(appeared.Window) ? Kept() : null;
@@ -172,10 +180,17 @@ public sealed partial class Core
         ForgetFocus(window);
         ForgetOpacity(window);
         ForgetRestored(window);
+        ForgetIdle(window);
         _pinned.Remove(window);
+        if (ForgetSwallowedParent(window))
+            return View([]);
+
         var desk = WorkspaceContaining(window);
         if (desk is null)
+        {
+            _swallows.Remove(window);
             return View([]);
+        }
 
         _closing = desk;
         var covered = desk.Covered();
@@ -184,6 +199,7 @@ public sealed partial class Core
         var special = desk.Id.IsSpecial && SpecialOn(monitor) == desk.Id;
         var floating = desk.ClientOf(window)?.Floating == true;
         var hadBounds = desk.Layout.TryBounds(window, out var bounds);
+        var returned = Unswallow(window, desk);
         var placements = desk.Layout.Remove(window);
         if (!IsShown(desk.Id))
             placements = [];
@@ -222,7 +238,7 @@ public sealed partial class Core
         var reveal = false;
         if (wasActive)
         {
-            next = FocusAfter(desk, floating, hadBounds ? bounds : default, hadBounds);
+            next = returned ?? FocusAfter(desk, floating, hadBounds ? bounds : default, hadBounds);
             if (next is WindowId chosen)
                 TakeFocus(desk, chosen);
             else if (_input.FocusOnClose == 0)
