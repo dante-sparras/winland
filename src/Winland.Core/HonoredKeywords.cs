@@ -31,6 +31,7 @@ internal static class HonoredKeywords
         Add(table, CursorOptions.Keywords);
         Add(table, InputOptions.Keywords);
         Add(table, GestureOptions.Keywords);
+        Add(table, AnimationOptions.Keywords);
         return table;
     }
 
