@@ -50,6 +50,7 @@ public sealed partial class Core
             _session = SessionOptions.From(config);
             _scrolling = ScrollingOptions.From(config);
             _master = MasterOptions.From(config);
+            ReadAnimations(config);
             ReadCursor(config);
             ReadGestures(config);
             ReadBinds(config);

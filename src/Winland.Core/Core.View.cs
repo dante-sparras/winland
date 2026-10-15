@@ -47,11 +47,13 @@ public sealed partial class Core
                 reset.Add(client.Window);
         }
 
-        return outcome with
-        {
-            Decorations = decorations,
-            ResetDecorations = reset,
-        };
+        return Animate(
+            outcome with
+            {
+                Decorations = decorations,
+                ResetDecorations = reset,
+            },
+            before);
     }
 
     private Outcome View(
