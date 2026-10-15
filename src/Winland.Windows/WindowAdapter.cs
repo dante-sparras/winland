@@ -44,6 +44,7 @@ public sealed partial class WindowAdapter : IDisposable
     {
         ArgumentNullException.ThrowIfNull(core);
         _core = core;
+        _core.ReducedMotion = ReducedMotion;
         Session = core;
         _callback = OnEvent;
         _changed = changed;
@@ -124,6 +125,7 @@ public sealed partial class WindowAdapter : IDisposable
             Session = null;
 
         Release();
+        LandMotions();
         ClearDecorations();
     }
 
@@ -173,6 +175,7 @@ public sealed partial class WindowAdapter : IDisposable
 
     public void RevealHidden()
     {
+        LandMotions();
         var hidden = new List<WindowId>();
         foreach (var client in _core.Recovery().Clients)
         {
@@ -428,8 +431,9 @@ public sealed partial class WindowAdapter : IDisposable
         foreach (var client in outcome.State.Clients)
             windows[client.Id] = client.Window;
 
+        var motions = MotionsOf(outcome);
         foreach (var window in outcome.Hide)
-            Conceal(window);
+            ConcealOrLeave(window, motions);
 
         DropClosedFrames(outcome.State.Clients);
         var borderless = new HashSet<WindowId>();
@@ -444,17 +448,15 @@ public sealed partial class WindowAdapter : IDisposable
             if (!windows.TryGetValue(placement.Client, out var window))
                 continue;
 
-            if (borderless.Contains(window))
-            {
-                Borderless.Apply(window, true);
-                Move(new HWND((nint)window.Value), placement.Bounds);
-            }
-            else
-            {
-                Borderless.Apply(window, false);
-                Place(window, placement.Bounds);
-            }
+            var fills = borderless.Contains(window);
+            Borderless.Apply(window, fills);
+            PlaceMoving(window, placement.Bounds, fills, motions);
         }
+
+        if (outcome.Close is WindowId closing)
+            CloseOrLeave(closing, motions);
+
+        BeginRest(motions);
 
         foreach (var window in outcome.Show)
             Reveal(window);
@@ -480,6 +482,7 @@ public sealed partial class WindowAdapter : IDisposable
             {
                 foreach (var window in outcome.ResetDecorations)
                 {
+                    DropMotion(window);
                     Borderless.Release(window);
                     ResetDecoration(window);
                     Painted.Remove(window);

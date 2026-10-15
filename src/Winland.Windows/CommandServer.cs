@@ -15,7 +15,6 @@ namespace Winland.Windows;
 public sealed class CommandServer : IDisposable
 {
     private const int MaxCommandBytes = 64 * 1024;
-    private const uint CloseMessage = 0x0010;
 
     private const int SubscriberQueueCapacity = 256;
 
@@ -470,13 +469,8 @@ public sealed class CommandServer : IDisposable
             continue;
     }
 
-    private static void Apply(Outcome outcome)
-    {
-        if (outcome.Close is WindowId window)
-            _ = PInvoke.PostMessage(new HWND((nint)window.Value), CloseMessage, default, default);
-
-        WindowAdapter.Apply(outcome);
-    }
+    // The adapter asks the window to close, after its close animation when it has one.
+    private static void Apply(Outcome outcome) => WindowAdapter.Apply(outcome);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct PipeSecurityAttributes

@@ -28,7 +28,8 @@ public class LimitProbeTests
             var anchorId = probe.Anchor.ToInt64();
             var wideId = probe.Wide.ToInt64();
             var smallId = probe.Small.ToInt64();
-            var core = new Core();
+            // The probe reads where each placement lands, so nothing animates on the way.
+            var core = new Core { ReducedMotion = () => true };
             core.Handle(new WindowAppeared(new WindowId(anchorId), area)
             {
                 Traits = WindowTraits.Normal with { MinSize = anchorLimits.Min, MaxSize = anchorLimits.Max },
