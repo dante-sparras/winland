@@ -1,3 +1,4 @@
+using System.Security.AccessControl;
 using Winland.Plugins;
 
 namespace Winland.Tests;
@@ -76,5 +77,30 @@ public class PluginLocationPolicyTests
         Assert.Equal(
             Path.Combine(@"D:\plugins", "approved.json"),
             PluginPaths.DefaultApprovals(null, null, @"D:\plugins"));
+    }
+
+    // FileSystemRights values: read and execute, read, read permissions, full control, modify,
+    // write, create files, append, delete, change permissions, take ownership, then generic rights.
+    [Theory]
+    [InlineData(0x1200A9, false)]
+    [InlineData(0x120089, false)]
+    [InlineData(0x20000, false)]
+    [InlineData(0x1F01FF, true)]
+    [InlineData(0x1301BF, true)]
+    [InlineData(0x116, true)]
+    [InlineData(0x2, true)]
+    [InlineData(0x4, true)]
+    [InlineData(0x10000, true)]
+    [InlineData(0x40000, true)]
+    [InlineData(0x80000, true)]
+    [InlineData(0x40000000, true)]
+    [InlineData(0x10000000, true)]
+    [InlineData(unchecked((int)0x80000000), false)]
+    public void OnlyWriteBitsCountAsWrite(int rights, bool write)
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        Assert.Equal(write, WindowsPluginLocationGuard.CanWrite((FileSystemRights)rights));
     }
 }
