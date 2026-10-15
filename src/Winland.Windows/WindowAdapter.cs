@@ -46,6 +46,11 @@ public sealed partial class WindowAdapter : IDisposable
         _core = core;
         _core.ReducedMotion = ReducedMotion;
         Session = core;
+        GroupBarHost.Dispatch = (name, arguments) =>
+        {
+            if (Session is Core session)
+                Apply(session.Dispatch(name, arguments, allowsElevation: false));
+        };
         _callback = OnEvent;
         _changed = changed;
         if (changed is null)
@@ -498,6 +503,9 @@ public sealed partial class WindowAdapter : IDisposable
                 }
             }
         }
+
+        if (!Releasing)
+            GroupBarHost.Update(outcome.GroupBars);
 
         SessionEffects.Apply(outcome);
         Applied?.Invoke(outcome);
