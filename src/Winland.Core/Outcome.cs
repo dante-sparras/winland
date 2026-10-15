@@ -69,6 +69,9 @@ public sealed record Outcome(
 
     public IReadOnlyList<Decoration> Decorations { get; init; } = [];
 
+    /// <summary>How the windows in this outcome animate to their placements, shows, hides and closes.</summary>
+    public IReadOnlyList<Motion> Motions { get; init; } = [];
+
     public IReadOnlyList<WindowId> ResetDecorations { get; init; } = [];
 
     public IReadOnlyList<DisplayOrientationRequest> Orientations { get; init; } = [];
