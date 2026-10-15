@@ -1,5 +1,7 @@
-# GitHub Actions only. Application dependencies move in a reviewed pull request,
-# not on a schedule. Actions are pinned to a full commit SHA.
+# Dependabot opens one pull request a month for NuGet packages and the .NET SDK
+# in global.json, and one a week for GitHub Actions. Minor and patch bumps of
+# packages and actions are grouped. A major bump arrives as its own pull request.
+# Actions are pinned to a full commit SHA.
 # CVE-only security updates are a repository setting.
 version: 2
 updates:
@@ -15,3 +17,23 @@ updates:
     groups:
       actions-minor-patch:
         update-types: [minor, patch]
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+      include: scope
+    labels: [dependencies]
+    groups:
+      nuget-minor-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: chore(deps)
+      include: scope
+    labels: [dependencies]
