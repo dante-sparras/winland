@@ -42,6 +42,12 @@ public sealed record WindowMoveStarted(WindowId Window, Point Pointer) : Event;
 /// <summary>The system finished moving a window by its title bar.</summary>
 public sealed record WindowMoveEnded(WindowId Window, Point Pointer) : Event;
 
+/// <summary>The system began resizing a window by its border. <see cref="Pointer"/> is where the pointer is.</summary>
+public sealed record WindowSizeStarted(WindowId Window, Point Pointer) : Event;
+
+/// <summary>The system finished resizing a window by its border.</summary>
+public sealed record WindowSizeEnded(WindowId Window, Point Pointer) : Event;
+
 /// <summary>An application asked to be maximized, or to leave it. That is maximize mode 1, toggled.</summary>
 public sealed record WindowMaximizeRequested(WindowId Window) : Event;
 

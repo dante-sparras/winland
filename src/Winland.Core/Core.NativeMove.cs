@@ -17,10 +17,15 @@ public sealed partial class Core
 
         var window = started.Window;
         if (WorkspaceContaining(window) is not LiveWorkspace desk
-            || desk.ClientOf(window) is not { Floating: false, Minimized: false, Fullscreen: FullscreenMode.None } client)
+            || desk.ClientOf(window) is not { Floating: false, Minimized: false } client)
             return View([]);
 
         _nativeMove = window;
+
+        // Taking a maximized or fullscreen Client by its title leaves that mode first, as a Hyprland drag does.
+        if (client.Fullscreen != FullscreenMode.None)
+            _ = desk.Layout.SetFullscreen(window, FullscreenMode.None, FullscreenMode.None);
+
         var grab = new PointerDrag(false, PointerDragPhase.Begin, started.Pointer);
         _ = desk.Layout.Drag(window, grab);
         var lifted = desk.Layout.Drag(window, grab with { Phase = PointerDragPhase.Move });

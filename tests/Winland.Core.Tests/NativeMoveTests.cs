@@ -96,6 +96,30 @@ public class NativeMoveTests
         Assert.Contains(dropped.Placements, placement => placement.Client == Client(dropped, 2).Id);
     }
 
+    [Theory]
+    [InlineData("1")]
+    [InlineData("0")]
+    public void MovingAMaximizedOrFullscreenClientLeavesThatModeAndDropsItBackIn(string mode)
+    {
+        var core = Flat("");
+        Appear(core, 1);
+        Appear(core, 2);
+        core.Handle(new Dispatch("focuswindow", "address:0x2"));
+        core.Handle(new Dispatch("fullscreen", mode));
+
+        var started = core.Handle(new WindowMoveStarted(new WindowId(2), new Point(900, 20)));
+
+        Assert.Equal(FullscreenMode.None, Client(started, 2).Fullscreen);
+        Assert.Equal(Wide, BoundsOf(started, 1));
+        Assert.DoesNotContain(started.Placements, placement => placement.Client == Client(started, 2).Id);
+
+        var dropped = core.Handle(new WindowMoveEnded(new WindowId(2), new Point(100, 500)));
+
+        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(dropped, 2));
+        Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(dropped, 1));
+        Assert.Equal(FullscreenMode.None, Client(dropped, 2).Fullscreen);
+    }
+
     [Fact]
     public void AMoveOfAnUnknownWindowChangesNothing()
     {

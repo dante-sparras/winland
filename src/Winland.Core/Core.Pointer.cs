@@ -186,6 +186,15 @@ public sealed partial class Core
                 continue;
 
             var showing = desk.Showing();
+            if (CoveringClient(desk, showing) is { } covering)
+            {
+                // A maximized or fullscreen Client owns the pointer on its Workspace. The tiles behind it
+                // take no focus, and a maximized one answers only where it is drawn.
+                var slot = desk.Layout.TryBounds(covering.Window, out var found) ? found : covering.Bounds;
+                targets.Add(new PointerFocus.Target(covering.Window, covering.Floating, PlacedBounds(covering, desk, slot)));
+                continue;
+            }
+
             foreach (var client in desk.Layout.Clients)
             {
                 if (client.Minimized || !showing.Contains(client.Window) || HasNoFocus(client.Window))

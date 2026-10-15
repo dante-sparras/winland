@@ -94,6 +94,17 @@ public sealed partial class Core
         return rewritten;
     }
 
+    private static Client? CoveringClient(LiveWorkspace desk, IReadOnlyCollection<WindowId> showing)
+    {
+        foreach (var client in desk.Layout.Clients)
+        {
+            if (client.Fullscreen != FullscreenMode.None && !client.Minimized && showing.Contains(client.Window))
+                return client;
+        }
+
+        return null;
+    }
+
     private Rectangle PlacedBounds(Client client, LiveWorkspace desk, Rectangle slot)
     {
         if (client.Fullscreen == FullscreenMode.None)
