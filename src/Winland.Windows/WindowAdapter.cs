@@ -28,6 +28,7 @@ public sealed partial class WindowAdapter : IDisposable
     private HWINEVENTHOOK _objects;
     private HWINEVENTHOOK _minimize;
     private HWINEVENTHOOK _foreground;
+    private HWINEVENTHOOK _moveSize;
     private bool _disposed;
 
     // Apply is static because the keyboard hook and the command server both call it.
@@ -93,7 +94,16 @@ public sealed partial class WindowAdapter : IDisposable
             0,
             flags);
 
-        if (_objects.IsNull || _minimize.IsNull || _foreground.IsNull)
+        _moveSize = PInvoke.SetWinEventHook(
+            PInvoke.EVENT_SYSTEM_MOVESIZESTART,
+            PInvoke.EVENT_SYSTEM_MOVESIZEEND,
+            default(HMODULE),
+            _callback,
+            0,
+            0,
+            flags);
+
+        if (_objects.IsNull || _minimize.IsNull || _foreground.IsNull || _moveSize.IsNull)
         {
             Release();
             throw new InvalidOperationException("Window events were not hooked.");
@@ -246,6 +256,12 @@ public sealed partial class WindowAdapter : IDisposable
                     }
 
                     Effects.Refit(window);
+                    return;
+                case PInvoke.EVENT_SYSTEM_MOVESIZESTART:
+                    BeginMove(hwnd, window);
+                    return;
+                case PInvoke.EVENT_SYSTEM_MOVESIZEEND:
+                    EndMove(window);
                     return;
                 case PInvoke.EVENT_SYSTEM_MINIMIZESTART:
                     Apply(_core.Handle(new WindowMinimized(window)));
@@ -614,7 +630,11 @@ public sealed partial class WindowAdapter : IDisposable
         if (!_foreground.IsNull)
             PInvoke.UnhookWinEvent(_foreground);
 
+        if (!_moveSize.IsNull)
+            PInvoke.UnhookWinEvent(_moveSize);
+
         _objects = default;
+        _moveSize = default;
         _minimize = default;
         _foreground = default;
     }
