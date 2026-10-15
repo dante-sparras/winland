@@ -45,13 +45,14 @@ public class WorkspaceRuleTests
                 new ConfigWarning(1, "Shadows are not honored."),
                 new ConfigWarning(1, "Animations are not honored."),
                 new ConfigWarning(1, "Floating window gaps are not honored."),
-                new ConfigWarning(1, "Dragging a window onto a split is not honored."),
             ],
             document.Warnings);
         var rule = Assert.Single(document.WorkspaceRules);
         Assert.Equal("DP-1", rule.Monitor);
         Assert.Equal("left", Assert.Contains("force_split", rule.LayoutOpts));
-        Assert.Single(rule.LayoutOpts);
+        Assert.Equal("1", Assert.Contains("precise_mouse_move", rule.LayoutOpts));
+        Assert.Equal("true", Assert.Contains("smart_resizing", rule.LayoutOpts));
+        Assert.Equal(3, rule.LayoutOpts.Count);
     }
 
     [Fact]

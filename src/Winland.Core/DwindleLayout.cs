@@ -396,7 +396,7 @@ internal sealed partial class DwindleLayout : Layout
         if (node.First is null || node.Second is null)
             return;
 
-        if (!keepDirection && !_options.PreserveSplit && !_options.SmartSplit)
+        if (!keepDirection && !_options.PreserveSplit && !_options.SmartSplit && !_options.PreciseMouseMove)
             node.SplitTop = SplitsTop(node.Box);
 
         if (node.SplitTop)

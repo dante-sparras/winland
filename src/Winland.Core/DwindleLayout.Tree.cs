@@ -2,7 +2,8 @@ namespace Winland;
 
 internal sealed partial class DwindleLayout
 {
-    private void Split(Node opening, Node node, Point? pointer, bool focal = false)
+    // A drop from a mouse drag follows the pointer even under force_split, and with precise_mouse_move it picks the side as smart_split does.
+    private void Split(Node opening, Node node, Point? pointer, bool focal = false, bool dropped = false)
     {
         var parent = new Node
         {
@@ -15,14 +16,14 @@ internal sealed partial class DwindleLayout
         var direction = TakePreselect();
         if (direction != PendingSplit.None)
             AssignDirection(parent, opening, node, direction);
-        else if (_options.SmartSplit && pointer is { } point)
+        else if ((_options.SmartSplit || (_options.PreciseMouseMove && dropped)) && pointer is { } point)
             AssignSmart(parent, opening, node, point);
-        else if (!focal && _options.ForceSplit == 1)
+        else if (!focal && !dropped && _options.ForceSplit == 1)
         {
             parent.First = node;
             parent.Second = opening;
         }
-        else if (!focal && _options.ForceSplit == 2)
+        else if (!focal && !dropped && _options.ForceSplit == 2)
         {
             parent.First = opening;
             parent.Second = node;

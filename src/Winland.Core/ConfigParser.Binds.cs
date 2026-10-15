@@ -51,13 +51,43 @@ public static partial class ConfigParser
             }
 
             var dispatcher = parts[index];
+            var arguments = !mouse && parts.Count > index + 1 ? parts[index + 1] : "";
+            if (mouse)
+            {
+                // A mouse bind has no argument field. Its action carries one, as in resizewindow 1.
+                (dispatcher, arguments) = SplitAction(dispatcher);
+            }
+            else if (Is(dispatcher, "mouse"))
+            {
+                // The mouse dispatcher is the bindm action in an ordinary bind.
+                if (!key.StartsWith("mouse:", StringComparison.OrdinalIgnoreCase))
+                {
+                    Warn(lineNumber, "The mouse dispatcher needs a mouse button.");
+                    return;
+                }
+
+                (dispatcher, arguments) = SplitAction(arguments.Trim());
+                if (!Is(dispatcher, "movewindow") && !Is(dispatcher, "resizewindow"))
+                {
+                    Warn(lineNumber, "The mouse dispatcher takes movewindow or resizewindow.");
+                    return;
+                }
+
+                if ((flags & (BindFlag.Repeat | BindFlag.Release | BindFlag.Locked)) != 0)
+                {
+                    Warn(lineNumber, "Bind flags conflict.");
+                    return;
+                }
+
+                flags |= BindFlag.Mouse;
+            }
+
             if (dispatcher.Length > 0 && !Dispatchers.IsKnown(dispatcher))
             {
                 Warn(lineNumber, $"Unknown dispatcher '{dispatcher}'.");
                 return;
             }
 
-            var arguments = !mouse && parts.Count > index + 1 ? parts[index + 1] : "";
             if (key.Equals("catchall", StringComparison.Ordinal) && _submap is null)
             {
                 Warn(lineNumber, "Catchall binds are only allowed in a submap.");
@@ -71,6 +101,12 @@ public static partial class ConfigParser
             }
 
             _binds.Add(new Bind(modifiers, key, dispatcher, arguments, flags, description, _submap, _submapReset));
+        }
+
+        private static (string Dispatcher, string Arguments) SplitAction(string action)
+        {
+            var space = action.IndexOfAny([' ', '\t']);
+            return space > 0 ? (action[..space], action[(space + 1)..].Trim()) : (action, "");
         }
 
         private void HandleUnbind(string rhs, int lineNumber)

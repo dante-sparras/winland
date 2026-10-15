@@ -8,7 +8,7 @@ internal sealed partial class ScrollingLayout
     {
         return drag.Phase switch
         {
-            PointerDragPhase.Begin => BeginDrag(window, drag.Pointer, drag.Resize),
+            PointerDragPhase.Begin => BeginDrag(window, drag.Pointer, drag.Resize, drag.KeepRatio),
             PointerDragPhase.Move => MoveDrag(drag.Pointer, drag.Resize),
             PointerDragPhase.End => EndDrag(drag.Pointer),
             _ => [],
@@ -83,7 +83,7 @@ internal sealed partial class ScrollingLayout
         return [new Placement(id, resized)];
     }
 
-    private IReadOnlyList<Placement> BeginDrag(WindowId window, Point pointer, bool resize)
+    private IReadOnlyList<Placement> BeginDrag(WindowId window, Point pointer, bool resize, bool keepRatio)
     {
         var id = new ClientId(window.Value);
         if (!TryDragBounds(id, out var bounds, out var floating))
@@ -93,7 +93,7 @@ internal sealed partial class ScrollingLayout
         }
 
         var (left, top) = BorderPointer.GrabbedCorner(_layoutOptions.ResizeCorner, floating, pointer, bounds);
-        _grab = new MouseGrab(id, resize, floating, pointer, bounds, left, top);
+        _grab = new MouseGrab(id, resize, floating, pointer, bounds, left, top) { KeepRatio = keepRatio };
         return [];
     }
 
@@ -139,8 +139,8 @@ internal sealed partial class ScrollingLayout
         _floating[grab.Id] = box;
         grab.Lifted = true;
         grab.Start = box;
-        grab.HotX = grab.Grab.X - box.X;
-        grab.HotY = grab.Grab.Y - box.Y;
+        grab.HotX = box.Width / 2;
+        grab.HotY = box.Height / 2;
         Recalculate();
         return true;
     }
@@ -155,13 +155,8 @@ internal sealed partial class ScrollingLayout
 
     private IReadOnlyList<Placement> ResizeDraggedFloating(MouseGrab grab, Point pointer)
     {
-        var dx = pointer.X - grab.Grab.X;
-        var dy = pointer.Y - grab.Grab.Y;
-        var width = Math.Max(1, grab.Left ? grab.Start.Width - dx : grab.Start.Width + dx);
-        var height = Math.Max(1, grab.Top ? grab.Start.Height - dy : grab.Start.Height + dy);
-        var x = grab.Left ? grab.Start.X + grab.Start.Width - width : grab.Start.X;
-        var y = grab.Top ? grab.Start.Y + grab.Start.Height - height : grab.Start.Y;
-        var next = SnapFloating(grab.Id, new Rectangle(x, y, width, height), SnapEdges.FromGrab(grab.Left, grab.Top), resize: true);
+        var resized = BorderPointer.Resize(grab.Start, grab.Grab, pointer, grab.Left, grab.Top, grab.KeepRatio);
+        var next = SnapFloating(grab.Id, resized, SnapEdges.FromGrab(grab.Left, grab.Top), resize: true);
         _floating[grab.Id] = next;
         return WithFloating(grab.Id);
     }
@@ -367,6 +362,8 @@ internal sealed partial class ScrollingLayout
         public bool Top { get; }
 
         public bool Lifted { get; set; }
+
+        public bool KeepRatio { get; init; }
 
         public int HotX { get; set; }
 

@@ -123,12 +123,27 @@ internal static class BorderPointer
             pointer.Y < bounds.Y + (bounds.Height / 2.0));
     }
 
-    public static Rectangle Resize(Rectangle start, Point origin, Point pointer, bool left, bool top)
+    /// <summary>
+    /// Resizes from the grabbed corner. With <paramref name="keepRatio"/> the larger of the two
+    /// proposed sides sets the size and the other follows the starting aspect ratio.
+    /// </summary>
+    public static Rectangle Resize(Rectangle start, Point origin, Point pointer, bool left, bool top, bool keepRatio = false)
     {
         var dx = pointer.X - origin.X;
         var dy = pointer.Y - origin.Y;
-        var width = Math.Max(1, left ? start.Width - dx : start.Width + dx);
-        var height = Math.Max(1, top ? start.Height - dy : start.Height + dy);
+        double proposedWidth = left ? start.Width - dx : start.Width + dx;
+        double proposedHeight = top ? start.Height - dy : start.Height + dy;
+        if (keepRatio && start.Width >= 1 && start.Height >= 1)
+        {
+            var ratio = start.Height / (double)start.Width;
+            if (proposedWidth * ratio > proposedHeight)
+                proposedHeight = proposedWidth * ratio;
+            else
+                proposedWidth = proposedHeight / ratio;
+        }
+
+        var width = Math.Max(1, (int)Math.Round(proposedWidth, MidpointRounding.AwayFromZero));
+        var height = Math.Max(1, (int)Math.Round(proposedHeight, MidpointRounding.AwayFromZero));
         var x = left ? start.X + start.Width - width : start.X;
         var y = top ? start.Y + start.Height - height : start.Y;
         return new Rectangle(x, y, width, height);

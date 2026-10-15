@@ -99,7 +99,6 @@ public static class ConfigGaps
         new("no_focus_fallback", "Focus fallback is not honored."),
         new("opengl", "GPU rendering options have no Windows meaning."),
         new("permission", "Permission rules have no Windows meaning."),
-        new("precise_mouse_move", "Dragging a window onto a split is not honored."),
         new("quirks", "Display buffer quirks have no Windows meaning."),
         new("render", "GPU rendering options have no Windows meaning."),
         new("scale", "Changing a monitor's scale is not honored."),

@@ -137,7 +137,8 @@ internal interface Layout
     IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds) => [];
 }
 
-internal readonly record struct PointerDrag(bool Resize, PointerDragPhase Phase, Point Pointer);
+/// <summary>One step of a mouse move or resize. <see cref="KeepRatio"/> holds a floating Client's aspect ratio while it is resized.</summary>
+internal readonly record struct PointerDrag(bool Resize, PointerDragPhase Phase, Point Pointer, bool KeepRatio = false);
 
 internal static class FloatingShift
 {

@@ -446,7 +446,7 @@ public sealed class KeyboardHook : IDisposable
 
             if (queued.Kind == QueuedKind.Gesture)
             {
-                Apply(_core.Handle(new PointerGesture(queued.Dispatcher, queued.Position, queued.Phase, queued.Button)));
+                Apply(_core.Handle(new PointerGesture(queued.Dispatcher, queued.Position, queued.Phase, queued.Button) { Arguments = queued.Arguments }));
                 return;
             }
 
@@ -516,8 +516,8 @@ public sealed class KeyboardHook : IDisposable
     internal void PostDispatch(string dispatcher, string arguments) =>
         _queued.Writer.TryWrite(new Queued(QueuedKind.Dispatch, dispatcher, arguments, false));
 
-    internal void PostGesture(string dispatcher, Point position, PointerDragPhase phase, string button) =>
-        _queued.Writer.TryWrite(new Queued(QueuedKind.Gesture, dispatcher, "", false, position, phase, button));
+    internal void PostGesture(string dispatcher, string arguments, Point position, PointerDragPhase phase, string button) =>
+        _queued.Writer.TryWrite(new Queued(QueuedKind.Gesture, dispatcher, arguments, false, position, phase, button));
 
     internal void PostMove(Point position, uint time) =>
         _queued.Writer.TryWrite(new Queued(QueuedKind.Move, "", "", false, position, TimeMs: time, HasTime: true));

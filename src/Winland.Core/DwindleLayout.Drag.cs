@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Winland;
 
 internal sealed partial class DwindleLayout
@@ -10,14 +8,14 @@ internal sealed partial class DwindleLayout
     {
         return drag.Phase switch
         {
-            PointerDragPhase.Begin => BeginDrag(window, drag.Pointer, drag.Resize),
+            PointerDragPhase.Begin => BeginDrag(window, drag.Pointer, drag.Resize, drag.KeepRatio),
             PointerDragPhase.Move => MoveDrag(drag.Pointer, drag.Resize),
             PointerDragPhase.End => EndDrag(drag.Pointer),
             _ => [],
         };
     }
 
-    private IReadOnlyList<Placement> BeginDrag(WindowId window, Point pointer, bool resize)
+    private IReadOnlyList<Placement> BeginDrag(WindowId window, Point pointer, bool resize, bool keepRatio)
     {
         var id = new ClientId(window.Value);
         if (!TryDragBounds(id, out var bounds, out var floating))
@@ -27,7 +25,7 @@ internal sealed partial class DwindleLayout
         }
 
         var (left, top) = BorderPointer.GrabbedCorner(_options.ResizeCorner, floating, pointer, bounds);
-        _grab = new MouseGrab(id, resize, floating, pointer, bounds, left, top);
+        _grab = new MouseGrab(id, resize, floating, pointer, bounds, left, top) { KeepRatio = keepRatio };
         return [];
     }
 
@@ -75,8 +73,8 @@ internal sealed partial class DwindleLayout
         _floating[grab.Id] = box;
         grab.Lifted = true;
         grab.Start = box;
-        grab.HotX = grab.Grab.X - box.X;
-        grab.HotY = grab.Grab.Y - box.Y;
+        grab.HotX = box.Width / 2;
+        grab.HotY = box.Height / 2;
         Refit();
         return true;
     }
@@ -91,13 +89,8 @@ internal sealed partial class DwindleLayout
 
     private IReadOnlyList<Placement> ResizeFloating(MouseGrab grab, Point pointer)
     {
-        var dx = pointer.X - grab.Grab.X;
-        var dy = pointer.Y - grab.Grab.Y;
-        var width = Math.Max(1, grab.Left ? grab.Start.Width - dx : grab.Start.Width + dx);
-        var height = Math.Max(1, grab.Top ? grab.Start.Height - dy : grab.Start.Height + dy);
-        var x = grab.Left ? grab.Start.X + grab.Start.Width - width : grab.Start.X;
-        var y = grab.Top ? grab.Start.Y + grab.Start.Height - height : grab.Start.Y;
-        var next = SnapFloating(grab.Id, new Rectangle(x, y, width, height), SnapEdges.FromGrab(grab.Left, grab.Top), resize: true);
+        var resized = BorderPointer.Resize(grab.Start, grab.Grab, pointer, grab.Left, grab.Top, grab.KeepRatio);
+        var next = SnapFloating(grab.Id, resized, SnapEdges.FromGrab(grab.Left, grab.Top), resize: true);
         _floating[grab.Id] = next;
         return WithFloating(grab.Id);
     }
@@ -139,7 +132,10 @@ internal sealed partial class DwindleLayout
         if (dx == 0 && dy == 0)
             return [];
 
-        return ResizeActive(grab.Window, string.Create(CultureInfo.InvariantCulture, $"{dx} {dy}"));
+        if (!_nodes.TryGetValue(grab.Id, out var node) || !InTree(node))
+            return [];
+
+        return ResizeTile(node, dx, dy, (grab.Left, grab.Top));
     }
 
     private IReadOnlyList<Placement> DropTiled(ClientId id, Point pointer)
@@ -160,7 +156,7 @@ internal sealed partial class DwindleLayout
             return Placements();
         }
 
-        Split(target, node, pointer);
+        Split(target, node, pointer, dropped: true);
         _splitTarget = id;
         return Placements();
     }
@@ -242,6 +238,8 @@ internal sealed partial class DwindleLayout
         public bool Top { get; }
 
         public bool Lifted { get; set; }
+
+        public bool KeepRatio { get; init; }
 
         public int HotX { get; set; }
 
