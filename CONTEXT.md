@@ -31,5 +31,20 @@ _Avoid_: Tiling mode, arrangement
 A set of Clients that Winland shows or hides together, owned by Winland and not by Windows virtual desktops.
 _Avoid_: Virtual desktop
 
+**Daemon**:
+The `Winland.Daemon` process, built as `winland`. It is the one long-running, elevated process: it hosts the core, the Windows adapter, the Plugins and the IPC pipe, and a scheduled task starts it at logon.
+_Avoid_: Service
+
+**Plugin**:
+A .NET assembly loaded into the Daemon that registers Dispatchers, config keywords and event handlers. It loads only when the SHA-256 of its file is approved. Layouts from a Plugin are reserved and refused for now.
+
+**IPC pipe**:
+The named pipe `winland` that the Daemon listens on. `winlandctl` and scripts send it commands and Dispatchers, and read the Event stream from it. It accepts only the current user.
+
+**Event stream**:
+The lines the Daemon writes to a client that sends `events` on the IPC pipe, one event per line in the form `name>>data`. Window, Workspace and Monitor events, config warnings and Submap changes are reported in it.
+
+**Submap**:
+A named set of binds that is active only while that Submap is selected. A `submap` line in the config opens one for the binds that follow, and the `submap` Dispatcher selects it. `reset` or an empty name selects the default binds. Each change emits a `submap` event.
 **Monitor**, **Dispatcher**, **Special workspace**, **Group**:
 Used with the meaning they have in Hyprland's manual, unless a Gap says otherwise.
