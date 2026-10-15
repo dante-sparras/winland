@@ -180,6 +180,8 @@ public sealed partial class Core
             WheelTurned wheel => RunKey(NaturalScroll.Apply(_input, wheel)),
             LongPressElapsed => RunKey(input),
             PointerGesture gesture => ApplyGesture(gesture),
+            WindowMoveStarted started => BeginNativeMove(started),
+            WindowMoveEnded ended => EndNativeMove(ended),
             SwipeBegan => BeginSwipe(),
             SwipeUpdated updated => UpdateSwipe(updated),
             SwipeEnded => EndSwipe(),

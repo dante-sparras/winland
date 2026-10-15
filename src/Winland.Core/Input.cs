@@ -36,6 +36,12 @@ public sealed record WindowLimitsChanged(WindowId Window, Size? MinSize, Size? M
 /// <summary>A Client moved or resized itself. <see cref="Bounds"/> is its visible frame.</summary>
 public sealed record WindowResized(WindowId Window, Rectangle Bounds) : Event;
 
+/// <summary>The system began moving a window by its title bar. <see cref="Pointer"/> is where the pointer is.</summary>
+public sealed record WindowMoveStarted(WindowId Window, Point Pointer) : Event;
+
+/// <summary>The system finished moving a window by its title bar.</summary>
+public sealed record WindowMoveEnded(WindowId Window, Point Pointer) : Event;
+
 public sealed record WindowMinimized(WindowId Window) : Event;
 
 public sealed record WindowRestored(WindowId Window) : Event;
