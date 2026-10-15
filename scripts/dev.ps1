@@ -29,10 +29,5 @@ if (-not $Refresh -and (Test-Path (Join-Path $dest 'site/README.md'))) {
     Write-Output 'Manual already present'
     return
 }
-python -c "import markdownify, bs4" 2>$null
-if ($LASTEXITCODE -ne 0) {
-    python -m pip install markdownify beautifulsoup4
-    if ($LASTEXITCODE -ne 0) { throw 'markdownify and beautifulsoup4 are required' }
-}
-python (Join-Path $root 'docs/fetch_reference.py') --root (Join-Path $dest 'site')
+pwsh -NoProfile -File (Join-Path $root 'scripts/fetch-reference.ps1') -Root (Join-Path $dest 'site')
 if ($LASTEXITCODE -ne 0) { throw "Hyprland manual fetch failed with $LASTEXITCODE" }
