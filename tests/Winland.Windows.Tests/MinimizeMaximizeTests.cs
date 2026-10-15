@@ -2,7 +2,7 @@ using Winland.Windows;
 
 namespace Winland.Tests;
 
-/// <summary>Hyprland has no minimize, and a client's maximize request is maximize mode 1.</summary>
+/// <summary>The pinned release has no minimize, and a client's maximize request is maximize mode 1.</summary>
 public class MinimizeMaximizeTests
 {
     private const int Minimize = 6;

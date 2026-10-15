@@ -4,7 +4,7 @@ using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winland.Windows;
 
-// Hyprland has no minimize: a client's request to minimize is ignored. A client's request to maximize
+// The pinned release has no minimize: a client's request to minimize is ignored. A client's request to maximize
 // is maximize mode 1. Windows carries both out before it tells anyone, so they are undone here.
 public sealed partial class WindowAdapter
 {

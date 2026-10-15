@@ -9,7 +9,7 @@ public sealed partial class Core
             return WorkspaceContaining(window)?.ClientOf(window) is not null;
     }
 
-    // Hyprland answers an application's maximize request with maximize mode 1, whichever window has focus.
+    // The pinned release answers an application's maximize request with maximize mode 1, whichever window has focus.
     // Asking again, which is what the maximize button of a maximized window does, leaves it.
     private Outcome MaximizeRequest(WindowId window)
     {

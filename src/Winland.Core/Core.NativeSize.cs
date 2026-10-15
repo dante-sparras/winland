@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// A Client the system resizes by its border. Hyprland treats the resize request of a client like a
+/// A Client the system resizes by its border. The pinned release treats the resize request of a client like a
 /// <c>resizewindow</c> drag, so a tiled Client changes its split. The system resizes the window itself,
 /// so the core applies the whole drag when the border is let go and never places the window in between.
 /// </summary>
