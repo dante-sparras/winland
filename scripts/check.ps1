@@ -1,10 +1,8 @@
 # Lint the tip the pull request will lint. One run, not one run per commit.
 #   pwsh -NoProfile -File scripts/check.ps1
-#   pwsh -NoProfile -File scripts/check.ps1 -InstallHook
 #   pwsh -NoProfile -File scripts/check.ps1 -Ref <sha>
 param(
-    [string]$Ref,
-    [switch]$InstallHook
+    [string]$Ref
 )
 
 $ErrorActionPreference = 'Stop'
@@ -15,50 +13,6 @@ foreach ($name in @('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_PREFIX'))
 }
 
 $repoRoot = Split-Path $PSScriptRoot -Parent
-
-function Get-HooksDirectory([string]$Root) {
-    $common = (& git -C $Root rev-parse --git-common-dir).Trim()
-    if ($LASTEXITCODE -ne 0) { throw 'This directory is not a git checkout.' }
-    if (-not [System.IO.Path]::IsPathRooted($common)) {
-        $common = Join-Path $Root $common
-    }
-    $hooks = Join-Path $common 'hooks'
-    New-Item -ItemType Directory -Force -Path $hooks | Out-Null
-    & git -C $Root config core.hooksPath $hooks
-    if ($LASTEXITCODE -ne 0) { throw 'Could not set core.hooksPath.' }
-    return $hooks
-}
-
-function Install-PrePushHook {
-    $hooks = Get-HooksDirectory $repoRoot
-    $pwsh = (Get-Command pwsh -ErrorAction Stop).Source
-    $path = Join-Path $hooks 'pre-push'
-    $body = @"
-#!/bin/sh
-# Lint each pushed branch tip once. A tag push is not linted.
-root=`$(git rev-parse --show-toplevel) || exit 1
-status=0
-while read -r local_ref local_sha remote_ref remote_sha; do
-    if [ "`$local_sha" = "0000000000000000000000000000000000000000" ]; then
-        continue
-    fi
-    case "`$remote_ref" in
-        refs/tags/*) continue ;;
-    esac
-    '$pwsh' -NoProfile -File "`$root/scripts/check.ps1" -Ref "`$local_sha" || status=1
-done
-exit "`$status"
-"@
-    $body = $body.Replace("`r`n", "`n")
-    $utf8 = New-Object System.Text.UTF8Encoding $false
-    [System.IO.File]::WriteAllText($path, $body, $utf8)
-    Write-Output "Installed $path"
-}
-
-if ($InstallHook) {
-    Install-PrePushHook
-    if (-not $Ref) { exit 0 }
-}
 
 function Get-LintFiles([string]$start, [string]$filter) {
     $found = New-Object System.Collections.Generic.List[string]

@@ -1,1 +1,1 @@
-scripts/hooks/post-merge text eol=lf
+scripts/hooks/* text eol=lf
