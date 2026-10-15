@@ -11,6 +11,7 @@ public sealed class WindowHost : IDisposable
     private readonly WindowAdapter _windows;
     private readonly KeyboardHook _keys;
     private readonly MouseHook _mouse;
+    private readonly TouchpadInput _touchpad;
     private readonly CommandServer _commands;
     private readonly SessionPhase _phase = new();
     private readonly Lock _memory = new();
@@ -37,6 +38,7 @@ public sealed class WindowHost : IDisposable
         });
         _keys = new KeyboardHook(core);
         _mouse = new MouseHook(core, _keys);
+        _touchpad = new TouchpadInput(_keys.PostInput);
         _core.SessionLock = _phase;
         _commands = new CommandServer(core, pipeName);
     }
@@ -61,6 +63,7 @@ public sealed class WindowHost : IDisposable
         _windows.Start();
         _keys.Start();
         _mouse.Start();
+        _touchpad.Start();
         _commands.Start();
     }
 
@@ -146,6 +149,7 @@ public sealed class WindowHost : IDisposable
         try
         {
             _commands.Dispose();
+            _touchpad.Dispose();
             _mouse.Dispose();
             _keys.Dispose();
             _windows.Dispose();
