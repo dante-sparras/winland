@@ -1,25 +1,25 @@
 # Shared by Winoma, Winshell, and Winland. Keep the copies identical.
 # One pull-request entry point. mutation.yml is workflow_call only.
 # Branch protection requires only the job name "All required checks pass (v1)".
-# When a required job is added, bump (v1) here and in
+# When a required step or job is added, bump (v1) here and in
 # .github/rulesets/protect-main.json in the same change. A green check on a
 # commit stays green forever, so the new name is what makes an old green stop counting.
 # Do not add secrets to this workflow. pull_request runs the file from the pull request.
 #
-# Test and lint run on Windows. A net10.0-windows project does not build on Ubuntu.
-# Push runs only on main. A release/* branch is checked by pull_request, not by push.
+# Every check is a step in one Windows job. A net10.0-windows project does not build on
+# Ubuntu, and GitHub bills each job by the started minute, so small separate jobs cost more
+# than the work they do. CI runs on pull requests, not on the push a merge makes to main.
+# A release run tests the exact commit it ships.
 # Mutation testing is the slow lane. It runs when CI is dispatched with release=true.
 
 name: CI
 
 on:
   pull_request:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       release:
-        description: "Release run: skipped required lanes fail"
+        description: "Release run: also run mutation testing"
         type: boolean
         default: false
   workflow_call:
@@ -40,65 +40,35 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  detect:
-    name: Detect
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      dotnet: ${{ steps.classify.outputs.dotnet }}
-    steps:
-      - name: Checkout the pull request head
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.ref || (github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha) }}
-          fetch-depth: 0
-      # The Test lane runs unless the pull request only changes docs and repo metadata.
-      # Any other changed file turns it on, so a new kind of file is tested by default.
-      # An empty diff turns it off. The diff is taken against the checked-out commit,
-      # which is inputs.ref when it is set. --no-renames lists the old path of a rename too,
-      # so moving a code file into docs/ still counts as a code change.
-      # Push and manual runs fail open so a bad classification cannot weaken main.
-      - name: Classify the diff
-        id: classify
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          set -eu
-          if [ "$EVENT_NAME" != "pull_request" ]; then
-            echo "dotnet=true" >> "$GITHUB_OUTPUT"
-            echo "dotnet lane: true (fail open)"
-            exit 0
-          fi
-          git fetch origin "$BASE_REF"
-          dotnet=false
-          while IFS= read -r file; do
-            [ -z "$file" ] && continue
-            case "$file" in
-              *.md|docs/*|.github/ISSUE_TEMPLATE/*|.github/PULL_REQUEST_TEMPLATE.md|.github/CODEOWNERS|.github/rulesets/*|.gitignore|.gitattributes|LICENSE*)
-                ;;
-              *)
-                dotnet=true
-                ;;
-            esac
-          done <<EOF
-          $(git diff --name-only --no-renames "origin/${BASE_REF}...HEAD")
-          EOF
-          echo "dotnet=$dotnet" >> "$GITHUB_OUTPUT"
-          echo "dotnet lane: $dotnet"
-
-  lint:
-    name: Lint
+  # The ruleset names this check and no other.
+  check:
+    name: All required checks pass (v1)
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     steps:
+      # fetch-depth 0 also fetches every branch, so origin/main and the pull request's base
+      # are present without a second fetch, and no credential has to stay on disk.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
+      # A branch that shares no commit with main would add a second root commit to main
+      # and break git blame.
+      - name: Reject unrelated history
+        shell: pwsh
+        env:
+          HEAD_SHA: ${{ inputs.ref || github.event.pull_request.head.sha || github.sha }}
+        run: |
+          git merge-base origin/main $env:HEAD_SHA | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Output '::error::This branch has no common ancestor with main.'
+            exit 1
+          }
+          exit 0
       - name: Run lint
         shell: pwsh
         run: ./scripts/check.ps1
@@ -123,92 +93,41 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "actionlint reported problems (exit code $LASTEXITCODE)."
           }
-
-  test:
-    name: Test
-    needs: detect
-    if: needs.detect.result == 'success' && (github.event_name != 'pull_request' || needs.detect.outputs.dotnet == 'true')
-    runs-on: windows-latest
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.ref }}
-          persist-credentials: false
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        with:
-          global-json-file: global.json
+      # Tests run unless the pull request only changes docs and repo metadata.
+      # Any other changed file turns them on, so a new kind of file is tested by default.
+      # An empty diff turns them off. --no-renames lists the old path of a rename too,
+      # so moving a code file into docs/ still counts as a code change.
+      # Manual and release runs fail open so a bad classification cannot weaken a release.
+      - name: Classify the diff
+        id: classify
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_SHA: ${{ inputs.ref || github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if ($env:EVENT_NAME -ne 'pull_request') {
+            "test=true" >> $env:GITHUB_OUTPUT
+            Write-Output 'test lane: true (fail open)'
+            exit 0
+          }
+          $files = @(git diff --name-only --no-renames "origin/$($env:BASE_REF)...$($env:HEAD_SHA)")
+          if ($LASTEXITCODE -ne 0) { throw "git diff failed with $LASTEXITCODE" }
+          $docs = '^(.*\.md|docs/.*|\.github/ISSUE_TEMPLATE/.*|\.github/PULL_REQUEST_TEMPLATE\.md|\.github/CODEOWNERS|\.github/rulesets/.*|\.gitignore|\.gitattributes|LICENSE.*)$'
+          $code = @($files | Where-Object { $_ -and $_ -cnotmatch $docs })
+          $test = if ($code.Count -gt 0) { 'true' } else { 'false' }
+          "test=$test" >> $env:GITHUB_OUTPUT
+          Write-Output "test lane: $test"
       - name: Run tests
+        if: steps.classify.outputs.test == 'true'
         shell: pwsh
         run: ./scripts/test.ps1
 
-  history:
-    name: History shares an ancestor with main
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.ref || (github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha) }}
-          fetch-depth: 0
-      - name: Reject unrelated history
-        run: |
-          git fetch origin main
-          if ! git merge-base origin/main HEAD >/dev/null; then
-            echo "::error::This branch has no common ancestor with main."
-            exit 1
-          fi
-
+  # Runs beside the check, not after it, so a release run is no slower.
+  # A failure fails the release run. Pull requests never run it.
   mutation:
     name: Mutation testing
-    needs: detect
-    if: needs.detect.result == 'success' && inputs.release == true
+    if: inputs.release == true
     uses: ./.github/workflows/mutation.yml
     with:
       ref: ${{ inputs.ref }}
-
-  # The ruleset names this check and no other. An intentional skip of Test or
-  # Mutation is success. A skip of Detect, Lint, or History is a failure.
-  # inputs.release makes a skipped Test or Mutation a failure too.
-  all-checks-pass:
-    name: All required checks pass (v1)
-    needs: [detect, lint, test, history, mutation]
-    if: always() && !cancelled()
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Fail if any required job failed
-        env:
-          RELEASE: ${{ inputs.release && 'true' || 'false' }}
-          DETECT: ${{ needs.detect.result }}
-          LINT: ${{ needs.lint.result }}
-          TEST: ${{ needs.test.result }}
-          HISTORY: ${{ needs.history.result }}
-          MUTATION: ${{ needs.mutation.result }}
-        run: |
-          failed=0
-          check() {
-            name="$1"
-            value="$2"
-            kind="$3"
-            echo "$name=$value"
-            case "$value" in
-              success) ;;
-              skipped)
-                if [ "$kind" = "always" ] || [ "$RELEASE" = "true" ]; then
-                  echo "::error::$name was skipped"
-                  failed=1
-                fi
-                ;;
-              *)
-                echo "::error::$name result is $value"
-                failed=1
-                ;;
-            esac
-          }
-          check DETECT "$DETECT" always
-          check LINT "$LINT" always
-          check HISTORY "$HISTORY" always
-          check TEST "$TEST" lane
-          check MUTATION "$MUTATION" lane
-          exit "$failed"

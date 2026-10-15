@@ -1,8 +1,10 @@
 # Lint the tip the pull request will lint. One run, not one run per commit.
 #   pwsh -NoProfile -File scripts/check.ps1
 #   pwsh -NoProfile -File scripts/check.ps1 -Ref <sha>
+#   pwsh -NoProfile -File scripts/check.ps1 -Ref <sha> -Test   also runs scripts/test.ps1 on that commit
 param(
-    [string]$Ref
+    [string]$Ref,
+    [switch]$Test
 )
 
 $ErrorActionPreference = 'Stop'
@@ -191,6 +193,14 @@ try {
     foreach ($solution in $solutions) {
         Write-Output "dotnet build $($solution.FullName)"
         dotnet build $solution.FullName --configuration Release --nologo
+        if ($LASTEXITCODE -ne 0) { $failed = 1 }
+    }
+
+    # The tests run from the checked commit's own scripts/test.ps1. A failed lint skips them.
+    if ($Test -and $failed -eq 0) {
+        $testScript = Join-Path $root 'scripts/test.ps1'
+        Write-Output "pwsh $testScript"
+        pwsh -NoProfile -File $testScript
         if ($LASTEXITCODE -ne 0) { $failed = 1 }
     }
 } finally {

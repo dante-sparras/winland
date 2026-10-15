@@ -66,7 +66,7 @@ The hooks are tracked in `scripts/hooks`, and git runs them from there. `pwsh sc
 
 | Hook | When it runs | What it does |
 | --- | --- | --- |
-| pre-push | When you push | Runs the lint on the tip of each branch you push, not on every commit in the push. It skips a tag and a branch deletion. If `pwsh` is not on `PATH`, it says so and lets the push through. |
+| pre-push | When you push | Runs the lint and then the unit tests (`scripts/test.ps1`) on the tip of each branch you push, not on every commit in the push. It checks the pushed commit in a temporary worktree, not your working copy. A failed lint skips the tests. It skips a tag and a branch deletion. If `pwsh` is not on `PATH`, it says so and lets the push through. `git push --no-verify` skips it. |
 | post-merge | After a pull or merge updates `main` | Deletes local feature branches that are finished (see below). |
 
 The post-merge hook deletes a local branch only when both are true:
@@ -78,19 +78,20 @@ It never deletes `main`, `master`, `release/*`, a branch checked out in a worktr
 
 ## CI
 
-Pull requests and pushes to `main` run `.github/workflows/ci.yml`. A pull request can merge only when the check **All required checks pass (v1)** is green. It is the only check the ruleset requires.
+Pull requests run `.github/workflows/ci.yml`. The push a merge makes to `main` does not. A pull request can merge only when the check **All required checks pass (v1)** is green. It is the only check the ruleset requires.
+
+Every lane except Mutation is a step in that one Windows job. GitHub bills each job by the started minute, so separate jobs for checks that take seconds cost more than the checks. The pre-push hook runs the same lint and tests locally, so CI should rarely be the first to find a failure.
 
 | Lane | What it does | When it runs |
 | --- | --- | --- |
-| Detect | Looks at the pull request's diff and decides whether the Test lane is needed. | Always. |
-| Lint | Parses the PowerShell, rejects file or folder names that differ only by case, builds the solution at the repo root if there is one, and runs `actionlint` on `.github/workflows/*.yml`. | Always. |
 | History | Fails when the branch shares no commit with `main`. Merging such a branch would add a second root commit to `main` and break `git blame`. | Always. |
-| Test | Runs `dotnet test` on each `*.Tests.csproj` under `tests/`, except `*.Smoke.Tests.csproj`. | On pushes to `main` and on manual runs. On a pull request, unless every changed file is documentation or repo metadata: `*.md`, `docs/`, `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/CODEOWNERS`, `.github/rulesets/`, `.gitignore`, `.gitattributes`, or `LICENSE*`. Any other change, including one to a workflow or a script, runs it. |
-| Mutation | Mutation testing. It is the slow lane. | Only when CI is dispatched with **Release run** turned on. |
+| Lint | Parses the PowerShell, rejects file or folder names that differ only by case, builds the solution at the repo root if there is one, and runs `actionlint` on `.github/workflows/*.yml`. | Always. |
+| Test | Runs `dotnet test` on each `*.Tests.csproj` under `tests/`, except `*.Smoke.Tests.csproj`. | On manual and release runs. On a pull request, unless every changed file is documentation or repo metadata: `*.md`, `docs/`, `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/CODEOWNERS`, `.github/rulesets/`, `.gitignore`, `.gitattributes`, or `LICENSE*`. Any other change, including one to a workflow or a script, runs it. |
+| Mutation | Mutation testing. It is the slow lane, and a separate job that runs beside the others. | Only on a release run: CI dispatched with **Release run** turned on, or called by a release workflow. |
 
 - Test and Mutation pass until a unit test project exists.
-- On a release run, a lane that skipped counts as a failure.
-- Every job has a timeout: Detect and History 5 minutes, Lint 20, Test 40, Mutation 60.
+- A release run always runs Test and Mutation, and a failure in either fails the run.
+- The check job has a 60-minute timeout, and Mutation has its own 60.
 - Smoke tests (`*.Smoke.Tests.csproj`) run only when someone dispatches the `Smoke tests` workflow by hand (`.github/workflows/smoke.yml`). A release run does not execute them, and they are not a required check.
 
 The Lint lane also checks links in tracked markdown files. A relative link or image must point at a file or folder that exists with exactly that spelling (Linux is case-sensitive). It also checks that each repo path `AGENTS.md` names in backticks exists, except a path in a gitignored reference checkout under `docs/agents/` and the optional files `docs/agents/domain.md` lists. A failure prints as `Broken link: <file>: <target>`.
@@ -98,7 +99,7 @@ The Lint lane also checks links in tracked markdown files. A relative link or im
 ## Rules on `main` and `release/*`
 
 - **No direct changes.** Direct pushes, force-pushes, and deletions are rejected. Everything lands through a pull request.
-- **Rebase and merge is the only allowed method.** The ruleset and the repository settings both reject a merge commit and a squash. A pull request does not need to contain the latest `main`. The merge is a push to `main`, which runs CI again, and a later push does not cancel that run.
+- **Rebase and merge is the only allowed method.** The ruleset and the repository settings both reject a merge commit and a squash. A pull request does not need to contain the latest `main`, and the merge does not run CI again. Two pull requests that each pass alone can still break `main` together. A release run tests the exact commit it ships, so such a break is caught before a release at the latest.
 - **The CI check is the gate.** **All required checks pass (v1)** must be green. Approving reviews required: **0**. There is one maintainer, so requiring 1 would make every pull request unmergeable.
 - **Code owners must review code-owned paths.** The paths are in `.github/CODEOWNERS`, and the owner is `@dante-sparras`. A pull request author cannot approve their own pull request.
 - **Admins can bypass the rules when merging a pull request.** Repository admins (role id 5) can bypass them, which is how a code-owned file lands without a second approver. The bypass covers every rule, including the CI check, so an admin can merge a pull request whose CI is red. Do not. Admins still cannot push straight to `main`. Turn the bypass off once a second maintainer can approve those paths.
