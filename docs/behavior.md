@@ -68,7 +68,7 @@ A new floating Client opens at the size it asked for, centered in the floating w
 
 `movewindow` moves a floating Client with the pointer. A tiled Client is lifted out of the Layout and floats at its tiled size, centered on the pointer. On release it drops back into the Layout at the pointer. In dwindle it splits the tile under the pointer, or the nearest tile, and goes on the half the pointer is over. `dwindle:force_split` does not apply to a drop. `dwindle:precise_mouse_move` defaults to false. When it is on, a drop picks the side of the tile nearest the pointer, as `dwindle:smart_split` does, and splits keep their direction when the tree is refit.
 
-A Client that the system moves by its title bar is dragged the same way. A tiled Client is lifted out of its Layout when the move starts, and the other tiles close the gap. When the move ends it is dropped back in where the pointer is, by the same rule as a `movewindow` drop in that Layout. A floating Client stays where it is dropped. A drag that starts on a sizing border is a resize and is not lifted. Hyprland does the same for the move request of a client.
+A Client that the system moves by its title bar is dragged the same way. A tiled Client is lifted out of its Layout when the move starts, and the other tiles close the gap. When the move ends it is dropped back in where the pointer is, by the same rule as a `movewindow` drop in that Layout. A maximized or fullscreen Client leaves that mode when its title is taken. A floating Client stays where it is dropped. A drag that starts on a sizing border is a resize: a tiled Client changes its split when the border is let go, as `resizewindow` does, and a maximized or fullscreen Client goes back to covering the area. Hyprland does the same for the move and resize requests of a client.
 
 `resizewindow` resizes a floating Client from the grabbed corner. That is the corner nearest the pointer, or the one `general:resize_corner` forces. A tiled Client changes its split ratios instead. `resizewindow 1` keeps a floating Client's aspect ratio: the side that grew more sets the size and the other follows. `resizewindow 2` and no argument do not keep it.
 
@@ -89,6 +89,8 @@ These input keys are honored: `repeat_rate`, `repeat_delay`, `numlock_by_default
 `input:follow_mouse` defaults to 1. 0 leaves keyboard focus where it is when the pointer moves. 1 moves it to the Client under the pointer once the pointer has traveled farther than `input:follow_mouse_threshold` logical pixels. That distance accumulates while the pointer keeps moving and resets after the pointer has been still for half a second. 2 and 3 do not move keyboard focus when the pointer moves. 3 also keeps the focused Client when a click would take it. The names `disabled`, `follow`, `detached`, and `separate` are 0, 1, 2, and 3.
 
 `input:follow_mouse_shrink` insets every Client except the focused one by that many logical pixels. The pointer in the inset does not move keyboard focus. The window under the pointer still receives pointer input.
+
+On a Workspace with a maximized or fullscreen Client, that Client owns the pointer. The tiles behind it take no focus when the pointer passes over them. A maximized Client takes the focus only where it is drawn, and a fullscreen one wherever the pointer is.
 
 `input:mouse_refocus` defaults to true. When it is false, mode 1 does not move keyboard focus back to the Client already under the pointer until the pointer crosses onto another Client.
 

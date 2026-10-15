@@ -14,28 +14,42 @@ public sealed partial class WindowAdapter
 
     // The system moves and sizes a window in a loop of its own, and reports only its start and its end.
     private WindowId? _moving;
+    private WindowId? _sizing;
 
     private void BeginMove(HWND hwnd, WindowId window)
     {
-        if (_moving is not null || !PInvoke.GetCursorPos(out var cursor) || !GrabsTheTitle(hwnd, cursor))
+        if (_moving is not null || _sizing is not null || !PInvoke.GetCursorPos(out var cursor))
             return;
 
+        var pointer = new Point(cursor.X, cursor.Y);
+        if (GrabsABorder(hwnd, cursor))
+        {
+            _sizing = window;
+            Apply(_core.Handle(new WindowSizeStarted(window, pointer)));
+            return;
+        }
+
         _moving = window;
-        Apply(_core.Handle(new WindowMoveStarted(window, new Point(cursor.X, cursor.Y))));
+        Apply(_core.Handle(new WindowMoveStarted(window, pointer)));
     }
 
     private void EndMove(WindowId window)
     {
-        if (_moving != window)
-            return;
-
-        _moving = null;
         var pointer = PInvoke.GetCursorPos(out var cursor) ? new Point(cursor.X, cursor.Y) : default;
-        Apply(_core.Handle(new WindowMoveEnded(window, pointer)));
+        if (_moving == window)
+        {
+            _moving = null;
+            Apply(_core.Handle(new WindowMoveEnded(window, pointer)));
+        }
+        else if (_sizing == window)
+        {
+            _sizing = null;
+            Apply(_core.Handle(new WindowSizeEnded(window, pointer)));
+        }
     }
 
-    // A drag that starts on a sizing border is a resize, which the core does not lift a window for.
-    private static unsafe bool GrabsTheTitle(HWND hwnd, System.Drawing.Point cursor)
+    // A drag that starts on a sizing border is a resize. Anything else, the title above all, is a move.
+    private static unsafe bool GrabsABorder(HWND hwnd, System.Drawing.Point cursor)
     {
         nuint hit = 0;
         var packed = (nint)(((cursor.Y & 0xFFFF) << 16) | (cursor.X & 0xFFFF));
@@ -49,9 +63,9 @@ public sealed partial class WindowAdapter
             HitTestTimeoutMs,
             &hit);
         if (sent == 0 && Marshal.GetLastPInvokeError() != 0)
-            return true;
+            return false;
 
         var code = (int)hit;
-        return code != HitSizeBox && !(code is >= HitLeft and <= HitBottomRight);
+        return code == HitSizeBox || code is >= HitLeft and <= HitBottomRight;
     }
 }
