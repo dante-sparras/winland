@@ -8,9 +8,12 @@ Issues are GitHub Issues on `dante-sparras/winland`, labelled with the roles in 
 
 - Branch names, commit messages, and how a pull request lands are in `CONTRIBUTING.md`.
 - C# on .NET 10. Nullable reference types and implicit usings are on. Warnings are errors.
+- Commands: `pwsh -NoProfile -File scripts/check.ps1` lints and builds, `scripts/test.ps1` runs the unit tests, and `scripts/mutate.ps1` runs mutation testing.
 - A version is `0.1.<commits on HEAD>`, printed by `version.ps1`.
 - Triage labels are the five default roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), each label string equal to its role name.
 - The Hyprland checkout and its wiki are gitignored.
+- The word "hyprland" never appears in code, identifiers, file names or user-visible strings (ADR 0002).
+- Every Gap is recorded in `docs/gaps.md`, Winland extensions in `docs/extensions.md`, and honored behavior in `docs/behavior.md`.
 
 # Architecture
 
