@@ -61,8 +61,7 @@ public class CommandServerTests
         using var second = new Listener(name);
         WaitUntilSubscribed(core, first);
         WaitUntilSubscribed(core, second);
-        Drain(first);
-        Drain(second);
+        Sync(core, first, second);
 
         var area = new Rectangle(0, 0, 200, 100);
         core.Handle(new WindowAppeared(new WindowId(7), area)
@@ -71,10 +70,10 @@ public class CommandServerTests
         });
         Assert.Equal(
             ["openwindow>>7,1,app,title", "activewindow>>app,title", "activewindowv2>>7"],
-            Take(first));
+            Take(first, 3));
         Assert.Equal(
             ["openwindow>>7,1,app,title", "activewindow>>app,title", "activewindowv2>>7"],
-            Take(second));
+            Take(second, 3));
 
         Assert.Equal("ok", CommandClient.Transact("dispatch workspace 2", name));
         Assert.Equal(
@@ -86,7 +85,7 @@ public class CommandServerTests
                 "activewindow>>,",
                 "activewindowv2>>",
             ],
-            Take(first));
+            Take(first, 6));
         Assert.Equal(
             [
                 "createworkspace>>2",
@@ -96,10 +95,10 @@ public class CommandServerTests
                 "activewindow>>,",
                 "activewindowv2>>",
             ],
-            Take(second));
+            Take(second, 6));
 
         core.Handle(new WindowClosed(new WindowId(7)));
-        Assert.Equal(["closewindow>>7"], Take(first));
+        Assert.Equal(["closewindow>>7"], Take(first, 1));
     }
 
     [Fact]
@@ -139,9 +138,9 @@ public class CommandServerTests
 
         using var listener = new Listener(name);
         WaitUntilSubscribed(core, listener);
-        Drain(listener);
+        Sync(core, listener);
         core.Handle(new WindowAppeared(new WindowId(3), new Rectangle(0, 0, 10, 10)));
-        Assert.Equal(["openwindow>>3,1,,", "activewindow>>,", "activewindowv2>>3"], Take(listener));
+        Assert.Equal(["openwindow>>3,1,,", "activewindow>>,", "activewindowv2>>3"], Take(listener, 3));
         Assert.Equal("ok", CommandClient.Transact("dispatch workspace 1", name));
     }
 
@@ -188,26 +187,43 @@ public class CommandServerTests
         for (var i = 1; i <= 40; i++)
         {
             core.Handle(new WindowAppeared(new WindowId(100 + i), new Rectangle(0, 0, 10, 10)));
-            if (listener.TryTake(TimeSpan.FromMilliseconds(200), out _))
+            if (listener.TryTake(TimeSpan.FromMilliseconds(500), out _))
                 return;
         }
 
         throw new TimeoutException("The event subscriber did not connect.");
     }
 
-    private static void Drain(Listener listener)
+    // Everything a listener is sent arrives in order. A window opened now is the last thing it hears about,
+    // so reading up to that window leaves nothing queued from before. A quiet gap proves nothing on a slow machine.
+    private static void Sync(Core core, params Listener[] listeners)
     {
-        while (listener.TryTake(TimeSpan.FromMilliseconds(100), out _))
-            continue;
+        const long marker = 0x270F;
+        core.Handle(new WindowAppeared(new WindowId(marker), new Rectangle(0, 0, 10, 10)));
+        foreach (var listener in listeners)
+        {
+            var seen = false;
+            while (!seen)
+            {
+                Assert.True(listener.TryTake(TimeSpan.FromSeconds(10), out var line), "The marker window was never reported.");
+                seen = line == "activewindowv2>>270f";
+            }
+        }
     }
 
-    private static List<string> Take(Listener listener)
+    // Reads the lines the test expects, however long a slow machine takes to deliver them. Anything that
+    // arrives right after them is returned too, so an unexpected extra line still fails the comparison.
+    private static List<string> Take(Listener listener, int count)
     {
         var lines = new List<string>();
-        Assert.True(listener.TryTake(TimeSpan.FromSeconds(2), out var first));
-        lines.Add(first);
-        while (listener.TryTake(TimeSpan.FromMilliseconds(200), out var line))
+        while (lines.Count < count)
+        {
+            Assert.True(listener.TryTake(TimeSpan.FromSeconds(10), out var line), $"Only {lines.Count} of {count} events arrived: {string.Join(", ", lines)}");
             lines.Add(line);
+        }
+
+        while (listener.TryTake(TimeSpan.FromMilliseconds(200), out var extra))
+            lines.Add(extra);
 
         return lines;
     }
