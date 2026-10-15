@@ -1,3 +1,5 @@
+using static Winland.OrdinalText;
+
 namespace Winland;
 
 public sealed record SessionOptions
@@ -52,7 +54,4 @@ public sealed record SessionOptions
         value = false;
         return false;
     }
-
-    private static bool Is(string text, string expected) =>
-        text.Equals(expected, StringComparison.OrdinalIgnoreCase);
 }

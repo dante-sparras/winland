@@ -1,3 +1,5 @@
+using static Winland.OrdinalText;
+
 namespace Winland;
 
 public static class ConfigParser
@@ -718,9 +720,6 @@ public static class ConfigParser
             modifier = Modifier.None;
             return false;
         }
-
-        private static bool Is(string token, string expected) =>
-            token.Equals(expected, StringComparison.OrdinalIgnoreCase);
 
         private readonly record struct OpenCategory(string Name, int Line, string? Source, string? Key = null);
     }
