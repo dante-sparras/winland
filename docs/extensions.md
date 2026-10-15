@@ -19,3 +19,5 @@ A plugin installed by `winlandctl plugin install` or `update` is built as the no
 A floating Client that changes its own size within 2 seconds of opening is put back at the rectangle Winland opened it at, once. Electron applications restore their saved bounds just after the window is shown, which would undo the centering and the `move`, `size` and `center` rules. A move that keeps the size is left alone, and a later resize is the application's or the user's. A placement by `movewindowpixel`, `resizewindowpixel` or `centerwindow` ends that wait.
 
 Animations follow the Windows setting **Animation effects** (Settings, Accessibility, Visual effects). When it is off, nothing animates, the same as `animations:enabled = false`.
+
+When Winland starts, it adopts the windows that are already open, as if each had just appeared. A minimized window is left alone until it is restored. Hyprland has no such step, because every window it manages is created after it starts.

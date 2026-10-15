@@ -145,3 +145,4 @@ CreateFont
 SetTextColor
 SetBkMode
 DrawText
+EnumWindows
