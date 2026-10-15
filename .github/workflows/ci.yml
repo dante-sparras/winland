@@ -1,0 +1,101 @@
+# One pull-request entry point. The ruleset requires only the aggregate check
+# "All required checks pass (v1)". Bump that name here and in
+# .github/rulesets/protect-main.json in the same change when a required job is added.
+# A green check on an old name stays green forever.
+#
+# This file stays secret-free. It runs pull-request-controlled code.
+# The desktop smoke test is not a job: it needs a logged-on desktop and can
+# leave modifier keys stuck. CI never sets WINLAND_SMOKE.
+# Push runs only on main. A release/* branch is checked by pull_request, not by push.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Release run: a skipped required lane fails"
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      release:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: Test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Run tests
+        shell: pwsh
+        run: dotnet test Winland.slnx --configuration Release --filter "FullyQualifiedName!~Winland.Smoke"
+
+  lint:
+    name: Lint
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Run lint
+        shell: pwsh
+        run: dotnet build Winland.slnx --configuration Release
+
+  history:
+    name: History shares an ancestor with main
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Reject unrelated history
+        shell: pwsh
+        run: |
+          git fetch origin main
+          git merge-base origin/main HEAD | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Output "::error::This branch has no common ancestor with main."
+            exit 1
+          }
+
+  # Branch protection requires ONLY this check.
+  all-checks-pass:
+    name: All required checks pass (v1)
+    needs: [test, lint, history]
+    if: always()
+    runs-on: windows-latest
+    steps:
+      - name: Fail if any required job failed
+        shell: pwsh
+        env:
+          TEST: ${{ needs.test.result }}
+          LINT: ${{ needs.lint.result }}
+          HISTORY: ${{ needs.history.result }}
+          RELEASE: ${{ inputs.release == true }}
+        run: |
+          $failed = 0
+          $allowed = @('success')
+          if ($env:RELEASE -ne 'true') { $allowed += 'skipped' }
+          foreach ($name in 'TEST', 'LINT', 'HISTORY') {
+            $value = (Get-Item "Env:$name").Value
+            Write-Output "$name=$value"
+            if ($allowed -notcontains $value) { $failed = 1 }
+          }
+          exit $failed

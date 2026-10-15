@@ -11,6 +11,8 @@ $HyprlandTag = 'v0.56.2'
 
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
+pwsh -NoProfile -File (Join-Path $root 'scripts/check.ps1') -InstallHook pre-push
+if ($LASTEXITCODE -ne 0) { throw "pre-push hook install failed with $LASTEXITCODE" }
 $dest = Join-Path $root 'docs/agents/hyprland'
 if (-not (Test-Path (Join-Path $dest '.git'))) {
     if (Test-Path $dest) { throw "$dest exists but is not a git checkout" }
