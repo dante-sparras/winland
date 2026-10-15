@@ -34,6 +34,95 @@ function Get-LintFiles([string]$start, [string]$filter) {
     return $found
 }
 
+# Check the inline links in tracked markdown, and the repo paths AGENTS.md names in backticks.
+# Prints one line per failure and returns how many there were.
+function Test-MarkdownLinks([string]$Root, [string[]]$Tracked) {
+    $files = New-Object System.Collections.Generic.HashSet[string] ([System.StringComparer]::Ordinal)
+    $dirs = New-Object System.Collections.Generic.HashSet[string] ([System.StringComparer]::Ordinal)
+    foreach ($path in $Tracked) {
+        [void]$files.Add($path)
+        $parts = $path -split '/'
+        for ($i = 0; $i -lt $parts.Count - 1; $i++) {
+            [void]$dirs.Add($parts[0..$i] -join '/')
+        }
+    }
+
+    # A file that docs/agents/domain.md says may be missing, and a reference
+    # checkout that is gitignored, are not an error in AGENTS.md.
+    $optional = @('CONTEXT.md', 'docs/adr', 'docs/adr/README.md')
+    $ignoredCheckout = '^docs/agents/(omarchy|quickshell|hyprland)(/|$)'
+    $pathExtensions = '\.(md|ps1|json|yml|yaml|props|slnx|csproj)$'
+
+    $linkCount = 0
+    $pathCount = 0
+    $broken = 0
+    $mdFiles = @($Tracked | Where-Object { $_ -like '*.md' -and (Test-Path -LiteralPath (Join-Path $Root $_) -PathType Leaf) })
+    foreach ($md in $mdFiles) {
+        $folder = if ($md.Contains('/')) { $md.Substring(0, $md.LastIndexOf('/')) } else { '' }
+        $fence = $null
+        foreach ($line in [System.IO.File]::ReadAllLines((Join-Path $Root $md))) {
+            if ($fence) {
+                if ($line -match ('^ {0,3}' + [regex]::Escape($fence[0]) + '{' + $fence.Length + ',}\s*$')) { $fence = $null }
+                continue
+            }
+            if ($line -match '^ {0,3}(`{3,}|~{3,})') {
+                $fence = $Matches[1]
+                continue
+            }
+
+            $text = [regex]::Replace($line, '`[^`]*`', '')
+            foreach ($match in [regex]::Matches($text, '\]\(\s*(<[^>]*>|[^)\s]*)(?:\s+(?:"[^"]*"|''[^'']*''))?\s*\)')) {
+                $target = $match.Groups[1].Value.Trim('<', '>')
+                if ($target -match '^[A-Za-z][A-Za-z0-9+.-]*:' -or $target.StartsWith('#')) { continue }
+                $target = ($target -split '[#?]')[0]
+                if (-not $target) { continue }
+                $linkCount++
+                $target = [System.Uri]::UnescapeDataString($target)
+                $segments = New-Object System.Collections.Generic.List[string]
+                if (-not $target.StartsWith('/') -and $folder) {
+                    $segments.AddRange([string[]]($folder -split '/'))
+                }
+                $outside = $false
+                foreach ($part in ($target -split '/')) {
+                    if ($part -eq '' -or $part -eq '.') { continue }
+                    if ($part -eq '..') {
+                        if ($segments.Count -eq 0) { $outside = $true; break }
+                        $segments.RemoveAt($segments.Count - 1)
+                    } else {
+                        $segments.Add($part)
+                    }
+                }
+                $resolved = $segments -join '/'
+                if ($outside -or ($resolved -and -not $files.Contains($resolved) -and -not $dirs.Contains($resolved))) {
+                    Write-Host "Broken link: ${md}: $($match.Groups[1].Value.Trim('<', '>'))"
+                    $broken++
+                }
+            }
+
+            if ($md -ne 'AGENTS.md') { continue }
+            foreach ($span in [regex]::Matches($line, '`([^`]+)`')) {
+                $candidate = $span.Groups[1].Value
+                if ($candidate -match '[\s<>*$|{}()=]' -or $candidate -match '^[A-Za-z][A-Za-z0-9+.-]*:') { continue }
+                if (-not ($candidate.Contains('/') -or $candidate -match $pathExtensions)) { continue }
+                if ($candidate -match '^dante-sparras/[^/]+$') { continue }
+                $path = $candidate.TrimEnd('/')
+                if ($path.StartsWith('./')) { $path = $path.Substring(2) }
+                if ($path -match $ignoredCheckout -or $candidate.Contains('site/') -or $candidate.Contains('manual/')) { continue }
+                if ($path -in $optional) { continue }
+                $pathCount++
+                if (-not $files.Contains($path) -and -not $dirs.Contains($path)) {
+                    Write-Host "Broken link: ${md}: $candidate"
+                    $broken++
+                }
+            }
+        }
+    }
+    if ($broken -eq 0) {
+        Write-Host "markdown links ok: $linkCount links in $($mdFiles.Count) files, $pathCount AGENTS.md paths"
+    }
+    return $broken
+}
+
 $failed = 0
 $scratch = $null
 $root = $repoRoot
@@ -89,6 +178,7 @@ try {
     Write-Output 'dotnet build scripts/fetch-reference.cs'
     dotnet build (Join-Path $root 'scripts/fetch-reference.cs') --configuration Release --nologo
     if ($LASTEXITCODE -ne 0) { $failed = 1 }
+    if ((Test-MarkdownLinks $root $tracked) -gt 0) { $failed = 1 }
 
     $solutions = @()
     $solutions += @(Get-ChildItem -Path $root -Filter *.slnx -File -ErrorAction SilentlyContinue)
