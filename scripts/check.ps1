@@ -130,6 +130,12 @@ try {
         Write-Output "no case collisions in $($tracked.Count) tracked files"
     }
 
+    # scripts/fetch-reference.cs is a file-based app that no solution builds. Compile it here,
+    # without running it, so it stays under the repo's compiler rules.
+    Write-Output 'dotnet build scripts/fetch-reference.cs'
+    dotnet build (Join-Path $root 'scripts/fetch-reference.cs') --configuration Release --nologo
+    if ($LASTEXITCODE -ne 0) { $failed = 1 }
+
     $solutions = @()
     $solutions += @(Get-ChildItem -Path $root -Filter *.slnx -File -ErrorAction SilentlyContinue)
     if ($solutions.Count -eq 0) {

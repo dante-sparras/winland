@@ -1,50 +1,73 @@
-# Fetches the Hyprland wiki into markdown. scripts/dev.ps1 calls this.
-# Do not edit the pages it writes.
-param(
-    [string]$Root,
-    [string[]]$Only
-)
-
-$ErrorActionPreference = 'Stop'
-
-$source = @'
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+// Fetches a reference site into markdown. scripts/dev.ps1 calls this.
+//
+//   dotnet run scripts/fetch-reference.cs -- --root <dir> [--only <url>[,<url>...]]
+//
+// Everything above the ADAPTER marker is shared and byte-for-byte identical in winoma, winshell and winland.
+// Only the adapter at the bottom differs. Do not edit the pages this writes.
 using System.Net;
-using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
+using FetchRef;
+
+string? root = null;
+var only = new List<string>();
+for (var i = 0; i < args.Length; i++)
+{
+    switch (args[i])
+    {
+        case "--root" when i + 1 < args.Length:
+            root = args[++i];
+            break;
+        case "--only" when i + 1 < args.Length:
+            only.AddRange(args[++i].Split(',', StringSplitOptions.RemoveEmptyEntries));
+            break;
+        default:
+            Console.Error.WriteLine("Unknown or incomplete argument: " + args[i]);
+            Console.Error.WriteLine("Usage: dotnet run scripts/fetch-reference.cs -- --root <dir> [--only <url>[,<url>...]]");
+            return 2;
+    }
+}
+if (string.IsNullOrWhiteSpace(root))
+{
+    Console.Error.WriteLine("--root is required.");
+    return 2;
+}
+try
+{
+    return Engine.Run(new ReferenceSite(), root, only.ToArray());
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine(ex.Message);
+    return 1;
+}
 
 namespace FetchRef
 {
     public sealed class HNode
     {
-        public string Name;
+        public required string Name;
         public string Text = "";
-        public HNode Parent;
+        public HNode? Parent;
         public readonly List<HNode> Children = new List<HNode>();
         public readonly Dictionary<string, string> Attr = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         public bool IsText { get { return Name == "#text"; } }
 
         public static HNode El(string name) { return new HNode { Name = name }; }
-        public static HNode Txt(string text) { return new HNode { Name = "#text", Text = text ?? "" }; }
+        public static HNode Txt(string? text) { return new HNode { Name = "#text", Text = text ?? "" }; }
 
-        public string Get(string name)
+        public string? Get(string name)
         {
-            string value;
+            string? value;
             return Attr.TryGetValue(name, out value) ? value : null;
         }
 
-        public void Set(string name, string value) { Attr[name] = value ?? ""; }
+        public void Set(string name, string? value) { Attr[name] = value ?? ""; }
 
         public bool HasClass(string token)
         {
-            string value;
+            string? value;
             if (!Attr.TryGetValue("class", out value) || string.IsNullOrEmpty(value)) return false;
             foreach (var part in value.Split(new[] { ' ', '\t', '\n', '\r', '\f' }, StringSplitOptions.RemoveEmptyEntries))
                 if (part == token) return true;
@@ -103,7 +126,7 @@ namespace FetchRef
             return list;
         }
 
-        public HNode FindTag(params string[] names)
+        public HNode? FindTag(params string[] names)
         {
             var wanted = new HashSet<string>(names);
             foreach (var node in Descendants())
@@ -281,7 +304,7 @@ namespace FetchRef
             return result;
         }
 
-        public static HNode One(HNode scope, string selector)
+        public static HNode? One(HNode scope, string selector)
         {
             var found = Select(scope, selector);
             return found.Count == 0 ? null : found[0];
@@ -361,7 +384,7 @@ namespace FetchRef
         {
             public string Tag = "";
             public readonly List<string> Classes = new List<string>();
-            public string Attr;
+            public string? Attr;
         }
     }
 
@@ -515,7 +538,7 @@ namespace FetchRef
             if (code != null) nodes.Add(code);
             foreach (var node in nodes)
             {
-                string classes;
+                string? classes;
                 if (node.Attr.TryGetValue("class", out classes))
                 {
                     foreach (var name in classes.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries))
@@ -617,7 +640,7 @@ namespace FetchRef
                 foreach (var child in rows[r].Children)
                     if (child.Name == "td" || child.Name == "th") cells.Add(child);
                 var head = cells.Count > 0 && cells.TrueForAll(cell => cell.Name == "th");
-                if (rows[r].Parent != null && rows[r].Parent.Name == "thead") head = true;
+                if (rows[r].Parent?.Name == "thead") head = true;
                 var span = 0;
                 foreach (var cell in cells) span += ColSpan(cell);
                 if (span == 0) span = 1;
@@ -657,7 +680,7 @@ namespace FetchRef
             return 1;
         }
 
-        static HNode Nearest(HNode node, string name)
+        static HNode? Nearest(HNode node, string name)
         {
             var parent = node.Parent;
             while (parent != null)
@@ -688,7 +711,7 @@ namespace FetchRef
 
         static bool IsBlock(HNode node) { return node != null && !node.IsText && Blocks.Contains(node.Name); }
 
-        static HNode PreviousElement(HNode node)
+        static HNode? PreviousElement(HNode node)
         {
             if (node.Parent == null) return null;
             var index = node.Parent.Children.IndexOf(node);
@@ -697,7 +720,7 @@ namespace FetchRef
             return null;
         }
 
-        static HNode NextElement(HNode node)
+        static HNode? NextElement(HNode node)
         {
             if (node.Parent == null) return null;
             var index = node.Parent.Children.IndexOf(node);
@@ -706,7 +729,7 @@ namespace FetchRef
             return null;
         }
 
-        static HNode First(HNode node, string name)
+        static HNode? First(HNode node, string name)
         {
             foreach (var child in node.Children)
                 if (child.Name == name) return child;
@@ -755,7 +778,7 @@ namespace FetchRef
         public abstract List<string> SourceUrls(Func<string, byte[]> fetch);
         public abstract string PageKey(Uri uri);
         public abstract string CleanTitle(string text);
-        public abstract HNode SelectContent(HNode doc);
+        public abstract HNode? SelectContent(HNode doc);
         public virtual void ExtraPrepare(HNode node) { }
         public abstract List<SideItem> Sidebar(HNode doc);
 
@@ -784,7 +807,7 @@ namespace FetchRef
             return path.Trim('/');
         }
 
-        public List<string> SitemapUrls(Func<string, byte[]> fetch, string sitemap, string[] skip)
+        public List<string> SitemapUrls(Func<string, byte[]> fetch, string sitemap, string[]? skip)
         {
             var raw = Encoding.UTF8.GetString(fetch(sitemap));
             var urls = new List<string>();
@@ -827,8 +850,8 @@ namespace FetchRef
 
     public sealed class SideItem
     {
-        public string Key;
-        public string Title;
+        public required string Key;
+        public required string Title;
     }
 
     public static class Engine
@@ -839,11 +862,11 @@ namespace FetchRef
             ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif"
         };
         static readonly object ImageLock = new object();
-        static HttpClient Http;
+        static HttpClient? Http;
 
         public static int Run(FetchSite site, string root, string[] only)
         {
-            if (string.IsNullOrWhiteSpace(root)) throw new ArgumentException("-Root is required.");
+            if (string.IsNullOrWhiteSpace(root)) throw new ArgumentException("--root is required.");
             root = Path.GetFullPath(root);
             EnsureClient(site.UserAgent);
             var all = site.SourceUrls(Fetch);
@@ -873,7 +896,8 @@ namespace FetchRef
             var gate = new object();
             Parallel.ForEach(urls, new ParallelOptions { MaxDegreeOfParallelism = 6 }, url =>
             {
-                string key = null, title = null, target = null, text = null, error = null;
+                string key = "", title = "", target = "", text = "";
+                string? error = null;
                 try
                 {
                     key = site.PageKey(new Uri(url));
@@ -902,7 +926,7 @@ namespace FetchRef
                     else
                     {
                         var path = Path.Combine(root, target.Replace('/', Path.DirectorySeparatorChar));
-                        Directory.CreateDirectory(Path.GetDirectoryName(path));
+                        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? root);
                         File.WriteAllText(path, text, Utf8);
                         pages[key] = target;
                         titles[key] = title;
@@ -917,14 +941,14 @@ namespace FetchRef
                 var order = site.Sidebar(HtmlDoc.Parse(homeHtml));
                 for (var i = 0; i < order.Count; i++)
                 {
-                    string title;
+                    string? title;
                     if (titles.TryGetValue(order[i].Key, out title)) order[i].Title = title;
                 }
                 var known = new HashSet<string>(order.Select(item => item.Key), StringComparer.Ordinal);
                 foreach (var key in pages.Keys.OrderBy(item => item, StringComparer.Ordinal))
                 {
                     if (known.Contains(key)) continue;
-                    string title;
+                    string? title;
                     order.Add(new SideItem { Key = key, Title = titles.TryGetValue(key, out title) ? title : (key.Length == 0 ? "index" : key) });
                 }
                 WriteReadme(site, root, pages, order, today);
@@ -964,13 +988,13 @@ namespace FetchRef
 
         static void ConvertCallouts(HNode node)
         {
-            var callouts = new List<Tuple<HNode, HNode, string>>();
+            var callouts = new List<Tuple<HNode, HNode?, string>>();
             foreach (var box in HtmlDoc.Select(node, "div"))
             {
                 if (!box.HasClass("hx:rounded-lg") || !box.HasClass("hx:border")) continue;
                 var title = box.FindTag("p");
                 var label = title == null ? "" : title.GetText(" ", true);
-                string kind = null;
+                string? kind = null;
                 if (label == "Note" || label == "Info") kind = "NOTE";
                 else if (label == "Tip") kind = "TIP";
                 else if (label == "Important") kind = "IMPORTANT";
@@ -1001,7 +1025,7 @@ namespace FetchRef
             foreach (var alert in HtmlDoc.Select(node, ".markdown-alert").ToList())
             {
                 var kind = "NOTE";
-                string classes;
+                string? classes;
                 if (alert.Attr.TryGetValue("class", out classes))
                 {
                     foreach (var name in classes.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries))
@@ -1025,7 +1049,7 @@ namespace FetchRef
         {
             foreach (var pre in HtmlDoc.Select(node, "pre").ToList())
             {
-                HNode button = null;
+                HNode? button = null;
                 foreach (var candidate in HtmlDoc.Select(pre, "[data-code]"))
                 {
                     var code = candidate.Get("data-code");
@@ -1036,7 +1060,7 @@ namespace FetchRef
                 var codeNode = pre.FindTag("code");
                 if (codeNode != null)
                 {
-                    string classes;
+                    string? classes;
                     if (codeNode.Attr.TryGetValue("class", out classes))
                     {
                         foreach (var name in classes.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries))
@@ -1092,7 +1116,7 @@ namespace FetchRef
                 {
                     if (!File.Exists(target))
                     {
-                        Directory.CreateDirectory(Path.GetDirectoryName(target));
+                        Directory.CreateDirectory(Path.GetDirectoryName(target) ?? imageDir);
                         File.WriteAllBytes(target, Fetch(absolute));
                     }
                 }
@@ -1108,11 +1132,11 @@ namespace FetchRef
             {
                 var href = match.Groups[1].Value;
                 if (href.StartsWith("#", StringComparison.Ordinal)) return match.Value;
-                Uri absolute;
+                Uri? absolute;
                 if (!Uri.TryCreate(new Uri(pageUrl), href, out absolute)) return match.Value;
                 var anchor = string.IsNullOrEmpty(absolute.Fragment) ? "" : absolute.Fragment;
                 var keyUrl = absolute.GetLeftPart(UriPartial.Path).TrimEnd('/');
-                string target;
+                string? target;
                 if (hosts.Contains(absolute.Host))
                 {
                     var key = site.PageKey(new Uri(keyUrl + "/"));
@@ -1164,7 +1188,7 @@ namespace FetchRef
             lines.Add("");
             foreach (var item in order)
             {
-                string target;
+                string? target;
                 if (!pages.TryGetValue(item.Key, out target)) continue;
                 var depth = item.Key.Length == 0 ? 0 : item.Key.Count(ch => ch == '/');
                 lines.Add(new string(' ', depth * 2) + "- [" + item.Title + "](" + target.Replace('\\', '/') + ")");
@@ -1202,12 +1226,12 @@ namespace FetchRef
 
         static byte[] Fetch(string url)
         {
-            Exception last = null;
+            Exception? last = null;
             for (var attempt = 0; attempt < 3; attempt++)
             {
                 try
                 {
-                    using (var response = Http.GetAsync(url).GetAwaiter().GetResult())
+                    using (var response = (Http ?? throw new InvalidOperationException("The HTTP client is not set up.")).GetAsync(url).GetAwaiter().GetResult())
                     {
                         response.EnsureSuccessStatusCode();
                         return response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
@@ -1219,13 +1243,15 @@ namespace FetchRef
                     last = ex;
                 }
             }
-            throw last;
+            throw last ?? new InvalidOperationException("No fetch attempt was made.");
         }
     }
 }
+// ===== ADAPTER: the only part that differs between repos =====
+// Fetches the Hyprland wiki.
 namespace FetchRef
 {
-    public sealed class HyprlandSite : FetchSite
+    public sealed class ReferenceSite : FetchSite
     {
         public override string UserAgent { get { return "winland-docs-fetch"; } }
         public override string Entry { get { return "https://wiki.hypr.land/"; } }
@@ -1250,7 +1276,7 @@ namespace FetchRef
         {
             return StripSuffix(Squash(text), " – Hyprland Wiki", " - Hyprland Wiki");
         }
-        public override HNode SelectContent(HNode doc)
+        public override HNode? SelectContent(HNode doc)
         {
             var nodes = HtmlDoc.Select(doc, "div.content");
             foreach (var item in nodes)
@@ -1279,10 +1305,3 @@ namespace FetchRef
         }
     }
 }
-'@
-
-Add-Type -TypeDefinition $source -Language CSharp
-if ([string]::IsNullOrWhiteSpace($Root)) { throw '-Root is required.' }
-$onlyArgs = [string[]]@()
-if ($null -ne $Only -and $Only.Count -gt 0) { $onlyArgs = [string[]]$Only }
-exit [FetchRef.Engine]::Run([FetchRef.HyprlandSite]::new(), $Root, $onlyArgs)
