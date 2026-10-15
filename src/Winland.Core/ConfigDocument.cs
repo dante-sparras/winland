@@ -23,6 +23,8 @@ public sealed record ConfigDocument(
     public IReadOnlyList<string> Sources { get; init; } = [];
 
     public IReadOnlyList<EnvironmentAssignment> Environment { get; init; } = EnvironmentAssignment.None;
+
+    public IReadOnlyList<TrackpadGesture> Gestures { get; init; } = [];
 }
 
 public sealed record ConfigRead(ConfigDocument? Document, ConfigWarning? Failure = null);

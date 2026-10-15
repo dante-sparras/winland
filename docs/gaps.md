@@ -41,8 +41,9 @@ This table has one row per keyword. A test checks it against the keywords the co
 | dont_inhibit | Applications cannot inhibit binds, so this flag has nothing to bypass. |
 | ecosystem | Ecosystem tools have no Windows meaning. |
 | gaps_workspaces | Workspace swipe gaps are not honored. |
-| gesture | Gestures are not honored. |
-| gestures | Gestures are not honored. |
+| gestures:close_max_timeout | The close gesture is not honored, so its timeout has nothing to time. |
+| gestures:workspace_swipe_touch | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
+| gestures:workspace_swipe_touch_invert | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | gradient | Gradient borders are not honored. |
 | group | Groups are not honored. |
 | input:emulate_discrete_scroll | High resolution scroll emulation is not honored. |
@@ -131,7 +132,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | dont_inhibit |
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
 | gap | - | gaps_workspaces |
-| gap | [#59](https://github.com/dante-sparras/winland/issues/59) | gesture, gestures |
+| gap | - | gestures:close_max_timeout, gestures:workspace_swipe_touch, gestures:workspace_swipe_touch_invert |
 | gap | - | gradient |
 | gap | [#56](https://github.com/dante-sparras/winland/issues/56) | group |
 | gap | - | input:emulate_discrete_scroll, input:force_no_accel, input:off_window_axis_events, input:resolve_binds_by_sym, input:rotation, input:scroll_button, input:scroll_button_lock, input:scroll_method, input:scroll_points |
@@ -151,7 +152,11 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 
 `master:special_scale_factor` is the `special_scale_factor` gap: a special workspace uses the same master scale as a normal one. `master:center_ignores_reserved` is the `center_ignores_reserved` gap.
 
-`gestures:scrolling:move_snap_to_grid` and `gestures:scrolling:move_snap_cursor` snap a trackpad gesture. Gestures are not honored, so those options stay Gaps.
+`gestures:scrolling:move_snap_to_grid` and `gestures:scrolling:move_snap_cursor` snap the `scrollMove` gesture. That action is not honored, so those options stay Gaps.
+
+A `gesture` line is honored for the `workspace` action, described in [behavior.md](behavior.md#touchpad-swipe). Every other action (`dispatcher`, `move`, `resize`, `special`, `close`, `float`, `fullscreen`, `cursorZoom`, `scrollMove`) and every pinch direction (`pinch`, `pinchin`, `pinchout`) warns and does nothing when the swipe is made. The line is still kept, so it shadows a later gesture and `unset` removes it, as it would in the pinned release. Flag `p` (`gesturep`) warns and is ignored, for the same reason as bind flag `p`. Live Lua gestures wait on the Lua config (ADR 0013).
+
+A touchpad swipe cannot be consumed. Windows reads the same fingers, so its own three- and four-finger gestures still run unless they are turned off (see [behavior.md](behavior.md#touchpad-swipe)). The swipe is not animated: the Workspace changes when the fingers lift, or at each full distance with `workspace_swipe_forever`. That is the `animations` Gap. `general:gaps_workspaces` stays a Gap for the same reason.
 
 Bind flag `p` warns and is ignored. The bind itself still runs. Applications cannot inhibit binds, so there is nothing for that flag to bypass.
 

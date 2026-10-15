@@ -51,6 +51,7 @@ public sealed partial class Core
             _scrolling = ScrollingOptions.From(config);
             _master = MasterOptions.From(config);
             ReadCursor(config);
+            ReadGestures(config);
             ReadBinds(config);
         }
         _activeOn[MonitorId.Primary] = WorkspaceId.Initial;
@@ -177,6 +178,9 @@ public sealed partial class Core
             WheelTurned wheel => RunKey(NaturalScroll.Apply(_input, wheel)),
             LongPressElapsed => RunKey(input),
             PointerGesture gesture => ApplyGesture(gesture),
+            SwipeBegan => BeginSwipe(),
+            SwipeUpdated updated => UpdateSwipe(updated),
+            SwipeEnded => EndSwipe(),
             Dispatch dispatched => Execute(dispatched.Name, dispatched.Arguments, allowsElevation: true),
             WindowFocused focused => Consider(focused),
             WindowClosed closed => Close(closed.Window),
