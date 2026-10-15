@@ -1,4 +1,4 @@
-# Fetches the Hyprland wiki into markdown. dev.ps1 calls this.
+# Fetches the Hyprland wiki into markdown. scripts/dev.ps1 calls this.
 # Do not edit the pages it writes.
 
 import argparse
@@ -28,7 +28,7 @@ BLURB = (
     "The wiki tracks the latest Hyprland git commit, not a tagged release."
 )
 OWNERS = "The text belongs to the Hyprland authors."
-REFRESH = "pwsh dev.ps1 -Refresh"
+REFRESH = "pwsh scripts/dev.ps1 -Refresh"
 SKIP = {"https://wiki.hypr.land/tags", "https://wiki.hypr.land/categories"}
 
 
@@ -342,7 +342,7 @@ def one(url, files_by_key, image_dir):
     if not body.lstrip().startswith("#"):
         body = f"# {title}\n\n{body}"
     body = rewrite_links(body, url, target, files_by_key)
-    header = f"<!-- Source: {url} · fetched {TODAY}. Do not edit, run pwsh dev.ps1. -->\n\n"
+    header = f"<!-- Source: {url} · fetched {TODAY}. Do not edit, run pwsh scripts/dev.ps1. -->\n\n"
     return key, title, target, header + body
 
 

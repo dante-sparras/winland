@@ -9,7 +9,7 @@ __pycache__/
 .firecrawl/
 .scratch/**/out/
 
-# Reference checkouts. Not part of this repo. pwsh dev.ps1 brings the one this repo uses back after a clone.
+# Reference checkouts. Not part of this repo. pwsh scripts/dev.ps1 brings the one this repo uses back after a clone.
 docs/agents/omarchy/
 docs/agents/quickshell/
 docs/agents/hyprland/

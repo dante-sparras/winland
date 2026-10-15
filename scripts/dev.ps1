@@ -1,5 +1,5 @@
 # Prepares this repo for development. Git does not run scripts on clone.
-# After cloning, run: pwsh dev.ps1
+# After cloning, run: pwsh scripts/dev.ps1
 #
 # Clones the pinned Hyprland release into docs/agents/hyprland and fetches its wiki into docs/agents/hyprland/site.
 # The folder is gitignored, and the checkout is left in place on a second run. Pass -Refresh to download the wiki again.
@@ -10,7 +10,8 @@ param([switch]$Refresh)
 $HyprlandTag = 'v0.56.2'
 
 $ErrorActionPreference = 'Stop'
-$root = $PSScriptRoot
+# This file lives in scripts/. The repo root is the parent of this directory.
+$root = Split-Path -Parent $PSScriptRoot
 
 pwsh -NoProfile -File (Join-Path $root 'scripts/check.ps1') -InstallHook
 if ($LASTEXITCODE -ne 0) { throw "pre-push hook install failed with $LASTEXITCODE" }
