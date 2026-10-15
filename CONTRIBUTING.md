@@ -91,6 +91,7 @@ Pull requests and pushes to `main` run `.github/workflows/ci.yml`. A pull reques
 - Test and Mutation pass until a unit test project exists.
 - On a release run, a lane that skipped counts as a failure.
 - Every job has a timeout: Detect and History 5 minutes, Lint 20, Test 40, Mutation 60.
+- Smoke tests (`*.Smoke.Tests.csproj`) run only when someone dispatches the `Smoke tests` workflow by hand (`.github/workflows/smoke.yml`). A release run does not execute them, and they are not a required check.
 
 The Lint lane also checks links in tracked markdown files. A relative link or image must point at a file or folder that exists with exactly that spelling (Linux is case-sensitive). It also checks that each repo path `AGENTS.md` names in backticks exists, except a path in a gitignored reference checkout under `docs/agents/` and the optional files `docs/agents/domain.md` lists. A failure prints as `Broken link: <file>: <target>`.
 

@@ -1,0 +1,38 @@
+# Manual only. Run it from the Actions tab or with: gh workflow run smoke.yml
+# The smoke tests start real windows and send real input (SendInput, SetForegroundWindow).
+# Nobody knows yet whether a hosted Windows runner has a desktop that allows that.
+# A test that finds no desktop skips itself, so a green run here can mean "all skipped".
+# This workflow is not part of the required check and a release run does not execute it.
+# CI and scripts/test.ps1 leave every *.Smoke.Tests.csproj out on purpose.
+
+name: Smoke tests
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Smoke
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Run smoke tests
+        shell: pwsh
+        run: ./scripts/smoke.ps1
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: smoke-test-results
+          path: TestResults/
+          if-no-files-found: ignore
+          retention-days: 14
