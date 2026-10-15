@@ -19,7 +19,7 @@
 
 3. Fill in the pull request template.
 
-`pwsh dev.ps1` installs both hooks. You can install them on their own.
+`pwsh scripts/dev.ps1` installs both hooks. You can install them on their own.
 
 The pre-push hook runs the lint against the tip of each branch you push, not against every commit in the push:
 

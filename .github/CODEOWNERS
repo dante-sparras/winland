@@ -16,7 +16,6 @@
 /Directory.Packages.props  @dante-sparras
 /version.ps1               @dante-sparras
 /scripts/                  @dante-sparras
-/dev.ps1                   @dante-sparras
 
 # Installers, lockfiles, images: an edit here changes what users run.
 /pyproject.toml            @dante-sparras
