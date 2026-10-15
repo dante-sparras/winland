@@ -91,18 +91,18 @@ try {
         $root = $scratch
     }
 
-    $python = Get-Command python -ErrorAction SilentlyContinue
-    if (-not $python) { throw 'python is not on PATH. The lint compiles docs/fetch_reference.py.' }
-    $env:PYTHONPYCACHEPREFIX = Join-Path ([System.IO.Path]::GetTempPath()) 'repo-pyc'
-
     $pyFiles = @(Get-LintFiles $root '*.py')
     if ($pyFiles.Count -eq 0) {
         Write-Output 'No Python files to compile.'
-    }
-    foreach ($file in $pyFiles) {
-        Write-Output "python -m py_compile $file"
-        python -m py_compile $file
-        if ($LASTEXITCODE -ne 0) { $failed = 1 }
+    } else {
+        $python = Get-Command python -ErrorAction SilentlyContinue
+        if (-not $python) { throw 'python is not on PATH. The lint compiles Python files.' }
+        $env:PYTHONPYCACHEPREFIX = Join-Path ([System.IO.Path]::GetTempPath()) 'repo-pyc'
+        foreach ($file in $pyFiles) {
+            Write-Output "python -m py_compile $file"
+            python -m py_compile $file
+            if ($LASTEXITCODE -ne 0) { $failed = 1 }
+        }
     }
 
     $psFiles = @(Get-LintFiles $root '*.ps1')
