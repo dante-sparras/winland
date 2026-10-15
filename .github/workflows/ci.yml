@@ -47,7 +47,6 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-          persist-credentials: false
       # Push and manual runs fail open so a bad classification cannot weaken main.
       - name: Classify the diff
         id: classify
@@ -114,7 +113,6 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-          persist-credentials: false
       - name: Reject unrelated history
         run: |
           git fetch origin main
