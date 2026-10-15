@@ -45,7 +45,7 @@ Use Conventional Commits: `type(scope): summary`. The scope is optional and name
 | `docs` | Documentation only. |
 | `test` | Adding or changing tests. |
 | `refactor` | Restructuring code with no behavior change. |
-| `chore` | Build, CI, and dependency updates. Dependabot uses `chore(actions)`. |
+| `chore` | Build, CI, and dependency updates. Dependabot uses `chore(actions)` and `chore(deps)`. |
 
 ## Pull requests
 
@@ -83,18 +83,19 @@ Pull requests and pushes to `main` run `.github/workflows/ci.yml`. A pull reques
 | Lane | What it does | When it runs |
 | --- | --- | --- |
 | Detect | Looks at the pull request's diff and decides whether the Test lane is needed. | Always. |
-| Lint | Parses the PowerShell, rejects file or folder names that differ only by case, and builds the solution at the repo root if there is one. | Always. |
+| Lint | Parses the PowerShell, rejects file or folder names that differ only by case, builds the solution at the repo root if there is one, and runs `actionlint` on `.github/workflows/*.yml`. | Always. |
 | History | Fails when the branch shares no commit with `main`. Merging such a branch would add a second root commit to `main` and break `git blame`. | Always. |
-| Test | Runs `dotnet test` on each `*.Tests.csproj` under `tests/`, except `*.Smoke.Tests.csproj`. | On pushes to `main` and on manual runs. On a pull request, only when it changes C# or project files (`*.cs`, `*.csproj`, `*.sln`, `*.slnx`), SDK or build config (`global.json`, `nuget.config`, `Directory.Build.*`, `.config/`, `stryker-config.json`), `tests/`, or `scripts/`. |
+| Test | Runs `dotnet test` on each `*.Tests.csproj` under `tests/`, except `*.Smoke.Tests.csproj`. | On pushes to `main` and on manual runs. On a pull request, unless every changed file is documentation or repo metadata: `*.md`, `docs/`, `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/CODEOWNERS`, `.github/rulesets/`, `.gitignore`, `.gitattributes`, or `LICENSE*`. Any other change, including one to a workflow or a script, runs it. |
 | Mutation | Mutation testing. It is the slow lane. | Only when CI is dispatched with **Release run** turned on. |
 
 - Test and Mutation pass until a unit test project exists.
 - On a release run, a lane that skipped counts as a failure.
+- Every job has a timeout: Detect and History 5 minutes, Lint 20, Test 40, Mutation 60.
 
 ## Rules on `main` and `release/*`
 
 - **No direct changes.** Direct pushes, force-pushes, and deletions are rejected. Everything lands through a pull request.
-- **Rebase and merge is the convention.** GitHub also allows a merge commit or a squash. A pull request does not need to contain the latest `main`. The merge is a push to `main`, which runs CI again, and a later push does not cancel that run.
+- **Rebase and merge is the only allowed method.** The ruleset and the repository settings both reject a merge commit and a squash. A pull request does not need to contain the latest `main`. The merge is a push to `main`, which runs CI again, and a later push does not cancel that run.
 - **The CI check is the gate.** **All required checks pass (v1)** must be green. Approving reviews required: **0**. There is one maintainer, so requiring 1 would make every pull request unmergeable.
 - **Code owners must review code-owned paths.** The paths are in `.github/CODEOWNERS`, and the owner is `@dante-sparras`. A pull request author cannot approve their own pull request.
 - **Admins can bypass the rules when merging a pull request.** Repository admins (role id 5) can bypass them, which is how a code-owned file lands without a second approver. The bypass covers every rule, including the CI check, so an admin can merge a pull request whose CI is red. Do not. Admins still cannot push straight to `main`. Turn the bypass off once a second maintainer can approve those paths.
