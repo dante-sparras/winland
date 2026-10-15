@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.363">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Winland.Daemon\Winland.Daemon.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\winlandctl\winlandctl.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Private>false</Private>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+      <SetTargetFramework>TargetFramework=net10.0</SetTargetFramework>
+    </ProjectReference>
+  </ItemGroup>
+
+  <Target Name="WriteSmokePaths" AfterTargets="Build">
+    <PropertyGroup>
+      <_Daemon>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\src\Winland.Daemon\bin\$(Configuration)\net10.0-windows10.0.17763.0\winland.exe'))</_Daemon>
+      <_Ctl>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\src\winlandctl\bin\$(Configuration)\net10.0\winlandctl.exe'))</_Ctl>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(TargetDir)smoke.paths" Lines="$(_Daemon)|$(_Ctl)" Overwrite="true" Encoding="UTF-8" />
+  </Target>
+
+</Project>

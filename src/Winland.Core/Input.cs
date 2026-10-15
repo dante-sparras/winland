@@ -10,4 +10,105 @@ public readonly record struct WindowId(long Value);
 
 public readonly record struct Rectangle(int X, int Y, int Width, int Height);
 
-public sealed record WindowAppeared(WindowId Window, Rectangle WorkArea) : Event;
+public readonly record struct Point(int X, int Y);
+
+/// <summary>A width and height in pixels. A null size on a window is no limit on that axis pair.</summary>
+public readonly record struct Size(int Width, int Height);
+
+public sealed record WindowAppeared(WindowId Window, Rectangle WorkArea) : Event
+{
+    public Point? Pointer { get; init; }
+
+    public WindowTraits Traits { get; init; } = WindowTraits.Normal;
+
+    public Rectangle Bounds { get; init; }
+
+    public long ProcessId { get; init; }
+
+    public IReadOnlyList<int> AncestorProcessIds { get; init; } = [];
+}
+
+public sealed record WindowClosed(WindowId Window) : Event;
+
+/// <summary>The window's minimum or maximum track size changed. A null size is no limit.</summary>
+public sealed record WindowLimitsChanged(WindowId Window, Size? MinSize, Size? MaxSize) : Event;
+
+public sealed record WindowMinimized(WindowId Window) : Event;
+
+public sealed record WindowRestored(WindowId Window) : Event;
+
+public sealed record Configure(ConfigDocument Document) : Command;
+
+public sealed record Preselect(string Direction) : Command;
+
+public sealed record Pseudo(WindowId Window) : Command;
+
+public enum FocusCause
+{
+    /// <summary>Winland moved the foreground itself.</summary>
+    Requested,
+
+    /// <summary>A click or a key preceded the change.</summary>
+    User,
+
+    /// <summary>The application took the foreground without a recent click or key.</summary>
+    Activated,
+}
+
+public sealed record WindowFocused(WindowId Window, FocusCause Cause = FocusCause.User) : Event;
+
+public sealed record KeyPressed(string Key) : Event
+{
+    public int ScanCode { get; init; }
+}
+
+public sealed record KeyReleased(string Key) : Event
+{
+    public int ScanCode { get; init; }
+}
+
+public sealed record PointerButtonPressed(string Button) : Event
+{
+    public Point Position { get; init; }
+}
+
+public sealed record PointerButtonReleased(string Button) : Event
+{
+    public Point Position { get; init; }
+}
+
+public sealed record PointerMoved(Point Position) : Event
+{
+    public long? TimeMs { get; init; }
+}
+
+/// <summary>One notch of the wheel. <paramref name="Key"/> is mouse_up, mouse_down, mouse_left, or mouse_right.</summary>
+public sealed record WheelTurned(string Key, long TimeMs) : Event;
+
+/// <summary>The armed long press has reached its delay. Matching reads the session and takes no lock.</summary>
+public sealed record LongPressElapsed : Event;
+
+public enum PointerDragPhase
+{
+    Begin,
+    Move,
+    End,
+}
+
+/// <summary>
+/// A mouse bind already matched on the hook thread. The worker applies the drag under the core lock.
+/// </summary>
+public sealed record PointerGesture(string Dispatcher, Point Position, PointerDragPhase Phase, string Button) : Command;
+
+public sealed record InputInhibited(bool Inhibited) : Event;
+
+public sealed record ConfigLoaded(ConfigDocument Config) : Command;
+
+public sealed record Dispatch(string Name, string Arguments = "") : Command;
+
+/// <summary>
+/// The full set of attached monitors, in adapter order. A monitor absent from the next event was unplugged.
+/// Each monitor's rectangle and <see cref="Monitor.WorkArea"/> are physical pixels, and <see cref="Monitor.Scale"/>
+/// is its DPI divided by 96.
+/// </summary>
+public sealed record MonitorsChanged(IReadOnlyList<Monitor> Monitors) : Event;

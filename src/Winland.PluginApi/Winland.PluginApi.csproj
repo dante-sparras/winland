@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Winland.PluginApi</RootNamespace>
+    <Description>The contract an in-process plugin implements.</Description>
+  </PropertyGroup>
+
+</Project>

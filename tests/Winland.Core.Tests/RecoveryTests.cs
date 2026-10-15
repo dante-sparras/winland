@@ -1,0 +1,234 @@
+using System.Text.Json;
+using Winland;
+
+namespace Winland.Tests;
+
+public class RecoveryTests
+{
+    private static readonly Rectangle Area = new(0, 0, 1920, 1080);
+
+    [Fact]
+    public void RecoveryRecordsEachClientsWorkspaceMonitorAndWhetherItIsHidden()
+    {
+        var core = new Core();
+        core.Handle(new WindowAppeared(new WindowId(1), Area)
+        {
+            Traits = WindowTraits.Normal with { Class = "Notepad", Title = "Untitled" },
+        });
+        core.Handle(new Dispatch("workspace", "2"));
+        core.Handle(new WindowAppeared(new WindowId(2), Area)
+        {
+            Traits = WindowTraits.Normal with { Class = "CabinetWClass", Title = "Home" },
+        });
+
+        var snapshot = core.Recovery();
+
+        var hidden = Assert.Single(snapshot.Clients, client => client.Window == new WindowId(1));
+        Assert.Equal(new WorkspaceId("1"), hidden.Workspace);
+        Assert.Equal(MonitorId.Primary, hidden.Monitor);
+        Assert.True(hidden.Hidden);
+        Assert.Equal("Notepad", hidden.Class);
+        Assert.Equal("Untitled", hidden.Title);
+        Assert.Equal(0, hidden.ProcessId);
+
+        var shown = Assert.Single(snapshot.Clients, client => client.Window == new WindowId(2));
+        Assert.Equal(new WorkspaceId("2"), shown.Workspace);
+        Assert.Equal(MonitorId.Primary, shown.Monitor);
+        Assert.False(shown.Hidden);
+        Assert.Equal("CabinetWClass", shown.Class);
+        Assert.Equal("Home", shown.Title);
+    }
+
+    [Fact]
+    public void RecoveryKeepsTheMonitorThatOwnsTheWorkspace()
+    {
+        var core = new Core();
+        var left = Display(@"\\.\DISPLAY1", 0, 1920, 1080);
+        var right = Display(@"\\.\DISPLAY2", 1920, 1280, 1024);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
+
+        var snapshot = core.Recovery();
+
+        var first = Assert.Single(snapshot.Clients, client => client.Window == new WindowId(1));
+        var second = Assert.Single(snapshot.Clients, client => client.Window == new WindowId(2));
+        Assert.Equal(new WorkspaceId("1"), first.Workspace);
+        Assert.Equal(new MonitorId(0), first.Monitor);
+        Assert.False(first.Hidden);
+        Assert.Equal(new WorkspaceId("2"), second.Workspace);
+        Assert.Equal(new MonitorId(1), second.Monitor);
+        Assert.False(second.Hidden);
+    }
+
+    [Fact]
+    public void MinimizedClientOnAnInactiveWorkspaceIsRecordedAsHidden()
+    {
+        var core = new Core();
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        core.Handle(new WindowMinimized(new WindowId(1)));
+        core.Handle(new Dispatch("workspace", "2"));
+
+        var client = Assert.Single(core.Recovery().Clients);
+        Assert.Equal(new WorkspaceId("1"), client.Workspace);
+        Assert.True(client.Hidden);
+    }
+
+    [Fact]
+    public void SnapshotRoundTripsThroughJson()
+    {
+        var snapshot = new RecoverySnapshot(
+        [
+            new RecoveredClient(new WindowId(42), new WorkspaceId("notes"), new MonitorId(1), true, "Notepad", "Untitled", 4242),
+            new RecoveredClient(new WindowId(7), WorkspaceId.Initial, MonitorId.Primary, false, "CabinetWClass", "Home", 9),
+        ]);
+
+        var json = snapshot.ToJson();
+        using var document = JsonDocument.Parse(json);
+        var clients = document.RootElement.GetProperty("clients").EnumerateArray().ToArray();
+        Assert.Equal(2, clients.Length);
+        Assert.Equal(42, clients[0].GetProperty("window").GetInt64());
+        Assert.Equal("notes", clients[0].GetProperty("workspace").GetString());
+        Assert.Equal(1, clients[0].GetProperty("monitor").GetInt32());
+        Assert.True(clients[0].GetProperty("hidden").GetBoolean());
+        Assert.Equal("Notepad", clients[0].GetProperty("class").GetString());
+        Assert.Equal("Untitled", clients[0].GetProperty("title").GetString());
+        Assert.Equal(4242, clients[0].GetProperty("process").GetInt64());
+
+        Assert.True(RecoverySnapshot.TryParse(json, out var parsed));
+        Assert.Equal(snapshot.Clients.Count, parsed.Clients.Count);
+        Assert.Equal(snapshot.Clients[0], parsed.Clients[0]);
+        Assert.Equal(snapshot.Clients[1], parsed.Clients[1]);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not json")]
+    [InlineData("null")]
+    [InlineData("{}")]
+    [InlineData("{\"clients\":null}")]
+    public void UnreadableSnapshotIsRejected(string json)
+    {
+        Assert.False(RecoverySnapshot.TryParse(json, out _));
+    }
+
+    [Fact]
+    public void RestoreRejoinsTheSameWindowAndIgnoresOnesThatNeverAppear()
+    {
+        var prior = new Core();
+        prior.Handle(new WindowAppeared(new WindowId(1), Area)
+        {
+            Traits = WindowTraits.Normal with { Class = "Notepad", Title = "Untitled" },
+        });
+        prior.Handle(new WindowAppeared(new WindowId(2), Area));
+        prior.Handle(new Dispatch("workspace", "2"));
+        var snapshot = prior.Recovery();
+
+        var core = new Core();
+        core.Restore(snapshot);
+        var rejoined = core.Handle(new WindowAppeared(new WindowId(1), Area)
+        {
+            Traits = WindowTraits.Normal with { Class = "Notepad", Title = "Untitled" },
+        });
+
+        var client = Assert.Single(rejoined.State.Clients);
+        Assert.Equal(new WindowId(1), client.Window);
+        Assert.Equal(new WorkspaceId("1"), client.Workspace);
+        Assert.Equal(MonitorId.Primary, Assert.Single(rejoined.State.Workspaces, workspace => workspace.Id == new WorkspaceId("1")).Monitor);
+        Assert.DoesNotContain(rejoined.State.Hidden, hidden => hidden.Window == new WindowId(1));
+        Assert.DoesNotContain(rejoined.State.Clients, candidate => candidate.Window == new WindowId(2));
+        Assert.Empty(rejoined.Hide);
+    }
+
+    [Fact]
+    public void RestorePutsAClientBackOnAnInactiveWorkspaceWithoutSwitching()
+    {
+        var snapshot = new RecoverySnapshot(
+        [
+            new RecoveredClient(new WindowId(5), new WorkspaceId("4"), MonitorId.Primary, true, "Notepad", "Notes", 10),
+        ]);
+        var core = new Core(ConfigParser.Parse("windowrulev2 = workspace 9, class:^(Notepad)$\n"));
+        core.Restore(snapshot);
+
+        var outcome = core.Handle(new WindowAppeared(new WindowId(5), Area)
+        {
+            Traits = WindowTraits.Normal with { Class = "Notepad", Title = "Notes" },
+        });
+
+        var client = Assert.Single(outcome.State.Clients);
+        Assert.Equal(new WorkspaceId("4"), client.Workspace);
+        Assert.Equal(WorkspaceId.Initial, outcome.State.ActiveWorkspace);
+        Assert.Contains(outcome.State.Hidden, hidden => hidden.Window == new WindowId(5));
+        Assert.Equal([new WindowId(5)], outcome.Hide);
+    }
+
+    [Fact]
+    public void RestoreKeepsTheClientUntilALaterAppearanceCanAdoptIt()
+    {
+        var snapshot = new RecoverySnapshot(
+        [
+            new RecoveredClient(new WindowId(5), new WorkspaceId("3"), new MonitorId(1), true, "Notepad", "Notes", 10),
+        ]);
+        var core = new Core();
+        var right = Display(@"\\.\DISPLAY2", 1920, 1280, 1024);
+        core.Handle(new MonitorsChanged(
+        [
+            Display(@"\\.\DISPLAY1", 0, 1920, 1080),
+            right,
+        ]));
+        core.Restore(snapshot);
+        var blocked = core.Handle(new WindowAppeared(new WindowId(5), right.WorkArea)
+        {
+            Traits = WindowTraits.Normal with { Visible = false, Class = "Notepad", Title = "Notes" },
+        });
+        Assert.Empty(blocked.State.Clients);
+
+        var outcome = core.Handle(new WindowAppeared(new WindowId(5), right.WorkArea)
+        {
+            Traits = WindowTraits.Normal with { Class = "Notepad", Title = "Notes" },
+        });
+
+        var client = Assert.Single(outcome.State.Clients);
+        Assert.Equal(new WorkspaceId("3"), client.Workspace);
+        Assert.Equal(new MonitorId(1), Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == new WorkspaceId("3")).Monitor);
+    }
+
+    [Fact]
+    public void RestoreDropsARememberedWindowWhenItClosesBeforeAdoption()
+    {
+        var core = new Core();
+        core.Restore(new RecoverySnapshot(
+        [
+            new RecoveredClient(new WindowId(5), new WorkspaceId("4"), MonitorId.Primary, true, "Notepad", "Notes", 10),
+        ]));
+        core.Handle(new WindowClosed(new WindowId(5)));
+
+        var outcome = core.Handle(new WindowAppeared(new WindowId(5), Area));
+
+        Assert.Equal(WorkspaceId.Initial, Assert.Single(outcome.State.Clients).Workspace);
+    }
+
+    [Fact]
+    public void MissingMonitorFallsBackWhenTheWindowIsSeenAgain()
+    {
+        var core = new Core();
+        var left = Display(@"\\.\DISPLAY1", 0, 1920, 1080);
+        core.Handle(new MonitorsChanged([left]));
+        core.Restore(new RecoverySnapshot(
+        [
+            new RecoveredClient(new WindowId(5), new WorkspaceId("notes"), new MonitorId(99), true, "Notepad", "Notes", 10),
+        ]));
+
+        var outcome = core.Handle(new WindowAppeared(new WindowId(5), left.WorkArea)
+        {
+            Traits = WindowTraits.Normal with { Class = "Notepad", Title = "Notes" },
+        });
+
+        var client = Assert.Single(outcome.State.Clients);
+        Assert.Equal(new WorkspaceId("notes"), client.Workspace);
+        Assert.Equal(new MonitorId(0), Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == client.Workspace).Monitor);
+    }
+
+    private static Monitor Display(string name, int x, int width, int height) =>
+        new(name, name, x, 0, width, height, 1, true, new Rectangle(x, 0, width, height));
+}

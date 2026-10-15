@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>winland</AssemblyName>
+    <RootNamespace>Winland</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Winland.Core\Winland.Core.csproj" />
+    <ProjectReference Include="..\Winland.Plugins\Winland.Plugins.csproj" />
+    <ProjectReference Include="..\Winland.Install\Winland.Install.csproj" />
+    <ProjectReference Include="..\Winland.Windows\Winland.Windows.csproj" />
+  </ItemGroup>
+
+</Project>

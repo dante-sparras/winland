@@ -3,8 +3,18 @@
     <Project Path="src/Winland.Core/Winland.Core.csproj" />
     <Project Path="src/Winland.Windows/Winland.Windows.csproj" />
     <Project Path="src/winlandctl/winlandctl.csproj" />
+    <Project Path="src/Winland.Install/Winland.Install.csproj" />
+    <Project Path="src/Winland.Daemon/Winland.Daemon.csproj" />
+    <Project Path="src/Winland.PluginApi/Winland.PluginApi.csproj" />
+    <Project Path="src/Winland.Plugins/Winland.Plugins.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Winland.Core.Tests/Winland.Core.Tests.csproj" />
+    <Project Path="tests/Winland.Plugins.Tests/Winland.Plugins.Tests.csproj" />
+    <Project Path="tests/Winland.Plugins.Tests/SamplePlugin/SamplePlugin.csproj" />
+    <Project Path="tests/Winland.Install.Tests/Winland.Install.Tests.csproj" />
+    <Project Path="tests/Winland.Windows.Tests/Winland.Windows.Tests.csproj" />
+    <Project Path="tests/Winland.Smoke.Tests/Winland.Smoke.Tests.csproj" />
+    <Project Path="tests/Winland.FocusThief/Winland.FocusThief.csproj" />
   </Folder>
 </Solution>
