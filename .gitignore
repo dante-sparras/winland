@@ -4,8 +4,6 @@ obj/
 *.user
 TestResults/
 StrykerOutput/
-__pycache__/
-*.pyc
 .firecrawl/
 .scratch/**/out/
 
