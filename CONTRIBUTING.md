@@ -91,6 +91,8 @@ Pull requests and pushes to `main` run `.github/workflows/ci.yml`. A pull reques
 - Test and Mutation pass until a unit test project exists.
 - On a release run, a lane that skipped counts as a failure.
 
+The Lint lane also checks links in tracked markdown files. A relative link or image must point at a file or folder that exists with exactly that spelling (Linux is case-sensitive). It also checks that each repo path `AGENTS.md` names in backticks exists, except a path in a gitignored reference checkout under `docs/agents/` and the optional files `docs/agents/domain.md` lists. A failure prints as `Broken link: <file>: <target>`.
+
 ## Rules on `main` and `release/*`
 
 - **No direct changes.** Direct pushes, force-pushes, and deletions are rejected. Everything lands through a pull request.
