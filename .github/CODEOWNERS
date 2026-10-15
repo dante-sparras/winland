@@ -1,0 +1,17 @@
+# One owner, so the last-match rule does not matter.
+# The branch ruleset asks for this review. With one maintainer, an admin can
+# bypass that request when merging a pull request. Direct pushes stay blocked.
+
+# Workflows decide what CI executes.
+/.github/                  @dante-sparras
+
+# The local lint hook.
+/scripts/check.ps1         @dante-sparras
+
+# SDK pin, warning policy, package source, and the version stamp.
+/global.json               @dante-sparras
+/Directory.Build.props     @dante-sparras
+/nuget.config              @dante-sparras
+/version.ps1               @dante-sparras
+
+/SECURITY.md               @dante-sparras

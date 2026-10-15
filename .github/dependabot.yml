@@ -1,0 +1,16 @@
+# GitHub Actions only. NuGet versions live in the project files and move in a
+# reviewed pull request. CVE-only security updates are a repository setting.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(actions)
+      include: scope
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]

@@ -1,0 +1,19 @@
+name: Bug report
+description: Winland did something it should not have done
+title: "bug: "
+labels: [bug, needs-triage]
+body:
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: What you ran, what you saw, and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log lines
+      description: Include the pid= on each line when you have it.
+    validations:
+      required: false

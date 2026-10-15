@@ -4,7 +4,9 @@ Winland is the Windows 11 window manager that matches Hyprland's features and be
 
 ## Setup
 
-Run `pwsh dev.ps1` after cloning, before reading Hyprland. It clones Hyprland into `docs/agents/hyprland/` and fetches its wiki into `site/` there. Both are gitignored.
+Run `pwsh dev.ps1` after cloning, before reading Hyprland. It clones Hyprland into `docs/agents/hyprland/` and fetches its wiki into `site/` there. Both are gitignored. It also installs the pre-push lint hook.
+
+Branch names, commit messages, and how a pull request lands are in `CONTRIBUTING.md`.
 
 ## Stack
 
