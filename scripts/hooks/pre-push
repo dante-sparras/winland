@@ -1,0 +1,22 @@
+#!/bin/sh
+# Lint each pushed branch tip once. Deleting a branch and pushing a tag are not linted.
+# git runs this from scripts/hooks (core.hooksPath), set by `pwsh scripts/dev.ps1`.
+# Without pwsh on PATH there is nothing to run, so say so and let the push through.
+
+if ! command -v pwsh >/dev/null 2>&1; then
+  echo "pre-push: pwsh is not on PATH, so the lint was skipped."
+  exit 0
+fi
+
+root=$(git rev-parse --show-toplevel) || exit 1
+status=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
+    continue
+  fi
+  case "$remote_ref" in
+    refs/tags/*) continue ;;
+  esac
+  pwsh -NoProfile -File "$root/scripts/check.ps1" -Ref "$local_sha" || status=1
+done
+exit "$status"

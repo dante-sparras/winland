@@ -4,7 +4,7 @@
 
 You need PowerShell 7 (`pwsh`), Git, and the .NET SDK version pinned in `global.json`.
 
-Run `pwsh scripts/dev.ps1` once after cloning. It installs the repo's two git hooks (see [Git hooks](#git-hooks)). It also clones the reference checkout and fetches its docs, as `AGENTS.md` describes.
+Run `pwsh scripts/dev.ps1` once after cloning. It points git at the repo's two git hooks (see [Git hooks](#git-hooks)). It also clones the reference checkout and fetches its docs, as `AGENTS.md` describes.
 
 ## Make a change
 
@@ -62,12 +62,12 @@ Open a GitHub issue and pick the bug or feature form. Say what you ran, what you
 
 ## Git hooks
 
-`scripts/dev.ps1` installs both hooks. To install one on its own, run its command below.
+The hooks are tracked in `scripts/hooks`, and git runs them from there. `pwsh scripts/dev.ps1` sets `core.hooksPath` to `scripts/hooks` once per clone, so there is nothing to install per hook. A checkout that still points `core.hooksPath` at `.git/hooks` is fixed by running `pwsh scripts/dev.ps1` again.
 
-| Hook | When it runs | What it does | Install on its own |
-| --- | --- | --- | --- |
-| pre-push | When you push | Runs the lint on the tip of each branch you push, not on every commit in the push. | `pwsh -NoProfile -File scripts/check.ps1 -InstallHook` |
-| post-merge | After a pull or merge updates `main` | Deletes local feature branches that are finished (see below). | `pwsh -NoProfile -File scripts/install-post-merge.ps1` |
+| Hook | When it runs | What it does |
+| --- | --- | --- |
+| pre-push | When you push | Runs the lint on the tip of each branch you push, not on every commit in the push. It skips a tag and a branch deletion. If `pwsh` is not on `PATH`, it says so and lets the push through. |
+| post-merge | After a pull or merge updates `main` | Deletes local feature branches that are finished (see below). |
 
 The post-merge hook deletes a local branch only when both are true:
 

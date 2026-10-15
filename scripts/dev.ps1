@@ -13,10 +13,10 @@ $ErrorActionPreference = 'Stop'
 # This file lives in scripts/. The repo root is the parent of this directory.
 $root = Split-Path -Parent $PSScriptRoot
 
-pwsh -NoProfile -File (Join-Path $root 'scripts/check.ps1') -InstallHook
-if ($LASTEXITCODE -ne 0) { throw "pre-push hook install failed with $LASTEXITCODE" }
-pwsh -NoProfile -File (Join-Path $root 'scripts/install-post-merge.ps1')
-if ($LASTEXITCODE -ne 0) { throw "post-merge hook install failed with $LASTEXITCODE" }
+# The hooks are tracked in scripts/hooks. Point git at them.
+git -C $root config core.hooksPath scripts/hooks
+if ($LASTEXITCODE -ne 0) { throw "git config core.hooksPath failed with $LASTEXITCODE" }
+Write-Output "core.hooksPath = scripts/hooks"
 
 $dest = Join-Path $root 'docs/agents/hyprland'
 if (-not (Test-Path (Join-Path $dest '.git'))) {

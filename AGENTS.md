@@ -1,6 +1,6 @@
 # Project instructions
 
-Run `pwsh scripts/dev.ps1` after cloning, before reading Hyprland. It clones Hyprland into `docs/agents/hyprland/` and fetches its wiki into `site/` there. It also installs the pre-push lint hook.
+Run `pwsh scripts/dev.ps1` after cloning, before reading Hyprland. It clones Hyprland into `docs/agents/hyprland/` and fetches its wiki into `site/` there. It also points git at the tracked hooks in `scripts/hooks` (the pre-push lint hook and the post-merge cleanup).
 
 Issues are GitHub Issues on `dante-sparras/winland`, labelled with the roles in `docs/agents/triage-labels.md`. An issue labelled `ready-for-agent` is specified well enough for an agent to fix without asking. See `docs/agents/issue-tracker.md`.
 

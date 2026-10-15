@@ -2,12 +2,12 @@
 # After a pull or merge updates main, delete local branches whose GitHub
 # head branch is gone.
 #
-# Pull requests land with Rebase and merge, and squash is allowed too, so
-# the old commits are often not ancestors of main. `git branch -d` then
-# keeps them. Delete a branch only when its changes are already on main
-# or on a release/* line. Never delete main, master, or release/*. Leave a
-# branch that is checked out in a worktree, and leave one that still has
-# work that has not landed.
+# Pull requests land with Rebase and merge only, so the old commits are
+# often not ancestors of main. `git branch -d` then keeps them. Delete a
+# branch only when its changes are already on main or on a release/* line.
+# Never delete main, master, or release/*. Leave a branch that is checked
+# out in a worktree, and leave one that still has work that has not landed.
+# git runs this from scripts/hooks (core.hooksPath), set by `pwsh scripts/dev.ps1`.
 
 current=$(git symbolic-ref --short HEAD 2>/dev/null) || exit 0
 case "$current" in
@@ -33,33 +33,6 @@ patch_landed() {
   return 0
 }
 
-# True when the branch's diff from its merge base is already in the target.
-# That is a squash merge, including one that later commits were added after.
-squash_landed() {
-  target=$1
-  branch=$2
-  base=$(git merge-base "$target" "$branch" 2>/dev/null) || return 1
-  patch=$(mktemp) || return 1
-  index=$(mktemp) || {
-    rm -f "$patch"
-    return 1
-  }
-  if ! git diff "$base" "$branch" >"$patch"; then
-    rm -f "$patch" "$index"
-    return 1
-  fi
-  if ! GIT_INDEX_FILE=$index git read-tree "$target"; then
-    rm -f "$patch" "$index"
-    return 1
-  fi
-  if GIT_INDEX_FILE=$index git apply --cached --check --reverse "$patch" >/dev/null 2>&1; then
-    rm -f "$patch" "$index"
-    return 0
-  fi
-  rm -f "$patch" "$index"
-  return 1
-}
-
 checked_out() {
   git worktree list --porcelain | grep -Fx "branch refs/heads/$1" >/dev/null 2>&1
 }
@@ -71,9 +44,6 @@ landed() {
       return 0
     fi
     if patch_landed "$target" "$branch"; then
-      return 0
-    fi
-    if squash_landed "$target" "$branch"; then
       return 0
     fi
   done
