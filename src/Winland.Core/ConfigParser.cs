@@ -200,6 +200,9 @@ public static partial class ConfigParser
                 return;
             }
 
+            if (TryAnimationLine(lhs, rhs, lineNumber))
+                return;
+
             if (KeptHandlers.Contains(lhs))
             {
                 _settings.Add(new Setting(lhs, rhs));

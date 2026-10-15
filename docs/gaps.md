@@ -11,9 +11,24 @@ This table has one row per keyword. A test checks it against the keywords the co
 | keyword | reason |
 | --- | --- |
 | allow_tearing | Tearing is a compositor feature with no Windows meaning. |
-| animation | Animations are not honored. |
-| animations | Animations are not honored. |
-| bezier | Animations are not honored. |
+| animation:borderangle | Gradient borders are not honored, so the border angle does not animate. |
+| animation:fadeDim | Dimming is part of a window's alpha, so fadeSwitch animates it. |
+| animation:fadeDpms | Turning a monitor off does not fade. |
+| animation:fadeGlow | Glow is not honored, so it does not fade. |
+| animation:fadeLayers | Layer shell surfaces have no Windows meaning. |
+| animation:fadeLayersIn | Layer shell surfaces have no Windows meaning. |
+| animation:fadeLayersOut | Layer shell surfaces have no Windows meaning. |
+| animation:fadePopups | Wayland popups have no Windows meaning. |
+| animation:fadePopupsIn | Wayland popups have no Windows meaning. |
+| animation:fadePopupsOut | Wayland popups have no Windows meaning. |
+| animation:fadeShadow | Shadows are not honored, so they do not fade. |
+| animation:glowangle | Glow is not honored, so its angle does not animate. |
+| animation:layers | Layer shell surfaces have no Windows meaning. |
+| animation:layersIn | Layer shell surfaces have no Windows meaning. |
+| animation:layersOut | Layer shell surfaces have no Windows meaning. |
+| animation:monitorAdded | A monitor that is added does not animate. |
+| animation:shadowangle | Shadows are not honored, so their angle does not animate. |
+| animation:zoomFactor | Screen zoom is not honored, so it does not animate. |
 | binds:allow_pin_fullscreen | Fullscreen does not keep or restore a pin. |
 | binds:movefocus_cycles_fullscreen | Moving focus does not cycle a fullscreen Client. |
 | bitdepth | Changing a monitor's bit depth is not honored. |
@@ -142,7 +157,8 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | kind | issue | keywords |
 | --- | --- | --- |
 | non-goal | - | allow_tearing, debug, opengl, quirks, render, screen_shader |
-| gap | [#57](https://github.com/dante-sparras/winland/issues/57) | animation, animations, bezier |
+| gap | - | animation:borderangle, animation:fadeDim, animation:fadeDpms, animation:fadeGlow, animation:fadeShadow, animation:glowangle, animation:monitorAdded, animation:shadowangle, animation:zoomFactor |
+| non-goal | - | animation:fadeLayers, animation:fadeLayersIn, animation:fadeLayersOut, animation:fadePopups, animation:fadePopupsIn, animation:fadePopupsOut, animation:layers, animation:layersIn, animation:layersOut |
 | gap | - | binds:allow_pin_fullscreen, binds:movefocus_cycles_fullscreen |
 | gap | - | bitdepth, cm, mirror, mode, scale, vrr |
 | gap | - | center_ignores_reserved, special_scale_factor |
@@ -173,6 +189,15 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | no_focus_fallback |
 
 ## Notes
+
+An `animation:NAME` row is a node of the animation tree. An `animation` line that names it warns with that reason and is skipped. The other nodes are honored; see [behavior.md](behavior.md#animations). These parts of the honored nodes are Gaps:
+
+- A window that closes by itself is gone before it can be drawn again, so `windowsOut` and `fadeOut` play only when Winland closes the window, with `killactive` or `closewindow`.
+- A Client entering or leaving fullscreen mode 2 moves at once.
+- Dragging a window with the pointer moves it at once. The windows that make room for it animate when it is dropped.
+- A workspace rule's `animation:` style is not honored, and warns.
+- `gaps_workspaces` is a Gap, so a sliding Workspace travels the width or height of its monitor alone.
+- An `animation` window rule is not honored.
 
 `master:special_scale_factor` is the `special_scale_factor` gap: a special workspace uses the same master scale as a normal one. `master:center_ignores_reserved` is the `center_ignores_reserved` gap.
 

@@ -307,7 +307,7 @@ internal static partial class WorkspaceRules
 
         if (Take(field, "animation:", out _))
         {
-            warnings.Add(GapReason("animation") ?? "Animations are not honored.");
+            warnings.Add("Workspace rule animation styles are not honored.");
             return true;
         }
 

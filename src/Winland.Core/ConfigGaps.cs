@@ -7,9 +7,24 @@ public static class ConfigGaps
     public static IReadOnlyList<ConfigGap> All { get; } =
     [
         new("allow_tearing", "Tearing is a compositor feature with no Windows meaning."),
-        new("animation", "Animations are not honored."),
-        new("animations", "Animations are not honored."),
-        new("bezier", "Animations are not honored."),
+        new("animation:borderangle", "Gradient borders are not honored, so the border angle does not animate."),
+        new("animation:fadeDim", "Dimming is part of a window's alpha, so fadeSwitch animates it."),
+        new("animation:fadeDpms", "Turning a monitor off does not fade."),
+        new("animation:fadeGlow", "Glow is not honored, so it does not fade."),
+        new("animation:fadeLayers", "Layer shell surfaces have no Windows meaning."),
+        new("animation:fadeLayersIn", "Layer shell surfaces have no Windows meaning."),
+        new("animation:fadeLayersOut", "Layer shell surfaces have no Windows meaning."),
+        new("animation:fadePopups", "Wayland popups have no Windows meaning."),
+        new("animation:fadePopupsIn", "Wayland popups have no Windows meaning."),
+        new("animation:fadePopupsOut", "Wayland popups have no Windows meaning."),
+        new("animation:fadeShadow", "Shadows are not honored, so they do not fade."),
+        new("animation:glowangle", "Glow is not honored, so its angle does not animate."),
+        new("animation:layers", "Layer shell surfaces have no Windows meaning."),
+        new("animation:layersIn", "Layer shell surfaces have no Windows meaning."),
+        new("animation:layersOut", "Layer shell surfaces have no Windows meaning."),
+        new("animation:monitorAdded", "A monitor that is added does not animate."),
+        new("animation:shadowangle", "Shadows are not honored, so their angle does not animate."),
+        new("animation:zoomFactor", "Screen zoom is not honored, so it does not animate."),
         new("binds:allow_pin_fullscreen", "Fullscreen does not keep or restore a pin."),
         new("binds:movefocus_cycles_fullscreen", "Moving focus does not cycle a fullscreen Client."),
         new("bitdepth", "Changing a monitor's bit depth is not honored."),
@@ -133,6 +148,17 @@ public static class ConfigGaps
     ];
 
     private static readonly HashSet<string> Keywords = new(All.Select(gap => gap.Keyword), StringComparer.Ordinal);
+
+    internal static string? ReasonFor(string keyword)
+    {
+        foreach (var gap in All)
+        {
+            if (gap.Keyword == keyword)
+                return gap.Reason;
+        }
+
+        return null;
+    }
 
     internal static bool IsGap(string keyword)
     {
