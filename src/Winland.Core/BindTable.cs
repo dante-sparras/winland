@@ -1,4 +1,5 @@
 using System.Globalization;
+using static Winland.OrdinalText;
 
 namespace Winland;
 
@@ -70,7 +71,7 @@ public sealed class BindTable
                     binds.Add(bind);
                     break;
                 case Unbind unbind:
-                    binds.RemoveAll(bind => bind.Modifiers == unbind.Modifiers && Same(bind.Key, unbind.Key));
+                    binds.RemoveAll(bind => bind.Modifiers == unbind.Modifiers && Is(bind.Key, unbind.Key));
                     break;
                 case UnbindAll:
                     binds.Clear();
@@ -104,7 +105,4 @@ public sealed class BindTable
 
         return delay;
     }
-
-    private static bool Same(string bound, string key) =>
-        bound.Equals(key, StringComparison.OrdinalIgnoreCase);
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using static Winland.OrdinalText;
 
 namespace Winland;
 
@@ -201,15 +202,15 @@ internal sealed partial class DwindleLayout
 
         if (Is(tokens[0], "preselect"))
             return tokens.Length < 2 ? [] : Preselect(tokens[1]);
-        if (Is(tokens[0], "togglesplit"))
+        if (Is(tokens[0], DwindleMessages.ToggleSplit))
             return _options.PreserveSplit ? ToggleSplit(active) : [];
-        if (Is(tokens[0], "swapsplit"))
+        if (Is(tokens[0], DwindleMessages.SwapSplit))
             return SwapSplit(active);
-        if (Is(tokens[0], "rotatesplit"))
+        if (Is(tokens[0], DwindleMessages.RotateSplit))
             return RotateSplit(active, tokens);
         if (Is(tokens[0], "movetoroot"))
             return MoveToRoot(active, tokens);
-        if (Is(tokens[0], "splitratio"))
+        if (Is(tokens[0], DwindleMessages.SplitRatio))
             return SplitRatio(active, tokens);
 
         LayoutMessageError = "error: bad layoutmsg '" + tokens[0] + "'";
@@ -241,7 +242,7 @@ internal sealed partial class DwindleLayout
         var angle = 90;
         if (tokens.Length >= 2 && !int.TryParse(tokens[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out angle))
         {
-            LayoutMessageError = "error: bad layoutmsg 'rotatesplit'";
+            LayoutMessageError = "error: bad layoutmsg '" + DwindleMessages.RotateSplit + "'";
             return [];
         }
         if (!TryNode(active, out var node) || node.Parent is null)
@@ -338,7 +339,7 @@ internal sealed partial class DwindleLayout
     {
         if (tokens.Length < 2 || !double.TryParse(tokens[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var delta))
         {
-            LayoutMessageError = "error: bad layoutmsg 'splitratio'";
+            LayoutMessageError = "error: bad layoutmsg '" + DwindleMessages.SplitRatio + "'";
             return [];
         }
 
@@ -624,7 +625,4 @@ internal sealed partial class DwindleLayout
 
     private static string[] Tokens(string arguments) =>
         arguments.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-
-    private static bool Is(string text, string expected) =>
-        text.Equals(expected, StringComparison.OrdinalIgnoreCase);
 }

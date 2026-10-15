@@ -1,4 +1,5 @@
 using System.Globalization;
+using static Winland.OrdinalText;
 
 namespace Winland;
 
@@ -168,9 +169,6 @@ public sealed record MasterOptions
 
     private static bool TryDouble(string text, out double value) =>
         double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
-
-    private static bool Is(string text, string expected) =>
-        text.Equals(expected, StringComparison.OrdinalIgnoreCase);
 
     private static int Clamp(int value, int min, int max) => Math.Clamp(value, min, max);
 

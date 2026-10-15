@@ -1,4 +1,5 @@
 using System.Globalization;
+using static Winland.OrdinalText;
 
 namespace Winland;
 
@@ -464,7 +465,4 @@ internal sealed partial class MasterLayout
 
     private static string[] Tokens(string arguments) =>
         arguments.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-
-    private static bool Is(string text, string expected) =>
-        text.Equals(expected, StringComparison.OrdinalIgnoreCase);
 }

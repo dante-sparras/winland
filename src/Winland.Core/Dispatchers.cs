@@ -36,11 +36,7 @@ public static class Dispatchers
             "togglespecialworkspace",
             "layoutmsg",
             "layout",
-            "togglesplit",
-            "swapsplit",
-            "rotatesplit",
             "movetoroot",
-            "splitratio",
             "submap",
             "focuswindow",
             "closewindow",
@@ -57,6 +53,7 @@ public static class Dispatchers
             "fullscreen",
             "fullscreenstate",
             "maximize");
+        Register([.. DwindleMessages.Names]);
     }
 
     public static void Register(params string[] names)

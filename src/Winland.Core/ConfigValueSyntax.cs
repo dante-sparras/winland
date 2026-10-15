@@ -1,4 +1,5 @@
 using System.Globalization;
+using static Winland.OrdinalText;
 
 namespace Winland;
 
@@ -134,7 +135,4 @@ public static class ConfigValueSyntax
 
         return double.TryParse(token.AsSpan(0, token.Length - 3), NumberStyles.Float, CultureInfo.InvariantCulture, out degrees);
     }
-
-    private static bool Is(string text, string expected) =>
-        text.Equals(expected, StringComparison.OrdinalIgnoreCase);
 }

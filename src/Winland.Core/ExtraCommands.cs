@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using static Winland.OrdinalText;
 
 namespace Winland;
 
@@ -298,9 +299,6 @@ public static class ExtraCommands
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
-
-    private static bool Is(string verb, string name) =>
-        verb.Equals(name, StringComparison.OrdinalIgnoreCase);
 
     private static int IndexOfWhitespace(string text)
     {

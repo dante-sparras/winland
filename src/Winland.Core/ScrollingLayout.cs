@@ -750,9 +750,6 @@ internal sealed partial class ScrollingLayout : Layout
     private static string At(string[] tokens, int index) =>
         index < tokens.Length ? tokens[index] : "";
 
-    private static bool Is(string text, string expected) =>
-        text.Equals(expected, StringComparison.OrdinalIgnoreCase);
-
     private static bool TryDouble(string text, out double value) =>
         double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 

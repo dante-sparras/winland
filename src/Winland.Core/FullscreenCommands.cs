@@ -1,3 +1,5 @@
+using static Winland.OrdinalText;
+
 namespace Winland;
 
 internal enum FullscreenAction
@@ -92,9 +94,6 @@ internal static class FullscreenCommands
 
     private static bool IsMaximize(string token) =>
         token == "1" || Is(token, "maximize") || Is(token, "maximized");
-
-    private static bool Is(string text, string expected) =>
-        text.Equals(expected, StringComparison.OrdinalIgnoreCase);
 
     private static string[] Tokens(string arguments) =>
         arguments.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
