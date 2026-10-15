@@ -9,7 +9,7 @@ public sealed partial class Core
         foreach (var client in outcome.State.Clients)
         {
             var borderless = client.Fullscreen == FullscreenMode.Fullscreen;
-            var border = client.Window == active ? _decoration.ActiveBorder : _decoration.InactiveBorder;
+            var border = BorderOf(client.Window, client.Window == active);
             var corners = CornersFor(client);
             var choice = OpacityOf(client.Window);
             var special = FindWorkspace(client.Workspace) is LiveWorkspace home ? SpecialOn(home.Monitor) : null;
@@ -47,9 +47,13 @@ public sealed partial class Core
                 reset.Add(client.Window);
         }
 
+        // Bars are added here, once per finished Outcome, so every placement passes below them exactly once.
+        var bars = GroupBars(outcome.State);
         return Animate(
             outcome with
             {
+                Placements = BelowBars(outcome.Placements, outcome.State, bars),
+                GroupBars = bars,
                 Decorations = decorations,
                 ResetDecorations = reset,
             },
@@ -138,6 +142,17 @@ public sealed partial class Core
                 });
             }
 
+            foreach (var group in desk.Groups)
+            {
+                var tile = desk.Layout.TryBounds(group.Shown, out var shownBounds) ? shownBounds : default;
+                var floating = desk.ClientOf(group.Shown)?.Floating == true;
+                foreach (var member in group.Members)
+                {
+                    if (desk.IsWaiting(member) && desk.ClientOf(member) is { } waiting)
+                        clients.Add(waiting with { Bounds = tile, Floating = floating });
+                }
+            }
+
             workspaces.Add(new Workspace(desk.Id, desk.Monitor)
             {
                 LastWindow = desk.Focus,
@@ -146,10 +161,17 @@ public sealed partial class Core
             });
         }
 
+        var groups = new List<IReadOnlyList<WindowId>>();
+        foreach (var desk in _workspaces)
+        {
+            foreach (var group in desk.Groups)
+                groups.Add(group.Members.ToArray());
+        }
+
         var hidden = new List<Client>();
         foreach (var client in clients)
         {
-            if (!IsShown(client.Workspace) && !StaysVisible(client))
+            if ((!IsShown(client.Workspace) && !StaysVisible(client)) || IsWaiting(client.Window))
                 hidden.Add(client);
         }
 
@@ -180,6 +202,7 @@ public sealed partial class Core
             Hidden = hidden,
             Monitors = monitors,
             Screens = screens,
+            Groups = groups,
         };
     }
 
@@ -326,6 +349,9 @@ public sealed partial class Core
 
                 windows.Add(client.Window);
             }
+
+            foreach (var waiting in desk.WaitingClients)
+                windows.Add(waiting.Window);
         }
 
         return windows.ToArray();

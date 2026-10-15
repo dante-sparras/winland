@@ -49,6 +49,14 @@ internal interface Layout
     /// <summary>Removes a Client so another Workspace's Layout can adopt it.</summary>
     bool TryTake(WindowId window, out Taken taken);
 
+    /// <summary>
+    /// Hands the slot of <paramref name="current"/> to <paramref name="next"/>, a Window this Layout
+    /// does not hold. The slot keeps its place, size, floating and fullscreen state. A Group shows one
+    /// member in its tile this way. False when <paramref name="current"/> is not here or
+    /// <paramref name="next"/> already is.
+    /// </summary>
+    bool Substitute(WindowId current, WindowId next, Taken incoming, out Taken outgoing);
+
     /// <summary>The rectangle a Client is shown at, when the Layout still has one.</summary>
     bool TryBounds(WindowId window, out Rectangle bounds);
 

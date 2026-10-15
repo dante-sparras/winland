@@ -25,6 +25,7 @@ public enum WindowRuleEffect
     Center,
     Monitor,
     NoCloseFor,
+    Group,
 }
 
 public sealed record WindowRule(
@@ -40,7 +41,8 @@ public sealed record WindowRule(
     OpacityRule? Opacity = null,
     FullscreenRule? Fullscreen = null,
     IdleInhibitMode IdleInhibit = IdleInhibitMode.None,
-    RulePlacement? Placement = null);
+    RulePlacement? Placement = null,
+    string? Group = null);
 
 /// <summary>
 /// The argument of a <c>move</c>, <c>size</c>, <c>monitor</c> or <c>no_close_for</c> rule.
@@ -72,4 +74,5 @@ internal readonly record struct WindowDecision(
     FullscreenRule? FullscreenRequest = null,
     bool Pin = false,
     IdleInhibitMode IdleInhibit = IdleInhibitMode.None,
-    MapPlacement Placement = default);
+    MapPlacement Placement = default,
+    GroupRuleFlags Group = GroupRuleFlags.None);

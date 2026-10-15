@@ -12,6 +12,7 @@ public sealed partial class Core
         _decoration = DecorationOptions.From(loaded.Config);
         _session = SessionOptions.From(loaded.Config);
         ReadAnimations(loaded.Config);
+        _groupOptions = GroupOptions.From(loaded.Config);
         ReadCursor(loaded.Config);
         ReadGestures(loaded.Config);
         ReadBinds(loaded.Config);
@@ -77,6 +78,7 @@ public sealed partial class Core
         _master = MasterOptions.From(document);
         _decoration = DecorationOptions.From(document);
         ReadAnimations(document);
+        _groupOptions = GroupOptions.From(document);
         ReadCursor(document);
         ReadGestures(document);
         ReadBinds(document);

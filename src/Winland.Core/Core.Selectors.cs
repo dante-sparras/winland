@@ -21,12 +21,17 @@ public sealed partial class Core
         if (_pinned.Contains(id) && Find(id) is { Floating: true })
             return FocusPinned(desk, id, name, allowsElevation);
 
+        var raised = RaiseMember(desk, id, name, allowsElevation);
         desk.Layout.NoteFocus(id);
         if (desk.Id.IsSpecial)
-            return OpenSpecial(desk.Id, id, name, allowsElevation);
+        {
+            var special = OpenSpecial(desk.Id, id, name, allowsElevation);
+            return raised is null ? special : Merge(raised, special);
+        }
 
         var outcome = SwitchTo(desk.Id, id, consumed: false, dispatcher: name, allowsElevation: allowsElevation);
-        return outcome.Focus is null ? outcome with { Focus = id } : outcome;
+        outcome = outcome.Focus is null ? outcome with { Focus = id } : outcome;
+        return raised is null ? outcome : Merge(raised, outcome);
     }
 
     private Outcome CloseWindow(string arguments, bool allowsElevation)
@@ -235,7 +240,10 @@ public sealed partial class Core
     {
         var clients = new List<Client>();
         foreach (var desk in _workspaces)
+        {
             clients.AddRange(desk.Layout.Clients);
+            clients.AddRange(desk.WaitingClients);
+        }
 
         return clients;
     }

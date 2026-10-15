@@ -7,7 +7,7 @@ namespace Winland;
 /// <remarks>
 /// A Workspace keeps its own id. The Monitor it belongs to can change when a display is unplugged.
 /// </remarks>
-internal sealed class LiveWorkspace(WorkspaceId id, MonitorId monitor, Layout layout)
+internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, Layout layout)
 {
     public WorkspaceId Id { get; } = id;
 
@@ -33,7 +33,7 @@ internal sealed class LiveWorkspace(WorkspaceId id, MonitorId monitor, Layout la
                 return client;
         }
 
-        return null;
+        return WaitingOf(window);
     }
 
     public (int Windows, int Tiled, int Floating) ClientCounts()
@@ -92,6 +92,9 @@ internal sealed class LiveWorkspace(WorkspaceId id, MonitorId monitor, Layout la
 
             covered.Add(client.Window);
         }
+
+        foreach (var window in _waiting.Keys)
+            covered.Add(window);
 
         return covered;
     }
@@ -169,5 +172,7 @@ internal sealed class LiveWorkspace(WorkspaceId id, MonitorId monitor, Layout la
             if (source.Layout.TryTake(window, out var taken))
                 Receive(window, taken, area);
         }
+
+        source.HandGroups(this);
     }
 }

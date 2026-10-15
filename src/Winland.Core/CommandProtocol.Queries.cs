@@ -82,6 +82,22 @@ public static partial class CommandProtocol
         return "{}";
     }
 
+    private static string[] GroupedOf(State state, WindowId window)
+    {
+        foreach (var group in state.Groups)
+        {
+            if (!group.Contains(window))
+                continue;
+
+            var addresses = new string[group.Count];
+            for (var i = 0; i < group.Count; i++)
+                addresses[i] = Address(group[i]);
+            return addresses;
+        }
+
+        return NoStrings;
+    }
+
     private static ClientJson ClientOf(Client client, State state, Indexed indexed)
     {
         var hidden = client.Minimized || ListedHidden(state, client.Window);
@@ -109,7 +125,7 @@ public static partial class CommandProtocol
             (int)client.FullscreenClient,
             client.Fullscreen == FullscreenMode.None ? "" : "default",
             false,
-            NoStrings,
+            GroupedOf(state, client.Window),
             NoStrings,
             client.Swallowing is WindowId swallowed ? Address(swallowed) : "0x0",
             0,

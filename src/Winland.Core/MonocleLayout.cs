@@ -7,7 +7,7 @@ namespace Winland;
 /// Shows one tiled Client at a time, sized to the whole tiling area.
 /// The others stay on the Workspace and are left out of the placements, so the caller can conceal them.
 /// </summary>
-internal sealed class MonocleLayout : Layout
+internal sealed partial class MonocleLayout : Layout
 {
     private readonly List<Client> _clients = [];
     private readonly List<ClientId> _tiled = [];

@@ -49,6 +49,18 @@ public static partial class CommandProtocol
             case ClientPinned pinned:
                 lines.Add($"pin>>{EventAddress(pinned.Window)},{(pinned.Pinned ? "1" : "0")}");
                 break;
+            case GroupToggled toggled:
+                lines.Add($"togglegroup>>{(toggled.Created ? "1" : "0")},{EventAddress(toggled.Window)}");
+                break;
+            case ClientIntoGroup into:
+                lines.Add("moveintogroup>>" + EventAddress(into.Window));
+                break;
+            case ClientOutOfGroup outOf:
+                lines.Add("moveoutofgroup>>" + EventAddress(outOf.Window));
+                break;
+            case GroupsLocked locked:
+                lines.Add("lockgroups>>" + (locked.Locked ? "1" : "0"));
+                break;
             case WorkspaceActivated activated:
                 lines.Add("workspace>>" + WorkspaceNameText(activated.Workspace, indexed));
                 lines.Add($"workspacev2>>{WorkspaceIdText(activated.Workspace, indexed)},{WorkspaceNameText(activated.Workspace, indexed)}");

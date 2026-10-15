@@ -426,7 +426,7 @@ internal sealed partial class ScrollingLayout : Layout
 
     private sealed class Cell(ClientId id)
     {
-        public ClientId Id { get; } = id;
+        public ClientId Id { get; set; } = id;
 
         public Column? Column { get; set; }
 

@@ -24,6 +24,9 @@ public sealed partial class Core
         if (!MonitorSelector.TryDirection(FirstToken(arguments), out var direction))
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
+        if (active is WindowId grouped && CycleGroupFirst(desk, grouped, arguments, name, allowsElevation) is Outcome cycled)
+            return cycled;
+
         if (active is WindowId current)
         {
             var focus = desk.Layout.MoveFocus(current, arguments);

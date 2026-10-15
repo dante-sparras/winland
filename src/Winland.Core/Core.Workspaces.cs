@@ -31,8 +31,11 @@ public sealed partial class Core
             BringTo(focused, destination);
 
         var destinationCovered = destination.Covered();
+        var solitary = source.GroupOf(id) is null ? SolitaryGroup(destination, id) : null;
         var area = WorkArea(destination, _area);
         destination.Receive(id, taken, area);
+        CarryGroup(source, destination, id);
+        JoinOnMove(destination, solitary, id);
 
         if (target.IsSpecial)
             return FinishSpecialMove(source, destination, id, silent, consumed, dispatcher, allowsElevation, sourceCovered, destinationCovered);
