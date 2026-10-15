@@ -310,11 +310,13 @@ public class AnimationTests
     {
         var core = Load("bindm = SUPER, mouse:272, movewindow");
         Appear(core, 1);
-        core.Handle(new Dispatch("togglefloating"));
+        var floated = core.Handle(new Dispatch("togglefloating"));
+        var bounds = Assert.Single(floated.Placements).Bounds;
+        var grab = new Point(bounds.X + 10, bounds.Y + 20);
         HoldSuper(core);
-        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(10, 20) });
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = grab });
 
-        var moved = core.Handle(new PointerMoved(new Point(60, 50)));
+        var moved = core.Handle(new PointerMoved(new Point(grab.X + 50, grab.Y + 30)));
 
         Assert.NotEmpty(moved.Placements);
         Assert.DoesNotContain(moved.Motions, motion => motion.Move is not null);
