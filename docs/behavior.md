@@ -148,3 +148,7 @@ Mode 0 is the layout slot. Mode 1 resizes the Client to the monitor work area an
 `sync_fullscreen` is not honored. The `fullscreen` and `maximize` dispatchers store the client mode equal to the internal mode. `fullscreenstate` stores them separately. A window rule `suppress_event` is not honored. An application that asks to be fullscreen or maximized is not observed, so a maximized Client does not return to maximized after the application leaves fullscreen on its own.
 
 A `fullscreen` window rule requests mode 2. A `maximize` window rule requests mode 1. A trailing `0` turns that flag off. `fullscreen_state` sets the two modes, for example `2 0`, and wins over those flags. A popup window with no caption that already covers its monitor is not adopted.
+
+## Plugins
+
+`winlandctl plugin install <git-url> [revision]` clones the repository and builds the plugins its manifest lists, then installs them. A repository that is already installed is refused. A revision checks out that commit, branch or tag. `update` rebuilds a repository only when its commit changed, or every repository with `--force`. `remove` takes a repository URL or one of its plugin names and removes the whole repository. `list --installed` lists the installed repositories and their plugins. The manifest, the build and the approval are in [plugins.md](plugins.md).

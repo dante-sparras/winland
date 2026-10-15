@@ -227,4 +227,14 @@ Both events are gaps. No open issue tracks them.
 
 ## Plugins
 
-`plugin` loads an in-process plugin assembly and is honored, so it is not a Gap. A plugin may register dispatchers, config keywords and event handlers. Registering a Layout is refused until a later change. Installing a plugin from a repository is not part of this.
+`plugin` loads an in-process plugin assembly and is honored, so it is not a Gap. A plugin may register dispatchers, config keywords and event handlers. Registering a Layout is refused until a later change.
+
+`winlandctl plugin install`, `update`, `remove` and `list --installed` are the plugin manager's `add`, `update`, `remove` and `list`. See [plugins.md](plugins.md). These parts of the plugin manager are Gaps:
+
+- `enable` and `disable` are not honored. An installed plugin loads when a `plugin` line names it, or through `winlandctl plugin load`.
+- `reload` is not honored. `winlandctl reload` reads the `plugin` lines again.
+- `purge-cache` is not honored. There are no headers to cache, and `remove` deletes a repository's staging folder.
+- `remove` takes a repository URL or a plugin name, not `author/name`.
+- A manifest's shell `build` steps and `output` are not honored. Winland runs `dotnet publish` on the plugin's `project`.
+- Commit pins and the per-plugin minimum compositor version are not honored. The exact plugin API version replaces them, and header and ABI checks with it.
+- `--notify`, `--verbose`, `--no-shallow`, `--no-nix` and the custom source URL flag are not honored.

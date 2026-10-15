@@ -25,7 +25,7 @@ An ADR without a Status line is accepted and true against the code. `Status: Pro
 ## Plugins
 
 - [0011](0011-plugins-are-in-process-and-hash-approved.md): in-process .NET plugins, approved by hash, with fault containment and an exact API version.
-- [0012](0012-plugin-manager-builds-de-elevated-and-approves-through-uac.md) (proposed): the plugin manager builds de-elevated and approves one plugin at a time through UAC.
+- [0012](0012-plugin-manager-builds-de-elevated-and-approves-through-uac.md): the plugin manager builds de-elevated and approves each change through one UAC confirmation.
 
 ## Reliability
 

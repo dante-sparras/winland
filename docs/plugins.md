@@ -54,7 +54,11 @@ Plugins load only when the SHA-256 of the assembly file is listed in the approva
 ]
 ```
 
-`name` is the plugin's `IPlugin.Name`. A file whose hash is not in the list does not load, whether it was never approved or the bytes changed. The assembly is not loaded until the hash matches.
+`name` is the plugin's `IPlugin.Name`. A file whose hash is not in the list does not load, whether it was never approved or the bytes changed. The assembly is not loaded until the hash matches. The plugin manager adds `file`, `repository` and `commit` to the entries it writes. The host ignores them.
+
+An assembly loads only from inside the plugin directory. A copy anywhere else does not load, even when its hash is approved:
+
+`Plugin assembly 'C:\Users\me\sample.dll' is outside the plugin directory 'C:\ProgramData\Winland\plugins'.`
 
 The plugin directory defaults to `%ProgramData%\Winland\plugins`. `WINLAND_PLUGIN_DIR` overrides it. Winland refuses to load, and reports why, when a non-administrator can write the directory or the approvals file. `SYSTEM` and `Administrators` may write. An administrator who is the current user may write. Any other principal with write access blocks every load.
 
@@ -81,3 +85,70 @@ winlandctl plugin unload <name>
 ## Faults
 
 Every call into a plugin — initialize, shutdown, a dispatcher, a keyword and an event — is wrapped. An exception is caught, logged and counted. A call that runs longer than its budget is abandoned on a worker, logged and counted. The budget defaults to 250 ms and applies to dispatcher and event calls; the host uses that same budget for the other calls. Three consecutive failures disable the plugin. Further calls do not enter it. A successful call resets the consecutive count. Unload still runs `Shutdown`, unregisters the plugin's dispatchers, keywords and event handlers, and unloads the collectible context.
+
+## Plugin manager
+
+`winlandctl` installs plugins from a git repository:
+
+```
+winlandctl plugin install <git-url> [revision]
+winlandctl plugin update [--force]
+winlandctl plugin remove <git-url|name>
+winlandctl plugin list --installed
+```
+
+These commands do not use the pipe. They need `git` and the .NET SDK on `PATH`.
+
+`install` clones the repository into the staging folder and checks out `revision` when one is given. It reads `winland-plugin.toml` at the repository root, builds each plugin with `dotnet publish` as the current user, and prints the repository, the commit hash and the SHA-256 of each built assembly. Then Windows asks for one UAC confirmation. On approval, an elevated `winlandctl plugin apply` copies each assembly to `<plugin directory>\<name>.dll`, hashes the copy, and writes its approval only when that hash equals the one printed. One mismatch installs nothing. A new plugin directory gets an access list that only `SYSTEM` and `Administrators` can write. `install` refuses a repository that is already installed, and a plugin name that is already approved from another repository or by hand.
+
+`install` and `update` refuse to run from an elevated shell. Building runs the repository's code, and that must not run as an administrator. Nothing loads from the staging folder.
+
+`update` clones each installed repository again. A repository whose commit has not changed is skipped unless `--force` is given. The rest are rebuilt and approved together, through one confirmation. A plugin that is loaded in the running Winland is unloaded and loaded again from the new file. A plugin the manifest no longer lists is removed.
+
+`remove` takes a repository URL or the name of one of its plugins, and removes every plugin from that repository: the files, the approvals, and the plugins loaded in the running Winland. A plugin approved by hand is not removed this way.
+
+`list --installed` prints each repository with its commit and plugins, then the plugins approved by hand. `plugin list` without `--installed` still lists the plugins loaded in the running Winland.
+
+The staging folder is `%LOCALAPPDATA%\Winland\plugin-staging`. `WINLAND_PLUGIN_STAGING` overrides it. The plugin directory and the approvals file come from the same defaults and variables the host uses.
+
+### Manifest
+
+`winland-plugin.toml` lists the plugins in a repository. Every table except `[repository]` is one plugin, and its name is the table name: letters, digits, `_` and `-`.
+
+```toml
+[repository]
+name = "sample-repository"
+authors = ["someone"]
+
+[echo]
+description = "Registers the echo dispatcher."
+api_version = 1
+project = "Echo/Echo.csproj"
+assembly = "Echo.dll"
+```
+
+| key | required | meaning |
+| --- | --- | --- |
+| `api_version` | yes | The plugin API version the plugin is built for. A manifest with any plugin whose version is not `PluginApiVersion.Current` is refused before anything is built. |
+| `project` | yes | The `.csproj` to publish, relative to the repository root. |
+| `assembly` | no | The built file to install. The default is the project's file name with `.dll`. |
+| `description`, `authors`, `author` | no | Shown to people. The manager does not use them. |
+
+The manifest is a subset of TOML: tables, and keys set to a string, an integer, a boolean or an array of strings on one line. Anything else is an error. Unknown keys are ignored.
+
+### Building against the API
+
+The manager passes the path of the `Winland.PluginApi.dll` next to `winlandctl` as the MSBuild property `WinlandPluginApi`. A plugin project references it without copying it, because the host provides it:
+
+```xml
+<ItemGroup>
+  <Reference Include="Winland.PluginApi">
+    <HintPath>$(WinlandPluginApi)</HintPath>
+    <Private>false</Private>
+  </Reference>
+</ItemGroup>
+```
+
+Only the one assembly is installed. A plugin that needs other assemblies at run time does not load them from the plugin directory.
+
+A working sample repository is in [tests/Winland.Plugins.Tests/SampleRepository](../tests/Winland.Plugins.Tests/SampleRepository).
