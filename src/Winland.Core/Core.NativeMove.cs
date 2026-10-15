@@ -10,6 +10,9 @@ public sealed partial class Core
 {
     private WindowId? _nativeMove;
 
+    // Where the system left the window it just moved. The motion that drops it into the Layout starts there.
+    private (WindowId Window, Rectangle Bounds)? _released;
+
     private Outcome BeginNativeMove(WindowMoveStarted started)
     {
         if (_nativeMove is not null || _gesture is not null)
@@ -38,6 +41,7 @@ public sealed partial class Core
             return View([]);
 
         _nativeMove = null;
+        _released = ended.Bounds is Rectangle left ? (ended.Window, left) : null;
         var layout = LayoutWorkspace(ended.Window).Layout;
         var dropped = layout.Drag(ended.Window, new PointerDrag(false, PointerDragPhase.End, ended.Pointer));
 

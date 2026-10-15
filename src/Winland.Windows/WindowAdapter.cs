@@ -41,6 +41,11 @@ public sealed partial class WindowAdapter : IDisposable
     private static readonly Lock FrameGate = new();
     private static int Applying;
 
+    private const long SettleMilliseconds = 1500;
+
+    // Windows whose maximize request was just answered, and when they stop being watched for drifting off their tile.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, long> Settling = new();
+
     public WindowAdapter(Core core, Action<RecoverySnapshot>? changed = null)
     {
         ArgumentNullException.ThrowIfNull(core);
@@ -263,6 +268,7 @@ public sealed partial class WindowAdapter : IDisposable
                     {
                         RereadLimits(hwnd, window);
                         ReportResize(hwnd, window);
+                        PutBackIfDrifted(hwnd, window);
                     }
 
                     Effects.Refit(window);

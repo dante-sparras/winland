@@ -181,6 +181,7 @@ public sealed partial class Core
             LongPressElapsed => RunKey(input),
             PointerGesture gesture => ApplyGesture(gesture),
             WindowMaximizeRequested requested => MaximizeRequest(requested.Window),
+            WindowDrifted drifted => PutBack(drifted),
             WindowSizeStarted sizing => BeginNativeSize(sizing),
             WindowSizeEnded sized => EndNativeSize(sized),
             WindowMoveStarted started => BeginNativeMove(started),

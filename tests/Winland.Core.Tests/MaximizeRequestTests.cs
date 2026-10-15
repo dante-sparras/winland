@@ -51,6 +51,33 @@ public class MaximizeRequestTests
         Assert.Equal(FullscreenMode.None, Client(outcome, 1).Fullscreen);
     }
 
+    [Fact]
+    public void AWindowThatRestoredASizeOfItsOwnIsPutBackOnItsTile()
+    {
+        var core = Flat();
+        Appear(core, 1);
+        Appear(core, 2);
+        core.Handle(new WindowMaximizeRequested(new WindowId(2)));
+        core.Handle(new WindowMaximizeRequested(new WindowId(2)));
+
+        var drifted = core.Handle(new WindowDrifted(new WindowId(2), new Rectangle(400, 200, 1528, 850)));
+
+        Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(drifted, 2));
+        Assert.Empty(drifted.Motions);
+    }
+
+    [Fact]
+    public void AWindowAlreadyOnItsTileIsLeftAlone()
+    {
+        var core = Flat();
+        Appear(core, 1);
+        Appear(core, 2);
+
+        var drifted = core.Handle(new WindowDrifted(new WindowId(2), new Rectangle(960, 0, 960, 1080)));
+
+        Assert.Empty(drifted.Placements);
+    }
+
     private static Core Flat()
     {
         var core = new Core();

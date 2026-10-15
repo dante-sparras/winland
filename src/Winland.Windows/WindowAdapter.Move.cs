@@ -39,7 +39,7 @@ public sealed partial class WindowAdapter
         if (_moving == window)
         {
             _moving = null;
-            Apply(_core.Handle(new WindowMoveEnded(window, pointer)));
+            Apply(_core.Handle(new WindowMoveEnded(window, pointer, TryVisible(new HWND((nint)window.Value), out var dropped) ? dropped : null)));
         }
         else if (_sizing == window)
         {

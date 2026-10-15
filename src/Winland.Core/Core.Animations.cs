@@ -15,6 +15,8 @@ public sealed partial class Core
     // shows and hides stay as they are; a motion only says how the adapter gets the window there.
     private Outcome Animate(Outcome outcome, State before)
     {
+        var released = _released;
+        _released = null;
         var after = outcome.State;
         var windows = new Dictionary<ClientId, Client>(after.Clients.Count);
         foreach (var client in after.Clients)
@@ -31,7 +33,7 @@ public sealed partial class Core
         if (!_animations.Enabled || ReducedMotion?.Invoke() == true)
             return outcome;
 
-        var plan = new MotionPlan(this, before, after, outcome);
+        var plan = new MotionPlan(this, before, after, outcome, released);
         plan.Workspaces(outcome.Hide, entering: false);
         plan.Workspaces(outcome.Show, entering: true);
         if (outcome.Close is WindowId closing)
@@ -75,10 +77,12 @@ public sealed partial class Core
         private readonly HashSet<WindowId> _isHidden = [];
         private readonly Dictionary<WindowId, Rectangle> _placed = [];
         private readonly Dictionary<WindowId, Motion> _motions = [];
+        private readonly (WindowId Window, Rectangle Bounds)? _released;
 
-        public MotionPlan(Core core, State before, State after, Outcome outcome)
+        public MotionPlan(Core core, State before, State after, Outcome outcome, (WindowId Window, Rectangle Bounds)? released)
         {
             _core = core;
+            _released = released;
             _before = before;
             _after = after;
             foreach (var client in before.Clients)
@@ -186,11 +190,13 @@ public sealed partial class Core
                 return;
             }
 
-            if (_wasHidden.Contains(window) || prior.Bounds == bounds || prior.Fullscreen == FullscreenMode.Fullscreen)
+            // A window the system just moved starts from where it was dropped, not from the tile it was lifted out of.
+            var from = _released is { } dropped && dropped.Window == window ? dropped.Bounds : prior.Bounds;
+            if (_wasHidden.Contains(window) || from == bounds || prior.Fullscreen == FullscreenMode.Fullscreen)
                 return;
 
             if (Options.TimingOf("windowsMove") is Timing move)
-                _motions[window] = new Motion(window, bounds) { From = prior.Bounds, Move = move };
+                _motions[window] = new Motion(window, bounds) { From = from, Move = move };
         }
 
         // Alpha and border changes of a window that stays shown.
