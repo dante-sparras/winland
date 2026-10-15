@@ -112,3 +112,13 @@ ShowCursor
 SwapMouseButton
 SystemParametersInfo
 INPUT
+RegisterRawInputDevices
+GetRawInputData
+GetRawInputDeviceInfo
+HidP_GetCaps
+HidP_GetValueCaps
+HidP_GetUsageValue
+HidP_GetUsages
+RAWINPUTHEADER
+RAWHID
+HWND_MESSAGE

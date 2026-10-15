@@ -460,6 +460,12 @@ public sealed class KeyboardHook : IDisposable
                 return;
             }
 
+            if (queued.Kind == QueuedKind.Input && queued.Event is { } input)
+            {
+                Apply(_core.Handle(input));
+                return;
+            }
+
             Apply(_core.Handle(new Dispatch(queued.Dispatcher, queued.Arguments)));
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
@@ -522,6 +528,9 @@ public sealed class KeyboardHook : IDisposable
     internal void PostMove(Point position, uint time) =>
         _queued.Writer.TryWrite(new Queued(QueuedKind.Move, "", "", false, position, TimeMs: time, HasTime: true));
 
+    internal void PostInput(Input input) =>
+        _queued.Writer.TryWrite(new Queued(QueuedKind.Input, "", "", false, Event: input));
+
     internal void CheckLongPress()
     {
         if (_disposed)
@@ -557,6 +566,7 @@ public sealed class KeyboardHook : IDisposable
         Inhibit = 2,
         Gesture = 3,
         Move = 4,
+        Input = 5,
     }
 
     private readonly record struct Queued(
@@ -568,5 +578,6 @@ public sealed class KeyboardHook : IDisposable
         PointerDragPhase Phase = PointerDragPhase.Begin,
         string Button = "",
         long TimeMs = 0,
-        bool HasTime = false);
+        bool HasTime = false,
+        Input? Event = null);
 }
