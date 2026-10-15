@@ -20,6 +20,11 @@ public enum WindowRuleEffect
     FullscreenState,
     Pin,
     IdleInhibit,
+    Move,
+    Size,
+    Center,
+    Monitor,
+    NoCloseFor,
 }
 
 public sealed record WindowRule(
@@ -34,7 +39,23 @@ public sealed record WindowRule(
     double? ScrollingWidth = null,
     OpacityRule? Opacity = null,
     FullscreenRule? Fullscreen = null,
-    IdleInhibitMode IdleInhibit = IdleInhibitMode.None);
+    IdleInhibitMode IdleInhibit = IdleInhibitMode.None,
+    RulePlacement? Placement = null);
+
+/// <summary>
+/// The argument of a <c>move</c>, <c>size</c>, <c>monitor</c> or <c>no_close_for</c> rule.
+/// </summary>
+public sealed record RulePlacement(ExpressionPair? Expression = null, string? Monitor = null, long Milliseconds = 0);
+
+/// <summary>
+/// Where a new Client opens: <c>move</c> and <c>center</c> replace each other, so at most one is set.
+/// </summary>
+internal readonly record struct MapPlacement(
+    ExpressionPair? Move = null,
+    ExpressionPair? Size = null,
+    bool Center = false,
+    string? Monitor = null,
+    long NoCloseFor = 0);
 
 internal readonly record struct WindowDecision(
     bool Adopt,
@@ -50,4 +71,5 @@ internal readonly record struct WindowDecision(
     bool Opaque = false,
     FullscreenRule? FullscreenRequest = null,
     bool Pin = false,
-    IdleInhibitMode IdleInhibit = IdleInhibitMode.None);
+    IdleInhibitMode IdleInhibit = IdleInhibitMode.None,
+    MapPlacement Placement = default);

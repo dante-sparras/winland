@@ -51,6 +51,7 @@ public sealed partial class Core
             Notice = second.Notice ?? first.Notice,
             DisplayPower = second.DisplayPower.Count > 0 ? second.DisplayPower : first.DisplayPower,
             Relays = [.. first.Relays, .. second.Relays],
+            ZOrder = [.. first.ZOrder, .. second.ZOrder],
             Show = [.. first.Show, .. second.Show],
             Hide = [.. first.Hide, .. second.Hide],
             ShowMinimized = [.. first.ShowMinimized, .. second.ShowMinimized],
@@ -127,7 +128,12 @@ public sealed partial class Core
         WindowId? focus = null;
 
         if (Is(name, "killactive"))
+        {
+            if (active is WindowId closing && !Closeable(closing))
+                return Rejected(name, NotCloseable, allowsElevation);
+
             close = active;
+        }
         else if (Is(name, "resizeactive"))
             placements = active is WindowId window ? layout.ResizeActive(window, arguments) : [];
         else if (Is(name, "togglefloating"))
@@ -148,6 +154,16 @@ public sealed partial class Core
             return KillWindow(arguments, allowsElevation);
         else if (Is(name, "swapwindow"))
             return SwapWindow(arguments, allowsElevation);
+        else if (Is(name, "movewindowpixel"))
+            return MoveWindowPixel(arguments, allowsElevation);
+        else if (Is(name, "resizewindowpixel"))
+            return ResizeWindowPixel(arguments, allowsElevation);
+        else if (Is(name, "centerwindow"))
+            return CenterWindow(allowsElevation);
+        else if (Is(name, "alterzorder") || Is(name, "bringactivetotop"))
+            return AlterZOrder(arguments, Is(name, "bringactivetotop"), allowsElevation);
+        else if (Is(name, "movecursortocorner"))
+            return MoveCursorToCorner(arguments, allowsElevation);
         else if (Is(name, "movetoroot"))
             return MoveRoot(arguments, allowsElevation);
         else if (Is(name, "exit"))

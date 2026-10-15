@@ -474,7 +474,7 @@ public class LayoutOptionTests
     }
 
     [Fact]
-    public void FloatingClientKeepsItsBoundsWhenGapsAndBorderAreSet()
+    public void FloatingClientOpensCenteredWhenGapsAndBorderAreSet()
     {
         var core = Configured("""
             general:gaps_in = 12
@@ -491,7 +491,7 @@ public class LayoutOptionTests
         });
 
         Assert.Equal(new Rectangle(24, 24, 1872, 1032), BoundsOf(tiled, 1));
-        Assert.Equal(bounds, BoundsOf(outcome, 2));
+        Assert.Equal(NewFloat.Centered(Wide, bounds), BoundsOf(outcome, 2));
     }
 
     private static string Flat(string extra) =>

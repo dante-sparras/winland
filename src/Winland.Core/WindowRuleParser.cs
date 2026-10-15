@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Winland;
 
-internal static class WindowRuleParser
+internal static partial class WindowRuleParser
 {
     private static readonly TimeSpan MatchTimeout = TimeSpan.FromMilliseconds(250);
 
@@ -17,7 +17,7 @@ internal static class WindowRuleParser
             return false;
         }
 
-        if (!TryParseEffect(value[..comma].Trim(), out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out error))
+        if (!TryParseEffect(value[..comma].Trim(), out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out var placement, out error))
             return false;
 
         string? classPattern = null;
@@ -44,17 +44,17 @@ internal static class WindowRuleParser
             }
         }
 
-        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle);
+        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement);
         return true;
     }
 
     internal static bool TryParseBare(string text, out WindowRule? rule, out string error)
     {
         rule = null;
-        if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out _, out var opacity, out var fullscreen, out var idle, out error))
+        if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out _, out var opacity, out var fullscreen, out var idle, out var placement, out error))
             return false;
 
-        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, Opacity: opacity, Fullscreen: fullscreen, IdleInhibit: idle);
+        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, Opacity: opacity, Fullscreen: fullscreen, IdleInhibit: idle, Placement: placement);
         return true;
     }
 
@@ -78,6 +78,7 @@ internal static class WindowRuleParser
         FullscreenRule? fullscreenState = null;
         bool? pin = null;
         IdleInhibitMode? idle = null;
+        var placement = default(MapPlacement);
         foreach (var rule in rules)
         {
             if (!Matches(rule, traits))
@@ -143,6 +144,9 @@ internal static class WindowRuleParser
                 case WindowRuleEffect.IdleInhibit:
                     idle = rule.IdleInhibit;
                     break;
+                default:
+                    placement = Place(placement, rule);
+                    break;
             }
         }
 
@@ -163,7 +167,8 @@ internal static class WindowRuleParser
             opaque ?? false,
             RequestedFullscreen(fullscreen, maximize, fullscreenState),
             pin ?? false,
-            idle ?? IdleInhibitMode.None);
+            idle ?? IdleInhibitMode.None,
+            placement);
     }
 
     private static bool TryParseEffect(
@@ -176,6 +181,7 @@ internal static class WindowRuleParser
         out OpacityRule? opacity,
         out FullscreenRule? fullscreen,
         out IdleInhibitMode idle,
+        out RulePlacement? placement,
         out string error)
     {
         idle = IdleInhibitMode.None;
@@ -186,6 +192,7 @@ internal static class WindowRuleParser
         scrollingWidth = null;
         opacity = null;
         fullscreen = null;
+        placement = null;
         var space = text.IndexOfAny([' ', '\t']);
         var name = space < 0 ? text : text[..space];
         var argument = space < 0 ? null : text[(space + 1)..].Trim();
@@ -324,7 +331,11 @@ internal static class WindowRuleParser
                 error = "";
                 return true;
             default:
-                error = $"Unsupported window rule '{name}'.";
+                if (TryParsePlacement(name, argument, out effect, out enabled, out placement, out error))
+                    return true;
+
+                if (error.Length == 0)
+                    error = $"Unsupported window rule '{name}'.";
                 return false;
         }
 

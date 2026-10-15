@@ -133,15 +133,15 @@ public class LaunchTests
     [Fact]
     public void UnknownExecEffectsWarnAndTheCommandStillLaunches()
     {
-        var outcome = new Core().Dispatch("exec", "[float; size 800 600; move 10 10] cmd", allowsElevation: true);
+        var outcome = new Core().Dispatch("exec", "[float; suppress_event maximize; content game] cmd", allowsElevation: true);
 
         Assert.NotNull(outcome.Launch);
         Assert.Equal("cmd", outcome.Launch.CommandLine);
         Assert.Equal([new WindowRule(WindowRuleEffect.Float, null, null, null, null)], outcome.Launch.Rules);
         Assert.Equal(
             [
-                new ConfigWarned(0, "Unsupported window rule 'size'.", null),
-                new ConfigWarned(0, "Unsupported window rule 'move'.", null),
+                new ConfigWarned(0, "Unsupported window rule 'suppress_event'.", null),
+                new ConfigWarned(0, "Unsupported window rule 'content'.", null),
             ],
             outcome.Events.OfType<ConfigWarned>());
     }
@@ -200,13 +200,13 @@ public class LaunchTests
     public void StartupHonorsKnownRulesAndWarnsOnUnknownOnes()
     {
         var document = ConfigParser.Parse(
-            "exec = [float; workspace 2; size 800 600] kitty\n" +
+            "exec = [float; workspace 2; content game] kitty\n" +
             "exec-once = notepad\n" +
             "exec = [float; workspace] broken\n");
 
         Assert.Equal(
             [
-                new ConfigWarning(1, "Unsupported window rule 'size'."),
+                new ConfigWarning(1, "Unsupported window rule 'content'."),
                 new ConfigWarning(3, "Malformed window rule."),
             ],
             document.Warnings);
@@ -275,7 +275,7 @@ public class LaunchTests
         var client = Assert.Single(floated.State.Clients);
         Assert.True(client.Floating);
         Assert.Equal(new WorkspaceId("2"), client.Workspace);
-        Assert.Equal(bounds, Assert.Single(floated.Placements).Bounds);
+        Assert.Equal(NewFloat.Centered(area, bounds), Assert.Single(floated.Placements).Bounds);
 
         var later = core.Handle(new WindowAppeared(new WindowId(2), area) { ProcessId = 40 });
         var second = Assert.Single(later.State.Clients, candidate => candidate.Window == new WindowId(2));

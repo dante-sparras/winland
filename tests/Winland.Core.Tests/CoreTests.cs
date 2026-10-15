@@ -210,7 +210,7 @@ public class CoreTests
     }
 
     [Fact]
-    public void DialogFloatsAtItsBoundsAndLeavesTheTilesAlone()
+    public void DialogFloatsCenteredAndLeavesTheTilesAlone()
     {
         var core = new Core();
         var area = new Rectangle(0, 0, 1920, 1080);
@@ -225,7 +225,7 @@ public class CoreTests
 
         var dialog = Assert.Single(floated.State.Clients, client => client.Window == new WindowId(2));
         Assert.True(dialog.Floating);
-        Assert.Equal(bounds, Assert.Single(floated.Placements, placement => placement.Client == dialog.Id).Bounds);
+        Assert.Equal(NewFloat.Centered(area, bounds), Assert.Single(floated.Placements, placement => placement.Client == dialog.Id).Bounds);
         Assert.Contains(floated.State.Clients, client => client.Window == new WindowId(1) && !client.Floating);
 
         var split = core.Handle(new WindowAppeared(new WindowId(3), area));
@@ -268,7 +268,7 @@ public class CoreTests
 
         var floated = Assert.Single(outcome.State.Clients, client => client.Window == new WindowId(2));
         Assert.True(floated.Floating);
-        Assert.Equal(bounds, Assert.Single(outcome.Placements).Bounds);
+        Assert.Equal(NewFloat.Centered(area, bounds), Assert.Single(outcome.Placements).Bounds);
         Assert.Contains(outcome.State.Clients, client => client.Window == new WindowId(1) && !client.Floating);
 
         var split = core.Handle(new WindowAppeared(new WindowId(3), area));
@@ -293,7 +293,7 @@ public class CoreTests
         });
 
         Assert.True(Assert.Single(outcome.State.Clients).Floating);
-        Assert.Equal(bounds, Assert.Single(outcome.Placements).Bounds);
+        Assert.Equal(NewFloat.Centered(new Rectangle(0, 0, 400, 300), bounds), Assert.Single(outcome.Placements).Bounds);
     }
 
     [Theory]
@@ -321,7 +321,7 @@ public class CoreTests
 
         var floated = Assert.Single(outcome.State.Clients, client => client.Window == new WindowId(2));
         Assert.True(floated.Floating);
-        Assert.Equal(bounds, Assert.Single(outcome.Placements, placement => placement.Client == floated.Id).Bounds);
+        Assert.Equal(NewFloat.Centered(area, bounds), Assert.Single(outcome.Placements, placement => placement.Client == floated.Id).Bounds);
     }
 
     [Fact]
@@ -351,7 +351,7 @@ public class CoreTests
 
         var floated = Assert.Single(outcome.State.Clients, client => client.Window == new WindowId(2));
         Assert.True(floated.Floating);
-        Assert.Equal(bounds, Assert.Single(outcome.Placements, placement => placement.Client == floated.Id).Bounds);
+        Assert.Equal(NewFloat.Centered(area, bounds), Assert.Single(outcome.Placements, placement => placement.Client == floated.Id).Bounds);
     }
 
     [Fact]
@@ -461,7 +461,7 @@ public class CoreTests
         });
         var floated = Assert.Single(byClass.State.Clients, client => client.Window == new WindowId(2));
         Assert.True(floated.Floating);
-        Assert.Equal(bounds, Assert.Single(byClass.Placements, placement => placement.Client == floated.Id).Bounds);
+        Assert.Equal(NewFloat.Centered(area, bounds), Assert.Single(byClass.Placements, placement => placement.Client == floated.Id).Bounds);
     }
 
     [Fact]
@@ -513,7 +513,7 @@ public class CoreTests
         Assert.True(client.Floating);
         Assert.Equal(new WorkspaceId("notes"), client.Workspace);
         Assert.Equal(new WorkspaceId("notes"), outcome.State.ActiveWorkspace);
-        Assert.Equal(bounds, Assert.Single(outcome.Placements).Bounds);
+        Assert.Equal(NewFloat.Centered(new Rectangle(0, 0, 800, 600), bounds), Assert.Single(outcome.Placements).Bounds);
     }
 
     [Fact]
@@ -531,7 +531,7 @@ public class CoreTests
         var client = Assert.Single(outcome.State.Clients);
         Assert.True(client.Floating);
         Assert.Equal(new WorkspaceId("3"), client.Workspace);
-        Assert.Equal(bounds, Assert.Single(outcome.Placements).Bounds);
+        Assert.Equal(NewFloat.Centered(new Rectangle(0, 0, 900, 700), bounds), Assert.Single(outcome.Placements).Bounds);
     }
 
     [Fact]
@@ -624,7 +624,7 @@ public class CoreTests
         });
 
         Assert.True(Assert.Single(outcome.State.Clients).Floating);
-        Assert.Equal(bounds, Assert.Single(outcome.Placements).Bounds);
+        Assert.Equal(NewFloat.Centered(new Rectangle(0, 0, 300, 200), bounds), Assert.Single(outcome.Placements).Bounds);
     }
 
     [Fact]

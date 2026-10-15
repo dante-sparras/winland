@@ -49,8 +49,8 @@ public class IpcJsonTests
         Assert.Equal("0x7", clients[1].GetProperty("address").GetString());
         Assert.True(clients[1].GetProperty("floating").GetBoolean());
         Assert.True(clients[1].GetProperty("hidden").GetBoolean());
-        Assert.Equal(10, clients[1].GetProperty("at")[0].GetInt32());
-        Assert.Equal(20, clients[1].GetProperty("at")[1].GetInt32());
+        Assert.Equal(250, clients[1].GetProperty("at")[0].GetInt32());
+        Assert.Equal(200, clients[1].GetProperty("at")[1].GetInt32());
         Assert.Equal(300, clients[1].GetProperty("size")[0].GetInt32());
         Assert.Equal(200, clients[1].GetProperty("size")[1].GetInt32());
         Assert.Equal(99, clients[1].GetProperty("pid").GetInt64());

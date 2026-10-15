@@ -95,12 +95,18 @@ public sealed record Outcome(
     /// <summary>Keys to send on to a window. The adapter sends them; tests read them.</summary>
     public IReadOnlyList<KeyRelay> Relays { get; init; } = [];
 
+    /// <summary>Clients to raise above or lower below the other windows, in order.</summary>
+    public IReadOnlyList<ZOrderRequest> ZOrder { get; init; } = [];
+
     /// <summary>Text a plugin dispatcher reports on success. Empty when the dispatcher has nothing to say.</summary>
     public string? Notice { get; init; }
 }
 
 /// <summary>A request to end the process that owns a Client.</summary>
 public readonly record struct KillRequest(long ProcessId);
+
+/// <summary>A request to raise a Client to the top of the z-order, or lower it to the bottom.</summary>
+public readonly record struct ZOrderRequest(WindowId Window, bool Top);
 
 /// <summary>A request to turn one display, or every display when <see cref="Device"/> is empty, on or off.</summary>
 public readonly record struct DisplayPowerRequest(string Device, bool On);

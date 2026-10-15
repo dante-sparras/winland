@@ -33,6 +33,9 @@ public sealed record WindowClosed(WindowId Window) : Event;
 /// <summary>The window's minimum or maximum track size changed. A null size is no limit.</summary>
 public sealed record WindowLimitsChanged(WindowId Window, Size? MinSize, Size? MaxSize) : Event;
 
+/// <summary>A Client moved or resized itself. <see cref="Bounds"/> is its visible frame.</summary>
+public sealed record WindowResized(WindowId Window, Rectangle Bounds) : Event;
+
 public sealed record WindowMinimized(WindowId Window) : Event;
 
 public sealed record WindowRestored(WindowId Window) : Event;
