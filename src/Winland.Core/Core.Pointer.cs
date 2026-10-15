@@ -14,12 +14,11 @@ public sealed partial class Core
     private Outcome PressPointer(PointerButtonPressed pressed)
     {
         var match = BindMatcher.Decide(_binds, _keyState, pressed);
-        if (TryDragHit(match, out var drag) && ActiveWindow() is WindowId window)
+        if (TryDragHit(match, out var drag) && WindowUnder(pressed.Position, shrink: false) is WindowId window)
         {
             _border = null;
-            _gesture = new Gesture(window, pressed.Button, IsResize(drag.Dispatcher), drag.Dispatcher);
-            var begun = LayoutWorkspace(window).Layout.Drag(window, new PointerDrag(_gesture.Resize, PointerDragPhase.Begin, pressed.Position));
-            var ran = RunBind(match);
+            var begun = BeginGesture(window, drag, pressed.Button, pressed.Position);
+            var ran = RunBind(match) with { Focus = window };
             return begun.Count == 0 ? ran : ran with { Placements = begun };
         }
 
@@ -48,12 +47,7 @@ public sealed partial class Core
         }
         else if (_gesture is not null && _gesture.Button.Equals(released.Button, StringComparison.OrdinalIgnoreCase))
         {
-            var gesture = _gesture;
-            _gesture = null;
-            ended = View(
-                LayoutWorkspace(gesture.Window).Layout.Drag(gesture.Window, new PointerDrag(gesture.Resize, PointerDragPhase.End, released.Position)),
-                consumed: true,
-                dispatcher: gesture.Dispatcher);
+            ended = EndGesture(released.Position);
         }
 
         NoteBorderCursor(released.Position);
@@ -83,10 +77,7 @@ public sealed partial class Core
         if (_gesture is not null)
         {
             _lastMoveAt = When(moved.TimeMs);
-            return View(
-                LayoutWorkspace(_gesture.Window).Layout.Drag(_gesture.Window, new PointerDrag(_gesture.Resize, PointerDragPhase.Move, moved.Position)),
-                consumed: true,
-                dispatcher: _gesture.Dispatcher);
+            return MoveGesture(moved.Position);
         }
 
         return View([], focus: Follow(moved));
@@ -235,59 +226,6 @@ public sealed partial class Core
         var dy = (double)to.Y - from.Y;
         return Math.Sqrt((dx * dx) + (dy * dy));
     }
-
-    private Outcome ApplyGesture(PointerGesture gesture)
-    {
-        var resize = IsResize(gesture.Dispatcher);
-        var layout = CurrentWorkspace().Layout;
-        switch (gesture.Phase)
-        {
-            case PointerDragPhase.Begin:
-                if (ActiveWindow() is not WindowId window)
-                    return View([], consumed: true, dispatcher: gesture.Dispatcher);
-
-                _gesture = new Gesture(window, gesture.Button, resize, gesture.Dispatcher);
-                return View(
-                    layout.Drag(window, new PointerDrag(resize, PointerDragPhase.Begin, gesture.Position)),
-                    consumed: true,
-                    dispatcher: gesture.Dispatcher);
-            case PointerDragPhase.Move when _gesture is not null:
-                return View(
-                    layout.Drag(_gesture.Window, new PointerDrag(_gesture.Resize, PointerDragPhase.Move, gesture.Position)),
-                    consumed: true,
-                    dispatcher: _gesture.Dispatcher);
-            case PointerDragPhase.End when _gesture is not null && _gesture.Button.Equals(gesture.Button, StringComparison.OrdinalIgnoreCase):
-                var active = _gesture;
-                _gesture = null;
-                return View(
-                    layout.Drag(active.Window, new PointerDrag(active.Resize, PointerDragPhase.End, gesture.Position)),
-                    consumed: true,
-                    dispatcher: active.Dispatcher);
-            default:
-                return View([]);
-        }
-    }
-
-    private static bool TryDragHit(BindDecision match, out BindDispatch drag)
-    {
-        foreach (var dispatch in DispatchesOf(match))
-        {
-            if (IsDragDispatcher(dispatch))
-            {
-                drag = dispatch;
-                return true;
-            }
-        }
-
-        drag = default;
-        return false;
-    }
-
-    private static bool IsDragDispatcher(BindDispatch dispatch) =>
-        (Is(dispatch.Dispatcher, "movewindow") && dispatch.Arguments.Length == 0) || IsResize(dispatch.Dispatcher);
-
-    private static bool IsResize(string dispatcher) =>
-        Is(dispatcher, "resizewindow");
 
     private Outcome StartBorder(PointerButtonPressed pressed, WindowId window, Rectangle bounds, bool floating)
     {
@@ -470,16 +408,5 @@ public sealed partial class Core
         public bool Left { get; } = left;
 
         public bool Top { get; } = top;
-    }
-
-    private sealed class Gesture(WindowId window, string button, bool resize, string dispatcher)
-    {
-        public WindowId Window { get; } = window;
-
-        public string Button { get; } = button;
-
-        public bool Resize { get; } = resize;
-
-        public string Dispatcher { get; } = dispatcher;
     }
 }

@@ -136,6 +136,14 @@ internal static class OptionCatalog
                 kind = "int";
                 token = layout.SplitBias.ToString(CultureInfo.InvariantCulture);
                 return true;
+            case "dwindle:smart_resizing":
+                kind = "bool";
+                token = Bool(layout.SmartResizing);
+                return true;
+            case "dwindle:precise_mouse_move":
+                kind = "bool";
+                token = Bool(layout.PreciseMouseMove);
+                return true;
             case "binds:drag_threshold":
                 kind = "int";
                 token = LastInt(document, name, 0, 0, int.MaxValue).ToString(CultureInfo.InvariantCulture);

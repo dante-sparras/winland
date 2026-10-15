@@ -103,7 +103,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | no_focus_fallback | Focus fallback is not honored. |
 | opengl | GPU rendering options have no Windows meaning. |
 | permission | Permission rules have no Windows meaning. |
-| precise_mouse_move | Dragging a window onto a split is not honored. |
 | quirks | Display buffer quirks have no Windows meaning. |
 | render | GPU rendering options have no Windows meaning. |
 | scale | Changing a monitor's scale is not honored. |
@@ -147,7 +146,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | modal_parent_blocking |
 | gap | - | move_snap_cursor, move_snap_to_grid |
 | gap | - | no_focus_fallback |
-| gap | [#47](https://github.com/dante-sparras/winland/issues/47) | precise_mouse_move |
 
 ## Notes
 
@@ -160,6 +158,15 @@ Bind flag `p` warns and is ignored. The bind itself still runs. Applications can
 Per-device `device` options are not honored. Keyboard layout keys and the other input keys stay Gaps.
 
 A window rule that matches on `xwayland` is a Gap: the rule is skipped and the config warns. Other effects and match fields are skipped with a warning until a later change honors them.
+
+Mouse drag has these Gaps. Each is a gap with no open issue:
+
+- A `bindm` press with no Client under the pointer is still consumed. The mouse hook decides from the binds alone, before it can look for a Client, so the press does not reach the desktop.
+- The `mouse` dispatcher bound to a keyboard key warns and is skipped. A drag needs a mouse button to start and end it.
+- A Client dragged onto another Monitor stays on its own Workspace, and a lifted tile drops back into that Workspace's Layout.
+- In the monocle Layout a drag does not move or resize the Client.
+- The pointer shape does not change while a Client is dragged or resized.
+- The `keep_aspect_ratio` window rule is not honored, so `resizewindow 2` resizes exactly as no argument does.
 
 ## Commands
 

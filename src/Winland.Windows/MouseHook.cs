@@ -29,6 +29,7 @@ public sealed class MouseHook : IDisposable
     private HHOOK _hook;
     private string? _gestureButton;
     private string? _gestureDispatcher;
+    private string _gestureArguments = "";
     private bool _disposed;
 
     public MouseHook(Core core, KeyboardHook keys)
@@ -125,7 +126,7 @@ public sealed class MouseHook : IDisposable
         _ = _core.Decide(new PointerMoved(position), _keys.Session);
         SessionEffects.NoteMove();
         if (_gestureButton is not null && _gestureDispatcher is not null)
-            _keys.PostGesture(_gestureDispatcher, position, PointerDragPhase.Move, _gestureButton);
+            _keys.PostGesture(_gestureDispatcher, _gestureArguments, position, PointerDragPhase.Move, _gestureButton);
         else
             _keys.PostMove(position, time);
 
@@ -138,7 +139,7 @@ public sealed class MouseHook : IDisposable
         {
             if (_gestureButton is not null && _gestureDispatcher is not null && _gestureButton.Equals(button, StringComparison.OrdinalIgnoreCase))
             {
-                _keys.PostGesture(_gestureDispatcher, position, PointerDragPhase.End, button);
+                _keys.PostGesture(_gestureDispatcher, _gestureArguments, position, PointerDragPhase.End, button);
                 _gestureButton = null;
                 _gestureDispatcher = null;
             }
@@ -154,16 +155,17 @@ public sealed class MouseHook : IDisposable
             KeyboardHook.Mask();
 
         _keys.NoteTiming(decision);
-        if (TryDrag(decision, out var dispatcher))
+        if (TryDrag(decision, out var dispatcher, out var arguments))
         {
             _gestureButton = button;
             _gestureDispatcher = dispatcher;
-            _keys.PostGesture(dispatcher, position, PointerDragPhase.Begin, button);
+            _gestureArguments = arguments;
+            _keys.PostGesture(dispatcher, arguments, position, PointerDragPhase.Begin, button);
             foreach (var dispatch in decision.Dispatches)
             {
                 if (dispatch.Dispatcher.Length == 0)
                     continue;
-                if (dispatch.Dispatcher.Equals(dispatcher, StringComparison.OrdinalIgnoreCase) && dispatch.Arguments.Length == 0)
+                if (dispatch.Dispatcher.Equals(dispatcher, StringComparison.OrdinalIgnoreCase) && dispatch.Arguments == arguments)
                     continue;
 
                 _keys.PostDispatch(dispatch.Dispatcher, dispatch.Arguments);
@@ -189,15 +191,17 @@ public sealed class MouseHook : IDisposable
         return decision.Consumed;
     }
 
-    private static bool TryDrag(BindDecision decision, out string dispatcher)
+    private static bool TryDrag(BindDecision decision, out string dispatcher, out string arguments)
     {
         dispatcher = "";
+        arguments = "";
         if (decision.Dispatches.Count == 0)
         {
             if (string.IsNullOrEmpty(decision.Dispatcher) || !IsDrag(decision.Dispatcher, decision.Arguments))
                 return false;
 
             dispatcher = decision.Dispatcher;
+            arguments = decision.Arguments;
             return true;
         }
 
@@ -207,6 +211,7 @@ public sealed class MouseHook : IDisposable
                 continue;
 
             dispatcher = dispatch.Dispatcher;
+            arguments = dispatch.Arguments;
             return true;
         }
 

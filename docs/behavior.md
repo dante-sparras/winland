@@ -36,6 +36,18 @@ A rule block on `exec`, `exec-once`, `execr`, `execr-once`, `exec-shutdown`, or 
 
 `general:snap:enabled` defaults to false. While a floating Client is moved or resized, `general:snap:window_gap` (default 10) snaps it to another Client and `general:snap:monitor_gap` (default 10) snaps it to the monitor. Both are 0 to 100, and 0 turns that snap off. `general:snap:border_overlap` defaults to false. When it is on, the snap meets the monitor so the border overlaps the edge. `general:snap:respect_gaps` defaults to false. When it is on, window snaps leave `general:gaps_in` between Clients and monitor snaps leave `general:gaps_out` at the edges.
 
+## Mouse drag
+
+`bindm` binds a mouse button to `movewindow` or `resizewindow`. A press takes the Client under the pointer, focuses it, and drags it until that button is released. The `mouse` dispatcher in an ordinary bind, as in `bind = SUPER, mouse:272, mouse, movewindow`, is the same action. It needs a mouse button and takes only `movewindow` or `resizewindow`. A press with no Client under the pointer does not drag.
+
+`binds:drag_threshold` defaults to 0. Above 0, the Client is not picked up until the pointer has moved farther than that many pixels from the press. The drag then starts from that point, so the Client does not jump. The same distance separates the `c` and `g` bind flags.
+
+`movewindow` moves a floating Client with the pointer. A tiled Client is lifted out of the Layout and floats at its tiled size, centered on the pointer. On release it drops back into the Layout at the pointer. In dwindle it splits the tile under the pointer, or the nearest tile, and goes on the half the pointer is over. `dwindle:force_split` does not apply to a drop. `dwindle:precise_mouse_move` defaults to false. When it is on, a drop picks the side of the tile nearest the pointer, as `dwindle:smart_split` does, and splits keep their direction when the tree is refit.
+
+`resizewindow` resizes a floating Client from the grabbed corner. That is the corner nearest the pointer, or the one `general:resize_corner` forces. A tiled Client changes its split ratios instead. `resizewindow 1` keeps a floating Client's aspect ratio: the side that grew more sets the size and the other follows. `resizewindow 2` and no argument do not keep it.
+
+`dwindle:smart_resizing` defaults to true. A mouse resize of a tile moves the edges on the grabbed corner's side and keeps the opposite edges in place, so the tiles on the far side do not change. A tile against a monitor edge moves its other edge. `resizeactive` has no corner and moves the nearest split on each axis. False always moves the nearest split, whichever corner is grabbed. `master:smart_resizing` defaults to true. Grabbing a tile's top edge in a vertical stack, or its left edge in a horizontal one, takes the space from the tiles before it. In the center orientation a grabbed master moves both master edges.
+
 ## Cursor and input
 
 These cursor keys are honored: `warp_on_change_workspace`, `warp_on_monitor_change`, `warp_on_toggle_special`, `no_warps`, `persistent_warps`, `inactive_timeout`, `hide_on_key_press`, and `default_monitor`. Every other `cursor` key stays a Gap.

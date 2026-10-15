@@ -60,6 +60,10 @@ public sealed record LayoutOptions
 
     public int SplitBias { get; init; }
 
+    public bool SmartResizing { get; init; } = true;
+
+    public bool PreciseMouseMove { get; init; }
+
     public static LayoutOptions Unconfigured { get; } = new();
 
     internal const string LayoutKeyword = "general:layout";
@@ -99,6 +103,8 @@ public sealed record LayoutOptions
         ["dwindle:use_active_for_splits"] = (options, value) => TryParseBool(value, out var useActive) ? options with { UseActiveForSplits = useActive } : options,
         ["dwindle:default_split_ratio"] = (options, value) => TryParseDouble(value, out var ratio) ? options with { DefaultSplitRatio = Clamp(ratio, 0.1, 1.9) } : options,
         ["dwindle:split_bias"] = (options, value) => TryParseSplitBias(value, out var bias) ? options with { SplitBias = bias } : options,
+        ["dwindle:smart_resizing"] = (options, value) => TryParseBool(value, out var smartResizing) ? options with { SmartResizing = smartResizing } : options,
+        ["dwindle:precise_mouse_move"] = (options, value) => TryParseBool(value, out var precise) ? options with { PreciseMouseMove = precise } : options,
     };
 
     internal static IReadOnlySet<string> Keywords { get; } = new HashSet<string>(Appliers.Keys, StringComparer.Ordinal)

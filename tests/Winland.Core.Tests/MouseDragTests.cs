@@ -13,9 +13,9 @@ public class MouseDragTests
         Appear(core, 1);
         core.Handle(new Dispatch("togglefloating"));
         Press(core, "Super_L");
-        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(10, 20) });
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(700, 400) });
 
-        var moved = core.Handle(new PointerMoved(new Point(60, 50)));
+        var moved = core.Handle(new PointerMoved(new Point(750, 430)));
 
         Assert.Equal("movewindow", moved.Dispatcher);
         // The float toggle recenters the 640x400 default, then the pointer moves it by (+50, +30).
@@ -47,9 +47,9 @@ public class MouseDragTests
         Appear(core, 1);
         core.Handle(new Dispatch("togglefloating"));
         Press(core, "Super_L");
-        core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(1910, 1070) });
+        core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(1270, 730) });
 
-        var resized = core.Handle(new PointerMoved(new Point(1950, 1100)));
+        var resized = core.Handle(new PointerMoved(new Point(1310, 760)));
 
         Assert.Equal("resizewindow", resized.Dispatcher);
         // The recentered 640x400 float grows by the pointer delta (+40, +30).
@@ -71,6 +71,244 @@ public class MouseDragTests
         Assert.Equal(new Rectangle(1060, 0, 860, 1080), BoundsOf(resized, 2));
     }
 
+    [Fact]
+    public void TheDragTakesTheClientUnderThePointerAndFocusesIt()
+    {
+        var core = Flat("bindm = SUPER, mouse:273, resizewindow\n");
+        Appear(core, 1);
+        Appear(core, 2);
+        Press(core, "Super_L");
+
+        var pressed = core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(480, 540) });
+        var resized = core.Handle(new PointerMoved(new Point(580, 540)));
+
+        Assert.Equal(new WindowId(1), pressed.Focus);
+        Assert.Equal(new Rectangle(0, 0, 1060, 1080), BoundsOf(resized, 1));
+        Assert.Equal(new Rectangle(1060, 0, 860, 1080), BoundsOf(resized, 2));
+    }
+
+    [Fact]
+    public void APressOffEveryClientDoesNotDrag()
+    {
+        var core = Flat("bindm = SUPER, mouse:272, movewindow\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(10, 20) });
+
+        var moved = core.Handle(new PointerMoved(new Point(60, 50)));
+
+        Assert.Null(moved.Dispatcher);
+        Assert.Empty(moved.Placements);
+    }
+
+    [Fact]
+    public void TheDragThresholdHoldsTheClientUntilThePointerPassesIt()
+    {
+        var core = Flat("binds:drag_threshold = 10\nbindm = SUPER, mouse:272, movewindow\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(700, 400) });
+
+        var held = core.Handle(new PointerMoved(new Point(706, 408)));
+        core.Handle(new PointerMoved(new Point(720, 400)));
+        var moved = core.Handle(new PointerMoved(new Point(750, 430)));
+
+        Assert.Equal("movewindow", held.Dispatcher);
+        Assert.Empty(held.Placements);
+        // The drag starts at (720, 400), where the pointer passed 10 pixels, so the float moves by (+30, +30).
+        Assert.Equal(new Rectangle(670, 370, 640, 400), BoundsOf(moved, 1));
+    }
+
+    [Fact]
+    public void ALiftedTileIsCenteredOnThePointer()
+    {
+        var core = Flat("bindm = SUPER, mouse:272, movewindow\n");
+        Appear(core, 1);
+        Appear(core, 2);
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(1000, 100) });
+
+        var lifted = core.Handle(new PointerMoved(new Point(1200, 300)));
+
+        Assert.Equal(new Rectangle(720, -240, 960, 1080), BoundsOf(lifted, 2));
+        Assert.True(Client(lifted, 2).Floating);
+        Assert.Equal(new Rectangle(0, 0, 1920, 1080), BoundsOf(lifted, 1));
+    }
+
+    [Fact]
+    public void ADropFollowsThePointerEvenWhenTheSplitIsForced()
+    {
+        var core = Flat("dwindle:force_split = 2\nbindm = SUPER, mouse:272, movewindow\n");
+        Appear(core, 1);
+        Appear(core, 2);
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(1000, 100) });
+        core.Handle(new PointerMoved(new Point(100, 500)));
+
+        var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(100, 500) });
+
+        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(dropped, 2));
+        Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(dropped, 1));
+    }
+
+    [Theory]
+    [InlineData("true")]
+    [InlineData("false")]
+    public void PreciseMouseMoveDropsOnTheSideNearestThePointer(string precise)
+    {
+        var core = Flat("dwindle:precise_mouse_move = " + precise + "\nbindm = SUPER, mouse:272, movewindow\n");
+        Appear(core, 1);
+        Appear(core, 2);
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(1000, 100) });
+        core.Handle(new PointerMoved(new Point(960, 1000)));
+
+        // Client 1 fills the screen while 2 is lifted. The pointer is below its center.
+        var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(960, 1000) });
+
+        if (precise == "true")
+        {
+            Assert.Equal(new Rectangle(0, 0, 1920, 540), BoundsOf(dropped, 1));
+            Assert.Equal(new Rectangle(0, 540, 1920, 540), BoundsOf(dropped, 2));
+        }
+        else
+        {
+            Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(dropped, 1));
+            Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(dropped, 2));
+        }
+    }
+
+    [Fact]
+    public void SmartResizingMovesTheGrabbedEdgeAndKeepsTheOtherOne()
+    {
+        var core = FourTiles("");
+        core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(1000, 600) });
+
+        // The pointer grabs 3 by its top left. Its left edge moves and its right edge, shared with 4, stays.
+        var resized = core.Handle(new PointerMoved(new Point(900, 600)));
+
+        Assert.Equal(new Rectangle(0, 0, 860, 1080), BoundsOf(resized, 1));
+        Assert.Equal(new Rectangle(860, 0, 1060, 540), BoundsOf(resized, 2));
+        Assert.Equal(new Rectangle(860, 540, 580, 540), BoundsOf(resized, 3));
+        Assert.Equal(new Rectangle(1440, 540, 480, 540), BoundsOf(resized, 4));
+    }
+
+    [Fact]
+    public void WithoutSmartResizingTheNearestSplitMoves()
+    {
+        var core = FourTiles("dwindle:smart_resizing = false\n");
+        core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(1000, 600) });
+
+        var resized = core.Handle(new PointerMoved(new Point(900, 600)));
+
+        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(resized, 1));
+        Assert.Equal(new Rectangle(960, 540, 380, 540), BoundsOf(resized, 3));
+        Assert.Equal(new Rectangle(1340, 540, 580, 540), BoundsOf(resized, 4));
+    }
+
+    [Fact]
+    public void MasterSmartResizingTakesSpaceFromTheTileAboveAGrabbedTopEdge()
+    {
+        var core = Flat("general:layout = master\nbindm = SUPER, mouse:273, resizewindow\n");
+        Outcome placed = null!;
+        for (var window = 1; window <= 4; window++)
+            placed = Appear(core, window);
+        var stack = placed.Placements.Where(placement => placement.Bounds.X > 0).OrderBy(placement => placement.Bounds.Y).ToList();
+        Assert.Equal(3, stack.Count);
+        var above = stack[0];
+        var middle = stack[1];
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(middle.Bounds.X + 10, middle.Bounds.Y + 10) });
+
+        var resized = core.Handle(new PointerMoved(new Point(middle.Bounds.X + 10, middle.Bounds.Y - 50)));
+
+        var grown = Assert.Single(resized.Placements, placement => placement.Client == middle.Client).Bounds;
+        var shrunk = Assert.Single(resized.Placements, placement => placement.Client == above.Client).Bounds;
+        Assert.Equal(middle.Bounds.Y - 60, grown.Y);
+        Assert.Equal(middle.Bounds.Y + middle.Bounds.Height, grown.Y + grown.Height);
+        Assert.Equal(above.Bounds.Height - 60, shrunk.Height);
+    }
+
+    [Fact]
+    public void ResizeWindowOneKeepsTheAspectRatio()
+    {
+        var core = Flat("bindm = SUPER, mouse:273, resizewindow 1\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(1270, 730) });
+
+        var resized = core.Handle(new PointerMoved(new Point(1370, 740)));
+
+        // 640x400 grows to a width of 740, so the height follows at 740 * 400 / 640.
+        Assert.Equal(new Rectangle(640, 340, 740, 463), BoundsOf(resized, 1));
+    }
+
+    [Fact]
+    public void AMouseBindCarriesTheResizeMode()
+    {
+        var document = ConfigParser.Parse("bindm = SUPER, mouse:273, resizewindow 2\n");
+
+        Assert.Empty(document.Warnings);
+        var bind = Assert.Single(document.Binds.OfType<Bind>());
+        Assert.Equal("resizewindow", bind.Dispatcher);
+        Assert.Equal("2", bind.Arguments);
+    }
+
+    [Fact]
+    public void TheHookGestureCarriesTheResizeMode()
+    {
+        var core = Flat("");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        core.Handle(new PointerGesture("resizewindow", new Point(1270, 730), PointerDragPhase.Begin, "mouse:273") { Arguments = "1" });
+
+        var resized = core.Handle(new PointerGesture("resizewindow", new Point(1370, 740), PointerDragPhase.Move, "mouse:273") { Arguments = "1" });
+
+        Assert.Equal(new Rectangle(640, 340, 740, 463), BoundsOf(resized, 1));
+    }
+
+    [Fact]
+    public void TheMouseDispatcherDragsLikeAMouseBind()
+    {
+        var core = Flat("bind = SUPER, mouse:272, mouse, movewindow\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(700, 400) });
+
+        var moved = core.Handle(new PointerMoved(new Point(750, 430)));
+
+        Assert.Equal(new Rectangle(690, 370, 640, 400), BoundsOf(moved, 1));
+    }
+
+    [Theory]
+    [InlineData("bind = SUPER, Z, mouse, movewindow", "The mouse dispatcher needs a mouse button.")]
+    [InlineData("bind = SUPER, mouse:272, mouse, killactive", "The mouse dispatcher takes movewindow or resizewindow.")]
+    [InlineData("bindr = SUPER, mouse:272, mouse, movewindow", "Bind flags conflict.")]
+    public void TheMouseDispatcherRejectsWhatCannotDrag(string line, string warning)
+    {
+        var document = ConfigParser.Parse(line + "\n");
+
+        Assert.Equal([new ConfigWarning(1, warning)], document.Warnings);
+        Assert.Empty(document.Binds);
+    }
+
+    // Dwindle with 1 on the left, 2 at the top right, and 3 and 4 side by side at the bottom right.
+    private static Core FourTiles(string options)
+    {
+        var core = Flat(options + "bindm = SUPER, mouse:273, resizewindow\n");
+        Outcome placed = null!;
+        for (var window = 1; window <= 4; window++)
+            placed = Appear(core, window);
+        Assert.Equal(new Rectangle(960, 540, 480, 540), BoundsOf(placed, 3));
+        Assert.Equal(new Rectangle(1440, 540, 480, 540), BoundsOf(placed, 4));
+        Press(core, "Super_L");
+        return core;
+    }
+
     private static Core Flat(string binds)
     {
         var core = new Core();
@@ -79,7 +317,7 @@ public class MouseDragTests
         return core;
     }
 
-    private static void Appear(Core core, long window) =>
+    private static Outcome Appear(Core core, long window) =>
         core.Handle(new WindowAppeared(new WindowId(window), Wide));
 
     private static void Press(Core core, string key) =>

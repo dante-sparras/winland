@@ -78,55 +78,6 @@ internal sealed partial class DwindleLayout
         return Placements();
     }
 
-    public IReadOnlyList<Placement> ResizeActive(WindowId window, string arguments)
-    {
-        if (!TryResize(arguments, out var x, out var y, out var exact))
-            return [];
-
-        var id = new ClientId(window.Value);
-        if (Minimized(id))
-            return [];
-
-        if (_floating.TryGetValue(id, out var floating))
-            return ResizeFloating(id, floating, x, y, exact);
-
-        if (!_nodes.TryGetValue(id, out var node) || !InTree(node) || node.Parent is null)
-            return [];
-
-        var box = node.Box;
-        var deltaX = exact ? x - box.Width : x;
-        var deltaY = exact ? y - box.Height : y;
-        var area = TilingArea();
-        if (Sticks(box.X, area.X) && Sticks(box.X + box.Width, area.X + area.Width))
-            deltaX = 0;
-        if (Sticks(box.Y, area.Y) && Sticks(box.Y + box.Height, area.Y + area.Height))
-            deltaY = 0;
-
-        var parent = node.Parent;
-        var sideBySide = !parent.SplitTop;
-        var other = parent.Parent;
-        while (other is not null && other.SplitTop == !sideBySide)
-            other = other.Parent;
-
-        if (other is null)
-        {
-            if (sideBySide)
-                Grow(parent, deltaX, horizontal: true);
-            else
-                Grow(parent, deltaY, horizontal: false);
-        }
-        else
-        {
-            var side = sideBySide ? parent : other;
-            var top = sideBySide ? other : parent;
-            Grow(side, deltaX, horizontal: true);
-            Grow(top, deltaY, horizontal: false);
-        }
-
-        Refit();
-        return Placements();
-    }
-
     public IReadOnlyList<Placement> Swap(WindowId first, WindowId second)
     {
         if (first == second)
@@ -541,15 +492,6 @@ internal sealed partial class DwindleLayout
         return index >= 0 && _clients[index].Minimized;
     }
 
-    private static void Grow(Node node, int delta, bool horizontal)
-    {
-        var size = horizontal ? node.Box.Width : node.Box.Height;
-        if (delta == 0 || size == 0)
-            return;
-
-        node.SplitRatio = Math.Clamp(node.SplitRatio + (delta * 2.0 / size), 0.1, 1.9);
-    }
-
     private static bool TowardLeafSibling(Node node, PendingSplit direction)
     {
         var parent = node.Parent;
@@ -579,8 +521,6 @@ internal sealed partial class DwindleLayout
         PendingSplit.Down => new Point(box.X + (box.Width / 2), box.Y + box.Height + 1),
         _ => new Point(box.X, box.Y),
     };
-
-    private static bool Sticks(int edge, int other) => Math.Abs(edge - other) <= 1;
 
     private static bool TryDirection(string text, out PendingSplit direction)
     {
