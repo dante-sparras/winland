@@ -352,6 +352,26 @@ public class AnimationTests
             animator.Start(motion, now);
     }
 
+    [Fact]
+    public void ADroppedWindowSlidesIntoItsTileFromWhereTheSystemLeftIt()
+    {
+        var core = Load("""
+            general:gaps_in = 0
+            general:gaps_out = 0
+            general:border_size = 0
+            """);
+        Appear(core, 1);
+        Appear(core, 2);
+        core.Handle(new WindowMoveStarted(new WindowId(2), new Point(1000, 100)));
+        var left = new Rectangle(40, 300, 960, 1080);
+
+        var dropped = core.Handle(new WindowMoveEnded(new WindowId(2), new Point(100, 500), left));
+
+        var motion = Assert.Single(dropped.Motions, candidate => candidate.Window == new WindowId(2));
+        Assert.Equal(left, motion.From);
+        Assert.Equal(Left, motion.To);
+    }
+
     private static Core Load(string text)
     {
         var core = new Core();

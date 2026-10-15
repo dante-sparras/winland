@@ -39,6 +39,27 @@ public sealed partial class WindowAdapter
 
         var outcome = _core.Handle(new WindowMaximizeRequested(window));
         Apply(outcome);
+        Settling[window] = Environment.TickCount64 + SettleMilliseconds;
         return outcome;
+    }
+
+    // Electron windows restore a size of their own a moment after they leave the maximized state, which undoes
+    // the placement made just before. For a short while after a maximize request, a frame that is not where
+    // the Layout holds the window is put back.
+    private void PutBackIfDrifted(HWND hwnd, WindowId window)
+    {
+        if (!Settling.TryGetValue(window, out var until))
+            return;
+
+        if (Environment.TickCount64 > until)
+        {
+            _ = Settling.TryRemove(window, out _);
+            return;
+        }
+
+        if (_moving == window || _sizing == window || PInvoke.IsIconic(hwnd) || !TryVisible(hwnd, out var visible))
+            return;
+
+        Apply(_core.Handle(new WindowDrifted(window, visible)));
     }
 }

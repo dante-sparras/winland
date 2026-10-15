@@ -39,8 +39,17 @@ public sealed record WindowResized(WindowId Window, Rectangle Bounds) : Event;
 /// <summary>The system began moving a window by its title bar. <see cref="Pointer"/> is where the pointer is.</summary>
 public sealed record WindowMoveStarted(WindowId Window, Point Pointer) : Event;
 
-/// <summary>The system finished moving a window by its title bar.</summary>
-public sealed record WindowMoveEnded(WindowId Window, Point Pointer) : Event;
+/// <summary>
+/// The system finished moving a window by its title bar. <see cref="Bounds"/> is the visible frame the window was
+/// dropped at, which is where its motion into the Layout starts. Without it the motion starts at the lifted tile.
+/// </summary>
+public sealed record WindowMoveEnded(WindowId Window, Point Pointer, Rectangle? Bounds = null) : Event;
+
+/// <summary>
+/// A Client's frame is not where its Layout put it, soon after the core changed it. Electron windows restore their
+/// own bounds just after they leave the system's maximized state. <see cref="Bounds"/> is the visible frame.
+/// </summary>
+public sealed record WindowDrifted(WindowId Window, Rectangle Bounds) : Event;
 
 /// <summary>The system began resizing a window by its border. <see cref="Pointer"/> is where the pointer is.</summary>
 public sealed record WindowSizeStarted(WindowId Window, Point Pointer) : Event;

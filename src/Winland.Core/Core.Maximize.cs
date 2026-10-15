@@ -19,4 +19,18 @@ public sealed partial class Core
         var next = client.Fullscreen == FullscreenMode.Maximized ? FullscreenMode.None : FullscreenMode.Maximized;
         return CommitFullscreen(window, next, next, dispatcher: null, allowsElevation: false);
     }
+
+    // A window that left the system's maximized state may restore a size of its own afterwards. It is put back
+    // where its Layout holds it, with no motion: the window is already somewhere it should not be.
+    private Outcome PutBack(WindowDrifted drifted)
+    {
+        if (WorkspaceContaining(drifted.Window) is not LiveWorkspace desk
+            || desk.ClientOf(drifted.Window) is not { Minimized: false } client
+            || !IsShown(desk.Id)
+            || !desk.Layout.TryBounds(drifted.Window, out var slot))
+            return View([]);
+
+        var bounds = PlacedBounds(client, desk, slot);
+        return bounds == drifted.Bounds ? View([]) : View([new Placement(client.Id, bounds)]);
+    }
 }
