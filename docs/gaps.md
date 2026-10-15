@@ -188,6 +188,18 @@ Blur is DWM's acrylic backdrop, so it shows only where DWM draws that backdrop: 
 
 Per-device `device` options are not honored. Keyboard layout keys and the other input keys stay Gaps.
 
+`pass`, `sendshortcut` and `sendkeystate` to a window that is not focused bring that window to the foreground, send the key, and give the foreground back 30 ms later. Windows gives keys only to the foreground window. Each change of focus is reported. A mouse button goes to the window under the pointer, not to the named window.
+
+`pass` from the pipe has no key to send and answers `pass: no key to pass`. The reference passes the last key pressed, and Winland sees only the keys of its binds.
+
+`focusurgentorlast` with no urgent Client focuses the Client focused before the current one. The reference reads its focus history from the oldest end there.
+
+An application that asks for attention without flashing or taking the foreground is not urgent. `misc:focus_on_activate` set to true does not report the application as urgent before it takes focus.
+
+`inhibitingIdle` reports only the `idle_inhibit` rule. An application that keeps the system awake by itself does so without Winland, and is not reported.
+
+Swallowing reads the process tree up to 16 levels. The reference reads 25.
+
 A window rule that matches on `xwayland` is a Gap: the rule is skipped and the config warns. Other effects and match fields are skipped with a warning until a later change honors them.
 
 Mouse drag has these Gaps. Each is a gap with no open issue:

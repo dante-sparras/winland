@@ -152,3 +152,33 @@ A `fullscreen` window rule requests mode 2. A `maximize` window rule requests mo
 ## Plugins
 
 `winlandctl plugin install <git-url> [revision]` clones the repository and builds the plugins its manifest lists, then installs them. A repository that is already installed is refused. A revision checks out that commit, branch or tag. `update` rebuilds a repository only when its commit changed, or every repository with `--force`. `remove` takes a repository URL or one of its plugin names and removes the whole repository. `list --installed` lists the installed repositories and their plugins. The manifest, the build and the approval are in [plugins.md](plugins.md).
+
+## Sending keys
+
+`pass` sends the key of the bind that ran it to the Client the window selector names. The press goes on when the key goes down and the release when it comes up, so a `pass` bind runs on the release too without the `r` flag. The modifiers the user holds are left as they are. A selector that matches no Client answers `pass: window not found`.
+
+`sendshortcut` takes modifiers, a key, and a window selector. It sends the key with exactly those modifiers down. A modifier the user holds that is not named is let go around the key and pressed again after it. A `sendshortcut` bind presses the key on the press and releases it on the release. From the pipe it presses and releases at once. A number above 9 and `code:N` are keycodes, `mouse:272` to `mouse:276` are the left, right, middle, side and extra buttons, and anything else is a key name in the focused window's keyboard layout. An empty selector sends to the focused window. A bad argument answers `invalid args`, `invalid modifiers`, `invalid mouse button`, `invalid key`, `key not found`, or `window not found`, after the dispatcher name.
+
+`sendkeystate` takes modifiers, a key, a state, and a window selector. `down` presses the key, `repeat` presses it twice, and `up` releases it. Any other state is an error.
+
+A sent key is tagged, so Winland's own hooks let it through and it never runs a bind.
+
+## Urgency
+
+A Client is urgent when it flashes for attention, and when it takes the foreground and `misc:focus_on_activate` sends the focus back. Each emits `urgent` with the Client's address. The focused Client flashing is not urgent. Focusing a Client clears its urgency.
+
+`focusurgentorlast` focuses the first urgent Client in Workspace order and switches to its Workspace. With none, it focuses the Client focused before the current one, or the Client focused last when none is focused. With neither it answers `error: window not found`.
+
+## Swallowing
+
+`misc:enable_swallow` defaults to false. `misc:swallow_regex` is the class a parent Client must match in full, and an empty value swallows nothing. `misc:swallow_exception_regex` is a title that keeps a parent from being swallowed. With swallowing on, a new Client whose process descends from a parent Client's process swallows that parent: the parent leaves its Layout, so the child takes its place, and the parent is hidden. When more than one parent matches, the one focused most recently is swallowed. A parent that is already swallowed is not swallowed by a second child. The process tree is read up to 16 levels.
+
+The child reports its parent as `swallowing` in `clients`. The parent stays in `clients` as hidden, on the child's Workspace. When the child closes, including when its process ends without closing it, the parent returns to the child's Workspace, is shown, and takes the focus if the child had it. A parent that shows itself while swallowed is hidden again. A parent that closes while swallowed is forgotten.
+
+A swallowed parent is a hidden Client, so it is shown on a clean exit, and after a crash it is shown on the next start. A child still open at that start swallows it again.
+
+`toggleswallow` shows the parent of the focused Client, or hides it again. A parent shown this way stays when the child closes.
+
+## Idle inhibit
+
+The `idle_inhibit` window rule takes `none`, `always`, `focus`, or `fullscreen`. `always` keeps the system and the display awake while the Client is open, on any Workspace. `focus` does so while it is the focused Client. `fullscreen` does so while it is fullscreen or maximized on a shown Workspace. `none` does nothing. Any other mode warns and the rule is skipped. The last matching rule wins. `clients` reports `inhibitingIdle` for each Client.
