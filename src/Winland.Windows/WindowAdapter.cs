@@ -156,6 +156,10 @@ public sealed partial class WindowAdapter : IDisposable
             if (!WindowIdentity.Matches(client))
                 continue;
 
+            // Nothing minimizes under Winland, so a window that is minimized now was minimized while it was away.
+            if (PInvoke.IsIconic(new HWND((nint)client.Window.Value)))
+                continue;
+
             if (client.Layered)
                 Opacity.ReleaseAdded(client.Window);
 
@@ -249,6 +253,12 @@ public sealed partial class WindowAdapter : IDisposable
                     Apply(_core.Handle(new WindowClosed(window)));
                     return;
                 case PInvoke.EVENT_OBJECT_LOCATIONCHANGE:
+                    if (PInvoke.IsZoomed(hwnd) && _core.Manages(window))
+                    {
+                        RequestMaximize((nint)window.Value);
+                        return;
+                    }
+
                     if (Volatile.Read(ref Applying) == 0)
                     {
                         RereadLimits(hwnd, window);
@@ -264,14 +274,15 @@ public sealed partial class WindowAdapter : IDisposable
                     EndMove(window);
                     return;
                 case PInvoke.EVENT_SYSTEM_MINIMIZESTART:
-                    Apply(_core.Handle(new WindowMinimized(window)));
+                    UndoMinimize((nint)window.Value);
                     return;
                 case PInvoke.EVENT_SYSTEM_MINIMIZEEND:
                     Apply(_core.Handle(new WindowRestored(window)));
+                    AdoptShown(hwnd, window);
                     return;
                 case PInvoke.EVENT_OBJECT_HIDE:
                     if (PInvoke.IsIconic(hwnd))
-                        Apply(_core.Handle(new WindowMinimized(window)));
+                        UndoMinimize((nint)window.Value);
                     return;
                 case PInvoke.EVENT_OBJECT_CLOAKED:
                     ForgetLimits(window);
@@ -285,12 +296,7 @@ public sealed partial class WindowAdapter : IDisposable
                         return;
 
                     Apply(_core.Handle(new WindowRestored(window)));
-                    if (TryDescribe(hwnd, window, out var appeared))
-                    {
-                        var outcome = _core.Handle(appeared);
-                        NoteManaged(window, outcome, appeared);
-                        Apply(outcome);
-                    }
+                    AdoptShown(hwnd, window);
                     return;
             }
         }

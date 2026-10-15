@@ -167,7 +167,11 @@ Mode 0 is the layout slot. Mode 1 resizes the Client to the monitor work area an
 
 `fullscreenstate` takes an internal mode and a client mode. `-1` keeps the current value. Any other value is clamped to 0, 1, or 2, so a 3 is fullscreen. Passing the pair the Client already has turns both modes off. The internal mode is the placement above. The client mode is stored and reported as `fullscreenClient`. It is not sent to the application. Windows has no fullscreen state separate from the window rectangle, so a client mode by itself does not move the Client and cannot make an application believe it is fullscreen.
 
-`sync_fullscreen` is not honored. The `fullscreen` and `maximize` dispatchers store the client mode equal to the internal mode. `fullscreenstate` stores them separately. A window rule `suppress_event` is not honored. An application that asks to be fullscreen or maximized is not observed, so a maximized Client does not return to maximized after the application leaves fullscreen on its own.
+`sync_fullscreen` is not honored. The `fullscreen` and `maximize` dispatchers store the client mode equal to the internal mode. `fullscreenstate` stores them separately. A window rule `suppress_event` is not honored. An application that asks to be fullscreen is not observed, so a maximized Client does not return to maximized after the application leaves fullscreen on its own.
+
+Hyprland has no minimize, so Winland has none either. When a Client is minimized, by its button, `Win+Down`, `Win+M` or a double click, Winland restores it at once and the Client keeps its place. A window that is already minimized when Winland starts is not adopted until it is restored, and a minimized window is not put back into the Layout when Winland restarts.
+
+A Client's maximize request is maximize mode 1, as in Hyprland: its maximize button, `Win+Up` or a double click on the title bar maximizes it, and asking again leaves it. It acts on that Client, whichever window has focus. The system's own maximized state is undone, so the Client fills the work area as `fullscreen 1` does. A window that was maximized before Winland started is adopted maximized.
 
 A `fullscreen` window rule requests mode 2. A `maximize` window rule requests mode 1. A trailing `0` turns that flag off. `fullscreen_state` sets the two modes, for example `2 0`, and wins over those flags. A popup window with no caption that already covers its monitor is not adopted.
 
