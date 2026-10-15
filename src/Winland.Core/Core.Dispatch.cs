@@ -14,7 +14,7 @@ public sealed partial class Core
                 continue;
 
             var submapBefore = _keyState.Submap;
-            var next = Execute(dispatch.Dispatcher, dispatch.Arguments, allowsElevation: true);
+            var next = ExecuteTriggered(dispatch.Dispatcher, dispatch.Arguments, match.Trigger);
             outcome = outcome is null ? next : Merge(outcome, next);
             if (!Is(dispatch.Dispatcher, "submap")
                 && dispatch.SubmapReset is string reset
@@ -50,10 +50,24 @@ public sealed partial class Core
             Exit = second.Exit || first.Exit,
             Notice = second.Notice ?? first.Notice,
             DisplayPower = second.DisplayPower.Count > 0 ? second.DisplayPower : first.DisplayPower,
+            Relays = [.. first.Relays, .. second.Relays],
             Show = [.. first.Show, .. second.Show],
             Hide = [.. first.Hide, .. second.Hide],
             ShowMinimized = [.. first.ShowMinimized, .. second.ShowMinimized],
         };
+
+    private Outcome ExecuteTriggered(string name, string arguments, BindTrigger? trigger)
+    {
+        _trigger = trigger;
+        try
+        {
+            return Execute(name, arguments, allowsElevation: true);
+        }
+        finally
+        {
+            _trigger = null;
+        }
+    }
 
     private Outcome Execute(string name, string arguments, bool allowsElevation)
     {
@@ -142,6 +156,16 @@ public sealed partial class Core
             return EmitCustom(arguments, allowsElevation);
         else if (Is(name, "dpms"))
             return Dpms(arguments, allowsElevation);
+        else if (Is(name, "pass"))
+            return Pass(arguments, allowsElevation);
+        else if (Is(name, "sendshortcut"))
+            return SendShortcut(arguments, allowsElevation);
+        else if (Is(name, "sendkeystate"))
+            return SendKeyState(arguments, allowsElevation);
+        else if (Is(name, "focusurgentorlast"))
+            return FocusUrgentOrLast(allowsElevation);
+        else if (Is(name, "toggleswallow"))
+            return ToggleSwallow(allowsElevation);
         else if (Is(name, "fullscreen") || Is(name, "fullscreenstate") || Is(name, "maximize"))
             return FullscreenDispatcher(name, arguments, allowsElevation);
         else if (Is(name, "layoutmsg") || Is(name, "layout"))

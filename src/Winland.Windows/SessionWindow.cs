@@ -16,19 +16,26 @@ internal sealed class SessionWindow : IDisposable
     private const nuint ShellTimer = 1;
     private const uint ShellTimerMilliseconds = 250;
 
+    // HSHELL_FLASH: HSHELL_REDRAW with the high bit set, sent when a window flashes for attention.
+    private const nuint ShellFlash = 0x8006;
+
     private static readonly WNDPROC Proc = OnWindow;
     private static SessionWindow? Active;
 
     private readonly Action<SessionSignal> _onSignal;
+    private readonly Action<WindowId>? _onFlash;
     private readonly List<HPOWERNOTIFY> _power = [];
     private HWND _hwnd;
+    private uint _shellMessage;
+    private bool _shellHook;
     private bool _sessionNotifications;
     private bool _disposed;
 
-    internal SessionWindow(Action<SessionSignal> onSignal)
+    internal SessionWindow(Action<SessionSignal> onSignal, Action<WindowId>? onFlash = null)
     {
         ArgumentNullException.ThrowIfNull(onSignal);
         _onSignal = onSignal;
+        _onFlash = onFlash;
         Active = this;
         try
         {
@@ -69,6 +76,12 @@ internal sealed class SessionWindow : IDisposable
             return;
 
         _ = PInvoke.KillTimer(_hwnd, ShellTimer);
+        if (_shellHook)
+        {
+            _ = PInvoke.DeregisterShellHookWindow(_hwnd);
+            _shellHook = false;
+        }
+
         foreach (var notify in _power)
             _ = PInvoke.UnregisterPowerSettingNotification(notify);
 
@@ -121,6 +134,14 @@ internal sealed class SessionWindow : IDisposable
                 return PInvoke.DefWindowProc(hwnd, message, wParam, lParam);
             }
 
+            if (_shellHook && message == _shellMessage)
+            {
+                if ((nuint)wParam == ShellFlash && (nint)lParam != 0)
+                    _onFlash?.Invoke(new WindowId(((nint)lParam).ToInt64()));
+
+                return PInvoke.DefWindowProc(hwnd, message, wParam, lParam);
+            }
+
             if (SessionNotices.TryFromMessage(message, (nuint)wParam, out var signal))
                 _onSignal(signal);
         }
@@ -157,6 +178,18 @@ internal sealed class SessionWindow : IDisposable
 
         RegisterPower(SessionNotices.ConsoleDisplayState);
         RegisterPower(SessionNotices.MonitorPowerOn);
+        if (_onFlash is not null)
+            ListenForFlashes();
+    }
+
+    // The shell tells a registered top-level window when another window flashes for attention.
+    private void ListenForFlashes()
+    {
+        _shellMessage = PInvoke.RegisterWindowMessage("SHELLHOOK");
+        if (_shellMessage != 0 && PInvoke.RegisterShellHookWindow(_hwnd))
+            _shellHook = true;
+        else
+            Console.Error.WriteLine($"Window flashes are not observed ({Marshal.GetLastPInvokeError()}).");
     }
 
     private unsafe void RegisterPower(Guid setting)

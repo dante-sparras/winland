@@ -1,14 +1,17 @@
 namespace Winland.Windows;
 
 /// <summary>
-/// Applies cursor and input requests from an outcome. Until <see cref="InstallSystem"/> the cursor
-/// and the system input are stand-ins, so tests that apply an outcome do not change the machine.
+/// Applies cursor, input, relayed key and idle requests from an outcome. Until <see cref="InstallSystem"/>
+/// the cursor and the system input are stand-ins, no key is sent and no idle state is set, so tests
+/// that apply an outcome do not change the machine.
 /// </summary>
 public static class SessionEffects
 {
     private static readonly CursorIdle Idle = new(NullCursor.Instance, new SystemClock());
     private static SystemInputSession? _session;
     private static CursorIdleTimer? _timer;
+    private static IKeyRelaySender? _relay;
+    private static IdleKeeper? _idle;
     private static int _installed;
 
     public static InputOriginals? Originals => _session?.Originals;
@@ -21,6 +24,8 @@ public static class SessionEffects
         Idle.Use(new Win32Cursor());
         _session = new SystemInputSession(new Win32SystemInput());
         _timer = new CursorIdleTimer(Idle);
+        _relay = new Win32KeyRelaySender();
+        _idle = new IdleKeeper();
     }
 
     public static void Apply(Outcome outcome)
@@ -36,6 +41,14 @@ public static class SessionEffects
             _session?.Apply(settings);
         else
             _session?.Revert();
+
+        if (_relay is IKeyRelaySender relay)
+        {
+            foreach (var key in outcome.Relays)
+                relay.Send(key);
+        }
+
+        _idle?.Set(IdleInhibit.Wanted(outcome.State));
     }
 
     public static void NoteMove() => Idle.Moved();
@@ -48,6 +61,8 @@ public static class SessionEffects
         Idle.Reveal();
         _timer?.Dispose();
         _timer = null;
+        _idle?.Dispose();
+        _idle = null;
     }
 
     public static void RestoreSaved(InputOriginals saved) => _session?.RestoreSaved(saved);

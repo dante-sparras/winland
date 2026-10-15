@@ -17,7 +17,7 @@ internal static class WindowRuleParser
             return false;
         }
 
-        if (!TryParseEffect(value[..comma].Trim(), out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out error))
+        if (!TryParseEffect(value[..comma].Trim(), out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out error))
             return false;
 
         string? classPattern = null;
@@ -44,17 +44,17 @@ internal static class WindowRuleParser
             }
         }
 
-        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen);
+        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle);
         return true;
     }
 
     internal static bool TryParseBare(string text, out WindowRule? rule, out string error)
     {
         rule = null;
-        if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out _, out var opacity, out var fullscreen, out error))
+        if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out _, out var opacity, out var fullscreen, out var idle, out error))
             return false;
 
-        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, Opacity: opacity, Fullscreen: fullscreen);
+        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, Opacity: opacity, Fullscreen: fullscreen, IdleInhibit: idle);
         return true;
     }
 
@@ -77,6 +77,7 @@ internal static class WindowRuleParser
         bool? maximize = null;
         FullscreenRule? fullscreenState = null;
         bool? pin = null;
+        IdleInhibitMode? idle = null;
         foreach (var rule in rules)
         {
             if (!Matches(rule, traits))
@@ -139,6 +140,9 @@ internal static class WindowRuleParser
                 case WindowRuleEffect.Pin:
                     pin = rule.Enabled;
                     break;
+                case WindowRuleEffect.IdleInhibit:
+                    idle = rule.IdleInhibit;
+                    break;
             }
         }
 
@@ -158,7 +162,8 @@ internal static class WindowRuleParser
             opacity,
             opaque ?? false,
             RequestedFullscreen(fullscreen, maximize, fullscreenState),
-            pin ?? false);
+            pin ?? false,
+            idle ?? IdleInhibitMode.None);
     }
 
     private static bool TryParseEffect(
@@ -170,8 +175,10 @@ internal static class WindowRuleParser
         out double? scrollingWidth,
         out OpacityRule? opacity,
         out FullscreenRule? fullscreen,
+        out IdleInhibitMode idle,
         out string error)
     {
+        idle = IdleInhibitMode.None;
         effect = default;
         workspace = null;
         enabled = true;
@@ -293,6 +300,17 @@ internal static class WindowRuleParser
                     fullscreen = new FullscreenRule(mode, mode);
                 }
 
+                error = "";
+                return true;
+            case "idle_inhibit":
+            case "idleinhibit":
+                if (argument is null || !IdleInhibit.TryParse(argument, out idle))
+                {
+                    error = $"idle_inhibit rule has unknown mode \"{argument}\"";
+                    return false;
+                }
+
+                effect = WindowRuleEffect.IdleInhibit;
                 error = "";
                 return true;
             case "fullscreen_state":

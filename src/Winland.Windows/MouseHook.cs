@@ -98,6 +98,9 @@ public sealed class MouseHook : IDisposable
         {
             _keys.Saw();
             var info = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+            if (info.dwExtraInfo == KeyboardHook.InjectedTag)
+                return Next(code, wParam, lParam);
+
             var position = new Point(info.pt.X, info.pt.Y);
             var message = (uint)wParam.Value;
             if (message == MoveMessage)
@@ -168,7 +171,7 @@ public sealed class MouseHook : IDisposable
                 if (dispatch.Dispatcher.Equals(dispatcher, StringComparison.OrdinalIgnoreCase) && dispatch.Arguments == arguments)
                     continue;
 
-                _keys.PostDispatch(dispatch.Dispatcher, dispatch.Arguments);
+                _keys.PostDispatch(dispatch.Dispatcher, dispatch.Arguments, decision.Trigger);
             }
         }
         else

@@ -10,6 +10,9 @@ public readonly record struct BindDecision(bool Consumed, string? Dispatcher, st
 {
     public IReadOnlyList<BindDispatch> Dispatches { get; init; } = [];
 
+    /// <summary>The key edge that ran these dispatchers. Null for a wheel notch.</summary>
+    public BindTrigger? Trigger { get; init; }
+
     /// <summary>Start the long-press timer. The hook thread arms it; matching itself does not wait.</summary>
     public int? ArmLongPressMs { get; init; }
 
@@ -153,7 +156,7 @@ public static class BindMatcher
         {
             if (bind.Flags.HasFlag(BindFlag.LongPress) && !bind.Flags.HasFlag(BindFlag.Release))
                 longPress.Add(bind);
-            else if (bind.Flags.HasFlag(BindFlag.Release))
+            else if (bind.Flags.HasFlag(BindFlag.Release) && !SendsBothEdges(bind))
                 deferred.Add(bind);
             else
                 immediate.Add(bind);
@@ -168,6 +171,7 @@ public static class BindMatcher
 
         // A long press has not fired yet, so it does not consume the chord on the way down.
         var consumed = Consumes(immediate) || Consumes(deferred);
+        var trigger = new BindTrigger(key, scanCode, Pressed: true);
         if (consumed)
             Catch(session, key, mouse);
         else
@@ -176,12 +180,12 @@ public static class BindMatcher
         if (longPress.Count == 0)
         {
             session.LongPressKey = null;
-            return MaskHeld(session, Ran(immediate, consumed)) with { DisarmLongPress = true };
+            return MaskHeld(session, Ran(immediate, consumed, trigger)) with { DisarmLongPress = true };
         }
 
         session.LongPressKey = key;
         session.LongPressMouse = mouse;
-        return MaskHeld(session, Ran(immediate, consumed)) with
+        return MaskHeld(session, Ran(immediate, consumed, trigger)) with
         {
             ArmLongPressMs = LongPressDelayMs,
             DisarmLongPress = true,
@@ -205,7 +209,8 @@ public static class BindMatcher
             Catch(session, key, mouse);
 
         // A key already caught stays swallowed. A non-consuming repeat does not catch a key on its own.
-        return MaskHeld(session, Ran(repeating, Consumes(repeating) || caught.Contains(key)));
+        var trigger = new BindTrigger(key, scanCode, Pressed: true);
+        return MaskHeld(session, Ran(repeating, Consumes(repeating) || caught.Contains(key), trigger));
     }
 
     private static BindDecision OnRelease(BindTable table, BindSession session, string key, int scanCode, bool mouse)
@@ -227,7 +232,8 @@ public static class BindMatcher
         session.LongPressKey = null;
 
         // The OS saw this press, so it must see the release, or it keeps the key down.
-        var decision = fire.Count > 0 ? Ran(fire, Consumes(fire) || caught) : caught ? Caught() : Passed();
+        var trigger = new BindTrigger(key, scanCode, Pressed: false);
+        var decision = fire.Count > 0 ? Ran(fire, Consumes(fire) || caught, trigger) : caught ? Caught() : Passed();
         if (passed)
             decision = decision with { Consumed = false };
 
@@ -270,7 +276,7 @@ public static class BindMatcher
         if (pressing.Count == 0)
             return CancelLongPress(session, Passed());
 
-        return MaskHeld(session, Ran(pressing, Consumes(pressing))) with { DisarmLongPress = true };
+        return MaskHeld(session, Ran(pressing, Consumes(pressing), trigger: null)) with { DisarmLongPress = true };
     }
 
     private static BindDecision OnLongPress(BindTable table, BindSession session)
@@ -294,7 +300,8 @@ public static class BindMatcher
         if (longPress.Count == 0)
             return new BindDecision(false, null) { DisarmLongPress = true };
 
-        return MaskHeld(session, Ran(longPress, Consumes(longPress))) with { DisarmLongPress = true };
+        var trigger = new BindTrigger(key, Code: 0, Pressed: true);
+        return MaskHeld(session, Ran(longPress, Consumes(longPress), trigger)) with { DisarmLongPress = true };
     }
 
     private static List<Bind> Collect(BindTable table, BindSession session, string key, int scanCode, bool mouse, bool releasing, string submap)
@@ -333,7 +340,7 @@ public static class BindMatcher
 
         if (releasing)
         {
-            if (!bind.Flags.HasFlag(BindFlag.Release))
+            if (!bind.Flags.HasFlag(BindFlag.Release) && !SendsBothEdges(bind))
                 return false;
             if (!WithinGesture(table, session, bind))
                 return false;
@@ -367,6 +374,13 @@ public static class BindMatcher
 
     private static bool IsSubmapDispatcher(Bind bind) =>
         bind.Dispatcher.Equals("submap", StringComparison.OrdinalIgnoreCase);
+
+    // A bind that sends its key on runs on the press and again on the release, so the
+    // window it sends to sees both edges.
+    private static bool SendsBothEdges(Bind bind) =>
+        !bind.Flags.HasFlag(BindFlag.LongPress)
+        && (bind.Dispatcher.Equals("pass", StringComparison.OrdinalIgnoreCase)
+            || bind.Dispatcher.Equals("sendshortcut", StringComparison.OrdinalIgnoreCase));
 
     private static bool DispatchesNow(Bind bind, bool releasing)
     {
@@ -489,7 +503,7 @@ public static class BindMatcher
 
     private static BindDecision Caught() => new(true, null);
 
-    private static BindDecision Ran(List<Bind> binds, bool consumed)
+    private static BindDecision Ran(List<Bind> binds, bool consumed, BindTrigger? trigger)
     {
         var count = 0;
         foreach (var bind in binds)
@@ -514,6 +528,7 @@ public static class BindMatcher
         return new BindDecision(consumed, dispatches[0].Dispatcher, dispatches[0].Arguments)
         {
             Dispatches = dispatches,
+            Trigger = trigger,
         };
     }
 }

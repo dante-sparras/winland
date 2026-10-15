@@ -50,6 +50,11 @@ public static class Dispatchers
             "event",
             "forcerendererreload",
             "dpms",
+            "pass",
+            "sendshortcut",
+            "sendkeystate",
+            "focusurgentorlast",
+            "toggleswallow",
             "fullscreen",
             "fullscreenstate",
             "maximize");

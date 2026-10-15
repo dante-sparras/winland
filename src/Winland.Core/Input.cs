@@ -119,7 +119,14 @@ public sealed record SwipeEnded(bool Cancelled = false) : Event;
 
 public sealed record ConfigLoaded(ConfigDocument Config) : Command;
 
-public sealed record Dispatch(string Name, string Arguments = "") : Command;
+public sealed record Dispatch(string Name, string Arguments = "") : Command
+{
+    /// <summary>The key edge that ran this dispatcher from a bind. Null for a pipe command.</summary>
+    public BindTrigger? Trigger { get; init; }
+}
+
+/// <summary>The window flashed for attention without taking the foreground.</summary>
+public sealed record WindowFlashed(WindowId Window) : Event;
 
 /// <summary>
 /// The full set of attached monitors, in adapter order. A monitor absent from the next event was unplugged.

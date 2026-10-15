@@ -67,10 +67,11 @@ public sealed partial class Core
         var snapshot = Snapshot();
         placements = Cover(placements, snapshot);
         var minimized = PlanMinimized(snapshot);
+        var swallowed = TakeSwallowChanges();
         return new(placements, snapshot, consumed, dispatcher, close, focus)
         {
-            Show = show ?? [],
-            Hide = Combine(hide, minimized.Hide),
+            Show = Combine(show, swallowed.Show),
+            Hide = Combine(Combine(hide, minimized.Hide), swallowed.Hide),
             ShowMinimized = minimized.Show,
             AllowsElevation = allowsElevation,
             Launch = TakeBorn(),
@@ -118,13 +119,21 @@ public sealed partial class Core
     {
         var clients = new List<Client>();
         var workspaces = new List<Workspace>(_workspaces.Count);
+        var active = ActiveWindow();
         foreach (var desk in _workspaces)
         {
+            var shown = IsShown(desk.Id);
             foreach (var client in desk.Layout.Clients)
             {
                 var slot = desk.Layout.TryBounds(client.Window, out var found) ? found : client.Bounds;
                 var pinned = client.Floating && _pinned.Contains(client.Window);
-                clients.Add(client with { Bounds = PlacedBounds(client, desk, slot), Pinned = pinned });
+                clients.Add(client with
+                {
+                    Bounds = PlacedBounds(client, desk, slot),
+                    Pinned = pinned,
+                    Swallowing = SwallowedBy(client.Window),
+                    InhibitingIdle = InhibitsIdle(client, shown, active),
+                });
             }
 
             workspaces.Add(new Workspace(desk.Id, desk.Monitor)
@@ -141,6 +150,8 @@ public sealed partial class Core
             if (!IsShown(client.Workspace) && !StaysVisible(client))
                 hidden.Add(client);
         }
+
+        AddSwallowed(clients, hidden);
 
         var monitors = new List<Monitor>(_monitors.Count);
         var screens = new List<MonitorSnapshot>(_monitors.Count);
