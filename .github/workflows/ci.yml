@@ -1,12 +1,14 @@
-# One pull-request entry point. The ruleset requires only the aggregate check
-# "All required checks pass (v1)". Bump that name here and in
-# .github/rulesets/protect-main.json in the same change when a required job is added.
-# A green check on an old name stays green forever.
+# Shared by Winoma, Winshell, and Winland. Keep the copies identical.
+# One pull-request entry point. mutation.yml is workflow_call only.
+# Branch protection requires only the job name "All required checks pass (v1)".
+# When a required job is added, bump (v1) here and in
+# .github/rulesets/protect-main.json in the same change. A green check on a
+# commit stays green forever, so the new name is what makes an old green stop counting.
+# Do not add secrets to this workflow. pull_request runs the file from the pull request.
 #
-# This file stays secret-free. It runs pull-request-controlled code.
-# The desktop smoke test is not a job: it needs a logged-on desktop and can
-# leave modifier keys stuck. CI never sets WINLAND_SMOKE.
+# Test and lint run on Windows. A net10.0-windows project does not build on Ubuntu.
 # Push runs only on main. A release/* branch is checked by pull_request, not by push.
+# Mutation testing is the slow lane. It runs when CI is dispatched with release=true.
 
 name: CI
 
@@ -17,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       release:
-        description: "Release run: a skipped required lane fails"
+        description: "Release run: skipped required lanes fail"
         type: boolean
         default: false
   workflow_call:
@@ -34,68 +36,140 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test:
-    name: Test
-    runs-on: windows-latest
+  detect:
+    name: Detect
+    runs-on: ubuntu-latest
+    outputs:
+      dotnet: ${{ steps.classify.outputs.dotnet }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - name: Checkout the pull request head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          global-json-file: global.json
-      - name: Run tests
-        shell: pwsh
-        run: dotnet test Winland.slnx --configuration Release --filter "FullyQualifiedName!~Winland.Smoke"
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      # Push and manual runs fail open so a bad classification cannot weaken main.
+      - name: Classify the diff
+        id: classify
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -eu
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "dotnet=true" >> "$GITHUB_OUTPUT"
+            echo "dotnet lane: true (fail open)"
+            exit 0
+          fi
+          git fetch origin "$BASE_REF"
+          dotnet=false
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            case "$file" in
+              *.cs|*.csproj|*.sln|*.slnx|*.fsproj|nuget.config|stryker-config.json|global.json|Directory.Build.*|Directory.Packages.*|.config/*|tests/*|scripts/*)
+                dotnet=true
+                ;;
+            esac
+          done <<EOF
+          $(git diff --name-only "origin/${BASE_REF}...HEAD")
+          EOF
+          echo "dotnet=$dotnet" >> "$GITHUB_OUTPUT"
+          echo "dotnet lane: $dotnet"
 
   lint:
     name: Lint
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
       - name: Run lint
         shell: pwsh
-        run: dotnet build Winland.slnx --configuration Release
+        run: ./scripts/check.ps1
 
-  history:
-    name: History shares an ancestor with main
+  test:
+    name: Test
+    needs: detect
+    if: needs.detect.result == 'success' && (github.event_name != 'pull_request' || needs.detect.outputs.dotnet == 'true')
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
-      - name: Reject unrelated history
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Run tests
         shell: pwsh
+        run: ./scripts/test.ps1
+
+  history:
+    name: History shares an ancestor with main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Reject unrelated history
         run: |
           git fetch origin main
-          git merge-base origin/main HEAD | Out-Null
-          if ($LASTEXITCODE -ne 0) {
-            Write-Output "::error::This branch has no common ancestor with main."
+          if ! git merge-base origin/main HEAD >/dev/null; then
+            echo "::error::This branch has no common ancestor with main."
             exit 1
-          }
+          fi
 
-  # Branch protection requires ONLY this check.
+  mutation:
+    name: Mutation testing
+    needs: detect
+    if: needs.detect.result == 'success' && inputs.release == true
+    uses: ./.github/workflows/mutation.yml
+
+  # The ruleset names this check and no other. An intentional skip of Test or
+  # Mutation is success. A skip of Detect, Lint, or History is a failure.
+  # inputs.release makes a skipped Test or Mutation a failure too.
   all-checks-pass:
     name: All required checks pass (v1)
-    needs: [test, lint, history]
-    if: always()
-    runs-on: windows-latest
+    needs: [detect, lint, test, history, mutation]
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
     steps:
       - name: Fail if any required job failed
-        shell: pwsh
         env:
-          TEST: ${{ needs.test.result }}
+          RELEASE: ${{ inputs.release && 'true' || 'false' }}
+          DETECT: ${{ needs.detect.result }}
           LINT: ${{ needs.lint.result }}
+          TEST: ${{ needs.test.result }}
           HISTORY: ${{ needs.history.result }}
-          RELEASE: ${{ inputs.release == true }}
+          MUTATION: ${{ needs.mutation.result }}
         run: |
-          $failed = 0
-          $allowed = @('success')
-          if ($env:RELEASE -ne 'true') { $allowed += 'skipped' }
-          foreach ($name in 'TEST', 'LINT', 'HISTORY') {
-            $value = (Get-Item "Env:$name").Value
-            Write-Output "$name=$value"
-            if ($allowed -notcontains $value) { $failed = 1 }
+          failed=0
+          check() {
+            name="$1"
+            value="$2"
+            kind="$3"
+            echo "$name=$value"
+            case "$value" in
+              success) ;;
+              skipped)
+                if [ "$kind" = "always" ] || [ "$RELEASE" = "true" ]; then
+                  echo "::error::$name was skipped"
+                  failed=1
+                fi
+                ;;
+              *)
+                echo "::error::$name result is $value"
+                failed=1
+                ;;
+            esac
           }
-          exit $failed
+          check DETECT "$DETECT" always
+          check LINT "$LINT" always
+          check HISTORY "$HISTORY" always
+          check TEST "$TEST" lane
+          check MUTATION "$MUTATION" lane
+          exit "$failed"

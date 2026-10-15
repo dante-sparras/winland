@@ -1,12 +1,12 @@
 # Issue tracker: GitHub Issues
 
-Issues are GitHub Issues on `dante-sparras/winland`. A bug or a task goes here when this repo's code changes. `gh` reaches it from this checkout with `-R dante-sparras/winland`.
+Issues are GitHub Issues on this repo. A bug or a task goes here when this repo's files change. `gh` from this checkout reaches them.
 
-- **Publish**: `gh issue create -R dante-sparras/winland --title "<what is wrong or wanted>" --body-file <file> --label needs-triage`. The body says what was run, what was seen, what was expected, and the log lines with their `pid=`. One issue per problem.
-- **Fetch**: `gh issue view <number> -R dante-sparras/winland --comments`.
-- **Triage state**: one label from `triage-labels.md`. `gh issue edit <number> -R dante-sparras/winland --add-label ready-for-agent --remove-label needs-triage`.
-- **Comment**: `gh issue comment <number> -R dante-sparras/winland --body-file <file>`.
-- **Close**: the commit that fixes it says `Fixes dante-sparras/winland#<number>`, or `gh issue close <number> -R dante-sparras/winland --comment "<how it was checked>"`.
+- **Publish**: `gh issue create --title "<what is wrong or wanted>" --body-file <file> --label needs-triage`. The body says what was run, what was seen, what was expected, and the log lines. One issue per problem.
+- **Fetch**: `gh issue view <number> --comments`.
+- **Triage state**: one label from `triage-labels.md`. `gh issue edit <number> --add-label ready-for-agent --remove-label needs-triage`.
+- **Comment**: `gh issue comment <number> --body-file <file>`.
+- **Close**: the commit that fixes it says `Fixes #<number>`, or `gh issue close <number> --comment "<how it was checked>"`.
 
 An issue labelled `ready-for-agent` is specified well enough for an agent to fix without asking: the behavior wanted, how to see it, and what is out of scope.
 

@@ -1,0 +1,107 @@
+#!/bin/sh
+# After a pull or merge updates main, delete local branches whose GitHub
+# head branch is gone.
+#
+# Pull requests land with Rebase and merge, and squash is allowed too, so
+# the old commits are often not ancestors of main. `git branch -d` then
+# keeps them. Delete a branch only when its changes are already on main
+# or on a release/* line. Never delete main, master, or release/*. Leave a
+# branch that is checked out in a worktree, and leave one that still has
+# work that has not landed.
+
+current=$(git symbolic-ref --short HEAD 2>/dev/null) || exit 0
+case "$current" in
+  main|master) ;;
+  *) exit 0 ;;
+esac
+
+if ! git fetch --prune --quiet; then
+  echo "Could not fetch. Cleaning up from remote-tracking branches already on disk."
+fi
+
+patch_landed() {
+  target=$1
+  branch=$2
+  # A merge commit is not a rebase of one patch. Let the tree check decide.
+  if git rev-list --min-parents=2 "${target}..${branch}" 2>/dev/null | grep -q .; then
+    return 1
+  fi
+  list=$(git cherry "$target" "$branch" 2>/dev/null) || return 1
+  if printf '%s\n' "$list" | grep -q '^+'; then
+    return 1
+  fi
+  return 0
+}
+
+# True when the branch's diff from its merge base is already in the target.
+# That is a squash merge, including one that later commits were added after.
+squash_landed() {
+  target=$1
+  branch=$2
+  base=$(git merge-base "$target" "$branch" 2>/dev/null) || return 1
+  patch=$(mktemp) || return 1
+  index=$(mktemp) || {
+    rm -f "$patch"
+    return 1
+  }
+  if ! git diff "$base" "$branch" >"$patch"; then
+    rm -f "$patch" "$index"
+    return 1
+  fi
+  if ! GIT_INDEX_FILE=$index git read-tree "$target"; then
+    rm -f "$patch" "$index"
+    return 1
+  fi
+  if GIT_INDEX_FILE=$index git apply --cached --check --reverse "$patch" >/dev/null 2>&1; then
+    rm -f "$patch" "$index"
+    return 0
+  fi
+  rm -f "$patch" "$index"
+  return 1
+}
+
+checked_out() {
+  git worktree list --porcelain | grep -Fx "branch refs/heads/$1" >/dev/null 2>&1
+}
+
+landed() {
+  branch=$1
+  for target in HEAD $release_targets; do
+    if git merge-base --is-ancestor "$branch" "$target" 2>/dev/null; then
+      return 0
+    fi
+    if patch_landed "$target" "$branch"; then
+      return 0
+    fi
+    if squash_landed "$target" "$branch"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+release_targets=$(git for-each-ref --format '%(refname:short)' 'refs/heads/release/*' 'refs/remotes/origin/release/*')
+
+git for-each-ref --format '%(refname:short) %(upstream:track)' refs/heads | while read -r name track; do
+  [ "$track" = "[gone]" ] || continue
+  case "$name" in
+    main|master|release/*)
+      echo "keeping $name (long-lived branch)"
+      continue
+      ;;
+  esac
+  if [ "$name" = "$current" ]; then
+    continue
+  fi
+  if checked_out "$name"; then
+    echo "keeping $name (checked out in a worktree)"
+    continue
+  fi
+  if landed "$name"; then
+    git branch -D -- "$name" || echo "could not delete $name"
+  else
+    echo "keeping $name (remote deleted, but it still has commits that are not on main)"
+  fi
+done
+
+exit 0

@@ -1,0 +1,18 @@
+name: Feature
+description: Something this repo should do
+labels: [needs-triage]
+body:
+  - type: textarea
+    id: wanted
+    attributes:
+      label: What you want
+      description: The behavior you want, and what is out of scope.
+    validations:
+      required: true
+  - type: textarea
+    id: how-to-see-it
+    attributes:
+      label: How to see it
+      description: What a maintainer can run or look at to know the work is done.
+    validations:
+      required: true

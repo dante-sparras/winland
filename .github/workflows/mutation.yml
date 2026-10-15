@@ -1,0 +1,41 @@
+# Called from ci.yml when a release run is dispatched. Not a pull-request entry point.
+# The score gate is thresholds.break in stryker-config.json.
+# scripts/mutate.ps1 exits 0 when tests/ has no unit-test project yet.
+
+name: Mutation testing
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  mutation:
+    name: Mutation testing
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore Stryker
+        run: dotnet tool restore
+
+      - name: Run Stryker
+        shell: pwsh
+        run: ./scripts/mutate.ps1
+
+      - name: Upload the report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-report
+          path: '**/StrykerOutput/**/mutation-report.html'
+          if-no-files-found: ignore
+          retention-days: 14
