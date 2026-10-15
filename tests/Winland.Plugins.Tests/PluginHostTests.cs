@@ -273,6 +273,26 @@ public class PluginHostTests
         return weak;
     }
 
+    [Fact]
+    public void ApprovedAssemblyOutsideThePluginDirectoryDoesNotLoad()
+    {
+        using var fixture = Fixture.Create("sample");
+        var outside = Path.Combine(Path.GetTempPath(), "winland-outside-" + Guid.NewGuid().ToString("N") + ".dll");
+        File.Copy(fixture.AssemblyPath, outside);
+        try
+        {
+            var reply = fixture.Host.Load(outside);
+
+            Assert.StartsWith("error:", reply, StringComparison.Ordinal);
+            Assert.Contains("outside the plugin directory", reply, StringComparison.Ordinal);
+            Assert.False(Dispatchers.IsKnown("sampleecho"));
+        }
+        finally
+        {
+            File.Delete(outside);
+        }
+    }
+
     private sealed class Fixture : IDisposable
     {
         private Fixture(string directory, string assemblyPath, string approvalsPath, PluginHost host, PluginHostOptions options, ListLog log)

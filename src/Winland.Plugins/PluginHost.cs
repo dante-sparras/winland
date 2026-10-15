@@ -246,6 +246,16 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
             return report;
         }
 
+        // Only the protected directory holds what was approved. A copy elsewhere, such as the
+        // plugin manager's staging folder, does not load even when its hash matches.
+        if (!PluginNames.IsInside(_directory, full))
+        {
+            var message = $"Plugin assembly '{full}' is outside the plugin directory '{_directory}'.";
+            report.Failures.Add(message);
+            _log.Write(message);
+            return report;
+        }
+
         if (!File.Exists(full))
         {
             report.Failures.Add($"Plugin assembly '{full}' was not found.");
