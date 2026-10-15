@@ -175,6 +175,19 @@ try {
         Write-Output "no case collisions in $($tracked.Count) tracked files"
     }
 
+    # ADR 0002: the reference project's name never appears in product code, its tests, or their file names.
+    $forbidden = 'hypr' + 'land'
+    $named = @($tracked | Where-Object { $_ -match '^(src|tests)/' -and $_ -match $forbidden })
+    $mentions = @(& git -C $root grep -n -i -I -e $forbidden -- src tests)
+    if ($LASTEXITCODE -gt 1) { throw 'git grep failed' }
+    foreach ($hit in $named + $mentions) {
+        Write-Output "Forbidden name (ADR 0002): $hit"
+        $failed = 1
+    }
+    if ($named.Count + $mentions.Count -eq 0) {
+        Write-Output 'no forbidden name in src or tests'
+    }
+
     # scripts/fetch-reference.cs is a file-based app that no solution builds. Compile it here,
     # without running it, so it stays under the repo's compiler rules.
     Write-Output 'dotnet build scripts/fetch-reference.cs'
