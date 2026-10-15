@@ -156,6 +156,7 @@ public sealed partial class WindowAdapter
 
     private static void ClearDecorations()
     {
+        GroupBarHost.Stop();
         WindowId[] painted;
         lock (PaintGate)
         {
