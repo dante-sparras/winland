@@ -232,7 +232,11 @@ public sealed partial class WindowAdapter : IDisposable
                     return;
                 case PInvoke.EVENT_OBJECT_LOCATIONCHANGE:
                     if (Volatile.Read(ref Applying) == 0)
+                    {
                         RereadLimits(hwnd, window);
+                        ReportResize(hwnd, window);
+                    }
+
                     Effects.Refit(window);
                     return;
                 case PInvoke.EVENT_SYSTEM_MINIMIZESTART:
@@ -457,6 +461,8 @@ public sealed partial class WindowAdapter : IDisposable
 
         foreach (var window in outcome.ShowMinimized)
             Reveal(window);
+
+        Restack(outcome.ZOrder);
 
         if (outcome.Focus is WindowId focus)
             _ = Foreground.MoveTo(focus);

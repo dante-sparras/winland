@@ -280,7 +280,7 @@ public class FollowMouseTests
         "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 
     private static Core Floats(string extra) =>
-        new(ConfigParser.Parse(Flat(extra) + "windowrulev2 = float, class:^(box)$\n"));
+        new(ConfigParser.Parse(Flat(extra) + "windowrulev2 = float, class:^(box)$\nwindowrulev2 = move window_x window_y, class:^(box)$\n"));
 
     private static WindowAppeared Box(long window, int x, int y, int width = 100, int height = 100) =>
         new(new WindowId(window), Area)

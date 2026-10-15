@@ -164,7 +164,7 @@ public class DispatcherTests
         });
 
         var right = core.Handle(new Dispatch("movewindow", "r"));
-        Assert.Equal(new Rectangle(1720, 100, 200, 150), BoundsOf(right, 1));
+        Assert.Equal(new Rectangle(1720, 465, 200, 150), BoundsOf(right, 1));
 
         var down = core.Handle(new Dispatch("movewindow", "bottom"));
         Assert.Equal(new Rectangle(1720, 930, 200, 150), BoundsOf(down, 1));
@@ -204,7 +204,7 @@ public class DispatcherTests
 
         var outcome = core.Handle(new Dispatch("resizeactive", "20 10"));
 
-        Assert.Equal(new Rectangle(90, 95, 220, 160), BoundsOf(outcome, 1));
+        Assert.Equal(new Rectangle(850, 460, 220, 160), BoundsOf(outcome, 1));
     }
 
     [Fact]

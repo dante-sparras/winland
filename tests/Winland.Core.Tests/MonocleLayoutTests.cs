@@ -114,7 +114,7 @@ public class MonocleLayoutTests
             Bounds = new Rectangle(40, 50, 300, 200),
         });
 
-        Assert.Equal(new Rectangle(40, 50, 300, 200), BoundsOf(floated, 9));
+        Assert.Equal(NewFloat.Centered(Area, new Rectangle(40, 50, 300, 200)), BoundsOf(floated, 9));
         Assert.True(Client(floated, 9).Floating);
         Assert.DoesNotContain(floated.Hide, window => window == new WindowId(2));
 
@@ -226,14 +226,14 @@ public class MonocleLayoutTests
             Bounds = bounds,
         });
 
-        Assert.Equal(bounds, BoundsOf(floated, 9));
+        Assert.Equal(NewFloat.Centered(Area, bounds), BoundsOf(floated, 9));
         Assert.True(Client(floated, 9).Floating);
         Assert.False(Client(floated, 1).Floating);
         Assert.DoesNotContain(floated.Hide, window => window == new WindowId(1));
 
         var moved = core.Handle(new Dispatch("movewindow", "l"));
 
-        Assert.Equal(bounds with { X = 0 }, BoundsOf(moved, 9));
+        Assert.Equal(NewFloat.Centered(Area, bounds) with { X = 0 }, BoundsOf(moved, 9));
         Assert.True(Client(moved, 9).Floating);
         Assert.Empty(moved.Hide);
 

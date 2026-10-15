@@ -30,8 +30,8 @@ public sealed partial class Core
         if (workspaceChanged || monitorChanged)
             RememberLeaving(before);
 
-        WarpTo? warp = null;
-        if (workspaceChanged)
+        var warp = TakeRequestedWarp();
+        if (warp is null && workspaceChanged)
             warp = Plan(outcome.State, _cursor.WarpOnWorkspace);
         if (warp is null && monitorChanged)
             warp = Plan(outcome.State, _cursor.MonitorMode());

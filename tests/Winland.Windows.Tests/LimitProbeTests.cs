@@ -47,16 +47,17 @@ public class LimitProbeTests
             AssertClose(ProbeNative.Visible(probe.Anchor), anchorBox, "anchor");
 
             var bounds = new Rectangle(80, 90, 200, 150);
+            var centered = new Rectangle(860, 465, 200, 150);
             var floated = core.Handle(new WindowAppeared(new WindowId(smallId), area)
             {
                 Traits = WindowTraits.Normal with { MinSize = smallLimits.Min, MaxSize = smallLimits.Max },
                 Bounds = bounds,
             });
             Assert.True(Assert.Single(floated.State.Clients, client => client.Window == new WindowId(smallId)).Floating);
-            Assert.Equal(bounds, BoundsOf(floated, smallId));
+            Assert.Equal(centered, BoundsOf(floated, smallId));
             WindowAdapter.Apply(floated);
             var smallVisible = ProbeNative.Visible(probe.Small);
-            AssertClose(smallVisible, bounds, "small");
+            AssertClose(smallVisible, centered, "small");
             Assert.True(smallVisible.Width < area.Width / 2, $"The small window filled a tile: {smallVisible.Width}");
 
             probe.SetMinimum(probe.Wide, 1850, 200);

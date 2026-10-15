@@ -100,6 +100,9 @@ public sealed partial class Core
         if (_monitors.Count > 0 && screen is null && !RestoredMonitorExists(restored))
             return View([]);
 
+        if (restored is null)
+            screen = RuleMonitor(decision.Placement.Monitor, screen);
+
         var monitor = RestoredMonitor(restored, screen);
         var active = screen is null ? ActiveOn(monitor) : screen.Active ?? ActiveOn(monitor);
         var current = SpecialOn(monitor) ?? active;
@@ -111,6 +114,7 @@ public sealed partial class Core
         var desk = WorkspaceFor(target, monitor);
         var area = WorkArea(desk, appeared.WorkArea);
         _area = area;
+        var bounds = restored is null ? PlaceOnMap(appeared, decision, desk, area) : appeared.Bounds;
         var covered = desk.Covered();
         if (decision.ScrollingWidth is double scrollingWidth)
             desk.Layout.NoteScrollingWidth(appeared.Window, scrollingWidth);
@@ -119,7 +123,7 @@ public sealed partial class Core
             area,
             appeared.Pointer,
             decision.Floating,
-            appeared.Bounds,
+            bounds,
             target,
             appeared.Traits.Class,
             appeared.Traits.Title,
@@ -134,6 +138,7 @@ public sealed partial class Core
         if (swallowee is not null)
             placements = SwallowParent(appeared.Window, swallowee, desk, placements);
 
+        NotePlaced(appeared.Window, desk, decision, restored is not null);
         RememberFocus(appeared.Window, decision);
         RememberOpacity(appeared.Window, decision);
         RememberIdle(appeared.Window, decision);
@@ -181,6 +186,7 @@ public sealed partial class Core
         ForgetOpacity(window);
         ForgetRestored(window);
         ForgetIdle(window);
+        ForgetPlacement(window);
         _pinned.Remove(window);
         if (ForgetSwallowedParent(window))
             return View([]);

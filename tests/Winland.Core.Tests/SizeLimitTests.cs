@@ -21,7 +21,7 @@ public class SizeLimitTests
 
         var client = Assert.Single(outcome.State.Clients);
         Assert.True(client.Floating);
-        Assert.Equal(bounds, Assert.Single(outcome.Placements).Bounds);
+        Assert.Equal(NewFloat.Centered(Area, bounds), Assert.Single(outcome.Placements).Bounds);
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public class SizeLimitTests
 
         var client = Assert.Single(floated.State.Clients, candidate => candidate.Window == new WindowId(2));
         Assert.True(client.Floating);
-        Assert.Equal(bounds, Assert.Single(floated.Placements, placement => placement.Client == client.Id).Bounds);
+        Assert.Equal(NewFloat.Centered(Area, bounds), Assert.Single(floated.Placements, placement => placement.Client == client.Id).Bounds);
         Assert.Contains(floated.State.Clients, candidate => candidate.Window == new WindowId(1) && !candidate.Floating);
 
         var split = core.Handle(new WindowAppeared(new WindowId(3), Area));
@@ -64,7 +64,7 @@ public class SizeLimitTests
         });
 
         Assert.True(Assert.Single(floated.State.Clients, candidate => candidate.Window == new WindowId(2)).Floating);
-        Assert.Equal(bounds, BoundsOf(floated, 2));
+        Assert.Equal(NewFloat.Centered(Area, bounds), BoundsOf(floated, 2));
     }
 
     [Fact]
@@ -237,7 +237,7 @@ public class SizeLimitTests
         });
 
         Assert.True(Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(2)).Floating);
-        Assert.Equal(bounds, BoundsOf(outcome, 2));
+        Assert.Equal(NewFloat.Centered(Area, bounds), BoundsOf(outcome, 2));
     }
 
     [Fact]
@@ -270,7 +270,7 @@ public class SizeLimitTests
         });
 
         Assert.True(Assert.Single(outcome.State.Clients).Floating);
-        Assert.Equal(bounds, BoundsOf(outcome, 1));
+        Assert.Equal(NewFloat.Centered(Area, bounds), BoundsOf(outcome, 1));
     }
 
     [Fact]
@@ -379,7 +379,7 @@ public class SizeLimitTests
 
         var client = Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(2));
         Assert.True(client.Floating);
-        Assert.Equal(bounds, BoundsOf(outcome, 2));
+        Assert.Equal(NewFloat.Centered(Area, bounds), BoundsOf(outcome, 2));
         Assert.Equal(new WindowId(1), outcome.Focus);
         Assert.Equal(new WindowId(1), core.Handle(new Dispatch("killactive")).Close);
     }

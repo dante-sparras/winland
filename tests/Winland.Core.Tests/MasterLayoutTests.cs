@@ -162,7 +162,7 @@ public class MasterLayoutTests
     }
 
     [Fact]
-    public void ADialogStaysAtItsOwnBounds()
+    public void ADialogOpensCentered()
     {
         var core = CoreOf(Flat(""));
         var tiled = core.Handle(Appeared(1));
@@ -175,7 +175,7 @@ public class MasterLayoutTests
         });
 
         Assert.Equal(new Rectangle(0, 0, 2000, 1000), BoundsOf(tiled, 1));
-        Assert.Equal(bounds, BoundsOf(outcome, 2));
+        Assert.Equal(NewFloat.Centered(Screen, bounds), BoundsOf(outcome, 2));
         Assert.True(ClientOf(outcome, 2).Floating);
         Assert.Equal(new Rectangle(0, 0, 2000, 1000), BoundsOf(core.Handle(new Dispatch("layoutmsg", "orientationleft")), 1));
     }

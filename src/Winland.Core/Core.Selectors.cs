@@ -36,6 +36,9 @@ public sealed partial class Core
         if (window is not WindowId id)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
+        if (!Closeable(id))
+            return Rejected(name, NotCloseable, allowsElevation);
+
         return View([], dispatcher: name, close: id, allowsElevation: allowsElevation);
     }
 

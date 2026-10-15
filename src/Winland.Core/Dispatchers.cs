@@ -57,7 +57,13 @@ public static class Dispatchers
             "toggleswallow",
             "fullscreen",
             "fullscreenstate",
-            "maximize");
+            "maximize",
+            "movewindowpixel",
+            "resizewindowpixel",
+            "centerwindow",
+            "bringactivetotop",
+            "alterzorder",
+            "movecursortocorner");
         Register([.. DwindleMessages.Names]);
     }
 

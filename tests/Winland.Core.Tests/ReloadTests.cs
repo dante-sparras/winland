@@ -227,6 +227,7 @@ public class ReloadTests
             Bounds = floated,
             ProcessId = 1004,
         });
+        floated = NewFloat.Centered(area, floated);
 
         var master = Reload(core, "master");
         AssertKept(master, floated);
