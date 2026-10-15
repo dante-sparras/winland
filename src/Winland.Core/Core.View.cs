@@ -22,12 +22,18 @@ public sealed partial class Core
                     OnSpecial: special == client.Workspace),
                 choice.Rule,
                 choice.Opaque);
+            var shape = borderless ? CornerChoice.Square : corners;
             decorations.Add(new Decoration(
                 client.Id,
                 border,
-                borderless ? CornerPreference.DoNotRound : corners,
+                shape.Preference,
                 alpha,
-                borderless));
+                borderless)
+            {
+                Region = shape.Region,
+                Blur = _decoration.Blur,
+                Shadow = _decoration.Shadow,
+            });
         }
 
         var present = new HashSet<WindowId>(outcome.State.Clients.Count);
@@ -312,12 +318,14 @@ public sealed partial class Core
         return windows.ToArray();
     }
 
-    private CornerPreference CornersFor(Client client)
+    private CornerChoice CornersFor(Client client)
     {
         var desk = FindWorkspace(client.Workspace);
-        if (desk is null || RuleFor(desk)?.Rounding != false)
-            return _decoration.Corners;
+        if (desk is not null && RuleFor(desk)?.Rounding == false)
+            return CornerChoice.Square;
 
-        return CornerPreference.DoNotRound;
+        var screen = desk is null ? null : MonitorById(desk.Monitor);
+        var scale = screen is { Effective.Enabled: true } ? screen.Effective.Scale : 1;
+        return CornerShape.For(_decoration.Rounding, _decoration.RoundingPower, scale);
     }
 }

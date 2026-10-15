@@ -17,7 +17,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | binds:allow_pin_fullscreen | Fullscreen does not keep or restore a pin. |
 | binds:movefocus_cycles_fullscreen | Moving focus does not cycle a fullscreen Client. |
 | bitdepth | Changing a monitor's bit depth is not honored. |
-| blur | Blur is not honored. |
 | center_ignores_reserved | Reserved monitor regions are not separate from the work area, so the master area cannot ignore them. |
 | cm | Monitor color management is not honored. |
 | cursor:enable_hyprcursor | The cursor theme format has no Windows meaning. |
@@ -36,6 +35,28 @@ This table has one row per keyword. A test checks it against the keywords the co
 | cursor:zoom_factor | Cursor zoom is not honored. |
 | cursor:zoom_rigid | Cursor zoom is not honored. |
 | debug | Compositor debug options have no Windows meaning. |
+| decoration:blur:brightness | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:contrast | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:ignore_opacity | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:input_methods | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:input_methods_ignorealpha | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:new_optimizations | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:noise | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:passes | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:popups | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:popups_ignorealpha | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:size | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:special | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:vibrancy | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:vibrancy_darkness | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:xray | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:shadow:color | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
+| decoration:shadow:color_inactive | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
+| decoration:shadow:offset | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
+| decoration:shadow:range | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
+| decoration:shadow:render_power | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
+| decoration:shadow:scale | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
+| decoration:shadow:sharp | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
 | device | Per-device input is not honored. Honored input settings apply to the whole system. |
 | dim_around | Dimming the area around a window is not honored. |
 | dont_inhibit | Applications cannot inhibit binds, so this flag has nothing to bypass. |
@@ -45,6 +66,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 | gestures:workspace_swipe_touch | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | gestures:workspace_swipe_touch_invert | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | gradient | Gradient borders are not honored. |
+| glow | Inner glow is not honored. |
 | group | Groups are not honored. |
 | input:emulate_discrete_scroll | High resolution scroll emulation is not honored. |
 | input:force_no_accel | Forcing acceleration off apart from the acceleration profile is not honored. |
@@ -99,6 +121,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 | misc:on_focus_under_fullscreen | Focusing a Client under a fullscreen one does not take over or leave fullscreen. |
 | mode | Changing a monitor's resolution and refresh rate is not honored. |
 | modal_parent_blocking | Modal parent blocking is not honored. |
+| motion_blur | Motion blur is not honored. |
 | move_snap_cursor | Trackpad scroll-move cursor snapping is a gesture, not part of the layout. |
 | move_snap_to_grid | Trackpad scroll-move snapping is a gesture, not part of the layout. |
 | no_focus_fallback | Focus fallback is not honored. |
@@ -108,7 +131,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | render | GPU rendering options have no Windows meaning. |
 | scale | Changing a monitor's scale is not honored. |
 | screen_shader | Screen shaders have no Windows meaning. |
-| shadow | Shadows are not honored. |
 | special_scale_factor | The master layout does not scale a special workspace. |
 | vrr | Variable refresh rate is not honored. |
 | xwayland | X11 compatibility has no Windows meaning. A window rule that matches on xwayland is not honored. |
@@ -123,16 +145,18 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | [#57](https://github.com/dante-sparras/winland/issues/57) | animation, animations, bezier |
 | gap | - | binds:allow_pin_fullscreen, binds:movefocus_cycles_fullscreen |
 | gap | - | bitdepth, cm, mirror, mode, scale, vrr |
-| gap | [#58](https://github.com/dante-sparras/winland/issues/58) | blur, shadow |
 | gap | - | center_ignores_reserved, special_scale_factor |
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
 | gap | - | cursor:hide_on_tablet, cursor:hide_on_touch, cursor:hotspot_padding, cursor:invisible, cursor:warp_back_after_non_mouse_input, cursor:zoom_detached_camera, cursor:zoom_disable_aa, cursor:zoom_factor, cursor:zoom_rigid |
+| gap | - | decoration:blur:brightness, decoration:blur:contrast, decoration:blur:ignore_opacity, decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:noise, decoration:blur:passes, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:size, decoration:blur:special, decoration:blur:vibrancy, decoration:blur:vibrancy_darkness, decoration:blur:xray |
+| gap | - | decoration:shadow:color, decoration:shadow:color_inactive, decoration:shadow:offset, decoration:shadow:range, decoration:shadow:render_power, decoration:shadow:scale, decoration:shadow:sharp |
 | gap | - | device |
 | gap | - | dim_around |
 | gap | - | dont_inhibit |
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
 | gap | - | gaps_workspaces |
 | gap | - | gestures:close_max_timeout, gestures:workspace_swipe_touch, gestures:workspace_swipe_touch_invert |
+| gap | - | glow, motion_blur |
 | gap | - | gradient |
 | gap | [#56](https://github.com/dante-sparras/winland/issues/56) | group |
 | gap | - | input:emulate_discrete_scroll, input:force_no_accel, input:off_window_axis_events, input:resolve_binds_by_sym, input:rotation, input:scroll_button, input:scroll_button_lock, input:scroll_method, input:scroll_points |
@@ -159,6 +183,8 @@ A `gesture` line is honored for the `workspace` action, described in [behavior.m
 A touchpad swipe cannot be consumed. Windows reads the same fingers, so its own three- and four-finger gestures still run unless they are turned off (see [behavior.md](behavior.md#touchpad-swipe)). The swipe is not animated: the Workspace changes when the fingers lift, or at each full distance with `workspace_swipe_forever`. That is the `animations` Gap. `general:gaps_workspaces` stays a Gap for the same reason.
 
 Bind flag `p` warns and is ignored. The bind itself still runs. Applications cannot inhibit binds, so there is nothing for that flag to bypass.
+
+Blur is DWM's acrylic backdrop, so it shows only where DWM draws that backdrop: the title bar and any area a window leaves for it. What a window paints itself is not blurred, and a translucent Client does not blur what is behind its content. The blur `size`, `passes` and color options, and the shadow `range`, `offset`, `scale` and colors, have no DWM equivalent. `glow` and `motion_blur` are not drawn. A corner radius DWM does not draw is cut as a window region, and that edge is not antialiased. `shadow` on a workspace rule and the `no_blur`, `no_shadow`, `rounding` and `rounding_power` window rule effects are not honored. The backdrop, shadow and corner changes are not undone after a crash.
 
 Per-device `device` options are not honored. Keyboard layout keys and the other input keys stay Gaps.
 

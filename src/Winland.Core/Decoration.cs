@@ -2,18 +2,32 @@ using System.Globalization;
 
 namespace Winland;
 
+/// <summary>The corner preference DWM draws. <see cref="Round"/> and <see cref="RoundSmall"/> are circular corners of 8 and 4 pixels at 96 DPI.</summary>
 public enum CornerPreference
 {
     DoNotRound,
     Round,
+    RoundSmall,
 }
 
+/// <summary>
+/// How one Client is decorated. <see cref="Region"/> is set when DWM has no corner of that radius,
+/// and the corners are then cut from the window instead. <see cref="Blur"/> asks for a blurred
+/// backdrop and a false <see cref="Shadow"/> turns DWM's shadow off.
+/// </summary>
 public readonly record struct Decoration(
     ClientId Client,
     BorderColor Border,
     CornerPreference Corners,
     byte Alpha = 255,
-    bool Borderless = false);
+    bool Borderless = false)
+{
+    public CornerRegion? Region { get; init; }
+
+    public bool Blur { get; init; }
+
+    public bool Shadow { get; init; } = true;
+}
 
 /// <summary>One opacity fraction from a window rule. <see cref="Overridden"/> replaces the configured fraction; otherwise the two multiply.</summary>
 public readonly record struct OpacityFactor(float Value, bool Overridden)
@@ -32,14 +46,21 @@ public sealed record DecorationOptions
     {
         ActiveBorder = new BorderColor(0xFF, 0xFF, 0xFF, 0xFF),
         InactiveBorder = new BorderColor(0xFF, 0x44, 0x44, 0x44),
-        Corners = CornerPreference.DoNotRound,
     };
 
     public BorderColor ActiveBorder { get; init; }
 
     public BorderColor InactiveBorder { get; init; }
 
-    public CornerPreference Corners { get; init; }
+    /// <summary>The corner radius in logical pixels. 0 draws square corners.</summary>
+    public int Rounding { get; init; }
+
+    /// <summary>The corner curve: 1 is a straight cut, 2 is a circle, larger values are squarer. Clamped to 1 through 10.</summary>
+    public float RoundingPower { get; init; } = 2;
+
+    public bool Blur { get; init; } = true;
+
+    public bool Shadow { get; init; } = true;
 
     public float ActiveOpacity { get; init; } = 1;
 
@@ -60,7 +81,10 @@ public sealed record DecorationOptions
     {
         ["general:col.active_border"] = (options, value) => BorderColor.TryParse(value, out var active, out _) ? options with { ActiveBorder = active } : options,
         ["general:col.inactive_border"] = (options, value) => BorderColor.TryParse(value, out var inactive, out _) ? options with { InactiveBorder = inactive } : options,
-        ["decoration:rounding"] = (options, value) => TryParseRounding(value, out var corners) ? options with { Corners = corners } : options,
+        ["decoration:rounding"] = (options, value) => TryParseRounding(value, out var rounding) ? options with { Rounding = rounding } : options,
+        ["decoration:rounding_power"] = (options, value) => TryParsePower(value, out var power) ? options with { RoundingPower = power } : options,
+        ["decoration:blur:enabled"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { Blur = enabled } : options,
+        ["decoration:shadow:enabled"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { Shadow = enabled } : options,
         ["decoration:active_opacity"] = (options, value) => TryParseUnit(value, out var opacity) ? options with { ActiveOpacity = opacity } : options,
         ["decoration:inactive_opacity"] = (options, value) => TryParseUnit(value, out var opacity) ? options with { InactiveOpacity = opacity } : options,
         ["decoration:fullscreen_opacity"] = (options, value) => TryParseUnit(value, out var opacity) ? options with { FullscreenOpacity = opacity } : options,
@@ -84,13 +108,16 @@ public sealed record DecorationOptions
     private static DecorationOptions Apply(DecorationOptions options, Setting setting) =>
         Appliers.TryGetValue(setting.Keyword, out var apply) ? apply(options, setting.Value) : options;
 
-    private static bool TryParseRounding(string text, out CornerPreference corners)
+    private static bool TryParseRounding(string text, out int rounding) =>
+        int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out rounding) && rounding >= 0;
+
+    private static bool TryParsePower(string text, out float power)
     {
-        corners = CornerPreference.DoNotRound;
-        if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) || value < 0)
+        power = 0;
+        if (!float.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) || !float.IsFinite(parsed))
             return false;
 
-        corners = value == 0 ? CornerPreference.DoNotRound : CornerPreference.Round;
+        power = Math.Clamp(parsed, 1f, 10f);
         return true;
     }
 

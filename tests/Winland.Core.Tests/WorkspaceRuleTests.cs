@@ -42,7 +42,7 @@ public class WorkspaceRuleTests
 
         Assert.Equal(
             [
-                new ConfigWarning(1, "Shadows are not honored."),
+                new ConfigWarning(1, "A workspace rule's shadow is not honored."),
                 new ConfigWarning(1, "Animations are not honored."),
                 new ConfigWarning(1, "Floating window gaps are not honored."),
             ],

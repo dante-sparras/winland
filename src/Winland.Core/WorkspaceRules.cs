@@ -301,7 +301,7 @@ internal static partial class WorkspaceRules
 
         if (Take(field, "shadow:", out _))
         {
-            warnings.Add(GapReason("shadow") ?? "Shadows are not honored.");
+            warnings.Add(GapReason("shadow") ?? "A workspace rule's shadow is not honored.");
             return true;
         }
 
