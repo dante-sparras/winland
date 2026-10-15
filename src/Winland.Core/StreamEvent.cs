@@ -53,3 +53,15 @@ public sealed record CustomEvent(string Text) : StreamEvent;
 
 /// <summary>A Client entered or left a covering fullscreen mode. The data is <c>1</c> or <c>0</c>.</summary>
 public sealed record FullscreenChanged(bool Entered) : StreamEvent;
+
+/// <summary>A Group was made (<paramref name="Created"/>) or ended. <paramref name="Window"/> is its first member.</summary>
+public sealed record GroupToggled(WindowId Window, bool Created) : StreamEvent;
+
+/// <summary>A window was moved into a Group.</summary>
+public sealed record ClientIntoGroup(WindowId Window) : StreamEvent;
+
+/// <summary>A window was moved out of a Group.</summary>
+public sealed record ClientOutOfGroup(WindowId Window) : StreamEvent;
+
+/// <summary>Every Group was locked or unlocked. <paramref name="Locked"/> is the state after the change.</summary>
+public sealed record GroupsLocked(bool Locked) : StreamEvent;

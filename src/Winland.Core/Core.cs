@@ -51,6 +51,7 @@ public sealed partial class Core
             _scrolling = ScrollingOptions.From(config);
             _master = MasterOptions.From(config);
             ReadAnimations(config);
+            _groupOptions = GroupOptions.From(config);
             ReadCursor(config);
             ReadGestures(config);
             ReadBinds(config);

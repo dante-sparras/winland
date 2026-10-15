@@ -65,6 +65,18 @@ public static class Dispatchers
             "alterzorder",
             "movecursortocorner");
         Register([.. DwindleMessages.Names]);
+        Register(
+            "togglegroup",
+            "changegroupactive",
+            "movegroupwindow",
+            "lockgroups",
+            "lockactivegroup",
+            "denywindowfromgroup",
+            "moveintogroup",
+            "moveintoorcreategroup",
+            "moveoutofgroup",
+            "movewindoworgroup",
+            "setignoregrouplock");
     }
 
     public static void Register(params string[] names)

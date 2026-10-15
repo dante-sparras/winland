@@ -78,6 +78,9 @@ public sealed partial class Core
         if (Is(name, "togglespecialworkspace"))
             return ToggleSpecial(arguments, allowsElevation);
 
+        if (GroupDispatch(name, arguments, allowsElevation) is Outcome grouped)
+            return grouped;
+
         if (Is(name, "workspace") || Is(name, "focusworkspaceoncurrentmonitor"))
         {
             if (!WorkspaceAddress.TryResolve(arguments, Context(), out var target))

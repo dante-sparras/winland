@@ -82,7 +82,19 @@ This table has one row per keyword. A test checks it against the keywords the co
 | gestures:workspace_swipe_touch_invert | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | gradient | Gradient borders are not honored. |
 | glow | Inner glow is not honored. |
-| group | Groups are not honored. |
+| group:drag_into_group | Dragging a window into a Group is not honored. |
+| group:groupbar:gradient_round_only_edges | The tab bar is drawn with square corners. |
+| group:groupbar:gradient_rounding | The tab bar is drawn with square corners. |
+| group:groupbar:gradient_rounding_power | The tab bar is drawn with square corners. |
+| group:groupbar:gradients | The tab bar draws flat colors, not gradients. |
+| group:groupbar:priority | The tab bar is the only decoration drawn over a tile, so it has no order. |
+| group:groupbar:round_only_edges | The tab bar is drawn with square corners. |
+| group:groupbar:rounding | The tab bar is drawn with square corners. |
+| group:groupbar:rounding_power | The tab bar is drawn with square corners. |
+| group:groupbar:stacked | A stacked tab bar is not honored. |
+| group:merge_floated_into_tiled_on_groupbar | Dragging a window into a Group is not honored. |
+| group:merge_groups_on_drag | Dragging a window into a Group is not honored. |
+| group:merge_groups_on_groupbar | Dragging a window into a Group is not honored. |
 | input:emulate_discrete_scroll | High resolution scroll emulation is not honored. |
 | input:force_no_accel | Forcing acceleration off apart from the acceleration profile is not honored. |
 | input:kb_file | Keyboard layout is not changed. |
@@ -174,7 +186,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | gestures:close_max_timeout, gestures:workspace_swipe_touch, gestures:workspace_swipe_touch_invert |
 | gap | - | glow, motion_blur |
 | gap | - | gradient |
-| gap | [#56](https://github.com/dante-sparras/winland/issues/56) | group |
+| gap | - | group:drag_into_group, group:groupbar:gradient_round_only_edges, group:groupbar:gradient_rounding, group:groupbar:gradient_rounding_power, group:groupbar:gradients, group:groupbar:priority, group:groupbar:round_only_edges, group:groupbar:rounding, group:groupbar:rounding_power, group:groupbar:stacked, group:merge_floated_into_tiled_on_groupbar, group:merge_groups_on_drag, group:merge_groups_on_groupbar |
 | gap | - | input:emulate_discrete_scroll, input:force_no_accel, input:off_window_axis_events, input:resolve_binds_by_sym, input:rotation, input:scroll_button, input:scroll_button_lock, input:scroll_method, input:scroll_points |
 | gap | - | input:kb_file, input:kb_layout, input:kb_model, input:kb_options, input:kb_rules, input:kb_variant |
 | gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
@@ -243,6 +255,8 @@ Mouse drag has these Gaps. Each is a gap with no open issue:
 - In the monocle Layout a drag does not move or resize the Client.
 - The pointer shape does not change while a Client is dragged or resized.
 - The `keep_aspect_ratio` window rule is not honored, so `resizewindow 2` resizes exactly as no argument does.
+
+Group drag and drop is a Gap: dragging a window onto a Group or its tab bar does not merge them, so `group:drag_into_group`, `group:merge_groups_on_drag`, `group:merge_groups_on_groupbar` and `group:merge_floated_into_tiled_on_groupbar` warn. The tab bar draws flat, square tabs: gradients, rounding and a stacked bar are Gaps, and `group:groupbar:blur` is the `blur` gap. Titles are drawn without antialiasing, because antialiased text would blend with the transparent strip. The wheel over the bar focuses the next member instead of only showing it. The bar is a separate window. It is put just above the shown member in the z-order each time the core reports a change, not each time another window is raised.
 
 ## Commands
 

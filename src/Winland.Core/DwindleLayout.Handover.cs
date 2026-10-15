@@ -1,0 +1,43 @@
+namespace Winland;
+
+internal sealed partial class DwindleLayout
+{
+    public bool Substitute(WindowId current, WindowId next, Taken incoming, out Taken outgoing)
+    {
+        outgoing = default;
+        var from = new ClientId(current.Value);
+        var to = new ClientId(next.Value);
+        var index = _clients.FindIndex(client => client.Id == from);
+        if (index < 0 || from == to || _clients.Exists(client => client.Id == to))
+            return false;
+
+        var client = _clients[index];
+        var bounds = _floating.TryGetValue(from, out var floating)
+            ? floating
+            : _natural.TryGetValue(from, out var natural) ? natural : default;
+        _limits.TryGetValue(from, out var limits);
+        outgoing = SlotHandover.Describe(client, bounds, limits.Min, limits.Max);
+
+        _clients[index] = SlotHandover.Rename(client, next, incoming);
+        if (_nodes.TryGetValue(from, out var node))
+            node.Id = to;
+        if (_suspended.TryGetValue(from, out var suspension))
+            suspension.Node.Id = to;
+
+        SlotHandover.Move(_nodes, from, to);
+        SlotHandover.Move(_suspended, from, to);
+        SlotHandover.Move(_floating, from, to);
+        SlotHandover.Move(_lastFloat, from, to);
+        SlotHandover.Move(_pseudo, from, to);
+        _natural.Remove(from);
+        _natural[to] = incoming.Bounds;
+        _limits.Remove(from);
+        _limits[to] = new ClientLimits(incoming.MinSize, incoming.MaxSize);
+        if (_splitTarget == from)
+            _splitTarget = to;
+        if (_grab is { } grab && grab.Id == from)
+            _grab = null;
+
+        return true;
+    }
+}

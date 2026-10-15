@@ -132,6 +132,7 @@ public sealed partial class Core
 
         var area = WorkArea(destination, _area);
         destination.Receive(id, taken, area);
+        CarryGroup(source, destination, id);
 
         return true;
     }

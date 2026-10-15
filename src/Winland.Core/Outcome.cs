@@ -43,6 +43,9 @@ public sealed record State(IReadOnlyList<Client> Clients)
     public IReadOnlyList<Monitor> Monitors { get; init; } = [];
 
     public IReadOnlyList<MonitorSnapshot> Screens { get; init; } = [];
+
+    /// <summary>The members of each Group, in Group order.</summary>
+    public IReadOnlyList<IReadOnlyList<WindowId>> Groups { get; init; } = [];
 }
 
 public sealed record Outcome(
@@ -73,6 +76,9 @@ public sealed record Outcome(
     public IReadOnlyList<Motion> Motions { get; init; } = [];
 
     public IReadOnlyList<WindowId> ResetDecorations { get; init; } = [];
+
+    /// <summary>Every Group tab bar to draw now. A bar that is not listed is removed.</summary>
+    public IReadOnlyList<GroupBar> GroupBars { get; init; } = [];
 
     public IReadOnlyList<DisplayOrientationRequest> Orientations { get; init; } = [];
 

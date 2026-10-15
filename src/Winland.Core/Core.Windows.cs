@@ -92,7 +92,7 @@ public sealed partial class Core
             return View([]);
 
         if (Find(appeared.Window) is { } existing)
-            return IsShown(existing.Workspace) ? View([]) : View([], hide: [appeared.Window]);
+            return IsShown(existing.Workspace) && !IsWaiting(appeared.Window) ? View([]) : View([], hide: [appeared.Window]);
 
         var restored = FindRestored(appeared.Window);
         var swallowee = Swallowee(appeared);
@@ -134,6 +134,8 @@ public sealed partial class Core
             maxSize: decision.MaxSize);
         if (decision.FullscreenRequest is { } fullscreen)
             placements = desk.Layout.SetFullscreen(appeared.Window, fullscreen.Internal, fullscreen.Client);
+        if (GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, restored is null ? ActiveWindow() : null))
+            placements = desk.Layout.Visible();
 
         if (swallowee is not null)
             placements = SwallowParent(appeared.Window, swallowee, desk, placements);
@@ -190,6 +192,8 @@ public sealed partial class Core
         _pinned.Remove(window);
         if (ForgetSwallowedParent(window))
             return View([]);
+        if (CloseGroupMember(window) is Outcome grouped)
+            return grouped;
 
         var desk = WorkspaceContaining(window);
         if (desk is null)
