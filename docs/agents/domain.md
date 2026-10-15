@@ -15,4 +15,4 @@ Name a domain concept (in an issue title, a refactor proposal, a hypothesis, a t
 
 An output that contradicts an ADR says so:
 
-> _Contradicts ADR 0003 (a Workspace is a number) — but worth reopening because…_
+> _Contradicts ADR 0004 (Winland runs elevated) — but worth reopening because…_
