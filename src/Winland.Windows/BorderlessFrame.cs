@@ -1,0 +1,117 @@
+using System.Runtime.InteropServices;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.WindowsAndMessaging;
+
+namespace Winland.Windows;
+
+internal interface IWindowFrame
+{
+    bool TryReadStyle(WindowId window, out uint style);
+
+    bool TryWriteStyle(WindowId window, uint style);
+}
+
+/// <summary>
+/// Mode 2 drops the window frame and puts that style back when the Client leaves fullscreen.
+/// The placement is applied as the outer rectangle, so frame insets do not pull it off the monitor.
+/// </summary>
+internal static class BorderlessStyle
+{
+    internal const uint Popup = 0x80000000;
+    internal const uint Caption = 0x00C00000;
+    internal const uint ThickFrame = 0x00040000;
+    internal const uint Border = 0x00800000;
+    internal const uint DialogFrame = 0x00400000;
+    internal const uint Frame = Caption | ThickFrame | Border | DialogFrame;
+
+    internal static uint Strip(uint style) => (style & ~Frame) | Popup;
+}
+
+internal sealed class BorderlessFrame
+{
+    private readonly IWindowFrame _frames;
+    private readonly Dictionary<WindowId, uint> _original = [];
+    private readonly Lock _gate = new();
+
+    internal BorderlessFrame(IWindowFrame frames)
+    {
+        ArgumentNullException.ThrowIfNull(frames);
+        _frames = frames;
+    }
+
+    internal bool Owns(WindowId window)
+    {
+        lock (_gate)
+            return _original.ContainsKey(window);
+    }
+
+    internal void Apply(WindowId window, bool borderless)
+    {
+        lock (_gate)
+        {
+            if (!borderless)
+            {
+                if (_original.Remove(window, out var original))
+                    _frames.TryWriteStyle(window, original);
+                return;
+            }
+
+            if (_original.ContainsKey(window))
+                return;
+
+            if (!_frames.TryReadStyle(window, out var style))
+                return;
+
+            var stripped = BorderlessStyle.Strip(style);
+            _original[window] = style;
+            if (stripped == style)
+                return;
+
+            if (!_frames.TryWriteStyle(window, stripped))
+                _original.Remove(window);
+        }
+    }
+
+    internal void Release(WindowId window) => Apply(window, false);
+}
+
+internal sealed class Win32WindowFrame : IWindowFrame
+{
+    public bool TryReadStyle(WindowId window, out uint style)
+    {
+        style = 0;
+        var hwnd = new HWND((nint)window.Value);
+        if (hwnd.IsNull || !PInvoke.IsWindow(hwnd))
+            return false;
+
+        style = (uint)PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE);
+        return true;
+    }
+
+    public bool TryWriteStyle(WindowId window, uint style)
+    {
+        var hwnd = new HWND((nint)window.Value);
+        if (hwnd.IsNull || !PInvoke.IsWindow(hwnd))
+            return false;
+
+        Marshal.SetLastPInvokeError(0);
+        var previous = PInvoke.SetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE, (int)style);
+        if (previous == 0 && Marshal.GetLastPInvokeError() != 0)
+            return false;
+
+        _ = PInvoke.SetWindowPos(
+            hwnd,
+            HWND.Null,
+            0,
+            0,
+            0,
+            0,
+            SET_WINDOW_POS_FLAGS.SWP_NOMOVE
+            | SET_WINDOW_POS_FLAGS.SWP_NOSIZE
+            | SET_WINDOW_POS_FLAGS.SWP_NOZORDER
+            | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE
+            | SET_WINDOW_POS_FLAGS.SWP_FRAMECHANGED);
+        return true;
+    }
+}

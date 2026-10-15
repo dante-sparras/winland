@@ -1,0 +1,483 @@
+namespace Winland;
+
+public sealed partial class Core
+{
+    private Gesture? _gesture;
+    private BorderDrag? _border;
+    private string? _resizeCursor;
+
+    private Outcome RunKey(Input input) =>
+        RunBind(BindMatcher.Decide(_binds, _keyState, input));
+
+    private Outcome PressPointer(PointerButtonPressed pressed)
+    {
+        var match = BindMatcher.Decide(_binds, _keyState, pressed);
+        if (TryDragHit(match, out var drag) && ActiveWindow() is WindowId window)
+        {
+            _border = null;
+            _gesture = new Gesture(window, pressed.Button, IsResize(drag.Dispatcher), drag.Dispatcher);
+            var begun = LayoutDesk(window).Layout.Drag(window, new PointerDrag(_gesture.Resize, PointerDragPhase.Begin, pressed.Position));
+            var ran = RunBind(match);
+            return begun.Count == 0 ? ran : ran with { Placements = begun };
+        }
+
+        if (!match.Consumed && TryBorderTarget(pressed.Position, out var hit, out var bounds, out var floating, out _))
+        {
+            Outcome? ran = match.Dispatcher is null && match.Dispatches.Count == 0 ? null : RunBind(match);
+            var border = StartBorder(pressed, hit, bounds, floating);
+            if (ran is null || ran.Placements.Count == 0 || border.Placements.Count > 0)
+                return border;
+
+            return border with { Placements = ran.Placements };
+        }
+
+        NoteBorderCursor(pressed.Position);
+        return RunBind(match);
+    }
+
+    private Outcome ReleasePointer(PointerButtonReleased released)
+    {
+        Outcome? ended = null;
+        if (_border is not null && _border.Button.Equals(released.Button, StringComparison.OrdinalIgnoreCase))
+        {
+            var border = _border;
+            _border = null;
+            ended = EndBorder(border, released.Position);
+        }
+        else if (_gesture is not null && _gesture.Button.Equals(released.Button, StringComparison.OrdinalIgnoreCase))
+        {
+            var gesture = _gesture;
+            _gesture = null;
+            ended = View(
+                LayoutDesk(gesture.Window).Layout.Drag(gesture.Window, new PointerDrag(gesture.Resize, PointerDragPhase.End, released.Position)),
+                consumed: true,
+                dispatcher: gesture.Dispatcher);
+        }
+
+        NoteBorderCursor(released.Position);
+        var ran = RunBind(BindMatcher.Decide(_binds, _keyState, released));
+        if (ended is null)
+            return ran;
+
+        var merged = Merge(ended, ran);
+        return merged with
+        {
+            Consumed = ended.Consumed || ran.Consumed,
+            Dispatcher = ran.Dispatcher,
+        };
+    }
+
+    private long? _lastMoveAt;
+    private double _traveled;
+    private WindowId? _lastMouse;
+
+    private Outcome MovePointer(PointerMoved moved)
+    {
+        _ = BindMatcher.Decide(_binds, _keyState, moved);
+        NoteBorderCursor(moved.Position);
+        if (_border is not null)
+            return MoveBorder(moved.Position);
+
+        if (_gesture is not null)
+        {
+            _lastMoveAt = When(moved.TimeMs);
+            return View(
+                LayoutDesk(_gesture.Window).Layout.Drag(_gesture.Window, new PointerDrag(_gesture.Resize, PointerDragPhase.Move, moved.Position)),
+                consumed: true,
+                dispatcher: _gesture.Dispatcher);
+        }
+
+        return View([], focus: Follow(moved));
+    }
+
+    private WindowId? Follow(PointerMoved moved)
+    {
+        var now = When(moved.TimeMs);
+        if (_pointer is Point held && held == moved.Position)
+        {
+            _lastMoveAt = now;
+            return null;
+        }
+
+        var traveled = Advance(moved.Position, now);
+        if (_session.MouseMoveFocusesMonitor)
+            FocusMonitorAt(moved.Position);
+
+        if (_keyState.DownButtons.Count > 0)
+            return null;
+
+        var under = WindowUnder(moved.Position, shrink: true);
+        var decision = PointerFocus.Choose(
+            _input.FollowMouse,
+            _input.MouseRefocus,
+            _input.FloatSwitchOverrideFocus,
+            traveled,
+            _input.FollowMouseThreshold,
+            under,
+            Floats(under),
+            _active,
+            Floats(_active),
+            _lastMouse);
+        if (decision.RememberMouse)
+            _lastMouse = decision.LastMouse;
+
+        return TakePointerFocus(decision.Focus);
+    }
+
+    private WindowId? TakePointerFocus(WindowId? window)
+    {
+        if (window is not WindowId next || next == _active || HeldByStay(next) || HasNoFocus(next))
+            return null;
+
+        if (DeskContaining(next) is not Desk desk || !IsShown(desk.Id))
+            return null;
+
+        NoteFocus(next);
+        return _active == next ? next : null;
+    }
+
+    private double Advance(Point position, long now)
+    {
+        var step = 0d;
+        if (_pointer is Point previous)
+            step = Distance(previous, position) / ScaleOf(position);
+
+        var recent = _lastMoveAt is long seen && now >= seen && now - seen < 500;
+        _lastMoveAt = now;
+        if (_input.FollowMouse == 1 && recent)
+            _traveled += step;
+        else
+            _traveled = 0;
+
+        return _traveled;
+    }
+
+    private void FocusMonitorAt(Point point)
+    {
+        if (_screens.Count == 0)
+            return;
+
+        var screen = ScreenAt(point);
+        if (screen is null || screen.Id == FocusedId())
+            return;
+
+        Focus(screen.Id);
+    }
+
+    private WindowId? WindowUnder(Point? point, bool shrink)
+    {
+        if (point is not Point at)
+            return null;
+
+        var inset = shrink ? MonitorPixels.Physical(_input.FollowMouseShrink, ScaleOf(at)) : 0;
+        return PointerFocus.At(Targets(at), at, inset, _active);
+    }
+
+    private List<PointerFocus.Target> Targets(Point point)
+    {
+        Screen? screen = null;
+        if (_screens.Count > 0)
+        {
+            screen = ScreenAt(point);
+            if (screen is null)
+                return [];
+        }
+
+        var targets = new List<PointerFocus.Target>();
+        foreach (var desk in _desks)
+        {
+            if (!IsShown(desk.Id))
+                continue;
+
+            if (screen is not null && desk.Monitor != screen.Id)
+                continue;
+
+            var showing = Showing(desk);
+            foreach (var client in desk.Layout.Clients)
+            {
+                if (client.Minimized || !showing.Contains(client.Window) || HasNoFocus(client.Window))
+                    continue;
+
+                if (!desk.Layout.TryBounds(client.Window, out var bounds))
+                    continue;
+
+                targets.Add(new PointerFocus.Target(client.Window, client.Floating, bounds));
+            }
+        }
+
+        return targets;
+    }
+
+    private Screen? ScreenAt(Point point)
+    {
+        if (_screens.Count == 0)
+            return null;
+
+        return Match(screen => Contains(screen.Reported, point));
+    }
+
+    private double ScaleOf(Point point)
+    {
+        var scale = ScreenAt(point)?.Effective.Scale ?? 1;
+        return scale is > 0 and < 1000 && double.IsFinite(scale) ? scale : 1;
+    }
+
+    private bool Floats(WindowId? window) =>
+        window is WindowId id && Find(id) is { Floating: true };
+
+    private static long When(long? time) => time ?? Environment.TickCount64;
+
+    private static double Distance(Point from, Point to)
+    {
+        var dx = (double)to.X - from.X;
+        var dy = (double)to.Y - from.Y;
+        return Math.Sqrt((dx * dx) + (dy * dy));
+    }
+
+    private Outcome ApplyGesture(PointerGesture gesture)
+    {
+        var resize = IsResize(gesture.Dispatcher);
+        var layout = CurrentDesk().Layout;
+        switch (gesture.Phase)
+        {
+            case PointerDragPhase.Begin:
+                if (ActiveWindow() is not WindowId window)
+                    return View([], consumed: true, dispatcher: gesture.Dispatcher);
+
+                _gesture = new Gesture(window, gesture.Button, resize, gesture.Dispatcher);
+                return View(
+                    layout.Drag(window, new PointerDrag(resize, PointerDragPhase.Begin, gesture.Position)),
+                    consumed: true,
+                    dispatcher: gesture.Dispatcher);
+            case PointerDragPhase.Move when _gesture is not null:
+                return View(
+                    layout.Drag(_gesture.Window, new PointerDrag(_gesture.Resize, PointerDragPhase.Move, gesture.Position)),
+                    consumed: true,
+                    dispatcher: _gesture.Dispatcher);
+            case PointerDragPhase.End when _gesture is not null && _gesture.Button.Equals(gesture.Button, StringComparison.OrdinalIgnoreCase):
+                var active = _gesture;
+                _gesture = null;
+                return View(
+                    layout.Drag(active.Window, new PointerDrag(active.Resize, PointerDragPhase.End, gesture.Position)),
+                    consumed: true,
+                    dispatcher: active.Dispatcher);
+            default:
+                return View([]);
+        }
+    }
+
+    private static bool TryDragHit(BindDecision match, out BindDispatch drag)
+    {
+        foreach (var dispatch in DispatchesOf(match))
+        {
+            if (IsDragDispatcher(dispatch))
+            {
+                drag = dispatch;
+                return true;
+            }
+        }
+
+        drag = default;
+        return false;
+    }
+
+    private static bool IsDragDispatcher(BindDispatch dispatch) =>
+        (Is(dispatch.Dispatcher, "movewindow") && dispatch.Arguments.Length == 0) || IsResize(dispatch.Dispatcher);
+
+    private static bool IsResize(string dispatcher) =>
+        Is(dispatcher, "resizewindow");
+
+    private Outcome StartBorder(PointerButtonPressed pressed, WindowId window, Rectangle bounds, bool floating)
+    {
+        var options = ActiveOptions();
+        var (left, top) = BorderPointer.GrabbedCorner(options.ResizeCorner, floating, pressed.Position, bounds);
+        _border = new BorderDrag(window, pressed.Button, floating, pressed.Position, bounds, left, top);
+        _active = window;
+        var desk = ActiveDesk();
+        desk.Focus = window;
+        desk.Layout.NoteFocus(window);
+        NoteBorderCursor(pressed.Position);
+        IReadOnlyList<Placement> begun = floating
+            ? []
+            : desk.Layout.Drag(window, new PointerDrag(true, PointerDragPhase.Begin, pressed.Position));
+        return View(begun, consumed: true, dispatcher: "resizewindow", focus: window);
+    }
+
+    private Outcome MoveBorder(Point pointer)
+    {
+        if (_border is not BorderDrag border)
+            return View([]);
+
+        var desk = ActiveDesk();
+        if (border.Floating)
+        {
+            var next = BorderPointer.Resize(border.Start, border.Origin, pointer, border.Left, border.Top);
+            next = SnapBox(border.Window, next, SnapEdges.FromGrab(border.Left, border.Top), resize: true);
+            return View(desk.Layout.PlaceFloating(border.Window, next), consumed: true, dispatcher: "resizewindow");
+        }
+
+        return View(
+            desk.Layout.Drag(border.Window, new PointerDrag(true, PointerDragPhase.Move, pointer)),
+            consumed: true,
+            dispatcher: "resizewindow");
+    }
+
+    private Outcome EndBorder(BorderDrag border, Point pointer)
+    {
+        var desk = ActiveDesk();
+        if (!border.Floating)
+        {
+            return View(
+                desk.Layout.Drag(border.Window, new PointerDrag(true, PointerDragPhase.End, pointer)),
+                consumed: true,
+                dispatcher: "resizewindow");
+        }
+
+        return View(desk.Layout.Visible(), consumed: true, dispatcher: "resizewindow");
+    }
+
+    private void NoteBorderCursor(Point pointer)
+    {
+        var options = ActiveOptions();
+        if (_gesture is not null || !options.ResizeOnBorder || !options.HoverIconOnBorder)
+        {
+            _resizeCursor = null;
+            return;
+        }
+
+        if (_border is not null)
+        {
+            _resizeCursor = BorderPointer.Cursor(BorderPointer.GrabbedSide(_border.Left, _border.Top));
+            return;
+        }
+
+        _resizeCursor = TryBorderTarget(pointer, out _, out _, out _, out var side)
+            ? BorderPointer.Cursor(side)
+            : null;
+    }
+
+    private bool TryBorderTarget(Point pointer, out WindowId window, out Rectangle bounds, out bool floating, out BorderSide side)
+    {
+        window = default;
+        bounds = default;
+        floating = false;
+        side = BorderSide.None;
+        var options = ActiveOptions();
+        var reach = BorderPointer.Reach(options);
+        if (reach <= 0)
+            return false;
+
+        var desk = ActiveDesk();
+        var clients = desk.Layout.Clients;
+        if (InsideContent(desk, clients, pointer))
+            return false;
+
+        if (TryRing(desk, clients, pointer, reach, options, floatingOnly: true, out window, out bounds, out side))
+        {
+            floating = true;
+            return true;
+        }
+
+        return TryRing(desk, clients, pointer, reach, options, floatingOnly: false, out window, out bounds, out side);
+    }
+
+    private static bool InsideContent(Desk desk, IReadOnlyList<Client> clients, Point pointer)
+    {
+        for (var i = clients.Count - 1; i >= 0; i--)
+        {
+            var client = clients[i];
+            if (client.Minimized)
+                continue;
+
+            if (desk.Layout.TryBounds(client.Window, out var bounds) && BorderPointer.Contains(bounds, pointer))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryRing(
+        Desk desk,
+        IReadOnlyList<Client> clients,
+        Point pointer,
+        int reach,
+        LayoutOptions options,
+        bool floatingOnly,
+        out WindowId window,
+        out Rectangle bounds,
+        out BorderSide side)
+    {
+        for (var i = clients.Count - 1; i >= 0; i--)
+        {
+            var client = clients[i];
+            if (client.Minimized || client.Floating != floatingOnly)
+                continue;
+
+            if (!desk.Layout.TryBounds(client.Window, out bounds) || !BorderPointer.InGrab(bounds, pointer, reach))
+                continue;
+
+            window = client.Window;
+            side = BorderPointer.Side(bounds, pointer, BorderPointer.Corner(options));
+            return true;
+        }
+
+        window = default;
+        bounds = default;
+        side = BorderSide.None;
+        return false;
+    }
+
+    private Rectangle SnapBox(WindowId self, Rectangle proposed, SnapEdges edges, bool resize)
+    {
+        var options = ActiveOptions();
+        var desk = ActiveDesk();
+        var others = new List<Rectangle>();
+        foreach (var client in desk.Layout.Clients)
+        {
+            if (client.Minimized || client.Window == self)
+                continue;
+
+            if (desk.Layout.TryBounds(client.Window, out var bounds))
+                others.Add(bounds);
+        }
+
+        return FloatingSnap.Apply(proposed, edges, resize, others, WorkArea(desk, _area), FocusedMonitor(), options);
+    }
+
+    private LayoutOptions ActiveOptions()
+    {
+        var screen = ScreenById(ActiveDesk().Monitor);
+        if (screen is { Effective.Enabled: true })
+            return Scaled(_options, screen.Effective.Scale);
+
+        return _options;
+    }
+
+    private sealed class BorderDrag(WindowId window, string button, bool floating, Point origin, Rectangle start, bool left, bool top)
+    {
+        public WindowId Window { get; } = window;
+
+        public string Button { get; } = button;
+
+        public bool Floating { get; } = floating;
+
+        public Point Origin { get; } = origin;
+
+        public Rectangle Start { get; } = start;
+
+        public bool Left { get; } = left;
+
+        public bool Top { get; } = top;
+    }
+
+    private sealed class Gesture(WindowId window, string button, bool resize, string dispatcher)
+    {
+        public WindowId Window { get; } = window;
+
+        public string Button { get; } = button;
+
+        public bool Resize { get; } = resize;
+
+        public string Dispatcher { get; } = dispatcher;
+    }
+}

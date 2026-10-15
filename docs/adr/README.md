@@ -21,6 +21,8 @@ An ADR states one standing decision and why, in the present tense, and is true a
 - [0008](0008-the-spec-is-a-pinned-hyprland-release.md): the spec is one pinned Hyprland release tag.
 - [0010](0010-unsupported-keywords-warn-and-are-ignored.md): unsupported keywords warn and are ignored, and the config still loads.
 
+- [0013](0013-config-is-hyprlang-first-lua-later.md): the line-based config syntax first, Lua later.
+
 ## Plugins
 
 - [0011](0011-plugins-are-in-process-and-hash-approved.md): in-process .NET plugins, approved by hash, with fault containment and an exact API version.

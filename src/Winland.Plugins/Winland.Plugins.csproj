@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Winland.Plugins</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Winland.Core\Winland.Core.csproj" />
+    <ProjectReference Include="..\Winland.PluginApi\Winland.PluginApi.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Winland.Plugins.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.FileSystem.AccessControl" Version="5.0.0" />
+  </ItemGroup>
+
+</Project>
