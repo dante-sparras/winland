@@ -23,12 +23,13 @@ public sealed class WindowAdapter : IDisposable
     private const DWMWINDOWATTRIBUTE BorderColorAttribute = (DWMWINDOWATTRIBUTE)34;
     private const DWMWINDOWATTRIBUTE CornerAttribute = (DWMWINDOWATTRIBUTE)33;
 
-    // DWMWA_COLOR_DEFAULT, DWMWA_COLOR_NONE, DWMWCP_DEFAULT, DWMWCP_DONOTROUND, DWMWCP_ROUND.
+    // DWMWA_COLOR_DEFAULT, DWMWA_COLOR_NONE, DWMWCP_DEFAULT, DWMWCP_DONOTROUND, DWMWCP_ROUND, DWMWCP_ROUNDSMALL.
     private const uint DefaultBorderColor = 0xFFFFFFFFu;
     private const uint NoneBorderColor = 0xFFFFFFFEu;
     private const uint DefaultCorners = 0;
     private const uint SquareCorners = 1;
     private const uint RoundCorners = 2;
+    private const uint SmallCorners = 3;
 
     private readonly Core _core;
     private readonly Action<RecoverySnapshot>? _changed;
@@ -45,6 +46,7 @@ public sealed class WindowAdapter : IDisposable
     private static readonly HashSet<WindowId> Painted = [];
     private static readonly OpacityAdapter Opacity = new(new Win32WindowStyles());
     private static readonly BorderlessFrame Borderless = new(new Win32WindowFrame());
+    private static readonly DwmEffects Effects = new(new Win32DwmSurface());
     private static readonly Lock PaintGate = new();
     private static readonly Dictionary<WindowId, CachedFrame> Frames = [];
     private static readonly Lock FrameGate = new();
@@ -243,6 +245,7 @@ public sealed class WindowAdapter : IDisposable
                 case PInvoke.EVENT_OBJECT_LOCATIONCHANGE:
                     if (Volatile.Read(ref Applying) == 0)
                         RereadLimits(hwnd, window);
+                    Effects.Refit(window);
                     return;
                 case PInvoke.EVENT_SYSTEM_MINIMIZESTART:
                     Apply(_core.Handle(new WindowMinimized(window)));
@@ -668,8 +671,14 @@ public sealed class WindowAdapter : IDisposable
             ? NoneBorderColor
             : (uint)(decoration.Border.R | (decoration.Border.G << 8) | (decoration.Border.B << 16));
         SetAttribute(hwnd, BorderColorAttribute, color);
-        var corners = decoration.Corners == CornerPreference.Round ? RoundCorners : SquareCorners;
+        var corners = decoration.Corners switch
+        {
+            CornerPreference.Round => RoundCorners,
+            CornerPreference.RoundSmall => SmallCorners,
+            _ => SquareCorners,
+        };
         SetAttribute(hwnd, CornerAttribute, corners);
+        Effects.Apply(window, decoration);
         Opacity.Apply(window, decoration.Alpha);
     }
 
@@ -678,6 +687,7 @@ public sealed class WindowAdapter : IDisposable
         var hwnd = new HWND((nint)window.Value);
         SetAttribute(hwnd, BorderColorAttribute, DefaultBorderColor);
         SetAttribute(hwnd, CornerAttribute, DefaultCorners);
+        Effects.Reset(window);
         Opacity.Reset(window);
     }
 

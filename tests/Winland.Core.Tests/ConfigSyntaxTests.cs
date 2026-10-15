@@ -347,7 +347,10 @@ public class ConfigSyntaxTests
         Assert.Equal(0, layout.SplitBias);
         Assert.Equal(new BorderColor(0xFF, 0xFF, 0xFF, 0xFF), decoration.ActiveBorder);
         Assert.Equal(new BorderColor(0xFF, 0x44, 0x44, 0x44), decoration.InactiveBorder);
-        Assert.Equal(CornerPreference.DoNotRound, decoration.Corners);
+        Assert.Equal(0, decoration.Rounding);
+        Assert.Equal(2f, decoration.RoundingPower);
+        Assert.True(decoration.Blur);
+        Assert.True(decoration.Shadow);
     }
 
     private sealed class MemorySource(IReadOnlyDictionary<string, string> files) : IConfigSource

@@ -42,7 +42,10 @@ public class DecorationTests
         Assert.Equal(DecorationOptions.Documented, options);
         Assert.Equal(new BorderColor(0xFF, 0xFF, 0xFF, 0xFF), options.ActiveBorder);
         Assert.Equal(new BorderColor(0xFF, 0x44, 0x44, 0x44), options.InactiveBorder);
-        Assert.Equal(CornerPreference.DoNotRound, options.Corners);
+        Assert.Equal(0, options.Rounding);
+        Assert.Equal(2f, options.RoundingPower);
+        Assert.True(options.Blur);
+        Assert.True(options.Shadow);
         Assert.Equal(1f, options.ActiveOpacity);
         Assert.Equal(1f, options.InactiveOpacity);
         Assert.Equal(1f, options.FullscreenOpacity);
@@ -67,20 +70,22 @@ public class DecorationTests
 
         Assert.Equal(new BorderColor(0x04, 0x01, 0x02, 0x03), options.ActiveBorder);
         Assert.Equal(new BorderColor(0x80, 0xAA, 0xBB, 0xCC), options.InactiveBorder);
-        Assert.Equal(CornerPreference.Round, options.Corners);
+        Assert.Equal(3, options.Rounding);
         Assert.Equal(
             new ConfigWarning(2, "Gradient borders are not honored."),
             Assert.Single(document.Warnings));
     }
 
     [Fact]
-    public void ZeroRoundingDoesNotRoundAndALargerValueDoes()
+    public void RoundingRejectsANegativeRadiusAndPowerIsClampedToOneThroughTen()
     {
-        var square = DecorationOptions.From(ConfigParser.Parse("decoration:rounding = 0\n"));
-        var round = DecorationOptions.From(ConfigParser.Parse("decoration:rounding = 10\n"));
+        var options = DecorationOptions.From(ConfigParser.Parse(
+            "decoration:rounding = 10\ndecoration:rounding = -1\ndecoration:rounding_power = 0.5\n"));
+        var steep = DecorationOptions.From(ConfigParser.Parse("decoration:rounding_power = 12\n"));
 
-        Assert.Equal(CornerPreference.DoNotRound, square.Corners);
-        Assert.Equal(CornerPreference.Round, round.Corners);
+        Assert.Equal(10, options.Rounding);
+        Assert.Equal(1f, options.RoundingPower);
+        Assert.Equal(10f, steep.RoundingPower);
     }
 
     [Fact]
@@ -170,7 +175,7 @@ public class DecorationTests
             """)));
 
         Assert.Equal(new BorderColor(0xFF, 0x11, 0x22, 0x33), For(loaded, 2).Border);
-        Assert.Equal(CornerPreference.Round, For(loaded, 2).Corners);
+        Assert.Equal(CornerPreference.RoundSmall, For(loaded, 2).Corners);
     }
 
     [Fact]

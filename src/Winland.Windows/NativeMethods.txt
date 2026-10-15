@@ -122,3 +122,8 @@ HidP_GetUsages
 RAWINPUTHEADER
 RAWHID
 HWND_MESSAGE
+CreateRectRgn
+CreatePolygonRgn
+GetWindowRgn
+SetWindowRgn
+DeleteObject

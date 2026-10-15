@@ -52,11 +52,9 @@ public class OpacityTests
             new[]
             {
                 new ConfigWarning(8, "Unsupported keyword 'decoration:dim_around'."),
-                new ConfigWarning(9, "Unsupported keyword 'decoration:blur:enabled'."),
-                new ConfigWarning(10, "Unsupported keyword 'decoration:shadow:enabled'."),
             },
             document.Warnings);
-        Assert.Equal(7, document.Settings.Count);
+        Assert.Equal(9, document.Settings.Count);
     }
 
     [Fact]

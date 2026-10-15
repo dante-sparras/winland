@@ -8,7 +8,11 @@ How Winland behaves for the options, dispatchers and window rules it honors. Wha
 
 ## Decoration
 
-`decoration:rounding` selects square corners when the value is 0 and rounded corners otherwise. The exact radius is not applied.
+`decoration:rounding` is the corner radius in logical pixels and defaults to 0, which draws square corners. A negative value is ignored. `decoration:rounding_power` defaults to 2 and is clamped to 1 through 10: 1 cuts a straight corner, 2 a circle, and a larger value is squarer. The radius drawn is `rounding * rounding_power / 2`, multiplied by the scale of the Client's Monitor. A circle of radius 8 or 4 uses DWM's round or small round corner preference, which DWM scales with the window's DPI. Any other radius or power is cut from the window as a window region inside the visible frame, following `|x|^p + |y|^p = r^p` at each corner, and is cut again when the window changes size. A radius larger than half the shorter side is cut to that half. A Client in fullscreen mode 2 and a Client on a Workspace with `rounding:0` draw square corners. A window that already has a region of its own keeps it, and its corners are not cut.
+
+`decoration:blur:enabled` defaults to true and gives every Client DWM's acrylic backdrop (`DWMSBT_TRANSIENTWINDOW`). False gives it no backdrop (`DWMSBT_NONE`). A window or a Windows build that refuses the backdrop is left as it is. `decoration:shadow:enabled` defaults to true and leaves DWM's shadow alone. False sets DWM's non-client rendering policy to disabled (`DWMNCRP_DISABLED`), so DWM draws no shadow and none of the rest of the window frame it draws.
+
+The backdrop, the rendering policy and the region are put back when the window stops being a Client and on a clean exit. The backdrop goes back to the type the window had, or to the system choice when that cannot be read. The rendering policy goes back to following the window style.
 
 A border color is one color, written as `rgba()`, `rgb()`, or `0xAARRGGBB`. A gradient keeps the first color. Gradient borders are not honored.
 
@@ -16,7 +20,7 @@ A border color is one color, written as `rgba()`, `rgb()`, or `0xAARRGGBB`. A gr
 
 An `opacity` window rule supplies up to three fractions: active, inactive and fullscreen. One fraction is used for all three. Two fractions set active and inactive and leave fullscreen at 1, which then multiplies the configured fullscreen fraction. Each fraction multiplies the configured fraction unless the next token is `override`, which uses the rule's fraction alone. The last matching `opacity` rule wins. `opaque` forces the fraction to 1, and a trailing `0` turns that off. The last matching `opaque` rule wins.
 
-`decoration:dim_inactive` defaults to false and `decoration:dim_strength` defaults to 0.5. When dimming is on, an inactive Client's fraction is multiplied by `1 - dim_strength`. Inactive windows are dimmed by tinting them toward black. That tint cannot be drawn on a window here, so dimming lowers the window's alpha instead. `decoration:dim_modal` defaults to true. A Client shadowed by a modal moves that dim halfway toward 1 before the alpha is taken. Modal parents are not tracked yet, so the extra dim does not apply. `decoration:dim_special` defaults to 0.2 and multiplies the alpha of Clients on a Monitor whose special workspace is open, except the Clients on that special workspace. `decoration:dim_around` is a Gap. Blur and shadow stay Gaps.
+`decoration:dim_inactive` defaults to false and `decoration:dim_strength` defaults to 0.5. When dimming is on, an inactive Client's fraction is multiplied by `1 - dim_strength`. Inactive windows are dimmed by tinting them toward black. That tint cannot be drawn on a window here, so dimming lowers the window's alpha instead. `decoration:dim_modal` defaults to true. A Client shadowed by a modal moves that dim halfway toward 1 before the alpha is taken. Modal parents are not tracked yet, so the extra dim does not apply. `decoration:dim_special` defaults to 0.2 and multiplies the alpha of Clients on a Monitor whose special workspace is open, except the Clients on that special workspace. `decoration:dim_around` is a Gap.
 
 An alpha below 255 adds `WS_EX_LAYERED` and sets the window's alpha. The window's previous extended style is restored when it stops being a Client, on a clean exit, and after a crash for every window this program layered. A window that was already layered is left alone. A window that refuses the layered style is skipped.
 
@@ -26,7 +30,7 @@ A rule block on `exec`, `exec-once`, `execr`, `execr-once`, `exec-shutdown`, or 
 
 ## Border resize and floating snap
 
-`general:resize_on_border` defaults to false. When it is on, a press in the grab ring around a Client resizes that Client. The ring is `general:border_size` plus `general:extend_border_grab_area` (0 to 100, default 15) outside the Client. A press inside the Client is left to the Client. A rounded corner is not a grab: the corner radius is not applied, so that part of the window stays a normal click.
+`general:resize_on_border` defaults to false. When it is on, a press in the grab ring around a Client resizes that Client. The ring is `general:border_size` plus `general:extend_border_grab_area` (0 to 100, default 15) outside the Client. A press inside the Client is left to the Client. A rounded corner is not a grab: the ring is measured from the square frame.
 
 `general:hover_icon_on_border` defaults to true and is used only while border resize is on. The outcome names the cursor for the edge under the pointer: `top_side`, `bottom_side`, `left_side`, `right_side`, `top_left_corner`, `top_right_corner`, `bottom_left_corner`, or `bottom_right_corner`. The corner zone is the border plus 10 pixels. The system pointer is not changed.
 
@@ -97,7 +101,7 @@ Opening a special workspace emits `activespecial` and `activespecialv2` as `name
 
 A `workspace` rule is honored for `monitor`, `default`, `persistent`, `defaultName`, `on-created-empty`, `gapsin`, `gapsout`, `bordersize`, `border`, `rounding`, `decorate`, and `layoutopt` when that option is a dwindle option that is already honored. A Workspace bound to a Monitor is shown there. A persistent Workspace stays when it is empty. `default` selects the Workspace a Monitor shows when it has none. `defaultName` is the name reported for that Workspace. `on-created-empty` runs when the Workspace is created with no Clients, and the command is aimed at that Workspace. `gapsin`, `gapsout`, and `bordersize` replace the general values on that Workspace. `border:0` and `decorate:0` draw no border. `rounding:0` forces square corners. Later rules for the same Workspace override earlier ones.
 
-`shadow` and `animation` on a workspace rule stay the `shadow` and `animation` Gaps. A `layout` field is not applied. Floating gaps on a workspace rule stay the `float_gaps` Gap. A `layoutopt` whose option is already a Gap warns and is not applied. Any other field is skipped.
+`shadow` on a workspace rule warns and is not applied. `animation` on a workspace rule stays the `animation` Gap. A `layout` field is not applied. Floating gaps on a workspace rule stay the `float_gaps` Gap. A `layoutopt` whose option is already a Gap warns and is not applied. Any other field is skipped.
 
 A workspace filter such as `r[1-3]` matches workspaces that already exist. It is not a workspace address, so `workspace`, `movetoworkspace` and `movetoworkspacesilent` do not switch on it.
 

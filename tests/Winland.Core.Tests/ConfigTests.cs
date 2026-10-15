@@ -142,13 +142,13 @@ public class ConfigTests
     [Fact]
     public void NestedGapKeywordWarnsAndSiblingSettingsRemain()
     {
-        var text = "decoration {\n    rounding = 10\n    blur {\n        enabled = true\n    }\n}\n";
+        var text = "decoration {\n    rounding = 10\n    blur {\n        passes = 3\n    }\n}\n";
 
         var document = ConfigParser.Parse(text);
 
         Assert.Equal(new Setting("decoration:rounding", "10"), Assert.Single(document.Settings));
         Assert.Equal(
-            new ConfigWarning(4, "Unsupported keyword 'decoration:blur:enabled'."),
+            new ConfigWarning(4, "Unsupported keyword 'decoration:blur:passes'."),
             Assert.Single(document.Warnings));
     }
 
@@ -660,7 +660,7 @@ public class ConfigTests
         var document = ConfigParser.Parse("workspace = 1, monitor:DP-1, default:true, shadow:1\ngeneral:gaps_in = 2\n");
 
         Assert.DoesNotContain(document.Warnings, warning => warning.Message.Contains("'workspace'", StringComparison.Ordinal));
-        Assert.Equal(new ConfigWarning(1, "Shadows are not honored."), Assert.Single(document.Warnings));
+        Assert.Equal(new ConfigWarning(1, "A workspace rule's shadow is not honored."), Assert.Single(document.Warnings));
         Assert.Contains(document.Settings, setting => setting.Keyword == "workspace");
         Assert.Equal(new Setting("general:gaps_in", "2"), document.Settings[^1]);
         var rule = Assert.Single(document.WorkspaceRules);

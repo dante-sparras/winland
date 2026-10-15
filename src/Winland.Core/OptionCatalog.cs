@@ -104,6 +104,18 @@ internal static class OptionCatalog
                 kind = "int";
                 token = LastInt(document, name, 0, 0, int.MaxValue).ToString(CultureInfo.InvariantCulture);
                 return true;
+            case "decoration:rounding_power":
+                kind = "float";
+                token = JsonSerializer.Serialize(decoration.RoundingPower);
+                return true;
+            case "decoration:blur:enabled":
+                kind = "bool";
+                token = Bool(decoration.Blur);
+                return true;
+            case "decoration:shadow:enabled":
+                kind = "bool";
+                token = Bool(decoration.Shadow);
+                return true;
             case "dwindle:force_split":
                 kind = "int";
                 token = layout.ForceSplit.ToString(CultureInfo.InvariantCulture);
