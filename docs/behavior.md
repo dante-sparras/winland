@@ -26,7 +26,27 @@ An alpha below 255 adds `WS_EX_LAYERED` and sets the window's alpha. The window'
 
 ## Exec rule blocks
 
-A rule block on `exec`, `exec-once`, `execr`, `execr-once`, `exec-shutdown`, or the `exec` and `execr` dispatchers applies to the first window mapped by that process or a child of it. `float`, `tile`, `workspace`, `ignore`, `opacity`, `opaque`, and `pin` are honored. Any other effect, including `move`, `size`, and `center`, warns and is skipped. The command still launches. An unclosed rule block warns and does not launch. A known effect with a bad argument warns and does not launch.
+A rule block on `exec`, `exec-once`, `execr`, `execr-once`, `exec-shutdown`, or the `exec` and `execr` dispatchers applies to the first window mapped by that process or a child of it. Every effect a window rule honors is honored there too, including `move`, `size`, `center`, `monitor` and `no_close_for`. Any other effect warns and is skipped. The command still launches. An unclosed rule block warns and does not launch. A known effect with a bad argument warns and does not launch.
+
+## Window placement
+
+A new floating Client opens at the size it asked for, centered in the floating work area of its Monitor: the work area less `general:float_gaps`. A window that reports no size opens at 640 by 400. A tiled Client is placed by its Layout. A Client that comes back after a restart keeps the rectangle it had.
+
+`size` and `move` take two expressions, x then y, split at the first whitespace, so an expression cannot contain a space. An expression is numbers, `+ - * / ^`, parentheses, a unary minus, the constants `_pi` and `_e`, the one-argument functions `abs`, `sqrt`, `sign`, `rint`, `exp`, `ln`, `log`, `log2`, `log10`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `sinh`, `cosh` and `tanh`, and the variables `monitor_w`, `monitor_h`, `window_x`, `window_y`, `window_w`, `window_h`, `cursor_x` and `cursor_y`. Positions are local to the Monitor the Client opens on. Numbers are physical pixels, like `min_size`. A rule that is not two expressions, or uses a name that is not listed, warns with its line number and is skipped. A `%` is not part of an expression, so `50%` warns. A value that cannot be computed, such as a division by zero, leaves the Client where it would open without the rule.
+
+`size` sets a floating Client's size, then the minimum and maximum size clamp it. `window_w` and `window_h` are the size the window asked for. A tiled Client keeps that size as its pseudo size. `move` places a floating Client's top left corner, and `window_w` and `window_h` there are the size after `size`. `center` centers a floating Client in the floating work area, which is also where it opens without a rule. `move` and `center` replace each other: the last matching one wins. A trailing `0` turns `center` off. Neither moves a tiled Client.
+
+`monitor` opens the window on that Monitor, before a `workspace` rule picks the Workspace. It takes the same selectors as `focusmonitor`. Without a trailing `silent` that Monitor is focused. `unset` and a Monitor that does not exist keep the Monitor the window opened on.
+
+`no_close_for` takes milliseconds. Until that time has passed since the window opened, `killactive` and `closewindow` answer `error: can't close window, it's not closeable yet (noclosefor)` and do not ask it to close. `killwindow` still ends the process.
+
+`movewindowpixel` and `resizewindowpixel` take two numbers, a comma and a window selector. The numbers are added to the window's position or size. After `exact` they replace it. A trailing `%` is a percentage of the position or size, or of the focused Monitor after `exact`. Text that is not two numbers leaves the window as it is. `movewindowpixel` moves a floating Client and leaves a tiled one. `resizewindowpixel` resizes through the Layout, so a floating Client grows from its center and a tiled Client changes its split. A size below one pixel answers `error: Invalid size`, and a fullscreen or maximized Client answers `error: Window is fullscreen`. A selector that matches nothing answers `error: moveWindow: no window` or `error: resizeWindow: no window`.
+
+`centerwindow` centers the active floating Client in its Monitor's work area. A tiled or fullscreen Client answers `error: No floating window found`. Its argument is ignored.
+
+`bringactivetotop` raises the active Client above every window that is not topmost. `alterzorder` takes `top` or `bottom`, a comma and a window selector. Without a match it uses the active Client when that Client floats, and otherwise does nothing. Any other position answers `error: Bad z-order position: <position>`. The adapter changes the z-order with `SetWindowPos` and `HWND_TOP` or `HWND_BOTTOM`, without moving, sizing or activating the window.
+
+`movecursortocorner` warps the cursor to a corner of the active Client: 0 bottom left, 1 bottom right, 2 top right, 3 top left. Any other number answers `error: Corner must be 0 - 3`, and text that is not a number answers `error: moveCursorToCorner, arg has to be a number`.
 
 ## Border resize and floating snap
 
