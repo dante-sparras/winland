@@ -1,0 +1,219 @@
+# Dispatched by scripts/release.ps1. It is not a pull-request entry point.
+# The attempt tag is the input. The commit under test is the claim inside that tag.
+# Tags this workflow pushes do not start other workflows.
+
+name: Stable Release
+
+run-name: Stable release ${{ inputs.tag }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Attempt tag rc.<N>-vX.Y.Z"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stable-release
+  cancel-in-progress: false
+
+jobs:
+  admit:
+    name: Admit the claim
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.claim.outputs.tag }}
+      commit: ${{ steps.claim.outputs.commit }}
+      version: ${{ steps.claim.outputs.version }}
+      autopublish: ${{ steps.claim.outputs.autopublish }}
+      draft_id: ${{ steps.claim.outputs.draft_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve the claim and the draft
+        id: claim
+        env:
+          TAG: ${{ inputs.tag }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          if ! printf '%s' "$TAG" | grep -Eq '^rc\.[1-9][0-9]*-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+            echo "::error::tag must be rc.<N>-vX.Y.Z"
+            exit 1
+          fi
+          git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}"
+          if [ "$(git cat-file -t "$TAG")" != "tag" ]; then
+            echo "::error::$TAG is not an annotated tag"
+            exit 1
+          fi
+          commit="$(git rev-parse "${TAG}^{commit}")"
+          message="$(git for-each-ref --format='%(contents)' "refs/tags/${TAG}")"
+          printf '%s' "$message" | jq -e '.commit and .attempt and .version and (.autopublish | type == "boolean") and .epoch' >/dev/null
+          claim_commit="$(printf '%s' "$message" | jq -r '.commit')"
+          claim_attempt="$(printf '%s' "$message" | jq -r '.attempt')"
+          claim_version="$(printf '%s' "$message" | jq -r '.version')"
+          autopublish="$(printf '%s' "$message" | jq -r '.autopublish')"
+          expect="rc.${claim_attempt}-v${claim_version}"
+          if [ "$TAG" != "$expect" ] || [ "$claim_commit" != "$commit" ]; then
+            echo "::error::the claim does not match $TAG ($commit)"
+            exit 1
+          fi
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$commit" origin/main; then
+            echo "::error::$commit is not on origin/main"
+            exit 1
+          fi
+          draft="$(gh release view "$TAG" --repo "$REPO" --json databaseId,isDraft)"
+          if [ "$(printf '%s' "$draft" | jq -r '.isDraft')" != "true" ]; then
+            echo "::error::no draft release on $TAG"
+            exit 1
+          fi
+          draft_id="$(printf '%s' "$draft" | jq -r '.databaseId')"
+          {
+            echo "tag=$TAG"
+            echo "commit=$commit"
+            echo "version=$claim_version"
+            echo "autopublish=$autopublish"
+            echo "draft_id=$draft_id"
+          } >> "$GITHUB_OUTPUT"
+
+  ci:
+    name: CI
+    needs: admit
+    uses: ./.github/workflows/ci.yml
+    with:
+      release: true
+      ref: ${{ needs.admit.outputs.commit }}
+
+  build:
+    name: Build the artifact
+    needs: admit
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.admit.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Publish, zip, and checksum
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ needs.admit.outputs.version }}
+          RELEASE_COMMIT: ${{ needs.admit.outputs.commit }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = $env:RELEASE_VERSION
+          $commit = $env:RELEASE_COMMIT
+          if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw "Bad version '$version'." }
+          if ($commit -notmatch '^[0-9a-f]{40}$') { throw "Bad commit '$commit'." }
+          $daemon = Join-Path $env:RUNNER_TEMP 'pub-daemon'
+          $ctl = Join-Path $env:RUNNER_TEMP 'pub-ctl'
+          $stage = Join-Path $env:RUNNER_TEMP 'stage'
+          dotnet publish (Join-Path $env:GITHUB_WORKSPACE 'src\Winland.Daemon\Winland.Daemon.csproj') -c Release -r win-x64 --self-contained true "-p:Version=$version" -p:ContinuousIntegrationBuild=true -o $daemon
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet publish (Join-Path $env:GITHUB_WORKSPACE 'src\winlandctl\winlandctl.csproj') -c Release -r win-x64 --self-contained true "-p:Version=$version" -p:ContinuousIntegrationBuild=true -o $ctl
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force -Path (Join-Path $stage 'winland'), (Join-Path $stage 'winlandctl') | Out-Null
+          Copy-Item (Join-Path $daemon '*') (Join-Path $stage 'winland') -Recurse
+          Copy-Item (Join-Path $ctl '*') (Join-Path $stage 'winlandctl') -Recurse
+          $date = [DateTimeOffset]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssK')
+          $json = '{"commit":"' + $commit + '","date":"' + $date + '","version":"' + $version + '"}' + "`n"
+          $jsonPath = Join-Path $env:RUNNER_TEMP 'version.json'
+          [System.IO.File]::WriteAllText($jsonPath, $json)
+          Copy-Item $jsonPath (Join-Path $stage 'version.json')
+          $zip = Join-Path $env:RUNNER_TEMP 'Winland-win-x64.zip'
+          & tar -a -c -f $zip -C $stage .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $dist = Join-Path $env:RUNNER_TEMP 'dist'
+          New-Item -ItemType Directory -Force -Path $dist | Out-Null
+          Copy-Item $zip (Join-Path $dist 'Winland-win-x64.zip')
+          Copy-Item $jsonPath (Join-Path $dist 'version.json')
+          $sums = foreach ($name in @('Winland-win-x64.zip', 'version.json')) {
+            $hash = (Get-FileHash -Algorithm SHA256 (Join-Path $dist $name)).Hash.ToLowerInvariant()
+            "$hash  $name"
+          }
+          [System.IO.File]::WriteAllText((Join-Path $dist 'SHA256SUMS'), (($sums -join "`n") + "`n"))
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stable-release
+          path: ${{ runner.temp }}/dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Upload and maybe publish
+    needs: [admit, ci, build]
+    if: needs.ci.result == 'success' && needs.build.result == 'success'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: stable-release
+          path: dist
+      - name: Upload the assets to the draft
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.admit.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          gh release upload $env:TAG dist/Winland-win-x64.zip dist/version.json dist/SHA256SUMS --repo $env:REPO --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Publish when the claim says so
+        if: needs.admit.outputs.autopublish == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.admit.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          ./scripts/release.ps1 publish -Version $env:RELEASE_VERSION
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Leave the draft when autopublish is off
+        if: needs.admit.outputs.autopublish != 'true'
+        env:
+          RELEASE_VERSION: ${{ needs.admit.outputs.version }}
+        run: |
+          echo "The draft has its assets. Do not press Publish in the GitHub UI."
+          echo "pwsh -NoProfile -File scripts/release.ps1 publish -Version $RELEASE_VERSION"
+
+  gate:
+    name: Release gate
+    needs: [admit, ci, build, publish]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fail unless CI, the build, and publish succeeded
+        env:
+          ADMIT: ${{ needs.admit.result }}
+          CI_RESULT: ${{ needs.ci.result }}
+          BUILD: ${{ needs.build.result }}
+          PUBLISH: ${{ needs.publish.result }}
+        run: |
+          set -eu
+          echo "admit=$ADMIT ci=$CI_RESULT build=$BUILD publish=$PUBLISH"
+          test "$CI_RESULT" = "success"
+          test "$BUILD" = "success"
+          test "$PUBLISH" = "success"

@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <!--
-    version.ps1 prints 0.1.<commits on HEAD>. Pass that as Version when packing.
-    An unpacked build is 0.0.0-dev. Projects are not packable unless they opt in.
+    The committed version is 0.0.0. A build without Version is 0.0.0-dev.
+    Projects are not packable unless they opt in.
   -->
   <PropertyGroup>
     <Version Condition="'$(Version)' == ''">0.0.0-dev</Version>

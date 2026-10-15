@@ -1,8 +1,15 @@
 # Run unit test projects under tests/. Passes when none exist yet.
 # Smoke projects stay off this lane. A release run does not execute them either.
+# scripts/release.tests.ps1 runs first when it exists.
 #   pwsh -NoProfile -File scripts/test.ps1
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
+$releaseTests = Join-Path $PSScriptRoot 'release.tests.ps1'
+if (Test-Path $releaseTests) {
+    Write-Output "pwsh $releaseTests"
+    pwsh -NoProfile -File $releaseTests
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
 $tests = Join-Path $root 'tests'
 if (-not (Test-Path $tests)) {
     Write-Output 'No tests directory. The test lane passes until a project exists under tests/.'

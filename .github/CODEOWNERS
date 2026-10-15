@@ -14,5 +14,4 @@
 /Directory.Build.props     @dante-sparras
 /Directory.Build.targets   @dante-sparras
 /Directory.Packages.props  @dante-sparras
-/version.ps1               @dante-sparras
 /scripts/                  @dante-sparras
