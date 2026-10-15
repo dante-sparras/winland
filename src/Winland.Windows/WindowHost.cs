@@ -264,6 +264,7 @@ public sealed class WindowHost : IDisposable
         ShellBars.Rehide();
         ApplyMonitors();
         _windows.Recover(_recovered);
+        _windows.AdoptExisting();
         _whenReady?.Invoke();
         _windows.Publish();
         Taskbar.Conceal();

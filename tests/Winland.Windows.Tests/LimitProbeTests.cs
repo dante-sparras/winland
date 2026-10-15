@@ -100,7 +100,7 @@ public class LimitProbeTests
         return placement.Bounds;
     }
 
-    private sealed class LimitProbe : IDisposable
+    internal sealed class LimitProbe : IDisposable
     {
         private const uint CloseMessage = 0x8000;
         private const string ClassName = "WinlandLimitProbe";
