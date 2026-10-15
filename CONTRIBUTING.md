@@ -105,4 +105,4 @@ The ruleset files are in `.github/rulesets/`. To change the required check, chan
 
 ## Releases
 
-Tags and patch branches are described in `docs/releasing.md`. There is no publish workflow in this repo yet.
+The committed version is `0.0.0`. Cut a release with `scripts/release.ps1`. See `docs/releasing.md`. Do not press Publish in the GitHub UI.

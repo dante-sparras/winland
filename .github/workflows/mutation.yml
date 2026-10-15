@@ -8,6 +8,7 @@ on:
   workflow_call:
     inputs:
       ref:
+        description: "Commit to test. Empty means the caller commit."
         type: string
         default: ""
 
