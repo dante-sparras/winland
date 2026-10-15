@@ -27,6 +27,10 @@ on:
       release:
         type: boolean
         default: false
+      ref:
+        description: "Commit to test. Empty means the event's own commit."
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -39,14 +43,20 @@ jobs:
   detect:
     name: Detect
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       dotnet: ${{ steps.classify.outputs.dotnet }}
     steps:
       - name: Checkout the pull request head
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ inputs.ref || (github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha) }}
           fetch-depth: 0
+      # The Test lane runs unless the pull request only changes docs and repo metadata.
+      # Any other changed file turns it on, so a new kind of file is tested by default.
+      # An empty diff turns it off. The diff is taken against the checked-out commit,
+      # which is inputs.ref when it is set. --no-renames lists the old path of a rename too,
+      # so moving a code file into docs/ still counts as a code change.
       # Push and manual runs fail open so a bad classification cannot weaken main.
       - name: Classify the diff
         id: classify
@@ -65,12 +75,14 @@ jobs:
           while IFS= read -r file; do
             [ -z "$file" ] && continue
             case "$file" in
-              *.cs|*.csproj|*.sln|*.slnx|*.fsproj|nuget.config|stryker-config.json|global.json|Directory.Build.*|Directory.Packages.*|.config/*|tests/*|scripts/*)
+              *.md|docs/*|.github/ISSUE_TEMPLATE/*|.github/PULL_REQUEST_TEMPLATE.md|.github/CODEOWNERS|.github/rulesets/*|.gitignore|.gitattributes|LICENSE*)
+                ;;
+              *)
                 dotnet=true
                 ;;
             esac
           done <<EOF
-          $(git diff --name-only "origin/${BASE_REF}...HEAD")
+          $(git diff --name-only --no-renames "origin/${BASE_REF}...HEAD")
           EOF
           echo "dotnet=$dotnet" >> "$GITHUB_OUTPUT"
           echo "dotnet lane: $dotnet"
@@ -78,9 +90,11 @@ jobs:
   lint:
     name: Lint
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
@@ -88,15 +102,38 @@ jobs:
       - name: Run lint
         shell: pwsh
         run: ./scripts/check.ps1
+      # actionlint is pinned by version and SHA-256. To upgrade, take both from the
+      # release's actionlint_<version>_checksums.txt (windows_amd64 zip).
+      - name: Lint the workflows
+        shell: pwsh
+        run: |
+          $version = '1.7.12'
+          $sha256 = '6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9'
+          $zipName = "actionlint_${version}_windows_amd64.zip"
+          $zip = Join-Path $env:RUNNER_TEMP $zipName
+          $dir = Join-Path $env:RUNNER_TEMP 'actionlint'
+          Invoke-WebRequest -Uri "https://github.com/rhysd/actionlint/releases/download/v$version/$zipName" -OutFile $zip
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash
+          if ($actual -ne $sha256) {
+            throw "$zipName has SHA-256 $actual, expected $sha256."
+          }
+          Expand-Archive -LiteralPath $zip -DestinationPath $dir -Force
+          $files = Get-ChildItem -Path .github/workflows -Filter *.yml | ForEach-Object { $_.FullName }
+          & (Join-Path $dir 'actionlint.exe') @files
+          if ($LASTEXITCODE -ne 0) {
+            throw "actionlint reported problems (exit code $LASTEXITCODE)."
+          }
 
   test:
     name: Test
     needs: detect
     if: needs.detect.result == 'success' && (github.event_name != 'pull_request' || needs.detect.outputs.dotnet == 'true')
     runs-on: windows-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
@@ -108,10 +145,11 @@ jobs:
   history:
     name: History shares an ancestor with main
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ inputs.ref || (github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha) }}
           fetch-depth: 0
       - name: Reject unrelated history
         run: |
@@ -126,6 +164,8 @@ jobs:
     needs: detect
     if: needs.detect.result == 'success' && inputs.release == true
     uses: ./.github/workflows/mutation.yml
+    with:
+      ref: ${{ inputs.ref }}
 
   # The ruleset names this check and no other. An intentional skip of Test or
   # Mutation is success. A skip of Detect, Lint, or History is a failure.
@@ -135,6 +175,7 @@ jobs:
     needs: [detect, lint, test, history, mutation]
     if: always() && !cancelled()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Fail if any required job failed
         env:
