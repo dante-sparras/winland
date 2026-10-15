@@ -3,7 +3,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <AnalysisLevel>latest</AnalysisLevel>
+    <!-- A new SDK feature band must not add analyzer warnings on its own. Raise this deliberately. -->
+    <AnalysisLevel>10.0</AnalysisLevel>
   </PropertyGroup>
 
   <!--
