@@ -1,0 +1,9 @@
+# A plugin repository in the shape `winlandctl plugin install` reads.
+[repository]
+name = "sample-repository"
+authors = ["winland"]
+
+[echo]
+description = "Registers the echo dispatcher, which replies with its argument."
+api_version = 1
+project = "Echo/Echo.csproj"

@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <DefaultItemExcludes>$(DefaultItemExcludes);SamplePlugin/**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);SamplePlugin/**;SampleRepository/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +16,11 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!-- Copied as source: the install test clones it into a git repository and builds it. -->
+  <ItemGroup>
+    <None Include="SampleRepository/**" Exclude="SampleRepository/**/bin/**;SampleRepository/**/obj/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

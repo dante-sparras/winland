@@ -1,4 +1,8 @@
 ﻿using Winland;
+using Winland.Plugins.Manager;
+
+if (ManagerInvocation.Parse(args) is { } managed)
+    return PluginManagerCli.Run(managed, PipeName());
 
 if (!ControlInvocation.TryCreate(args, out var line, out var events))
     return Usage();

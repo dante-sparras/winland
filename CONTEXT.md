@@ -38,6 +38,10 @@ _Avoid_: Service
 **Plugin**:
 A .NET assembly loaded into the Daemon that registers Dispatchers, config keywords and event handlers. It loads only when the SHA-256 of its file is approved. Layouts from a Plugin are reserved and refused for now.
 
+**Plugin manager**:
+The `winlandctl plugin install`, `update` and `remove` commands. They clone and build a plugin repository as the normal user in a staging folder, and an elevated step behind one UAC confirmation copies each assembly into the plugin directory and approves its hash.
+_Avoid_: Package manager
+
 **IPC pipe**:
 The named pipe `winland` that the Daemon listens on. `winlandctl` and scripts send it commands and Dispatchers, and read the Event stream from it. It accepts only the current user.
 
