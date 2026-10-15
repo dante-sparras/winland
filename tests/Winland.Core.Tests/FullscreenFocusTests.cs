@@ -2,7 +2,7 @@ using Winland;
 
 namespace Winland.Tests;
 
-/// <summary>On a workspace with a maximized or fullscreen Client, that Client owns the pointer, as in Hyprland.</summary>
+/// <summary>On a workspace with a maximized or fullscreen Client, that Client owns the pointer, as in the pinned release.</summary>
 public class FullscreenFocusTests
 {
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);

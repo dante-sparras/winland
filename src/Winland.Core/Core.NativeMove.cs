@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// A Client the system moves by its title bar. Hyprland treats the move request of a client like a
+/// A Client the system moves by its title bar. The pinned release treats the move request of a client like a
 /// <c>movewindow</c> drag: a tiled Client is lifted out of the Layout, follows the pointer, and is
 /// dropped back in where the pointer ends. Here the system moves the window itself, so the core lifts
 /// it and drops it but never places it in between.
@@ -25,7 +25,7 @@ public sealed partial class Core
 
         _nativeMove = window;
 
-        // Taking a maximized or fullscreen Client by its title leaves that mode first, as a Hyprland drag does.
+        // Taking a maximized or fullscreen Client by its title leaves that mode first, as a drag in the pinned release does.
         if (client.Fullscreen != FullscreenMode.None)
             _ = desk.Layout.SetFullscreen(window, FullscreenMode.None, FullscreenMode.None);
 
