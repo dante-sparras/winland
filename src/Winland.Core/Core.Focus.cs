@@ -53,7 +53,7 @@ public sealed partial class Core
             return Restore(Kept());
         }
 
-        if (DeskContaining(window) is { } desk
+        if (WorkspaceContaining(window) is { } desk
             && !desk.Id.IsSpecial
             && IsShown(desk.Id)
             && SpecialOn(desk.Monitor) is not null
@@ -79,7 +79,7 @@ public sealed partial class Core
             if (prior is WindowId kept && IsShownClient(kept))
             {
                 _active = kept;
-                if (DeskContaining(kept) is { } desk)
+                if (WorkspaceContaining(kept) is { } desk)
                     desk.Focus = kept;
             }
         }
@@ -103,7 +103,7 @@ public sealed partial class Core
         _focusHistory.Insert(0, window);
     }
 
-    private void TakeFocus(Desk desk, WindowId? window)
+    private void TakeFocus(LiveWorkspace desk, WindowId? window)
     {
         _active = window;
         desk.Focus = window;
@@ -111,14 +111,14 @@ public sealed partial class Core
             NoteFocus(id);
     }
 
-    private WindowId? FocusAfter(Desk desk, bool floating, Rectangle bounds, bool hadBounds)
+    private WindowId? FocusAfter(LiveWorkspace desk, bool floating, Rectangle bounds, bool hadBounds)
     {
         var mode = _input.FocusOnClose;
         if (mode == 1)
             return WindowUnder(_pointer ?? Cursor?.Read(), shrink: false);
 
         if (floating || mode == 2)
-            return Recent(desk) ?? LastVisible(desk);
+            return Recent(desk) ?? desk.LastVisible();
 
         if (desk.Layout.FocusAfterClose() is WindowId layout && Accepts(desk, layout))
             return layout;
@@ -129,7 +129,7 @@ public sealed partial class Core
         return null;
     }
 
-    private WindowId? Recent(Desk desk)
+    private WindowId? Recent(LiveWorkspace desk)
     {
         foreach (var window in _focusHistory)
         {
@@ -140,11 +140,11 @@ public sealed partial class Core
         return null;
     }
 
-    private WindowId? Closest(Desk desk, Point point)
+    private WindowId? Closest(LiveWorkspace desk, Point point)
     {
         WindowId? best = null;
         var bestDistance = long.MaxValue;
-        var showing = Showing(desk);
+        var showing = desk.Showing();
         foreach (var client in desk.Layout.Clients)
         {
             if (!Accepts(desk, client.Window) || !showing.Contains(client.Window))
@@ -164,8 +164,8 @@ public sealed partial class Core
         return best;
     }
 
-    private bool Accepts(Desk desk, WindowId window) =>
-        ClientOn(desk, window) is { Minimized: false } && !HasNoFocus(window);
+    private bool Accepts(LiveWorkspace desk, WindowId window) =>
+        desk.ClientOf(window) is { Minimized: false } && !HasNoFocus(window);
 
     private static long DistanceTo(Point point, Rectangle box)
     {
@@ -211,11 +211,11 @@ public sealed partial class Core
 
     private bool IsShownClient(WindowId window)
     {
-        var desk = DeskContaining(window);
+        var desk = WorkspaceContaining(window);
         if (desk is null || !IsShown(desk.Id))
             return false;
 
-        return ClientOn(desk, window) is { Minimized: false };
+        return desk.ClientOf(window) is { Minimized: false };
     }
 
     private static Outcome Offering(Outcome outcome, WindowId? focus) =>

@@ -8,7 +8,7 @@ public sealed partial class Core
     {
         const string name = "focuswindow";
         var window = Select(arguments, emptyMeansActive: false);
-        if (window is not WindowId id || DeskContaining(id) is not Desk desk)
+        if (window is not WindowId id || WorkspaceContaining(id) is not LiveWorkspace desk)
             return Rejected(name, "error: no such window", allowsElevation);
 
         if (_pinned.Contains(id) && Find(id) is { Floating: true })
@@ -54,14 +54,14 @@ public sealed partial class Core
             _ => "togglefloating",
         };
         var window = Select(arguments, emptyMeansActive: true);
-        if (window is not WindowId id || Find(id) is not Client client || DeskContaining(id) is not Desk desk)
+        if (window is not WindowId id || Find(id) is not Client client || WorkspaceContaining(id) is not LiveWorkspace desk)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
         var want = floating ?? !client.Floating;
         if (want == client.Floating)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
-        var covered = Covered(desk);
+        var covered = desk.Covered();
         var placements = desk.Layout.ToggleFloating(id);
         _pinned.Remove(id);
         return IsShown(desk.Id)
@@ -99,8 +99,8 @@ public sealed partial class Core
         if (tokens.Length > 0 && WindowSelector.Find(tokens[0], window, EveryClient()) is WindowId found)
             window = found;
 
-        var desk = window is WindowId id ? DeskContaining(id) ?? ActiveDesk() : ActiveDesk();
-        var covered = Covered(desk);
+        var desk = window is WindowId id ? WorkspaceContaining(id) ?? FocusedWorkspace() : FocusedWorkspace();
+        var covered = desk.Covered();
         var message = arguments.Length == 0 ? name : string.Concat(name, " ", arguments);
         var placements = desk.Layout.LayoutMessage(window, message);
         if (desk.Layout.LayoutMessageError is string error)
@@ -115,7 +115,7 @@ public sealed partial class Core
     {
         const string name = "swapwindow";
         var text = arguments.Trim();
-        if (ActiveWindow() is not WindowId current || DeskContaining(current) is not Desk home)
+        if (ActiveWindow() is not WindowId current || WorkspaceContaining(current) is not LiveWorkspace home)
             return Rejected(name, "error: no window to swap with", allowsElevation);
 
         WindowId other;
@@ -135,10 +135,10 @@ public sealed partial class Core
             return Rejected(name, "error: no window to swap with", allowsElevation);
         }
 
-        if (DeskContaining(other) is not Desk away || away.Id != home.Id)
+        if (WorkspaceContaining(other) is not LiveWorkspace away || away.Id != home.Id)
             return Rejected(name, "error: no window to swap with", allowsElevation);
 
-        var covered = Covered(home);
+        var covered = home.Covered();
         var placements = home.Layout.Swap(current, other);
         if (placements.Count == 0)
             return Rejected(name, "error: no window to swap with", allowsElevation);
@@ -167,8 +167,8 @@ public sealed partial class Core
         if (space >= 0)
             token = text[(space + 1)..].Trim();
 
-        var chosen = new List<Screen>();
-        if (_screens.Count == 0)
+        var chosen = new List<LiveMonitor>();
+        if (_monitors.Count == 0)
         {
             return View([], dispatcher: "dpms", allowsElevation: allowsElevation) with
             {
@@ -176,7 +176,7 @@ public sealed partial class Core
             };
         }
 
-        foreach (var screen in _screens)
+        foreach (var screen in _monitors)
         {
             if (!screen.Effective.Enabled)
                 continue;
@@ -187,7 +187,7 @@ public sealed partial class Core
 
         if (token is { Length: > 0 } && chosen.Count == 0)
         {
-            foreach (var screen in _screens)
+            foreach (var screen in _monitors)
             {
                 if (screen.Effective.Enabled)
                     chosen.Add(screen);
@@ -224,7 +224,7 @@ public sealed partial class Core
     private List<Client> EveryClient()
     {
         var clients = new List<Client>();
-        foreach (var desk in _desks)
+        foreach (var desk in _workspaces)
             clients.AddRange(desk.Layout.Clients);
 
         return clients;
@@ -237,7 +237,7 @@ public sealed partial class Core
         text is "l" or "r" or "u" or "d" or "t" or "b"
             or "left" or "right" or "up" or "down" or "top" or "bottom";
 
-    private static bool MonitorMatches(Screen screen, string token) =>
+    private static bool MonitorMatches(LiveMonitor screen, string token) =>
         screen.Effective.Name.Equals(token, StringComparison.OrdinalIgnoreCase)
         || screen.Reported.Name.Equals(token, StringComparison.OrdinalIgnoreCase)
         || screen.Effective.Description.Equals(token, StringComparison.OrdinalIgnoreCase)

@@ -61,12 +61,12 @@ public sealed partial class Core
 
     private void ForgetRestored(WindowId window) => _restored.Remove(window);
 
-    private bool RestoredScreenExists(RecoveredClient? restored) =>
-        restored is not null && ScreenById(restored.Monitor) is not null;
+    private bool RestoredMonitorExists(RecoveredClient? restored) =>
+        restored is not null && MonitorById(restored.Monitor) is not null;
 
-    private MonitorId RestoredMonitor(RecoveredClient? restored, Screen? screen)
+    private MonitorId RestoredMonitor(RecoveredClient? restored, LiveMonitor? screen)
     {
-        if (restored is { } remembered && (_screens.Count == 0 || ScreenById(remembered.Monitor) is not null))
+        if (restored is { } remembered && (_monitors.Count == 0 || MonitorById(remembered.Monitor) is not null))
             return remembered.Monitor;
 
         return screen?.Id ?? FocusedId();
