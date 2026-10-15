@@ -202,3 +202,20 @@ A swallowed parent is a hidden Client, so it is shown on a clean exit, and after
 ## Idle inhibit
 
 The `idle_inhibit` window rule takes `none`, `always`, `focus`, or `fullscreen`. `always` keeps the system and the display awake while the Client is open, on any Workspace. `focus` does so while it is the focused Client. `fullscreen` does so while it is fullscreen or maximized on a shown Workspace. `none` does nothing. Any other mode warns and the rule is skipped. The last matching rule wins. `clients` reports `inhibitingIdle` for each Client.
+
+## Animations
+
+`animations:enabled` defaults to true. False, or the Windows setting **Animation effects** turned off, moves every window at once. `animations:workspace_wraparound` defaults to false. When it is on, a switch between the lowest and highest numbered Workspaces slides as if they were neighbours.
+
+`bezier = NAME, X0, Y0, X1, Y1` names a cubic Bézier curve. `default` (0, 0.75, 0.15, 1) and `linear` are always defined. `animation = NAME, ONOFF, SPEED, CURVE[, STYLE]` sets one node of the animation tree. SPEED is in tenths of a second. A node that is not set takes the values of its nearest set parent, and `global` starts at on, 8, `default`. Both lines are read in config order and may also be written inside `animations { }`. A missing node, a speed that is not above 0, or a curve not defined above the line warns and is skipped. A style that is not valid for its node warns and is still kept.
+
+These nodes animate:
+
+- `windowsIn` and `fadeIn` when a window is adopted. The default style `popin [N%]` grows it from N percent of its size, at least 5 pixels, around its middle. `slide [top|bottom|left|right]` brings it in from the nearest monitor edge or the side named, and `gnomed` unfolds it from a line across its middle. The window fades in from transparent.
+- `windowsOut` and `fadeOut` when Winland closes a Client. The window plays the same style in reverse and fades out, and is then asked to close. A window that is still shown 1.5 seconds later is put back on its Layout rectangle at its full alpha.
+- `windowsMove` when a shown Client gets a new Layout rectangle, from wherever it is at that moment.
+- `workspacesIn` and `workspacesOut` when a Monitor switches Workspace, and `specialWorkspaceIn` and `specialWorkspaceOut` when a special workspace is shown or hidden. Styles are `slide`, `slidevert`, `fade`, `slidefade` and `slidefadevert`, with an optional travel percentage such as `slidefade 20%` and an optional side. A Workspace with a higher number comes in from the right. A special workspace also fades. A leaving window is hidden when its motion ends.
+- `fadeSwitch` when a Client's alpha changes, for example between `active_opacity` and `inactive_opacity`.
+- `border` when a Client's border color changes. The colors blend in the OkLab space.
+
+The adapter moves each window with `SetWindowPos` and sets its alpha with `WS_EX_LAYERED`, once per composed frame, on a thread of its own, so binds and window events are never kept waiting. A window that has stopped answering skips the frames in between. A motion that starts while another runs carries on from where the window is. A placement that arrives without a motion stops the window's movement, so the window always ends on its newest Layout rectangle, and a hidden window is put back on its Layout rectangle while hidden. A window cannot be made smaller than its own minimum size, so a small `popin` start or `gnomed` starts at that minimum.
