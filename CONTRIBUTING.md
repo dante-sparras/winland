@@ -1,57 +1,106 @@
 # Contributing
 
-## Branches
+## Set up
 
-- `main` is the only integration branch.
-- Create `fix/…`, `feat/…`, `docs/…`, `test/…`, or `refactor/…` from current `main`.
-- One logical change per pull request.
-- Commit messages follow Conventional Commits: `fix(scope): summary`.
+You need PowerShell 7 (`pwsh`), Git, and the .NET SDK version pinned in `global.json`.
 
-## Before you open the pull request
+Run `pwsh scripts/dev.ps1` once after cloning. It installs the repo's two git hooks (see [Git hooks](#git-hooks)). It also clones the reference checkout and fetches its docs, as `AGENTS.md` describes.
 
-1. Rebase onto current `main`.
-2. Run the lint and the tests:
+## Make a change
+
+1. Start from current `main` and create a branch. Prefix its name with `fix/`, `feat/`, `docs/`, `test/`, `refactor/`, or `chore/`.
+
+   ```powershell
+   git switch main
+   git pull
+   git switch -c fix/short-description
+   ```
+
+2. Make one logical change. Commit as you go, and write each commit message as a Conventional Commit (see [Commit messages](#commit-messages)).
+3. If `main` has moved, rebase onto it so CI tests what will land and the merge cannot undo newer fixes. If you already pushed the branch, push again with `git push --force-with-lease`.
+
+   ```powershell
+   git fetch origin main
+   git rebase origin/main
+   ```
+
+4. Run the lint and the tests. Both must pass.
 
    ```powershell
    pwsh -NoProfile -File scripts/check.ps1
    pwsh -NoProfile -File scripts/test.ps1
    ```
 
-3. Fill in the pull request template.
+5. Push the branch and open a pull request (see [Pull requests](#pull-requests)).
+6. Wait for CI. If it fails, fix it with new commits on the same branch. When **All required checks pass (v1)** is green, a maintainer merges with **Rebase and merge**. Every commit on your branch lands on `main` as its own commit with its author, so keep the history clean. GitHub deletes the branch after the merge.
 
-`pwsh scripts/dev.ps1` installs both hooks. You can install them on their own.
+## Commit messages
 
-The pre-push hook runs the lint against the tip of each branch you push, not against every commit in the push:
+Use Conventional Commits: `type(scope): summary`. The scope is optional and names the area you changed, for example `docs(contributing): explain the commit types`. Write the summary in the imperative, as what the commit does.
 
-```powershell
-pwsh -NoProfile -File scripts/check.ps1 -InstallHook
-```
+| Type | Use for |
+| --- | --- |
+| `fix` | A bug fix. |
+| `feat` | A new feature. |
+| `docs` | Documentation only. |
+| `test` | Adding or changing tests. |
+| `refactor` | Restructuring code with no behavior change. |
+| `chore` | Build, CI, and dependency updates. Dependabot uses `chore(actions)`. |
 
-The post-merge hook runs after a pull or merge updates `main`. It deletes a local feature branch whose GitHub head branch is gone when those changes are already on `main` or on a `release/*` line. It leaves `main`, `master`, `release/*`, a branch checked out in a worktree, and a branch that still has work that has not landed.
+## Pull requests
 
-```powershell
-pwsh -NoProfile -File scripts/install-post-merge.ps1
-```
+- **Search first.** Look through open and closed pull requests and issues before you start. If an open pull request already covers the change, review or improve that one instead of opening a duplicate.
+- **One logical change.** Do not mix a fix, a refactor, and a new feature in one pull request.
+- **Title.** Use the same form as a commit message: `fix(scope): summary`. Nothing enforces it, but it keeps the list readable.
+- **Description.** Fill in the template. Say what changed and why, and how to test it: the steps to reproduce a bug and what shows the fix works, or how to use a new feature. Link the issue with `Fixes #123` so it closes when the pull request merges.
+- **Tests.** Once the repo has a test project, a bug fix comes with a test that fails without the fix and passes with it.
+- **Review.** Fix problems with new commits on the same branch. Do not open a new pull request for the same change.
 
-Maintainers merge with **Rebase and merge** so your commits stay yours. GitHub deletes the head branch when the pull request merges.
+## Report a problem
 
-## What CI runs
+Open a GitHub issue and pick the bug or feature form. Say what you ran, what you saw, and what you expected.
 
-Pull requests and pushes to `main` run `.github/workflows/ci.yml`. The required check is **All required checks pass (v1)**. That job is the only name the ruleset knows.
+## Git hooks
 
-Lint compiles the Python in this repo, parses the PowerShell, and builds a solution at the repo root when one exists. The test lane runs `dotnet test` on each `*.Tests.csproj` under `tests/`, and it skips `*.Smoke.Tests.csproj`. Until a unit test project exists, that lane passes. A pull request that does not touch .NET files skips the test lane. A push to `main`, and a manual run, run the test lane.
+`scripts/dev.ps1` installs both hooks. To install one on its own, run its command below.
 
-Mutation testing is the slow lane. It runs only when CI is dispatched with **Release run** turned on, and it passes until a unit test project exists. On that release run, a lane that skipped is a failure.
+| Hook | When it runs | What it does | Install on its own |
+| --- | --- | --- | --- |
+| pre-push | When you push | Runs the lint on the tip of each branch you push, not on every commit in the push. | `pwsh -NoProfile -File scripts/check.ps1 -InstallHook` |
+| post-merge | After a pull or merge updates `main` | Deletes local feature branches that are finished (see below). | `pwsh -NoProfile -File scripts/install-post-merge.ps1` |
+
+The post-merge hook deletes a local branch only when both are true:
+
+- Its GitHub branch is gone.
+- Its changes are already on `main` or on a `release/*` branch.
+
+It never deletes `main`, `master`, `release/*`, a branch checked out in a worktree, or a branch with work that has not landed.
+
+## CI
+
+Pull requests and pushes to `main` run `.github/workflows/ci.yml`. A pull request can merge only when the check **All required checks pass (v1)** is green. It is the only check the ruleset requires.
+
+| Lane | What it does | When it runs |
+| --- | --- | --- |
+| Detect | Looks at the pull request's diff and decides whether the Test lane is needed. | Always. |
+| Lint | Parses the PowerShell, rejects file or folder names that differ only by case, and builds the solution at the repo root if there is one. | Always. |
+| History | Fails when the branch shares no commit with `main`. Merging such a branch would add a second root commit to `main` and break `git blame`. | Always. |
+| Test | Runs `dotnet test` on each `*.Tests.csproj` under `tests/`, except `*.Smoke.Tests.csproj`. | On pushes to `main` and on manual runs. On a pull request, only when it changes C# or project files (`*.cs`, `*.csproj`, `*.sln`, `*.slnx`), SDK or build config (`global.json`, `nuget.config`, `Directory.Build.*`, `.config/`, `stryker-config.json`), `tests/`, or `scripts/`. |
+| Mutation | Mutation testing. It is the slow lane. | Only when CI is dispatched with **Release run** turned on. |
+
+- Test and Mutation pass until a unit test project exists.
+- On a release run, a lane that skipped counts as a failure.
 
 ## Rules on `main` and `release/*`
 
-`main` and `release/*` reject a direct push, a force-push, and a deletion. A pull request can merge, squash, or rebase. It does not have to contain the latest `main`. The next push to `main` runs CI again, and that run is not cancelled by a later push.
+- **No direct changes.** Direct pushes, force-pushes, and deletions are rejected. Everything lands through a pull request.
+- **Rebase and merge is the convention.** GitHub also allows a merge commit or a squash. A pull request does not need to contain the latest `main`. The merge is a push to `main`, which runs CI again, and a later push does not cancel that run.
+- **The CI check is the gate.** **All required checks pass (v1)** must be green. Approving reviews required: **0**. There is one maintainer, so requiring 1 would make every pull request unmergeable.
+- **Code owners must review code-owned paths.** The paths are in `.github/CODEOWNERS`, and the owner is `@dante-sparras`. A pull request author cannot approve their own pull request.
+- **Admins can bypass the rules when merging a pull request.** Repository admins (role id 5) can bypass them, which is how a code-owned file lands without a second approver. The bypass covers every rule, including the CI check, so an admin can merge a pull request whose CI is red. Do not. Admins still cannot push straight to `main`. Turn the bypass off once a second maintainer can approve those paths.
+- **Release tags are locked.** Tags matching `v*`, `rc.*`, and `abandoned-rc.*` cannot be created, moved, or deleted except by a repository admin. See `docs/releasing.md`.
 
-Approving reviews required: **0**. This account has one maintainer, so a count of 1 would make every pull request unmergeable. The aggregate check is the gate.
-
-Code owners are required on the paths in `.github/CODEOWNERS`. The owner is `@dante-sparras`, and a pull request author cannot approve their own pull request. Repository admins (role id 5) may bypass the rules when they merge a pull request. They still cannot push straight to `main`. That bypass is how a code-owned file can land. Turn the bypass off when a second maintainer can approve those paths.
-
-The ruleset files live in `.github/rulesets/`. Changing the required check means changing `ci.yml` and `protect-main.json` in the same pull request, and bumping the `(v1)` name.
+The ruleset files are in `.github/rulesets/`. To change the required check, change `ci.yml` and `protect-main.json` in the same pull request, and bump the `(v1)` in the check name.
 
 ## Releases
 
