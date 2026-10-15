@@ -1,0 +1,173 @@
+namespace Winland;
+
+/// <summary>
+/// A Workspace the core owns, with the Layout that places its Clients. <see cref="Workspace"/> is the
+/// snapshot of it that <see cref="State"/> reports.
+/// </summary>
+/// <remarks>
+/// A Workspace keeps its own id. The Monitor it belongs to can change when a display is unplugged.
+/// </remarks>
+internal sealed class LiveWorkspace(WorkspaceId id, MonitorId monitor, Layout layout)
+{
+    public WorkspaceId Id { get; } = id;
+
+    public MonitorId Monitor { get; set; } = monitor;
+
+    public Layout Layout { get; private set; } = layout;
+
+    public void Replace(Layout layout) => Layout = layout;
+
+    public WindowId? Focus { get; set; }
+
+    public bool Persistent { get; set; }
+
+    public string? DisplayName { get; set; }
+
+    public LayoutOptions Options { get; set; } = LayoutOptions.Unconfigured;
+
+    public Client? ClientOf(WindowId window)
+    {
+        foreach (var client in Layout.Clients)
+        {
+            if (client.Window == window)
+                return client;
+        }
+
+        return null;
+    }
+
+    public (int Windows, int Tiled, int Floating) ClientCounts()
+    {
+        var tiled = 0;
+        var floating = 0;
+        foreach (var client in Layout.Clients)
+        {
+            if (client.Floating)
+                floating++;
+            else
+                tiled++;
+        }
+
+        return (Layout.Clients.Count, tiled, floating);
+    }
+
+    // A Layout may omit tiled Clients from Visible when it is only showing one of them.
+    public HashSet<WindowId> Showing()
+    {
+        var ids = new Dictionary<ClientId, WindowId>(Layout.Clients.Count);
+        foreach (var client in Layout.Clients)
+            ids[client.Id] = client.Window;
+
+        var showing = new HashSet<WindowId>();
+        foreach (var placement in Layout.Visible())
+        {
+            if (ids.TryGetValue(placement.Client, out var window))
+                showing.Add(window);
+        }
+
+        return showing;
+    }
+
+    public WindowId[] VisibleWindows()
+    {
+        var showing = Showing();
+        var visible = new List<WindowId>();
+        foreach (var client in Layout.Clients)
+        {
+            if (!client.Minimized && showing.Contains(client.Window))
+                visible.Add(client.Window);
+        }
+
+        return visible.ToArray();
+    }
+
+    public HashSet<WindowId> Covered()
+    {
+        var showing = Showing();
+        var covered = new HashSet<WindowId>();
+        foreach (var client in Layout.Clients)
+        {
+            if (client.Minimized || client.Floating || showing.Contains(client.Window))
+                continue;
+
+            covered.Add(client.Window);
+        }
+
+        return covered;
+    }
+
+    /// <summary>Adds the windows that <see cref="Covered"/> uncovered or covered since <paramref name="covered"/>.</summary>
+    public void Collect(HashSet<WindowId> covered, List<WindowId> show, List<WindowId> hide)
+    {
+        var after = Covered();
+        foreach (var window in after)
+        {
+            if (!covered.Contains(window))
+                hide.Add(window);
+        }
+
+        foreach (var window in covered)
+        {
+            if (!after.Contains(window) && ClientOf(window) is { Minimized: false })
+                show.Add(window);
+        }
+    }
+
+    public WindowId? LastVisible()
+    {
+        for (var i = Layout.Clients.Count - 1; i >= 0; i--)
+        {
+            if (!Layout.Clients[i].Minimized)
+                return Layout.Clients[i].Window;
+        }
+
+        return null;
+    }
+
+    public WindowId? Remembered()
+    {
+        if (Focus is WindowId focus && ClientOf(focus) is { Minimized: false })
+            return focus;
+
+        return LastVisible();
+    }
+
+    /// <summary>Adds a window another Layout gave up, keeping what it knew about the window.</summary>
+    public void Receive(WindowId window, Taken taken, Rectangle area, Rectangle monitor = default)
+    {
+        if (taken.ScrollingWidth is double width)
+            Layout.NoteScrollingWidth(window, width);
+
+        Layout.Add(
+            window,
+            area,
+            null,
+            taken.Floating,
+            taken.Bounds,
+            Id,
+            taken.Class,
+            taken.Title,
+            monitor: monitor,
+            processId: taken.ProcessId,
+            initialClass: taken.InitialClass,
+            initialTitle: taken.InitialTitle,
+            minSize: taken.MinSize,
+            maxSize: taken.MaxSize);
+        if (taken.Minimized)
+            Layout.Minimize(window);
+    }
+
+    /// <summary>Moves every Client of <paramref name="source"/> onto this Workspace.</summary>
+    public void Absorb(LiveWorkspace source, Rectangle area)
+    {
+        var windows = new List<WindowId>(source.Layout.Clients.Count);
+        foreach (var client in source.Layout.Clients)
+            windows.Add(client.Window);
+
+        foreach (var window in windows)
+        {
+            if (source.Layout.TryTake(window, out var taken))
+                Receive(window, taken, area);
+        }
+    }
+}

@@ -16,7 +16,7 @@ public sealed partial class Core
         const string name = "pin";
         var (action, selector) = PinRequest(arguments);
         var window = Select(selector, emptyMeansActive: true);
-        if (window is not WindowId id || Find(id) is not Client client || DeskContaining(id) is not Desk desk)
+        if (window is not WindowId id || Find(id) is not Client client || WorkspaceContaining(id) is not LiveWorkspace desk)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
         if (!client.Floating)
@@ -41,14 +41,14 @@ public sealed partial class Core
         return Settle(desk, id, name, allowsElevation);
     }
 
-    private Outcome FocusPinned(Desk desk, WindowId id, string name, bool allowsElevation)
+    private Outcome FocusPinned(LiveWorkspace desk, WindowId id, string name, bool allowsElevation)
     {
         var fromShown = IsShown(desk.Id);
         var monitor = FocusedId();
         var active = ActiveOn(monitor);
         if (desk.Id != active)
         {
-            var destination = DeskFor(active, monitor);
+            var destination = WorkspaceFor(active, monitor);
             if (!Transfer(desk, destination, id))
                 return View([], dispatcher: name, allowsElevation: allowsElevation);
 
@@ -60,32 +60,32 @@ public sealed partial class Core
         desk.Focus = id;
         desk.Layout.NoteFocus(id);
         var placements = IsShown(desk.Id) ? desk.Layout.Visible() : [];
-        var show = !fromShown && IsShown(desk.Id) && ClientOn(desk, id) is { Minimized: false }
+        var show = !fromShown && IsShown(desk.Id) && desk.ClientOf(id) is { Minimized: false }
             ? new[] { id }
             : null;
         return View(placements, show, dispatcher: name, focus: id, allowsElevation: allowsElevation);
     }
 
-    private Outcome Settle(Desk desk, WindowId id, string name, bool allowsElevation)
+    private Outcome Settle(LiveWorkspace desk, WindowId id, string name, bool allowsElevation)
     {
         var active = ActiveOn(desk.Monitor);
         if (desk.Id == active)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
-        var destination = DeskFor(active, desk.Monitor);
+        var destination = WorkspaceFor(active, desk.Monitor);
         var wasShown = IsShown(desk.Id);
-        HashSet<WindowId> covered = wasShown ? Covered(desk) : [];
+        HashSet<WindowId> covered = wasShown ? desk.Covered() : [];
         if (!Transfer(desk, destination, id))
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
         var show = new List<WindowId>();
         var hide = new List<WindowId>();
-        if (wasShown && FindDesk(desk.Id) is { } source)
-            Collect(source, covered, show, hide);
+        if (wasShown && FindWorkspace(desk.Id) is { } source)
+            source.Collect(covered, show, hide);
 
         if (IsShown(destination.Id))
         {
-            if (ClientOn(destination, id) is { Minimized: false })
+            if (destination.ClientOf(id) is { Minimized: false })
                 show.Add(id);
         }
         else
@@ -95,7 +95,7 @@ public sealed partial class Core
 
         DropIfEmpty(desk.Id);
         var placements = new List<Placement>();
-        if (FindDesk(desk.Id) is { } left && IsShown(left.Id))
+        if (FindWorkspace(desk.Id) is { } left && IsShown(left.Id))
             placements.AddRange(left.Layout.Placed());
         if (IsShown(destination.Id))
             placements.AddRange(destination.Layout.Visible());
@@ -103,9 +103,9 @@ public sealed partial class Core
         return View(placements, show, hide, dispatcher: name, allowsElevation: allowsElevation);
     }
 
-    private void CarryPinned(WorkspaceId sourceId, Desk destination)
+    private void CarryPinned(WorkspaceId sourceId, LiveWorkspace destination)
     {
-        var source = FindDesk(sourceId);
+        var source = FindWorkspace(sourceId);
         if (source is null || source.Id == destination.Id)
             return;
 
@@ -113,7 +113,7 @@ public sealed partial class Core
             Transfer(source, destination, window);
     }
 
-    private List<WindowId> PinnedFloating(Desk desk)
+    private List<WindowId> PinnedFloating(LiveWorkspace desk)
     {
         var windows = new List<WindowId>();
         foreach (var client in desk.Layout.Clients)
@@ -125,29 +125,13 @@ public sealed partial class Core
         return windows;
     }
 
-    private bool Transfer(Desk source, Desk destination, WindowId id)
+    private bool Transfer(LiveWorkspace source, LiveWorkspace destination, WindowId id)
     {
         if (source.Id == destination.Id || !source.Layout.TryTake(id, out var taken))
             return source.Id == destination.Id;
 
         var area = WorkArea(destination, _area);
-        NoteScrollingWidth(destination.Layout, id, taken);
-        destination.Layout.Add(
-            id,
-            area,
-            null,
-            taken.Floating,
-            taken.Bounds,
-            destination.Id,
-            taken.Class,
-            taken.Title,
-            processId: taken.ProcessId,
-            initialClass: taken.InitialClass,
-            initialTitle: taken.InitialTitle,
-            minSize: taken.MinSize,
-            maxSize: taken.MaxSize);
-        if (taken.Minimized)
-            destination.Layout.Minimize(id);
+        destination.Receive(id, taken, area);
 
         return true;
     }
@@ -157,16 +141,16 @@ public sealed partial class Core
         if (!client.Pinned || !client.Floating || client.Minimized)
             return false;
 
-        var desk = FindDesk(client.Workspace);
+        var desk = FindWorkspace(client.Workspace);
         return desk is not null && MonitorShowing(desk.Monitor);
     }
 
     private bool MonitorShowing(MonitorId monitor)
     {
-        if (_screens.Count == 0)
+        if (_monitors.Count == 0)
             return true;
 
-        var screen = ScreenById(monitor);
+        var screen = MonitorById(monitor);
         return screen is { Effective.Enabled: true, Active: not null };
     }
 

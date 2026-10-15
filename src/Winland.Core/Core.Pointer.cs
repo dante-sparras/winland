@@ -1,3 +1,5 @@
+using static Winland.OrdinalText;
+
 namespace Winland;
 
 public sealed partial class Core
@@ -16,7 +18,7 @@ public sealed partial class Core
         {
             _border = null;
             _gesture = new Gesture(window, pressed.Button, IsResize(drag.Dispatcher), drag.Dispatcher);
-            var begun = LayoutDesk(window).Layout.Drag(window, new PointerDrag(_gesture.Resize, PointerDragPhase.Begin, pressed.Position));
+            var begun = LayoutWorkspace(window).Layout.Drag(window, new PointerDrag(_gesture.Resize, PointerDragPhase.Begin, pressed.Position));
             var ran = RunBind(match);
             return begun.Count == 0 ? ran : ran with { Placements = begun };
         }
@@ -49,7 +51,7 @@ public sealed partial class Core
             var gesture = _gesture;
             _gesture = null;
             ended = View(
-                LayoutDesk(gesture.Window).Layout.Drag(gesture.Window, new PointerDrag(gesture.Resize, PointerDragPhase.End, released.Position)),
+                LayoutWorkspace(gesture.Window).Layout.Drag(gesture.Window, new PointerDrag(gesture.Resize, PointerDragPhase.End, released.Position)),
                 consumed: true,
                 dispatcher: gesture.Dispatcher);
         }
@@ -82,7 +84,7 @@ public sealed partial class Core
         {
             _lastMoveAt = When(moved.TimeMs);
             return View(
-                LayoutDesk(_gesture.Window).Layout.Drag(_gesture.Window, new PointerDrag(_gesture.Resize, PointerDragPhase.Move, moved.Position)),
+                LayoutWorkspace(_gesture.Window).Layout.Drag(_gesture.Window, new PointerDrag(_gesture.Resize, PointerDragPhase.Move, moved.Position)),
                 consumed: true,
                 dispatcher: _gesture.Dispatcher);
         }
@@ -129,7 +131,7 @@ public sealed partial class Core
         if (window is not WindowId next || next == _active || HeldByStay(next) || HasNoFocus(next))
             return null;
 
-        if (DeskContaining(next) is not Desk desk || !IsShown(desk.Id))
+        if (WorkspaceContaining(next) is not LiveWorkspace desk || !IsShown(desk.Id))
             return null;
 
         NoteFocus(next);
@@ -154,10 +156,10 @@ public sealed partial class Core
 
     private void FocusMonitorAt(Point point)
     {
-        if (_screens.Count == 0)
+        if (_monitors.Count == 0)
             return;
 
-        var screen = ScreenAt(point);
+        var screen = MonitorAt(point);
         if (screen is null || screen.Id == FocusedId())
             return;
 
@@ -175,16 +177,16 @@ public sealed partial class Core
 
     private List<PointerFocus.Target> Targets(Point point)
     {
-        Screen? screen = null;
-        if (_screens.Count > 0)
+        LiveMonitor? screen = null;
+        if (_monitors.Count > 0)
         {
-            screen = ScreenAt(point);
+            screen = MonitorAt(point);
             if (screen is null)
                 return [];
         }
 
         var targets = new List<PointerFocus.Target>();
-        foreach (var desk in _desks)
+        foreach (var desk in _workspaces)
         {
             if (!IsShown(desk.Id))
                 continue;
@@ -192,7 +194,7 @@ public sealed partial class Core
             if (screen is not null && desk.Monitor != screen.Id)
                 continue;
 
-            var showing = Showing(desk);
+            var showing = desk.Showing();
             foreach (var client in desk.Layout.Clients)
             {
                 if (client.Minimized || !showing.Contains(client.Window) || HasNoFocus(client.Window))
@@ -208,17 +210,17 @@ public sealed partial class Core
         return targets;
     }
 
-    private Screen? ScreenAt(Point point)
+    private LiveMonitor? MonitorAt(Point point)
     {
-        if (_screens.Count == 0)
+        if (_monitors.Count == 0)
             return null;
 
-        return Match(screen => Contains(screen.Reported, point));
+        return Match(screen => screen.Covers(point));
     }
 
     private double ScaleOf(Point point)
     {
-        var scale = ScreenAt(point)?.Effective.Scale ?? 1;
+        var scale = MonitorAt(point)?.Effective.Scale ?? 1;
         return scale is > 0 and < 1000 && double.IsFinite(scale) ? scale : 1;
     }
 
@@ -237,7 +239,7 @@ public sealed partial class Core
     private Outcome ApplyGesture(PointerGesture gesture)
     {
         var resize = IsResize(gesture.Dispatcher);
-        var layout = CurrentDesk().Layout;
+        var layout = CurrentWorkspace().Layout;
         switch (gesture.Phase)
         {
             case PointerDragPhase.Begin:
@@ -293,7 +295,7 @@ public sealed partial class Core
         var (left, top) = BorderPointer.GrabbedCorner(options.ResizeCorner, floating, pressed.Position, bounds);
         _border = new BorderDrag(window, pressed.Button, floating, pressed.Position, bounds, left, top);
         _active = window;
-        var desk = ActiveDesk();
+        var desk = FocusedWorkspace();
         desk.Focus = window;
         desk.Layout.NoteFocus(window);
         NoteBorderCursor(pressed.Position);
@@ -308,7 +310,7 @@ public sealed partial class Core
         if (_border is not BorderDrag border)
             return View([]);
 
-        var desk = ActiveDesk();
+        var desk = FocusedWorkspace();
         if (border.Floating)
         {
             var next = BorderPointer.Resize(border.Start, border.Origin, pointer, border.Left, border.Top);
@@ -324,7 +326,7 @@ public sealed partial class Core
 
     private Outcome EndBorder(BorderDrag border, Point pointer)
     {
-        var desk = ActiveDesk();
+        var desk = FocusedWorkspace();
         if (!border.Floating)
         {
             return View(
@@ -367,7 +369,7 @@ public sealed partial class Core
         if (reach <= 0)
             return false;
 
-        var desk = ActiveDesk();
+        var desk = FocusedWorkspace();
         var clients = desk.Layout.Clients;
         if (InsideContent(desk, clients, pointer))
             return false;
@@ -381,7 +383,7 @@ public sealed partial class Core
         return TryRing(desk, clients, pointer, reach, options, floatingOnly: false, out window, out bounds, out side);
     }
 
-    private static bool InsideContent(Desk desk, IReadOnlyList<Client> clients, Point pointer)
+    private static bool InsideContent(LiveWorkspace desk, IReadOnlyList<Client> clients, Point pointer)
     {
         for (var i = clients.Count - 1; i >= 0; i--)
         {
@@ -397,7 +399,7 @@ public sealed partial class Core
     }
 
     private static bool TryRing(
-        Desk desk,
+        LiveWorkspace desk,
         IReadOnlyList<Client> clients,
         Point pointer,
         int reach,
@@ -430,7 +432,7 @@ public sealed partial class Core
     private Rectangle SnapBox(WindowId self, Rectangle proposed, SnapEdges edges, bool resize)
     {
         var options = ActiveOptions();
-        var desk = ActiveDesk();
+        var desk = FocusedWorkspace();
         var others = new List<Rectangle>();
         foreach (var client in desk.Layout.Clients)
         {
@@ -441,14 +443,14 @@ public sealed partial class Core
                 others.Add(bounds);
         }
 
-        return FloatingSnap.Apply(proposed, edges, resize, others, WorkArea(desk, _area), FocusedMonitor(), options);
+        return FloatingSnap.Apply(proposed, edges, resize, others, WorkArea(desk, _area), FocusedMonitorBounds(), options);
     }
 
     private LayoutOptions ActiveOptions()
     {
-        var screen = ScreenById(ActiveDesk().Monitor);
+        var screen = MonitorById(FocusedWorkspace().Monitor);
         if (screen is { Effective.Enabled: true })
-            return Scaled(_options, screen.Effective.Scale);
+            return _options.ScaledBy(screen.Effective.Scale);
 
         return _options;
     }

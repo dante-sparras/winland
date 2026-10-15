@@ -1,3 +1,5 @@
+using static Winland.OrdinalText;
+
 namespace Winland;
 
 public sealed partial class Core
@@ -12,7 +14,7 @@ public sealed partial class Core
         if (parsed.Ignored)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
-        if (ActiveWindow() is not WindowId window || DeskContaining(window) is not Desk desk || ClientOn(desk, window) is not Client client)
+        if (ActiveWindow() is not WindowId window || WorkspaceContaining(window) is not LiveWorkspace desk || desk.ClientOf(window) is not Client client)
             return MissingWindow(name, allowsElevation);
 
         if (!FullscreenCommands.Changed(client.Fullscreen, parsed.Mode, parsed.Action, out var next))
@@ -24,7 +26,7 @@ public sealed partial class Core
     private Outcome FullscreenState(string arguments, bool allowsElevation)
     {
         const string name = "fullscreenstate";
-        if (ActiveWindow() is not WindowId window || DeskContaining(window) is not Desk desk || ClientOn(desk, window) is not Client client)
+        if (ActiveWindow() is not WindowId window || WorkspaceContaining(window) is not LiveWorkspace desk || desk.ClientOf(window) is not Client client)
             return MissingWindow(name, allowsElevation);
 
         var target = FullscreenCommands.ResolveState(arguments, client.Fullscreen, client.FullscreenClient);
@@ -36,11 +38,11 @@ public sealed partial class Core
 
     private Outcome CommitFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, string dispatcher, bool allowsElevation)
     {
-        var desk = DeskContaining(window);
+        var desk = WorkspaceContaining(window);
         if (desk is null)
             return MissingWindow(dispatcher, allowsElevation);
 
-        var covered = Covered(desk);
+        var covered = desk.Covered();
         var placements = desk.Layout.SetFullscreen(window, mode, clientMode);
         if (!IsShown(desk.Id))
             return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
@@ -51,10 +53,10 @@ public sealed partial class Core
     private Outcome MissingWindow(string dispatcher, bool allowsElevation) =>
         View([], dispatcher: dispatcher, allowsElevation: allowsElevation) with { Error = "error: window not found" };
 
-    private Rectangle CoveringBounds(Desk desk)
+    private Rectangle CoveringBounds(LiveWorkspace desk)
     {
         var work = WorkArea(desk, _area);
-        var screen = ScreenById(desk.Monitor);
+        var screen = MonitorById(desk.Monitor);
         if (screen is not { Effective: { Enabled: true } monitor })
             return FullscreenGeometry.Cover(FullscreenMode.Fullscreen, work, default);
 
@@ -92,7 +94,7 @@ public sealed partial class Core
         return rewritten;
     }
 
-    private Rectangle PlacedBounds(Client client, Desk desk, Rectangle slot)
+    private Rectangle PlacedBounds(Client client, LiveWorkspace desk, Rectangle slot)
     {
         if (client.Fullscreen == FullscreenMode.None)
             return slot;

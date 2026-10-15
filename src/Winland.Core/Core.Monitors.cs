@@ -18,8 +18,8 @@ public sealed partial class Core
     private Outcome MoveFocusDirection(string arguments, bool allowsElevation)
     {
         const string name = "movefocus";
-        var desk = ActiveDesk();
-        var covered = Covered(desk);
+        var desk = FocusedWorkspace();
+        var covered = desk.Covered();
         var active = ActiveWindow();
         if (!MonitorSelector.TryDirection(FirstToken(arguments), out var direction))
             return View([], dispatcher: name, allowsElevation: allowsElevation);
@@ -39,11 +39,11 @@ public sealed partial class Core
             }
         }
 
-        if (!_monitorFallback || ScreenHolding(desk) is not Screen origin || TargetOf(origin) is not MonitorTarget from)
+        if (!_monitorFallback || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
         if (MonitorSelector.InDirection(Targets(), from, direction) is not MonitorTarget neighbor
-            || ScreenOf(neighbor) is not Screen destination)
+            || MonitorOf(neighbor) is not LiveMonitor destination)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
         WindowId? adjacent = null;
@@ -58,14 +58,14 @@ public sealed partial class Core
         const string name = "movewindow";
         if (TryMonitorArgument(arguments, out var monitorText, out var silent))
         {
-            if (ScreenOf(MonitorSelector.Resolve(monitorText, Targets(), TargetOf(FocusedScreen()))) is not Screen chosen)
+            if (MonitorOf(MonitorSelector.Resolve(monitorText, Targets(), TargetOf(FocusedMonitor()))) is not LiveMonitor chosen)
                 return Rejected(name, "error: monitor not found", allowsElevation);
 
             return MoveActiveOnto(chosen, silent, name, allowsElevation);
         }
 
-        var desk = ActiveDesk();
-        var covered = Covered(desk);
+        var desk = FocusedWorkspace();
+        var covered = desk.Covered();
         var active = ActiveWindow();
         if (active is not WindowId window || !MonitorSelector.TryDirection(FirstToken(arguments), out var direction))
         {
@@ -74,11 +74,11 @@ public sealed partial class Core
         }
 
         if (_monitorFallback
-            && ScreenHolding(desk) is Screen origin
+            && MonitorHolding(desk) is LiveMonitor origin
             && desk.Layout.TryBounds(window, out var box))
         {
             var hit = MonitorSelector.At(Targets(), MonitorSelector.Focal(box, direction));
-            if (hit is MonitorTarget other && other.Id != origin.Id && ScreenOf(other) is Screen across)
+            if (hit is MonitorTarget other && other.Id != origin.Id && MonitorOf(other) is LiveMonitor across)
                 return MoveActiveOnto(across, silent: false, name, allowsElevation);
         }
 
@@ -86,10 +86,10 @@ public sealed partial class Core
         if (_monitorFallback
             && placements.Count == 0
             && desk.Layout.FollowsMonitorWhenUnmoved
-            && ScreenHolding(desk) is Screen home
+            && MonitorHolding(desk) is LiveMonitor home
             && TargetOf(home) is MonitorTarget from
             && MonitorSelector.InDirection(Targets(), from, direction) is MonitorTarget neighbor
-            && ScreenOf(neighbor) is Screen next)
+            && MonitorOf(neighbor) is LiveMonitor next)
             return MoveActiveOnto(next, silent: false, name, allowsElevation);
 
         return Present(desk, covered, placements, dispatcher: name, allowsElevation: allowsElevation);
@@ -98,7 +98,7 @@ public sealed partial class Core
     private Outcome FocusMonitorDispatch(string arguments, bool allowsElevation)
     {
         const string name = "focusmonitor";
-        if (ScreenOf(MonitorSelector.Resolve(arguments, Targets(), TargetOf(FocusedScreen()))) is not Screen screen)
+        if (MonitorOf(MonitorSelector.Resolve(arguments, Targets(), TargetOf(FocusedMonitor()))) is not LiveMonitor screen)
             return Rejected(name, "error: monitor not found", allowsElevation);
 
         return FocusOnto(screen, name, allowsElevation, preferred: null);
@@ -107,13 +107,13 @@ public sealed partial class Core
     private Outcome MoveCurrentWorkspace(string arguments, bool allowsElevation)
     {
         const string name = "movecurrentworkspacetomonitor";
-        if (ScreenOf(MonitorSelector.Resolve(arguments, Targets(), TargetOf(FocusedScreen()))) is not Screen destination)
+        if (MonitorOf(MonitorSelector.Resolve(arguments, Targets(), TargetOf(FocusedMonitor()))) is not LiveMonitor destination)
             return Rejected(name, "error: monitor not found", allowsElevation);
 
-        if (FindDesk(ActiveId()) is not Desk desk)
+        if (FindWorkspace(ActiveId()) is not LiveWorkspace desk)
             return Rejected(name, "error: invalid workspace", allowsElevation);
 
-        return MoveDeskTo(desk, destination, name, allowsElevation);
+        return MoveWorkspaceTo(desk, destination, name, allowsElevation);
     }
 
     private Outcome MoveWorkspace(string arguments, bool allowsElevation)
@@ -125,13 +125,13 @@ public sealed partial class Core
         if (!WorkspaceAddress.TryResolve(workspaceText, Context(), out var id))
             return Rejected(name, "error: invalid workspace", allowsElevation);
 
-        if (FindDesk(id) is not Desk desk)
+        if (FindWorkspace(id) is not LiveWorkspace desk)
             return Rejected(name, "error: workspace not found", allowsElevation);
 
-        if (ScreenOf(MonitorSelector.Resolve(monitorText, Targets(), TargetOf(FocusedScreen()))) is not Screen destination)
+        if (MonitorOf(MonitorSelector.Resolve(monitorText, Targets(), TargetOf(FocusedMonitor()))) is not LiveMonitor destination)
             return Rejected(name, "error: monitor not found", allowsElevation);
 
-        return MoveDeskTo(desk, destination, name, allowsElevation);
+        return MoveWorkspaceTo(desk, destination, name, allowsElevation);
     }
 
     private Outcome SwapActiveWorkspaces(string arguments, bool allowsElevation)
@@ -141,17 +141,17 @@ public sealed partial class Core
             return Rejected(name, "error: monitor not found", allowsElevation);
 
         var targets = Targets();
-        var current = TargetOf(FocusedScreen());
-        if (ScreenOf(MonitorSelector.Resolve(first, targets, current)) is not Screen left
-            || ScreenOf(MonitorSelector.Resolve(second, targets, current)) is not Screen right)
+        var current = TargetOf(FocusedMonitor());
+        if (MonitorOf(MonitorSelector.Resolve(first, targets, current)) is not LiveMonitor left
+            || MonitorOf(MonitorSelector.Resolve(second, targets, current)) is not LiveMonitor right)
             return Rejected(name, "error: monitor not found", allowsElevation);
 
         if (left.Id == right.Id)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
         var before = ShowingNow();
-        var deskLeft = DeskFor(left.Active ?? NextFree(left.Id), left.Id);
-        var deskRight = DeskFor(right.Active ?? NextFree(right.Id), right.Id);
+        var deskLeft = WorkspaceFor(left.Active ?? NextFree(left.Id), left.Id);
+        var deskRight = WorkspaceFor(right.Active ?? NextFree(right.Id), right.Id);
         var dx = right.Effective.X - left.Effective.X;
         var dy = right.Effective.Y - left.Effective.Y;
         deskLeft.Layout.NudgeFloating(dx, dy);
@@ -167,9 +167,9 @@ public sealed partial class Core
 
         WindowId? focus = null;
         var focused = left.Focused ? left : right.Focused ? right : null;
-        if (focused is Screen screen && screen.Active is WorkspaceId active && FindDesk(active) is Desk shown)
+        if (focused is LiveMonitor screen && screen.Active is WorkspaceId active && FindWorkspace(active) is LiveWorkspace shown)
         {
-            var next = Accept(Remembered(shown));
+            var next = Accept(shown.Remembered());
             _active = next;
             shown.Focus = next;
             if (next is WindowId noted)
@@ -183,13 +183,13 @@ public sealed partial class Core
         return View(ShownPlacements(), show, hide, dispatcher: name, focus: focus, allowsElevation: allowsElevation);
     }
 
-    private Outcome MoveDeskTo(Desk desk, Screen destination, string dispatcher, bool allowsElevation)
+    private Outcome MoveWorkspaceTo(LiveWorkspace desk, LiveMonitor destination, string dispatcher, bool allowsElevation)
     {
         if (desk.Monitor == destination.Id)
             return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
 
         var before = ShowingNow();
-        var origin = ScreenById(desk.Monitor);
+        var origin = MonitorById(desk.Monitor);
         var wasActive = origin is not null && origin.Active == desk.Id;
         var follow = wasActive && origin is { Focused: true };
         var dx = destination.Effective.X - (origin?.Effective.X ?? destination.Effective.X);
@@ -206,7 +206,7 @@ public sealed partial class Core
         {
             destination.Active = desk.Id;
             _activeOn[destination.Id] = desk.Id;
-            var next = Accept(Remembered(desk));
+            var next = Accept(desk.Remembered());
             _active = next;
             desk.Focus = next;
             if (next is WindowId noted)
@@ -220,7 +220,7 @@ public sealed partial class Core
         return View(ShownPlacements(), show, hide, dispatcher: dispatcher, focus: focus, allowsElevation: allowsElevation);
     }
 
-    private Outcome MoveActiveOnto(Screen screen, bool silent, string dispatcher, bool allowsElevation)
+    private Outcome MoveActiveOnto(LiveMonitor screen, bool silent, string dispatcher, bool allowsElevation)
     {
         if (screen.Active is not WorkspaceId target)
             return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
@@ -228,17 +228,17 @@ public sealed partial class Core
         return MoveTo(target.Name, silent, consumed: false, dispatcher, allowsElevation);
     }
 
-    private Outcome FocusOnto(Screen screen, string dispatcher, bool allowsElevation, WindowId? preferred)
+    private Outcome FocusOnto(LiveMonitor screen, string dispatcher, bool allowsElevation, WindowId? preferred)
     {
         if (screen.Focused && preferred is null)
             return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
 
-        var desk = screen.Active is WorkspaceId workspace ? FindDesk(workspace) : null;
+        var desk = screen.Active is WorkspaceId workspace ? FindWorkspace(workspace) : null;
         var next = preferred;
-        if (next is WindowId wanted && (desk is null || ClientOn(desk, wanted) is null || HasNoFocus(wanted)))
+        if (next is WindowId wanted && (desk is null || desk.ClientOf(wanted) is null || HasNoFocus(wanted)))
             next = null;
         if (next is null && desk is not null)
-            next = Accept(Remembered(desk));
+            next = Accept(desk.Remembered());
 
         Focus(screen.Id);
         _active = next;
@@ -252,10 +252,10 @@ public sealed partial class Core
         return View([], focus: next, dispatcher: dispatcher, allowsElevation: allowsElevation);
     }
 
-    private void Plug(Screen origin, Desk leaving)
+    private void Plug(LiveMonitor origin, LiveWorkspace leaving)
     {
-        Desk? replacement = null;
-        foreach (var other in _desks)
+        LiveWorkspace? replacement = null;
+        foreach (var other in _workspaces)
         {
             if (other.Id == leaving.Id || other.Monitor != origin.Id)
                 continue;
@@ -264,14 +264,14 @@ public sealed partial class Core
             break;
         }
 
-        replacement ??= DeskFor(NextFree(origin.Id), origin.Id);
+        replacement ??= WorkspaceFor(NextFree(origin.Id), origin.Id);
         origin.Active = replacement.Id;
         _activeOn[origin.Id] = replacement.Id;
     }
 
-    private WindowId? AdjacentOn(Screen screen, Rectangle origin, MonitorDirection direction)
+    private WindowId? AdjacentOn(LiveMonitor screen, Rectangle origin, MonitorDirection direction)
     {
-        if (screen.Active is not WorkspaceId workspace || FindDesk(workspace) is not Desk desk)
+        if (screen.Active is not WorkspaceId workspace || FindWorkspace(workspace) is not LiveWorkspace desk)
             return null;
 
         WindowId? best = null;
@@ -296,7 +296,7 @@ public sealed partial class Core
     private List<MonitorTarget> Targets()
     {
         var targets = new List<MonitorTarget>();
-        foreach (var screen in _screens)
+        foreach (var screen in _monitors)
         {
             if (screen.Effective.Enabled)
                 targets.Add(Target(screen));
@@ -305,39 +305,39 @@ public sealed partial class Core
         return targets;
     }
 
-    private static MonitorTarget Target(Screen screen)
+    private static MonitorTarget Target(LiveMonitor screen)
     {
         var monitor = screen.Effective;
         return new MonitorTarget(screen.Id, monitor.Name, monitor.Description, monitor.X, monitor.Y, monitor.Width, monitor.Height);
     }
 
-    private MonitorTarget? TargetOf(Screen? screen) =>
+    private MonitorTarget? TargetOf(LiveMonitor? screen) =>
         screen is { Effective.Enabled: true } enabled ? Target(enabled) : null;
 
-    private Screen? ScreenOf(MonitorTarget? target)
+    private LiveMonitor? MonitorOf(MonitorTarget? target)
     {
         if (target is not MonitorTarget found)
             return null;
 
-        var screen = ScreenById(found.Id);
+        var screen = MonitorById(found.Id);
         return screen is { Effective.Enabled: true } ? screen : null;
     }
 
-    private Screen? ScreenHolding(Desk desk)
+    private LiveMonitor? MonitorHolding(LiveWorkspace desk)
     {
-        var screen = ScreenById(desk.Monitor);
+        var screen = MonitorById(desk.Monitor);
         return screen is { Effective.Enabled: true } ? screen : null;
     }
 
-    private Screen? FocusedScreen()
+    private LiveMonitor? FocusedMonitor()
     {
-        foreach (var screen in _screens)
+        foreach (var screen in _monitors)
         {
             if (screen.Focused && screen.Effective.Enabled)
                 return screen;
         }
 
-        foreach (var screen in _screens)
+        foreach (var screen in _monitors)
         {
             if (screen.Effective.Enabled)
                 return screen;

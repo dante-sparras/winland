@@ -234,6 +234,30 @@ public sealed record LayoutOptions
         return true;
     }
 
+    /// <summary>Multiplies the gaps and borders, which the config gives in logical pixels, by a Monitor's scale.</summary>
+    internal LayoutOptions ScaledBy(double scale)
+    {
+        if (scale is <= 0 or >= 1000 || !double.IsFinite(scale) || scale == 1)
+            return this;
+
+        return this with
+        {
+            GapsIn = Scale(GapsIn, scale),
+            GapsOut = Scale(GapsOut, scale),
+            FloatGaps = Scale(FloatGaps, scale),
+            BorderSize = Scale(BorderSize, scale),
+            ExtendBorderGrabArea = Scale(ExtendBorderGrabArea, scale),
+            SnapWindowGap = Scale(SnapWindowGap, scale),
+            SnapMonitorGap = Scale(SnapMonitorGap, scale),
+        };
+    }
+
+    private static EdgeInsets Scale(EdgeInsets insets, double scale) =>
+        new(Scale(insets.Top, scale), Scale(insets.Right, scale), Scale(insets.Bottom, scale), Scale(insets.Left, scale));
+
+    private static int Scale(int value, double scale) =>
+        (int)Math.Round(value * scale, MidpointRounding.AwayFromZero);
+
     private static bool TryParseBool(string text, out bool value) =>
         ConfigValueSyntax.TryParseBool(text, out value);
 

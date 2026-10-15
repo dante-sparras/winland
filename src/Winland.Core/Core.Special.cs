@@ -3,11 +3,11 @@ namespace Winland;
 public sealed partial class Core
 {
     private readonly Dictionary<MonitorId, WorkspaceId> _specialOn = [];
-    private Desk? _closing;
+    private LiveWorkspace? _closing;
 
     private WorkspaceId? SpecialOn(MonitorId monitor)
     {
-        if (ScreenById(monitor) is { } screen)
+        if (MonitorById(monitor) is { } screen)
             return screen.Special;
 
         return _specialOn.TryGetValue(monitor, out var stored) ? stored : null;
@@ -15,7 +15,7 @@ public sealed partial class Core
 
     private void SetSpecial(MonitorId monitor, WorkspaceId? workspace)
     {
-        if (ScreenById(monitor) is { } screen)
+        if (MonitorById(monitor) is { } screen)
             screen.Special = workspace;
 
         if (workspace is WorkspaceId id)
@@ -26,10 +26,10 @@ public sealed partial class Core
 
     private MonitorId? MonitorShowing(WorkspaceId workspace)
     {
-        if (_screens.Count == 0)
+        if (_monitors.Count == 0)
             return SpecialOn(MonitorId.Primary) == workspace ? MonitorId.Primary : null;
 
-        foreach (var screen in _screens)
+        foreach (var screen in _monitors)
         {
             if (screen.Effective.Enabled && screen.Special == workspace)
                 return screen.Id;
@@ -38,16 +38,16 @@ public sealed partial class Core
         return null;
     }
 
-    private Desk CurrentDesk()
+    private LiveWorkspace CurrentWorkspace()
     {
         var monitor = FocusedId();
-        if (SpecialOn(monitor) is WorkspaceId special && FindDesk(special) is Desk desk)
+        if (SpecialOn(monitor) is WorkspaceId special && FindWorkspace(special) is LiveWorkspace desk)
             return desk;
 
-        return ActiveDesk();
+        return FocusedWorkspace();
     }
 
-    private Desk LayoutDesk(WindowId window) => DeskContaining(window) ?? CurrentDesk();
+    private LiveWorkspace LayoutWorkspace(WindowId window) => WorkspaceContaining(window) ?? CurrentWorkspace();
 
     private Outcome ToggleSpecial(string arguments, bool allowsElevation)
     {
@@ -77,7 +77,7 @@ public sealed partial class Core
             if (focus is WindowId requested && ClientOn(target, requested) is { Minimized: false })
             {
                 _active = requested;
-                if (FindDesk(target) is { } open)
+                if (FindWorkspace(target) is { } open)
                     open.Focus = requested;
                 return View([], focus: requested, dispatcher: dispatcher, allowsElevation: allowsElevation);
             }
@@ -96,7 +96,7 @@ public sealed partial class Core
                 hide.Add(window);
         }
 
-        var desk = DeskFor(target, monitor);
+        var desk = WorkspaceFor(target, monitor);
         if (desk.Monitor != monitor)
         {
             desk.Monitor = monitor;
@@ -110,11 +110,11 @@ public sealed partial class Core
                 show.Add(window);
         }
 
-        WindowId? next = focus is WindowId wanted && ClientOn(desk, wanted) is { Minimized: false }
+        WindowId? next = focus is WindowId wanted && desk.ClientOf(wanted) is { Minimized: false }
             ? wanted
-            : Remembered(desk);
+            : desk.Remembered();
         if (next is null && _input.SpecialFallthrough)
-            next = Remembered(ActiveDesk());
+            next = FocusedWorkspace().Remembered();
 
         _active = next;
         desk.Focus = next;
@@ -124,7 +124,7 @@ public sealed partial class Core
     private Outcome CloseSpecial(MonitorId monitor, string dispatcher, bool allowsElevation)
     {
         var hidden = ConcealSpecial(monitor);
-        var normal = ActiveDesk();
+        var normal = FocusedWorkspace();
         return View(
             normal.Layout.Visible(),
             hide: hidden,
@@ -154,8 +154,8 @@ public sealed partial class Core
 
         var hidden = VisibleIds(current);
         SetSpecial(monitor, null);
-        var normal = FindDesk(ActiveOn(monitor));
-        var next = normal is null ? null : Remembered(normal);
+        var normal = FindWorkspace(ActiveOn(monitor));
+        var next = normal is null ? null : normal.Remembered();
         _active = next;
         if (normal is not null)
             normal.Focus = next;
@@ -165,8 +165,8 @@ public sealed partial class Core
     }
 
     private Outcome FinishSpecialMove(
-        Desk source,
-        Desk destination,
+        LiveWorkspace source,
+        LiveWorkspace destination,
         WindowId window,
         bool silent,
         bool consumed,
@@ -186,7 +186,7 @@ public sealed partial class Core
 
             var show = new List<WindowId>(opened.Show);
             var hide = new List<WindowId>(opened.Hide);
-            Collect(source, sourceCovered, show, hide);
+            source.Collect(sourceCovered, show, hide);
             var placements = new List<Placement>(opened.Placements);
             placements.AddRange(source.Layout.Visible());
             return opened with
@@ -201,9 +201,9 @@ public sealed partial class Core
         var revealed = new List<WindowId>();
         var hidden = new List<WindowId>();
         if (IsShown(source.Id))
-            Collect(source, sourceCovered, revealed, hidden);
+            source.Collect(sourceCovered, revealed, hidden);
         if (IsShown(destination.Id))
-            Collect(destination, destinationCovered, revealed, hidden);
+            destination.Collect(destinationCovered, revealed, hidden);
         else
             hidden.Add(window);
 
@@ -223,9 +223,9 @@ public sealed partial class Core
 
         if (_active == window)
         {
-            _active = revealed.Count == 1 && ClientOn(source, revealed[0]) is not null
+            _active = revealed.Count == 1 && source.ClientOf(revealed[0]) is not null
                 ? revealed[0]
-                : LastVisible(source);
+                : source.LastVisible();
             source.Focus = _active;
         }
 
@@ -238,12 +238,12 @@ public sealed partial class Core
         return View(placed, revealed, hidden, consumed, dispatcher, allowsElevation: allowsElevation);
     }
 
-    private void RehomeSpecials(Screen? home, List<Screen> enabled)
+    private void RehomeSpecials(LiveMonitor? home, List<LiveMonitor> enabled)
     {
         if (home is null)
             return;
 
-        foreach (var desk in _desks)
+        foreach (var desk in _workspaces)
         {
             if (!desk.Id.IsSpecial || HeldBy(enabled, desk.Monitor))
                 continue;
@@ -282,8 +282,8 @@ public sealed partial class Core
 
         foreach (var id in ids)
         {
-            var previous = FindScreen(before, id);
-            var next = FindScreen(after, id);
+            var previous = FindMonitorSnapshot(before, id);
+            var next = FindMonitorSnapshot(after, id);
             if (previous?.SpecialWorkspace == next?.SpecialWorkspace)
                 continue;
 
@@ -297,7 +297,7 @@ public sealed partial class Core
         events.Add(new ActiveSpecial(workspace, monitor));
     }
 
-    private static MonitorSnapshot? FindScreen(State state, MonitorId id)
+    private static MonitorSnapshot? FindMonitorSnapshot(State state, MonitorId id)
     {
         foreach (var screen in state.Screens)
         {

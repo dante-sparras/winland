@@ -1,0 +1,380 @@
+namespace Winland;
+
+public sealed partial class Core
+{
+    private Outcome MoveTo(
+        string argument,
+        bool silent,
+        bool consumed,
+        string dispatcher,
+        bool allowsElevation = false,
+        WindowId? chosen = null,
+        bool windowChosen = false)
+    {
+        var window = windowChosen ? chosen : ActiveWindow();
+        if (window is not WindowId id || !WorkspaceAddress.TryResolve(argument, Context(), out var resolved))
+            return View([], consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
+
+        var target = Alias(resolved);
+
+        var source = WorkspaceContaining(id);
+        if (source is null || source.Id == target)
+            return View([], consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
+
+        var sourceCovered = source.Covered();
+        if (!source.Layout.TryTake(id, out var taken))
+            return View([], consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
+
+        var destination = WorkspaceFor(target, FocusedId());
+        var elsewhere = target.IsSpecial ? null : ShownElsewhere(target);
+        if (!silent && !target.IsSpecial && elsewhere is null && MonitorById(FocusedId()) is { } focused)
+            BringTo(focused, destination);
+
+        var destinationCovered = destination.Covered();
+        var area = WorkArea(destination, _area);
+        destination.Receive(id, taken, area);
+
+        if (target.IsSpecial)
+            return FinishSpecialMove(source, destination, id, silent, consumed, dispatcher, allowsElevation, sourceCovered, destinationCovered);
+
+        if (!silent && source.Id.IsSpecial && SpecialOn(source.Monitor) == source.Id)
+        {
+            var concealed = ConcealSpecial(source.Monitor);
+            return FollowMove(SwitchTo(target, id, consumed, dispatcher, allowsElevation), id, concealed, destination);
+        }
+
+        if (!silent && elsewhere is { } owner)
+        {
+            var followed = FocusShown(owner, target, id, consumed, dispatcher, allowsElevation);
+            var show = new List<WindowId>();
+            var conceal = new List<WindowId>();
+            if (IsShown(source.Id))
+                source.Collect(sourceCovered, show, conceal);
+            if (IsShown(destination.Id))
+                destination.Collect(destinationCovered, show, conceal);
+            var moved = new List<Placement>();
+            if (IsShown(source.Id))
+                moved.AddRange(source.Layout.Placed());
+            if (IsShown(destination.Id))
+                moved.AddRange(destination.Layout.Visible());
+            return followed with
+            {
+                Placements = moved,
+                Show = [.. followed.Show, .. show],
+                Hide = [.. followed.Hide, .. conceal],
+            };
+        }
+
+        if (!silent)
+        {
+            var followedSwitch = SwitchTo(target, id, consumed, dispatcher, allowsElevation);
+            return followedSwitch.Focus is null && _active == id
+                ? followedSwitch with { Focus = id }
+                : followedSwitch;
+        }
+
+        var revealed = new List<WindowId>();
+        var hidden = new List<WindowId>();
+        if (IsShown(source.Id))
+            source.Collect(sourceCovered, revealed, hidden);
+        if (IsShown(destination.Id))
+            destination.Collect(destinationCovered, revealed, hidden);
+        else
+            hidden.Add(id);
+
+        if (source.Id.IsSpecial
+            && source.Layout.Clients.Count == 0
+            && _session.CloseSpecialOnEmpty
+            && SpecialOn(source.Monitor) == source.Id)
+        {
+            foreach (var concealed in ConcealSpecial(source.Monitor))
+            {
+                if (!hidden.Contains(concealed))
+                    hidden.Add(concealed);
+            }
+        }
+
+        if (_active == id)
+        {
+            _active = revealed.Count == 1 && source.ClientOf(revealed[0]) is not null
+                ? revealed[0]
+                : source.LastVisible();
+            source.Focus = _active;
+        }
+
+        var placements = new List<Placement>();
+        if (IsShown(source.Id))
+            placements.AddRange(source.Layout.Placed());
+        if (IsShown(destination.Id))
+            placements.AddRange(destination.Layout.Visible());
+
+        return View(placements, revealed, hidden, consumed, dispatcher, allowsElevation: allowsElevation);
+    }
+
+    private Outcome FollowMove(Outcome followed, WindowId window, WindowId[] concealed, LiveWorkspace destination)
+    {
+        var show = new List<WindowId>(followed.Show);
+        if (IsShown(destination.Id) && !show.Contains(window))
+            show.Add(window);
+
+        var placements = followed.Placements.Count > 0 ? followed.Placements : destination.Layout.Visible();
+        return followed with
+        {
+            Placements = placements,
+            Show = show,
+            Hide = Combine(followed.Hide, concealed),
+            Focus = followed.Focus ?? window,
+        };
+    }
+
+    private Outcome SwitchTo(WorkspaceId target, WindowId? focus, bool consumed, string? dispatcher, bool allowsElevation = false, bool pull = false)
+    {
+        if (target.IsSpecial)
+            return OpenSpecial(target, focus, dispatcher, allowsElevation);
+
+        var bound = BoundMonitor(target);
+        if (!pull && bound is null && ShownElsewhere(target) is { } elsewhere)
+        {
+            var away = SpecialHiddenBy(elsewhere.Id, focus);
+            var followed = FocusShown(elsewhere, target, focus, consumed, dispatcher, allowsElevation);
+            return away.Length == 0 ? followed : followed with { Hide = Combine(followed.Hide, away) };
+        }
+
+        if (bound is not null && bound.Id != FocusedId())
+            Focus(bound.Id);
+
+        var monitor = FocusedId();
+        var concealed = SpecialHiddenBy(monitor, focus);
+        if (bound is not null)
+        {
+            if (FindWorkspace(target) is { } held && held.Monitor != bound.Id)
+            {
+                held.Monitor = bound.Id;
+                Refit(held);
+            }
+        }
+        else if (MonitorById(monitor) is { } screen && FindWorkspace(target) is { } existing)
+            BringTo(screen, existing);
+
+        var sourceId = ActiveOn(monitor);
+        if (sourceId == target)
+        {
+            if (focus is WindowId requested && ClientOn(target, requested) is not null
+                && (SpecialOn(monitor) is null || _input.SpecialFallthrough))
+            {
+                _active = requested;
+                FocusedWorkspace().Focus = requested;
+            }
+
+            return View([], hide: concealed, consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
+        }
+
+        var keep = _active is WindowId current
+            && _pinned.Contains(current)
+            && ClientOn(sourceId, current) is { Floating: true }
+            ? current
+            : (WindowId?)null;
+        _activeOn[monitor] = target;
+        if (MonitorById(monitor) is { } owner)
+            owner.Active = target;
+
+        Remember(target, monitor);
+        var destination = WorkspaceFor(target, monitor);
+        CarryPinned(sourceId, destination);
+        var hide = VisibleIds(sourceId);
+        var keepSpecial = SpecialOn(monitor) is not null && focus is null;
+        if (!keepSpecial)
+        {
+            _active = focus is WindowId requestedFocus && ClientOn(target, requestedFocus) is not null
+                ? requestedFocus
+                : keep is WindowId pinnedFocus && ClientOn(target, pinnedFocus) is not null
+                    ? pinnedFocus
+                    : destination.Remembered();
+            destination.Focus = _active;
+        }
+
+        DropIfEmpty(sourceId);
+        return View(
+            destination.Layout.Visible(),
+            VisibleIds(target),
+            Combine(hide, concealed),
+            consumed,
+            dispatcher,
+            allowsElevation: allowsElevation);
+    }
+
+    private LiveMonitor? ShownElsewhere(WorkspaceId target)
+    {
+        var desk = FindWorkspace(target);
+        if (desk is null)
+            return null;
+
+        var owner = MonitorById(desk.Monitor);
+        if (owner is null || !owner.Effective.Enabled || owner.Active != target || owner.Id == FocusedId())
+            return null;
+
+        return owner;
+    }
+
+    private Outcome FocusShown(LiveMonitor owner, WorkspaceId target, WindowId? focus, bool consumed, string? dispatcher, bool allowsElevation)
+    {
+        Focus(owner.Id);
+        var destination = FindWorkspace(target);
+        WindowId? next = null;
+        if (focus is WindowId requested && ClientOn(target, requested) is not null)
+            next = requested;
+        else if (destination is not null)
+            next = destination.Remembered();
+
+        _active = next;
+        if (destination is not null)
+            destination.Focus = next;
+
+        return View([], focus: next, consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
+    }
+
+    private void BringTo(LiveMonitor screen, LiveWorkspace desk)
+    {
+        if (desk.Monitor == screen.Id)
+            return;
+
+        var owner = MonitorById(desk.Monitor);
+        var moving = desk.Id;
+        var leaving = owner is not null && owner.Active == moving;
+        desk.Monitor = screen.Id;
+        Refit(desk);
+        if (owner is null || !leaving)
+            return;
+
+        owner.Active = null;
+        AssignActives(EnabledMonitors());
+        SyncActive();
+        if (owner.Active is not WorkspaceId stay || stay == moving)
+            return;
+
+        var pinned = PinnedFloating(desk);
+        if (pinned.Count == 0)
+            return;
+
+        var home = WorkspaceFor(stay, owner.Id);
+        foreach (var window in pinned)
+            Transfer(desk, home, window);
+    }
+
+    private void Remember(WorkspaceId workspace, MonitorId monitor)
+    {
+        _history.RemoveAll(visit => visit.Workspace == workspace);
+        _history.Insert(0, new WorkspaceVisit(workspace, monitor));
+    }
+
+    private WorkspaceId? Previous(MonitorId monitor, bool perMonitor)
+    {
+        var active = ActiveOn(monitor);
+        var index = _history.FindIndex(visit => visit.Workspace == active);
+        if (!perMonitor)
+            return index >= 0 && index + 1 < _history.Count ? _history[index + 1].Workspace : null;
+
+        for (var i = index < 0 ? 0 : index + 1; i < _history.Count; i++)
+        {
+            if (_history[i].Monitor == monitor)
+                return _history[i].Workspace;
+        }
+
+        return null;
+    }
+
+    private WorkspaceAddress.Context Context() => Context(FocusedId());
+
+    private WorkspaceAddress.Context Context(MonitorId monitor) =>
+        new(
+            ActiveOn(monitor),
+            Previous(monitor, perMonitor: false),
+            Previous(monitor, perMonitor: true),
+            Listed(monitor),
+            Listed(null),
+            NumberIsEmpty,
+            number => OwnedByOtherMonitor(number, monitor));
+
+    private IReadOnlyList<WorkspaceId> Listed(MonitorId? only)
+    {
+        var named = new List<WorkspaceId>();
+        var numbered = new List<(int Number, WorkspaceId Id)>();
+        foreach (var desk in _workspaces)
+        {
+            if (desk.Id.IsSpecial)
+                continue;
+
+            if (only is MonitorId monitor && desk.Monitor != monitor)
+                continue;
+
+            if (desk.Id.TryGetNumber(out var number))
+                numbered.Add((number, desk.Id));
+            else
+                named.Add(desk.Id);
+        }
+
+        named.Reverse();
+        numbered.Sort((left, right) => left.Number.CompareTo(right.Number));
+        foreach (var (_, id) in numbered)
+            named.Add(id);
+
+        return named;
+    }
+
+    private bool OwnedByOtherMonitor(int number, MonitorId monitor)
+    {
+        var desk = FindWorkspace(WorkspaceId.FromNumber(number));
+        return desk is not null && desk.Monitor != monitor;
+    }
+
+    private bool NumberIsEmpty(int number) =>
+        FindWorkspace(WorkspaceId.FromNumber(number)) is not LiveWorkspace desk || desk.Layout.Clients.Count == 0;
+
+    private void DropIfEmpty(WorkspaceId id)
+    {
+        if (IsShown(id))
+            return;
+
+        var desk = FindWorkspace(id);
+        if (desk is null || desk.Persistent || desk.Layout.Clients.Count > 0)
+            return;
+
+        _workspaces.Remove(desk);
+    }
+
+    private WorkspaceId NextFree(MonitorId monitor)
+    {
+        for (var number = 1; number < int.MaxValue; number++)
+        {
+            var id = WorkspaceId.FromNumber(number);
+            if (FindWorkspace(id) is not null || BoundElsewhere(id, monitor))
+                continue;
+
+            return id;
+        }
+
+        throw new InvalidOperationException("No workspace id remains.");
+    }
+
+    private void DropEmpty()
+    {
+        foreach (var desk in _workspaces.ToArray())
+            DropIfEmpty(desk.Id);
+    }
+
+    private WorkspaceId Alias(WorkspaceId id)
+    {
+        if (FindWorkspace(id) is not null)
+            return id;
+
+        foreach (var desk in _workspaces)
+        {
+            if (desk.DisplayName == id.Name)
+                return desk.Id;
+        }
+
+        return id;
+    }
+
+    private readonly record struct WorkspaceVisit(WorkspaceId Workspace, MonitorId Monitor);
+}

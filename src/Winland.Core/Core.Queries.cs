@@ -6,6 +6,49 @@ public sealed partial class Core
 {
     private string[] _configErrors = [];
 
+    private CommandReply ExecuteLine(string? line) =>
+        CommandProtocol.Parse(line) switch
+        {
+            CommandRejected rejected => new CommandReply(rejected.Error, View([])),
+            CommandParsed parsed => Reply(parsed.Request),
+            _ => throw new InvalidOperationException("No handler for this command."),
+        };
+
+    private CommandReply Reply(CommandRequest request)
+    {
+        var reply = request switch
+        {
+            DispatchRequest dispatch => DispatchReply(dispatch),
+            ClientsRequest clients => Describe(state => CommandProtocol.FormatClients(state, clients.All)),
+            WorkspacesRequest => Describe(CommandProtocol.FormatWorkspaces),
+            WorkspaceRulesRequest => new CommandReply(WorkspaceRules.Format(_workspaceRules), View([])),
+            MonitorsRequest monitors => Describe(state => CommandProtocol.FormatMonitors(state, monitors.All)),
+            ActiveWindowRequest => Describe(state => CommandProtocol.FormatActiveWindow(state, ActiveWindow())),
+            ActiveWorkspaceRequest => Describe(CommandProtocol.FormatActiveWorkspace),
+            EventsRequest => new CommandReply("", View([])) { Stream = true },
+            ReloadRequest => ReloadCommand(),
+            PluginRequest plugin => PluginCommand(plugin),
+            _ => ReplyExtra(request),
+        };
+
+        if (request.Flags.HasFlag(CommandFlags.Relayout))
+            reply = reply with { Effect = Reflow(reply.Effect) };
+
+        return reply;
+    }
+
+    private CommandReply DispatchReply(DispatchRequest dispatch)
+    {
+        var effect = Execute(dispatch.Name, dispatch.Arguments, dispatch.AllowsElevation);
+        return new CommandReply(effect.Error ?? effect.Notice ?? "ok", effect);
+    }
+
+    private CommandReply Describe(Func<State, string> format)
+    {
+        var outcome = View([]);
+        return new CommandReply(format(outcome.State), outcome);
+    }
+
     private CommandReply ReplyExtra(CommandRequest request) => request switch
     {
         BindsRequest => Describe(_ => ExtraCommands.FormatBinds(_binds.Entries)),
@@ -28,7 +71,7 @@ public sealed partial class Core
 
     private Outcome Reflow(Outcome current)
     {
-        if (_screens.Count > 0)
+        if (_monitors.Count > 0)
         {
             var laid = SetMonitors(Reported());
             return laid with
@@ -48,7 +91,7 @@ public sealed partial class Core
 
         IReadOnlyList<Placement> placements = [];
         var active = ActiveId();
-        foreach (var desk in _desks)
+        foreach (var desk in _workspaces)
         {
             Stamp(desk);
             var placed = desk.Layout.Apply(desk.Options);
@@ -234,10 +277,10 @@ public sealed partial class Core
 
         var placements = desk.Layout.ToggleFloating(client.Window);
         _pinned.Remove(client.Window);
-        return new CommandReply("ok", Present(desk, Covered(desk), placements));
+        return new CommandReply("ok", Present(desk, desk.Covered(), placements));
     }
 
-    private bool TrySelect(string selector, out Client client, out Desk? desk)
+    private bool TrySelect(string selector, out Client client, out LiveWorkspace? desk)
     {
         client = null!;
         desk = null;
@@ -250,7 +293,7 @@ public sealed partial class Core
         if (window is not WindowId id)
             return false;
 
-        foreach (var candidate in _desks)
+        foreach (var candidate in _workspaces)
         {
             foreach (var item in candidate.Layout.Clients)
             {
