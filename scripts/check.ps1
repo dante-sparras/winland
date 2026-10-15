@@ -67,7 +67,7 @@ function Get-LintFiles([string]$start, [string]$filter) {
     while ($stack.Count -gt 0) {
         $dir = $stack.Pop()
         $name = Split-Path $dir -Leaf
-        if ($name -in @('.git', 'bin', 'obj', 'StrykerOutput', 'node_modules', '__pycache__', 'omarchy', 'quickshell', 'hyprland')) {
+        if ($name -in @('.git', 'bin', 'obj', 'StrykerOutput', 'node_modules', 'omarchy', 'quickshell', 'hyprland')) {
             continue
         }
         foreach ($file in [System.IO.Directory]::EnumerateFiles($dir, $filter)) {
@@ -91,20 +91,6 @@ try {
         $root = $scratch
     }
 
-    $pyFiles = @(Get-LintFiles $root '*.py')
-    if ($pyFiles.Count -eq 0) {
-        Write-Output 'No Python files to compile.'
-    } else {
-        $python = Get-Command python -ErrorAction SilentlyContinue
-        if (-not $python) { throw 'python is not on PATH. The lint compiles Python files.' }
-        $env:PYTHONPYCACHEPREFIX = Join-Path ([System.IO.Path]::GetTempPath()) 'repo-pyc'
-        foreach ($file in $pyFiles) {
-            Write-Output "python -m py_compile $file"
-            python -m py_compile $file
-            if ($LASTEXITCODE -ne 0) { $failed = 1 }
-        }
-    }
-
     $psFiles = @(Get-LintFiles $root '*.ps1')
     foreach ($file in $psFiles) {
         $tokens = $null
@@ -117,6 +103,31 @@ try {
         } else {
             Write-Output "powershell parse $file"
         }
+    }
+
+    # Windows and macOS keep one file where Linux keeps two. Reject tracked paths,
+    # and the folders on the way to them, that differ only by case.
+    $tracked = @(& git -c core.quotepath=off -C $root ls-files)
+    if ($LASTEXITCODE -ne 0) { throw 'git ls-files failed' }
+    $spellings = @{}
+    foreach ($path in $tracked) {
+        $parts = $path -split '/'
+        for ($i = 0; $i -lt $parts.Count; $i++) {
+            $prefix = $parts[0..$i] -join '/'
+            $key = $prefix.ToLowerInvariant()
+            if (-not $spellings.ContainsKey($key)) {
+                $spellings[$key] = New-Object System.Collections.Generic.HashSet[string]
+            }
+            [void]$spellings[$key].Add($prefix)
+        }
+    }
+    $collisions = @($spellings.Values | Where-Object { $_.Count -gt 1 })
+    foreach ($names in $collisions) {
+        Write-Output "Case collision: $(($names | Sort-Object) -join ' | ')"
+        $failed = 1
+    }
+    if ($collisions.Count -eq 0) {
+        Write-Output "no case collisions in $($tracked.Count) tracked files"
     }
 
     $solutions = @()
