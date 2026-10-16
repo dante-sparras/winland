@@ -8,7 +8,7 @@ namespace Winland.Windows;
 /// <summary>
 /// Renders one Group's tab bar into a 32-bit bitmap and hands it to a layered window.
 /// The strip is almost transparent (alpha 1) so it still takes clicks. Indicators keep their alpha.
-/// GDI drops the alpha of the pixels it draws text on, so those pixels are made opaque afterwards.
+/// GDI drops the alpha of the pixels it draws text on, so those pixels are given the title color's alpha afterwards.
 /// </summary>
 internal static class GroupBarPainter
 {
@@ -124,7 +124,7 @@ internal static class GroupBarPainter
             }
 
             _ = PInvoke.SelectObject(memory, previous);
-            Opaque(pixels, width, height, row with { Y = row.Y + bar.Style.TextOffset });
+            ApplyTextAlpha(pixels, width, height, row with { Y = row.Y + bar.Style.TextOffset }, color.A);
         }
     }
 
@@ -142,11 +142,20 @@ internal static class GroupBarPainter
         ForEach(pixels, width, height, box, (ref uint value) => value = pixel);
     }
 
-    private static void Opaque(Span<uint> pixels, int width, int height, Rectangle box) =>
+    // Gives the pixels GDI drew text on the title color's alpha, premultiplied. Unantialiased text holds
+    // the exact color, so one alpha fits every such pixel. The result keeps an alpha of at least 1.
+    internal static void ApplyTextAlpha(Span<uint> pixels, int width, int height, Rectangle box, byte alpha) =>
         ForEach(pixels, width, height, box, (ref uint value) =>
         {
-            if ((value & 0xFF000000) == 0)
-                value |= 0xFF000000;
+            if ((value & 0xFF000000) != 0)
+                return;
+
+            uint a = alpha;
+            var pixel = (a << 24)
+                | ((((value >> 16) & 0xFF) * a / 255) << 16)
+                | ((((value >> 8) & 0xFF) * a / 255) << 8)
+                | ((value & 0xFF) * a / 255);
+            value = pixel == 0 ? 0x01000000 : pixel;
         });
 
     private delegate void PixelAction(ref uint value);
