@@ -15,6 +15,16 @@ public class WindowIdentityTests
         Assert.Equal(WindowIdentity.Recognition.Other, WindowIdentity.Recognize(client, 42, "Edit", "a.txt"));
     }
 
+    // A hidden Client left behind by a crash must come back even if its title changed while it was hidden.
+    [Fact]
+    public void AHiddenClientIsTheSameClientWhateverItsTitle()
+    {
+        var client = new RecoveredClient(new WindowId(5), WorkspaceId.Initial, MonitorId.Primary, true, "Chrome_WidgetWin_1", "Inbox (3)", 42);
+
+        Assert.Equal(WindowIdentity.Recognition.SameClient, WindowIdentity.Recognize(client, 42, "Chrome_WidgetWin_1", "Inbox (4)"));
+        Assert.Equal(WindowIdentity.Recognition.Other, WindowIdentity.Recognize(client, 43, "Chrome_WidgetWin_1", "Inbox (3)"));
+    }
+
     [Fact]
     public void AClosedClientIsLeftOutAndTheOthersAreStillRecorded()
     {

@@ -16,15 +16,16 @@ public static class WindowIdentity
             : Recognition.Other;
     }
 
-    // Process and class tell the same window from a reused handle. The title also has to match before the
-    // window rejoins its Workspace, because a title is the only other sign that it is the same Client.
+    // Process and class tell the same window from a reused handle. A shown window also needs the same title
+    // before it rejoins its Workspace. A hidden one does not: its title can change while it is hidden, and it
+    // must come back either way, because nothing else would ever show it again.
     internal static Recognition Recognize(RecoveredClient client, long processId, string windowClass, string title)
     {
         ArgumentNullException.ThrowIfNull(client);
         if (processId != client.ProcessId || windowClass != client.Class)
             return Recognition.Other;
 
-        return title == client.Title ? Recognition.SameClient : Recognition.SameWindow;
+        return client.Hidden || title == client.Title ? Recognition.SameClient : Recognition.SameWindow;
     }
 
     /// <summary>Records process, class and title of each Client that is still open. A window that is gone is left out.</summary>

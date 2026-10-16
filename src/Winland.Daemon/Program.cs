@@ -73,6 +73,13 @@ static int Guard(Func<int> action)
         Console.Error.WriteLine(ex.Message);
         return 1;
     }
+    catch (Exception ex) when (ex is not OutOfMemoryException)
+    {
+        // An exception nothing catches ends the process without running finally blocks. Catching it here
+        // lets Run's finally show the hidden Clients and put the frames back first.
+        Console.Error.WriteLine(ex);
+        return 1;
+    }
 }
 
 static int Install(string user)
@@ -160,6 +167,8 @@ static int Run(string? path)
         SessionEffects.RestoreSaved(saved);
     using var host = new WindowHost(core, snapshot => Persist(store, snapshot), PipeName());
     using var exit = new ExitWatch(() => Stop(host, store));
+    UnhandledExceptionEventHandler onCrash = (_, _) => Salvage(host);
+    AppDomain.CurrentDomain.UnhandledException += onCrash;
     using var watching = new ConfigWatcher(() =>
     {
         try
@@ -188,6 +197,7 @@ static int Run(string? path)
     finally
     {
         Stop(host, store);
+        AppDomain.CurrentDomain.UnhandledException -= onCrash;
         LaunchConfigured(core, core.ShutdownLaunches(current));
         plugins.Dispose();
 
@@ -248,6 +258,29 @@ static void Stop(WindowHost host, RecoveryStore store)
     host.RestoreTaskbar();
     SessionEffects.Restore();
     store.Delete();
+}
+
+// An exception on another thread ends the process without Stop. This puts back what it can, and keeps the
+// state file so the next start rejoins the Clients to their Workspaces.
+static void Salvage(WindowHost host)
+{
+    try
+    {
+        host.Salvage();
+    }
+    catch (Exception exception) when (exception is not OutOfMemoryException)
+    {
+        Console.Error.WriteLine(exception.Message);
+    }
+
+    try
+    {
+        SessionEffects.Restore();
+    }
+    catch (Exception exception) when (exception is not OutOfMemoryException)
+    {
+        Console.Error.WriteLine(exception.Message);
+    }
 }
 
 static string StatePath()
