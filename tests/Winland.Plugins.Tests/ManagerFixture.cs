@@ -173,10 +173,14 @@ internal sealed class ManagerFixture : IDisposable
     internal sealed class AllowGuard : IPluginLocationGuard
     {
         public string? Deny(string pluginDirectory, string approvalsFile) => null;
+
+        public string? DenyApprovals(FileStream approvals) => null;
     }
 
     internal sealed class DenyGuard(string message) : IPluginLocationGuard
     {
         public string? Deny(string pluginDirectory, string approvalsFile) => message;
+
+        public string? DenyApprovals(FileStream approvals) => message;
     }
 }

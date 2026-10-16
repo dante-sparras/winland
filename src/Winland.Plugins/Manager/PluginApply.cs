@@ -41,12 +41,15 @@ public sealed class PluginApply(IPluginLocationGuard guard, IPluginDirectoryProt
         IReadOnlyList<InstalledPlugin> existing;
         try
         {
-            existing = InstalledPlugins.Read(approvals);
+            existing = ReadApprovals(approvals, out denied);
         }
         catch (InvalidDataException exception)
         {
             return Fail(exception.Message);
         }
+
+        if (denied is not null)
+            return Fail(denied);
 
         var replaced = request.Install.Select(repository => repository.Url)
             .Concat(request.Remove)
@@ -142,6 +145,32 @@ public sealed class PluginApply(IPluginLocationGuard guard, IPluginDirectoryProt
         return new ApplyResult(true, lines);
     }
 
+    // The approvals that are kept are read through a handle the guard checked, so a file put in
+    // place of the protected one after the check cannot add entries.
+    private IReadOnlyList<InstalledPlugin> ReadApprovals(string approvals, out string? denied)
+    {
+        FileStream stream;
+        try
+        {
+            stream = new FileStream(approvals, FileMode.Open, FileAccess.Read, FileShare.Read);
+        }
+        catch (FileNotFoundException)
+        {
+            denied = null;
+            return [];
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            throw new InvalidDataException($"Could not read approvals '{approvals}': {exception.Message}", exception);
+        }
+
+        using (stream)
+        {
+            denied = guard.DenyApprovals(stream);
+            return denied is null ? InstalledPlugins.Read(stream, approvals) : [];
+        }
+    }
+
     // The paths come from a program that is not elevated, and the user's environment can point
     // them anywhere. Only the default directory is created and protected. Another one is used
     // only when an administrator already set it up with an approvals file; the guard then decides.
@@ -167,9 +196,22 @@ public sealed class PluginApply(IPluginLocationGuard guard, IPluginDirectoryProt
             lines.Add($"Created the plugin directory '{directory}'.");
         }
 
-        // A non-administrator may have created the folder first. Finding it proves nothing,
-        // so its owner and access list are replaced every time.
-        protector.Protect(directory);
+        // A non-administrator may have created either folder first. Finding it proves nothing,
+        // so its owner and access list are replaced every time. The parent goes first: whoever owns
+        // it could rename the protected directory away and put a folder of their own in its place.
+        var parent = Path.GetDirectoryName(directory);
+        try
+        {
+            if (parent is not null)
+                protector.Protect(parent);
+
+            protector.Protect(directory);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            return $"Could not protect the plugin directory: {exception.Message}";
+        }
+
         return null;
     }
 

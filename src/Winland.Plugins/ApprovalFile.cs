@@ -19,9 +19,25 @@ internal static class ApprovalFile
         if (!File.Exists(path))
             return [];
 
+        return Parse(() => File.ReadAllText(path), path, log);
+    }
+
+    /// <summary>Reads the approvals from a file that is already open. <paramref name="path"/> names it in the log.</summary>
+    public static IReadOnlyList<PluginApproval> Read(Stream stream, string path, IPluginLog log) =>
+        Parse(
+            () =>
+            {
+                using var reader = new StreamReader(stream, leaveOpen: true);
+                return reader.ReadToEnd();
+            },
+            path,
+            log);
+
+    private static IReadOnlyList<PluginApproval> Parse(Func<string> read, string path, IPluginLog log)
+    {
         try
         {
-            var entries = JsonSerializer.Deserialize<List<ApprovalEntry?>>(File.ReadAllText(path), Json) ?? [];
+            var entries = JsonSerializer.Deserialize<List<ApprovalEntry?>>(read(), Json) ?? [];
             var approvals = new List<PluginApproval>(entries.Count);
             foreach (var entry in entries)
             {
