@@ -56,8 +56,13 @@ static class PluginManagerCli
             var standard = PluginPaths.DefaultDirectory(null, null, programData);
             result = new PluginApply(new WindowsPluginLocationGuard(), new WindowsPluginDirectoryProtector(), standard).Run(request);
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidDataException
+            or ArgumentException
+            or NotSupportedException)
         {
+            // The report still reaches the manager, and the elevated step exits instead of crashing.
             result = new ApplyResult(false, [exception.Message]);
         }
 

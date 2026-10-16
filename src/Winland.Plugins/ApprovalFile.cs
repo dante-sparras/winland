@@ -21,11 +21,11 @@ internal static class ApprovalFile
 
         try
         {
-            var entries = JsonSerializer.Deserialize<List<ApprovalEntry>>(File.ReadAllText(path), Json) ?? [];
+            var entries = JsonSerializer.Deserialize<List<ApprovalEntry?>>(File.ReadAllText(path), Json) ?? [];
             var approvals = new List<PluginApproval>(entries.Count);
             foreach (var entry in entries)
             {
-                if (string.IsNullOrWhiteSpace(entry.Name) || string.IsNullOrWhiteSpace(entry.Sha256))
+                if (entry is null || string.IsNullOrWhiteSpace(entry.Name) || string.IsNullOrWhiteSpace(entry.Sha256))
                     continue;
 
                 approvals.Add(new PluginApproval(entry.Name.Trim(), entry.Sha256.Trim().ToLowerInvariant()));
@@ -33,7 +33,7 @@ internal static class ApprovalFile
 
             return approvals;
         }
-        catch (Exception exception) when (exception is JsonException or IOException)
+        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
         {
             log.Write($"Could not read approvals '{path}': {exception.Message}");
             return [];
