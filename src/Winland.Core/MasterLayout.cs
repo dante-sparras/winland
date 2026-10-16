@@ -136,8 +136,10 @@ internal sealed partial class MasterLayout : Layout
             return [];
 
         var index = _tiles.IndexOf(tile);
+        var masters = Masters();
         Detach(tile);
-        _suspended[id] = new Suspended(tile, index);
+        var promoted = tile.Master ? _tiles.Find(other => other.Master && !masters.Contains(other)) : null;
+        _suspended[id] = new Suspended(tile, index, promoted);
         MarkMinimized(id, true);
         return Placed();
     }
@@ -158,6 +160,11 @@ internal sealed partial class MasterLayout : Layout
             return [];
 
         MarkMinimized(id, false);
+
+        // A master that was minimized takes its place back from the tile promoted in its stead.
+        if (saved.Tile.Master && saved.Promoted is { Master: true } promoted && _tiles.Contains(promoted))
+            promoted.Master = false;
+
         var index = Math.Clamp(saved.Index, 0, _tiles.Count);
         _tiles.Insert(index, saved.Tile);
         if (MasterCount() == 0)
@@ -493,5 +500,5 @@ internal sealed partial class MasterLayout : Layout
         public Rectangle Box { get; set; }
     }
 
-    private sealed record Suspended(Tile Tile, int Index);
+    private sealed record Suspended(Tile Tile, int Index, Tile? Promoted);
 }
