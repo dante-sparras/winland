@@ -62,7 +62,7 @@ public sealed class Animator
             var begun = running ?? Vector(motion.From ?? motion.To);
             entry.Geometry = new Track(begun, Vector(motion.To), now, move);
         }
-        else
+        else if (entry.Geometry is not null && entry.Goal != motion.To)
         {
             entry.Geometry = null;
         }
