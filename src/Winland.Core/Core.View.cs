@@ -74,13 +74,14 @@ public sealed partial class Core
         placements = Cover(placements, snapshot);
         var minimized = PlanMinimized(snapshot);
         var swallowed = TakeSwallowChanges();
-        return new(placements, snapshot, consumed, dispatcher, close, focus)
+        return new(placements, snapshot, consumed, dispatcher, focus)
         {
+            Close = close,
             Show = Combine(show, swallowed.Show),
             Hide = Combine(Combine(hide, minimized.Hide), swallowed.Hide),
             ShowMinimized = minimized.Show,
             AllowsElevation = allowsElevation,
-            Launch = TakeBorn(),
+            Launches = TakeBorn(),
         };
     }
 

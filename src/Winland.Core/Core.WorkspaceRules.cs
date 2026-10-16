@@ -178,5 +178,14 @@ public sealed partial class Core
             _born.Enqueue(WithEnvironment(launch) ?? launch);
     }
 
-    private Launch? TakeBorn() => _born.Count == 0 ? null : _born.Dequeue();
+    // Every workspace created since the last outcome runs its command, so all of them leave together.
+    private Launch[] TakeBorn()
+    {
+        if (_born.Count == 0)
+            return [];
+
+        var all = _born.ToArray();
+        _born.Clear();
+        return all;
+    }
 }

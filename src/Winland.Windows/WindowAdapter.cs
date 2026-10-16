@@ -648,7 +648,7 @@ public sealed partial class WindowAdapter : IDisposable
                 PlaceMoving(window, placement.Bounds, fills, motions);
         }
 
-        if (outcome.Close is WindowId closing)
+        foreach (var closing in outcome.Closes)
             CloseOrLeave(closing, motions);
 
         BeginRest(motions);
@@ -664,7 +664,7 @@ public sealed partial class WindowAdapter : IDisposable
         if (outcome.Focus is WindowId focus)
             _ = Foreground.MoveTo(focus);
 
-        if (outcome.Launch is Launch launch)
+        foreach (var launch in outcome.Launches)
         {
             var pid = ProcessLauncher.TryLaunch(launch);
             if (pid is int id)
@@ -704,7 +704,7 @@ public sealed partial class WindowAdapter : IDisposable
 
         Applied?.Invoke(outcome);
 
-        if (outcome.Kill is KillRequest kill)
+        foreach (var kill in outcome.Kills)
             Kill(kill);
 
         foreach (var power in outcome.DisplayPower)

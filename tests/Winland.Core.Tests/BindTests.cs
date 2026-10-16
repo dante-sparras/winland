@@ -300,6 +300,17 @@ public class BindTests
     }
 
     [Fact]
+    public void TwoBindsOnOneKeyLaunchBothPrograms()
+    {
+        var core = Load("bind = SUPER, E, exec, a\nbind = SUPER, E, exec, b");
+        Press(core, "Super_L");
+
+        var outcome = Press(core, "E");
+
+        Assert.Equal(["a", "b"], outcome.Launches.Select(launch => launch.CommandLine));
+    }
+
+    [Fact]
     public void KeyNameMatchIsCaseInsensitive()
     {
         var core = Load("bind = super, q, killactive");
