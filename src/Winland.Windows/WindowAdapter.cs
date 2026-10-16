@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Dwm;
@@ -23,7 +22,11 @@ public sealed partial class WindowAdapter : IDisposable
     private readonly Action<RecoverySnapshot>? _changed;
     private readonly Action<Outcome>? _publish;
     private readonly WINEVENTPROC _callback;
+    private const long ProbeMilliseconds = 2000;
+    private const int ProbeLimit = 1024;
+
     private readonly Dictionary<WindowId, (Size? Min, Size? Max)> _limits = [];
+    private readonly Dictionary<WindowId, (Size? Min, Size? Max, long At)> _probed = [];
     private readonly Lock _limitGate = new();
     private HWINEVENTHOOK _objects;
     private HWINEVENTHOOK _minimize;
@@ -320,6 +323,7 @@ public sealed partial class WindowAdapter : IDisposable
                 case PInvoke.EVENT_OBJECT_DESTROY:
                     AbandonDrag(window);
                     ForgetLimits(window);
+                    ForgetProbe(window);
                     Apply(_core.Handle(new WindowClosed(window)));
                     return;
                 case PInvoke.EVENT_OBJECT_LOCATIONCHANGE:
@@ -372,7 +376,15 @@ public sealed partial class WindowAdapter : IDisposable
                     if (PInvoke.IsIconic(hwnd))
                         return;
 
-                    Apply(_core.Handle(new WindowRestored(window)));
+                    // Titles change all the time. A Client's new title changes nothing the core keeps, and
+                    // restoring a window the core does not manage does nothing, so neither is sent to it.
+                    var managed = _core.Manages(window);
+                    if (managed && @event == PInvoke.EVENT_OBJECT_NAMECHANGE)
+                        return;
+
+                    if (managed)
+                        Apply(_core.Handle(new WindowRestored(window)));
+
                     AdoptShown(hwnd, window);
                     return;
             }
@@ -382,7 +394,7 @@ public sealed partial class WindowAdapter : IDisposable
         }
     }
 
-    private static bool TryDescribe(HWND hwnd, WindowId window, out WindowAppeared appeared)
+    private bool TryDescribe(HWND hwnd, WindowId window, out WindowAppeared appeared)
     {
         appeared = null!;
         var monitor = PInvoke.MonitorFromWindow(hwnd, MONITOR_FROM_FLAGS.MONITOR_DEFAULTTONEAREST);
@@ -394,26 +406,16 @@ public sealed partial class WindowAdapter : IDisposable
         var extended = PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
         var className = ClassName(hwnd);
         var title = WindowTitle(hwnd);
-        var identity = PackagedIdentity.Resolve(hwnd, className, ExeName(hwnd), title);
+        var owner = PInvoke.GetWindowThreadProcessId(hwnd, out var pid) == 0 ? 0 : pid;
+        var identity = PackagedIdentity.Resolve(hwnd, className, ProcessFacts.Shared.For(owner).Exe, title);
         var topLevel = PInvoke.GetAncestor(hwnd, GET_ANCESTOR_FLAGS.GA_ROOT) == hwnd && (style & ChildStyle) == 0;
         Point? pointer = PInvoke.GetCursorPos(out var cursor) ? new Point(cursor.X, cursor.Y) : null;
         var bounds = PInvoke.GetWindowRect(hwnd, out var rect) ? From(rect) : default;
         var monitorRect = From(info.rcMonitor);
         // A Store app's frame belongs to ApplicationFrameHost. The Client's process is the app it hosts.
         long processId = identity.ProcessId;
-        IReadOnlyList<int> ancestors = [];
-        if (identity.ProcessId is > 0 and <= int.MaxValue)
-            ancestors = ProcessLauncher.Ancestors((int)identity.ProcessId);
-
-        var dpi = (int)PInvoke.GetDpiForWindow(hwnd);
-        var insets = InsetsFor(window, hwnd, dpi);
-        Size? min = null;
-        Size? max = null;
-        if (WindowLimits.TryRead(hwnd, insets, out var readMin, out var readMax))
-        {
-            min = readMin;
-            max = readMax;
-        }
+        var ancestors = ProcessFacts.Shared.For(identity.ProcessId).Ancestors;
+        var (min, max) = LimitsOf(hwnd, window);
 
         appeared = new WindowAppeared(window, From(info.rcWork))
         {
@@ -499,6 +501,46 @@ public sealed partial class WindowAdapter : IDisposable
         }
 
         Apply(_core.Handle(new WindowLimitsChanged(window, min, max)));
+    }
+
+    // WM_GETMINMAXINFO can take up to its timeout. A Client's limits are kept up to date as it moves, and a
+    // window that is described again and again, as its title changes, is asked once in a while.
+    private (Size? Min, Size? Max) LimitsOf(HWND hwnd, WindowId window)
+    {
+        var now = Environment.TickCount64;
+        lock (_limitGate)
+        {
+            if (_limits.TryGetValue(window, out var kept))
+                return kept;
+
+            if (_probed.TryGetValue(window, out var probed) && now - probed.At < ProbeMilliseconds)
+                return (probed.Min, probed.Max);
+        }
+
+        Size? min = null;
+        Size? max = null;
+        var insets = InsetsFor(window, hwnd, (int)PInvoke.GetDpiForWindow(hwnd));
+        if (WindowLimits.TryRead(hwnd, insets, out var readMin, out var readMax))
+        {
+            min = readMin;
+            max = readMax;
+        }
+
+        lock (_limitGate)
+        {
+            if (_probed.Count >= ProbeLimit)
+                _probed.Clear();
+
+            _probed[window] = (min, max, now);
+        }
+
+        return (min, max);
+    }
+
+    private void ForgetProbe(WindowId window)
+    {
+        lock (_limitGate)
+            _probed.Remove(window);
     }
 
     private void RememberLimits(WindowId window, Size? min, Size? max)
@@ -689,23 +731,6 @@ public sealed partial class WindowAdapter : IDisposable
         Span<char> buffer = length <= 512 ? stackalloc char[length + 1] : new char[length + 1];
         var written = PInvoke.GetWindowText(hwnd, buffer);
         return written <= 0 ? "" : new string(buffer[..written]);
-    }
-
-    private static string ExeName(HWND hwnd)
-    {
-        if (PInvoke.GetWindowThreadProcessId(hwnd, out var pid) == 0 || pid == 0)
-            return "";
-
-        try
-        {
-            using var process = Process.GetProcessById((int)pid);
-            var path = process.MainModule?.FileName;
-            return string.IsNullOrEmpty(path) ? "" : Path.GetFileName(path);
-        }
-        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
-        {
-            return "";
-        }
     }
 
     private static bool IsShellTaskbar(HWND hwnd)
