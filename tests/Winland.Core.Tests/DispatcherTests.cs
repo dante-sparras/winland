@@ -391,6 +391,15 @@ public class DispatcherTests
     }
 
     [Fact]
+    public void PreselectWithoutADirectionIsAnError()
+    {
+        var core = TwoWindows();
+
+        Assert.NotNull(core.Handle(new Dispatch("layoutmsg", "preselect")).Error);
+        Assert.Equal("error: no direction for preselect", core.Execute("dispatch layoutmsg preselect").Text);
+    }
+
+    [Fact]
     public void SplitRatioAddsADeltaOrSetsAnExactValue()
     {
         var core = TwoWindows();

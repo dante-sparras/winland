@@ -166,7 +166,13 @@ internal sealed partial class DwindleLayout
         }
 
         if (Is(tokens[0], "preselect"))
-            return tokens.Length < 2 ? [] : Preselect(tokens[1]);
+        {
+            if (tokens.Length >= 2)
+                return Preselect(tokens[1]);
+
+            LayoutMessageError = "error: no direction for preselect";
+            return [];
+        }
         if (Is(tokens[0], DwindleMessages.ToggleSplit))
             return _options.PreserveSplit ? ToggleSplit(active) : [];
         if (Is(tokens[0], DwindleMessages.SwapSplit))
