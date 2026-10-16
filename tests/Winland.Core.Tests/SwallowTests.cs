@@ -239,6 +239,26 @@ public class SwallowTests
     }
 
     [Fact]
+    public void AFocusedChildClosingInItsGroupSlotOnAHiddenWorkspaceLeavesNoFocus()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(Unrelated(3));
+        core.Handle(new Dispatch("changegroupactive", "b"));
+        core.Handle(Child(2, parentProcess: 100));
+        core.Handle(new Dispatch("movetoworkspacesilent", "2"));
+
+        // No dispatcher focuses a hidden Client, but the close path must not keep one it finds focused.
+        ActiveField.SetValue(core, new WindowId(2));
+        core.Handle(new WindowClosed(new WindowId(2)));
+
+        Assert.Null(ActiveField.GetValue(core));
+    }
+
+    private static readonly System.Reflection.FieldInfo ActiveField =
+        typeof(Core).GetField("_active", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+
+    [Fact]
     public void AChildThatSwallowsAStandaloneTerminalStillJoinsTheFocusedGroup()
     {
         var core = WithTerminal(Swallowing);
