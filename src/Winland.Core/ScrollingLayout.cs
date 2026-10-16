@@ -135,6 +135,11 @@ internal sealed partial class ScrollingLayout : Layout
         _suspended.Remove(id);
         if (_focus == window)
             _focus = null;
+        if (_grab is { } grab && grab.Id == id)
+        {
+            _grab = null;
+            _dragging = false;
+        }
 
         if (_floating.Remove(id))
         {

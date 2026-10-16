@@ -216,7 +216,7 @@ internal sealed partial class MasterLayout
             return [];
 
         _grab = null;
-        if (!grab.Lifted)
+        if (!grab.Lifted || !_floating.ContainsKey(grab.Id))
         {
             if (grab.WasFloating && _floating.ContainsKey(grab.Id))
                 return Visible();
