@@ -13,7 +13,7 @@ public sealed record ApplyResult(bool Ok, IReadOnlyList<string> Lines);
 /// hashes the copy, and approves that hash only when it equals the hash the user was shown.
 /// One mismatch installs nothing.
 /// </summary>
-public sealed class PluginApply(IPluginLocationGuard guard, IPluginDirectoryProtector protector)
+public sealed class PluginApply(IPluginLocationGuard guard, IPluginDirectoryProtector protector, string defaultDirectory)
 {
     private const string Pending = ".new";
 
@@ -28,12 +28,9 @@ public sealed class PluginApply(IPluginLocationGuard guard, IPluginDirectoryProt
         if (invalid is not null)
             return Fail(invalid);
 
-        if (!Directory.Exists(directory))
-        {
-            Directory.CreateDirectory(directory);
-            protector.Protect(directory);
-            lines.Add($"Created the plugin directory '{directory}'.");
-        }
+        var unprepared = Prepare(directory, approvals, lines);
+        if (unprepared is not null)
+            return Fail(unprepared);
 
         var denied = guard.Deny(directory, approvals);
         if (denied is not null)
@@ -123,6 +120,52 @@ public sealed class PluginApply(IPluginLocationGuard guard, IPluginDirectoryProt
 
         return new ApplyResult(true, lines);
     }
+
+    // The paths come from a program that is not elevated, and the user's environment can point
+    // them anywhere. Only the default directory is created and protected. Another one is used
+    // only when an administrator already set it up with an approvals file; the guard then decides.
+    private string? Prepare(string directory, string approvals, List<string> lines)
+    {
+        var standard = Path.GetFullPath(defaultDirectory);
+        if (!SamePath(directory, standard) || !SamePath(approvals, PluginPaths.DefaultApprovals(null, null, standard)))
+        {
+            if (Directory.Exists(directory) && File.Exists(approvals))
+                return null;
+
+            return $"'{directory}' is not the default plugin directory '{standard}', and an administrator has not set it up with the approvals file '{approvals}'. "
+                + $"Set it up as an administrator, or unset {PluginPaths.DirectoryVariable} and {PluginPaths.ApprovalsVariable}.";
+        }
+
+        var reparse = ReparsePoint(directory);
+        if (reparse is not null)
+            return $"Refusing to use the plugin directory because '{reparse}' is a reparse point.";
+
+        if (!Directory.Exists(directory))
+        {
+            Directory.CreateDirectory(directory);
+            lines.Add($"Created the plugin directory '{directory}'.");
+        }
+
+        // A non-administrator may have created the folder first. Finding it proves nothing,
+        // so its owner and access list are replaced every time.
+        protector.Protect(directory);
+        return null;
+    }
+
+    // A junction would send the protection and the copies to wherever it points.
+    private static string? ReparsePoint(string directory)
+    {
+        for (var current = new DirectoryInfo(directory); current is not null; current = current.Parent)
+        {
+            if (current.Exists && current.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                return current.FullName;
+        }
+
+        return null;
+    }
+
+    private static bool SamePath(string left, string right) =>
+        Path.TrimEndingDirectorySeparator(left).Equals(Path.TrimEndingDirectorySeparator(right), StringComparison.OrdinalIgnoreCase);
 
     private static string? Validate(ApplyRequest request)
     {

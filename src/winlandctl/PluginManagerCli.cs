@@ -52,7 +52,9 @@ static class PluginManagerCli
         ApplyResult result;
         try
         {
-            result = new PluginApply(new WindowsPluginLocationGuard(), new WindowsPluginDirectoryProtector()).Run(request);
+            var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            var standard = PluginPaths.DefaultDirectory(null, null, programData);
+            result = new PluginApply(new WindowsPluginLocationGuard(), new WindowsPluginDirectoryProtector(), standard).Run(request);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
