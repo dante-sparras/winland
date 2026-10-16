@@ -34,6 +34,36 @@ public class CommandServerTests
         Assert.Equal(new byte[] { 1, 1, 0, 0, 0, 0, 0, 0x10, 0, 0x20, 0, 0 }, opaque[^12..]);
     }
 
+    // A process that took the name first would otherwise share it, and get some of the clients.
+    [Fact]
+    public void StartFailsWhenAnotherProcessHoldsThePipeName()
+    {
+        var name = PipeName();
+        using var squatter = new NamedPipeServerStream(
+            name,
+            PipeDirection.InOut,
+            NamedPipeServerStream.MaxAllowedServerInstances,
+            PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous);
+        using var server = new CommandServer(new Core(), name);
+
+        var error = Assert.Throws<InvalidOperationException>(server.Start);
+
+        Assert.Contains("already in use", error.InnerException?.Message ?? error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ASecondServerCannotTakeAPipeNameInUse()
+    {
+        var name = PipeName();
+        using var first = new CommandServer(new Core(), name);
+        first.Start();
+        using var second = new CommandServer(new Core(), name);
+
+        Assert.Throws<InvalidOperationException>(second.Start);
+        Assert.Equal("ok", CommandClient.Transact("dispatch workspace 1", name));
+    }
+
     [Fact]
     public void ClientRoundTripsClientsAndDispatch()
     {

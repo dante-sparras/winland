@@ -130,25 +130,23 @@ public sealed class CommandServer : IDisposable
 
     private async Task Loop()
     {
-        var announced = false;
-        while (!_cancel.IsCancellationRequested)
+        NamedPipeServerStream? server;
+        try
         {
-            NamedPipeServerStream server;
-            try
-            {
-                server = Open();
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NotSupportedException)
-            {
-                if (!announced)
-                {
-                    _startError = exception;
-                    _ready.Set();
-                }
+            // The first instance claims the name. A process that already holds it makes
+            // startup fail here, instead of sharing the name and some of the clients.
+            server = Open(first: true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            _startError = exception;
+            _ready.Set();
+            return;
+        }
 
-                return;
-            }
-
+        var announced = false;
+        while (server is not null)
+        {
             lock (_sync)
             {
                 if (_cancel.IsCancellationRequested)
@@ -161,8 +159,11 @@ public sealed class CommandServer : IDisposable
                 _listening = server;
             }
 
-            announced = true;
-            _ready.Set();
+            if (!announced)
+            {
+                announced = true;
+                _ready.Set();
+            }
 
             try
             {
@@ -175,7 +176,9 @@ public sealed class CommandServer : IDisposable
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                server.Dispose();
+                var failed = server;
+                server = Next();
+                failed.Dispose();
                 continue;
             }
             finally
@@ -193,10 +196,27 @@ public sealed class CommandServer : IDisposable
                 return;
             }
 
-            // The request is read off this loop, so a client that connects and sends nothing
-            // does not keep the next one from connecting. Tracked first, so Dispose closes it.
-            Track(server);
-            _ = Task.Run(() => Serve(server));
+            // The next instance is made before this one is served, so the name is never left
+            // free for another process to take. The request is read off this loop, so a client
+            // that connects and sends nothing does not keep the next one from connecting.
+            // Tracked first, so Dispose closes it.
+            var connected = server;
+            server = Next();
+            Track(connected);
+            _ = Task.Run(() => Serve(connected));
+        }
+    }
+
+    private NamedPipeServerStream? Next()
+    {
+        try
+        {
+            return Open(first: false);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            Console.Error.WriteLine(exception.Message);
+            return null;
         }
     }
 
@@ -356,7 +376,7 @@ public sealed class CommandServer : IDisposable
         }
     }
 
-    private NamedPipeServerStream Open()
+    private NamedPipeServerStream Open(bool first)
     {
         using var identity = WindowsIdentity.GetCurrent();
         var user = identity.User ?? throw new InvalidOperationException("The current user has no SID.");
@@ -364,12 +384,22 @@ public sealed class CommandServer : IDisposable
         // Setting the label afterwards is access denied (error 5) even with the
         // security privilege enabled. Creating the pipe with the label already
         // in its descriptor gives a medium client access to the elevated server.
-        return elevated ? CreateLabeled(user) : Create(SecurityFor(user));
+        var descriptor = elevated
+            ? DescriptorFor(user)
+            : new RawSecurityDescriptor(SecurityFor(user).GetSecurityDescriptorSddlForm(AccessControlSections.Access));
+        return Create(descriptor, first);
     }
 
-    private unsafe NamedPipeServerStream CreateLabeled(SecurityIdentifier user)
+    // Both elevations create the pipe here, so both get the same flags: remote clients are
+    // refused, and the first instance fails when the name already exists.
+    private unsafe NamedPipeServerStream Create(RawSecurityDescriptor descriptor, bool first)
     {
-        var descriptor = DescriptorFor(user);
+        const uint Duplex = 0x00000003;
+        const uint Overlapped = 0x40000000;
+        const uint FirstInstance = 0x00080000;
+        const uint RejectRemoteClients = 0x00000008;
+        const int AccessDenied = 5;
+
         var binary = new byte[descriptor.BinaryLength];
         descriptor.GetBinaryForm(binary, 0);
         fixed (byte* bytes = binary)
@@ -382,31 +412,26 @@ public sealed class CommandServer : IDisposable
             };
             var handle = CreateNamedPipeW(
                 @"\\.\pipe\" + _pipeName,
-                0x00000003 | 0x40000000,
-                0,
+                Duplex | Overlapped | (first ? FirstInstance : 0),
+                RejectRemoteClients,
                 255,
                 0,
                 0,
                 0,
                 ref security);
             if (handle == new IntPtr(-1))
-                throw new IOException($"The command pipe did not start ({Marshal.GetLastWin32Error()}).");
+            {
+                var error = Marshal.GetLastWin32Error();
+                if (first && error == AccessDenied)
+                    throw new IOException($"The command pipe did not start: the name '{_pipeName}' is already in use.");
+
+                throw new IOException($"The command pipe did not start ({error}).");
+            }
 
             var safe = new Microsoft.Win32.SafeHandles.SafePipeHandle(handle, ownsHandle: true);
             return new NamedPipeServerStream(PipeDirection.InOut, isAsync: true, isConnected: false, safe);
         }
     }
-
-    private NamedPipeServerStream Create(PipeSecurity security) =>
-        NamedPipeServerStreamAcl.Create(
-            _pipeName,
-            PipeDirection.InOut,
-            NamedPipeServerStream.MaxAllowedServerInstances,
-            PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous,
-            0,
-            0,
-            security);
 
     private static async Task<string> Read(NamedPipeServerStream server, CancellationToken cancel)
     {
