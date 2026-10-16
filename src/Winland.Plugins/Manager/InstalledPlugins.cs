@@ -30,17 +30,18 @@ public static class InstalledPlugins
         if (!System.IO.File.Exists(path))
             return [];
 
-        List<Entry>? entries;
+        List<Entry?>? entries;
         try
         {
-            entries = JsonSerializer.Deserialize<List<Entry>>(System.IO.File.ReadAllText(path), Json);
+            entries = JsonSerializer.Deserialize<List<Entry?>>(System.IO.File.ReadAllText(path), Json);
         }
-        catch (JsonException exception)
+        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
         {
             throw new InvalidDataException($"Could not read approvals '{path}': {exception.Message}", exception);
         }
 
         return (entries ?? [])
+            .OfType<Entry>()
             .Where(entry => !string.IsNullOrWhiteSpace(entry.Name) && !string.IsNullOrWhiteSpace(entry.Sha256))
             .Select(entry => new InstalledPlugin(
                 entry.Name!.Trim(),
