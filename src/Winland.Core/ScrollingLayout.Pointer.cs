@@ -118,7 +118,7 @@ internal sealed partial class ScrollingLayout
             return [];
 
         _grab = null;
-        if (grab.Lifted)
+        if (grab.Lifted && _floating.ContainsKey(grab.Id))
             return DropTiled(grab.Id, pointer);
 
         if (grab.WasFloating && _floating.ContainsKey(grab.Id))

@@ -155,6 +155,9 @@ internal sealed partial class DwindleLayout : Layout
         _natural.Remove(id);
         _lastFloat.Remove(id);
         _limits.Remove(id);
+        if (_grab is { } grab && grab.Id == id)
+            _grab = null;
+
         if (_floating.Remove(id) || _suspended.Remove(id))
         {
             _clients.RemoveAll(client => client.Id == id);
