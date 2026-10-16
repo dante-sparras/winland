@@ -342,6 +342,9 @@ public sealed partial class WindowAdapter : IDisposable
                     Apply(_core.Handle(new WindowClosed(window)));
                     return;
                 case PInvoke.EVENT_OBJECT_LOCATIONCHANGE:
+                    if (Decide(hwnd, window))
+                        return;
+
                     if (_sizing == window)
                     {
                         FollowSizing(window);
