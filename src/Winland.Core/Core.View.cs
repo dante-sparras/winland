@@ -165,6 +165,7 @@ public sealed partial class Core
                 LastWindow = desk.Focus,
                 Persistent = desk.Persistent,
                 DisplayName = desk.DisplayName,
+                TiledLayout = LayoutFactory.NameOf(desk.Layout),
             });
         }
 

@@ -319,10 +319,12 @@ public static partial class CommandProtocol
 
         var names = new Dictionary<WorkspaceId, string>();
         var persistent = new Dictionary<WorkspaceId, bool>();
+        var tiledLayouts = new Dictionary<WorkspaceId, string>();
         foreach (var workspace in state.Workspaces)
         {
             names[workspace.Id] = workspace.DisplayName ?? workspace.Id.Name;
             persistent[workspace.Id] = workspace.Persistent;
+            tiledLayouts[workspace.Id] = workspace.TiledLayout;
         }
 
         var byWorkspace = new Dictionary<WorkspaceId, WorkspaceJson>(ids.Count);
@@ -349,7 +351,7 @@ public static partial class CommandProtocol
                 lastAddress,
                 lastTitle,
                 persistent.GetValueOrDefault(id),
-                "dwindle"));
+                tiledLayouts.GetValueOrDefault(id, "dwindle")));
         }
 
         counts.Sort(static (left, right) => left.Id.CompareTo(right.Id));
