@@ -239,6 +239,69 @@ public class FullscreenTests
         Assert.True(ClientOf(back, 1).Floating);
     }
 
+    [Theory]
+    [InlineData("movetoworkspace")]
+    [InlineData("movetoworkspacesilent")]
+    public void AFullscreenClientStaysFullscreenOnTheWorkspaceItMovesTo(string dispatcher)
+    {
+        var core = Desk();
+        Appear(core, 2);
+        core.Handle(new Dispatch("fullscreen", "1"));
+
+        var moved = core.Handle(new Dispatch(dispatcher, "2"));
+
+        var client = ClientOf(moved, 2);
+        Assert.Equal(new WorkspaceId("2"), client.Workspace);
+        Assert.Equal(FullscreenMode.Maximized, client.Fullscreen);
+        Assert.Equal(FullscreenMode.Maximized, client.FullscreenClient);
+        Assert.Equal(Work, Bounds(core, 2));
+    }
+
+    [Fact]
+    public void AFullscreenClientMovedOntoAnotherReplacesIt()
+    {
+        var core = Desk();
+        core.Handle(new WindowAppeared(new WindowId(1), Work));
+        core.Handle(new Dispatch("fullscreen"));
+        core.Handle(new Dispatch("workspace", "2"));
+        core.Handle(new WindowAppeared(new WindowId(2), Work));
+        core.Handle(new Dispatch("fullscreen"));
+
+        var moved = core.Handle(new Dispatch("movetoworkspace", "1"));
+
+        Assert.Equal(FullscreenMode.Fullscreen, ClientOf(moved, 2).Fullscreen);
+        Assert.Equal(FullscreenMode.None, ClientOf(moved, 1).Fullscreen);
+        Assert.Equal(MonitorBounds, BoundsOf(moved, 2));
+    }
+
+    [Fact]
+    public void AFullscreenClientStaysFullscreenOnTheMonitorItMovesTo()
+    {
+        var core = new Core();
+        var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 984));
+        core.Handle(new MonitorsChanged([Screen(), right]));
+        core.Handle(new WindowAppeared(new WindowId(1), Work));
+        core.Handle(new Dispatch("fullscreen"));
+
+        var moved = core.Handle(new Dispatch("movewindow", "mon:" + right.Name));
+
+        Assert.Equal(FullscreenMode.Fullscreen, ClientOf(moved, 1).Fullscreen);
+        Assert.Equal(new Rectangle(1920, 0, 1280, 1024), Bounds(core, 1));
+    }
+
+    [Fact]
+    public void ChangingTheLayoutOnReloadKeepsAFullscreenClient()
+    {
+        var core = Desk();
+        Appear(core, 2);
+        core.Handle(new Dispatch("fullscreen"));
+
+        var reloaded = core.Handle(new Configure(ConfigParser.Parse("general:layout = master\n")));
+
+        Assert.Equal(FullscreenMode.Fullscreen, ClientOf(reloaded, 2).Fullscreen);
+        Assert.Equal(MonitorBounds, Bounds(core, 2));
+    }
+
     private static Core Desk()
     {
         var core = new Core();

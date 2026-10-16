@@ -148,7 +148,10 @@ internal interface Layout
 /// <summary>One step of a mouse move or resize. <see cref="KeepRatio"/> holds a floating Client's aspect ratio while it is resized.</summary>
 internal readonly record struct PointerDrag(bool Resize, PointerDragPhase Phase, Point Pointer, bool KeepRatio = false);
 
-/// <summary>A Client handed from one Workspace's Layout to another.</summary>
+/// <summary>
+/// A Client handed from one Workspace's Layout to another. A Layout leaves the fullscreen modes at none;
+/// <see cref="LiveWorkspace.Take"/> fills them in so the Client is fullscreen again where it lands.
+/// </summary>
 internal readonly record struct Taken(
     bool Floating,
     bool Minimized,
@@ -160,4 +163,6 @@ internal readonly record struct Taken(
     string InitialTitle = "",
     Size? MinSize = null,
     Size? MaxSize = null,
-    double? ScrollingWidth = null);
+    double? ScrollingWidth = null,
+    FullscreenMode Fullscreen = FullscreenMode.None,
+    FullscreenMode FullscreenClient = FullscreenMode.None);
