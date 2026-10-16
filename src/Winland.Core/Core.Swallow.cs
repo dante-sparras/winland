@@ -281,7 +281,7 @@ public sealed partial class Core
     {
         try
         {
-            return Regex.IsMatch(text, "^(?:" + pattern + ")$", RegexOptions.CultureInvariant, SwallowMatchTimeout);
+            return Regex.IsMatch(text, $"\\A(?:{pattern})\\z", RegexOptions.CultureInvariant, SwallowMatchTimeout);
         }
         catch (Exception exception) when (exception is ArgumentException or RegexMatchTimeoutException)
         {

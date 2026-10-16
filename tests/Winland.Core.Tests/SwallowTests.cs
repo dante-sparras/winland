@@ -253,6 +253,16 @@ public class SwallowTests
     }
 
     [Fact]
+    public void AnExceptionTitleEndingInANewlineDoesNotMatchAsIfTheNewlineWereNotThere()
+    {
+        var core = WithTerminal(Swallowing + "misc:swallow_exception_regex = vim\n", title: "vim\n");
+
+        var opened = core.Handle(Child(2, parentProcess: 100));
+
+        Assert.Contains(new WindowId(1), opened.Hide);
+    }
+
+    [Fact]
     public void SwallowKeywordsAreHonored()
     {
         var document = ConfigParser.Parse(Swallowing + "misc:swallow_exception_regex = ^(wev)$\n");
