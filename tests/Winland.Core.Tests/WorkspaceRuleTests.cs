@@ -511,6 +511,24 @@ public class WorkspaceRuleTests
         Assert.Null(GapsIn("workspace = n[true], gapsin:4", new WorkspaceId("special:scratch")));
     }
 
+    [Theory]
+    [InlineData("special:scratch", "special:scratch", null, true)]
+    [InlineData("special:scratch", "scratch", null, false)]
+    [InlineData("special", "special:special", null, true)]
+    [InlineData("special:", "special:special", null, false)]
+    [InlineData("coding", "coding", null, true)]
+    [InlineData("coding", "special:coding", null, false)]
+    [InlineData("coding", "1", "coding", false)]
+    [InlineData("name:coding", "coding", null, true)]
+    [InlineData("name:1", "1", null, false)]
+    [InlineData("name:code", "1", "code", false)]
+    [InlineData("name:scratch", "special:scratch", null, false)]
+    public void ABareSelectorMatchesTheAddressableName(string selector, string workspace, string? displayName, bool applies)
+    {
+        var gaps = GapsIn($"workspace = {selector}, gapsin:9", new WorkspaceId(workspace), displayName);
+        Assert.Equal(applies ? 9 : null, gaps);
+    }
+
     private static int? GapsIn(string rules, WorkspaceId id, string? displayName = null)
     {
         var parsed = ConfigParser.Parse(rules).WorkspaceRules;
