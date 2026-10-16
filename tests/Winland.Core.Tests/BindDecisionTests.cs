@@ -73,6 +73,41 @@ public class BindDecisionTests
         Assert.False(core.Decide(new KeyPressed("E"), session).Consumed);
     }
 
+    // The pinned release folds the released key's own modifier into the mask on release,
+    // so the classic "bindr = SUPER, Super_L" runs when Super is let go.
+    [Theory]
+    [InlineData("bindr = SUPER, Super_L, exec, menu", "Super_L")]
+    [InlineData("bindr = , Super_L, exec, menu", "Super_L")]
+    [InlineData("bindr = ALT, Alt_R, exec, menu", "Alt_R")]
+    [InlineData("bindr = CTRL SHIFT, Shift_L, exec, menu", "Shift_L")]
+    public void AReleaseBindOnAModifierKeyRunsWhenThatKeyIsLetGo(string config, string key)
+    {
+        var core = new Core();
+        core.Handle(new ConfigLoaded(ConfigParser.Parse(config)));
+        var session = new BindSession();
+        if (config.Contains("CTRL", StringComparison.Ordinal))
+            core.Decide(new KeyPressed("Control_L"), session);
+
+        var down = core.Decide(new KeyPressed(key), session);
+        var up = core.Decide(new KeyReleased(key), session);
+
+        Assert.Null(down.Dispatcher);
+        Assert.Equal("exec", up.Dispatcher);
+    }
+
+    [Fact]
+    public void AReleaseBindOnAModifierKeyStillNeedsItsOtherModifiers()
+    {
+        var core = new Core();
+        core.Handle(new ConfigLoaded(ConfigParser.Parse("bindr = SUPER ALT, Super_L, exec, menu")));
+        var session = new BindSession();
+
+        core.Decide(new KeyPressed("Super_L"), session);
+        var up = core.Decide(new KeyReleased("Super_L"), session);
+
+        Assert.Null(up.Dispatcher);
+    }
+
     [Fact]
     public void DecisionHonorsInhibitAndTheLockedFlag()
     {
