@@ -122,7 +122,37 @@ internal sealed partial class DwindleLayout
             return [new Placement(left, rightBox), new Placement(right, leftBox)];
         }
 
+        if (TryNode(first, out var tiledNode) && _floating.TryGet(right, out var floatBox))
+            return SwapAcross(tiledNode, right, floatBox);
+        if (TryNode(second, out tiledNode) && _floating.TryGet(left, out floatBox))
+            return SwapAcross(tiledNode, left, floatBox);
+
         return [];
+    }
+
+    // A tile and a floating Client trade places and floating state: the floater takes the tile, and the tiled one floats where the floater was.
+    private List<Placement> SwapAcross(Node node, ClientId floater, Rectangle box)
+    {
+        var tiled = node.Id!.Value;
+        node.Id = floater;
+        _nodes.Remove(tiled);
+        _nodes[floater] = node;
+        _floating.Sink(floater);
+        _floating.Set(tiled, box);
+        SetFloating(floater, false);
+        SetFloating(tiled, true);
+        if (_splitTarget == tiled)
+            _splitTarget = floater;
+
+        Refit();
+        return [.. Placements(), new Placement(tiled, box)];
+    }
+
+    private void SetFloating(ClientId id, bool floating)
+    {
+        var index = _clients.FindIndex(client => client.Id == id);
+        if (index >= 0)
+            _clients[index] = _clients[index] with { Floating = floating };
     }
 
     public IReadOnlyList<Placement> ToggleFloating(WindowId window)

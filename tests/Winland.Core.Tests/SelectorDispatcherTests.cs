@@ -178,6 +178,26 @@ public class SelectorDispatcherTests
     }
 
     [Fact]
+    public void SwapWindowExchangesATileAndAFloatingClient()
+    {
+        var core = new Core(ConfigParser.Parse(
+            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrulev2 = float, class:^(Float)$\n"));
+        Appear(core, 1, "Tile", "a");
+        Appear(core, 2, "Float", "b");
+        var before = core.Handle(new Dispatch("focuswindow", "class:Tile"));
+        var tile = Client(before, 1).Bounds;
+        var floated = Client(before, 2).Bounds;
+
+        var swapped = core.Handle(new Dispatch("swapwindow", "class:Float"));
+
+        Assert.Null(swapped.Error);
+        Assert.Equal(tile, BoundsOf(swapped, 2));
+        Assert.False(Client(swapped, 2).Floating);
+        Assert.Equal(floated, BoundsOf(swapped, 1));
+        Assert.True(Client(swapped, 1).Floating);
+    }
+
+    [Fact]
     public void ExitEventNoOpAndRendererReload()
     {
         var core = new Core();
