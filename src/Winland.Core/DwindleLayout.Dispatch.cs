@@ -174,7 +174,7 @@ internal sealed partial class DwindleLayout
             return [];
         }
         if (Is(tokens[0], DwindleMessages.ToggleSplit))
-            return _options.PreserveSplit ? ToggleSplit(active) : [];
+            return _options.PreserveSplit || _options.SmartSplit || _options.PreciseMouseMove ? ToggleSplit(active) : [];
         if (Is(tokens[0], DwindleMessages.SwapSplit))
             return SwapSplit(active);
         if (Is(tokens[0], DwindleMessages.RotateSplit))

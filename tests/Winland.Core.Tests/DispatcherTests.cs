@@ -309,6 +309,21 @@ public class DispatcherTests
         Assert.Equal(new Rectangle(0, 540, 1920, 540), BoundsOf(outcome, 2));
     }
 
+    [Theory]
+    [InlineData("dwindle:smart_split = true")]
+    [InlineData("dwindle:precise_mouse_move = true")]
+    public void ToggleSplitFlipsTheSplitWhenAnotherOptionKeepsSplits(string option)
+    {
+        var core = Flat(option);
+        Appear(core, 1);
+        Appear(core, 2);
+
+        var outcome = core.Handle(new Dispatch("layoutmsg", "togglesplit"));
+
+        Assert.Equal(new Rectangle(0, 0, 1920, 540), BoundsOf(outcome, 1));
+        Assert.Equal(new Rectangle(0, 540, 1920, 540), BoundsOf(outcome, 2));
+    }
+
     [Fact]
     public void SwapSplitExchangesTheTwoHalves()
     {
