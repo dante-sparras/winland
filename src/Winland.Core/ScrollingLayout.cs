@@ -29,7 +29,6 @@ internal sealed partial class ScrollingLayout : Layout
     private bool _inhibited;
     private double _inhibitedOffset;
     private bool _dragging;
-    private MouseGrab? _grab;
 
     public IReadOnlyList<Client> Clients => _clients;
 
@@ -124,11 +123,8 @@ internal sealed partial class ScrollingLayout : Layout
         var suspended = _suspended.Remove(id);
         if (_focus == window)
             _focus = null;
-        if (_grab is { } grab && grab.Id == id)
-        {
-            _grab = null;
+        if (_drag.Forget(id))
             _dragging = false;
-        }
 
         if (_floating.Forget(id) || suspended)
         {

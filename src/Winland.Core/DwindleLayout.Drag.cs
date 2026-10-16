@@ -1,103 +1,14 @@
 namespace Winland;
 
-internal sealed partial class DwindleLayout
+internal sealed partial class DwindleLayout : IMouseDragHost
 {
-    private MouseGrab? _grab;
+    private readonly MouseDrag _drag = new();
 
-    public IReadOnlyList<Placement> Drag(WindowId window, PointerDrag drag)
-    {
-        return drag.Phase switch
-        {
-            PointerDragPhase.Begin => BeginDrag(window, drag.Pointer, drag.Resize, drag.KeepRatio),
-            PointerDragPhase.Move => MoveDrag(drag.Pointer, drag.Resize),
-            PointerDragPhase.End => EndDrag(drag.Pointer),
-            _ => [],
-        };
-    }
+    FloatingClients IMouseDragHost.Floating => _floating;
 
-    private IReadOnlyList<Placement> BeginDrag(WindowId window, Point pointer, bool resize, bool keepRatio)
-    {
-        var id = new ClientId(window.Value);
-        if (!TryDragBounds(id, out var bounds, out var floating))
-        {
-            _grab = null;
-            return [];
-        }
+    int IMouseDragHost.ResizeCorner => _options.ResizeCorner;
 
-        var (left, top) = BorderPointer.GrabbedCorner(_options.ResizeCorner, floating, pointer, bounds);
-        _grab = new MouseGrab(id, resize, floating, pointer, bounds, left, top) { KeepRatio = keepRatio };
-        return [];
-    }
-
-    private IReadOnlyList<Placement> MoveDrag(Point pointer, bool resize)
-    {
-        if (_grab is not MouseGrab grab || grab.Resize != resize)
-            return [];
-
-        // A Client tiled again while its floating drag runs is left to the tree.
-        if (grab.WasFloating && !_floating.Contains(grab.Id))
-            return [];
-
-        if (resize)
-            return grab.WasFloating ? ResizeFloating(grab, pointer) : ResizeTiled(grab, pointer);
-
-        if (!grab.WasFloating && !grab.Lifted && !Lift(grab, pointer))
-            return [];
-
-        return Follow(grab, pointer);
-    }
-
-    private IReadOnlyList<Placement> EndDrag(Point pointer)
-    {
-        if (_grab is not MouseGrab grab)
-            return [];
-
-        _grab = null;
-        if (grab.Lifted && _floating.Contains(grab.Id))
-            return DropTiled(grab.Id, pointer);
-
-        if (grab.WasFloating && _floating.Contains(grab.Id))
-            return WithFloating(grab.Id);
-
-        return [];
-    }
-
-    private bool Lift(MouseGrab grab, Point pointer)
-    {
-        if (!_nodes.TryGetValue(grab.Id, out var node) || !InTree(node))
-            return false;
-
-        var box = Present(grab.Id, node.Box);
-        var sibling = Detach(node);
-        _nodes.Remove(grab.Id);
-        if (_splitTarget == grab.Id)
-            _splitTarget = sibling is null ? null : Leaf(sibling.Node).Id;
-
-        MarkFloating(grab.Id, floating: true);
-        _floating.Set(grab.Id, box);
-        grab.Lifted = true;
-        grab.Start = box;
-        grab.HotX = box.Width / 2;
-        grab.HotY = box.Height / 2;
-        Refit();
-        return true;
-    }
-
-    private IReadOnlyList<Placement> Follow(MouseGrab grab, Point pointer)
-    {
-        var next = new Rectangle(pointer.X - grab.HotX, pointer.Y - grab.HotY, grab.Start.Width, grab.Start.Height);
-        next = SnapFloating(grab.Id, next, SnapEdges.All, resize: false);
-        _floating.Set(grab.Id, next);
-        return WithFloating(grab.Id);
-    }
-
-    private IReadOnlyList<Placement> ResizeFloating(MouseGrab grab, Point pointer)
-    {
-        var resized = BorderPointer.Resize(grab.Start, grab.Grab, pointer, grab.Left, grab.Top, grab.KeepRatio);
-        var next = SnapFloating(grab.Id, resized, SnapEdges.FromGrab(grab.Left, grab.Top), resize: true);
-        _floating.Set(grab.Id, next);
-        return WithFloating(grab.Id);
-    }
+    public IReadOnlyList<Placement> Drag(WindowId window, PointerDrag drag) => _drag.Step(this, window, drag);
 
     public IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds)
     {
@@ -105,63 +16,7 @@ internal sealed partial class DwindleLayout
         return _floating.Place(id, bounds) ? WithFloating(id) : [];
     }
 
-    private Rectangle SnapFloating(ClientId self, Rectangle proposed, SnapEdges edges, bool resize)
-    {
-        if (!_options.SnapEnabled)
-            return proposed;
-
-        var others = new List<Rectangle>();
-        foreach (var client in _clients)
-        {
-            if (client.Id == self || client.Minimized)
-                continue;
-
-            if (TryBounds(client.Window, out var bounds))
-                others.Add(bounds);
-        }
-
-        var monitor = _monitor.Width > 0 && _monitor.Height > 0 ? _monitor : _area;
-        return FloatingSnap.Apply(proposed, edges, resize, others, _area, monitor, _options);
-    }
-
-    private IReadOnlyList<Placement> ResizeTiled(MouseGrab grab, Point pointer)
-    {
-        var dx = pointer.X - grab.Last.X;
-        var dy = pointer.Y - grab.Last.Y;
-        grab.Last = pointer;
-        if (dx == 0 && dy == 0)
-            return [];
-
-        if (!_nodes.TryGetValue(grab.Id, out var node) || !InTree(node))
-            return [];
-
-        return ResizeTile(node, dx, dy, (grab.Left, grab.Top));
-    }
-
-    private IReadOnlyList<Placement> DropTiled(ClientId id, Point pointer)
-    {
-        _floating.Remove(id);
-        MarkFloating(id, floating: false);
-        var node = new Node { Id = id };
-        _nodes[id] = node;
-
-        var target = LeafContaining(pointer) ?? ClosestLeaf(pointer);
-        if (target is null || _root is null)
-        {
-            node.Box = TilingArea();
-            node.Parent = null;
-            _root = node;
-            _splitTarget = id;
-            Refit();
-            return Placements();
-        }
-
-        Split(target, node, pointer, dropped: true);
-        _splitTarget = id;
-        return Placements();
-    }
-
-    private bool TryDragBounds(ClientId id, out Rectangle bounds, out bool floating)
+    bool IMouseDragHost.TryDragBounds(ClientId id, out Rectangle bounds, out bool floating)
     {
         bounds = default;
         floating = false;
@@ -184,6 +39,65 @@ internal sealed partial class DwindleLayout
         return false;
     }
 
+    Rectangle IMouseDragHost.SnapFloating(ClientId self, Rectangle proposed, SnapEdges edges, bool resize) =>
+        FloatingSnap.AmongClients(this, self, proposed, edges, resize, _area, _monitor, _options);
+
+    bool IMouseDragHost.LiftTile(ClientId id, out Rectangle box)
+    {
+        box = default;
+        if (!_nodes.TryGetValue(id, out var node) || !InTree(node))
+            return false;
+
+        box = Present(id, node.Box);
+        var sibling = Detach(node);
+        _nodes.Remove(id);
+        if (_splitTarget == id)
+            _splitTarget = sibling is null ? null : Leaf(sibling.Node).Id;
+
+        MarkFloating(id, floating: true);
+        _floating.Set(id, box);
+        Refit();
+        return true;
+    }
+
+    IReadOnlyList<Placement> IMouseDragHost.ResizeTile(ClientId id, int dx, int dy, (bool Left, bool Top) corner)
+    {
+        if (dx == 0 && dy == 0)
+            return [];
+
+        if (!_nodes.TryGetValue(id, out var node) || !InTree(node))
+            return [];
+
+        return ResizeTile(node, dx, dy, corner);
+    }
+
+    IReadOnlyList<Placement> IMouseDragHost.DropTile(ClientId id, Point pointer)
+    {
+        _floating.Remove(id);
+        MarkFloating(id, floating: false);
+        var node = new Node { Id = id };
+        _nodes[id] = node;
+
+        var target = LeafContaining(pointer) ?? ClosestLeaf(pointer);
+        if (target is null || _root is null)
+        {
+            node.Box = TilingArea();
+            node.Parent = null;
+            _root = node;
+            _splitTarget = id;
+            Refit();
+            return Placements();
+        }
+
+        Split(target, node, pointer, dropped: true);
+        _splitTarget = id;
+        return Placements();
+    }
+
+    IReadOnlyList<Placement> IMouseDragHost.ShowFloating(ClientId id) => WithFloating(id);
+
+    IReadOnlyList<Placement> IMouseDragHost.EndInPlace() => [];
+
     private void MarkFloating(ClientId id, bool floating)
     {
         var index = _clients.FindIndex(client => client.Id == id);
@@ -198,51 +112,5 @@ internal sealed partial class DwindleLayout
             placements.Add(new Placement(id, box));
 
         return placements;
-    }
-
-    private sealed class MouseGrab
-    {
-        public MouseGrab(ClientId id, bool resize, bool wasFloating, Point grab, Rectangle start, bool left, bool top)
-        {
-            Id = id;
-            Resize = resize;
-            WasFloating = wasFloating;
-            Grab = grab;
-            Last = grab;
-            Start = start;
-            Left = left;
-            Top = top;
-            if (wasFloating)
-            {
-                HotX = grab.X - start.X;
-                HotY = grab.Y - start.Y;
-            }
-        }
-
-        public ClientId Id { get; }
-
-        public WindowId Window => new(Id.Value);
-
-        public bool Resize { get; }
-
-        public bool WasFloating { get; }
-
-        public Point Grab { get; }
-
-        public Point Last { get; set; }
-
-        public Rectangle Start { get; set; }
-
-        public bool Left { get; }
-
-        public bool Top { get; }
-
-        public bool Lifted { get; set; }
-
-        public bool KeepRatio { get; init; }
-
-        public int HotX { get; set; }
-
-        public int HotY { get; set; }
     }
 }
