@@ -51,6 +51,24 @@ public class LayoutEngineTests
     }
 
     [Fact]
+    public void ScrollingMovesTheCameraAgainAfterTheResizedTileIsHandedOver()
+    {
+        var layout = Open("scrolling");
+        layout.Configure(ScrollingOptions.Defaults with { FullscreenOnOneColumn = false });
+        Tiled(layout, 1);
+        Tiled(layout, 2);
+
+        layout.Drag(Window(2), new PointerDrag(true, PointerDragPhase.Begin, new Point(700, 400)));
+        layout.Drag(Window(2), new PointerDrag(true, PointerDragPhase.Move, new Point(720, 400)));
+        Assert.True(layout.Substitute(Window(2), Window(9), new Taken(false, false, default, "nine", "nine"), out _));
+        layout.Remove(Window(1));
+
+        // A lone column narrower than the work area is centered, which a frozen camera would not do.
+        var lone = Bounds(layout.Placed(), 9);
+        Assert.Equal((Area.Width - lone.Width) / 2, lone.X);
+    }
+
+    [Fact]
     public void DwindleHonorsAMinimumInsideASplitWhoseParentDoesNotChange()
     {
         var layout = Open("dwindle");

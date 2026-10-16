@@ -35,7 +35,8 @@ internal sealed partial class ScrollingLayout
         _widths.Remove(current);
         if (_focus == current)
             _focus = next;
-        _drag.Forget(from);
+        if (_drag.Forget(from))
+            _dragging = false;
 
         return true;
     }
