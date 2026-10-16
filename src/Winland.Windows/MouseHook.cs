@@ -112,7 +112,7 @@ public sealed class MouseHook : IDisposable
             if (TryButton(message, info.mouseData, out var button, out var up))
             {
                 if (!up && (info.flags & 0x1) == 0)
-                    InputClock.NoteClickOrKey();
+                    InputClock.NoteClickOrKey(info.time);
 
                 return OnButton(button, up, position) ? new LRESULT(1) : Next(code, wParam, lParam);
             }

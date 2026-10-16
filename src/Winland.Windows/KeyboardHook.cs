@@ -238,7 +238,7 @@ public sealed class KeyboardHook : IDisposable
             var up = info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_UP);
             NoteHeld(info.vkCode, up);
             if (!up && !info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_INJECTED))
-                InputClock.NoteClickOrKey();
+                InputClock.NoteClickOrKey(info.time);
 
             var vk = (int)info.vkCode;
             if (KeyNames.PassesThrough(vk))
