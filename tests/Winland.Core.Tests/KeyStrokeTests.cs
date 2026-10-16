@@ -32,6 +32,16 @@ public class KeyStrokeTests
     }
 
     [Fact]
+    public void ASymbolResolvesToTheKeyThatTypesItInTheLayout()
+    {
+        var layout = KeyLayout.From(new Dictionary<int, string> { [0xBF] = "#", [0xBD] = "/" });
+
+        Assert.True(KeyStrokes.TryResolve("slash", 0, layout, out var stroke));
+
+        Assert.Equal(0xBD, stroke.VirtualKey);
+    }
+
+    [Fact]
     public void TheCodeIsUsedWhenTheNameDoesNotResolve()
     {
         Assert.True(KeyStrokes.TryResolve("NoSuchKey", 38, KeyLayout.UnitedStates, out var stroke));
