@@ -109,6 +109,10 @@ public sealed class WindowHost : IDisposable
                             _mouse.Reinstall();
                             _keys.Reinstall();
                         }
+                        else
+                        {
+                            _keys.Watch();
+                        }
 
                         return true;
                     }

@@ -53,7 +53,10 @@ internal sealed class Win32KeyRelaySender : IKeyRelaySender
             moved = true;
         }
 
-        KeyboardHook.Send([.. Build(relay, stroke)]);
+        KeyboardHook.Send([.. Build(relay, stroke, Down, KeyboardHook.Held)]);
+        if (!stroke.IsMouse && relay.Phase != KeyRelayPhase.Tap)
+            KeyboardHook.NoteRelayed(stroke.VirtualKey, down: relay.Phase == KeyRelayPhase.Press);
+
         if (!moved || previous.IsNull)
             return;
 
@@ -74,9 +77,11 @@ internal sealed class Win32KeyRelaySender : IKeyRelaySender
         }
     }
 
-    // Exactly the requested modifiers are down around the key: held ones that are not wanted are
-    // let go and pressed again after, and wanted ones that are not held are pressed and let go.
-    private static List<INPUT> Build(KeyRelay relay, KeyStroke stroke)
+    // Exactly the requested modifiers are down around the key: ones Windows holds that are not
+    // wanted are let go, and wanted ones it does not hold are pressed and let go. A let-go modifier
+    // is pressed again only when the user still holds it (held). Windows can still hold one whose
+    // release is on its way; pressed again, it would land after that release and stay down.
+    internal static List<INPUT> Build(KeyRelay relay, KeyStroke stroke, Func<int, bool> down, Func<int, bool> held)
     {
         var inputs = new List<INPUT>();
         var after = new List<INPUT>();
@@ -85,8 +90,8 @@ internal sealed class Win32KeyRelaySender : IKeyRelaySender
         {
             foreach (var (modifier, left, right) in Modifiers)
             {
-                var leftDown = Down(left);
-                var rightDown = Down(right);
+                var leftDown = down(left);
+                var rightDown = down(right);
                 if (wanted.HasFlag(modifier))
                 {
                     if (leftDown || rightDown)
@@ -97,14 +102,15 @@ internal sealed class Win32KeyRelaySender : IKeyRelaySender
                     continue;
                 }
 
-                foreach (var (key, down) in new[] { (left, leftDown), (right, rightDown) })
+                foreach (var (key, isDown) in new[] { (left, leftDown), (right, rightDown) })
                 {
-                    if (!down)
+                    if (!isDown)
                         continue;
 
                     masked |= modifier is Modifier.Super or Modifier.Alt;
                     inputs.Add(KeyboardHook.Key(key, up: true));
-                    after.Insert(0, KeyboardHook.Key(key, up: false));
+                    if (held(key))
+                        after.Insert(0, KeyboardHook.Key(key, up: false));
                 }
             }
         }
