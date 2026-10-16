@@ -150,6 +150,23 @@ public class SizeLimitTests
         Assert.Equal(new Rectangle(720, 0, 1200, 1080), BoundsOf(outcome, 2));
     }
 
+    // The neighbour gives up all but the smallest share a split leaves, so the split shrinks it gradually
+    // as the minimum grows, and the window covers only the rest.
+    [Fact]
+    public void AMinimumAlmostAsWideAsTheMonitorLeavesTheNeighbourTheSmallestShare()
+    {
+        var core = new Core();
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+
+        var outcome = core.Handle(new WindowAppeared(new WindowId(2), Area)
+        {
+            Traits = WindowTraits.Normal with { MinSize = new Size(1900, 100) },
+        });
+
+        Assert.Equal(new Rectangle(0, 0, 96, 1080), BoundsOf(outcome, 1));
+        Assert.Equal(new Rectangle(20, 0, 1900, 1080), BoundsOf(outcome, 2));
+    }
+
     [Fact]
     public void AnOversizedMinimumLeavesEveryOtherTileOnTheMonitor()
     {

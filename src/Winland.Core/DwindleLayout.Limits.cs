@@ -73,9 +73,9 @@ internal sealed partial class DwindleLayout
 
     // Where the minimums along a split fit in the parent, the split gives each window
     // its minimum and the neighbour takes whatever space remains. Where they do not,
-    // the split stays where its ratio puts it: no tile grows past its parent or the
-    // Monitor, and a window below its minimum grows over its neighbours when it is
-    // placed (SizeLimits.Raise).
+    // the side that needs more takes all but the other side's floor: no tile grows
+    // past its parent or the Monitor, and a window below its minimum grows over its
+    // neighbours when it is placed (SizeLimits.Raise).
     private void HonorMinimums(Node node)
     {
         if (node.First is null || node.Second is null)
@@ -93,7 +93,15 @@ internal sealed partial class DwindleLayout
         int secondSpan;
         var ideal = FirstShare(available, node.SplitRatio);
         if (firstNeed + secondNeed > available)
-            firstSpan = ideal;
+        {
+            // The side that needs more takes all it can and leaves the other its floor. Equal needs keep the ratio.
+            if (firstNeed > secondNeed)
+                firstSpan = Math.Min(firstNeed, available - floor);
+            else if (secondNeed > firstNeed)
+                firstSpan = available - Math.Min(secondNeed, available - floor);
+            else
+                firstSpan = ideal;
+        }
         else if (ideal < firstNeed)
             firstSpan = firstNeed;
         else if (available - ideal < secondNeed)
