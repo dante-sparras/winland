@@ -16,6 +16,23 @@
     </PackageReference>
   </ItemGroup>
 
+  <!--
+    For mutation testing. Stryker compiles each mutant itself and runs CsWin32 in-process, so CsWin32
+    must find its inputs without the build: NativeMethods.txt by a full path (Stryker reads it from its
+    own folder), and the metadata paths as properties set at evaluation. The build sets those in a
+    target, so scripts/mutate.ps1 asks MSBuild for them and passes them in through the environment.
+    Elsewhere they are empty here and the CsWin32 target fills them in as before.
+  -->
+  <ItemGroup>
+    <AdditionalFiles Remove="NativeMethods.txt" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)NativeMethods.txt" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <CsWin32InputMetadataPaths>$(CsWin32InputMetadataPaths)</CsWin32InputMetadataPaths>
+    <CsWin32InputDocPaths>$(CsWin32InputDocPaths)</CsWin32InputDocPaths>
+  </PropertyGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

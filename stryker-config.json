@@ -2,6 +2,7 @@
   "stryker-config": {
     "reporters": [
       "html",
+      "json",
       "cleartext",
       "progress"
     ],

@@ -5,6 +5,7 @@ namespace Winland.Tests;
 
 /// <summary>The pinned release has no minimize, and a client's maximize request is maximize mode 1.</summary>
 [Collection(DesktopCollection.Name)]
+[Trait("Category", DesktopCollection.Name)]
 public class MinimizeMaximizeTests
 {
     private const int Minimize = 6;

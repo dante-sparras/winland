@@ -3,6 +3,9 @@ namespace Winland.Windows.Tests;
 /// <summary>
 /// The tests that open real top-level windows or set process-wide state such as the DPI awareness.
 /// xunit runs this collection by itself, after the others, one test at a time.
+/// Each class in it also carries <c>[Trait("Category", DesktopCollection.Name)]</c>, which the
+/// mutation lane filters out: Stryker runs several test processes at once, and xunit cannot keep
+/// those from opening windows at the same time.
 /// </summary>
 [CollectionDefinition(Name, DisableParallelization = true)]
 public sealed class DesktopCollection

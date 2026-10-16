@@ -5,6 +5,7 @@ using Winland.Windows.Tests;
 namespace Winland.Tests;
 
 [Collection(DesktopCollection.Name)]
+[Trait("Category", DesktopCollection.Name)]
 public class LimitProbeTests
 {
     [DesktopFact]
