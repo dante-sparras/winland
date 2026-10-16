@@ -46,10 +46,21 @@ public static class SessionEffects
         _idle?.Set(IdleInhibit.Wanted(outcome.State));
     }
 
-    /// <summary>Sends only the outcome's relayed keys. An older outcome applied after a newer one keeps these and nothing else here.</summary>
-    public static void Relay(Outcome outcome)
+    /// <summary>
+    /// Carries out only the outcome's one-off requests: its cursor warp and its relayed keys. An older outcome
+    /// applied after a newer one keeps these and nothing else here; its warp is gone when a newer one warped.
+    /// </summary>
+    public static void ApplyOneOff(Outcome outcome)
     {
         ArgumentNullException.ThrowIfNull(outcome);
+        if (outcome.Warp is WarpTo warp)
+            Idle.Warp(warp.Position);
+
+        Relay(outcome);
+    }
+
+    private static void Relay(Outcome outcome)
+    {
         if (_relay is not IKeyRelaySender relay)
             return;
 

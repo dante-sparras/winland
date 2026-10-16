@@ -77,6 +77,32 @@ public class ApplyOrderTests
         Assert.Equal(new KillRequest(7), admitted.Outcome.Kill);
     }
 
+    // bringactivetotop and alterzorder are one-off requests. An older one loses only the windows a
+    // newer outcome restacked.
+    [Fact]
+    public void AnOlderZOrderRequestLosesOnlyTheWindowsANewerOneRestacked()
+    {
+        var order = new ApplyOrder();
+        order.Admit(Decided(2) with { ZOrder = [new ZOrderRequest(First, Top: false)] });
+
+        var admitted = order.Admit(Decided(1) with { ZOrder = [new ZOrderRequest(First, Top: true), new ZOrderRequest(Second, Top: true)] });
+
+        Assert.False(admitted.Current);
+        Assert.Equal([new ZOrderRequest(Second, Top: true)], admitted.Outcome.ZOrder);
+    }
+
+    // movecursor is a one-off request too. An older warp loses only to a newer warp.
+    [Fact]
+    public void AnOlderWarpLosesOnlyToANewerWarp()
+    {
+        var order = new ApplyOrder();
+        order.Admit(Decided(2));
+        Assert.Equal(new WarpTo(new Point(5, 5)), order.Admit(Decided(1) with { Warp = new WarpTo(new Point(5, 5)) }).Outcome.Warp);
+
+        order.Admit(Decided(4) with { Warp = new WarpTo(new Point(9, 9)) });
+        Assert.Null(order.Admit(Decided(3) with { Warp = new WarpTo(new Point(1, 1)) }).Outcome.Warp);
+    }
+
     [Fact]
     public void EachCoreKeepsItsOwnOrder()
     {

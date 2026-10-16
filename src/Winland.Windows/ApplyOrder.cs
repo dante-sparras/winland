@@ -5,7 +5,8 @@ namespace Winland.Windows;
 /// thread, the pipe threads and the group bar thread, so an older outcome can arrive after a newer one.
 /// Each window's visibility, placement and decoration, and the focus, remember the sequence of the outcome
 /// that last set them. An older outcome loses each part a newer one already decided, and keeps the rest.
-/// Its one-time requests, such as a close, a launch or a kill, always run.
+/// Its one-time requests, such as a close, a launch or a kill, always run. A restack loses only the windows
+/// a newer one restacked, and a cursor warp loses only to a newer warp.
 /// </summary>
 internal sealed class ApplyOrder
 {
@@ -36,8 +37,10 @@ internal sealed class ApplyOrder
         private readonly Dictionary<WindowId, long> _shown = [];
         private readonly Dictionary<WindowId, long> _placed = [];
         private readonly Dictionary<WindowId, long> _painted = [];
+        private readonly Dictionary<WindowId, long> _stacked = [];
         private long _latest;
         private long _focus;
+        private long _warp;
 
         internal Admitted Admit(Outcome outcome, long sequence)
         {
@@ -72,11 +75,20 @@ internal sealed class ApplyOrder
                 }
             }
 
-            var zOrder = outcome.ZOrder;
-            if (!current && zOrder.Count > 0)
+            // Restacking and moving the cursor are one-off requests. Each loses only to a newer one of its kind.
+            var zOrder = KeepFor(outcome.ZOrder, request => request.Window, _stacked, sequence, ref dropped);
+            var warp = outcome.Warp;
+            if (warp is not null)
             {
-                zOrder = [];
-                dropped = true;
+                if (sequence >= _warp)
+                {
+                    _warp = sequence;
+                }
+                else
+                {
+                    warp = null;
+                    dropped = true;
+                }
             }
 
             if (current)
@@ -97,6 +109,7 @@ internal sealed class ApplyOrder
                     Motions = motions,
                     Focus = focus,
                     ZOrder = zOrder,
+                    Warp = warp,
                 },
                 current);
         }
@@ -119,6 +132,27 @@ internal sealed class ApplyOrder
 
             dropped |= kept.Count != windows.Count;
             return kept.Count == windows.Count ? windows : kept;
+        }
+
+        private static IReadOnlyList<T> KeepFor<T>(
+            IReadOnlyList<T> items,
+            Func<T, WindowId> windowOf,
+            Dictionary<WindowId, long> latest,
+            long sequence,
+            ref bool dropped)
+        {
+            if (items.Count == 0)
+                return items;
+
+            var kept = new List<T>(items.Count);
+            foreach (var item in items)
+            {
+                if (Claim(latest, windowOf(item), sequence))
+                    kept.Add(item);
+            }
+
+            dropped |= kept.Count != items.Count;
+            return kept.Count == items.Count ? items : kept;
         }
 
         private static IReadOnlyList<T> KeepFor<T>(
@@ -181,13 +215,14 @@ internal sealed class ApplyOrder
         private void Prune(Dictionary<ClientId, WindowId> clients)
         {
             var limit = (2 * clients.Count) + 16;
-            if (_shown.Count <= limit && _placed.Count <= limit && _painted.Count <= limit)
+            if (_shown.Count <= limit && _placed.Count <= limit && _painted.Count <= limit && _stacked.Count <= limit)
                 return;
 
             var keep = new HashSet<WindowId>(clients.Values);
             Drop(_shown, keep);
             Drop(_placed, keep);
             Drop(_painted, keep);
+            Drop(_stacked, keep);
         }
 
         private static void Drop(Dictionary<WindowId, long> latest, HashSet<WindowId> keep)
