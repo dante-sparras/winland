@@ -159,20 +159,4 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
         if (taken.Minimized)
             Layout.Minimize(window);
     }
-
-    /// <summary>Moves every Client of <paramref name="source"/> onto this Workspace.</summary>
-    public void Absorb(LiveWorkspace source, Rectangle area)
-    {
-        var windows = new List<WindowId>(source.Layout.Clients.Count);
-        foreach (var client in source.Layout.Clients)
-            windows.Add(client.Window);
-
-        foreach (var window in windows)
-        {
-            if (source.Layout.TryTake(window, out var taken))
-                Receive(window, taken, area);
-        }
-
-        source.HandGroups(this);
-    }
 }

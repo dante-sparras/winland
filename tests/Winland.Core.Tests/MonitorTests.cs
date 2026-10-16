@@ -191,8 +191,9 @@ public class MonitorTests
         var outcome = core.Handle(new MonitorsChanged([left]));
 
         Assert.Single(outcome.State.Monitors);
-        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(outcome, 2));
+        Assert.Equal(new Rectangle(0, 0, 1920, 1080), BoundsOf(outcome, 1));
+        Assert.Contains(outcome.State.Hidden, client => client.Window == new WindowId(2) && client.Workspace == new WorkspaceId("2"));
+        Assert.Contains(outcome.State.Workspaces, workspace => workspace.Id == new WorkspaceId("2") && workspace.Monitor == new MonitorId(0));
     }
 
     [Fact]
