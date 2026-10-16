@@ -26,6 +26,30 @@ public class AnimatorTests
         Assert.Empty(animator.Step(150));
     }
 
+    // A hide or close that only fades keeps the move already running to the same goal, as the
+    // position and the alpha are animated on their own.
+    [Fact]
+    public void AFadeWithoutAMoveLetsARunningMoveToTheSameGoalContinue()
+    {
+        var animator = new Animator();
+        var goal = new Rectangle(100, 0, 100, 100);
+        animator.Start(new Motion(Window, goal) { From = new Rectangle(0, 0, 100, 100), Move = Linear }, now: 0);
+        animator.Start(new Motion(Window, goal) { FadeTo = 0, Fade = Linear, End = MotionEnd.Hide, Rest = goal }, now: 50);
+
+        Assert.Equal(new Rectangle(75, 0, 100, 100), Assert.Single(animator.Step(75)).Bounds);
+    }
+
+    // A motion without a move to a different goal still drops the running move.
+    [Fact]
+    public void AMotionWithoutAMoveToAnotherGoalDropsTheRunningMove()
+    {
+        var animator = new Animator();
+        animator.Start(new Motion(Window, new Rectangle(100, 0, 100, 100)) { From = new Rectangle(0, 0, 100, 100), Move = Linear }, now: 0);
+        animator.Start(new Motion(Window, new Rectangle(300, 0, 100, 100)) { FadeTo = 0, Fade = Linear }, now: 50);
+
+        Assert.Null(Assert.Single(animator.Step(75)).Bounds);
+    }
+
     [Fact]
     public void ACurvedMotionUsesTheCurveBetweenItsEnds()
     {
