@@ -10,6 +10,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 
 | keyword | reason |
 | --- | --- |
+| acrylic | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | allow_tearing | Tearing is a compositor feature with no Windows meaning. |
 | animation:borderangle | Gradient borders are not honored, so the border angle does not animate. |
 | animation:fadeDim | Dimming is part of a window's alpha, so fadeSwitch animates it. |
@@ -29,8 +30,16 @@ This table has one row per keyword. A test checks it against the keywords the co
 | animation:monitorAdded | A monitor that is added does not animate. |
 | animation:shadowangle | Shadows are not honored, so their angle does not animate. |
 | animation:zoomFactor | Screen zoom is not honored, so it does not animate. |
+| aurora | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | binds:allow_pin_fullscreen | Fullscreen does not keep or restore a pin. |
+| binds:allow_workspace_cycles | Workspace cycling history is not honored. |
+| binds:disable_keybind_grabbing | Applications cannot ask Windows to turn binds off, so there is nothing to refuse. |
+| binds:drag_center_window | Centering a window on the cursor when a drag floats it is not honored. |
+| binds:focus_preferred_method | Choosing the method that finds a window in a direction is not honored. |
 | binds:movefocus_cycles_fullscreen | Moving focus does not cycle a fullscreen Client. |
+| binds:pass_mouse_when_bound | Passing mouse events on after a bind runs is not honored. |
+| binds:workspace_back_and_forth | Switching to the focused Workspace does not go back to the previous one. |
+| binds:workspace_center_on | Where the cursor lands after a Workspace switch is not configurable. |
 | bitdepth | Changing a monitor's bit depth is not honored. |
 | center_ignores_reserved | Reserved monitor regions are not separate from the work area, so the master area cannot ignore them. |
 | cm | Monitor color management is not honored. |
@@ -62,9 +71,11 @@ This table has one row per keyword. A test checks it against the keywords the co
 | decoration:blur:popups_ignorealpha | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | decoration:blur:size | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | decoration:blur:special | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:variant | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | decoration:blur:vibrancy | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | decoration:blur:vibrancy_darkness | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | decoration:blur:xray | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:border_part_of_window | Whether the border counts as part of the window is not configurable. |
 | decoration:shadow:color | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
 | decoration:shadow:color_inactive | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
 | decoration:shadow:offset | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
@@ -75,14 +86,19 @@ This table has one row per keyword. A test checks it against the keywords the co
 | device | Per-device input is not honored. Honored input settings apply to the whole system. |
 | dim_around | Dimming the area around a window is not honored. |
 | dont_inhibit | Applications cannot inhibit binds, so this flag has nothing to bypass. |
+| drops | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | ecosystem | Ecosystem tools have no Windows meaning. |
+| experimental | Experimental Wayland protocol options have no Windows meaning. |
+| fluid_jar | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | gaps_workspaces | Workspace swipe gaps are not honored. |
 | gestures:close_max_timeout | The close gesture is not honored, so its timeout has nothing to time. |
 | gestures:workspace_swipe_touch | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | gestures:workspace_swipe_touch_invert | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
+| glass | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | gradient | Gradient borders are not honored. |
 | glow | Inner glow is not honored. |
 | group:drag_into_group | Dragging a window into a Group is not honored. |
+| group:groupbar:blur | Groupbar blur is not honored. |
 | group:groupbar:gradient_round_only_edges | The tab bar is drawn with square corners. |
 | group:groupbar:gradient_rounding | The tab bar is drawn with square corners. |
 | group:groupbar:gradient_rounding_power | The tab bar is drawn with square corners. |
@@ -95,6 +111,9 @@ This table has one row per keyword. A test checks it against the keywords the co
 | group:merge_floated_into_tiled_on_groupbar | Dragging a window into a Group is not honored. |
 | group:merge_groups_on_drag | Dragging a window into a Group is not honored. |
 | group:merge_groups_on_groupbar | Dragging a window into a Group is not honored. |
+| haze | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| heat_shimmer | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| input-capture | The input capture portal has no Windows meaning. |
 | input:emulate_discrete_scroll | High resolution scroll emulation is not honored. |
 | input:force_no_accel | Forcing acceleration off apart from the acceleration profile is not honored. |
 | input:kb_file | Keyboard layout is not changed. |
@@ -113,6 +132,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 | input:tablet:absolute_region_position | Tablets are not honored. |
 | input:tablet:active_area_position | Tablets are not honored. |
 | input:tablet:active_area_size | Tablets are not honored. |
+| input:tablet:enabled | Tablets are not honored. |
 | input:tablet:left_handed | Tablets are not honored. |
 | input:tablet:output | Tablets are not honored. |
 | input:tablet:region_position | Tablets are not honored. |
@@ -142,10 +162,43 @@ This table has one row per keyword. A test checks it against the keywords the co
 | input:virtualkeyboard:share_states | Virtual keyboards are not honored. |
 | layerrule | Layer shell rules have no Windows meaning. |
 | layerrulev2 | Layer shell rules have no Windows meaning. |
+| layout:single_window_aspect_ratio_tolerance | A single window's aspect ratio is not honored. |
 | locale | Locale override is not honored. |
 | mirror | Mirroring a monitor is not honored. |
+| misc:allow_session_lock_restore | The lock screen belongs to Windows. |
+| misc:always_follow_on_dnd | Focus following the pointer during drag and drop is not honored. |
+| misc:animate_manual_resizes | A window moved or resized by hand moves at once. |
+| misc:animate_mouse_windowdragging | A window dragged with the pointer moves at once. |
+| misc:anr_missed_pings | Windows marks a hung window as not responding itself. |
+| misc:background_color | The desktop background belongs to Windows. |
+| misc:bell_sound | The system bell sound is set in Windows. |
+| misc:col.splash | There is no splash text. |
+| misc:disable_autoreload | The config always reloads when it is saved. |
+| misc:disable_scale_notification | Windows sets each monitor's scale, so there is no scale notification. |
+| misc:disable_splash_rendering | There is no splash text. |
+| misc:disable_watchdog_warning | There is no start watchdog, so there is no warning to turn off. |
+| misc:disable_xdg_env_checks | XDG environment variables have no Windows meaning. |
+| misc:enable_anr_dialog | Windows marks a hung window as not responding itself. |
 | misc:exit_window_retains_fullscreen | Closing a fullscreen Client does not pass fullscreen to the next Client. |
+| misc:float_force_onscreen | Keeping floating windows on screen is not honored. |
+| misc:font_family | The global font is not honored. |
+| misc:force_default_wallpaper | There is no wallpaper. The desktop background belongs to Windows. |
+| misc:initial_workspace_token_timeout | Opening a window on the Workspace it was launched from is not honored. |
+| misc:initial_workspace_tracking | Opening a window on the Workspace it was launched from is not honored. |
+| misc:key_press_enables_dpms | Waking a monitor turned off with dpms on a key press is not honored. |
+| misc:layers_hog_keyboard_focus | Layer shell surfaces have no Windows meaning. |
+| misc:lockdead_screen_delay | The lock screen belongs to Windows. |
+| misc:middle_click_paste | The primary selection has no Windows meaning. |
+| misc:mouse_move_enables_dpms | Waking a monitor turned off with dpms on a mouse move is not honored. |
+| misc:name_vk_after_proc | Virtual keyboards are not honored. |
+| misc:new_float_force_onscreen | Keeping new floating windows on screen is not honored. |
 | misc:on_focus_under_fullscreen | Focusing a Client under a fullscreen one does not take over or leave fullscreen. |
+| misc:render_unfocused_fps | Each application renders itself, so its frame rate has no Windows meaning. |
+| misc:screencopy_force_8b | Screen copy buffers have no Windows meaning. |
+| misc:session_lock_blur | The lock screen belongs to Windows. |
+| misc:session_lock_xray | The lock screen belongs to Windows. |
+| misc:size_limits_tiled | A tiled window always keeps its minimum size, as with this option on. It cannot be turned off. |
+| misc:splash_font_family | There is no splash text. |
 | mode | Changing a monitor's resolution and refresh rate is not honored. |
 | modal_parent_blocking | Modal parent blocking is not honored. |
 | motion_blur | Motion blur is not honored. |
@@ -156,10 +209,13 @@ This table has one row per keyword. A test checks it against the keywords the co
 | permission | Permission rules have no Windows meaning. |
 | quirks | Display buffer quirks have no Windows meaning. |
 | render | GPU rendering options have no Windows meaning. |
+| ripple | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | scale | Changing a monitor's scale is not honored. |
 | screen_shader | Screen shaders have no Windows meaning. |
 | special_scale_factor | The master layout does not scale a special workspace. |
 | vrr | Variable refresh rate is not honored. |
+| water | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| wobble | DWM cannot deform a window, so wobble is not honored. |
 | xwayland | X11 compatibility has no Windows meaning. A window rule that matches on xwayland is not honored. |
 
 ## Kind and issue
@@ -168,20 +224,25 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 
 | kind | issue | keywords |
 | --- | --- | --- |
+| gap | - | acrylic, aurora, decoration:blur:variant, drops, fluid_jar, glass, haze, heat_shimmer, ripple, water |
 | non-goal | - | allow_tearing, debug, opengl, quirks, render, screen_shader |
 | gap | - | animation:borderangle, animation:fadeDim, animation:fadeDpms, animation:fadeGlow, animation:fadeShadow, animation:glowangle, animation:monitorAdded, animation:shadowangle, animation:zoomFactor |
 | non-goal | - | animation:fadeLayers, animation:fadeLayersIn, animation:fadeLayersOut, animation:fadePopups, animation:fadePopupsIn, animation:fadePopupsOut, animation:layers, animation:layersIn, animation:layersOut |
 | gap | - | binds:allow_pin_fullscreen, binds:movefocus_cycles_fullscreen |
+| gap | - | binds:allow_workspace_cycles, binds:drag_center_window, binds:focus_preferred_method, binds:pass_mouse_when_bound, binds:workspace_back_and_forth, binds:workspace_center_on |
+| non-goal | - | binds:disable_keybind_grabbing |
 | gap | - | bitdepth, cm, mirror, mode, scale, vrr |
 | gap | - | center_ignores_reserved, special_scale_factor |
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
 | gap | - | cursor:hide_on_tablet, cursor:hide_on_touch, cursor:hotspot_padding, cursor:invisible, cursor:warp_back_after_non_mouse_input, cursor:zoom_detached_camera, cursor:zoom_disable_aa, cursor:zoom_factor, cursor:zoom_rigid |
 | gap | - | decoration:blur:brightness, decoration:blur:contrast, decoration:blur:ignore_opacity, decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:noise, decoration:blur:passes, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:size, decoration:blur:special, decoration:blur:vibrancy, decoration:blur:vibrancy_darkness, decoration:blur:xray |
+| gap | - | decoration:border_part_of_window, group:groupbar:blur, wobble |
 | gap | - | decoration:shadow:color, decoration:shadow:color_inactive, decoration:shadow:offset, decoration:shadow:range, decoration:shadow:render_power, decoration:shadow:scale, decoration:shadow:sharp |
 | gap | - | device |
 | gap | - | dim_around |
 | gap | - | dont_inhibit |
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
+| non-goal | - | experimental, input-capture |
 | gap | - | gaps_workspaces |
 | gap | - | gestures:close_max_timeout, gestures:workspace_swipe_touch, gestures:workspace_swipe_touch_invert |
 | gap | - | glow, motion_blur |
@@ -189,12 +250,15 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | group:drag_into_group, group:groupbar:gradient_round_only_edges, group:groupbar:gradient_rounding, group:groupbar:gradient_rounding_power, group:groupbar:gradients, group:groupbar:priority, group:groupbar:round_only_edges, group:groupbar:rounding, group:groupbar:rounding_power, group:groupbar:stacked, group:merge_floated_into_tiled_on_groupbar, group:merge_groups_on_drag, group:merge_groups_on_groupbar |
 | gap | - | input:emulate_discrete_scroll, input:force_no_accel, input:off_window_axis_events, input:resolve_binds_by_sym, input:rotation, input:scroll_button, input:scroll_button_lock, input:scroll_method, input:scroll_points |
 | gap | - | input:kb_file, input:kb_layout, input:kb_model, input:kb_options, input:kb_rules, input:kb_variant |
-| gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
+| gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:enabled, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
 | gap | - | input:tablettool:eraser_button_mode, input:tablettool:eraser_button_override, input:tablettool:pressure_range_max, input:tablettool:pressure_range_min |
 | gap | - | input:touchdevice:enabled, input:touchdevice:output, input:touchdevice:transform |
 | gap | - | input:touchpad:clickfinger_behavior, input:touchpad:disable_while_typing, input:touchpad:drag_3fg, input:touchpad:drag_lock, input:touchpad:flip_x, input:touchpad:flip_y, input:touchpad:middle_button_emulation, input:touchpad:natural_scroll, input:touchpad:scroll_factor, input:touchpad:tap-and-drag, input:touchpad:tap-to-click, input:touchpad:tap_button_map |
 | gap | - | input:virtualkeyboard:release_pressed_on_close, input:virtualkeyboard:share_states |
+| gap | - | layout:single_window_aspect_ratio_tolerance |
 | gap | - | locale |
+| non-goal | - | misc:allow_session_lock_restore, misc:anr_missed_pings, misc:background_color, misc:bell_sound, misc:col.splash, misc:disable_scale_notification, misc:disable_splash_rendering, misc:disable_watchdog_warning, misc:disable_xdg_env_checks, misc:enable_anr_dialog, misc:force_default_wallpaper, misc:layers_hog_keyboard_focus, misc:lockdead_screen_delay, misc:middle_click_paste, misc:name_vk_after_proc, misc:render_unfocused_fps, misc:screencopy_force_8b, misc:session_lock_blur, misc:session_lock_xray, misc:splash_font_family |
+| gap | - | misc:always_follow_on_dnd, misc:animate_manual_resizes, misc:animate_mouse_windowdragging, misc:disable_autoreload, misc:float_force_onscreen, misc:font_family, misc:initial_workspace_token_timeout, misc:initial_workspace_tracking, misc:key_press_enables_dpms, misc:mouse_move_enables_dpms, misc:new_float_force_onscreen, misc:size_limits_tiled |
 | gap | - | misc:exit_window_retains_fullscreen, misc:on_focus_under_fullscreen |
 | gap | - | modal_parent_blocking |
 | gap | - | move_snap_cursor, move_snap_to_grid |
@@ -213,6 +277,10 @@ An `animation:NAME` row is a node of the animation tree. An `animation` line tha
 - Hyprland scales a growing window's last frame into each animated rectangle. Winland shows it unscaled from its top left and cut to the rectangle, the way a shrinking window shows, and the see-through areas of a window with a system backdrop look flatter while it grows.
 
 `master:special_scale_factor` is the `special_scale_factor` gap: a special workspace uses the same master scale as a normal one. `master:center_ignores_reserved` is the `center_ignores_reserved` gap.
+
+A row named by one part of a keyword covers every keyword with that part. `decoration:wobble:enabled` is the `wobble` gap, and `decoration:blur:glass:size` is the `glass` gap.
+
+Two `misc` options turn off the reference compositor's logo and its check for its GUI utilities. Both are non-goals: Winland draws no logo and has no GUI utilities. Their names contain the name that [ADR 0002](adr/0002-hyprland-compatibility-without-its-name.md) keeps out of the code, so neither has a row above or an entry in the gap list in code. Each warns like any keyword Winland does not read.
 
 `gestures:scrolling:move_snap_to_grid` and `gestures:scrolling:move_snap_cursor` snap the `scrollMove` gesture. That action is not honored, so those options stay Gaps.
 
