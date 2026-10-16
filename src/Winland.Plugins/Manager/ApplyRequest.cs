@@ -21,11 +21,17 @@ public sealed record ApplyRequest(
 {
     public const string Verb = "apply";
 
+    /// <summary>The SID of the user who asked for the step, which owns <see cref="ReportPipe"/>.</summary>
+    public string? ReportOwner { get; init; }
+
     public IReadOnlyList<string> ToArguments()
     {
         var args = new List<string> { "plugin", Verb, "--plugin-dir", PluginDirectory, "--approvals", ApprovalsPath };
         if (ReportPipe is not null)
             args.AddRange(["--report-pipe", ReportPipe]);
+
+        if (ReportOwner is not null)
+            args.AddRange(["--report-owner", ReportOwner]);
 
         foreach (var repository in Install)
         {
@@ -47,6 +53,7 @@ public sealed record ApplyRequest(
         string? directory = null;
         string? approvals = null;
         string? reportPipe = null;
+        string? reportOwner = null;
         var install = new List<StagedRepository>();
         var remove = new List<string>();
         string? url = null;
@@ -78,6 +85,9 @@ public sealed record ApplyRequest(
                     break;
                 case "--report-pipe" when left >= 1 && ApplyReport.IsName(args[i + 1]):
                     reportPipe = args[++i];
+                    break;
+                case "--report-owner" when left >= 1 && IsSid(args[i + 1]):
+                    reportOwner = args[++i];
                     break;
                 case "--repository" when left >= 1:
                     Flush();
@@ -112,6 +122,12 @@ public sealed record ApplyRequest(
             return null;
         }
 
-        return new ApplyRequest(directory, approvals, reportPipe, install, remove);
+        return new ApplyRequest(directory, approvals, reportPipe, install, remove) { ReportOwner = reportOwner };
     }
+
+    // S-1- followed by digits and dashes, as a SID is written.
+    private static bool IsSid(string value) =>
+        value.Length is > 4 and <= 184
+        && value.StartsWith("S-1-", StringComparison.Ordinal)
+        && !value.AsSpan(4).ContainsAnyExcept("0123456789-");
 }
