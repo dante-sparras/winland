@@ -3,11 +3,13 @@
 #
 # Clones the pinned Hyprland release into docs/agents/hyprland and fetches its wiki into docs/agents/hyprland/site.
 # The folder is gitignored, and the checkout is left in place on a second run. Pass -Refresh to download the wiki again.
+# When the pinned tag below changes, a second run moves the checkout to the new tag and downloads the wiki again.
 
 param([switch]$Refresh)
 
 # The Hyprland release this repo matches. See docs/adr/0008-the-spec-is-a-pinned-hyprland-release.md.
 $HyprlandTag = 'v0.56.2'
+$HyprlandUrl = 'https://github.com/hyprwm/Hyprland.git'
 
 $ErrorActionPreference = 'Stop'
 # This file lives in scripts/. The repo root is the parent of this directory.
@@ -18,11 +20,49 @@ git -C $root config core.hooksPath scripts/hooks
 if ($LASTEXITCODE -ne 0) { throw "git config core.hooksPath failed with $LASTEXITCODE" }
 Write-Output "core.hooksPath = scripts/hooks"
 
+# The commit the pinned tag names. A shallow clone of a tag often has no local tag ref,
+# so the remote is asked, and the answer is kept as a local tag for the next run.
+function Get-PinnedCommit([string]$checkout) {
+    $local = git -C $checkout rev-parse -q --verify "refs/tags/$HyprlandTag^{commit}" 2>$null
+    if ($LASTEXITCODE -eq 0 -and $local) { return ($local | Select-Object -First 1).Trim() }
+
+    $lines = @(git ls-remote $HyprlandUrl "refs/tags/$HyprlandTag" "refs/tags/$HyprlandTag^{}" 2>$null)
+    if ($LASTEXITCODE -ne 0) { return $null }
+    # An annotated tag lists the tag object and then the commit it peels to, marked ^{}.
+    $peeled = $lines | Where-Object { $_ -match "\srefs/tags/$([regex]::Escape($HyprlandTag))\^\{\}$" } | Select-Object -First 1
+    $plain = $lines | Where-Object { $_ -match "\srefs/tags/$([regex]::Escape($HyprlandTag))$" } | Select-Object -First 1
+    $line = if ($peeled) { $peeled } else { $plain }
+    if (-not $line) { throw "$HyprlandUrl has no tag $HyprlandTag" }
+    return ($line -split '\s+')[0]
+}
+
 $dest = Join-Path $root 'docs/agents/hyprland'
 if (-not (Test-Path (Join-Path $dest '.git'))) {
     if (Test-Path $dest) { throw "$dest exists but is not a git checkout" }
-    git clone --depth 1 --branch $HyprlandTag https://github.com/hyprwm/Hyprland.git $dest
+    git clone --depth 1 --branch $HyprlandTag $HyprlandUrl $dest
     if ($LASTEXITCODE -ne 0) { throw "clone of Hyprland failed with $LASTEXITCODE" }
+}
+else {
+    $head = git -C $dest rev-parse HEAD
+    if ($LASTEXITCODE -ne 0 -or -not $head) { throw "$dest has no HEAD commit" }
+    $head = $head.Trim()
+    $pinned = Get-PinnedCommit $dest
+    if (-not $pinned) {
+        Write-Warning "Could not reach $HyprlandUrl to check that $dest is at $HyprlandTag. Left as it is."
+    }
+    elseif ($head -ne $pinned) {
+        Write-Output "$dest is at $head, not $HyprlandTag ($pinned). Moving it to $HyprlandTag."
+        git -C $dest fetch --depth 1 origin "+refs/tags/${HyprlandTag}:refs/tags/${HyprlandTag}"
+        if ($LASTEXITCODE -ne 0) { throw "fetch of $HyprlandTag failed with $LASTEXITCODE" }
+        git -C $dest checkout --detach "refs/tags/$HyprlandTag"
+        if ($LASTEXITCODE -ne 0) { throw "checkout of $HyprlandTag in $dest failed with $LASTEXITCODE. Remove $dest and run this again." }
+        # The wiki is fetched for the release, so a new release fetches it again.
+        $Refresh = $true
+    }
+    elseif (-not (git -C $dest rev-parse -q --verify "refs/tags/$HyprlandTag" 2>$null)) {
+        git -C $dest tag $HyprlandTag $head
+        if ($LASTEXITCODE -ne 0) { throw "tagging $HyprlandTag in $dest failed with $LASTEXITCODE" }
+    }
 }
 
 # site/README.md is written last and only after a full fetch, so its presence means the wiki is complete.
