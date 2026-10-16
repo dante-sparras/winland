@@ -128,7 +128,7 @@ On a Workspace with a maximized or fullscreen Client, that Client owns the point
 
 `input:float_switch_override_focus` defaults to 1. In modes 0 and 2, moving between a tiled Client and a floating Client moves keyboard focus. 2 also does so between two floating Clients. 0 does not. Mode 3 does not use it.
 
-`input:focus_on_close` defaults to 0. 0 focuses the nearest remaining tiled Client, or the most recently focused Client when the one that closed was floating. 1 focuses the Client under the pointer. 2 focuses the most recently focused Client. The names `next`, `cursor`, and `mru` are 0, 1, and 2. A master layout with `master:focus_master_on_close` still focuses the master when the closed Client was tiled and the mode is 0.
+`input:focus_on_close` defaults to 0. 0 focuses the nearest remaining tiled Client, or the nearest floating Client when no tiled Client is left, or the most recently focused Client when the one that closed was floating. 1 focuses the Client under the pointer. 2 focuses the most recently focused Client. The names `next`, `cursor`, and `mru` are 0, 1, and 2. A master layout with `master:focus_master_on_close` still focuses the master when the closed Client was tiled and the mode is 0.
 
 `misc:mouse_move_focuses_monitor` defaults to true. Moving the pointer onto another Monitor focuses that Monitor. False leaves it until a Client there takes keyboard focus.
 
