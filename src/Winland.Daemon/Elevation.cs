@@ -18,15 +18,24 @@ static class Elevation
     {
         var path = Environment.ProcessPath
             ?? throw new InvalidOperationException("The executable path is not available.");
-        var spec = RelaunchPlan.Create(
-            path,
-            args,
-            Environment.CurrentDirectory,
-            RuntimeEnvironment.GetRuntimeDirectory(),
-            Environment.GetEnvironmentVariable("DOTNET_ROOT"),
-            Environment.GetEnvironmentVariable("WINLAND_PIPE"),
-            Environment.GetEnvironmentVariable("WINLAND_STATE"),
-            Environment.GetEnvironmentVariable("ComSpec"));
+        RelaunchSpec spec;
+        try
+        {
+            spec = RelaunchPlan.Create(
+                path,
+                args,
+                Environment.CurrentDirectory,
+                RuntimeEnvironment.GetRuntimeDirectory(),
+                Environment.GetEnvironmentVariable("DOTNET_ROOT"),
+                Environment.GetEnvironmentVariable("WINLAND_PIPE"),
+                Environment.GetEnvironmentVariable("WINLAND_STATE"),
+                Environment.GetEnvironmentVariable("ComSpec"));
+        }
+        catch (ArgumentException ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
         var start = new ProcessStartInfo
         {
             FileName = spec.FileName,
