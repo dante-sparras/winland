@@ -395,10 +395,10 @@ public sealed class KeyboardHook : IDisposable
             Console.Error.WriteLine($"Input was not sent ({Marshal.GetLastPInvokeError()}).");
     }
 
-    internal static INPUT Key(ushort vk, bool up)
+    internal static INPUT Key(ushort vk, bool up, ushort scan = 0)
     {
         var flags = up ? KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP : 0;
-        if (vk is 0x5B or 0x5C or 0xA3 or 0xA5)
+        if (vk is 0x5B or 0x5C or 0xA3 or 0xA5 or 0x90)
             flags |= KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY;
 
         return new INPUT
@@ -409,6 +409,7 @@ public sealed class KeyboardHook : IDisposable
                 ki = new KEYBDINPUT
                 {
                     wVk = (VIRTUAL_KEY)vk,
+                    wScan = scan,
                     dwFlags = flags,
                     dwExtraInfo = InjectedTag,
                 },
