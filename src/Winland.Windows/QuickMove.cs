@@ -141,7 +141,9 @@ internal sealed class QuickMove
         return null;
     }
 
-    private static bool SamePlace(Rectangle a, Rectangle b) => a.X == b.X && a.Y == b.Y;
+    // A window has taken a request once it has the request's size as well as its position. A tile that
+    // grows in place keeps its origin on every frame, so the origin alone would count a frame as taken early.
+    private static bool SamePlace(Rectangle a, Rectangle b) => a == b;
 
     private readonly record struct Pending(Rectangle Requested, int Skipped, long Since);
 
