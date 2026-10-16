@@ -17,8 +17,9 @@ public sealed partial class Core
 
         var target = Alias(resolved);
 
+        // A pinned Client is never moved onto a special workspace, as in the pinned release.
         var source = WorkspaceContaining(id);
-        if (source is null || source.Id == target)
+        if (source is null || source.Id == target || (target.IsSpecial && _pinned.Contains(id)))
             return View([], consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
 
         var sourceCovered = source.Covered();
