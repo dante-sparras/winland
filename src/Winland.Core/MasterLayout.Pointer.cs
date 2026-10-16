@@ -92,9 +92,11 @@ internal sealed partial class MasterLayout
         if (index < 0 || _clients[index].Minimized)
             return [];
 
-        if (_floating.ContainsKey(id))
+        if (_floating.Remove(id, out var floating))
         {
-            _floating.Remove(id);
+            if (floating.Width > 0 && floating.Height > 0)
+                _lastFloat[id] = (floating.Width, floating.Height);
+
             MarkFloating(id, false);
             var tile = new Tile { Id = id, MasterFraction = _master.Mfact };
             Adopt(tile, firstMap: true, dragging: false, pointer: null);
@@ -108,7 +110,7 @@ internal sealed partial class MasterLayout
 
         var tileBox = existing.Box;
         Detach(existing);
-        var floated = FloatingBounds(tileBox);
+        var floated = FloatingBounds(id, tileBox);
         _floating[id] = floated;
         MarkFloating(id, true);
         var placements = new List<Placement>(Placed()) { new(id, floated) };
@@ -250,10 +252,16 @@ internal sealed partial class MasterLayout
         grab.HotY = box.Height / 2;
     }
 
-    private Rectangle FloatingBounds(Rectangle tile)
+    private Rectangle FloatingBounds(ClientId id, Rectangle tile)
     {
         var width = 640;
         var height = 400;
+        if (_lastFloat.TryGetValue(id, out var last) && last.Width >= 5 && last.Height >= 5)
+        {
+            width = last.Width;
+            height = last.Height;
+        }
+
         if (Math.Abs(width - tile.Width) < 5 && Math.Abs(height - tile.Height) < 5)
         {
             width += 10;

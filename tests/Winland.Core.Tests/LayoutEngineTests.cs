@@ -240,6 +240,26 @@ public class LayoutEngineTests
         Assert.Equal("title", client.InitialTitle);
     }
 
+    [Theory]
+    [InlineData("dwindle")]
+    [InlineData("master")]
+    [InlineData("scrolling")]
+    [InlineData("monocle")]
+    public void FloatingAgainRestoresTheLastFloatingSize(string name)
+    {
+        var layout = Open(name);
+        Tiled(layout, 1);
+        Tiled(layout, 2);
+
+        var first = Bounds(layout.ToggleFloating(Window(1)), 1);
+        layout.ResizeActive(Window(1), "exact 500 350");
+        layout.ToggleFloating(Window(1));
+        var again = Bounds(layout.ToggleFloating(Window(1)), 1);
+
+        Assert.Equal((400, 300), (first.Width, first.Height));
+        Assert.Equal((500, 350), (again.Width, again.Height));
+    }
+
     private static Layout ThreeColumns()
     {
         var layout = Open("scrolling");

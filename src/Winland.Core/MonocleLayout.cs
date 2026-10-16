@@ -13,6 +13,7 @@ internal sealed partial class MonocleLayout : Layout
     private readonly List<ClientId> _tiled = [];
     private readonly Dictionary<ClientId, Rectangle> _floating = [];
     private readonly Dictionary<ClientId, Rectangle> _natural = [];
+    private readonly Dictionary<ClientId, (int Width, int Height)> _lastFloat = [];
     private readonly Dictionary<ClientId, (Size? Min, Size? Max)> _limits = [];
     private LayoutOptions _options = LayoutOptions.Unconfigured;
     private Rectangle _area;
@@ -64,6 +65,9 @@ internal sealed partial class MonocleLayout : Layout
 
         _natural[id] = bounds;
         _limits[id] = (minSize, maxSize);
+        if (bounds.Width > 0 && bounds.Height > 0)
+            _lastFloat[id] = (bounds.Width, bounds.Height);
+
         var client = new Client(
             id,
             window,
@@ -96,6 +100,7 @@ internal sealed partial class MonocleLayout : Layout
         var tiled = DropTiled(id);
         _floating.Remove(id);
         _natural.Remove(id);
+        _lastFloat.Remove(id);
         _limits.Remove(id);
         _clients.RemoveAt(index);
         return tiled ? Placed() : [];
@@ -318,9 +323,11 @@ internal sealed partial class MonocleLayout : Layout
         if (index < 0 || _clients[index].Minimized)
             return [];
 
-        if (_floating.ContainsKey(id))
+        if (_floating.Remove(id, out var floating))
         {
-            _floating.Remove(id);
+            if (floating.Width > 0 && floating.Height > 0)
+                _lastFloat[id] = (floating.Width, floating.Height);
+
             SetFloating(id, false);
             _tiled.Add(id);
             _visible = _tiled.Count - 1;
@@ -420,10 +427,10 @@ internal sealed partial class MonocleLayout : Layout
     {
         var width = 640;
         var height = 400;
-        if (_natural.TryGetValue(id, out var natural) && natural.Width >= 5 && natural.Height >= 5)
+        if (_lastFloat.TryGetValue(id, out var last) && last.Width >= 5 && last.Height >= 5)
         {
-            width = natural.Width;
-            height = natural.Height;
+            width = last.Width;
+            height = last.Height;
         }
 
         if (Math.Abs(width - tile.Width) < 5 && Math.Abs(height - tile.Height) < 5)
