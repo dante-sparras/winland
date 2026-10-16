@@ -27,7 +27,8 @@ public sealed partial class Core
 
         var workspaceChanged = outcome.State.ActiveWorkspace != before.State.ActiveWorkspace;
         var monitorChanged = outcome.State.ActiveMonitor != before.State.ActiveMonitor;
-        if (workspaceChanged || monitorChanged)
+        var specialToggled = SpecialToggled(before.State, outcome.State, outcome.Dispatcher);
+        if (workspaceChanged || monitorChanged || specialToggled)
             RememberLeaving(before);
 
         var warp = TakeRequestedWarp();
@@ -35,7 +36,7 @@ public sealed partial class Core
             warp = Plan(outcome.State, _cursor.WarpOnWorkspace);
         if (warp is null && monitorChanged)
             warp = Plan(outcome.State, _cursor.MonitorMode());
-        if (warp is null && SpecialToggled(before.State, outcome.State, outcome.Dispatcher))
+        if (warp is null && specialToggled)
             warp = PlanFocused(outcome.State, _cursor.WarpOnSpecial);
         if (warp is null)
             warp = DefaultMonitor(outcome);

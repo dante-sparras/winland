@@ -255,6 +255,26 @@ public class CursorInputTests
     }
 
     [Fact]
+    public void PersistentWarpsReturnToThePointLeftWhenASpecialWorkspaceCloses()
+    {
+        var core = Load("cursor:warp_on_toggle_special = 1\ncursor:persistent_warps = true");
+        var monitor = Display(@"\\.\DISPLAY1", "Main", 0, 0, 800, 600);
+        core.Handle(new MonitorsChanged([monitor]));
+        core.Handle(new WindowAppeared(new WindowId(1), monitor.WorkArea));
+        core.Handle(new WindowAppeared(new WindowId(2), monitor.WorkArea));
+        core.Handle(new Dispatch("movetoworkspacesilent", "special"));
+        var focused = core.Handle(new Dispatch("focuswindow", "address:0x1"));
+        var bounds = Assert.Single(focused.State.Clients, client => client.Window == new WindowId(1)).Bounds;
+        Assert.Equal(new WindowId(1), focused.Focus);
+        core.Handle(new PointerMoved(new Point(bounds.X + 40, bounds.Y + 50)));
+
+        core.Handle(new Dispatch("togglespecialworkspace"));
+        var back = core.Handle(new Dispatch("togglespecialworkspace"));
+
+        Assert.Equal(new WarpTo(new Point(bounds.X + 40, bounds.Y + 50)), back.Warp);
+    }
+
+    [Fact]
     public void AWindowThatReusesAClosedHandleDoesNotInheritItsWarpPoint()
     {
         var core = new Core(ConfigParser.Parse("cursor:warp_on_change_workspace = 1\ncursor:persistent_warps = true\nwindowrulev2 = workspace 1 silent, class:^(again)$\n"));
