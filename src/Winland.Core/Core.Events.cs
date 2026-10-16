@@ -10,12 +10,6 @@ public sealed partial class Core
     {
         outcome = FinishCursor(before, outcome, input);
         var events = Diff(before.State, outcome.State, before.Active, ActiveWindow());
-        if (input is ConfigLoaded loaded)
-        {
-            foreach (var warning in loaded.Config.Warnings)
-                events.Add(new ConfigWarned(warning.Line, warning.Message, warning.Source));
-        }
-
         if (_configEvents is not null)
         {
             events.AddRange(_configEvents);

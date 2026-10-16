@@ -7,6 +7,31 @@ public class ReloadTests
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);
 
     [Fact]
+    public void ALoadedConfigAppliesWindowRulesLayoutOptionsAndTheLayout()
+    {
+        var core = new Core();
+        core.Handle(new ConfigLoaded(ConfigParser.Parse("""
+            general:gaps_in = 0
+            general:gaps_out = 10
+            general:border_size = 0
+            general:layout = monocle
+            windowrulev2 = float, class:^(kitty)$
+            """)));
+
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        var opened = core.Handle(new WindowAppeared(new WindowId(2), Area)
+        {
+            Traits = WindowTraits.Normal with { Class = "kitty" },
+        });
+
+        var third = core.Handle(new WindowAppeared(new WindowId(3), Area));
+
+        Assert.True(Client(opened, 2).Floating);
+        Assert.Equal(new Rectangle(10, 10, 1900, 1060), Client(third, 1).Bounds);
+        Assert.Equal(new Rectangle(10, 10, 1900, 1060), Client(third, 3).Bounds);
+    }
+
+    [Fact]
     public void ReloadSwapsSettingsKeepsClientsAndLaysOut()
     {
         var core = new Core();
