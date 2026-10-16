@@ -422,7 +422,8 @@ internal sealed partial class DwindleLayout : Layout
     private bool SplitsTop(Rectangle box) =>
         box.Height * _options.SplitWidthMultiplier > box.Width;
 
-    private static int FirstShare(int size, double splitRatio) => (int)(size / 2.0 * splitRatio);
+    // The epsilon keeps a ratio set from a whole pixel delta, such as 1.614 of 500, from truncating to the pixel below.
+    private static int FirstShare(int size, double splitRatio) => (int)((size / 2.0 * splitRatio) + 1e-6);
 
     private static Rectangle Shrink(Rectangle box, int left, int top, int right, int bottom)
     {

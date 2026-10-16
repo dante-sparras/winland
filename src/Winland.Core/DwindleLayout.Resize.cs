@@ -17,8 +17,9 @@ internal sealed partial class DwindleLayout
         if (!_nodes.TryGetValue(id, out var node) || !InTree(node) || node.Parent is null)
             return [];
 
-        var box = node.Box;
-        return ResizeTile(node, exact ? x - box.Width : x, exact ? y - box.Height : y, corner: null);
+        // exact names the window's size, which is the tile less its gaps and border.
+        var shown = Present(id, node.Box);
+        return ResizeTile(node, exact ? x - shown.Width : x, exact ? y - shown.Height : y, corner: null);
     }
 
     /// <summary>

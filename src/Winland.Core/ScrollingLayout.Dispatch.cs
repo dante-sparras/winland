@@ -51,19 +51,23 @@ internal sealed partial class ScrollingLayout
         if (CellFor(window) is not Cell cell || cell.Column is not Column column)
             return [];
 
+        // exact names the window's size, which is the cell less its gaps and border.
+        if (exact)
+        {
+            x -= cell.Logical.Width;
+            y -= cell.Logical.Height;
+        }
+
         var horizontal = IsHorizontal();
         var primaryDelta = horizontal ? x : y;
         var secondaryDelta = horizontal ? y : x;
         var primary = PrimaryLength();
         var secondary = SecondaryLength();
         if (primary > 0)
-        {
-            var fraction = exact ? (primaryDelta / primary) - column.Width : primaryDelta / primary;
-            column.Width = Math.Clamp(column.Width + fraction, ScrollingOptions.MinColumnWidth, ScrollingOptions.MaxColumnWidth);
-        }
+            column.Width = Math.Clamp(column.Width + (primaryDelta / primary), ScrollingOptions.MinColumnWidth, ScrollingOptions.MaxColumnWidth);
 
         if (secondary > 0)
-            ResizeRow(cell, exact ? secondaryDelta - (cell.Size * secondary) : secondaryDelta, secondary);
+            ResizeRow(cell, secondaryDelta, secondary);
 
         CenterOrFit(column);
         Recalculate();
