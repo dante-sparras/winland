@@ -154,6 +154,12 @@ public class ExtraCommandTests
     }
 
     [Fact]
+    public void AnUnmatchedClosingBracketDoesNotSwallowTheRestOfTheBatch()
+    {
+        Assert.Equal(["dispatch exec a]", "layouts", "locked"], ExtraCommands.SplitBatch("dispatch exec a];layouts;locked"));
+    }
+
+    [Fact]
     public void RelayoutFlagStillRunsTheCommand()
     {
         var core = new Core();
