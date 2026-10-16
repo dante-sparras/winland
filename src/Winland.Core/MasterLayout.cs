@@ -96,8 +96,7 @@ internal sealed partial class MasterLayout : Layout
         var id = Id(window);
         _natural.Remove(id);
         _limits.Remove(id);
-        if (_grab is { } grab && grab.Id == id)
-            _grab = null;
+        _drag.Forget(id);
 
         if (_floating.Forget(id) || _suspended.Remove(id))
         {

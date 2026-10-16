@@ -34,8 +34,7 @@ internal sealed partial class MasterLayout
             _focused = next;
         if (_previousFocus == current)
             _previousFocus = next;
-        if (_grab is { } grab && grab.Id == from)
-            _grab = null;
+        _drag.Forget(from);
 
         return true;
     }

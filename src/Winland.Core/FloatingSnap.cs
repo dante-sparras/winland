@@ -5,6 +5,39 @@ namespace Winland;
 /// </summary>
 internal static class FloatingSnap
 {
+    /// <summary>
+    /// Snaps a floating Client of <paramref name="layout"/> to the other Clients it shows and to the monitor.
+    /// Without a known monitor the work area stands in for it.
+    /// </summary>
+    public static Rectangle AmongClients(
+        Layout layout,
+        ClientId self,
+        Rectangle proposed,
+        SnapEdges edges,
+        bool resize,
+        Rectangle work,
+        Rectangle monitor,
+        LayoutOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+        ArgumentNullException.ThrowIfNull(options);
+        if (!options.SnapEnabled)
+            return proposed;
+
+        var others = new List<Rectangle>();
+        foreach (var client in layout.Clients)
+        {
+            if (client.Id == self || client.Minimized)
+                continue;
+
+            if (layout.TryBounds(client.Window, out var bounds))
+                others.Add(bounds);
+        }
+
+        var screen = monitor.Width > 0 && monitor.Height > 0 ? monitor : work;
+        return Apply(proposed, edges, resize, others, work, screen, options);
+    }
+
     public static Rectangle Apply(
         Rectangle box,
         SnapEdges edges,

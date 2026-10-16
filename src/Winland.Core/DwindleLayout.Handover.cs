@@ -34,8 +34,7 @@ internal sealed partial class DwindleLayout
         _limits[to] = new SizeLimits(incoming.MinSize, incoming.MaxSize);
         if (_splitTarget == from)
             _splitTarget = to;
-        if (_grab is { } grab && grab.Id == from)
-            _grab = null;
+        _drag.Forget(from);
 
         return true;
     }
