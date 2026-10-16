@@ -70,9 +70,6 @@ public sealed partial class Core
         _cursorOnWindow[window] = new Point(pointer.X - client.Bounds.X, pointer.Y - client.Bounds.Y);
     }
 
-    // A window that reuses a closed window's handle starts with no remembered cursor point.
-    private void ForgetCursor(WindowId window) => _cursorOnWindow.Remove(window);
-
     private static bool SpecialToggled(State before, State after, string? dispatcher)
     {
         if (dispatcher is null || !dispatcher.Equals("togglespecialworkspace", StringComparison.OrdinalIgnoreCase))

@@ -96,12 +96,6 @@ public sealed partial class Core
             _mapPlaced[window] = new MapPlaced(bounds, now + ReapplyMilliseconds);
     }
 
-    private void ForgetPlacement(WindowId window)
-    {
-        _mapPlaced.Remove(window);
-        _closeableAt.Remove(window);
-    }
-
     private bool Closeable(WindowId window) =>
         !_closeableAt.TryGetValue(window, out var at) || RuleNow() >= at;
 

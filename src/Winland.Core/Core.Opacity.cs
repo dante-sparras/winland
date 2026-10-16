@@ -17,8 +17,6 @@ public sealed partial class Core
         _opacity[window] = new OpacityChoice(decision.Opacity, decision.Opaque);
     }
 
-    private void ForgetOpacity(WindowId window) => _opacity.Remove(window);
-
     private OpacityChoice OpacityOf(WindowId window) =>
         _opacity.TryGetValue(window, out var choice) ? choice : default;
 }

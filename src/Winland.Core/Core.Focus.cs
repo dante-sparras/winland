@@ -90,12 +90,8 @@ public sealed partial class Core
         _awaitingMapFocus.Add(window);
     }
 
-    private void ForgetFocus(WindowId window)
+    private void ForgetFocusMarks(WindowId window)
     {
-        _focusRules.Remove(window);
-        _awaitingMapFocus.Remove(window);
-        _focusHistory.Remove(window);
-        _urgent.Remove(window);
         if (_lastMouse == window)
             _lastMouse = null;
         if (_unmanagedFocus == window)
