@@ -332,15 +332,14 @@ internal static class GroupBarHost
             var shown = new HWND((nint)Spec.Shown.Value);
             var above = PInvoke.GetWindow(shown, GET_WINDOW_CMD.GW_HWNDPREV);
             var topmost = !above.IsNull && (PInvoke.GetWindowLong(above, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE) & TopmostStyle) != 0;
-            var after = above.IsNull || above == Handle || topmost ? new HWND(0) : above;
-            _ = PInvoke.SetWindowPos(
-                Handle,
-                after,
-                0,
-                0,
-                0,
-                0,
-                SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_SHOWWINDOW);
+            var flags = SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_SHOWWINDOW;
+
+            // A bar already just above the window stays where it is. Raising it to the top would put it over a floating window.
+            if (above == Handle)
+                flags |= SET_WINDOW_POS_FLAGS.SWP_NOZORDER;
+
+            var after = above.IsNull || topmost ? new HWND(0) : above;
+            _ = PInvoke.SetWindowPos(Handle, after, 0, 0, 0, 0, flags);
         }
 
         public void Dispose() => _ = PInvoke.DestroyWindow(Handle);
