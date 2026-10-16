@@ -27,9 +27,7 @@ public sealed class MouseHook : IDisposable
     private readonly KeyboardHook _keys;
     private readonly HOOKPROC _callback;
     private HHOOK _hook;
-    private string? _gestureButton;
-    private string? _gestureDispatcher;
-    private string _gestureArguments = "";
+    private readonly MouseDrag _drag = new();
     private bool _disposed;
 
     public MouseHook(Core core, KeyboardHook keys)
@@ -71,9 +69,13 @@ public sealed class MouseHook : IDisposable
         if (!old.IsNull)
             _ = PInvoke.UnhookWindowsHookEx(old);
 
-        // A drag whose release was missed is over.
-        _gestureButton = null;
-        _gestureDispatcher = null;
+        // A drag whose release was missed is over. The core is told, or the window would
+        // keep following the cursor with no button held.
+        if (_drag.Abandon() is MouseDrag.Active drag)
+        {
+            var position = PInvoke.GetCursorPos(out var point) ? new Point(point.X, point.Y) : _keys.Session.Pointer;
+            _keys.PostGesture(drag.Dispatcher, drag.Arguments, position, PointerDragPhase.End, drag.Button);
+        }
     }
 
     public void Dispose()
@@ -128,8 +130,8 @@ public sealed class MouseHook : IDisposable
     {
         _ = _core.Decide(new PointerMoved(position), _keys.Session);
         SessionEffects.NoteMove();
-        if (_gestureButton is not null && _gestureDispatcher is not null)
-            _keys.PostGesture(_gestureDispatcher, _gestureArguments, position, PointerDragPhase.Move, _gestureButton);
+        if (_drag.Current is MouseDrag.Active drag)
+            _keys.PostGesture(drag.Dispatcher, drag.Arguments, position, PointerDragPhase.Move, drag.Button);
         else
             _keys.PostMove(position, time);
 
@@ -140,12 +142,8 @@ public sealed class MouseHook : IDisposable
     {
         if (up)
         {
-            if (_gestureButton is not null && _gestureDispatcher is not null && _gestureButton.Equals(button, StringComparison.OrdinalIgnoreCase))
-            {
-                _keys.PostGesture(_gestureDispatcher, _gestureArguments, position, PointerDragPhase.End, button);
-                _gestureButton = null;
-                _gestureDispatcher = null;
-            }
+            if (_drag.Release(button) is MouseDrag.Active drag)
+                _keys.PostGesture(drag.Dispatcher, drag.Arguments, position, PointerDragPhase.End, button);
 
             var released = _core.Decide(new PointerButtonReleased(button) { Position = position }, _keys.Session);
             _keys.NoteTiming(released);
@@ -160,9 +158,7 @@ public sealed class MouseHook : IDisposable
         _keys.NoteTiming(decision);
         if (TryDrag(decision, out var dispatcher, out var arguments))
         {
-            _gestureButton = button;
-            _gestureDispatcher = dispatcher;
-            _gestureArguments = arguments;
+            _drag.Begin(button, dispatcher, arguments);
             _keys.PostGesture(dispatcher, arguments, position, PointerDragPhase.Begin, button);
             foreach (var dispatch in decision.Dispatches)
             {
