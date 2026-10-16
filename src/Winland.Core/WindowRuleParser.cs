@@ -627,5 +627,6 @@ internal static partial class WindowRuleParser
         && !traits.Tooltip
         && !traits.Taskbar
         && !traits.Cloaked
-        && !traits.ExclusiveFullscreen;
+        && !traits.ExclusiveFullscreen
+        && !traits.Overlay;
 }

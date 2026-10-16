@@ -71,6 +71,18 @@ public class WindowEventTests
         Assert.False(core.Manages(window));
     }
 
+    // Claude's screen overlay is layered, click-through, topmost and never activated (0x08280028).
+    [Theory]
+    [InlineData(0x08280028, true)]
+    [InlineData(0x00080020, true)]
+    [InlineData(0x00080000, false)]
+    [InlineData(0x00000020, false)]
+    [InlineData(0x00000100, false)]
+    public void ALayeredWindowInputPassesThroughIsAnOverlay(int extended, bool overlay)
+    {
+        Assert.Equal(overlay, WindowAdapter.IsOverlay(extended));
+    }
+
     // Winland hides the Clients of a Workspace it does not show, and the system reports that hide too.
     [Fact]
     public void AClientWinlandHidStaysAClient()

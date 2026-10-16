@@ -38,6 +38,8 @@ The taskbar, the Start menu, Search and the other flyouts the shell opens from t
 
 While Winland runs, the taskbars are hidden and set to auto-hide, so the work area takes in the strip they reserved. They are hidden again when the shell shows or recreates them. A clean exit shows them with the state they had before, and so does the next start after a crash.
 
+A layered window that input passes through, such as a screen overlay an application draws over the desktop, is left unmanaged too: it cannot be clicked or focused, and the pinned release draws such surfaces as layers it never tiles. A window rule that forces adoption still adopts it.
+
 ## Window rule matches
 
 A window rule's `class`, `title`, `exe` and `aumid` patterns are regular expressions that must match the whole field, as in the pinned release, so `title:Notes` does not match a window titled `Release Notes`. A pattern that starts with `negative:` matches when the rest of the pattern does not, so `class:negative:kitty` matches every class but `kitty`. A pattern that is not a valid regular expression warns with its line number and the rule is skipped. `misc:swallow_regex` and `misc:swallow_exception_regex` also match the whole field, and take no `negative:` prefix, as in the pinned release.
