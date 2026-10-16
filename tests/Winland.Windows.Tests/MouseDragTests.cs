@@ -13,6 +13,19 @@ public class MouseDragTests
         Assert.Null(drag.Current);
     }
 
+    // A second drag button pressed while a drag is held starts nothing, so the first drag still ends
+    // when its own button comes up.
+    [Fact]
+    public void ASecondDragWhileOneIsHeldIsIgnored()
+    {
+        var drag = new MouseDrag();
+        drag.Begin("mouse:272", "movewindow", "");
+
+        Assert.False(drag.Begin("mouse:273", "resizewindow", ""));
+        Assert.Null(drag.Release("mouse:273"));
+        Assert.Equal(new MouseDrag.Active("mouse:272", "movewindow", ""), drag.Release("mouse:272"));
+    }
+
     [Fact]
     public void AnAbandonedDragIsHandedBackOnceSoItsEndCanBePosted()
     {

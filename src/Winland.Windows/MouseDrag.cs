@@ -10,8 +10,18 @@ internal sealed class MouseDrag
 
     internal Active? Current { get; private set; }
 
-    internal void Begin(string button, string dispatcher, string arguments) =>
+    /// <summary>
+    /// Starts a drag unless one is already held, as a second drag button pressed during a drag starts
+    /// nothing. Returns whether the drag started.
+    /// </summary>
+    internal bool Begin(string button, string dispatcher, string arguments)
+    {
+        if (Current is not null)
+            return false;
+
         Current = new Active(button, dispatcher, arguments);
+        return true;
+    }
 
     /// <summary>Ends the drag when <paramref name="button"/> is the one that started it.</summary>
     internal Active? Release(string button)
