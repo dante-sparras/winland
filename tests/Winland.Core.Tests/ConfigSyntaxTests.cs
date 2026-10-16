@@ -283,6 +283,57 @@ public class ConfigSyntaxTests
     }
 
     [Fact]
+    public void SourceGlobInTheConfigFolderDoesNotReadTheConfigAgain()
+    {
+        const string root = "bind = SUPER, Q, killactive\nsource = C:/cfg/*.conf\n";
+        var source = new MemorySource(new Dictionary<string, string>
+        {
+            [@"C:\cfg\colors.conf"] = "general:gaps_in = 1\n",
+            [@"C:\cfg\winland.conf"] = root,
+        });
+
+        var document = ConfigParser.Parse(root, source, path: @"C:\cfg\winland.conf");
+
+        Assert.Empty(document.Warnings);
+        Assert.Single(document.Binds);
+        Assert.Equal(new Setting("general:gaps_in", "1"), Assert.Single(document.Settings));
+    }
+
+    [Theory]
+    [InlineData("winland.conf")]
+    [InlineData(@"C:\cfg\winland.conf")]
+    [InlineData("C:/CFG/Winland.conf")]
+    [InlineData(@"C:\cfg\sub\..\winland.conf")]
+    public void SourceNamingTheConfigItselfWarns(string named)
+    {
+        var root = $"bind = SUPER, Q, killactive\nsource = {named}\n";
+        var source = new MemorySource(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [named] = root,
+        });
+
+        var document = ConfigParser.Parse(root, source, path: @"C:\cfg\winland.conf");
+
+        Assert.Equal(new ConfigWarning(2, $"Source '{named}' includes itself."), Assert.Single(document.Warnings));
+        Assert.Single(document.Binds);
+    }
+
+    [Fact]
+    public void SourceCycleIsFoundWhateverTheCaseOfThePath()
+    {
+        var source = new MemorySource(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["a.conf"] = "source = B.CONF\n",
+            ["b.conf"] = "source = A.conf\ngeneral:gaps_in = 3\n",
+        });
+
+        var document = ConfigParser.Parse("source = a.conf\n", source);
+
+        Assert.Equal(new ConfigWarning(1, "Source 'A.conf' includes itself.", "B.CONF"), Assert.Single(document.Warnings));
+        Assert.Equal(new Setting("general:gaps_in", "3"), Assert.Single(document.Settings));
+    }
+
+    [Fact]
     public void SourceGlobWithNoMatchWarns()
     {
         var document = ConfigParser.Parse("source = *.missing\ngeneral:gaps_in = 2\n", new MemorySource(new Dictionary<string, string>()));

@@ -2,6 +2,10 @@
 
 How Winland behaves for the options, dispatchers and window rules it honors. What it does not honor is in [gaps.md](gaps.md), what it adds to Hyprland is in [extensions.md](extensions.md), and terms are defined in [CONTEXT.md](../CONTEXT.md).
 
+## Config files
+
+`source` reads another file in place of the line. A relative path is read from the config's folder, and a glob reads each file it matches in name order. A file is named the same however its path is spelled: paths are compared without case, after a relative path is joined to the config's folder. A `source` that names a file already being read, the config itself included, warns `Source '<path>' includes itself.` and is skipped. A glob passes over such a file without a warning, so `source = ./*.conf` in the config's own folder does not read the config a second time.
+
 ## Layout
 
 `general:layout` is honored for `dwindle`, `master`, `monocle`, and `scrolling`. Any other value warns with its line number. Dwindle still runs when the named layout is not available.

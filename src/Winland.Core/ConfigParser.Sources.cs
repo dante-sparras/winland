@@ -22,8 +22,14 @@ public static partial class ConfigParser
                     return;
                 }
 
+                // A glob in the config's own folder also matches the file it is written in,
+                // and every file that is already being read is passed over without a warning.
                 foreach (var match in matches)
-                    IncludeSource(match, lineNumber);
+                {
+                    if (!_openSources.Contains(SourceKey(match)))
+                        IncludeSource(match, lineNumber);
+                }
+
                 return;
             }
 
@@ -39,7 +45,8 @@ public static partial class ConfigParser
                 return;
             }
 
-            if (!_openSources.Add(path))
+            var key = SourceKey(path);
+            if (!_openSources.Add(key))
             {
                 Warn(lineNumber, $"Source '{path}' includes itself.");
                 return;
@@ -55,10 +62,28 @@ public static partial class ConfigParser
             finally
             {
                 _source = previous;
-                _openSources.Remove(path);
+                _openSources.Remove(key);
             }
 
             WarnUnclosed(_categories.Count - depth);
+        }
+
+        // Windows paths are compared without case, after a relative path is joined to the
+        // config's folder and the result is normalized, so one file has one key however it is named.
+        private string SourceKey(string path)
+        {
+            var joined = Path.IsPathFullyQualified(path) || _rootFolder is null ? path : Path.Join(_rootFolder, path);
+            if (!Path.IsPathFullyQualified(joined))
+                return joined.Replace('/', '\\');
+
+            try
+            {
+                return Path.GetFullPath(joined);
+            }
+            catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+                return joined;
+            }
         }
 
         private void WarnUnclosed(int extra)
