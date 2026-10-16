@@ -107,7 +107,7 @@ public static partial class CommandProtocol
             shown,
             hidden,
             shown,
-            false,
+            shown,
             [client.Bounds.X, client.Bounds.Y],
             [client.Bounds.Width, client.Bounds.Height],
             indexed.ByWorkspace[client.Workspace],
