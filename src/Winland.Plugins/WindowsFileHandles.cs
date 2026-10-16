@@ -198,7 +198,8 @@ public static class WindowsFileHandles
         _ => new IOException($"'{what}': {Marshal.GetPInvokeErrorMessage(error)}", unchecked((int)0x80070000 | error)),
     };
 
-    [StructLayout(LayoutKind.Sequential)]
+    // FILETIME is two DWORDs, so the native struct packs on 4 bytes: 52 bytes, not the 56 a long would align to.
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
     private struct ByHandleFileInformation
     {
         public uint FileAttributes;
