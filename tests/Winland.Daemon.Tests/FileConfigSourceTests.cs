@@ -43,11 +43,53 @@ public sealed class FileConfigSourceTests : IDisposable
     [InlineData(@"C:\conf\**\x\*.conf", @"C:\conf", 2)]
     [InlineData(@"C:\conf\a?\*.conf", @"C:\conf", 1)]
     [InlineData(@"C:/conf/*/*.conf", @"C:\conf", 1)]
+    [InlineData(@"\*.conf", @"\", 0)]
+    [InlineData(@"*\x.conf", "", 0)]
     public void TheSearchStartsAtTheLastFolderWithoutAWildcard(string pattern, string root, int depth)
     {
         var plan = FileConfigSource.Plan(pattern);
 
         Assert.Equal((root, depth), plan);
+    }
+
+    [Fact]
+    public void ARelativeSourceIsReadFromTheConfigFolder()
+    {
+        File.WriteAllText(Path.Combine(_root, "colors.conf"), "$accent = red");
+
+        var text = new FileConfigSource(_root).Read("colors.conf");
+
+        Assert.Equal("$accent = red", text);
+    }
+
+    // An editor that keeps the file open for writing must not stop a reload.
+    [Fact]
+    public void AFileAnotherProgramHasOpenIsStillRead()
+    {
+        var path = Path.Combine(_root, "winland.conf");
+        File.WriteAllText(path, "general { gaps_in = 5 }");
+        using var editor = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+
+        var text = new FileConfigSource(_root).Read(path);
+
+        Assert.Equal("general { gaps_in = 5 }", text);
+    }
+
+    [Fact]
+    public void AByteOrderMarkSelectsTheEncoding()
+    {
+        var path = Path.Combine(_root, "winland.conf");
+        File.WriteAllText(path, "$name = Åsa", System.Text.Encoding.Unicode);
+
+        var text = new FileConfigSource(_root).Read(path);
+
+        Assert.Equal("$name = Åsa", text);
+    }
+
+    [Fact]
+    public void AMissingFileReadsAsNothing()
+    {
+        Assert.Null(new FileConfigSource(_root).Read("missing.conf"));
     }
 
     public void Dispose()
