@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using Winland.Install;
+using Winland.Plugins;
 
 namespace Winland;
 
@@ -20,9 +21,15 @@ sealed class SchtasksCatalog : ITaskCatalog
             throw Failed("Could not remove the logon task.", result);
     }
 
+    // schtasks reads the definition from a file. In the user's %TEMP% any program the user runs
+    // could swap that file before schtasks reads it, and the task runs at the highest privileges.
+    // A new folder in the Windows temp folder that only administrators can write cannot be
+    // touched: users may create entries there but not rename or delete another's.
     private static void Register(LogonTask task, bool update)
     {
-        var path = Path.Combine(Path.GetTempPath(), $"winland-{Guid.NewGuid():N}.xml");
+        var windowsTemp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp");
+        var folder = AdministratorFolder.CreateNew(windowsTemp, "winland-");
+        var path = Path.Combine(folder, "task.xml");
         try
         {
             File.WriteAllText(path, task.Xml, Encoding.Unicode);
@@ -35,8 +42,7 @@ sealed class SchtasksCatalog : ITaskCatalog
         }
         finally
         {
-            if (File.Exists(path))
-                File.Delete(path);
+            Directory.Delete(folder, recursive: true);
         }
     }
 
