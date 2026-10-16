@@ -65,4 +65,11 @@ public class InstallLocationTests
         Assert.Contains(User, emptied, StringComparison.Ordinal);
         Assert.NotNull(unreadable);
     }
+
+    [Fact]
+    public void NoTreeOrNoAncestorsIsRefused()
+    {
+        Assert.Throws<ArgumentNullException>(() => InstallLocation.Refusal(null!, []));
+        Assert.Throws<ArgumentNullException>(() => InstallLocation.Refusal([], null!));
+    }
 }

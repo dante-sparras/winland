@@ -106,6 +106,77 @@ public sealed class RecoveryStoreTests : IDisposable
         Assert.Equal("kept", File.ReadAllText(Path.Combine(elsewhere, "kept.txt")));
     }
 
+    // Nothing is recorded until the Clients have been adopted, and nothing after the cleanup has run.
+    [Fact]
+    public void OnlyAnArmedOpenStoreWrites()
+    {
+        var path = Path.Combine(_root, "state.json");
+        var store = new RecoveryStore(path);
+
+        store.Save(Snapshot(1));
+        var beforeArm = File.Exists(path);
+        store.Arm();
+        store.Delete();
+        store.Arm();
+        store.Save(Snapshot(2));
+
+        Assert.False(beforeArm);
+        Assert.False(File.Exists(path));
+    }
+
+    // The same snapshot is not written again, so a file someone else changed meanwhile is left alone.
+    [Fact]
+    public void AnUnchangedSnapshotIsNotWrittenAgain()
+    {
+        var path = Path.Combine(_root, "state.json");
+        var store = new RecoveryStore(path);
+        store.Arm();
+
+        store.Save(Snapshot(1));
+        File.WriteAllText(path, Snapshot(9).ToJson());
+        store.Save(Snapshot(1));
+
+        Assert.Equal(9, Assert.Single(store.Read()!.Clients).Window.Value);
+    }
+
+    [Fact]
+    public void AMissingOrDamagedFileReadsAsNothing()
+    {
+        var path = Path.Combine(_root, "state.json");
+        var store = new RecoveryStore(path);
+
+        var missing = store.Read();
+        File.WriteAllText(path, "{ not json");
+        var damaged = store.Read();
+
+        Assert.Null(missing);
+        Assert.Null(damaged);
+    }
+
+    // A file where the folder should be is never used, and saving there does not throw.
+    [Fact]
+    public void AFileInPlaceOfTheFolderIsNotUsed()
+    {
+        var blocker = Path.Combine(_root, "Winland");
+        File.WriteAllText(blocker, "not a folder");
+        var store = new RecoveryStore(Path.Combine(blocker, "state.json"));
+        store.Arm();
+
+        store.Save(Snapshot(1));
+        var read = store.Read();
+        store.Delete();
+
+        Assert.Null(read);
+        Assert.Equal("not a folder", File.ReadAllText(blocker));
+    }
+
+    [Fact]
+    public void APathWithoutAFolderIsRefused()
+    {
+        Assert.Throws<ArgumentException>(() => new RecoveryStore(" "));
+        Assert.Throws<ArgumentException>(() => new RecoveryStore(@"C:\"));
+    }
+
     public void Dispose()
     {
         foreach (var directory in Directory.EnumerateDirectories(_root, "*", SearchOption.AllDirectories).Reverse())
