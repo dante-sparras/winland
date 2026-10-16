@@ -33,7 +33,7 @@ public static class WindowsFileHandles
     private const uint OwnerSecurity = 0x00000001;
     private const uint DaclSecurity = 0x00000004;
     private const uint ProtectedDaclSecurity = 0x80000000;
-    private const int FileRenameInfo = 3;
+    private const int FileRenameInformation = 10;
     private const int FileDispositionInfo = 4;
 
     /// <summary>
@@ -129,11 +129,13 @@ public static class WindowsFileHandles
         if (name.AsSpan().ContainsAny(@"\/:"))
             throw new ArgumentException("The new name must be a single name.", nameof(name));
 
-        // FILE_RENAME_INFO: a BOOLEAN padded to the pointer, the root folder handle, the name length
-        // in bytes, then the name.
+        // FILE_RENAME_INFORMATION: a BOOLEAN padded to the pointer, the root folder handle, the name
+        // length in bytes, then the name. The kernel call takes a name relative to the root handle as
+        // it is; the Win32 wrapper turns it into a path first.
         var nameOffset = (IntPtr.Size * 2) + sizeof(uint);
         var size = nameOffset + ((name.Length + 1) * sizeof(char));
         var buffer = Marshal.AllocHGlobal(size);
+        var status = new IntPtr[2];
         var added = false;
         try
         {
@@ -145,8 +147,9 @@ public static class WindowsFileHandles
             Marshal.WriteIntPtr(buffer, IntPtr.Size, directory.DangerousGetHandle());
             Marshal.WriteInt32(buffer, IntPtr.Size * 2, name.Length * sizeof(char));
             Marshal.Copy(name.ToCharArray(), 0, buffer + nameOffset, name.Length);
-            if (!SetFileInformationByHandle(file, FileRenameInfo, buffer, (uint)size))
-                throw Failure(Marshal.GetLastPInvokeError(), name);
+            var result = NtSetInformationFile(file, status, buffer, (uint)size, FileRenameInformation);
+            if (result < 0)
+                throw Failure((int)RtlNtStatusToDosError(result), name);
         }
         finally
         {
@@ -238,4 +241,10 @@ public static class WindowsFileHandles
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetFileInformationByHandle(SafeFileHandle handle, int informationClass, IntPtr information, uint size);
+
+    [DllImport("ntdll.dll")]
+    private static extern int NtSetInformationFile(SafeFileHandle handle, [Out] IntPtr[] status, IntPtr information, uint length, int informationClass);
+
+    [DllImport("ntdll.dll")]
+    private static extern uint RtlNtStatusToDosError(int status);
 }
