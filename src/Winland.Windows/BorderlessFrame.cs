@@ -75,6 +75,36 @@ internal sealed class BorderlessFrame
 
     internal void Release(WindowId window) => Apply(window, false);
 
+    /// <summary>Records the original style of each Client whose frame this dropped, so a crash does not leave it frameless.</summary>
+    internal RecoverySnapshot Stamp(RecoverySnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        lock (_gate)
+        {
+            var clients = new RecoveredClient[snapshot.Clients.Count];
+            var changed = false;
+            for (var i = 0; i < snapshot.Clients.Count; i++)
+            {
+                var client = snapshot.Clients[i];
+                uint? style = _original.TryGetValue(client.Window, out var original) ? original : null;
+                clients[i] = client.FrameStyle == style ? client : client with { FrameStyle = style };
+                changed |= client.FrameStyle != style;
+            }
+
+            return changed ? snapshot with { Clients = clients } : snapshot;
+        }
+    }
+
+    /// <summary>Writes back the style a previous run recorded before it dropped the frame and then died.</summary>
+    internal void PutBack(WindowId window, uint style)
+    {
+        lock (_gate)
+        {
+            _original.Remove(window);
+            _frames.TryWriteStyle(window, style);
+        }
+    }
+
     /// <summary>Puts back the frame of every window this dropped it from.</summary>
     internal void ReleaseAll()
     {

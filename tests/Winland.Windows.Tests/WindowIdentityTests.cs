@@ -5,6 +5,17 @@ namespace Winland.Tests;
 public class WindowIdentityTests
 {
     [Fact]
+    public void ProcessAndClassMakeTheSameWindowAndTheTitleTheSameClient()
+    {
+        var client = new RecoveredClient(new WindowId(5), WorkspaceId.Initial, MonitorId.Primary, false, "Notepad", "a.txt", 42);
+
+        Assert.Equal(WindowIdentity.Recognition.SameClient, WindowIdentity.Recognize(client, 42, "Notepad", "a.txt"));
+        Assert.Equal(WindowIdentity.Recognition.SameWindow, WindowIdentity.Recognize(client, 42, "Notepad", "b.txt"));
+        Assert.Equal(WindowIdentity.Recognition.Other, WindowIdentity.Recognize(client, 43, "Notepad", "a.txt"));
+        Assert.Equal(WindowIdentity.Recognition.Other, WindowIdentity.Recognize(client, 42, "Edit", "a.txt"));
+    }
+
+    [Fact]
     public void AClosedClientIsLeftOutAndTheOthersAreStillRecorded()
     {
         using var probe = new LimitProbeTests.LimitProbe();

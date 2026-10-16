@@ -141,6 +141,31 @@ public class DwmEffectsTests
         Assert.Equal(DwmEffects.StylePolicy, surface.Policies[other]);
     }
 
+    [Fact]
+    public void ACutRegionIsRecordedAndAfterACrashRemovedSoItIsNotTakenAsTheWindowsOwn()
+    {
+        var surface = new FakeSurface();
+        surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
+        var effects = new DwmEffects(surface);
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+
+        var stamped = effects.Stamp(new RecoverySnapshot(
+        [
+            new RecoveredClient(Window, WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1),
+            new RecoveredClient(new WindowId(9), WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1),
+        ]));
+        Assert.True(stamped.Clients[0].Region);
+        Assert.False(stamped.Clients[1].Region);
+
+        // The region stays on the window when the process dies, and the next run would see it as the window's own.
+        var restarted = new DwmEffects(surface);
+        restarted.DropLeftoverRegion(Window);
+        Assert.Empty(surface.Regions[Window]);
+
+        restarted.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        Assert.True(restarted.CutsCorners(Window));
+    }
+
     private static Decoration Decorated(
         bool blur = true,
         bool shadow = true,

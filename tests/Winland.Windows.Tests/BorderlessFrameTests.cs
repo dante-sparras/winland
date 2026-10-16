@@ -61,6 +61,33 @@ public class BorderlessFrameTests
         Assert.False(borderless.Owns(second));
     }
 
+    [Fact]
+    public void TheOriginalStyleIsRecordedAndAfterACrashWrittenBackInsteadOfTheStrippedOne()
+    {
+        var frames = new FakeFrames();
+        var window = new WindowId(6);
+        var other = new WindowId(7);
+        frames.Style[window] = 0x00CF0000;
+        var borderless = new BorderlessFrame(frames);
+        borderless.Apply(window, true);
+
+        var stamped = borderless.Stamp(new RecoverySnapshot(
+        [
+            new RecoveredClient(window, WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1),
+            new RecoveredClient(other, WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1),
+        ]));
+        Assert.Equal(0x00CF0000u, stamped.Clients[0].FrameStyle);
+        Assert.Null(stamped.Clients[1].FrameStyle);
+
+        var restarted = new BorderlessFrame(frames);
+        restarted.PutBack(window, stamped.Clients[0].FrameStyle!.Value);
+        Assert.Equal(0x00CF0000u, frames.Style[window]);
+
+        restarted.Apply(window, true);
+        restarted.Apply(window, false);
+        Assert.Equal(0x00CF0000u, frames.Style[window]);
+    }
+
     private sealed class FakeFrames : IWindowFrame
     {
         internal readonly Dictionary<WindowId, uint> Style = [];

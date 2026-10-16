@@ -101,6 +101,24 @@ public class RecoveryTests
         Assert.Equal(snapshot.Clients[1], parsed.Clients[1]);
     }
 
+    [Fact]
+    public void TheFrameAndRegionAWindowWasLeftWithRoundTrip()
+    {
+        var changed = new RecoveredClient(new WindowId(42), WorkspaceId.Initial, MonitorId.Primary, false, "App", "App", 1)
+        {
+            FrameStyle = 0x14CF0000,
+            Region = true,
+        };
+        var plain = new RecoveredClient(new WindowId(7), WorkspaceId.Initial, MonitorId.Primary, false, "App", "App", 1);
+
+        var json = new RecoverySnapshot([changed, plain]).ToJson();
+
+        Assert.True(RecoverySnapshot.TryParse(json, out var parsed));
+        Assert.Equal(changed, parsed.Clients[0]);
+        Assert.Equal(plain, parsed.Clients[1]);
+        Assert.DoesNotContain("frameStyle\":null", json, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("not json")]

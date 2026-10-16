@@ -161,15 +161,17 @@ public sealed partial class WindowAdapter : IDisposable
         var kept = new List<RecoveredClient>(snapshot.Clients.Count);
         foreach (var client in snapshot.Clients)
         {
-            if (!WindowIdentity.Matches(client))
+            var recognized = WindowIdentity.Recognize(client);
+            if (recognized == WindowIdentity.Recognition.Other)
+                continue;
+
+            Repair(client);
+            if (recognized != WindowIdentity.Recognition.SameClient)
                 continue;
 
             // Nothing minimizes under Winland, so a window that is minimized now was minimized while it was away.
             if (PInvoke.IsIconic(new HWND((nint)client.Window.Value)))
                 continue;
-
-            if (client.Layered)
-                Opacity.ReleaseAdded(client.Window);
 
             kept.Add(client);
         }
@@ -200,6 +202,20 @@ public sealed partial class WindowAdapter : IDisposable
         }
     }
 
+    // A previous run that died left its changes on the window. They are put back before anything reads the
+    // window, so a stripped frame or a cut region is not taken as the window's own.
+    private static void Repair(RecoveredClient client)
+    {
+        if (client.FrameStyle is uint style)
+            Borderless.PutBack(client.Window, style);
+
+        if (client.Region)
+            Effects.DropLeftoverRegion(client.Window);
+
+        if (client.Layered)
+            Opacity.ReleaseAdded(client.Window);
+    }
+
     public void RevealHidden()
     {
         LandMotions();
@@ -227,8 +243,12 @@ public sealed partial class WindowAdapter : IDisposable
         if (Releasing || _changed is null)
             return;
 
-        _changed(Opacity.Stamp(_core.Recovery()));
+        _changed(Stamp(_core.Recovery()));
     }
+
+    // What this run changed on each Client's window, so a restart after a crash can put it back.
+    private static RecoverySnapshot Stamp(RecoverySnapshot snapshot) =>
+        Effects.Stamp(Borderless.Stamp(Opacity.Stamp(snapshot)));
 
     private void OnEvent(
         HWINEVENTHOOK hook,
