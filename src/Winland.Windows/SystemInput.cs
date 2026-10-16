@@ -146,15 +146,17 @@ public sealed class SystemInputSession
     {
         if (desired is int delay)
         {
+            var fresh = false;
             if (_originals.KeyboardDelay is null)
             {
                 if (!_input.TryReadKeyboardDelay(out var original))
                     return;
 
                 _originals = _originals with { KeyboardDelay = original };
+                fresh = true;
             }
 
-            if (_applied?.KeyboardDelay != delay)
+            if (fresh || _applied?.KeyboardDelay != delay)
                 _input.WriteKeyboardDelay(delay);
             return;
         }
@@ -170,15 +172,17 @@ public sealed class SystemInputSession
     {
         if (desired is int speed)
         {
+            var fresh = false;
             if (_originals.KeyboardSpeed is null)
             {
                 if (!_input.TryReadKeyboardSpeed(out var original))
                     return;
 
                 _originals = _originals with { KeyboardSpeed = original };
+                fresh = true;
             }
 
-            if (_applied?.KeyboardSpeed != speed)
+            if (fresh || _applied?.KeyboardSpeed != speed)
                 _input.WriteKeyboardSpeed(speed);
             return;
         }
@@ -194,15 +198,17 @@ public sealed class SystemInputSession
     {
         if (desired is bool enabled)
         {
+            var fresh = false;
             if (_originals.NumLock is null)
             {
                 if (!_input.TryReadNumLock(out var original))
                     return;
 
                 _originals = _originals with { NumLock = original };
+                fresh = true;
             }
 
-            if (_applied?.NumLock != enabled)
+            if (fresh || _applied?.NumLock != enabled)
                 _input.WriteNumLock(enabled);
             return;
         }
@@ -218,15 +224,17 @@ public sealed class SystemInputSession
     {
         if (desired is bool swapped)
         {
+            var fresh = false;
             if (_originals.SwappedButtons is null)
             {
                 if (!_input.TryReadSwappedButtons(out var original))
                     return;
 
                 _originals = _originals with { SwappedButtons = original };
+                fresh = true;
             }
 
-            if (_applied?.SwapButtons != swapped)
+            if (fresh || _applied?.SwapButtons != swapped)
                 _input.WriteSwappedButtons(swapped);
             return;
         }
@@ -245,15 +253,17 @@ public sealed class SystemInputSession
             var curve = acceleration == PointerAcceleration.Flat
                 ? new MouseCurve(0, 0, 0)
                 : new MouseCurve(6, 10, 1);
+            var fresh = false;
             if (_originals.MouseCurve is null)
             {
                 if (!_input.TryReadMouseCurve(out var original))
                     return;
 
                 _originals = _originals with { MouseCurve = original };
+                fresh = true;
             }
 
-            if (_applied?.Acceleration != acceleration)
+            if (fresh || _applied?.Acceleration != acceleration)
                 _input.WriteMouseCurve(curve);
             return;
         }
@@ -269,15 +279,17 @@ public sealed class SystemInputSession
     {
         if (desired is int speed)
         {
+            var fresh = false;
             if (_originals.MouseSpeed is null)
             {
                 if (!_input.TryReadMouseSpeed(out var original))
                     return;
 
                 _originals = _originals with { MouseSpeed = original };
+                fresh = true;
             }
 
-            if (_applied?.MouseSpeed != speed)
+            if (fresh || _applied?.MouseSpeed != speed)
                 _input.WriteMouseSpeed(speed);
             return;
         }
@@ -293,15 +305,17 @@ public sealed class SystemInputSession
     {
         if (desired is int lines)
         {
+            var fresh = false;
             if (_originals.WheelLines is null)
             {
                 if (!_input.TryReadWheelLines(out var original))
                     return;
 
                 _originals = _originals with { WheelLines = original };
+                fresh = true;
             }
 
-            if (_applied?.WheelLines != lines)
+            if (fresh || _applied?.WheelLines != lines)
                 _input.WriteWheelLines(lines);
             return;
         }
