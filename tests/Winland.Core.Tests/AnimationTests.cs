@@ -372,10 +372,13 @@ public class AnimationTests
         Assert.Equal(Left, motion.To);
     }
 
+    // A loaded config applies its gaps and borders like a reload, and these rectangles have none.
+    private const string Gapless = "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n";
+
     private static Core Load(string text)
     {
         var core = new Core();
-        core.Handle(new ConfigLoaded(ConfigParser.Parse(text)));
+        core.Handle(new ConfigLoaded(ConfigParser.Parse(Gapless + text)));
         return core;
     }
 

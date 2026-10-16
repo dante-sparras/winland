@@ -406,6 +406,7 @@ public class EventTests
             [
                 "warning>>1,,Unsupported keyword 'ghostkeyword'.",
                 "warning>>2,,Unsupported keyword 'nope'.",
+                "configreloaded>>",
             ],
             Lines(outcome));
     }
@@ -420,7 +421,7 @@ public class EventTests
 
         var outcome = new Core().Handle(new ConfigLoaded(document));
 
-        Assert.Equal(["warning>>4,bad.conf,bad line, still"], Lines(outcome));
+        Assert.Equal(["warning>>4,bad.conf,bad line, still", "configreloaded>>"], Lines(outcome));
     }
 
     [Fact]

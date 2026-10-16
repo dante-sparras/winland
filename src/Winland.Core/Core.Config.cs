@@ -2,25 +2,8 @@ namespace Winland;
 
 public sealed partial class Core
 {
-    private Outcome Load(ConfigLoaded loaded)
-    {
-        InstallBinds(loaded.Config);
-        _config = loaded.Config;
-        _workspaceRules = loaded.Config.WorkspaceRules;
-        NoteConfigErrors(loaded.Config);
-        _environment = loaded.Config.Environment;
-        _decoration = DecorationOptions.From(loaded.Config);
-        _session = SessionOptions.From(loaded.Config);
-        ReadAnimations(loaded.Config);
-        _groupOptions = GroupOptions.From(loaded.Config);
-        ReadCursor(loaded.Config);
-        ReadGestures(loaded.Config);
-        ReadBinds(loaded.Config);
-        if (_monitors.Count == 0)
-            return View([]);
-
-        return SetMonitors(Reported());
-    }
+    // A loaded config goes through the same path as a reload, so it applies every part of the config.
+    private Outcome Load(ConfigLoaded loaded) => Apply(loaded.Config);
 
     private void InstallBinds(ConfigDocument document) =>
         _binds = BindTable.From(document);
