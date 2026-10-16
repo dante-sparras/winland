@@ -18,6 +18,7 @@ public sealed class WindowHost : IDisposable
     private readonly Lock _memory = new();
     private readonly Queue<SessionSignal> _pending = new();
     private readonly LoopInvoker _loop = new();
+    private readonly Coalescer<RecoverySnapshot> _saver;
 
     private RecoverySnapshot? _recovered;
     private RecoverySnapshot? _clients;
@@ -33,11 +34,17 @@ public sealed class WindowHost : IDisposable
     {
         ArgumentNullException.ThrowIfNull(core);
         _core = core;
-        _windows = new WindowAdapter(core, snapshot =>
-        {
-            Remember(snapshot);
-            onRecovery?.Invoke(snapshot);
-        });
+        // Reading each Client's title and writing the state file happen off the event path, at most a few
+        // times a second, with the newest snapshot.
+        _saver = new Coalescer<RecoverySnapshot>(
+            snapshot =>
+            {
+                Remember(snapshot);
+                onRecovery?.Invoke(snapshot);
+            },
+            TimeSpan.FromMilliseconds(250),
+            "Winland recovery");
+        _windows = new WindowAdapter(core, _saver.Post);
         _keys = new KeyboardHook(core);
         _mouse = new MouseHook(core, _keys);
         _input = new InputThread(StartHooks, ServiceHooks, StopHooks);
@@ -206,6 +213,7 @@ public sealed class WindowHost : IDisposable
             // Already done on the input thread when it ran; here for a host that never started.
             StopHooks();
             _windows.Dispose();
+            _saver.Dispose();
         }
         finally
         {
