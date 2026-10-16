@@ -32,7 +32,7 @@ internal sealed partial class ScrollingLayout
         _natural.Remove(from);
         _natural[to] = incoming.Bounds;
         _limits.Remove(from);
-        _limits[to] = (incoming.MinSize, incoming.MaxSize);
+        _limits[to] = new SizeLimits(incoming.MinSize, incoming.MaxSize);
         _widths.Remove(current);
         if (_focus == current)
             _focus = next;

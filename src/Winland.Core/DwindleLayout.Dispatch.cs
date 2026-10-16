@@ -32,6 +32,20 @@ internal sealed partial class DwindleLayout
             ?? Neighbor(origin, direction, active, !floating);
     }
 
+    private WindowId? Neighbor(Rectangle origin, PendingSplit direction, WindowId except, bool floating) =>
+        ToSide(direction) is Side side
+            ? DirectionalNeighbor.Find(_clients, origin, side, except, floating, (WindowId window, out Rectangle box) => TryGeometry(window, out box, out _))
+            : null;
+
+    private static Side? ToSide(PendingSplit direction) => direction switch
+    {
+        PendingSplit.Left => Side.Left,
+        PendingSplit.Right => Side.Right,
+        PendingSplit.Up => Side.Up,
+        PendingSplit.Down => Side.Down,
+        _ => null,
+    };
+
     public void NoteFocus(WindowId window)
     {
         var id = new ClientId(window.Value);
@@ -395,65 +409,6 @@ internal sealed partial class DwindleLayout
         return [new Placement(id, resized)];
     }
 
-    private WindowId? Neighbor(Rectangle origin, PendingSplit direction, WindowId except, bool floating)
-    {
-        WindowId? best = null;
-        var bestOverlap = 1.0;
-        foreach (var client in _clients)
-        {
-            if (client.Window == except || client.Minimized || client.Floating != floating)
-                continue;
-            if (!TryGeometry(client.Window, out var box, out _))
-                continue;
-            if (!Overlap(origin, box, direction, out var overlap) || overlap <= bestOverlap)
-                continue;
-
-            bestOverlap = overlap;
-            best = client.Window;
-        }
-
-        return best;
-    }
-
-    private static bool Overlap(Rectangle origin, Rectangle other, PendingSplit direction, out double overlap)
-    {
-        var adjacent = direction switch
-        {
-            PendingSplit.Left => Adjacent(origin.X, origin.X + origin.Width, other.X, other.X + other.Width),
-            PendingSplit.Right => Adjacent(other.X, other.X + other.Width, origin.X, origin.X + origin.Width),
-            PendingSplit.Up => Adjacent(origin.Y, origin.Y + origin.Height, other.Y, other.Y + other.Height),
-            PendingSplit.Down => Adjacent(other.Y, other.Y + other.Height, origin.Y, origin.Y + origin.Height),
-            _ => false,
-        };
-
-        overlap = adjacent
-            ? direction is PendingSplit.Left or PendingSplit.Right
-                ? Shared(origin.Y, origin.Height, other.Y, other.Height)
-                : Shared(origin.X, origin.Width, other.X, other.Width)
-            : 0;
-        return overlap > 1;
-    }
-
-    private static bool Adjacent(int aMin, int aMax, int bMin, int bMax)
-    {
-        var delta = aMin - bMax;
-        if (Math.Abs(delta) <= 2)
-            return true;
-        if (delta >= 0)
-            return false;
-
-        var overlap = -delta;
-        var sizeA = aMax - aMin;
-        var sizeB = bMax - bMin;
-        if ((bMin <= aMin && bMax >= aMax) || (aMin <= bMin && aMax >= bMax))
-            return false;
-
-        return overlap <= Math.Min(sizeA, sizeB) * 0.5;
-    }
-
-    private static double Shared(int start, int size, int otherStart, int otherSize) =>
-        Math.Max(0, Math.Min(start + size, otherStart + otherSize) - Math.Max(start, otherStart));
-
     private bool TryGeometry(WindowId window, out Rectangle box, out bool floating)
     {
         var id = new ClientId(window.Value);
@@ -535,26 +490,6 @@ internal sealed partial class DwindleLayout
 
         direction = PendingSplit.None;
         return false;
-    }
-
-    private static bool TryResize(string arguments, out int x, out int y, out bool exact)
-    {
-        x = 0;
-        y = 0;
-        exact = false;
-        var tokens = Tokens(arguments);
-        var index = 0;
-        if (tokens.Length > 0 && Is(tokens[0], "exact"))
-        {
-            exact = true;
-            index = 1;
-        }
-
-        if (tokens.Length - index < 2)
-            return false;
-
-        return int.TryParse(tokens[index], NumberStyles.Integer, CultureInfo.InvariantCulture, out x)
-            && int.TryParse(tokens[index + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out y);
     }
 
     private static string First(string arguments)

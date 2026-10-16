@@ -17,7 +17,7 @@ internal sealed partial class ScrollingLayout : Layout
     private readonly Dictionary<ClientId, Suspension> _suspended = [];
     private readonly Dictionary<ClientId, Rectangle> _floating = [];
     private readonly Dictionary<ClientId, Rectangle> _natural = [];
-    private readonly Dictionary<ClientId, (Size? Min, Size? Max)> _limits = [];
+    private readonly Dictionary<ClientId, SizeLimits> _limits = [];
     private readonly Dictionary<ClientId, (int Width, int Height)> _lastFloat = [];
     private readonly Dictionary<WindowId, double> _widths = [];
     private readonly List<Column> _columns = [];
@@ -99,21 +99,12 @@ internal sealed partial class ScrollingLayout : Layout
             return [];
 
         _natural[id] = bounds;
-        _limits[id] = (minSize, maxSize);
+        _limits[id] = new SizeLimits(minSize, maxSize);
         var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
         if (placed.Width > 0 && placed.Height > 0)
             _lastFloat[id] = (placed.Width, placed.Height);
 
-        _clients.Add(new Client(
-            id,
-            window,
-            floating,
-            Workspace: workspace,
-            Class: windowClass,
-            Title: title,
-            ProcessId: processId,
-            InitialClass: initialClass.Length == 0 ? windowClass : initialClass,
-            InitialTitle: initialTitle.Length == 0 ? title : initialTitle));
+        _clients.Add(ClientAdoption.Adopted(id, window, workspace, windowClass, title, floating, processId, initialClass, initialTitle));
         if (floating)
         {
             _floating[id] = placed;
@@ -230,18 +221,7 @@ internal sealed partial class ScrollingLayout : Layout
         double? width = _cells.TryGetValue(id, out var cell) && cell.Column is Column column
             ? column.Width
             : _suspended.TryGetValue(id, out var suspension) ? suspension.Column.Width : null;
-        taken = new Taken(
-            client.Floating,
-            client.Minimized,
-            bounds,
-            client.Class,
-            client.Title,
-            client.ProcessId,
-            client.InitialClass,
-            client.InitialTitle,
-            limits.Min,
-            limits.Max,
-            width);
+        taken = SlotHandover.Describe(client, bounds, limits.Min, limits.Max, width);
         Remove(window);
         return true;
     }
@@ -254,7 +234,7 @@ internal sealed partial class ScrollingLayout : Layout
         if (_clients.FindIndex(client => client.Id == id) < 0)
             return [];
 
-        _limits[id] = (minSize, maxSize);
+        _limits[id] = new SizeLimits(minSize, maxSize);
         if (!_floating.TryGetValue(id, out var floating))
             return [];
 

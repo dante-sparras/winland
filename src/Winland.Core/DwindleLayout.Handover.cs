@@ -32,7 +32,7 @@ internal sealed partial class DwindleLayout
         _natural.Remove(from);
         _natural[to] = incoming.Bounds;
         _limits.Remove(from);
-        _limits[to] = new ClientLimits(incoming.MinSize, incoming.MaxSize);
+        _limits[to] = new SizeLimits(incoming.MinSize, incoming.MaxSize);
         if (_splitTarget == from)
             _splitTarget = to;
         if (_grab is { } grab && grab.Id == from)
