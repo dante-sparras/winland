@@ -8,7 +8,7 @@ public sealed partial class Core
         if (existing is not null)
             return existing;
 
-        var hinted = WorkspaceRules.For(_workspaceRules, id, null, null, 0, 0, 0);
+        var hinted = WorkspaceRules.For(_workspaceRules, id, null, null);
         var bound = BoundMonitor(hinted);
         var owner = bound?.Id ?? monitor ?? FocusedId();
         var layout = LayoutFactory.Create(_config);
@@ -94,16 +94,14 @@ public sealed partial class Core
     private WorkspaceRule? RuleFor(LiveWorkspace desk)
     {
         var screen = MonitorById(desk.Monitor);
-        var counts = desk.ClientCounts();
+        int Count(WindowCount wanted) => desk.CountWindows(wanted, _pinned);
         var fullscreen = desk.CoveringMode();
         var first = WorkspaceRules.For(
             _workspaceRules,
             desk.Id,
             desk.DisplayName,
             screen?.Effective,
-            counts.Windows,
-            counts.Tiled,
-            counts.Floating,
+            Count,
             fullscreen);
         var name = first?.DefaultName ?? desk.DisplayName;
         if (name == desk.DisplayName)
@@ -114,9 +112,7 @@ public sealed partial class Core
             desk.Id,
             name,
             screen?.Effective,
-            counts.Windows,
-            counts.Tiled,
-            counts.Floating,
+            Count,
             fullscreen);
     }
 
@@ -149,7 +145,7 @@ public sealed partial class Core
     {
         var desk = FindWorkspace(id);
         return BoundMonitor(desk is null
-            ? WorkspaceRules.For(_workspaceRules, id, null, null, 0, 0, 0)
+            ? WorkspaceRules.For(_workspaceRules, id, null, null)
             : RuleFor(desk));
     }
 

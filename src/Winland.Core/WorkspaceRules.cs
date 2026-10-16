@@ -67,6 +67,12 @@ public sealed record WorkspaceRule
     }
 }
 
+/// <summary>
+/// What a <c>w[]</c> workspace selector counts: only tiled or only floating Clients when <see cref="Tiled"/>
+/// is set, only pinned ones, Groups in place of Clients, and only the ones shown.
+/// </summary>
+internal readonly record struct WindowCount(bool? Tiled, bool Pinned, bool Groups, bool Visible);
+
 internal static partial class WorkspaceRules
 {
     internal static void ReplaceOrAdd(List<WorkspaceRule> rules, WorkspaceRule rule)
@@ -126,16 +132,14 @@ internal static partial class WorkspaceRules
         WorkspaceId id,
         string? displayName,
         Monitor? monitor,
-        int windows,
-        int tiled,
-        int floating,
+        Func<WindowCount, int>? count = null,
         FullscreenMode fullscreen = FullscreenMode.None)
     {
         ArgumentNullException.ThrowIfNull(rules);
         WorkspaceRule? merged = null;
         foreach (var rule in rules)
         {
-            if (!Matches(rule.WorkspaceString, id, displayName, monitor, windows, tiled, floating, fullscreen))
+            if (!Matches(rule.WorkspaceString, id, displayName, monitor, count, fullscreen))
                 continue;
 
             merged = merged is null ? rule : merged.Merge(rule);

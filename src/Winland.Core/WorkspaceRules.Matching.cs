@@ -10,9 +10,7 @@ internal static partial class WorkspaceRules
         WorkspaceId id,
         string? displayName,
         Monitor? monitor,
-        int windows,
-        int tiled,
-        int floating,
+        Func<WindowCount, int>? count,
         FullscreenMode fullscreen)
     {
         selector = selector.Trim();
@@ -36,7 +34,7 @@ internal static partial class WorkspaceRules
         if (!selector.Contains('[', StringComparison.Ordinal))
             return IsNamed(id) && selector == id.Name;
 
-        return MatchProperties(selector, id, displayName, monitor, windows, tiled, floating, fullscreen);
+        return MatchProperties(selector, id, displayName, monitor, count, fullscreen);
     }
 
     private static bool MatchProperties(
@@ -44,9 +42,7 @@ internal static partial class WorkspaceRules
         WorkspaceId id,
         string? displayName,
         Monitor? monitor,
-        int windows,
-        int tiled,
-        int floating,
+        Func<WindowCount, int>? count,
         FullscreenMode fullscreen)
     {
         for (var i = 0; i < selector.Length; i++)
@@ -84,7 +80,7 @@ internal static partial class WorkspaceRules
                         return false;
                     break;
                 case 'w':
-                    if (!MatchCount(body, windows, tiled, floating))
+                    if (!MatchCount(body, count))
                         return false;
                     break;
                 case 'f':
@@ -141,21 +137,22 @@ internal static partial class WorkspaceRules
         return true;
     }
 
-    private static bool MatchCount(string body, int windows, int tiled, int floating)
+    private static bool MatchCount(string body, Func<WindowCount, int>? counter)
     {
         var index = 0;
-        int? onlyTiled = null;
+        bool? onlyTiled = null;
         var pinned = false;
         var groups = false;
+        var visible = false;
         while (index < body.Length)
         {
             switch (body[index])
             {
                 case 't' when onlyTiled is null:
-                    onlyTiled = 1;
+                    onlyTiled = true;
                     break;
                 case 'f' when onlyTiled is null:
-                    onlyTiled = 0;
+                    onlyTiled = false;
                     break;
                 case 'p' when !pinned:
                     pinned = true;
@@ -163,7 +160,8 @@ internal static partial class WorkspaceRules
                 case 'g' when !groups:
                     groups = true;
                     break;
-                case 'v':
+                case 'v' when !visible:
+                    visible = true;
                     break;
                 default:
                     goto Count;
@@ -173,12 +171,7 @@ internal static partial class WorkspaceRules
         }
 
     Count:
-        var count = groups || pinned ? 0 : onlyTiled switch
-        {
-            1 => tiled,
-            0 => floating,
-            _ => windows,
-        };
+        var count = counter?.Invoke(new WindowCount(onlyTiled, pinned, groups, visible)) ?? 0;
         var range = body[index..];
         if (range.Contains('-', StringComparison.Ordinal))
             return TryRange(range, out var from, out var to) && count >= from && count <= to;
