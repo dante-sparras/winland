@@ -93,5 +93,4 @@ internal sealed partial class MasterLayout
 
         tile.Box = box;
     }
-
 }

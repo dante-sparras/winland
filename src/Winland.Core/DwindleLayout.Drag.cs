@@ -35,7 +35,7 @@ internal sealed partial class DwindleLayout
             return [];
 
         // A Client tiled again while its floating drag runs is left to the tree.
-        if (grab.WasFloating && !_floating.ContainsKey(grab.Id))
+        if (grab.WasFloating && !_floating.Contains(grab.Id))
             return [];
 
         if (resize)
@@ -53,10 +53,10 @@ internal sealed partial class DwindleLayout
             return [];
 
         _grab = null;
-        if (grab.Lifted && _floating.ContainsKey(grab.Id))
+        if (grab.Lifted && _floating.Contains(grab.Id))
             return DropTiled(grab.Id, pointer);
 
-        if (grab.WasFloating && _floating.ContainsKey(grab.Id))
+        if (grab.WasFloating && _floating.Contains(grab.Id))
             return WithFloating(grab.Id);
 
         return [];
@@ -74,7 +74,7 @@ internal sealed partial class DwindleLayout
             _splitTarget = sibling is null ? null : Leaf(sibling.Node).Id;
 
         MarkFloating(grab.Id, floating: true);
-        _floating[grab.Id] = box;
+        _floating.Set(grab.Id, box);
         grab.Lifted = true;
         grab.Start = box;
         grab.HotX = box.Width / 2;
@@ -87,7 +87,7 @@ internal sealed partial class DwindleLayout
     {
         var next = new Rectangle(pointer.X - grab.HotX, pointer.Y - grab.HotY, grab.Start.Width, grab.Start.Height);
         next = SnapFloating(grab.Id, next, SnapEdges.All, resize: false);
-        _floating[grab.Id] = next;
+        _floating.Set(grab.Id, next);
         return WithFloating(grab.Id);
     }
 
@@ -95,18 +95,14 @@ internal sealed partial class DwindleLayout
     {
         var resized = BorderPointer.Resize(grab.Start, grab.Grab, pointer, grab.Left, grab.Top, grab.KeepRatio);
         var next = SnapFloating(grab.Id, resized, SnapEdges.FromGrab(grab.Left, grab.Top), resize: true);
-        _floating[grab.Id] = next;
+        _floating.Set(grab.Id, next);
         return WithFloating(grab.Id);
     }
 
     public IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds)
     {
         var id = new ClientId(window.Value);
-        if (!_floating.ContainsKey(id) || bounds.Width < 1 || bounds.Height < 1)
-            return [];
-
-        _floating[id] = bounds;
-        return WithFloating(id);
+        return _floating.Place(id, bounds) ? WithFloating(id) : [];
     }
 
     private Rectangle SnapFloating(ClientId self, Rectangle proposed, SnapEdges edges, bool resize)
@@ -173,7 +169,7 @@ internal sealed partial class DwindleLayout
         if (index < 0 || _clients[index].Minimized)
             return false;
 
-        if (_floating.TryGetValue(id, out bounds))
+        if (_floating.TryGet(id, out bounds))
         {
             floating = true;
             return true;
@@ -198,7 +194,7 @@ internal sealed partial class DwindleLayout
     private IReadOnlyList<Placement> WithFloating(ClientId id)
     {
         var placements = new List<Placement>(Placements());
-        if (_floating.TryGetValue(id, out var box))
+        if (_floating.TryGet(id, out var box))
             placements.Add(new Placement(id, box));
 
         return placements;

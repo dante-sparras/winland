@@ -10,9 +10,8 @@ internal sealed partial class MonocleLayout : Layout
 {
     private readonly List<Client> _clients = [];
     private readonly List<ClientId> _tiled = [];
-    private readonly Dictionary<ClientId, Rectangle> _floating = [];
+    private readonly FloatingClients _floating = new();
     private readonly Dictionary<ClientId, Rectangle> _natural = [];
-    private readonly Dictionary<ClientId, (int Width, int Height)> _lastFloat = [];
     private readonly Dictionary<ClientId, SizeLimits> _limits = [];
     private LayoutOptions _options = LayoutOptions.Unconfigured;
     private Rectangle _area;
@@ -22,7 +21,7 @@ internal sealed partial class MonocleLayout : Layout
 
     public bool FollowsMonitorWhenUnmoved => true;
 
-    public void NudgeFloating(int dx, int dy) => FloatingShift.By(_floating, dx, dy);
+    public void NudgeFloating(int dx, int dy) => _floating.Nudge(dx, dy);
 
     public string? LayoutMessageError { get; private set; }
 
@@ -65,13 +64,12 @@ internal sealed partial class MonocleLayout : Layout
         _natural[id] = bounds;
         _limits[id] = new SizeLimits(minSize, maxSize);
         var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
-        if (placed.Width > 0 && placed.Height > 0)
-            _lastFloat[id] = (placed.Width, placed.Height);
+        _floating.Remember(id, placed);
 
         _clients.Add(ClientAdoption.Adopted(id, window, workspace, windowClass, title, floating, processId, initialClass, initialTitle));
         if (floating)
         {
-            _floating[id] = placed;
+            _floating.Set(id, placed);
             return [new Placement(id, placed)];
         }
 
@@ -88,9 +86,8 @@ internal sealed partial class MonocleLayout : Layout
             return [];
 
         var tiled = DropTiled(id);
-        _floating.Remove(id);
+        _floating.Forget(id);
         _natural.Remove(id);
-        _lastFloat.Remove(id);
         _limits.Remove(id);
         _clients.RemoveAt(index);
         return tiled ? Placed() : [];
@@ -102,7 +99,7 @@ internal sealed partial class MonocleLayout : Layout
         if (IndexOf(id) < 0)
             return [];
 
-        if (_floating.ContainsKey(id))
+        if (_floating.Contains(id))
         {
             SetMinimized(id, true);
             return [];
@@ -123,7 +120,7 @@ internal sealed partial class MonocleLayout : Layout
             return [];
 
         SetMinimized(id, false);
-        if (_floating.TryGetValue(id, out var bounds))
+        if (_floating.TryGet(id, out var bounds))
             return [new Placement(id, bounds)];
 
         _tiled.Add(id);
@@ -140,7 +137,7 @@ internal sealed partial class MonocleLayout : Layout
             return false;
 
         var client = _clients[index];
-        var bounds = _floating.TryGetValue(id, out var floating)
+        var bounds = _floating.TryGet(id, out var floating)
             ? floating
             : _natural.TryGetValue(id, out var natural) ? natural : default;
         _limits.TryGetValue(id, out var limits);
@@ -152,15 +149,7 @@ internal sealed partial class MonocleLayout : Layout
     public IReadOnlyList<Placement> Visible()
     {
         var placements = new List<Placement>(Placed());
-        foreach (var client in _clients)
-        {
-            if (!client.Floating || client.Minimized)
-                continue;
-
-            if (_floating.TryGetValue(client.Id, out var bounds))
-                placements.Add(new Placement(client.Id, bounds));
-        }
-
+        _floating.AddShown(placements, _clients);
         return placements;
     }
 
@@ -173,21 +162,13 @@ internal sealed partial class MonocleLayout : Layout
             return [];
 
         _limits[id] = new SizeLimits(minSize, maxSize);
-        if (!_floating.TryGetValue(id, out var floating))
-            return [];
-
-        var clamped = new SizeLimits(minSize, maxSize).Clamp(floating);
-        if (clamped == floating)
-            return [];
-
-        _floating[id] = clamped;
-        return [new Placement(id, clamped)];
+        return _floating.Clamp(id, new SizeLimits(minSize, maxSize));
     }
 
     public bool TryBounds(WindowId window, out Rectangle bounds)
     {
         var id = new ClientId(window.Value);
-        if (_floating.TryGetValue(id, out bounds))
+        if (_floating.TryGet(id, out bounds))
             return true;
 
         if (_tiled.Contains(id))
@@ -263,46 +244,25 @@ internal sealed partial class MonocleLayout : Layout
     public IReadOnlyList<Placement> MoveWindow(WindowId window, string arguments)
     {
         var id = new ClientId(window.Value);
-        if (Minimized(id) || !_floating.TryGetValue(id, out var box))
+        if (Minimized(id) || !_floating.Contains(id))
             return [];
 
         if (!TrySide(First(arguments), out var side))
             return [];
 
-        var frame = _options.FloatingWorkArea(_area);
-        var moved = side switch
-        {
-            Side.Left => box with { X = frame.X },
-            Side.Right => box with { X = frame.X + frame.Width - box.Width },
-            Side.Up => box with { Y = frame.Y },
-            Side.Down => box with { Y = frame.Y + frame.Height - box.Height },
-            _ => box,
-        };
-
-        if (moved == box)
-            return [];
-
-        _floating[id] = moved;
-        return [new Placement(id, moved)];
+        return _floating.MoveToEdge(id, side, _options.FloatingWorkArea(_area));
     }
 
     public IReadOnlyList<Placement> ResizeActive(WindowId window, string arguments)
     {
         var id = new ClientId(window.Value);
-        if (Minimized(id) || !_floating.TryGetValue(id, out var box))
+        if (Minimized(id) || !_floating.Contains(id))
             return [];
 
         if (!ResizeArguments.TryParse(arguments, out var x, out var y, out var exact))
             return [];
 
-        var deltaX = exact ? x - box.Width : x;
-        var deltaY = exact ? y - box.Height : y;
-        var resized = new Rectangle(box.X - (deltaX / 2), box.Y - (deltaY / 2), box.Width + deltaX, box.Height + deltaY);
-        if (resized.Width < 1 || resized.Height < 1)
-            return [];
-
-        _floating[id] = resized;
-        return [new Placement(id, resized)];
+        return _floating.Resize(id, x, y, exact);
     }
 
     public IReadOnlyList<Placement> ToggleFloating(WindowId window)
@@ -312,11 +272,8 @@ internal sealed partial class MonocleLayout : Layout
         if (index < 0 || _clients[index].Minimized)
             return [];
 
-        if (_floating.Remove(id, out var floating))
+        if (_floating.Sink(id))
         {
-            if (floating.Width > 0 && floating.Height > 0)
-                _lastFloat[id] = (floating.Width, floating.Height);
-
             SetFloating(id, false);
             _tiled.Add(id);
             _visible = _tiled.Count - 1;
@@ -326,8 +283,8 @@ internal sealed partial class MonocleLayout : Layout
         if (!DropTiled(id))
             return [];
 
-        var floated = FloatingBounds(id, Tile());
-        _floating[id] = floated;
+        var floated = _floating.Around(id, Tile(), _options.FloatingWorkArea(_area));
+        _floating.Set(id, floated);
         SetFloating(id, true);
         var placements = new List<Placement>(Placed()) { new(id, floated) };
         return placements;
@@ -412,49 +369,10 @@ internal sealed partial class MonocleLayout : Layout
         return Shrink(box, border, border, border, border);
     }
 
-    private Rectangle FloatingBounds(ClientId id, Rectangle tile)
-    {
-        var width = 640;
-        var height = 400;
-        if (_lastFloat.TryGetValue(id, out var last) && last.Width >= 5 && last.Height >= 5)
-        {
-            width = last.Width;
-            height = last.Height;
-        }
-
-        if (Math.Abs(width - tile.Width) < 5 && Math.Abs(height - tile.Height) < 5)
-        {
-            width += 10;
-            height += 10;
-        }
-
-        var floated = new Rectangle(
-            tile.X + (tile.Width / 2) - (width / 2),
-            tile.Y + (tile.Height / 2) - (height / 2),
-            width,
-            height);
-        return FitInWorkArea(floated, _options.FloatingWorkArea(_area));
-    }
-
     public IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds)
     {
         var id = new ClientId(window.Value);
-        if (!_floating.ContainsKey(id) || bounds.Width < 1 || bounds.Height < 1)
-            return [];
-
-        _floating[id] = bounds;
-        return Visible();
-    }
-
-    private static Rectangle FitInWorkArea(Rectangle box, Rectangle work)
-    {
-        var x = Math.Max(box.X, work.X);
-        var y = Math.Max(box.Y, work.Y);
-        if (x + box.Width > work.X + work.Width)
-            x = work.X + work.Width - box.Width;
-        if (y + box.Height > work.Y + work.Height)
-            y = work.Y + work.Height - box.Height;
-        return new Rectangle(x, y, box.Width, box.Height);
+        return _floating.Place(id, bounds) ? Visible() : [];
     }
 
     private static Rectangle Shrink(Rectangle box, int left, int top, int right, int bottom)

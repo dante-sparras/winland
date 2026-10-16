@@ -62,8 +62,8 @@ internal sealed partial class DwindleLayout
         if (Minimized(id))
             return [];
 
-        if (_floating.TryGetValue(id, out var floating))
-            return MoveFloating(id, floating, direction);
+        if (_floating.Contains(id))
+            return MoveFloating(id, direction);
 
         if (!_nodes.TryGetValue(id, out var node) || node.Parent is null || !InTree(node))
             return [];
@@ -115,10 +115,10 @@ internal sealed partial class DwindleLayout
             return Placements();
         }
 
-        if (_floating.TryGetValue(left, out var leftBox) && _floating.TryGetValue(right, out var rightBox))
+        if (_floating.TryGet(left, out var leftBox) && _floating.TryGet(right, out var rightBox))
         {
-            _floating[left] = rightBox;
-            _floating[right] = leftBox;
+            _floating.Set(left, rightBox);
+            _floating.Set(right, leftBox);
             return [new Placement(left, rightBox), new Placement(right, leftBox)];
         }
 
@@ -132,7 +132,7 @@ internal sealed partial class DwindleLayout
         if (index < 0 || _clients[index].Minimized)
             return [];
 
-        if (_floating.ContainsKey(id))
+        if (_floating.Contains(id))
             return Tile(id, index);
 
         if (!_nodes.TryGetValue(id, out var node) || !InTree(node))
@@ -144,8 +144,8 @@ internal sealed partial class DwindleLayout
         if (_splitTarget == id)
             _splitTarget = sibling is null ? null : Leaf(sibling.Node).Id;
 
-        var floated = FloatingBounds(id, tile);
-        _floating[id] = floated;
+        var floated = _floating.Around(id, tile, _options.FloatingWorkArea(_area));
+        _floating.Set(id, floated);
         _clients[index] = _clients[index] with { Floating = true };
         Refit();
 
@@ -320,10 +320,7 @@ internal sealed partial class DwindleLayout
 
     private IReadOnlyList<Placement> Tile(ClientId id, int index)
     {
-        if (_floating.TryGetValue(id, out var floating) && floating.Width > 0 && floating.Height > 0)
-            _lastFloat[id] = (floating.Width, floating.Height);
-
-        _floating.Remove(id);
+        _floating.Sink(id);
         _clients[index] = _clients[index] with { Floating = false };
         var node = new Node { Id = id };
         _nodes[id] = node;
@@ -343,76 +340,13 @@ internal sealed partial class DwindleLayout
         return Placements();
     }
 
-    private Rectangle FloatingBounds(ClientId id, Rectangle tile)
-    {
-        var width = 640;
-        var height = 400;
-        if (_lastFloat.TryGetValue(id, out var last) && last.Width >= 5 && last.Height >= 5)
-        {
-            width = last.Width;
-            height = last.Height;
-        }
-
-        if (Math.Abs(width - tile.Width) < 5 && Math.Abs(height - tile.Height) < 5)
-        {
-            width += 10;
-            height += 10;
-        }
-
-        var floated = new Rectangle(
-            tile.X + (tile.Width / 2) - (width / 2),
-            tile.Y + (tile.Height / 2) - (height / 2),
-            width,
-            height);
-        return FitInWorkArea(floated, _options.FloatingWorkArea(_area));
-    }
-
-    private static Rectangle FitInWorkArea(Rectangle box, Rectangle work)
-    {
-        var x = Math.Max(box.X, work.X);
-        var y = Math.Max(box.Y, work.Y);
-        if (x + box.Width > work.X + work.Width)
-            x = work.X + work.Width - box.Width;
-        if (y + box.Height > work.Y + work.Height)
-            y = work.Y + work.Height - box.Height;
-        return new Rectangle(x, y, box.Width, box.Height);
-    }
-
-    private IReadOnlyList<Placement> MoveFloating(ClientId id, Rectangle box, PendingSplit direction)
-    {
-        var frame = _options.FloatingWorkArea(_area);
-        var moved = direction switch
-        {
-            PendingSplit.Left => box with { X = frame.X },
-            PendingSplit.Right => box with { X = frame.X + frame.Width - box.Width },
-            PendingSplit.Up => box with { Y = frame.Y },
-            PendingSplit.Down => box with { Y = frame.Y + frame.Height - box.Height },
-            _ => box,
-        };
-
-        if (moved == box)
-            return [];
-
-        _floating[id] = moved;
-        return [new Placement(id, moved)];
-    }
-
-    private IReadOnlyList<Placement> ResizeFloating(ClientId id, Rectangle box, int x, int y, bool exact)
-    {
-        var deltaX = exact ? x - box.Width : x;
-        var deltaY = exact ? y - box.Height : y;
-        var resized = new Rectangle(box.X - (deltaX / 2), box.Y - (deltaY / 2), box.Width + deltaX, box.Height + deltaY);
-        if (resized.Width < 1 || resized.Height < 1)
-            return [];
-
-        _floating[id] = resized;
-        return [new Placement(id, resized)];
-    }
+    private IReadOnlyList<Placement> MoveFloating(ClientId id, PendingSplit direction) =>
+        ToSide(direction) is Side side ? _floating.MoveToEdge(id, side, _options.FloatingWorkArea(_area)) : [];
 
     private bool TryGeometry(WindowId window, out Rectangle box, out bool floating)
     {
         var id = new ClientId(window.Value);
-        if (_floating.TryGetValue(id, out box))
+        if (_floating.TryGet(id, out box))
         {
             floating = true;
             return true;

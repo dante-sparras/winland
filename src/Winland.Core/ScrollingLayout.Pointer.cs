@@ -13,74 +13,6 @@ internal sealed partial class ScrollingLayout
         };
     }
 
-    private Rectangle FloatingBounds(ClientId id, Rectangle tile)
-    {
-        var width = 640;
-        var height = 400;
-        if (_lastFloat.TryGetValue(id, out var last) && last.Width >= 5 && last.Height >= 5)
-        {
-            width = last.Width;
-            height = last.Height;
-        }
-
-        if (Math.Abs(width - tile.Width) < 5 && Math.Abs(height - tile.Height) < 5)
-        {
-            width += 10;
-            height += 10;
-        }
-
-        var floated = new Rectangle(
-            tile.X + (tile.Width / 2) - (width / 2),
-            tile.Y + (tile.Height / 2) - (height / 2),
-            width,
-            height);
-        return FitOnArea(floated, _layoutOptions.FloatingWorkArea(_area));
-    }
-
-    private static Rectangle FitOnArea(Rectangle box, Rectangle work)
-    {
-        if (work.Width <= 0 || work.Height <= 0)
-            return box;
-
-        var x = Math.Max(box.X, work.X);
-        var y = Math.Max(box.Y, work.Y);
-        if (x + box.Width > work.X + work.Width)
-            x = work.X + work.Width - box.Width;
-        if (y + box.Height > work.Y + work.Height)
-            y = work.Y + work.Height - box.Height;
-        return new Rectangle(x, y, box.Width, box.Height);
-    }
-
-    private IReadOnlyList<Placement> MoveFloating(ClientId id, Rectangle box, Side side)
-    {
-        var frame = _layoutOptions.FloatingWorkArea(_area);
-        var moved = side switch
-        {
-            Side.Left => box with { X = frame.X },
-            Side.Right => box with { X = frame.X + frame.Width - box.Width },
-            Side.Up => box with { Y = frame.Y },
-            Side.Down => box with { Y = frame.Y + frame.Height - box.Height },
-            _ => box,
-        };
-        if (moved == box)
-            return [];
-
-        _floating[id] = moved;
-        return [new Placement(id, moved)];
-    }
-
-    private IReadOnlyList<Placement> ResizeFloating(ClientId id, Rectangle box, int x, int y, bool exact)
-    {
-        var deltaX = exact ? x - box.Width : x;
-        var deltaY = exact ? y - box.Height : y;
-        var resized = new Rectangle(box.X - (deltaX / 2), box.Y - (deltaY / 2), box.Width + deltaX, box.Height + deltaY);
-        if (resized.Width < 1 || resized.Height < 1)
-            return [];
-
-        _floating[id] = resized;
-        return [new Placement(id, resized)];
-    }
-
     private IReadOnlyList<Placement> BeginDrag(WindowId window, Point pointer, bool resize, bool keepRatio)
     {
         var id = new ClientId(window.Value);
@@ -101,7 +33,7 @@ internal sealed partial class ScrollingLayout
             return [];
 
         // A Client tiled again while its floating drag runs is left to the tape.
-        if (grab.WasFloating && !_floating.ContainsKey(grab.Id))
+        if (grab.WasFloating && !_floating.Contains(grab.Id))
             return [];
 
         if (resize)
@@ -120,10 +52,10 @@ internal sealed partial class ScrollingLayout
             return [];
 
         _grab = null;
-        if (grab.Lifted && _floating.ContainsKey(grab.Id))
+        if (grab.Lifted && _floating.Contains(grab.Id))
             return DropTiled(grab.Id, pointer);
 
-        if (grab.WasFloating && _floating.ContainsKey(grab.Id))
+        if (grab.WasFloating && _floating.Contains(grab.Id))
             return WithFloating(grab.Id);
 
         Recalculate();
@@ -138,7 +70,7 @@ internal sealed partial class ScrollingLayout
         var box = cell.Logical.Width > 0 ? cell.Logical : cell.Box;
         RemoveCell(cell);
         SetFloating(grab.Id, true);
-        _floating[grab.Id] = box;
+        _floating.Set(grab.Id, box);
         grab.Lifted = true;
         grab.Start = box;
         grab.HotX = box.Width / 2;
@@ -151,7 +83,7 @@ internal sealed partial class ScrollingLayout
     {
         var next = new Rectangle(pointer.X - grab.HotX, pointer.Y - grab.HotY, grab.Start.Width, grab.Start.Height);
         next = SnapFloating(grab.Id, next, SnapEdges.All, resize: false);
-        _floating[grab.Id] = next;
+        _floating.Set(grab.Id, next);
         return WithFloating(grab.Id);
     }
 
@@ -159,18 +91,14 @@ internal sealed partial class ScrollingLayout
     {
         var resized = BorderPointer.Resize(grab.Start, grab.Grab, pointer, grab.Left, grab.Top, grab.KeepRatio);
         var next = SnapFloating(grab.Id, resized, SnapEdges.FromGrab(grab.Left, grab.Top), resize: true);
-        _floating[grab.Id] = next;
+        _floating.Set(grab.Id, next);
         return WithFloating(grab.Id);
     }
 
     public IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds)
     {
         var id = new ClientId(window.Value);
-        if (!_floating.ContainsKey(id) || bounds.Width < 1 || bounds.Height < 1)
-            return [];
-
-        _floating[id] = bounds;
-        return WithFloating(id);
+        return _floating.Place(id, bounds) ? WithFloating(id) : [];
     }
 
     private Rectangle SnapFloating(ClientId self, Rectangle proposed, SnapEdges edges, bool resize)
@@ -306,7 +234,7 @@ internal sealed partial class ScrollingLayout
         if (index < 0 || _clients[index].Minimized)
             return false;
 
-        if (_floating.TryGetValue(id, out bounds))
+        if (_floating.TryGet(id, out bounds))
         {
             floating = true;
             return true;
@@ -324,7 +252,7 @@ internal sealed partial class ScrollingLayout
     private IReadOnlyList<Placement> WithFloating(ClientId id)
     {
         var placements = new List<Placement>(Placements());
-        if (_floating.TryGetValue(id, out var box))
+        if (_floating.TryGet(id, out var box))
             placements.Add(new Placement(id, box));
         return placements;
     }
