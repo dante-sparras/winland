@@ -175,6 +175,27 @@ public class SwallowTests
         Assert.True(terminal.GetProperty("hidden").GetBoolean());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ClosingAGroupedChildBringsTheTerminalBackAsItsOwnTile(bool childShown)
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(Child(2, parentProcess: 100));
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(Unrelated(3));
+        if (childShown)
+            core.Handle(new Dispatch("changegroupactive", "b"));
+
+        var closed = core.Handle(new WindowClosed(new WindowId(2)));
+
+        Assert.Contains(new WindowId(1), closed.Show);
+        Assert.Empty(closed.State.Hidden);
+        Assert.Null(Client(closed, 1).Swallowing);
+        Assert.Equal([new WindowId(3)], Assert.Single(closed.State.Groups));
+        Assert.Contains(core.Recovery().Clients, client => client.Window == new WindowId(1) && !client.Hidden);
+    }
+
     [Fact]
     public void SwallowKeywordsAreHonored()
     {
@@ -203,6 +224,14 @@ public class SwallowTests
             ProcessId = 200 + window,
             AncestorProcessIds = [150, parentProcess, 4],
             Traits = WindowTraits.Normal with { Class = "mpv" },
+        };
+
+    private static WindowAppeared Unrelated(long window) =>
+        new(new WindowId(window), Area)
+        {
+            ProcessId = 500 + window,
+            AncestorProcessIds = [4],
+            Traits = WindowTraits.Normal with { Class = "foot" },
         };
 
     private static Client Client(Outcome outcome, long window) =>
