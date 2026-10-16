@@ -64,7 +64,7 @@ public sealed class PluginApply(IPluginLocationGuard guard, IPluginDirectoryProt
         {
             foreach (var plugin in repository.Plugins)
             {
-                var owner = existing.FirstOrDefault(entry => entry.Name == plugin.Name && !replaced.Contains(entry.Repository ?? ""));
+                var owner = existing.FirstOrDefault(entry => PluginNames.Same(entry.Name, plugin.Name) && !replaced.Contains(entry.Repository ?? ""));
                 if (owner is not null)
                 {
                     var from = owner.Repository is null ? "by hand" : $"from '{owner.Repository}'";
@@ -132,11 +132,12 @@ public sealed class PluginApply(IPluginLocationGuard guard, IPluginDirectoryProt
 
         foreach (var entry in dropped)
         {
-            if (added.Exists(plugin => plugin.Name == entry.Name))
+            if (added.Exists(plugin => PluginNames.Same(plugin.Name, entry.Name)))
                 continue;
 
-            DeleteInside(directory, entry.File);
             lines.Add($"Removed plugin '{entry.Name}'.");
+            if (DeleteInside(directory, entry.File) is string failure)
+                lines.Add($"Could not delete '{entry.File}': {failure} Its approval is gone, so it no longer loads.");
         }
 
         foreach (var plugin in added)
@@ -232,7 +233,7 @@ public sealed class PluginApply(IPluginLocationGuard guard, IPluginDirectoryProt
 
     private static string? Validate(ApplyRequest request)
     {
-        var names = new HashSet<string>(StringComparer.Ordinal);
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var repository in request.Install)
         {
             if (string.IsNullOrWhiteSpace(repository.Url) || string.IsNullOrWhiteSpace(repository.Commit))
@@ -326,16 +327,25 @@ public sealed class PluginApply(IPluginLocationGuard guard, IPluginDirectoryProt
             File.Delete(pending);
     }
 
-    private static void DeleteInside(string directory, string? file)
+    // The approvals are already written when this runs, so a file that cannot be deleted is reported, not thrown.
+    private static string? DeleteInside(string directory, string? file)
     {
         if (file is null)
-            return;
+            return null;
 
         var full = Path.GetFullPath(file);
         if (!PluginNames.IsInside(directory, full))
-            return;
+            return null;
 
-        File.Delete(full);
+        try
+        {
+            File.Delete(full);
+            return null;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return exception.Message;
+        }
     }
 
     private static ApplyResult Fail(string message) => new(false, [message]);

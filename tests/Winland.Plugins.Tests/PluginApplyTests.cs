@@ -234,6 +234,44 @@ public class PluginApplyTests
         Assert.Equal(["Plugin 'sample' is already approved by hand. Remove it first."], result.Lines);
     }
 
+    // Each plugin is installed as <name>.dll, and Windows file names do not differ by case.
+    [Fact]
+    public void ANameThatDiffersOnlyByCaseIsTheSamePlugin()
+    {
+        using var fixture = ManagerFixture.Create();
+        Directory.CreateDirectory(fixture.Paths.PluginDirectory);
+        InstalledPlugins.Write(fixture.Paths.Approvals, [new InstalledPlugin("sample", new string('0', 64), null, null, null)]);
+        var staged = Stage(fixture, "sample.dll");
+        var hash = PluginHash.OfFile(staged);
+
+        var taken = Apply(fixture, Install(fixture, ("Sample", hash, staged)));
+        var twice = Apply(fixture, Install(fixture, ("other", hash, staged), ("Other", hash, staged)));
+
+        Assert.False(taken.Ok);
+        Assert.Equal(["Plugin 'Sample' is already approved by hand. Remove it first."], taken.Lines);
+        Assert.False(twice.Ok);
+        Assert.Equal(["Plugin 'Other' is listed twice."], twice.Lines);
+    }
+
+    // The approvals are written before the old files are deleted, so a file that is held open is reported.
+    [Fact]
+    public void ARemovedPluginWhoseFileIsHeldOpenIsReported()
+    {
+        using var fixture = ManagerFixture.Create();
+        var old = Stage(fixture, "old.dll");
+        Assert.True(Apply(fixture, Install(fixture, ("sample", PluginHash.OfFile(old), old), ("gone", PluginHash.OfFile(old), old))).Ok);
+        var gone = Path.Combine(fixture.Paths.PluginDirectory, "gone.dll");
+
+        ApplyResult result;
+        using (new FileStream(gone, FileMode.Open, FileAccess.Read, FileShare.Read))
+            result = Apply(fixture, Install(fixture, ("sample", PluginHash.OfFile(old), old)));
+
+        Assert.True(result.Ok, string.Join('\n', result.Lines));
+        Assert.Contains("Removed plugin 'gone'.", result.Lines);
+        Assert.Contains(result.Lines, line => line.StartsWith($"Could not delete '{gone}'", StringComparison.Ordinal));
+        Assert.Equal(["sample"], InstalledPlugins.Read(fixture.Paths.Approvals).Select(entry => entry.Name));
+    }
+
     [Fact]
     public void ReinstallingARepositoryReplacesItsPluginsAndKeepsOthers()
     {
