@@ -153,6 +153,122 @@ public class OpacityAdapterTests
         Assert.True(adapter.Owns(window));
     }
 
+    [Fact]
+    public void AWindowThatRefusesTheLayeredStyleIsNotOwned()
+    {
+        var styles = new FakeStyles { FailStyle = true };
+        var window = new WindowId(4);
+        styles.ExStyle[window] = 0x80;
+        var adapter = new OpacityAdapter(styles);
+
+        adapter.Apply(window, 128);
+
+        Assert.False(adapter.Owns(window));
+        Assert.True(adapter.Failed(window));
+        Assert.Equal(0, styles.AlphaWrites);
+        Assert.Equal("Window 0x4 could not be layered.", Assert.Single(adapter.Reports));
+    }
+
+    // A reset, as when a window opens again, lets a window that failed or was left alone be tried again.
+    [Fact]
+    public void AResetForgetsAFailureAndAWindowLeftAlone()
+    {
+        var styles = new FakeStyles { FailStyle = true };
+        var failed = new WindowId(4);
+        var layered = new WindowId(5);
+        styles.ExStyle[failed] = 0x80;
+        styles.ExStyle[layered] = OpacityAdapter.LayeredStyle;
+        var adapter = new OpacityAdapter(styles);
+        adapter.Apply(failed, 128);
+        adapter.Apply(layered, 128);
+
+        adapter.Reset(failed);
+        adapter.Reset(layered);
+        styles.FailStyle = false;
+        styles.ExStyle[layered] = 0x80;
+        adapter.Apply(failed, 128);
+        adapter.Apply(layered, 128);
+
+        Assert.False(adapter.Failed(failed));
+        Assert.True(adapter.Owns(failed));
+        Assert.True(adapter.Owns(layered));
+    }
+
+    // The window was not layered before, so putting its style back does not set an alpha.
+    [Fact]
+    public void RestoringTheStyleSetsNoAlpha()
+    {
+        var styles = new FakeStyles();
+        var window = new WindowId(6);
+        styles.ExStyle[window] = 0x80;
+        var adapter = new OpacityAdapter(styles);
+        adapter.Apply(window, 128);
+        var alphaWrites = styles.AlphaWrites;
+
+        adapter.Reset(window);
+
+        Assert.Equal(alphaWrites, styles.AlphaWrites);
+        Assert.Equal(0x80u, styles.ExStyle[window]);
+    }
+
+    [Fact]
+    public void StampChangesOnlyTheMarksThatAreWrong()
+    {
+        var styles = new FakeStyles();
+        var window = new WindowId(5);
+        styles.ExStyle[window] = 0x80;
+        var adapter = new OpacityAdapter(styles);
+        var right = new RecoverySnapshot(
+        [
+            new RecoveredClient(window, WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1) { Layered = true },
+            new RecoveredClient(new WindowId(9), WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1),
+        ]);
+        var wrong = new RecoverySnapshot(
+        [
+            new RecoveredClient(new WindowId(10), WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1) { Layered = true },
+            new RecoveredClient(new WindowId(11), WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1) { Layered = true },
+        ]);
+        var beforeAny = adapter.Stamp(wrong);
+        adapter.Apply(window, 128);
+
+        var unchanged = adapter.Stamp(right);
+        var corrected = adapter.Stamp(wrong);
+
+        Assert.Same(wrong, beforeAny);
+        Assert.Same(right, unchanged);
+        Assert.All(corrected.Clients, client => Assert.False(client.Layered));
+        Assert.Throws<ArgumentNullException>(() => adapter.Stamp(null!));
+        Assert.Throws<ArgumentNullException>(() => new OpacityAdapter(null!));
+    }
+
+    [Fact]
+    public void ReleasingForgetsTheWindowAndLeavesAnUnlayeredOneAlone()
+    {
+        var styles = new FakeStyles { FailStyle = true };
+        var owned = new WindowId(1);
+        var failed = new WindowId(2);
+        var plain = new WindowId(3);
+        styles.ExStyle[failed] = 0x80;
+        styles.ExStyle[plain] = 0x80;
+        var adapter = new OpacityAdapter(styles);
+        adapter.Apply(failed, 128);
+        styles.FailStyle = false;
+        styles.ExStyle[owned] = 0x80;
+        adapter.Apply(owned, 128);
+        var writes = styles.Writes;
+
+        adapter.ReleaseAdded(failed);
+        adapter.ReleaseAdded(plain);
+        adapter.ReleaseAdded(new WindowId(99));
+        var plainWrites = styles.Writes - writes;
+        adapter.ReleaseAdded(owned);
+
+        Assert.Equal(0, plainWrites);
+        Assert.False(adapter.Failed(failed));
+        Assert.False(adapter.Owns(owned));
+        Assert.Equal(0x80u, styles.ExStyle[owned]);
+    }
+
     private sealed class FakeStyles : IWindowStyles
     {
         public Dictionary<WindowId, uint> ExStyle { get; } = [];
@@ -162,6 +278,8 @@ public class OpacityAdapterTests
         public HashSet<WindowId> ColorKey { get; } = [];
 
         public bool FailAlpha { get; init; }
+
+        public bool FailStyle { get; set; }
 
         public int Writes { get; private set; }
 
@@ -180,6 +298,9 @@ public class OpacityAdapterTests
         public bool TryWriteExStyle(WindowId window, uint exStyle)
         {
             Writes++;
+            if (FailStyle)
+                return false;
+
             ExStyle[window] = exStyle;
             return true;
         }

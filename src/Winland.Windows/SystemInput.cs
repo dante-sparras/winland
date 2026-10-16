@@ -332,6 +332,7 @@ public sealed class SystemInputSession
 /// System keyboard, mouse and wheel settings. Tests do not construct this.
 /// Num Lock is toggled with a key event only when the lamp is not already in the requested state.
 /// </summary>
+// Stryker disable once all : every member is one Win32 call that changes the machine's input settings.
 internal sealed class Win32SystemInput : ISystemInput
 {
     private const byte NumLockKey = 0x90;
@@ -423,6 +424,7 @@ internal sealed class Win32SystemInput : ISystemInput
 }
 
 /// <summary>Moves and hides the cursor. Tests do not construct this.</summary>
+// Stryker disable once all : moves and hides the real cursor.
 internal sealed class Win32Cursor : ICursorSurface
 {
     private bool _hidden;

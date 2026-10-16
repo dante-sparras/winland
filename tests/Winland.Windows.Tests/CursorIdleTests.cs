@@ -86,6 +86,96 @@ public class CursorIdleTests
         Assert.False(cursor.Hidden);
     }
 
+    [Fact]
+    public void WithoutATimeoutTheCursorNeverHidesForBeingStill()
+    {
+        var clock = new ManualClock();
+        var cursor = new FakeCursor();
+        var idle = new CursorIdle(cursor, clock);
+        idle.Configure(new CursorBehavior(false, 0));
+
+        clock.Now += TimeSpan.FromHours(1);
+        idle.Tick();
+
+        Assert.Equal(0, cursor.Hides);
+    }
+
+    [Fact]
+    public void TurningHideOnKeyOffShowsTheCursor()
+    {
+        var cursor = new FakeCursor();
+        var idle = new CursorIdle(cursor, new ManualClock());
+        idle.Configure(new CursorBehavior(true, 0));
+        idle.KeyPressed();
+
+        idle.Configure(new CursorBehavior(false, 0));
+
+        Assert.False(cursor.Hidden);
+    }
+
+    // Revealing on exit shows a cursor hidden both for being still and by a key.
+    [Fact]
+    public void RevealShowsTheCursorHoweverItWasHidden()
+    {
+        var clock = new ManualClock();
+        var cursor = new FakeCursor();
+        var idle = new CursorIdle(cursor, clock);
+        idle.Configure(new CursorBehavior(true, 1));
+        idle.KeyPressed();
+        clock.Now += TimeSpan.FromSeconds(2);
+        idle.Tick();
+
+        idle.Reveal();
+
+        Assert.False(cursor.Hidden);
+        Assert.Equal(1, cursor.Hides);
+        Assert.Equal(1, cursor.Shows);
+    }
+
+    // The daemon starts with a stand-in and swaps in the real cursor when it installs the system.
+    [Fact]
+    public void AnotherSurfaceTakesOverTheCursor()
+    {
+        var first = new FakeCursor();
+        var second = new FakeCursor();
+        var idle = new CursorIdle(first, new ManualClock());
+        idle.Configure(new CursorBehavior(true, 0));
+
+        idle.Use(second);
+        idle.KeyPressed();
+
+        Assert.False(first.Hidden);
+        Assert.True(second.Hidden);
+        Assert.Throws<ArgumentNullException>(() => idle.Use(null!));
+        Assert.Throws<ArgumentNullException>(() => idle.Configure(null!));
+        Assert.Throws<ArgumentNullException>(() => new CursorIdle(null!, new ManualClock()));
+        Assert.Throws<ArgumentNullException>(() => new CursorIdle(first, null!));
+        Assert.Throws<ArgumentNullException>(() => new CursorIdleTimer(null!));
+    }
+
+    [Fact]
+    public void TheTimerHidesAStillCursorAndStopsWhenDisposed()
+    {
+        var clock = new ManualClock();
+        var cursor = new FakeCursor();
+        var idle = new CursorIdle(cursor, clock);
+        idle.Configure(new CursorBehavior(false, 1));
+        clock.Now += TimeSpan.FromSeconds(2);
+
+        var timer = new CursorIdleTimer(idle);
+        var deadline = Environment.TickCount64 + 10_000;
+        while (!cursor.Hidden && Environment.TickCount64 < deadline)
+            Thread.Sleep(20);
+        var hidden = cursor.Hidden;
+        timer.Dispose();
+        idle.Moved();
+        clock.Now += TimeSpan.FromSeconds(2);
+        Thread.Sleep(600);
+
+        Assert.True(hidden);
+        Assert.False(cursor.Hidden);
+    }
+
     private sealed class ManualClock : IClock
     {
         public DateTimeOffset Now { get; set; } = new(2026, 10, 15, 8, 0, 0, TimeSpan.Zero);

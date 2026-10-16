@@ -59,7 +59,58 @@ public class MouseHookTests
     [Fact]
     public void AStillWheelOrAnotherMessageIsNotATurn()
     {
-        Assert.False(MouseHook.TryWheel(0x020A, 0x0000_FFFF, out _));
-        Assert.False(MouseHook.TryWheel(0x0201, 120u << 16, out _));
+        Assert.False(MouseHook.TryWheel(0x020A, 0x0000_FFFF, out var still));
+        Assert.False(MouseHook.TryWheel(0x0201, 120u << 16, out var other));
+        Assert.False(MouseHook.TryButton(0x0200, 0, out var moved, out _));
+
+        Assert.Equal("", still);
+        Assert.Equal("", other);
+        Assert.Equal("", moved);
+    }
+
+    // A button bound to movewindow with no argument or to resizewindow drags. movewindow with a
+    // direction moves the window once.
+    [Theory]
+    [InlineData("movewindow", "", true)]
+    [InlineData("MoveWindow", "", true)]
+    [InlineData("movewindow", "l", false)]
+    [InlineData("resizewindow", "", true)]
+    [InlineData("ResizeWindow", "1", true)]
+    [InlineData("killactive", "", false)]
+    public void OnlyAWindowDragIsADrag(string dispatcher, string arguments, bool drag)
+    {
+        Assert.Equal(drag, MouseHook.IsDrag(dispatcher, arguments));
+    }
+
+    [Fact]
+    public void ASingleDragDispatcherIsTheDrag()
+    {
+        Assert.True(MouseHook.TryDrag(new BindDecision(true, "resizewindow", "1"), out var dispatcher, out var arguments));
+        Assert.Equal(("resizewindow", "1"), (dispatcher, arguments));
+
+        Assert.False(MouseHook.TryDrag(new BindDecision(true, "killactive"), out dispatcher, out arguments));
+        Assert.Equal(("", ""), (dispatcher, arguments));
+        Assert.False(MouseHook.TryDrag(new BindDecision(false, null), out dispatcher, out arguments));
+        Assert.Equal(("", ""), (dispatcher, arguments));
+        Assert.False(MouseHook.TryDrag(new BindDecision(false, ""), out _, out _));
+    }
+
+    // A button bound to several dispatchers drags with the first that drags.
+    [Fact]
+    public void TheFirstDragAmongSeveralDispatchersIsTheDrag()
+    {
+        var several = new BindDecision(true, "killactive")
+        {
+            Dispatches = [new("killactive", ""), new("movewindow", "r"), new("movewindow", ""), new("resizewindow", "")],
+        };
+        var none = new BindDecision(true, "killactive")
+        {
+            Dispatches = [new("killactive", ""), new("movewindow", "r")],
+        };
+
+        Assert.True(MouseHook.TryDrag(several, out var dispatcher, out var arguments));
+        Assert.Equal(("movewindow", ""), (dispatcher, arguments));
+        Assert.False(MouseHook.TryDrag(none, out dispatcher, out arguments));
+        Assert.Equal(("", ""), (dispatcher, arguments));
     }
 }

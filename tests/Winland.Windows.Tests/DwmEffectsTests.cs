@@ -188,6 +188,153 @@ public class DwmEffectsTests
         Assert.True(restarted.CutsCorners(Window));
     }
 
+    [Fact]
+    public void TheRegionIsShiftedByTheInvisibleFrameOnEachSide()
+    {
+        var surface = new FakeSurface();
+        surface.Frames[Window] = (new Rectangle(90, 80, 220, 230), new Rectangle(100, 100, 200, 200));
+        var effects = new DwmEffects(surface);
+
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+
+        Assert.Equal(new Point(10, 30), surface.Regions[Window][0]);
+    }
+
+    [Theory]
+    [InlineData(0, 200)]
+    [InlineData(200, 0)]
+    public void AFrameWithNothingVisibleIsNotCut(int width, int height)
+    {
+        var surface = new FakeSurface();
+        surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, width, height));
+        var effects = new DwmEffects(surface);
+
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+
+        Assert.Equal(0, surface.RegionWrites);
+        Assert.False(effects.CutsCorners(Window));
+    }
+
+    // A rule can change the radius of a window whose corners are already cut.
+    [Fact]
+    public void ANewRadiusCutsTheWindowAgain()
+    {
+        var surface = new FakeSurface();
+        surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
+        var effects = new DwmEffects(surface);
+
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(20, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(30, 2f)));
+
+        Assert.Equal(3, surface.RegionWrites);
+        Assert.Equal(1, surface.RegionChecks);
+        Assert.True(effects.CutsCorners(Window));
+    }
+
+    // Whether a window has a region of its own is asked once. A reset forgets the answer.
+    [Fact]
+    public void AWindowsOwnRegionIsAskedAboutOnceUntilReset()
+    {
+        var surface = new FakeSurface();
+        surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
+        surface.Owned.Add(Window);
+        var effects = new DwmEffects(surface);
+
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        var checks = surface.RegionChecks;
+        effects.Reset(Window);
+        surface.Owned.Remove(Window);
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+
+        Assert.Equal(1, checks);
+        Assert.True(effects.CutsCorners(Window));
+    }
+
+    [Fact]
+    public void ResettingAllForgetsAWindowsOwnRegion()
+    {
+        var surface = new FakeSurface();
+        surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
+        surface.Owned.Add(Window);
+        var effects = new DwmEffects(surface);
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+
+        effects.ResetAll();
+        effects.Reopen();
+        surface.Owned.Remove(Window);
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+
+        Assert.True(effects.CutsCorners(Window));
+    }
+
+    // A window whose backdrop could not be set still gets its shadow and region back.
+    [Fact]
+    public void ResettingAllReachesAWindowWhoseBackdropWasNeverSet()
+    {
+        var surface = new FakeSurface { SetsBackdrop = false };
+        surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
+        var effects = new DwmEffects(surface);
+        effects.Apply(Window, Decorated(shadow: false, region: new CornerRegion(10, 2f)));
+
+        effects.ResetAll();
+
+        Assert.Equal(DwmEffects.StylePolicy, surface.Policies[Window]);
+        Assert.Empty(surface.Regions[Window]);
+        Assert.False(effects.CutsCorners(Window));
+    }
+
+    [Fact]
+    public void DroppingALeftoverRegionForgetsWhatThisRunKnew()
+    {
+        var surface = new FakeSurface();
+        surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
+        var owned = new WindowId(5);
+        surface.Frames[owned] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
+        surface.Owned.Add(owned);
+        var effects = new DwmEffects(surface);
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(owned, Decorated(region: new CornerRegion(10, 2f)));
+
+        effects.DropLeftoverRegion(Window);
+        effects.DropLeftoverRegion(owned);
+        surface.Owned.Remove(owned);
+        effects.Apply(owned, Decorated(region: new CornerRegion(10, 2f)));
+
+        Assert.False(effects.CutsCorners(Window));
+        Assert.Empty(surface.Regions[Window]);
+        Assert.True(effects.CutsCorners(owned));
+    }
+
+    // The snapshot is replaced only when a mark changes, and every changed mark is taken.
+    [Fact]
+    public void StampChangesOnlyTheMarksThatAreWrong()
+    {
+        var surface = new FakeSurface();
+        surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
+        var effects = new DwmEffects(surface);
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        var right = new RecoverySnapshot(
+        [
+            new RecoveredClient(Window, WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1) { Region = true },
+            new RecoveredClient(new WindowId(9), WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1),
+        ]);
+        var wrong = new RecoverySnapshot(
+        [
+            new RecoveredClient(new WindowId(10), WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1) { Region = true },
+            new RecoveredClient(new WindowId(11), WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1) { Region = true },
+        ]);
+
+        var unchanged = effects.Stamp(right);
+        var corrected = effects.Stamp(wrong);
+
+        Assert.Same(right, unchanged);
+        Assert.All(corrected.Clients, client => Assert.False(client.Region));
+        Assert.Throws<ArgumentNullException>(() => effects.Stamp(null!));
+        Assert.Throws<ArgumentNullException>(() => new DwmEffects(null!));
+    }
+
     private static Decoration Decorated(
         bool blur = true,
         bool shadow = true,
@@ -214,6 +361,10 @@ public class DwmEffectsTests
 
         public bool ReadsBackdrop { get; init; } = true;
 
+        public bool SetsBackdrop { get; init; } = true;
+
+        public int RegionChecks { get; private set; }
+
         public int BackdropWrites { get; private set; }
 
         public int RegionWrites { get; private set; }
@@ -226,6 +377,9 @@ public class DwmEffectsTests
 
         public bool TrySetBackdrop(WindowId window, uint backdrop)
         {
+            if (!SetsBackdrop)
+                return false;
+
             Backdrops[window] = backdrop;
             BackdropWrites++;
             return true;
@@ -237,7 +391,11 @@ public class DwmEffectsTests
             return true;
         }
 
-        public bool HasRegion(WindowId window) => Owned.Contains(window) || Regions.GetValueOrDefault(window) is { Count: > 0 };
+        public bool HasRegion(WindowId window)
+        {
+            RegionChecks++;
+            return Owned.Contains(window) || Regions.GetValueOrDefault(window) is { Count: > 0 };
+        }
 
         public bool TryFrame(WindowId window, out Rectangle outer, out Rectangle visible)
         {
