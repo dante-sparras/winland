@@ -42,6 +42,13 @@ public sealed partial class WindowAdapter
         return true;
     }
 
+    // The neighbours of a window the system is resizing follow its border while it is held.
+    private void FollowSizing(WindowId window)
+    {
+        if (PInvoke.GetCursorPos(out var cursor))
+            Apply(_core.Handle(new WindowSizing(window, new Point(cursor.X, cursor.Y))));
+    }
+
     private void EndMove(WindowId window)
     {
         var pointer = PInvoke.GetCursorPos(out var cursor) ? new Point(cursor.X, cursor.Y) : default;

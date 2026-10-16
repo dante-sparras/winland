@@ -26,6 +26,21 @@ public sealed partial class WindowAdapter
     private static void Place(WindowId window, Rectangle target)
     {
         var hwnd = new HWND((nint)window.Value);
+        var trails = TryOuter(hwnd, out var before) && Quick.Trails(window, before);
+
+        // A window already on its rectangle is left alone: moving it would still make it lay itself out.
+        if (!trails && TryVisible(hwnd, out var shown) && shown == target)
+            return;
+
+        PlaceDirectly(window, hwnd, target);
+
+        // A frame sent without waiting may still be on its way, and the window would take it after this.
+        if (trails && TryOuter(hwnd, out var landed))
+            SendQuick(hwnd, landed, keepSize: false);
+    }
+
+    private static void PlaceDirectly(WindowId window, HWND hwnd, Rectangle target)
+    {
         var dpi = (int)PInvoke.GetDpiForWindow(hwnd);
         var insets = InsetsFor(window, hwnd, dpi);
         var requested = insets.OuterFor(target);
@@ -140,7 +155,8 @@ public sealed partial class WindowAdapter
         return true;
     }
 
-    private static void Move(HWND hwnd, Rectangle bounds) =>
+    private static void Move(HWND hwnd, Rectangle bounds)
+    {
         _ = PInvoke.SetWindowPos(
             hwnd,
             HWND.Null,
@@ -149,6 +165,33 @@ public sealed partial class WindowAdapter
             bounds.Width,
             bounds.Height,
             SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
+        Quick.Note(new WindowId(((IntPtr)hwnd).ToInt64()), bounds);
+    }
+
+    // A frame of a motion or a step of a drag. The window takes it when its thread gets to it, and a later
+    // placement corrects whatever it does with it.
+    internal static void QuickPlace(WindowId window, Rectangle target, bool borderless)
+    {
+        var hwnd = new HWND((nint)window.Value);
+        if (!TryOuter(hwnd, out var current))
+            return;
+
+        var outer = borderless ? target : InsetsFor(window, hwnd, (int)PInvoke.GetDpiForWindow(hwnd)).OuterFor(target);
+        _ = Quick.Request(window, outer, current, (bounds, keepSize) => SendQuick(hwnd, bounds, keepSize));
+    }
+
+    private static void SendQuick(HWND hwnd, Rectangle bounds, bool keepSize)
+    {
+        var flags = SET_WINDOW_POS_FLAGS.SWP_NOZORDER
+            | SET_WINDOW_POS_FLAGS.SWP_NOOWNERZORDER
+            | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE
+            | SET_WINDOW_POS_FLAGS.SWP_ASYNCWINDOWPOS;
+        if (keepSize)
+            flags |= SET_WINDOW_POS_FLAGS.SWP_NOSIZE;
+
+        _ = PInvoke.SetWindowPos(hwnd, HWND.Null, bounds.X, bounds.Y, bounds.Width, bounds.Height, flags);
+        Quick.Note(new WindowId(((IntPtr)hwnd).ToInt64()), bounds);
+    }
 
     private readonly record struct CachedFrame(int Dpi, FrameInsets Insets);
 
