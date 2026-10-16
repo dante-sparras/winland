@@ -12,15 +12,8 @@ internal sealed partial class DwindleLayout
             return [];
 
         _limits[id] = new SizeLimits(minSize, maxSize);
-        if (_floating.TryGetValue(id, out var floating))
-        {
-            var clamped = new SizeLimits(minSize, maxSize).Clamp(floating);
-            if (clamped == floating)
-                return [];
-
-            _floating[id] = clamped;
-            return [new Placement(id, clamped)];
-        }
+        if (_floating.Contains(id))
+            return _floating.Clamp(id, new SizeLimits(minSize, maxSize));
 
         if (!_nodes.TryGetValue(id, out var node) || !InTree(node))
             return [];
@@ -41,7 +34,7 @@ internal sealed partial class DwindleLayout
             _splitTarget = sibling is null ? null : Leaf(sibling.Node).Id;
 
         var floated = new SizeLimits(min, max).Clamp(presented);
-        _floating[id] = floated;
+        _floating.Set(id, floated);
         _clients[index] = _clients[index] with { Floating = true };
         Refit();
         var placements = new List<Placement>(Placements()) { new(id, floated) };
@@ -230,5 +223,4 @@ internal sealed partial class DwindleLayout
 
         return (int)Math.Max(current, need);
     }
-
 }

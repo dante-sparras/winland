@@ -11,8 +11,8 @@ internal sealed partial class DwindleLayout
         if (Minimized(id))
             return [];
 
-        if (_floating.TryGetValue(id, out var floating))
-            return ResizeFloating(id, floating, x, y, exact);
+        if (_floating.Contains(id))
+            return _floating.Resize(id, x, y, exact);
 
         if (!_nodes.TryGetValue(id, out var node) || !InTree(node) || node.Parent is null)
             return [];

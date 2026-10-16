@@ -4,9 +4,8 @@ internal sealed partial class MasterLayout : Layout
 {
     private readonly List<Client> _clients = [];
     private readonly List<Tile> _tiles = [];
-    private readonly Dictionary<ClientId, Rectangle> _floating = [];
+    private readonly FloatingClients _floating = new();
     private readonly Dictionary<ClientId, Rectangle> _natural = [];
-    private readonly Dictionary<ClientId, (int Width, int Height)> _lastFloat = [];
     private readonly Dictionary<ClientId, SizeLimits> _limits = [];
     private readonly Dictionary<ClientId, Suspended> _suspended = [];
     private LayoutOptions _layout = LayoutOptions.Unconfigured;
@@ -20,7 +19,7 @@ internal sealed partial class MasterLayout : Layout
 
     public bool FollowsMonitorWhenUnmoved => true;
 
-    public void NudgeFloating(int dx, int dy) => FloatingShift.By(_floating, dx, dy);
+    public void NudgeFloating(int dx, int dy) => _floating.Nudge(dx, dy);
 
     public string? LayoutMessageError { get; private set; }
 
@@ -75,13 +74,12 @@ internal sealed partial class MasterLayout : Layout
         _limits[id] = new SizeLimits(minSize, maxSize);
         _natural[id] = bounds;
         var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
-        if (placed.Width > 0 && placed.Height > 0)
-            _lastFloat[id] = (placed.Width, placed.Height);
+        _floating.Remember(id, placed);
         var client = ClientAdoption.Adopted(id, window, workspace, windowClass, title, floating, processId, initialClass, initialTitle);
         if (floating)
         {
             _clients.Add(client);
-            _floating[id] = placed;
+            _floating.Set(id, placed);
             _focused = window;
             return [new Placement(id, placed)];
         }
@@ -97,12 +95,11 @@ internal sealed partial class MasterLayout : Layout
     {
         var id = Id(window);
         _natural.Remove(id);
-        _lastFloat.Remove(id);
         _limits.Remove(id);
         if (_grab is { } grab && grab.Id == id)
             _grab = null;
 
-        if (_floating.Remove(id) || _suspended.Remove(id))
+        if (_floating.Forget(id) || _suspended.Remove(id))
         {
             _clients.RemoveAll(client => client.Id == id);
             ForgetFocus(window);
@@ -125,7 +122,7 @@ internal sealed partial class MasterLayout : Layout
     public IReadOnlyList<Placement> Minimize(WindowId window)
     {
         var id = Id(window);
-        if (_floating.ContainsKey(id))
+        if (_floating.Contains(id))
         {
             MarkMinimized(id, true);
             return [];
@@ -147,7 +144,7 @@ internal sealed partial class MasterLayout : Layout
     public IReadOnlyList<Placement> Restore(WindowId window)
     {
         var id = Id(window);
-        if (_floating.TryGetValue(id, out var bounds))
+        if (_floating.TryGet(id, out var bounds))
         {
             if (!Minimized(id))
                 return [];
@@ -184,7 +181,7 @@ internal sealed partial class MasterLayout : Layout
             return false;
 
         var client = _clients[index];
-        var bounds = _floating.TryGetValue(id, out var floating)
+        var bounds = _floating.TryGet(id, out var floating)
             ? floating
             : _natural.TryGetValue(id, out var natural) ? natural : default;
         _limits.TryGetValue(id, out var limits);
@@ -202,15 +199,8 @@ internal sealed partial class MasterLayout : Layout
             return [];
 
         _limits[id] = new SizeLimits(minSize, maxSize);
-        if (_floating.TryGetValue(id, out var floating))
-        {
-            var clamped = new SizeLimits(minSize, maxSize).Clamp(floating);
-            if (clamped == floating)
-                return [];
-
-            _floating[id] = clamped;
-            return [new Placement(id, clamped)];
-        }
+        if (_floating.Contains(id))
+            return _floating.Clamp(id, new SizeLimits(minSize, maxSize));
 
         if (Find(window) is null && !_suspended.ContainsKey(id))
             return [];
@@ -222,7 +212,7 @@ internal sealed partial class MasterLayout : Layout
     public bool TryBounds(WindowId window, out Rectangle bounds)
     {
         var id = Id(window);
-        if (_floating.TryGetValue(id, out bounds))
+        if (_floating.TryGet(id, out bounds))
             return true;
 
         var tile = Find(window);
@@ -246,15 +236,7 @@ internal sealed partial class MasterLayout : Layout
     public IReadOnlyList<Placement> Visible()
     {
         var placements = new List<Placement>(Placed());
-        foreach (var client in _clients)
-        {
-            if (!client.Floating || client.Minimized)
-                continue;
-
-            if (_floating.TryGetValue(client.Id, out var bounds))
-                placements.Add(new Placement(client.Id, bounds));
-        }
-
+        _floating.AddShown(placements, _clients);
         return placements;
     }
 

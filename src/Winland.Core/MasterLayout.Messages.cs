@@ -447,7 +447,7 @@ internal sealed partial class MasterLayout
         tokens.Length < 2 || !Is(tokens[1], "noloop");
 
     private bool Floating(WindowId window) =>
-        _floating.ContainsKey(Id(window));
+        _floating.Contains(Id(window));
 
     private void RequestFocus(WindowId window)
     {

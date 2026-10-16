@@ -511,10 +511,7 @@ internal sealed partial class ScrollingLayout
 
     private IReadOnlyList<Placement> Tile(ClientId id, WindowId window)
     {
-        if (_floating.TryGetValue(id, out var floating) && floating.Width > 0 && floating.Height > 0)
-            _lastFloat[id] = (floating.Width, floating.Height);
-
-        _floating.Remove(id);
+        _floating.Sink(id);
         SetFloating(id, false);
         InsertTiled(id, window);
         _focus = window;

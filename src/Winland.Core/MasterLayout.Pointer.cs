@@ -47,8 +47,8 @@ internal sealed partial class MasterLayout
         if (Minimized(Id(window)))
             return [];
 
-        if (_floating.TryGetValue(Id(window), out var floating))
-            return MoveFloating(window, floating, direction);
+        if (_floating.Contains(Id(window)))
+            return _floating.MoveToEdge(Id(window), direction, _layout.FloatingWorkArea(_area));
 
         var tile = Find(window);
         if (tile is null)
@@ -70,8 +70,8 @@ internal sealed partial class MasterLayout
         if (Minimized(Id(window)))
             return [];
 
-        if (_floating.TryGetValue(Id(window), out var floating))
-            return ResizeFloating(window, floating, x, y, exact);
+        if (_floating.Contains(Id(window)))
+            return _floating.Resize(Id(window), x, y, exact);
 
         var tile = Find(window);
         if (tile is null)
@@ -92,11 +92,8 @@ internal sealed partial class MasterLayout
         if (index < 0 || _clients[index].Minimized)
             return [];
 
-        if (_floating.Remove(id, out var floating))
+        if (_floating.Sink(id))
         {
-            if (floating.Width > 0 && floating.Height > 0)
-                _lastFloat[id] = (floating.Width, floating.Height);
-
             MarkFloating(id, false);
             var tile = new Tile { Id = id, MasterFraction = _master.Mfact };
             Adopt(tile, firstMap: true, dragging: false, pointer: null);
@@ -110,8 +107,8 @@ internal sealed partial class MasterLayout
 
         var tileBox = existing.Box;
         Detach(existing);
-        var floated = FloatingBounds(id, tileBox);
-        _floating[id] = floated;
+        var floated = _floating.Around(id, tileBox, _layout.FloatingWorkArea(_area));
+        _floating.Set(id, floated);
         MarkFloating(id, true);
         var placements = new List<Placement>(Placed()) { new(id, floated) };
         return placements;
@@ -153,7 +150,7 @@ internal sealed partial class MasterLayout
             return [];
 
         // A Client tiled again while its floating drag runs is left to the stack.
-        if (grab.WasFloating && !_floating.ContainsKey(grab.Id))
+        if (grab.WasFloating && !_floating.Contains(grab.Id))
             return [];
 
         var dx = pointer.X - grab.Last.X;
@@ -161,11 +158,11 @@ internal sealed partial class MasterLayout
         grab.Last = pointer;
         if (resize)
         {
-            if (grab.WasFloating && _floating.ContainsKey(grab.Id))
+            if (grab.WasFloating && _floating.Contains(grab.Id))
             {
                 var resized = BorderPointer.Resize(grab.Start, grab.Grab, pointer, grab.Left, grab.Top, grab.KeepRatio);
                 resized = SnapFloating(grab.Id, resized, SnapEdges.FromGrab(grab.Left, grab.Top), resize: true);
-                _floating[grab.Id] = resized;
+                _floating.Set(grab.Id, resized);
                 return Visible();
             }
 
@@ -180,23 +177,19 @@ internal sealed partial class MasterLayout
         if (!grab.WasFloating && !grab.Lifted)
             Lift(grab);
 
-        if (!_floating.ContainsKey(grab.Id))
+        if (!_floating.Contains(grab.Id))
             return [];
 
         var next = new Rectangle(pointer.X - grab.HotX, pointer.Y - grab.HotY, grab.Start.Width, grab.Start.Height);
         next = SnapFloating(grab.Id, next, SnapEdges.All, resize: false);
-        _floating[grab.Id] = next;
+        _floating.Set(grab.Id, next);
         return Visible();
     }
 
     public IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds)
     {
         var id = Id(window);
-        if (!_floating.ContainsKey(id) || bounds.Width < 1 || bounds.Height < 1)
-            return [];
-
-        _floating[id] = bounds;
-        return Visible();
+        return _floating.Place(id, bounds) ? Visible() : [];
     }
 
     private Rectangle SnapFloating(ClientId self, Rectangle proposed, SnapEdges edges, bool resize)
@@ -224,9 +217,9 @@ internal sealed partial class MasterLayout
             return [];
 
         _grab = null;
-        if (!grab.Lifted || !_floating.ContainsKey(grab.Id))
+        if (!grab.Lifted || !_floating.Contains(grab.Id))
         {
-            if (grab.WasFloating && _floating.ContainsKey(grab.Id))
+            if (grab.WasFloating && _floating.Contains(grab.Id))
                 return Visible();
 
             return [];
@@ -249,71 +242,17 @@ internal sealed partial class MasterLayout
         var box = Present(tile.Box);
         Detach(tile);
         MarkFloating(grab.Id, true);
-        _floating[grab.Id] = box;
+        _floating.Set(grab.Id, box);
         grab.Lifted = true;
         grab.Start = box;
         grab.HotX = box.Width / 2;
         grab.HotY = box.Height / 2;
     }
 
-    private Rectangle FloatingBounds(ClientId id, Rectangle tile)
-    {
-        var width = 640;
-        var height = 400;
-        if (_lastFloat.TryGetValue(id, out var last) && last.Width >= 5 && last.Height >= 5)
-        {
-            width = last.Width;
-            height = last.Height;
-        }
-
-        if (Math.Abs(width - tile.Width) < 5 && Math.Abs(height - tile.Height) < 5)
-        {
-            width += 10;
-            height += 10;
-        }
-
-        var floated = new Rectangle(
-            tile.X + (tile.Width / 2) - (width / 2),
-            tile.Y + (tile.Height / 2) - (height / 2),
-            width,
-            height);
-        return FitInWorkArea(floated, _layout.FloatingWorkArea(_area));
-    }
-
-    private IReadOnlyList<Placement> MoveFloating(WindowId window, Rectangle box, Side direction)
-    {
-        var frame = _layout.FloatingWorkArea(_area);
-        var moved = direction switch
-        {
-            Side.Left => box with { X = frame.X },
-            Side.Right => box with { X = frame.X + frame.Width - box.Width },
-            Side.Up => box with { Y = frame.Y },
-            Side.Down => box with { Y = frame.Y + frame.Height - box.Height },
-            _ => box,
-        };
-        if (moved == box)
-            return [];
-
-        _floating[Id(window)] = moved;
-        return [new Placement(Id(window), moved)];
-    }
-
-    private IReadOnlyList<Placement> ResizeFloating(WindowId window, Rectangle box, int x, int y, bool exact)
-    {
-        var deltaX = exact ? x - box.Width : x;
-        var deltaY = exact ? y - box.Height : y;
-        var resized = new Rectangle(box.X - (deltaX / 2), box.Y - (deltaY / 2), box.Width + deltaX, box.Height + deltaY);
-        if (resized.Width < 1 || resized.Height < 1)
-            return [];
-
-        _floating[Id(window)] = resized;
-        return [new Placement(Id(window), resized)];
-    }
-
     private bool TryBox(WindowId window, out Rectangle box, out bool floating)
     {
         var id = Id(window);
-        if (_floating.TryGetValue(id, out box))
+        if (_floating.TryGet(id, out box))
         {
             floating = true;
             return true;
@@ -329,18 +268,6 @@ internal sealed partial class MasterLayout
 
         box = tile.Box;
         return true;
-    }
-
-    private static Rectangle FitInWorkArea(Rectangle box, Rectangle work)
-    {
-        var x = Math.Max(box.X, work.X);
-        var y = Math.Max(box.Y, work.Y);
-        if (x + box.Width > work.X + work.Width)
-            x = work.X + work.Width - box.Width;
-        if (y + box.Height > work.Y + work.Height)
-            y = work.Y + work.Height - box.Height;
-
-        return new Rectangle(x, y, box.Width, box.Height);
     }
 
     private static bool Sticks(int edge, int other) => Math.Abs(edge - other) <= 1;

@@ -15,10 +15,9 @@ internal sealed partial class ScrollingLayout : Layout
     private readonly List<Client> _clients = [];
     private readonly Dictionary<ClientId, Cell> _cells = [];
     private readonly Dictionary<ClientId, Suspension> _suspended = [];
-    private readonly Dictionary<ClientId, Rectangle> _floating = [];
+    private readonly FloatingClients _floating = new();
     private readonly Dictionary<ClientId, Rectangle> _natural = [];
     private readonly Dictionary<ClientId, SizeLimits> _limits = [];
-    private readonly Dictionary<ClientId, (int Width, int Height)> _lastFloat = [];
     private readonly Dictionary<WindowId, double> _widths = [];
     private readonly List<Column> _columns = [];
     private LayoutOptions _layoutOptions = LayoutOptions.Unconfigured;
@@ -36,7 +35,7 @@ internal sealed partial class ScrollingLayout : Layout
 
     public bool FollowsMonitorWhenUnmoved => true;
 
-    public void NudgeFloating(int dx, int dy) => FloatingShift.By(_floating, dx, dy);
+    public void NudgeFloating(int dx, int dy) => _floating.Nudge(dx, dy);
 
     public string? LayoutMessageError { get; private set; }
 
@@ -95,19 +94,18 @@ internal sealed partial class ScrollingLayout : Layout
             _monitor = monitor;
 
         var id = new ClientId(window.Value);
-        if (_cells.ContainsKey(id) || _suspended.ContainsKey(id) || _floating.ContainsKey(id))
+        if (_cells.ContainsKey(id) || _suspended.ContainsKey(id) || _floating.Contains(id))
             return [];
 
         _natural[id] = bounds;
         _limits[id] = new SizeLimits(minSize, maxSize);
         var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
-        if (placed.Width > 0 && placed.Height > 0)
-            _lastFloat[id] = (placed.Width, placed.Height);
+        _floating.Remember(id, placed);
 
         _clients.Add(ClientAdoption.Adopted(id, window, workspace, windowClass, title, floating, processId, initialClass, initialTitle));
         if (floating)
         {
-            _floating[id] = placed;
+            _floating.Set(id, placed);
             return [new Placement(id, placed)];
         }
 
@@ -122,7 +120,6 @@ internal sealed partial class ScrollingLayout : Layout
         var id = new ClientId(window.Value);
         _natural.Remove(id);
         _limits.Remove(id);
-        _lastFloat.Remove(id);
         _widths.Remove(window);
         var suspended = _suspended.Remove(id);
         if (_focus == window)
@@ -133,7 +130,7 @@ internal sealed partial class ScrollingLayout : Layout
             _dragging = false;
         }
 
-        if (_floating.Remove(id) || suspended)
+        if (_floating.Forget(id) || suspended)
         {
             _clients.RemoveAll(client => client.Id == id);
             return [];
@@ -151,7 +148,7 @@ internal sealed partial class ScrollingLayout : Layout
     public IReadOnlyList<Placement> Minimize(WindowId window)
     {
         var id = new ClientId(window.Value);
-        if (_floating.ContainsKey(id))
+        if (_floating.Contains(id))
         {
             SetMinimized(id, true);
             return [];
@@ -172,7 +169,7 @@ internal sealed partial class ScrollingLayout : Layout
     public IReadOnlyList<Placement> Restore(WindowId window)
     {
         var id = new ClientId(window.Value);
-        if (_floating.TryGetValue(id, out var bounds))
+        if (_floating.TryGet(id, out var bounds))
         {
             var index = _clients.FindIndex(client => client.Id == id);
             if (index < 0 || !_clients[index].Minimized)
@@ -215,7 +212,7 @@ internal sealed partial class ScrollingLayout : Layout
 
         var client = _clients[index];
         _limits.TryGetValue(id, out var limits);
-        var bounds = _floating.TryGetValue(id, out var floating)
+        var bounds = _floating.TryGet(id, out var floating)
             ? floating
             : _natural.TryGetValue(id, out var natural) ? natural : default;
         double? width = _cells.TryGetValue(id, out var cell) && cell.Column is Column column
@@ -235,21 +232,13 @@ internal sealed partial class ScrollingLayout : Layout
             return [];
 
         _limits[id] = new SizeLimits(minSize, maxSize);
-        if (!_floating.TryGetValue(id, out var floating))
-            return [];
-
-        var clamped = new SizeLimits(minSize, maxSize).Clamp(floating);
-        if (clamped == floating)
-            return [];
-
-        _floating[id] = clamped;
-        return [new Placement(id, clamped)];
+        return _floating.Clamp(id, new SizeLimits(minSize, maxSize));
     }
 
     public bool TryBounds(WindowId window, out Rectangle bounds)
     {
         var id = new ClientId(window.Value);
-        if (_floating.TryGetValue(id, out bounds))
+        if (_floating.TryGet(id, out bounds))
             return true;
 
         if (_cells.TryGetValue(id, out var cell) && cell.Logical.Width > 0 && cell.Logical.Height > 0)
@@ -265,14 +254,7 @@ internal sealed partial class ScrollingLayout : Layout
     public IReadOnlyList<Placement> Visible()
     {
         var placements = new List<Placement>(Placements());
-        foreach (var client in _clients)
-        {
-            if (!client.Floating || client.Minimized)
-                continue;
-            if (_floating.TryGetValue(client.Id, out var bounds))
-                placements.Add(new Placement(client.Id, bounds));
-        }
-
+        _floating.AddShown(placements, _clients);
         return placements;
     }
 

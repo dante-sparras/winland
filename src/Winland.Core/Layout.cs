@@ -148,22 +148,6 @@ internal interface Layout
 /// <summary>One step of a mouse move or resize. <see cref="KeepRatio"/> holds a floating Client's aspect ratio while it is resized.</summary>
 internal readonly record struct PointerDrag(bool Resize, PointerDragPhase Phase, Point Pointer, bool KeepRatio = false);
 
-internal static class FloatingShift
-{
-    public static void By(Dictionary<ClientId, Rectangle> floating, int dx, int dy)
-    {
-        ArgumentNullException.ThrowIfNull(floating);
-        if ((dx == 0 && dy == 0) || floating.Count == 0)
-            return;
-
-        foreach (var id in floating.Keys.ToArray())
-        {
-            var box = floating[id];
-            floating[id] = box with { X = box.X + dx, Y = box.Y + dy };
-        }
-    }
-}
-
 /// <summary>A Client handed from one Workspace's Layout to another.</summary>
 internal readonly record struct Taken(
     bool Floating,

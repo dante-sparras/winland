@@ -5,9 +5,8 @@ internal sealed partial class DwindleLayout : Layout
     private readonly List<Client> _clients = [];
     private readonly Dictionary<ClientId, Node> _nodes = [];
     private readonly Dictionary<ClientId, Suspension> _suspended = [];
-    private readonly Dictionary<ClientId, Rectangle> _floating = [];
+    private readonly FloatingClients _floating = new();
     private readonly Dictionary<ClientId, Rectangle> _natural = [];
-    private readonly Dictionary<ClientId, (int Width, int Height)> _lastFloat = [];
     private readonly HashSet<ClientId> _pseudo = [];
     private LayoutOptions _options = LayoutOptions.Unconfigured;
     private PendingSplit _preselect;
@@ -19,7 +18,7 @@ internal sealed partial class DwindleLayout : Layout
 
     public IReadOnlyList<Client> Clients => _clients;
 
-    public void NudgeFloating(int dx, int dy) => FloatingShift.By(_floating, dx, dy);
+    public void NudgeFloating(int dx, int dy) => _floating.Nudge(dx, dy);
 
     public IReadOnlyList<Placement> Apply(LayoutOptions options)
     {
@@ -51,7 +50,7 @@ internal sealed partial class DwindleLayout : Layout
     public bool TryBounds(WindowId window, out Rectangle bounds)
     {
         var id = new ClientId(window.Value);
-        if (_floating.TryGetValue(id, out bounds))
+        if (_floating.TryGet(id, out bounds))
             return true;
 
         if (_nodes.TryGetValue(id, out var node))
@@ -111,20 +110,19 @@ internal sealed partial class DwindleLayout : Layout
         _monitor = monitor;
         _activeWorkspace = activeWorkspace;
         var id = new ClientId(window.Value);
-        if (_nodes.ContainsKey(id) || _suspended.ContainsKey(id) || _floating.ContainsKey(id))
+        if (_nodes.ContainsKey(id) || _suspended.ContainsKey(id) || _floating.Contains(id))
             return [];
 
         _limits[id] = new SizeLimits(minSize, maxSize);
         _natural[id] = bounds;
         var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
-        if (placed.Width > 0 && placed.Height > 0)
-            _lastFloat[id] = (placed.Width, placed.Height);
+        _floating.Remember(id, placed);
         var floats = floating || CannotFill(maxSize, pointer);
         var client = ClientAdoption.Adopted(id, window, workspace, windowClass, title, floats, processId, initialClass, initialTitle);
         if (floats)
         {
             _clients.Add(client);
-            _floating[id] = placed;
+            _floating.Set(id, placed);
             return [new Placement(id, placed)];
         }
 
@@ -153,12 +151,11 @@ internal sealed partial class DwindleLayout : Layout
         var id = new ClientId(window.Value);
         _pseudo.Remove(id);
         _natural.Remove(id);
-        _lastFloat.Remove(id);
         _limits.Remove(id);
         if (_grab is { } grab && grab.Id == id)
             _grab = null;
 
-        if (_floating.Remove(id) || _suspended.Remove(id))
+        if (_floating.Forget(id) || _suspended.Remove(id))
         {
             _clients.RemoveAll(client => client.Id == id);
             return [];
@@ -179,7 +176,7 @@ internal sealed partial class DwindleLayout : Layout
     public IReadOnlyList<Placement> Minimize(WindowId window)
     {
         var id = new ClientId(window.Value);
-        if (_floating.ContainsKey(id))
+        if (_floating.Contains(id))
         {
             SetMinimized(id, true);
             return [];
@@ -201,7 +198,7 @@ internal sealed partial class DwindleLayout : Layout
     public IReadOnlyList<Placement> Restore(WindowId window)
     {
         var id = new ClientId(window.Value);
-        if (_floating.TryGetValue(id, out var bounds))
+        if (_floating.TryGet(id, out var bounds))
         {
             var index = _clients.FindIndex(client => client.Id == id);
             if (index < 0 || !_clients[index].Minimized)
@@ -245,7 +242,7 @@ internal sealed partial class DwindleLayout : Layout
             return false;
 
         var client = _clients[index];
-        var bounds = _floating.TryGetValue(id, out var floating)
+        var bounds = _floating.TryGet(id, out var floating)
             ? floating
             : _natural.TryGetValue(id, out var natural) ? natural : default;
         _limits.TryGetValue(id, out var limits);
@@ -257,15 +254,7 @@ internal sealed partial class DwindleLayout : Layout
     public IReadOnlyList<Placement> Visible()
     {
         var placements = new List<Placement>(Placements());
-        foreach (var client in _clients)
-        {
-            if (!client.Floating || client.Minimized)
-                continue;
-
-            if (_floating.TryGetValue(client.Id, out var bounds))
-                placements.Add(new Placement(client.Id, bounds));
-        }
-
+        _floating.AddShown(placements, _clients);
         return placements.ToArray();
     }
 
