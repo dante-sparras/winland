@@ -178,6 +178,22 @@ public class BlurShadowRoundingTests
             CornerShape.Outline(1, 1, new CornerRegion(5, 2f)));
     }
 
+    [Fact]
+    public void GetOptionReportsTheRoundingInEffectAfterANegativeValue()
+    {
+        var core = new Core(ConfigParser.Parse("decoration:rounding = 12\ndecoration:rounding = -3\n"));
+
+        Assert.Contains("\"int\":12", core.Execute("getoption decoration:rounding").Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GetOptionReportsTheDragThresholdInEffectAfterAnUnparsableValue()
+    {
+        var core = new Core(ConfigParser.Parse("binds:drag_threshold = 10\nbinds:drag_threshold = no\n"));
+
+        Assert.Contains("\"int\":10", core.Execute("getoption binds:drag_threshold").Text, StringComparison.Ordinal);
+    }
+
     // How close the top left corner of the outline comes to the frame's own corner.
     private static double Nearest(IReadOnlyList<Point> outline) =>
         outline.Min(point => Math.Sqrt((point.X * point.X) + (point.Y * point.Y)));
