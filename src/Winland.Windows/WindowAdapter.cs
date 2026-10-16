@@ -334,6 +334,7 @@ public sealed partial class WindowAdapter : IDisposable
                     return;
                 case PInvoke.EVENT_OBJECT_DESTROY:
                     Concealed.TryRemove(window, out _);
+                    Settling.TryRemove(window, out _);
                     Quick.Forget(window);
                     AbandonDrag(window);
                     ForgetLimits(window);
