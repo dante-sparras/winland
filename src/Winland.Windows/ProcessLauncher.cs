@@ -106,7 +106,7 @@ public static class ProcessLauncher
         command.AsSpan().CopyTo(buffer);
         var characters = buffer.AsSpan();
         var directory = Directory(launch);
-        var flags = PROCESS_CREATION_FLAGS.CREATE_NEW_PROCESS_GROUP | PROCESS_CREATION_FLAGS.CREATE_NO_WINDOW;
+        var flags = CreationFlags(launch);
         void* environment = null;
         var ownsEnvironment = false;
         char[]? overlay = null;
@@ -187,6 +187,17 @@ public static class ProcessLauncher
             if (ownsEnvironment)
                 PInvoke.DestroyEnvironmentBlock(environment);
         }
+    }
+
+    // A raw program gets a console of its own, which a GUI program ignores, so a console program shows a window.
+    // The shell keeps a console with no window: a console program it starts shares that console, like a
+    // program started by sh -c has no terminal, and its redirections and pipes keep working. Giving the shell
+    // no console at all would show the program's window but send its output to that new console instead.
+    internal static PROCESS_CREATION_FLAGS CreationFlags(Launch launch)
+    {
+        ArgumentNullException.ThrowIfNull(launch);
+        var console = launch.Raw ? PROCESS_CREATION_FLAGS.CREATE_NEW_CONSOLE : PROCESS_CREATION_FLAGS.CREATE_NO_WINDOW;
+        return PROCESS_CREATION_FLAGS.CREATE_NEW_PROCESS_GROUP | console;
     }
 
     private static IReadOnlyList<int> ReadAncestors(int processId)

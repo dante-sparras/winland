@@ -1,4 +1,5 @@
 using Winland.Windows;
+using Flags = Windows.Win32.System.Threading.PROCESS_CREATION_FLAGS;
 
 namespace Winland.Windows.Tests;
 
@@ -10,10 +11,8 @@ public class ProcessLauncherTests
         var directory = Path.Combine(Path.GetTempPath(), "winland-env-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         var file = Path.Combine(directory, "env.txt");
-        var command = "\"" + Path.Combine(Environment.SystemDirectory, "cmd.exe") + "\" /d /c set > env.txt";
-        var launch = new Launch(command, directory, false)
+        var launch = new Launch("set > env.txt", directory, false)
         {
-            Raw = true,
             Environment =
             [
                 new EnvironmentAssignment("WINLAND_ENV_PROBE", "first"),
@@ -75,6 +74,50 @@ public class ProcessLauncherTests
         }
         finally
         {
+            if (Directory.Exists(directory))
+                Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ARawProgramGetsAConsoleOfItsOwnAndTheShellOneWithNoWindow()
+    {
+        var raw = ProcessLauncher.CreationFlags(new Launch("app.exe", null, false) { Raw = true });
+        var shell = ProcessLauncher.CreationFlags(new Launch("app.exe", null, false));
+
+        Assert.True(raw.HasFlag(Flags.CREATE_NEW_CONSOLE));
+        Assert.False(raw.HasFlag(Flags.CREATE_NO_WINDOW));
+        Assert.True(shell.HasFlag(Flags.CREATE_NO_WINDOW));
+    }
+
+    [Fact]
+    public void ARawConsoleProgramGetsAConsoleWindow()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "winland-console-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var probe = Path.Combine(directory, "probe.ps1");
+        var file = Path.Combine(directory, "console.txt");
+        File.WriteAllText(
+            probe,
+            "$t = Add-Type -MemberDefinition '[DllImport(\"kernel32.dll\")] public static extern IntPtr GetConsoleWindow();' -Name ConsoleProbe -Namespace Probe -PassThru\r\n"
+            + "[string]$t::GetConsoleWindow() | Set-Content -Path console.txt\r\n");
+        var powershell = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
+        var launch = new Launch("\"" + powershell + "\" -NoProfile -ExecutionPolicy Bypass -File \"" + probe + "\"", directory, false) { Raw = true };
+
+        try
+        {
+            var pid = ProcessLauncher.LaunchHere(launch);
+            WaitForExit(pid);
+            var deadline = Environment.TickCount64 + 20_000;
+            while (!File.Exists(file) && Environment.TickCount64 < deadline)
+                Thread.Sleep(100);
+
+            Assert.True(File.Exists(file), "The console program did not run.");
+            Assert.NotEqual("0", File.ReadAllText(file).Trim());
+        }
+        finally
+        {
+            Thread.Sleep(200);
             if (Directory.Exists(directory))
                 Directory.Delete(directory, recursive: true);
         }
