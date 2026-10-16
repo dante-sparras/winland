@@ -95,7 +95,7 @@ public static class ExtraCommands
             var ch = i < payload.Length ? payload[i] : ';';
             if (ch == '[')
                 bracket++;
-            else if (ch == ']')
+            else if (ch == ']' && bracket > 0)
                 bracket--;
             else if (ch == ';' && bracket == 0)
             {
