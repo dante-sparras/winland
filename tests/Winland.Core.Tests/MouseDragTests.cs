@@ -43,6 +43,41 @@ public class MouseDragTests
     }
 
     [Fact]
+    public void SecondDragButtonLeavesTheFirstDragToDropItsClient()
+    {
+        var core = Flat("bindm = SUPER, mouse:272, movewindow\nbindm = SUPER, mouse:273, resizewindow\n");
+        Appear(core, 1);
+        Appear(core, 2);
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(480, 540) });
+        core.Handle(new PointerMoved(new Point(500, 540)));
+        core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(1440, 540) });
+        core.Handle(new PointerButtonReleased("mouse:273") { Position = new Point(1440, 540) });
+
+        var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(500, 540) });
+
+        Assert.False(Client(dropped, 1).Floating);
+        Assert.False(Client(dropped, 2).Floating);
+        Assert.False(dropped.Live);
+    }
+
+    [Fact]
+    public void SecondGestureBeginLeavesTheFirstDragToDropItsClient()
+    {
+        var core = Flat("");
+        Appear(core, 1);
+        Appear(core, 2);
+        core.Handle(new PointerGesture("movewindow", new Point(480, 540), PointerDragPhase.Begin, "mouse:272"));
+        core.Handle(new PointerGesture("movewindow", new Point(500, 540), PointerDragPhase.Move, "mouse:272"));
+        core.Handle(new PointerGesture("resizewindow", new Point(1440, 540), PointerDragPhase.Begin, "mouse:273"));
+
+        var dropped = core.Handle(new PointerGesture("movewindow", new Point(500, 540), PointerDragPhase.End, "mouse:272"));
+
+        Assert.False(Client(dropped, 1).Floating);
+        Assert.False(Client(dropped, 2).Floating);
+    }
+
+    [Fact]
     public void FloatingResizeGrowsFromTheGrabbedCorner()
     {
         var core = Flat("bindm = SUPER, mouse:273, resizewindow\n");
