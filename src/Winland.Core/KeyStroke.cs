@@ -36,16 +36,17 @@ public static class KeyStrokes
 
         if (key.Length > 0)
         {
+            // The layout comes first: a symbol such as slash sits on a different key outside the US layout.
             var resolved = KeyNames.Resolve(key, layout);
-            if (KeyNames.TryVirtualKey(resolved, out var virtualKey, out var extended))
+            if (layout.TryVirtualKey(resolved, out var virtualKey))
             {
-                stroke = new KeyStroke(virtualKey, 0, extended || IsExtended(virtualKey));
+                stroke = new KeyStroke(virtualKey, 0, false);
                 return true;
             }
 
-            if (layout.TryVirtualKey(resolved, out virtualKey))
+            if (KeyNames.TryVirtualKey(resolved, out virtualKey, out var extended))
             {
-                stroke = new KeyStroke(virtualKey, 0, false);
+                stroke = new KeyStroke(virtualKey, 0, extended || IsExtended(virtualKey));
                 return true;
             }
 
