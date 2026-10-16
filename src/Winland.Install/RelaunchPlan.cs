@@ -59,9 +59,31 @@ public static class RelaunchPlan
         return directory;
     }
 
-    // The runtime directory is <root>/shared/Microsoft.NETCore.App/<version>/.
+    /// <summary>
+    /// True when the runtime directory is a shared framework, <c>&lt;root&gt;/shared/Microsoft.NETCore.App/&lt;version&gt;/</c>.
+    /// A self-contained build reports its own folder.
+    /// </summary>
+    public static bool IsFrameworkDependent(string? runtimeDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(runtimeDirectory))
+            return false;
+
+        var version = new DirectoryInfo(Path.TrimEndingDirectorySeparator(runtimeDirectory.Trim()));
+        var framework = version.Parent;
+        var shared = framework?.Parent;
+        return framework is not null
+            && shared is not null
+            && framework.Name.Equals("Microsoft.NETCore.App", StringComparison.OrdinalIgnoreCase)
+            && shared.Name.Equals("shared", StringComparison.OrdinalIgnoreCase);
+    }
+
+    // Only a framework-dependent build needs DOTNET_ROOT to find its runtime. A self-contained
+    // one carries it, and the variable would only bring in one from the user's environment.
     private static string? RuntimeRoot(string? dotnetRoot, string? runtimeDirectory)
     {
+        if (!IsFrameworkDependent(runtimeDirectory))
+            return null;
+
         if (!string.IsNullOrWhiteSpace(dotnetRoot))
             return dotnetRoot.Trim();
 
