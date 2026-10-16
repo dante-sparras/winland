@@ -47,12 +47,13 @@ public sealed partial class Core
 
     /// <summary>
     /// Closes a member of a Group that keeps other members. The next member takes the tile when the
-    /// closed one was shown. Null when the window was in no such Group.
+    /// closed one was shown. <paramref name="returned"/> is a parent the member swallowed that has just
+    /// come back into the Layout, and it takes the focus the member had. Null when the window was in no
+    /// such Group.
     /// </summary>
-    private Outcome? CloseGroupMember(WindowId window)
+    private Outcome? CloseGroupMember(WindowId window, LiveWorkspace desk, HashSet<WindowId> covered, WindowId? returned)
     {
-        _groupRules.Remove(window);
-        if (WorkspaceContaining(window) is not LiveWorkspace desk || desk.GroupOf(window) is not WindowGroup group)
+        if (desk.GroupOf(window) is not WindowGroup group)
             return null;
 
         if (group.Count == 1)
@@ -61,18 +62,17 @@ public sealed partial class Core
             return null;
         }
 
-        var covered = desk.Covered();
         var wasShown = group.Shown == window;
         var wasActive = _active == window;
         desk.Leave(group, window, out _);
-        if (!wasShown || !IsShown(desk.Id))
+        if ((!wasShown && returned is null) || !IsShown(desk.Id))
             return View([]);
 
         WindowId? focus = null;
         if (wasActive)
         {
-            focus = group.Shown;
-            TakeGroupFocus(desk, group.Shown);
+            focus = returned ?? group.Shown;
+            TakeGroupFocus(desk, focus.Value);
         }
 
         return Present(desk, covered, desk.Layout.Visible(), focus: focus);

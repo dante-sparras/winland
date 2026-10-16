@@ -190,10 +190,9 @@ public sealed partial class Core
         ForgetIdle(window);
         ForgetPlacement(window);
         _pinned.Remove(window);
+        _groupRules.Remove(window);
         if (ForgetSwallowedParent(window))
             return View([]);
-        if (CloseGroupMember(window) is Outcome grouped)
-            return grouped;
 
         var desk = WorkspaceContaining(window);
         if (desk is null)
@@ -202,14 +201,19 @@ public sealed partial class Core
             return View([]);
         }
 
-        _closing = desk;
         var covered = desk.Covered();
         var wasActive = _active == window;
+
+        // The parent this window swallowed comes back before the window leaves its Group or its Layout.
+        var returned = Unswallow(window, desk);
+        if (CloseGroupMember(window, desk, covered, returned) is Outcome grouped)
+            return grouped;
+
+        _closing = desk;
         var monitor = desk.Monitor;
         var special = desk.Id.IsSpecial && SpecialOn(monitor) == desk.Id;
         var floating = desk.ClientOf(window)?.Floating == true;
         var hadBounds = desk.Layout.TryBounds(window, out var bounds);
-        var returned = Unswallow(window, desk);
         var placements = desk.Layout.Remove(window);
         if (!IsShown(desk.Id))
             placements = [];
