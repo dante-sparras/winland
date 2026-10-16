@@ -65,8 +65,9 @@ internal sealed partial class MonocleLayout : Layout
 
         _natural[id] = bounds;
         _limits[id] = (minSize, maxSize);
-        if (bounds.Width > 0 && bounds.Height > 0)
-            _lastFloat[id] = (bounds.Width, bounds.Height);
+        var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
+        if (placed.Width > 0 && placed.Height > 0)
+            _lastFloat[id] = (placed.Width, placed.Height);
 
         var client = new Client(
             id,
@@ -81,8 +82,8 @@ internal sealed partial class MonocleLayout : Layout
         _clients.Add(client);
         if (floating)
         {
-            _floating[id] = bounds;
-            return [new Placement(id, bounds)];
+            _floating[id] = placed;
+            return [new Placement(id, placed)];
         }
 
         _tiled.Add(id);
@@ -184,8 +185,8 @@ internal sealed partial class MonocleLayout : Layout
         return placements;
     }
 
-    // Every tiled Client fills the area, so size limits do not change the placement here.
-    // They are kept so a later layout can still honor them.
+    // Every tiled Client fills the area, so size limits do not change a tiled placement here.
+    // They are kept so a later layout can still honor them. A floating Client is clamped to them.
     public IReadOnlyList<Placement> UpdateLimits(WindowId window, Size? minSize, Size? maxSize)
     {
         var id = new ClientId(window.Value);
@@ -193,7 +194,15 @@ internal sealed partial class MonocleLayout : Layout
             return [];
 
         _limits[id] = (minSize, maxSize);
-        return [];
+        if (!_floating.TryGetValue(id, out var floating))
+            return [];
+
+        var clamped = new SizeLimits(minSize, maxSize).Clamp(floating);
+        if (clamped == floating)
+            return [];
+
+        _floating[id] = clamped;
+        return [new Placement(id, clamped)];
     }
 
     public bool TryBounds(WindowId window, out Rectangle bounds)

@@ -260,6 +260,22 @@ public class LayoutEngineTests
         Assert.Equal((500, 350), (again.Width, again.Height));
     }
 
+    [Theory]
+    [InlineData("dwindle")]
+    [InlineData("master")]
+    [InlineData("scrolling")]
+    [InlineData("monocle")]
+    public void FloatingClientsKeepToTheirSizeLimits(string name)
+    {
+        var layout = Open(name);
+
+        var opened = layout.Add(Window(1), Area, null, true, new Rectangle(10, 20, 400, 300), WorkspaceId.Initial, monitor: Area, minSize: new Size(500, 350));
+        var limited = layout.UpdateLimits(Window(1), null, new Size(300, 200));
+
+        Assert.Equal(new Rectangle(10, 20, 500, 350), Bounds(opened, 1));
+        Assert.Equal(new Rectangle(10, 20, 300, 200), Bounds(limited, 1));
+    }
+
     [Fact]
     public void ScrollingDropsAMinimizedTileThatCloses()
     {
