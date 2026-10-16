@@ -51,12 +51,32 @@ public sealed partial class WindowAdapter
         }
     }
 
+    // A step of a drag still held. The drag's end places the window exactly.
+    private static void PlaceLive(WindowId window, Rectangle bounds, bool borderless, Dictionary<WindowId, Motion> motions)
+    {
+        lock (Motions.For(window))
+        {
+            motions.Remove(window);
+            if (Motions.Settle(window, bounds))
+                return;
+
+            QuickPlace(window, bounds, borderless);
+        }
+    }
+
     private static void PlaceFrame(WindowId window, Rectangle bounds, bool borderless)
     {
-        if (borderless)
-            Move(new HWND((nint)window.Value), bounds);
-        else
+        if (!borderless)
+        {
             Place(window, bounds);
+            return;
+        }
+
+        var hwnd = new HWND((nint)window.Value);
+        var trails = TryOuter(hwnd, out var before) && Quick.Trails(window, before);
+        Move(hwnd, bounds);
+        if (trails)
+            SendQuick(hwnd, bounds, keepSize: false);
     }
 
     private static void BeginRest(Dictionary<WindowId, Motion> motions)
@@ -96,20 +116,8 @@ public sealed partial class WindowAdapter
     {
         public bool Hung(WindowId window) => PInvoke.IsHungAppWindow(new HWND((nint)window.Value));
 
-        public void Move(WindowId window, Rectangle bounds)
-        {
-            var hwnd = new HWND((nint)window.Value);
-            Interlocked.Increment(ref Applying);
-            try
-            {
-                var insets = InsetsFor(window, hwnd, (int)PInvoke.GetDpiForWindow(hwnd));
-                WindowAdapter.Move(hwnd, insets.OuterFor(bounds));
-            }
-            finally
-            {
-                Interlocked.Decrement(ref Applying);
-            }
-        }
+        // An in-between frame does not wait for the window, so one that repaints slowly holds up no other.
+        public void Move(WindowId window, Rectangle bounds) => QuickPlace(window, bounds, borderless: false);
 
         public void Place(WindowId window, Rectangle bounds)
         {

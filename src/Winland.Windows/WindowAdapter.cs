@@ -49,6 +49,10 @@ public sealed partial class WindowAdapter : IDisposable
     private static readonly ApplyOrder Order = new();
     private static readonly Dictionary<WindowId, CachedFrame> Frames = [];
     private static readonly Lock FrameGate = new();
+
+    // Where Winland last asked each window to be, and the frames sent without waiting.
+    private static readonly QuickMove Quick = new();
+
     private static int Applying;
 
     /// <summary>Commits a display rotation. Tests replace it so no real display turns.</summary>
@@ -330,19 +334,29 @@ public sealed partial class WindowAdapter : IDisposable
                     return;
                 case PInvoke.EVENT_OBJECT_DESTROY:
                     Concealed.TryRemove(window, out _);
+                    Quick.Forget(window);
                     AbandonDrag(window);
                     ForgetLimits(window);
                     ForgetProbe(window);
                     Apply(_core.Handle(new WindowClosed(window)));
                     return;
                 case PInvoke.EVENT_OBJECT_LOCATIONCHANGE:
+                    if (_sizing == window)
+                    {
+                        FollowSizing(window);
+                        Effects.Refit(window);
+                        return;
+                    }
+
                     if (PInvoke.IsZoomed(hwnd) && _core.Manages(window))
                     {
                         RequestMaximize((nint)window.Value);
                         return;
                     }
 
-                    if (Volatile.Read(ref Applying) == 0)
+                    // A frame or a placement Winland sent arrives here too, often after Apply returned. Asking
+                    // the window for its limits again would wait on a window that is busy taking it.
+                    if (Volatile.Read(ref Applying) == 0 && !Motions.Running(window) && !(TryOuter(hwnd, out var now) && Quick.Ours(window, now)))
                     {
                         RereadLimits(hwnd, window);
                         ReportResize(hwnd, window);
@@ -624,7 +638,10 @@ public sealed partial class WindowAdapter : IDisposable
 
             var fills = borderless.Contains(window);
             Borderless.Apply(window, fills);
-            PlaceMoving(window, placement.Bounds, fills, motions);
+            if (outcome.Live)
+                PlaceLive(window, placement.Bounds, fills, motions);
+            else
+                PlaceMoving(window, placement.Bounds, fills, motions);
         }
 
         if (outcome.Close is WindowId closing)
