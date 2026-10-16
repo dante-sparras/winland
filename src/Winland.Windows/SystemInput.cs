@@ -346,13 +346,15 @@ internal sealed class Win32SystemInput : ISystemInput
         if (!TryReadNumLock(out var current) || current == enabled)
             return;
 
-        PInvoke.keybd_event(NumLockKey, NumLockScan, KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY, 0);
-        PInvoke.keybd_event(
-            NumLockKey,
-            NumLockScan,
-            KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY | KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP,
-            0);
+        KeyboardHook.Send(NumLockToggle());
     }
+
+    // Tagged, so Winland's own hook lets it through and does not count it as the user's key.
+    internal static INPUT[] NumLockToggle() =>
+    [
+        KeyboardHook.Key(NumLockKey, up: false, NumLockScan),
+        KeyboardHook.Key(NumLockKey, up: true, NumLockScan),
+    ];
 
     public bool TryReadSwappedButtons(out bool swapped)
     {

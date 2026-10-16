@@ -102,11 +102,11 @@ internal static class Foreground
         }
     }
 
-    private static void TapMenuKey()
-    {
-        PInvoke.keybd_event(MenuKey, 0, KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY, 0);
-        PInvoke.keybd_event(MenuKey, 0, KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY | KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP, 0);
-    }
+    private static void TapMenuKey() => KeyboardHook.Send(MenuTap());
+
+    // Tagged, so Winland's own hook does not take it for the user's Alt. Not extended: an extended
+    // Alt is Right Alt, which is AltGr, with a fake Left Ctrl, on many layouts.
+    internal static INPUT[] MenuTap() => [KeyboardHook.Key(MenuKey, up: false), KeyboardHook.Key(MenuKey, up: true)];
 
     private static unsafe void Flash(HWND hwnd)
     {

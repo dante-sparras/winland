@@ -5,7 +5,6 @@ GetLastInputInfo
 AllowSetForegroundWindow
 AttachThreadInput
 FlashWindowEx
-keybd_event
 BringWindowToTop
 ShowWindow
 SetWinEventHook
