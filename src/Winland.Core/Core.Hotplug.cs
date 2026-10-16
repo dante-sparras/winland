@@ -60,7 +60,8 @@ public sealed partial class Core
         RefitAll();
         EnsureFocus(home);
         SyncActive();
-        var outcome = View(ShownPlacements(), ShownWindows(), HiddenWindows());
+        var refocus = RefocusShown();
+        var outcome = View(ShownPlacements(), ShownWindows(), HiddenWindows(), focus: refocus);
         return arrangement.Orientations.Length == 0
             ? outcome
             : outcome with { Orientations = arrangement.Orientations };
@@ -93,6 +94,19 @@ public sealed partial class Core
             if (!HeldBy(wasEnabled, screen.Id))
                 Return(screen);
         }
+    }
+
+    // A Monitor that goes away or comes back can hide the focused Client with its Workspace. The focus then
+    // goes to the Client the focused Monitor shows, so it does not stay on a window out of sight.
+    private WindowId? RefocusShown()
+    {
+        if (_active is not WindowId current || IsShownClient(current))
+            return null;
+
+        var desk = CurrentWorkspace();
+        var next = desk.Remembered();
+        TakeFocus(desk, next);
+        return next;
     }
 
     private void NoteLeaving(LiveMonitor screen)
