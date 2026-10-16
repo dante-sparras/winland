@@ -80,7 +80,7 @@ A Client whose application hides it, without minimizing it, stops being a Client
 
 ## Border resize and floating snap
 
-`general:resize_on_border` defaults to false. When it is on, a press in the grab ring around a Client resizes that Client. The ring is `general:border_size` plus `general:extend_border_grab_area` (0 to 100, default 15) outside the Client. A press inside the Client is left to the Client. A rounded corner is not a grab: the ring is measured from the square frame. While a special workspace is open on the focused Monitor, only its Clients have a ring. A maximized or fullscreen Client has no ring, and neither do the Clients behind it, as in the pinned release.
+`general:resize_on_border` defaults to false. When it is on, a press in the grab ring around a Client resizes that Client. The ring is `general:border_size` plus `general:extend_border_grab_area` (0 to 100, default 15) outside the Client. A press inside the Client is left to the Client. Floating Clients are tested first, topmost first, so a floating Client's ring over a tile still resizes the floating Client. A rounded corner is not a grab: the ring is measured from the square frame. While a special workspace is open on the focused Monitor, only its Clients have a ring. A maximized or fullscreen Client has no ring, and neither do the Clients behind it, as in the pinned release.
 
 `general:hover_icon_on_border` defaults to true and is used only while border resize is on. The outcome names the cursor for the edge under the pointer: `top_side`, `bottom_side`, `left_side`, `right_side`, `top_left_corner`, `top_right_corner`, `bottom_left_corner`, or `bottom_right_corner`. The corner zone is the border plus 10 pixels. The system pointer is not changed.
 
