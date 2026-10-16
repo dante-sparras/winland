@@ -22,7 +22,7 @@ public sealed partial class Core
             return View([], consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
 
         var sourceCovered = source.Covered();
-        if (!source.Layout.TryTake(id, out var taken))
+        if (!source.Take(id, out var taken))
             return View([], consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
 
         var destination = WorkspaceFor(target, FocusedId());

@@ -138,7 +138,7 @@ public sealed partial class Core
         var held = new List<(WindowId Window, Taken Taken)>();
         foreach (var client in desk.Layout.Clients.ToArray())
         {
-            if (desk.Layout.TryTake(client.Window, out var taken))
+            if (desk.Take(client.Window, out var taken))
                 held.Add((client.Window, taken));
         }
 

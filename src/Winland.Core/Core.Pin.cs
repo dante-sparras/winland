@@ -127,7 +127,7 @@ public sealed partial class Core
 
     private bool Transfer(LiveWorkspace source, LiveWorkspace destination, WindowId id)
     {
-        if (source.Id == destination.Id || !source.Layout.TryTake(id, out var taken))
+        if (source.Id == destination.Id || !source.Take(id, out var taken))
             return source.Id == destination.Id;
 
         var area = WorkArea(destination, _area);

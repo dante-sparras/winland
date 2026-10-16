@@ -135,6 +135,22 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
         return LastVisible();
     }
 
+    /// <summary>
+    /// Takes a Client out of the Layout to move it to another Workspace, with its fullscreen modes,
+    /// which <see cref="Receive"/> puts back as the pinned release does.
+    /// </summary>
+    public bool Take(WindowId window, out Taken taken)
+    {
+        var client = ClientOf(window);
+        if (!Layout.TryTake(window, out taken))
+            return false;
+
+        if (client is not null)
+            taken = taken with { Fullscreen = client.Fullscreen, FullscreenClient = client.FullscreenClient };
+
+        return true;
+    }
+
     /// <summary>Adds a window another Layout gave up, keeping what it knew about the window.</summary>
     public void Receive(WindowId window, Taken taken, Rectangle area, Rectangle monitor = default)
     {
@@ -156,6 +172,8 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
             initialTitle: taken.InitialTitle,
             minSize: taken.MinSize,
             maxSize: taken.MaxSize);
+        if (taken.Fullscreen != FullscreenMode.None || taken.FullscreenClient != FullscreenMode.None)
+            Layout.SetFullscreen(window, taken.Fullscreen, taken.FullscreenClient);
         if (taken.Minimized)
             Layout.Minimize(window);
     }
