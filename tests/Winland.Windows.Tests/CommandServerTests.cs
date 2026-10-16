@@ -173,6 +173,40 @@ public class CommandServerTests
         Assert.Equal(0, await read);
     }
 
+    // Status bars subscribe and then sit idle. A blocked thread each would starve the pool that
+    // runs the accept loop and the bind timers; the pool only keeps up by growing a thread at a time.
+    [Fact]
+    public void IdleSubscribersHoldNoPoolThreads()
+    {
+        var core = new Core();
+        var name = PipeName();
+        using var server = new CommandServer(core, name);
+        server.Start();
+        ThreadPool.GetMinThreads(out var workers, out _);
+        var count = Math.Clamp(workers * 3, 48, 200);
+        var before = ThreadPool.ThreadCount;
+        var subscribers = new List<NamedPipeClientStream>();
+        try
+        {
+            for (var i = 0; i < count; i++)
+            {
+                var pipe = Connect(name);
+                subscribers.Add(pipe);
+                Send(pipe, "events");
+            }
+
+            using var listener = new Listener(name);
+            WaitUntilSubscribed(core, listener);
+            var grown = ThreadPool.ThreadCount - before;
+            Assert.True(grown < count / 2, $"The pool grew by {grown} threads for {count} idle subscribers.");
+        }
+        finally
+        {
+            foreach (var pipe in subscribers)
+                pipe.Dispose();
+        }
+    }
+
     [Fact]
     public void CursorBatchAndSystemInfoTravelThePipe()
     {
