@@ -26,6 +26,12 @@ public sealed class SessionPhase : ISessionLock
 
     public bool Locked => _locked;
 
+    /// <summary>
+    /// False while the session is locked, suspended, disconnected or has its display off. Windows can look
+    /// closed then, so what the windows show is not taken as the newest state.
+    /// </summary>
+    public bool Live => Interactive && _displayAwake;
+
     public SessionEffect Notice(SessionSignal signal)
     {
         switch (signal)

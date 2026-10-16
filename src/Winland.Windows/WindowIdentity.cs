@@ -14,17 +14,15 @@ public static class WindowIdentity
             && title == client.Title;
     }
 
-    public static bool TryAnnotate(RecoverySnapshot snapshot, out RecoverySnapshot annotated)
+    /// <summary>Records process, class and title of each Client that is still open. A window that is gone is left out.</summary>
+    public static RecoverySnapshot Annotate(RecoverySnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         var clients = new List<RecoveredClient>(snapshot.Clients.Count);
         foreach (var client in snapshot.Clients)
         {
             if (!TryRead(client.Window, out var processId, out var windowClass, out var title))
-            {
-                annotated = snapshot;
-                return false;
-            }
+                continue;
 
             clients.Add(client with
             {
@@ -34,8 +32,7 @@ public static class WindowIdentity
             });
         }
 
-        annotated = new RecoverySnapshot(clients) { Input = snapshot.Input };
-        return true;
+        return snapshot with { Clients = clients };
     }
 
     private static bool TryRead(WindowId window, out long processId, out string windowClass, out string title)

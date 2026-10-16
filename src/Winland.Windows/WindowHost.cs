@@ -316,10 +316,11 @@ public sealed class WindowHost : IDisposable
 
     private void Remember(RecoverySnapshot snapshot)
     {
+        // While the session is away its windows can look closed, so the snapshot from before is kept.
         var captured = SessionRecovery.Capture(snapshot);
         lock (_memory)
         {
-            if (_clients is null || captured.Clients.Count >= _clients.Clients.Count)
+            if (_clients is null || _phase.Live)
                 _clients = captured;
         }
     }

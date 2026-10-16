@@ -8,22 +8,7 @@ internal static class SessionRecovery
 {
     // Record process, class and title while the Client is alive. Recover matches
     // those later, so a reused window is not treated as the Client that left.
-    internal static RecoverySnapshot Capture(RecoverySnapshot snapshot)
-    {
-        ArgumentNullException.ThrowIfNull(snapshot);
-        var clients = new List<RecoveredClient>(snapshot.Clients.Count);
-        foreach (var client in snapshot.Clients)
-        {
-            if (client.Window.Value == 0)
-                continue;
-
-            var single = new RecoverySnapshot([client]);
-            if (WindowIdentity.TryAnnotate(single, out var annotated) && annotated.Clients.Count == 1)
-                clients.Add(annotated.Clients[0]);
-        }
-
-        return new RecoverySnapshot(clients);
-    }
+    internal static RecoverySnapshot Capture(RecoverySnapshot snapshot) => WindowIdentity.Annotate(snapshot);
 
     // Show a visible Client before Recover reads it. A session switch can leave
     // it hidden, and a hidden window is not adopted again.
