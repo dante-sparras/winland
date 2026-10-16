@@ -32,6 +32,8 @@ A rule block on `exec`, `exec-once`, `execr`, `execr-once`, `exec-shutdown`, or 
 
 `exec`, `exec-once` and `exec-shutdown` run the command through `cmd.exe /d /s /c "<command>"`, so cmd syntax such as `&&` and redirection works and every quote in the command is kept as written. `execr` and `execr-once` start the command line as a program, with no shell.
 
+A console program started by `execr` gets a console window of its own. One started through `exec` shares cmd's console, which has no window, the way a program started by `sh -c` has no terminal, so a background tool stays out of sight and its redirections and pipes work. To see a console program, start it with `execr` or inside a terminal, for example `exec = wt pwsh`.
+
 ## Window placement
 
 A new floating Client opens at the size it asked for, centered in the floating work area of its Monitor: the work area less `general:float_gaps`. A window that reports no size opens at 640 by 400. A tiled Client is placed by its Layout. `togglefloating` floats a tiled Client around the center of its tile, at the size it last had while floating, or at the size it asked for when it has not floated yet, in every Layout. A Client that comes back after a restart keeps the rectangle it had, whether it floated, its pin and its fullscreen modes, as the recovery file recorded them, before the window rules. A recovery file written before these were recorded leaves them to the rules.
