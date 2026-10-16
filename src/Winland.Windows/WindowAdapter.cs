@@ -242,6 +242,14 @@ public sealed partial class WindowAdapter : IDisposable
         if (idObject != 0 || idChild != 0 || hwnd.IsNull)
             return;
 
+        Notice(@event, hwnd, dwmsEventTime);
+    }
+
+    /// <summary>Handles one window event. The hook calls it; tests call it with the event they need.</summary>
+    internal void Notice(uint @event, nint handle, uint time = 0) => Notice(@event, new HWND(handle), time);
+
+    private void Notice(uint @event, HWND hwnd, uint dwmsEventTime)
+    {
         if (IsShellTaskbar(hwnd))
         {
             Taskbar.Conceal();
@@ -257,6 +265,7 @@ public sealed partial class WindowAdapter : IDisposable
                     Apply(_core.Handle(new WindowFocused(window, Foreground.Classify(window, dwmsEventTime))));
                     return;
                 case PInvoke.EVENT_OBJECT_DESTROY:
+                    AbandonDrag(window);
                     ForgetLimits(window);
                     Apply(_core.Handle(new WindowClosed(window)));
                     return;
@@ -294,6 +303,7 @@ public sealed partial class WindowAdapter : IDisposable
                         UndoMinimize((nint)window.Value);
                     return;
                 case PInvoke.EVENT_OBJECT_CLOAKED:
+                    AbandonDrag(window);
                     ForgetLimits(window);
                     Apply(_core.Handle(new WindowClosed(window)));
                     return;

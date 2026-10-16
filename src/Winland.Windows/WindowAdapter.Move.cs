@@ -21,31 +21,55 @@ public sealed partial class WindowAdapter
         if (_moving is not null || _sizing is not null || !PInvoke.GetCursorPos(out var cursor))
             return;
 
-        var pointer = new Point(cursor.X, cursor.Y);
-        if (GrabsABorder(hwnd, cursor))
+        _ = StartDrag(window, GrabsABorder(hwnd, cursor), new Point(cursor.X, cursor.Y));
+    }
+
+    /// <summary>Latches the one window being moved or sized. False while another drag holds the latch.</summary>
+    internal bool StartDrag(WindowId window, bool sizing, Point pointer)
+    {
+        if (_moving is not null || _sizing is not null)
+            return false;
+
+        if (sizing)
         {
             _sizing = window;
             Apply(_core.Handle(new WindowSizeStarted(window, pointer)));
-            return;
+            return true;
         }
 
         _moving = window;
         Apply(_core.Handle(new WindowMoveStarted(window, pointer)));
+        return true;
     }
 
     private void EndMove(WindowId window)
     {
         var pointer = PInvoke.GetCursorPos(out var cursor) ? new Point(cursor.X, cursor.Y) : default;
+        EndDrag(window, pointer, TryVisible(new HWND((nint)window.Value), out var dropped) ? dropped : null);
+    }
+
+    private void EndDrag(WindowId window, Point pointer, Rectangle? dropped)
+    {
         if (_moving == window)
         {
             _moving = null;
-            Apply(_core.Handle(new WindowMoveEnded(window, pointer, TryVisible(new HWND((nint)window.Value), out var dropped) ? dropped : null)));
+            Apply(_core.Handle(new WindowMoveEnded(window, pointer, dropped)));
         }
         else if (_sizing == window)
         {
             _sizing = null;
             Apply(_core.Handle(new WindowSizeEnded(window, pointer)));
         }
+    }
+
+    // A window destroyed mid-drag never reports the end of its drag, so the latch is let go here.
+    private void AbandonDrag(WindowId window)
+    {
+        if (_moving != window && _sizing != window)
+            return;
+
+        var pointer = PInvoke.GetCursorPos(out var cursor) ? new Point(cursor.X, cursor.Y) : default;
+        EndDrag(window, pointer, null);
     }
 
     // A drag that starts on a sizing border is a resize. Anything else, the title above all, is a move.
