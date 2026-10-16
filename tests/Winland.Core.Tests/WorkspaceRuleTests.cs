@@ -502,6 +502,15 @@ public class WorkspaceRuleTests
         Assert.Equal(3, GapsIn(Rules, WorkspaceId.FromNumber(1)));
     }
 
+    [Fact]
+    public void ASpecialWorkspaceIsNotNamed()
+    {
+        Assert.Equal(4, GapsIn("workspace = n[false], gapsin:4", new WorkspaceId("special:scratch")));
+        Assert.Equal(4, GapsIn("workspace = n[false], gapsin:4", WorkspaceId.FromNumber(1)));
+        Assert.Equal(4, GapsIn("workspace = n[true], gapsin:4", new WorkspaceId("notes")));
+        Assert.Null(GapsIn("workspace = n[true], gapsin:4", new WorkspaceId("special:scratch")));
+    }
+
     private static int? GapsIn(string rules, WorkspaceId id, string? displayName = null)
     {
         var parsed = ConfigParser.Parse(rules).WorkspaceRules;
