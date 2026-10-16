@@ -114,6 +114,7 @@ public class DisplayOrientationTests
             nameof(Outcome.Relays), // SessionEffects
             nameof(Outcome.ZOrder), // WindowAdapter.ApplyCore
             nameof(Outcome.Notice), // command replies
+            nameof(Outcome.Order), // WindowAdapter.Apply through ApplyOrder
         ];
 
         var fields = typeof(Outcome)

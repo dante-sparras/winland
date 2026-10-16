@@ -19,6 +19,23 @@ public class CoreTests
     }
 
     [Fact]
+    public void EveryOutcomeIsNumberedInTheOrderTheCoreDecidedIt()
+    {
+        var core = new Core();
+        var other = new Core();
+
+        var first = core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 1920, 1080))).Order!.Value;
+        var second = core.Dispatch("workspace", "2", allowsElevation: false).Order!.Value;
+        var third = core.Execute("dispatch workspace 1").Effect.Order!.Value;
+        var elsewhere = other.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 1920, 1080))).Order!.Value;
+
+        Assert.Equal(first.Core, second.Core);
+        Assert.Equal(first.Core, third.Core);
+        Assert.True(first.Sequence < second.Sequence && second.Sequence < third.Sequence);
+        Assert.NotEqual(first.Core, elsewhere.Core);
+    }
+
+    [Fact]
     public void SecondWindowSplitsTheWorkAreaSideBySide()
     {
         var core = new Core();
