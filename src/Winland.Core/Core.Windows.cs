@@ -186,15 +186,7 @@ public sealed partial class Core
 
     private Outcome Close(WindowId window)
     {
-        ForgetFocus(window);
-        ForgetOpacity(window);
-        ForgetRestored(window);
-        ForgetIdle(window);
-        ForgetPlacement(window);
-        ForgetDrag(window);
-        ForgetCursor(window);
-        _pinned.Remove(window);
-        _groupRules.Remove(window);
+        _windowState.Forget(window);
         if (ForgetSwallowedParent(window))
             return View([]);
 

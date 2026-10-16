@@ -39,6 +39,7 @@ public sealed partial class Core
 
     public Core(ConfigDocument? config = null)
     {
+        TrackWindowState();
         _rules = config?.WindowRules ?? [];
         _workspaceRules = config?.WorkspaceRules ?? WorkspaceRule.None;
         _environment = config?.Environment ?? EnvironmentAssignment.None;

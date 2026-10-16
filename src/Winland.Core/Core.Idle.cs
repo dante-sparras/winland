@@ -12,8 +12,6 @@ public sealed partial class Core
             _idle[window] = decision.IdleInhibit;
     }
 
-    private void ForgetIdle(WindowId window) => _idle.Remove(window);
-
     // Always holds while the Client lives. Focus holds while it is the focused Client, and
     // fullscreen while it is fullscreen or maximized on a shown Workspace.
     private bool InhibitsIdle(Client client, bool shown, WindowId? active)
