@@ -338,6 +338,74 @@ public class PluginHostTests
         Assert.Equal(1, fixture.Host.EventDeliveries);
     }
 
+    [Fact]
+    public void ACallBudgetThatIsNotPositiveIsRefused()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "winland-plugin-" + Guid.NewGuid().ToString("N"));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PluginHost(new AllowGuard(), new ListLog(), new PluginHostOptions { Directory = directory, CallBudget = TimeSpan.Zero }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PluginHost(new AllowGuard(), new ListLog(), new PluginHostOptions { Directory = directory, CallBudget = TimeSpan.FromMilliseconds(-1) }));
+        Assert.Throws<ArgumentNullException>(() => new PluginHost(null!, new ListLog()));
+        Assert.Throws<ArgumentNullException>(() => new PluginHost(new AllowGuard(), null!));
+    }
+
+    [Fact]
+    public void AnEmptyPluginLineIsAWarning()
+    {
+        using var fixture = Fixture.Create("sample");
+
+        var sync = fixture.Host.Sync(ConfigParser.Parse("plugin =\n"));
+
+        Assert.Equal(["Plugin path is empty."], sync.Warnings);
+        Assert.False(sync.RegisteredKeywords);
+    }
+
+    // A reload whose config no longer names a plugin unloads it. One loaded from the pipe stays.
+    [Fact]
+    public void APluginTheConfigNoLongerNamesIsUnloaded()
+    {
+        using var fixture = Fixture.Create("sample");
+        var named = ConfigParser.Parse("plugin = " + fixture.AssemblyPath + "\n");
+
+        var first = fixture.Host.Sync(named);
+        var again = fixture.Host.Sync(named);
+        var loadedTwice = Dispatchers.IsKnown("sampleecho");
+        var dropped = fixture.Host.Sync(ConfigParser.Parse(""));
+
+        Assert.Empty(first.Warnings);
+        Assert.True(first.RegisteredKeywords);
+        Assert.Empty(again.Warnings);
+        Assert.False(again.RegisteredKeywords);
+        Assert.True(loadedTwice);
+        Assert.Empty(dropped.Warnings);
+        Assert.False(Dispatchers.IsKnown("sampleecho"));
+        Assert.Contains(fixture.Log.Lines, line => line == "Plugin 'sample' loaded.");
+    }
+
+    [Fact]
+    public void LoadingAndUnloadingAreLogged()
+    {
+        using var fixture = Fixture.Create("sample");
+
+        Assert.Equal("ok", fixture.Host.Load(fixture.AssemblyPath));
+        var twice = fixture.Host.Load(fixture.AssemblyPath);
+        Assert.Equal("ok", fixture.Host.Unload("sample"));
+
+        Assert.Contains("'sample' is already loaded", twice, StringComparison.Ordinal);
+        Assert.Equal(["Plugin 'sample' loaded.", "Plugin 'sample' unloaded."], fixture.Log.Lines.Where(line => line.StartsWith("Plugin 'sample'", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void AMissingAssemblyIsNotFound()
+    {
+        using var fixture = Fixture.Create("sample");
+
+        var reply = fixture.Host.Load(Path.Combine(fixture.Directory, "Missing.dll"));
+
+        Assert.StartsWith("error:", reply, StringComparison.Ordinal);
+        Assert.Contains("was not found", reply, StringComparison.Ordinal);
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static WeakReference LoadAndUnload()
     {

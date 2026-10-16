@@ -46,6 +46,93 @@ public class WindowsFileHandlesTests
         }
     }
 
+    // The final path is the plain path, without the \\?\ prefix the system reports it with.
+    [Fact]
+    public void TheFinalPathOfAFileIsItsPlainPath()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        var path = Path.Combine(Path.GetFullPath(Path.GetTempPath()), "winland-final-" + Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(path, "");
+        try
+        {
+            using var handle = WindowsFileHandles.Open(path, WindowsFileHandles.ReadAttributes, FileShare.ReadWrite, followReparse: false);
+
+            Assert.Equal(path, WindowsFileHandles.FinalPath(handle), ignoreCase: true);
+            Assert.False(WindowsFileHandles.Attributes(handle).HasFlag(FileAttributes.Directory));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    // A new file is opened for reading, writing and deletion, and an existing one is not replaced.
+    [Fact]
+    public void ANewFileCanBeWrittenReadAndDeletedButNotMadeTwice()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        var path = Path.Combine(Path.GetTempPath(), "winland-new-" + Guid.NewGuid().ToString("N") + ".txt");
+        byte[] read;
+        using (var handle = WindowsFileHandles.CreateNewFile(path, FileShare.None))
+        {
+            RandomAccess.Write(handle, "state"u8, 0);
+            read = new byte[5];
+            RandomAccess.Read(handle, read, 0);
+            Assert.Throws<IOException>(() => WindowsFileHandles.CreateNewFile(path, FileShare.ReadWrite));
+            WindowsFileHandles.MarkForDeletion(handle);
+        }
+
+        Assert.Equal("state"u8.ToArray(), read);
+        Assert.False(File.Exists(path));
+    }
+
+    [Theory]
+    [InlineData(@"sub\state.json")]
+    [InlineData("sub/state.json")]
+    [InlineData("C:state.json")]
+    public void ARenameToAnythingButOneNameIsRefused(string name)
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        var directory = Path.Combine(Path.GetTempPath(), "winland-rename-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            using var folder = WindowsFileHandles.Open(directory, WindowsFileHandles.ReadAttributes, FileShare.ReadWrite | FileShare.Delete, followReparse: true);
+            using var file = WindowsFileHandles.CreateNewFile(Path.Combine(directory, "state.tmp"), FileShare.None);
+
+            Assert.Throws<ArgumentException>(() => WindowsFileHandles.Rename(file, folder, name));
+            WindowsFileHandles.Rename(file, folder, "state.json");
+            Assert.Equal(Path.Combine(directory, "state.json"), WindowsFileHandles.FinalPath(file), ignoreCase: true);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void MissingArgumentsAreRefused()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        Assert.Throws<ArgumentException>(() => WindowsFileHandles.Open(" ", WindowsFileHandles.ReadAttributes, FileShare.Read, followReparse: false));
+        Assert.Throws<ArgumentException>(() => WindowsFileHandles.CreateNewFile(" ", FileShare.Read));
+        Assert.Throws<ArgumentNullException>(() => WindowsFileHandles.Attributes(null!));
+        Assert.Throws<ArgumentNullException>(() => WindowsFileHandles.FinalPath(null!));
+        Assert.Throws<ArgumentNullException>(() => WindowsFileHandles.ReadSecurity(null!));
+        Assert.Throws<ArgumentNullException>(() => WindowsFileHandles.WriteSecurity(null!, []));
+        Assert.Throws<ArgumentNullException>(() => WindowsFileHandles.MarkForDeletion(null!));
+        Assert.Throws<ArgumentNullException>(() => WindowsFileHandles.Rename(null!, null!, "a"));
+        Assert.Throws<FileNotFoundException>(() => WindowsFileHandles.Open(Path.Combine(Path.GetTempPath(), "winland-missing-" + Guid.NewGuid().ToString("N")), WindowsFileHandles.ReadAttributes, FileShare.Read, followReparse: false));
+    }
+
     [Fact]
     public void AJunctionOpenedWithoutFollowingShowsItselfAndItsOwnPath()
     {
