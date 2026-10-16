@@ -12,7 +12,7 @@ A line that ends with a backslash is joined to the next line, so a value that en
 
 `general:layout` is honored for `dwindle`, `master`, `monocle`, and `scrolling`. Any other value warns with its line number. Dwindle still runs when the named layout is not available.
 
-A tiled Client's minimum size moves a dwindle split or a master stack where the minimums fit, and the neighbour takes what remains. Each side keeps at least the share the smallest split ratio leaves it in dwindle, and a fifth of an even share in a master stack. Where the minimums do not fit, the tiles stay where they would be and no tile leaves the Monitor. A window cannot be smaller than its minimum, so a window below it grows around the middle of its tile and moves to stay inside the work area, over its neighbours, as the pinned release places a window with `misc:size_limits_tiled`. A minimum larger than the work area starts at its top left corner.
+A tiled Client's minimum size moves a dwindle split or a master stack where the minimums fit, and the neighbour takes what remains. Each side keeps at least the share the smallest split ratio leaves it in dwindle, and a fifth of an even share in a master stack. Where they do not fit, the side that needs more takes all of that but the other side's share in dwindle, and a master stack keeps its even split, so no tile leaves the Monitor. A window cannot be smaller than its minimum, so a window below it grows around the middle of its tile and moves to stay inside the work area, over its neighbours, as the pinned release places a window with `misc:size_limits_tiled`. A minimum larger than the work area starts at its top left corner.
 
 ## Decoration
 
