@@ -131,9 +131,17 @@ internal sealed partial class DwindleLayout
 
         var crossHave = horizontal ? node.First.Box.Height : node.First.Box.Width;
         var crossNow = horizontal ? node.Box.Height : node.Box.Width;
-        if (firstSpan == firstHave && secondSpan == secondHave && crossHave == crossNow && firstSpan + secondSpan <= available)
-            return;
+        // A split that already fits keeps its boxes, but a minimum deeper down can still need room.
+        var settled = firstSpan == firstHave && secondSpan == secondHave && crossHave == crossNow && firstSpan + secondSpan <= available;
+        if (!settled)
+            Resplit(node, horizontal, firstSpan, secondSpan, available);
 
+        HonorMinimums(node.First);
+        HonorMinimums(node.Second);
+    }
+
+    private void Resplit(Node node, bool horizontal, int firstSpan, int secondSpan, int available)
+    {
         if (firstSpan + secondSpan > available)
         {
             if (horizontal)
@@ -144,19 +152,17 @@ internal sealed partial class DwindleLayout
 
         if (horizontal)
         {
-            node.First.Box = new Rectangle(node.Box.X, node.Box.Y, firstSpan, node.Box.Height);
-            node.Second.Box = new Rectangle(node.Box.X + firstSpan, node.Box.Y, secondSpan, node.Box.Height);
+            node.First!.Box = new Rectangle(node.Box.X, node.Box.Y, firstSpan, node.Box.Height);
+            node.Second!.Box = new Rectangle(node.Box.X + firstSpan, node.Box.Y, secondSpan, node.Box.Height);
         }
         else
         {
-            node.First.Box = new Rectangle(node.Box.X, node.Box.Y, node.Box.Width, firstSpan);
-            node.Second.Box = new Rectangle(node.Box.X, node.Box.Y + firstSpan, node.Box.Width, secondSpan);
+            node.First!.Box = new Rectangle(node.Box.X, node.Box.Y, node.Box.Width, firstSpan);
+            node.Second!.Box = new Rectangle(node.Box.X, node.Box.Y + firstSpan, node.Box.Width, secondSpan);
         }
 
         Recalculate(node.First, keepDirection: true);
         Recalculate(node.Second, keepDirection: true);
-        HonorMinimums(node.First);
-        HonorMinimums(node.Second);
     }
 
     private void GrowLeaf(Node node)
