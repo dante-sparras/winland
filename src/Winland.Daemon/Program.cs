@@ -174,7 +174,7 @@ static int Run(string? path)
     };
 
     core.Handle(new Configure(current));
-    var store = new RecoveryStore(StatePath());
+    var store = StateStore();
     var prior = store.Read();
     SessionEffects.InstallSystem();
     if (prior?.Input is InputOriginals saved)
@@ -300,16 +300,43 @@ static void Salvage(WindowHost host)
     }
 }
 
-static string StatePath()
+// The elevated daemon writes and deletes the state file as an administrator, in a folder the user's
+// environment names. It uses only a folder the user could already empty (see StateLocation).
+static RecoveryStore StateStore()
 {
-    var configured = Environment.GetEnvironmentVariable("WINLAND_STATE");
-    if (!string.IsNullOrWhiteSpace(configured))
-        return configured;
-
-    return Path.Combine(
+    var standard = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Winland",
         "state.json");
+    var variable = Environment.GetEnvironmentVariable(StateLocation.Variable);
+    if (!Elevation.IsElevated())
+        return new RecoveryStore(StateLocation.Choose(variable, standard, elevated: false, _ => null).Path);
+
+    string user;
+    using (var identity = System.Security.Principal.WindowsIdentity.GetCurrent())
+        user = identity.User?.Value ?? throw new InvalidOperationException("The current user has no SID.");
+
+    string? RefuseOpen(Microsoft.Win32.SafeHandles.SafeFileHandle folder) =>
+        StateLocation.Refusal(WindowsFileHandles.FinalPath(folder), WindowsAccessReader.TryRead(folder, out var access) ? access : null, user);
+
+    string? RefusePath(string folder)
+    {
+        try
+        {
+            using var handle = WindowsFileHandles.Open(folder, WindowsFileHandles.ReadAttributes | WindowsFileHandles.ReadControl, FileShare.ReadWrite | FileShare.Delete, followReparse: true);
+            return RefuseOpen(handle);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return exception.Message;
+        }
+    }
+
+    var (path, ignored) = StateLocation.Choose(variable, standard, elevated: true, RefusePath);
+    if (ignored is not null)
+        Console.Error.WriteLine(ignored);
+
+    return new RecoveryStore(path, RefuseOpen);
 }
 
 static string? PipeName()
