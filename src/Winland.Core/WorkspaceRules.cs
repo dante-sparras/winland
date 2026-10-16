@@ -128,13 +128,14 @@ internal static partial class WorkspaceRules
         Monitor? monitor,
         int windows,
         int tiled,
-        int floating)
+        int floating,
+        FullscreenMode fullscreen = FullscreenMode.None)
     {
         ArgumentNullException.ThrowIfNull(rules);
         WorkspaceRule? merged = null;
         foreach (var rule in rules)
         {
-            if (!Matches(rule.WorkspaceString, id, displayName, monitor, windows, tiled, floating))
+            if (!Matches(rule.WorkspaceString, id, displayName, monitor, windows, tiled, floating, fullscreen))
                 continue;
 
             merged = merged is null ? rule : merged.Merge(rule);

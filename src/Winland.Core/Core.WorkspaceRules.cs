@@ -95,6 +95,7 @@ public sealed partial class Core
     {
         var screen = MonitorById(desk.Monitor);
         var counts = desk.ClientCounts();
+        var fullscreen = desk.CoveringMode();
         var first = WorkspaceRules.For(
             _workspaceRules,
             desk.Id,
@@ -102,7 +103,8 @@ public sealed partial class Core
             screen?.Effective,
             counts.Windows,
             counts.Tiled,
-            counts.Floating);
+            counts.Floating,
+            fullscreen);
         var name = first?.DefaultName ?? desk.DisplayName;
         if (name == desk.DisplayName)
             return first;
@@ -114,7 +116,8 @@ public sealed partial class Core
             screen?.Effective,
             counts.Windows,
             counts.Tiled,
-            counts.Floating);
+            counts.Floating,
+            fullscreen);
     }
 
     private LayoutOptions OptionsFor(LiveWorkspace desk, WorkspaceRule? rule)
