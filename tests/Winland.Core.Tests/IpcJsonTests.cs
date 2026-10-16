@@ -84,6 +84,22 @@ public class IpcJsonTests
         Assert.Equal(Workspace, core.Execute("activeworkspace").Text);
     }
 
+    [Theory]
+    [InlineData("master")]
+    [InlineData("scrolling")]
+    [InlineData("monocle")]
+    [InlineData("dwindle")]
+    public void WorkspacesReportTheirTiledLayout(string layout)
+    {
+        var core = new Core(ConfigParser.Parse("general:layout = " + layout));
+        core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 800, 600)));
+
+        var workspace = Assert.Single(Json(core.Execute("workspaces").Text).EnumerateArray());
+
+        Assert.Equal(layout, workspace.GetProperty("tiledLayout").GetString());
+        Assert.Equal(layout, Json(core.Execute("activeworkspace").Text).GetProperty("tiledLayout").GetString());
+    }
+
     [Fact]
     public void ActiveWorkspaceRejectsTrailingArguments()
     {

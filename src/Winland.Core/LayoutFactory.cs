@@ -36,6 +36,15 @@ internal static class LayoutFactory
         return new LayoutFallback(new DwindleLayout(), $"Layout '{trimmed}' is not available; using dwindle.");
     }
 
+    /// <summary>The <c>general:layout</c> value that selects <paramref name="layout"/>.</summary>
+    public static string NameOf(Layout layout) => layout switch
+    {
+        MasterLayout => "master",
+        ScrollingLayout => "scrolling",
+        MonocleLayout => "monocle",
+        _ => "dwindle",
+    };
+
     private static string? Name(ConfigDocument? config)
     {
         if (config is null)
