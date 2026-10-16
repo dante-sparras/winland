@@ -38,6 +38,48 @@ public class ProcessLauncherTests
         }
     }
 
+    [Fact]
+    public void ARawCommandIsPassedAsWritten()
+    {
+        var launch = new Launch("\"C:\\Program Files\\App\\app.exe\" --flag \"a b\"", null, false) { Raw = true };
+
+        Assert.Equal(launch.CommandLine, ProcessLauncher.CommandLine(launch));
+    }
+
+    [Fact]
+    public void AShellCommandIsQuotedWholeForCmd()
+    {
+        var shell = Path.Combine(Environment.SystemDirectory, "cmd.exe");
+        var launch = new Launch("\"C:\\Program Files\\App\\app.exe\" \"a b\" && echo done", null, false);
+
+        Assert.Equal(
+            "\"" + shell + "\" /d /s /c \"\"C:\\Program Files\\App\\app.exe\" \"a b\" && echo done\"",
+            ProcessLauncher.CommandLine(launch));
+    }
+
+    [Fact]
+    public void AShellCommandThatStartsWithAQuoteAndHasMoreQuotesRuns()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "winland-quote-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var file = Path.Combine(directory, "out file.txt");
+        var where = Path.Combine(Environment.SystemDirectory, "where.exe");
+        var launch = new Launch("\"" + where + "\" \"cmd.exe\" > \"out file.txt\"", directory, false);
+
+        try
+        {
+            var pid = ProcessLauncher.LaunchHere(launch);
+            WaitForExit(pid);
+            Assert.True(File.Exists(file), "The command did not run as written.");
+            Assert.Contains("cmd.exe", File.ReadAllText(file), StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+                Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static void WaitForExit(int pid)
     {
         try

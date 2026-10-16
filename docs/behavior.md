@@ -28,6 +28,10 @@ An alpha below 255 adds `WS_EX_LAYERED` and sets the window's alpha. The window'
 
 A rule block on `exec`, `exec-once`, `execr`, `execr-once`, `exec-shutdown`, or the `exec` and `execr` dispatchers applies to the first window mapped by that process or a child of it. Every effect a window rule honors is honored there too, including `move`, `size`, `center`, `monitor` and `no_close_for`. Any other effect warns and is skipped. The command still launches. An unclosed rule block warns and does not launch. A known effect with a bad argument warns and does not launch.
 
+## Launching
+
+`exec`, `exec-once` and `exec-shutdown` run the command through `cmd.exe /d /s /c "<command>"`, so cmd syntax such as `&&` and redirection works and every quote in the command is kept as written. `execr` and `execr-once` start the command line as a program, with no shell.
+
 ## Window placement
 
 A new floating Client opens at the size it asked for, centered in the floating work area of its Monitor: the work area less `general:float_gaps`. A window that reports no size opens at 640 by 400. A tiled Client is placed by its Layout. `togglefloating` floats a tiled Client around the center of its tile, at the size it last had while floating, or at the size it asked for when it has not floated yet, in every Layout. A Client that comes back after a restart keeps the rectangle it had, whether it floated, its pin and its fullscreen modes, as the recovery file recorded them, before the window rules. A recovery file written before these were recorded leaves them to the rules.
