@@ -130,7 +130,7 @@ public sealed partial class Core
             || group.Denied
             || !CanJoin(rules, group)
             || desk.GroupOf(child) is not null
-            || !desk.Layout.TryTake(child, out var taken))
+            || !desk.Take(child, out var taken))
             return false;
 
         if (!home.ReplaceMember(group, parent.Window, child, taken))
@@ -138,6 +138,12 @@ public sealed partial class Core
             desk.Receive(child, taken, WorkArea(desk, _area));
             return false;
         }
+
+        // The slot keeps the parent's modes. The child has its own, such as a fullscreen rule asked for,
+        // as it would in the pinned release, where it opens in a slot of its own.
+        if (home.ClientOf(child) is Client slotted
+            && (slotted.Fullscreen != taken.Fullscreen || slotted.FullscreenClient != taken.FullscreenClient))
+            home.Layout.SetFullscreen(child, taken.Fullscreen, taken.FullscreenClient);
 
         _swallows[child] = new Swallow(parent, Hidden: true, Slot: true);
         HideParent(parent.Window, home);
