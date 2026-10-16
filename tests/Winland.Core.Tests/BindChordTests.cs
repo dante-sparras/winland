@@ -190,6 +190,24 @@ public class BindChordTests
     }
 
     [Fact]
+    public void ClickBindMeasuresFromItsOwnPressNotTheNewestOne()
+    {
+        var core = Load("binds:drag_threshold = 10\nbindc = SUPER, V, killactive\n");
+        Appear(core, 1);
+        core.Handle(new PointerMoved(new Point(0, 0)));
+        Press(core, "Super_L");
+        Press(core, "V");
+        core.Handle(new PointerMoved(new Point(40, 0)));
+        Press(core, "B");
+        Release(core, "B");
+
+        var released = Release(core, "V");
+
+        Assert.Null(released.Dispatcher);
+        Assert.Null(released.Close);
+    }
+
+    [Fact]
     public void LongPressKeycodeBindFires()
     {
         var core = Load("bindo = SUPER, code:36, killactive\n");
