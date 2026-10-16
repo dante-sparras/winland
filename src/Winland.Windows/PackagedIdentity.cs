@@ -29,18 +29,21 @@ internal static class PackagedIdentity
     // ProcessId is the hosted app's process for a frame that hosts one, and the window's own process otherwise.
     internal readonly record struct Resolved(string Class, string Exe, string Aumid, bool UnresolvedFrame, uint ProcessId);
 
-    private readonly record struct CacheEntry(uint ProcessId, string Title, Resolved Identity);
+    private readonly record struct CacheEntry(uint ProcessId, Resolved Identity);
 
-    internal static Resolved Resolve(HWND hwnd, string className, string exe, string title)
+    internal static Resolved Resolve(HWND hwnd, string className, string exe)
     {
         var processId = ProcessId(hwnd);
         var key = ((nint)hwnd).ToInt64();
         lock (Gate)
         {
             ForgetClosed();
+
+            // A frame that hosted no app yet is looked at again every time. Its app's CoreWindow can be
+            // attached after the frame was titled, and a cached answer would still say no app when it is shown.
             if (Cache.TryGetValue(key, out var cached)
                 && cached.ProcessId == processId
-                && (!cached.Identity.UnresolvedFrame || string.Equals(cached.Title, title, StringComparison.Ordinal)))
+                && !cached.Identity.UnresolvedFrame)
             {
                 return cached.Identity;
             }
@@ -48,7 +51,7 @@ internal static class PackagedIdentity
 
         var identity = Read(hwnd, className, exe, processId);
         lock (Gate)
-            Cache[key] = new CacheEntry(processId, title, identity);
+            Cache[key] = new CacheEntry(processId, identity);
 
         return identity;
     }
