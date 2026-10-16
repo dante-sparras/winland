@@ -138,6 +138,55 @@ public class PluginApplyTests
         Assert.Empty(Directory.GetFiles(fixture.Paths.PluginDirectory));
     }
 
+    // A file the host or a scanner holds open cannot be replaced. Nothing may be left half done:
+    // new assemblies under old approvals would not load, and old ones would lose theirs.
+    [Fact]
+    public void AFileThatCannotBeReplacedLeavesEverythingAsItWas()
+    {
+        using var fixture = ManagerFixture.Create();
+        var old = Stage(fixture, "old.dll");
+        Assert.True(Apply(fixture, Install(fixture, ("first", PluginHash.OfFile(old), old), ("second", PluginHash.OfFile(old), old))).Ok);
+        var approvalsBefore = File.ReadAllText(fixture.Paths.Approvals);
+        var fresh = Stage(fixture, "fresh.dll");
+        File.AppendAllText(fresh, "v2");
+        var first = Path.Combine(fixture.Paths.PluginDirectory, "first.dll");
+        var second = Path.Combine(fixture.Paths.PluginDirectory, "second.dll");
+
+        ApplyResult result;
+        using (new FileStream(second, FileMode.Open, FileAccess.Read, FileShare.None))
+            result = Apply(fixture, Install(fixture, ("first", PluginHash.OfFile(fresh), fresh), ("second", PluginHash.OfFile(fresh), fresh)));
+
+        Assert.False(result.Ok);
+        Assert.Contains("Nothing was changed", Assert.Single(result.Lines), StringComparison.Ordinal);
+        Assert.Equal(approvalsBefore, File.ReadAllText(fixture.Paths.Approvals));
+        Assert.Equal(PluginHash.OfFile(old), PluginHash.OfFile(first));
+        Assert.Equal(PluginHash.OfFile(old), PluginHash.OfFile(second));
+        Assert.Equal(
+            ["approved.json", "first.dll", "second.dll"],
+            Directory.GetFiles(fixture.Paths.PluginDirectory).Select(Path.GetFileName).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void AFailedNewFileIsRemovedAgain()
+    {
+        using var fixture = ManagerFixture.Create();
+        var old = Stage(fixture, "old.dll");
+        Assert.True(Apply(fixture, Install(fixture, ("second", PluginHash.OfFile(old), old))).Ok);
+        var approvalsBefore = File.ReadAllText(fixture.Paths.Approvals);
+        var second = Path.Combine(fixture.Paths.PluginDirectory, "second.dll");
+
+        ApplyResult result;
+        using (new FileStream(second, FileMode.Open, FileAccess.Read, FileShare.None))
+            result = Apply(fixture, Install(fixture, ("brandnew", PluginHash.OfFile(old), old), ("second", PluginHash.OfFile(old), old)));
+
+        Assert.False(result.Ok);
+        Assert.Equal(approvalsBefore, File.ReadAllText(fixture.Paths.Approvals));
+        Assert.False(File.Exists(Path.Combine(fixture.Paths.PluginDirectory, "brandnew.dll")));
+        Assert.Equal(
+            ["approved.json", "second.dll"],
+            Directory.GetFiles(fixture.Paths.PluginDirectory).Select(Path.GetFileName).Order(StringComparer.Ordinal));
+    }
+
     [Fact]
     public void ProtectionDenialRefusesTheChange()
     {
