@@ -75,6 +75,12 @@ internal interface Layout
     /// <summary>The Client focus moves to, in the requested direction.</summary>
     WindowId? MoveFocus(WindowId active, string arguments);
 
+    /// <summary>
+    /// The Client in the requested direction, as <see cref="MoveFocus"/> finds it, without moving
+    /// focus, cycling or scrolling the Layout.
+    /// </summary>
+    WindowId? Neighbor(WindowId active, string arguments) => MoveFocus(active, arguments);
+
     /// <summary>Records the focused Client, which the next split uses.</summary>
     void NoteFocus(WindowId window);
 

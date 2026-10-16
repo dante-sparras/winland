@@ -170,6 +170,35 @@ public class MonocleLayoutTests
     }
 
     [Fact]
+    public void MoveIntoGroupWithNoGroupBesideLeavesTheShownClient()
+    {
+        var core = Open("group:auto_group = false\n");
+        core.Handle(Appeared(1));
+        core.Handle(Appeared(2));
+        Assert.Equal(new WindowId(1), core.Handle(new Dispatch("movefocus", "l")).Focus);
+
+        core.Handle(new Dispatch("moveintogroup", "r"));
+        var next = core.Handle(new Dispatch("layoutmsg", "cyclenext"));
+
+        Assert.Equal(new WindowId(2), next.Focus);
+    }
+
+    [Fact]
+    public void MoveFocusThatCyclesGroupsFirstStepsOnceOutOfAGroup()
+    {
+        var core = Open("group:auto_group = false\nbinds:movefocus_cycles_groupfirst = true\n");
+        core.Handle(Appeared(1));
+        core.Handle(Appeared(2));
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(Appeared(3));
+        Assert.Equal(new WindowId(2), core.Handle(new Dispatch("focuswindow", "address:0x2")).Focus);
+
+        var left = core.Handle(new Dispatch("movefocus", "l"));
+
+        Assert.Equal(new WindowId(1), left.Focus);
+    }
+
+    [Fact]
     public void ClosingTheShownClientShowsTheNextOne()
     {
         var core = Open();

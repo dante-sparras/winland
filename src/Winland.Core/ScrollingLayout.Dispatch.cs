@@ -12,6 +12,9 @@ internal sealed partial class ScrollingLayout
         return next;
     }
 
+    public WindowId? Neighbor(WindowId active, string arguments) =>
+        FocusToward(active, arguments, out var next, commit: false) ? next : null;
+
     public IReadOnlyList<Placement> MoveWindow(WindowId window, string arguments)
     {
         if (!TrySide(First(arguments), out var side))

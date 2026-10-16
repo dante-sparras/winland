@@ -193,7 +193,7 @@ public sealed partial class Core
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
         if (ActiveWindow() is not WindowId id || WorkspaceContaining(id) is not LiveWorkspace desk
-            || desk.Layout.MoveFocus(id, direction) is not WindowId neighbor || neighbor == id)
+            || desk.Layout.Neighbor(id, direction) is not WindowId neighbor || neighbor == id)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
         var covered = desk.Covered();
@@ -296,7 +296,7 @@ public sealed partial class Core
 
         var own = desk.GroupOf(id);
         var ownLocked = own?.Locked == true;
-        var neighbor = desk.Layout.MoveFocus(id, direction) is WindowId found && found != id ? found : (WindowId?)null;
+        var neighbor = desk.Layout.Neighbor(id, direction) is WindowId found && found != id ? found : (WindowId?)null;
         var covered = desk.Covered();
         if (neighbor is WindowId next && desk.GroupOf(next) is WindowGroup target)
         {
@@ -333,7 +333,7 @@ public sealed partial class Core
         if (!left && !right)
             return null;
 
-        var only = _monitors.Count <= 1 && desk.Layout.MoveFocus(active, left ? "l" : "r") is null;
+        var only = _monitors.Count <= 1 && desk.Layout.Neighbor(active, left ? "l" : "r") is null;
         if (left && (active != group.Members[0] || only))
             return ShowMember(desk, group, group.Current == 0 ? group.Count - 1 : group.Current - 1, name, allowsElevation);
         if (right && (active != group.Members[^1] || only))

@@ -139,7 +139,7 @@ public sealed partial class Core
         WindowId other;
         if (IsDirection(text))
         {
-            if (home.Layout.MoveFocus(current, text) is not WindowId neighbor || neighbor == current)
+            if (home.Layout.Neighbor(current, text) is not WindowId neighbor || neighbor == current)
                 return Rejected(name, "error: no window to swap with", allowsElevation);
 
             other = neighbor;
