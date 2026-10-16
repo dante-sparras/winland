@@ -29,6 +29,8 @@ internal sealed class OpacityAdapter
     private readonly Dictionary<WindowId, Original> _owned = [];
     private readonly HashSet<WindowId> _failed = [];
     private readonly HashSet<WindowId> _leftAlone = [];
+    private readonly Dictionary<WindowId, byte> _alphas = [];
+    private readonly Dictionary<WindowId, byte> _veiled = [];
     private readonly List<string> _reports = [];
     private readonly Lock _gate = new();
     private bool _closed;
@@ -57,60 +59,115 @@ internal sealed class OpacityAdapter
     {
         lock (_gate)
         {
-            if (_failed.Contains(window) || _leftAlone.Contains(window))
-                return;
-
-            if (_owned.TryGetValue(window, out var owned))
+            if (_veiled.ContainsKey(window))
             {
-                if (alpha == 255)
-                {
-                    Restore(window, owned);
-                    _owned.Remove(window);
-                    return;
-                }
-
-                if (!_styles.TrySetAlpha(window, alpha))
-                    Fail(window);
-
+                _veiled[window] = alpha;
                 return;
             }
 
-            if (_closed)
-                return;
-
-            if (!_styles.TryRead(window, out var chrome))
-            {
-                Fail(window);
-                return;
-            }
-
-            if ((chrome.ExStyle & LayeredStyle) != 0)
-            {
-                _leftAlone.Add(window);
-                Report(window, "was already layered and was left alone.");
-                return;
-            }
-
-            if (alpha == 255)
-                return;
-
-            var updated = chrome.ExStyle | LayeredStyle;
-            _owned[window] = new Original(chrome.ExStyle, chrome.Alpha);
-            if (!_styles.TryWriteExStyle(window, updated))
-            {
-                _owned.Remove(window);
-                Fail(window);
-                return;
-            }
-
-            if (!_styles.TrySetAlpha(window, alpha))
-            {
-                if (_styles.TryWriteExStyle(window, chrome.ExStyle))
-                    _owned.Remove(window);
-
-                Fail(window);
-            }
+            Set(window, alpha);
         }
+    }
+
+    /// <summary>The alpha the window was last given, which a veiled window shows once it is unveiled.</summary>
+    internal byte Wanted(WindowId window)
+    {
+        lock (_gate)
+            return _veiled.TryGetValue(window, out var alpha) ? alpha : _alphas.GetValueOrDefault(window, (byte)255);
+    }
+
+    /// <summary>
+    /// Makes the window fully transparent until <see cref="Unveil"/>. An alpha applied meanwhile is kept for then.
+    /// Returns false when the window cannot be made transparent, and it is left as it was.
+    /// </summary>
+    internal bool Veil(WindowId window)
+    {
+        lock (_gate)
+        {
+            if (_veiled.ContainsKey(window))
+                return true;
+
+            var alpha = _alphas.GetValueOrDefault(window, (byte)255);
+            if (_closed || !Set(window, 0) || !_owned.ContainsKey(window))
+            {
+                Set(window, alpha);
+                return false;
+            }
+
+            _veiled[window] = alpha;
+            return true;
+        }
+    }
+
+    /// <summary>Gives a veiled window back the alpha it was last asked for.</summary>
+    internal void Unveil(WindowId window)
+    {
+        lock (_gate)
+        {
+            if (_veiled.Remove(window, out var alpha))
+                Set(window, alpha);
+        }
+    }
+
+    // Returns false when the window could not be given the alpha.
+    private bool Set(WindowId window, byte alpha)
+    {
+        _alphas[window] = alpha;
+        if (_failed.Contains(window) || _leftAlone.Contains(window))
+            return false;
+
+        if (_owned.TryGetValue(window, out var owned))
+        {
+            if (alpha == 255)
+            {
+                Restore(window, owned);
+                _owned.Remove(window);
+                return true;
+            }
+
+            if (_styles.TrySetAlpha(window, alpha))
+                return true;
+
+            Fail(window);
+            return false;
+        }
+
+        if (_closed)
+            return alpha == 255;
+
+        if (!_styles.TryRead(window, out var chrome))
+        {
+            Fail(window);
+            return false;
+        }
+
+        if ((chrome.ExStyle & LayeredStyle) != 0)
+        {
+            _leftAlone.Add(window);
+            Report(window, "was already layered and was left alone.");
+            return false;
+        }
+
+        if (alpha == 255)
+            return true;
+
+        var updated = chrome.ExStyle | LayeredStyle;
+        _owned[window] = new Original(chrome.ExStyle, chrome.Alpha);
+        if (!_styles.TryWriteExStyle(window, updated))
+        {
+            _owned.Remove(window);
+            Fail(window);
+            return false;
+        }
+
+        if (_styles.TrySetAlpha(window, alpha))
+            return true;
+
+        if (_styles.TryWriteExStyle(window, chrome.ExStyle))
+            _owned.Remove(window);
+
+        Fail(window);
+        return false;
     }
 
     internal void Reset(WindowId window)
@@ -122,6 +179,8 @@ internal sealed class OpacityAdapter
 
             _failed.Remove(window);
             _leftAlone.Remove(window);
+            _alphas.Remove(window);
+            _veiled.Remove(window);
         }
     }
 

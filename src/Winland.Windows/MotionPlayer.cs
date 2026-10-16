@@ -9,8 +9,11 @@ internal interface IMotionTarget
     /// <summary>Whether the window has stopped answering, so an in-between frame would block.</summary>
     bool Hung(WindowId window);
 
-    /// <summary>An in-between frame. It is fast and does not correct the frame.</summary>
-    void Move(WindowId window, Rectangle bounds);
+    /// <summary>An in-between frame on the way to <paramref name="goal"/>. It is fast and does not correct the frame.</summary>
+    void Move(WindowId window, Rectangle bounds, Rectangle goal);
+
+    /// <summary>Undoes whatever the in-between frames did beyond moving the window, for a motion that stops early.</summary>
+    void Release(WindowId window);
 
     /// <summary>The Layout rectangle, applied the way every other placement is.</summary>
     void Place(WindowId window, Rectangle bounds);
@@ -108,8 +111,10 @@ internal sealed class MotionPlayer : IDisposable
                 return true;
 
             Touch(window);
-            return false;
         }
+
+        _target.Release(window);
+        return false;
     }
 
     internal PaintHold Paint(WindowId window, byte alpha, BorderColor border)
@@ -127,6 +132,8 @@ internal sealed class MotionPlayer : IDisposable
             _animator.Forget(window);
             _closing.Remove(window);
         }
+
+        _target.Release(window);
     }
 
     /// <summary>
@@ -268,7 +275,7 @@ internal sealed class MotionPlayer : IDisposable
     private void Show(Frame frame)
     {
         if (frame.Bounds is Rectangle bounds)
-            _target.Move(frame.Window, bounds);
+            _target.Move(frame.Window, bounds, frame.Goal ?? bounds);
         if (frame.Alpha is byte alpha)
             _target.Alpha(frame.Window, alpha);
         if (frame.Border is BorderColor border)

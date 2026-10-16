@@ -210,6 +210,7 @@ An `animation:NAME` row is a node of the animation tree. An `animation` line tha
 - A workspace rule's `animation:` style is not honored, and warns.
 - `gaps_workspaces` is a Gap, so a sliding Workspace travels the width or height of its monitor alone.
 - An `animation` window rule is not honored.
+- Hyprland scales a growing window's last frame into each animated rectangle. Winland shows it unscaled from its top left and cut to the rectangle, the way a shrinking window shows, and the see-through areas of a window with a system backdrop look flatter while it grows.
 
 `master:special_scale_factor` is the `special_scale_factor` gap: a special workspace uses the same master scale as a normal one. `master:center_ignores_reserved` is the `center_ignores_reserved` gap.
 
