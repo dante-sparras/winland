@@ -121,6 +121,19 @@ public class QuickMoveTests
         Assert.False(moves.Ours(Window, new Rectangle(449, 1249, 1655, 197)));
     }
 
+    // A tile that grows in place keeps its origin every frame. The window has taken a frame only once it
+    // also has that frame's size, so the next frame waits and the direct placement is sent again behind it.
+    [Fact]
+    public void AResizeInPlaceIsTakenOnlyOnceTheSizeLands()
+    {
+        var moves = new QuickMove();
+        var current = new Rectangle(0, 0, 400, 300);
+        moves.Request(Window, new Rectangle(0, 0, 800, 600), current, (_, _) => { });
+
+        Assert.True(moves.Trails(Window, current));
+        Assert.False(QuickMove.Decide(new Rectangle(0, 0, 900, 700), current, new Rectangle(0, 0, 800, 600), 0).Send);
+    }
+
     [Fact]
     public void ARequestIsNotWaitedForPastThePatience()
     {
