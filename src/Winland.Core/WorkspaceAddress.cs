@@ -55,10 +55,9 @@ internal static class WorkspaceAddress
         if (text.StartsWith("empty", StringComparison.Ordinal))
             return TryEmpty(text, context, out id);
 
-        if (text.StartsWith("prev", StringComparison.Ordinal))
+        if (text is "prev" or "previous" or "previous_per_monitor")
         {
-            var perMonitor = text.StartsWith("previous", StringComparison.Ordinal)
-                && text.Contains("_per_monitor", StringComparison.Ordinal);
+            var perMonitor = text == "previous_per_monitor";
             if ((perMonitor ? context.PreviousOnMonitor : context.Previous) is not WorkspaceId previous)
                 return false;
 
@@ -78,7 +77,8 @@ internal static class WorkspaceAddress
         if (text.Contains('[', StringComparison.Ordinal) || text.Contains(']', StringComparison.Ordinal))
             return false;
 
-        if (text.Length > 2 && text[0] is 'r' or 'm' or 'e' && text[1] is '+' or '-' or '~')
+        // As the pinned release's resolver reads it, text whose offset is not a number names a Workspace.
+        if (text.Length > 2 && text[0] is 'r' or 'm' or 'e' && text[1] is '+' or '-' or '~' && IsSignedNumber(text[2..]))
             return TrySelector(text, context, out id);
 
         if (text[0] is '+' or '-')
@@ -379,6 +379,8 @@ internal static class WorkspaceAddress
 
     private static bool IsNumber(string text) =>
         int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var number) && number > 0;
+
+    private static bool IsSignedNumber(string text) => IsDigits(text.StartsWith('-') ? text[1..] : text);
 
     private static bool IsDigits(string text)
     {

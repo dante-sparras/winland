@@ -107,6 +107,25 @@ public class WorkspaceSelectorTests
         Assert.Equal(new MonitorId(0), same.State.ActiveMonitor);
     }
 
+    [Theory]
+    [InlineData("preview")]
+    [InlineData("prev_per_monitor")]
+    [InlineData("previously")]
+    [InlineData("r+notes")]
+    [InlineData("m-x")]
+    [InlineData("e~one")]
+    [InlineData("r+1x")]
+    public void TextThatIsNotASelectorNamesAWorkspace(string name)
+    {
+        var core = TwoMonitors(out var left, out _);
+        Appear(core, 1, left);
+        core.Handle(new Dispatch("workspace", "2"));
+
+        var named = core.Handle(new Dispatch("workspace", name));
+
+        Assert.Equal(new WorkspaceId(name), named.State.ActiveWorkspace);
+    }
+
     [Fact]
     public void EmptySelectorsHonorNextAndThisMonitor()
     {
