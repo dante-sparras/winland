@@ -632,6 +632,22 @@ public class MasterLayoutTests
         Assert.Equal(new Rectangle(0, 0, 2200, 1000), BoundsOf(outcome, 1));
     }
 
+    [Fact]
+    public void ADraggedWindowDoesNotTakeTheMasterRoleFromNewStatus()
+    {
+        var core = CoreOf(Flat("master:new_status = master\nbindm = SUPER, mouse:272, movewindow\n"));
+        core.Handle(Appeared(1));
+        core.Handle(Appeared(2));
+
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(1500, 500) });
+        core.Handle(new PointerMoved(new Point(1500, 500)));
+        var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(1500, 500) });
+
+        Assert.Equal(new Rectangle(1100, 0, 900, 1000), BoundsOf(dropped, 1));
+        Assert.Equal(new Rectangle(0, 0, 1100, 1000), BoundsOf(dropped, 2));
+    }
+
     private static string Flat(string extra) =>
         "general:layout = master\ngeneral:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 

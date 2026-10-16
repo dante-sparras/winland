@@ -11,7 +11,8 @@ internal sealed partial class MasterLayout
             && Closest(point) is { Master: true })
             dragOntoMaster = true;
 
-        PlaceNew(tile, dragOntoMaster || _master.NewStatus == MasterNewStatus.Master);
+        // A moved window keeps its slot: new_status = master only applies to a window that opens.
+        PlaceNew(tile, dragOntoMaster || (!dragging && _master.NewStatus == MasterNewStatus.Master));
 
         var forceMaster = dragOntoMaster;
         if (dragging && pointer is Point cursor && _master.DropAtCursor)
@@ -173,7 +174,7 @@ internal sealed partial class MasterLayout
         var focused = Find(_focused);
         var opening = focused ?? FirstMaster();
         var makeMaster = forceMaster
-            || _master.NewStatus == MasterNewStatus.Master
+            || (!dragging && _master.NewStatus == MasterNewStatus.Master)
             || _tiles.Count == 1
             || (_tiles.Count > 2 && !firstMap && focused is { Master: true } && !ReferenceEquals(focused, tile))
             || (_master.NewStatus == MasterNewStatus.Inherit && !dragging && opening is { Master: true } && !ReferenceEquals(opening, tile));
