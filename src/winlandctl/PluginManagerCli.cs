@@ -121,15 +121,24 @@ static class PluginManagerCli
             if (Path.GetFileNameWithoutExtension(path).Equals("dotnet", StringComparison.OrdinalIgnoreCase))
                 all = [Path.Combine(AppContext.BaseDirectory, "winlandctl.dll"), .. all];
 
-            var spec = RelaunchPlan.Create(
-                path,
-                all,
-                AppContext.BaseDirectory,
-                RuntimeEnvironment.GetRuntimeDirectory(),
-                Environment.GetEnvironmentVariable("DOTNET_ROOT"),
-                pipe: null,
-                state: null,
-                Environment.GetEnvironmentVariable("ComSpec"));
+            RelaunchSpec spec;
+            try
+            {
+                spec = RelaunchPlan.Create(
+                    path,
+                    all,
+                    AppContext.BaseDirectory,
+                    RuntimeEnvironment.GetRuntimeDirectory(),
+                    Environment.GetEnvironmentVariable("DOTNET_ROOT"),
+                    pipe: null,
+                    state: null,
+                    Environment.GetEnvironmentVariable("ComSpec"));
+            }
+            catch (ArgumentException exception)
+            {
+                return new ElevatedRun(false, 1, exception.Message);
+            }
+
             var start = new ProcessStartInfo
             {
                 FileName = spec.FileName,

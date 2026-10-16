@@ -28,23 +28,31 @@ public static class RelaunchPlan
 
         // runas starts in System32 and does not inherit the environment. cmd can
         // enter the original directory and set DOTNET_ROOT; the verb cannot.
-        var launch = QuoteAlways(executable);
+        // cmd reads the whole line first: it expands %NAME% even inside quotes, a quote ends
+        // its quoting, and a line break ends the command. Text with any of them is refused.
+        // /v:off keeps !NAME! literal when delayed expansion is on in the registry.
+        var launch = QuoteAlways(Checked(executable, "the executable path"));
         if (arguments.Count > 0)
-            launch += " " + string.Join(' ', arguments.Select(Quote));
+            launch += " " + string.Join(' ', arguments.Select(argument => Quote(Checked(argument, "an argument"))));
 
         var steps = new List<string> { "cd /d " + QuoteAlways(DirectoryOf(workingDirectory)) };
         steps.AddRange(assignments);
         steps.Add(launch);
         var interpreterPath = string.IsNullOrWhiteSpace(interpreter) ? "cmd.exe" : interpreter;
-        return new RelaunchSpec(interpreterPath, "/d /s /c \"" + string.Join(" && ", steps) + "\"", workingDirectory);
+        return new RelaunchSpec(interpreterPath, "/d /v:off /s /c \"" + string.Join(" && ", steps) + "\"", workingDirectory);
+    }
+
+    private static string Checked(string value, string what)
+    {
+        if (value.AsSpan().IndexOfAny("\"%\r\n") >= 0)
+            throw new ArgumentException($"Cannot pass {what} '{value}' to the elevated process: it contains a quote, a percent sign or a line break.");
+
+        return value;
     }
 
     private static string DirectoryOf(string workingDirectory)
     {
-        var directory = workingDirectory.Trim();
-        if (directory.Contains('"', StringComparison.Ordinal))
-            throw new ArgumentException("Cannot enter a working directory that contains a quote.", nameof(workingDirectory));
-
+        var directory = Checked(workingDirectory.Trim(), "the working directory");
         if (directory.Length > 3)
             directory = directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
@@ -71,20 +79,20 @@ public static class RelaunchPlan
         assignments.Add(Assignment(name, value));
     }
 
-    private static string Assignment(string name, string value)
+    private static string Assignment(string name, string value) =>
+        "set \"" + name + "=" + Checked(value, name) + "\"";
+
+    // The value holds no quote. Backslashes are literal except a run before the closing
+    // quote, which would escape it, so that run is doubled.
+    private static string QuoteAlways(string value)
     {
-        if (value.Contains('"', StringComparison.Ordinal) || value.Contains('\r') || value.Contains('\n'))
-            throw new ArgumentException($"Cannot pass {name} to the elevated process.");
-
-        return "set \"" + name + "=" + value + "\"";
+        var trailing = value.Length - value.TrimEnd('\\').Length;
+        return "\"" + value + new string('\\', trailing) + "\"";
     }
-
-    private static string QuoteAlways(string value) =>
-        "\"" + value.Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
 
     private static string Quote(string value)
     {
-        if (value.AsSpan().IndexOfAny(" \"\t&|<>^") < 0)
+        if (value.Length > 0 && value.AsSpan().IndexOfAny(" \t&|<>^!()") < 0)
             return value;
 
         return QuoteAlways(value);
