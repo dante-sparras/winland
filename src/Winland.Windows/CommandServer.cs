@@ -37,6 +37,13 @@ public sealed class CommandServer : IDisposable
     /// <summary>How long a client has to read its reply and close.</summary>
     internal TimeSpan ReplyTimeout { get; init; } = TimeSpan.FromSeconds(30);
 
+    /// <summary>How many instances of the pipe may exist at once. Tests lower it to reach the limit.</summary>
+    internal int MaxInstances { get; init; } = 255;
+
+    private static readonly TimeSpan FirstRetry = TimeSpan.FromMilliseconds(50);
+
+    private static readonly TimeSpan LastRetry = TimeSpan.FromSeconds(2);
+
     public CommandServer(Core core, string? pipeName = null)
     {
         ArgumentNullException.ThrowIfNull(core);
@@ -179,6 +186,7 @@ public sealed class CommandServer : IDisposable
                 var failed = server;
                 server = Next();
                 failed.Dispose();
+                server ??= await NextAsync().ConfigureAwait(false);
                 continue;
             }
             finally
@@ -204,6 +212,7 @@ public sealed class CommandServer : IDisposable
             server = Next();
             Track(connected);
             _ = Task.Run(() => Serve(connected));
+            server ??= await NextAsync().ConfigureAwait(false);
         }
     }
 
@@ -217,6 +226,34 @@ public sealed class CommandServer : IDisposable
         {
             Console.Error.WriteLine(exception.Message);
             return null;
+        }
+    }
+
+    // Every instance the name allows can be held for a while, by clients that connected and are slow. The
+    // next instance is tried again, less and less often, until one is made or the server stops, so the pipe
+    // does not go quiet for the rest of the session. Null means the server is stopping.
+    private async Task<NamedPipeServerStream?> NextAsync()
+    {
+        var delay = FirstRetry;
+        while (true)
+        {
+            try
+            {
+                await Task.Delay(delay, _cancel.Token).ConfigureAwait(false);
+            }
+            catch (Exception exception) when (exception is OperationCanceledException or ObjectDisposedException)
+            {
+                return null;
+            }
+
+            try
+            {
+                return Open(first: false);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NotSupportedException)
+            {
+                delay = TimeSpan.FromTicks(Math.Min(delay.Ticks * 2, LastRetry.Ticks));
+            }
         }
     }
 
@@ -414,7 +451,7 @@ public sealed class CommandServer : IDisposable
                 @"\\.\pipe\" + _pipeName,
                 Duplex | Overlapped | (first ? FirstInstance : 0),
                 RejectRemoteClients,
-                255,
+                (uint)MaxInstances,
                 0,
                 0,
                 0,

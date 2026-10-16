@@ -174,6 +174,24 @@ public class CommandServerTests
         Assert.Equal("ok", CommandClient.Transact("dispatch workspace 1", name));
     }
 
+    // Every instance the name allows can be taken for a while. The pipe makes the next one once an
+    // instance is free again, instead of going quiet for the rest of the session.
+    [Fact]
+    public void ThePipeServesAgainAfterEveryInstanceWasTaken()
+    {
+        var core = new Core();
+        var name = PipeName();
+        using var server = new CommandServer(core, name) { MaxInstances = 2, RequestTimeout = TimeSpan.FromMilliseconds(300) };
+        server.Start();
+        using (Connect(name))
+        using (Connect(name))
+        {
+            Thread.Sleep(100);
+        }
+
+        Assert.Equal("[]", CommandClient.Transact("clients", name, timeoutMs: 5000));
+    }
+
     [Fact]
     public void AClientThatSendsNothingDoesNotStallTheNext()
     {
