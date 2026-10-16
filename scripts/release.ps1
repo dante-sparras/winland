@@ -627,6 +627,9 @@ function Invoke-Abandon($Context) {
     if ($tags.ContainsKey($final)) { throw "$final exists, so $($attempt.Ref) is not outstanding. A published release cannot be abandoned." }
     $marker = New-MarkerRef $attempt.Version $attempt.Attempt
     $commit = $tags[$attempt.Ref].Commit
+    # Refuse a published release before anything changes: once the marker is pushed it cannot be deleted.
+    $release = Find-AttemptRelease $Context $attempt
+    if ($release -and -not $release.draft) { throw "The release on $($release.tag_name) is published. Fix it by hand." }
 
     $run = Find-WorkflowRun $Context $attempt.Ref
     if ($run -and $run.status -cin 'in_progress', 'queued', 'waiting', 'pending') {
@@ -642,8 +645,6 @@ function Invoke-Abandon($Context) {
             New-RemoteTag $Context $marker $commit $message
         } | Out-Null
     }
-    $release = Find-AttemptRelease $Context $attempt
-    if ($release -and -not $release.draft) { throw "The release on $($release.tag_name) is published. Fix it by hand." }
     if ($release) {
         Invoke-Mutation "delete the draft release on $($release.tag_name)" {
             Invoke-Gh @('api', '--method', 'DELETE', "repos/$($Context.Repo)/releases/$($release.id)") | Out-Null

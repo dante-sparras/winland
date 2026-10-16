@@ -187,6 +187,21 @@ Test-Case 'remote url, https' { Assert-Equal (ConvertFrom-RemoteUrl 'https://git
 Test-Case 'remote url, ssh' { Assert-Equal (ConvertFrom-RemoteUrl 'git@github.com:dante-sparras/winland.git') 'dante-sparras/winland' }
 Test-Case 'remote url, not github' { Assert-Null (ConvertFrom-RemoteUrl 'https://example.com/a/b.git') }
 
+# The functions below stand in for the remote. They are defined in the test's own scope, which
+# Invoke-Abandon sees when it runs, so nothing outside the test changes.
+Test-Case 'abandon refuses a published release before it changes anything' {
+    $AttemptTag = 'rc.1-v0.1.0'
+    $mutations = New-Object System.Collections.Generic.List[string]
+    function Get-RemoteTags($Context) { @{ 'rc.1-v0.1.0' = [pscustomobject]@{ Commit = $sha } } }
+    function Find-WorkflowRun($Context, $Ref) { [pscustomobject]@{ status = 'in_progress'; databaseId = 1; url = 'run' } }
+    function Find-AttemptRelease($Context, $Attempt) { [pscustomobject]@{ draft = $false; tag_name = 'rc.1-v0.1.0'; id = 1 } }
+    function Invoke-Mutation([string]$Description, [scriptblock]$Action) { $mutations.Add($Description) }
+    function Write-Step($Text) { }
+
+    Assert-Throws { Invoke-Abandon @{ Remote = 'origin'; Repo = 'dante-sparras/winland' } }
+    Assert-Equal $mutations.Count 0
+}
+
 if ($script:failures.Count -gt 0) {
     foreach ($failure in $script:failures) { Write-Output "FAIL $failure" }
     Write-Output "$($script:failures.Count) failed, $($script:passed) passed"
