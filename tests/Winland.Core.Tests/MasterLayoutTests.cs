@@ -648,6 +648,20 @@ public class MasterLayoutTests
         Assert.Equal(new Rectangle(0, 0, 1100, 1000), BoundsOf(dropped, 2));
     }
 
+    [Fact]
+    public void CycleNextOnAFloatingClientSucceedsWithoutMovingFocus()
+    {
+        var core = CoreOf(Flat(""));
+        core.Handle(Appeared(1));
+        core.Handle(Appeared(2));
+        core.Handle(new Dispatch("togglefloating"));
+
+        var outcome = core.Handle(new Dispatch("layoutmsg", "cyclenext"));
+
+        Assert.Null(outcome.Error);
+        Assert.Null(outcome.Focus);
+    }
+
     private static string Flat(string extra) =>
         "general:layout = master\ngeneral:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 
