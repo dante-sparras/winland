@@ -272,6 +272,10 @@ A client has 5 seconds after it connects to send its request line, as in the pin
 
 The pipe refuses clients on other machines. When another process already holds the pipe name, the Daemon fails to start and says so, instead of sharing the name with it.
 
+## Virtual desktops
+
+Winland's Workspaces are not Windows virtual desktops. A shown Client that a virtual desktop switch cloaks stops being a Client, and it is adopted again when it is uncloaked. A Client Winland has hidden stays a Client on its Workspace while it is cloaked, so it comes back when its Workspace is shown.
+
 ## Daemon
 
 One Daemon runs per session. A second `winland` started in the same session prints "Winland is already running in this session." and exits with code 1. A Daemon started with a different `WINLAND_PIPE` counts as a separate instance.

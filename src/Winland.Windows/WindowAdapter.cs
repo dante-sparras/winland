@@ -303,6 +303,11 @@ public sealed partial class WindowAdapter : IDisposable
                         UndoMinimize((nint)window.Value);
                     return;
                 case PInvoke.EVENT_OBJECT_CLOAKED:
+                    // A virtual desktop switch cloaks hidden Clients too. A hidden window is not adopted again
+                    // when it is uncloaked, so it stays a Client and keeps its Workspace.
+                    if (!PInvoke.IsWindowVisible(hwnd) && _core.Manages(window))
+                        return;
+
                     AbandonDrag(window);
                     ForgetLimits(window);
                     Apply(_core.Handle(new WindowClosed(window)));
