@@ -85,19 +85,40 @@ public class QuickMoveTests
         Assert.False(moves.Trails(Window, target));
     }
 
-    // The window reports each move back. One that lands on Winland's request, or is still on its way to it,
-    // is Winland's own, so the window's limits are not read again for it.
+    // The window reports each move back. One that lands where Winland put it is Winland's own, so the window's
+    // limits are not read again for it. A window that kept a smaller size still stands where it was put.
     [Fact]
-    public void TheMoveAWindowReportsIsWinlandsUntilItTakesAnotherPlace()
+    public void AMoveToWhereWinlandPutTheWindowIsWinlands()
     {
         var moves = new QuickMove();
         var target = new Rectangle(10, 0, 400, 300);
-        moves.Note(Window, target);
+        moves.Note(Window, target, waiting: false);
 
         Assert.True(moves.Ours(Window, target));
-        Assert.True(moves.Ours(Window, new Rectangle(0, 0, 400, 300)));
-        Assert.False(moves.Ours(Window, new Rectangle(10, 0, 380, 300)));
+        Assert.True(moves.Ours(Window, new Rectangle(10, 0, 380, 300)));
         Assert.False(moves.Ours(new WindowId(0x7103), target));
+    }
+
+    // A motion sends a frame at a time, and the window reports them as it takes them, behind the newest.
+    [Fact]
+    public void AnEarlierFrameOfAMotionIsStillWinlands()
+    {
+        var moves = new QuickMove();
+        moves.Note(Window, new Rectangle(10, 0, 400, 300), waiting: true);
+        moves.Note(Window, new Rectangle(20, 0, 400, 300), waiting: true);
+
+        Assert.True(moves.Ours(Window, new Rectangle(10, 0, 400, 300)));
+    }
+
+    // An application that moves or sizes its own window just after Winland placed it, as one that restores
+    // its last size when it opens does, lands somewhere Winland never put it.
+    [Fact]
+    public void AMoveTheApplicationMadeItselfIsNotWinlands()
+    {
+        var moves = new QuickMove();
+        moves.Note(Window, new Rectangle(145, 1223, 2263, 197), waiting: true);
+
+        Assert.False(moves.Ours(Window, new Rectangle(449, 1249, 1655, 197)));
     }
 
     [Fact]
@@ -107,7 +128,7 @@ public class QuickMoveTests
         var moves = new QuickMove(() => now);
         var stale = new Rectangle(10, 0, 400, 300);
         var current = new Rectangle(0, 0, 400, 300);
-        moves.Note(Window, stale);
+        moves.Note(Window, stale, waiting: true);
 
         now = QuickMove.Patience + 1;
 

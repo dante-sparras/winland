@@ -165,7 +165,7 @@ public sealed partial class WindowAdapter
             bounds.Width,
             bounds.Height,
             SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
-        Quick.Note(new WindowId(((IntPtr)hwnd).ToInt64()), bounds);
+        Quick.Note(new WindowId(((IntPtr)hwnd).ToInt64()), bounds, waiting: false);
     }
 
     // A frame of a motion or a step of a drag. The window takes it when its thread gets to it, and a later
@@ -190,7 +190,7 @@ public sealed partial class WindowAdapter
             flags |= SET_WINDOW_POS_FLAGS.SWP_NOSIZE;
 
         _ = PInvoke.SetWindowPos(hwnd, HWND.Null, bounds.X, bounds.Y, bounds.Width, bounds.Height, flags);
-        Quick.Note(new WindowId(((IntPtr)hwnd).ToInt64()), bounds);
+        Quick.Note(new WindowId(((IntPtr)hwnd).ToInt64()), bounds, waiting: true);
     }
 
     private readonly record struct CachedFrame(int Dpi, FrameInsets Insets);

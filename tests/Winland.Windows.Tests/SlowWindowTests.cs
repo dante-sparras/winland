@@ -30,9 +30,14 @@ public sealed class SlowWindowTests : IDisposable
     [Fact]
     public void AFrameDoesNotWaitForTheWindowAndTheWindowStillGetsThere()
     {
-        var target = new Rectangle(300, 260, 520, 410);
         var window = new WindowId(_window.Handle.ToInt64());
 
+        // The first call compiles the path, which is not what this measures.
+        var warm = new Rectangle(240, 220, 500, 400);
+        WindowAdapter.QuickPlace(window, warm, borderless: true);
+        Assert.True(SpinWait.SpinUntil(() => _window.Outer == warm, TimeSpan.FromSeconds(3)), $"the window is at {_window.Outer}");
+
+        var target = new Rectangle(300, 260, 520, 410);
         var watch = Stopwatch.StartNew();
         WindowAdapter.QuickPlace(window, target, borderless: true);
         var took = watch.ElapsedMilliseconds;
