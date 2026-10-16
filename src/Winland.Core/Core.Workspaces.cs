@@ -23,6 +23,7 @@ public sealed partial class Core
             return View([], consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
 
         var sourceCovered = source.Covered();
+        var wasHidden = !IsShown(source.Id) || sourceCovered.Contains(id);
         if (!source.Take(id, out var taken))
             return View([], consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
 
@@ -57,7 +58,7 @@ public sealed partial class Core
             if (IsShown(source.Id))
                 source.Collect(sourceCovered, show, conceal);
             if (IsShown(destination.Id))
-                destination.Collect(destinationCovered, show, conceal);
+                Arrive(show, conceal);
             var moved = new List<Placement>();
             if (IsShown(source.Id))
                 moved.AddRange(source.Layout.Placed());
@@ -73,7 +74,24 @@ public sealed partial class Core
 
         if (!silent)
         {
+            // Switching to the Workspace already shown here changes nothing on screen, so the reflow
+            // and the arriving window are added to what the switch returns.
+            var here = ActiveOn(FocusedId()) == target;
             var followedSwitch = SwitchTo(target, id, consumed, dispatcher, allowsElevation);
+            if (here)
+            {
+                var show = new List<WindowId>(followedSwitch.Show);
+                var conceal = new List<WindowId>(followedSwitch.Hide);
+                if (IsShown(source.Id))
+                    source.Collect(sourceCovered, show, conceal);
+                Arrive(show, conceal);
+                var moved = new List<Placement>();
+                if (IsShown(source.Id))
+                    moved.AddRange(source.Layout.Placed());
+                moved.AddRange(destination.Layout.Visible());
+                followedSwitch = followedSwitch with { Placements = moved, Show = show, Hide = conceal };
+            }
+
             return followedSwitch.Focus is null && _active == id
                 ? followedSwitch with { Focus = id }
                 : followedSwitch;
@@ -84,7 +102,7 @@ public sealed partial class Core
         if (IsShown(source.Id))
             source.Collect(sourceCovered, revealed, hidden);
         if (IsShown(destination.Id))
-            destination.Collect(destinationCovered, revealed, hidden);
+            Arrive(revealed, hidden);
         else
             hidden.Add(id);
 
@@ -115,6 +133,18 @@ public sealed partial class Core
             placements.AddRange(destination.Layout.Visible());
 
         return View(placements, revealed, hidden, consumed, dispatcher, allowsElevation: allowsElevation);
+
+        // The moved window was not in the destination's covered set, so Collect alone never shows it. When
+        // it was hidden where it was, it is shown here unless the destination's Layout covers it.
+        void Arrive(List<WindowId> show, List<WindowId> conceal)
+        {
+            destination.Collect(destinationCovered, show, conceal);
+            if (wasHidden
+                && destination.ClientOf(id) is { Minimized: false }
+                && !destination.Covered().Contains(id)
+                && !show.Contains(id))
+                show.Add(id);
+        }
     }
 
     private Outcome FollowMove(Outcome followed, WindowId window, WindowId[] concealed, LiveWorkspace destination)

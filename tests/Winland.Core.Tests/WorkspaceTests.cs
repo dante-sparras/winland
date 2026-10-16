@@ -263,6 +263,29 @@ public class WorkspaceTests
         Assert.Empty(followed.Hide);
     }
 
+    [Theory]
+    [InlineData("movetoworkspace")]
+    [InlineData("movetoworkspacesilent")]
+    public void MovingAHiddenClientOntoTheShownWorkspaceShowsIt(string dispatcher)
+    {
+        var core = new Core();
+        Appear(core, 1);
+        Appear(core, 2);
+        core.Handle(new Dispatch("movetoworkspacesilent", "3"));
+
+        var moved = core.Handle(new Dispatch(dispatcher, "1,address:0x2"));
+
+        Assert.Equal(WorkspaceId.Initial, moved.State.ActiveWorkspace);
+        Assert.Equal(WorkspaceId.Initial, Client(moved, 2).Workspace);
+        Assert.Contains(new WindowId(2), moved.Show);
+        Assert.DoesNotContain(new WindowId(2), moved.Hide);
+        Assert.DoesNotContain(moved.State.Hidden, client => client.Window == new WindowId(2));
+        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(moved, 1));
+        Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(moved, 2));
+        if (dispatcher == "movetoworkspace")
+            Assert.Equal(new WindowId(2), moved.Focus);
+    }
+
     [Fact]
     public void MoveFocusStaysInsideTheActiveWorkspace()
     {
