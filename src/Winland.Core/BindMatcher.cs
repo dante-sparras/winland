@@ -166,6 +166,7 @@ public static class BindMatcher
         }
 
         session.LongPressKey = key;
+        session.LongPressCode = scanCode;
         session.LongPressMouse = mouse;
         return MaskHeld(session, Ran(immediate, consumed, trigger)) with
         {
@@ -277,7 +278,7 @@ public static class BindMatcher
             return new BindDecision(false, null) { DisarmLongPress = true };
 
         var longPress = new List<Bind>();
-        foreach (var bind in Collect(table, session, key, scanCode: 0, mouse, releasing: false, session.Remembered(key, mouse)))
+        foreach (var bind in Collect(table, session, key, session.LongPressCode, mouse, releasing: false, session.Remembered(key, mouse)))
         {
             if (bind.Flags.HasFlag(BindFlag.LongPress) && !bind.Flags.HasFlag(BindFlag.Release))
                 longPress.Add(bind);
@@ -286,7 +287,7 @@ public static class BindMatcher
         if (longPress.Count == 0)
             return new BindDecision(false, null) { DisarmLongPress = true };
 
-        var trigger = new BindTrigger(key, Code: 0, Pressed: true);
+        var trigger = new BindTrigger(key, session.LongPressCode, Pressed: true);
         return MaskHeld(session, Ran(longPress, Consumes(longPress), trigger)) with { DisarmLongPress = true };
     }
 

@@ -22,6 +22,7 @@ public sealed class BindSession
     internal Point Pointer;
     internal Point Anchor;
     internal string? LongPressKey;
+    internal int LongPressCode;
     internal bool LongPressMouse;
     internal bool ScrollSeen;
     internal long ScrollAtMs;
