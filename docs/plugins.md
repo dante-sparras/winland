@@ -84,7 +84,7 @@ winlandctl plugin unload <name>
 
 ## Faults
 
-Every call into a plugin — initialize, shutdown, a dispatcher, a keyword and an event — is wrapped. An exception is caught, logged and counted. A call that runs longer than its budget is abandoned on a worker, logged and counted. The budget defaults to 250 ms and applies to dispatcher and event calls; the host uses that same budget for the other calls. Three consecutive failures disable the plugin. Further calls do not enter it. A successful call resets the consecutive count. Unload still runs `Shutdown`, unregisters the plugin's dispatchers, keywords and event handlers, and unloads the collectible context.
+Every call into a plugin — the constructor, `Name` and `ApiVersion` when it loads, initialize, shutdown, a dispatcher, a keyword and an event — is wrapped. A constructor or getter that throws or runs past the budget refuses the load and says why. An exception is caught, logged and counted. A call that runs longer than its budget is abandoned on a worker, logged and counted. The budget defaults to 250 ms and applies to dispatcher and event calls; the host uses that same budget for the other calls. Three consecutive failures disable the plugin. Further calls do not enter it. A successful call resets the consecutive count. Unload still runs `Shutdown`, unregisters the plugin's dispatchers, keywords and event handlers, and unloads the collectible context.
 
 ## Plugin manager
 
