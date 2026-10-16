@@ -16,6 +16,15 @@ internal static class SessionNotices
     internal const nuint ResumeAutomatic = 0x0012;
     internal const nuint PowerSettingChange = 0x8013;
 
+    internal const uint QueryEndSessionMessage = 0x0011;
+    internal const uint EndSessionMessage = 0x0016;
+
+    /// <summary>
+    /// True only for WM_ENDSESSION with wParam TRUE, when the session really ends. WM_QUERYENDSESSION only asks,
+    /// and a shutdown that another program cancels leaves the session running.
+    /// </summary>
+    internal static bool EndsSession(uint message, nuint wParam) => message == EndSessionMessage && wParam != 0;
+
     internal static bool TryFromMessage(uint message, nuint wParam, out SessionSignal signal)
     {
         if (message == DisplayMessage)

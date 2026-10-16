@@ -151,6 +151,9 @@ public sealed partial class WindowAdapter : IDisposable
         Release();
         LandMotions();
         ClearDecorations();
+
+        // Nothing hooks window events any more, so a later adapter in this process starts unreleased.
+        Releasing = false;
     }
 
     public void Recover(RecoverySnapshot? snapshot)

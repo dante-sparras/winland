@@ -17,6 +17,7 @@ public sealed class WindowHost : IDisposable
     private readonly SessionPhase _phase = new();
     private readonly Lock _memory = new();
     private readonly Queue<SessionSignal> _pending = new();
+    private readonly LoopInvoker _loop = new();
 
     private RecoverySnapshot? _recovered;
     private RecoverySnapshot? _clients;
@@ -44,6 +45,12 @@ public sealed class WindowHost : IDisposable
         _core.SessionLock = _phase;
         _commands = new CommandServer(core, pipeName);
     }
+
+    /// <summary>Runs on the message-loop thread when the session really ends (WM_ENDSESSION with wParam TRUE).</summary>
+    public Action? SessionEnding { get; set; }
+
+    /// <summary>Runs <paramref name="action"/> on the message-loop thread and waits for it, or here when the loop does not answer.</summary>
+    public void OnLoop(Action action) => _loop.Invoke(action, TimeSpan.FromSeconds(3));
 
     public CommandReply Reload()
     {
@@ -109,10 +116,11 @@ public sealed class WindowHost : IDisposable
 
         // A message-only window does not receive power broadcasts. This hidden
         // top-level window does, and it is the target for session notifications.
-        using var session = new SessionWindow(OnSignal, OnFlash);
+        using var session = new SessionWindow(OnSignal, OnFlash, () => SessionEnding?.Invoke());
         var shell = WaitForShell();
         var thread = PInvoke.GetCurrentThreadId();
         SessionHalt.Stop = () => _ = PInvoke.PostThreadMessage(thread, QuitMessage, default, default);
+        _loop.Attach(thread);
         try
         {
             Start();
@@ -135,6 +143,12 @@ public sealed class WindowHost : IDisposable
             {
                 _windows.Pump(message =>
                 {
+                    if (message.message == LoopInvoker.Message)
+                    {
+                        _loop.Drain();
+                        return true;
+                    }
+
                     // The foreground layout is read again on the next key.
                     if (message.message == KeyboardHook.InputLanguageMessage)
                         _keys.ForgetLayout();
@@ -149,6 +163,8 @@ public sealed class WindowHost : IDisposable
         }
         finally
         {
+            _loop.Detach();
+            _loop.Drain();
             SessionHalt.Stop = null;
         }
     }

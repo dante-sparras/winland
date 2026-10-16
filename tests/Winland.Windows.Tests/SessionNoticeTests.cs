@@ -2,6 +2,15 @@ namespace Winland.Windows.Tests;
 
 public class SessionNoticeTests
 {
+    // WM_QUERYENDSESSION only asks, and the shutdown can still be cancelled. WM_ENDSESSION with wParam TRUE is the end.
+    [Fact]
+    public void OnlyAnEndSessionThatIsTrueEndsTheSession()
+    {
+        Assert.True(SessionNotices.EndsSession(SessionNotices.EndSessionMessage, 1));
+        Assert.False(SessionNotices.EndsSession(SessionNotices.EndSessionMessage, 0));
+        Assert.False(SessionNotices.EndsSession(SessionNotices.QueryEndSessionMessage, 1));
+    }
+
     [Fact]
     public void PowerBroadcastMapsSuspendAndAutomaticResume()
     {

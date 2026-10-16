@@ -1,9 +1,12 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Microsoft.Win32;
 
 namespace Winland.Windows;
 
+/// <summary>
+/// Runs the exit cleanup when the console window is closed. Log off and shut down reach the session window as
+/// WM_ENDSESSION instead: a process that loads user32 does not get those console events.
+/// </summary>
 public sealed partial class ExitWatch : IDisposable
 {
     private const uint CloseEvent = 2;
@@ -13,7 +16,6 @@ public sealed partial class ExitWatch : IDisposable
     private static Action? Exit;
 
     private readonly Action _onExit;
-    private bool _session;
     private bool _disposed;
 
     public ExitWatch(Action onExit)
@@ -24,15 +26,6 @@ public sealed partial class ExitWatch : IDisposable
         unsafe
         {
             _ = SetConsoleCtrlHandler(&HandleConsole, true);
-        }
-        try
-        {
-            SystemEvents.SessionEnding += OnSession;
-            _session = true;
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or PlatformNotSupportedException or NotSupportedException)
-        {
-            Console.Error.WriteLine(exception.Message);
         }
     }
 
@@ -49,11 +42,6 @@ public sealed partial class ExitWatch : IDisposable
         {
             _ = SetConsoleCtrlHandler(&HandleConsole, false);
         }
-        if (!_session)
-            return;
-
-        SystemEvents.SessionEnding -= OnSession;
-        _session = false;
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
@@ -75,17 +63,6 @@ public sealed partial class ExitWatch : IDisposable
         }
 
         return 1;
-    }
-
-    private void OnSession(object sender, SessionEndingEventArgs e)
-    {
-        try
-        {
-            _onExit();
-        }
-        catch (Exception exception) when (exception is not OutOfMemoryException)
-        {
-        }
     }
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
