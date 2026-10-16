@@ -92,6 +92,11 @@ internal sealed partial class MasterLayout
         var nodeSize = vertical ? tile.Box.Height : tile.Box.Width;
         var maxIncrease = sizeLeft - (others.Count * minSize);
         var maxDecrease = minSize - nodeSize;
+
+        // A large minimum can leave this tile and the others below the smallest share. Then nothing can give.
+        if (maxDecrease > maxIncrease)
+            return;
+
         var diff = Math.Clamp(resizePrev ? -resizeDelta : resizeDelta, maxDecrease, maxIncrease);
         tile.SizeFraction += diff / unit;
         foreach (var other in others)

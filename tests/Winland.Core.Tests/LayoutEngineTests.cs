@@ -79,6 +79,51 @@ public class LayoutEngineTests
         Assert.Equal(new Rectangle(500, 700, 500, 100), Bounds(placements, 3));
     }
 
+    [Theory]
+    [InlineData("0 50")]
+    [InlineData("0 -50")]
+    public void ScrollingResizesARowInAColumnOfElevenWithoutThrowing(string delta)
+    {
+        var layout = Open("scrolling");
+        for (var window = 1; window <= 11; window++)
+            Tiled(layout, window);
+        for (var step = 0; step < 10; step++)
+            layout.LayoutMessage(Window(1), "consume");
+        var before = Bounds(layout.Placed(), 1);
+
+        var placements = layout.ResizeActive(Window(1), delta);
+
+        Assert.Equal(before.Height, Bounds(placements, 1).Height);
+        Assert.Equal(11, layout.Placed().Count);
+    }
+
+    [Fact]
+    public void MasterSmartResizeNextToALargeMinimumDoesNotThrow()
+    {
+        var layout = Open("master");
+        for (var window = 1; window <= 4; window++)
+            Tiled(layout, window);
+        var stack = Stack(layout.Placed());
+        layout.UpdateLimits(stack[0].Window, new Size(1, 700), null);
+        stack = Stack(layout.Placed());
+        var middle = stack[1];
+
+        var placements = layout.ResizeActive(middle.Window, "0 10");
+
+        Assert.Equal(middle.Bounds.Height, Bounds(placements, middle.Window.Value).Height);
+        Assert.Equal(4, placements.Count);
+    }
+
+    private static List<(WindowId Window, Rectangle Bounds)> Stack(IReadOnlyList<Placement> placements)
+    {
+        var master = placements.Min(placement => placement.Bounds.X);
+        return placements
+            .Where(placement => placement.Bounds.X != master)
+            .OrderBy(placement => placement.Bounds.Y)
+            .Select(placement => (new WindowId(placement.Client.Value), placement.Bounds))
+            .ToList();
+    }
+
     private static Layout Open(string name)
     {
         Layout layout = name switch
