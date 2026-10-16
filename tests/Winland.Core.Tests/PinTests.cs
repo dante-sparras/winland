@@ -210,6 +210,28 @@ public class PinTests
         Assert.True(ClientOf(reply.Effect, new WindowId(2)).Pinned);
     }
 
+    [Theory]
+    [InlineData("movetoworkspace")]
+    [InlineData("movetoworkspacesilent")]
+    public void APinnedClientIsNotMovedOntoASpecialWorkspace(string dispatcher)
+    {
+        var core = Floating();
+        core.Execute("dispatch pin");
+
+        var refused = core.Execute($"dispatch {dispatcher} special:scratch");
+
+        var client = ClientOf(refused.Effect, Window);
+        Assert.True(client.Pinned);
+        Assert.Equal(new WorkspaceId("1"), client.Workspace);
+        Assert.Null(refused.Effect.State.SpecialWorkspace);
+        Assert.DoesNotContain(refused.Effect.State.Workspaces, workspace => workspace.Id.IsSpecial);
+        Assert.Empty(refused.Effect.Hide);
+
+        var normal = core.Execute($"dispatch {dispatcher} 3");
+
+        Assert.Equal(new WorkspaceId("3"), ClientOf(normal.Effect, Window).Workspace);
+    }
+
     private static Core Floating()
     {
         var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\n"));
