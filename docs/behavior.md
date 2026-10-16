@@ -165,6 +165,8 @@ Resolution, refresh rate and scale changes stay Gaps. So do mirroring, variable 
 
 ## Dispatchers
 
+`winlandctl` reads an argument that starts with `-` as a flag unless it is a number. A number may have a fraction and one trailing comma, so `winlandctl dispatch splitratio -0.1` and `winlandctl dispatch moveactive -50, 0` pass their numbers to the dispatcher.
+
 `forcerendererreload` returns ok and does nothing. Reloading a renderer has no Windows meaning.
 
 A window selector `tag:` parses and matches no Client. Window tags are not tracked.
