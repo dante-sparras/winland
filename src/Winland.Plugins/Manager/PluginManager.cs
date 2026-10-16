@@ -180,23 +180,11 @@ public sealed class PluginManager(
             }
         }
 
-        var report = Path.Combine(paths.Staging, "apply-" + Guid.NewGuid().ToString("N") + ".log");
-        Directory.CreateDirectory(paths.Staging);
-        var request = new ApplyRequest(paths.PluginDirectory, paths.Approvals, report, install, remove);
+        var request = new ApplyRequest(paths.PluginDirectory, paths.Approvals, null, install, remove);
         output.WriteLine("Confirm the Windows prompt to approve this change.");
         var run = elevator.Run(request.ToArguments());
-        try
-        {
-            if (File.Exists(report))
-            {
-                foreach (var line in File.ReadAllLines(report))
-                    (run.ExitCode == 0 ? output : error).WriteLine(line);
-            }
-        }
-        finally
-        {
-            File.Delete(report);
-        }
+        foreach (var line in run.Lines)
+            (run.ExitCode == 0 ? output : error).WriteLine(line);
 
         if (!run.Started)
         {
@@ -204,6 +192,9 @@ public sealed class PluginManager(
             error.WriteLine("Nothing was changed.");
             return false;
         }
+
+        if (run.ExitCode != 0 && run.Lines.Count == 0)
+            error.WriteLine($"The elevated step failed with exit code {run.ExitCode} and sent no report.");
 
         return run.ExitCode == 0;
     }

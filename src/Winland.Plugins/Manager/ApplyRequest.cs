@@ -15,7 +15,7 @@ public sealed record StagedRepository(string Url, string Commit, IReadOnlyList<S
 public sealed record ApplyRequest(
     string PluginDirectory,
     string ApprovalsPath,
-    string? Report,
+    string? ReportPipe,
     IReadOnlyList<StagedRepository> Install,
     IReadOnlyList<string> Remove)
 {
@@ -24,8 +24,8 @@ public sealed record ApplyRequest(
     public IReadOnlyList<string> ToArguments()
     {
         var args = new List<string> { "plugin", Verb, "--plugin-dir", PluginDirectory, "--approvals", ApprovalsPath };
-        if (Report is not null)
-            args.AddRange(["--report", Report]);
+        if (ReportPipe is not null)
+            args.AddRange(["--report-pipe", ReportPipe]);
 
         foreach (var repository in Install)
         {
@@ -46,7 +46,7 @@ public sealed record ApplyRequest(
         ArgumentNullException.ThrowIfNull(args);
         string? directory = null;
         string? approvals = null;
-        string? report = null;
+        string? reportPipe = null;
         var install = new List<StagedRepository>();
         var remove = new List<string>();
         string? url = null;
@@ -76,8 +76,8 @@ public sealed record ApplyRequest(
                 case "--approvals" when left >= 1:
                     approvals = args[++i];
                     break;
-                case "--report" when left >= 1:
-                    report = args[++i];
+                case "--report-pipe" when left >= 1 && ApplyReport.IsName(args[i + 1]):
+                    reportPipe = args[++i];
                     break;
                 case "--repository" when left >= 1:
                     Flush();
@@ -112,6 +112,6 @@ public sealed record ApplyRequest(
             return null;
         }
 
-        return new ApplyRequest(directory, approvals, report, install, remove);
+        return new ApplyRequest(directory, approvals, reportPipe, install, remove);
     }
 }

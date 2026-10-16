@@ -27,7 +27,22 @@ public class PluginManagerTests
         Assert.Contains("SHA-256:  " + hash, shown, StringComparison.Ordinal);
         Assert.Contains("Installed plugin 'sample'", shown, StringComparison.Ordinal);
         Assert.Contains("plugin = " + target, shown, StringComparison.Ordinal);
-        Assert.Empty(Directory.GetFiles(fixture.Paths.Staging, "apply-*.log"));
+    }
+
+    // The staging folder belongs to the user, and a junction in it would redirect a write
+    // the elevated step made there. The report comes back through the elevator instead.
+    [Fact]
+    public void TheElevatedStepIsNotToldToWriteIntoStaging()
+    {
+        using var fixture = ManagerFixture.Create();
+
+        Assert.Equal(0, fixture.Manager.Install(ManagerFixture.Url, null));
+
+        var arguments = Assert.Single(fixture.Elevator.Calls);
+        Assert.DoesNotContain(arguments, argument => argument.StartsWith(fixture.Paths.Staging, StringComparison.OrdinalIgnoreCase) && !argument.EndsWith(".dll", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain("--report", arguments);
+        Assert.Empty(Directory.GetFiles(fixture.Paths.Staging));
+        Assert.Contains("Installed plugin 'sample'", fixture.Output.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]
