@@ -150,7 +150,13 @@ public sealed partial class Core
                 foreach (var member in group.Members)
                 {
                     if (desk.IsWaiting(member) && desk.ClientOf(member) is { } waiting)
-                        clients.Add(waiting with { Bounds = tile, Floating = floating });
+                        clients.Add(waiting with
+                        {
+                            Bounds = tile,
+                            Floating = floating,
+                            // A waiting member is not on screen, but always still holds the system awake.
+                            InhibitingIdle = InhibitsIdle(waiting, shown: false, active),
+                        });
                 }
             }
 

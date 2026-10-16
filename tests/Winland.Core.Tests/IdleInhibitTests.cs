@@ -23,6 +23,19 @@ public class IdleInhibitTests
     }
 
     [Fact]
+    public void AlwaysKeepsTheSystemAwakeWhileTheClientWaitsInAGroup()
+    {
+        var core = new Core(ConfigParser.Parse("windowrulev2 = idle_inhibit always, class:^(mpv)$\n"));
+        core.Handle(Window(1, "mpv"));
+        core.Execute("dispatch togglegroup");
+
+        var joined = core.Handle(Window(2, "kitty"));
+
+        Assert.Contains(joined.State.Hidden, client => client.Window == new WindowId(1));
+        Assert.True(IdleInhibit.Wanted(joined.State));
+    }
+
+    [Fact]
     public void FocusKeepsTheSystemAwakeOnlyWhileTheClientIsFocused()
     {
         var core = new Core(ConfigParser.Parse("windowrulev2 = idle_inhibit focus, class:^(mpv)$\n"));
