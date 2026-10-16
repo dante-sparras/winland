@@ -155,6 +155,17 @@ public class PlacementRuleTests
         Assert.Single(document.WindowRules);
     }
 
+    [Fact]
+    public void TheSignOfNotANumberIsZero()
+    {
+        var document = ConfigParser.Parse("windowrulev2 = move sign(sqrt(-1)) 0, class:.*\n");
+
+        Assert.Empty(document.Warnings);
+        Assert.Single(document.WindowRules);
+        Assert.True(RuleExpression.TryEvaluate("sign(sqrt(-1))", new Dictionary<string, double>(), out var value));
+        Assert.Equal(0, value);
+    }
+
     [Theory]
     [InlineData("move 10")]
     [InlineData("move 10,10")]

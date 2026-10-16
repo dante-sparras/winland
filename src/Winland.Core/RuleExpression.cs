@@ -45,7 +45,7 @@ internal static class RuleExpression
     {
         ["abs"] = Math.Abs,
         ["sqrt"] = Math.Sqrt,
-        ["sign"] = value => Math.Sign(value),
+        ["sign"] = value => double.IsNaN(value) ? 0 : Math.Sign(value),
         ["rint"] = Math.Round,
         ["exp"] = Math.Exp,
         ["ln"] = Math.Log,
