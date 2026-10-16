@@ -14,6 +14,7 @@ Issues are GitHub Issues on `dante-sparras/winland`, labelled with the roles in 
 - The Hyprland checkout and its wiki are gitignored.
 - The word "hyprland" never appears in code, identifiers, file names or user-visible strings (ADR 0002).
 - Every Gap is recorded in `docs/gaps.md`, Winland extensions in `docs/extensions.md`, and honored behavior in `docs/behavior.md`.
+- A change that makes a skipped conformance case pass removes its Skip and updates its row and the score in `docs/conformance.md`. A test checks that they agree.
 
 # Running a build on this computer
 

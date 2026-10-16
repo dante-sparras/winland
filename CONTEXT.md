@@ -55,5 +55,9 @@ A named set of binds that is active only while that Submap is selected. A `subma
 One window's animation toward its Layout rectangle, or out of sight before it is hidden or closed. The core plans it from the animation tree, and the adapter steps it. A Motion always ends on the newest Layout rectangle.
 _Avoid_: Tween, transition
 
+**Conformance case**:
+One case of the pinned release's integration tests, rebuilt as a core test that sends the same commands and checks the same results. It passes, or it is skipped with the reason Winland differs. `docs/conformance.md` lists every case and the score.
+_Avoid_: Parity test, ported test
+
 **Monitor**, **Dispatcher**, **Special workspace**, **Group**:
 Used with the meaning they have in Hyprland's manual, unless a Gap says otherwise.
