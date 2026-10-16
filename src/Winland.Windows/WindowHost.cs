@@ -11,6 +11,7 @@ public sealed class WindowHost : IDisposable
     private readonly WindowAdapter _windows;
     private readonly KeyboardHook _keys;
     private readonly MouseHook _mouse;
+    private readonly InputThread _input;
     private readonly TouchpadInput _touchpad;
     private readonly CommandServer _commands;
     private readonly SessionPhase _phase = new();
@@ -38,6 +39,7 @@ public sealed class WindowHost : IDisposable
         });
         _keys = new KeyboardHook(core);
         _mouse = new MouseHook(core, _keys);
+        _input = new InputThread(StartHooks, ServiceHooks, StopHooks);
         _touchpad = new TouchpadInput(_keys.PostInput);
         _core.SessionLock = _phase;
         _commands = new CommandServer(core, pipeName);
@@ -61,10 +63,42 @@ public sealed class WindowHost : IDisposable
         _ownsTaskbar = true;
         Taskbar.Hide();
         _windows.Start();
-        _keys.Start();
-        _mouse.Start();
+        _input.Start();
         _touchpad.Start();
         _commands.Start();
+    }
+
+    // The hooks live on the input thread, apart from window events, so nothing the main thread
+    // waits on can delay system input. These three run there.
+    private void StartHooks()
+    {
+        _keys.Start();
+        _mouse.Start();
+    }
+
+    private bool ServiceHooks(uint message)
+    {
+        if (message != KeyboardHook.WatchMessage)
+            return _keys.Service(message);
+
+        // Both hooks share the input thread, so a stall that cost one may have cost both.
+        if (_keys.Lost())
+        {
+            _mouse.Reinstall();
+            _keys.Reinstall();
+        }
+        else
+        {
+            _keys.Watch();
+        }
+
+        return true;
+    }
+
+    private void StopHooks()
+    {
+        _mouse.Dispose();
+        _keys.Dispose();
     }
 
     public void Run(RecoverySnapshot? recovered = null, Action? whenReady = null)
@@ -101,23 +135,11 @@ public sealed class WindowHost : IDisposable
             {
                 _windows.Pump(message =>
                 {
-                    if (message.message == KeyboardHook.WatchMessage)
-                    {
-                        // Both hooks share this thread, so a stall that cost one may have cost both.
-                        if (_keys.Lost())
-                        {
-                            _mouse.Reinstall();
-                            _keys.Reinstall();
-                        }
-                        else
-                        {
-                            _keys.Watch();
-                        }
+                    // The foreground layout is read again on the next key.
+                    if (message.message == KeyboardHook.InputLanguageMessage)
+                        _keys.ForgetLayout();
 
-                        return true;
-                    }
-
-                    return _keys.Service(message.message);
+                    return false;
                 });
             }
             finally
@@ -156,8 +178,10 @@ public sealed class WindowHost : IDisposable
         {
             _commands.Dispose();
             _touchpad.Dispose();
-            _mouse.Dispose();
-            _keys.Dispose();
+            _input.Dispose();
+
+            // Already done on the input thread when it ran; here for a host that never started.
+            StopHooks();
             _windows.Dispose();
         }
         finally
