@@ -116,7 +116,7 @@ internal static partial class WorkspaceRules
         if (!TryBool(body, out var wantsNamed))
             return false;
 
-        var named = !id.TryGetNumber(out _);
+        var named = !id.IsSpecial && !id.TryGetNumber(out _);
         return wantsNamed == named;
     }
 
