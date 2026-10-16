@@ -244,7 +244,7 @@ public sealed partial class Core
         var (left, top) = BorderPointer.GrabbedCorner(options.ResizeCorner, floating, pressed.Position, bounds);
         _border = new BorderDrag(window, pressed.Button, floating, pressed.Position, bounds, left, top);
         _active = window;
-        var desk = FocusedWorkspace();
+        var desk = LayoutWorkspace(window);
         desk.Focus = window;
         desk.Layout.NoteFocus(window);
         NoteBorderCursor(pressed.Position);
@@ -259,7 +259,7 @@ public sealed partial class Core
         if (_border is not BorderDrag border)
             return View([]);
 
-        var desk = FocusedWorkspace();
+        var desk = LayoutWorkspace(border.Window);
         if (border.Floating)
         {
             var next = BorderPointer.Resize(border.Start, border.Origin, pointer, border.Left, border.Top);
@@ -275,7 +275,7 @@ public sealed partial class Core
 
     private Outcome EndBorder(BorderDrag border, Point pointer)
     {
-        var desk = FocusedWorkspace();
+        var desk = LayoutWorkspace(border.Window);
         if (!border.Floating)
         {
             return View(
@@ -318,8 +318,20 @@ public sealed partial class Core
         if (reach <= 0)
             return false;
 
-        var desk = FocusedWorkspace();
-        var clients = desk.Layout.Clients;
+        // The pointer meets the special workspace open on the Monitor before the Workspace under it,
+        // and a maximized or fullscreen Client takes no border resize and hides the tiles behind it.
+        var desk = CurrentWorkspace();
+        var showing = desk.Showing();
+        if (CoveringClient(desk, showing) is not null)
+            return false;
+
+        var clients = new List<Client>(desk.Layout.Clients.Count);
+        foreach (var client in desk.Layout.Clients)
+        {
+            if (!client.Minimized && showing.Contains(client.Window))
+                clients.Add(client);
+        }
+
         if (InsideContent(desk, clients, pointer))
             return false;
 
@@ -381,7 +393,7 @@ public sealed partial class Core
     private Rectangle SnapBox(WindowId self, Rectangle proposed, SnapEdges edges, bool resize)
     {
         var options = ActiveOptions();
-        var desk = FocusedWorkspace();
+        var desk = LayoutWorkspace(self);
         var others = new List<Rectangle>();
         foreach (var client in desk.Layout.Clients)
         {

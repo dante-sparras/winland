@@ -308,6 +308,62 @@ public class BorderResizeTests
         Assert.Equal(0, hung.X);
     }
 
+    [Fact]
+    public void APressOverTilesHiddenByAnOpenSpecialWorkspaceDoesNotResizeThem()
+    {
+        var core = CoreWith("general:resize_on_border = true\ngeneral:gaps_in = 20\n");
+        Appear(core, 1);
+        var gap = Gap(core.Handle(new WindowAppeared(new WindowId(2), Wide)));
+        core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
+        Appear(core, 3);
+
+        var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = gap });
+
+        Assert.False(pressed.Consumed);
+        Assert.NotEqual("resizewindow", pressed.Dispatcher);
+        Assert.NotEqual(new WindowId(1), pressed.Focus);
+        Assert.Null(core.Handle(new PointerMoved(gap)).ResizeCursor);
+    }
+
+    [Fact]
+    public void TheBordersOfAnOpenSpecialWorkspaceResize()
+    {
+        var core = CoreWith("general:resize_on_border = true\ngeneral:gaps_in = 20\n");
+        core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
+        Appear(core, 1);
+        var gap = Gap(core.Handle(new WindowAppeared(new WindowId(2), Wide)));
+
+        var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = gap });
+
+        Assert.True(pressed.Consumed);
+        Assert.Equal("resizewindow", pressed.Dispatcher);
+        Assert.Equal(new WindowId(1), pressed.Focus);
+    }
+
+    [Theory]
+    [InlineData("1")]
+    [InlineData("0")]
+    public void ACoveringClientTakesNoBorderResizeAndHidesTheBordersBehindIt(string mode)
+    {
+        var core = CoreWith("general:resize_on_border = true\ngeneral:gaps_in = 20\n");
+        Appear(core, 1);
+        var gap = Gap(core.Handle(new WindowAppeared(new WindowId(2), Wide)));
+        core.Handle(new Dispatch("fullscreen", mode));
+
+        var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = gap });
+
+        Assert.False(pressed.Consumed);
+        Assert.NotEqual("resizewindow", pressed.Dispatcher);
+    }
+
+    private static Point Gap(Outcome laid)
+    {
+        var left = Client(laid, 1).Bounds;
+        var right = Client(laid, 2).Bounds;
+        Assert.True(right.X > left.X + left.Width, "The tiles must leave a gap.");
+        return new Point(left.X + left.Width + 5, left.Y + (left.Height / 2));
+    }
+
     private static Core CoreWith(string config)
     {
         var core = new Core();
