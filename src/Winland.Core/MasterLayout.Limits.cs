@@ -11,19 +11,23 @@ internal sealed partial class MasterLayout
         var area = TilingArea();
         var areaStart = vertical ? area.Y : area.X;
         var areaSpan = vertical ? area.Height : area.Width;
-        // No tile is left smaller than a fifth of an even share, the least a resize leaves a tile.
+        // While fitting a minimum, no tile is left smaller than a fifth of an even share.
+        // Without any minimum the sizes stay as the resize left them.
         var floor = total / count / 5;
         var needs = new int[count];
         long sum = 0;
+        var limited = false;
         for (var i = 0; i < count; i++)
         {
             var atStart = i == 0 && origin == areaStart;
             var atEnd = i == count - 1 && origin + total == areaStart + areaSpan;
-            needs[i] = Math.Max(AlongNeed(tiles[i], vertical, atStart, atEnd), floor);
+            var along = AlongNeed(tiles[i], vertical, atStart, atEnd);
+            limited |= along > 0;
+            needs[i] = Math.Max(along, floor);
             sum += needs[i];
         }
 
-        if (sum > total)
+        if (!limited || sum > total)
             return;
 
         var extra = total - (int)sum;

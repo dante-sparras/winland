@@ -649,6 +649,21 @@ public class MasterLayoutTests
     }
 
     [Fact]
+    public void AStackResizeWithoutMinimumsGoesBelowAFifthShare()
+    {
+        var core = CoreOf(Flat("master:smart_resizing = false\n"));
+        core.Handle(Appeared(1));
+        core.Handle(Appeared(2));
+        core.Handle(Appeared(3));
+        core.Handle(new Dispatch("movefocus", "u"));
+
+        var outcome = core.Handle(new Dispatch("resizeactive", "0 -475"));
+
+        Assert.Equal(new Rectangle(1100, 0, 900, 25), BoundsOf(outcome, 2));
+        Assert.Equal(new Rectangle(1100, 25, 900, 975), BoundsOf(outcome, 3));
+    }
+
+    [Fact]
     public void CycleNextOnAFloatingClientSucceedsWithoutMovingFocus()
     {
         var core = CoreOf(Flat(""));
