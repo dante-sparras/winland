@@ -43,18 +43,21 @@ public sealed partial class Core
             return MissingWindow(dispatcher, allowsElevation);
 
         var covered = desk.Covered();
-        var placements = desk.Layout.SetFullscreen(window, mode, clientMode);
-
-        // An f[] workspace rule follows the fullscreen state, so the change can bring other options.
-        var options = desk.Options;
-        Stamp(desk);
-        if (desk.Options != options)
-            placements = desk.Layout.Apply(desk.Options);
-
+        var placements = Restamp(desk, desk.Layout.SetFullscreen(window, mode, clientMode));
         if (!IsShown(desk.Id))
             return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
 
         return Present(desk, covered, placements, dispatcher: dispatcher, allowsElevation: allowsElevation);
+    }
+
+    // An f[] workspace rule follows the fullscreen state, so a Client that covers, uncovers, closes or moves
+    // can bring other options, as the pinned release reads its rules again. The Layout's placements when
+    // the options changed, or the ones given.
+    private IReadOnlyList<Placement> Restamp(LiveWorkspace desk, IReadOnlyList<Placement> placements)
+    {
+        var options = desk.Options;
+        Stamp(desk);
+        return desk.Options != options ? desk.Layout.Apply(desk.Options) : placements;
     }
 
     private Outcome MissingWindow(string? dispatcher, bool allowsElevation) =>

@@ -153,7 +153,7 @@ A `workspace` rule is honored for `monitor`, `default`, `persistent`, `defaultNa
 
 `shadow` on a workspace rule warns and is not applied. `animation` on a workspace rule stays the `animation` Gap. A `layout` field is not applied. Floating gaps on a workspace rule stay the `float_gaps` Gap. A `layoutopt` whose option is already a Gap warns and is not applied. Any other field is skipped.
 
-`f[N]` in a workspace rule matches the Workspace's fullscreen state, as the pinned release's source tests it: `f[-1]` has no maximized or fullscreen Client, `f[0]` has a Client in fullscreen mode 2, whatever its client mode, and `f[1]` has a maximized one. The manual describes `f[2]` as fullscreen without the client mode, but the source tests nothing for it, so `f[2]`, like any other number, matches every Workspace. The rule is matched again when the state changes, so `workspace = f[1], rounding:0` squares the corners of a maximized Client.
+`f[N]` in a workspace rule matches the Workspace's fullscreen state, as the pinned release's source tests it: `f[-1]` has no maximized or fullscreen Client, `f[0]` has a Client in fullscreen mode 2, whatever its client mode, and `f[1]` has a maximized one. The manual describes `f[2]` as fullscreen without the client mode, but the source tests nothing for it, so `f[2]`, like any other number, matches every Workspace. The rule is matched again when the state changes, also when the covering Client closes or moves to another Workspace, so `workspace = f[1], rounding:0` squares the corners of a maximized Client.
 
 A workspace filter such as `r[1-3]` matches workspaces that already exist. It is not a workspace address, so `workspace`, `movetoworkspace` and `movetoworkspacesilent` do not switch on it.
 

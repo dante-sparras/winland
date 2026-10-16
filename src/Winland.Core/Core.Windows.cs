@@ -214,7 +214,7 @@ public sealed partial class Core
         var special = desk.Id.IsSpecial && SpecialOn(monitor) == desk.Id;
         var floating = desk.ClientOf(window)?.Floating == true;
         var hadBounds = desk.Layout.TryBounds(window, out var bounds);
-        var placements = desk.Layout.Remove(window);
+        var placements = Restamp(desk, desk.Layout.Remove(window));
         if (!IsShown(desk.Id))
             placements = [];
 

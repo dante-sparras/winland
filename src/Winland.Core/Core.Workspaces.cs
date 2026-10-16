@@ -37,6 +37,8 @@ public sealed partial class Core
         destination.Receive(id, taken, area);
         CarryGroup(source, destination, id);
         JoinOnMove(destination, solitary, id);
+        Restamp(source, []);
+        Restamp(destination, []);
 
         if (target.IsSpecial)
             return FinishSpecialMove(source, destination, id, silent, consumed, dispatcher, allowsElevation, sourceCovered, destinationCovered);
