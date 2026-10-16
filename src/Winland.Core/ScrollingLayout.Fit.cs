@@ -16,7 +16,7 @@ internal sealed partial class ScrollingLayout
             return [];
         }
 
-        _offset -= delta;
+        AdjustOffset(-delta);
         Recalculate();
         var center = ColumnAtCenter();
         if (center is { Cells.Count: > 0 })

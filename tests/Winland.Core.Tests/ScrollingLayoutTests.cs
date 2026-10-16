@@ -188,6 +188,19 @@ public class ScrollingLayoutTests
     }
 
     [Fact]
+    public void InhibitedScrollKeepsTheViewportOnAMove()
+    {
+        var layout = Tape();
+        var before = layout.Visible();
+
+        layout.LayoutMessage(Window(3), "inhibit_scroll");
+        var moved = layout.LayoutMessage(Window(3), "move +100");
+
+        Assert.DoesNotContain(moved, item => item.Client == new ClientId(1));
+        Assert.Equal(Box(before, 2), Box(moved, 2));
+    }
+
+    [Fact]
     public void ConsumeStacksTheNextColumnAndExpelSplitsItAgain()
     {
         var layout = Open();
