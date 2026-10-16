@@ -260,6 +260,41 @@ public class FollowMouseTests
         Assert.Equal(new WindowId(1), older.Focus);
     }
 
+    [Fact]
+    public void HoverReachesTheTilesOfAnOpenSpecialWorkspaceBeforeTheTilesUnderIt()
+    {
+        var (core, _) = Tiled();
+        core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
+        core.Handle(new WindowAppeared(new WindowId(3), Area));
+        var special = core.Handle(new WindowAppeared(new WindowId(4), Area));
+        Assert.Equal(new WorkspaceId("special:scratch"), Assert.Single(special.State.Clients, client => client.Window == new WindowId(3)).Workspace);
+
+        Move(core, Center(special, 4), 1_000);
+        var hovered = Move(core, Center(special, 3), 1_100);
+
+        Assert.Equal(new WindowId(3), hovered.Focus);
+        Assert.Equal(new WorkspaceId("special:scratch"), hovered.State.SpecialWorkspace);
+    }
+
+    [Fact]
+    public void HoverOnAMonitorWithAnOpenSpecialWorkspaceReachesItsTiles()
+    {
+        var core = new Core(ConfigParser.Parse(Flat("")));
+        var left = Display(@"\\.\DISPLAY1", 0, 1920, 1080);
+        var right = Display(@"\\.\DISPLAY2", 1920, 1920, 1080);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+        core.Handle(new WindowAppeared(new WindowId(2), left.WorkArea));
+        core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
+        core.Handle(new WindowAppeared(new WindowId(3), left.WorkArea));
+        var special = core.Handle(new WindowAppeared(new WindowId(4), left.WorkArea));
+
+        Move(core, Center(special, 4), 1_000);
+        var hovered = Move(core, Center(special, 3), 1_100);
+
+        Assert.Equal(new WindowId(3), hovered.Focus);
+    }
+
     private static (Core Core, Outcome Laid) Tiled(string extra = "")
     {
         var core = new Core(ConfigParser.Parse(Flat(extra)));

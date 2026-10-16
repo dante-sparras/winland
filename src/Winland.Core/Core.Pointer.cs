@@ -162,11 +162,13 @@ public sealed partial class Core
         if (point is not Point at)
             return null;
 
+        // A special workspace open over the normal one answers first, floating and tiled alike.
         var inset = shrink ? MonitorPixels.Physical(_input.FollowMouseShrink, ScaleOf(at)) : 0;
-        return PointerFocus.At(Targets(at), at, inset, _active);
+        return PointerFocus.At(Targets(at, special: true), at, inset, _active)
+            ?? PointerFocus.At(Targets(at, special: false), at, inset, _active);
     }
 
-    private List<PointerFocus.Target> Targets(Point point)
+    private List<PointerFocus.Target> Targets(Point point, bool special)
     {
         LiveMonitor? screen = null;
         if (_monitors.Count > 0)
@@ -179,7 +181,7 @@ public sealed partial class Core
         var targets = new List<PointerFocus.Target>();
         foreach (var desk in _workspaces)
         {
-            if (!IsShown(desk.Id))
+            if (desk.Id.IsSpecial != special || !IsShown(desk.Id))
                 continue;
 
             if (screen is not null && desk.Monitor != screen.Id)
