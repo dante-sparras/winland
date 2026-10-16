@@ -440,6 +440,35 @@ public class ConfigTests
     }
 
     [Fact]
+    public void ACommentEndingInABackslashDoesNotSwallowTheNextLine()
+    {
+        var document = ConfigParser.Parse("# path C:\\dir\\\ngeneral:gaps_in = 15\n");
+
+        Assert.Empty(document.Warnings);
+        Assert.Equal(new Setting("general:gaps_in", "15"), Assert.Single(document.Settings));
+    }
+
+    [Fact]
+    public void AnInlineCommentEndingInABackslashWarnsAndDoesNotSwallowTheNextLine()
+    {
+        var document = ConfigParser.Parse("general:gaps_out = 4 # C:\\dir\\\ngeneral:gaps_in = 15\n");
+
+        Assert.Equal(new ConfigWarning(1, "A backslash at the end of a comment does not join the next line."), Assert.Single(document.Warnings));
+        Assert.Equal(
+            new[] { new Setting("general:gaps_out", "4"), new Setting("general:gaps_in", "15") },
+            document.Settings);
+    }
+
+    [Fact]
+    public void AnEscapedHashBeforeABackslashStillJoinsTheNextLine()
+    {
+        var document = ConfigParser.Parse("exec = echo ## \\\n    done\n");
+
+        Assert.Empty(document.Warnings);
+        Assert.Equal(new Setting("exec", "echo #    done"), Assert.Single(document.Settings));
+    }
+
+    [Fact]
     public void DanglingBackslashWarns()
     {
         var document = ConfigParser.Parse("general:gaps_in = 5\\");

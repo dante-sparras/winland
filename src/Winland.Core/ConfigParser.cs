@@ -80,6 +80,15 @@ public static partial class ConfigParser
                 var dangling = false;
                 while (current.Length > 0 && current[^1] == '\\')
                 {
+                    // A backslash that ends a comment is part of the comment, such as a
+                    // folder in "# path C:\dir\", and does not join the next line.
+                    if (HasComment(current))
+                    {
+                        if (current.TrimStart()[0] != '#')
+                            Warn(start, "A backslash at the end of a comment does not join the next line.");
+                        break;
+                    }
+
                     var stem = current[..^1].TrimEnd(' ', '\t');
                     if (i + 1 >= physical.Length)
                     {
@@ -363,6 +372,26 @@ public static partial class ConfigParser
 
         private static bool IsLaunchKeyword(string keyword) =>
             keyword is "exec" or "exec-once" or "execr" or "execr-once" or "exec-shutdown";
+
+        // True when the line has a '#' that starts a comment. "##" is an escaped '#'.
+        private static bool HasComment(string line)
+        {
+            for (var i = 0; i < line.Length; i++)
+            {
+                if (line[i] != '#')
+                    continue;
+
+                if (i + 1 < line.Length && line[i + 1] == '#')
+                {
+                    i++;
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
 
         private static string CutComment(string line)
         {

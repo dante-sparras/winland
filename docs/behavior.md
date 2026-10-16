@@ -4,6 +4,8 @@ How Winland behaves for the options, dispatchers and window rules it honors. Wha
 
 ## Config files
 
+A line that ends with a backslash is joined to the next line, so a value that ends with a backslash, such as `$dir = C:\tools\`, takes in the line after it. Write such a path without the last backslash, or with `/`. A backslash at the end of a comment is part of the comment and joins nothing: `# path C:\dir\` leaves the next line alone, and a comment after a value that ends with a backslash warns `A backslash at the end of a comment does not join the next line.` An escaped `##` is not a comment, so a backslash after it still joins.
+
 `source` reads another file in place of the line. A relative path is read from the config's folder, and a glob reads each file it matches in name order. A file is named the same however its path is spelled: paths are compared without case, after a relative path is joined to the config's folder. A `source` that names a file already being read, the config itself included, warns `Source '<path>' includes itself.` and is skipped. A glob passes over such a file without a warning, so `source = ./*.conf` in the config's own folder does not read the config a second time.
 
 ## Layout
