@@ -280,4 +280,6 @@ Winland's Workspaces are not Windows virtual desktops. A shown Client that a vir
 
 One Daemon runs per session. A second `winland` started in the same session prints "Winland is already running in this session." and exits with code 1. A Daemon started with a different `WINLAND_PIPE` counts as a separate instance.
 
+On log off and shut down, Winland shows its hidden Clients and puts back what it changed only once Windows says the session is ending, not when it first asks. A shutdown that another program cancels leaves Winland running as it was. Closing Winland's console does the same cleanup on the Daemon's message loop.
+
 An error that nothing handles still shows every hidden Client and puts back the frames, effects, alpha, taskbar and input settings Winland changed before the process ends. When the error is on another thread than the main one, the state file is kept, so the next start rejoins the Clients to their Workspaces. A process that is killed outright cannot do this, and the next start shows what it left hidden. A hidden Client is shown again on that start when its process and window class match, even if its title changed; a shown Client rejoins its Workspace only when its title matches too.

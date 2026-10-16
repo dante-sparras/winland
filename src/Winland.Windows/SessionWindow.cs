@@ -24,6 +24,7 @@ internal sealed class SessionWindow : IDisposable
 
     private readonly Action<SessionSignal> _onSignal;
     private readonly Action<WindowId>? _onFlash;
+    private readonly Action? _onEnd;
     private readonly List<HPOWERNOTIFY> _power = [];
     private HWND _hwnd;
     private uint _shellMessage;
@@ -31,11 +32,12 @@ internal sealed class SessionWindow : IDisposable
     private bool _sessionNotifications;
     private bool _disposed;
 
-    internal SessionWindow(Action<SessionSignal> onSignal, Action<WindowId>? onFlash = null)
+    internal SessionWindow(Action<SessionSignal> onSignal, Action<WindowId>? onFlash = null, Action? onEnd = null)
     {
         ArgumentNullException.ThrowIfNull(onSignal);
         _onSignal = onSignal;
         _onFlash = onFlash;
+        _onEnd = onEnd;
         Active = this;
         try
         {
@@ -122,6 +124,13 @@ internal sealed class SessionWindow : IDisposable
             if (message == CloseMessage)
             {
                 PInvoke.PostQuitMessage(0);
+                return default;
+            }
+
+            // The process can be ended as soon as this returns, so the cleanup runs here, on the loop thread.
+            if (SessionNotices.EndsSession(message, (nuint)wParam))
+            {
+                _onEnd?.Invoke();
                 return default;
             }
 

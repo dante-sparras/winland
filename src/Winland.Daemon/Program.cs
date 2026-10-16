@@ -166,7 +166,10 @@ static int Run(string? path)
     if (prior?.Input is InputOriginals saved)
         SessionEffects.RestoreSaved(saved);
     using var host = new WindowHost(core, snapshot => Persist(store, snapshot), PipeName());
-    using var exit = new ExitWatch(() => Stop(host, store));
+    // Log off and shut down clean up from WM_ENDSESSION, on the loop thread. Closing the console calls in from
+    // a thread of its own, so the cleanup is handed to the loop thread there too.
+    host.SessionEnding = () => Stop(host, store);
+    using var exit = new ExitWatch(() => host.OnLoop(() => Stop(host, store)));
     UnhandledExceptionEventHandler onCrash = (_, _) => Salvage(host);
     AppDomain.CurrentDomain.UnhandledException += onCrash;
     using var watching = new ConfigWatcher(() =>
