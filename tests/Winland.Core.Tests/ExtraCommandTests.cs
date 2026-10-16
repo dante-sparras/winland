@@ -205,6 +205,27 @@ public class ExtraCommandTests
         Assert.False(ControlInvocation.TryCreate(["--batch"], out _, out _));
     }
 
+    [Theory]
+    [InlineData(new[] { "dispatch", "splitratio", "-0.1" }, "dispatch splitratio -0.1")]
+    [InlineData(new[] { "dispatch", "moveactive", "-50,", "0" }, "dispatch moveactive -50, 0")]
+    [InlineData(new[] { "dispatch", "resizeactive", "-1.5,", "-2.25" }, "dispatch resizeactive -1.5, -2.25")]
+    [InlineData(new[] { "-j", "dispatch", "splitratio", "-12" }, "j/dispatch splitratio -12")]
+    public void ControlToolPassesNegativeNumbersThrough(string[] args, string expected)
+    {
+        Assert.True(ControlInvocation.TryCreate(args, out var line, out _));
+        Assert.Equal(expected, line);
+    }
+
+    [Theory]
+    [InlineData("-x")]
+    [InlineData("-1.")]
+    [InlineData("-1.2.3")]
+    [InlineData("-")]
+    public void ControlToolRefusesAFlagThatIsNotANumber(string arg)
+    {
+        Assert.False(ControlInvocation.TryCreate(["dispatch", "splitratio", arg], out _, out _));
+    }
+
     private static JsonElement Json(string text)
     {
         using var document = JsonDocument.Parse(text);
