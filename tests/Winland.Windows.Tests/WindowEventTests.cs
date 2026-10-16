@@ -24,6 +24,21 @@ public class WindowEventTests
         Assert.True(adapter.StartDrag(next, sizing: true, new Point(10, 10)));
     }
 
+    // Each outcome the core decides is numbered, so a gap of one shows that the event asked it nothing.
+    [Fact]
+    public void AClientsTitleChangeDoesNotGoToTheCore()
+    {
+        var core = new Core { ReducedMotion = () => true };
+        using var adapter = new WindowAdapter(core);
+        var window = new WindowId(0x7009);
+        var before = core.Handle(new WindowAppeared(window, Area) { Traits = WindowTraits.Normal }).Order!.Value.Sequence;
+
+        adapter.Notice(Events.EVENT_OBJECT_NAMECHANGE, (nint)window.Value);
+
+        var after = core.Dispatch("workspace", "1", allowsElevation: false).Order!.Value.Sequence;
+        Assert.Equal(before + 1, after);
+    }
+
     // Switching virtual desktops cloaks every window on the old one, hidden Clients too. A hidden
     // window is not adopted again when it is uncloaked, so releasing it would leave it hidden for good.
     [Fact]
