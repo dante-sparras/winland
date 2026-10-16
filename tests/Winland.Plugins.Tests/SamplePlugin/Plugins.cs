@@ -60,6 +60,44 @@ public sealed class HangingPlugin : IPlugin
     }
 }
 
+public sealed class BadVersionPlugin : IPlugin
+{
+    public string Name => "badversion";
+
+    public int ApiVersion => throw new InvalidOperationException("no version");
+
+    public void Initialize(IPluginHost host) =>
+        throw new InvalidOperationException("badversion should not initialize");
+
+    public void Shutdown()
+    {
+    }
+}
+
+// Every load constructs every plugin type in the assembly, so this one is slow only when a test asks.
+public sealed class SlowStartPlugin : IPlugin
+{
+    public const string Variable = "WINLAND_SAMPLE_SLOW_START";
+
+    public SlowStartPlugin()
+    {
+        if (Environment.GetEnvironmentVariable(Variable) == "1")
+            Thread.Sleep(TimeSpan.FromSeconds(5));
+    }
+
+    public string Name => "slowstart";
+
+    public int ApiVersion => PluginApiVersion.Current;
+
+    public void Initialize(IPluginHost host)
+    {
+    }
+
+    public void Shutdown()
+    {
+    }
+}
+
 public sealed class MismatchPlugin : IPlugin
 {
     public string Name => "mismatch";

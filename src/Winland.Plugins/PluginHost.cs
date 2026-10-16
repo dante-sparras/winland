@@ -327,24 +327,36 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
             return LoadOutcome.Failed($"Could not load '{Path.GetFileName(fullPath)}': {loadError.Message}");
         }
 
-        var plugin = CreatePlugins(assembly).Find(candidate => candidate.Name == approval.Name);
-        if (plugin is null)
+        // Constructors and the Name and ApiVersion getters are plugin code too. They run under
+        // the same budget and guard as every other call, so one that throws or hangs refuses
+        // the load instead of ending or freezing Winland at logon.
+        var problems = new List<string>();
+        var candidate = CreatePlugins(assembly, problems).Find(found => found.Name == approval.Name);
+        if (candidate is null)
         {
             ReleaseContext(context, approval.Name);
-            return LoadOutcome.Failed($"Approved plugin '{approval.Name}' was not found in '{Path.GetFileName(fullPath)}'.");
+            var detail = problems.Count == 0 ? "" : " " + string.Join(' ', problems);
+            return LoadOutcome.Failed($"Approved plugin '{approval.Name}' was not found in '{Path.GetFileName(fullPath)}'.{detail}");
         }
 
-        if (plugin.ApiVersion != PluginApiVersion.Current)
+        if (candidate.Problem is not null)
+        {
+            ReleaseContext(context, approval.Name);
+            return LoadOutcome.Failed($"Plugin '{candidate.Name}' {candidate.Problem}");
+        }
+
+        if (candidate.ApiVersion != PluginApiVersion.Current)
         {
             ReleaseContext(context, approval.Name);
             return LoadOutcome.Failed(
-                $"Plugin '{plugin.Name}' declares API version {plugin.ApiVersion.ToString(CultureInfo.InvariantCulture)}; Winland accepts {PluginApiVersion.Current.ToString(CultureInfo.InvariantCulture)}.");
+                $"Plugin '{candidate.Name}' declares API version {candidate.ApiVersion.ToString(CultureInfo.InvariantCulture)}; Winland accepts {PluginApiVersion.Current.ToString(CultureInfo.InvariantCulture)}.");
         }
 
+        var plugin = candidate.Plugin;
         var loaded = new LoadedPlugin
         {
-            Name = plugin.Name,
-            Version = plugin.ApiVersion,
+            Name = candidate.Name,
+            Version = candidate.ApiVersion,
             Path = fullPath,
             Source = source,
             Instance = plugin,
@@ -357,15 +369,15 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
             loaded.Binding.Close();
             loaded.Instance = null;
             loaded.Context = null;
-            ReleaseContext(context, plugin.Name);
+            ReleaseContext(context, loaded.Name);
             if (timedOut)
             {
-                var message = $"Plugin '{plugin.Name}' initialize exceeded {BudgetText()} and was abandoned.";
+                var message = $"Plugin '{loaded.Name}' initialize exceeded {BudgetText()} and was abandoned.";
                 _log.Write(message);
                 return LoadOutcome.Failed(message);
             }
 
-            var failed = $"Plugin '{plugin.Name}' initialize failed: {exception?.Message}";
+            var failed = $"Plugin '{loaded.Name}' initialize failed: {exception?.Message}";
             _log.Write(failed);
             return LoadOutcome.Failed(failed);
         }
@@ -379,13 +391,13 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
             else
             {
                 _plugins.Add(loaded);
-                _log.Write($"Plugin '{plugin.Name}' loaded.");
+                _log.Write($"Plugin '{loaded.Name}' loaded.");
                 return LoadOutcome.Succeeded();
             }
         }
 
         ShutdownAndRelease(loaded);
-        return LoadOutcome.Failed($"Plugin '{plugin.Name}' is already loaded.");
+        return LoadOutcome.Failed($"Plugin '{loaded.Name}' is already loaded.");
     }
 
     private bool TryCall(LoadedPlugin plugin, string what, Action action, out string? error)
@@ -546,7 +558,10 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
     private static string Strip(string message) =>
         message.StartsWith("error: ", StringComparison.Ordinal) ? message["error: ".Length..] : message;
 
-    private static List<IPlugin> CreatePlugins(Assembly assembly)
+    // Each type is constructed and asked its name and API version in one guarded call. A type
+    // whose name cannot be read is skipped and described in problems; one whose API version
+    // cannot be read is kept with the problem, so the load names it.
+    private List<Candidate> CreatePlugins(Assembly assembly, List<string> problems)
     {
         IEnumerable<Type> types;
         try
@@ -558,7 +573,7 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
             types = exception.Types.Where(type => type is not null)!;
         }
 
-        var plugins = new List<IPlugin>();
+        var plugins = new List<Candidate>();
         foreach (var type in types)
         {
             if (type is null || type.IsAbstract || !type.IsClass || type.IsInterface || !typeof(IPlugin).IsAssignableFrom(type))
@@ -567,19 +582,40 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
             if (type.GetConstructor(Type.EmptyTypes) is null)
                 continue;
 
-            try
+            IPlugin? plugin = null;
+            string? name = null;
+            if (!PluginCall.Run(_budget, () =>
+                {
+                    plugin = Activator.CreateInstance(type) as IPlugin;
+                    name = plugin?.Name;
+                }, out var exception, out var timedOut))
             {
-                if (Activator.CreateInstance(type) is IPlugin plugin && !string.IsNullOrWhiteSpace(plugin.Name))
-                    plugins.Add(plugin);
+                problems.Add(timedOut
+                    ? $"Constructing '{type.FullName}' exceeded {BudgetText()} and was abandoned."
+                    : $"Constructing '{type.FullName}' failed: {(exception?.InnerException ?? exception)?.Message}");
+                continue;
             }
-            catch (Exception exception) when (exception is not OutOfMemoryException)
+
+            if (plugin is null || string.IsNullOrWhiteSpace(name))
+                continue;
+
+            var version = 0;
+            var found = plugin;
+            string? problem = null;
+            if (!PluginCall.Run(_budget, () => version = found.ApiVersion, out exception, out timedOut))
             {
-                _ = exception;
+                problem = timedOut
+                    ? $"API version exceeded {BudgetText()} and was abandoned."
+                    : $"API version failed: {exception?.Message}";
             }
+
+            plugins.Add(new Candidate(found, name, version, problem));
         }
 
         return plugins;
     }
+
+    private sealed record Candidate(IPlugin Plugin, string Name, int ApiVersion, string? Problem);
 
     private enum PluginSource
     {

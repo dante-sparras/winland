@@ -71,6 +71,43 @@ public class PluginHostTests
         Assert.Equal("[]", core.Execute("plugin list").Text);
     }
 
+    // Winland loads plugins at logon. A getter that throws must refuse the load, not end Winland.
+    [Fact]
+    public void ThrowingApiVersionRefusesTheLoad()
+    {
+        using var fixture = Fixture.Create("badversion");
+
+        var reply = fixture.Host.Load(fixture.AssemblyPath);
+
+        Assert.StartsWith("error:", reply, StringComparison.Ordinal);
+        Assert.Contains("badversion", reply, StringComparison.Ordinal);
+        Assert.Contains("no version", reply, StringComparison.Ordinal);
+        Assert.Equal("[]", fixture.Host.ListJson());
+    }
+
+    [Fact]
+    public void HangingConstructorIsAbandonedWithinTheBudget()
+    {
+        using var fixture = Fixture.Create(TimeSpan.FromMilliseconds(50), "slowstart");
+        Environment.SetEnvironmentVariable("WINLAND_SAMPLE_SLOW_START", "1");
+        string reply;
+        var watch = Stopwatch.StartNew();
+        try
+        {
+            reply = fixture.Host.Load(fixture.AssemblyPath);
+        }
+        finally
+        {
+            watch.Stop();
+            Environment.SetEnvironmentVariable("WINLAND_SAMPLE_SLOW_START", null);
+        }
+
+        Assert.StartsWith("error:", reply, StringComparison.Ordinal);
+        Assert.Contains("exceeded", reply, StringComparison.Ordinal);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(3), $"abandoned construction took {watch.Elapsed}");
+        Assert.Equal("[]", fixture.Host.ListJson());
+    }
+
     [Fact]
     public void ThrowingPluginIsContainedAndDisabledAfterThreeFailures()
     {
