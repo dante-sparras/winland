@@ -51,7 +51,7 @@ public sealed partial class Core
 
         WindowId? adjacent = null;
         if (active is WindowId fromWindow && desk.Layout.TryBounds(fromWindow, out var box))
-            adjacent = AdjacentOn(destination, box, direction);
+            adjacent = AdjacentOn(destination, Ideal(desk, fromWindow, box), direction);
 
         return FocusOnto(destination, name, allowsElevation, adjacent);
     }
@@ -290,7 +290,7 @@ public sealed partial class Core
         {
             if (client.Minimized || HasNoFocus(client.Window) || !desk.Layout.TryBounds(client.Window, out var box))
                 continue;
-            if (!MonitorSelector.Overlaps(origin, box, direction, out var overlap) || overlap <= bestOverlap)
+            if (!MonitorSelector.Overlaps(origin, Ideal(desk, client.Window, box), direction, out var overlap) || overlap <= bestOverlap)
                 continue;
 
             bestOverlap = overlap;
@@ -298,6 +298,35 @@ public sealed partial class Core
         }
 
         return best;
+    }
+
+    // A tile's box with its border, and with every side that touches the tiling area pushed out to the
+    // Monitor's edge, as the pinned release compares windows across Monitors. Outer gaps and reserved
+    // space then no longer keep two tiles on neighbouring Monitors apart. A floating box is left as it is.
+    private Rectangle Ideal(LiveWorkspace desk, WindowId window, Rectangle box)
+    {
+        if (desk.ClientOf(window) is not { Floating: false } client || MonitorById(desk.Monitor) is not { Effective.Enabled: true } screen)
+            return box;
+        if (client.Fullscreen != FullscreenMode.None)
+            return screen.Bounds;
+
+        var border = desk.Options.BorderSize;
+        var work = desk.Options.GapsOut.Apply(screen.Effective.WorkArea);
+        var monitor = screen.Bounds;
+        var left = box.X - border;
+        var top = box.Y - border;
+        var right = box.X + box.Width + border;
+        var bottom = box.Y + box.Height + border;
+        if (Math.Abs(left - work.X) <= 1)
+            left = monitor.X;
+        if (Math.Abs(top - work.Y) <= 1)
+            top = monitor.Y;
+        if (Math.Abs(right - (work.X + work.Width)) <= 1)
+            right = monitor.X + monitor.Width;
+        if (Math.Abs(bottom - (work.Y + work.Height)) <= 1)
+            bottom = monitor.Y + monitor.Height;
+
+        return new Rectangle(left, top, right - left, bottom - top);
     }
 
     private WindowId? Accept(WindowId? window) =>
