@@ -198,6 +198,7 @@ public class CoreTests
     [InlineData("invisible")]
     [InlineData("untitled")]
     [InlineData("child")]
+    [InlineData("overlay")]
     public void WindowsOutsideTheAdoptionFilterAreLeftAlone(string reason)
     {
         var core = new Core();
@@ -710,6 +711,7 @@ public class CoreTests
         "invisible" => WindowTraits.Normal with { Visible = false },
         "untitled" => WindowTraits.Normal with { Titled = false },
         "child" => WindowTraits.Normal with { TopLevel = false },
+        "overlay" => WindowTraits.Normal with { Overlay = true },
         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "Unknown rejection."),
     };
 

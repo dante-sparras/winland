@@ -12,6 +12,8 @@ public sealed partial class WindowAdapter : IDisposable
     private const int ChildStyle = 0x40000000;
     private const int ToolStyle = 0x00000080;
     private const int DialogStyle = 0x00000001;
+    private const int LayeredStyle = 0x00080000;
+    private const int ClickThroughStyle = 0x00000020;
 
     private static readonly Lock ShowGate = new();
     private static volatile bool Releasing;
@@ -459,7 +461,8 @@ public sealed partial class WindowAdapter : IDisposable
                 Aumid: identity.Aumid,
                 MinSize: min,
                 MaxSize: max,
-                ExclusiveFullscreen: ExclusiveFullscreenWindow.Is((uint)style, bounds, monitorRect)),
+                ExclusiveFullscreen: ExclusiveFullscreenWindow.Is((uint)style, bounds, monitorRect),
+                Overlay: IsOverlay(extended)),
         };
         return true;
     }
@@ -771,6 +774,11 @@ public sealed partial class WindowAdapter : IDisposable
         var length = PInvoke.GetClassName(hwnd, buffer);
         return length <= 0 ? "" : new string(buffer[..length]);
     }
+
+    // A layered window input passes through, such as a screen overlay, cannot be clicked or focused, so
+    // it is never a Client. The pinned release draws such surfaces as layers, which it never tiles.
+    internal static bool IsOverlay(int extended) =>
+        (extended & LayeredStyle) != 0 && (extended & ClickThroughStyle) != 0;
 
     private static bool IsCloaked(HWND hwnd)
     {
