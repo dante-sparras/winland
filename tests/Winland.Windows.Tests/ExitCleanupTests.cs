@@ -69,6 +69,40 @@ public class ExitCleanupTests
         }
     }
 
+    [Fact]
+    public void ARestartShowsAHiddenClientWhoseTitleChanged()
+    {
+        _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));
+        using var probe = new LimitProbeTests.LimitProbe();
+        probe.Open();
+        try
+        {
+            _ = ProbeNative.ShowWindow(probe.Anchor, 0);
+            Assert.False(IsWindowVisible(probe.Anchor));
+            var left = new RecoveredClient(
+                new WindowId(probe.Anchor.ToInt64()),
+                WorkspaceId.Initial,
+                MonitorId.Primary,
+                true,
+                "WinlandLimitProbe",
+                "a title from before",
+                Environment.ProcessId);
+
+            var core = new Core { ReducedMotion = () => true };
+            using var adapter = new WindowAdapter(core);
+            adapter.Recover(new RecoverySnapshot([left]));
+
+            Assert.True(IsWindowVisible(probe.Anchor));
+        }
+        finally
+        {
+            probe.Close();
+        }
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr hwnd);
+
     [DllImport("user32.dll", EntryPoint = "SetWindowLongW")]
     private static extern int SetWindowLong(IntPtr hwnd, int index, int value);
 

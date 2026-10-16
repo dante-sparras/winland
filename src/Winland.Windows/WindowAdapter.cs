@@ -29,6 +29,7 @@ public sealed partial class WindowAdapter : IDisposable
     private HWINEVENTHOOK _minimize;
     private HWINEVENTHOOK _foreground;
     private HWINEVENTHOOK _moveSize;
+    private volatile RecoverySnapshot? _published;
     private bool _disposed;
 
     // Apply is static because the keyboard hook and the command server both call it.
@@ -170,8 +171,14 @@ public sealed partial class WindowAdapter : IDisposable
                 continue;
 
             // Nothing minimizes under Winland, so a window that is minimized now was minimized while it was away.
+            // It does not rejoin, but one that was hidden is still shown again, minimized.
             if (PInvoke.IsIconic(new HWND((nint)client.Window.Value)))
+            {
+                if (client.Hidden)
+                    Reveal(client.Window);
+
                 continue;
+            }
 
             kept.Add(client);
         }
@@ -243,7 +250,29 @@ public sealed partial class WindowAdapter : IDisposable
         if (Releasing || _changed is null)
             return;
 
-        _changed(Stamp(_core.Recovery()));
+        var snapshot = Stamp(_core.Recovery());
+        _published = snapshot;
+        _changed(snapshot);
+    }
+
+    /// <summary>
+    /// Shows every hidden Client and puts back every frame, effect and alpha, for a crash. It reads the last
+    /// published snapshot instead of the core, so a thread that died holding the core lock cannot block it.
+    /// </summary>
+    internal void Salvage()
+    {
+        Releasing = true;
+        if (_published is RecoverySnapshot snapshot)
+        {
+            foreach (var client in snapshot.Clients)
+            {
+                var hwnd = new HWND((nint)client.Window.Value);
+                if (client.Hidden && PInvoke.IsWindow(hwnd))
+                    ShowConcealed(hwnd);
+            }
+        }
+
+        PutBackFrames();
     }
 
     // What this run changed on each Client's window, so a restart after a crash can put it back.

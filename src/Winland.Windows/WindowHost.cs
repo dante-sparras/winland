@@ -155,6 +155,13 @@ public sealed class WindowHost : IDisposable
 
     public void RevealHidden() => _windows.RevealHidden();
 
+    /// <summary>What a crash can still put back: hidden Clients, frames, effects, alpha and the taskbar.</summary>
+    public void Salvage()
+    {
+        _windows.Salvage();
+        RestoreTaskbar();
+    }
+
     private void OnFlash(WindowId window) => WindowAdapter.Apply(_core.Handle(new WindowFlashed(window)));
 
     public void ResetDecorations() => _windows.ResetDecorations();
