@@ -134,11 +134,13 @@ public sealed partial class Core
             maxSize: decision.MaxSize);
         if (decision.FullscreenRequest is { } fullscreen)
             placements = desk.Layout.SetFullscreen(appeared.Window, fullscreen.Internal, fullscreen.Client);
-        if (GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, restored is null ? ActiveWindow() : null))
-            placements = desk.Layout.Visible();
 
+        // A window that swallows its parent does not also join the focused Group, as in the pinned release.
         if (swallowee is not null)
-            placements = SwallowParent(appeared.Window, swallowee, desk, placements);
+            placements = SwallowParent(appeared.Window, swallowee, desk, placements, decision.Group);
+        var swallowed = _swallows.ContainsKey(appeared.Window);
+        if (GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, restored is null && !swallowed ? ActiveWindow() : null))
+            placements = desk.Layout.Visible();
 
         NotePlaced(appeared.Window, desk, decision, restored is not null);
         RememberFocus(appeared.Window, decision);
@@ -205,6 +207,9 @@ public sealed partial class Core
         var wasActive = _active == window;
 
         // The parent this window swallowed comes back before the window leaves its Group or its Layout.
+        if (GiveSlotBack(window, desk, covered, wasActive) is Outcome slotted)
+            return slotted;
+
         var returned = Unswallow(window, desk);
         if (CloseGroupMember(window, desk, covered, returned) is Outcome grouped)
             return grouped;
