@@ -129,7 +129,6 @@ public static class BindMatcher
         if (repeat)
             return OnRepeat(table, session, key, scanCode, mouse);
 
-        session.Anchor = session.Pointer;
         session.Remember(key, mouse);
         var immediate = new List<Bind>();
         var deferred = new List<Bind>();
@@ -210,7 +209,8 @@ public static class BindMatcher
         var passed = (mouse ? session.PassedButtons : session.PassedKeys).Remove(key);
         var masked = !mouse && session.MaskedKeys.Remove(key);
 
-        var fire = Collect(table, session, key, scanCode, mouse, releasing: true, session.Forget(key, mouse));
+        var (submap, anchor) = session.Forget(key, mouse);
+        var fire = Collect(table, session, key, scanCode, mouse, releasing: true, submap, anchor);
         session.LongPressKey = null;
 
         // The OS saw this press, so it must see the release, or it keeps the key down.
@@ -291,12 +291,13 @@ public static class BindMatcher
         return MaskHeld(session, Ran(longPress, Consumes(longPress), trigger)) with { DisarmLongPress = true };
     }
 
-    private static List<Bind> Collect(BindTable table, BindSession session, string key, int scanCode, bool mouse, bool releasing, string submap)
+    // The anchor is where the released key went down. Only a release reads it.
+    private static List<Bind> Collect(BindTable table, BindSession session, string key, int scanCode, bool mouse, bool releasing, string submap, Point anchor = default)
     {
         var matches = new List<Bind>();
         foreach (var bind in table.Active(submap))
         {
-            if (IsCatchAll(bind) || !Include(bind, table, session, key, scanCode, mouse, releasing, catchAll: false))
+            if (IsCatchAll(bind) || !Include(bind, table, session, key, scanCode, mouse, releasing, anchor, catchAll: false))
                 continue;
 
             matches.Add(bind);
@@ -308,7 +309,7 @@ public static class BindMatcher
         {
             foreach (var bind in table.Active(submap))
             {
-                if (!IsCatchAll(bind) || !Include(bind, table, session, key, scanCode, mouse, releasing, catchAll: true))
+                if (!IsCatchAll(bind) || !Include(bind, table, session, key, scanCode, mouse, releasing, anchor, catchAll: true))
                     continue;
 
                 matches.Add(bind);
@@ -320,7 +321,7 @@ public static class BindMatcher
         return matches;
     }
 
-    private static bool Include(Bind bind, BindTable table, BindSession session, string key, int scanCode, bool mouse, bool releasing, bool catchAll)
+    private static bool Include(Bind bind, BindTable table, BindSession session, string key, int scanCode, bool mouse, bool releasing, Point anchor, bool catchAll)
     {
         if (!Eligible(bind, session, key, scanCode, mouse, releasing, catchAll))
             return false;
@@ -329,7 +330,7 @@ public static class BindMatcher
         {
             if (!bind.Flags.HasFlag(BindFlag.Release) && !SendsBothEdges(bind))
                 return false;
-            if (!WithinGesture(table, session, bind))
+            if (!WithinGesture(table, session, bind, anchor))
                 return false;
         }
 
@@ -379,14 +380,14 @@ public static class BindMatcher
         return !release && !longPress;
     }
 
-    private static bool WithinGesture(BindTable table, BindSession session, Bind bind)
+    private static bool WithinGesture(BindTable table, BindSession session, Bind bind, Point anchor)
     {
         var click = bind.Flags.HasFlag(BindFlag.Click);
         var drag = bind.Flags.HasFlag(BindFlag.Drag);
         if (!click && !drag)
             return true;
 
-        var past = PastThreshold(table, session);
+        var past = PastThreshold(table, session, anchor);
         if (click && past)
             return false;
         if (drag && !past)
@@ -395,10 +396,10 @@ public static class BindMatcher
         return true;
     }
 
-    private static bool PastThreshold(BindTable table, BindSession session)
+    private static bool PastThreshold(BindTable table, BindSession session, Point anchor)
     {
-        var dx = (long)session.Pointer.X - session.Anchor.X;
-        var dy = (long)session.Pointer.Y - session.Anchor.Y;
+        var dx = (long)session.Pointer.X - anchor.X;
+        var dy = (long)session.Pointer.Y - anchor.Y;
         var limit = (long)table.DragThreshold * table.DragThreshold;
         return (dx * dx) + (dy * dy) > limit;
     }

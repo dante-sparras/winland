@@ -20,7 +20,6 @@ public sealed class BindSession
     internal Modifier Held;
     internal bool Inhibited;
     internal Point Pointer;
-    internal Point Anchor;
     internal string? LongPressKey;
     internal int LongPressCode;
     internal bool LongPressMouse;
@@ -30,23 +29,24 @@ public sealed class BindSession
     // The hook reads this with no lock. Empty is the default map.
     internal volatile string Submap = "";
 
-    private readonly Dictionary<string, string> _pressedKeys = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, string> _pressedButtons = new(StringComparer.OrdinalIgnoreCase);
+    // The submap and pointer position at each held press. A click or drag bind measures from its own press.
+    private readonly Dictionary<string, (string Submap, Point Anchor)> _pressedKeys = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, (string Submap, Point Anchor)> _pressedButtons = new(StringComparer.OrdinalIgnoreCase);
 
     public void Inhibit(bool inhibited) => Inhibited = inhibited;
 
     internal void Remember(string key, bool mouse) =>
-        Pressed(mouse)[key] = Submap;
+        Pressed(mouse)[key] = (Submap, Pointer);
 
     internal string Remembered(string key, bool mouse) =>
-        Pressed(mouse).TryGetValue(key, out var submap) ? submap : Submap;
+        Pressed(mouse).TryGetValue(key, out var press) ? press.Submap : Submap;
 
-    internal string Forget(string key, bool mouse)
+    internal (string Submap, Point Anchor) Forget(string key, bool mouse)
     {
         var pressed = Pressed(mouse);
-        return pressed.Remove(key, out var submap) ? submap : Submap;
+        return pressed.Remove(key, out var press) ? press : (Submap, Pointer);
     }
 
-    private Dictionary<string, string> Pressed(bool mouse) =>
+    private Dictionary<string, (string Submap, Point Anchor)> Pressed(bool mouse) =>
         mouse ? _pressedButtons : _pressedKeys;
 }
