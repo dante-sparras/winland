@@ -190,6 +190,20 @@ public class BindChordTests
     }
 
     [Fact]
+    public void LongPressKeycodeBindFires()
+    {
+        var core = Load("bindo = SUPER, code:36, killactive\n");
+        Appear(core, 1);
+        Press(core, "Super_L");
+        core.Handle(new KeyPressed("Return") { ScanCode = 36 });
+
+        var elapsed = core.Handle(new LongPressElapsed());
+
+        Assert.Equal("killactive", elapsed.Dispatcher);
+        Assert.Equal(new WindowId(1), elapsed.Close);
+    }
+
+    [Fact]
     public void RepeatFiresOnlyTheBindMarkedRepeat()
     {
         var core = Load("bind = , Q, exec, notepad\nbinde = , Q, killactive\n");
