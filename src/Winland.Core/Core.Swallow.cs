@@ -187,7 +187,13 @@ public sealed partial class Core
 
         _swallows.Remove(child);
         if (!IsShown(desk.Id))
+        {
+            // The window registry leaves _active to Close, which must not keep the closed child.
+            if (wasActive)
+                _active = null;
+
             return View([]);
+        }
 
         WindowId? focus = null;
         if (group.Shown == parent.Window)
