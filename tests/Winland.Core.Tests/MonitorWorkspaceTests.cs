@@ -169,6 +169,27 @@ public class MonitorWorkspaceTests
     }
 
     [Fact]
+    public void AShownSpecialWorkspaceFromAnUnpluggedMonitorReplacesTheOneTheRemainingMonitorShows()
+    {
+        var core = new Core();
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new Dispatch("togglespecialworkspace", "notes"));
+        core.Handle(new WindowAppeared(new WindowId(4), left.WorkArea));
+        core.Handle(new Dispatch("focusmonitor", right.Name));
+        core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
+        core.Handle(new WindowAppeared(new WindowId(5), right.WorkArea));
+
+        var gone = core.Handle(new MonitorsChanged([left]));
+
+        var only = Assert.Single(gone.State.Screens);
+        Assert.Equal(new WorkspaceId("special:scratch"), only.SpecialWorkspace);
+        Assert.DoesNotContain(gone.State.Hidden, client => client.Window == new WindowId(5));
+        Assert.Contains(gone.State.Hidden, client => client.Window == new WindowId(4));
+    }
+
+    [Fact]
     public void UnpluggingCarriesAShownSpecialWorkspaceAndAFullscreenClient()
     {
         var core = new Core();

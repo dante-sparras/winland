@@ -251,7 +251,10 @@ public sealed partial class Core
             SetSpecial(desk.Monitor, null);
             desk.Monitor = home.Id;
             Refit(desk);
-            if (shown && SpecialOn(home.Id) is null)
+
+            // A special workspace that was shown is shown on the Monitor that takes it, in place of the one
+            // shown there, as in the pinned release.
+            if (shown)
                 SetSpecial(home.Id, desk.Id);
         }
     }
