@@ -202,6 +202,24 @@ public class MonitorDispatchTests
     }
 
     [Fact]
+    public void MovingTheActiveWorkspaceLeavesAPinnedClientOnTheSourceMonitor()
+    {
+        var core = TwoMonitors("windowrulev2 = float, class:^(stick)$\n");
+        core.Handle(new WindowAppeared(new WindowId(4), Left) { Traits = WindowTraits.Normal with { Class = "stick" } });
+        core.Handle(new Dispatch("pin"));
+
+        var outcome = core.Handle(new Dispatch("movecurrentworkspacetomonitor", "right"));
+
+        var pinned = Client(outcome, 4);
+        Assert.True(pinned.Pinned);
+        Assert.Equal(new WorkspaceId("3"), pinned.Workspace);
+        Assert.Equal(new MonitorId(0), Workspace(outcome, "3").Monitor);
+        Assert.DoesNotContain(outcome.State.Hidden, client => client.Window == new WindowId(4));
+        Assert.Equal(new WorkspaceId("1"), Client(outcome, 1).Workspace);
+        Assert.Equal(new MonitorId(1), Workspace(outcome, "1").Monitor);
+    }
+
+    [Fact]
     public void MoveWorkspaceParksAnUnfocusedMonitorWorkspaceWithoutFollowing()
     {
         var core = TwoMonitors();
