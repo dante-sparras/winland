@@ -15,6 +15,7 @@ public sealed class FocusFactAttribute : FactAttribute
 }
 
 [Collection(DesktopCollection.Name)]
+[Trait("Category", DesktopCollection.Name)]
 public class FocusRestoreTests
 {
     [FocusFact]

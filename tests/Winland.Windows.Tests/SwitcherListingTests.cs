@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 namespace Winland.Windows.Tests;
 
 [Collection(DesktopCollection.Name)]
+[Trait("Category", DesktopCollection.Name)]
 public class SwitcherListingTests
 {
     [DesktopFact]

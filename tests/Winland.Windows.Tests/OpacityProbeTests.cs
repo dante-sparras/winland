@@ -6,6 +6,7 @@ using Winland.Windows.Tests;
 namespace Winland.Tests;
 
 [Collection(DesktopCollection.Name)]
+[Trait("Category", DesktopCollection.Name)]
 public class OpacityProbeTests
 {
     private const uint Layered = 0x00080000;
