@@ -52,4 +52,24 @@ public static class AdministratorOnly
 
         return null;
     }
+
+    /// <summary>
+    /// Finds the first entry that a non-administrator owns or can write, and who that is.
+    /// A null access list could not be read, and counts as unprotected.
+    /// </summary>
+    public static (string Path, string Who)? FirstNonAdministrator(IEnumerable<(string Path, AccessList? Access)> entries)
+    {
+        ArgumentNullException.ThrowIfNull(entries);
+        foreach (var (path, access) in entries)
+        {
+            if (access is not AccessList list)
+                return (path, "unreadable access list");
+
+            var who = NonAdministrator(list);
+            if (who is not null)
+                return (path, who);
+        }
+
+        return null;
+    }
 }
