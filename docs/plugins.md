@@ -60,7 +60,7 @@ An assembly loads only from inside the plugin directory. A copy anywhere else do
 
 `Plugin assembly 'C:\Users\me\sample.dll' is outside the plugin directory 'C:\ProgramData\Winland\plugins'.`
 
-The plugin directory defaults to `%ProgramData%\Winland\plugins`. `WINLAND_PLUGIN_DIR` overrides it. Winland refuses to load, and reports why, when a non-administrator can write the directory or the approvals file. `SYSTEM` and `Administrators` may write. An administrator who is the current user may write. Any other principal with write access blocks every load.
+The plugin directory defaults to `%ProgramData%\Winland\plugins`. `WINLAND_PLUGIN_DIR` overrides it. Winland refuses to load, and reports why, when a non-administrator can write the directory or the approvals file. `SYSTEM`, `Administrators` and `TrustedInstaller` may own and write them. Any other owner, and any other principal with write access, blocks every load. That includes the current user, even when the user is an administrator: under UAC every program the user runs without elevation has the user's SID.
 
 ## Config and commands
 

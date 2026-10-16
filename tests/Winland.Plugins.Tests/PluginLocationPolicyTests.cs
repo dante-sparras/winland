@@ -6,20 +6,19 @@ namespace Winland.Tests;
 [Collection("Winland.Plugins")]
 public class PluginLocationPolicyTests
 {
+    private const string CurrentUser = "S-1-5-21-9";
+
     [Fact]
     public void NonAdminWriteOnTheDirectoryRefusesTheLoad()
     {
         var denial = PluginLocationPolicy.Deny(
             @"C:\ProgramData\Winland\plugins",
-            [
-                new PrincipalAccess(PluginLocationPolicy.SystemSid, CanWrite: true, AppliesToTarget: true),
-                new PrincipalAccess(PluginLocationPolicy.AdministratorsSid, CanWrite: true, AppliesToTarget: true),
-                new PrincipalAccess("S-1-5-32-545", CanWrite: true, AppliesToTarget: true),
-            ],
+            Owned(
+                new PrincipalAccess(AdministratorOnly.SystemSid, CanWrite: true, AppliesToTarget: true),
+                new PrincipalAccess(AdministratorOnly.AdministratorsSid, CanWrite: true, AppliesToTarget: true),
+                new PrincipalAccess("S-1-5-32-545", CanWrite: true, AppliesToTarget: true)),
             @"C:\ProgramData\Winland\plugins\approved.json",
-            approvals: null,
-            currentUserSid: "S-1-5-21-1",
-            currentUserIsAdmin: false);
+            approvals: null);
 
         Assert.NotNull(denial);
         Assert.Contains("non-administrator", denial, StringComparison.Ordinal);
@@ -32,34 +31,82 @@ public class PluginLocationPolicyTests
     {
         var denial = PluginLocationPolicy.Deny(
             @"C:\ProgramData\Winland\plugins",
-            [new PrincipalAccess(PluginLocationPolicy.AdministratorsSid, CanWrite: true, AppliesToTarget: true)],
+            Owned(new PrincipalAccess(AdministratorOnly.AdministratorsSid, CanWrite: true, AppliesToTarget: true)),
             @"C:\ProgramData\Winland\plugins\approved.json",
-            [new PrincipalAccess("S-1-5-32-545", CanWrite: true, AppliesToTarget: true)],
-            currentUserSid: null,
-            currentUserIsAdmin: false);
+            Owned(new PrincipalAccess("S-1-5-32-545", CanWrite: true, AppliesToTarget: true)));
 
         Assert.NotNull(denial);
         Assert.Contains("approved.json", denial, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void AdministratorAndSystemWriteIsAllowed()
+    public void SystemAdministratorsAndTrustedInstallerMayWrite()
     {
         var denial = PluginLocationPolicy.Deny(
             @"C:\ProgramData\Winland\plugins",
-            [
-                new PrincipalAccess(PluginLocationPolicy.SystemSid, CanWrite: true, AppliesToTarget: true),
-                new PrincipalAccess(PluginLocationPolicy.AdministratorsSid, CanWrite: true, AppliesToTarget: true),
-                new PrincipalAccess("S-1-5-21-9", CanWrite: true, AppliesToTarget: true),
+            Owned(
+                new PrincipalAccess(AdministratorOnly.SystemSid, CanWrite: true, AppliesToTarget: true),
+                new PrincipalAccess(AdministratorOnly.AdministratorsSid, CanWrite: true, AppliesToTarget: true),
+                new PrincipalAccess(AdministratorOnly.TrustedInstallerSid, CanWrite: true, AppliesToTarget: true),
                 new PrincipalAccess("S-1-3-0", CanWrite: true, AppliesToTarget: false),
-                new PrincipalAccess("S-1-5-32-545", CanWrite: false, AppliesToTarget: true),
-            ],
+                new PrincipalAccess("S-1-5-32-545", CanWrite: false, AppliesToTarget: true)),
             @"C:\ProgramData\Winland\plugins\approved.json",
-            approvals: null,
-            currentUserSid: "S-1-5-21-9",
-            currentUserIsAdmin: true);
+            approvals: null);
 
         Assert.Null(denial);
+    }
+
+    // Under UAC every process the user runs without elevation has the user's SID,
+    // so a grant to that SID is a grant to any program the user runs.
+    [Fact]
+    public void TheCurrentUserIsANonAdministratorEvenWhenItIsAnAdministrator()
+    {
+        var denial = PluginLocationPolicy.Deny(
+            @"C:\ProgramData\Winland\plugins",
+            Owned(
+                new PrincipalAccess(AdministratorOnly.AdministratorsSid, CanWrite: true, AppliesToTarget: true),
+                new PrincipalAccess(CurrentUser, CanWrite: true, AppliesToTarget: true)),
+            @"C:\ProgramData\Winland\plugins\approved.json",
+            approvals: null);
+
+        Assert.NotNull(denial);
+        Assert.Contains(CurrentUser, denial, StringComparison.Ordinal);
+    }
+
+    // An owner may always rewrite the access list, so it can grant itself write.
+    [Fact]
+    public void ANonAdministratorOwnerRefusesTheLoad()
+    {
+        var directory = new AccessList(
+            CurrentUser,
+            [new PrincipalAccess(AdministratorOnly.AdministratorsSid, CanWrite: true, AppliesToTarget: true)]);
+        var approvals = new AccessList(
+            CurrentUser,
+            [new PrincipalAccess(AdministratorOnly.AdministratorsSid, CanWrite: true, AppliesToTarget: true)]);
+
+        var onDirectory = PluginLocationPolicy.Deny(@"C:\p", directory, @"C:\p\approved.json", null);
+        var onApprovals = PluginLocationPolicy.Deny(@"C:\p", Owned(), @"C:\p\approved.json", approvals);
+        var unknown = PluginLocationPolicy.Deny(@"C:\p", new AccessList(null, []), @"C:\p\approved.json", null);
+
+        Assert.NotNull(onDirectory);
+        Assert.Contains(CurrentUser, onDirectory, StringComparison.Ordinal);
+        Assert.NotNull(onApprovals);
+        Assert.Contains("approved.json", onApprovals, StringComparison.Ordinal);
+        Assert.NotNull(unknown);
+    }
+
+    [Theory]
+    [InlineData(AdministratorOnly.SystemSid, true)]
+    [InlineData(AdministratorOnly.AdministratorsSid, true)]
+    [InlineData(AdministratorOnly.TrustedInstallerSid, true)]
+    [InlineData("s-1-5-32-544", true)]
+    [InlineData(CurrentUser, false)]
+    [InlineData("S-1-5-32-545", false)]
+    [InlineData("S-1-1-0", false)]
+    [InlineData("S-1-5-11", false)]
+    public void OnlyThreePrincipalsCountAsAdministrators(string sid, bool allowed)
+    {
+        Assert.Equal(allowed, AdministratorOnly.IsAllowed(sid));
     }
 
     [Fact]
@@ -101,6 +148,9 @@ public class PluginLocationPolicyTests
         if (!OperatingSystem.IsWindows())
             return;
 
-        Assert.Equal(write, WindowsPluginLocationGuard.CanWrite((FileSystemRights)rights));
+        Assert.Equal(write, WindowsAccessReader.CanWrite((FileSystemRights)rights));
     }
+
+    private static AccessList Owned(params PrincipalAccess[] grants) =>
+        new(AdministratorOnly.AdministratorsSid, grants);
 }
