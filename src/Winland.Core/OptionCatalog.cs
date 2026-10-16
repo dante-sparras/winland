@@ -102,7 +102,7 @@ internal static class OptionCatalog
                 return true;
             case "decoration:rounding":
                 kind = "int";
-                token = LastInt(document, name, 0, 0, int.MaxValue).ToString(CultureInfo.InvariantCulture);
+                token = decoration.Rounding.ToString(CultureInfo.InvariantCulture);
                 return true;
             case "decoration:rounding_power":
                 kind = "float";
@@ -249,8 +249,6 @@ internal static class OptionCatalog
 
             if (int.TryParse(setting.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
                 value = Math.Clamp(parsed, min, max);
-            else
-                value = fallback;
         }
 
         return value;
