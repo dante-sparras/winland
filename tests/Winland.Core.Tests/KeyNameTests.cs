@@ -241,6 +241,26 @@ public class KeyNameTests
     }
 
     [Fact]
+    public void ABareNumberAboveNineBindsThatKeycode()
+    {
+        var core = Load("bind = SUPER, 36, killactive\n", KeyLayout.UnitedStates);
+        Appear(core);
+        Press(core, "Super_L");
+
+        AssertRan(Press(core, "Return", 36), "killactive");
+    }
+
+    [Theory]
+    [InlineData("10", "code:10")]
+    [InlineData("36", "code:36")]
+    [InlineData("9", "9")]
+    [InlineData("0", "0")]
+    public void ABareNumberAboveNineIsAKeycodeAndADigitIsAKey(string text, string expected)
+    {
+        Assert.Equal(expected, KeyNames.Resolve(text, KeyLayout.UnitedStates));
+    }
+
+    [Fact]
     public void CodeTextIsKeptAsACode()
     {
         Assert.Equal("code:36", KeyNames.Resolve("code:36", German()));
