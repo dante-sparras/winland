@@ -27,6 +27,26 @@ public class SessionEffectTests
     }
 
     [Fact]
+    public void DisplayPowerOffPostsTheCommandAndOnAlsoNudgesInput()
+    {
+        var posted = new List<nint>();
+        var nudges = 0;
+        var power = new MonitorPowerSignals(state =>
+        {
+            posted.Add(state);
+            return true;
+        }, () => nudges++);
+
+        Assert.True(power.TrySet(false));
+        Assert.Equal([MonitorPowerSignals.Off], posted);
+        Assert.Equal(0, nudges);
+
+        Assert.True(power.TrySet(true));
+        Assert.Equal([MonitorPowerSignals.Off, MonitorPowerSignals.On], posted);
+        Assert.Equal(1, nudges);
+    }
+
+    [Fact]
     public void HaltInvokesTheInstalledStop()
     {
         var stopped = 0;
