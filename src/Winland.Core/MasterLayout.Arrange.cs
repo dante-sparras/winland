@@ -45,10 +45,6 @@ internal sealed partial class MasterLayout
             };
             master.Box = new Rectangle(area.X + x, area.Y, width, area.Height);
         }
-
-        // One tile has no neighbour, so the box may extend past the work area until the
-        // presented size meets the window's minimum.
-        GrowToMinimum(master);
     }
 
     private void PlaceBands(Rectangle area, MasterOrientation orientation, Tile master, int slaves)
@@ -211,6 +207,13 @@ internal sealed partial class MasterLayout
     }
 
     private MasterOrientation Dynamic() => _explicit ?? _master.Orientation;
+
+    // A window below its minimum grows over its neighbours rather than its tile growing off the Monitor.
+    private Rectangle Present(Tile tile)
+    {
+        var presented = Present(tile.Box);
+        return _limits.TryGetValue(tile.Id, out var limits) ? limits.Raise(presented, TilingArea()) : presented;
+    }
 
     private Rectangle Present(Rectangle box)
     {

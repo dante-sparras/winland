@@ -99,7 +99,7 @@ public class SizeLimitTests
     }
 
     [Fact]
-    public void LargeMinimumOnTheCrossAxisGrowsTheRow()
+    public void LargeMinimumOnTheCrossAxisLeavesTheNeighbourOnTheMonitor()
     {
         var core = new Core();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
@@ -109,7 +109,7 @@ public class SizeLimitTests
             Traits = WindowTraits.Normal with { MinSize = new Size(100, 2000) },
         });
 
-        Assert.Equal(new Rectangle(0, 0, 960, 2000), BoundsOf(outcome, 1));
+        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(outcome, 1));
         Assert.Equal(new Rectangle(960, 0, 960, 2000), BoundsOf(outcome, 2));
     }
 
@@ -131,7 +131,7 @@ public class SizeLimitTests
     }
 
     [Fact]
-    public void MinimumsThatExceedTheMonitorExtendPastIt()
+    public void MinimumsThatExceedTheMonitorStayOnIt()
     {
         var core = new Core();
         core.Handle(new WindowAppeared(new WindowId(1), Area)
@@ -144,8 +144,34 @@ public class SizeLimitTests
             Traits = WindowTraits.Normal with { MinSize = new Size(1200, 100) },
         });
 
+        // The split stays where it would be. Each window grows to its minimum around the middle of its
+        // tile and is held inside the work area, so they overlap rather than leave the Monitor.
         Assert.Equal(new Rectangle(0, 0, 1200, 1080), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(1200, 0, 1200, 1080), BoundsOf(outcome, 2));
+        Assert.Equal(new Rectangle(720, 0, 1200, 1080), BoundsOf(outcome, 2));
+    }
+
+    [Fact]
+    public void AnOversizedMinimumLeavesEveryOtherTileOnTheMonitor()
+    {
+        var core = new Core();
+        core.Handle(new WindowAppeared(new WindowId(1), Area)
+        {
+            Traits = WindowTraits.Normal with { MinSize = new Size(1920, 1080) },
+        });
+        core.Handle(new WindowAppeared(new WindowId(2), Area));
+        core.Handle(new WindowAppeared(new WindowId(3), Area));
+
+        var outcome = core.Handle(new WindowAppeared(new WindowId(4), Area));
+
+        Assert.Equal(Area, BoundsOf(outcome, 1));
+        foreach (var window in new long[] { 2, 3, 4 })
+        {
+            var bounds = BoundsOf(outcome, window);
+            Assert.True(bounds.Width > 0 && bounds.Height > 0, $"window {window} is {bounds}");
+            Assert.True(
+                bounds.X >= Area.X && bounds.Y >= Area.Y && bounds.X + bounds.Width <= Area.X + Area.Width && bounds.Y + bounds.Height <= Area.Y + Area.Height,
+                $"window {window} is {bounds}");
+        }
     }
 
     [Fact]

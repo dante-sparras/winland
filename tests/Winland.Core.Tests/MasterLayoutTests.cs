@@ -577,8 +577,46 @@ public class MasterLayoutTests
             Traits = WindowTraits.Normal with { MinSize = new Size(1, 1200) },
         });
 
+        // The neighbour keeps its tile. A window cannot be smaller than its minimum, so the one taller
+        // than the Monitor starts at the top of the work area.
         Assert.Equal(new Rectangle(1100, 0, 900, 500), BoundsOf(outcome, 2));
-        Assert.Equal(new Rectangle(1100, 500, 900, 500), BoundsOf(outcome, 3));
+        Assert.Equal(new Rectangle(1100, 0, 900, 1200), BoundsOf(outcome, 3));
+    }
+
+    [Fact]
+    public void AMinimumAsTallAsTheStackLeavesItsNeighbourARow()
+    {
+        var core = CoreOf(Flat(""));
+        core.Handle(Appeared(1));
+        core.Handle(Appeared(2));
+
+        var outcome = core.Handle(new WindowAppeared(new WindowId(3), Screen)
+        {
+            Traits = WindowTraits.Normal with { MinSize = new Size(1, 1000) },
+        });
+
+        Assert.True(BoundsOf(outcome, 2).Height > 0, $"window 2 is {BoundsOf(outcome, 2)}");
+        Assert.Equal(new Rectangle(1100, 0, 900, 1000), BoundsOf(outcome, 3));
+    }
+
+    [Fact]
+    public void MinimumsThatDoNotFitTheStackStayOnTheMonitor()
+    {
+        var core = CoreOf(Flat(""));
+        core.Handle(Appeared(1));
+        core.Handle(new WindowAppeared(new WindowId(2), Screen)
+        {
+            Traits = WindowTraits.Normal with { MinSize = new Size(1, 600) },
+        });
+
+        var outcome = core.Handle(new WindowAppeared(new WindowId(3), Screen)
+        {
+            Traits = WindowTraits.Normal with { MinSize = new Size(1, 600) },
+        });
+
+        // Each window grows to its minimum around the middle of its tile, held inside the work area.
+        Assert.Equal(new Rectangle(1100, 0, 900, 600), BoundsOf(outcome, 2));
+        Assert.Equal(new Rectangle(1100, 400, 900, 600), BoundsOf(outcome, 3));
     }
 
     [Fact]

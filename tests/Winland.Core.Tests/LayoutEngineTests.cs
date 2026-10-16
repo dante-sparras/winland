@@ -147,8 +147,9 @@ public class LayoutEngineTests
 
         var placements = layout.ResizeActive(middle.Window, "0 10");
 
-        Assert.Equal(middle.Bounds.Height, Bounds(placements, middle.Window.Value).Height);
+        // A minimum leaves every other row at least a fifth of an even share, so each keeps a height.
         Assert.Equal(4, placements.Count);
+        Assert.All(Stack(placements), tile => Assert.True(tile.Bounds.Height > 0, $"{tile.Window} is {tile.Bounds}"));
     }
 
     [Theory]
