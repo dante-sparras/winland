@@ -135,11 +135,13 @@ public sealed partial class Core
         if (decision.FullscreenRequest is { } fullscreen)
             placements = desk.Layout.SetFullscreen(appeared.Window, fullscreen.Internal, fullscreen.Client);
 
-        // A window that swallows its parent does not also join the focused Group, as in the pinned release.
+        // A window joins the Group focused when it opened even when it swallows its parent, as in the pinned
+        // release. Only a window that took its parent's place in a Group stays out of the focused one.
+        var focused = restored is null ? ActiveWindow() : null;
         if (swallowee is not null)
             placements = SwallowParent(appeared.Window, swallowee, desk, placements, decision.Group);
-        var swallowed = _swallows.ContainsKey(appeared.Window);
-        if (GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, restored is null && !swallowed ? ActiveWindow() : null))
+        var slotted = _swallows.TryGetValue(appeared.Window, out var swallow) && swallow.Slot;
+        if (GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, slotted ? null : focused))
             placements = desk.Layout.Visible();
 
         NotePlaced(appeared.Window, desk, decision, restored is not null);

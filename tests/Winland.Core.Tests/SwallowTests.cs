@@ -239,6 +239,20 @@ public class SwallowTests
     }
 
     [Fact]
+    public void AChildThatSwallowsAStandaloneTerminalStillJoinsTheFocusedGroup()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(Unrelated(3));
+        core.Handle(new Dispatch("togglegroup"));
+
+        var opened = core.Handle(Child(2, parentProcess: 100));
+
+        Assert.Equal([new WindowId(3), new WindowId(2)], Assert.Single(opened.State.Groups));
+        Assert.Contains(new WindowId(1), opened.Hide);
+        Assert.Equal(new WindowId(1), Client(opened, 2).Swallowing);
+    }
+
+    [Fact]
     public void AChildDoesNotSwallowATerminalInADeniedGroup()
     {
         var core = WithTerminal(Swallowing + "group:auto_group = false\n");
