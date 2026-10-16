@@ -5,19 +5,23 @@ namespace Winland.Windows;
 /// thread handles the request when it can, so a window that repaints slowly does not hold up the others.
 /// A window still busy with the last request is skipped, so requests never pile up behind it. A request
 /// that keeps the size only moves the window, which spares the window laying itself out again.
-/// It also remembers where Winland last put each window, so the move the window reports back is known
-/// to be Winland's own and not one the user or the application made.
+/// It also remembers where Winland recently put each window, so a move the window reports back that lands
+/// on one of those places is known to be Winland's own and not one the application made itself.
 /// </summary>
 internal sealed class QuickMove
 {
     // A window that answers nothing for this many frames in a row is sent the newest frame anyway.
     internal const int MaxSkips = 3;
 
-    // A request the window has not taken in this long is no longer waited for.
+    // A request the window has not taken in this long is no longer waited for or counted as Winland's.
     internal const long Patience = 500;
+
+    // How many recent places are remembered per window. A motion sends one a frame.
+    private const int Remembered = 8;
 
     private readonly Lock _gate = new();
     private readonly Dictionary<WindowId, Pending> _pending = [];
+    private readonly Dictionary<WindowId, Queue<Placed>> _recent = [];
     private readonly Func<long> _clock;
 
     internal QuickMove(Func<long>? clock = null) => _clock = clock ?? (() => Environment.TickCount64);
@@ -26,7 +30,7 @@ internal sealed class QuickMove
 
     /// <summary>
     /// Whether to send <paramref name="target"/>, given where the window is now and the request it was
-    /// last sent. The window has taken a request once it stands where that request put it.
+    /// last sent without waiting. The window has taken a request once it stands where that request put it.
     /// </summary>
     internal static Decision Decide(Rectangle target, Rectangle current, Rectangle? requested, int skipped)
     {
@@ -46,7 +50,7 @@ internal sealed class QuickMove
         Decision decision;
         lock (_gate)
         {
-            var pending = Live(window);
+            var pending = Waiting(window);
             decision = Decide(target, current, pending?.Requested, pending?.Skipped ?? 0);
             if (!decision.Send)
             {
@@ -62,43 +66,70 @@ internal sealed class QuickMove
         return true;
     }
 
-    /// <summary>Notes an outer rectangle Winland put the window on by a direct placement.</summary>
-    internal void Note(WindowId window, Rectangle placed)
+    /// <summary>
+    /// Notes an outer rectangle Winland asked the window for. <paramref name="waiting"/> is true for a request
+    /// sent without waiting, which the window may not have taken yet; a direct placement has been taken.
+    /// </summary>
+    internal void Note(WindowId window, Rectangle placed, bool waiting)
     {
         lock (_gate)
-            _pending[window] = new Pending(placed, 0, _clock());
+        {
+            var now = _clock();
+            if (waiting)
+                _pending[window] = new Pending(placed, 0, now);
+            else
+                _pending.Remove(window);
+
+            if (!_recent.TryGetValue(window, out var recent))
+                _recent[window] = recent = new Queue<Placed>(Remembered);
+            if (recent.Count == Remembered)
+                recent.Dequeue();
+            recent.Enqueue(new Placed(placed.X, placed.Y, now));
+        }
     }
 
     /// <summary>
-    /// Whether a request may still be on its way to the window. Its thread handles a waiting request after a
-    /// placement made directly, so the caller sends the placement again the same way, to land behind it.
+    /// Whether a request sent without waiting may still be on its way to the window. Its thread handles it after
+    /// a direct placement, so the caller sends the placement again the same way, to land behind it.
     /// </summary>
     internal bool Trails(WindowId window, Rectangle current)
     {
         lock (_gate)
-            return Live(window) is { } pending && !SamePlace(current, pending.Requested);
+            return Waiting(window) is { } pending && !SamePlace(current, pending.Requested);
     }
 
-    /// <summary>Whether the window's move is Winland's own: it is on its way to, or stands on, Winland's last request.</summary>
+    /// <summary>
+    /// Whether the window stands where Winland recently put it, so the move it reports is Winland's own.
+    /// A move the application made itself lands somewhere else.
+    /// </summary>
     internal bool Ours(WindowId window, Rectangle current)
     {
         lock (_gate)
         {
-            if (Live(window) is not { } pending)
+            if (!_recent.TryGetValue(window, out var recent))
                 return false;
 
-            // Standing on the request is Winland's move. Elsewhere, the request is still on its way.
-            return current == pending.Requested || !SamePlace(current, pending.Requested);
+            var now = _clock();
+            foreach (var placed in recent)
+            {
+                if (now - placed.Since <= Patience && placed.X == current.X && placed.Y == current.Y)
+                    return true;
+            }
+
+            return false;
         }
     }
 
     internal void Forget(WindowId window)
     {
         lock (_gate)
+        {
             _pending.Remove(window);
+            _recent.Remove(window);
+        }
     }
 
-    private Pending? Live(WindowId window)
+    private Pending? Waiting(WindowId window)
     {
         if (!_pending.TryGetValue(window, out var pending))
             return null;
@@ -113,4 +144,6 @@ internal sealed class QuickMove
     private static bool SamePlace(Rectangle a, Rectangle b) => a.X == b.X && a.Y == b.Y;
 
     private readonly record struct Pending(Rectangle Requested, int Skipped, long Since);
+
+    private readonly record struct Placed(int X, int Y, long Since);
 }

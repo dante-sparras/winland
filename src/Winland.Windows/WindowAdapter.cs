@@ -354,11 +354,14 @@ public sealed partial class WindowAdapter : IDisposable
                         return;
                     }
 
-                    // A frame or a placement Winland sent arrives here too, often after Apply returned. Asking
-                    // the window for its limits again would wait on a window that is busy taking it.
-                    if (Volatile.Read(ref Applying) == 0 && !Motions.Running(window) && !(TryOuter(hwnd, out var now) && Quick.Ours(window, now)))
+                    if (Volatile.Read(ref Applying) == 0)
                     {
-                        RereadLimits(hwnd, window);
+                        // A frame or a placement Winland sent arrives here too, often after Apply returned. Asking
+                        // the window for its limits again would wait on a window that is busy taking it. A move the
+                        // application made itself lands somewhere Winland did not put it, and is still read.
+                        if (!(TryOuter(hwnd, out var now) && Quick.Ours(window, now)))
+                            RereadLimits(hwnd, window);
+
                         ReportResize(hwnd, window);
                         PutBackIfDrifted(hwnd, window);
                     }
