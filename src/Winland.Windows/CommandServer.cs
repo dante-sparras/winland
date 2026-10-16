@@ -31,6 +31,9 @@ public sealed class CommandServer : IDisposable
     private Exception? _startError;
     private bool _disposed;
 
+    /// <summary>How long a client has to send its request line after it connects.</summary>
+    internal TimeSpan RequestTimeout { get; init; } = TimeSpan.FromSeconds(5);
+
     public CommandServer(Core core, string? pipeName = null)
     {
         ArgumentNullException.ThrowIfNull(core);
@@ -187,33 +190,31 @@ public sealed class CommandServer : IDisposable
                 return;
             }
 
-            try
-            {
-                Accept(server);
-            }
-            catch (Exception) when (_cancel.IsCancellationRequested)
-            {
-                server.Dispose();
-                return;
-            }
-            catch (Exception exception) when (exception is IOException or ObjectDisposedException or InvalidOperationException)
-            {
-                server.Dispose();
-            }
+            // The request is read off this loop, so a client that connects and sends nothing
+            // does not keep the next one from connecting. Tracked first, so Dispose closes it.
+            Track(server);
+            _ = Task.Run(() => Serve(server));
         }
     }
 
-    private void Accept(NamedPipeServerStream server)
+    private async Task Serve(NamedPipeServerStream server)
     {
         string command;
         try
         {
-            command = Read(server);
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_cancel.Token);
+            timeout.CancelAfter(RequestTimeout);
+            command = await Read(server, timeout.Token).ConfigureAwait(false);
         }
-        catch (InvalidOperationException exception)
+        catch (RequestTooLargeException exception)
         {
-            Track(server);
-            _ = Task.Run(() => Finish(server, () => Write(server, exception.Message)));
+            Finish(server, () => Write(server, exception.Message));
+            return;
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            // Timed out, gone, or the server is stopping.
+            Release(server);
             return;
         }
 
@@ -223,13 +224,11 @@ public sealed class CommandServer : IDisposable
             lock (_subscribersGate)
                 _subscribers.Add(subscriber);
 
-            Track(server);
-            _ = Task.Run(() => Follow(server, subscriber));
+            Follow(server, subscriber);
             return;
         }
 
-        Track(server);
-        _ = Task.Run(() => Finish(server, () => Reply(server, command)));
+        Finish(server, () => Reply(server, command));
     }
 
     private void Reply(NamedPipeServerStream server, string command)
@@ -424,13 +423,13 @@ public sealed class CommandServer : IDisposable
             0,
             security);
 
-    private static string Read(NamedPipeServerStream server)
+    private static async Task<string> Read(NamedPipeServerStream server, CancellationToken cancel)
     {
         using var body = new MemoryStream();
         var one = new byte[1];
         while (true)
         {
-            var read = server.Read(one);
+            var read = await server.ReadAsync(one, cancel).ConfigureAwait(false);
             if (read == 0 || one[0] == (byte)'\n')
                 break;
 
@@ -438,7 +437,7 @@ public sealed class CommandServer : IDisposable
                 continue;
 
             if (body.Length >= MaxCommandBytes)
-                throw new InvalidOperationException("error: request too large");
+                throw new RequestTooLargeException();
 
             body.Write(one);
         }
@@ -490,6 +489,8 @@ public sealed class CommandServer : IDisposable
         uint inBufferSize,
         uint defaultTimeout,
         ref PipeSecurityAttributes security);
+
+    private sealed class RequestTooLargeException() : Exception("error: request too large");
 
     private sealed class Subscriber
     {
