@@ -82,10 +82,15 @@ internal static class RuleExpression
         return new Reader(text, variables).TryRead(out value) && double.IsFinite(value);
     }
 
+    // Parentheses, unary signs, exponents and function calls each recurse through TryUnary.
+    // Past this depth the text is refused, so a config line cannot overflow the stack.
+    private const int MaxDepth = 256;
+
     private ref struct Reader(string text, IReadOnlyDictionary<string, double> variables)
     {
         private readonly string _text = text;
         private int _at;
+        private int _depth;
 
         public bool TryRead(out double value)
         {
@@ -133,6 +138,25 @@ internal static class RuleExpression
         }
 
         private bool TryUnary(out double value)
+        {
+            if (_depth >= MaxDepth)
+            {
+                value = 0;
+                return false;
+            }
+
+            _depth++;
+            try
+            {
+                return TryUnaryAt(out value);
+            }
+            finally
+            {
+                _depth--;
+            }
+        }
+
+        private bool TryUnaryAt(out double value)
         {
             SkipSpace();
             if (Take('-', out _))
