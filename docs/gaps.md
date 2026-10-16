@@ -253,6 +253,8 @@ A pinned Client on a Monitor that is unplugged or disabled stays shown on the Mo
 
 When a Monitor goes away or comes back and its Workspaces hide the focused Client, Winland focuses the Client the focused Monitor shows: the one focused last on that Workspace, or else its last shown Client. The pinned release moves only the Monitor focus and leaves the keyboard focus on the hidden window until the pointer or a dispatcher moves it. On Windows that would keep the foreground on a window out of sight.
 
+`general:resize_on_border` looks for the grab ring on the focused Monitor's shown Workspace. The pinned release looks on the Monitor under the pointer. While a maximized or fullscreen Client covers a Workspace, no Client there has a ring, where the pinned release keeps the ring of a floating window allowed over the covering one, such as a floating window opened after it.
+
 `movetoworkspace` of a pinned Client to a special workspace changes nothing. The pinned release leaves the Client where it is too, but still shows that special workspace, empty.
 
 `alterzorder` and `bringactivetotop` do not refocus the window under the pointer. With `input:follow_mouse`, focus follows the pointer again on its next move.
