@@ -276,6 +276,23 @@ public class FollowMouseTests
     }
 
     [Fact]
+    public void FocusOnCloseZeroPrefersATileOverAFloatOnTop()
+    {
+        // The float opens first, so it comes before both tiles and would win a tie on distance.
+        var core = Floats("input:focus_on_close = 0\n");
+        core.Handle(Box(3, 1390, 490));
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        core.Handle(new WindowAppeared(new WindowId(2), Area));
+        core.Handle(new Dispatch("focuswindow", "address:0x2"));
+
+        var closed = core.Handle(new WindowClosed(new WindowId(2)));
+        var last = core.Handle(new WindowClosed(new WindowId(1)));
+
+        Assert.Equal(new WindowId(1), closed.Focus);
+        Assert.Equal(new WindowId(3), last.Focus);
+    }
+
+    [Fact]
     public void HoverReachesTheTilesOfAnOpenSpecialWorkspaceBeforeTheTilesUnderIt()
     {
         var (core, _) = Tiled();

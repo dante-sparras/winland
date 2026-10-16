@@ -131,7 +131,9 @@ public sealed partial class Core
         if (desk.Layout.FocusAfterClose() is WindowId layout && Accepts(desk, layout))
             return layout;
 
-        if (hadBounds && Closest(desk, new Point(bounds.X + (bounds.Width / 2), bounds.Y + (bounds.Height / 2))) is WindowId near)
+        // The nearest tile wins. A float is taken only when no tile is left.
+        var centre = new Point(bounds.X + (bounds.Width / 2), bounds.Y + (bounds.Height / 2));
+        if (hadBounds && (Closest(desk, centre, tiledOnly: true) ?? Closest(desk, centre, tiledOnly: false)) is WindowId near)
             return near;
 
         return null;
@@ -148,14 +150,14 @@ public sealed partial class Core
         return null;
     }
 
-    private WindowId? Closest(LiveWorkspace desk, Point point)
+    private WindowId? Closest(LiveWorkspace desk, Point point, bool tiledOnly)
     {
         WindowId? best = null;
         var bestDistance = long.MaxValue;
         var showing = desk.Showing();
         foreach (var client in desk.Layout.Clients)
         {
-            if (!Accepts(desk, client.Window) || !showing.Contains(client.Window))
+            if (!Accepts(desk, client.Window) || !showing.Contains(client.Window) || (tiledOnly && client.Floating))
                 continue;
 
             if (!desk.Layout.TryBounds(client.Window, out var bounds))
