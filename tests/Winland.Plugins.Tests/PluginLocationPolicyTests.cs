@@ -95,6 +95,44 @@ public class PluginLocationPolicyTests
         Assert.NotNull(unknown);
     }
 
+    [Fact]
+    public void ATreeIsProtectedOnlyWhenEveryEntryIs()
+    {
+        var protectedEntry = Owned(new PrincipalAccess(AdministratorOnly.AdministratorsSid, CanWrite: true, AppliesToTarget: true));
+        var userFile = new AccessList(CurrentUser, []);
+
+        var clean = AdministratorOnly.FirstNonAdministrator([(@"C:\w", protectedEntry), (@"C:\w\winland.exe", protectedEntry)]);
+        var dirty = AdministratorOnly.FirstNonAdministrator([(@"C:\w", protectedEntry), (@"C:\w\winland.dll", userFile), (@"C:\w\x.dll", userFile)]);
+        var unreadable = AdministratorOnly.FirstNonAdministrator([(@"C:\w", protectedEntry), (@"C:\w\locked.dll", null)]);
+
+        Assert.Null(clean);
+        Assert.Equal((@"C:\w\winland.dll", "owner " + CurrentUser), dirty);
+        Assert.NotNull(unreadable);
+        Assert.Equal(@"C:\w\locked.dll", unreadable.Value.Path);
+    }
+
+    [Fact]
+    public void AFolderTheUserCreatedIsNotProtected()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        var directory = Path.Combine(Path.GetTempPath(), "winland-tree-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(directory, "runtimes"));
+        File.WriteAllText(Path.Combine(directory, "runtimes", "a.dll"), "");
+        try
+        {
+            var found = WindowsAccessReader.FirstNonAdministrator(directory);
+
+            Assert.NotNull(found);
+            Assert.Equal(directory, found.Value.Path);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Theory]
     [InlineData(AdministratorOnly.SystemSid, true)]
     [InlineData(AdministratorOnly.AdministratorsSid, true)]

@@ -51,6 +51,42 @@ public static class WindowsAccessReader
         }
     }
 
+    /// <summary>
+    /// Finds the first entry in a directory tree, the directory first, that a non-administrator
+    /// owns or can write. Null means the whole tree is protected.
+    /// </summary>
+    public static (string Path, string Who)? FirstNonAdministrator(string directory)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+        return AdministratorOnly.FirstNonAdministrator(Entries(Path.GetFullPath(directory)));
+    }
+
+    private static List<(string Path, AccessList? Access)> Entries(string directory)
+    {
+        var entries = new List<(string Path, AccessList? Access)> { (directory, Read(directory)) };
+        var options = new EnumerationOptions
+        {
+            RecurseSubdirectories = true,
+            AttributesToSkip = 0,
+            IgnoreInaccessible = false,
+        };
+        try
+        {
+            foreach (var path in Directory.EnumerateFileSystemEntries(directory, "*", options))
+                entries.Add((path, Read(path)));
+        }
+        catch (Exception exception) when (IsReadFailure(exception))
+        {
+            // A folder that cannot be listed cannot be shown to be protected.
+            entries.Add((directory, null));
+        }
+
+        return entries;
+    }
+
+    private static AccessList? Read(string path) =>
+        TryRead(path, out var access, out _) ? access : null;
+
     internal static bool CanWrite(FileSystemRights rights)
     {
         // Only the bits that write. Modify and FullControl also hold the read bits,
