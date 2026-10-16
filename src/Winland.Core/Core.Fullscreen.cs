@@ -44,6 +44,13 @@ public sealed partial class Core
 
         var covered = desk.Covered();
         var placements = desk.Layout.SetFullscreen(window, mode, clientMode);
+
+        // An f[] workspace rule follows the fullscreen state, so the change can bring other options.
+        var options = desk.Options;
+        Stamp(desk);
+        if (desk.Options != options)
+            placements = desk.Layout.Apply(desk.Options);
+
         if (!IsShown(desk.Id))
             return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
 

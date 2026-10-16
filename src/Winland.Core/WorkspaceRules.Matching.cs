@@ -12,7 +12,8 @@ internal static partial class WorkspaceRules
         Monitor? monitor,
         int windows,
         int tiled,
-        int floating)
+        int floating,
+        FullscreenMode fullscreen)
     {
         selector = selector.Trim();
         if (selector.Length == 0)
@@ -30,7 +31,7 @@ internal static partial class WorkspaceRules
         if (!selector.Contains('[', StringComparison.Ordinal))
             return false;
 
-        return MatchProperties(selector, id, displayName, monitor, windows, tiled, floating);
+        return MatchProperties(selector, id, displayName, monitor, windows, tiled, floating, fullscreen);
     }
 
     private static bool MatchProperties(
@@ -40,7 +41,8 @@ internal static partial class WorkspaceRules
         Monitor? monitor,
         int windows,
         int tiled,
-        int floating)
+        int floating,
+        FullscreenMode fullscreen)
     {
         for (var i = 0; i < selector.Length; i++)
         {
@@ -81,7 +83,7 @@ internal static partial class WorkspaceRules
                         return false;
                     break;
                 case 'f':
-                    if (!int.TryParse(body, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var fullscreen) || fullscreen != -1)
+                    if (!int.TryParse(body, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var wanted) || !MatchFullscreen(wanted, fullscreen))
                         return false;
                     break;
                 default:
@@ -91,6 +93,16 @@ internal static partial class WorkspaceRules
 
         return true;
     }
+
+    // As the pinned release's source tests it: -1 nothing covers the Workspace, 0 a fullscreen Client
+    // covers it, whatever its client mode, and 1 a maximized one. Any other number tests nothing there.
+    private static bool MatchFullscreen(int wanted, FullscreenMode covering) => wanted switch
+    {
+        -1 => covering == FullscreenMode.None,
+        0 => covering == FullscreenMode.Fullscreen,
+        1 => covering == FullscreenMode.Maximized,
+        _ => true,
+    };
 
     private static bool MatchNamed(string body, WorkspaceId id, string? displayName)
     {

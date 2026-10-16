@@ -170,6 +170,76 @@ public class WorkspaceRuleTests
         Assert.DoesNotContain(third.State.Workspaces, workspace => workspace.Id == new WorkspaceId("2") && workspace.Persistent);
     }
 
+    // As the pinned release's source reads it: f[1] has a maximized Client and f[0] a fullscreen
+    // one, whatever the client mode. f[2] tests nothing there, so it matches every Workspace.
+    [Theory]
+    [InlineData("1", "fullscreen", "1", true)]
+    [InlineData("1", "fullscreen", "2", false)]
+    [InlineData("0", "fullscreen", "2", true)]
+    [InlineData("0", "fullscreen", "1", false)]
+    [InlineData("0", "fullscreenstate", "2 0", true)]
+    [InlineData("0", "fullscreenstate", "2 1", true)]
+    [InlineData("1", "fullscreenstate", "1 0", true)]
+    [InlineData("2", "fullscreen", "1", true)]
+    [InlineData("2", "fullscreenstate", "2 0", true)]
+    [InlineData("-1", "fullscreen", "1", false)]
+    public void AFullscreenSelectorFollowsTheWorkspaceFullscreenState(string selector, string dispatcher, string mode, bool applies)
+    {
+        var core = Configured(Flat($"""
+            workspace = f[{selector}], defaultName:Covered
+            """));
+        core.Handle(Appeared(1, Wide));
+        core.Handle(Appeared(2, Wide));
+
+        var covered = core.Handle(new Dispatch(dispatcher, mode));
+
+        Assert.Equal(applies ? "Covered" : null, Workspace(covered, "1").DisplayName);
+    }
+
+    [Fact]
+    public void ANoFullscreenSelectorAppliesOnlyWithoutACoveringClient()
+    {
+        var core = Configured(Flat("""
+            workspace = f[-1], defaultName:Open
+            """));
+        core.Handle(Appeared(1, Wide));
+        var open = core.Handle(Appeared(2, Wide));
+        Assert.Equal("Open", Workspace(open, "1").DisplayName);
+
+        var covered = core.Handle(new Dispatch("fullscreen", "1"));
+        Assert.Null(Workspace(covered, "1").DisplayName);
+
+        var uncovered = core.Handle(new Dispatch("fullscreen", "1"));
+        Assert.Equal("Open", Workspace(uncovered, "1").DisplayName);
+    }
+
+    [Fact]
+    public void AFullscreenSelectorOfTwoMatchesAWorkspaceWithNothingCovering()
+    {
+        var core = Configured(Flat("""
+            workspace = f[2], defaultName:Any
+            """));
+
+        var open = core.Handle(Appeared(1, Wide));
+
+        Assert.Equal("Any", Workspace(open, "1").DisplayName);
+    }
+
+    [Fact]
+    public void AMaximizedSelectorSquaresTheCornersOfTheMaximizedClient()
+    {
+        var core = Configured(Flat("""
+            decoration:rounding = 8
+            workspace = f[1], rounding:0
+            """));
+        var open = core.Handle(Appeared(1, Wide));
+        Assert.Equal(CornerPreference.Round, Corners(open, 1));
+
+        var maximized = core.Handle(new Dispatch("fullscreen", "1"));
+
+        Assert.Equal(CornerPreference.DoNotRound, Corners(maximized, 1));
+    }
+
     [Fact]
     public void BorderSizeBorderAndDecorateChangeOnlyThatWorkspace()
     {

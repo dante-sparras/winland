@@ -36,6 +36,18 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
         return WaitingOf(window);
     }
 
+    /// <summary>The internal mode of the Client covering this Workspace, which an <c>f[]</c> workspace selector reads.</summary>
+    public FullscreenMode CoveringMode()
+    {
+        foreach (var client in Layout.Clients)
+        {
+            if (client.Fullscreen != FullscreenMode.None)
+                return client.Fullscreen;
+        }
+
+        return FullscreenMode.None;
+    }
+
     public (int Windows, int Tiled, int Floating) ClientCounts()
     {
         var tiled = 0;
