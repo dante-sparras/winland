@@ -111,8 +111,11 @@ public sealed record Outcome(
     public string? Notice { get; init; }
 }
 
-/// <summary>A request to end the process that owns a Client.</summary>
-public readonly record struct KillRequest(long ProcessId);
+/// <summary>A request to end the process that owns a Client. The adapter reads the owner of <see cref="Window"/> again when it acts.</summary>
+public readonly record struct KillRequest(long ProcessId)
+{
+    public WindowId? Window { get; init; }
+}
 
 /// <summary>A request to raise a Client to the top of the z-order, or lower it to the bottom.</summary>
 public readonly record struct ZOrderRequest(WindowId Window, bool Top);

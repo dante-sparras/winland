@@ -159,6 +159,8 @@ Resolution, refresh rate and scale changes stay Gaps. So do mirroring, variable 
 
 A window selector `tag:` parses and matches no Client. Window tags are not tracked.
 
+`killwindow` ends the process that owns the Client, read from the window again when the kill runs. A Store app's frame belongs to ApplicationFrameHost, which hosts every Store app, so its Client's process, `pid` in `clients` and the `pid:` selector are the app hosted in the frame. ApplicationFrameHost itself is never ended: a frame that hosts no app is left alone.
+
 `swapwindow` exchanges two Clients that share a Workspace. A selector that matches a Client on another Workspace does not swap.
 
 `dpms` asks for display power on, off, or toggled. An empty monitor list addresses every display. A monitor name that matches none of the enabled monitors still addresses every enabled monitor. The adapter posts `SC_MONITORPOWER` to Winland's own window, which turns every display off or on together, and does not wait for any other window. Turning the displays on also sends a zero mouse move, because Windows does not reliably honor the "on" command. Tests do not send either.

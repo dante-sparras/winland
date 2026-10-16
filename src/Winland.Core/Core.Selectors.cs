@@ -56,7 +56,7 @@ public sealed partial class Core
 
         return View([], dispatcher: name, allowsElevation: allowsElevation) with
         {
-            Kill = new KillRequest(client.ProcessId),
+            Kill = new KillRequest(client.ProcessId) { Window = id },
         };
     }
 

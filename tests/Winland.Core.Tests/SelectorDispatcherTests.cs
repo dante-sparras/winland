@@ -87,7 +87,7 @@ public class SelectorDispatcherTests
 
         var outcome = core.Handle(new Dispatch("killwindow", "pid:4242"));
 
-        Assert.Equal(new KillRequest(4242), outcome.Kill);
+        Assert.Equal(new KillRequest(4242) { Window = new WindowId(1) }, outcome.Kill);
         Assert.Null(outcome.Close);
         Assert.Equal("killwindow", outcome.Dispatcher);
         Assert.Null(core.Handle(new Dispatch("killwindow", "pid:1")).Kill);
