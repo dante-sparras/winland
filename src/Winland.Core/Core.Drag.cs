@@ -57,7 +57,7 @@ public sealed partial class Core
             _ = layout.Drag(gesture.Window, gesture.Step(PointerDragPhase.Begin, pointer));
         }
 
-        return View(layout.Drag(gesture.Window, gesture.Step(PointerDragPhase.Move, pointer)), consumed: true, dispatcher: gesture.Dispatcher);
+        return View(layout.Drag(gesture.Window, gesture.Step(PointerDragPhase.Move, pointer)), consumed: true, dispatcher: gesture.Dispatcher) with { Live = true };
     }
 
     private Outcome EndGesture(Point pointer)

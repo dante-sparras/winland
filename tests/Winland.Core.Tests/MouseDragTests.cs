@@ -18,6 +18,7 @@ public class MouseDragTests
         var moved = core.Handle(new PointerMoved(new Point(750, 430)));
 
         Assert.Equal("movewindow", moved.Dispatcher);
+        Assert.True(moved.Live);
         // The float toggle recenters the 640x400 default, then the pointer moves it by (+50, +30).
         Assert.Equal(new Rectangle(690, 370, 640, 400), BoundsOf(moved, 1));
         Assert.True(Client(moved, 1).Floating);
@@ -38,6 +39,7 @@ public class MouseDragTests
         Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(dropped, 2));
         Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(dropped, 1));
         Assert.False(Client(dropped, 2).Floating);
+        Assert.False(dropped.Live);
     }
 
     [Fact]

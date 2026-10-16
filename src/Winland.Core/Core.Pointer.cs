@@ -264,13 +264,13 @@ public sealed partial class Core
         {
             var next = BorderPointer.Resize(border.Start, border.Origin, pointer, border.Left, border.Top);
             next = SnapBox(border.Window, next, SnapEdges.FromGrab(border.Left, border.Top), resize: true);
-            return View(desk.Layout.PlaceFloating(border.Window, next), consumed: true, dispatcher: "resizewindow");
+            return View(desk.Layout.PlaceFloating(border.Window, next), consumed: true, dispatcher: "resizewindow") with { Live = true };
         }
 
         return View(
             desk.Layout.Drag(border.Window, new PointerDrag(true, PointerDragPhase.Move, pointer)),
             consumed: true,
-            dispatcher: "resizewindow");
+            dispatcher: "resizewindow") with { Live = true };
     }
 
     private Outcome EndBorder(BorderDrag border, Point pointer)

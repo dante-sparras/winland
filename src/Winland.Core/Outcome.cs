@@ -75,6 +75,12 @@ public sealed record Outcome(
     /// <summary>How the windows in this outcome animate to their placements, shows, hides and closes.</summary>
     public IReadOnlyList<Motion> Motions { get; init; } = [];
 
+    /// <summary>
+    /// One step of a drag that is still held. Another step follows soon, and the drag's end places every
+    /// window exactly, so the adapter moves the windows the quickest way it can.
+    /// </summary>
+    public bool Live { get; init; }
+
     public IReadOnlyList<WindowId> ResetDecorations { get; init; } = [];
 
     /// <summary>Every Group tab bar to draw now. A bar that is not listed is removed.</summary>
