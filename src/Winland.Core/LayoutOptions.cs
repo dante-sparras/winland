@@ -271,7 +271,7 @@ public sealed record LayoutOptions
         int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
 
     private static bool TryParseDouble(string text, out double value) =>
-        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && double.IsFinite(value);
 
     private static int Clamp(int value, int min, int max) => Math.Clamp(value, min, max);
 

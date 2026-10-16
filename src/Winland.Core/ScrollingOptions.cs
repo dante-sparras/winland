@@ -134,7 +134,7 @@ public sealed record ScrollingOptions
         ConfigValueSyntax.TryParseBool(text, out value);
 
     private static bool TryDouble(string text, out double value) =>
-        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && double.IsFinite(value);
 
     private static double Clamp(double value, double min, double max) => Math.Clamp(value, min, max);
 
