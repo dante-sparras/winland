@@ -157,6 +157,18 @@ public class EventTests
     }
 
     [Fact]
+    public void ADestroyedWorkspaceIsReportedByItsDefaultName()
+    {
+        var core = new Core(ConfigParser.Parse("workspace = 1, defaultName:code"));
+        core.Handle(new WindowAppeared(new WindowId(7), Area));
+        core.Execute("dispatch workspace 2");
+
+        var closed = core.Handle(new WindowClosed(new WindowId(7)));
+
+        Assert.Equal(["destroyworkspace>>code", "destroyworkspacev2>>1,code", "closewindow>>7"], Lines(closed));
+    }
+
+    [Fact]
     public void ClosingTheLastClientClearsFocus()
     {
         var core = new Core();

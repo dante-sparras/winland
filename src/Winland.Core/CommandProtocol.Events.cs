@@ -70,8 +70,8 @@ public static partial class CommandProtocol
                 lines.Add($"createworkspacev2>>{WorkspaceIdText(created.Workspace, indexed)},{WorkspaceNameText(created.Workspace, indexed)}");
                 break;
             case WorkspaceDestroyed destroyed:
-                lines.Add("destroyworkspace>>" + WorkspaceNameText(destroyed.Workspace, indexed));
-                lines.Add($"destroyworkspacev2>>{destroyed.Id.ToString(CultureInfo.InvariantCulture)},{WorkspaceNameText(destroyed.Workspace, indexed)}");
+                lines.Add("destroyworkspace>>" + Clean(destroyed.Name));
+                lines.Add($"destroyworkspacev2>>{destroyed.Id.ToString(CultureInfo.InvariantCulture)},{Clean(destroyed.Name)}");
                 break;
             case WorkspaceMoved movedWorkspace:
                 lines.Add($"moveworkspace>>{WorkspaceNameText(movedWorkspace.Workspace, indexed)},{Clean(movedWorkspace.Monitor)}");

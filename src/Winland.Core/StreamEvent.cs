@@ -23,8 +23,8 @@ public sealed record WorkspaceActivated(WorkspaceId Workspace) : StreamEvent;
 
 public sealed record WorkspaceCreated(WorkspaceId Workspace) : StreamEvent;
 
-/// <summary><paramref name="Id"/> is the id the workspace had before it was removed.</summary>
-public sealed record WorkspaceDestroyed(WorkspaceId Workspace, int Id) : StreamEvent;
+/// <summary><paramref name="Id"/> and <paramref name="Name"/> are the id and name the workspace had before it was removed.</summary>
+public sealed record WorkspaceDestroyed(WorkspaceId Workspace, int Id, string Name) : StreamEvent;
 
 public sealed record WorkspaceMoved(WorkspaceId Workspace, string Monitor) : StreamEvent;
 
