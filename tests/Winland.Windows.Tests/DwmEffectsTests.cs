@@ -121,6 +121,26 @@ public class DwmEffectsTests
         Assert.Equal(0, surface.RegionWrites);
     }
 
+    [Fact]
+    public void ResettingAllPutsBackEveryWindowItChanged()
+    {
+        var surface = new FakeSurface();
+        surface.Backdrops[Window] = 2;
+        surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
+        var other = new WindowId(8);
+        var effects = new DwmEffects(surface);
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(other, Decorated(blur: false, shadow: false));
+
+        effects.ResetAll();
+
+        Assert.Equal(2u, surface.Backdrops[Window]);
+        Assert.Empty(surface.Regions[Window]);
+        Assert.False(effects.CutsCorners(Window));
+        Assert.Equal(DwmEffects.AutoBackdrop, surface.Backdrops[other]);
+        Assert.Equal(DwmEffects.StylePolicy, surface.Policies[other]);
+    }
+
     private static Decoration Decorated(
         bool blur = true,
         bool shadow = true,
