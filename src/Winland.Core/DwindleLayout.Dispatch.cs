@@ -28,8 +28,13 @@ internal sealed partial class DwindleLayout
         if (!TryGeometry(active, out var origin, out var floating))
             return null;
 
-        return Neighbor(origin, direction, active, floating)
-            ?? Neighbor(origin, direction, active, !floating);
+        if (floating)
+            return ToSide(direction) is Side side
+                ? DirectionalNeighbor.FindByAngle(_clients, origin, side, active, (WindowId window, out Rectangle box) => TryGeometry(window, out box, out _))
+                : null;
+
+        return Neighbor(origin, direction, active, false)
+            ?? Neighbor(origin, direction, active, true);
     }
 
     private WindowId? Neighbor(Rectangle origin, PendingSplit direction, WindowId except, bool floating) =>
