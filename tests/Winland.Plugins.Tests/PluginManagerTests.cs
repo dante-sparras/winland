@@ -197,6 +197,39 @@ public class PluginManagerTests
     }
 
     [Fact]
+    public void UpdateUnloadsAPluginTheManifestNoLongerLists()
+    {
+        using var fixture = ManagerFixture.Create();
+        fixture.ManifestText = ManagerFixture.Manifest + "[extra]\napi_version = 1\nproject = \"Sample/Sample.csproj\"\nassembly = \"SamplePlugin.dll\"\n";
+        Assert.Equal(0, fixture.Manager.Install(ManagerFixture.Url, null));
+        fixture.Running.Loaded.Add("extra");
+        fixture.ManifestText = ManagerFixture.Manifest;
+        fixture.Commit = new string('b', 40);
+
+        Assert.Equal(0, fixture.Manager.Update(force: false));
+
+        Assert.Equal("sample", Assert.Single(InstalledPlugins.Read(fixture.Paths.Approvals)).Name);
+        Assert.Contains("unload extra", fixture.Running.Calls);
+        Assert.DoesNotContain("extra", fixture.Running.Loaded);
+        Assert.Contains("Unloaded plugin 'extra'", fixture.Output.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UpdateReportsAPluginThatDidNotLoadAgain()
+    {
+        using var fixture = ManagerFixture.Create();
+        Assert.Equal(0, fixture.Manager.Install(ManagerFixture.Url, null));
+        fixture.Running.Loaded.Add("sample");
+        fixture.Running.FailLoad = true;
+        fixture.Commit = new string('b', 40);
+
+        Assert.Equal(1, fixture.Manager.Update(force: false));
+
+        Assert.Contains("Plugin 'sample' was unloaded but did not load again", fixture.Error.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Reloaded plugin 'sample'", fixture.Output.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ForcedUpdateRebuildsTheSameCommit()
     {
         using var fixture = ManagerFixture.Create();

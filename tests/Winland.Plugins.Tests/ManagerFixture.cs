@@ -148,6 +148,8 @@ internal sealed class ManagerFixture : IDisposable
 
         public List<string> Calls { get; } = [];
 
+        public bool FailLoad { get; set; }
+
         public bool Unload(string name)
         {
             Calls.Add("unload " + name);
@@ -157,7 +159,7 @@ internal sealed class ManagerFixture : IDisposable
         public bool Load(string path)
         {
             Calls.Add("load " + path);
-            return Loaded.Add(Path.GetFileNameWithoutExtension(path));
+            return !FailLoad && Loaded.Add(Path.GetFileNameWithoutExtension(path));
         }
     }
 

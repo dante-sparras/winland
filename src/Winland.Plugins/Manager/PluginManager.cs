@@ -97,11 +97,34 @@ public sealed class PluginManager(
         if (!Apply(staged, []))
             return 1;
 
+        // A plugin the manifest no longer lists was removed with its file and approval, so a
+        // copy still loaded in Winland is unloaded too.
+        foreach (var repository in staged)
+        {
+            var dropped = installed.Where(entry => SameUrl(entry.Repository, repository.Url)
+                && !repository.Plugins.Any(plugin => plugin.Name == entry.Name));
+            foreach (var entry in dropped)
+            {
+                if (running.Unload(entry.Name))
+                    output.WriteLine($"Unloaded plugin '{entry.Name}', which the manifest no longer lists.");
+            }
+        }
+
         // The host reads an assembly into memory, so the file can be replaced while it is loaded.
         foreach (var plugin in staged.SelectMany(repository => repository.Plugins))
         {
-            if (running.Unload(plugin.Name) && running.Load(Target(plugin.Name)))
+            if (!running.Unload(plugin.Name))
+                continue;
+
+            var target = Target(plugin.Name);
+            if (running.Load(target))
+            {
                 output.WriteLine($"Reloaded plugin '{plugin.Name}'.");
+                continue;
+            }
+
+            error.WriteLine($"Plugin '{plugin.Name}' was unloaded but did not load again. Load it with 'winlandctl plugin load {target}'.");
+            failed = true;
         }
 
         return failed ? 1 : 0;

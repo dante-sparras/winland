@@ -103,7 +103,7 @@ These commands do not use the pipe. They need `git` and the .NET SDK on `PATH`.
 
 `install` and `update` refuse to run from an elevated shell. Building runs the repository's code, and that must not run as an administrator. Nothing loads from the staging folder, and the elevated step writes nothing there: it sends what it did back over a named pipe that `winlandctl` opened for the current user only.
 
-`update` clones each installed repository again. A repository whose commit has not changed is skipped unless `--force` is given. The rest are rebuilt and approved together, through one confirmation. A plugin that is loaded in the running Winland is unloaded and loaded again from the new file. A plugin the manifest no longer lists is removed.
+`update` clones each installed repository again. A repository whose commit has not changed is skipped unless `--force` is given. The rest are rebuilt and approved together, through one confirmation. A plugin that is loaded in the running Winland is unloaded and loaded again from the new file. When it does not load again, `update` says so and exits with code 1. A plugin the manifest no longer lists is removed, and unloaded from the running Winland.
 
 `remove` takes a repository URL or the name of one of its plugins, and removes every plugin from that repository: the files, the approvals, and the plugins loaded in the running Winland. A plugin approved by hand is not removed this way.
 
