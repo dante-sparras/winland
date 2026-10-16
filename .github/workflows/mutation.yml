@@ -1,6 +1,10 @@
 # Called from ci.yml when a release run is dispatched. Not a pull-request entry point.
-# The score gate is thresholds.break in stryker-config.json.
-# scripts/mutate.ps1 exits 0 when tests/ has no unit-test project yet.
+# The score gate is thresholds.break in stryker-config.json, applied to each lane's whole score.
+# scripts/mutate.ps1 holds the lanes. Each run it lists (a lane, or one shard of a long lane) is a
+# job of its own, so each fits its timeout on a 4-vCPU runner. The runs never fail on their score;
+# the gate job adds up every lane's runs and fails when a lane is under the threshold. Any failed
+# job fails the caller, so a release run fails if any run or the gate fails.
+# With no unit-test project under tests/ yet, -List prints [] and the other jobs are skipped.
 
 name: Mutation testing
 
@@ -16,10 +20,37 @@ permissions:
   contents: read
 
 jobs:
+  runs:
+    name: List the mutation runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      runs: ${{ steps.list.outputs.runs }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: List the runs
+        id: list
+        shell: pwsh
+        run: |
+          $runs = ./scripts/mutate.ps1 -List
+          if ($LASTEXITCODE -ne 0) { throw "mutate.ps1 -List failed with $LASTEXITCODE" }
+          Write-Output "runs: $runs"
+          "runs=$runs" >> $env:GITHUB_OUTPUT
+
   mutation:
-    name: Mutation testing
+    name: Mutation testing (${{ matrix.run }})
+    needs: runs
+    if: needs.runs.outputs.runs != '[]'
     runs-on: windows-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        run: ${{ fromJSON(needs.runs.outputs.runs) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -33,15 +64,43 @@ jobs:
       - name: Restore Stryker
         run: dotnet tool restore
 
+      # Stryker's default is half the logical processors. A runner has nothing else to do.
       - name: Run Stryker
         shell: pwsh
-        run: ./scripts/mutate.ps1
+        env:
+          RUN: ${{ matrix.run }}
+        run: ./scripts/mutate.ps1 -Run $env:RUN -Concurrency ([Environment]::ProcessorCount)
 
       - name: Upload the report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: mutation-report
-          path: '**/StrykerOutput/**/mutation-report.html'
+          name: mutation-report-${{ matrix.run }}
+          path: |
+            tests/*/StrykerOutput/${{ matrix.run }}/reports/mutation-report.html
+            tests/*/StrykerOutput/${{ matrix.run }}/mutation-summary.json
           if-no-files-found: ignore
           retention-days: 14
+
+  gate:
+    name: Mutation score gate
+    needs: [runs, mutation]
+    if: needs.runs.outputs.runs != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: mutation-report-*
+          path: ${{ runner.temp }}/mutation
+
+      - name: Check each lane's score
+        shell: pwsh
+        env:
+          REPORTS: ${{ runner.temp }}/mutation
+        run: ./scripts/mutate.ps1 -Gate $env:REPORTS

@@ -87,15 +87,34 @@ Every lane except Mutation is a step in that one Windows job. GitHub bills each 
 | History | Fails when the branch shares no commit with `main`. Merging such a branch would add a second root commit to `main` and break `git blame`. | Always. |
 | Lint | Parses the PowerShell, rejects file or folder names that differ only by case, builds the solution at the repo root if there is one, and runs `actionlint` on `.github/workflows/*.yml`. | Always. |
 | Test | Runs `dotnet test` on each `*.Tests.csproj` under `tests/`, except `*.Smoke.Tests.csproj`. | On manual and release runs. On a pull request, unless every changed file is documentation or repo metadata: `*.md`, `docs/`, `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/CODEOWNERS`, `.github/rulesets/`, `.gitignore`, `.gitattributes`, or `LICENSE*`. Any other change, including one to a workflow or a script, runs it. |
-| Mutation | Mutation testing. It is the slow lane, and a separate job that runs beside the others. | Only on a release run: CI dispatched with **Release run** turned on, or called by a release workflow. |
+| Mutation | Mutation testing, one job per mutation run, then a score gate (see [Mutation testing](#mutation-testing)). It is the slow lane, and its jobs run beside the others. | Only on a release run: CI dispatched with **Release run** turned on, or called by a release workflow. |
 
 - Test and Mutation pass until a unit test project exists.
 - The unit tests that open real windows are in one xunit collection (`DesktopCollection` in `tests/Winland.Windows.Tests`) that runs alone, one test at a time. The ones a running Winland would disturb skip while its pipe `\\.\pipe\winland` exists, so run them with the daemon stopped. CI has no daemon and runs them.
-- A release run always runs Test and Mutation, and a failure in either fails the run.
-- The check job has a 60-minute timeout, and Mutation has its own 60.
+- A release run always runs Test and Mutation, and a failure in either fails the run. A failure in any mutation job, or in the gate, fails Mutation.
+- The check job has a 60-minute timeout, and each mutation job has its own 60.
 - Smoke tests (`*.Smoke.Tests.csproj`) run only when someone dispatches the `Smoke tests` workflow by hand (`.github/workflows/smoke.yml`). A release run does not execute them, and they are not a required check. `scripts/smoke.ps1` runs them locally. It sets `WINLAND_SMOKE=1`, without which every smoke test skips itself, and it fails when every test in a smoke project was skipped, for example on a host with no desktop.
 
 The Lint lane also checks links in tracked markdown files. A relative link or image must point at a file or folder that exists with exactly that spelling (Linux is case-sensitive). It also checks that each repo path `AGENTS.md` names in backticks exists, except a path in a gitignored reference checkout under `docs/agents/` and the optional files `docs/agents/domain.md` lists. A failure prints as `Broken link: <file>: <target>`.
+
+### Mutation testing
+
+`scripts/mutate.ps1` runs [Stryker.NET](https://stryker-mutator.io/docs/stryker-net/introduction/) (the version in `.config/dotnet-tools.json`; run `dotnet tool restore` once). It has one lane per unit test project, and each lane mutates the one project that test project tests. A long lane is split into shards, each mutating a share of the project's files, so every CI job fits its timeout on a 4-vCPU runner. A lane or one shard of it is a mutation run.
+
+```powershell
+pwsh -NoProfile -File scripts/mutate.ps1                  # every run, then the gate
+pwsh -NoProfile -File scripts/mutate.ps1 -Project Daemon  # one lane, then the gate
+pwsh -NoProfile -File scripts/mutate.ps1 -List            # the run names CI makes jobs from
+pwsh -NoProfile -File scripts/mutate.ps1 -Run Core-2      # one run and no gate, as a CI job runs it
+pwsh -NoProfile -File scripts/mutate.ps1 -Gate <folder>   # gate the run summaries under a folder
+```
+
+- The gate is `thresholds.break` in `stryker-config.json`, applied to each lane's whole score: the killed and timed-out mutants of all its shards over every mutant that compiled and was not ignored. A shard never passes or fails on its own score. In CI the `Mutation score gate` job adds up the summaries the run jobs upload.
+- Each run writes `tests/<project>/StrykerOutput/<run>/reports/mutation-report.html`, which CI uploads as `mutation-report-<run>`.
+- A file that drives Win32 or the shell directly, with no seam a unit test can reach without a real desktop, is left out in the lane's `Exclude` list in `scripts/mutate.ps1`, with the reason. A Win32-only member in a file that also holds tested logic is left out with a `// Stryker disable once all : <reason>` comment on it. Test the logic instead of leaving it out.
+- The Windows lane leaves out the `Desktop` collection (`Category=Desktop`): Stryker runs several test processes at once, and windows they open at the same time fight over the foreground.
+- Stryker's test host needs `DOTNET_ROOT` when the SDK is not installed where .NET looks by default, for example under mise: `$env:DOTNET_ROOT = "$env:LOCALAPPDATA\mise\dotnet-root"`. CI's `setup-dotnet` sets it.
+- A new unit test project fails `scripts/mutate.ps1` until it has a lane.
 
 ## Rules on `main` and `release/*`
 
