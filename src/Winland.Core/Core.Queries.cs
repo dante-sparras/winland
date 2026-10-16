@@ -167,6 +167,13 @@ public sealed partial class Core
                 return new CommandReply($"error: keyword '{setting.Keyword}' is not applied live", View([]));
         }
 
+        // The pipe never launches elevated, so it may not add a bind that would.
+        foreach (var directive in parsed.Binds)
+        {
+            if (directive is Bind bind && LaunchParser.IsExec(bind.Dispatcher) && ConfigElevation.Elevated(bind.Arguments))
+                return new CommandReply("error: a bind added over the pipe cannot launch elevated", View([]));
+        }
+
         var kept = _configErrors;
         var outcome = Apply(MergeLive(_config, parsed));
         _configErrors = kept;
@@ -220,6 +227,7 @@ public sealed partial class Core
             WorkspaceRules = current?.WorkspaceRules ?? WorkspaceRule.None,
             Sources = current?.Sources ?? [],
             Environment = current?.Environment ?? EnvironmentAssignment.None,
+            ElevationTrusted = current?.ElevationTrusted ?? false,
         };
     }
 

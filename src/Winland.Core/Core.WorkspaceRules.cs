@@ -170,7 +170,7 @@ public sealed partial class Core
         if (string.IsNullOrEmpty(command))
             return;
 
-        var parsed = LaunchParser.Parse(command, allowsElevation: true, raw: false);
+        var parsed = LaunchParser.Parse(command, allowsElevation: ElevationTrusted, raw: false);
         if (parsed.Launch is Launch launch)
             _born.Enqueue(WithEnvironment(launch) ?? launch);
     }

@@ -99,7 +99,7 @@ internal static class LaunchParser
             if (!include)
                 continue;
 
-            var parsed = Parse(setting.Value, allowsElevation: true, raw);
+            var parsed = Parse(setting.Value, allowsElevation: config.ElevationTrusted, raw);
             if (parsed.Launch is not { } launch)
                 continue;
 
@@ -110,6 +110,10 @@ internal static class LaunchParser
 
         return launches;
     }
+
+    internal static bool IsExec(string dispatcher) =>
+        dispatcher.Equals("exec", StringComparison.OrdinalIgnoreCase)
+        || dispatcher.Equals("execr", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryParseRules(string body, ref bool elevated, out IReadOnlyList<WindowRule> rules, List<string> warnings)
     {

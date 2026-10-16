@@ -62,7 +62,8 @@ public sealed partial class Core
         _trigger = trigger;
         try
         {
-            return Execute(name, arguments, allowsElevation: true);
+            // A bind comes from the config, so it may launch elevated only when the config may.
+            return Execute(name, arguments, allowsElevation: ElevationTrusted);
         }
         finally
         {

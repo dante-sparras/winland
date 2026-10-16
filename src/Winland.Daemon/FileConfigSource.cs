@@ -1,13 +1,23 @@
+using Winland.Plugins;
+
 namespace Winland;
 
 sealed class FileConfigSource(string directory) : IConfigSource
 {
+    /// <summary>Whether every file read so far, the config and each source, is admin-only.</summary>
+    public ConfigTrust Trust { get; } = new();
+
     public string? Read(string path)
     {
         var full = Path.IsPathRooted(path) ? path : Path.Combine(directory, path);
         try
         {
-            return File.ReadAllText(full);
+            // The access list comes from the handle the text is read through, so a path
+            // swapped between the check and the read cannot pass off another file.
+            using var stream = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            Trust.Note(full, WindowsAccessReader.TryRead(stream, out var access) ? access : null);
+            using var reader = new StreamReader(stream, detectEncodingFromByteOrderMarks: true);
+            return reader.ReadToEnd();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

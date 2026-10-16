@@ -2,7 +2,17 @@
 
 What Winland adds on top of Hyprland's config and window rules: syntax and behavior that Hyprland does not have. A keyword Winland does not honor is in [gaps.md](gaps.md), honored Hyprland behavior is in [behavior.md](behavior.md), and terms are defined in [CONTEXT.md](../CONTEXT.md).
 
-`[elevated]` at the start of an `exec`, `exec-once`, `execr`, `execr-once`, or `exec-shutdown` command, or of an `exec` or `execr` dispatcher argument, launches that program with administrator rights. The same word inside a rule block does too, alone or with other rules. Without it the launch is de-elevated. A command received on the pipe never launches elevated, even when it starts with `[elevated]` or names it in the block.
+`[elevated]` at the start of an `exec`, `exec-once`, `execr`, `execr-once`, or `exec-shutdown` command, or of an `exec` or `execr` dispatcher argument, launches that program with administrator rights. The same word inside a rule block does too, alone or with other rules. Without it the launch is de-elevated. A command received on the pipe never launches elevated, even when it starts with `[elevated]` or names it in the block, and `keyword` on the pipe refuses a bind that asks for it.
+
+`[elevated]`, in an exec line, a bind or a workspace rule's `on-created-empty`, is honored only when the config file and every file it sources are writable by administrators alone: each is owned by `SYSTEM`, `Administrators` or `TrustedInstaller`, and no other principal may write it. Otherwise every launch runs de-elevated, and one config warning says which file a non-administrator can write. The default config, `%APPDATA%\winland\winland.conf`, is in a folder any program the user runs can write, so it is not trusted until protected. From an elevated shell, make Administrators the owner of the folder and of the files in it, and give the user read access only:
+
+```
+icacls "%APPDATA%\winland" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F "%USERNAME%":(OI)(CI)RX
+icacls "%APPDATA%\winland\*" /reset /T
+icacls "%APPDATA%\winland" /setowner *S-1-5-32-544 /T
+```
+
+After that the config is edited from an elevated editor. A file the user creates or replaces there again is owned by the user, and the config is untrusted until it is protected again.
 
 `exe` is a `windowrulev2` match on the executable file name, including its extension. It uses the same regular expressions as `class` and `title`. `initialClass` and `initial_class` match the class, and `initialTitle` and `initial_title` match the title, because a rule is applied once when the window appears.
 

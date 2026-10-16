@@ -219,6 +219,8 @@ public sealed partial class Core
         return View([]);
     }
 
+    private bool ElevationTrusted => _config?.ElevationTrusted == true;
+
     private static IReadOnlyList<Launch> ConfigLaunches(ConfigDocument config, LaunchParser.LaunchMoment moment)
     {
         ArgumentNullException.ThrowIfNull(config);
