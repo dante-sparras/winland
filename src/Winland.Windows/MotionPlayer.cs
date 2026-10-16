@@ -129,11 +129,15 @@ internal sealed class MotionPlayer : IDisposable
         }
     }
 
-    /// <summary>Forgets a window that is no longer a Client.</summary>
+    /// <summary>
+    /// Forgets a window that is no longer a Client. It waits out a frame already being applied to the
+    /// window, so whatever the caller does to the window next comes after that frame.
+    /// </summary>
     internal void Drop(WindowId window)
     {
         // The window's lock stays, so a caller that still holds it keeps the same one.
-        Halt(window);
+        lock (For(window))
+            Halt(window);
     }
 
     /// <summary>Applies one frame of every motion. Returns whether any motion is still running.</summary>
