@@ -51,10 +51,10 @@ internal static partial class WindowRuleParser
     internal static bool TryParseBare(string text, out WindowRule? rule, out string error)
     {
         rule = null;
-        if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out _, out var opacity, out var fullscreen, out var idle, out var placement, out var group, out error))
+        if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out var placement, out var group, out error))
             return false;
 
-        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, Opacity: opacity, Fullscreen: fullscreen, IdleInhibit: idle, Placement: placement, Group: group);
+        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, ScrollingWidth: scrollingWidth, Opacity: opacity, Fullscreen: fullscreen, IdleInhibit: idle, Placement: placement, Group: group);
         return true;
     }
 
