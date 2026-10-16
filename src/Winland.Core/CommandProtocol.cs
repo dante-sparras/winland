@@ -47,7 +47,10 @@ public static partial class CommandProtocol
         }
 
         if (verb.Equals("plugin", StringComparison.OrdinalIgnoreCase))
-            return ParsePlugin(rest);
+        {
+            var plugin = ParsePlugin(rest);
+            return plugin is CommandParsed parsed ? Attach(parsed.Request, flags) : plugin;
+        }
 
         if (rest.Length > 0)
             return new CommandRejected("error: unknown request");
