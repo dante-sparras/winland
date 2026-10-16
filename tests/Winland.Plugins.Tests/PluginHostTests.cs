@@ -243,6 +243,37 @@ public class PluginHostTests
     }
 
     [Fact]
+    public void ApprovalsRefusedOnTheOpenFileRefuseTheLoad()
+    {
+        using var fixture = Fixture.Create("sample");
+        fixture.Host.Dispose();
+        using var host = new PluginHost(new OpenedGuard(_ => "A non-administrator can write the open approvals."), new ListLog(), fixture.Options);
+
+        var reply = host.Load(fixture.AssemblyPath);
+
+        Assert.Contains("open approvals", reply, StringComparison.Ordinal);
+        Assert.False(Dispatchers.IsKnown("sampleecho"));
+    }
+
+    // The approvals are read through the handle that was checked. A file put in their place
+    // after the check is not what decides the load.
+    [Fact]
+    public void ApprovalsAreReadFromTheFileThatWasChecked()
+    {
+        using var fixture = Fixture.Create("sample");
+        fixture.Host.Dispose();
+        var guard = new OpenedGuard(_ =>
+        {
+            File.Move(fixture.ApprovalsPath, fixture.ApprovalsPath + ".checked");
+            File.WriteAllText(fixture.ApprovalsPath, "[]");
+            return null;
+        });
+        using var host = new PluginHost(guard, new ListLog(), fixture.Options);
+
+        Assert.Equal("ok", host.Load(fixture.AssemblyPath));
+    }
+
+    [Fact]
     public void PluginKeywordLoadsOnConfigAndTheKeywordHandlerRuns()
     {
         using var fixture = Fixture.Create("sample");
@@ -413,11 +444,22 @@ public class PluginHostTests
     private sealed class AllowGuard : IPluginLocationGuard
     {
         public string? Deny(string pluginDirectory, string approvalsFile) => null;
+
+        public string? DenyApprovals(FileStream approvals) => null;
+    }
+
+    private sealed class OpenedGuard(Func<FileStream, string?> deny) : IPluginLocationGuard
+    {
+        public string? Deny(string pluginDirectory, string approvalsFile) => null;
+
+        public string? DenyApprovals(FileStream approvals) => deny(approvals);
     }
 
     private sealed class DenyGuard(string message) : IPluginLocationGuard
     {
         public string? Deny(string pluginDirectory, string approvalsFile) => message;
+
+        public string? DenyApprovals(FileStream approvals) => message;
     }
 
     private sealed class ListLog : IPluginLog

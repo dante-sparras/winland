@@ -30,10 +30,29 @@ public static class InstalledPlugins
         if (!System.IO.File.Exists(path))
             return [];
 
+        return Parse(() => System.IO.File.ReadAllText(path), path);
+    }
+
+    /// <summary>Reads the approvals from a file that is already open. <paramref name="path"/> names it in errors.</summary>
+    public static IReadOnlyList<InstalledPlugin> Read(Stream stream, string path)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return Parse(
+            () =>
+            {
+                using var reader = new StreamReader(stream, leaveOpen: true);
+                return reader.ReadToEnd();
+            },
+            path);
+    }
+
+    private static InstalledPlugin[] Parse(Func<string> read, string path)
+    {
         List<Entry?>? entries;
         try
         {
-            entries = JsonSerializer.Deserialize<List<Entry?>>(System.IO.File.ReadAllText(path), Json);
+            entries = JsonSerializer.Deserialize<List<Entry?>>(read(), Json);
         }
         catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
         {

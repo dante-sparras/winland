@@ -31,13 +31,14 @@ public class PluginApplyTests
         var result = Apply(fixture, Install(fixture, ("sample", PluginHash.OfFile(staged), staged)));
 
         Assert.True(result.Ok);
-        Assert.Equal([Path.GetFullPath(fixture.Paths.PluginDirectory)], fixture.Protector.Protected);
+        Assert.Equal([fixture.Root, Path.GetFullPath(fixture.Paths.PluginDirectory)], fixture.Protector.Protected);
         Assert.Contains(result.Lines, line => line.StartsWith("Created the plugin directory", StringComparison.Ordinal));
     }
 
-    // A non-administrator may have created the directory first, so finding it proves nothing.
+    // A non-administrator may have created the directory, or ProgramData\Winland above it, first.
+    // Finding them proves nothing. The parent goes first: its owner could swap the directory.
     [Fact]
-    public void ExistingPluginDirectoryIsProtectedAgain()
+    public void ExistingPluginDirectoryAndItsParentAreProtectedAgain()
     {
         using var fixture = ManagerFixture.Create();
         Directory.CreateDirectory(fixture.Paths.PluginDirectory);
@@ -45,7 +46,25 @@ public class PluginApplyTests
 
         Assert.True(Apply(fixture, Install(fixture, ("sample", PluginHash.OfFile(staged), staged))).Ok);
 
-        Assert.Equal([Path.GetFullPath(fixture.Paths.PluginDirectory)], fixture.Protector.Protected);
+        Assert.Equal([fixture.Root, Path.GetFullPath(fixture.Paths.PluginDirectory)], fixture.Protector.Protected);
+    }
+
+    // The kept approvals are read through a handle the guard checked, not by path after the check.
+    [Fact]
+    public void ApprovalsTheGuardRefusesOnTheOpenFileInstallNothing()
+    {
+        using var fixture = ManagerFixture.Create();
+        Directory.CreateDirectory(fixture.Paths.PluginDirectory);
+        InstalledPlugins.Write(fixture.Paths.Approvals, [new InstalledPlugin("planted", new string('1', 64), null, null, null)]);
+        var staged = Stage(fixture, "sample.dll");
+        var apply = new PluginApply(new ApprovalsGuard("A non-administrator can write the open approvals."), fixture.Protector, fixture.Paths.PluginDirectory);
+
+        var result = apply.Run(Install(fixture, ("sample", PluginHash.OfFile(staged), staged)));
+
+        Assert.False(result.Ok);
+        Assert.Equal(["A non-administrator can write the open approvals."], result.Lines);
+        Assert.False(File.Exists(Path.Combine(fixture.Paths.PluginDirectory, "sample.dll")));
+        Assert.Equal("planted", Assert.Single(InstalledPlugins.Read(fixture.Paths.Approvals)).Name);
     }
 
     [Fact]
@@ -57,7 +76,7 @@ public class PluginApplyTests
         using var fixture = ManagerFixture.Create();
         var elsewhere = Path.Combine(fixture.Root, "elsewhere");
         Directory.CreateDirectory(elsewhere);
-        Junction(fixture.Paths.PluginDirectory, elsewhere);
+        Junctions.Create(fixture.Paths.PluginDirectory, elsewhere);
         var staged = Stage(fixture, "sample.dll");
 
         var result = Apply(fixture, Install(fixture, ("sample", PluginHash.OfFile(staged), staged)));
@@ -348,21 +367,11 @@ public class PluginApplyTests
     private static ApplyRequest Install(ManagerFixture fixture, string directory, params (string Name, string Sha256, string Source)[] plugins) =>
         Install(fixture, plugins) with { PluginDirectory = directory, ApprovalsPath = Path.Combine(directory, "approved.json") };
 
-    private static void Junction(string link, string target)
+    private sealed class ApprovalsGuard(string message) : IPluginLocationGuard
     {
-        var start = new System.Diagnostics.ProcessStartInfo("cmd.exe")
-        {
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-        };
-        foreach (var argument in new[] { "/d", "/c", "mklink", "/J", link, target })
-            start.ArgumentList.Add(argument);
+        public string? Deny(string pluginDirectory, string approvalsFile) => null;
 
-        using var process = System.Diagnostics.Process.Start(start)!;
-        process.StandardOutput.ReadToEnd();
-        process.WaitForExit();
-        Assert.Equal(0, process.ExitCode);
+        public string? DenyApprovals(FileStream approvals) => message;
     }
 
     private static string Stage(ManagerFixture fixture, string name)

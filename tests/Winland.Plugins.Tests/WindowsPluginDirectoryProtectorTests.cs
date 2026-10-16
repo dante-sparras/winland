@@ -26,7 +26,9 @@ public class WindowsPluginDirectoryProtectorTests
         Assert.Null(AdministratorOnly.NonAdministrator(new AccessList(owner, grants)));
     }
 
-    // Making Administrators the owner needs an elevated token, so this runs only elevated.
+    // Making Administrators the owner needs an elevated token, so this runs only elevated. The folders
+    // above a temporary folder belong to the user, so the guard would refuse one there; this one is
+    // made in ProgramData, as the plugin directory is.
     [Fact]
     public void ProtectedDirectoryPassesTheLocationGuard()
     {
@@ -39,10 +41,12 @@ public class WindowsPluginDirectoryProtectorTests
                 return;
         }
 
-        var directory = Path.Combine(Path.GetTempPath(), "winland-protect-" + Guid.NewGuid().ToString("N"));
+        var parent = AdministratorFolder.CreateNew(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "winland-protect-");
+        var directory = Path.Combine(parent, "plugins");
         Directory.CreateDirectory(directory);
         try
         {
+            new WindowsPluginDirectoryProtector().Protect(parent);
             new WindowsPluginDirectoryProtector().Protect(directory);
 
             var denial = new WindowsPluginLocationGuard().Deny(directory, Path.Combine(directory, "approved.json"));
@@ -50,14 +54,42 @@ public class WindowsPluginDirectoryProtectorTests
             var rules = new DirectoryInfo(directory).GetAccessControl().GetAccessRules(true, true, typeof(SecurityIdentifier));
             foreach (FileSystemAccessRule rule in rules)
                 Assert.False(rule.IsInherited);
+
+            Assert.Equal(AdministratorOnly.AdministratorsSid, new DirectoryInfo(directory).GetAccessControl().GetOwner(typeof(SecurityIdentifier))?.Value);
         }
         finally
         {
-            var open = new DirectorySecurity();
-            using var identity = WindowsIdentity.GetCurrent();
-            open.AddAccessRule(new FileSystemAccessRule(identity.User!, FileSystemRights.FullControl, AccessControlType.Allow));
-            new DirectoryInfo(directory).SetAccessControl(open);
-            Directory.Delete(directory, recursive: true);
+            Directory.Delete(parent, recursive: true);
+        }
+    }
+
+    // A junction swapped in after a check by path would otherwise have its target's access list rewritten.
+    [Fact]
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    public void AJunctionIsRefusedAndItsTargetKeepsItsAccessList()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        var root = Path.Combine(Path.GetTempPath(), "winland-protect-" + Guid.NewGuid().ToString("N"));
+        var target = Path.Combine(root, "target");
+        var link = Path.Combine(root, "plugins");
+        Directory.CreateDirectory(target);
+        try
+        {
+            Junctions.Create(link, target);
+            var before = new DirectoryInfo(target).GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.Owner | AccessControlSections.Access);
+
+            var refused = Assert.Throws<InvalidOperationException>(() => new WindowsPluginDirectoryProtector().Protect(link));
+
+            Assert.Contains("reparse point", refused.Message, StringComparison.Ordinal);
+            var after = new DirectoryInfo(target).GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.Owner | AccessControlSections.Access);
+            Assert.Equal(before, after);
+        }
+        finally
+        {
+            Junctions.Delete(link);
+            Directory.Delete(root, recursive: true);
         }
     }
 }

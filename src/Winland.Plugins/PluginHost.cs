@@ -246,7 +246,29 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
         }
 
         var full = Resolve(path, baseDirectory);
+
+        // The approvals are opened before the location is checked and read through that handle, so
+        // what is read is the file that was checked, even when its folder is swapped in between.
+        FileStream? approvals;
+        try
+        {
+            approvals = File.Exists(_approvalsPath)
+                ? new FileStream(_approvalsPath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete)
+                : null;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            var message = $"Could not read approvals '{_approvalsPath}': {exception.Message}";
+            report.Failures.Add(message);
+            _log.Write(message);
+            return report;
+        }
+
+        using var opened = approvals;
         var denied = _guard.Deny(_directory, _approvalsPath);
+        if (denied is null && approvals is not null)
+            denied = _guard.DenyApprovals(approvals);
+
         if (denied is not null)
         {
             report.Failures.Add(denied);
@@ -283,7 +305,8 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
         }
 
         var hash = PluginHash.Of(bytes);
-        var matches = ApprovalFile.Read(_approvalsPath, _log)
+        var approved = approvals is null ? [] : ApprovalFile.Read(approvals, _approvalsPath, _log);
+        var matches = approved
             .Where(entry => entry.Sha256.Equals(hash, StringComparison.OrdinalIgnoreCase))
             .ToArray();
         if (matches.Length == 0)

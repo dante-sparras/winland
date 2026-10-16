@@ -18,7 +18,8 @@ public class PluginLocationPolicyTests
                 new PrincipalAccess(AdministratorOnly.AdministratorsSid, CanWrite: true, AppliesToTarget: true),
                 new PrincipalAccess("S-1-5-32-545", CanWrite: true, AppliesToTarget: true)),
             @"C:\ProgramData\Winland\plugins\approved.json",
-            approvals: null);
+            approvals: null,
+            ancestors: []);
 
         Assert.NotNull(denial);
         Assert.Contains("non-administrator", denial, StringComparison.Ordinal);
@@ -33,7 +34,8 @@ public class PluginLocationPolicyTests
             @"C:\ProgramData\Winland\plugins",
             Owned(new PrincipalAccess(AdministratorOnly.AdministratorsSid, CanWrite: true, AppliesToTarget: true)),
             @"C:\ProgramData\Winland\plugins\approved.json",
-            Owned(new PrincipalAccess("S-1-5-32-545", CanWrite: true, AppliesToTarget: true)));
+            Owned(new PrincipalAccess("S-1-5-32-545", CanWrite: true, AppliesToTarget: true)),
+            ancestors: []);
 
         Assert.NotNull(denial);
         Assert.Contains("approved.json", denial, StringComparison.Ordinal);
@@ -51,7 +53,8 @@ public class PluginLocationPolicyTests
                 new PrincipalAccess("S-1-3-0", CanWrite: true, AppliesToTarget: false),
                 new PrincipalAccess("S-1-5-32-545", CanWrite: false, AppliesToTarget: true)),
             @"C:\ProgramData\Winland\plugins\approved.json",
-            approvals: null);
+            approvals: null,
+            ancestors: []);
 
         Assert.Null(denial);
     }
@@ -67,7 +70,8 @@ public class PluginLocationPolicyTests
                 new PrincipalAccess(AdministratorOnly.AdministratorsSid, CanWrite: true, AppliesToTarget: true),
                 new PrincipalAccess(CurrentUser, CanWrite: true, AppliesToTarget: true)),
             @"C:\ProgramData\Winland\plugins\approved.json",
-            approvals: null);
+            approvals: null,
+            ancestors: []);
 
         Assert.NotNull(denial);
         Assert.Contains(CurrentUser, denial, StringComparison.Ordinal);
@@ -84,9 +88,9 @@ public class PluginLocationPolicyTests
             CurrentUser,
             [new PrincipalAccess(AdministratorOnly.AdministratorsSid, CanWrite: true, AppliesToTarget: true)]);
 
-        var onDirectory = PluginLocationPolicy.Deny(@"C:\p", directory, @"C:\p\approved.json", null);
-        var onApprovals = PluginLocationPolicy.Deny(@"C:\p", Owned(), @"C:\p\approved.json", approvals);
-        var unknown = PluginLocationPolicy.Deny(@"C:\p", new AccessList(null, []), @"C:\p\approved.json", null);
+        var onDirectory = PluginLocationPolicy.Deny(@"C:\p", directory, @"C:\p\approved.json", null, []);
+        var onApprovals = PluginLocationPolicy.Deny(@"C:\p", Owned(), @"C:\p\approved.json", approvals, []);
+        var unknown = PluginLocationPolicy.Deny(@"C:\p", new AccessList(null, []), @"C:\p\approved.json", null, []);
 
         Assert.NotNull(onDirectory);
         Assert.Contains(CurrentUser, onDirectory, StringComparison.Ordinal);
@@ -232,8 +236,156 @@ public class PluginLocationPolicyTests
         Assert.Equal(write, WindowsAccessReader.CanWrite((FileSystemRights)rights));
     }
 
+    // Delete, delete child, change permissions, take ownership and generic all remove or rename what a
+    // folder holds. Creating files and folders, writing and generic write do not.
+    [Theory]
+    [InlineData(0x10000, true)]
+    [InlineData(0x40, true)]
+    [InlineData(0x40000, true)]
+    [InlineData(0x80000, true)]
+    [InlineData(0x10000000, true)]
+    [InlineData(0x1F01FF, true)]
+    [InlineData(0x1301BF, true)]
+    [InlineData(0x2, false)]
+    [InlineData(0x4, false)]
+    [InlineData(0x116, false)]
+    [InlineData(0x40000000, false)]
+    [InlineData(0x1200A9, false)]
+    public void OnlyRightsThatRemoveEntriesCountAsRemove(int rights, bool remove)
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        Assert.Equal(remove, WindowsAccessReader.CanRemove((FileSystemRights)rights));
+    }
+
+    // Whoever owns ProgramData\Winland, or may delete what it holds, can rename the protected plugins
+    // folder away and put one of their own, with its own approvals, in its place.
+    [Fact]
+    public void AFolderAboveThatANonAdministratorCanEmptyRefusesTheLoad()
+    {
+        var owned = PluginLocationPolicy.Deny(
+            @"C:\ProgramData\Winland\plugins",
+            Owned(new PrincipalAccess(AdministratorOnly.AdministratorsSid, CanWrite: true, AppliesToTarget: true, CanRemove: true)),
+            @"C:\ProgramData\Winland\plugins\approved.json",
+            approvals: null,
+            ancestors: [(@"C:\ProgramData\Winland", new AccessList(CurrentUser, [])), (@"C:\ProgramData", ProgramData())]);
+        var emptied = PluginLocationPolicy.Deny(
+            @"C:\ProgramData\Winland\plugins",
+            Owned(),
+            @"C:\ProgramData\Winland\plugins\approved.json",
+            approvals: null,
+            ancestors: [(@"C:\ProgramData\Winland", Owned(new PrincipalAccess("S-1-5-32-545", CanWrite: true, AppliesToTarget: true, CanRemove: true)))]);
+        var unreadable = PluginLocationPolicy.Deny(
+            @"C:\ProgramData\Winland\plugins",
+            Owned(),
+            @"C:\ProgramData\Winland\plugins\approved.json",
+            approvals: null,
+            ancestors: [(@"C:\ProgramData\Winland", null)]);
+
+        Assert.NotNull(owned);
+        Assert.Contains(@"'C:\ProgramData\Winland'", owned, StringComparison.Ordinal);
+        Assert.Contains("owner " + CurrentUser, owned, StringComparison.Ordinal);
+        Assert.Contains("rename or replace", owned, StringComparison.Ordinal);
+        Assert.NotNull(emptied);
+        Assert.Contains("S-1-5-32-545", emptied, StringComparison.Ordinal);
+        Assert.NotNull(unreadable);
+    }
+
+    // C:\ and ProgramData let users create entries. A new name cannot take the place of one that is there.
+    [Fact]
+    public void FoldersAboveThatOnlyLetUsersAddEntriesPass()
+    {
+        var root = new AccessList(
+            AdministratorOnly.TrustedInstallerSid,
+            [
+                new PrincipalAccess("S-1-5-11", CanWrite: true, AppliesToTarget: true),
+                new PrincipalAccess("S-1-5-11", CanWrite: true, AppliesToTarget: false, CanRemove: true),
+                new PrincipalAccess(AdministratorOnly.AdministratorsSid, CanWrite: true, AppliesToTarget: true, CanRemove: true),
+            ]);
+
+        var denial = PluginLocationPolicy.Deny(
+            @"C:\ProgramData\Winland\plugins",
+            Owned(),
+            @"C:\ProgramData\Winland\plugins\approved.json",
+            approvals: null,
+            ancestors: [(@"C:\ProgramData\Winland", Owned()), (@"C:\ProgramData", ProgramData()), (@"C:\", root)]);
+
+        Assert.Null(denial);
+    }
+
+    [Fact]
+    public void AnApprovalsFileANonAdministratorCanWriteIsRefusedWhereverItWasOpened()
+    {
+        Assert.Null(PluginLocationPolicy.DenyApprovals(@"C:\p\approved.json", null));
+        Assert.Null(PluginLocationPolicy.DenyApprovals(@"C:\p\approved.json", Owned()));
+
+        var denial = PluginLocationPolicy.DenyApprovals(@"C:\p\approved.json", new AccessList(CurrentUser, []));
+
+        Assert.NotNull(denial);
+        Assert.Contains("approved.json", denial, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheFoldersAboveSystem32AreProtectedAndTheOnesAboveTempAreNot()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        var directory = Path.Combine(Path.GetTempPath(), "winland-above-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            Assert.Null(WindowsAccessReader.FirstNonAdministratorAbove(Path.Combine(Environment.SystemDirectory, "drivers")));
+            Assert.NotNull(WindowsAccessReader.FirstNonAdministratorAbove(directory));
+        }
+        finally
+        {
+            Directory.Delete(directory);
+        }
+    }
+
+    // The access lists are read through paths, so a junction would lead the check to another folder.
+    [Fact]
+    public void AJunctionedPluginDirectoryIsRefused()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        var root = Path.Combine(Path.GetTempPath(), "winland-junction-" + Guid.NewGuid().ToString("N"));
+        var target = Path.Combine(root, "target");
+        var link = Path.Combine(root, "plugins");
+        Directory.CreateDirectory(target);
+        try
+        {
+            Junctions.Create(link, target);
+
+            var denial = new WindowsPluginLocationGuard().Deny(link, Path.Combine(link, "approved.json"));
+
+            Assert.NotNull(denial);
+            Assert.Contains("reparse point", denial, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Junctions.Delete(link);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static AccessList Owned(params PrincipalAccess[] grants) =>
         new(AdministratorOnly.AdministratorsSid, grants);
+
+    // ProgramData as Windows sets it up: users may create entries, and own what they create.
+    private static AccessList ProgramData() =>
+        new(
+            AdministratorOnly.SystemSid,
+            [
+                new PrincipalAccess("S-1-3-0", CanWrite: true, AppliesToTarget: false, CanRemove: true),
+                new PrincipalAccess(AdministratorOnly.SystemSid, CanWrite: true, AppliesToTarget: true, CanRemove: true),
+                new PrincipalAccess(AdministratorOnly.AdministratorsSid, CanWrite: true, AppliesToTarget: true, CanRemove: true),
+                new PrincipalAccess("S-1-5-32-545", CanWrite: false, AppliesToTarget: true),
+                new PrincipalAccess("S-1-5-32-545", CanWrite: true, AppliesToTarget: true),
+            ]);
 
     private sealed class Guard(string? denial) : IPluginLocationGuard
     {
@@ -244,5 +396,7 @@ public class PluginLocationPolicyTests
             Asked.Add((pluginDirectory, approvalsFile));
             return denial;
         }
+
+        public string? DenyApprovals(FileStream approvals) => denial;
     }
 }
