@@ -14,10 +14,9 @@ public class RelaunchPlanTests
             runtimeDirectory: @"C:\Users\dante\AppData\Local\mise\dotnet-root\shared\Microsoft.NETCore.App\10.0.12\",
             dotnetRoot: null,
             pipe: "winland-hand",
-            state: @"C:\temp\session\state.json",
-            interpreter: @"C:\Windows\System32\cmd.exe");
+            state: @"C:\temp\session\state.json");
 
-        Assert.Equal(@"C:\Windows\System32\cmd.exe", spec.FileName);
+        Assert.Equal(Path.Combine(Environment.SystemDirectory, "cmd.exe"), spec.FileName);
         Assert.Equal(@"C:\temp\session", spec.WorkingDirectory);
         Assert.Equal(
             "/d /v:off /s /c \"cd /d \"C:\\temp\\session\" && set \"DOTNET_ROOT=C:\\Users\\dante\\AppData\\Local\\mise\\dotnet-root\" && set \"WINLAND_PIPE=winland-hand\" && set \"WINLAND_STATE=C:\\temp\\session\\state.json\" && \"C:\\Tools\\winland.exe\" --winland-elevated --config C:\\temp\\winland.conf\"",
@@ -34,8 +33,7 @@ public class RelaunchPlanTests
             runtimeDirectory: @"C:\Users\dante\AppData\Local\mise\dotnet-root\shared\Microsoft.NETCore.App\10.0.12\",
             dotnetRoot: @"D:\dotnet sdk",
             pipe: null,
-            state: null,
-            interpreter: @"C:\Windows\System32\cmd.exe");
+            state: null);
 
         Assert.Equal(
             "/d /v:off /s /c \"cd /d \"C:\\Tools\" && set \"DOTNET_ROOT=D:\\dotnet sdk\" && \"C:\\Tools\\winland.exe\" install DESKTOP\\dante\"",
@@ -52,8 +50,7 @@ public class RelaunchPlanTests
             runtimeDirectory: null,
             dotnetRoot: @"D:\dotnet",
             pipe: null,
-            state: @"C:\My Config\state.json",
-            interpreter: @"C:\Windows\System32\cmd.exe");
+            state: @"C:\My Config\state.json");
 
         Assert.Equal(@"C:\My Config", spec.WorkingDirectory);
         Assert.Equal(
@@ -75,8 +72,7 @@ public class RelaunchPlanTests
             runtimeDirectory,
             dotnetRoot: @"D:\dotnet",
             pipe: null,
-            state: null,
-            interpreter: null);
+            state: null);
 
         Assert.DoesNotContain("DOTNET_ROOT", spec.Arguments, StringComparison.Ordinal);
     }
@@ -104,8 +100,7 @@ public class RelaunchPlanTests
             runtimeDirectory: null,
             dotnetRoot: null,
             pipe: null,
-            state: null,
-            interpreter: null);
+            state: null);
 
         Assert.EndsWith(" --config \"C:\\My Config\\\\\" next\"", spec.Arguments, StringComparison.Ordinal);
     }
@@ -136,7 +131,7 @@ public class RelaunchPlanTests
     }
 
     private static RelaunchSpec Plan(string executable, string[] arguments, string workingDirectory, string? pipe, string? state) =>
-        RelaunchPlan.Create(executable, arguments, workingDirectory, runtimeDirectory: null, dotnetRoot: null, pipe, state, interpreter: null);
+        RelaunchPlan.Create(executable, arguments, workingDirectory, runtimeDirectory: null, dotnetRoot: null, pipe, state);
 
     [Fact]
     public void RelaunchWithoutARuntimeStillEntersTheWorkingDirectory()
@@ -148,10 +143,9 @@ public class RelaunchPlanTests
             runtimeDirectory: null,
             dotnetRoot: null,
             pipe: null,
-            state: " ",
-            interpreter: null);
+            state: " ");
 
-        Assert.Equal("cmd.exe", spec.FileName);
+        Assert.Equal(Path.Combine(Environment.SystemDirectory, "cmd.exe"), spec.FileName);
         Assert.Equal(
             "/d /v:off /s /c \"cd /d \"C:\\work\" && \"C:\\Tools\\winland.exe\" uninstall\"",
             spec.Arguments);

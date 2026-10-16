@@ -28,8 +28,7 @@ static class Elevation
                 RuntimeEnvironment.GetRuntimeDirectory(),
                 Environment.GetEnvironmentVariable("DOTNET_ROOT"),
                 Environment.GetEnvironmentVariable("WINLAND_PIPE"),
-                Environment.GetEnvironmentVariable("WINLAND_STATE"),
-                Environment.GetEnvironmentVariable("ComSpec"));
+                Environment.GetEnvironmentVariable("WINLAND_STATE"));
         }
         catch (ArgumentException ex)
         {
