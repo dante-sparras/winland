@@ -22,14 +22,19 @@ internal static partial class WorkspaceRules
         if (IsPositive(selector, out var number))
             return id.TryGetNumber(out var current) && current == number;
 
+        // As the pinned release's filter reads them: name: and a bare token compare the address of a
+        // normal, non-numbered Workspace, never its display name, and special compares a special one's.
         if (selector.StartsWith("name:", StringComparison.Ordinal))
         {
             var name = selector[5..];
-            return name.Length > 0 && (name == id.Name || name == displayName);
+            return name.Length > 0 && !IsSignedNumber(name) && IsNamed(id) && name == id.Name;
         }
 
+        if (selector == "special" || selector.StartsWith("special:", StringComparison.Ordinal))
+            return selector != "special:" && id.IsSpecial && id.Name == (selector == "special" ? WorkspaceId.DefaultSpecial.Name : selector);
+
         if (!selector.Contains('[', StringComparison.Ordinal))
-            return false;
+            return IsNamed(id) && selector == id.Name;
 
         return MatchProperties(selector, id, displayName, monitor, windows, tiled, floating, fullscreen);
     }
@@ -116,8 +121,24 @@ internal static partial class WorkspaceRules
         if (!TryBool(body, out var wantsNamed))
             return false;
 
-        var named = !id.IsSpecial && !id.TryGetNumber(out _);
-        return wantsNamed == named;
+        return wantsNamed == IsNamed(id);
+    }
+
+    private static bool IsNamed(WorkspaceId id) => !id.IsSpecial && !id.TryGetNumber(out _);
+
+    private static bool IsSignedNumber(string text)
+    {
+        var digits = text.Length > 0 && text[0] is '+' or '-' ? text[1..] : text;
+        if (digits.Length == 0)
+            return false;
+
+        foreach (var character in digits)
+        {
+            if (!char.IsAsciiDigit(character))
+                return false;
+        }
+
+        return true;
     }
 
     private static bool MatchCount(string body, int windows, int tiled, int floating)
