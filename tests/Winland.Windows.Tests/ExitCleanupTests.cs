@@ -1,13 +1,16 @@
 using System.Runtime.InteropServices;
 using Winland.Windows;
+using Winland.Windows.Tests;
 
 namespace Winland.Tests;
 
+[Collection(DesktopCollection.Name)]
+[Trait("Category", DesktopCollection.Name)]
 public class ExitCleanupTests
 {
     private const int StyleIndex = -16;
 
-    [Fact]
+    [DesktopFact]
     public void ResettingDecorationsPutsBackTheFrameOfAFullscreenClient()
     {
         _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));
@@ -15,8 +18,9 @@ public class ExitCleanupTests
         probe.Open();
         try
         {
-            var core = new Core { ReducedMotion = () => true };
+            var core = new Core();
             using var adapter = new WindowAdapter(core);
+            core.ReducedMotion = () => true;
             var original = GetWindowLong(probe.Anchor, StyleIndex);
             adapter.AdoptExisting([probe.Anchor]);
             var window = new WindowId(probe.Anchor.ToInt64());
@@ -37,7 +41,7 @@ public class ExitCleanupTests
 
     // The hook worker and the pipe still apply outcomes while the exit cleanup runs. One that arrives after
     // the frames were put back must not strip a frame again: the process ends next, with the state file gone.
-    [Fact]
+    [DesktopFact]
     public void AnOutcomeAfterTheCleanupDoesNotStripTheFrameAgain()
     {
         _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));
@@ -45,8 +49,9 @@ public class ExitCleanupTests
         probe.Open();
         try
         {
-            var core = new Core { ReducedMotion = () => true };
+            var core = new Core();
             using var adapter = new WindowAdapter(core);
+            core.ReducedMotion = () => true;
             var original = GetWindowLong(probe.Anchor, StyleIndex);
             adapter.AdoptExisting([probe.Anchor]);
             Assert.True(core.Manages(new WindowId(probe.Anchor.ToInt64())));
@@ -66,7 +71,7 @@ public class ExitCleanupTests
         }
     }
 
-    [Fact]
+    [DesktopFact]
     public void ARestartPutsBackTheFrameACrashedRunLeftStripped()
     {
         _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));
@@ -88,8 +93,9 @@ public class ExitCleanupTests
                 FrameStyle = original,
             };
 
-            var core = new Core { ReducedMotion = () => true };
+            var core = new Core();
             using var adapter = new WindowAdapter(core);
+            core.ReducedMotion = () => true;
             adapter.Recover(new RecoverySnapshot([left]));
 
             Assert.Equal(original, (uint)GetWindowLong(probe.Anchor, StyleIndex));
@@ -100,7 +106,7 @@ public class ExitCleanupTests
         }
     }
 
-    [Fact]
+    [DesktopFact]
     public void ARestartShowsAHiddenClientWhoseTitleChanged()
     {
         _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));
@@ -119,8 +125,9 @@ public class ExitCleanupTests
                 "a title from before",
                 Environment.ProcessId);
 
-            var core = new Core { ReducedMotion = () => true };
+            var core = new Core();
             using var adapter = new WindowAdapter(core);
+            core.ReducedMotion = () => true;
             adapter.Recover(new RecoverySnapshot([left]));
 
             Assert.True(IsWindowVisible(probe.Anchor));

@@ -19,8 +19,9 @@ public class MinimizeMaximizeTests
         probe.Open();
         try
         {
-            var core = new Core { ReducedMotion = () => true };
+            var core = new Core();
             using var adapter = new WindowAdapter(core);
+            core.ReducedMotion = () => true;
             adapter.AdoptExisting([probe.Anchor, probe.Wide]);
 
             _ = ProbeNative.ShowWindow(probe.Anchor, Minimize);

@@ -25,8 +25,9 @@ public class ExistingWindowTests
             Assert.DoesNotContain(probe.Small, found);
 
             // Only the probe windows are handed over, so the desktop's own windows are left alone.
-            var core = new Core { ReducedMotion = () => true };
+            var core = new Core();
             using var adapter = new WindowAdapter(core);
+            core.ReducedMotion = () => true;
             adapter.AdoptExisting([probe.Anchor, probe.Wide]);
 
             var windows = core.Recovery().Clients.Select(client => client.Window).ToList();
