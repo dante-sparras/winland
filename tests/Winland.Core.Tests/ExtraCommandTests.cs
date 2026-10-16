@@ -158,6 +158,17 @@ public class ExtraCommandTests
     }
 
     [Fact]
+    public void RelayoutFlagKeepsTheZOrderRequest()
+    {
+        var core = new Core();
+        core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
+
+        var reply = core.Execute("r/dispatch alterzorder top,address:0x1");
+
+        Assert.Equal([new ZOrderRequest(new WindowId(1), true)], reply.Effect.ZOrder);
+    }
+
+    [Fact]
     public void ClientsOmitMinimizedWindowsUntilAllIsRequested()
     {
         var core = new Core();

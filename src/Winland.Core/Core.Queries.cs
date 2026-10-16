@@ -86,6 +86,8 @@ public sealed partial class Core
                 Exit = current.Exit || laid.Exit,
                 DisplayPower = [.. current.DisplayPower, .. laid.DisplayPower],
                 Events = CombineEvents(current.Events, laid.Events),
+                Relays = current.Relays,
+                ZOrder = current.ZOrder,
             };
         }
 
@@ -116,6 +118,8 @@ public sealed partial class Core
             Exit = current.Exit,
             DisplayPower = current.DisplayPower,
             Events = current.Events,
+            Relays = current.Relays,
+            ZOrder = current.ZOrder,
         };
     }
 
