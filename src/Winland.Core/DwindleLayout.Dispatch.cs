@@ -258,10 +258,11 @@ internal sealed partial class DwindleLayout
 
         var stable = tokens.Length < 3 || !Is(tokens[2], "unstable");
 
-        if (!TryNode(window, out var node))
+        if (!TryNode(window, out var node) || !MoveNodeToRoot(node, stable))
+        {
+            LayoutMessageError = "error: can't movetoroot in the current workspace";
             return [];
-        if (!MoveNodeToRoot(node, stable))
-            return [];
+        }
 
         return Placements();
     }

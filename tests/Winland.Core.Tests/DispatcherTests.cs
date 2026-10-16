@@ -391,6 +391,17 @@ public class DispatcherTests
     }
 
     [Fact]
+    public void MoveToRootOfARootChildWarns()
+    {
+        var core = TwoWindows();
+
+        var outcome = core.Handle(new Dispatch("layoutmsg", "movetoroot"));
+
+        Assert.Equal("error: can't movetoroot in the current workspace", outcome.Error);
+        Assert.Empty(outcome.Placements);
+    }
+
+    [Fact]
     public void PreselectWithoutADirectionIsAnError()
     {
         var core = TwoWindows();
