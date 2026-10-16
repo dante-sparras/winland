@@ -27,6 +27,10 @@ public sealed partial class Core
     private List<StreamEvent>? _noted;
     private readonly HashSet<WindowId> _concealedMinimized = [];
 
+    private static long Cores;
+    private readonly long _id = Interlocked.Increment(ref Cores);
+    private long _sequence;
+
     public event Action<Outcome>? Noticed;
 
     public Func<ConfigRead>? ReadConfig { get; set; }
@@ -92,7 +96,7 @@ public sealed partial class Core
         {
             try
             {
-                var outcome = HandleCore(input);
+                var outcome = Ordered(HandleCore(input));
                 Emit(outcome);
                 return outcome;
             }
@@ -112,7 +116,7 @@ public sealed partial class Core
         lock (_gate)
         {
             var before = Capture();
-            var outcome = Decorate(WithEvents(Execute(name, arguments, allowsElevation), before, input: null), before.State);
+            var outcome = Ordered(Decorate(WithEvents(Execute(name, arguments, allowsElevation), before, input: null), before.State));
             Emit(outcome);
             return outcome;
         }
@@ -153,7 +157,7 @@ public sealed partial class Core
             try
             {
                 var reply = ExecuteLine(line);
-                var outcome = Decorate(WithEvents(reply.Effect, before, input: null), before.State);
+                var outcome = Ordered(Decorate(WithEvents(reply.Effect, before, input: null), before.State));
                 Emit(outcome);
                 return reply with { Effect = outcome };
             }
@@ -230,6 +234,9 @@ public sealed partial class Core
 
         return launch with { Environment = _environment };
     }
+
+    // Called under the lock, so the sequence is the order in which the outcomes were decided.
+    private Outcome Ordered(Outcome outcome) => outcome with { Order = new OutcomeOrder(_id, ++_sequence) };
 
     private void Emit(Outcome outcome)
     {

@@ -38,6 +38,7 @@ public sealed partial class WindowAdapter : IDisposable
     private static readonly BorderlessFrame Borderless = new(new Win32WindowFrame());
     private static readonly DwmEffects Effects = new(new Win32DwmSurface());
     private static readonly Lock PaintGate = new();
+    private static readonly ApplyOrder Order = new();
     private static readonly Dictionary<WindowId, CachedFrame> Frames = [];
     private static readonly Lock FrameGate = new();
     private static int Applying;
@@ -514,10 +515,11 @@ public sealed partial class WindowAdapter : IDisposable
 
     internal static void Apply(Outcome outcome)
     {
+        var admitted = Order.Admit(outcome);
         Interlocked.Increment(ref Applying);
         try
         {
-            ApplyCore(outcome);
+            ApplyCore(admitted.Outcome, admitted.Current);
         }
         finally
         {
@@ -525,7 +527,9 @@ public sealed partial class WindowAdapter : IDisposable
         }
     }
 
-    private static void ApplyCore(Outcome outcome)
+    // An outcome that is not current lost its stale parts in Order.Admit. The state every outcome carries
+    // whole, the group bars and the session effects, is left to the newer outcome that was already applied.
+    private static void ApplyCore(Outcome outcome, bool current)
     {
         var windows = new Dictionary<ClientId, WindowId>(outcome.State.Clients.Count);
         foreach (var client in outcome.State.Clients)
@@ -535,7 +539,9 @@ public sealed partial class WindowAdapter : IDisposable
         foreach (var window in outcome.Hide)
             ConcealOrLeave(window, motions);
 
-        DropClosedFrames(outcome.State.Clients);
+        if (current)
+            DropClosedFrames(outcome.State.Clients);
+
         var borderless = new HashSet<WindowId>();
         foreach (var client in outcome.State.Clients)
         {
@@ -599,10 +605,14 @@ public sealed partial class WindowAdapter : IDisposable
             }
         }
 
-        if (!Releasing)
+        if (!Releasing && current)
             GroupBarHost.Update(outcome.GroupBars);
 
-        SessionEffects.Apply(outcome);
+        if (current)
+            SessionEffects.Apply(outcome);
+        else
+            SessionEffects.Relay(outcome);
+
         Applied?.Invoke(outcome);
 
         if (outcome.Kill is KillRequest kill)

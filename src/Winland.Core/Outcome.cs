@@ -109,7 +109,16 @@ public sealed record Outcome(
 
     /// <summary>Text a plugin dispatcher reports on success. Empty when the dispatcher has nothing to say.</summary>
     public string? Notice { get; init; }
+
+    /// <summary>Where this outcome falls among the ones its Core produced. Null for an outcome made outside a Core.</summary>
+    public OutcomeOrder? Order { get; init; }
 }
+
+/// <summary>
+/// The Core that produced an outcome and its place in that Core's sequence, taken under the Core's lock. Outcomes
+/// are applied on several threads after the lock is released, so the adapter uses this to tell an older one.
+/// </summary>
+public readonly record struct OutcomeOrder(long Core, long Sequence);
 
 /// <summary>A request to end the process that owns a Client. The adapter reads the owner of <see cref="Window"/> again when it acts.</summary>
 public readonly record struct KillRequest(long ProcessId)

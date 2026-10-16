@@ -42,13 +42,19 @@ public static class SessionEffects
         else
             _session?.Revert();
 
-        if (_relay is IKeyRelaySender relay)
-        {
-            foreach (var key in outcome.Relays)
-                relay.Send(key);
-        }
-
+        Relay(outcome);
         _idle?.Set(IdleInhibit.Wanted(outcome.State));
+    }
+
+    /// <summary>Sends only the outcome's relayed keys. An older outcome applied after a newer one keeps these and nothing else here.</summary>
+    public static void Relay(Outcome outcome)
+    {
+        ArgumentNullException.ThrowIfNull(outcome);
+        if (_relay is not IKeyRelaySender relay)
+            return;
+
+        foreach (var key in outcome.Relays)
+            relay.Send(key);
     }
 
     public static void NoteMove() => Idle.Moved();
