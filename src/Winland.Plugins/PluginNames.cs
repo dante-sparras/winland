@@ -6,6 +6,12 @@ public static class PluginNames
     public static bool IsValid(string? name) =>
         !string.IsNullOrEmpty(name) && name.All(ch => char.IsAsciiLetterOrDigit(ch) || ch is '_' or '-');
 
+    /// <summary>
+    /// True when two plugin names name the same installed file. File names do not differ by case on Windows,
+    /// so <c>Foo</c> and <c>foo</c> are one plugin.
+    /// </summary>
+    public static bool Same(string? left, string? right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>True when <paramref name="path"/> is inside <paramref name="directory"/>, not the directory itself.</summary>
     public static bool IsInside(string directory, string path)
     {

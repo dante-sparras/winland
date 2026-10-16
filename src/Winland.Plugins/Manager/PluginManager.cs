@@ -34,7 +34,7 @@ public sealed class PluginManager(
 
         foreach (var plugin in built.Repository.Plugins)
         {
-            var owner = installed.FirstOrDefault(entry => entry.Name == plugin.Name);
+            var owner = installed.FirstOrDefault(entry => PluginNames.Same(entry.Name, plugin.Name));
             if (owner is not null)
             {
                 var from = owner.Repository is null ? "by hand" : $"from '{owner.Repository}'";
@@ -102,7 +102,7 @@ public sealed class PluginManager(
         foreach (var repository in staged)
         {
             var dropped = installed.Where(entry => SameUrl(entry.Repository, repository.Url)
-                && !repository.Plugins.Any(plugin => plugin.Name == entry.Name));
+                && !repository.Plugins.Any(plugin => PluginNames.Same(plugin.Name, entry.Name)));
             foreach (var entry in dropped)
             {
                 if (running.Unload(entry.Name))
@@ -136,7 +136,7 @@ public sealed class PluginManager(
             return 1;
 
         var named = installed.FirstOrDefault(entry => SameUrl(entry.Repository, identifier))
-            ?? installed.FirstOrDefault(entry => entry.Name == identifier);
+            ?? installed.FirstOrDefault(entry => PluginNames.Same(entry.Name, identifier));
         if (named is null)
         {
             error.WriteLine($"No installed repository or plugin is named '{identifier}'.");
