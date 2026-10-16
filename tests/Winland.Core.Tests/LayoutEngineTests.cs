@@ -398,6 +398,25 @@ public class LayoutEngineTests
         Assert.Equal(Bounds(before, 3), Bounds(restored, 3));
     }
 
+    [Fact]
+    public void ANeighborTwoPixelsAwayDoesNotTouch()
+    {
+        var origin = new Rectangle(0, 0, 100, 100);
+
+        Assert.Null(NeighborAt(origin, new Rectangle(102, 0, 100, 100)));
+        Assert.Equal(Window(2), NeighborAt(origin, new Rectangle(101, 0, 100, 100)));
+    }
+
+    private static WindowId? NeighborAt(Rectangle origin, Rectangle other)
+    {
+        Client[] clients = [new(new ClientId(1), Window(1)), new(new ClientId(2), Window(2))];
+        return DirectionalNeighbor.Find(clients, origin, Side.Right, Window(1), floating: false, (WindowId window, out Rectangle box) =>
+        {
+            box = window == Window(1) ? origin : other;
+            return true;
+        });
+    }
+
     private static Layout ThreeColumns()
     {
         var layout = Open("scrolling");
