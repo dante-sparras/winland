@@ -12,6 +12,24 @@ public class SessionPhaseTests
         Assert.Equal(SessionEffect.None, phase.Notice(SessionSignal.ShellReady));
     }
 
+    [Theory]
+    [InlineData(SessionSignal.Locked, SessionSignal.Unlocked)]
+    [InlineData(SessionSignal.Suspended, SessionSignal.Resumed)]
+    [InlineData(SessionSignal.ConsoleDisconnected, SessionSignal.ConsoleConnected)]
+    [InlineData(SessionSignal.DisplayOff, SessionSignal.DisplayOn)]
+    public void TheSessionIsLiveExceptWhileItIsAway(SessionSignal away, SessionSignal back)
+    {
+        var phase = new SessionPhase();
+        phase.Notice(SessionSignal.ShellReady);
+        Assert.True(phase.Live);
+
+        phase.Notice(away);
+        Assert.False(phase.Live);
+
+        phase.Notice(back);
+        Assert.True(phase.Live);
+    }
+
     [Fact]
     public void TheFirstLayoutRunsWhenTheShellWaitTimesOut()
     {

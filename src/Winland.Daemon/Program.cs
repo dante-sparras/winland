@@ -237,9 +237,8 @@ static IReadOnlyList<string> WatchedPaths(string configPath, ConfigDocument docu
 
 static void Persist(RecoveryStore store, RecoverySnapshot snapshot)
 {
-    var recorded = snapshot with { Input = SessionEffects.Originals };
-    if (WindowIdentity.TryAnnotate(recorded, out var annotated))
-        store.Save(annotated);
+    // A Client that closed since the snapshot was taken is left out. The rest are still recorded.
+    store.Save(WindowIdentity.Annotate(snapshot with { Input = SessionEffects.Originals }));
 }
 
 static void Stop(WindowHost host, RecoveryStore store)
