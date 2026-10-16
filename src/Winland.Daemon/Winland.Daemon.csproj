@@ -17,4 +17,8 @@
     <ProjectReference Include="..\Winland.Windows\Winland.Windows.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Winland.Daemon.Tests" />
+  </ItemGroup>
+
 </Project>
