@@ -229,6 +229,86 @@ public class RecoveryTests
         Assert.Equal(new MonitorId(0), Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == client.Workspace).Monitor);
     }
 
+    [Fact]
+    public void AFloatingPinnedClientComesBackFloatingPinnedAndWhereItWas()
+    {
+        var prior = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\n"));
+        prior.Handle(new WindowAppeared(new WindowId(1), Area)
+        {
+            Bounds = new Rectangle(0, 0, 400, 300),
+            Traits = WindowTraits.Normal with { Class = "stick" },
+        });
+        prior.Handle(new Dispatch("pin"));
+        var placed = Assert.Single(prior.Handle(new Dispatch("workspace", "2")).State.Clients).Bounds;
+        Assert.True(RecoverySnapshot.TryParse(prior.Recovery().ToJson(), out var snapshot));
+
+        var recorded = Assert.Single(snapshot.Clients);
+        Assert.True(recorded.Floating);
+        Assert.True(recorded.Pinned);
+        Assert.Equal(placed, recorded.Bounds);
+
+        var core = new Core();
+        core.Restore(snapshot);
+        var back = core.Handle(new WindowAppeared(new WindowId(1), Area)
+        {
+            Bounds = new Rectangle(5, 5, 50, 50),
+            Traits = WindowTraits.Normal with { Class = "stick" },
+        });
+
+        var client = Assert.Single(back.State.Clients);
+        Assert.True(client.Floating);
+        Assert.True(client.Pinned);
+        Assert.Equal(placed, client.Bounds);
+        Assert.Equal(new WorkspaceId("2"), client.Workspace);
+    }
+
+    [Fact]
+    public void AFullscreenClientComesBackFullscreen()
+    {
+        var prior = new Core();
+        prior.Handle(new WindowAppeared(new WindowId(1), Area));
+        prior.Handle(new WindowAppeared(new WindowId(2), Area));
+        prior.Handle(new Dispatch("fullscreen", "1"));
+        Assert.True(RecoverySnapshot.TryParse(prior.Recovery().ToJson(), out var snapshot));
+
+        var core = new Core();
+        core.Restore(snapshot);
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        var back = core.Handle(new WindowAppeared(new WindowId(2), Area));
+
+        var client = Assert.Single(back.State.Clients, candidate => candidate.Window == new WindowId(2));
+        Assert.Equal(FullscreenMode.Maximized, client.Fullscreen);
+        Assert.Equal(FullscreenMode.Maximized, client.FullscreenClient);
+        Assert.False(client.Floating);
+        Assert.Equal(FullscreenMode.None, Assert.Single(back.State.Clients, candidate => candidate.Window == new WindowId(1)).Fullscreen);
+    }
+
+    [Fact]
+    public void ASnapshotWithoutTheNewerFieldsStillParsesAndLeavesThemToTheRules()
+    {
+        const string json = """{"clients":[{"window":5,"workspace":"1","monitor":0,"hidden":false,"class":"stick","title":"","process":10}]}""";
+
+        Assert.True(RecoverySnapshot.TryParse(json, out var snapshot));
+        var recorded = Assert.Single(snapshot.Clients);
+        Assert.Null(recorded.Floating);
+        Assert.Null(recorded.Bounds);
+        Assert.Null(recorded.Pinned);
+        Assert.Null(recorded.Fullscreen);
+
+        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\nwindowrulev2 = pin, class:^(stick)$\n"));
+        core.Restore(snapshot);
+        var back = core.Handle(new WindowAppeared(new WindowId(5), Area)
+        {
+            Bounds = new Rectangle(10, 20, 300, 200),
+            Traits = WindowTraits.Normal with { Class = "stick" },
+        });
+
+        var client = Assert.Single(back.State.Clients);
+        Assert.True(client.Floating);
+        Assert.True(client.Pinned);
+        Assert.Equal(new Rectangle(10, 20, 300, 200), client.Bounds);
+    }
+
     private static Monitor Display(string name, int x, int width, int height) =>
         new(name, name, x, 0, width, height, 1, true, new Rectangle(x, 0, width, height));
 }
