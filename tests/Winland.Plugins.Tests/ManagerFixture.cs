@@ -124,9 +124,12 @@ internal sealed class ManagerFixture : IDisposable
 
         public Action<ApplyRequest>? BeforeApply { get; set; }
 
+        public List<IReadOnlyList<string>> Calls { get; } = [];
+
         public ElevatedRun Run(IReadOnlyList<string> arguments)
         {
             Prompts++;
+            Calls.Add(arguments);
             if (Cancel)
                 return new ElevatedRun(false, 1, "The approval was cancelled.");
 
@@ -135,10 +138,7 @@ internal sealed class ManagerFixture : IDisposable
             Assert.True(request is not null, error);
             BeforeApply?.Invoke(request);
             var result = new PluginApply(new AllowGuard(), fixture.Protector, fixture.Paths.PluginDirectory).Run(request);
-            if (request.Report is not null)
-                File.WriteAllLines(request.Report, result.Lines);
-
-            return new ElevatedRun(true, result.Ok ? 0 : 1, null);
+            return new ElevatedRun(true, result.Ok ? 0 : 1, null) { Lines = result.Lines };
         }
     }
 

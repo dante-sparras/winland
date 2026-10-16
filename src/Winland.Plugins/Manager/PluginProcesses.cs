@@ -12,10 +12,16 @@ public interface IProcessRunner
     ProcessResult Run(string fileName, IReadOnlyList<string> arguments, string workingDirectory);
 }
 
-/// <summary>The outcome of asking Windows to run the elevated step.</summary>
-public sealed record ElevatedRun(bool Started, int ExitCode, string? Error);
+/// <summary>The outcome of asking Windows to run the elevated step, and the report it sent back.</summary>
+public sealed record ElevatedRun(bool Started, int ExitCode, string? Error)
+{
+    public IReadOnlyList<string> Lines { get; init; } = [];
+}
 
-/// <summary>Asks for one UAC confirmation and runs <c>winlandctl</c> elevated with the given arguments.</summary>
+/// <summary>
+/// Asks for one UAC confirmation and runs <c>winlandctl</c> elevated with the given arguments.
+/// The elevator carries the report back itself (see <see cref="ApplyReport"/>).
+/// </summary>
 public interface IElevator
 {
     bool IsElevated { get; }

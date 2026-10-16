@@ -64,16 +64,10 @@ static class PluginManagerCli
         foreach (var line in result.Lines)
             Console.WriteLine(line);
 
-        if (request.Report is not null)
+        if (request.ReportPipe is not null
+            && !ApplyReport.TrySend(request.ReportPipe, result.Lines, TimeSpan.FromSeconds(5), out var reportError))
         {
-            try
-            {
-                File.WriteAllLines(request.Report, result.Lines);
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                Console.Error.WriteLine(exception.Message);
-            }
+            Console.Error.WriteLine(reportError);
         }
 
         return result.Ok ? 0 : 1;
@@ -119,10 +113,13 @@ static class PluginManagerCli
             if (path is null)
                 return new ElevatedRun(false, 1, "The executable path is not available.");
 
+            // The elevated step sends its report back over this pipe rather than into a file.
+            using var report = ApplyReportListener.Start();
+
             // Run through the dotnet host, the entry assembly comes first.
-            var all = arguments;
+            IReadOnlyList<string> all = [.. arguments, "--report-pipe", report.Name];
             if (Path.GetFileNameWithoutExtension(path).Equals("dotnet", StringComparison.OrdinalIgnoreCase))
-                all = [Path.Combine(AppContext.BaseDirectory, "winlandctl.dll"), .. arguments];
+                all = [Path.Combine(AppContext.BaseDirectory, "winlandctl.dll"), .. all];
 
             var spec = RelaunchPlan.Create(
                 path,
@@ -150,7 +147,7 @@ static class PluginManagerCli
                     return new ElevatedRun(false, 1, "The elevated step did not start.");
 
                 process.WaitForExit();
-                return new ElevatedRun(true, process.ExitCode, null);
+                return new ElevatedRun(true, process.ExitCode, null) { Lines = report.Collect() };
             }
             catch (Win32Exception exception) when (exception.NativeErrorCode == 1223) // ERROR_CANCELLED
             {
