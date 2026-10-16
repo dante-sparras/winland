@@ -54,7 +54,7 @@ public class WindowSelectorTests
     [Fact]
     public void TagAndStableIdMatchNothing()
     {
-        var clients = new[] { Client(1, "tag:name", workspace: Home) };
+        var clients = new[] { Client(1, "tag:name", workspace: Home), Client(2, "stableid:1", workspace: Home) };
         var active = new WindowId(1);
 
         Assert.Null(WindowSelector.Find("tag:name", active, clients));
