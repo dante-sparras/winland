@@ -22,6 +22,9 @@ public sealed class KeyboardHook : IDisposable
     private const int WatchPeriodMs = 2000;
     private const int UnseenInputMs = 1000;
 
+    // Input this much newer than the last the hook saw means the hook may have missed a key.
+    private const int CurrentSlackMs = 100;
+
     private static readonly (string Name, ushort Vk)[] Modifiers =
     [
         ("Super_L", 0x5B), ("Super_R", 0x5C),
@@ -29,6 +32,14 @@ public sealed class KeyboardHook : IDisposable
         ("Alt_L", 0xA4), ("Alt_R", 0xA5),
         ("Shift_L", 0xA0), ("Shift_R", 0xA1),
     ];
+
+    // The modifier keys the user physically holds, one bit per entry of Modifiers, as the hook saw
+    // them. Kept by virtual key rather than by bind name, so AltGr and the Left Ctrl Windows sends
+    // with it count too. Only the hook thread writes it; the key relay reads it on the bind worker.
+    private static int _held;
+
+    // Modifiers a relay pressed and left down on purpose (sendkeystate down). Not stale.
+    private static int _relayed;
 
     private readonly Core _core;
     private readonly BindSession _session;
@@ -136,6 +147,9 @@ public sealed class KeyboardHook : IDisposable
             // held since before the hook started has had no time to repeat, so it is left alone.
             if (Environment.TickCount64 - _startedAt >= SweepDelayMs)
                 ReleaseStale();
+
+            // Nothing updates it once the hook is gone, so the relay must not trust it.
+            Volatile.Write(ref _held, 0);
         }
 
         DisarmSweep();
@@ -222,6 +236,7 @@ public sealed class KeyboardHook : IDisposable
                 return Next(code, wParam, lParam);
 
             var up = info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_UP);
+            NoteHeld(info.vkCode, up);
             if (!up && !info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_INJECTED))
                 InputClock.NoteClickOrKey();
 
@@ -274,31 +289,102 @@ public sealed class KeyboardHook : IDisposable
     private void Reconcile()
     {
         BindMatcher.Forget(_session, IsDown);
+
+        // A release the hook missed leaves its bit set. A key still held sets it again when it repeats.
+        var held = Volatile.Read(ref _held);
+        for (var i = 0; i < Modifiers.Length; i++)
+        {
+            if (!Down(Modifiers[i].Vk))
+                held &= ~(1 << i);
+        }
+
+        Volatile.Write(ref _held, held);
         ArmSweep();
     }
 
+    /// <summary>
+    /// The watch tick, on the hook thread. A modifier can be left down at any time, for one by a
+    /// relay that pressed it again just after the user let go, so the sweep runs on every tick.
+    /// It waits while the hook may have missed a key, or a held key would be taken as stale.
+    /// </summary>
+    internal void Watch()
+    {
+        if (_disposed || _inhibited != 0 || Environment.TickCount64 - _startedAt < SweepDelayMs || !Current())
+            return;
+
+        ReleaseStale();
+    }
+
+    // True when the hook has seen the newest input, so what it holds is up to date.
+    private bool Current()
+    {
+        var info = new LASTINPUTINFO { cbSize = (uint)Marshal.SizeOf<LASTINPUTINFO>() };
+        if (!PInvoke.GetLastInputInfo(ref info))
+            return false;
+
+        return unchecked((int)info.dwTime - Volatile.Read(ref _lastSeen)) <= CurrentSlackMs;
+    }
+
     // A modifier the OS holds down that the user is not holding: left by a release lost
-    // before this daemon ran, or on a desktop the hook cannot see. Release it.
+    // before this daemon ran, on a desktop the hook cannot see, or by a relay. Release it.
     private void ReleaseStale()
     {
-        var down = new List<string>();
-        foreach (var (name, vk) in Modifiers)
+        var kept = Volatile.Read(ref _held) | Volatile.Read(ref _relayed);
+        for (var i = 0; i < Modifiers.Length; i++)
         {
-            if (Down(vk))
-                down.Add(name);
-        }
+            var (name, vk) = Modifiers[i];
+            if ((kept & (1 << i)) != 0 || !Down(vk))
+                continue;
 
-        foreach (var name in BindMatcher.Stale(_session, down))
-        {
-            foreach (var (modifier, vk) in Modifiers)
-            {
-                if (!modifier.Equals(name, StringComparison.Ordinal))
-                    continue;
+            Console.Error.WriteLine($"Releasing {name}, which was left down.");
 
-                Console.Error.WriteLine($"Releasing {name}, which was left down.");
+            // Letting go of Super or Alt alone opens Start or a menu bar. The mask key makes it a chord.
+            if (vk is 0x5B or 0x5C or 0xA4 or 0xA5)
+                Send(Key(MaskKey, up: false), Key(MaskKey, up: true), Key(vk, up: true));
+            else
                 Send(Key(vk, up: true));
-            }
         }
+    }
+
+    /// <summary>True when the user physically holds this modifier key, as the hook last saw.</summary>
+    internal static bool Held(int vk)
+    {
+        var bit = ModifierBit(vk);
+        return bit != 0 && (Volatile.Read(ref _held) & bit) != 0;
+    }
+
+    /// <summary>A relay pressed a modifier and left it down on purpose, or let it go.</summary>
+    internal static void NoteRelayed(int vk, bool down)
+    {
+        var bit = ModifierBit(vk);
+        if (bit == 0)
+            return;
+
+        if (down)
+            Interlocked.Or(ref _relayed, bit);
+        else
+            Interlocked.And(ref _relayed, ~bit);
+    }
+
+    private static void NoteHeld(uint vk, bool up)
+    {
+        var bit = ModifierBit((int)vk);
+        if (bit == 0)
+            return;
+
+        var held = Volatile.Read(ref _held);
+        Volatile.Write(ref _held, up ? held & ~bit : held | bit);
+    }
+
+    private static int ModifierBit(int vk)
+    {
+        for (var i = 0; i < Modifiers.Length; i++)
+        {
+            if (Modifiers[i].Vk == vk)
+                return 1 << i;
+        }
+
+        return 0;
     }
 
     internal static void Mask() => Send(Key(MaskKey, up: false), Key(MaskKey, up: true));

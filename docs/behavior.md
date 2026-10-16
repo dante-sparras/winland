@@ -185,11 +185,13 @@ A `fullscreen` window rule requests mode 2. A `maximize` window rule requests mo
 
 `pass` sends the key of the bind that ran it to the Client the window selector names. The press goes on when the key goes down and the release when it comes up, so a `pass` bind runs on the release too without the `r` flag. The modifiers the user holds are left as they are. A selector that matches no Client answers `pass: window not found`.
 
-`sendshortcut` takes modifiers, a key, and a window selector. It sends the key with exactly those modifiers down. A modifier the user holds that is not named is let go around the key and pressed again after it. A `sendshortcut` bind presses the key on the press and releases it on the release. From the pipe it presses and releases at once. A number above 9 and `code:N` are keycodes, `mouse:272` to `mouse:276` are the left, right, middle, side and extra buttons, and anything else is a key name in the focused window's keyboard layout. An empty selector sends to the focused window. A bad argument answers `invalid args`, `invalid modifiers`, `invalid mouse button`, `invalid key`, `key not found`, or `window not found`, after the dispatcher name.
+`sendshortcut` takes modifiers, a key, and a window selector. It sends the key with exactly those modifiers down. A modifier the user holds that is not named is let go around the key and pressed again after it, if the user still holds it then. A `sendshortcut` bind presses the key on the press and releases it on the release. From the pipe it presses and releases at once. A number above 9 and `code:N` are keycodes, `mouse:272` to `mouse:276` are the left, right, middle, side and extra buttons, and anything else is a key name in the focused window's keyboard layout. An empty selector sends to the focused window. A bad argument answers `invalid args`, `invalid modifiers`, `invalid mouse button`, `invalid key`, `key not found`, or `window not found`, after the dispatcher name.
 
 `sendkeystate` takes modifiers, a key, a state, and a window selector. `down` presses the key, `repeat` presses it twice, and `up` releases it. Any other state is an error.
 
 A sent key is tagged, so Winland's own hooks let it through and it never runs a bind.
+
+Every 2 seconds, and on unlock, Winland lets go of a modifier that Windows holds down but the user is not holding, such as one whose release was lost. A modifier a `sendkeystate` left down on purpose is kept. The check waits while the keyboard hook may have missed a key.
 
 ## Urgency
 
