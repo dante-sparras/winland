@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Threading.Channels;
 using Windows.Win32;
 using Winland;
 using Windows.Win32.Foundation;
@@ -34,13 +33,9 @@ public sealed class KeyboardHook : IDisposable
     private readonly Core _core;
     private readonly BindSession _session;
     private readonly HOOKPROC _callback;
-    private readonly Channel<Queued> _queued = Channel.CreateUnbounded<Queued>(new UnboundedChannelOptions
-    {
-        SingleReader = true,
-        SingleWriter = false,
-        // The callback must return before any dispatcher work. Continuations stay off this thread.
-        AllowSynchronousContinuations = false,
-    });
+    // The callback must return before any dispatcher work, so it only posts here. Moves that pile
+    // up while the worker is busy collapse into the newest, so they never delay a key bind.
+    private readonly InputQueue<Queued> _queued = new(Replaces);
 
     private readonly object _timerGate = new();
     private HHOOK _hook;
@@ -269,7 +264,7 @@ public sealed class KeyboardHook : IDisposable
 
         var inhibited = e.Reason == Microsoft.Win32.SessionSwitchReason.SessionLock;
         _inhibited = inhibited ? 1 : 0;
-        _queued.Writer.TryWrite(new Queued(QueuedKind.Inhibit, "", "", inhibited));
+        _queued.Post(new Queued(QueuedKind.Inhibit, "", "", inhibited));
 
         // Keys released on the lock screen were never seen. The session lives on the hook thread.
         if (!inhibited)
@@ -425,13 +420,25 @@ public sealed class KeyboardHook : IDisposable
 
     private void Pump()
     {
-        var reader = _queued.Reader;
-        while (reader.WaitToReadAsync().AsTask().GetAwaiter().GetResult())
+        while (_queued.Take() is { Count: > 0 } batch)
         {
-            while (reader.TryRead(out var queued))
+            foreach (var queued in batch)
                 Perform(queued);
         }
     }
+
+    // A pointer move, or a move of the same drag, makes the one still waiting pointless.
+    private static bool Replaces(Queued waiting, Queued next) => (waiting.Kind, next.Kind) switch
+    {
+        (QueuedKind.Move, QueuedKind.Move) => true,
+        (QueuedKind.Gesture, QueuedKind.Gesture) =>
+            waiting.Phase == PointerDragPhase.Move
+            && next.Phase == PointerDragPhase.Move
+            && waiting.Button == next.Button
+            && waiting.Dispatcher == next.Dispatcher
+            && waiting.Arguments == next.Arguments,
+        _ => false,
+    };
 
     private void Perform(Queued queued)
     {
@@ -475,7 +482,7 @@ public sealed class KeyboardHook : IDisposable
 
     private void StopWorker()
     {
-        _queued.Writer.TryComplete();
+        _queued.Complete();
         _worker?.Join(TimeSpan.FromSeconds(2));
         _worker = null;
     }
@@ -514,16 +521,16 @@ public sealed class KeyboardHook : IDisposable
     }
 
     internal void PostDispatch(string dispatcher, string arguments, BindTrigger? trigger = null) =>
-        _queued.Writer.TryWrite(new Queued(QueuedKind.Dispatch, dispatcher, arguments, false, Trigger: trigger));
+        _queued.Post(new Queued(QueuedKind.Dispatch, dispatcher, arguments, false, Trigger: trigger));
 
     internal void PostGesture(string dispatcher, string arguments, Point position, PointerDragPhase phase, string button) =>
-        _queued.Writer.TryWrite(new Queued(QueuedKind.Gesture, dispatcher, arguments, false, position, phase, button));
+        _queued.Post(new Queued(QueuedKind.Gesture, dispatcher, arguments, false, position, phase, button));
 
     internal void PostMove(Point position, uint time) =>
-        _queued.Writer.TryWrite(new Queued(QueuedKind.Move, "", "", false, position, TimeMs: time, HasTime: true));
+        _queued.Post(new Queued(QueuedKind.Move, "", "", false, position, TimeMs: time, HasTime: true));
 
     internal void PostInput(Input input) =>
-        _queued.Writer.TryWrite(new Queued(QueuedKind.Input, "", "", false, Event: input));
+        _queued.Post(new Queued(QueuedKind.Input, "", "", false, Event: input));
 
     internal void CheckLongPress()
     {
