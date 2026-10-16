@@ -2,6 +2,8 @@ CreateWindowEx
 DefWindowProc
 DestroyWindow
 DispatchMessage
+DWMWINDOWATTRIBUTE
+DwmGetWindowAttribute
 FindWindowExW
 FindWindowW
 GetCurrentThreadId
@@ -11,7 +13,6 @@ GetModuleHandle
 GetMonitorInfo
 GetProcessWindowStation
 GetUserObjectInformation
-GetWindowRect
 IsWindow
 IsWindowVisible
 MonitorFromWindow

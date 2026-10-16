@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Xunit.Abstractions;
 using Windows.Win32;
 using Windows.Win32.Foundation;
+using Windows.Win32.Graphics.Dwm;
 using Windows.Win32.Graphics.Gdi;
 using Windows.Win32.UI.HiDpi;
 
@@ -245,7 +247,7 @@ public class EndToEndSmokeTests
         first = default;
         second = default;
         work = default;
-        if (!PInvoke.GetWindowRect(windows.First, out var firstRect) || !PInvoke.GetWindowRect(windows.Second, out var secondRect))
+        if (!TryFrame(windows.First, out var firstRect) || !TryFrame(windows.Second, out var secondRect))
             return false;
 
         var monitor = PInvoke.MonitorFromWindow(windows.First, MONITOR_FROM_FLAGS.MONITOR_DEFAULTTONEAREST);
@@ -256,6 +258,19 @@ public class EndToEndSmokeTests
         first = Box.From(firstRect);
         second = Box.From(secondRect);
         work = Box.From(info.rcWork);
+        return true;
+    }
+
+    // The visible frame, which Winland fits to the Layout rectangle. The outer rectangle of a window
+    // with a sizing border also takes in the invisible border around it.
+    private static unsafe bool TryFrame(HWND hwnd, out RECT rect)
+    {
+        rect = default;
+        Span<byte> value = stackalloc byte[sizeof(RECT)];
+        if (PInvoke.DwmGetWindowAttribute(hwnd, DWMWINDOWATTRIBUTE.DWMWA_EXTENDED_FRAME_BOUNDS, value).Failed)
+            return false;
+
+        rect = MemoryMarshal.Read<RECT>(value);
         return true;
     }
 
