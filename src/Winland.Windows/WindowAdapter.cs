@@ -447,7 +447,7 @@ public sealed partial class WindowAdapter : IDisposable
         var className = ClassName(hwnd);
         var title = WindowTitle(hwnd);
         var owner = PInvoke.GetWindowThreadProcessId(hwnd, out var pid) == 0 ? 0 : pid;
-        var identity = PackagedIdentity.Resolve(hwnd, className, ProcessFacts.Shared.For(owner).Exe, title);
+        var identity = PackagedIdentity.Resolve(hwnd, className, ProcessFacts.Shared.For(owner).Exe);
         var topLevel = PInvoke.GetAncestor(hwnd, GET_ANCESTOR_FLAGS.GA_ROOT) == hwnd && (style & ChildStyle) == 0;
         Point? pointer = PInvoke.GetCursorPos(out var cursor) ? new Point(cursor.X, cursor.Y) : null;
         var bounds = PInvoke.GetWindowRect(hwnd, out var rect) ? From(rect) : default;
