@@ -192,6 +192,7 @@ public sealed partial class Core
         ForgetRestored(window);
         ForgetIdle(window);
         ForgetPlacement(window);
+        ForgetDrag(window);
         _pinned.Remove(window);
         _groupRules.Remove(window);
         if (ForgetSwallowedParent(window))

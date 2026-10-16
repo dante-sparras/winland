@@ -133,6 +133,71 @@ public class NativeMoveTests
         Assert.Empty(ended.Placements);
     }
 
+    [Fact]
+    public void AClientThatClosesWhileTheSystemMovesItDoesNotBlockTheNextMove()
+    {
+        var core = Flat("");
+        Appear(core, 1);
+        Appear(core, 2);
+        Appear(core, 3);
+        core.Handle(new WindowMoveStarted(new WindowId(3), new Point(1500, 100)));
+        core.Handle(new WindowClosed(new WindowId(3)));
+
+        var started = core.Handle(new WindowMoveStarted(new WindowId(2), new Point(1500, 100)));
+
+        Assert.Equal(Wide, BoundsOf(started, 1));
+    }
+
+    [Fact]
+    public void AClientThatClosesWhileTheSystemResizesItDoesNotBlockTheNextResize()
+    {
+        var core = Flat("");
+        Appear(core, 1);
+        Appear(core, 2);
+        core.Handle(new WindowSizeStarted(new WindowId(1), new Point(960, 500)));
+        core.Handle(new WindowClosed(new WindowId(1)));
+        Appear(core, 3);
+
+        core.Handle(new WindowSizeStarted(new WindowId(2), new Point(960, 500)));
+        var ended = core.Handle(new WindowSizeEnded(new WindowId(2), new Point(900, 500)));
+
+        Assert.NotEmpty(ended.Placements);
+    }
+
+    [Fact]
+    public void AClientThatClosesDuringAMouseDragEndsTheDrag()
+    {
+        var core = Flat("");
+        Appear(core, 1);
+        Appear(core, 2);
+        core.Handle(new PointerGesture("movewindow", new Point(1500, 100), PointerDragPhase.Begin, "mouse:272"));
+        core.Handle(new WindowClosed(new WindowId(2)));
+
+        var moved = core.Handle(new PointerGesture("movewindow", new Point(1400, 200), PointerDragPhase.Move, "mouse:272"));
+        var started = core.Handle(new WindowMoveStarted(new WindowId(1), new Point(500, 100)));
+
+        Assert.Empty(moved.Placements);
+        Assert.Null(moved.Dispatcher);
+        Assert.Equal(new WindowId(1), Assert.Single(started.State.Clients).Window);
+        Assert.False(Assert.Single(core.Handle(new WindowMoveEnded(new WindowId(1), new Point(500, 100))).State.Clients).Floating);
+    }
+
+    [Fact]
+    public void AClientThatClosesDuringABorderResizeEndsTheResize()
+    {
+        var core = Flat("general:resize_on_border = true\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        var bounds = Client(core.Handle(new Dispatch("no_op")), 1).Bounds;
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(bounds.X + bounds.Width + 5, bounds.Y + 50) });
+        core.Handle(new WindowClosed(new WindowId(1)));
+
+        var moved = core.Handle(new PointerMoved(new Point(bounds.X + bounds.Width + 40, bounds.Y + 60)));
+
+        Assert.False(moved.Consumed);
+        Assert.Null(moved.Dispatcher);
+    }
+
     private static Core Flat(string extra)
     {
         var core = new Core();

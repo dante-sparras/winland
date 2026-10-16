@@ -70,6 +70,21 @@ public sealed partial class Core
         return View(ended, consumed: true, dispatcher: gesture.Dispatcher);
     }
 
+    // A window that closes ends any drag that holds it, as the pinned release ends its drag target on unmap.
+    private void ForgetDrag(WindowId window)
+    {
+        if (_nativeMove == window)
+            _nativeMove = null;
+        if (_nativeSize == window)
+            _nativeSize = null;
+        if (_gesture?.Window == window)
+            _gesture = null;
+        if (_border?.Window == window)
+            _border = null;
+        if (_released?.Window == window)
+            _released = null;
+    }
+
     private static bool PastThreshold(Point origin, Point pointer, int threshold)
     {
         var dx = (long)pointer.X - origin.X;
