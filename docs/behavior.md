@@ -30,6 +30,12 @@ An `opacity` window rule supplies up to three fractions: active, inactive and fu
 
 An alpha below 255 adds `WS_EX_LAYERED` and sets the window's alpha. The window's previous extended style is restored when it stops being a Client, on a clean exit, and after a crash for every window this program layered. A window that was already layered is left alone. A window that refuses the layered style is skipped.
 
+## Shell windows
+
+The taskbar, the Start menu, Search and the other flyouts the shell opens from the taskbar are left unmanaged, so opening Start does not split the screen. Winland knows the taskbars by their window classes `Shell_TrayWnd` and `Shell_SecondaryTrayWnd`, and the flyouts by their processes `StartMenuExperienceHost.exe`, `SearchHost.exe`, `SearchApp.exe`, `ShellExperienceHost.exe` and `ShellHost.exe`. A window rule that forces a window to be adopted, such as `float`, `tile` or `workspace` on `class:.*`, still adopts a flyout it matches.
+
+While Winland runs, the taskbars are hidden and set to auto-hide, so the work area takes in the strip they reserved. They are hidden again when the shell shows or recreates them. A clean exit shows them with the state they had before, and so does the next start after a crash.
+
 ## Window rule matches
 
 A window rule's `class`, `title`, `exe` and `aumid` patterns are regular expressions that must match the whole field, as in the pinned release, so `title:Notes` does not match a window titled `Release Notes`. A pattern that starts with `negative:` matches when the rest of the pattern does not, so `class:negative:kitty` matches every class but `kitty`. A pattern that is not a valid regular expression warns with its line number and the rule is skipped. `misc:swallow_regex` and `misc:swallow_exception_regex` also match the whole field, and take no `negative:` prefix, as in the pinned release.

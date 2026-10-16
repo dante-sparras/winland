@@ -50,6 +50,7 @@ The lines the Daemon writes to a client that sends `events` on the IPC pipe, one
 
 **Submap**:
 A named set of binds that is active only while that Submap is selected. A `submap` line in the config opens one for the binds that follow, and the `submap` Dispatcher selects it. `reset` or an empty name selects the default binds. Each change emits a `submap` event.
+
 **Motion**:
 One window's animation toward its Layout rectangle, or out of sight before it is hidden or closed. The core plans it from the animation tree, and the adapter steps it. A Motion always ends on the newest Layout rectangle.
 _Avoid_: Tween, transition
