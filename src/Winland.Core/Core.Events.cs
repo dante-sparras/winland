@@ -105,7 +105,11 @@ public sealed partial class Core
             if (next.Contains(workspace.Id))
                 continue;
 
-            events.Add(new WorkspaceDestroyed(workspace.Id, CommandProtocol.WorkspaceNumber(before, workspace.Id)));
+            // The name is read before the Workspace is gone, so its defaultName is still reported.
+            events.Add(new WorkspaceDestroyed(
+                workspace.Id,
+                CommandProtocol.WorkspaceNumber(before, workspace.Id),
+                workspace.DisplayName ?? workspace.Id.Name));
         }
 
         foreach (var workspace in after.Workspaces)
