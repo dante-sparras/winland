@@ -64,14 +64,23 @@ internal sealed partial class MonocleLayout : Layout
 
         _natural[id] = bounds;
         _limits[id] = (minSize, maxSize);
+        var client = new Client(
+            id,
+            window,
+            Floating: floating,
+            Workspace: workspace,
+            Class: windowClass,
+            Title: title,
+            ProcessId: processId,
+            InitialClass: initialClass.Length == 0 ? windowClass : initialClass,
+            InitialTitle: initialTitle.Length == 0 ? title : initialTitle);
+        _clients.Add(client);
         if (floating)
         {
-            _clients.Add(new Client(id, window, Floating: true, Workspace: workspace, Class: windowClass, Title: title, ProcessId: processId, InitialClass: initialClass, InitialTitle: initialTitle));
             _floating[id] = bounds;
             return [new Placement(id, bounds)];
         }
 
-        _clients.Add(new Client(id, window, Workspace: workspace, Class: windowClass, Title: title, ProcessId: processId, InitialClass: initialClass, InitialTitle: initialTitle));
         _tiled.Add(id);
         _visible = _tiled.Count - 1;
         return Placed();

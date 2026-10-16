@@ -220,6 +220,26 @@ public class LayoutEngineTests
         Assert.Equal(Bounds(before, 3), Bounds(placements, 3));
     }
 
+    [Theory]
+    [InlineData("dwindle", false)]
+    [InlineData("master", false)]
+    [InlineData("scrolling", false)]
+    [InlineData("monocle", false)]
+    [InlineData("dwindle", true)]
+    [InlineData("master", true)]
+    [InlineData("scrolling", true)]
+    [InlineData("monocle", true)]
+    public void AnAddedClientStartsWithItsClassAndTitleAsTheInitialOnes(string name, bool floating)
+    {
+        var layout = Open(name);
+
+        layout.Add(Window(1), Area, null, floating, new Rectangle(0, 0, 400, 300), WorkspaceId.Initial, "app", "title", monitor: Area);
+
+        var client = Assert.Single(layout.Clients);
+        Assert.Equal("app", client.InitialClass);
+        Assert.Equal("title", client.InitialTitle);
+    }
+
     private static Layout ThreeColumns()
     {
         var layout = Open("scrolling");
