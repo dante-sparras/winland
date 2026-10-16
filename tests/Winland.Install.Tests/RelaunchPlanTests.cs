@@ -57,8 +57,39 @@ public class RelaunchPlanTests
 
         Assert.Equal(@"C:\My Config", spec.WorkingDirectory);
         Assert.Equal(
-            "/d /v:off /s /c \"cd /d \"C:\\My Config\" && set \"DOTNET_ROOT=D:\\dotnet\" && set \"WINLAND_STATE=C:\\My Config\\state.json\" && \"C:\\Program Files\\Winland\\winland.exe\" --config \"C:\\My Config\\winland.conf\"\"",
+            "/d /v:off /s /c \"cd /d \"C:\\My Config\" && set \"WINLAND_STATE=C:\\My Config\\state.json\" && \"C:\\Program Files\\Winland\\winland.exe\" --config \"C:\\My Config\\winland.conf\"\"",
             spec.Arguments);
+    }
+
+    // A self-contained build carries its runtime. DOTNET_ROOT would only name a runtime from the
+    // user's environment, which any program the user runs can set, for an elevated process.
+    [Theory]
+    [InlineData(@"C:\Program Files\Winland\winland\")]
+    [InlineData(null)]
+    public void SelfContainedOrUnknownBuildDoesNotSetDotnetRoot(string? runtimeDirectory)
+    {
+        var spec = RelaunchPlan.Create(
+            @"C:\Program Files\Winland\winland\winland.exe",
+            ["install"],
+            @"C:\work",
+            runtimeDirectory,
+            dotnetRoot: @"D:\dotnet",
+            pipe: null,
+            state: null,
+            interpreter: null);
+
+        Assert.DoesNotContain("DOTNET_ROOT", spec.Arguments, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(@"C:\Program Files\dotnet\shared\Microsoft.NETCore.App\10.0.12\", true)]
+    [InlineData(@"C:\Program Files\dotnet\shared\Microsoft.NETCore.App\10.0.12", true)]
+    [InlineData(@"C:\Program Files\Winland\winland\", false)]
+    [InlineData(@"C:\shared\Other.App\10.0.12\", false)]
+    [InlineData(null, false)]
+    public void FrameworkDependentIsReadFromTheRuntimeDirectory(string? runtimeDirectory, bool frameworkDependent)
+    {
+        Assert.Equal(frameworkDependent, RelaunchPlan.IsFrameworkDependent(runtimeDirectory));
     }
 
     // A backslash before a closing quote escapes the quote, so the argument would swallow
