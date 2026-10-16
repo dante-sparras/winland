@@ -34,6 +34,9 @@ public sealed class CommandServer : IDisposable
     /// <summary>How long a client has to send its request line after it connects.</summary>
     internal TimeSpan RequestTimeout { get; init; } = TimeSpan.FromSeconds(5);
 
+    /// <summary>How long a client has to read its reply and close.</summary>
+    internal TimeSpan ReplyTimeout { get; init; } = TimeSpan.FromSeconds(30);
+
     public CommandServer(Core core, string? pipeName = null)
     {
         ArgumentNullException.ThrowIfNull(core);
@@ -199,16 +202,18 @@ public sealed class CommandServer : IDisposable
 
     private async Task Serve(NamedPipeServerStream server)
     {
+        CancellationToken stopping;
         string command;
         try
         {
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_cancel.Token);
+            stopping = _cancel.Token;
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(stopping);
             timeout.CancelAfter(RequestTimeout);
             command = await Read(server, timeout.Token).ConfigureAwait(false);
         }
         catch (RequestTooLargeException exception)
         {
-            Finish(server, () => Write(server, exception.Message));
+            await Finish(server, exception.Message, CancellationToken.None).ConfigureAwait(false);
             return;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
@@ -224,86 +229,59 @@ public sealed class CommandServer : IDisposable
             lock (_subscribersGate)
                 _subscribers.Add(subscriber);
 
-            Follow(server, subscriber);
+            await Follow(server, subscriber, stopping).ConfigureAwait(false);
             return;
         }
 
-        Finish(server, () => Reply(server, command));
+        string text;
+        try
+        {
+            var reply = _core.Execute(command);
+            Apply(reply.Effect);
+            text = reply.Text;
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            Release(server);
+            return;
+        }
+
+        await Finish(server, text, stopping).ConfigureAwait(false);
     }
 
-    private void Reply(NamedPipeServerStream server, string command)
+    // Every wait here is asynchronous, so an idle subscriber holds no thread. The pool also
+    // runs the bind timers, and a status bar must not be able to starve them.
+    private async Task Follow(NamedPipeServerStream server, Subscriber subscriber, CancellationToken stopping)
     {
-        var reply = _core.Execute(command);
-        Apply(reply.Effect);
-        Write(server, reply.Text);
-    }
-
-    private void Follow(NamedPipeServerStream server, Subscriber subscriber)
-    {
-        var pump = Task.Run(() => Pump(subscriber));
+        var pump = Pump(subscriber);
         try
         {
             var one = new byte[1];
-            while (true)
-            {
-                int read;
-                try
-                {
-                    read = server.Read(one);
-                }
-                catch (Exception exception) when (exception is IOException or ObjectDisposedException)
-                {
-                    break;
-                }
-
-                if (read == 0)
-                    break;
-            }
+            while (await server.ReadAsync(one, stopping).ConfigureAwait(false) > 0)
+                continue;
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
         }
         finally
         {
             Drop(subscriber);
-            try
-            {
-                if (!pump.Wait(TimeSpan.FromSeconds(2)))
-                {
-                    try
-                    {
-                        server.Dispose();
-                    }
-                    catch (Exception exception) when (exception is IOException or ObjectDisposedException)
-                    {
-                    }
-
-                    try
-                    {
-                        pump.Wait(TimeSpan.FromSeconds(1));
-                    }
-                    catch (AggregateException)
-                    {
-                    }
-                }
-            }
-            catch (AggregateException)
-            {
-            }
-
             Release(server);
+            await pump.ConfigureAwait(false);
         }
     }
 
-    private static void Pump(Subscriber subscriber)
+    private static async Task Pump(Subscriber subscriber)
     {
         try
         {
             var reader = subscriber.Reader;
-            while (reader.WaitToReadAsync().AsTask().GetAwaiter().GetResult())
+            while (await reader.WaitToReadAsync().ConfigureAwait(false))
             {
                 while (reader.TryRead(out var line))
                 {
                     var bytes = Encoding.UTF8.GetBytes(line + "\n");
-                    subscriber.Pipe.Write(bytes);
-                    subscriber.Pipe.Flush();
+                    await subscriber.Pipe.WriteAsync(bytes).ConfigureAwait(false);
                 }
             }
         }
@@ -313,11 +291,18 @@ public sealed class CommandServer : IDisposable
         }
     }
 
-    private void Finish(NamedPipeServerStream server, Action action)
+    // The client reads the reply and then closes. Waiting for that keeps the reply from being
+    // cut off, and a client that never closes is let go after a while.
+    private async Task Finish(NamedPipeServerStream server, string text, CancellationToken stopping)
     {
         try
         {
-            action();
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(stopping);
+            timeout.CancelAfter(ReplyTimeout);
+            await server.WriteAsync(Frame(text), timeout.Token).ConfigureAwait(false);
+            var one = new byte[1];
+            while (await server.ReadAsync(one, timeout.Token).ConfigureAwait(false) > 0)
+                continue;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -445,27 +430,17 @@ public sealed class CommandServer : IDisposable
         return Encoding.UTF8.GetString(body.GetBuffer().AsSpan(0, (int)body.Length));
     }
 
-    private static void Write(NamedPipeServerStream server, string text)
+    private static byte[] Frame(string text)
     {
-        byte[] bytes;
-        if (text.Contains('\n'))
-        {
-            var body = Encoding.UTF8.GetBytes(text);
-            var header = Encoding.UTF8.GetBytes("#" + body.Length.ToString(CultureInfo.InvariantCulture) + "\n");
-            bytes = new byte[header.Length + body.Length];
-            header.CopyTo(bytes, 0);
-            body.CopyTo(bytes, header.Length);
-        }
-        else
-        {
-            bytes = Encoding.UTF8.GetBytes(text + "\n");
-        }
+        if (!text.Contains('\n'))
+            return Encoding.UTF8.GetBytes(text + "\n");
 
-        server.Write(bytes);
-        server.Flush();
-        var one = new byte[1];
-        while (server.Read(one) > 0)
-            continue;
+        var body = Encoding.UTF8.GetBytes(text);
+        var header = Encoding.UTF8.GetBytes("#" + body.Length.ToString(CultureInfo.InvariantCulture) + "\n");
+        var bytes = new byte[header.Length + body.Length];
+        header.CopyTo(bytes, 0);
+        body.CopyTo(bytes, header.Length);
+        return bytes;
     }
 
     // The adapter asks the window to close, after its close animation when it has one.
