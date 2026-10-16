@@ -28,9 +28,10 @@ internal sealed class LoopInvoker
 
     /// <summary>
     /// Runs <paramref name="action"/> on the loop thread. With no loop, on the loop thread itself, or when the
-    /// loop does not answer within <paramref name="wait"/>, it runs here instead, and still only once.
+    /// loop does not take it within <paramref name="answer"/>, it runs here instead, and still only once. When
+    /// the loop took it, this waits for it to finish until <paramref name="limit"/> has passed since the call.
     /// </summary>
-    internal void Invoke(Action action, TimeSpan wait)
+    internal void Invoke(Action action, TimeSpan answer, TimeSpan limit)
     {
         ArgumentNullException.ThrowIfNull(action);
         var thread = Volatile.Read(ref _thread);
@@ -40,10 +41,20 @@ internal sealed class LoopInvoker
             return;
         }
 
+        var started = Environment.TickCount64;
         var once = new Once(action);
         _queue.Enqueue(once);
-        if (!PInvoke.PostThreadMessage(thread, Message, default, default) || !once.Wait(wait))
-            once.Run();
+        if (!PInvoke.PostThreadMessage(thread, Message, default, default) || !once.Wait(answer))
+        {
+            // The loop may have taken it just now. Returning then would let the caller, the console close
+            // handler, end the process in the middle of the cleanup.
+            if (!once.Run())
+            {
+                var left = limit - TimeSpan.FromMilliseconds(Environment.TickCount64 - started);
+                if (left > TimeSpan.Zero)
+                    once.Wait(left);
+            }
+        }
 
         once.Rethrow();
     }
@@ -54,10 +65,11 @@ internal sealed class LoopInvoker
         private int _claimed;
         private Exception? _error;
 
-        internal void Run()
+        /// <summary>Runs the action unless another thread took it first. False when one did.</summary>
+        internal bool Run()
         {
             if (Interlocked.Exchange(ref _claimed, 1) != 0)
-                return;
+                return false;
 
             try
             {
@@ -71,6 +83,8 @@ internal sealed class LoopInvoker
             {
                 _done.Set();
             }
+
+            return true;
         }
 
         internal bool Wait(TimeSpan wait) => _done.Wait(wait);

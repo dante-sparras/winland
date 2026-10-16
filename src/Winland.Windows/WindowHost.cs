@@ -56,8 +56,12 @@ public sealed class WindowHost : IDisposable
     /// <summary>Runs on the message-loop thread when the session really ends (WM_ENDSESSION with wParam TRUE).</summary>
     public Action? SessionEnding { get; set; }
 
-    /// <summary>Runs <paramref name="action"/> on the message-loop thread and waits for it, or here when the loop does not answer.</summary>
-    public void OnLoop(Action action) => _loop.Invoke(action, TimeSpan.FromSeconds(3));
+    /// <summary>
+    /// Runs <paramref name="action"/> on the message-loop thread and waits for it, or here when the loop does not
+    /// answer. Windows ends a process five seconds after its console is closed, so an action the loop took is
+    /// waited for until four and a half seconds have passed.
+    /// </summary>
+    public void OnLoop(Action action) => _loop.Invoke(action, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(4.5));
 
     public CommandReply Reload()
     {
