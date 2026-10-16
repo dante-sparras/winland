@@ -6,6 +6,7 @@ internal sealed partial class MasterLayout : Layout
     private readonly List<Tile> _tiles = [];
     private readonly Dictionary<ClientId, Rectangle> _floating = [];
     private readonly Dictionary<ClientId, Rectangle> _natural = [];
+    private readonly Dictionary<ClientId, (int Width, int Height)> _lastFloat = [];
     private readonly Dictionary<ClientId, ClientLimits> _limits = [];
     private readonly Dictionary<ClientId, Suspended> _suspended = [];
     private LayoutOptions _layout = LayoutOptions.Unconfigured;
@@ -73,10 +74,12 @@ internal sealed partial class MasterLayout : Layout
 
         _limits[id] = new ClientLimits(minSize, maxSize);
         _natural[id] = bounds;
+        var placed = ClampToLimits(bounds, minSize, maxSize);
+        if (placed.Width > 0 && placed.Height > 0)
+            _lastFloat[id] = (placed.Width, placed.Height);
         var client = Adopted(id, window, workspace, windowClass, title, floating, processId, initialClass, initialTitle);
         if (floating)
         {
-            var placed = ClampToLimits(bounds, minSize, maxSize);
             _clients.Add(client);
             _floating[id] = placed;
             _focused = window;
@@ -94,6 +97,7 @@ internal sealed partial class MasterLayout : Layout
     {
         var id = Id(window);
         _natural.Remove(id);
+        _lastFloat.Remove(id);
         _limits.Remove(id);
         if (_grab is { } grab && grab.Id == id)
             _grab = null;

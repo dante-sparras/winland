@@ -26,6 +26,7 @@ internal sealed partial class MasterLayout
 
         SlotHandover.Move(_suspended, from, to);
         SlotHandover.Move(_floating, from, to);
+        SlotHandover.Move(_lastFloat, from, to);
         _natural.Remove(from);
         _natural[to] = incoming.Bounds;
         _limits.Remove(from);
