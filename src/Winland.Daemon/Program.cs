@@ -327,7 +327,7 @@ static ConfigDocument ReadConfig(string path)
 
     // [elevated] runs with Winland's administrator token, so only a config that only
     // administrators can write, sources included, may use it (ADR 0007).
-    var document = ConfigParser.Parse(text, source, KeyboardLayout.Active());
+    var document = ConfigParser.Parse(text, source, KeyboardLayout.Active(), full);
     return ConfigElevation.Decide(document, source.Trust.Refusal);
 }
 
