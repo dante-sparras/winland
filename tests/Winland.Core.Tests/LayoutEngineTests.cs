@@ -114,6 +114,45 @@ public class LayoutEngineTests
         Assert.Equal(4, placements.Count);
     }
 
+    [Theory]
+    [InlineData(1028, 1032)]
+    [InlineData(1074, 1080)]
+    [InlineData(988, 988)]
+    public void FloatingSnapMeetsTheTaskbarOrTheMonitorBottomNotAboveIt(int bottom, int snapped)
+    {
+        var monitor = new Rectangle(0, 0, 1920, 1080);
+        var work = new Rectangle(0, 0, 1920, 1032);
+        var box = new Rectangle(100, bottom - 400, 400, 400);
+
+        var placed = FloatingSnap.Apply(box, SnapEdges.All, resize: false, [], work, monitor, MonitorSnap);
+
+        Assert.Equal(snapped, placed.Y + placed.Height);
+        Assert.Equal(400, placed.Height);
+    }
+
+    [Theory]
+    [InlineData(1868, 1872)]
+    [InlineData(1914, 1920)]
+    [InlineData(1828, 1828)]
+    public void FloatingSnapMeetsAReservedRightEdgeOrTheMonitorEdge(int right, int snapped)
+    {
+        var monitor = new Rectangle(0, 0, 1920, 1080);
+        var work = new Rectangle(0, 0, 1872, 1080);
+        var box = new Rectangle(right - 400, 300, 400, 400);
+
+        var placed = FloatingSnap.Apply(box, SnapEdges.All, resize: true, [], work, monitor, MonitorSnap);
+
+        Assert.Equal(snapped, placed.X + placed.Width);
+        Assert.Equal(right - 400, placed.X);
+    }
+
+    private static LayoutOptions MonitorSnap { get; } = LayoutOptions.Unconfigured with
+    {
+        SnapEnabled = true,
+        SnapWindowGap = 0,
+        SnapMonitorGap = 10,
+    };
+
     private static List<(WindowId Window, Rectangle Bounds)> Stack(IReadOnlyList<Placement> placements)
     {
         var master = placements.Min(placement => placement.Bounds.X);
