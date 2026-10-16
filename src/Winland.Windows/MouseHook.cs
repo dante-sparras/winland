@@ -159,8 +159,10 @@ public sealed class MouseHook : IDisposable
         _keys.NoteTiming(decision);
         if (TryDrag(decision, out var dispatcher, out var arguments))
         {
-            _drag.Begin(button, dispatcher, arguments);
-            _keys.PostGesture(dispatcher, arguments, position, PointerDragPhase.Begin, button);
+            // A second drag button pressed during a drag starts nothing, so the held drag still ends on its own release.
+            if (_drag.Begin(button, dispatcher, arguments))
+                _keys.PostGesture(dispatcher, arguments, position, PointerDragPhase.Begin, button);
+
             foreach (var dispatch in decision.Dispatches)
             {
                 if (dispatch.Dispatcher.Length == 0)
