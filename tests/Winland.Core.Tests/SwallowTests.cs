@@ -259,6 +259,21 @@ public class SwallowTests
         typeof(Core).GetField("_active", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
 
     [Fact]
+    public void AChildTakingTheTerminalsGroupSlotKeepsItsOwnFullscreenRequest()
+    {
+        var core = WithTerminal(Swallowing + "windowrulev2 = fullscreen, class:^(mpv)$\n");
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(Unrelated(3));
+        core.Handle(new Dispatch("changegroupactive", "b"));
+
+        var opened = core.Handle(Child(2, parentProcess: 100));
+
+        Assert.Equal([new WindowId(2), new WindowId(3)], Assert.Single(opened.State.Groups));
+        Assert.Equal(FullscreenMode.Fullscreen, Client(opened, 2).Fullscreen);
+        Assert.Equal(Area, Placement(opened, Client(opened, 2).Id));
+    }
+
+    [Fact]
     public void AChildThatSwallowsAStandaloneTerminalStillJoinsTheFocusedGroup()
     {
         var core = WithTerminal(Swallowing);
