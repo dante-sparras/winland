@@ -77,8 +77,10 @@ internal sealed partial class MasterLayout
         if (tile is null)
             return [];
 
-        var dx = exact ? x - tile.Box.Width : x;
-        var dy = exact ? y - tile.Box.Height : y;
+        // exact names the window's size, which is the tile less its gaps and border.
+        var shown = Present(tile.Box);
+        var dx = exact ? x - shown.Width : x;
+        var dy = exact ? y - shown.Height : y;
         ResizeTile(tile, dx, dy);
         return Placed();
     }

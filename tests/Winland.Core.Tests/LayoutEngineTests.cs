@@ -146,6 +146,19 @@ public class LayoutEngineTests
         Assert.Equal(right - 400, placed.X);
     }
 
+    [Theory]
+    [MemberData(nameof(DraggingLayouts))]
+    public void ExactResizeSizesTheWindowNotItsTile(string name)
+    {
+        var layout = Open(name, LayoutOptions.Unconfigured with { GapsIn = EdgeInsets.Uniform(5), BorderSize = 1 });
+        Tiled(layout, 1);
+        Tiled(layout, 2);
+
+        var placements = layout.ResizeActive(Window(1), "exact 800 600");
+
+        Assert.Equal(800, Bounds(placements, 1).Width);
+    }
+
     private static LayoutOptions MonitorSnap { get; } = LayoutOptions.Unconfigured with
     {
         SnapEnabled = true,
@@ -163,7 +176,9 @@ public class LayoutEngineTests
             .ToList();
     }
 
-    private static Layout Open(string name)
+    private static Layout Open(string name) => Open(name, LayoutOptions.Unconfigured);
+
+    private static Layout Open(string name, LayoutOptions options)
     {
         Layout layout = name switch
         {
@@ -175,7 +190,7 @@ public class LayoutEngineTests
         if (layout is ScrollingLayout)
             layout.Configure(ScrollingOptions.Defaults with { FullscreenOnOneColumn = true });
 
-        layout.Apply(LayoutOptions.Unconfigured);
+        layout.Apply(options);
         layout.Fit(Area);
         return layout;
     }
