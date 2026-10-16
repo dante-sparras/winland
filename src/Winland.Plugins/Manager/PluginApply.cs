@@ -17,6 +17,8 @@ public sealed class PluginApply(IPluginLocationGuard guard, IPluginDirectoryProt
 {
     private const string Pending = ".new";
 
+    private const string Previous = ".old";
+
     public ApplyResult Run(ApplyRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -98,13 +100,32 @@ public sealed class PluginApply(IPluginLocationGuard guard, IPluginDirectoryProt
             }
         }
 
-        foreach (var (pending, target) in copies)
-            File.Move(pending, target, overwrite: true);
+        // All or nothing. While files are swapped the approvals hold the old and the new hashes,
+        // so whichever file the host finds loads. A move that fails puts every file and the
+        // approvals back as they were.
+        try
+        {
+            InstalledPlugins.Write(approvals, [.. existing, .. added]);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Discard(copies);
+            return Fail($"Could not write the approvals '{approvals}': {exception.Message} Nothing was changed.");
+        }
+
+        var moveFailure = MoveAll(copies);
+        if (moveFailure is not null)
+        {
+            InstalledPlugins.Write(approvals, existing);
+            return Fail($"Could not replace a plugin assembly: {moveFailure} Nothing was changed.");
+        }
 
         var kept = existing.Where(entry => entry.Repository is null || !replaced.Contains(entry.Repository)).ToList();
         var dropped = existing.Except(kept).ToArray();
         kept.AddRange(added);
         InstalledPlugins.Write(approvals, kept);
+        foreach (var (_, target) in copies)
+            DeleteQuietly(target + Previous);
 
         foreach (var entry in dropped)
         {
@@ -199,6 +220,63 @@ public sealed class PluginApply(IPluginLocationGuard guard, IPluginDirectoryProt
 
     private static bool SameRepository(InstalledPlugin entry, string url) =>
         entry.Repository is not null && entry.Repository.Equals(url, StringComparison.OrdinalIgnoreCase);
+
+    // Each existing target is set aside before the new file takes its name, so it can come back.
+    private static string? MoveAll(List<(string Pending, string Target)> copies)
+    {
+        var done = new List<(string Target, bool HadPrevious)>();
+        foreach (var (pending, target) in copies)
+        {
+            var hadPrevious = File.Exists(target);
+            try
+            {
+                if (hadPrevious)
+                    File.Move(target, target + Previous, overwrite: true);
+
+                try
+                {
+                    File.Move(pending, target);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    if (hadPrevious)
+                        File.Move(target + Previous, target);
+
+                    throw;
+                }
+
+                done.Add((target, hadPrevious));
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                foreach (var (moved, previous) in Enumerable.Reverse(done))
+                {
+                    if (previous)
+                        File.Move(moved + Previous, moved, overwrite: true);
+                    else
+                        File.Delete(moved);
+                }
+
+                Discard(copies);
+                return $"'{target}': {exception.Message}";
+            }
+        }
+
+        return null;
+    }
+
+    private static void DeleteQuietly(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // A leftover copy of a replaced assembly loads nothing: it is not named <plugin>.dll.
+            _ = exception;
+        }
+    }
 
     private static void Discard(List<(string Pending, string Target)> copies)
     {
