@@ -15,6 +15,9 @@ public sealed partial class WindowAdapter : IDisposable
 
     private static readonly Lock ShowGate = new();
     private static volatile bool Releasing;
+
+    // The windows Winland hid, so an application hiding its own window can be told from it.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> Concealed = new();
     private static Action<Outcome>? Applied;
     private static Core? Session;
 
@@ -324,6 +327,7 @@ public sealed partial class WindowAdapter : IDisposable
                     Apply(_core.Handle(new WindowFocused(window, Foreground.Classify(window, dwmsEventTime))));
                     return;
                 case PInvoke.EVENT_OBJECT_DESTROY:
+                    Concealed.TryRemove(window, out _);
                     AbandonDrag(window);
                     ForgetLimits(window);
                     ForgetProbe(window);
@@ -360,7 +364,20 @@ public sealed partial class WindowAdapter : IDisposable
                     return;
                 case PInvoke.EVENT_OBJECT_HIDE:
                     if (PInvoke.IsIconic(hwnd))
+                    {
                         UndoMinimize((nint)window.Value);
+                        return;
+                    }
+
+                    // An application that hides its own window unmaps it, as in the pinned release. It is
+                    // adopted again when it is shown. A window shown again before this event arrives stays.
+                    if (!Concealed.ContainsKey(window) && !PInvoke.IsWindowVisible(hwnd) && _core.Manages(window))
+                    {
+                        AbandonDrag(window);
+                        ForgetLimits(window);
+                        Apply(_core.Handle(new WindowClosed(window)));
+                    }
+
                     return;
                 case PInvoke.EVENT_OBJECT_CLOAKED:
                     // A virtual desktop switch cloaks hidden Clients too. A hidden window is not adopted again
@@ -705,6 +722,8 @@ public sealed partial class WindowAdapter : IDisposable
             if (Releasing)
                 return;
 
+            // The hide this causes is reported like an application's own, so it is noted first.
+            Concealed[window] = 0;
             PInvoke.ShowWindow(new HWND((nint)window.Value), SHOW_WINDOW_CMD.SW_HIDE);
         }
     }
@@ -722,6 +741,7 @@ public sealed partial class WindowAdapter : IDisposable
 
     private static void ShowConcealed(HWND hwnd)
     {
+        Concealed.TryRemove(new WindowId(((IntPtr)hwnd).ToInt64()), out _);
         var command = PInvoke.IsIconic(hwnd)
             ? SHOW_WINDOW_CMD.SW_SHOWMINNOACTIVE
             : SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE;
