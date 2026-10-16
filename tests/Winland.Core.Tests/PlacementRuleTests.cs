@@ -130,6 +130,32 @@ public class PlacementRuleTests
     }
 
     [Theory]
+    [InlineData("(", "1", ")")]
+    [InlineData("-", "1", "")]
+    [InlineData("2^", "2", "")]
+    [InlineData("abs(", "1", ")")]
+    public void AnExpressionNestedTooDeeplyWarnsInsteadOfOverflowingTheStack(string open, string middle, string close)
+    {
+        var nested = string.Concat(Enumerable.Repeat(open, 100_000)) + middle + string.Concat(Enumerable.Repeat(close, 100_000));
+
+        var document = ConfigParser.Parse($"windowrulev2 = size {nested} 10, class:^(box)$\n");
+
+        Assert.Equal([new ConfigWarning(1, "Malformed window rule.")], document.Warnings);
+        Assert.Empty(document.WindowRules);
+    }
+
+    [Fact]
+    public void AnExpressionNestedWithinTheLimitStillParses()
+    {
+        var nested = new string('(', 100) + "monitor_w" + new string(')', 100);
+
+        var document = ConfigParser.Parse($"windowrulev2 = size {nested} 10, class:^(box)$\n");
+
+        Assert.Empty(document.Warnings);
+        Assert.Single(document.WindowRules);
+    }
+
+    [Theory]
     [InlineData("move 10")]
     [InlineData("move 10,10")]
     [InlineData("size 50% 50%")]
