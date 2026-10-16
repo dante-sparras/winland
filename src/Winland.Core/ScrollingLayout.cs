@@ -100,8 +100,9 @@ internal sealed partial class ScrollingLayout : Layout
 
         _natural[id] = bounds;
         _limits[id] = (minSize, maxSize);
-        if (bounds.Width > 0 && bounds.Height > 0)
-            _lastFloat[id] = (bounds.Width, bounds.Height);
+        var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
+        if (placed.Width > 0 && placed.Height > 0)
+            _lastFloat[id] = (placed.Width, placed.Height);
 
         _clients.Add(new Client(
             id,
@@ -115,8 +116,8 @@ internal sealed partial class ScrollingLayout : Layout
             InitialTitle: initialTitle.Length == 0 ? title : initialTitle));
         if (floating)
         {
-            _floating[id] = bounds;
-            return [new Placement(id, bounds)];
+            _floating[id] = placed;
+            return [new Placement(id, placed)];
         }
 
         InsertTiled(id, window);
@@ -245,8 +246,8 @@ internal sealed partial class ScrollingLayout : Layout
         return true;
     }
 
-    // Column widths come from the tape, so a window's size limits do not change the placement here.
-    // They are kept so a later layout can still honor them.
+    // Column widths come from the tape, so a window's size limits do not change a tiled placement here.
+    // They are kept so a later layout can still honor them. A floating Client is clamped to them.
     public IReadOnlyList<Placement> UpdateLimits(WindowId window, Size? minSize, Size? maxSize)
     {
         var id = new ClientId(window.Value);
@@ -254,7 +255,15 @@ internal sealed partial class ScrollingLayout : Layout
             return [];
 
         _limits[id] = (minSize, maxSize);
-        return [];
+        if (!_floating.TryGetValue(id, out var floating))
+            return [];
+
+        var clamped = new SizeLimits(minSize, maxSize).Clamp(floating);
+        if (clamped == floating)
+            return [];
+
+        _floating[id] = clamped;
+        return [new Placement(id, clamped)];
     }
 
     public bool TryBounds(WindowId window, out Rectangle bounds)
