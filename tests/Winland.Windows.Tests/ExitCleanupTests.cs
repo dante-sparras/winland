@@ -35,6 +35,37 @@ public class ExitCleanupTests
         }
     }
 
+    // The hook worker and the pipe still apply outcomes while the exit cleanup runs. One that arrives after
+    // the frames were put back must not strip a frame again: the process ends next, with the state file gone.
+    [Fact]
+    public void AnOutcomeAfterTheCleanupDoesNotStripTheFrameAgain()
+    {
+        _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));
+        using var probe = new LimitProbeTests.LimitProbe();
+        probe.Open();
+        try
+        {
+            var core = new Core { ReducedMotion = () => true };
+            using var adapter = new WindowAdapter(core);
+            var original = GetWindowLong(probe.Anchor, StyleIndex);
+            adapter.AdoptExisting([probe.Anchor]);
+            Assert.True(core.Manages(new WindowId(probe.Anchor.ToInt64())));
+            WindowAdapter.Apply(core.Dispatch("fullscreen", "2", allowsElevation: false));
+            WindowAdapter.Apply(core.Dispatch("fullscreen", "2", allowsElevation: false));
+            Assert.Equal(original, GetWindowLong(probe.Anchor, StyleIndex));
+
+            adapter.RevealHidden();
+            adapter.ResetDecorations();
+            WindowAdapter.Apply(core.Dispatch("fullscreen", "2", allowsElevation: false));
+
+            Assert.Equal(original, GetWindowLong(probe.Anchor, StyleIndex));
+        }
+        finally
+        {
+            probe.Close();
+        }
+    }
+
     [Fact]
     public void ARestartPutsBackTheFrameACrashedRunLeftStripped()
     {
