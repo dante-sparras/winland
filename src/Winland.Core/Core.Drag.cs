@@ -15,7 +15,8 @@ public sealed partial class Core
         switch (gesture.Phase)
         {
             case PointerDragPhase.Begin:
-                if (WindowUnder(gesture.Position, shrink: false) is not WindowId window)
+                // A drag already running keeps the pointer. A second drag button does not start another one.
+                if (_gesture is not null || WindowUnder(gesture.Position, shrink: false) is not WindowId window)
                     return View([], consumed: true, dispatcher: gesture.Dispatcher);
 
                 var begun = BeginGesture(window, new BindDispatch(gesture.Dispatcher, gesture.Arguments), gesture.Button, gesture.Position);

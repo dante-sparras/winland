@@ -14,7 +14,9 @@ public sealed partial class Core
     private Outcome PressPointer(PointerButtonPressed pressed)
     {
         var match = BindMatcher.Decide(_binds, _keyState, pressed);
-        if (TryDragHit(match, out var drag) && WindowUnder(pressed.Position, shrink: false) is WindowId window)
+
+        // A drag already running keeps the pointer. A second drag button does not start another one.
+        if (_gesture is null && TryDragHit(match, out var drag) && WindowUnder(pressed.Position, shrink: false) is WindowId window)
         {
             _border = null;
             var begun = BeginGesture(window, drag, pressed.Button, pressed.Position);
