@@ -63,6 +63,11 @@ internal sealed partial class ScrollingLayout : Layout
 
     public void Fit(Rectangle area)
     {
+        // A new work area means the workspace moved or its monitor changed, so the
+        // monitor rectangle from the last Add is stale. Cull against the work area
+        // until the next Add brings the current monitor.
+        if (area != _area)
+            _monitor = default;
         _area = area;
         Recalculate();
     }
