@@ -23,6 +23,7 @@
   "rules": [
     { "type": "deletion" },
     { "type": "non_fast_forward" },
-    { "type": "creation" }
+    { "type": "creation" },
+    { "type": "update" }
   ]
 }
