@@ -134,7 +134,7 @@ internal sealed class ManagerFixture : IDisposable
             var request = ApplyRequest.Parse(arguments.Skip(2).ToArray(), out var error);
             Assert.True(request is not null, error);
             BeforeApply?.Invoke(request);
-            var result = new PluginApply(new AllowGuard(), fixture.Protector).Run(request);
+            var result = new PluginApply(new AllowGuard(), fixture.Protector, fixture.Paths.PluginDirectory).Run(request);
             if (request.Report is not null)
                 File.WriteAllLines(request.Report, result.Lines);
 

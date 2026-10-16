@@ -35,8 +35,9 @@ public class PluginApplyTests
         Assert.Contains(result.Lines, line => line.StartsWith("Created the plugin directory", StringComparison.Ordinal));
     }
 
+    // A non-administrator may have created the directory first, so finding it proves nothing.
     [Fact]
-    public void ExistingPluginDirectoryIsNotProtectedAgain()
+    public void ExistingPluginDirectoryIsProtectedAgain()
     {
         using var fixture = ManagerFixture.Create();
         Directory.CreateDirectory(fixture.Paths.PluginDirectory);
@@ -44,6 +45,80 @@ public class PluginApplyTests
 
         Assert.True(Apply(fixture, Install(fixture, ("sample", PluginHash.OfFile(staged), staged))).Ok);
 
+        Assert.Equal([Path.GetFullPath(fixture.Paths.PluginDirectory)], fixture.Protector.Protected);
+    }
+
+    [Fact]
+    public void PluginDirectoryThatIsAJunctionIsRefused()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        using var fixture = ManagerFixture.Create();
+        var elsewhere = Path.Combine(fixture.Root, "elsewhere");
+        Directory.CreateDirectory(elsewhere);
+        Junction(fixture.Paths.PluginDirectory, elsewhere);
+        var staged = Stage(fixture, "sample.dll");
+
+        var result = Apply(fixture, Install(fixture, ("sample", PluginHash.OfFile(staged), staged)));
+
+        Assert.False(result.Ok);
+        Assert.Contains("reparse point", Assert.Single(result.Lines), StringComparison.Ordinal);
+        Assert.Empty(fixture.Protector.Protected);
+        Assert.Empty(Directory.GetFiles(elsewhere));
+    }
+
+    // The directory and the approvals path come from a non-elevated program, which can set
+    // WINLAND_PLUGIN_DIR to any folder. Only the default one is created or protected.
+    [Fact]
+    public void AnotherPluginDirectoryIsNeitherCreatedNorProtected()
+    {
+        using var fixture = ManagerFixture.Create();
+        var other = Path.Combine(fixture.Root, "other");
+        var staged = Stage(fixture, "sample.dll");
+
+        var missing = Apply(fixture, Install(fixture, other, ("sample", PluginHash.OfFile(staged), staged)));
+        Directory.CreateDirectory(other);
+        var unprepared = Apply(fixture, Install(fixture, other, ("sample", PluginHash.OfFile(staged), staged)));
+
+        Assert.False(missing.Ok);
+        Assert.Contains("not the default plugin directory", Assert.Single(missing.Lines), StringComparison.Ordinal);
+        Assert.False(unprepared.Ok);
+        Assert.Contains("not the default plugin directory", Assert.Single(unprepared.Lines), StringComparison.Ordinal);
+        Assert.Empty(Directory.GetFiles(other));
+        Assert.Empty(fixture.Protector.Protected);
+    }
+
+    [Fact]
+    public void AnotherPluginDirectoryThatAnAdministratorPreparedIsUsed()
+    {
+        using var fixture = ManagerFixture.Create();
+        var other = Path.Combine(fixture.Root, "other");
+        Directory.CreateDirectory(other);
+        File.WriteAllText(Path.Combine(other, "approved.json"), "[]");
+        var staged = Stage(fixture, "sample.dll");
+
+        var result = Apply(fixture, Install(fixture, other, ("sample", PluginHash.OfFile(staged), staged)));
+
+        Assert.True(result.Ok, string.Join('\n', result.Lines));
+        Assert.True(File.Exists(Path.Combine(other, "sample.dll")));
+        Assert.Empty(fixture.Protector.Protected);
+    }
+
+    [Fact]
+    public void AnotherPluginDirectoryMustPassTheGuard()
+    {
+        using var fixture = ManagerFixture.Create();
+        var other = Path.Combine(fixture.Root, "other");
+        Directory.CreateDirectory(other);
+        File.WriteAllText(Path.Combine(other, "approved.json"), "[]");
+        var staged = Stage(fixture, "sample.dll");
+        var apply = new PluginApply(new ManagerFixture.DenyGuard("A non-administrator can write it."), fixture.Protector, fixture.Paths.PluginDirectory);
+
+        var result = apply.Run(Install(fixture, other, ("sample", PluginHash.OfFile(staged), staged)));
+
+        Assert.False(result.Ok);
+        Assert.Equal(["A non-administrator can write it."], result.Lines);
         Assert.Empty(fixture.Protector.Protected);
     }
 
@@ -68,7 +143,7 @@ public class PluginApplyTests
     {
         using var fixture = ManagerFixture.Create();
         var staged = Stage(fixture, "sample.dll");
-        var apply = new PluginApply(new ManagerFixture.DenyGuard("A non-administrator can write it."), fixture.Protector);
+        var apply = new PluginApply(new ManagerFixture.DenyGuard("A non-administrator can write it."), fixture.Protector, fixture.Paths.PluginDirectory);
 
         var result = apply.Run(Install(fixture, ("sample", PluginHash.OfFile(staged), staged)));
 
@@ -207,7 +282,7 @@ public class PluginApplyTests
     }
 
     private static ApplyResult Apply(ManagerFixture fixture, ApplyRequest request) =>
-        new PluginApply(new ManagerFixture.AllowGuard(), fixture.Protector).Run(request);
+        new PluginApply(new ManagerFixture.AllowGuard(), fixture.Protector, fixture.Paths.PluginDirectory).Run(request);
 
     private static ApplyRequest Install(ManagerFixture fixture, params (string Name, string Sha256, string Source)[] plugins) =>
         new(
@@ -216,6 +291,26 @@ public class PluginApplyTests
             null,
             [new StagedRepository(ManagerFixture.Url, fixture.Commit, plugins.Select(plugin => new StagedPlugin(plugin.Name, plugin.Sha256, plugin.Source)).ToArray())],
             []);
+
+    private static ApplyRequest Install(ManagerFixture fixture, string directory, params (string Name, string Sha256, string Source)[] plugins) =>
+        Install(fixture, plugins) with { PluginDirectory = directory, ApprovalsPath = Path.Combine(directory, "approved.json") };
+
+    private static void Junction(string link, string target)
+    {
+        var start = new System.Diagnostics.ProcessStartInfo("cmd.exe")
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+        };
+        foreach (var argument in new[] { "/d", "/c", "mklink", "/J", link, target })
+            start.ArgumentList.Add(argument);
+
+        using var process = System.Diagnostics.Process.Start(start)!;
+        process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+        Assert.Equal(0, process.ExitCode);
+    }
 
     private static string Stage(ManagerFixture fixture, string name)
     {

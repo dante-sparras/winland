@@ -126,6 +126,49 @@ public class PluginLocationPolicyTests
             PluginPaths.DefaultApprovals(null, null, @"D:\plugins"));
     }
 
+    // Any program the user runs can set the user's environment, so the elevated host follows a
+    // variable only to a location the guard passes.
+    [Fact]
+    public void VariablesAreIgnoredWhenTheGuardDeniesWhereTheyPoint()
+    {
+        var guard = new Guard("A non-administrator can write it.");
+
+        var location = PluginPaths.Choose(@"E:\mine", @"E:\mine\list.json", @"C:\ProgramData", guard);
+
+        Assert.Equal(Path.Combine(@"C:\ProgramData", "Winland", "plugins"), location.Directory);
+        Assert.Equal(Path.Combine(@"C:\ProgramData", "Winland", "plugins", "approved.json"), location.Approvals);
+        Assert.NotNull(location.Ignored);
+        Assert.Contains(PluginPaths.DirectoryVariable, location.Ignored, StringComparison.Ordinal);
+        Assert.Contains("A non-administrator can write it.", location.Ignored, StringComparison.Ordinal);
+        Assert.Equal([(@"E:\mine", @"E:\mine\list.json")], guard.Asked);
+    }
+
+    [Fact]
+    public void VariablesAreFollowedWhenTheGuardPassesWhereTheyPoint()
+    {
+        var guard = new Guard(null);
+
+        var directory = PluginPaths.Choose(@"E:\mine", null, @"C:\ProgramData", guard);
+        var approvals = PluginPaths.Choose(null, @"E:\list.json", @"C:\ProgramData", guard);
+
+        Assert.Equal((@"E:\mine", Path.Combine(@"E:\mine", "approved.json"), (string?)null), (directory.Directory, directory.Approvals, directory.Ignored));
+        Assert.Equal(Path.Combine(@"C:\ProgramData", "Winland", "plugins"), approvals.Directory);
+        Assert.Equal(@"E:\list.json", approvals.Approvals);
+        Assert.Null(approvals.Ignored);
+    }
+
+    [Fact]
+    public void WithoutVariablesTheDefaultIsUsedWithoutAsking()
+    {
+        var guard = new Guard("unused");
+
+        var location = PluginPaths.Choose(" ", null, @"C:\ProgramData", guard);
+
+        Assert.Equal(Path.Combine(@"C:\ProgramData", "Winland", "plugins"), location.Directory);
+        Assert.Null(location.Ignored);
+        Assert.Empty(guard.Asked);
+    }
+
     // FileSystemRights values: read and execute, read, read permissions, full control, modify,
     // write, create files, append, delete, change permissions, take ownership, then generic rights.
     [Theory]
@@ -153,4 +196,15 @@ public class PluginLocationPolicyTests
 
     private static AccessList Owned(params PrincipalAccess[] grants) =>
         new(AdministratorOnly.AdministratorsSid, grants);
+
+    private sealed class Guard(string? denial) : IPluginLocationGuard
+    {
+        public List<(string Directory, string Approvals)> Asked { get; } = [];
+
+        public string? Deny(string pluginDirectory, string approvalsFile)
+        {
+            Asked.Add((pluginDirectory, approvalsFile));
+            return denial;
+        }
+    }
 }

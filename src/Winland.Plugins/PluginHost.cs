@@ -38,15 +38,23 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
             throw new ArgumentOutOfRangeException(nameof(options), "The plugin call budget must be positive.");
 
         _budget = budget;
-        var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-        _directory = PluginPaths.DefaultDirectory(
-            options?.Directory,
+        if (!string.IsNullOrWhiteSpace(options?.Directory))
+        {
+            _directory = options.Directory;
+            _approvalsPath = PluginPaths.DefaultApprovals(options.ApprovalsPath, null, _directory);
+            return;
+        }
+
+        var location = PluginPaths.Choose(
             Environment.GetEnvironmentVariable(PluginPaths.DirectoryVariable),
-            programData);
-        _approvalsPath = PluginPaths.DefaultApprovals(
-            options?.ApprovalsPath,
             Environment.GetEnvironmentVariable(PluginPaths.ApprovalsVariable),
-            _directory);
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            guard);
+        if (location.Ignored is not null)
+            log.Write(location.Ignored);
+
+        _directory = location.Directory;
+        _approvalsPath = string.IsNullOrWhiteSpace(options?.ApprovalsPath) ? location.Approvals : options.ApprovalsPath;
     }
 
     [SupportedOSPlatform("windows")]
