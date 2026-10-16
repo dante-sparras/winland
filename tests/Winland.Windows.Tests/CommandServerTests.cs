@@ -145,6 +145,35 @@ public class CommandServerTests
     }
 
     [Fact]
+    public void AClientThatSendsNothingDoesNotStallTheNext()
+    {
+        var core = new Core();
+        var name = PipeName();
+        using var server = new CommandServer(core, name);
+        server.Start();
+        using var silent = Connect(name);
+
+        Assert.Equal("[]", CommandClient.Transact("clients", name));
+        Assert.Equal("ok", CommandClient.Transact("dispatch workspace 1", name));
+    }
+
+    [Fact]
+    public async Task AClientThatSendsNothingIsDroppedAfterTheRequestTimeout()
+    {
+        var core = new Core();
+        var name = PipeName();
+        using var server = new CommandServer(core, name) { RequestTimeout = TimeSpan.FromMilliseconds(200) };
+        server.Start();
+        using var silent = Connect(name);
+
+        var one = new byte[1];
+        var read = silent.ReadAsync(one).AsTask();
+        var completed = await Task.WhenAny(read, Task.Delay(TimeSpan.FromSeconds(10)));
+        Assert.Same(read, completed);
+        Assert.Equal(0, await read);
+    }
+
+    [Fact]
     public void CursorBatchAndSystemInfoTravelThePipe()
     {
         var core = new Core();
