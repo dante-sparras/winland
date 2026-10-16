@@ -140,6 +140,8 @@ internal sealed partial class MasterLayout
     {
         if (active is not WindowId window)
             return Fail("error: no focused window");
+        if (Floating(window))
+            return Placed();
 
         var tile = Find(window);
         if (tile is null)
