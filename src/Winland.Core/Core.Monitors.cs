@@ -70,6 +70,9 @@ public sealed partial class Core
         var desk = FocusedWorkspace();
         var covered = desk.Covered();
         var active = ActiveWindow();
+        if (active is WindowId shown && Find(shown) is { Fullscreen: not FullscreenMode.None })
+            return Rejected(name, "error: can't move fullscreen window", allowsElevation);
+
         if (active is not WindowId window || !MonitorSelector.TryDirection(FirstToken(arguments), out var direction))
         {
             IReadOnlyList<Placement> stayed = active is WindowId id ? desk.Layout.MoveWindow(id, arguments) : [];
