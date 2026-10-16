@@ -118,6 +118,12 @@ internal sealed partial class ScrollingLayout
         _offset = _inhibited ? _inhibitedOffset : offset;
     }
 
+    private void AdjustOffset(double delta)
+    {
+        if (!_inhibited)
+            _offset += delta;
+    }
+
     private void Inhibit()
     {
         _inhibitedOffset = _offset;
