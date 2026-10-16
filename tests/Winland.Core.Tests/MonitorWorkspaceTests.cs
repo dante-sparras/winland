@@ -169,6 +169,47 @@ public class MonitorWorkspaceTests
     }
 
     [Fact]
+    public void UnpluggingTheFocusedMonitorFocusesTheWindowShownOnTheMonitorThatRemains()
+    {
+        var core = new Core();
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+        core.Handle(new Dispatch("focusmonitor", right.Name));
+        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
+
+        var gone = core.Handle(new MonitorsChanged([left]));
+
+        Assert.Contains(gone.State.Hidden, client => client.Window == new WindowId(2));
+        Assert.Equal(new WindowId(1), gone.Focus);
+        Assert.Equal("0x1", Json(core.Execute("activewindow").Text).GetProperty("address").GetString());
+    }
+
+    [Fact]
+    public void ReplugFocusesTheShownWindowWhenTheFocusedOneIsHidden()
+    {
+        var core = new Core();
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+        core.Handle(new Dispatch("focusmonitor", right.Name));
+        core.Handle(new Dispatch("workspace", "5"));
+        core.Handle(new WindowAppeared(new WindowId(5), right.WorkArea));
+        core.Handle(new Dispatch("workspace", "2"));
+        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
+        core.Handle(new MonitorsChanged([left]));
+        core.Handle(new Dispatch("workspace", "5"));
+
+        var back = core.Handle(new MonitorsChanged([left, right]));
+
+        Assert.Contains(back.State.Hidden, client => client.Window == new WindowId(5));
+        Assert.Equal(new WindowId(1), back.Focus);
+        Assert.Equal("0x1", Json(core.Execute("activewindow").Text).GetProperty("address").GetString());
+    }
+
+    [Fact]
     public void AShownSpecialWorkspaceFromAnUnpluggedMonitorReplacesTheOneTheRemainingMonitorShows()
     {
         var core = new Core();
