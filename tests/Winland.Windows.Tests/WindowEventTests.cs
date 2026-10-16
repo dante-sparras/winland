@@ -55,4 +55,38 @@ public class WindowEventTests
 
         Assert.True(core.Manages(window));
     }
+
+    // An application that hides its own window unmaps it. Left a Client, it would keep a tile, and
+    // its minimum size, that nothing on screen fills.
+    [Fact]
+    public void AClientItsApplicationHidesStopsBeingAClient()
+    {
+        var core = new Core { ReducedMotion = () => true };
+        using var adapter = new WindowAdapter(core);
+        var window = new WindowId(0x700B);
+        core.Handle(new WindowAppeared(window, Area) { Traits = WindowTraits.Normal });
+
+        adapter.Notice(Events.EVENT_OBJECT_HIDE, (nint)window.Value);
+
+        Assert.False(core.Manages(window));
+    }
+
+    // Winland hides the Clients of a Workspace it does not show, and the system reports that hide too.
+    [Fact]
+    public void AClientWinlandHidStaysAClient()
+    {
+        var core = new Core();
+        using var adapter = new WindowAdapter(core);
+        // The adapter reads the system's setting. Without motion the hide happens as the outcome is applied.
+        core.ReducedMotion = () => true;
+        var window = new WindowId(0x700D);
+        core.Handle(new WindowAppeared(window, Area) { Traits = WindowTraits.Normal });
+        var away = core.Dispatch("workspace", "2", allowsElevation: false);
+        Assert.Contains(window, away.Hide);
+        WindowAdapter.Apply(away);
+
+        adapter.Notice(Events.EVENT_OBJECT_HIDE, (nint)window.Value);
+
+        Assert.True(core.Manages(window));
+    }
 }
