@@ -225,7 +225,7 @@ public sealed class MouseHook : IDisposable
         (dispatcher.Equals("movewindow", StringComparison.OrdinalIgnoreCase) && arguments.Length == 0)
         || dispatcher.Equals("resizewindow", StringComparison.OrdinalIgnoreCase);
 
-    private static bool TryButton(uint message, uint mouseData, out string button, out bool up)
+    internal static bool TryButton(uint message, uint mouseData, out string button, out bool up)
     {
         up = false;
         switch (message)
@@ -253,7 +253,8 @@ public sealed class MouseHook : IDisposable
                 return true;
             case ExtraDown:
             case ExtraUp:
-                button = (mouseData & 0xFFFF) == 1 ? "mouse:275" : "mouse:276";
+                // The button is in the high word. The low word is reserved.
+                button = (mouseData >> 16) == 1 ? "mouse:275" : "mouse:276";
                 up = message == ExtraUp;
                 return true;
             default:
@@ -262,7 +263,7 @@ public sealed class MouseHook : IDisposable
         }
     }
 
-    private static bool TryWheel(uint message, uint mouseData, out string key)
+    internal static bool TryWheel(uint message, uint mouseData, out string key)
     {
         if (message is not (Wheel or HorizontalWheel))
         {
