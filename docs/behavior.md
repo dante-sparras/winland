@@ -161,7 +161,7 @@ A window selector `tag:` parses and matches no Client. Window tags are not track
 
 `swapwindow` exchanges two Clients that share a Workspace. A selector that matches a Client on another Workspace does not swap.
 
-`dpms` asks for display power on, off, or toggled. An empty monitor list addresses every display. A monitor name that matches none of the enabled monitors still addresses every enabled monitor. The adapter broadcasts that request; tests do not send it.
+`dpms` asks for display power on, off, or toggled. An empty monitor list addresses every display. A monitor name that matches none of the enabled monitors still addresses every enabled monitor. The adapter posts `SC_MONITORPOWER` to Winland's own window, which turns every display off or on together, and does not wait for any other window. Turning the displays on also sends a zero mouse move, because Windows does not reliably honor the "on" command. Tests do not send either.
 
 `binds:window_direction_monitor_fallback` defaults to true. `movefocus` continues onto the neighbouring Monitor when nothing in that direction can take focus. `movewindow` continues when the point just outside the Client lies on another Monitor. Master, monocle and scrolling also continue when the move cannot be made inside the Workspace. False stops at the Monitor edge.
 
