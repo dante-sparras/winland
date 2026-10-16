@@ -32,6 +32,14 @@ public class ExtraCommandTests
     }
 
     [Fact]
+    public void PluginCommandsKeepTheirFlags()
+    {
+        var parsed = Assert.IsType<CommandParsed>(CommandProtocol.Parse(@"r/plugin load C:\p\a.dll"));
+        var load = Assert.IsType<PluginLoadRequest>(parsed.Request);
+        Assert.Equal(CommandFlags.Relayout, load.Flags);
+    }
+
+    [Fact]
     public void BindsReportModifierBitsDescriptionsAndKeycodes()
     {
         var core = new Core();
