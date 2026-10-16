@@ -34,6 +34,10 @@ internal sealed partial class DwindleLayout
         if (_grab is not MouseGrab grab || grab.Resize != resize)
             return [];
 
+        // A Client tiled again while its floating drag runs is left to the tree.
+        if (grab.WasFloating && !_floating.ContainsKey(grab.Id))
+            return [];
+
         if (resize)
             return grab.WasFloating ? ResizeFloating(grab, pointer) : ResizeTiled(grab, pointer);
 

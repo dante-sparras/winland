@@ -100,6 +100,10 @@ internal sealed partial class ScrollingLayout
         if (_grab is not MouseGrab grab || grab.Resize != resize)
             return [];
 
+        // A Client tiled again while its floating drag runs is left to the tape.
+        if (grab.WasFloating && !_floating.ContainsKey(grab.Id))
+            return [];
+
         if (resize)
             return grab.WasFloating ? ResizeDraggedFloating(grab, pointer) : ResizeDraggedTiled(grab, pointer);
 

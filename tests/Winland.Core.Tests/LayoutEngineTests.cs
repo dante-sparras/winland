@@ -276,6 +276,60 @@ public class LayoutEngineTests
         Assert.Equal(new Rectangle(10, 20, 300, 200), Bounds(limited, 1));
     }
 
+    [Theory]
+    [InlineData("dwindle", false)]
+    [InlineData("master", false)]
+    [InlineData("scrolling", false)]
+    [InlineData("dwindle", true)]
+    [InlineData("master", true)]
+    [InlineData("scrolling", true)]
+    public void AFloatingDragIgnoresAClientTiledMidDrag(string name, bool resize)
+    {
+        var layout = Open(name);
+        Tiled(layout, 1);
+        Tiled(layout, 2);
+        var floated = Bounds(layout.ToggleFloating(Window(1)), 1);
+        var inside = new Point(floated.X + 10, floated.Y + 10);
+        layout.Drag(Window(1), new PointerDrag(resize, PointerDragPhase.Begin, inside));
+        layout.ToggleFloating(Window(1));
+        var tiled = layout.Placed();
+
+        var moved = layout.Drag(Window(1), new PointerDrag(resize, PointerDragPhase.Move, new Point(inside.X + 40, inside.Y + 30)));
+        layout.Drag(Window(1), new PointerDrag(resize, PointerDragPhase.End, new Point(inside.X + 40, inside.Y + 30)));
+
+        Assert.Empty(moved);
+        Assert.Equal(tiled, layout.Placed());
+        Assert.False(Assert.Single(layout.Clients, client => client.Window == Window(1)).Floating);
+        Assert.True(layout.TryBounds(Window(1), out var bounds));
+        Assert.Equal(Bounds(tiled, 1), bounds);
+    }
+
+    [Fact]
+    public void MonocleMovesAFloatingClientToTheFloatingWorkArea()
+    {
+        var layout = Open("monocle", LayoutOptions.Unconfigured with { FloatGaps = EdgeInsets.Uniform(20) });
+        layout.Add(Window(1), Area, null, true, new Rectangle(300, 300, 200, 100), WorkspaceId.Initial, monitor: Area);
+
+        var left = Bounds(layout.MoveWindow(Window(1), "l"), 1);
+        var down = Bounds(layout.MoveWindow(Window(1), "d"), 1);
+
+        Assert.Equal(20, left.X);
+        Assert.Equal(Area.Height - 20 - 100, down.Y);
+    }
+
+    [Fact]
+    public void MasterSnapsToTheWindowsItShowsNotToTheirTiles()
+    {
+        var layout = Open("master", LayoutOptions.Unconfigured with { BorderSize = 5, SnapEnabled = true, SnapMonitorGap = 0 });
+        Tiled(layout, 1);
+        layout.Add(Window(2), Area, null, true, new Rectangle(1003, 300, 100, 100), WorkspaceId.Initial, monitor: Area);
+
+        layout.Drag(Window(2), new PointerDrag(false, PointerDragPhase.Begin, new Point(1050, 350)));
+        var snapped = layout.Drag(Window(2), new PointerDrag(false, PointerDragPhase.Move, new Point(1050, 350)));
+
+        Assert.Equal(new Rectangle(1005, 300, 100, 100), Bounds(snapped, 2));
+    }
+
     [Fact]
     public void ScrollingDropsAMinimizedTileThatCloses()
     {

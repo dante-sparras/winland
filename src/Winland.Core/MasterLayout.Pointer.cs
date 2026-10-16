@@ -152,6 +152,10 @@ internal sealed partial class MasterLayout
         if (_grab is not MouseGrab grab || grab.Resize != resize)
             return [];
 
+        // A Client tiled again while its floating drag runs is left to the stack.
+        if (grab.WasFloating && !_floating.ContainsKey(grab.Id))
+            return [];
+
         var dx = pointer.X - grab.Last.X;
         var dy = pointer.Y - grab.Last.Y;
         grab.Last = pointer;
@@ -206,7 +210,7 @@ internal sealed partial class MasterLayout
             if (client.Id == self || client.Minimized)
                 continue;
 
-            if (TryBox(client.Window, out var bounds, out _))
+            if (TryBounds(client.Window, out var bounds))
                 others.Add(bounds);
         }
 
