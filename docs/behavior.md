@@ -165,7 +165,7 @@ A `monitor` position is in logical pixels. Windows reports the monitor rectangle
 
 `disable` and `disabled` remove the monitor from the layout. The display stays powered on.
 
-When a Monitor is unplugged or disabled, each of its Workspaces moves intact onto the first Monitor that remains, with its Groups, fullscreen Clients and pinned Clients. They are hidden there, except a pinned Client, and a special workspace that was shown, which is shown on that Monitor in place of any special workspace shown there. When the Monitor comes back, by the same name, its Workspaces move back to it and it shows the Workspace it showed when it left, as in the pinned release.
+When a Monitor is unplugged or disabled, each of its Workspaces moves intact onto the first Monitor that remains, with its Groups, fullscreen Clients and pinned Clients. They are hidden there, except a special workspace that was shown, which is shown on that Monitor in place of any special workspace shown there. A pinned Client stays shown on that Monitor; see [gaps.md](gaps.md). When the Monitor comes back, by the same name, its Workspaces move back to it and it shows the Workspace it showed when it left, as in the pinned release.
 
 Transforms 0, 1, 2 and 3 ask for a rotation of 0, 90, 180 and 270 degrees. Winland sets the display to that orientation with the system display settings whenever the monitors are laid out, and changes nothing when the display already has it. Transforms 4, 5, 6 and 7 flip the picture. They warn "Flipped monitor transforms are not honored." and are not applied.
 

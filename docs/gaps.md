@@ -249,6 +249,8 @@ In a `move` expression, `window_w` and `window_h` are the size after a `size` ru
 
 A scrolling resize with `scrolling:direction` up or down measures each delta along its own axis. The pinned release divides the column delta by the work area's width and the row delta by its height in every direction.
 
+A pinned Client on a Monitor that is unplugged or disabled stays shown on the Monitor that takes its Workspaces. The pinned release moves it onto the Workspace the leaving Monitor shows next, which is a new, empty Workspace once the others have moved, and leaves that Workspace on the Monitor that went away, so the Client is not shown anywhere. Winland does not hide a window where nothing can reach it.
+
 `movetoworkspace` of a pinned Client to a special workspace changes nothing. The pinned release leaves the Client where it is too, but still shows that special workspace, empty.
 
 `alterzorder` and `bringactivetotop` do not refocus the window under the pointer. With `input:follow_mouse`, focus follows the pointer again on its next move.
