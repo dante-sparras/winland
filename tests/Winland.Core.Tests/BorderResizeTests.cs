@@ -25,6 +25,26 @@ public class BorderResizeTests
         Assert.True(resized.Live);
     }
 
+    // The pinned release tests floating windows, with their grab rings, before the tiles under them.
+    [Fact]
+    public void AFloatingBorderOverATileResizesTheFloatingWindow()
+    {
+        var core = CoreWith("""
+            general:resize_on_border = true
+            general:extend_border_grab_area = 15
+            general:border_size = 0
+            """);
+        Appear(core, 1);
+        Float(core, 2);
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(1765, 540) });
+
+        var resized = core.Handle(new PointerMoved(new Point(1805, 570)));
+
+        Assert.Equal("resizewindow", resized.Dispatcher);
+        Assert.True(resized.Consumed);
+        Assert.Equal(new Rectangle(1120, 340, 680, 430), BoundsOf(resized, 2));
+    }
+
     [Fact]
     public void GrabAreaExtendsPastTheBorderAndStopsAtItsEdge()
     {

@@ -332,31 +332,17 @@ public sealed partial class Core
                 clients.Add(client);
         }
 
-        if (InsideContent(desk, clients, pointer))
-            return false;
-
-        if (TryRing(desk, clients, pointer, reach, options, floatingOnly: true, out window, out bounds, out side))
+        // Floating windows lie above the tiles, so a floating ring over a tile is still that window's grab.
+        if (TryRing(desk, clients, pointer, reach, options, floatingOnly: true, out var inside, out window, out bounds, out side))
         {
             floating = true;
             return true;
         }
 
-        return TryRing(desk, clients, pointer, reach, options, floatingOnly: false, out window, out bounds, out side);
-    }
+        if (inside)
+            return false;
 
-    private static bool InsideContent(LiveWorkspace desk, IReadOnlyList<Client> clients, Point pointer)
-    {
-        for (var i = clients.Count - 1; i >= 0; i--)
-        {
-            var client = clients[i];
-            if (client.Minimized)
-                continue;
-
-            if (desk.Layout.TryBounds(client.Window, out var bounds) && BorderPointer.Contains(bounds, pointer))
-                return true;
-        }
-
-        return false;
+        return TryRing(desk, clients, pointer, reach, options, floatingOnly: false, out _, out window, out bounds, out side);
     }
 
     private static bool TryRing(
@@ -366,17 +352,26 @@ public sealed partial class Core
         int reach,
         LayoutOptions options,
         bool floatingOnly,
+        out bool inside,
         out WindowId window,
         out Rectangle bounds,
         out BorderSide side)
     {
+        inside = false;
         for (var i = clients.Count - 1; i >= 0; i--)
         {
             var client = clients[i];
-            if (client.Minimized || client.Floating != floatingOnly)
+            if (client.Minimized || client.Floating != floatingOnly || !desk.Layout.TryBounds(client.Window, out bounds))
                 continue;
 
-            if (!desk.Layout.TryBounds(client.Window, out bounds) || !BorderPointer.InGrab(bounds, pointer, reach))
+            // The topmost window under the pointer takes it: inside its rectangle the press is that window's own.
+            if (BorderPointer.Contains(bounds, pointer))
+            {
+                inside = true;
+                break;
+            }
+
+            if (!BorderPointer.InGrab(bounds, pointer, reach))
                 continue;
 
             window = client.Window;
