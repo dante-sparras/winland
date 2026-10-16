@@ -214,6 +214,37 @@ public class WorkspaceRuleTests
     }
 
     [Fact]
+    public void ANoFullscreenSelectorAppliesAgainWhenTheCoveringClientCloses()
+    {
+        var core = Configured(Flat("""
+            workspace = f[-1], defaultName:Open
+            """));
+        core.Handle(Appeared(1, Wide));
+        core.Handle(Appeared(2, Wide));
+        core.Handle(new Dispatch("fullscreen", "1"));
+
+        var closed = core.Handle(new WindowClosed(new WindowId(2)));
+
+        Assert.Equal("Open", Workspace(closed, "1").DisplayName);
+    }
+
+    [Fact]
+    public void AFullscreenSelectorFollowsACoveringClientToAnotherWorkspace()
+    {
+        var core = Configured(Flat("""
+            workspace = f[1], defaultName:Covered
+            """));
+        core.Handle(Appeared(1, Wide));
+        core.Handle(Appeared(2, Wide));
+        core.Handle(new Dispatch("fullscreen", "1"));
+
+        var moved = core.Handle(new Dispatch("movetoworkspacesilent", "2"));
+
+        Assert.Null(Workspace(moved, "1").DisplayName);
+        Assert.Equal("Covered", Workspace(moved, "2").DisplayName);
+    }
+
+    [Fact]
     public void AFullscreenSelectorOfTwoMatchesAWorkspaceWithNothingCovering()
     {
         var core = Configured(Flat("""
