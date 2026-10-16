@@ -68,7 +68,10 @@ public sealed class ConfigTrustTests : IDisposable
         Assert.Equal("exec = [elevated] cmd\n", text);
         Assert.NotNull(source.Trust.Refusal);
         Assert.Contains(path, source.Trust.Refusal, StringComparison.Ordinal);
-        Assert.Contains("non-administrator (owner S-1-5-21-", source.Trust.Refusal, StringComparison.Ordinal);
+        // Elevated, the file is owned by Administrators, but the user can still write it.
+        using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+        Assert.Contains("a non-administrator (", source.Trust.Refusal, StringComparison.Ordinal);
+        Assert.Contains(identity.User!.Value, source.Trust.Refusal, StringComparison.Ordinal);
     }
 
     [Fact]
