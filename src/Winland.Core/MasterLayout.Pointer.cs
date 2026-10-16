@@ -1,24 +1,21 @@
-using System.Globalization;
-using static Winland.OrdinalText;
-
 namespace Winland;
 
 internal sealed partial class MasterLayout
 {
-    private static readonly (string Word, Direction Direction)[] Directions =
+    private static readonly (string Word, Side Side)[] Directions =
     [
-        ("l", Direction.Left),
-        ("left", Direction.Left),
-        ("r", Direction.Right),
-        ("right", Direction.Right),
-        ("u", Direction.Up),
-        ("up", Direction.Up),
-        ("t", Direction.Up),
-        ("top", Direction.Up),
-        ("d", Direction.Down),
-        ("down", Direction.Down),
-        ("b", Direction.Down),
-        ("bottom", Direction.Down),
+        ("l", Side.Left),
+        ("left", Side.Left),
+        ("r", Side.Right),
+        ("right", Side.Right),
+        ("u", Side.Up),
+        ("up", Side.Up),
+        ("t", Side.Up),
+        ("top", Side.Up),
+        ("d", Side.Down),
+        ("down", Side.Down),
+        ("b", Side.Down),
+        ("bottom", Side.Down),
     ];
 
     private MouseGrab? _grab;
@@ -33,6 +30,9 @@ internal sealed partial class MasterLayout
         return Neighbor(origin, direction, active, floating)
             ?? Neighbor(origin, direction, active, !floating);
     }
+
+    private WindowId? Neighbor(Rectangle origin, Side side, WindowId except, bool floating) =>
+        DirectionalNeighbor.Find(_clients, origin, side, except, floating, (WindowId window, out Rectangle box) => TryBox(window, out box, out _));
 
     public void NoteFocus(WindowId window)
     {
@@ -65,7 +65,7 @@ internal sealed partial class MasterLayout
 
     public IReadOnlyList<Placement> ResizeActive(WindowId window, string arguments)
     {
-        if (!TryResize(arguments, out var x, out var y, out var exact))
+        if (!ResizeArguments.TryParse(arguments, out var x, out var y, out var exact))
             return [];
         if (Minimized(Id(window)))
             return [];
@@ -280,15 +280,15 @@ internal sealed partial class MasterLayout
         return FitInWorkArea(floated, _layout.FloatingWorkArea(_area));
     }
 
-    private IReadOnlyList<Placement> MoveFloating(WindowId window, Rectangle box, Direction direction)
+    private IReadOnlyList<Placement> MoveFloating(WindowId window, Rectangle box, Side direction)
     {
         var frame = _layout.FloatingWorkArea(_area);
         var moved = direction switch
         {
-            Direction.Left => box with { X = frame.X },
-            Direction.Right => box with { X = frame.X + frame.Width - box.Width },
-            Direction.Up => box with { Y = frame.Y },
-            Direction.Down => box with { Y = frame.Y + frame.Height - box.Height },
+            Side.Left => box with { X = frame.X },
+            Side.Right => box with { X = frame.X + frame.Width - box.Width },
+            Side.Up => box with { Y = frame.Y },
+            Side.Down => box with { Y = frame.Y + frame.Height - box.Height },
             _ => box,
         };
         if (moved == box)
@@ -331,64 +331,6 @@ internal sealed partial class MasterLayout
         return true;
     }
 
-    private WindowId? Neighbor(Rectangle origin, Direction direction, WindowId except, bool floating)
-    {
-        WindowId? best = null;
-        var bestOverlap = 1.0;
-        foreach (var client in _clients)
-        {
-            if (client.Window == except || client.Minimized || client.Floating != floating)
-                continue;
-            if (!TryBox(client.Window, out var box, out _))
-                continue;
-            if (!Overlap(origin, box, direction, out var overlap) || overlap <= bestOverlap)
-                continue;
-
-            bestOverlap = overlap;
-            best = client.Window;
-        }
-
-        return best;
-    }
-
-    private static bool Overlap(Rectangle origin, Rectangle other, Direction direction, out double overlap)
-    {
-        var adjacent = direction switch
-        {
-            Direction.Left => Adjacent(origin.X, origin.X + origin.Width, other.X, other.X + other.Width),
-            Direction.Right => Adjacent(other.X, other.X + other.Width, origin.X, origin.X + origin.Width),
-            Direction.Up => Adjacent(origin.Y, origin.Y + origin.Height, other.Y, other.Y + other.Height),
-            Direction.Down => Adjacent(other.Y, other.Y + other.Height, origin.Y, origin.Y + origin.Height),
-            _ => false,
-        };
-        overlap = adjacent
-            ? direction is Direction.Left or Direction.Right
-                ? Shared(origin.Y, origin.Height, other.Y, other.Height)
-                : Shared(origin.X, origin.Width, other.X, other.Width)
-            : 0;
-        return overlap > 1;
-    }
-
-    private static bool Adjacent(int aMin, int aMax, int bMin, int bMax)
-    {
-        var delta = aMin - bMax;
-        if (Math.Abs(delta) <= 2)
-            return true;
-        if (delta >= 0)
-            return false;
-
-        var overlap = -delta;
-        var sizeA = aMax - aMin;
-        var sizeB = bMax - bMin;
-        if ((bMin <= aMin && bMax >= aMax) || (aMin <= bMin && aMax >= bMax))
-            return false;
-
-        return overlap <= Math.Min(sizeA, sizeB) * 0.5;
-    }
-
-    private static double Shared(int start, int size, int otherStart, int otherSize) =>
-        Math.Max(0, Math.Min(start + size, otherStart + otherSize) - Math.Max(start, otherStart));
-
     private static Rectangle FitInWorkArea(Rectangle box, Rectangle work)
     {
         var x = Math.Max(box.X, work.X);
@@ -403,7 +345,7 @@ internal sealed partial class MasterLayout
 
     private static bool Sticks(int edge, int other) => Math.Abs(edge - other) <= 1;
 
-    private static bool TryDirection(string text, out Direction direction)
+    private static bool TryDirection(string text, out Side direction)
     {
         foreach (var (word, parsed) in Directions)
         {
@@ -414,42 +356,14 @@ internal sealed partial class MasterLayout
             }
         }
 
-        direction = Direction.Left;
+        direction = Side.Left;
         return false;
-    }
-
-    private static bool TryResize(string arguments, out int x, out int y, out bool exact)
-    {
-        x = 0;
-        y = 0;
-        exact = false;
-        var tokens = Tokens(arguments);
-        var index = 0;
-        if (tokens.Length > 0 && Is(tokens[0], "exact"))
-        {
-            exact = true;
-            index = 1;
-        }
-
-        if (tokens.Length - index < 2)
-            return false;
-
-        return int.TryParse(tokens[index], NumberStyles.Integer, CultureInfo.InvariantCulture, out x)
-            && int.TryParse(tokens[index + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out y);
     }
 
     private static string First(string arguments)
     {
         var tokens = Tokens(arguments);
         return tokens.Length == 0 ? "" : tokens[0];
-    }
-
-    private enum Direction
-    {
-        Left,
-        Right,
-        Up,
-        Down,
     }
 
     private sealed class MouseGrab(ClientId id, WindowId window, bool resize, bool wasFloating, Point grab, Rectangle start)

@@ -30,7 +30,7 @@ internal sealed partial class MasterLayout
         _natural.Remove(from);
         _natural[to] = incoming.Bounds;
         _limits.Remove(from);
-        _limits[to] = new ClientLimits(incoming.MinSize, incoming.MaxSize);
+        _limits[to] = new SizeLimits(incoming.MinSize, incoming.MaxSize);
         if (_focused == current)
             _focused = next;
         if (_previousFocus == current)

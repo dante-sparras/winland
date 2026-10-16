@@ -1,4 +1,3 @@
-using System.Globalization;
 using static Winland.OrdinalText;
 
 namespace Winland;
@@ -38,7 +37,7 @@ internal sealed partial class ScrollingLayout
 
     public IReadOnlyList<Placement> ResizeActive(WindowId window, string arguments)
     {
-        if (!TryResize(arguments, out var x, out var y, out var exact))
+        if (!ResizeArguments.TryParse(arguments, out var x, out var y, out var exact))
             return [];
 
         var id = new ClientId(window.Value);
@@ -255,33 +254,5 @@ internal sealed partial class ScrollingLayout
                 side = Side.Left;
                 return false;
         }
-    }
-
-    private static bool TryResize(string arguments, out int x, out int y, out bool exact)
-    {
-        x = 0;
-        y = 0;
-        exact = false;
-        var tokens = Tokens(arguments);
-        var index = 0;
-        if (tokens.Length > 0 && Is(tokens[0], "exact"))
-        {
-            exact = true;
-            index = 1;
-        }
-
-        if (tokens.Length - index < 2)
-            return false;
-
-        return int.TryParse(tokens[index], NumberStyles.Integer, CultureInfo.InvariantCulture, out x)
-            && int.TryParse(tokens[index + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out y);
-    }
-
-    private enum Side
-    {
-        Left,
-        Right,
-        Up,
-        Down,
     }
 }

@@ -114,13 +114,13 @@ internal sealed partial class DwindleLayout : Layout
         if (_nodes.ContainsKey(id) || _suspended.ContainsKey(id) || _floating.ContainsKey(id))
             return [];
 
-        _limits[id] = new ClientLimits(minSize, maxSize);
+        _limits[id] = new SizeLimits(minSize, maxSize);
         _natural[id] = bounds;
-        var placed = ClampToLimits(bounds, minSize, maxSize);
+        var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
         if (placed.Width > 0 && placed.Height > 0)
             _lastFloat[id] = (placed.Width, placed.Height);
         var floats = floating || CannotFill(maxSize, pointer);
-        var client = Adopted(id, window, workspace, windowClass, title, floats, processId, initialClass, initialTitle);
+        var client = ClientAdoption.Adopted(id, window, workspace, windowClass, title, floats, processId, initialClass, initialTitle);
         if (floats)
         {
             _clients.Add(client);
@@ -249,17 +249,7 @@ internal sealed partial class DwindleLayout : Layout
             ? floating
             : _natural.TryGetValue(id, out var natural) ? natural : default;
         _limits.TryGetValue(id, out var limits);
-        taken = new Taken(
-            client.Floating,
-            client.Minimized,
-            bounds,
-            client.Class,
-            client.Title,
-            client.ProcessId,
-            client.InitialClass,
-            client.InitialTitle,
-            limits.Min,
-            limits.Max);
+        taken = SlotHandover.Describe(client, bounds, limits.Min, limits.Max);
         Remove(window);
         return true;
     }
@@ -280,27 +270,6 @@ internal sealed partial class DwindleLayout : Layout
     }
 
     public IReadOnlyList<Placement> Placed() => Placements();
-
-    private static Client Adopted(
-        ClientId id,
-        WindowId window,
-        WorkspaceId workspace,
-        string windowClass,
-        string title,
-        bool floating,
-        long processId,
-        string initialClass,
-        string initialTitle) =>
-        new(
-            id,
-            window,
-            Floating: floating,
-            Workspace: workspace,
-            Class: windowClass,
-            Title: title,
-            ProcessId: processId,
-            InitialClass: initialClass.Length == 0 ? windowClass : initialClass,
-            InitialTitle: initialTitle.Length == 0 ? title : initialTitle);
 
     private void SetMinimized(ClientId id, bool minimized)
     {

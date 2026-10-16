@@ -4,7 +4,7 @@ internal sealed partial class DwindleLayout
 {
     public IReadOnlyList<Placement> ResizeActive(WindowId window, string arguments)
     {
-        if (!TryResize(arguments, out var x, out var y, out var exact))
+        if (!ResizeArguments.TryParse(arguments, out var x, out var y, out var exact))
             return [];
 
         var id = new ClientId(window.Value);

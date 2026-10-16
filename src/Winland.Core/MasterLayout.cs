@@ -7,7 +7,7 @@ internal sealed partial class MasterLayout : Layout
     private readonly Dictionary<ClientId, Rectangle> _floating = [];
     private readonly Dictionary<ClientId, Rectangle> _natural = [];
     private readonly Dictionary<ClientId, (int Width, int Height)> _lastFloat = [];
-    private readonly Dictionary<ClientId, ClientLimits> _limits = [];
+    private readonly Dictionary<ClientId, SizeLimits> _limits = [];
     private readonly Dictionary<ClientId, Suspended> _suspended = [];
     private LayoutOptions _layout = LayoutOptions.Unconfigured;
     private Rectangle _monitor;
@@ -72,12 +72,12 @@ internal sealed partial class MasterLayout : Layout
         if (Known(id))
             return [];
 
-        _limits[id] = new ClientLimits(minSize, maxSize);
+        _limits[id] = new SizeLimits(minSize, maxSize);
         _natural[id] = bounds;
-        var placed = ClampToLimits(bounds, minSize, maxSize);
+        var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
         if (placed.Width > 0 && placed.Height > 0)
             _lastFloat[id] = (placed.Width, placed.Height);
-        var client = Adopted(id, window, workspace, windowClass, title, floating, processId, initialClass, initialTitle);
+        var client = ClientAdoption.Adopted(id, window, workspace, windowClass, title, floating, processId, initialClass, initialTitle);
         if (floating)
         {
             _clients.Add(client);
@@ -188,17 +188,7 @@ internal sealed partial class MasterLayout : Layout
             ? floating
             : _natural.TryGetValue(id, out var natural) ? natural : default;
         _limits.TryGetValue(id, out var limits);
-        taken = new Taken(
-            client.Floating,
-            client.Minimized,
-            bounds,
-            client.Class,
-            client.Title,
-            client.ProcessId,
-            client.InitialClass,
-            client.InitialTitle,
-            limits.Min,
-            limits.Max);
+        taken = SlotHandover.Describe(client, bounds, limits.Min, limits.Max);
         Remove(window);
         return true;
     }
@@ -211,10 +201,10 @@ internal sealed partial class MasterLayout : Layout
         if (FindClient(id) < 0)
             return [];
 
-        _limits[id] = new ClientLimits(minSize, maxSize);
+        _limits[id] = new SizeLimits(minSize, maxSize);
         if (_floating.TryGetValue(id, out var floating))
         {
-            var clamped = ClampToLimits(floating, minSize, maxSize);
+            var clamped = new SizeLimits(minSize, maxSize).Clamp(floating);
             if (clamped == floating)
                 return [];
 

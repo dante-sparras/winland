@@ -1,4 +1,3 @@
-using System.Globalization;
 using static Winland.OrdinalText;
 
 namespace Winland;
@@ -14,7 +13,7 @@ internal sealed partial class MonocleLayout : Layout
     private readonly Dictionary<ClientId, Rectangle> _floating = [];
     private readonly Dictionary<ClientId, Rectangle> _natural = [];
     private readonly Dictionary<ClientId, (int Width, int Height)> _lastFloat = [];
-    private readonly Dictionary<ClientId, (Size? Min, Size? Max)> _limits = [];
+    private readonly Dictionary<ClientId, SizeLimits> _limits = [];
     private LayoutOptions _options = LayoutOptions.Unconfigured;
     private Rectangle _area;
     private int _visible;
@@ -64,22 +63,12 @@ internal sealed partial class MonocleLayout : Layout
             return [];
 
         _natural[id] = bounds;
-        _limits[id] = (minSize, maxSize);
+        _limits[id] = new SizeLimits(minSize, maxSize);
         var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
         if (placed.Width > 0 && placed.Height > 0)
             _lastFloat[id] = (placed.Width, placed.Height);
 
-        var client = new Client(
-            id,
-            window,
-            Floating: floating,
-            Workspace: workspace,
-            Class: windowClass,
-            Title: title,
-            ProcessId: processId,
-            InitialClass: initialClass.Length == 0 ? windowClass : initialClass,
-            InitialTitle: initialTitle.Length == 0 ? title : initialTitle);
-        _clients.Add(client);
+        _clients.Add(ClientAdoption.Adopted(id, window, workspace, windowClass, title, floating, processId, initialClass, initialTitle));
         if (floating)
         {
             _floating[id] = placed;
@@ -155,17 +144,7 @@ internal sealed partial class MonocleLayout : Layout
             ? floating
             : _natural.TryGetValue(id, out var natural) ? natural : default;
         _limits.TryGetValue(id, out var limits);
-        taken = new Taken(
-            client.Floating,
-            client.Minimized,
-            bounds,
-            client.Class,
-            client.Title,
-            client.ProcessId,
-            client.InitialClass,
-            client.InitialTitle,
-            limits.Min,
-            limits.Max);
+        taken = SlotHandover.Describe(client, bounds, limits.Min, limits.Max);
         Remove(window);
         return true;
     }
@@ -193,7 +172,7 @@ internal sealed partial class MonocleLayout : Layout
         if (IndexOf(id) < 0)
             return [];
 
-        _limits[id] = (minSize, maxSize);
+        _limits[id] = new SizeLimits(minSize, maxSize);
         if (!_floating.TryGetValue(id, out var floating))
             return [];
 
@@ -313,7 +292,7 @@ internal sealed partial class MonocleLayout : Layout
         if (Minimized(id) || !_floating.TryGetValue(id, out var box))
             return [];
 
-        if (!TryResize(arguments, out var x, out var y, out var exact))
+        if (!ResizeArguments.TryParse(arguments, out var x, out var y, out var exact))
             return [];
 
         var deltaX = exact ? x - box.Width : x;
@@ -539,26 +518,6 @@ internal sealed partial class MonocleLayout : Layout
         return false;
     }
 
-    private static bool TryResize(string arguments, out int x, out int y, out bool exact)
-    {
-        x = 0;
-        y = 0;
-        exact = false;
-        var tokens = Tokens(arguments);
-        var index = 0;
-        if (tokens.Length > 0 && Is(tokens[0], "exact"))
-        {
-            exact = true;
-            index = 1;
-        }
-
-        if (tokens.Length - index < 2)
-            return false;
-
-        return int.TryParse(tokens[index], NumberStyles.Integer, CultureInfo.InvariantCulture, out x)
-            && int.TryParse(tokens[index + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out y);
-    }
-
     private static string First(string arguments)
     {
         var tokens = Tokens(arguments);
@@ -567,12 +526,4 @@ internal sealed partial class MonocleLayout : Layout
 
     private static string[] Tokens(string arguments) =>
         arguments.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-
-    private enum Side
-    {
-        Left,
-        Right,
-        Up,
-        Down,
-    }
 }

@@ -2,7 +2,7 @@ namespace Winland;
 
 internal sealed partial class DwindleLayout
 {
-    private readonly Dictionary<ClientId, ClientLimits> _limits = [];
+    private readonly Dictionary<ClientId, SizeLimits> _limits = [];
 
     public IReadOnlyList<Placement> UpdateLimits(WindowId window, Size? minSize, Size? maxSize)
     {
@@ -11,10 +11,10 @@ internal sealed partial class DwindleLayout
         if (index < 0)
             return [];
 
-        _limits[id] = new ClientLimits(minSize, maxSize);
+        _limits[id] = new SizeLimits(minSize, maxSize);
         if (_floating.TryGetValue(id, out var floating))
         {
-            var clamped = ClampToLimits(floating, minSize, maxSize);
+            var clamped = new SizeLimits(minSize, maxSize).Clamp(floating);
             if (clamped == floating)
                 return [];
 
@@ -40,7 +40,7 @@ internal sealed partial class DwindleLayout
         if (_splitTarget == id)
             _splitTarget = sibling is null ? null : Leaf(sibling.Node).Id;
 
-        var floated = ClampToLimits(presented, min, max);
+        var floated = new SizeLimits(min, max).Clamp(presented);
         _floating[id] = floated;
         _clients[index] = _clients[index] with { Floating = true };
         Refit();
@@ -231,31 +231,4 @@ internal sealed partial class DwindleLayout
         return (int)Math.Max(current, need);
     }
 
-    private static Rectangle ClampToLimits(Rectangle bounds, Size? min, Size? max)
-    {
-        var width = bounds.Width;
-        var height = bounds.Height;
-        if (max is { } hi)
-        {
-            if (hi.Width < int.MaxValue && width > hi.Width)
-                width = hi.Width;
-            if (hi.Height < int.MaxValue && height > hi.Height)
-                height = hi.Height;
-        }
-
-        if (min is { } lo)
-        {
-            if (lo.Width > 0 && width < lo.Width)
-                width = lo.Width;
-            if (lo.Height > 0 && height < lo.Height)
-                height = lo.Height;
-        }
-
-        if (width == bounds.Width && height == bounds.Height)
-            return bounds;
-
-        return new Rectangle(bounds.X, bounds.Y, width, height);
-    }
-
-    private readonly record struct ClientLimits(Size? Min, Size? Max);
 }
