@@ -573,7 +573,8 @@ public sealed partial class WindowAdapter : IDisposable
     }
 
     // An outcome that is not current lost its stale parts in Order.Admit. The state every outcome carries
-    // whole, the group bars and the session effects, is left to the newer outcome that was already applied.
+    // whole, the group bars, the input settings and the cursor behavior, is left to the newer outcome that
+    // was already applied. Its one-off requests still run.
     private static void ApplyCore(Outcome outcome, bool current)
     {
         var windows = new Dictionary<ClientId, WindowId>(outcome.State.Clients.Count);
@@ -658,7 +659,7 @@ public sealed partial class WindowAdapter : IDisposable
         if (current)
             SessionEffects.Apply(outcome);
         else
-            SessionEffects.Relay(outcome);
+            SessionEffects.ApplyOneOff(outcome);
 
         Applied?.Invoke(outcome);
 
