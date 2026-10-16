@@ -302,7 +302,7 @@ internal sealed partial class DwindleLayout
 
     private IReadOnlyList<Placement> SplitRatio(WindowId? active, string[] tokens)
     {
-        if (tokens.Length < 2 || !double.TryParse(tokens[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var delta))
+        if (tokens.Length < 2 || !double.TryParse(tokens[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var delta) || !double.IsFinite(delta))
         {
             LayoutMessageError = "error: bad layoutmsg '" + DwindleMessages.SplitRatio + "'";
             return [];
