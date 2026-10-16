@@ -35,6 +35,43 @@ public class ExitCleanupTests
         }
     }
 
+    [Fact]
+    public void ARestartPutsBackTheFrameACrashedRunLeftStripped()
+    {
+        _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));
+        using var probe = new LimitProbeTests.LimitProbe();
+        probe.Open();
+        try
+        {
+            var original = (uint)GetWindowLong(probe.Anchor, StyleIndex);
+            _ = SetWindowLong(probe.Anchor, StyleIndex, (int)BorderlessStyle.Strip(original));
+            var left = new RecoveredClient(
+                new WindowId(probe.Anchor.ToInt64()),
+                WorkspaceId.Initial,
+                MonitorId.Primary,
+                false,
+                "WinlandLimitProbe",
+                "a title from before",
+                Environment.ProcessId)
+            {
+                FrameStyle = original,
+            };
+
+            var core = new Core { ReducedMotion = () => true };
+            using var adapter = new WindowAdapter(core);
+            adapter.Recover(new RecoverySnapshot([left]));
+
+            Assert.Equal(original, (uint)GetWindowLong(probe.Anchor, StyleIndex));
+        }
+        finally
+        {
+            probe.Close();
+        }
+    }
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongW")]
+    private static extern int SetWindowLong(IntPtr hwnd, int index, int value);
+
     [DllImport("user32.dll", EntryPoint = "GetWindowLongW")]
     private static extern int GetWindowLong(IntPtr hwnd, int index);
 }

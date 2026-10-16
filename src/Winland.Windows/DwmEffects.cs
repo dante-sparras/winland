@@ -110,6 +110,37 @@ internal sealed class DwmEffects
             Reset(window);
     }
 
+    /// <summary>Marks each Client whose region is the corner outline this cut, so a crash does not leave it for good.</summary>
+    internal RecoverySnapshot Stamp(RecoverySnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        lock (_gate)
+        {
+            var clients = new RecoveredClient[snapshot.Clients.Count];
+            var changed = false;
+            for (var i = 0; i < snapshot.Clients.Count; i++)
+            {
+                var client = snapshot.Clients[i];
+                var cut = _regions.ContainsKey(client.Window);
+                clients[i] = client.Region == cut ? client : client with { Region = cut };
+                changed |= client.Region != cut;
+            }
+
+            return changed ? snapshot with { Clients = clients } : snapshot;
+        }
+    }
+
+    /// <summary>Removes the corner region a previous run cut and left behind, so it is not taken as the window's own.</summary>
+    internal void DropLeftoverRegion(WindowId window)
+    {
+        lock (_gate)
+        {
+            _regions.Remove(window);
+            _foreignRegions.Remove(window);
+            _surface.TrySetRegion(window, []);
+        }
+    }
+
     private void ApplyBackdrop(WindowId window, uint wanted)
     {
         if (_backdrops.TryGetValue(window, out var backdrop))

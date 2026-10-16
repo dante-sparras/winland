@@ -21,7 +21,14 @@ public sealed record RecoveredClient(
     Rectangle? Bounds = null,
     bool? Pinned = null,
     FullscreenMode? Fullscreen = null,
-    FullscreenMode? FullscreenClient = null);
+    FullscreenMode? FullscreenClient = null)
+{
+    /// <summary>The style the window had before fullscreen mode 2 dropped its frame. Null when the frame is its own.</summary>
+    public uint? FrameStyle { get; init; }
+
+    /// <summary>True when the window's region is the corner outline Winland cut, not one of its own.</summary>
+    public bool Region { get; init; }
+}
 
 public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
 {
@@ -52,7 +59,9 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 BoundsBody.From(client.Bounds),
                 client.Pinned,
                 client.Fullscreen is FullscreenMode internalMode ? (int)internalMode : null,
-                client.FullscreenClient is FullscreenMode clientMode ? (int)clientMode : null);
+                client.FullscreenClient is FullscreenMode clientMode ? (int)clientMode : null,
+                client.FrameStyle,
+                client.Region);
         }
 
         return JsonSerializer.Serialize(new FileBody(rows, InputBody.From(Input)), Json);
@@ -89,7 +98,11 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                     row.Bounds?.ToRectangle(),
                     row.Pinned,
                     Mode(row.Fullscreen),
-                    Mode(row.FullscreenClient)));
+                    Mode(row.FullscreenClient))
+                {
+                    FrameStyle = row.FrameStyle,
+                    Region = row.Region,
+                });
             }
 
             snapshot = new RecoverySnapshot(clients) { Input = body.Input?.ToOriginals() };
@@ -167,7 +180,9 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
         [property: JsonPropertyName("bounds")] BoundsBody? Bounds = null,
         [property: JsonPropertyName("pinned")] bool? Pinned = null,
         [property: JsonPropertyName("fullscreen")] int? Fullscreen = null,
-        [property: JsonPropertyName("fullscreenClient")] int? FullscreenClient = null);
+        [property: JsonPropertyName("fullscreenClient")] int? FullscreenClient = null,
+        [property: JsonPropertyName("frameStyle")] uint? FrameStyle = null,
+        [property: JsonPropertyName("region")] bool Region = false);
 
     private sealed record BoundsBody(
         [property: JsonPropertyName("x")] int X,
