@@ -88,13 +88,14 @@ static int Install(string user)
         ?? throw new InvalidOperationException("The executable path is not available.");
 
     // The task starts this file elevated at every logon. A folder a non-administrator can
-    // write would let any program the user runs replace what the task starts.
+    // write, or swap through a folder above it, would let any program the user runs replace
+    // what the task starts.
     var folder = Path.GetDirectoryName(executable)
         ?? throw new InvalidOperationException("The executable folder is not available.");
-    if (WindowsAccessReader.FirstNonAdministrator(folder) is var (path, who))
+    if (InstallLocation.Refusal(WindowsAccessReader.Tree(folder), WindowsAccessReader.Ancestors(folder)) is string refusal)
     {
         throw new InvalidOperationException(
-            $"Refusing to install: a non-administrator ({who}) can write '{path}', and the logon task would start "
+            $"Refusing to install: {refusal}, and the logon task would start "
             + "Winland from there with administrator rights. Copy Winland to a folder only administrators can write, "
             + "such as C:\\Program Files\\Winland, and run 'winland install' from there.");
     }
