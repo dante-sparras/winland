@@ -521,6 +521,14 @@ public class ConfigTests
     [InlineData("CTRL", Modifier.Ctrl)]
     [InlineData("CONTROL", Modifier.Ctrl)]
     [InlineData("SHIFT", Modifier.Shift)]
+    [InlineData("META", Modifier.Super)]
+    [InlineData("super", Modifier.Super)]
+    [InlineData("SUPER_SHIFT", Modifier.Super | Modifier.Shift)]
+    [InlineData("SUPER+SHIFT", Modifier.Super | Modifier.Shift)]
+    [InlineData("SUPER + SHIFT", Modifier.Super | Modifier.Shift)]
+    [InlineData("SUPERSHIFT", Modifier.Super | Modifier.Shift)]
+    [InlineData("Ctrl_Alt", Modifier.Ctrl | Modifier.Alt)]
+    [InlineData("SUPER SHIFT CTRL ALT", Modifier.Super | Modifier.Shift | Modifier.Ctrl | Modifier.Alt)]
     public void ModifierNamesAreParsed(string name, Modifier expected)
     {
         var document = ConfigParser.Parse($"bind = {name}, Q, killactive\n");
@@ -528,6 +536,30 @@ public class ConfigTests
         Assert.Equal(
             new Bind(expected, "Q", "killactive", "", BindFlag.None, null, null),
             Assert.Single(document.Binds));
+    }
+
+    [Fact]
+    public void AModifierVariableJoinedWithAnUnderscoreIsParsed()
+    {
+        var document = ConfigParser.Parse("$mainMod = SUPER\nbind = $mainMod_SHIFT, Q, killactive\n");
+
+        Assert.Empty(document.Warnings);
+        Assert.Equal(
+            new Bind(Modifier.Super | Modifier.Shift, "Q", "killactive", "", BindFlag.None, null, null),
+            Assert.Single(document.Binds));
+    }
+
+    [Theory]
+    [InlineData("CAPS", "CAPS")]
+    [InlineData("SUPER_MOD5", "MOD5")]
+    [InlineData("MOD2", "MOD2")]
+    [InlineData("MOD3", "MOD3")]
+    public void AModifierWindowsCannotHoldWarns(string name, string modifier)
+    {
+        var document = ConfigParser.Parse($"bind = {name}, Q, killactive\n");
+
+        Assert.Empty(document.Binds);
+        Assert.Equal(new ConfigWarning(1, $"Modifier '{modifier}' is not honored."), Assert.Single(document.Warnings));
     }
 
     [Fact]

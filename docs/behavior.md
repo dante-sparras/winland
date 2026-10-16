@@ -199,6 +199,10 @@ A `fullscreen` window rule requests mode 2. A `maximize` window rule requests mo
 
 `winlandctl plugin install <git-url> [revision]` clones the repository and builds the plugins its manifest lists, then installs them. A repository that is already installed is refused. A revision checks out that commit, branch or tag. `update` rebuilds a repository only when its commit changed, or every repository with `--force`. `remove` takes a repository URL or one of its plugin names and removes the whole repository. `list --installed` lists the installed repositories and their plugins. The manifest, the build and the approval are in [plugins.md](plugins.md).
 
+## Modifiers
+
+A modifier list in a bind, a gesture's `mod:` and `sendshortcut` is read as the pinned release reads it: the list is upper-cased and each modifier name found anywhere in it counts, so `SUPER SHIFT`, `SUPER_SHIFT`, `SUPER+SHIFT`, `$mainMod_SHIFT` with `$mainMod = SUPER`, and `super shift` are the same. `SUPER`, `WIN`, `LOGO`, `MOD4` and `META` are the Windows key, `ALT` and `MOD1` are Alt, `CTRL` and `CONTROL` are Ctrl, and `SHIFT` is Shift. A list that names none of them warns `Invalid modifier` and the bind is skipped.
+
 ## Sending keys
 
 `pass` sends the key of the bind that ran it to the Client the window selector names. The press goes on when the key goes down and the release when it comes up, so a `pass` bind runs on the release too without the `r` flag. The modifiers the user holds are left as they are. A selector that matches no Client answers `pass: window not found`.
