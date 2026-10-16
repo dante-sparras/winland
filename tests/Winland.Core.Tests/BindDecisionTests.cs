@@ -77,7 +77,6 @@ public class BindDecisionTests
     // so the classic "bindr = SUPER, Super_L" runs when Super is let go.
     [Theory]
     [InlineData("bindr = SUPER, Super_L, exec, menu", "Super_L")]
-    [InlineData("bindr = , Super_L, exec, menu", "Super_L")]
     [InlineData("bindr = ALT, Alt_R, exec, menu", "Alt_R")]
     [InlineData("bindr = CTRL SHIFT, Shift_L, exec, menu", "Shift_L")]
     public void AReleaseBindOnAModifierKeyRunsWhenThatKeyIsLetGo(string config, string key)
@@ -93,6 +92,38 @@ public class BindDecisionTests
 
         Assert.Null(down.Dispatcher);
         Assert.Equal("exec", up.Dispatcher);
+    }
+
+    // On release the mask holds the released key's own modifier, so a release bind that leaves it out
+    // does not run, as in the pinned release, and one release runs only the bind that names it.
+    [Fact]
+    public void OnlyTheReleaseBindNamingTheKeysOwnModifierRuns()
+    {
+        var core = new Core();
+        core.Handle(new ConfigLoaded(ConfigParser.Parse("""
+            bindr = , Super_L, exec, bare
+            bindr = SUPER, Super_L, exec, named
+            """)));
+        var session = new BindSession();
+
+        core.Decide(new KeyPressed("Super_L"), session);
+        var up = core.Decide(new KeyReleased("Super_L"), session);
+
+        Assert.Equal("exec", up.Dispatcher);
+        Assert.Equal("named", up.Arguments);
+    }
+
+    [Fact]
+    public void AReleaseBindOnAModifierKeyWithoutItsModifierDoesNotRun()
+    {
+        var core = new Core();
+        core.Handle(new ConfigLoaded(ConfigParser.Parse("bindr = , Super_L, exec, menu")));
+        var session = new BindSession();
+
+        core.Decide(new KeyPressed("Super_L"), session);
+        var up = core.Decide(new KeyReleased("Super_L"), session);
+
+        Assert.Null(up.Dispatcher);
     }
 
     [Fact]
@@ -301,6 +332,24 @@ public class BindDecisionTests
     public void ModifierReleaseBindFiresWhenThatKeyGoesUp()
     {
         var core = new Core();
+        core.Handle(new ConfigLoaded(ConfigParser.Parse("bindr = SUPER, Super_L, killactive\n")));
+        var session = new BindSession();
+
+        var press = core.Decide(new KeyPressed("Super_L"), session);
+        var release = core.Decide(new KeyReleased("Super_L"), session);
+
+        Assert.False(press.Consumed);
+        Assert.Null(press.Dispatcher);
+        Assert.Equal("killactive", release.Dispatcher);
+        Assert.False(release.Consumed);
+    }
+
+    // The press matches the release bind without Super, so the pinned release swallows it, and the
+    // release, with Super still held, matches nothing and is swallowed with it.
+    [Fact]
+    public void AReleaseBindLeavingOutTheKeysModifierSwallowsTheKeyAndRunsNothing()
+    {
+        var core = new Core();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("bindr = , Super_L, killactive\n")));
         var session = new BindSession();
 
@@ -308,9 +357,8 @@ public class BindDecisionTests
         var release = core.Decide(new KeyReleased("Super_L"), session);
 
         Assert.True(press.Consumed);
-        Assert.Null(press.Dispatcher);
-        Assert.Equal("killactive", release.Dispatcher);
         Assert.True(release.Consumed);
+        Assert.Null(release.Dispatcher);
     }
 
     [Fact]

@@ -207,8 +207,7 @@ public static class BindMatcher
         var caughtSet = mouse ? session.CaughtButtons : session.CaughtKeys;
         var caught = caughtSet.Remove(key);
         var passed = (mouse ? session.PassedButtons : session.PassedKeys).Remove(key);
-        if (!mouse)
-            session.MaskedKeys.Remove(key);
+        var masked = !mouse && session.MaskedKeys.Remove(key);
 
         var fire = Collect(table, session, key, scanCode, mouse, releasing: true, session.Forget(key, mouse));
         session.LongPressKey = null;
@@ -218,6 +217,11 @@ public static class BindMatcher
         var decision = fire.Count > 0 ? Ran(fire, Consumes(fire) || caught, trigger) : caught ? Caught() : Passed();
         if (passed)
             decision = decision with { Consumed = false };
+
+        // A release bind on a Super or Alt the OS saw, such as "bindr = SUPER, Super_L", sends a mask
+        // before the release passes, so the release does not also open Start or a menu.
+        if (passed && fire.Count > 0 && !masked && ModifierKeys.TryGetValue(key, out var modifier) && modifier is Modifier.Super or Modifier.Alt)
+            decision = decision with { Mask = true };
 
         return decision with { DisarmLongPress = true };
     }
@@ -433,15 +437,15 @@ public static class BindMatcher
         session.Held &= ~modifier;
     }
 
-    // On release the pinned release folds the released key's own modifier into the mask, so
-    // "bindr = SUPER, Super_L" runs when Super is let go. A mask without it still matches.
+    // On release the pinned release compares the modifiers still held, which include the released key's
+    // own modifier, so "bindr = SUPER, Super_L" runs when Super is let go and "bindr = , Super_L" does not.
     private static bool ModifiersMatch(Bind bind, BindSession session, string key, bool mouse, bool releasing)
     {
         var mask = MaskFor(session, key, mouse);
-        if (bind.Modifiers == mask)
-            return true;
+        if (releasing && !mouse && ModifierKeys.TryGetValue(key, out var own))
+            mask |= own;
 
-        return releasing && !mouse && ModifierKeys.TryGetValue(key, out var own) && bind.Modifiers == (mask | own);
+        return bind.Modifiers == mask;
     }
 
     // A modifier keysym is matched against the mask without that key folded in,

@@ -145,18 +145,36 @@ public class StuckModifierTests
     }
 
     [Fact]
-    public void ReleaseBindOnTheModifierItselfSwallowsBothEdges()
+    public void ReleaseBindOnTheModifierItselfPassesBothEdgesAndMasksTheRelease()
     {
-        var (core, session) = Load("bindr = , Super_L, exec, launcher");
+        var (core, session) = Load("bindr = SUPER, Super_L, exec, launcher");
 
         var down = core.Decide(new KeyPressed("Super_L"), session);
         var up = core.Decide(new KeyReleased("Super_L"), session);
 
-        // The OS never saw this Super, so there is nothing to mask or release.
-        Assert.True(down.Consumed);
+        // The OS saw this Super, so it sees the release too, after a mask so Start does not open.
+        Assert.False(down.Consumed);
         Assert.False(down.Mask);
-        Assert.True(up.Consumed);
+        Assert.False(up.Consumed);
+        Assert.True(up.Mask);
         Assert.Equal("exec", up.Dispatcher);
+    }
+
+    [Fact]
+    public void ReleaseBindOnASuperAlreadyMaskedByAChordSendsNoSecondMask()
+    {
+        var (core, session) = Load("""
+            bind = SUPER, T, exec, teams
+            bindr = SUPER, Super_L, exec, launcher
+            """);
+
+        core.Decide(new KeyPressed("Super_L"), session);
+        var t = core.Decide(new KeyPressed("T"), session);
+        core.Decide(new KeyReleased("T"), session);
+        var up = core.Decide(new KeyReleased("Super_L"), session);
+
+        Assert.True(t.Mask);
+        Assert.False(up.Mask);
     }
 
     [Fact]
