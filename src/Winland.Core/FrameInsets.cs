@@ -25,32 +25,33 @@ public readonly record struct FrameInsets(int Left, int Top, int Right, int Bott
     public bool AppliesAt(int measuredAt, int dpi) => measuredAt == dpi;
 
     /// <summary>
-    /// One follow-up after a placement. A window that refused the requested size keeps that size.
+    /// One follow-up after a placement. Each axis is corrected on its own: an axis the window refused keeps
+    /// the size it landed at, and an axis it accepted grows by the inset the visible frame is short.
     /// </summary>
     public static Correction Correct(Rectangle target, Rectangle requested, Rectangle landedOuter, Rectangle landedVisible)
     {
         if (landedVisible == target)
             return new Correction(landedOuter, false);
 
-        var refused = landedOuter.Width != requested.Width || landedOuter.Height != requested.Height;
-        if (refused)
-        {
-            return new Correction(
-                new Rectangle(
-                    landedOuter.X + target.X - landedVisible.X,
-                    landedOuter.Y + target.Y - landedVisible.Y,
-                    landedOuter.Width,
-                    landedOuter.Height),
-                true);
-        }
+        var (x, width, refusedWidth) = Axis(target.X, target.Width, requested.X, requested.Width, landedOuter.X, landedOuter.Width, landedVisible.X, landedVisible.Width);
+        var (y, height, refusedHeight) = Axis(target.Y, target.Height, requested.Y, requested.Height, landedOuter.Y, landedOuter.Height, landedVisible.Y, landedVisible.Height);
+        return new Correction(new Rectangle(x, y, width, height), refusedWidth || refusedHeight);
+    }
 
-        return new Correction(
-            new Rectangle(
-                requested.X + target.X - landedVisible.X,
-                requested.Y + target.Y - landedVisible.Y,
-                requested.Width + target.Width - landedVisible.Width,
-                requested.Height + target.Height - landedVisible.Height),
-            false);
+    private static (int Start, int Size, bool Refused) Axis(
+        int target,
+        int targetSize,
+        int requested,
+        int requestedSize,
+        int landed,
+        int landedSize,
+        int visible,
+        int visibleSize)
+    {
+        if (landedSize != requestedSize)
+            return (landed + target - visible, landedSize, true);
+
+        return (requested + target - visible, requestedSize + targetSize - visibleSize, false);
     }
 
     public readonly record struct Correction(Rectangle Outer, bool Clamped);

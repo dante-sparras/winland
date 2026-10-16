@@ -83,6 +83,19 @@ public class FrameInsetsTests
     }
 
     [Fact]
+    public void AWindowClampedOnOneAxisIsStillCorrectedOnTheOther()
+    {
+        var target = new Rectangle(100, 200, 800, 600);
+        var requested = new Rectangle(100, 200, 800, 600);
+        var landedOuter = new Rectangle(100, 200, 500, 600);
+        var landedVisible = new Rectangle(107, 200, 486, 593);
+
+        var correction = FrameInsets.Correct(target, requested, landedOuter, landedVisible);
+
+        Assert.Equal(new FrameInsets.Correction(new Rectangle(93, 200, 500, 607), true), correction);
+    }
+
+    [Fact]
     public void InsetsStayCachedUntilTheDpiChanges()
     {
         var cached = new FrameInsets(7, 0, 7, 7);
