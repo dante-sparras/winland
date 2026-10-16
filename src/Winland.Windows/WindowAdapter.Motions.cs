@@ -126,8 +126,14 @@ public sealed partial class WindowAdapter
 
         public void Alpha(WindowId window, byte alpha) => Opacity.Apply(window, alpha);
 
-        public void Border(WindowId window, BorderColor color) =>
+        public void Border(WindowId window, BorderColor color)
+        {
+            // The exit cleanup put the border back. A motion step after that would leave its color.
+            if (Releasing)
+                return;
+
             SetAttribute(new HWND((nint)window.Value), BorderColorAttribute, ColorRef(color));
+        }
 
         public void Hide(WindowId window) => Conceal(window);
 

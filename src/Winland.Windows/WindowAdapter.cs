@@ -158,6 +158,9 @@ public sealed partial class WindowAdapter : IDisposable
 
         // Nothing hooks window events any more, so a later adapter in this process starts unreleased.
         Releasing = false;
+        Borderless.Reopen();
+        Effects.Reopen();
+        Opacity.Reopen();
     }
 
     public void Recover(RecoverySnapshot? snapshot)
@@ -577,7 +580,9 @@ public sealed partial class WindowAdapter : IDisposable
         foreach (var client in outcome.State.Clients)
             windows[client.Id] = client.Window;
 
-        var motions = MotionsOf(outcome);
+        // Once the exit cleanup began, nothing starts a motion that would change alpha or the border again.
+        // The frame, effects and alpha refuse changes themselves once they were put back.
+        var motions = Releasing ? [] : MotionsOf(outcome);
         foreach (var window in outcome.Hide)
             ConcealOrLeave(window, motions);
 

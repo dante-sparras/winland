@@ -33,6 +33,7 @@ internal sealed class BorderlessFrame
     private readonly IWindowFrame _frames;
     private readonly Dictionary<WindowId, uint> _original = [];
     private readonly Lock _gate = new();
+    private bool _closed;
 
     internal BorderlessFrame(IWindowFrame frames)
     {
@@ -57,7 +58,7 @@ internal sealed class BorderlessFrame
                 return;
             }
 
-            if (_original.ContainsKey(window))
+            if (_closed || _original.ContainsKey(window))
                 return;
 
             if (!_frames.TryReadStyle(window, out var style))
@@ -105,15 +106,28 @@ internal sealed class BorderlessFrame
         }
     }
 
-    /// <summary>Puts back the frame of every window this dropped it from.</summary>
+    /// <summary>
+    /// Puts back the frame of every window this dropped it from, for the exit cleanup. No frame is dropped
+    /// after that until <see cref="Reopen"/>: an outcome that arrives late would leave it dropped for good.
+    /// </summary>
     internal void ReleaseAll()
     {
         WindowId[] windows;
         lock (_gate)
+        {
+            _closed = true;
             windows = [.. _original.Keys];
+        }
 
         foreach (var window in windows)
             Release(window);
+    }
+
+    /// <summary>Drops frames again, for a later run in the same process.</summary>
+    internal void Reopen()
+    {
+        lock (_gate)
+            _closed = false;
     }
 }
 

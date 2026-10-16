@@ -141,6 +141,28 @@ public class DwmEffectsTests
         Assert.Equal(DwmEffects.StylePolicy, surface.Policies[other]);
     }
 
+    // After the exit cleanup the process ends with the state file gone, so an outcome that arrives
+    // late must not change a backdrop, a shadow or a region again.
+    [Fact]
+    public void AfterResettingAllNothingIsChangedUntilReopened()
+    {
+        var surface = new FakeSurface();
+        surface.Backdrops[Window] = 2;
+        surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
+        var effects = new DwmEffects(surface);
+        effects.ResetAll();
+
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+
+        Assert.Equal(2u, surface.Backdrops[Window]);
+        Assert.Equal(0, surface.RegionWrites);
+        Assert.False(effects.CutsCorners(Window));
+
+        effects.Reopen();
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        Assert.True(effects.CutsCorners(Window));
+    }
+
     [Fact]
     public void ACutRegionIsRecordedAndAfterACrashRemovedSoItIsNotTakenAsTheWindowsOwn()
     {

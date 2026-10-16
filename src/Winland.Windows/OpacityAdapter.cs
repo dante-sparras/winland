@@ -31,6 +31,7 @@ internal sealed class OpacityAdapter
     private readonly HashSet<WindowId> _leftAlone = [];
     private readonly List<string> _reports = [];
     private readonly Lock _gate = new();
+    private bool _closed;
 
     internal OpacityAdapter(IWindowStyles styles)
     {
@@ -73,6 +74,9 @@ internal sealed class OpacityAdapter
 
                 return;
             }
+
+            if (_closed)
+                return;
 
             if (!_styles.TryRead(window, out var chrome))
             {
@@ -121,14 +125,28 @@ internal sealed class OpacityAdapter
         }
     }
 
+    /// <summary>
+    /// Restores every window this made layered, for the exit cleanup. No window is made layered after that
+    /// until <see cref="Reopen"/>: an outcome or a motion that arrives late would leave it so for good.
+    /// </summary>
     internal void ResetAll()
     {
         WindowId[] windows;
         lock (_gate)
+        {
+            _closed = true;
             windows = [.. _owned.Keys];
+        }
 
         foreach (var window in windows)
             Reset(window);
+    }
+
+    /// <summary>Makes windows layered again, for a later run in the same process.</summary>
+    internal void Reopen()
+    {
+        lock (_gate)
+            _closed = false;
     }
 
     internal RecoverySnapshot Stamp(RecoverySnapshot snapshot)

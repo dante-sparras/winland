@@ -61,6 +61,27 @@ public class BorderlessFrameTests
         Assert.False(borderless.Owns(second));
     }
 
+    // The exit cleanup puts every frame back, and then the process ends with the state file gone. An
+    // outcome from the hook worker or the pipe that arrives after that must not drop a frame again.
+    [Fact]
+    public void AfterReleasingAllNoFrameIsDroppedUntilReopened()
+    {
+        var frames = new FakeFrames();
+        var window = new WindowId(8);
+        frames.Style[window] = 0x00CF0000;
+        var borderless = new BorderlessFrame(frames);
+        borderless.ReleaseAll();
+
+        borderless.Apply(window, true);
+
+        Assert.Equal(0x00CF0000u, frames.Style[window]);
+        Assert.False(borderless.Owns(window));
+
+        borderless.Reopen();
+        borderless.Apply(window, true);
+        Assert.True(borderless.Owns(window));
+    }
+
     [Fact]
     public void TheOriginalStyleIsRecordedAndAfterACrashWrittenBackInsteadOfTheStrippedOne()
     {

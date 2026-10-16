@@ -45,6 +45,7 @@ internal sealed class DwmEffects
     private readonly Dictionary<WindowId, Cut> _regions = [];
     private readonly HashSet<WindowId> _foreignRegions = [];
     private readonly Lock _gate = new();
+    private bool _closed;
 
     internal DwmEffects(IDwmSurface surface)
     {
@@ -62,6 +63,9 @@ internal sealed class DwmEffects
     {
         lock (_gate)
         {
+            if (_closed)
+                return;
+
             ApplyBackdrop(window, decoration.Blur ? BlurBackdrop : NoBackdrop);
             ApplyShadow(window, decoration.Shadow);
             if (decoration.Region is CornerRegion region && !decoration.Borderless)
@@ -94,12 +98,16 @@ internal sealed class DwmEffects
         }
     }
 
-    /// <summary>Puts back the backdrop, shadow and region of every window this changed.</summary>
+    /// <summary>
+    /// Puts back the backdrop, shadow and region of every window this changed, for the exit cleanup. Nothing
+    /// is changed after that until <see cref="Reopen"/>: an outcome that arrives late would stay for good.
+    /// </summary>
     internal void ResetAll()
     {
         HashSet<WindowId> windows;
         lock (_gate)
         {
+            _closed = true;
             windows = [.. _backdrops.Keys];
             windows.UnionWith(_shadowless);
             windows.UnionWith(_regions.Keys);
@@ -108,6 +116,13 @@ internal sealed class DwmEffects
 
         foreach (var window in windows)
             Reset(window);
+    }
+
+    /// <summary>Applies effects again, for a later run in the same process.</summary>
+    internal void Reopen()
+    {
+        lock (_gate)
+            _closed = false;
     }
 
     /// <summary>Marks each Client whose region is the corner outline this cut, so a crash does not leave it for good.</summary>
