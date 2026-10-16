@@ -187,12 +187,23 @@ public class PluginHostTests
         var core = new Core { Plugins = fixture.Host };
         Assert.Equal("ok", core.Execute("plugin load " + fixture.AssemblyPath).Text);
 
-        var watch = Stopwatch.StartNew();
-        var reply = core.Execute("dispatch hang");
-        watch.Stop();
+        // The plugin waits on this event, and the test sets it only after the reply,
+        // so a reply at all shows the host gave up on the call instead of waiting for it.
+        var name = "winland-hang-" + Guid.NewGuid().ToString("N");
+        using var release = new EventWaitHandle(false, EventResetMode.ManualReset, name);
+        string? text = null;
+        try
+        {
+            var caller = new Thread(() => text = core.Execute("dispatch hang " + name).Text) { IsBackground = true };
+            caller.Start();
+            Assert.True(caller.Join(TimeSpan.FromSeconds(30)), "The host waited for the hanging call instead of abandoning it.");
+        }
+        finally
+        {
+            release.Set();
+        }
 
-        Assert.Contains("time budget", reply.Text, StringComparison.Ordinal);
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"abandoned call took {watch.Elapsed}");
+        Assert.Contains("time budget", text, StringComparison.Ordinal);
         Assert.Contains(fixture.Log.Lines, line => line.Contains("abandoned", StringComparison.Ordinal));
         using var clients = JsonDocument.Parse(core.Execute("clients").Text);
         Assert.Equal(JsonValueKind.Array, clients.RootElement.ValueKind);

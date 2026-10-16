@@ -48,10 +48,21 @@ public sealed class HangingPlugin : IPlugin
 
     public int ApiVersion => PluginApiVersion.Current;
 
+    // The argument names an event the test sets once the host has answered, so the call cannot
+    // finish before the host abandons it, however slow the machine is. Without one it sleeps 5 s.
     public void Initialize(IPluginHost host) =>
-        host.RegisterDispatcher("hang", static _ =>
+        host.RegisterDispatcher("hang", static arguments =>
         {
-            Thread.Sleep(TimeSpan.FromSeconds(5));
+            if (arguments.Length > 0 && OperatingSystem.IsWindows() && EventWaitHandle.TryOpenExisting(arguments, out var release))
+            {
+                using (release)
+                    release.WaitOne(TimeSpan.FromMinutes(1));
+            }
+            else
+            {
+                Thread.Sleep(TimeSpan.FromSeconds(5));
+            }
+
             return PluginResult.Success();
         });
 

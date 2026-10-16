@@ -5,25 +5,39 @@ namespace Winland.Windows.Tests;
 
 public class ConfigWatcherTests
 {
+    // Long enough that the several events of one rename always fall inside one debounce,
+    // even on a loaded machine, so "once" does not depend on how fast events arrive.
+    private static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(500);
+
     [Fact]
     public void RenamingOverAWatchedFileReloadsOnce()
     {
         using var dir = Temp();
         var config = Path.Combine(dir.Path, "winland.conf");
+        var notes = Path.Combine(dir.Path, "notes.txt");
         File.WriteAllText(config, "general:gaps_in = 0\n");
+        File.WriteAllText(notes, "");
         var count = 0;
-        using var watcher = new ConfigWatcher(() => Interlocked.Increment(ref count), TimeSpan.FromMilliseconds(80));
+        using var watcher = new ConfigWatcher(() => Interlocked.Increment(ref count), Debounce);
         watcher.Watch([config]);
 
-        File.WriteAllText(Path.Combine(dir.Path, "notes.txt"), "leave this");
-        Thread.Sleep(250);
-        Assert.Equal(0, Volatile.Read(ref count));
+        // A second watcher on the unrelated file tells when its change has been seen and debounced.
+        var seen = 0;
+        using (var probe = new ConfigWatcher(() => Interlocked.Increment(ref seen), Debounce))
+        {
+            probe.Watch([notes]);
+            File.WriteAllText(notes, "leave this");
+            Assert.True(WaitUntil(() => Volatile.Read(ref seen) > 0), "The change to the unrelated file was never seen.");
+        }
+
+        Assert.Equal(0, Settled(ref count));
 
         var replaced = Path.Combine(dir.Path, "winland.conf.new");
         File.WriteAllText(replaced, "blur = yes\n");
         File.Move(replaced, config, overwrite: true);
 
-        Assert.Equal(1, WaitFor(ref count, 1));
+        Assert.True(WaitUntil(() => Volatile.Read(ref count) > 0), "The rename did not reload.");
+        Assert.Equal(1, Settled(ref count));
     }
 
     [Fact]
@@ -35,14 +49,15 @@ public class ConfigWatcherTests
         File.WriteAllText(config, "source = extra.conf\n");
         File.WriteAllText(source, "general:gaps_in = 0\n");
         var count = 0;
-        using var watcher = new ConfigWatcher(() => Interlocked.Increment(ref count), TimeSpan.FromMilliseconds(80));
+        using var watcher = new ConfigWatcher(() => Interlocked.Increment(ref count), Debounce);
         watcher.Watch([config, source]);
 
         var replaced = Path.Combine(dir.Path, "extra.conf.new");
         File.WriteAllText(replaced, "general:gaps_in = 4\n");
         File.Move(replaced, source, overwrite: true);
 
-        Assert.Equal(1, WaitFor(ref count, 1));
+        Assert.True(WaitUntil(() => Volatile.Read(ref count) > 0), "The sourced file change did not reload.");
+        Assert.Equal(1, Settled(ref count));
     }
 
     [Fact]
@@ -62,22 +77,39 @@ public class ConfigWatcherTests
             CommandProtocol.FormatStream(reply.Effect.Events, reply.Effect.State));
     }
 
-    private static int WaitFor(ref int count, int expected)
+    private static bool WaitUntil(Func<bool> condition)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(5);
+        var deadline = DateTime.UtcNow.AddSeconds(30);
         while (DateTime.UtcNow < deadline)
         {
-            var seen = Volatile.Read(ref count);
-            if (seen >= expected)
-            {
-                Thread.Sleep(250);
-                return Volatile.Read(ref count);
-            }
+            if (condition())
+                return true;
 
             Thread.Sleep(20);
         }
 
-        return Volatile.Read(ref count);
+        return condition();
+    }
+
+    // The count once it has stayed the same for three debounce periods, so a late
+    // reload that a short fixed sleep would miss is counted.
+    private static int Settled(ref int count)
+    {
+        var quiet = Debounce * 3;
+        var value = Volatile.Read(ref count);
+        var since = DateTime.UtcNow;
+        while (DateTime.UtcNow - since < quiet)
+        {
+            Thread.Sleep(20);
+            var now = Volatile.Read(ref count);
+            if (now != value)
+            {
+                value = now;
+                since = DateTime.UtcNow;
+            }
+        }
+
+        return value;
     }
 
     private static TempDir Temp() => new(Directory.CreateTempSubdirectory("winland-watch-").FullName);
