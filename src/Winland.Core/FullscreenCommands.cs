@@ -60,7 +60,8 @@ internal static class FullscreenCommands
 
     /// <summary>
     /// <c>-1</c> keeps the current mode. Any other value is clamped to 0, 1, or 2.
-    /// The same pair as the Client already has turns both modes off.
+    /// The same pair as the Client already has turns both modes off. A kept mode is the
+    /// current one in that comparison, as in the pinned release, so <c>-1 -1</c> turns both off.
     /// </summary>
     internal static FullscreenTarget ResolveState(string arguments, FullscreenMode currentInternal, FullscreenMode currentClient)
     {
@@ -71,16 +72,12 @@ internal static class FullscreenCommands
         var clientRaw = tokens.Length > 1 && int.TryParse(tokens[1], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedClient)
             ? parsedClient
             : -1;
-        var keepInternal = internalRaw == -1;
-        var keepClient = clientRaw == -1;
-        var internalMode = (FullscreenMode)Clamp(internalRaw);
-        var clientMode = (FullscreenMode)Clamp(clientRaw);
+        var internalMode = internalRaw == -1 ? currentInternal : (FullscreenMode)Clamp(internalRaw);
+        var clientMode = clientRaw == -1 ? currentClient : (FullscreenMode)Clamp(clientRaw);
         if (internalMode == currentInternal && clientMode == currentClient)
             return new FullscreenTarget(FullscreenMode.None, FullscreenMode.None);
 
-        return new FullscreenTarget(
-            keepInternal ? currentInternal : internalMode,
-            keepClient ? currentClient : clientMode);
+        return new FullscreenTarget(internalMode, clientMode);
     }
 
     private static int Clamp(int value)

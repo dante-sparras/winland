@@ -92,6 +92,40 @@ public class FullscreenTests
         Assert.DoesNotContain(outcome.Events, static item => item is FullscreenChanged);
     }
 
+    // -1 takes the current mode before the pair is compared, so naming the current
+    // client mode with -1 is the same pair and turns both modes off, as in the pinned release.
+    [Theory]
+    [InlineData("1 0", "-1 0")]
+    [InlineData("2 2", "-1 2")]
+    [InlineData("1 2", "1 -1")]
+    [InlineData("2 1", "-1 -1")]
+    public void FullscreenStateKeepingAModeComparesTheCurrentMode(string set, string again)
+    {
+        var core = Desk();
+        var before = Appear(core, 2);
+        var slot = BoundsOf(before, 2);
+        core.Handle(new Dispatch("fullscreenstate", set));
+
+        var outcome = core.Handle(new Dispatch("fullscreenstate", again));
+
+        Assert.Equal(FullscreenMode.None, ClientOf(outcome, 2).Fullscreen);
+        Assert.Equal(FullscreenMode.None, ClientOf(outcome, 2).FullscreenClient);
+        Assert.Equal(slot, BoundsOf(outcome, 2));
+    }
+
+    [Fact]
+    public void FullscreenStateKeepingTheInternalModeChangesOnlyTheClientMode()
+    {
+        var core = Desk();
+        Appear(core, 2);
+        core.Handle(new Dispatch("fullscreenstate", "1 0"));
+
+        var outcome = core.Handle(new Dispatch("fullscreenstate", "-1 2"));
+
+        Assert.Equal(FullscreenMode.Maximized, ClientOf(outcome, 2).Fullscreen);
+        Assert.Equal(FullscreenMode.Fullscreen, ClientOf(outcome, 2).FullscreenClient);
+    }
+
     [Fact]
     public void TheTreeStaysPutWhileFullscreenAndASplitDoesNotMoveTheNeighbor()
     {
