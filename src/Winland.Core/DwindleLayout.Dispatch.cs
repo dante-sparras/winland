@@ -174,7 +174,7 @@ internal sealed partial class DwindleLayout
             return [];
         }
         if (Is(tokens[0], DwindleMessages.ToggleSplit))
-            return _options.PreserveSplit || _options.SmartSplit || _options.PreciseMouseMove ? ToggleSplit(active) : [];
+            return ToggleSplit(active);
         if (Is(tokens[0], DwindleMessages.SwapSplit))
             return SwapSplit(active);
         if (Is(tokens[0], DwindleMessages.RotateSplit))
@@ -190,7 +190,16 @@ internal sealed partial class DwindleLayout
 
     private IReadOnlyList<Placement> ToggleSplit(WindowId? active)
     {
-        if (!TryNode(active, out var node) || node.Parent is null)
+        if (!TryNode(active, out var node))
+            return [];
+        if (node.Parent is null || Covers(node.Id!.Value))
+        {
+            LayoutMessageError = "error: can't " + DwindleMessages.ToggleSplit + " in the current workspace";
+            return [];
+        }
+
+        // A refit resets the direction unless one of these keeps it, so the flip would not last.
+        if (!_options.PreserveSplit && !_options.SmartSplit && !_options.PreciseMouseMove)
             return [];
 
         node.Parent.SplitTop = !node.Parent.SplitTop;
@@ -200,8 +209,13 @@ internal sealed partial class DwindleLayout
 
     private IReadOnlyList<Placement> SwapSplit(WindowId? active)
     {
-        if (!TryNode(active, out var node) || node.Parent is null)
+        if (!TryNode(active, out var node))
             return [];
+        if (node.Parent is null || Covers(node.Id!.Value))
+        {
+            LayoutMessageError = "error: can't " + DwindleMessages.SwapSplit + " in the current workspace";
+            return [];
+        }
 
         (node.Parent.First, node.Parent.Second) = (node.Parent.Second, node.Parent.First);
         Refit();
@@ -216,7 +230,7 @@ internal sealed partial class DwindleLayout
             LayoutMessageError = "error: bad layoutmsg '" + DwindleMessages.RotateSplit + "'";
             return [];
         }
-        if (!TryNode(active, out var node) || node.Parent is null)
+        if (!TryNode(active, out var node) || node.Parent is null || Covers(node.Id!.Value))
             return [];
 
         var steps = ((angle / 90 % 4) + 4) % 4;
@@ -270,7 +284,7 @@ internal sealed partial class DwindleLayout
     private bool MoveNodeToRoot(Node node, bool stable)
     {
         var parent = node.Parent;
-        if (parent?.Parent is null || parent.First is null || parent.Second is null)
+        if (Covers(node.Id!.Value) || parent?.Parent is null || parent.First is null || parent.Second is null)
             return false;
 
         var nodeIndex = ReferenceEquals(parent.First, node) ? 0 : 1;
@@ -381,6 +395,10 @@ internal sealed partial class DwindleLayout
         node = found;
         return true;
     }
+
+    // The pinned release refuses to edit the tree around a maximized or fullscreen Client.
+    private bool Covers(ClientId id) =>
+        _clients.Exists(client => client.Id == id && client.Fullscreen != FullscreenMode.None);
 
     private bool Minimized(ClientId id)
     {

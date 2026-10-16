@@ -133,6 +133,9 @@ public sealed partial class Core
         if (ActiveWindow() is not WindowId current || WorkspaceContaining(current) is not LiveWorkspace home)
             return Rejected(name, "error: no window to swap with", allowsElevation);
 
+        if (Find(current) is { Fullscreen: not FullscreenMode.None })
+            return Rejected(name, "error: can't swap fullscreen window", allowsElevation);
+
         WindowId other;
         if (IsDirection(text))
         {
@@ -152,6 +155,8 @@ public sealed partial class Core
 
         if (WorkspaceContaining(other) is not LiveWorkspace away || away.Id != home.Id)
             return Rejected(name, "error: no window to swap with", allowsElevation);
+        if (Find(other) is { Fullscreen: not FullscreenMode.None })
+            return Rejected(name, "error: can't swap fullscreen window", allowsElevation);
 
         var covered = home.Covered();
         var placements = home.Layout.Swap(current, other);

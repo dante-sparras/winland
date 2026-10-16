@@ -141,6 +141,27 @@ public class FullscreenTests
     }
 
     [Fact]
+    public void TreeEditsOnACoveringClientAreRefusedAndTheSlotComesBack()
+    {
+        var core = Desk();
+        core.Handle(new Configure(ConfigParser.Parse("dwindle:preserve_split = true")));
+        Appear(core, 3);
+        Rectangle[] before = [Bounds(core, 1), Bounds(core, 2), Bounds(core, 3)];
+        core.Handle(new Dispatch("fullscreen"));
+
+        Assert.Equal("error: can't togglesplit in the current workspace", core.Handle(new Dispatch("layoutmsg", "togglesplit")).Error);
+        Assert.Equal("error: can't swapsplit in the current workspace", core.Handle(new Dispatch("layoutmsg", "swapsplit")).Error);
+        Assert.Null(core.Handle(new Dispatch("layoutmsg", "rotatesplit")).Error);
+        Assert.Equal("error: can't movetoroot in the current workspace", core.Handle(new Dispatch("layoutmsg", "movetoroot")).Error);
+        Assert.Equal("error: can't move fullscreen window", core.Handle(new Dispatch("movewindow", "l")).Error);
+        Assert.Equal("error: can't swap fullscreen window", core.Handle(new Dispatch("swapwindow", "l")).Error);
+        core.Handle(new Dispatch("fullscreen"));
+
+        Rectangle[] after = [Bounds(core, 1), Bounds(core, 2), Bounds(core, 3)];
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
     public void ASecondCoveringClientReplacesTheFirst()
     {
         var core = Desk();
