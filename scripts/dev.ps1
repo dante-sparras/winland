@@ -25,9 +25,15 @@ if (-not (Test-Path (Join-Path $dest '.git'))) {
     if ($LASTEXITCODE -ne 0) { throw "clone of Hyprland failed with $LASTEXITCODE" }
 }
 
-if (-not $Refresh -and (Test-Path (Join-Path $dest 'site/README.md'))) {
+# site/README.md is written last and only after a full fetch, so its presence means the wiki is complete.
+$readme = Join-Path $dest 'site/README.md'
+if (-not $Refresh -and (Test-Path $readme)) {
     Write-Output 'Manual already present'
     return
 }
 dotnet run (Join-Path $root 'scripts/fetch-reference.cs') -- --root (Join-Path $dest 'site')
-if ($LASTEXITCODE -ne 0) { throw "Hyprland manual fetch failed with $LASTEXITCODE" }
+if ($LASTEXITCODE -ne 0) {
+    # The fetch writes the README even when some pages failed. Remove it so the next run fetches again.
+    if (Test-Path $readme) { Remove-Item -LiteralPath $readme -Force }
+    throw "Hyprland manual fetch failed with $LASTEXITCODE. Run this again to retry."
+}
