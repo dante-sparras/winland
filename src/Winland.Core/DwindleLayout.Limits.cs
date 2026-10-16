@@ -71,78 +71,51 @@ internal sealed partial class DwindleLayout
         HonorMinimums(_root);
     }
 
-    // A tile's presented size is never below the window's minimum. The split gives
-    // that minimum to the window and the neighbour takes whatever space remains.
-    // When the minimums along a split sum to more than the parent, neither window
-    // is shrunk: the later window extends past the parent, and the root extends
-    // past the monitor. The windows do not overlap.
+    // Where the minimums along a split fit in the parent, the split gives each window
+    // its minimum and the neighbour takes whatever space remains. Where they do not,
+    // the split stays where its ratio puts it: no tile grows past its parent or the
+    // Monitor, and a window below its minimum grows over its neighbours when it is
+    // placed (SizeLimits.Raise).
     private void HonorMinimums(Node node)
     {
         if (node.First is null || node.Second is null)
-        {
-            if (node.Parent is null && node.Id is not null)
-                GrowLeaf(node);
             return;
-        }
 
         var horizontal = !node.SplitTop;
-        var crossNeed = Math.Max(Need(node.First, !horizontal), Need(node.Second, !horizontal));
-        if (horizontal)
-        {
-            if (crossNeed > node.Box.Height)
-                node.Box = new Rectangle(node.Box.X, node.Box.Y, node.Box.Width, crossNeed);
-        }
-        else if (crossNeed > node.Box.Width)
-        {
-            node.Box = new Rectangle(node.Box.X, node.Box.Y, crossNeed, node.Box.Height);
-        }
-
         var available = horizontal ? node.Box.Width : node.Box.Height;
-        var firstNeed = Need(node.First, horizontal);
-        var secondNeed = Need(node.Second, horizontal);
+        // Neither side gives up more than the smallest split ratio, 0.1, would leave it.
+        var floor = FirstShare(available, 0.1);
+        var firstNeed = Math.Max(Need(node.First, horizontal), floor);
+        var secondNeed = Math.Max(Need(node.Second, horizontal), floor);
         var firstHave = horizontal ? node.First.Box.Width : node.First.Box.Height;
         var secondHave = horizontal ? node.Second.Box.Width : node.Second.Box.Height;
         int firstSpan;
         int secondSpan;
+        var ideal = FirstShare(available, node.SplitRatio);
         if (firstNeed + secondNeed > available)
-        {
+            firstSpan = ideal;
+        else if (ideal < firstNeed)
             firstSpan = firstNeed;
-            secondSpan = secondNeed;
-        }
+        else if (available - ideal < secondNeed)
+            firstSpan = available - secondNeed;
         else
-        {
-            var ideal = FirstShare(available, node.SplitRatio);
-            if (ideal < firstNeed)
-                firstSpan = firstNeed;
-            else if (available - ideal < secondNeed)
-                firstSpan = available - secondNeed;
-            else
-                firstSpan = ideal;
+            firstSpan = ideal;
 
-            secondSpan = available - firstSpan;
-        }
+        secondSpan = available - firstSpan;
 
         var crossHave = horizontal ? node.First.Box.Height : node.First.Box.Width;
         var crossNow = horizontal ? node.Box.Height : node.Box.Width;
         // A split that already fits keeps its boxes, but a minimum deeper down can still need room.
-        var settled = firstSpan == firstHave && secondSpan == secondHave && crossHave == crossNow && firstSpan + secondSpan <= available;
+        var settled = firstSpan == firstHave && secondSpan == secondHave && crossHave == crossNow;
         if (!settled)
-            Resplit(node, horizontal, firstSpan, secondSpan, available);
+            Resplit(node, horizontal, firstSpan, secondSpan);
 
         HonorMinimums(node.First);
         HonorMinimums(node.Second);
     }
 
-    private void Resplit(Node node, bool horizontal, int firstSpan, int secondSpan, int available)
+    private void Resplit(Node node, bool horizontal, int firstSpan, int secondSpan)
     {
-        if (firstSpan + secondSpan > available)
-        {
-            if (horizontal)
-                node.Box = new Rectangle(node.Box.X, node.Box.Y, firstSpan + secondSpan, node.Box.Height);
-            else
-                node.Box = new Rectangle(node.Box.X, node.Box.Y, node.Box.Width, firstSpan + secondSpan);
-        }
-
         if (horizontal)
         {
             node.First!.Box = new Rectangle(node.Box.X, node.Box.Y, firstSpan, node.Box.Height);
@@ -156,23 +129,6 @@ internal sealed partial class DwindleLayout
 
         Recalculate(node.First, keepDirection: true);
         Recalculate(node.Second, keepDirection: true);
-    }
-
-    private void GrowLeaf(Node node)
-    {
-        if (node.Id is not { } id || !_limits.TryGetValue(id, out var limits) || limits.Min is not { } min)
-            return;
-
-        for (var attempt = 0; attempt < 3; attempt++)
-        {
-            var chrome = Chrome(node.Box);
-            var width = AtLeast(node.Box.Width, min.Width, chrome.Horizontal);
-            var height = AtLeast(node.Box.Height, min.Height, chrome.Vertical);
-            if (width == node.Box.Width && height == node.Box.Height)
-                return;
-
-            node.Box = new Rectangle(node.Box.X, node.Box.Y, width, height);
-        }
     }
 
     private int Need(Node node, bool horizontal)

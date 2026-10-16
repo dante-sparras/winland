@@ -11,13 +11,15 @@ internal sealed partial class MasterLayout
         var area = TilingArea();
         var areaStart = vertical ? area.Y : area.X;
         var areaSpan = vertical ? area.Height : area.Width;
+        // No tile is left smaller than a fifth of an even share, the least a resize leaves a tile.
+        var floor = total / count / 5;
         var needs = new int[count];
         long sum = 0;
         for (var i = 0; i < count; i++)
         {
             var atStart = i == 0 && origin == areaStart;
             var atEnd = i == count - 1 && origin + total == areaStart + areaSpan;
-            needs[i] = AlongNeed(tiles[i], vertical, atStart, atEnd);
+            needs[i] = Math.Max(AlongNeed(tiles[i], vertical, atStart, atEnd), floor);
             sum += needs[i];
         }
 
@@ -63,34 +65,5 @@ internal sealed partial class MasterLayout
         var chrome = before + after + (_layout.BorderSize * 2);
         var need = (long)want + chrome;
         return need > int.MaxValue ? int.MaxValue : (int)need;
-    }
-
-    private void GrowToMinimum(Tile tile)
-    {
-        if (!_limits.TryGetValue(tile.Id, out var limits) || limits.Min is not { } min)
-            return;
-
-        var area = TilingArea();
-        var presented = Present(tile.Box);
-        var box = tile.Box;
-        if (min.Width > presented.Width)
-        {
-            var added = min.Width - presented.Width;
-            if (box.X + box.Width == area.X + area.Width)
-                added += _layout.GapsIn.Right;
-
-            box = box with { Width = box.Width + added };
-        }
-
-        if (min.Height > presented.Height)
-        {
-            var added = min.Height - presented.Height;
-            if (box.Y + box.Height == area.Y + area.Height)
-                added += _layout.GapsIn.Bottom;
-
-            box = box with { Height = box.Height + added };
-        }
-
-        tile.Box = box;
     }
 }

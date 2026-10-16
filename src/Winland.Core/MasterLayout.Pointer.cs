@@ -78,7 +78,7 @@ internal sealed partial class MasterLayout : IMouseDragHost
             return [];
 
         // exact names the window's size, which is the tile less its gaps and border.
-        var shown = Present(tile.Box);
+        var shown = Present(tile);
         var dx = exact ? x - shown.Width : x;
         var dy = exact ? y - shown.Height : y;
         ResizeTile(tile, dx, dy);
@@ -139,7 +139,7 @@ internal sealed partial class MasterLayout : IMouseDragHost
         if (tile is null)
             return false;
 
-        box = Present(tile.Box);
+        box = Present(tile);
         Detach(tile);
         MarkFloating(id, true);
         _floating.Set(id, box);

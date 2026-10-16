@@ -29,4 +29,27 @@ internal readonly record struct SizeLimits(Size? Min, Size? Max)
 
         return new Rectangle(bounds.X, bounds.Y, width, height);
     }
+
+    /// <summary>
+    /// A tiled window's rectangle. A window cannot be smaller than its minimum, so a tile below it grows
+    /// to the minimum around the tile's middle, then moves to stay inside the area as far as it fits, as
+    /// the pinned release places a window with tiled size limits. It overlaps its neighbours instead of
+    /// pushing them off the Monitor.
+    /// </summary>
+    public Rectangle Raise(Rectangle tile, Rectangle area)
+    {
+        if (Min is not { } lo)
+            return tile;
+
+        var width = Math.Max(tile.Width, lo.Width);
+        var height = Math.Max(tile.Height, lo.Height);
+        if (width == tile.Width && height == tile.Height)
+            return tile;
+
+        var x = tile.X + ((tile.Width - width) / 2);
+        var y = tile.Y + ((tile.Height - height) / 2);
+        x = Math.Clamp(x, area.X, Math.Max(area.X, area.X + area.Width - width));
+        y = Math.Clamp(y, area.Y, Math.Max(area.Y, area.Y + area.Height - height));
+        return new Rectangle(x, y, width, height);
+    }
 }

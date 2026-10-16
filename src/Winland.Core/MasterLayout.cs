@@ -217,7 +217,7 @@ internal sealed partial class MasterLayout : Layout
         var tile = Find(window);
         if (tile is not null)
         {
-            bounds = Present(tile.Box);
+            bounds = Present(tile);
             return true;
         }
 
@@ -257,7 +257,7 @@ internal sealed partial class MasterLayout : Layout
 
             var tile = Find(client.Window);
             if (tile is not null)
-                placements.Add(new Placement(client.Id, Present(tile.Box)));
+                placements.Add(new Placement(client.Id, Present(tile)));
         }
 
         return placements;
