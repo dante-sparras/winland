@@ -94,6 +94,28 @@ public class MonitorDispatchTests
     }
 
     [Fact]
+    public void MoveFocusCrossesToTheTileThatSharesTheEdgeWithDefaultGaps()
+    {
+        // Portrait monitors, so each Workspace stacks its second tile below the first. Outer gaps keep
+        // the tiles 44px apart across the shared edge.
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 5\ngeneral:gaps_out = 20\ngeneral:border_size = 2\n")));
+        var left = Display(@"\\.\DISPLAY1", "Dell", new Rectangle(0, 0, 1080, 1920));
+        var right = Display(@"\\.\DISPLAY2", "Samsung", new Rectangle(1080, 0, 1080, 1920));
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+        core.Handle(new WindowAppeared(new WindowId(2), left.WorkArea));
+        core.Handle(new WindowAppeared(new WindowId(3), right.WorkArea));
+        var opened = core.Handle(new WindowAppeared(new WindowId(4), right.WorkArea));
+        Assert.True(Client(opened, 3).Bounds.Y < Client(opened, 4).Bounds.Y);
+        Assert.Equal(new WindowId(1), core.Handle(new Dispatch("focuswindow", "address:0x1")).Focus);
+
+        var outcome = core.Handle(new Dispatch("movefocus", "r"));
+
+        Assert.Equal(new WindowId(3), outcome.Focus);
+    }
+
+    [Fact]
     public void DwindleMoveWindowStaysWhenTheFocalPointIsStillOnThisMonitor()
     {
         var core = Gapped();
