@@ -24,8 +24,10 @@ public static class ApplyReport
         && !name.AsSpan(Prefix.Length).ContainsAnyExcept("0123456789abcdef");
 
     /// <summary>
-    /// Whether the elevated step may write to a pipe with this owner: its own account, or the user
-    /// who asked for the step. Any other owner is a pipe someone else made under that name.
+    /// Whether the elevated step may write to a pipe with this owner: its own account, the user
+    /// who asked for the step, or Administrators, which owns what an elevated manager makes and
+    /// which a program that is not elevated cannot set. Any other owner is a pipe someone else
+    /// made under that name.
     /// </summary>
     public static bool AcceptsOwner(string? owner, string self, string? requester)
     {
@@ -34,6 +36,7 @@ public static class ApplyReport
             return false;
 
         return owner.Equals(self, StringComparison.OrdinalIgnoreCase)
+            || owner.Equals(AdministratorOnly.AdministratorsSid, StringComparison.OrdinalIgnoreCase)
             || (!string.IsNullOrWhiteSpace(requester) && owner.Equals(requester, StringComparison.OrdinalIgnoreCase));
     }
 

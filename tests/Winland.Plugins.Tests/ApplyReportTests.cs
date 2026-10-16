@@ -2,6 +2,7 @@ using System.IO.Pipes;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using Winland.Plugins;
 using Winland.Plugins.Manager;
 
 namespace Winland.Tests;
@@ -55,6 +56,15 @@ public class ApplyReportTests
         Assert.False(ApplyReport.AcceptsOwner("S-1-5-21-1-2-3-1002", Approver, Requester));
         Assert.False(ApplyReport.AcceptsOwner(Requester, Approver, null));
         Assert.False(ApplyReport.AcceptsOwner(null, Approver, Requester));
+    }
+
+    // A manager that is already elevated makes its pipe with Administrators as the owner. A program
+    // that is not elevated cannot give a pipe that owner, so it is not a pipe someone else made.
+    [Fact]
+    public void ThePipeOfAnElevatedManagerIsAccepted()
+    {
+        Assert.True(ApplyReport.AcceptsOwner(AdministratorOnly.AdministratorsSid, Approver, Requester));
+        Assert.True(ApplyReport.AcceptsOwner(AdministratorOnly.AdministratorsSid, Approver, null));
     }
 
     // Administrators is a deny-only group in a token that is not elevated, so the grant lets in an
