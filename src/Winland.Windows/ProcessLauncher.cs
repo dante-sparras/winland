@@ -286,13 +286,15 @@ public static class ProcessLauncher
             PInvoke.CloseHandle(info.hThread);
     }
 
-    private static string CommandLine(Launch launch)
+    // /s makes cmd drop only the outer pair of quotes around the command and run the rest as written.
+    // Without it, a command that starts with a quote and holds more than two loses its first and last quote.
+    internal static string CommandLine(Launch launch)
     {
         if (launch.Raw)
             return launch.CommandLine;
 
         var shell = Path.Combine(Environment.SystemDirectory, "cmd.exe");
-        return "\"" + shell + "\" /d /c " + launch.CommandLine;
+        return "\"" + shell + "\" /d /s /c \"" + launch.CommandLine + "\"";
     }
 
     private static string Directory(Launch launch)
