@@ -201,6 +201,18 @@ public class ScrollingLayoutTests
     }
 
     [Fact]
+    public void AWorkspaceFittedToAnotherMonitorShowsItsColumnsThere()
+    {
+        var layout = Open();
+        layout.Add(Window(1), Area, null, false, default, WorkspaceId.Initial, monitor: Area);
+
+        layout.Fit(new Rectangle(1920, 0, 1000, 800));
+        var shown = layout.Visible();
+
+        Assert.Equal(new Rectangle(1920, 0, 1000, 800), Box(shown, 1));
+    }
+
+    [Fact]
     public void ConsumeStacksTheNextColumnAndExpelSplitsItAgain()
     {
         var layout = Open();
