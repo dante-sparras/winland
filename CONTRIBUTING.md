@@ -90,6 +90,7 @@ Every lane except Mutation is a step in that one Windows job. GitHub bills each 
 | Mutation | Mutation testing. It is the slow lane, and a separate job that runs beside the others. | Only on a release run: CI dispatched with **Release run** turned on, or called by a release workflow. |
 
 - Test and Mutation pass until a unit test project exists.
+- The unit tests that open real windows are in one xunit collection (`DesktopCollection` in `tests/Winland.Windows.Tests`) that runs alone, one test at a time. The ones a running Winland would disturb skip while its pipe `\\.\pipe\winland` exists, so run them with the daemon stopped. CI has no daemon and runs them.
 - A release run always runs Test and Mutation, and a failure in either fails the run.
 - The check job has a 60-minute timeout, and Mutation has its own 60.
 - Smoke tests (`*.Smoke.Tests.csproj`) run only when someone dispatches the `Smoke tests` workflow by hand (`.github/workflows/smoke.yml`). A release run does not execute them, and they are not a required check. `scripts/smoke.ps1` runs them locally. It sets `WINLAND_SMOKE=1`, without which every smoke test skips itself, and it fails when every test in a smoke project was skipped, for example on a host with no desktop.

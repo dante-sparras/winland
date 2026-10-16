@@ -1,12 +1,14 @@
 using Winland.Windows;
+using Winland.Windows.Tests;
 
 namespace Winland.Tests;
 
+[Collection(DesktopCollection.Name)]
 public class ExistingWindowTests
 {
     private const int Minimize = 6;
 
-    [Fact]
+    [DesktopFact]
     public void WindowsOpenBeforeStartupAreFoundAndAdoptedButMinimizedOnesAreSkipped()
     {
         _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));

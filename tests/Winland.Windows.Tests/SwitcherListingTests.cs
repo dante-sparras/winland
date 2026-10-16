@@ -2,9 +2,10 @@ using System.Runtime.InteropServices;
 
 namespace Winland.Windows.Tests;
 
+[Collection(DesktopCollection.Name)]
 public class SwitcherListingTests
 {
-    [Fact]
+    [DesktopFact]
     public void HideRemovesAWindowFromTheSwitcher()
     {
         using var window = ProbeWindow.Open();

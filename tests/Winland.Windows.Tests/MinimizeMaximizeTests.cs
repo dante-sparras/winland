@@ -1,14 +1,16 @@
 using Winland.Windows;
+using Winland.Windows.Tests;
 
 namespace Winland.Tests;
 
 /// <summary>The pinned release has no minimize, and a client's maximize request is maximize mode 1.</summary>
+[Collection(DesktopCollection.Name)]
 public class MinimizeMaximizeTests
 {
     private const int Minimize = 6;
     private const int Maximize = 3;
 
-    [Fact]
+    [DesktopFact]
     public void AMinimizedWindowIsRestoredAndAMaximizedOneBecomesMaximizeMode()
     {
         _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));

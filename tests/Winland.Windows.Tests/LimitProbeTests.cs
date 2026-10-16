@@ -1,11 +1,13 @@
 using System.Runtime.InteropServices;
 using Winland.Windows;
+using Winland.Windows.Tests;
 
 namespace Winland.Tests;
 
+[Collection(DesktopCollection.Name)]
 public class LimitProbeTests
 {
-    [Fact]
+    [DesktopFact]
     public void RealWindowsFloatTheSmallMaximumAndKeepTheLargeMinimum()
     {
         _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));
