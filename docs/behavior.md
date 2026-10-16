@@ -62,7 +62,7 @@ A new floating Client opens at the size it asked for, centered in the floating w
 
 ## Mouse drag
 
-`bindm` binds a mouse button to `movewindow` or `resizewindow`. A press takes the Client under the pointer, focuses it, and drags it until that button is released. The `mouse` dispatcher in an ordinary bind, as in `bind = SUPER, mouse:272, mouse, movewindow`, is the same action. It needs a mouse button and takes only `movewindow` or `resizewindow`. A press with no Client under the pointer does not drag.
+`bindm` binds a mouse button to `movewindow` or `resizewindow`. A press takes the Client under the pointer, focuses it, and drags it until that button is released. When Windows drops the mouse hook during a drag the release cannot be seen, so the drag ends where the pointer is once the hook is put back. The `mouse` dispatcher in an ordinary bind, as in `bind = SUPER, mouse:272, mouse, movewindow`, is the same action. It needs a mouse button and takes only `movewindow` or `resizewindow`. A press with no Client under the pointer does not drag.
 
 `binds:drag_threshold` defaults to 0. Above 0, the Client is not picked up until the pointer has moved farther than that many pixels from the press. The drag then starts from that point, so the Client does not jump. The same distance separates the `c` and `g` bind flags.
 
