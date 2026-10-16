@@ -50,6 +50,35 @@ public class LayoutEngineTests
         Assert.Single(layout.Clients);
     }
 
+    [Fact]
+    public void DwindleHonorsAMinimumInsideASplitWhoseParentDoesNotChange()
+    {
+        var layout = Open("dwindle");
+        Tiled(layout, 1);
+        Tiled(layout, 2);
+
+        var placements = layout.Add(Window(3), Area, null, false, new Rectangle(0, 0, 400, 300), WorkspaceId.Initial, monitor: Area, minSize: new Size(100, 600));
+
+        Assert.Equal(new Rectangle(0, 0, 500, 800), Bounds(placements, 1));
+        Assert.Equal(new Rectangle(500, 0, 500, 200), Bounds(placements, 2));
+        Assert.Equal(new Rectangle(500, 200, 500, 600), Bounds(placements, 3));
+    }
+
+    [Fact]
+    public void DwindleHonorsANestedMinimumThatArrivesLater()
+    {
+        var layout = Open("dwindle");
+        Tiled(layout, 1);
+        Tiled(layout, 2);
+        Tiled(layout, 3);
+
+        var placements = layout.UpdateLimits(Window(2), new Size(100, 700), null);
+
+        Assert.Equal(new Rectangle(0, 0, 500, 800), Bounds(placements, 1));
+        Assert.Equal(new Rectangle(500, 0, 500, 700), Bounds(placements, 2));
+        Assert.Equal(new Rectangle(500, 700, 500, 100), Bounds(placements, 3));
+    }
+
     private static Layout Open(string name)
     {
         Layout layout = name switch
