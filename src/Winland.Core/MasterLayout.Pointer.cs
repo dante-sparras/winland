@@ -92,11 +92,12 @@ internal sealed partial class MasterLayout : IMouseDragHost
         if (index < 0 || _clients[index].Minimized)
             return [];
 
-        if (_floating.Sink(id))
+        if (_floating.TryGet(id, out var floatingBox) && _floating.Sink(id))
         {
             MarkFloating(id, false);
             var tile = new Tile { Id = id, MasterFraction = _master.Mfact };
-            Adopt(tile, firstMap: true, dragging: false, pointer: null);
+            if (!Adopt(tile, firstMap: true, dragging: false, pointer: null))
+                Refloat(id, floatingBox);
             _focused = window;
             return Visible();
         }
@@ -158,12 +159,21 @@ internal sealed partial class MasterLayout : IMouseDragHost
 
     IReadOnlyList<Placement> IMouseDragHost.DropTile(ClientId id, Point pointer)
     {
+        var lifted = _floating.TryGet(id, out var liftedBox);
         _floating.Remove(id);
         MarkFloating(id, false);
         var tile = new Tile { Id = id, MasterFraction = _master.Mfact };
-        Adopt(tile, firstMap: false, dragging: true, pointer: pointer);
+        if (!Adopt(tile, firstMap: false, dragging: true, pointer: pointer))
+            Refloat(id, lifted ? liftedBox : _natural.GetValueOrDefault(id));
         _focused = new WindowId(id.Value);
         return Visible();
+    }
+
+    // A Client that cannot fill its tile stays floating where it was.
+    private void Refloat(ClientId id, Rectangle box)
+    {
+        _floating.Set(id, box);
+        MarkFloating(id, true);
     }
 
     IReadOnlyList<Placement> IMouseDragHost.ShowFloating(ClientId id) => Visible();

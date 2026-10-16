@@ -677,6 +677,26 @@ public class MasterLayoutTests
         Assert.Null(outcome.Focus);
     }
 
+    [Fact]
+    public void AWindowThatCannotFillItsTileFloats()
+    {
+        var core = CoreOf(Flat(""));
+        core.Handle(Appeared(1));
+
+        var outcome = core.Handle(new WindowAppeared(new WindowId(2), Screen)
+        {
+            Traits = WindowTraits.Normal with { MaxSize = new Size(400, 300) },
+        });
+
+        Assert.True(ClientOf(outcome, 2).Floating);
+        Assert.Equal(Screen, BoundsOf(outcome, 1));
+
+        var toggled = core.Handle(new Dispatch("togglefloating"));
+
+        Assert.True(ClientOf(toggled, 2).Floating);
+        Assert.Equal(Screen, BoundsOf(toggled, 1));
+    }
+
     private static string Flat(string extra) =>
         "general:layout = master\ngeneral:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 

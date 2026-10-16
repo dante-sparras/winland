@@ -2,7 +2,11 @@ namespace Winland;
 
 internal sealed partial class MasterLayout
 {
-    private void Adopt(Tile tile, bool firstMap, bool dragging, Point? pointer)
+    /// <summary>
+    /// Tiles a Client. False, with the tile taken back out, when its maximum size cannot fill the share
+    /// of the Monitor its role gives it; the caller floats it instead.
+    /// </summary>
+    private bool Adopt(Tile tile, bool firstMap, bool dragging, Point? pointer)
     {
         var centeredBefore = Dynamic() == MasterOrientation.Center && SlaveCount() >= _master.SlaveCountForCenter;
         var centerCursor = dragging && _master.DropAtCursor && centeredBefore;
@@ -19,7 +23,29 @@ internal sealed partial class MasterLayout
             forceMaster |= DropAtCursor(tile, cursor, centeredBefore);
 
         AssignRole(tile, firstMap, dragging, forceMaster);
+        if (CannotFill(tile))
+        {
+            Detach(tile);
+            return false;
+        }
+
         Recalculate();
+        return true;
+    }
+
+    // The share is measured on the whole Monitor, as wide as the master fraction for a master and
+    // the rest for a slave, and as tall as the Monitor split evenly over the slaves.
+    private bool CannotFill(Tile tile)
+    {
+        if (!_limits.TryGetValue(tile.Id, out var limits) || limits.Max is not { } max)
+            return false;
+
+        var monitor = _monitor.Width > 0 && _monitor.Height > 0 ? _monitor : _area;
+        if (tile.Master)
+            return max.Width < monitor.Width * tile.MasterFraction || max.Height < monitor.Height;
+
+        return max.Width < monitor.Width * (1 - tile.MasterFraction)
+            || max.Height < monitor.Height / (double)(_tiles.Count - 1);
     }
 
     private void PlaceNew(Tile tile, bool becomesMaster)

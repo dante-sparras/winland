@@ -86,8 +86,15 @@ internal sealed partial class MasterLayout : Layout
 
         _clients.Add(client);
         var tile = new Tile { Id = id, MasterFraction = _master.Mfact };
-        Adopt(tile, firstMap: true, dragging: false, pointer: null);
+        var tiled = Adopt(tile, firstMap: true, dragging: false, pointer: null);
         _focused = window;
+        if (!tiled)
+        {
+            MarkFloating(id, true);
+            _floating.Set(id, placed);
+            return [.. Placed(), new Placement(id, placed)];
+        }
+
         return Placed();
     }
 
