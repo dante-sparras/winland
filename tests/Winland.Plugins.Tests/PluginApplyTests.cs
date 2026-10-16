@@ -320,7 +320,7 @@ public class PluginApplyTests
                 new StagedRepository("https://a", "c1", [new StagedPlugin("one", new string('a', 64), @"C:\s\one.dll"), new StagedPlugin("two", new string('b', 64), @"C:\s\two.dll")]),
                 new StagedRepository("https://b", "c2", [new StagedPlugin("three", new string('c', 64), @"C:\s\three.dll")]),
             ],
-            ["https://c"]);
+            ["https://c"]) { ReportOwner = "S-1-5-21-1-2-3-1001" };
 
         var args = request.ToArguments();
         var parsed = ApplyRequest.Parse(args.Skip(2).ToArray(), out var error);
@@ -331,6 +331,7 @@ public class PluginApplyTests
         Assert.Equal(request.PluginDirectory, parsed.PluginDirectory);
         Assert.Equal(request.ApprovalsPath, parsed.ApprovalsPath);
         Assert.Equal(request.ReportPipe, parsed.ReportPipe);
+        Assert.Equal("S-1-5-21-1-2-3-1001", parsed.ReportOwner);
         Assert.Equal(request.Remove, parsed.Remove);
         Assert.Equal(2, parsed.Install.Count);
         Assert.Equal(request.Install[0].Plugins, parsed.Install[0].Plugins);
@@ -347,6 +348,8 @@ public class PluginApplyTests
     [InlineData("--plugin-dir", "d", "--approvals", "a", "--remove", "u", "--report-pipe", @"C:\Users\me\apply.log")]
     [InlineData("--plugin-dir", "d", "--approvals", "a", "--remove", "u", "--report-pipe", @"\\server\pipe\winland-apply-00000000000000000000000000000000")]
     [InlineData("--plugin-dir", "d", "--approvals", "a", "--remove", "u", "--report-pipe", "winland-apply-xyz")]
+    [InlineData("--plugin-dir", "d", "--approvals", "a", "--remove", "u", "--report-owner", "Everyone")]
+    [InlineData("--plugin-dir", "d", "--approvals", "a", "--remove", "u", "--report-owner", "S-1-")]
     public void IncompleteRequestIsRefused(params string[] args)
     {
         Assert.Null(ApplyRequest.Parse(args, out var error));

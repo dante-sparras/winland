@@ -70,7 +70,7 @@ static class PluginManagerCli
             Console.WriteLine(line);
 
         if (request.ReportPipe is not null
-            && !ApplyReport.TrySend(request.ReportPipe, result.Lines, TimeSpan.FromSeconds(5), out var reportError))
+            && !ApplyReport.TrySend(request.ReportPipe, result.Lines, TimeSpan.FromSeconds(5), request.ReportOwner, out var reportError))
         {
             Console.Error.WriteLine(reportError);
         }
@@ -118,11 +118,12 @@ static class PluginManagerCli
             if (path is null)
                 return new ElevatedRun(false, 1, "The executable path is not available.");
 
-            // The elevated step sends its report back over this pipe rather than into a file.
+            // The elevated step sends its report back over this pipe rather than into a file. It may
+            // run as another administrator, so it is told which user owns the pipe.
             using var report = ApplyReportListener.Start();
 
             // Run through the dotnet host, the entry assembly comes first.
-            IReadOnlyList<string> all = [.. arguments, "--report-pipe", report.Name];
+            IReadOnlyList<string> all = [.. arguments, "--report-pipe", report.Name, "--report-owner", report.User];
             if (Path.GetFileNameWithoutExtension(path).Equals("dotnet", StringComparison.OrdinalIgnoreCase))
                 all = [Path.Combine(AppContext.BaseDirectory, "winlandctl.dll"), .. all];
 
