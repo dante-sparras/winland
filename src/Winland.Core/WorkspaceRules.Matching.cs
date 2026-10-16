@@ -67,7 +67,7 @@ internal static partial class WorkspaceRules
                         return false;
                     break;
                 case 's':
-                    if (!TryBool(body, out var special) || special)
+                    if (!TryBool(body, out var special) || special != id.IsSpecial)
                         return false;
                     break;
                 case 'n':
