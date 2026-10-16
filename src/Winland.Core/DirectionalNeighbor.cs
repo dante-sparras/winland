@@ -3,6 +3,7 @@ namespace Winland;
 /// <summary>
 /// The Client next to a rectangle in a direction: the one that touches or slightly overlaps that side
 /// and shares the most of its length with it. Dwindle and master move focus and windows this way.
+/// A floating Client looks by angle instead.
 /// </summary>
 internal static class DirectionalNeighbor
 {
@@ -29,6 +30,55 @@ internal static class DirectionalNeighbor
 
         return best;
     }
+
+    /// <summary>
+    /// The floating or covering Client a floating Client looks at in a direction. Each candidate's center must lie within
+    /// 90 degrees of the direction. One within 54 degrees beats a wider one, and among those the nearest wins.
+    /// Before any is that close, the smallest angle wins. A tile is never the answer.
+    /// </summary>
+    public static WindowId? FindByAngle(IReadOnlyList<Client> clients, Rectangle origin, Side side, WindowId except, BoxOf boxOf)
+    {
+        ArgumentNullException.ThrowIfNull(clients);
+        ArgumentNullException.ThrowIfNull(boxOf);
+        const double Threshold = 0.3 * Math.PI;
+        var (dirX, dirY) = side switch
+        {
+            Side.Left => (-1, 0),
+            Side.Right => (1, 0),
+            Side.Up => (0, -1),
+            _ => (0, 1),
+        };
+
+        WindowId? best = null;
+        var bestAngle = 2 * Math.PI;
+        var leader = -1;
+        foreach (var client in clients)
+        {
+            if (client.Window == except || client.Minimized || (!client.Floating && client.Fullscreen == FullscreenMode.None))
+                continue;
+            if (!boxOf(client.Window, out var box))
+                continue;
+
+            var x = Middle(box.X, box.Width) - Middle(origin.X, origin.Width);
+            var y = Middle(box.Y, box.Height) - Middle(origin.Y, origin.Height);
+            var distance = Math.Sqrt((x * x) + (y * y));
+            var angle = Math.Acos(((x * dirX) + (y * dirY)) / distance);
+            if (angle > Math.PI / 2)
+                continue;
+
+            if ((bestAngle < Threshold && distance < leader && angle < Threshold) || (angle < bestAngle && bestAngle > Threshold) || leader == -1)
+            {
+                // The pinned release keeps the distance as a whole number.
+                leader = (int)distance;
+                bestAngle = angle;
+                best = client.Window;
+            }
+        }
+
+        return best;
+    }
+
+    private static double Middle(int start, int size) => start + (size / 2.0);
 
     private static bool Overlap(Rectangle origin, Rectangle other, Side side, out double overlap)
     {

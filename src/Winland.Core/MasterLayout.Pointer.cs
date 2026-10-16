@@ -27,8 +27,11 @@ internal sealed partial class MasterLayout : IMouseDragHost
         if (!TryBox(active, out var origin, out var floating))
             return null;
 
-        return Neighbor(origin, direction, active, floating)
-            ?? Neighbor(origin, direction, active, !floating);
+        if (floating)
+            return DirectionalNeighbor.FindByAngle(_clients, origin, direction, active, (WindowId window, out Rectangle box) => TryBox(window, out box, out _));
+
+        return Neighbor(origin, direction, active, false)
+            ?? Neighbor(origin, direction, active, true);
     }
 
     private WindowId? Neighbor(Rectangle origin, Side side, WindowId except, bool floating) =>

@@ -39,6 +39,29 @@ public class DispatcherTests
         Assert.Equal(new WindowId(2), core.Handle(new Dispatch("movefocus", "r")).Focus);
     }
 
+    [Theory]
+    [InlineData("dwindle")]
+    [InlineData("master")]
+    public void MoveFocusFromAFloatingClientLooksByAngle(string layout)
+    {
+        var core = Floats("general:layout = " + layout + "\n");
+        core.Handle(FloatingAt(2, 400, 150));
+        core.Handle(FloatingAt(1, 100, 100));
+
+        Assert.Equal(new WindowId(2), FocusToward(core, "r"));
+    }
+
+    [Fact]
+    public void MoveFocusFromAFloatingClientNeverPicksATile()
+    {
+        var core = Floats("");
+        Appear(core, 1);
+        Appear(core, 2);
+        core.Handle(FloatingAt(3, 760, 100));
+
+        Assert.Null(FocusToward(core, "r"));
+    }
+
     [Fact]
     public void MoveFocusStopsWhenNothingLiesThatWay()
     {
@@ -587,6 +610,16 @@ public class DispatcherTests
         core.Handle(new ConfigLoaded(ConfigParser.Parse(Gapless + text)));
         return core;
     }
+
+    private static Core Floats(string extra) =>
+        new(ConfigParser.Parse(Gapless + extra + "windowrulev2 = float, class:^(box)$\nwindowrulev2 = move window_x window_y, class:^(box)$\n"));
+
+    private static WindowAppeared FloatingAt(long window, int x, int y) =>
+        new(new WindowId(window), Wide)
+        {
+            Bounds = new Rectangle(x, y, 200, 200),
+            Traits = WindowTraits.Normal with { Class = "box" },
+        };
 
     private static Outcome Appear(Core core, long window, Rectangle? area = null) =>
         core.Handle(new WindowAppeared(new WindowId(window), area ?? Wide));
