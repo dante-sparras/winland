@@ -42,6 +42,13 @@ internal static partial class WindowRuleParser
                 if (!TryParseMatch(part, ref classPattern, ref titlePattern, ref exePattern, ref aumidPattern, out error))
                     return false;
             }
+
+            // The pinned release never applies a rule that has nothing to match on.
+            if (classPattern is null && titlePattern is null && exePattern is null && aumidPattern is null)
+            {
+                error = "Malformed window rule.";
+                return false;
+            }
         }
 
         rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement, group);

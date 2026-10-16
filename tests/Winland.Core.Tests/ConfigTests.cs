@@ -110,6 +110,18 @@ public class ConfigTests
     }
 
     [Fact]
+    public void AWindowRuleWithNoMatchFieldsIsDropped()
+    {
+        var document = ConfigParser.Parse("windowrulev2 = float, ,\n");
+
+        Assert.Empty(document.WindowRules);
+        Assert.Equal([new ConfigWarning(1, "Malformed window rule.")], document.Warnings);
+        var core = new Core(document);
+        var opened = core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
+        Assert.False(Assert.Single(opened.State.Clients).Floating);
+    }
+
+    [Fact]
     public void CommentTextIsIgnored()
     {
         var text = "# full line\ngeneral:gaps_in = 5 # trailing\ngeneral:layout = dwindle ## hash\n";
