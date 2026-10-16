@@ -125,6 +125,30 @@ public class MotionPlayerTests
         Assert.Equal(["move 0", "move 0"], target.Calls);
     }
 
+    // A frame already past its check is still being applied when the window is dropped. Dropping waits for it,
+    // so the caller's reset of the window comes after the frame and is not undone by it.
+    [Fact]
+    public async Task DroppingAWindowWaitsForTheFrameBeingApplied()
+    {
+        using var entered = new ManualResetEventSlim();
+        using var gate = new ManualResetEventSlim();
+        var target = new GatedTarget(entered, gate);
+        var clock = new Clock();
+        using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+        player.Begin(new Motion(Window, Goal) { From = Start, Move = Linear });
+        target.Hold = true;
+        clock.Now = 50;
+
+        var tick = Task.Run(player.Tick);
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(5)), "The frame never started.");
+        var drop = Task.Run(() => player.Drop(Window));
+        var droppedEarly = await Task.WhenAny(drop, Task.Delay(100)) == drop;
+        gate.Set();
+
+        Assert.False(droppedEarly, "Drop returned while the frame was still being applied.");
+        await Task.WhenAll(tick, drop).WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
     // A closing window counts as running until its grace is over, and is put back only then.
     [Fact]
     public void AClosingWindowRunsUntilItsGraceIsOver()
@@ -273,6 +297,49 @@ public class MotionPlayerTests
     private sealed class Clock
     {
         public double Now { get; set; }
+    }
+
+    // A target whose move, once held, signals that it started and then waits for the gate.
+    private sealed class GatedTarget(ManualResetEventSlim entered, ManualResetEventSlim gate) : IMotionTarget
+    {
+        public bool Hold { get; set; }
+
+        public bool Hung(WindowId window) => false;
+
+        public void Move(WindowId window, Rectangle bounds)
+        {
+            if (!Hold)
+                return;
+
+            entered.Set();
+            gate.Wait(TimeSpan.FromSeconds(10));
+        }
+
+        public void Place(WindowId window, Rectangle bounds)
+        {
+        }
+
+        public void Alpha(WindowId window, byte alpha)
+        {
+        }
+
+        public void Border(WindowId window, BorderColor color)
+        {
+        }
+
+        public void Hide(WindowId window)
+        {
+        }
+
+        public void Close(WindowId window)
+        {
+        }
+
+        public bool Shown(WindowId window) => true;
+
+        public void Pace()
+        {
+        }
     }
 
     private sealed class RecordingTarget : IMotionTarget
