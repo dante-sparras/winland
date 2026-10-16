@@ -137,8 +137,7 @@ static class PluginManagerCli
                     RuntimeEnvironment.GetRuntimeDirectory(),
                     Environment.GetEnvironmentVariable("DOTNET_ROOT"),
                     pipe: null,
-                    state: null,
-                    Environment.GetEnvironmentVariable("ComSpec"));
+                    state: null);
             }
             catch (ArgumentException exception)
             {

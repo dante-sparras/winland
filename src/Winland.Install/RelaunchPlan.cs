@@ -11,8 +11,7 @@ public static class RelaunchPlan
         string? runtimeDirectory,
         string? dotnetRoot,
         string? pipe,
-        string? state,
-        string? interpreter)
+        string? state)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(executable);
         ArgumentNullException.ThrowIfNull(arguments);
@@ -38,8 +37,11 @@ public static class RelaunchPlan
         var steps = new List<string> { "cd /d " + QuoteAlways(DirectoryOf(workingDirectory)) };
         steps.AddRange(assignments);
         steps.Add(launch);
-        var interpreterPath = string.IsNullOrWhiteSpace(interpreter) ? "cmd.exe" : interpreter;
-        return new RelaunchSpec(interpreterPath, "/d /v:off /s /c \"" + string.Join(" && ", steps) + "\"", workingDirectory);
+
+        // The elevated cmd is the one in System32. ComSpec and a bare name resolved through the
+        // current directory and PATH both come from the user's environment, which any program can set.
+        var interpreter = Path.Combine(Environment.SystemDirectory, "cmd.exe");
+        return new RelaunchSpec(interpreter,"/d /v:off /s /c \"" + string.Join(" && ", steps) + "\"", workingDirectory);
     }
 
     private static string Checked(string value, string what)
