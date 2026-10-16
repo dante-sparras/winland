@@ -343,6 +343,7 @@ public sealed partial class Core
             return;
 
         _workspaces.Remove(desk);
+        ForgetReturn(id);
     }
 
     private WorkspaceId NextFree(MonitorId monitor)

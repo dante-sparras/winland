@@ -2,12 +2,24 @@ namespace Winland;
 
 public sealed partial class Core
 {
+    // The Monitor each Workspace left when its Monitor went away, and the Workspace each Monitor
+    // showed then, by Monitor name.
+    private readonly Dictionary<WorkspaceId, string> _returnMonitors = [];
+    private readonly Dictionary<string, WorkspaceId> _rememberedActive = new(StringComparer.OrdinalIgnoreCase);
+
     private Outcome SetMonitors(IReadOnlyList<Monitor> reported)
     {
         ArgumentNullException.ThrowIfNull(reported);
         var rules = MonitorRules.From(_config);
         var arrangement = MonitorRules.Arrange(reported, rules);
         var previous = _monitors.ToArray();
+        var wasEnabled = new List<LiveMonitor>(previous.Length);
+        foreach (var screen in previous)
+        {
+            if (screen.Effective.Enabled)
+                wasEnabled.Add(screen);
+        }
+
         var next = new List<LiveMonitor>(reported.Count);
         for (var i = 0; i < reported.Count; i++)
         {
@@ -41,7 +53,7 @@ public sealed partial class Core
         }
 
         home ??= enabled.Count > 0 ? enabled[0] : null;
-        Relocate(home, enabled);
+        Relocate(wasEnabled, enabled);
         EnsurePersistent();
         PlaceBound();
         AssignActives(enabled);
@@ -54,58 +66,100 @@ public sealed partial class Core
             : outcome with { Orientations = arrangement.Orientations };
     }
 
-    private void Relocate(LiveMonitor? home, List<LiveMonitor> enabled)
+    // As in the pinned release, each Workspace of a Monitor that goes away moves intact onto the first
+    // Monitor that remains, where it is hidden unless that Monitor shows nothing. When the Monitor
+    // comes back, its Workspaces move back and it shows the Workspace it showed when it left.
+    private void Relocate(List<LiveMonitor> wasEnabled, List<LiveMonitor> enabled)
     {
-        var displaced = new List<LiveWorkspace>();
-        foreach (var desk in _workspaces)
+        foreach (var screen in wasEnabled)
         {
-            if (desk.Id.IsSpecial || HeldBy(enabled, desk.Monitor))
-                continue;
-
-            displaced.Add(desk);
+            if (!HeldBy(enabled, screen.Id))
+                NoteLeaving(screen);
         }
 
-        if (home is null || displaced.Count == 0)
+        var backup = enabled.Count > 0 ? enabled[0] : null;
+        if (backup is not null)
         {
-            RehomeSpecials(home, enabled);
-            return;
-        }
-
-        var occupied = false;
-        foreach (var desk in _workspaces)
-        {
-            if (desk.Monitor != home.Id)
-                continue;
-
-            occupied = true;
-            break;
-        }
-
-        if (!occupied)
-        {
-            foreach (var desk in displaced)
-                desk.Monitor = home.Id;
-
-            home.Active ??= displaced[0].Id;
-            RehomeSpecials(home, enabled);
-            return;
-        }
-
-        var target = WorkspaceFor(home.Active ?? NextFree(home.Id), home.Id);
-        home.Active = target.Id;
-        foreach (var desk in displaced)
-        {
-            if (desk.Id == target.Id)
+            foreach (var desk in _workspaces)
             {
-                desk.Monitor = home.Id;
-                continue;
+                if (!desk.Id.IsSpecial && !HeldBy(enabled, desk.Monitor))
+                    desk.Monitor = backup.Id;
             }
-
-            target.Absorb(desk, home.Effective.WorkArea);
-            desk.Monitor = home.Id;
         }
 
-        RehomeSpecials(home, enabled);
+        RehomeSpecials(backup, enabled);
+        foreach (var screen in enabled)
+        {
+            if (!HeldBy(wasEnabled, screen.Id))
+                Return(screen);
+        }
+    }
+
+    private void NoteLeaving(LiveMonitor screen)
+    {
+        var name = screen.Reported.Name;
+        if (screen.Active is WorkspaceId active)
+            _rememberedActive[name] = active;
+
+        foreach (var desk in _workspaces)
+        {
+            if (desk.Monitor == screen.Id)
+                _returnMonitors.TryAdd(desk.Id, name);
+        }
+    }
+
+    private void Return(LiveMonitor screen)
+    {
+        var name = screen.Reported.Name;
+        foreach (var desk in _workspaces.ToArray())
+        {
+            if (!_returnMonitors.TryGetValue(desk.Id, out var owner) || !string.Equals(owner, name, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            _returnMonitors.Remove(desk.Id);
+            MoveBack(desk, screen);
+        }
+
+        if (!_rememberedActive.Remove(name, out var remembered) || FindWorkspace(remembered) is not LiveWorkspace shown || shown.Id.IsSpecial)
+            return;
+
+        MoveBack(shown, screen);
+        screen.Active = shown.Id;
+    }
+
+    private void MoveBack(LiveWorkspace desk, LiveMonitor screen)
+    {
+        if (desk.Monitor == screen.Id)
+            return;
+
+        var owner = MonitorById(desk.Monitor);
+        if (desk.Id.IsSpecial)
+        {
+            var shown = owner is not null && SpecialOn(owner.Id) == desk.Id;
+            if (shown)
+                SetSpecial(owner!.Id, null);
+
+            desk.Monitor = screen.Id;
+            if (shown && SpecialOn(screen.Id) is null)
+                SetSpecial(screen.Id, desk.Id);
+
+            return;
+        }
+
+        if (owner is { Effective.Enabled: true } && owner.Active == desk.Id)
+            Plug(owner, desk);
+
+        desk.Monitor = screen.Id;
+    }
+
+    private void ForgetReturn(WorkspaceId workspace)
+    {
+        _returnMonitors.Remove(workspace);
+        foreach (var (name, active) in _rememberedActive.ToArray())
+        {
+            if (active == workspace)
+                _rememberedActive.Remove(name);
+        }
     }
 
     private void AssignActives(List<LiveMonitor> enabled)

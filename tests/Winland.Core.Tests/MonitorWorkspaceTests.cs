@@ -72,7 +72,7 @@ public class MonitorWorkspaceTests
     }
 
     [Fact]
-    public void UnpluggingMovesTheWorkspaceOntoARemainingMonitorAndReflows()
+    public void UnpluggingMovesEachWorkspaceIntactOntoARemainingMonitor()
     {
         var core = new Core();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
@@ -88,10 +88,11 @@ public class MonitorWorkspaceTests
         Assert.Equal(new WorkspaceId("1"), outcome.State.ActiveWorkspace);
         Assert.Equal(new MonitorId(0), Workspace(outcome, "1").Monitor);
         Assert.Equal(new MonitorId(0), Workspace(outcome, "2").Monitor);
-        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(outcome, 2));
+        Assert.Equal(left.WorkArea, BoundsOf(outcome, 1));
         Assert.Equal(new WorkspaceId("1"), Client(outcome, 1).Workspace);
-        Assert.Equal(new WorkspaceId("1"), Client(outcome, 2).Workspace);
+        Assert.Equal(new WorkspaceId("2"), Client(outcome, 2).Workspace);
+        Assert.Contains(new WindowId(2), outcome.Hide);
+        Assert.Contains(outcome.State.Hidden, client => client.Window == new WindowId(2));
 
         var workspaces = Json(core.Execute("workspaces").Text)
             .EnumerateArray()
@@ -99,13 +100,104 @@ public class MonitorWorkspaceTests
         Assert.Equal(@"\\.\DISPLAY1", workspaces["1"].GetProperty("monitor").GetString());
         Assert.Equal(@"\\.\DISPLAY1", workspaces["2"].GetProperty("monitor").GetString());
         Assert.Equal(0, workspaces["2"].GetProperty("monitorID").GetInt32());
-        Assert.Equal(2, workspaces["1"].GetProperty("windows").GetInt32());
-        Assert.Equal(0, workspaces["2"].GetProperty("windows").GetInt32());
+        Assert.Equal(1, workspaces["1"].GetProperty("windows").GetInt32());
+        Assert.Equal(1, workspaces["2"].GetProperty("windows").GetInt32());
 
         var monitor = Assert.Single(Json(core.Execute("monitors").Text).EnumerateArray());
         Assert.Equal(@"\\.\DISPLAY1", monitor.GetProperty("name").GetString());
         Assert.True(monitor.GetProperty("focused").GetBoolean());
         Assert.Equal("1", monitor.GetProperty("activeWorkspace").GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public void ReplugMovesTheWorkspacesBackAndShowsTheOneTheMonitorShowed()
+    {
+        var core = new Core();
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
+        core.Handle(new MonitorsChanged([left]));
+
+        var back = core.Handle(new MonitorsChanged([left, right]));
+
+        var screen = Assert.Single(back.State.Screens, candidate => candidate.Monitor.Name == right.Name);
+        Assert.Equal(new WorkspaceId("2"), screen.ActiveWorkspace);
+        Assert.Equal(screen.Id, Workspace(back, "2").Monitor);
+        Assert.Equal(new WorkspaceId("1"), Assert.Single(back.State.Screens, candidate => candidate.Monitor.Name == left.Name).ActiveWorkspace);
+        Assert.Contains(new WindowId(2), back.Show);
+        Assert.Empty(back.State.Hidden);
+        Assert.Equal(right.WorkArea, BoundsOf(back, 2));
+        Assert.Equal(left.WorkArea, BoundsOf(back, 1));
+    }
+
+    [Fact]
+    public void UnpluggingKeepsAGroupAndAPinnedClientWithTheirWorkspace()
+    {
+        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\n"));
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+        core.Handle(new Dispatch("focusmonitor", right.Name));
+        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(new WindowAppeared(new WindowId(3), right.WorkArea));
+        core.Handle(new WindowAppeared(new WindowId(4), right.WorkArea) { Traits = WindowTraits.Normal with { Class = "box" } });
+        core.Handle(new Dispatch("pin"));
+
+        var gone = core.Handle(new MonitorsChanged([left]));
+
+        Assert.Equal([new WindowId(2), new WindowId(3)], Assert.Single(gone.State.Groups));
+        Assert.Equal(new WorkspaceId("2"), Client(gone, 2).Workspace);
+        Assert.Equal(new WorkspaceId("2"), Client(gone, 3).Workspace);
+        Assert.Contains(gone.State.Hidden, client => client.Window == new WindowId(2));
+        Assert.Contains(gone.State.Hidden, client => client.Window == new WindowId(3));
+        Assert.True(Client(gone, 4).Pinned);
+        Assert.DoesNotContain(gone.State.Hidden, client => client.Window == new WindowId(4));
+        Assert.DoesNotContain(gone.State.Hidden, client => client.Window == new WindowId(1));
+
+        var back = core.Handle(new MonitorsChanged([left, right]));
+
+        Assert.Equal([new WindowId(2), new WindowId(3)], Assert.Single(back.State.Groups));
+        Assert.Contains(new WindowId(3), back.Show);
+        Assert.Single(back.State.Hidden, client => client.Window == new WindowId(2));
+        Assert.Equal(
+            Assert.Single(back.State.Screens, candidate => candidate.Monitor.Name == right.Name).Id,
+            Workspace(back, "2").Monitor);
+    }
+
+    [Fact]
+    public void UnpluggingCarriesAShownSpecialWorkspaceAndAFullscreenClient()
+    {
+        var core = new Core();
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+        core.Handle(new Dispatch("focusmonitor", right.Name));
+        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
+        core.Handle(new Dispatch("fullscreen"));
+        core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
+        core.Handle(new WindowAppeared(new WindowId(5), right.WorkArea));
+
+        var gone = core.Handle(new MonitorsChanged([left]));
+
+        var only = Assert.Single(gone.State.Screens);
+        Assert.Equal(new WorkspaceId("special:scratch"), only.SpecialWorkspace);
+        Assert.DoesNotContain(gone.State.Hidden, client => client.Window == new WindowId(5));
+        Assert.Equal(FullscreenMode.Fullscreen, Client(gone, 2).Fullscreen);
+        Assert.Contains(gone.State.Hidden, client => client.Window == new WindowId(2));
+
+        var back = core.Handle(new MonitorsChanged([left, right]));
+
+        var returned = Assert.Single(back.State.Screens, candidate => candidate.Monitor.Name == right.Name);
+        Assert.Equal(new WorkspaceId("special:scratch"), returned.SpecialWorkspace);
+        Assert.Null(Assert.Single(back.State.Screens, candidate => candidate.Monitor.Name == left.Name).SpecialWorkspace);
+        Assert.Equal(FullscreenMode.Fullscreen, Client(back, 2).Fullscreen);
+        Assert.DoesNotContain(back.State.Hidden, client => client.Window == new WindowId(2));
+        Assert.Equal(new Rectangle(1920, 0, 1280, 1024), Client(back, 2).Bounds);
     }
 
     [Fact]

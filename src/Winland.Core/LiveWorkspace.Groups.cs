@@ -200,16 +200,6 @@ internal sealed partial class LiveWorkspace
         }
     }
 
-    /// <summary>Moves every Group whose shown member is no longer here to the Workspace that now holds it.</summary>
-    public void HandGroups(LiveWorkspace destination)
-    {
-        foreach (var group in _groups.ToArray())
-        {
-            if (destination.Layout.Clients.Any(client => client.Window == group.Shown))
-                HandGroup(group, destination);
-        }
-    }
-
     private Client? WaitingOf(WindowId window) =>
         _waiting.TryGetValue(window, out var waiting) ? waiting.Client : null;
 
