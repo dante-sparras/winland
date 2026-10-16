@@ -17,6 +17,12 @@ internal sealed class TouchpadInput : IDisposable
     private const string ClassName = "WinlandTouchpad";
     private const int ClassAlreadyExists = 1410;
     private const uint InputMessage = 0x00FF;
+    private const uint DeviceChangeMessage = 0x00FE;
+    private const nuint DeviceArrived = 1;
+    private const nuint DeviceRemoved = 2;
+
+    // A pad that could not be read is read again at most this often, not on every report.
+    private const long RetryMs = 1000;
     private const ushort DigitizerPage = 0x0D;
     private const ushort TouchPadUsage = 0x05;
     private const ushort TipSwitchUsage = 0x42;
@@ -34,7 +40,7 @@ internal sealed class TouchpadInput : IDisposable
 
     private readonly Action<Input> _post;
     private readonly TouchpadSwipe _swipe = new();
-    private readonly Dictionary<nint, Pad?> _pads = [];
+    private readonly DeviceCache<Pad> _pads = new(device => Pad.Open(new HANDLE(device)), () => Environment.TickCount64, RetryMs);
     private HWND _hwnd;
     private bool _disposed;
 
@@ -79,10 +85,7 @@ internal sealed class TouchpadInput : IDisposable
             _hwnd = default;
         }
 
-        foreach (var pad in _pads.Values)
-            pad?.Dispose();
-
-        _pads.Clear();
+        _pads.Dispose();
     }
 
     private static LRESULT OnWindow(HWND hwnd, uint message, WPARAM wParam, LPARAM lParam)
@@ -98,6 +101,11 @@ internal sealed class TouchpadInput : IDisposable
             {
                 Console.Error.WriteLine(exception.Message);
             }
+        }
+        else if (message == DeviceChangeMessage && active is { _disposed: false } && wParam.Value is DeviceArrived or DeviceRemoved)
+        {
+            // A handle can be handed to the next device, so what was read for it no longer holds.
+            active._pads.Remove((nint)lParam);
         }
 
         return PInvoke.DefWindowProc(hwnd, message, wParam, lParam);
@@ -121,7 +129,7 @@ internal sealed class TouchpadInput : IDisposable
             if (raw->dwType != HidType)
                 return;
 
-            if (PadFor(raw->hDevice) is not { } pad)
+            if (_pads.For(raw->hDevice) is not { } pad)
                 return;
 
             var hid = (RAWHID*)(data + header);
@@ -157,23 +165,13 @@ internal sealed class TouchpadInput : IDisposable
             _post(input);
     }
 
-    private unsafe Pad? PadFor(HANDLE device)
-    {
-        if (_pads.TryGetValue(device, out var known))
-            return known;
-
-        var pad = Pad.Open(device);
-        _pads[device] = pad;
-        return pad;
-    }
-
     private static unsafe void Listen(HWND hwnd)
     {
         var device = new RAWINPUTDEVICE
         {
             usUsagePage = DigitizerPage,
             usUsage = TouchPadUsage,
-            dwFlags = RAWINPUTDEVICE_FLAGS.RIDEV_INPUTSINK,
+            dwFlags = RAWINPUTDEVICE_FLAGS.RIDEV_INPUTSINK | RAWINPUTDEVICE_FLAGS.RIDEV_DEVNOTIFY,
             hwndTarget = hwnd,
         };
         if (!PInvoke.RegisterRawInputDevices(&device, 1, (uint)sizeof(RAWINPUTDEVICE)))
