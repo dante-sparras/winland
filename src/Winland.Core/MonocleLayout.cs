@@ -290,12 +290,13 @@ internal sealed partial class MonocleLayout : Layout
         if (!TrySide(First(arguments), out var side))
             return [];
 
+        var frame = _options.FloatingWorkArea(_area);
         var moved = side switch
         {
-            Side.Left => box with { X = _area.X },
-            Side.Right => box with { X = _area.X + _area.Width - box.Width },
-            Side.Up => box with { Y = _area.Y },
-            Side.Down => box with { Y = _area.Y + _area.Height - box.Height },
+            Side.Left => box with { X = frame.X },
+            Side.Right => box with { X = frame.X + frame.Width - box.Width },
+            Side.Up => box with { Y = frame.Y },
+            Side.Down => box with { Y = frame.Y + frame.Height - box.Height },
             _ => box,
         };
 
