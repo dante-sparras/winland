@@ -123,6 +123,81 @@ public class ProcessLauncherTests
         }
     }
 
+    // The block CreateEnvironmentBlock gives for the shell's token: NAME=value entries, each ended by a
+    // NUL, and one more NUL at the end. An entry that starts with '=' is a drive's current folder.
+    [Fact]
+    public unsafe void TheConfiguredEnvironmentOverridesAnInheritedBlock()
+    {
+        var inherited = "Path=C:\\Windows\0=C:=C:\\Users\0TEMP=C:\\Temp\0\0".ToCharArray();
+        char[] block;
+        fixed (char* pointer = inherited)
+        {
+            block = ProcessLauncher.EnvironmentBlock.Create(
+                [new EnvironmentAssignment("PATH", "D:\\tools"), new EnvironmentAssignment("WINLAND", "1")],
+                pointer);
+        }
+
+        Assert.Equal("Path=D:\\tools\0TEMP=C:\\Temp\0WINLAND=1\0\0", new string(block));
+    }
+
+    [Fact]
+    public unsafe void WithoutAnInheritedBlockTheProcessEnvironmentIsTheBase()
+    {
+        var block = new string(ProcessLauncher.EnvironmentBlock.Create([new EnvironmentAssignment("WINLAND_BLOCK_PROBE", "set")], null));
+        var entries = block.TrimEnd('\0').Split('\0');
+
+        Assert.EndsWith("\0\0", block, StringComparison.Ordinal);
+        Assert.Contains("WINLAND_BLOCK_PROBE=set", entries);
+        Assert.Contains(entries, entry => entry.StartsWith("SystemRoot=", StringComparison.OrdinalIgnoreCase));
+        Assert.All(entries, entry => Assert.True(entry.IndexOf('=') > 0, $"'{entry}' has no name."));
+    }
+
+    [Fact]
+    public unsafe void AnEmptyInheritedBlockLeavesOnlyTheConfiguredVariables()
+    {
+        var inherited = "\0\0".ToCharArray();
+        char[] block;
+        fixed (char* pointer = inherited)
+            block = ProcessLauncher.EnvironmentBlock.Create([new EnvironmentAssignment("A", "")], pointer);
+
+        Assert.Equal("A=\0\0", new string(block));
+    }
+
+    // Window rules match a Client by the processes that started it, nearest first.
+    [Fact]
+    public void AncestorsStartWithTheParent()
+    {
+        using var child = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "cmd.exe"), "/d /c ping -n 30 127.0.0.1 >nul")
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        })!;
+        try
+        {
+            var ancestors = ProcessLauncher.Ancestors(child.Id);
+
+            Assert.Equal(Environment.ProcessId, ancestors[0]);
+            Assert.DoesNotContain(child.Id, ancestors);
+            Assert.All(ancestors, id => Assert.True(id > 0));
+            Assert.Equal(ancestors.Count, ancestors.Distinct().Count());
+            Assert.InRange(ancestors.Count, 1, 16);
+            Assert.Equal(ancestors.Skip(1), ProcessLauncher.Ancestors(Environment.ProcessId).Take(ancestors.Count - 1));
+        }
+        finally
+        {
+            child.Kill(entireProcessTree: true);
+        }
+    }
+
+    [Fact]
+    public void NoProcessHasNoAncestors()
+    {
+        Assert.Empty(ProcessLauncher.Ancestors(0));
+        Assert.Empty(ProcessLauncher.Ancestors(-4));
+        Assert.Throws<ArgumentNullException>(() => ProcessLauncher.LaunchHere(null!));
+        Assert.Throws<ArgumentNullException>(() => ProcessLauncher.CreationFlags(null!));
+    }
+
     private static void WaitForExit(int pid)
     {
         try

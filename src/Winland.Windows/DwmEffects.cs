@@ -232,6 +232,7 @@ internal sealed class DwmEffects
     private readonly record struct Cut(CornerRegion Region, int OuterWidth, int OuterHeight, int Left, int Top, int Width, int Height);
 }
 
+// Stryker disable once all : each member reads or sets a real window's DWM attributes or region.
 internal sealed class Win32DwmSurface : IDwmSurface
 {
     // DWMWA_NCRENDERING_POLICY, DWMWA_SYSTEMBACKDROP_TYPE.

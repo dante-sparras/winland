@@ -209,6 +209,7 @@ internal sealed class OpacityAdapter
     private readonly record struct Original(uint ExStyle, byte Alpha);
 }
 
+// Stryker disable once all : each member reads or writes a real window's extended style or alpha.
 internal sealed class Win32WindowStyles : IWindowStyles
 {
     private const uint ColorKeyFlag = 0x1;

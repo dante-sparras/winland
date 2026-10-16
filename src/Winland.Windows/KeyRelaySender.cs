@@ -28,6 +28,7 @@ internal sealed class Win32KeyRelaySender : IKeyRelaySender
         (Modifier.Shift, 0xA0, 0xA1),
     ];
 
+    // Stryker disable once all : moves the real foreground and sends input with SendInput.
     public void Send(KeyRelay relay)
     {
         ArgumentNullException.ThrowIfNull(relay);
@@ -65,6 +66,7 @@ internal sealed class Win32KeyRelaySender : IKeyRelaySender
             _ = Foreground.MoveTo(new WindowId(((nint)previous).ToInt64()));
     }
 
+    // Stryker disable once all : reads the foreground window's keyboard layout.
     private static KeyLayout Layout()
     {
         try
@@ -187,5 +189,6 @@ internal sealed class Win32KeyRelaySender : IKeyRelaySender
         };
     }
 
+    // Stryker disable once all : reads the real key state.
     private static bool Down(int vk) => (PInvoke.GetAsyncKeyState(vk) & 0x8000) != 0;
 }

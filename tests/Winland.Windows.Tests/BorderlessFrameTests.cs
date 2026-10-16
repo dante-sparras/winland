@@ -109,6 +109,91 @@ public class BorderlessFrameTests
         Assert.Equal(0x00CF0000u, frames.Style[window]);
     }
 
+    // Only the frame bits go, and the window becomes a popup. Everything else in the style stays.
+    [Theory]
+    [InlineData(0x00CF0000u, 0x800B0000u)]
+    [InlineData(0x10000000u, 0x90000000u)]
+    [InlineData(0x80000000u, 0x80000000u)]
+    [InlineData(0x16CF0001u, 0x960B0001u)]
+    public void StrippingKeepsEveryBitButTheFrame(uint style, uint stripped)
+    {
+        Assert.Equal(stripped, BorderlessStyle.Strip(style));
+    }
+
+    // A window with no frame to drop is still remembered, and nothing is written to it.
+    [Fact]
+    public void AWindowWithoutAFrameIsRememberedButNotWritten()
+    {
+        var frames = new FakeFrames();
+        var window = new WindowId(2);
+        frames.Style[window] = BorderlessStyle.Popup;
+        var borderless = new BorderlessFrame(frames);
+
+        borderless.Apply(window, true);
+
+        Assert.Equal(0, frames.Writes);
+        Assert.True(borderless.Owns(window));
+    }
+
+    [Fact]
+    public void AWindowWhoseStyleCannotBeReadIsLeftAlone()
+    {
+        var frames = new FakeFrames();
+        var window = new WindowId(2);
+        var borderless = new BorderlessFrame(frames);
+
+        borderless.Apply(window, true);
+
+        Assert.Equal(0, frames.Writes);
+        Assert.False(borderless.Owns(window));
+    }
+
+    [Fact]
+    public void PuttingBackForgetsWhatThisRunDropped()
+    {
+        var frames = new FakeFrames();
+        var window = new WindowId(6);
+        frames.Style[window] = 0x00CF0000;
+        var borderless = new BorderlessFrame(frames);
+        borderless.Apply(window, true);
+
+        borderless.PutBack(window, 0x00C00000);
+        var writes = frames.Writes;
+        borderless.Release(window);
+
+        Assert.False(borderless.Owns(window));
+        Assert.Equal(writes, frames.Writes);
+        Assert.Equal(0x00C00000u, frames.Style[window]);
+    }
+
+    [Fact]
+    public void StampChangesOnlyTheStylesThatAreWrong()
+    {
+        var frames = new FakeFrames();
+        var window = new WindowId(6);
+        frames.Style[window] = 0x00CF0000;
+        var borderless = new BorderlessFrame(frames);
+        borderless.Apply(window, true);
+        var right = new RecoverySnapshot(
+        [
+            new RecoveredClient(window, WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1) { FrameStyle = 0x00CF0000 },
+            new RecoveredClient(new WindowId(9), WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1),
+        ]);
+        var wrong = new RecoverySnapshot(
+        [
+            new RecoveredClient(new WindowId(10), WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1) { FrameStyle = 1 },
+            new RecoveredClient(new WindowId(11), WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1) { FrameStyle = 2 },
+        ]);
+
+        var unchanged = borderless.Stamp(right);
+        var corrected = borderless.Stamp(wrong);
+
+        Assert.Same(right, unchanged);
+        Assert.All(corrected.Clients, client => Assert.Null(client.FrameStyle));
+        Assert.Throws<ArgumentNullException>(() => borderless.Stamp(null!));
+        Assert.Throws<ArgumentNullException>(() => new BorderlessFrame(null!));
+    }
+
     private sealed class FakeFrames : IWindowFrame
     {
         internal readonly Dictionary<WindowId, uint> Style = [];
