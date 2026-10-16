@@ -95,6 +95,7 @@ public sealed partial class Core
             return IsShown(existing.Workspace) && !IsWaiting(appeared.Window) ? View([]) : View([], hide: [appeared.Window]);
 
         var restored = FindRestored(appeared.Window);
+        decision = Recovered(decision, restored);
         var swallowee = Swallowee(appeared);
         var screen = MonitorFor(appeared);
         if (_monitors.Count > 0 && screen is null && !RestoredMonitorExists(restored))
@@ -114,7 +115,7 @@ public sealed partial class Core
         var desk = WorkspaceFor(target, monitor);
         var area = WorkArea(desk, appeared.WorkArea);
         _area = area;
-        var bounds = restored is null ? PlaceOnMap(appeared, decision, desk, area) : appeared.Bounds;
+        var bounds = restored is null ? PlaceOnMap(appeared, decision, desk, area) : restored.Bounds ?? appeared.Bounds;
         var covered = desk.Covered();
         if (decision.ScrollingWidth is double scrollingWidth)
             desk.Layout.NoteScrollingWidth(appeared.Window, scrollingWidth);

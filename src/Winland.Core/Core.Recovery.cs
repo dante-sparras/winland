@@ -50,10 +50,47 @@ public sealed partial class Core
                 concealed.Contains(client.Window),
                 client.Class,
                 client.Title,
-                client.ProcessId);
+                client.ProcessId,
+                Floating: client.Floating,
+                Bounds: SlotOf(client),
+                Pinned: client.Pinned,
+                Fullscreen: client.Fullscreen,
+                FullscreenClient: client.FullscreenClient);
         }
 
         return new RecoverySnapshot(clients);
+    }
+
+    // A covering Client's bounds are the area it covers. Its own slot is what it goes back to.
+    private Rectangle SlotOf(Client client) =>
+        client.Fullscreen != FullscreenMode.None
+            && WorkspaceContaining(client.Window) is LiveWorkspace desk
+            && desk.Layout.TryBounds(client.Window, out var slot)
+            ? slot
+            : client.Bounds;
+
+    // What a snapshot recorded about a Client wins over the window rules, which decided it the first time.
+    private static WindowDecision Recovered(WindowDecision decision, RecoveredClient? restored)
+    {
+        if (restored is null)
+            return decision;
+
+        var floating = restored.Floating ?? decision.Floating;
+        var fullscreen = decision.FullscreenRequest;
+        if (restored.Fullscreen is FullscreenMode internalMode)
+        {
+            var clientMode = restored.FullscreenClient ?? internalMode;
+            fullscreen = internalMode == FullscreenMode.None && clientMode == FullscreenMode.None
+                ? null
+                : new FullscreenRule(internalMode, clientMode);
+        }
+
+        return decision with
+        {
+            Floating = floating,
+            Pin = restored.Pinned ?? decision.Pin,
+            FullscreenRequest = fullscreen,
+        };
     }
 
     private RecoveredClient? FindRestored(WindowId window) =>
