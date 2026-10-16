@@ -52,7 +52,7 @@ internal static class DirectionalNeighbor
     private static bool Adjacent(int aMin, int aMax, int bMin, int bMax)
     {
         var delta = aMin - bMax;
-        if (Math.Abs(delta) <= 2)
+        if (Math.Abs(delta) < 2)
             return true;
         if (delta >= 0)
             return false;
