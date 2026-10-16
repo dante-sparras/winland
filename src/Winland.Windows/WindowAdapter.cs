@@ -341,14 +341,11 @@ public sealed partial class WindowAdapter : IDisposable
         Point? pointer = PInvoke.GetCursorPos(out var cursor) ? new Point(cursor.X, cursor.Y) : null;
         var bounds = PInvoke.GetWindowRect(hwnd, out var rect) ? From(rect) : default;
         var monitorRect = From(info.rcMonitor);
-        long processId = 0;
+        // A Store app's frame belongs to ApplicationFrameHost. The Client's process is the app it hosts.
+        long processId = identity.ProcessId;
         IReadOnlyList<int> ancestors = [];
-        if (PInvoke.GetWindowThreadProcessId(hwnd, out var pid) != 0)
-        {
-            processId = pid;
-            if (pid is > 0 and <= int.MaxValue)
-                ancestors = ProcessLauncher.Ancestors((int)pid);
-        }
+        if (identity.ProcessId is > 0 and <= int.MaxValue)
+            ancestors = ProcessLauncher.Ancestors((int)identity.ProcessId);
 
         var dpi = (int)PInvoke.GetDpiForWindow(hwnd);
         var insets = InsetsFor(window, hwnd, dpi);
@@ -552,7 +549,7 @@ public sealed partial class WindowAdapter : IDisposable
         Applied?.Invoke(outcome);
 
         if (outcome.Kill is KillRequest kill)
-            ProcessTerminator.TryTerminateOnSystem(kill.ProcessId);
+            Kill(kill);
 
         foreach (var power in outcome.DisplayPower)
             DisplayPowerAdapter.TryApplyToSystem(power);
@@ -563,6 +560,23 @@ public sealed partial class WindowAdapter : IDisposable
 
         if (outcome.Exit)
             SessionHalt.Request();
+    }
+
+    // The owner is read from the window again, because the recorded process can be stale or the frame's host.
+    private static void Kill(KillRequest kill)
+    {
+        long? live = null;
+        if (kill.Window is WindowId window)
+        {
+            var hwnd = new HWND((nint)window.Value);
+            if (PInvoke.IsWindow(hwnd))
+                live = PackagedIdentity.OwnerProcess(hwnd);
+        }
+
+        if (ProcessTerminator.Target(kill.ProcessId, live, pid => pid is > 0 and <= uint.MaxValue ? PackagedIdentity.ExeFile((uint)pid) : "") is long target)
+            ProcessTerminator.TryTerminateOnSystem(target);
+        else
+            Console.Error.WriteLine("The window's process was not ended: it could not be told apart from the frame host.");
     }
 
     // SW_HIDE removes the window from the switcher: a hidden window is not visible,

@@ -14,7 +14,7 @@ namespace Winland.Windows;
 internal static class PackagedIdentity
 {
     private const string FrameClass = "ApplicationFrameWindow";
-    private const string FrameExe = "ApplicationFrameHost.exe";
+    internal const string FrameExe = "ApplicationFrameHost.exe";
     private const string CoreClass = "Windows.UI.Core.CoreWindow";
 
     private static readonly PROPERTYKEY AppUserModelId = new()
@@ -26,7 +26,8 @@ internal static class PackagedIdentity
     private static readonly Lock Gate = new();
     private static readonly Dictionary<long, CacheEntry> Cache = [];
 
-    internal readonly record struct Resolved(string Class, string Exe, string Aumid, bool UnresolvedFrame);
+    // ProcessId is the hosted app's process for a frame that hosts one, and the window's own process otherwise.
+    internal readonly record struct Resolved(string Class, string Exe, string Aumid, bool UnresolvedFrame, uint ProcessId);
 
     private readonly record struct CacheEntry(uint ProcessId, string Title, Resolved Identity);
 
@@ -55,17 +56,30 @@ internal static class PackagedIdentity
     private static Resolved Read(HWND hwnd, string className, string exe, uint processId)
     {
         if (!IsFrame(className, exe))
-            return new Resolved(className, exe, Aumid(processId, hwnd), UnresolvedFrame: false);
+            return new Resolved(className, exe, Aumid(processId, hwnd), UnresolvedFrame: false, processId);
 
         if (!TryFindHostedChild(hwnd, processId, out var child, out var childProcess))
-            return new Resolved(className, exe, "", UnresolvedFrame: true);
+            return new Resolved(className, exe, "", UnresolvedFrame: true, processId);
 
         var childExe = ExeFile(childProcess);
         var aumid = Aumid(childProcess, child);
         if (aumid.Length == 0)
             aumid = AumidFromWindow(hwnd);
 
-        return new Resolved(WindowAdapter.ClassName(child), childExe, aumid, UnresolvedFrame: false);
+        return new Resolved(WindowAdapter.ClassName(child), childExe, aumid, UnresolvedFrame: false, childProcess);
+    }
+
+    /// <summary>
+    /// The process that owns a window's content, read now: the hosted app for a Store frame, 0 for a
+    /// frame that hosts none, and the window's own process for anything else.
+    /// </summary>
+    internal static uint OwnerProcess(HWND hwnd)
+    {
+        var processId = ProcessId(hwnd);
+        if (processId == 0 || !IsFrame(WindowAdapter.ClassName(hwnd), ExeFile(processId)))
+            return processId;
+
+        return TryFindHostedChild(hwnd, processId, out _, out var childProcess) ? childProcess : 0;
     }
 
     private static bool IsFrame(string className, string exe) =>
@@ -167,7 +181,7 @@ internal static class PackagedIdentity
         }
     }
 
-    private static string ExeFile(uint processId)
+    internal static string ExeFile(uint processId)
     {
         if (processId == 0)
             return "";

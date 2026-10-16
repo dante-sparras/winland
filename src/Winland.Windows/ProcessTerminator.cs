@@ -22,6 +22,21 @@ public static class ProcessTerminator
         return terminator.TryTerminate(processId);
     }
 
+    /// <summary>
+    /// The process to end for a kill. <paramref name="live"/> is the owner read from the window now: null when
+    /// the window is gone, so the recorded <paramref name="stored"/> is used, and 0 when it cannot be told.
+    /// ApplicationFrameHost hosts every Store app's frame, so it is never the one ended.
+    /// </summary>
+    internal static long? Target(long stored, long? live, Func<long, string> exeOf)
+    {
+        ArgumentNullException.ThrowIfNull(exeOf);
+        var candidate = live ?? stored;
+        if (candidate <= 0)
+            return null;
+
+        return exeOf(candidate).Equals(PackagedIdentity.FrameExe, StringComparison.OrdinalIgnoreCase) ? null : candidate;
+    }
+
     /// <summary>Ends <paramref name="processId"/> with the system process API. Tests do not call this.</summary>
     public static bool TryTerminateOnSystem(long processId) =>
         TryTerminate(processId, SystemProcesses.Shared);
