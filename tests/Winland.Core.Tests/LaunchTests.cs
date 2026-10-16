@@ -223,6 +223,14 @@ public class LaunchTests
     }
 
     [Fact]
+    public void AnExecRuleBlockKeepsTheScrollingWidth()
+    {
+        var launches = new Core().StartupLaunches(ConfigParser.Parse("exec = [scrolling_width 0.25] app\n"));
+
+        Assert.Equal(0.25, Assert.Single(launches[0].Rules).ScrollingWidth);
+    }
+
+    [Fact]
     public void EnvPairsReachEveryLaunchAndReloadReplacesThem()
     {
         var first = ConfigParser.Parse(
