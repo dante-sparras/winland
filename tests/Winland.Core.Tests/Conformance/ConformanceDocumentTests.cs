@@ -39,8 +39,11 @@ public class ConformanceDocumentTests
         Assert.Contains($"\n{passing} of {tests.Count} ported cases pass.", text.ReplaceLineEndings("\n"), StringComparison.Ordinal);
     }
 
+    // A case name in camel or snake case, such as groups_disable_when_only, becomes GroupsDisableWhenOnly.
     private static string MethodName(string referenceCase) =>
-        char.ToUpperInvariant(referenceCase[0]) + referenceCase[1..].Replace("_", "", StringComparison.Ordinal);
+        string.Concat(referenceCase
+            .Split('_', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => char.ToUpperInvariant(part[0]) + part[1..]));
 
     // The test methods of every conformance class, each with its skip reason or null.
     private static Dictionary<string, string?> Tests()

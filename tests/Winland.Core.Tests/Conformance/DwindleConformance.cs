@@ -169,10 +169,10 @@ public class DwindleConformance
         desk.Ok("fullscreen", "0 unset");
         ExpectFullscreen(desk, 0, 0);
 
-        desk.Ok("fullscreen", "1");
+        desk.Ok("fullscreen", "1 toggle");
         ExpectFullscreen(desk, 1, 1);
 
-        desk.Ok("fullscreen", "1");
+        desk.Ok("fullscreen", "1 toggle");
         ExpectFullscreen(desk, 0, 0);
 
         desk.Ok("fullscreenstate", "2 2 set");
@@ -188,7 +188,7 @@ public class DwindleConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "A hidden Group member keeps its last frame. The pinned release gives it the fullscreen frame of the shown member.")]
+    [Fact(Skip = "A hidden Group member keeps its last frame, where the pinned release gives it the shown member's fullscreen frame. A maximized floating Group member is not moved until the Group changes, and then covers the group bar.")]
     public void DwindleTestFsingGroupedWindows()
     {
         var desk = new Desk("""
@@ -305,18 +305,18 @@ public class DwindleConformance
         desk.Ok("fullscreen", "0");
         ExpectFullscreen(desk, 2, 2);
 
-        desk.Close("kitty_B");
+        desk.CloseActive();
         ExpectFullscreen(desk, 0, 0);
 
         desk.Spawn("kitty_B");
         desk.Ok("fullscreen", "0");
         desk.Keyword("misc:exit_window_retains_fullscreen", "true");
 
-        desk.Close("kitty_B");
+        desk.CloseActive();
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "binds:allow_pin_fullscreen is a Gap.")]
+    [Fact(Skip = "binds:allow_pin_fullscreen is a Gap, and maximize does not leave the border around the Client.")]
     public void DwindleFullscreenPinnedWindows()
     {
         var desk = new Desk();
@@ -352,6 +352,26 @@ public class DwindleConformance
         desk.Ok("fullscreenstate", "0 0 set");
         Assert.Equal("ok", desk.Send("r/keyword binds:allow_pin_fullscreen true"));
         desk.Ok("focuswindow", "class:cake");
+
+        desk.Ok("fullscreen", "0");
+        Assert.False(Desk.Pinned(desk.ActiveWindow()));
+        ExpectFullscreen(desk, 2, 2);
+        desk.ExpectActive("0,0", "1920,1080");
+
+        desk.Ok("fullscreen", "1");
+        ExpectFullscreen(desk, 1, 1);
+        desk.ExpectActive("2,2", "1916,1076");
+
+        desk.Ok("fullscreenstate", "0 0 set");
+        desk.Ok("workspace", "2");
+        var cake = desk.Client("cake");
+        Assert.True(Desk.Pinned(cake));
+        Assert.Equal(0, Desk.Fullscreen(cake));
+        Assert.Equal("200,200", desk.PlaceOf("cake").Size);
+        Assert.Equal(2, Desk.WorkspaceId(cake));
+
+        Assert.Equal("ok", desk.Send("r/keyword binds:allow_pin_fullscreen false"));
+        Assert.Equal("ok", desk.Send("r/dispatch pin class:cake"));
 
         desk.Ok("fullscreen", "0");
         Assert.False(Desk.Pinned(desk.ActiveWindow()));

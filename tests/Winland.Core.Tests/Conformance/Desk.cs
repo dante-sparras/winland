@@ -58,8 +58,10 @@ internal sealed class Desk
         windowrulev2 = size 200 200, class:^(wr_kitty)$
         """;
 
+    /// <summary>Where the reference harness's one monitor, HEADLESS-2, is.</summary>
     internal static readonly Rectangle First = new(0, 0, 1920, 1080);
 
+    /// <summary>Where a monitor a case creates goes: to the right of HEADLESS-2, as the reference's auto-right rule puts it.</summary>
     internal static readonly Rectangle Second = new(1920, 0, 1920, 1080);
 
     private readonly Dictionary<string, WindowId> _windows = new(StringComparer.Ordinal);
@@ -67,31 +69,47 @@ internal sealed class Desk
 
     private readonly Dictionary<WindowId, Rectangle> _placed = [];
     private readonly Dictionary<ClientId, WindowId> _clients = [];
+    private readonly List<Monitor> _monitors = [];
+    private State _state = new([]);
 
+    /// <summary>
+    /// Builds the desktop. <paramref name="extra"/> is config after the reference config: the options a case sets
+    /// before its first window opens. <c>reload</c> reads the same text again.
+    /// </summary>
     internal Desk(string extra = "")
     {
-        var document = ConfigParser.Parse(Config + "\n" + extra);
-        Core = new Core();
-        Handle(new Configure(document));
-        Handle(new MonitorsChanged([Monitor("HEADLESS-1", First), Monitor("HEADLESS-2", Second)]));
+        var text = Config + "\n" + extra;
+        Core = new Core
+        {
+            ReadConfig = () => new ConfigRead(ConfigParser.Parse(text)),
+            Cursor = new PointerReader(this),
+        };
+        Handle(new Configure(ConfigParser.Parse(text)));
         Pointer = new Point(960, 540);
+        AddMonitor("HEADLESS-2", First);
         Handle(new PointerMoved(Pointer));
     }
 
     internal Core Core { get; }
 
+    /// <summary>Where the pointer is. It follows the warps the core asks for, as the system cursor does.</summary>
     internal Point Pointer { get; private set; }
 
-    /// <summary>Opens a window with this class where the reference harness opens kitty, and returns its id.</summary>
-    internal WindowId Spawn(string windowClass, string title = "")
+    /// <summary>
+    /// Opens a window with this class on the focused monitor, where the reference harness opens kitty, and returns
+    /// its id. Each window has a process of its own. A second window with the same class takes over the name.
+    /// </summary>
+    internal WindowId Spawn(string windowClass, string title = "", WindowTraits? traits = null)
     {
         var id = new WindowId(_next++);
         _windows[windowClass] = id;
-        Handle(new WindowAppeared(id, WorkArea())
+        var area = FocusedArea();
+        Handle(new WindowAppeared(id, area)
         {
             Pointer = Pointer,
-            Traits = WindowTraits.Normal with { Class = windowClass, Title = title.Length == 0 ? windowClass : title },
-            Bounds = new Rectangle(Pointer.X - 320, Pointer.Y - 240, 640, 480),
+            Traits = (traits ?? WindowTraits.Normal) with { Class = windowClass, Title = title.Length == 0 ? windowClass : title },
+            Bounds = new Rectangle(area.X + (area.Width / 2) - 320, area.Y + (area.Height / 2) - 240, 640, 480),
+            ProcessId = 1000 + id.Value,
         });
         return id;
     }
@@ -101,17 +119,44 @@ internal sealed class Desk
     /// <summary>Closes the window as its application would, as the reference harness kills kitty.</summary>
     internal void Close(string windowClass) => Handle(new WindowClosed(_windows[windowClass]));
 
+    /// <summary>Closes the active window as its application would.</summary>
+    internal void CloseActive() => Handle(new WindowClosed(ActiveId()));
+
     internal void MovePointer(int x, int y)
     {
         Pointer = new Point(x, y);
         Handle(new PointerMoved(Pointer));
     }
 
-    /// <summary>Feeds the core an event and keeps the frames it places.</summary>
+    /// <summary>Presses and releases a mouse button where the pointer is.</summary>
+    internal void Click(string button = "mouse:272")
+    {
+        Handle(new PointerButtonPressed(button) { Position = Pointer });
+        Handle(new PointerButtonReleased(button) { Position = Pointer });
+    }
+
+    /// <summary>Plugs in a monitor, as the reference's <c>output create headless NAME</c> does.</summary>
+    internal void AddMonitor(string name, Rectangle bounds)
+    {
+        _monitors.Add(Monitor(name, bounds));
+        Handle(new MonitorsChanged([.. _monitors]));
+    }
+
+    /// <summary>Unplugs a monitor, as the reference's <c>output remove NAME</c> does.</summary>
+    internal void RemoveMonitor(string name)
+    {
+        _monitors.RemoveAll(monitor => monitor.Name == name);
+        Handle(new MonitorsChanged([.. _monitors]));
+    }
+
+    /// <summary>
+    /// Feeds the core an event, keeps the frames it places, and answers as the Windows adapter does: the window the
+    /// outcome focuses reports focus back, and the pointer goes where the outcome warps it.
+    /// </summary>
     internal Outcome Handle(Input input)
     {
         var outcome = Core.Handle(input);
-        Keep(outcome);
+        Follow(outcome);
         return outcome;
     }
 
@@ -119,8 +164,18 @@ internal sealed class Desk
     internal string Send(string line)
     {
         var reply = Core.Execute(line);
-        Keep(reply.Effect);
+        Follow(reply.Effect);
         return reply.Text;
+    }
+
+    private void Follow(Outcome outcome, WindowId? echoed = null)
+    {
+        Keep(outcome);
+        if (outcome.Warp is WarpTo warp)
+            Pointer = warp.Position;
+
+        if (outcome.Focus is WindowId focus && focus != echoed)
+            Follow(Core.Handle(new WindowFocused(focus, FocusCause.Requested)), focus);
     }
 
     /// <summary>
@@ -207,9 +262,21 @@ internal sealed class Desk
             if (_clients.TryGetValue(placement.Client, out var window))
                 _placed[window] = placement.Bounds;
         }
+
+        _state = outcome.State;
     }
 
-    private Rectangle WorkArea() => Pointer.X >= Second.X ? Second : First;
+    /// <summary>The work area of the focused monitor, where a new window opens.</summary>
+    internal Rectangle FocusedArea()
+    {
+        foreach (var screen in _state.Screens)
+        {
+            if (screen.Focused)
+                return screen.Monitor.WorkArea;
+        }
+
+        return First;
+    }
 
     private static string Pair(JsonElement pair) =>
         $"{pair[0].GetInt32()},{pair[1].GetInt32()}";
@@ -220,6 +287,12 @@ internal sealed class Desk
         return document.RootElement.Clone();
     }
 
-    private static Monitor Monitor(string name, Rectangle bounds) =>
+    /// <summary>A headless monitor at these bounds, with no reserved area.</summary>
+    internal static Monitor Monitor(string name, Rectangle bounds) =>
         new(name, name, bounds.X, bounds.Y, bounds.Width, bounds.Height, 1, true, bounds);
+
+    private sealed class PointerReader(Desk desk) : ICursorPosition
+    {
+        public Point Read() => desk.Pointer;
+    }
 }
