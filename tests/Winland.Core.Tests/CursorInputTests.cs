@@ -255,6 +255,23 @@ public class CursorInputTests
     }
 
     [Fact]
+    public void AWindowThatReusesAClosedHandleDoesNotInheritItsWarpPoint()
+    {
+        var core = new Core(ConfigParser.Parse("cursor:warp_on_change_workspace = 1\ncursor:persistent_warps = true\nwindowrulev2 = workspace 1 silent, class:^(again)$\n"));
+        var monitor = Display(@"\\.\DISPLAY1", "Main", 0, 0, 800, 600);
+        core.Handle(new MonitorsChanged([monitor]));
+        core.Handle(new WindowAppeared(new WindowId(1), monitor.WorkArea));
+        core.Handle(new PointerMoved(new Point(40, 50)));
+        core.Handle(new Dispatch("workspace", "2"));
+        core.Handle(new WindowClosed(new WindowId(1)));
+        core.Handle(new WindowAppeared(new WindowId(1), monitor.WorkArea) { Traits = WindowTraits.Normal with { Class = "again" } });
+
+        var back = core.Handle(new Dispatch("workspace", "1"));
+
+        Assert.Equal(new WarpTo(new Point(400, 300)), back.Warp);
+    }
+
+    [Fact]
     public void MonitorChangeUsesItsOwnMode()
     {
         var core = Load("cursor:warp_on_change_workspace = 0\ncursor:warp_on_monitor_change = 1");

@@ -3,7 +3,6 @@ namespace Winland;
 public sealed partial class Core
 {
     private readonly Dictionary<MonitorId, WorkspaceId> _specialOn = [];
-    private LiveWorkspace? _closing;
 
     private WorkspaceId? SpecialOn(MonitorId monitor)
     {
