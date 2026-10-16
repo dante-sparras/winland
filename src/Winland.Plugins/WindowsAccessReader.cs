@@ -79,7 +79,14 @@ public static class WindowsAccessReader
     public static (string Path, string Who)? FirstNonAdministrator(string directory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
-        return AdministratorOnly.FirstNonAdministrator(Entries(Path.GetFullPath(directory)));
+        return AdministratorOnly.FirstNonAdministrator(Tree(directory));
+    }
+
+    /// <summary>The access list of a directory and of everything in it, the directory first. Null could not be read.</summary>
+    public static IReadOnlyList<(string Path, AccessList? Access)> Tree(string directory)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+        return Entries(Path.GetFullPath(directory));
     }
 
     /// <summary>
