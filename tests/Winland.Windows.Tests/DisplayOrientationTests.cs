@@ -56,6 +56,74 @@ public class DisplayOrientationTests
         Assert.Empty(source.Commits);
     }
 
+    [Fact]
+    public void ApplyingAnOutcomeCommitsItsRotations()
+    {
+        var rotated = new List<DisplayOrientationRequest>();
+        var system = WindowAdapter.Rotate;
+        WindowAdapter.Rotate = request =>
+        {
+            rotated.Add(request);
+            return true;
+        };
+        try
+        {
+            var request = new DisplayOrientationRequest(@"\\.\DISPLAY9", DisplayOrientation.Rotate90);
+            WindowAdapter.Apply(new Outcome([], new State([])) { Orientations = [request] });
+
+            Assert.Equal([request], rotated);
+        }
+        finally
+        {
+            WindowAdapter.Rotate = system;
+        }
+    }
+
+    // Every request the core puts in an outcome must reach the system. A new field fails here until
+    // someone decides where it is applied and adds it to this list.
+    [Fact]
+    public void EveryOutcomeFieldHasAKnownConsumer()
+    {
+        string[] known =
+        [
+            nameof(Outcome.Placements), // WindowAdapter.ApplyCore
+            nameof(Outcome.State), // WindowAdapter.ApplyCore, SessionEffects (idle), queries
+            nameof(Outcome.Consumed), // the hooks swallow consumed input
+            nameof(Outcome.Dispatcher), // events and command replies
+            nameof(Outcome.Close), // WindowAdapter.ApplyCore
+            nameof(Outcome.Focus), // WindowAdapter.ApplyCore
+            nameof(Outcome.Show), // WindowAdapter.ApplyCore
+            nameof(Outcome.Hide), // WindowAdapter.ApplyCore
+            nameof(Outcome.ShowMinimized), // WindowAdapter.ApplyCore
+            nameof(Outcome.AllowsElevation), // the core's launch decision
+            nameof(Outcome.Launch), // WindowAdapter.ApplyCore
+            nameof(Outcome.Events), // Core.Noticed, the event stream and plugins
+            nameof(Outcome.Decorations), // WindowAdapter.ApplyCore
+            nameof(Outcome.Motions), // WindowAdapter.ApplyCore
+            nameof(Outcome.ResetDecorations), // WindowAdapter.ApplyCore
+            nameof(Outcome.GroupBars), // WindowAdapter.ApplyCore
+            nameof(Outcome.Orientations), // WindowAdapter.ApplyCore
+            nameof(Outcome.Warp), // SessionEffects
+            nameof(Outcome.InputSettings), // SessionEffects
+            nameof(Outcome.Cursor), // SessionEffects
+            nameof(Outcome.ResizeCursor), // not applied: behavior.md says the system pointer is not changed
+            nameof(Outcome.Error), // command replies
+            nameof(Outcome.Kill), // WindowAdapter.ApplyCore
+            nameof(Outcome.Exit), // WindowAdapter.ApplyCore
+            nameof(Outcome.DisplayPower), // WindowAdapter.ApplyCore
+            nameof(Outcome.Relays), // SessionEffects
+            nameof(Outcome.ZOrder), // WindowAdapter.ApplyCore
+            nameof(Outcome.Notice), // command replies
+        ];
+
+        var fields = typeof(Outcome)
+            .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Select(property => property.Name)
+            .Order(StringComparer.Ordinal);
+
+        Assert.Equal(known.Order(StringComparer.Ordinal), fields);
+    }
+
     private sealed class FakeModes(DisplayMode current) : IDisplayModeSource
     {
         public bool CanRead { get; init; } = true;

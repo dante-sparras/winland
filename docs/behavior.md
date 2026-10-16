@@ -149,7 +149,7 @@ A `monitor` position is in logical pixels. Windows reports the monitor rectangle
 
 When a Monitor is unplugged or disabled, each of its Workspaces moves intact onto the first Monitor that remains, with its Groups, fullscreen Clients and pinned Clients. They are hidden there, except a pinned Client and a special workspace that was shown, which is shown on that Monitor when it shows none. When the Monitor comes back, by the same name, its Workspaces move back to it and it shows the Workspace it showed when it left, as in the pinned release.
 
-Transforms 0, 1, 2 and 3 ask for a rotation of 0, 90, 180 and 270 degrees. Transforms 4, 5, 6 and 7 flip the picture. They warn "Flipped monitor transforms are not honored." and are not applied.
+Transforms 0, 1, 2 and 3 ask for a rotation of 0, 90, 180 and 270 degrees. Winland sets the display to that orientation with the system display settings whenever the monitors are laid out, and changes nothing when the display already has it. Transforms 4, 5, 6 and 7 flip the picture. They warn "Flipped monitor transforms are not honored." and are not applied.
 
 Resolution, refresh rate and scale changes stay Gaps. So do mirroring, variable refresh, bit depth, HDR and color management, including SDR brightness, SDR saturation and an ICC profile.
 
