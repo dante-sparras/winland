@@ -58,7 +58,7 @@ A new floating Client opens at the size it asked for, centered in the floating w
 
 `general:float_gaps` is the gap between a floating Client and the monitor edges, as one to four integers, default 0. A negative side uses `general:gaps_out` instead. Floating Clients are kept inside that inset.
 
-`general:snap:enabled` defaults to false. While a floating Client is moved or resized, `general:snap:window_gap` (default 10) snaps it to another Client and `general:snap:monitor_gap` (default 10) snaps it to the monitor. Both are 0 to 100, and 0 turns that snap off. `general:snap:border_overlap` defaults to false. When it is on, the snap meets the monitor so the border overlaps the edge. `general:snap:respect_gaps` defaults to false. When it is on, window snaps leave `general:gaps_in` between Clients and monitor snaps leave `general:gaps_out` at the edges.
+`general:snap:enabled` defaults to false. While a floating Client is moved or resized, `general:snap:window_gap` (default 10) snaps it to another Client and `general:snap:monitor_gap` (default 10) snaps it to the monitor. Both are 0 to 100, and 0 turns that snap off. On a side with reserved space, such as the taskbar, a monitor snap meets the edge of the work area, or the monitor's own edge past the reserved space when the Client is nearer that. `general:snap:border_overlap` defaults to false. When it is on, the snap meets the monitor so the border overlaps the edge. `general:snap:respect_gaps` defaults to false. When it is on, window snaps leave `general:gaps_in` between Clients and monitor snaps leave `general:gaps_out` at the edges.
 
 ## Mouse drag
 

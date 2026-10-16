@@ -196,25 +196,25 @@ internal static class FloatingSnap
         double top = frame.Y;
         double bottom = frame.Y + frame.Height;
 
-        if (edges.Left && SnapLine(startX, left, reservedLeft, overlap, gap, out var leftTarget))
+        if (edges.Left && SnapLine(startX, left, -(reservedLeft + overlap), reservedLeft > 0, gap, out var leftTarget))
         {
             Pull(ref startX, ref endX, leftTarget, resize);
             snapped = true;
         }
 
-        if (edges.Right && SnapLine(endX, right, reservedRight, overlap, gap, out var rightTarget))
+        if (edges.Right && SnapLine(endX, right, reservedRight + overlap, reservedRight > 0, gap, out var rightTarget))
         {
             Pull(ref endX, ref startX, rightTarget, resize);
             snapped = true;
         }
 
-        if (edges.Top && SnapLine(startY, top, reservedTop, overlap, gap, out var topTarget))
+        if (edges.Top && SnapLine(startY, top, -(reservedTop + overlap), reservedTop > 0, gap, out var topTarget))
         {
             Pull(ref startY, ref endY, topTarget, resize);
             snapped = true;
         }
 
-        if (edges.Bottom && SnapLine(endY, bottom, reservedBottom, overlap, gap, out var bottomTarget))
+        if (edges.Bottom && SnapLine(endY, bottom, reservedBottom + overlap, reservedBottom > 0, gap, out var bottomTarget))
         {
             Pull(ref endY, ref startY, bottomTarget, resize);
             snapped = true;
@@ -223,15 +223,17 @@ internal static class FloatingSnap
         return snapped;
     }
 
-    private static bool SnapLine(double side, double edge, int reserved, int overlap, int gap, out double target)
+    // A side snaps to the work area's edge when something is reserved there, and otherwise to the
+    // monitor's edge, which lies outward by the reserved space and the border overlap.
+    private static bool SnapLine(double side, double edge, int outward, bool reserved, int gap, out double target)
     {
-        if (reserved > 0 && Can(side, edge, gap))
+        if (reserved && Can(side, edge, gap))
         {
             target = edge;
             return true;
         }
 
-        target = edge - reserved - overlap;
+        target = edge + outward;
         return Can(side, target, gap);
     }
 
