@@ -80,7 +80,7 @@ These cursor keys are honored: `warp_on_change_workspace`, `warp_on_monitor_chan
 
 `warp_on_change_workspace` and `warp_on_toggle_special` default to 0. 1 warps to the middle of the last focused window, or to the cursor's last point in that window when `persistent_warps` is on. 2 does the same and still warps when `no_warps` is on. `warp_on_monitor_change` defaults to -1, which follows `warp_on_change_workspace`. The pinned release does not define that key; it is accepted with the same modes, plus -1. `warp_on_toggle_special` warps when `togglespecialworkspace` shows or hides a special workspace.
 
-`inactive_timeout` is seconds from 0 to 20, default 0. Above 0 the cursor hides once it has been still for longer than that. `hide_on_key_press` hides it on a key press until it moves. `default_monitor` warps once to the middle of the named monitor. An empty value does not warp, and `no_warps` does not block that warp.
+`inactive_timeout` is seconds from 0 to 20, default 0. Above 0 the cursor hides once it has been still for longer than that. `hide_on_key_press` hides it on a key press until it moves. Over other programs the cursor stays visible; see [gaps.md](gaps.md). `default_monitor` warps once to the middle of the named monitor. An empty value does not warp, and `no_warps` does not block that warp.
 
 These input keys are honored: `repeat_rate`, `repeat_delay`, `numlock_by_default`, `left_handed`, `natural_scroll`, `accel_profile`, `sensitivity`, and `scroll_factor`. A key left unset does not change the system. The value it replaced is saved and put back on a clean exit, and again on the next start if the process crashed.
 

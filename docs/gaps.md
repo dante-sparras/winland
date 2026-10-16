@@ -225,6 +225,8 @@ Blur is DWM's acrylic backdrop, so it shows only where DWM draws that backdrop: 
 
 Per-device `device` options are not honored. Keyboard layout keys and the other input keys stay Gaps.
 
+`cursor:inactive_timeout` and `cursor:hide_on_key_press` are read and timed, but the cursor does not hide over other programs. Windows counts `ShowCursor` per thread and applies it only to that thread's windows. Hiding the cursor everywhere means swapping every system cursor for a blank one, and a Daemon killed while the cursor is hidden would leave it blank until the next logon or the next start of Winland, so Winland does not do it.
+
 `pass`, `sendshortcut` and `sendkeystate` to a window that is not focused bring that window to the foreground, send the key, and give the foreground back 30 ms later. Windows gives keys only to the foreground window. Each change of focus is reported. A mouse button goes to the window under the pointer, not to the named window.
 
 `pass` from the pipe has no key to send and answers `pass: no key to pass`. The reference passes the last key pressed, and Winland sees only the keys of its binds.
