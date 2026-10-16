@@ -248,37 +248,6 @@ public class StuckModifierTests
     }
 
     [Fact]
-    public void StaleModifiersAreThoseDownThatTheSessionDoesNotHold()
-    {
-        var (core, session) = Load("bind = SUPER, T, killactive");
-        core.Decide(new KeyPressed("Control_L"), session);
-
-        var stale = BindMatcher.Stale(session, ["Super_L", "Control_L", "Alt_R"]);
-
-        Assert.Equal(new[] { "Super_L", "Alt_R" }, stale);
-    }
-
-    [Fact]
-    public void StaleIgnoresKeysThatAreNotModifiers()
-    {
-        var session = new BindSession();
-
-        Assert.Empty(BindMatcher.Stale(session, ["T", "mouse:272"]));
-    }
-
-    [Fact]
-    public void ShutdownMidChordReleasesNothingTheUserHolds()
-    {
-        var (core, session) = Load("bind = SUPER, T, killactive\nbindm = SUPER, mouse:272, movewindow\n");
-        core.Decide(new KeyPressed("Super_L"), session);
-        core.Decide(new KeyPressed("T"), session);
-        core.Decide(new PointerButtonPressed("mouse:272"), session);
-
-        // Every release the OS is owed still reaches it once the hook is gone.
-        Assert.Empty(BindMatcher.Stale(session, ["Super_L"]));
-    }
-
-    [Fact]
     public void ForgetDropsKeysThatAreNoLongerDown()
     {
         var (core, session) = Load("bind = SUPER, T, killactive");
@@ -372,7 +341,6 @@ public class StuckModifierTests
         Assert.False(again.Mask);
         Assert.True(againUp.Consumed);
         Assert.Equal("", session.Submap);
-        Assert.Empty(BindMatcher.Stale(session, []));
     }
 
     [Fact]

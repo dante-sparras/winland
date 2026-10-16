@@ -70,24 +70,6 @@ public static class BindMatcher
         };
     }
 
-    /// <summary>
-    /// Modifiers the OS holds down that this session did not see pressed. A key held by the
-    /// user is seen, by its press or by its repeats, so these are left over from a lost release.
-    /// </summary>
-    public static IReadOnlyList<string> Stale(BindSession session, IEnumerable<string> logicallyDown)
-    {
-        ArgumentNullException.ThrowIfNull(session);
-        ArgumentNullException.ThrowIfNull(logicallyDown);
-        var stale = new List<string>();
-        foreach (var key in logicallyDown)
-        {
-            if (ModifierKeys.ContainsKey(key) && !session.DownKeys.Contains(key))
-                stale.Add(key);
-        }
-
-        return stale;
-    }
-
     /// <summary>Drops held keys whose release the session missed, such as one on the lock screen.</summary>
     public static void Forget(BindSession session, Func<string, bool> stillDown)
     {
