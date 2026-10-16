@@ -84,7 +84,7 @@ public sealed record CursorOptions
 
     private static bool TryTimeout(string text, out double seconds)
     {
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out seconds))
+        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out seconds) || !double.IsFinite(seconds))
             return false;
 
         seconds = Math.Clamp(seconds, 0, 20);
