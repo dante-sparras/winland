@@ -266,7 +266,8 @@ function Get-ShardFiles([string]$ProjectDir, [string[]]$Exclude, [int]$Index, [i
         }
         $sizes[$target] += $file.Length
         if ($target -eq $Index - 1) {
-            $mine.Add(([System.IO.Path]::GetRelativePath($ProjectDir, $file.FullName)) -replace '\\', '/')
+            $relative = [System.IO.Path]::GetRelativePath($ProjectDir, $file.FullName).Replace('\', '/')
+            $mine.Add($relative)
         }
     }
     return $mine
