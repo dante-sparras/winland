@@ -315,6 +315,7 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
         }
 
         var context = new PluginLoadContext();
+        var worker = new PluginWorker(approval.Name);
         Assembly assembly;
         try
         {
@@ -323,7 +324,7 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
         }
         catch (Exception loadError) when (loadError is BadImageFormatException or FileLoadException or IOException)
         {
-            ReleaseContext(context, approval.Name);
+            Release(context, worker, approval.Name);
             return LoadOutcome.Failed($"Could not load '{Path.GetFileName(fullPath)}': {loadError.Message}");
         }
 
@@ -331,23 +332,23 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
         // the same budget and guard as every other call, so one that throws or hangs refuses
         // the load instead of ending or freezing Winland at logon.
         var problems = new List<string>();
-        var candidate = CreatePlugins(assembly, problems).Find(found => found.Name == approval.Name);
+        var candidate = CreatePlugins(worker, assembly, problems).Find(found => found.Name == approval.Name);
         if (candidate is null)
         {
-            ReleaseContext(context, approval.Name);
+            Release(context, worker, approval.Name);
             var detail = problems.Count == 0 ? "" : " " + string.Join(' ', problems);
             return LoadOutcome.Failed($"Approved plugin '{approval.Name}' was not found in '{Path.GetFileName(fullPath)}'.{detail}");
         }
 
         if (candidate.Problem is not null)
         {
-            ReleaseContext(context, approval.Name);
+            Release(context, worker, approval.Name);
             return LoadOutcome.Failed($"Plugin '{candidate.Name}' {candidate.Problem}");
         }
 
         if (candidate.ApiVersion != PluginApiVersion.Current)
         {
-            ReleaseContext(context, approval.Name);
+            Release(context, worker, approval.Name);
             return LoadOutcome.Failed(
                 $"Plugin '{candidate.Name}' declares API version {candidate.ApiVersion.ToString(CultureInfo.InvariantCulture)}; Winland accepts {PluginApiVersion.Current.ToString(CultureInfo.InvariantCulture)}.");
         }
@@ -361,15 +362,16 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
             Source = source,
             Instance = plugin,
             Context = context,
+            Worker = worker,
         };
         loaded.Binding = new Binding(this, loaded);
-        var started = PluginCall.Run(_budget, () => plugin.Initialize(loaded.Binding), out var exception, out var timedOut);
+        var started = worker.Run(_budget, () => plugin.Initialize(loaded.Binding), out var exception, out var timedOut);
         if (!started)
         {
             loaded.Binding.Close();
             loaded.Instance = null;
             loaded.Context = null;
-            ReleaseContext(context, loaded.Name);
+            Release(context, worker, loaded.Name);
             if (timedOut)
             {
                 var message = $"Plugin '{loaded.Name}' initialize exceeded {BudgetText()} and was abandoned.";
@@ -417,7 +419,7 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
             }
         }
 
-        var finished = PluginCall.Run(_budget, action, out var exception, out var timedOut);
+        var finished = plugin.Worker.Run(_budget, action, out var exception, out var timedOut);
         lock (_gate)
         {
             if (timedOut)
@@ -487,9 +489,9 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
         lock (_gate)
             plugin.Unloading = true;
 
-        if (plugin.Instance is not null)
+        if (plugin.Instance is IPlugin instance)
         {
-            var finished = PluginCall.Run(_budget, () => plugin.Instance.Shutdown(), out var exception, out var timedOut);
+            var finished = plugin.Worker.Run(_budget, instance.Shutdown, out var exception, out var timedOut);
             if (timedOut)
                 _log.Write($"Plugin '{plugin.Name}' shutdown exceeded {BudgetText()} and was abandoned.");
             else if (!finished)
@@ -500,7 +502,14 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
         var context = plugin.Context;
         plugin.Context = null;
         plugin.Instance = null;
-        ReleaseContext(context, plugin.Name);
+        Release(context, plugin.Worker, plugin.Name);
+    }
+
+    // The worker's thread ends once its queue drains, so it no longer holds the context.
+    private void Release(PluginLoadContext? context, PluginWorker worker, string name)
+    {
+        worker.Dispose();
+        ReleaseContext(context, name);
     }
 
     private void ReleaseContext(PluginLoadContext? context, string name)
@@ -561,7 +570,7 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
     // Each type is constructed and asked its name and API version in one guarded call. A type
     // whose name cannot be read is skipped and described in problems; one whose API version
     // cannot be read is kept with the problem, so the load names it.
-    private List<Candidate> CreatePlugins(Assembly assembly, List<string> problems)
+    private List<Candidate> CreatePlugins(PluginWorker worker, Assembly assembly, List<string> problems)
     {
         IEnumerable<Type> types;
         try
@@ -584,7 +593,7 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
 
             IPlugin? plugin = null;
             string? name = null;
-            if (!PluginCall.Run(_budget, () =>
+            if (!worker.Run(_budget, () =>
                 {
                     plugin = Activator.CreateInstance(type) as IPlugin;
                     name = plugin?.Name;
@@ -602,7 +611,7 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
             var version = 0;
             var found = plugin;
             string? problem = null;
-            if (!PluginCall.Run(_budget, () => version = found.ApiVersion, out exception, out timedOut))
+            if (!worker.Run(_budget, () => version = found.ApiVersion, out exception, out timedOut))
             {
                 problem = timedOut
                     ? $"API version exceeded {BudgetText()} and was abandoned."
@@ -650,6 +659,8 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
         public PluginLoadContext? Context { get; set; }
 
         public Binding Binding { get; set; } = null!;
+
+        public required PluginWorker Worker { get; init; }
     }
 
     private sealed class LoadReport
