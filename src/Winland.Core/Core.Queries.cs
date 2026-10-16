@@ -285,9 +285,10 @@ public sealed partial class Core
         if (floating == client.Floating)
             return new CommandReply("ok", View([]));
 
+        var covered = desk.Covered();
         var placements = desk.Layout.ToggleFloating(client.Window);
         _pinned.Remove(client.Window);
-        return new CommandReply("ok", Present(desk, desk.Covered(), placements));
+        return new CommandReply("ok", IsShown(desk.Id) ? Present(desk, covered, placements) : View([]));
     }
 
     private bool TrySelect(string selector, out Client client, out LiveWorkspace? desk)

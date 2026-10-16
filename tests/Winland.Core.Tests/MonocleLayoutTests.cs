@@ -252,6 +252,19 @@ public class MonocleLayoutTests
     }
 
     [Fact]
+    public void SetpropFloatShowsTheTileItUncovers()
+    {
+        var core = Open();
+        core.Handle(Appeared(1));
+        core.Handle(Appeared(9));
+
+        var reply = core.Execute("setprop active float true");
+
+        Assert.Equal("ok", reply.Text);
+        Assert.Equal([new WindowId(1)], reply.Effect.Show);
+    }
+
+    [Fact]
     public void EachWorkspaceKeepsItsOwnShownClient()
     {
         var core = Open();
