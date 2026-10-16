@@ -629,19 +629,63 @@ public class CoreTests
     }
 
     [Fact]
-    public void UnanchoredPatternMatchesInsideTheField()
+    public void PatternMustMatchTheWholeField()
     {
         var core = new Core(ConfigParser.Parse("windowrulev2 = float, title:Notes\n"));
-        var bounds = new Rectangle(4, 5, 6, 7);
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 300, 200))
         {
             Traits = WindowTraits.Normal with { Title = "Release Notes" },
-            Bounds = bounds,
+            Bounds = new Rectangle(4, 5, 6, 7),
+        });
+
+        Assert.False(Assert.Single(outcome.State.Clients).Floating);
+    }
+
+    [Theory]
+    [InlineData("windowrulev2 = float, title:Notes|Release Notes\n")]
+    [InlineData("windowrulev2 = float, title:Release.*\n")]
+    [InlineData("windowrule = float, Release.*\n")]
+    public void PatternThatMatchesTheWholeFieldApplies(string config)
+    {
+        var core = new Core(ConfigParser.Parse(config));
+        var traits = config.StartsWith("windowrule ", StringComparison.Ordinal)
+            ? WindowTraits.Normal with { Class = "Release Notes" }
+            : WindowTraits.Normal with { Title = "Release Notes" };
+
+        var outcome = core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 300, 200))
+        {
+            Traits = traits,
+            Bounds = new Rectangle(4, 5, 6, 7),
         });
 
         Assert.True(Assert.Single(outcome.State.Clients).Floating);
-        Assert.Equal(NewFloat.Centered(new Rectangle(0, 0, 300, 200), bounds), Assert.Single(outcome.Placements).Bounds);
+    }
+
+    [Theory]
+    [InlineData("kitty", false)]
+    [InlineData("firefox", true)]
+    [InlineData("kitty2", true)]
+    public void NegativePatternAppliesWhenThePatternDoesNotMatch(string windowClass, bool floats)
+    {
+        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:negative:kitty\n"));
+
+        var outcome = core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 300, 200))
+        {
+            Traits = WindowTraits.Normal with { Class = windowClass },
+            Bounds = new Rectangle(4, 5, 6, 7),
+        });
+
+        Assert.Equal(floats, Assert.Single(outcome.State.Clients).Floating);
+    }
+
+    [Fact]
+    public void NegativePrefixWithAnInvalidPatternWarns()
+    {
+        var document = ConfigParser.Parse("windowrulev2 = float, class:negative:(kitty\n");
+
+        Assert.Empty(document.WindowRules);
+        Assert.Contains(document.Warnings, warning => warning.Message == "Invalid window rule pattern.");
     }
 
     [Fact]

@@ -583,14 +583,19 @@ internal static partial class WindowRuleParser
         && Matches(rule.ExePattern, traits.Exe)
         && Matches(rule.AumidPattern, traits.Aumid);
 
+    // The pinned release matches a rule's pattern against the whole field, and a
+    // "negative:" prefix passes only when the rest of the pattern does not match.
+    private const string NegativePrefix = "negative:";
+
     private static bool Matches(string? pattern, string text)
     {
         if (pattern is null)
             return true;
 
+        var negative = pattern.StartsWith(NegativePrefix, StringComparison.Ordinal);
         try
         {
-            return Regex.IsMatch(text, pattern, RegexOptions.CultureInvariant, MatchTimeout);
+            return Regex.IsMatch(text, Anchored(pattern, negative), RegexOptions.CultureInvariant, MatchTimeout) != negative;
         }
         catch (RegexMatchTimeoutException)
         {
@@ -602,7 +607,7 @@ internal static partial class WindowRuleParser
     {
         try
         {
-            _ = new Regex(pattern, RegexOptions.CultureInvariant, MatchTimeout);
+            _ = new Regex(Anchored(pattern, pattern.StartsWith(NegativePrefix, StringComparison.Ordinal)), RegexOptions.CultureInvariant, MatchTimeout);
             return true;
         }
         catch (ArgumentException)
@@ -610,6 +615,9 @@ internal static partial class WindowRuleParser
             return false;
         }
     }
+
+    private static string Anchored(string pattern, bool negative) =>
+        $"\\A(?:{(negative ? pattern[NegativePrefix.Length..] : pattern)})\\z";
 
     private static bool Adopts(WindowTraits traits) =>
         traits.Visible
