@@ -132,7 +132,7 @@ internal sealed partial class ScrollingLayout : Layout
         _limits.Remove(id);
         _lastFloat.Remove(id);
         _widths.Remove(window);
-        _suspended.Remove(id);
+        var suspended = _suspended.Remove(id);
         if (_focus == window)
             _focus = null;
         if (_grab is { } grab && grab.Id == id)
@@ -141,7 +141,7 @@ internal sealed partial class ScrollingLayout : Layout
             _dragging = false;
         }
 
-        if (_floating.Remove(id))
+        if (_floating.Remove(id) || suspended)
         {
             _clients.RemoveAll(client => client.Id == id);
             return [];

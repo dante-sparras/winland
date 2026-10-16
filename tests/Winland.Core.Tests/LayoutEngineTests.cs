@@ -260,6 +260,36 @@ public class LayoutEngineTests
         Assert.Equal((500, 350), (again.Width, again.Height));
     }
 
+    [Fact]
+    public void ScrollingDropsAMinimizedTileThatCloses()
+    {
+        var layout = Open("scrolling");
+        Tiled(layout, 1);
+        Tiled(layout, 2);
+        layout.Minimize(Window(1));
+
+        layout.Remove(Window(1));
+
+        Assert.DoesNotContain(layout.Clients, client => client.Window == Window(1));
+        Assert.False(layout.TryTake(Window(1), out _));
+    }
+
+    [Fact]
+    public void MasterRestoresAMinimizedMasterToItsPlace()
+    {
+        var layout = Open("master");
+        Tiled(layout, 1);
+        Tiled(layout, 2);
+        var before = Tiled(layout, 3);
+
+        layout.Minimize(Window(1));
+        var restored = layout.Restore(Window(1));
+
+        Assert.Equal(Bounds(before, 1), Bounds(restored, 1));
+        Assert.Equal(Bounds(before, 2), Bounds(restored, 2));
+        Assert.Equal(Bounds(before, 3), Bounds(restored, 3));
+    }
+
     private static Layout ThreeColumns()
     {
         var layout = Open("scrolling");
