@@ -320,18 +320,15 @@ static string? PipeName()
 static ConfigDocument ReadConfig(string path)
 {
     var full = Path.GetFullPath(path);
-    string text;
-    try
-    {
-        text = File.ReadAllText(full);
-    }
-    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-    {
-        throw new InvalidOperationException($"Could not read config '{full}'.", exception);
-    }
-
     var directory = Path.GetDirectoryName(full) ?? ".";
-    return ConfigParser.Parse(text, new FileConfigSource(directory), KeyboardLayout.Active());
+    var source = new FileConfigSource(directory);
+    var text = source.Read(full)
+        ?? throw new InvalidOperationException($"Could not read config '{full}'.");
+
+    // [elevated] runs with Winland's administrator token, so only a config that only
+    // administrators can write, sources included, may use it (ADR 0007).
+    var document = ConfigParser.Parse(text, source, KeyboardLayout.Active());
+    return ConfigElevation.Decide(document, source.Trust.Refusal);
 }
 
 static string DefaultConfigPath() =>

@@ -44,7 +44,7 @@ public class LaunchTests
     public void BoundExecStaysDeElevatedUntilTheCommandAsks()
     {
         var core = new Core();
-        core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, E, exec, notepad")));
+        core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, E, exec, notepad") with { ElevationTrusted = true }));
         core.Handle(new KeyPressed("Super_L"));
 
         var plain = core.Handle(new KeyPressed("E"));
@@ -53,7 +53,7 @@ public class LaunchTests
         Assert.Equal(new Launch("notepad", null, false), plain.Launch);
 
         core = new Core();
-        core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, E, exec, [elevated] notepad")));
+        core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, E, exec, [elevated] notepad") with { ElevationTrusted = true }));
         core.Handle(new KeyPressed("Super_L"));
 
         var asked = core.Handle(new KeyPressed("E"));
@@ -172,7 +172,7 @@ public class LaunchTests
             "exec-once = [elevated] once\n" +
             "execr = raw-every\n" +
             "execr-once = raw-once\n" +
-            "exec-shutdown = bye\n");
+            "exec-shutdown = bye\n") with { ElevationTrusted = true };
         var core = new Core();
 
         var startup = core.StartupLaunches(document);

@@ -25,6 +25,12 @@ public sealed record ConfigDocument(
     public IReadOnlyList<EnvironmentAssignment> Environment { get; init; } = EnvironmentAssignment.None;
 
     public IReadOnlyList<TrackpadGesture> Gestures { get; init; } = [];
+
+    /// <summary>
+    /// True only when the daemon found the config and every sourced file writable by
+    /// administrators alone. Otherwise <c>[elevated]</c> launches run de-elevated (ADR 0007).
+    /// </summary>
+    public bool ElevationTrusted { get; init; }
 }
 
 public sealed record ConfigRead(ConfigDocument? Document, ConfigWarning? Failure = null);
