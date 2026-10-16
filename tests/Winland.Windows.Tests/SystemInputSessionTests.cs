@@ -121,7 +121,7 @@ public class SystemInputSessionTests
     [Fact]
     public void AFailedReadDoesNotWriteOrRemember()
     {
-        var input = new FakeInput { FailMouseSpeed = true };
+        var input = new FakeInput { Failing = { nameof(FakeInput.MouseSpeed) } };
         var session = new SystemInputSession(input);
 
         session.Apply(new InputSettingsRequest { MouseSpeed = 12 });
@@ -129,6 +129,163 @@ public class SystemInputSessionTests
         Assert.Equal(0, input.Writes.MouseSpeed);
         Assert.Null(session.Originals);
         Assert.Equal(10, input.MouseSpeed);
+    }
+
+    private static readonly InputSettingsRequest Everything = new()
+    {
+        KeyboardDelay = 0,
+        KeyboardSpeed = 31,
+        NumLock = true,
+        SwapButtons = true,
+        Acceleration = PointerAcceleration.Flat,
+        MouseSpeed = 20,
+        WheelLines = 6,
+    };
+
+    private static readonly InputOriginals Defaults = new()
+    {
+        KeyboardDelay = 2,
+        KeyboardSpeed = 16,
+        NumLock = false,
+        SwappedButtons = false,
+        MouseCurve = new MouseCurve(6, 10, 1),
+        MouseSpeed = 10,
+        WheelLines = 3,
+    };
+
+    [Fact]
+    public void EveryFieldIsWrittenRememberedAndPutBack()
+    {
+        var input = new FakeInput();
+        var session = new SystemInputSession(input);
+
+        session.Apply(Everything);
+        var applied = input.Values();
+        var originals = session.Originals;
+        session.Restore();
+
+        Assert.Equal(new InputOriginals
+        {
+            KeyboardDelay = 0,
+            KeyboardSpeed = 31,
+            NumLock = true,
+            SwappedButtons = true,
+            MouseCurve = new MouseCurve(0, 0, 0),
+            MouseSpeed = 20,
+            WheelLines = 6,
+        }, applied);
+        Assert.Equal(Defaults, originals);
+        Assert.Equal(Defaults, input.Values());
+        Assert.Null(session.Originals);
+    }
+
+    // A changed value is written once, and an unchanged one not again.
+    [Fact]
+    public void AChangedRequestWritesOnlyWhatChanged()
+    {
+        var input = new FakeInput();
+        var session = new SystemInputSession(input);
+        session.Apply(Everything);
+
+        session.Apply(Everything with
+        {
+            KeyboardDelay = 1,
+            KeyboardSpeed = 30,
+            NumLock = false,
+            SwapButtons = false,
+            Acceleration = PointerAcceleration.Adaptive,
+            MouseSpeed = 19,
+            WheelLines = 5,
+        });
+
+        Assert.Equal(new FakeInput.Counts { KeyboardDelay = 2, KeyboardSpeed = 2, NumLock = 2, SwappedButtons = 2, Curve = 2, MouseSpeed = 2, WheelLines = 2 }, input.Writes);
+        Assert.Equal(new FakeInput.Counts { KeyboardDelay = 1, KeyboardSpeed = 1, NumLock = 1, SwappedButtons = 1, Curve = 1, MouseSpeed = 1, WheelLines = 1 }, input.Reads);
+        Assert.Equal(Defaults, session.Originals);
+    }
+
+    [Fact]
+    public void AnEmptyRequestPutsEveryFieldBack()
+    {
+        var input = new FakeInput();
+        var session = new SystemInputSession(input);
+        session.Apply(Everything);
+
+        session.Apply(new InputSettingsRequest());
+
+        Assert.Equal(Defaults, input.Values());
+        Assert.Null(session.Originals);
+    }
+
+    [Fact]
+    public void NoFieldWhoseReadFailsIsWrittenOrRemembered()
+    {
+        var input = new FakeInput();
+        input.Failing.UnionWith(FakeInput.Fields);
+        var session = new SystemInputSession(input);
+
+        session.Apply(Everything);
+
+        Assert.Equal(new FakeInput.Counts(), input.Writes);
+        Assert.Null(session.Originals);
+        Assert.Equal(Defaults, input.Values());
+    }
+
+    // The same request again reads a field whose first read failed, and applies it once it can.
+    [Theory]
+    [MemberData(nameof(EachField))]
+    public void AFieldWhoseReadFailedIsReadAgain(string field)
+    {
+        var input = new FakeInput();
+        input.Failing.Add(field);
+        var session = new SystemInputSession(input);
+        session.Apply(Everything);
+
+        input.Failing.Clear();
+        session.Apply(Everything);
+
+        Assert.Equal(Defaults, session.Originals);
+        Assert.Equal(1, input.Writes.Of(field));
+        Assert.Equal(2, input.Reads.Of(field));
+    }
+
+    public static TheoryData<string> EachField() => [.. FakeInput.Fields];
+
+    [Fact]
+    public void RevertWithNothingAppliedWritesNothing()
+    {
+        var input = new FakeInput();
+        var session = new SystemInputSession(input);
+
+        session.Revert();
+
+        Assert.Equal(new FakeInput.Counts(), input.Writes);
+    }
+
+    // A request that could not be read is forgotten by a revert, so it is tried again from the start.
+    [Fact]
+    public void RevertForgetsARequestThatWroteNothing()
+    {
+        var input = new FakeInput { Failing = { nameof(FakeInput.MouseSpeed) } };
+        var session = new SystemInputSession(input);
+        var request = new InputSettingsRequest { MouseSpeed = 12 };
+        session.Apply(request);
+
+        session.Revert();
+        input.Failing.Clear();
+        session.Apply(request);
+
+        Assert.Equal(12, input.MouseSpeed);
+        Assert.Equal(new InputOriginals { MouseSpeed = 10 }, session.Originals);
+    }
+
+    [Fact]
+    public void MissingArgumentsAreRefused()
+    {
+        var session = new SystemInputSession(new FakeInput());
+
+        Assert.Throws<ArgumentNullException>(() => new SystemInputSession(null!));
+        Assert.Throws<ArgumentNullException>(() => session.Apply(null!));
+        Assert.Throws<ArgumentNullException>(() => session.RestoreSaved(null!));
     }
 
     private sealed class FakeInput : ISystemInput
@@ -140,7 +297,7 @@ public class SystemInputSessionTests
         public MouseCurve Curve { get; set; } = new(6, 10, 1);
         public int MouseSpeed { get; set; } = 10;
         public int WheelLines { get; set; } = 3;
-        public bool FailMouseSpeed { get; set; }
+        public HashSet<string> Failing { get; } = [];
         public Counts Reads { get; } = new();
         public Counts Writes { get; } = new();
 
@@ -148,7 +305,7 @@ public class SystemInputSessionTests
         {
             Reads.KeyboardDelay++;
             delay = KeyboardDelay;
-            return true;
+            return !Failing.Contains(nameof(KeyboardDelay));
         }
 
         public void WriteKeyboardDelay(int delay)
@@ -161,7 +318,7 @@ public class SystemInputSessionTests
         {
             Reads.KeyboardSpeed++;
             speed = KeyboardSpeed;
-            return true;
+            return !Failing.Contains(nameof(KeyboardSpeed));
         }
 
         public void WriteKeyboardSpeed(int speed)
@@ -174,7 +331,7 @@ public class SystemInputSessionTests
         {
             Reads.NumLock++;
             enabled = NumLock;
-            return true;
+            return !Failing.Contains(nameof(NumLock));
         }
 
         public void WriteNumLock(bool enabled)
@@ -187,7 +344,7 @@ public class SystemInputSessionTests
         {
             Reads.SwappedButtons++;
             swapped = Swapped;
-            return true;
+            return !Failing.Contains(nameof(Swapped));
         }
 
         public void WriteSwappedButtons(bool swapped)
@@ -200,7 +357,7 @@ public class SystemInputSessionTests
         {
             Reads.Curve++;
             curve = Curve;
-            return true;
+            return !Failing.Contains(nameof(Curve));
         }
 
         public void WriteMouseCurve(MouseCurve curve)
@@ -213,7 +370,7 @@ public class SystemInputSessionTests
         {
             Reads.MouseSpeed++;
             speed = MouseSpeed;
-            return !FailMouseSpeed;
+            return !Failing.Contains(nameof(MouseSpeed));
         }
 
         public void WriteMouseSpeed(int speed)
@@ -226,7 +383,7 @@ public class SystemInputSessionTests
         {
             Reads.WheelLines++;
             lines = WheelLines;
-            return true;
+            return !Failing.Contains(nameof(WheelLines));
         }
 
         public void WriteWheelLines(int lines)
@@ -235,15 +392,41 @@ public class SystemInputSessionTests
             WheelLines = lines;
         }
 
-        public sealed class Counts
+        public static readonly string[] Fields =
+            [nameof(KeyboardDelay), nameof(KeyboardSpeed), nameof(NumLock), nameof(Swapped), nameof(Curve), nameof(MouseSpeed), nameof(WheelLines)];
+
+        public InputOriginals Values() => new()
         {
-            public int KeyboardDelay;
-            public int KeyboardSpeed;
-            public int NumLock;
-            public int SwappedButtons;
-            public int Curve;
-            public int MouseSpeed;
-            public int WheelLines;
+            KeyboardDelay = KeyboardDelay,
+            KeyboardSpeed = KeyboardSpeed,
+            NumLock = NumLock,
+            SwappedButtons = Swapped,
+            MouseCurve = Curve,
+            MouseSpeed = MouseSpeed,
+            WheelLines = WheelLines,
+        };
+
+        public sealed record Counts
+        {
+            public int KeyboardDelay { get; set; }
+            public int KeyboardSpeed { get; set; }
+            public int NumLock { get; set; }
+            public int SwappedButtons { get; set; }
+            public int Curve { get; set; }
+            public int MouseSpeed { get; set; }
+            public int WheelLines { get; set; }
+
+            public int Of(string field) => field switch
+            {
+                nameof(FakeInput.KeyboardDelay) => KeyboardDelay,
+                nameof(FakeInput.KeyboardSpeed) => KeyboardSpeed,
+                nameof(FakeInput.NumLock) => NumLock,
+                nameof(FakeInput.Swapped) => SwappedButtons,
+                nameof(FakeInput.Curve) => Curve,
+                nameof(FakeInput.MouseSpeed) => MouseSpeed,
+                nameof(FakeInput.WheelLines) => WheelLines,
+                _ => throw new ArgumentOutOfRangeException(nameof(field)),
+            };
         }
     }
 }
