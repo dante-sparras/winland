@@ -490,6 +490,24 @@ public class WorkspaceRuleTests
         Assert.Equal(["calc"], core.Execute("dispatch exec calc").Effect.Launches.Select(launch => launch.CommandLine));
     }
 
+    [Fact]
+    public void ASpecialSelectorTestsWhetherTheWorkspaceIsSpecial()
+    {
+        const string Rules = """
+            workspace = s[true], gapsin:7
+            workspace = s[false], gapsin:3
+            """;
+
+        Assert.Equal(7, GapsIn(Rules, new WorkspaceId("special:scratch")));
+        Assert.Equal(3, GapsIn(Rules, WorkspaceId.FromNumber(1)));
+    }
+
+    private static int? GapsIn(string rules, WorkspaceId id, string? displayName = null)
+    {
+        var parsed = ConfigParser.Parse(rules).WorkspaceRules;
+        return WorkspaceRules.For(parsed, id, displayName, null, 0, 0, 0)?.GapsIn?.Top;
+    }
+
     private static string Flat(string extra) =>
         "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 
