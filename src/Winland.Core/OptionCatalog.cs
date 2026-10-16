@@ -37,11 +37,11 @@ internal static class OptionCatalog
         switch (name)
         {
             case "general:gaps_in":
-                kind = "str";
+                kind = "css";
                 token = JsonSerializer.Serialize(Gaps(layout.GapsIn));
                 return true;
             case "general:gaps_out":
-                kind = "str";
+                kind = "css";
                 token = JsonSerializer.Serialize(Gaps(layout.GapsOut));
                 return true;
             case "general:border_size":
@@ -65,7 +65,7 @@ internal static class OptionCatalog
                 token = layout.ResizeCorner.ToString(CultureInfo.InvariantCulture);
                 return true;
             case "general:float_gaps":
-                kind = "str";
+                kind = "css";
                 token = JsonSerializer.Serialize(Gaps(layout.FloatGaps));
                 return true;
             case "general:snap:enabled":
@@ -254,19 +254,8 @@ internal static class OptionCatalog
         return value;
     }
 
-    private static string Gaps(EdgeInsets gaps)
-    {
-        if (gaps.Top == gaps.Right && gaps.Right == gaps.Bottom && gaps.Bottom == gaps.Left)
-            return gaps.Top.ToString(CultureInfo.InvariantCulture);
-
-        if (gaps.Top == gaps.Bottom && gaps.Right == gaps.Left)
-            return string.Create(CultureInfo.InvariantCulture, $"{gaps.Top} {gaps.Right}");
-
-        if (gaps.Right == gaps.Left)
-            return string.Create(CultureInfo.InvariantCulture, $"{gaps.Top} {gaps.Right} {gaps.Bottom}");
-
-        return string.Create(CultureInfo.InvariantCulture, $"{gaps.Top} {gaps.Right} {gaps.Bottom} {gaps.Left}");
-    }
+    private static string Gaps(EdgeInsets gaps) =>
+        string.Create(CultureInfo.InvariantCulture, $"{gaps.Top} {gaps.Right} {gaps.Bottom} {gaps.Left}");
 
     private static string Hex(BorderColor color) =>
         string.Create(CultureInfo.InvariantCulture, $"0x{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}");
