@@ -293,7 +293,7 @@ internal sealed partial class MasterLayout
 
         var exact = tokens.Length >= 2 && Is(tokens[1], "exact");
         var text = exact ? tokens.Length >= 3 ? tokens[2] : "" : tokens.Length >= 2 ? tokens[1] : "";
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var ratio))
+        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var ratio) || !double.IsFinite(ratio))
             return Fail("error: bad ratio");
 
         var master = FirstMaster();

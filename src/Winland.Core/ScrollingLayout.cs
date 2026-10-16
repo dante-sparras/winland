@@ -375,7 +375,7 @@ internal sealed partial class ScrollingLayout : Layout
         index < tokens.Length ? tokens[index] : "";
 
     private static bool TryDouble(string text, out double value) =>
-        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && double.IsFinite(value);
 
     private static bool TryRelative(string text, out double value)
     {

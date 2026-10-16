@@ -68,6 +68,25 @@ public class LayoutEngineTests
         Assert.Equal((Area.Width - lone.Width) / 2, lone.X);
     }
 
+    [Theory]
+    [InlineData("dwindle", "splitratio nan exact")]
+    [InlineData("dwindle", "splitratio infinity")]
+    [InlineData("master", "mfact exact nan")]
+    [InlineData("master", "mfact -infinity")]
+    [InlineData("scrolling", "colresize nan")]
+    [InlineData("scrolling", "colresize +nan")]
+    public void ALayoutMessageWithANumberThatIsNotFiniteChangesNothing(string name, string message)
+    {
+        var layout = Open(name);
+        Tiled(layout, 1);
+        Tiled(layout, 2);
+        var before = layout.Placed();
+
+        layout.LayoutMessage(Window(2), message);
+
+        Assert.Equal(before, layout.Placed());
+    }
+
     [Fact]
     public void DwindleHonorsAMinimumInsideASplitWhoseParentDoesNotChange()
     {
