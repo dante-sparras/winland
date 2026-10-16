@@ -7,6 +7,9 @@ public sealed record Frame(WindowId Window, long Generation)
 {
     public Rectangle? Bounds { get; init; }
 
+    /// <summary>Where <see cref="Bounds"/> is heading. Null when the geometry is not animating.</summary>
+    public Rectangle? Goal { get; init; }
+
     public byte? Alpha { get; init; }
 
     public BorderColor? Border { get; init; }
@@ -221,6 +224,7 @@ public sealed class Animator
     private static Frame Show(WindowId window, Entry entry, double now, bool final)
     {
         Rectangle? bounds = entry.Geometry is Track geometry ? Box(final ? geometry.Goal : geometry.Value(now)) : null;
+        Rectangle? goal = entry.Geometry is Track heading ? Box(heading.Goal) : null;
         byte? alpha = null;
         if (entry.Fade is not null || entry.Alpha is not null)
         {
@@ -233,7 +237,7 @@ public sealed class Animator
         if (entry.Border is Track color)
             border = final || color.Finished(now) ? entry.BorderGoal : OkLab.To(color.Value(now));
 
-        return new Frame(window, entry.Generation) { Bounds = bounds, Alpha = alpha, Border = border };
+        return new Frame(window, entry.Generation) { Bounds = bounds, Goal = goal, Alpha = alpha, Border = border };
     }
 
     private static Track? Done(Track? track, double now) => track is not null && track.Finished(now) ? null : track;

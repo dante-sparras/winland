@@ -149,3 +149,9 @@ EVENT_SYSTEM_MOVESIZESTART
 EVENT_SYSTEM_MOVESIZEEND
 WM_NCHITTEST
 IsZoomed
+DwmRegisterThumbnail
+DwmUnregisterThumbnail
+DwmUpdateThumbnailProperties
+DwmQueryThumbnailSourceSize
+SendMessage
+DwmExtendFrameIntoClientArea

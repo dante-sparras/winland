@@ -117,7 +117,11 @@ public sealed partial class WindowAdapter
         public bool Hung(WindowId window) => PInvoke.IsHungAppWindow(new HWND((nint)window.Value));
 
         // An in-between frame does not wait for the window, so one that repaints slowly holds up no other.
-        public void Move(WindowId window, Rectangle bounds) => QuickPlace(window, bounds, borderless: false);
+        public void Move(WindowId window, Rectangle bounds, Rectangle goal)
+        {
+            if (!StandFor(window, bounds, goal))
+                QuickPlace(window, bounds, borderless: false);
+        }
 
         public void Place(WindowId window, Rectangle bounds)
         {
@@ -125,6 +129,7 @@ public sealed partial class WindowAdapter
             try
             {
                 WindowAdapter.Place(window, bounds);
+                EndStandIn(window, null);
             }
             finally
             {
@@ -132,7 +137,11 @@ public sealed partial class WindowAdapter
             }
         }
 
-        public void Alpha(WindowId window, byte alpha) => Opacity.Apply(window, alpha);
+        public void Alpha(WindowId window, byte alpha)
+        {
+            Opacity.Apply(window, alpha);
+            StandInAlpha(window, alpha);
+        }
 
         public void Border(WindowId window, BorderColor color)
         {
@@ -143,10 +152,19 @@ public sealed partial class WindowAdapter
             SetAttribute(new HWND((nint)window.Value), BorderColorAttribute, ColorRef(color));
         }
 
-        public void Hide(WindowId window) => Conceal(window);
+        public void Hide(WindowId window)
+        {
+            Conceal(window);
+            EndStandIn(window, null);
+        }
 
-        public void Close(WindowId window) =>
+        public void Release(WindowId window) => EndStandIn(window, null);
+
+        public void Close(WindowId window)
+        {
+            EndStandIn(window, null);
             _ = PInvoke.PostMessage(new HWND((nint)window.Value), CloseMessage, default, default);
+        }
 
         public bool Shown(WindowId window)
         {

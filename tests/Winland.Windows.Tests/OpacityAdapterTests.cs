@@ -269,6 +269,82 @@ public class OpacityAdapterTests
         Assert.Equal(0x80u, styles.ExStyle[owned]);
     }
 
+    [Fact]
+    public void AVeiledWindowIsTransparentAndKeepsTheAlphaItIsGivenForLater()
+    {
+        var styles = new FakeStyles();
+        var window = new WindowId(9);
+        styles.ExStyle[window] = 0x80;
+        var adapter = new OpacityAdapter(styles);
+        adapter.Apply(window, 200);
+
+        Assert.True(adapter.Veil(window));
+        Assert.Equal(0, styles.Alpha[window]);
+        Assert.Equal(200, adapter.Wanted(window));
+
+        adapter.Apply(window, 150);
+        Assert.Equal(0, styles.Alpha[window]);
+        Assert.Equal(150, adapter.Wanted(window));
+
+        adapter.Unveil(window);
+        Assert.Equal(150, styles.Alpha[window]);
+        Assert.Equal(150, adapter.Wanted(window));
+    }
+
+    [Fact]
+    public void AnOpaqueWindowIsLayeredToBeVeiledAndGetsItsStyleBackAfter()
+    {
+        var styles = new FakeStyles();
+        var window = new WindowId(10);
+        styles.ExStyle[window] = 0x80;
+        var adapter = new OpacityAdapter(styles);
+
+        Assert.True(adapter.Veil(window));
+        Assert.Equal(OpacityAdapter.LayeredStyle | 0x80, styles.ExStyle[window]);
+        Assert.Equal(255, adapter.Wanted(window));
+
+        adapter.Unveil(window);
+        Assert.Equal(0x80u, styles.ExStyle[window]);
+        Assert.False(adapter.Owns(window));
+
+        adapter.Unveil(window);
+        Assert.Equal(0x80u, styles.ExStyle[window]);
+    }
+
+    [Fact]
+    public void AWindowItsProgramLayeredCannotBeVeiled()
+    {
+        var styles = new FakeStyles();
+        var window = new WindowId(11);
+        styles.ExStyle[window] = OpacityAdapter.LayeredStyle;
+        styles.Alpha[window] = 255;
+        var adapter = new OpacityAdapter(styles);
+
+        Assert.False(adapter.Veil(window));
+        Assert.Equal(255, styles.Alpha[window]);
+        Assert.Equal(0, styles.AlphaWrites);
+    }
+
+    [Fact]
+    public void NoWindowIsVeiledAfterResetAllAndAResetForgetsTheVeil()
+    {
+        var styles = new FakeStyles();
+        var first = new WindowId(12);
+        var second = new WindowId(13);
+        styles.ExStyle[first] = 0;
+        styles.ExStyle[second] = 0;
+        var adapter = new OpacityAdapter(styles);
+
+        Assert.True(adapter.Veil(first));
+        adapter.Reset(first);
+        Assert.Equal(0u, styles.ExStyle[first]);
+        Assert.Equal(255, adapter.Wanted(first));
+
+        adapter.ResetAll();
+        Assert.False(adapter.Veil(second));
+        Assert.Equal(0u, styles.ExStyle[second]);
+    }
+
     private sealed class FakeStyles : IWindowStyles
     {
         public Dictionary<WindowId, uint> ExStyle { get; } = [];

@@ -125,6 +125,41 @@ public class MotionPlayerTests
         Assert.Equal(["move 0", "move 0"], target.Calls);
     }
 
+    [Fact]
+    public void EachFrameNamesTheGoalItIsHeadingFor()
+    {
+        var target = new RecordingTarget();
+        var clock = new Clock();
+        using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+        var grown = new Rectangle(0, 0, 300, 200);
+
+        player.Begin(new Motion(Window, grown) { From = Start, Move = Linear });
+        clock.Now = 50;
+        player.Tick();
+
+        Assert.Equal([grown, grown], target.Goals);
+    }
+
+    // The frames may have done more to the window than move it, and a motion stopped early undoes that.
+    [Fact]
+    public void AMotionStoppedEarlyReleasesItsWindowAndOneThatLandsThereDoesNot()
+    {
+        var target = new RecordingTarget();
+        var clock = new Clock();
+        using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+        var other = new WindowId(8);
+        player.Begin(new Motion(Window, Goal) { From = Start, Move = Linear });
+        player.Begin(new Motion(other, Goal) { From = Start, Move = Linear });
+
+        Assert.True(player.Settle(Window, Goal));
+        Assert.Empty(target.Released);
+
+        Assert.False(player.Settle(Window, new Rectangle(300, 0, 100, 100)));
+        player.Halt(other);
+
+        Assert.Equal([Window, other], target.Released);
+    }
+
     // A frame already past its check is still being applied when the window is dropped. Dropping waits for it,
     // so the caller's reset of the window comes after the frame and is not undone by it.
     [Fact]
@@ -306,7 +341,11 @@ public class MotionPlayerTests
 
         public bool Hung(WindowId window) => false;
 
-        public void Move(WindowId window, Rectangle bounds)
+        public void Release(WindowId window)
+        {
+        }
+
+        public void Move(WindowId window, Rectangle bounds, Rectangle goal)
         {
             if (!Hold)
                 return;
@@ -352,7 +391,17 @@ public class MotionPlayerTests
 
         public bool Hung(WindowId window) => Frozen;
 
-        public void Move(WindowId window, Rectangle bounds) => Add($"move {bounds.X}");
+        public List<Rectangle> Goals { get; } = [];
+
+        public List<WindowId> Released { get; } = [];
+
+        public void Move(WindowId window, Rectangle bounds, Rectangle goal)
+        {
+            Goals.Add(goal);
+            Add($"move {bounds.X}");
+        }
+
+        public void Release(WindowId window) => Released.Add(window);
 
         public void Place(WindowId window, Rectangle bounds) => Add($"place {bounds.X}");
 

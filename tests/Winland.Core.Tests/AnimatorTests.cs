@@ -26,6 +26,21 @@ public class AnimatorTests
         Assert.Empty(animator.Step(150));
     }
 
+    [Fact]
+    public void AFrameCarriesTheGoalOfItsMoveAndAFadeAloneHasNone()
+    {
+        var animator = new Animator();
+        var goal = new Rectangle(100, 0, 200, 100);
+        var other = new WindowId(2);
+        animator.Start(new Motion(Window, goal) { From = new Rectangle(0, 0, 100, 100), Move = Linear }, now: 0);
+        animator.Start(new Motion(other, goal) { FadeTo = 0, Fade = Linear }, now: 0);
+
+        var frames = animator.Step(50);
+
+        Assert.Equal(goal, frames.Single(frame => frame.Window == Window).Goal);
+        Assert.Null(frames.Single(frame => frame.Window == other).Goal);
+    }
+
     // A hide or close that only fades keeps the move already running to the same goal, as the
     // position and the alpha are animated on their own.
     [Fact]
