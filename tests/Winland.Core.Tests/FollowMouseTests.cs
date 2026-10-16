@@ -147,6 +147,21 @@ public class FollowMouseTests
     }
 
     [Fact]
+    public void AWindowThatReusesAClosedHandleIsNotTakenForTheWindowLastHovered()
+    {
+        var (core, laid) = Tiled("input:mouse_refocus = false\n");
+        var right = Center(laid, 2);
+        Move(core, right, 1_000);
+        core.Handle(new WindowClosed(new WindowId(2)));
+        core.Handle(new WindowAppeared(new WindowId(2), Area));
+        core.Handle(new Dispatch("movefocus", "l"));
+
+        var hovered = Move(core, new Point(right.X - 30, right.Y), 1_100);
+
+        Assert.Equal(new WindowId(2), hovered.Focus);
+    }
+
+    [Fact]
     public void FloatSwitchFocusesAcrossTiledAndFloating()
     {
         var off = Floats("input:follow_mouse = 0\ninput:float_switch_override_focus = 0\n");
