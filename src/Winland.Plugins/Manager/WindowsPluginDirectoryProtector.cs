@@ -1,6 +1,5 @@
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
-using System.Security.Principal;
 
 namespace Winland.Plugins.Manager;
 
@@ -18,31 +17,5 @@ public sealed class WindowsPluginDirectoryProtector : IPluginDirectoryProtector
         new DirectoryInfo(directory).SetAccessControl(Protection());
     }
 
-    internal static DirectorySecurity Protection()
-    {
-        const InheritanceFlags inherit = InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit;
-        var administrators = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
-        var security = new DirectorySecurity();
-        security.SetOwner(administrators);
-        security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
-        security.AddAccessRule(new FileSystemAccessRule(
-            new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null),
-            FileSystemRights.FullControl,
-            inherit,
-            PropagationFlags.None,
-            AccessControlType.Allow));
-        security.AddAccessRule(new FileSystemAccessRule(
-            administrators,
-            FileSystemRights.FullControl,
-            inherit,
-            PropagationFlags.None,
-            AccessControlType.Allow));
-        security.AddAccessRule(new FileSystemAccessRule(
-            new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null),
-            FileSystemRights.ReadAndExecute,
-            inherit,
-            PropagationFlags.None,
-            AccessControlType.Allow));
-        return security;
-    }
+    internal static DirectorySecurity Protection() => AdministratorFolder.Security(owner: true);
 }
