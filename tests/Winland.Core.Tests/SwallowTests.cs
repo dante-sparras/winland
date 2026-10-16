@@ -197,6 +197,62 @@ public class SwallowTests
     }
 
     [Fact]
+    public void AChildTakesTheTerminalsPlaceInItsGroupAndGivesItBackOnClose()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(Unrelated(3));
+        core.Handle(new Dispatch("changegroupactive", "b"));
+
+        var opened = core.Handle(Child(2, parentProcess: 100));
+
+        Assert.Equal([new WindowId(2), new WindowId(3)], Assert.Single(opened.State.Groups));
+        Assert.Contains(new WindowId(1), opened.Hide);
+        Assert.Single(opened.State.Clients, client => client.Window == new WindowId(1));
+        Assert.Contains(opened.State.Hidden, client => client.Window == new WindowId(1));
+        Assert.Contains(opened.State.Hidden, client => client.Window == new WindowId(3));
+        Assert.Equal(new WindowId(1), Client(opened, 2).Swallowing);
+
+        var closed = core.Handle(new WindowClosed(new WindowId(2)));
+
+        Assert.Equal([new WindowId(1), new WindowId(3)], Assert.Single(closed.State.Groups));
+        Assert.Contains(new WindowId(1), closed.Show);
+        Assert.Equal(new WindowId(1), closed.Focus);
+        Assert.Single(closed.State.Hidden, client => client.Window == new WindowId(3));
+        Assert.Contains(closed.State.Workspaces, workspace => workspace.Id == Client(closed, 3).Workspace);
+    }
+
+    [Fact]
+    public void AWorkspaceHoldingOnlyAChildsGroupIsKeptWhenTheChildMoves()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(Unrelated(3));
+        core.Handle(new Dispatch("changegroupactive", "b"));
+        core.Handle(Child(2, parentProcess: 100));
+
+        var moved = core.Handle(new Dispatch("movetoworkspacesilent", "2"));
+
+        Assert.Equal([new WindowId(2), new WindowId(3)], Assert.Single(moved.State.Groups));
+        Assert.Equal(new WorkspaceId("2"), Client(moved, 3).Workspace);
+        Assert.Equal(new WorkspaceId("2"), Client(moved, 1).Workspace);
+    }
+
+    [Fact]
+    public void AChildDoesNotSwallowATerminalInADeniedGroup()
+    {
+        var core = WithTerminal(Swallowing + "group:auto_group = false\n");
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(new Dispatch("denywindowfromgroup", "on"));
+
+        var opened = core.Handle(Child(2, parentProcess: 100));
+
+        Assert.DoesNotContain(new WindowId(1), opened.Hide);
+        Assert.Null(Client(opened, 2).Swallowing);
+        Assert.Empty(opened.State.Hidden);
+    }
+
+    [Fact]
     public void SwallowKeywordsAreHonored()
     {
         var document = ConfigParser.Parse(Swallowing + "misc:swallow_exception_regex = ^(wev)$\n");

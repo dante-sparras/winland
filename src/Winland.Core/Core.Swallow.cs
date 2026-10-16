@@ -7,12 +7,13 @@ public sealed partial class Core
     private static readonly TimeSpan SwallowMatchTimeout = TimeSpan.FromMilliseconds(250);
 
     // Each child Client and the parent Client it swallowed. Hidden is false after toggleswallow
-    // shows the parent; the link stays so the parent is not swallowed by a second child.
+    // shows the parent; the link stays so the parent is not swallowed by a second child. Slot is set
+    // when the child took the parent's place in its Group.
     private readonly Dictionary<WindowId, Swallow> _swallows = [];
     private List<WindowId>? _swallowShow;
     private List<WindowId>? _swallowHide;
 
-    private sealed record Swallow(Client Parent, bool Hidden);
+    private sealed record Swallow(Client Parent, bool Hidden, bool Slot = false);
 
     private WindowId? SwallowedBy(WindowId child) =>
         _swallows.TryGetValue(child, out var swallow) ? swallow.Parent.Window : null;
@@ -99,25 +100,57 @@ public sealed partial class Core
     }
 
     // Takes the parent out of its Layout and hides it. Returns the placements of the child's
-    // Workspace after the parent left it.
-    private IReadOnlyList<Placement> SwallowParent(WindowId child, Client parent, LiveWorkspace desk, IReadOnlyList<Placement> placements)
+    // Workspace after the parent left it. A parent in a Group hands its place in the Group to the
+    // child instead, as the pinned release does, unless the child may not join that Group.
+    private IReadOnlyList<Placement> SwallowParent(WindowId child, Client parent, LiveWorkspace desk, IReadOnlyList<Placement> placements, GroupRuleFlags rules = GroupRuleFlags.None)
     {
         if (WorkspaceContaining(parent.Window) is not LiveWorkspace home || home.ClientOf(parent.Window) is not Client record)
             return placements;
 
+        if (home.GroupOf(parent.Window) is WindowGroup group)
+            return SwallowIntoGroup(child, record, home, group, desk, rules) ? home.Layout.Visible() : placements;
+
         var after = home.Layout.Remove(parent.Window);
         _swallows[child] = new Swallow(record, Hidden: true);
-        (_swallowHide ??= []).Add(parent.Window);
-        if (_active == parent.Window)
-            _active = null;
-        if (home.Focus == parent.Window)
-            home.Focus = null;
+        HideParent(parent.Window, home);
 
         if (home == desk)
             return after;
 
         DropIfEmpty(home.Id);
         return placements;
+    }
+
+    // Only a shown member on the child's own Workspace is swallowed into its Group. The child must be
+    // in no Group, and the Group must let it in.
+    private bool SwallowIntoGroup(WindowId child, Client parent, LiveWorkspace home, WindowGroup group, LiveWorkspace desk, GroupRuleFlags rules)
+    {
+        if (home != desk
+            || group.Shown != parent.Window
+            || group.Denied
+            || !CanJoin(rules, group)
+            || desk.GroupOf(child) is not null
+            || !desk.Layout.TryTake(child, out var taken))
+            return false;
+
+        if (!home.ReplaceMember(group, parent.Window, child, taken))
+        {
+            desk.Receive(child, taken, WorkArea(desk, _area));
+            return false;
+        }
+
+        _swallows[child] = new Swallow(parent, Hidden: true, Slot: true);
+        HideParent(parent.Window, home);
+        return true;
+    }
+
+    private void HideParent(WindowId parent, LiveWorkspace home)
+    {
+        (_swallowHide ??= []).Add(parent);
+        if (_active == parent)
+            _active = null;
+        if (home.Focus == parent)
+            home.Focus = null;
     }
 
     // The child closed. A parent it still hides goes back into the child's Workspace.
@@ -128,6 +161,46 @@ public sealed partial class Core
 
         ReturnParent(swallow.Parent, desk);
         return swallow.Parent.Window;
+    }
+
+    // The child closed while it held its parent's place in a Group. The parent takes that place back.
+    // Null when the child is no longer in a Group, so the parent comes back as its own tile.
+    private Outcome? GiveSlotBack(WindowId child, LiveWorkspace desk, HashSet<WindowId> covered, bool wasActive)
+    {
+        if (!_swallows.TryGetValue(child, out var swallow)
+            || swallow is not { Hidden: true, Slot: true }
+            || desk.GroupOf(child) is not WindowGroup group)
+            return null;
+
+        var parent = swallow.Parent;
+        var incoming = new Taken(
+            parent.Floating,
+            Minimized: false,
+            parent.Bounds,
+            parent.Class,
+            parent.Title,
+            parent.ProcessId,
+            parent.InitialClass,
+            parent.InitialTitle);
+        if (!desk.ReplaceMember(group, child, parent.Window, incoming))
+            return null;
+
+        _swallows.Remove(child);
+        if (!IsShown(desk.Id))
+            return View([]);
+
+        WindowId? focus = null;
+        if (group.Shown == parent.Window)
+        {
+            (_swallowShow ??= []).Add(parent.Window);
+            if (wasActive)
+            {
+                focus = parent.Window;
+                TakeGroupFocus(desk, parent.Window);
+            }
+        }
+
+        return Present(desk, covered, desk.Layout.Visible(), focus: focus);
     }
 
     private IReadOnlyList<Placement> ReturnParent(Client parent, LiveWorkspace desk)
@@ -181,13 +254,13 @@ public sealed partial class Core
         IReadOnlyList<Placement> placements;
         if (swallow.Hidden)
         {
-            _swallows[child] = swallow with { Hidden = false };
+            _swallows[child] = swallow with { Hidden = false, Slot = false };
             placements = ReturnParent(swallow.Parent, desk);
         }
         else
         {
             _swallows.Remove(child);
-            placements = SwallowParent(child, swallow.Parent, desk, []);
+            placements = SwallowParent(child, swallow.Parent, desk, [], RulesOf(child));
         }
 
         return IsShown(desk.Id)

@@ -237,7 +237,7 @@ An application that asks for attention without flashing or taking the foreground
 
 `inhibitingIdle` reports only the `idle_inhibit` rule. An application that keeps the system awake by itself does so without Winland, and is not reported.
 
-Swallowing reads the process tree up to 16 levels. The reference reads 25.
+Swallowing reads the process tree up to 16 levels. The reference reads 25. A parent that is a hidden Group member, or whose Group is on another Workspace than the child, is not swallowed. `toggleswallow` on a child that holds its parent's place in a Group shows the parent as its own tile, where the pinned release swaps the two in the Group.
 
 A new floating window that has an owner opens centered in the floating work area, not over its owner. Owners are not tracked yet. A window that asks for a position does not keep it: every new floating Client opens centered unless `move` places it.
 
