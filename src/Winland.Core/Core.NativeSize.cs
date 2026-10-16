@@ -45,9 +45,10 @@ public sealed partial class Core
         var layout = LayoutWorkspace(ended.Window).Layout;
         var covering = layout.Visible();
         var resized = layout.Drag(ended.Window, new PointerDrag(true, PointerDragPhase.Move, ended.Pointer));
-        _ = layout.Drag(ended.Window, new PointerDrag(true, PointerDragPhase.End, ended.Pointer));
+        var released = layout.Drag(ended.Window, new PointerDrag(true, PointerDragPhase.End, ended.Pointer));
 
-        // Whatever the border did to the window, it goes back to the rectangle the Layout holds for it.
-        return View(resized.Count > 0 ? resized : covering);
+        // Whatever the border did to the window, it goes back to the rectangle the Layout holds for it. The end
+        // can move the windows again (a scrolling tape recenters), so its placements win over the last step's.
+        return View(released.Count > 0 ? released : resized.Count > 0 ? resized : covering);
     }
 }

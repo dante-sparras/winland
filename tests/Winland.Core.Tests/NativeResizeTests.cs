@@ -114,6 +114,20 @@ public class NativeResizeTests
         Assert.Empty(core.Handle(new WindowSizeEnded(new WindowId(99), new Point(20, 20))).Placements);
     }
 
+    // Letting go recenters a scrolling tape narrower than the screen, so the end places the Client where the
+    // Layout now holds it, not where the last step of the drag left it.
+    [Fact]
+    public void TheEndPlacesTheClientWhereTheLayoutHoldsItAfterTheRelease()
+    {
+        var core = Flat("general:layout = scrolling\nscrolling:fullscreen_on_one_column = false\n");
+        Appear(core, 1);
+
+        core.Handle(new WindowSizeStarted(new WindowId(1), new Point(1439, 540)));
+        var ended = core.Handle(new WindowSizeEnded(new WindowId(1), new Point(1339, 540)));
+
+        Assert.Equal(Client(ended, 1).Bounds, BoundsOf(ended, 1));
+    }
+
     private static Core Flat(string extra)
     {
         var core = new Core();
