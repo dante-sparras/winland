@@ -213,6 +213,8 @@ A `fullscreen` window rule requests mode 2. A `maximize` window rule requests mo
 
 A modifier list in a bind, a gesture's `mod:` and `sendshortcut` is read as the pinned release reads it: the list is upper-cased and each modifier name found anywhere in it counts, so `SUPER SHIFT`, `SUPER_SHIFT`, `SUPER+SHIFT`, `$mainMod_SHIFT` with `$mainMod = SUPER`, and `super shift` are the same. `SUPER`, `WIN`, `LOGO`, `MOD4` and `META` are the Windows key, `ALT` and `MOD1` are Alt, `CTRL` and `CONTROL` are Ctrl, and `SHIFT` is Shift. A list that names none of them warns `Invalid modifier` and the bind is skipped.
 
+A bind on a modifier key, such as `Super_L`, is matched on its press without that key's own modifier, so `bind = , Super_L` runs when Super goes down alone. On the release the mask includes the key's own modifier, as in the pinned release, so `bindr = SUPER, Super_L` runs when Super is let go. `bindr = , Super_L` runs then too, which is a Winland extension.
+
 ## Sending keys
 
 `pass` sends the key of the bind that ran it to the Client the window selector names. The press goes on when the key goes down and the release when it comes up, so a `pass` bind runs on the release too without the `r` flag. The modifiers the user holds are left as they are. A selector that matches no Client answers `pass: window not found`.

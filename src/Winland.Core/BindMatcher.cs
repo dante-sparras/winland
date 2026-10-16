@@ -354,7 +354,7 @@ public static class BindMatcher
     {
         if (IsMouseBind(bind) != mouse)
             return false;
-        if (!bind.Flags.HasFlag(BindFlag.IgnoreModifiers) && bind.Modifiers != MaskFor(session, key, mouse))
+        if (!bind.Flags.HasFlag(BindFlag.IgnoreModifiers) && !ModifiersMatch(bind, session, key, mouse, releasing))
             return false;
         if (!catchAll && !KeyMatches(bind, key, scanCode))
             return false;
@@ -449,6 +449,17 @@ public static class BindMatcher
         }
 
         session.Held &= ~modifier;
+    }
+
+    // On release the pinned release folds the released key's own modifier into the mask, so
+    // "bindr = SUPER, Super_L" runs when Super is let go. A mask without it still matches.
+    private static bool ModifiersMatch(Bind bind, BindSession session, string key, bool mouse, bool releasing)
+    {
+        var mask = MaskFor(session, key, mouse);
+        if (bind.Modifiers == mask)
+            return true;
+
+        return releasing && !mouse && ModifierKeys.TryGetValue(key, out var own) && bind.Modifiers == (mask | own);
     }
 
     // A modifier keysym is matched against the mask without that key folded in,
