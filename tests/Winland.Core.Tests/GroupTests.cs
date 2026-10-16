@@ -476,6 +476,19 @@ public class GroupTests
         Assert.False(layout.Substitute(First, Third, default, out _));
     }
 
+    [Fact]
+    public void ToggleGroupOnAMaximizedClientReadsTheWorkspaceRulesAgain()
+    {
+        var core = Opened(auto: true, "workspace = f[1], defaultName:Covered\n", First);
+        var maximized = core.Handle(new Dispatch("fullscreen", "1"));
+        Assert.Equal("Covered", maximized.State.Workspaces.Single(workspace => workspace.Id == new WorkspaceId("1")).DisplayName);
+
+        var grouped = core.Execute("dispatch togglegroup").Effect;
+
+        Assert.Equal(FullscreenMode.None, ClientOf(grouped, First).Fullscreen);
+        Assert.Null(grouped.State.Workspaces.Single(workspace => workspace.Id == new WorkspaceId("1")).DisplayName);
+    }
+
     private static Core Grouped(string config = "")
     {
         var core = Opened(auto: true, config, First);
