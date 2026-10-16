@@ -157,6 +157,12 @@ public sealed partial class WindowAdapter
     private static void ClearDecorations()
     {
         GroupBarHost.Stop();
+        PutBackFrames();
+    }
+
+    // Every window whose frame, border, corners, backdrop, shadow, region or alpha this changed, painted or not.
+    private static void PutBackFrames()
+    {
         WindowId[] painted;
         lock (PaintGate)
         {
@@ -166,6 +172,10 @@ public sealed partial class WindowAdapter
 
         foreach (var window in painted)
             ResetDecoration(window);
+
+        Borderless.ReleaseAll();
+        Effects.ResetAll();
+        Opacity.ResetAll();
     }
 
     // DWMWA_BORDER_COLOR is a COLORREF, 0x00BBGGRR. The alpha byte is not used.

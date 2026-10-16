@@ -41,6 +41,26 @@ public class BorderlessFrameTests
         Assert.Equal(0x00CF0000u, frames.Style[window]);
     }
 
+    [Fact]
+    public void ReleasingAllPutsEveryFrameBack()
+    {
+        var frames = new FakeFrames();
+        var first = new WindowId(4);
+        var second = new WindowId(5);
+        frames.Style[first] = 0x00CF0000;
+        frames.Style[second] = 0x00C40000;
+        var borderless = new BorderlessFrame(frames);
+        borderless.Apply(first, true);
+        borderless.Apply(second, true);
+
+        borderless.ReleaseAll();
+
+        Assert.Equal(0x00CF0000u, frames.Style[first]);
+        Assert.Equal(0x00C40000u, frames.Style[second]);
+        Assert.False(borderless.Owns(first));
+        Assert.False(borderless.Owns(second));
+    }
+
     private sealed class FakeFrames : IWindowFrame
     {
         internal readonly Dictionary<WindowId, uint> Style = [];

@@ -74,6 +74,17 @@ internal sealed class BorderlessFrame
     }
 
     internal void Release(WindowId window) => Apply(window, false);
+
+    /// <summary>Puts back the frame of every window this dropped it from.</summary>
+    internal void ReleaseAll()
+    {
+        WindowId[] windows;
+        lock (_gate)
+            windows = [.. _original.Keys];
+
+        foreach (var window in windows)
+            Release(window);
+    }
 }
 
 internal sealed class Win32WindowFrame : IWindowFrame

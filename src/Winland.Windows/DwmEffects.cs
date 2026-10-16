@@ -94,6 +94,22 @@ internal sealed class DwmEffects
         }
     }
 
+    /// <summary>Puts back the backdrop, shadow and region of every window this changed.</summary>
+    internal void ResetAll()
+    {
+        HashSet<WindowId> windows;
+        lock (_gate)
+        {
+            windows = [.. _backdrops.Keys];
+            windows.UnionWith(_shadowless);
+            windows.UnionWith(_regions.Keys);
+            windows.UnionWith(_foreignRegions);
+        }
+
+        foreach (var window in windows)
+            Reset(window);
+    }
+
     private void ApplyBackdrop(WindowId window, uint wanted)
     {
         if (_backdrops.TryGetValue(window, out var backdrop))
