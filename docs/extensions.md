@@ -33,5 +33,3 @@ A floating Client that changes its own size within 2 seconds of opening is put b
 Animations follow the Windows setting **Animation effects** (Settings, Accessibility, Visual effects). When it is off, nothing animates, the same as `animations:enabled = false`.
 
 When Winland starts, it adopts the windows that are already open, as if each had just appeared. A minimized window is left alone until it is restored. Hyprland has no such step, because every window it manages is created after it starts.
-
-A release bind on a modifier key also runs without that key's own modifier, so `bindr = , Super_L` runs when Super is let go, as `bindr = SUPER, Super_L` does. Hyprland compares the release against the modifiers still held, which include the released key, so it runs only the second.

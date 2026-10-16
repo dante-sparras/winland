@@ -219,7 +219,7 @@ A `fullscreen` window rule requests mode 2. A `maximize` window rule requests mo
 
 A modifier list in a bind, a gesture's `mod:` and `sendshortcut` is read as the pinned release reads it: the list is upper-cased and each modifier name found anywhere in it counts, so `SUPER SHIFT`, `SUPER_SHIFT`, `SUPER+SHIFT`, `$mainMod_SHIFT` with `$mainMod = SUPER`, and `super shift` are the same. `SUPER`, `WIN`, `LOGO`, `MOD4` and `META` are the Windows key, `ALT` and `MOD1` are Alt, `CTRL` and `CONTROL` are Ctrl, and `SHIFT` is Shift. A list that names none of them warns `Invalid modifier` and the bind is skipped.
 
-A bind on a modifier key, such as `Super_L`, is matched on its press without that key's own modifier, so `bind = , Super_L` runs when Super goes down alone. On the release the mask includes the key's own modifier, as in the pinned release, so `bindr = SUPER, Super_L` runs when Super is let go. `bindr = , Super_L` runs then too, which is a Winland extension.
+A bind on a modifier key, such as `Super_L`, is matched on its press without that key's own modifier, so `bind = , Super_L` runs when Super goes down alone. On the release the mask includes the key's own modifier, as in the pinned release, so `bindr = SUPER, Super_L` runs when Super is let go and `bindr = , Super_L` never runs: its press swallows Super, and its release matches nothing and is swallowed too. Super and its release still reach Windows under `bindr = SUPER, Super_L`, so Winland sends a mask key before the release, and Start does not open.
 
 ## Sending keys
 
