@@ -102,6 +102,8 @@ On a Workspace with a maximized or fullscreen Client, that Client owns the point
 
 Modes 2 and 3 cannot choose which window receives pointer input. The window under the pointer still receives it. Those modes only decide keyboard focus.
 
+The keyboard and mouse hooks run on a thread of their own. It only decides whether a key or button is swallowed and hands everything else to the bind worker, so a window that stops answering, or a reload, never holds up the keyboard or the mouse, or makes Windows drop the hooks for being slow. Pointer moves that arrive while the bind worker is busy collapse into the newest one.
+
 
 ## Touchpad swipe
 

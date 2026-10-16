@@ -58,7 +58,7 @@ public sealed class KeyboardHook : IDisposable
     private long _startedAt;
     private uint _hookThread;
     private volatile KeyLayout _layout = KeyLayout.UnitedStates;
-    private nint _layoutHandle = unchecked((nint)(-1));
+    private volatile nint _layoutHandle = unchecked((nint)(-1));
     private volatile int _inhibited;
     private bool _listening;
     private volatile bool _disposed;
@@ -67,7 +67,7 @@ public sealed class KeyboardHook : IDisposable
     internal const uint SweepMessage = 0x8000 + 25;
     internal const uint WatchMessage = 0x8000 + 26;
     internal const uint ReconcileMessage = 0x8000 + 27;
-    private const uint InputLanguageMessage = 0x0051;
+    internal const uint InputLanguageMessage = 0x0051;
 
     internal BindSession Session => _session;
 
@@ -173,13 +173,13 @@ public sealed class KeyboardHook : IDisposable
                 if (!_disposed)
                     Reconcile();
                 return true;
-            case InputLanguageMessage:
-                _layoutHandle = unchecked((nint)(-1));
-                return false;
             default:
                 return false;
         }
     }
+
+    /// <summary>The input language changed. The layout is read again on the next key.</summary>
+    internal void ForgetLayout() => _layoutHandle = unchecked((nint)(-1));
 
     /// <summary>
     /// True when input arrived that no hook saw. Windows removes a low-level hook without
