@@ -77,14 +77,21 @@ public class PluginApplyTests
         var elsewhere = Path.Combine(fixture.Root, "elsewhere");
         Directory.CreateDirectory(elsewhere);
         Junctions.Create(fixture.Paths.PluginDirectory, elsewhere);
-        var staged = Stage(fixture, "sample.dll");
+        try
+        {
+            var staged = Stage(fixture, "sample.dll");
 
-        var result = Apply(fixture, Install(fixture, ("sample", PluginHash.OfFile(staged), staged)));
+            var result = Apply(fixture, Install(fixture, ("sample", PluginHash.OfFile(staged), staged)));
 
-        Assert.False(result.Ok);
-        Assert.Contains("reparse point", Assert.Single(result.Lines), StringComparison.Ordinal);
-        Assert.Empty(fixture.Protector.Protected);
-        Assert.Empty(Directory.GetFiles(elsewhere));
+            Assert.False(result.Ok);
+            Assert.Contains("reparse point", Assert.Single(result.Lines), StringComparison.Ordinal);
+            Assert.Empty(fixture.Protector.Protected);
+            Assert.Empty(Directory.GetFiles(elsewhere));
+        }
+        finally
+        {
+            Junctions.Delete(fixture.Paths.PluginDirectory);
+        }
     }
 
     // The directory and the approvals path come from a non-elevated program, which can set

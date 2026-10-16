@@ -11,8 +11,9 @@ public class WindowEventTests
     [Fact]
     public void AWindowDestroyedMidDragLetsTheNextDragStart()
     {
-        var core = new Core { ReducedMotion = () => true };
+        var core = new Core();
         using var adapter = new WindowAdapter(core);
+        core.ReducedMotion = () => true;
         var dragged = new WindowId(0x7001);
         var next = new WindowId(0x7003);
 
@@ -28,8 +29,9 @@ public class WindowEventTests
     [Fact]
     public void AClientsTitleChangeDoesNotGoToTheCore()
     {
-        var core = new Core { ReducedMotion = () => true };
+        var core = new Core();
         using var adapter = new WindowAdapter(core);
+        core.ReducedMotion = () => true;
         var window = new WindowId(0x7009);
         var before = core.Handle(new WindowAppeared(window, Area) { Traits = WindowTraits.Normal }).Order!.Value.Sequence;
 
@@ -44,8 +46,9 @@ public class WindowEventTests
     [Fact]
     public void AHiddenClientThatIsCloakedStaysAClient()
     {
-        var core = new Core { ReducedMotion = () => true };
+        var core = new Core();
         using var adapter = new WindowAdapter(core);
+        core.ReducedMotion = () => true;
         var window = new WindowId(0x7005);
         core.Handle(new WindowAppeared(window, Area) { Traits = WindowTraits.Normal });
         var away = core.Dispatch("workspace", "2", allowsElevation: false);
@@ -61,8 +64,9 @@ public class WindowEventTests
     [Fact]
     public void AClientItsApplicationHidesStopsBeingAClient()
     {
-        var core = new Core { ReducedMotion = () => true };
+        var core = new Core();
         using var adapter = new WindowAdapter(core);
+        core.ReducedMotion = () => true;
         var window = new WindowId(0x700B);
         core.Handle(new WindowAppeared(window, Area) { Traits = WindowTraits.Normal });
 

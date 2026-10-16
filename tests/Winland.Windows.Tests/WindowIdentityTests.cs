@@ -1,7 +1,11 @@
 using Winland.Windows;
+using Winland.Windows.Tests;
 
 namespace Winland.Tests;
 
+// One test opens real windows, so the class runs alone with the other desktop tests.
+[Collection(DesktopCollection.Name)]
+[Trait("Category", DesktopCollection.Name)]
 public class WindowIdentityTests
 {
     [Fact]
@@ -25,7 +29,7 @@ public class WindowIdentityTests
         Assert.Equal(WindowIdentity.Recognition.Other, WindowIdentity.Recognize(client, 43, "Chrome_WidgetWin_1", "Inbox (3)"));
     }
 
-    [Fact]
+    [DesktopFact]
     public void AClosedClientIsLeftOutAndTheOthersAreStillRecorded()
     {
         using var probe = new LimitProbeTests.LimitProbe();
