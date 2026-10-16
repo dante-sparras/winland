@@ -445,6 +445,11 @@ internal sealed partial class ScrollingLayout
 
         var sign = neighbor > index ? 1 : -1;
         var other = column.Cells[neighbor];
+
+        // Eleven or more equal rows are each below the smallest row, so neither can give.
+        if (cell.Size - MinRow < -(other.Size - MinRow))
+            return;
+
         var adjust = Math.Clamp(sign * delta / usable, -(cell.Size - MinRow), other.Size - MinRow);
         cell.Size = Math.Clamp(cell.Size + adjust, MinRow, MaxRow);
         other.Size = Math.Clamp(other.Size - adjust, MinRow, MaxRow);
