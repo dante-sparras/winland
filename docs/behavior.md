@@ -74,6 +74,8 @@ A Client that the system moves by its title bar is dragged the same way. A tiled
 
 `dwindle:smart_resizing` defaults to true. A mouse resize of a tile moves the edges on the grabbed corner's side and keeps the opposite edges in place, so the tiles on the far side do not change. A tile against a monitor edge moves its other edge. `resizeactive` has no corner and moves the nearest split on each axis. `resizeactive exact` names the window's size, so a tile grows by the difference from the window it shows, not from the tile with its gaps and border. False always moves the nearest split, whichever corner is grabbed. `master:smart_resizing` defaults to true. Grabbing a tile's top edge in a vertical stack, or its left edge in a horizontal one, takes the space from the tiles before it. In the center orientation a grabbed master moves both master edges.
 
+In the scrolling Layout a resize keeps the camera where it is. A column's far edge does not move past the viewport, and grabbing its near edge moves the camera with it so the far edge stays put. A row trades space with the row on the grabbed edge. `resizeactive` has no corner, so a row trades with the row before it, and the first row with the row after it.
+
 ## Cursor and input
 
 These cursor keys are honored: `warp_on_change_workspace`, `warp_on_monitor_change`, `warp_on_toggle_special`, `no_warps`, `persistent_warps`, `inactive_timeout`, `hide_on_key_press`, and `default_monitor`. Every other `cursor` key stays a Gap.

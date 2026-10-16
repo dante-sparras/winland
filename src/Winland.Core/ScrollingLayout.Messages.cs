@@ -433,26 +433,53 @@ internal sealed partial class ScrollingLayout
         (column.Cells[first].Size, column.Cells[second].Size) = (column.Cells[second].Size, column.Cells[first].Size);
     }
 
-    private void ResizeRow(Cell cell, double delta, double usable)
+    // The grabbed bottom edge trades with the next row and the grabbed top edge with the previous one.
+    // With no corner the row trades with the previous row when there is one, so a positive delta still grows it.
+    private void ResizeRow(Cell cell, int delta, (bool Left, bool Top)? corner)
     {
+        var usable = SecondaryLength();
         if (cell.Column is not Column column || column.Cells.Count < 2 || usable <= 0)
             return;
 
-        var index = column.Cells.IndexOf(cell);
-        var neighbor = index + 1 < column.Cells.Count ? index + 1 : index - 1;
-        if (neighbor < 0)
-            return;
+        var next = NextCell(column, cell);
+        var previous = PreviousCell(column, cell);
+        var toward = (double)delta;
+        var top = corner is { Top: true };
+        if (corner is null && previous is not null)
+        {
+            top = true;
+            toward = -toward;
+        }
 
-        var sign = neighbor > index ? 1 : -1;
-        var other = column.Cells[neighbor];
+        if (!top && next is not null)
+        {
+            if (next.Size <= MinRow && toward >= 0)
+                return;
+
+            Trade(cell, next, toward / usable);
+        }
+        else if (top && previous is not null)
+        {
+            if ((previous.Size <= MinRow && toward <= 0) || (cell.Size <= MinRow && delta >= 0))
+                return;
+
+            Trade(previous, cell, toward / usable);
+        }
+    }
+
+    // Moves the edge between two rows by a fraction of the column. Neither row goes below the smallest row.
+    private static void Trade(Cell upper, Cell lower, double fraction)
+    {
+        var lo = -(upper.Size - MinRow);
+        var hi = lower.Size - MinRow;
 
         // Eleven or more equal rows are each below the smallest row, so neither can give.
-        if (cell.Size - MinRow < -(other.Size - MinRow))
+        if (lo > hi)
             return;
 
-        var adjust = Math.Clamp(sign * delta / usable, -(cell.Size - MinRow), other.Size - MinRow);
-        cell.Size = Math.Clamp(cell.Size + adjust, MinRow, MaxRow);
-        other.Size = Math.Clamp(other.Size - adjust, MinRow, MaxRow);
+        var adjust = Math.Clamp(fraction, lo, hi);
+        upper.Size = Math.Clamp(upper.Size + adjust, MinRow, MaxRow);
+        lower.Size = Math.Clamp(lower.Size - adjust, MinRow, MaxRow);
     }
 
     private Side Rotate(Side side) => _scrolling.Direction switch

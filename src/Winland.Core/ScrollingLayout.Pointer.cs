@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Winland;
 
 internal sealed partial class ScrollingLayout
@@ -198,8 +196,11 @@ internal sealed partial class ScrollingLayout
         if (dx == 0 && dy == 0)
             return [];
 
+        if (Minimized(grab.Id) || !_cells.TryGetValue(grab.Id, out var cell))
+            return [];
+
         _dragging = true;
-        return ResizeActive(grab.Window, string.Create(CultureInfo.InvariantCulture, $"{dx} {dy}"));
+        return ResizeCell(cell, dx, dy, (grab.Left, grab.Top));
     }
 
     private IReadOnlyList<Placement> DropTiled(ClientId id, Point pointer)

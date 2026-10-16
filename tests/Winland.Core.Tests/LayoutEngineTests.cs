@@ -159,6 +159,89 @@ public class LayoutEngineTests
         Assert.Equal(800, Bounds(placements, 1).Width);
     }
 
+    [Fact]
+    public void ScrollingKeyboardResizeKeepsTheCamera()
+    {
+        var layout = ThreeColumns();
+
+        var placements = layout.ResizeActive(Window(1), "100 0");
+
+        Assert.Equal(new Rectangle(-500, 0, 600, 800), Bounds(placements, 1));
+        Assert.Equal(new Rectangle(100, 0, 500, 800), Bounds(placements, 2));
+    }
+
+    [Fact]
+    public void ScrollingKeyboardResizeKeepsTheColumnInsideTheViewport()
+    {
+        var layout = ThreeColumns();
+
+        var placements = layout.ResizeActive(Window(3), "200 0");
+
+        Assert.Equal(new Rectangle(500, 0, 500, 800), Bounds(placements, 3));
+    }
+
+    [Fact]
+    public void ScrollingLeftEdgeDragKeepsTheRightEdge()
+    {
+        var layout = ThreeColumns();
+
+        layout.Drag(Window(3), new PointerDrag(true, PointerDragPhase.Begin, new Point(520, 100)));
+        var placements = layout.Drag(Window(3), new PointerDrag(true, PointerDragPhase.Move, new Point(420, 100)));
+        layout.Drag(Window(3), new PointerDrag(true, PointerDragPhase.End, new Point(420, 100)));
+
+        Assert.Equal(new Rectangle(400, 0, 600, 800), Bounds(placements, 3));
+        Assert.Equal(new Rectangle(400, 0, 600, 800), Bounds(layout.Placed(), 3));
+    }
+
+    [Fact]
+    public void ScrollingKeyboardRowResizeTakesFromThePreviousRow()
+    {
+        var layout = OneColumnOfThree();
+        var before = layout.Placed();
+
+        var placements = layout.ResizeActive(Window(2), "0 90");
+
+        Assert.Equal(Bounds(before, 1).Height - 90, Bounds(placements, 1).Height);
+        Assert.Equal(Bounds(before, 2).Y - 90, Bounds(placements, 2).Y);
+        Assert.Equal(Bounds(before, 3), Bounds(placements, 3));
+    }
+
+    [Fact]
+    public void ScrollingMouseRowResizeMovesTheGrabbedEdge()
+    {
+        var layout = OneColumnOfThree();
+        var before = layout.Placed();
+        var middle = Bounds(before, 2);
+
+        layout.Drag(Window(2), new PointerDrag(true, PointerDragPhase.Begin, new Point(middle.X + 10, middle.Y + 10)));
+        var placements = layout.Drag(Window(2), new PointerDrag(true, PointerDragPhase.Move, new Point(middle.X + 10, middle.Y + 60)));
+
+        Assert.Equal(middle.Y + 50, Bounds(placements, 2).Y);
+        Assert.Equal(Bounds(before, 3), Bounds(placements, 3));
+    }
+
+    private static Layout ThreeColumns()
+    {
+        var layout = Open("scrolling");
+        Tiled(layout, 1);
+        Tiled(layout, 2);
+        var placements = Tiled(layout, 3);
+        Assert.Equal(new Rectangle(500, 0, 500, 800), Bounds(placements, 3));
+        return layout;
+    }
+
+    private static Layout OneColumnOfThree()
+    {
+        var layout = Open("scrolling");
+        Tiled(layout, 1);
+        Tiled(layout, 2);
+        Tiled(layout, 3);
+        layout.LayoutMessage(Window(1), "consume");
+        layout.LayoutMessage(Window(1), "consume");
+        Assert.Equal(3, layout.Placed().Count);
+        return layout;
+    }
+
     private static LayoutOptions MonitorSnap { get; } = LayoutOptions.Unconfigured with
     {
         SnapEnabled = true,

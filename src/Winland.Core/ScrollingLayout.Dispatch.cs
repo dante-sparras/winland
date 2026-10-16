@@ -48,7 +48,7 @@ internal sealed partial class ScrollingLayout
         if (_floating.TryGetValue(id, out var floating))
             return ResizeFloating(id, floating, x, y, exact);
 
-        if (CellFor(window) is not Cell cell || cell.Column is not Column column)
+        if (CellFor(window) is not Cell cell || cell.Column is null)
             return [];
 
         // exact names the window's size, which is the cell less its gaps and border.
@@ -58,18 +58,52 @@ internal sealed partial class ScrollingLayout
             y -= cell.Logical.Height;
         }
 
+        return ResizeCell(cell, x, y, corner: null);
+    }
+
+    /// <summary>
+    /// Resizes a tiled cell by a pixel delta. A mouse resize names the grabbed corner; a dispatcher resize names none.
+    /// The camera stays where it is. The column's far edge stays inside the viewport, and a grabbed near edge
+    /// moves the camera so the far edge stays put. Rows take their space from the row on the grabbed side,
+    /// or with no corner from the row before, when there is one.
+    /// </summary>
+    private IReadOnlyList<Placement> ResizeCell(Cell cell, int deltaX, int deltaY, (bool Left, bool Top)? corner)
+    {
+        if (cell.Column is not Column column || !TryStrip(column, out var start, out var size, out var primary))
+            return [];
+
         var horizontal = IsHorizontal();
-        var primaryDelta = horizontal ? x : y;
-        var secondaryDelta = horizontal ? y : x;
-        var primary = PrimaryLength();
-        var secondary = SecondaryLength();
-        if (primary > 0)
-            column.Width = Math.Clamp(column.Width + (primaryDelta / primary), ScrollingOptions.MinColumnWidth, ScrollingOptions.MaxColumnWidth);
+        var primaryDelta = horizontal ? deltaX : deltaY;
+        var secondaryDelta = horizontal ? deltaY : deltaX;
+        var onScreenStart = start - _offset;
+        var onScreenEnd = start + size - _offset;
+        SetOffset(_offset);
 
-        if (secondary > 0)
-            ResizeRow(cell, secondaryDelta, secondary);
+        var old = column.Width;
+        var nearEdge = horizontal ? corner is { Left: true } : corner is { Top: true };
+        if (nearEdge)
+        {
+            var actual = Math.Clamp(old - (primaryDelta / primary), ScrollingOptions.MinColumnWidth, ScrollingOptions.MaxColumnWidth) - old;
+            if (actual * primary > onScreenStart)
+                actual = onScreenStart / primary;
 
-        CenterOrFit(column);
+            if (actual != 0)
+            {
+                column.Width = old + actual;
+                AdjustOffset(actual * primary);
+            }
+        }
+        else
+        {
+            var actual = Math.Clamp(old + (primaryDelta / primary), ScrollingOptions.MinColumnWidth, ScrollingOptions.MaxColumnWidth) - old;
+            if (onScreenEnd + (actual * primary) > primary)
+                actual = (primary - onScreenEnd) / primary;
+
+            if (actual != 0)
+                column.Width = old + actual;
+        }
+
+        ResizeRow(cell, secondaryDelta, corner);
         Recalculate();
         return Placements();
     }
