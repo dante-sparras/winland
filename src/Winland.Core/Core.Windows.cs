@@ -34,7 +34,6 @@ public sealed partial class Core
 
     private void Note(Input input)
     {
-        _closing = null;
         switch (input)
         {
             case WindowAppeared appeared when WorkspaceContaining(appeared.Window) is { } appearedWorkspace
@@ -193,6 +192,7 @@ public sealed partial class Core
         ForgetIdle(window);
         ForgetPlacement(window);
         ForgetDrag(window);
+        ForgetCursor(window);
         _pinned.Remove(window);
         _groupRules.Remove(window);
         if (ForgetSwallowedParent(window))
@@ -216,7 +216,6 @@ public sealed partial class Core
         if (CloseGroupMember(window, desk, covered, returned) is Outcome grouped)
             return grouped;
 
-        _closing = desk;
         var monitor = desk.Monitor;
         var special = desk.Id.IsSpecial && SpecialOn(monitor) == desk.Id;
         var floating = desk.ClientOf(window)?.Floating == true;
@@ -236,13 +235,11 @@ public sealed partial class Core
                 _active = specialFocus;
                 if (normal is not null)
                     normal.Focus = specialFocus;
-                _closing = null;
                 return View(normal?.Layout.Visible() ?? [], focus: specialFocus);
             }
 
             _active = _input.SpecialFallthrough ? (FindWorkspace(ActiveOn(monitor)) ?? FocusedWorkspace()).Remembered() : null;
             desk.Focus = null;
-            _closing = null;
             return View([], focus: _active);
         }
 
