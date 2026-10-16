@@ -1,9 +1,11 @@
 using System.Runtime.InteropServices;
 using Winland;
 using Winland.Windows;
+using Winland.Windows.Tests;
 
 namespace Winland.Tests;
 
+[Collection(DesktopCollection.Name)]
 public class OpacityProbeTests
 {
     private const uint Layered = 0x00080000;
