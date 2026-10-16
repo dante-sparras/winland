@@ -96,6 +96,16 @@ public sealed partial class Core
         _awaitingMapFocus.Remove(window);
         _focusHistory.Remove(window);
         _urgent.Remove(window);
+        if (_lastMouse == window)
+            _lastMouse = null;
+        if (_unmanagedFocus == window)
+        {
+            _unmanagedFocus = null;
+            _beforeUnmanaged = null;
+        }
+
+        if (_beforeUnmanaged == window)
+            _beforeUnmanaged = null;
     }
 
     private void TouchHistory(WindowId window)
