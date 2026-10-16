@@ -1,7 +1,9 @@
 # Manual only. Run it from the Actions tab or with: gh workflow run smoke.yml
 # The smoke tests start real windows and send real input (SendInput, SetForegroundWindow).
 # Nobody knows yet whether a hosted Windows runner has a desktop that allows that.
-# A test that finds no desktop skips itself, so a green run here can mean "all skipped".
+# scripts/smoke.ps1 sets WINLAND_SMOKE=1, which the smoke facts need to run at all.
+# A test that finds no desktop skips itself, and a project whose every test skipped
+# fails the run, so a green run here means the tests ran.
 # This workflow is not part of the required check and a release run does not execute it.
 # CI and scripts/test.ps1 leave every *.Smoke.Tests.csproj out on purpose.
 

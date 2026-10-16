@@ -92,7 +92,7 @@ Every lane except Mutation is a step in that one Windows job. GitHub bills each 
 - Test and Mutation pass until a unit test project exists.
 - A release run always runs Test and Mutation, and a failure in either fails the run.
 - The check job has a 60-minute timeout, and Mutation has its own 60.
-- Smoke tests (`*.Smoke.Tests.csproj`) run only when someone dispatches the `Smoke tests` workflow by hand (`.github/workflows/smoke.yml`). A release run does not execute them, and they are not a required check.
+- Smoke tests (`*.Smoke.Tests.csproj`) run only when someone dispatches the `Smoke tests` workflow by hand (`.github/workflows/smoke.yml`). A release run does not execute them, and they are not a required check. `scripts/smoke.ps1` runs them locally. It sets `WINLAND_SMOKE=1`, without which every smoke test skips itself, and it fails when every test in a smoke project was skipped, for example on a host with no desktop.
 
 The Lint lane also checks links in tracked markdown files. A relative link or image must point at a file or folder that exists with exactly that spelling (Linux is case-sensitive). It also checks that each repo path `AGENTS.md` names in backticks exists, except a path in a gitignored reference checkout under `docs/agents/` and the optional files `docs/agents/domain.md` lists. A failure prints as `Broken link: <file>: <target>`.
 
