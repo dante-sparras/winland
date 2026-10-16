@@ -44,7 +44,7 @@ public sealed partial class Core
 
         var covered = desk.Covered();
         if (Find(id) is { Fullscreen: not FullscreenMode.None })
-            desk.Layout.SetFullscreen(id, FullscreenMode.None, FullscreenMode.None);
+            _ = Restamp(desk, desk.Layout.SetFullscreen(id, FullscreenMode.None, FullscreenMode.None));
 
         if (desk.GroupOf(id) is not WindowGroup group)
         {
