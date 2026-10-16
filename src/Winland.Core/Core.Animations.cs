@@ -39,7 +39,7 @@ public sealed partial class Core
         if (outcome.Close is WindowId closing)
             plan.Close(closing);
 
-        if (_gesture is null && _border is null)
+        if (_gesture is null && _border is null && _nativeSize is null)
         {
             foreach (var placement in outcome.Placements)
             {

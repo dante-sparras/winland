@@ -189,6 +189,7 @@ public sealed partial class Core
             WindowDrifted drifted => PutBack(drifted),
             WindowSizeStarted sizing => BeginNativeSize(sizing),
             WindowSizeEnded sized => EndNativeSize(sized),
+            WindowSizing sizing => ContinueNativeSize(sizing),
             WindowMoveStarted started => BeginNativeMove(started),
             WindowMoveEnded ended => EndNativeMove(ended),
             SwipeBegan => BeginSwipe(),

@@ -2,8 +2,9 @@ namespace Winland;
 
 /// <summary>
 /// A Client the system resizes by its border. The pinned release treats the resize request of a client like a
-/// <c>resizewindow</c> drag, so a tiled Client changes its split. The system resizes the window itself,
-/// so the core applies the whole drag when the border is let go and never places the window in between.
+/// <c>resizewindow</c> drag, so a tiled Client changes its split, live, while the border is held. The system
+/// resizes the window itself, so the core never places that window in between: its neighbours follow the
+/// border, and the window gets the Layout's rectangle when the border is let go.
 /// </summary>
 public sealed partial class Core
 {
@@ -22,6 +23,17 @@ public sealed partial class Core
         _nativeSize = window;
         _ = desk.Layout.Drag(window, new PointerDrag(true, PointerDragPhase.Begin, started.Pointer));
         return View([]);
+    }
+
+    private Outcome ContinueNativeSize(WindowSizing sizing)
+    {
+        if (_nativeSize != sizing.Window)
+            return View([]);
+
+        var resized = LayoutWorkspace(sizing.Window).Layout.Drag(sizing.Window, new PointerDrag(true, PointerDragPhase.Move, sizing.Pointer));
+        var self = new ClientId(sizing.Window.Value);
+        var neighbours = resized.Where(placement => placement.Client != self).ToList();
+        return View(neighbours) with { Live = true };
     }
 
     private Outcome EndNativeSize(WindowSizeEnded ended)

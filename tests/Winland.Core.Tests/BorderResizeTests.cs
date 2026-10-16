@@ -22,6 +22,7 @@ public class BorderResizeTests
         Assert.Equal("resizewindow", resized.Dispatcher);
         Assert.True(resized.Consumed);
         Assert.Equal(new Rectangle(640, 340, 680, 430), BoundsOf(resized, 1));
+        Assert.True(resized.Live);
     }
 
     [Fact]

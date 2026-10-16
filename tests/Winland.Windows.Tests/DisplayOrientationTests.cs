@@ -100,6 +100,7 @@ public class DisplayOrientationTests
             nameof(Outcome.Events), // Core.Noticed, the event stream and plugins
             nameof(Outcome.Decorations), // WindowAdapter.ApplyCore
             nameof(Outcome.Motions), // WindowAdapter.ApplyCore
+            nameof(Outcome.Live), // WindowAdapter.ApplyCore
             nameof(Outcome.ResetDecorations), // WindowAdapter.ApplyCore
             nameof(Outcome.GroupBars), // WindowAdapter.ApplyCore
             nameof(Outcome.Orientations), // WindowAdapter.ApplyCore
