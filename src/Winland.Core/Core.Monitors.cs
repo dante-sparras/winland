@@ -270,6 +270,10 @@ public sealed partial class Core
         replacement ??= WorkspaceFor(NextFree(origin.Id), origin.Id);
         origin.Active = replacement.Id;
         _activeOn[origin.Id] = replacement.Id;
+
+        // Pinned Clients stay on the Monitor, on the Workspace it shows next, as in the pinned release.
+        foreach (var window in PinnedFloating(leaving))
+            Transfer(leaving, replacement, window);
     }
 
     private WindowId? AdjacentOn(LiveMonitor screen, Rectangle origin, MonitorDirection direction)
