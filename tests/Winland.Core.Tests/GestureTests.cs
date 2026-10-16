@@ -114,6 +114,16 @@ public class GestureTests
     }
 
     [Fact]
+    public void ALiveKeywordKeepsTheConfiguredGestures()
+    {
+        var core = Twin(Horizontal);
+
+        Assert.Equal("ok", core.Execute("keyword general:border_size 4").Text);
+
+        Assert.Equal(new WorkspaceId("2"), Swipe(core, 3, Steps(20, -10, 0)).State.ActiveWorkspace);
+    }
+
+    [Fact]
     public void ShortSlowSwipeReverts()
     {
         var core = Twin(Horizontal);

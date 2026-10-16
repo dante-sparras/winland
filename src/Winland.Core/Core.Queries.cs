@@ -228,6 +228,7 @@ public sealed partial class Core
             WorkspaceRules = current?.WorkspaceRules ?? WorkspaceRule.None,
             Sources = current?.Sources ?? [],
             Environment = current?.Environment ?? EnvironmentAssignment.None,
+            Gestures = current?.Gestures ?? [],
             ElevationTrusted = current?.ElevationTrusted ?? false,
         };
     }
