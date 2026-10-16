@@ -137,7 +137,7 @@ static int Run(string? path)
         return 1;
     }
 
-    var configPath = path ?? DefaultConfigPath();
+    var configPath = path ?? ConfigPaths.Default(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
     ConfigDocument current;
     if (!File.Exists(configPath))
     {
@@ -168,7 +168,7 @@ static int Run(string? path)
     core.AfterReload = document =>
     {
         current = document;
-        watcher?.Watch(WatchedPaths(configPath, document));
+        watcher?.Watch(ConfigPaths.Watched(configPath, document.Sources));
         // exec-once ran at process start. A reload launches only the commands that repeat.
         LaunchConfigured(core, core.ReloadLaunches(document));
     };
@@ -198,7 +198,7 @@ static int Run(string? path)
         }
     });
     watcher = watching;
-    watcher.Watch(WatchedPaths(configPath, current));
+    watcher.Watch(ConfigPaths.Watched(configPath, current.Sources));
     try
     {
         LaunchConfigured(core, core.StartupLaunches(current));
@@ -246,20 +246,6 @@ static string? ConfigDirectory(string path)
 {
     var full = Path.GetFullPath(path);
     return Path.GetDirectoryName(full);
-}
-
-static IReadOnlyList<string> WatchedPaths(string configPath, ConfigDocument document)
-{
-    var full = Path.GetFullPath(configPath);
-    var directory = Path.GetDirectoryName(full) ?? ".";
-    var paths = new List<string> { full };
-    foreach (var source in document.Sources)
-    {
-        var combined = Path.IsPathRooted(source) ? source : Path.Combine(directory, source);
-        paths.Add(Path.GetFullPath(combined));
-    }
-
-    return paths;
 }
 
 static void Persist(RecoveryStore store, RecoverySnapshot snapshot)
@@ -358,9 +344,6 @@ static ConfigDocument ReadConfig(string path)
     var document = ConfigParser.Parse(text, source, KeyboardLayout.Active(), full);
     return ConfigElevation.Decide(document, source.Trust.Refusal);
 }
-
-static string DefaultConfigPath() =>
-    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "winland", "winland.conf");
 
 static int Usage()
 {
