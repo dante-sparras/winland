@@ -109,6 +109,13 @@ static void LaunchConfigured(Core core, IEnumerable<Launch> launches)
 
 static int Run(string? path)
 {
+    using var instance = InstanceLock.TryTake(InstanceLock.NameFor(PipeName() ?? CommandProtocol.PipeName));
+    if (instance is null)
+    {
+        Console.Error.WriteLine("Winland is already running in this session.");
+        return 1;
+    }
+
     var configPath = path ?? DefaultConfigPath();
     ConfigDocument current;
     if (!File.Exists(configPath))
