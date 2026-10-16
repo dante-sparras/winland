@@ -234,6 +234,22 @@ internal sealed partial class MonocleLayout : Layout
         return Window(_tiled[_visible]);
     }
 
+    public WindowId? Neighbor(WindowId active, string arguments)
+    {
+        if (!TrySide(First(arguments), out var side) || _tiled.Count == 0)
+            return null;
+
+        if (_tiled.Count == 1)
+        {
+            var only = Window(_tiled[0]);
+            return only == active ? null : only;
+        }
+
+        var count = _tiled.Count;
+        var delta = Forward(side) ? 1 : -1;
+        return Window(_tiled[(((_visible + delta) % count) + count) % count]);
+    }
+
     public void NoteFocus(WindowId window)
     {
         var index = _tiled.IndexOf(new ClientId(window.Value));
