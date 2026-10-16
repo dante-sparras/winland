@@ -90,13 +90,15 @@ public class DisplayOrientationTests
             nameof(Outcome.State), // WindowAdapter.ApplyCore, SessionEffects (idle), queries
             nameof(Outcome.Consumed), // the hooks swallow consumed input
             nameof(Outcome.Dispatcher), // events and command replies
-            nameof(Outcome.Close), // WindowAdapter.ApplyCore
+            nameof(Outcome.Closes), // WindowAdapter.ApplyCore
+            nameof(Outcome.Close), // shorthand for Closes
             nameof(Outcome.Focus), // WindowAdapter.ApplyCore
             nameof(Outcome.Show), // WindowAdapter.ApplyCore
             nameof(Outcome.Hide), // WindowAdapter.ApplyCore
             nameof(Outcome.ShowMinimized), // WindowAdapter.ApplyCore
             nameof(Outcome.AllowsElevation), // the core's launch decision
-            nameof(Outcome.Launch), // WindowAdapter.ApplyCore
+            nameof(Outcome.Launches), // WindowAdapter.ApplyCore
+            nameof(Outcome.Launch), // shorthand for Launches
             nameof(Outcome.Events), // Core.Noticed, the event stream and plugins
             nameof(Outcome.Decorations), // WindowAdapter.ApplyCore
             nameof(Outcome.Motions), // WindowAdapter.ApplyCore
@@ -109,7 +111,8 @@ public class DisplayOrientationTests
             nameof(Outcome.Cursor), // SessionEffects
             nameof(Outcome.ResizeCursor), // not applied: behavior.md says the system pointer is not changed
             nameof(Outcome.Error), // command replies
-            nameof(Outcome.Kill), // WindowAdapter.ApplyCore
+            nameof(Outcome.Kills), // WindowAdapter.ApplyCore
+            nameof(Outcome.Kill), // shorthand for Kills
             nameof(Outcome.Exit), // WindowAdapter.ApplyCore
             nameof(Outcome.DisplayPower), // WindowAdapter.ApplyCore
             nameof(Outcome.Relays), // SessionEffects

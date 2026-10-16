@@ -36,7 +36,7 @@ public sealed partial class Core
         var plan = new MotionPlan(this, before, after, outcome, released);
         plan.Workspaces(outcome.Hide, entering: false);
         plan.Workspaces(outcome.Show, entering: true);
-        if (outcome.Close is WindowId closing)
+        foreach (var closing in outcome.Closes)
             plan.Close(closing);
 
         if (_gesture is null && _border is null && _nativeSize is null)

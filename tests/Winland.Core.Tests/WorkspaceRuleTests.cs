@@ -477,6 +477,19 @@ public class WorkspaceRuleTests
         Assert.Null(back.Launch);
     }
 
+    [Fact]
+    public void OnCreatedEmptyRunsForEveryWorkspaceCreatedTogether()
+    {
+        var core = new Core();
+        var created = core.Handle(new Configure(ConfigParser.Parse(Flat("""
+            workspace = 3, persistent:true, on-created-empty:three
+            workspace = 4, persistent:true, on-created-empty:four
+            """))));
+
+        Assert.Equal(["three", "four"], created.Launches.Select(launch => launch.CommandLine));
+        Assert.Equal(["calc"], core.Execute("dispatch exec calc").Effect.Launches.Select(launch => launch.CommandLine));
+    }
+
     private static string Flat(string extra) =>
         "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 

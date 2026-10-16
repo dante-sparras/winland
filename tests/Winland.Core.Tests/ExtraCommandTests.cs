@@ -237,6 +237,60 @@ public class ExtraCommandTests
         public Point Read() => new(x, y);
     }
 
+    [Fact]
+    public void ABatchKeepsTheLaunchOfEveryExec()
+    {
+        var effect = new Core().Execute("[[BATCH]]dispatch exec a ; dispatch exec b").Effect;
+
+        Assert.Equal(["a", "b"], effect.Launches.Select(launch => launch.CommandLine));
+    }
+
+    [Fact]
+    public void ABatchKeepsThePlacementOfEveryMovedFloatingWindow()
+    {
+        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\n"));
+        foreach (var window in new long[] { 1, 2 })
+        {
+            core.Handle(new WindowAppeared(new WindowId(window), new Rectangle(0, 0, 1920, 1080))
+            {
+                Traits = WindowTraits.Normal with { Class = "box" },
+                Bounds = new Rectangle(5, 7, 200, 150),
+            });
+        }
+
+        var effect = core.Execute(
+            "[[BATCH]]dispatch movewindowpixel exact 10 20,address:0x1 ; dispatch movewindowpixel exact 300 400,address:0x2").Effect;
+
+        Assert.Equal(new Rectangle(10, 20, 200, 150), PlacedAt(effect, 1));
+        Assert.Equal(new Rectangle(300, 400, 200, 150), PlacedAt(effect, 2));
+    }
+
+    [Fact]
+    public void ABatchKeepsEveryDisplayPowerRequest()
+    {
+        var core = new Core();
+        core.Handle(new MonitorsChanged(
+        [
+            new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080)),
+            new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024)),
+        ]));
+
+        var effect = core.Execute(@"[[BATCH]]dispatch dpms off \\.\DISPLAY1 ; dispatch dpms on \\.\DISPLAY2").Effect;
+
+        Assert.Equal(
+            [
+                new DisplayPowerRequest(@"\\.\DISPLAY1", false),
+                new DisplayPowerRequest(@"\\.\DISPLAY2", true),
+            ],
+            effect.DisplayPower);
+    }
+
+    private static Rectangle PlacedAt(Outcome outcome, long window)
+    {
+        var client = Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
+        return Assert.Single(outcome.Placements, placement => placement.Client == client.Id).Bounds;
+    }
+
     private sealed class FixedLock(bool locked) : ISessionLock
     {
         public bool Locked { get; } = locked;

@@ -53,9 +53,18 @@ public sealed record Outcome(
     State State,
     bool Consumed = false,
     string? Dispatcher = null,
-    WindowId? Close = null,
     WindowId? Focus = null)
 {
+    /// <summary>Clients to close, in order. A bind or batch that runs several commands can close several.</summary>
+    public IReadOnlyList<WindowId> Closes { get; init; } = [];
+
+    /// <summary>The first Client to close, or null. Setting it replaces <see cref="Closes"/> with that one Client.</summary>
+    public WindowId? Close
+    {
+        get => Closes.Count > 0 ? Closes[0] : null;
+        init => Closes = value is WindowId window ? [window] : [];
+    }
+
     public IReadOnlyList<WindowId> Show { get; init; } = [];
 
     public IReadOnlyList<WindowId> Hide { get; init; } = [];
@@ -66,7 +75,15 @@ public sealed record Outcome(
 
     public bool AllowsElevation { get; init; }
 
-    public Launch? Launch { get; init; }
+    /// <summary>Programs to start, in order: every exec the outcome ran and every on-created-empty command.</summary>
+    public IReadOnlyList<Launch> Launches { get; init; } = [];
+
+    /// <summary>The first program to start, or null. Setting it replaces <see cref="Launches"/> with that one program.</summary>
+    public Launch? Launch
+    {
+        get => Launches.Count > 0 ? Launches[0] : null;
+        init => Launches = value is null ? [] : [value];
+    }
 
     public IReadOnlyList<StreamEvent> Events { get; init; } = [];
 
@@ -99,8 +116,15 @@ public sealed record Outcome(
 
     public string? Error { get; init; }
 
-    /// <summary>Terminate the Client's process. The adapter performs it; tests pass a stand-in.</summary>
-    public KillRequest? Kill { get; init; }
+    /// <summary>Terminate these Clients' processes, in order. The adapter performs it; tests pass a stand-in.</summary>
+    public IReadOnlyList<KillRequest> Kills { get; init; } = [];
+
+    /// <summary>The first kill request, or null. Setting it replaces <see cref="Kills"/> with that one request.</summary>
+    public KillRequest? Kill
+    {
+        get => Kills.Count > 0 ? Kills[0] : null;
+        init => Kills = value is KillRequest kill ? [kill] : [];
+    }
 
     /// <summary>Stop the daemon after the command reply is written.</summary>
     public bool Exit { get; init; }

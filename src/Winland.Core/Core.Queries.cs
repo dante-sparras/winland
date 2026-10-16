@@ -76,15 +76,15 @@ public sealed partial class Core
             var laid = SetMonitors(Reported());
             return laid with
             {
-                Close = current.Close ?? laid.Close,
+                Closes = [.. current.Closes, .. laid.Closes],
                 Focus = current.Focus ?? laid.Focus,
-                Launch = current.Launch ?? laid.Launch,
+                Launches = [.. current.Launches, .. laid.Launches],
                 Dispatcher = current.Dispatcher,
                 AllowsElevation = current.AllowsElevation,
                 Consumed = current.Consumed,
-                Kill = current.Kill ?? laid.Kill,
+                Kills = [.. current.Kills, .. laid.Kills],
                 Exit = current.Exit || laid.Exit,
-                DisplayPower = current.DisplayPower.Count > 0 ? current.DisplayPower : laid.DisplayPower,
+                DisplayPower = [.. current.DisplayPower, .. laid.DisplayPower],
                 Events = CombineEvents(current.Events, laid.Events),
             };
         }
@@ -110,8 +110,9 @@ public sealed partial class Core
             current.AllowsElevation);
         return shown with
         {
-            Launch = current.Launch ?? shown.Launch,
-            Kill = current.Kill,
+            Closes = current.Closes,
+            Launches = [.. current.Launches, .. shown.Launches],
+            Kills = current.Kills,
             Exit = current.Exit,
             DisplayPower = current.DisplayPower,
             Events = current.Events,

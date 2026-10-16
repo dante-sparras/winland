@@ -42,20 +42,49 @@ public sealed partial class Core
     private static Outcome Merge(Outcome first, Outcome second) =>
         second with
         {
-            Placements = second.Placements.Count > 0 ? second.Placements : first.Placements,
-            Close = second.Close ?? first.Close,
+            Placements = Union(first.Placements, second.Placements, second.State),
+            Closes = [.. first.Closes, .. second.Closes],
             Focus = second.Focus ?? first.Focus,
-            Launch = second.Launch ?? first.Launch,
-            Kill = second.Kill ?? first.Kill,
+            Launches = [.. first.Launches, .. second.Launches],
+            Kills = [.. first.Kills, .. second.Kills],
             Exit = second.Exit || first.Exit,
             Notice = second.Notice ?? first.Notice,
-            DisplayPower = second.DisplayPower.Count > 0 ? second.DisplayPower : first.DisplayPower,
+            DisplayPower = [.. first.DisplayPower, .. second.DisplayPower],
             Relays = [.. first.Relays, .. second.Relays],
             ZOrder = [.. first.ZOrder, .. second.ZOrder],
             Show = [.. first.Show, .. second.Show],
             Hide = [.. first.Hide, .. second.Hide],
             ShowMinimized = [.. first.ShowMinimized, .. second.ShowMinimized],
         };
+
+    // Every placement of the later outcome, and each earlier one it does not replace, for a Client that is still
+    // open and not hidden. A command that moves one floating window places only that window, so the earlier
+    // command's window would otherwise keep its old rectangle.
+    private static IReadOnlyList<Placement> Union(IReadOnlyList<Placement> first, IReadOnlyList<Placement> second, State state)
+    {
+        if (first.Count == 0)
+            return second;
+
+        var placed = new HashSet<ClientId>(second.Count);
+        foreach (var placement in second)
+            placed.Add(placement.Client);
+
+        var open = new HashSet<ClientId>(state.Clients.Count);
+        foreach (var client in state.Clients)
+            open.Add(client.Id);
+        foreach (var client in state.Hidden)
+            open.Remove(client.Id);
+
+        var merged = new List<Placement>(first.Count + second.Count);
+        foreach (var placement in first)
+        {
+            if (!placed.Contains(placement.Client) && open.Contains(placement.Client))
+                merged.Add(placement);
+        }
+
+        merged.AddRange(second);
+        return merged;
+    }
 
     private Outcome ExecuteTriggered(string name, string arguments, BindTrigger? trigger)
     {
@@ -203,10 +232,10 @@ public sealed partial class Core
                 _configEvents = warnings;
             }
 
-            return View([], dispatcher: name, allowsElevation: allowsElevation) with
-            {
-                Launch = WithEnvironment(parsed.Launch),
-            };
+            var launched = View([], dispatcher: name, allowsElevation: allowsElevation);
+            return WithEnvironment(parsed.Launch) is Launch launch
+                ? launched with { Launches = [.. launched.Launches, launch] }
+                : launched;
         }
         else if (Is(name, "submap"))
         {
