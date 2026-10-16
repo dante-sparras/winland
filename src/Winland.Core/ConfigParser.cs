@@ -2,10 +2,12 @@ namespace Winland;
 
 public static partial class ConfigParser
 {
-    public static ConfigDocument Parse(string text, IConfigSource? source = null, KeyLayout? layout = null)
+    /// <param name="path">The full path of the config file <paramref name="text"/> was read from, when there is one.
+    /// A <c>source</c> line that leads back to it is then skipped, and a relative source is compared against its folder.</param>
+    public static ConfigDocument Parse(string text, IConfigSource? source = null, KeyLayout? layout = null, string? path = null)
     {
         ArgumentNullException.ThrowIfNull(text);
-        return new Parser(source, layout ?? KeyLayout.UnitedStates).ParseRoot(text);
+        return new Parser(source, layout ?? KeyLayout.UnitedStates).ParseRoot(text, path);
     }
 
     private sealed partial class Parser(IConfigSource? sourceReader, KeyLayout layout)
@@ -32,16 +34,23 @@ public static partial class ConfigParser
         private readonly List<string> _sources = [];
         private readonly Dictionary<string, string> _variables = new(StringComparer.Ordinal);
         private readonly List<OpenCategory> _categories = [];
-        private readonly HashSet<string> _openSources = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _openSources = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<bool> _ifFailed = [];
         private string? _source;
+        private string? _rootFolder;
         private string? _submap;
         private string? _submapReset;
         private bool _suppressWarnings;
 
-        public ConfigDocument ParseRoot(string text)
+        public ConfigDocument ParseRoot(string text, string? path)
         {
             _source = null;
+            if (path is not null && Path.IsPathFullyQualified(path))
+            {
+                _rootFolder = Path.GetDirectoryName(path);
+                _openSources.Add(SourceKey(path));
+            }
+
             ParseLines(text);
             WarnUnclosed(_categories.Count);
             return new ConfigDocument([.. _settings], [.. _binds], [.. _warnings])
