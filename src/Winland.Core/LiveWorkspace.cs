@@ -48,19 +48,60 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
         return FullscreenMode.None;
     }
 
-    public (int Windows, int Tiled, int Floating) ClientCounts()
+    /// <summary>
+    /// The Clients a <c>w[]</c> workspace selector counts, as the pinned release does. A Group counts by its
+    /// first member's pin and its shown member's tile and visibility. A waiting member is not a Client
+    /// of the Layout, so a Group is one Client without <see cref="WindowCount.Groups"/>. Under a covering
+    /// Client only that Client and pinned ones are visible.
+    /// </summary>
+    public int CountWindows(WindowCount wanted, IReadOnlySet<WindowId> pinned)
     {
-        var tiled = 0;
-        var floating = 0;
+        var showing = wanted.Visible ? Showing() : null;
+        WindowId? covering = null;
         foreach (var client in Layout.Clients)
         {
-            if (client.Floating)
-                floating++;
-            else
-                tiled++;
+            if (client.Fullscreen != FullscreenMode.None)
+            {
+                covering = client.Window;
+                break;
+            }
         }
 
-        return (Layout.Clients.Count, tiled, floating);
+        var count = 0;
+        if (wanted.Groups)
+        {
+            foreach (var group in _groups)
+            {
+                if (ClientOf(group.Shown) is Client shown && Counts(shown, group.Members[0]))
+                    count++;
+            }
+
+            return count;
+        }
+
+        foreach (var client in Layout.Clients)
+        {
+            if (Counts(client, client.Window))
+                count++;
+        }
+
+        return count;
+
+        bool Counts(Client client, WindowId pin)
+        {
+            if (wanted.Tiled is bool tiled && client.Floating == tiled)
+                return false;
+
+            if (wanted.Pinned && !pinned.Contains(pin))
+                return false;
+
+            if (showing is null)
+                return true;
+
+            return !client.Minimized
+                && showing.Contains(client.Window)
+                && (covering is null || covering == client.Window || pinned.Contains(client.Window));
+        }
     }
 
     // A Layout may omit tiled Clients from Visible when it is only showing one of them.

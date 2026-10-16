@@ -529,10 +529,74 @@ public class WorkspaceRuleTests
         Assert.Equal(applies ? 9 : null, gaps);
     }
 
+    // The rules are read again when a tiled Client closes, so a third tile closes before the check.
+    [Theory]
+    [InlineData("w[g1]", true)]
+    [InlineData("w[g0]", false)]
+    [InlineData("w[tg1]", true)]
+    [InlineData("w[fg1]", false)]
+    [InlineData("w[1]", true)]
+    [InlineData("w[2]", false)]
+    public void AWindowCountSelectorCountsGroups(string selector, bool applies)
+    {
+        var core = Configured(Flat($"""
+            workspace = {selector}, defaultName:Hit
+            """));
+        core.Handle(Appeared(1, Wide));
+        core.Execute("dispatch togglegroup");
+        core.Handle(Appeared(2, Wide));
+        core.Handle(Appeared(3, Wide));
+        core.Execute("dispatch moveoutofgroup");
+
+        var closed = core.Handle(new WindowClosed(new WindowId(3)));
+
+        Assert.Equal([new WindowId(1), new WindowId(2)], Assert.Single(closed.State.Groups));
+        Assert.Equal(applies ? "Hit" : null, Workspace(closed, "1").DisplayName);
+    }
+
+    [Theory]
+    [InlineData("w[p1]", true)]
+    [InlineData("w[p0]", false)]
+    [InlineData("w[fp1]", true)]
+    [InlineData("w[tp1]", false)]
+    [InlineData("w[2]", true)]
+    public void AWindowCountSelectorCountsPinnedClients(string selector, bool applies)
+    {
+        var core = Configured(Flat($"""
+            windowrulev2 = float, class:^(stick)$
+            workspace = {selector}, defaultName:Hit
+            """));
+        core.Handle(new WindowAppeared(new WindowId(1), Wide) { Traits = WindowTraits.Normal with { Class = "stick" } });
+        core.Execute("dispatch pin");
+        core.Handle(Appeared(2, Wide));
+        core.Handle(Appeared(3, Wide));
+
+        var closed = core.Handle(new WindowClosed(new WindowId(3)));
+
+        Assert.Equal(applies ? "Hit" : null, Workspace(closed, "1").DisplayName);
+    }
+
+    [Theory]
+    [InlineData("w[v1]", true)]
+    [InlineData("w[v2]", false)]
+    [InlineData("w[2]", true)]
+    public void AWindowCountSelectorCountsVisibleClients(string selector, bool applies)
+    {
+        var core = Configured(Flat($"""
+            workspace = {selector}, defaultName:Hit
+            """));
+        core.Handle(Appeared(1, Wide));
+        core.Handle(Appeared(2, Wide));
+
+        var covered = core.Handle(new Dispatch("fullscreen", "0"));
+
+        Assert.Equal(applies ? "Hit" : null, Workspace(covered, "1").DisplayName);
+    }
+
     private static int? GapsIn(string rules, WorkspaceId id, string? displayName = null)
     {
         var parsed = ConfigParser.Parse(rules).WorkspaceRules;
-        return WorkspaceRules.For(parsed, id, displayName, null, 0, 0, 0)?.GapsIn?.Top;
+        return WorkspaceRules.For(parsed, id, displayName, null)?.GapsIn?.Top;
     }
 
     private static string Flat(string extra) =>
