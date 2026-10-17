@@ -12,7 +12,7 @@ public class XdgActivationConformance
     private const string Source = "xdg-activation-source";
     private const string Target = "xdg-activation-target";
 
-    [Fact(Skip = "With misc:focus_on_activate a window that takes the foreground keeps it, without the fresh input serial the pinned release requires. There is no movecursor dispatcher.")]
+    [Fact(Skip = "With misc:focus_on_activate a window that takes the foreground keeps it, without the fresh input serial the pinned release requires.")]
     public void XdgActivationSerial()
     {
         var desk = new Desk("misc:focus_on_activate = true\ninput:follow_mouse = 0\n");

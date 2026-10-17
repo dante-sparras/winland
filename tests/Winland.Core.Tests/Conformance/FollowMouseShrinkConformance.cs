@@ -4,7 +4,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class FollowMouseShrinkConformance
 {
-    [Fact(Skip = "movecursor is not a dispatcher.")]
+    [Fact]
     public void FollowMouseShrink()
     {
         // Mode 2 lets the cursor position decide focus, and float_switch_override_focus 2 switches it between

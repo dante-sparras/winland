@@ -200,6 +200,8 @@ public sealed partial class Core
             return AlterZOrder(arguments, Is(name, "bringactivetotop"), allowsElevation);
         else if (Is(name, "movecursortocorner"))
             return MoveCursorToCorner(arguments, allowsElevation);
+        else if (Is(name, "movecursor"))
+            return MoveCursor(arguments, allowsElevation);
         else if (Is(name, "movetoroot"))
             return MoveRoot(arguments, allowsElevation);
         else if (Is(name, "exit"))

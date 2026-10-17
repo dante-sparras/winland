@@ -127,7 +127,7 @@ public class RefactorStateConformance
         Assert.Equal("global_move_group_anchor", desk.ActiveClass());
     }
 
-    [Fact(Skip = "There is no movecursor dispatcher.")]
+    [Fact]
     public void PointerNoWarpsFocusesMonitorOnly()
     {
         // The case sets cursor:no_warps before any window opens.
@@ -153,7 +153,7 @@ public class RefactorStateConformance
         Assert.NotEqual(original, CursorPos(desk));
     }
 
-    [Fact(Skip = "There is no movecursor dispatcher.")]
+    [Fact(Skip = "Switching to a Workspace on another Monitor moves the cursor even with cursor:no_warps.")]
     public void CursorWarpFocusOnMonitorChange()
     {
         var desk = Prepare(new Desk());

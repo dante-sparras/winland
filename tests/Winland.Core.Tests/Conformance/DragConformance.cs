@@ -10,7 +10,7 @@ public class DragConformance
         bindm = , mouse:272, movewindow
         """;
 
-    [Fact(Skip = "movecursor is not a dispatcher.")]
+    [Fact]
     public void DragTiledCentered()
     {
         var desk = new Desk("binds {\n    drag_center_window = true\n}\n" + DragOnLeftButton);
@@ -32,7 +32,7 @@ public class DragConformance
         Click(desk, pressed: false);
     }
 
-    [Fact(Skip = "movecursor is not a dispatcher.")]
+    [Fact]
     public void DragTiledProportional()
     {
         var desk = new Desk("binds {\n    drag_center_window = false\n}\n" + DragOnLeftButton);
@@ -54,7 +54,7 @@ public class DragConformance
         Click(desk, pressed: false);
     }
 
-    [Fact(Skip = "movecursor is not a dispatcher, and a movewindow drag leaves a fullscreen Client fullscreen where it is.")]
+    [Fact(Skip = "A movewindow drag leaves a fullscreen Client fullscreen where it is.")]
     public void DragFullscreenCentered()
     {
         var desk = new Desk("binds {\n    drag_center_window = true\n}\n" + DragOnLeftButton);
@@ -81,7 +81,7 @@ public class DragConformance
         Click(desk, pressed: false);
     }
 
-    [Fact(Skip = "movecursor is not a dispatcher, and a movewindow drag leaves a fullscreen Client fullscreen where it is.")]
+    [Fact(Skip = "A movewindow drag leaves a fullscreen Client fullscreen where it is.")]
     public void DragFullscreenProportional()
     {
         var desk = new Desk("binds {\n    drag_center_window = false\n}\n" + DragOnLeftButton);
@@ -108,7 +108,7 @@ public class DragConformance
         Click(desk, pressed: false);
     }
 
-    [Fact(Skip = "movecursor is not a dispatcher.")]
+    [Fact]
     public void DragThresholdSurvivesScrollEvents()
     {
         var desk = new Desk("""

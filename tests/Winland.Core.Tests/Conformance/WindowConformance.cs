@@ -233,7 +233,7 @@ public class WindowConformance
         Assert.Equal("kitty_B", desk.ActiveClass());
     }
 
-    [Fact(Skip = "movecursor is not a dispatcher, and clients does not list Clients in stacking order.")]
+    [Fact(Skip = "clients does not list Clients in stacking order.")]
     public void BringActiveToTopMouseMovement()
     {
         var desk = new Desk("""
@@ -896,7 +896,7 @@ public class WindowConformance
         Assert.Equal("HEADLESS-2", desk.ActiveWorkspace().GetProperty("monitor").GetString());
     }
 
-    [Fact(Skip = "movecursor is not a dispatcher, and a mouse bind pressed on a Client's border does not take the Client. The keep_aspect_ratio window rule is not honored.")]
+    [Fact(Skip = "A mouse bind pressed on a Client's border does not take the Client. The keep_aspect_ratio window rule is not honored.")]
     public void MouseResize()
     {
         var desk = new Desk("windowrulev2 = float, class:kitty\n");
