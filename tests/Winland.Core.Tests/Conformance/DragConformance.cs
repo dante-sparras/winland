@@ -54,7 +54,7 @@ public class DragConformance
         Click(desk, pressed: false);
     }
 
-    [Fact(Skip = "A movewindow drag leaves a fullscreen Client fullscreen where it is.")]
+    [Fact]
     public void DragFullscreenCentered()
     {
         var desk = new Desk("binds {\n    drag_center_window = true\n}\n" + DragOnLeftButton);
@@ -81,7 +81,7 @@ public class DragConformance
         Click(desk, pressed: false);
     }
 
-    [Fact(Skip = "A movewindow drag leaves a fullscreen Client fullscreen where it is.")]
+    [Fact]
     public void DragFullscreenProportional()
     {
         var desk = new Desk("binds {\n    drag_center_window = false\n}\n" + DragOnLeftButton);

@@ -42,7 +42,29 @@ public sealed partial class Core
             CenterOnLift = _dragCenterWindow,
         };
 
-        return _gesture.PickedUp ? layout.Drag(window, _gesture.Step(PointerDragPhase.Begin, pointer)) : [];
+        return _gesture.PickedUp ? PickUp(window, _gesture, pointer) : [];
+    }
+
+    // A Client picked up while fullscreen or maximized leaves that mode first, as in the pinned release. A floating one
+    // is then put under the pointer: by its middle with binds:drag_center_window, and otherwise at the same fraction
+    // of the window as where the fullscreen surface was grabbed. The drag starts from there.
+    private IReadOnlyList<Placement> PickUp(WindowId window, Gesture gesture, Point pointer)
+    {
+        var desk = LayoutWorkspace(window);
+        if (desk.ClientOf(window) is not { Fullscreen: not FullscreenMode.None } client)
+            return desk.Layout.Drag(window, gesture.Step(PointerDragPhase.Begin, pointer));
+
+        var before = PlacedBounds(client, desk, desk.Layout.TryBounds(window, out var slot) ? slot : client.Bounds);
+        var placements = new List<Placement>(Restamp(desk, EndFullscreen(desk, window)));
+        if (client.Floating && desk.Layout.TryBounds(window, out var restored))
+        {
+            var hotX = gesture.CenterOnLift || before.Width <= 0 ? restored.Width / 2 : (int)Math.Round(Math.Clamp((pointer.X - before.X) / (double)before.Width, 0, 1) * restored.Width);
+            var hotY = gesture.CenterOnLift || before.Height <= 0 ? restored.Height / 2 : (int)Math.Round(Math.Clamp((pointer.Y - before.Y) / (double)before.Height, 0, 1) * restored.Height);
+            placements.AddRange(desk.Layout.PlaceFloating(window, restored with { X = pointer.X - hotX, Y = pointer.Y - hotY }));
+        }
+
+        placements.AddRange(desk.Layout.Drag(window, gesture.Step(PointerDragPhase.Begin, pointer)));
+        return placements;
     }
 
     private Outcome MoveGesture(Point pointer)
@@ -56,7 +78,8 @@ public sealed partial class Core
 
             // The drag starts where the pointer crossed the threshold, so the Client does not jump.
             gesture.PickedUp = true;
-            _ = layout.Drag(gesture.Window, gesture.Step(PointerDragPhase.Begin, pointer));
+            var lifted = PickUp(gesture.Window, gesture, pointer);
+            return View([.. lifted, .. layout.Drag(gesture.Window, gesture.Step(PointerDragPhase.Move, pointer))], consumed: true, dispatcher: gesture.Dispatcher) with { Live = true };
         }
 
         return View(layout.Drag(gesture.Window, gesture.Step(PointerDragPhase.Move, pointer)), consumed: true, dispatcher: gesture.Dispatcher) with { Live = true };

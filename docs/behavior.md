@@ -120,6 +120,8 @@ A Client whose application hides it, without minimizing it, stops being a Client
 
 A mouse button that runs a bind is swallowed, so the window under the pointer does not get it. `binds:pass_mouse_when_bound` defaults to false, and true lets the press and the release through to that window after the bind runs, as in the pinned release. A wheel notch that runs a bind is swallowed either way.
 
+A drag that picks up a fullscreen or maximized Client ends that mode first, as in the pinned release. A floating Client is then put under the pointer: by its middle with `binds:drag_center_window`, and otherwise at the same fraction of the window as where the fullscreen surface was grabbed.
+
 `bindm` binds a mouse button to `movewindow` or `resizewindow`. A press takes the Client under the pointer, focuses it, and drags it until that button is released. When Windows drops the mouse hook during a drag the release cannot be seen, so the drag ends where the pointer is once the hook is put back. The `mouse` dispatcher in an ordinary bind, as in `bind = SUPER, mouse:272, mouse, movewindow`, is the same action. It needs a mouse button and takes only `movewindow` or `resizewindow`. A press with no Client under the pointer does not drag. A Client that closes while it is dragged or resized, by a bind, its border or the system, ends that drag.
 
 `binds:drag_threshold` defaults to 0. Above 0, the Client is not picked up until the pointer has moved farther than that many pixels from the press. The drag then starts from that point, so the Client does not jump. The same distance separates the `c` and `g` bind flags.

@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-162 of 197 ported cases pass.
+164 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -195,8 +195,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | layout_custom | layoutCustomColumns | not ported | A custom layout is registered with hl.layout.register, which waits on the Lua config (ADR 0013). |
 | drag | dragTiledCentered | passes | |
 | drag | dragTiledProportional | passes | |
-| drag | dragFullscreenCentered | differs | A movewindow drag leaves a fullscreen Client fullscreen where it is. |
-| drag | dragFullscreenProportional | differs | A movewindow drag leaves a fullscreen Client fullscreen where it is. |
+| drag | dragFullscreenCentered | passes | |
+| drag | dragFullscreenProportional | passes | |
 | drag | dragLifecycleSignals | not ported | The case checks the signals of the drag controller inside the compositor through the test plugin, which the core has no counterpart for. |
 | drag | dragThresholdSurvivesScrollEvents | passes | |
 | snap | snap | passes | |
