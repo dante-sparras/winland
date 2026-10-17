@@ -581,7 +581,7 @@ public class ScrollConformance
         ExpectActiveFullscreen(desk, "kitty_D", 0);
     }
 
-    [Fact(Skip = "misc:exit_window_retains_fullscreen is a Gap.")]
+    [Fact]
     public void ScrollDEFAULTHANDLEDExitWindowRetainsFullscreen()
     {
         var desk = new Desk(Scrolling + "misc:exit_window_retains_fullscreen = false\n");

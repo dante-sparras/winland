@@ -63,6 +63,20 @@ public class FullscreenFocusTests
         Assert.Equal(expected, session.OnFocusUnderFullscreen);
     }
 
+    [Theory]
+    [InlineData("", 0)]
+    [InlineData("misc:exit_window_retains_fullscreen = true", 1)]
+    [InlineData("misc:exit_window_retains_fullscreen = false", 0)]
+    [InlineData("misc:exit_window_retains_fullscreen = only_when_grouped", 2)]
+    [InlineData("misc:exit_window_retains_fullscreen = only_when_nongrouped", 3)]
+    [InlineData("misc:exit_window_retains_fullscreen = 4", 0)]
+    public void ExitWindowRetainsFullscreenReadsANumberAFlagOrAName(string line, int expected)
+    {
+        var session = SessionOptions.From(ConfigParser.Parse(line));
+
+        Assert.Equal(expected, session.ExitWindowRetainsFullscreen);
+    }
+
     private static Core Desk()
     {
         var core = new Core(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n"));

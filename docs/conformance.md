@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-104 of 197 ported cases pass.
+109 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -37,7 +37,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | dwindle | dwindleTestFsingGroupedWindows | differs | A hidden Group member keeps its last frame, where the pinned release gives it the shown member's fullscreen frame. A maximized floating Group member is not moved until the Group changes, and then covers the group bar. |
 | dwindle | dwindleTestFsFocusUnderFSWindow | passes | |
 | dwindle | dwindleNewWindowTakesOverFullscreen | passes | |
-| dwindle | dwindleExitWindowRetainsFullscreen | differs | misc:exit_window_retains_fullscreen is a Gap. |
+| dwindle | dwindleExitWindowRetainsFullscreen | passes | |
 | dwindle | dwindleFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap. |
 | dwindle | dwindleFullscreenNonInterference | passes | |
 | dwindle | defaultHandledFsfocusInDirection | differs | binds:movefocus_cycles_fullscreen is a Gap. |
@@ -60,7 +60,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scroll_DEFAULT_HANDLED_TestFsingGroupedWindows | differs | A hidden Group member keeps its last frame. |
 | scroll | scroll_DEFAULT_HANDLED_testFsFocusUnderFSWindow | passes | |
 | scroll | scroll_DEFAULT_HANDLED_newWindowTakesOverFullscreen | passes | |
-| scroll | scroll_DEFAULT_HANDLED_exitWindowRetainsFullscreen | differs | misc:exit_window_retains_fullscreen is a Gap. |
+| scroll | scroll_DEFAULT_HANDLED_exitWindowRetainsFullscreen | passes | |
 | scroll | scroll_DEFAULT_HANDLED_FullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap. |
 | scroll | scroll_DEFAULT_HANDLED_FullscreenNonInterference | differs | scrolling:follow_min_visible also holds back focuswindow, and a Client out of view keeps its maximized frame after maximize ends. |
 | scroll | scroll_DEFAULT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention | passes | |
@@ -143,7 +143,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | groups | autoGroupFloatedIntoTiled | passes | |
 | groups | autoGroupFloatedintoFloated | passes | |
 | groups | autoGroupTiledIntoFloated | passes | |
-| groups | groupedExitWindowRetainsFullscreen | differs | misc:exit_window_retains_fullscreen is a Gap. |
+| groups | groupedExitWindowRetainsFullscreen | passes | |
 | groups | windowOpenInGroupReceivesCursorFocus | not ported | The case checks that kitty receives a real mouse click, which a core test cannot send. |
 | moveintoorcreategroup | moveIntoOrCreateGroup | passes | |
 | moveintoorcreategroup | crossMonitorGroupJoin | differs | moveintoorcreategroup does not find a Client on another Monitor, so the Client stays in its own Group. The pinned release looks for the neighbour across Monitors. |
@@ -170,7 +170,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | master | masterTestFsFocusUnderFSWindow | passes | |
 | master | masterFullscreenMaximiseDispatchers | passes | |
 | master | masterNewWindowTakesOverFullscreen | passes | |
-| master | masterExitWindowRetainsFullscreen | differs | misc:exit_window_retains_fullscreen is a Gap. |
+| master | masterExitWindowRetainsFullscreen | passes | |
 | master | masterFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap. |
 | master | masterFullscreenNonInterference | passes | |
 | master | rollFocus | passes | |
@@ -182,7 +182,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | monocle | monocleFullscreenMaximiseDispatchers | passes | |
 | monocle | monocleTestFsFocusUnderFSWindow | passes | |
 | monocle | monocleNewWindowTakesOverFullscreen | passes | |
-| monocle | monocleExitWindowRetainsFullscreen | differs | misc:exit_window_retains_fullscreen is a Gap. |
+| monocle | monocleExitWindowRetainsFullscreen | passes | |
 | monocle | monocleFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap. |
 | monocle | monocleFullscreenNonInterference | passes | |
 | layout | single_window_aspect_ratio | passes | |

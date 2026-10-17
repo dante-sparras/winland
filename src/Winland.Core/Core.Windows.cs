@@ -246,13 +246,14 @@ public sealed partial class Core
 
         var covered = desk.Covered();
         var wasActive = _active == window;
+        var mode = desk.ClientOf(window)?.Fullscreen ?? FullscreenMode.None;
 
         // The parent this window swallowed comes back before the window leaves its Group or its Layout.
         if (GiveSlotBack(window, desk, covered, wasActive) is Outcome slotted)
             return slotted;
 
         var returned = Unswallow(window, desk);
-        if (CloseGroupMember(window, desk, covered, returned) is Outcome grouped)
+        if (CloseGroupMember(window, desk, covered, returned, mode) is Outcome grouped)
             return grouped;
 
         var monitor = desk.Monitor;
@@ -297,7 +298,11 @@ public sealed partial class Core
         {
             next = returned ?? FocusAfter(desk, floating, hadBounds ? bounds : default, hadBounds);
             if (next is WindowId chosen)
+            {
                 TakeFocus(desk, chosen);
+                if (RetainFullscreen(desk, chosen, mode, grouped: chosen == returned) is { } retained)
+                    placements = retained;
+            }
             else if (_input.FocusOnClose == 0)
                 reveal = true;
             else
