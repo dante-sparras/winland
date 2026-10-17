@@ -88,7 +88,8 @@ public sealed partial class Core
     {
         var rule = RuleFor(desk);
         desk.Persistent = rule?.Persistent == true;
-        desk.DisplayName = rule?.DefaultName;
+        if (!desk.Renamed)
+            desk.DisplayName = rule?.DefaultName;
         desk.Options = OptionsFor(desk, rule);
     }
 

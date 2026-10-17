@@ -155,6 +155,9 @@ public sealed partial class Core
         if (Is(name, "swapactiveworkspaces"))
             return SwapActiveWorkspaces(arguments, allowsElevation);
 
+        if (Is(name, "renameworkspace"))
+            return RenameWorkspace(arguments, allowsElevation);
+
         var active = ActiveWindow();
         var desk = CurrentWorkspace();
         var layout = desk.Layout;

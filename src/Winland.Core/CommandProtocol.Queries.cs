@@ -342,6 +342,7 @@ public static partial class CommandProtocol
             }
 
             counts.Add(new WorkspaceEntryJson(
+                id.Name,
                 json.Id,
                 json.Name,
                 MonitorName(state, id),
@@ -469,6 +470,7 @@ public static partial class CommandProtocol
         [property: JsonPropertyName("name")] string Name);
 
     private sealed record WorkspaceEntryJson(
+        [property: JsonPropertyName("address")] string Address,
         [property: JsonPropertyName("id")] int Id,
         [property: JsonPropertyName("name")] string Name,
         [property: JsonPropertyName("monitor")] string Monitor,

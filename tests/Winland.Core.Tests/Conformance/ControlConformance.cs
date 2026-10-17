@@ -148,7 +148,7 @@ public class ControlConformance
         Assert.Equal("ok", desk.Send("keyword unbind SUPER, F12"));
     }
 
-    [Fact(Skip = "There is no renameworkspace dispatcher. The monitors and workspaces replies give a special workspace an id and give no Workspace a type.")]
+    [Fact(Skip = "The monitors and workspaces replies give a special workspace an id and give no Workspace a type.")]
     public void HyprctlWorkspaceJson()
     {
         const string name = "hyprctl_workspace_json";

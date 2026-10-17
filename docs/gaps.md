@@ -338,13 +338,9 @@ Every command above is a gap. No open issue tracks them.
 
 ## Events
 
-These events are not emitted. Each one waits on a feature this tree does not have yet.
+`windowtitle` and `windowtitlev2` are not emitted. They wait on a title change after a window is adopted. The title is read once, when the window appears.
 
-`windowtitle` and `windowtitlev2` wait on a title change after a window is adopted. The title is read once, when the window appears.
-
-`renameworkspace` waits on renaming a workspace. A workspace keeps the name it was created with.
-
-Both events are gaps. No open issue tracks them.
+They are gaps. No open issue tracks them.
 
 ## Plugins
 
