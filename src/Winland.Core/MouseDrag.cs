@@ -70,7 +70,7 @@ internal sealed class MouseDrag
         }
 
         var (left, top) = BorderPointer.GrabbedCorner(host.ResizeCorner, floating, drag.Pointer, bounds);
-        _grab = new Grab(id, drag.Resize, floating, drag.Pointer, bounds, left, top, drag.KeepRatio);
+        _grab = new Grab(id, drag.Resize, floating, drag.Pointer, bounds, left, top, drag.KeepRatio) { CenterOnLift = drag.CenterOnLift };
         return [];
     }
 
@@ -103,14 +103,26 @@ internal sealed class MouseDrag
                 return [];
 
             grab.Lifted = true;
+            var tile = grab.Start;
             grab.Start = box;
-            grab.HotX = box.Width / 2;
-            grab.HotY = box.Height / 2;
+            grab.HotX = Hotspot(grab.CenterOnLift, grab.Pressed.X - tile.X, tile.Width, box.Width);
+            grab.HotY = Hotspot(grab.CenterOnLift, grab.Pressed.Y - tile.Y, tile.Height, box.Height);
         }
 
         var next = new Rectangle(pointer.X - grab.HotX, pointer.Y - grab.HotY, grab.Start.Width, grab.Start.Height);
         floating.Set(grab.Id, host.SnapFloating(grab.Id, next, SnapEdges.All, resize: false));
         return host.ShowFloating(grab.Id);
+    }
+
+    // Where a lifted tile is held along one axis: its middle, or the point where the drag began in the tile, at the same
+    // fraction of the lifted size, as the pinned release maps the grab point.
+    private static int Hotspot(bool center, int offset, int tileSize, int liftedSize)
+    {
+        if (center || tileSize <= 0)
+            return liftedSize / 2;
+
+        var fraction = Math.Clamp(offset / (double)tileSize, 0, 1);
+        return (int)(fraction * liftedSize);
     }
 
     private IReadOnlyList<Placement> End(IMouseDragHost host, Point pointer)
@@ -130,7 +142,7 @@ internal sealed class MouseDrag
 
     /// <summary>
     /// Where a drag started and where it is. A floating Client keeps the pointer's offset into it.
-    /// A lifted tile is held by its middle.
+    /// A lifted tile is held by its middle, or by the point grabbed when <see cref="CenterOnLift"/> is off.
     /// </summary>
     private sealed class Grab(ClientId id, bool resize, bool wasFloating, Point grab, Rectangle start, bool left, bool top, bool keepRatio)
     {
@@ -153,6 +165,8 @@ internal sealed class MouseDrag
         public bool KeepRatio { get; } = keepRatio;
 
         public bool Lifted { get; set; }
+
+        public bool CenterOnLift { get; init; } = true;
 
         public int HotX { get; set; } = grab.X - start.X;
 

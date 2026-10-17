@@ -32,7 +32,7 @@ public class DragConformance
         Click(desk, pressed: false);
     }
 
-    [Fact(Skip = "movecursor is not a dispatcher, and binds:drag_center_window is not read, so a lifted tile is always centered on the pointer.")]
+    [Fact(Skip = "movecursor is not a dispatcher.")]
     public void DragTiledProportional()
     {
         var desk = new Desk("binds {\n    drag_center_window = false\n}\n" + DragOnLeftButton);
@@ -81,7 +81,7 @@ public class DragConformance
         Click(desk, pressed: false);
     }
 
-    [Fact(Skip = "movecursor is not a dispatcher, binds:drag_center_window is not read, and a movewindow drag leaves a fullscreen Client fullscreen where it is.")]
+    [Fact(Skip = "movecursor is not a dispatcher, and a movewindow drag leaves a fullscreen Client fullscreen where it is.")]
     public void DragFullscreenProportional()
     {
         var desk = new Desk("binds {\n    drag_center_window = false\n}\n" + DragOnLeftButton);

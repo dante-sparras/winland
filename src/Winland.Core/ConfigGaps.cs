@@ -29,7 +29,6 @@ public static class ConfigGaps
         new("aurora", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("binds:allow_pin_fullscreen", "Fullscreen does not keep or restore a pin."),
         new("binds:disable_keybind_grabbing", "Applications cannot ask Windows to turn binds off, so there is nothing to refuse."),
-        new("binds:drag_center_window", "Centering a window on the cursor when a drag floats it is not honored."),
         new("binds:movefocus_cycles_fullscreen", "Moving focus does not cycle a fullscreen Client."),
         new("binds:pass_mouse_when_bound", "Passing mouse events on after a bind runs is not honored."),
         new("binds:workspace_center_on", "Where the cursor lands after a Workspace switch is not configurable."),
