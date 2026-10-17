@@ -13,14 +13,21 @@ public sealed partial class Core
     // binds:allow_workspace_cycles: the Workspace visited last is recorded again when it is visited again.
     private bool _allowWorkspaceCycles;
 
+    // binds:drag_center_window: a dragged tile is held by its middle when it is lifted, or by the point grabbed.
+    private bool _dragCenterWindow = true;
+
     private void ReadBinds(ConfigDocument document)
     {
         _monitorFallback = true;
         _focusByHistory = true;
         _backAndForth = 0;
         _allowWorkspaceCycles = false;
+        _dragCenterWindow = true;
         foreach (var setting in document.Settings)
         {
+            if (setting.Keyword == "binds:drag_center_window" && ConfigValueSyntax.TryParseBool(setting.Value, out var center))
+                _dragCenterWindow = center;
+
             if (setting.Keyword == "binds:workspace_back_and_forth" && TryBackAndForth(setting.Value, out var mode))
                 _backAndForth = mode;
             else if (setting.Keyword == "binds:allow_workspace_cycles" && ConfigValueSyntax.TryParseBool(setting.Value, out var cycles))

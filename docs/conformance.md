@@ -194,9 +194,9 @@ A case passes when every check in it passes, as in the reference harness. A case
 | layout_custom | layoutCustomGrid | not ported | A custom layout is registered with hl.layout.register, which waits on the Lua config (ADR 0013). |
 | layout_custom | layoutCustomColumns | not ported | A custom layout is registered with hl.layout.register, which waits on the Lua config (ADR 0013). |
 | drag | dragTiledCentered | differs | movecursor is not a dispatcher. |
-| drag | dragTiledProportional | differs | movecursor is not a dispatcher, and binds:drag_center_window is not read, so a lifted tile is always centered on the pointer. |
+| drag | dragTiledProportional | differs | movecursor is not a dispatcher. |
 | drag | dragFullscreenCentered | differs | movecursor is not a dispatcher, and a movewindow drag leaves a fullscreen Client fullscreen where it is. |
-| drag | dragFullscreenProportional | differs | movecursor is not a dispatcher, binds:drag_center_window is not read, and a movewindow drag leaves a fullscreen Client fullscreen where it is. |
+| drag | dragFullscreenProportional | differs | movecursor is not a dispatcher, and a movewindow drag leaves a fullscreen Client fullscreen where it is. |
 | drag | dragLifecycleSignals | not ported | The case checks the signals of the drag controller inside the compositor through the test plugin, which the core has no counterpart for. |
 | drag | dragThresholdSurvivesScrollEvents | differs | movecursor is not a dispatcher. |
 | snap | snap | passes | |

@@ -168,6 +168,10 @@ internal static class OptionCatalog
                 kind = "int";
                 token = BackAndForth(document).ToString(CultureInfo.InvariantCulture);
                 return true;
+            case "binds:drag_center_window":
+                kind = "bool";
+                token = Bool(LastBool(document, name, true));
+                return true;
             case "binds:allow_workspace_cycles":
                 kind = "bool";
                 token = Bool(LastBool(document, name, false));

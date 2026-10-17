@@ -39,6 +39,7 @@ public sealed partial class Core
         {
             KeepRatio = IsResize(drag.Dispatcher) && KeepsRatio(drag.Arguments),
             PickedUp = _binds.DragThreshold <= 0,
+            CenterOnLift = _dragCenterWindow,
         };
 
         return _gesture.PickedUp ? layout.Drag(window, _gesture.Step(PointerDragPhase.Begin, pointer)) : [];
@@ -135,6 +136,8 @@ public sealed partial class Core
 
         public bool PickedUp { get; set; }
 
-        public PointerDrag Step(PointerDragPhase phase, Point pointer) => new(Resize, phase, pointer, KeepRatio);
+        public bool CenterOnLift { get; init; } = true;
+
+        public PointerDrag Step(PointerDragPhase phase, Point pointer) => new(Resize, phase, pointer, KeepRatio, CenterOnLift);
     }
 }
