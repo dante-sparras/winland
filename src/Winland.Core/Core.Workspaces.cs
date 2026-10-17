@@ -307,8 +307,8 @@ public sealed partial class Core
     }
 
     // A switch to a Workspace another Monitor shows moves the cursor onto that Monitor, as in the pinned release, to the
-    // middle of the Client it focuses or of the Monitor. It is a plain move, so cursor:no_warps does not stop it. A cursor
-    // option that warps after a switch goes first.
+    // middle of the Client it focuses or of the Monitor. cursor:no_warps stops it, as it stops the pinned release's warp.
+    // A cursor option that warps after a switch goes first.
     private void NoteCrossMonitorWarp(MonitorId from, Outcome switched)
     {
         _crossMonitorWarp = null;

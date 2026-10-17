@@ -450,6 +450,26 @@ public class WorkspaceTests
     }
 
     [Fact]
+    public void NoWarpsKeepsTheCursorWhenASwitchLandsOnAnotherMonitor()
+    {
+        var core = TwoMonitors("cursor:no_warps = true\n");
+
+        var switched = core.Execute("dispatch workspace 2").Effect;
+
+        Assert.Null(switched.Warp);
+    }
+
+    [Fact]
+    public void ASwitchOntoAnotherMonitorFollowsWarpOnMonitorChange()
+    {
+        var core = TwoMonitors("cursor:no_warps = true\ncursor:warp_on_change_workspace = 2\ncursor:warp_on_monitor_change = 0\n");
+
+        var switched = core.Execute("dispatch workspace 2").Effect;
+
+        Assert.Null(switched.Warp);
+    }
+
+    [Fact]
     public void SwitchingOnTheSameMonitorDoesNotMoveTheCursor()
     {
         var core = TwoMonitors("");

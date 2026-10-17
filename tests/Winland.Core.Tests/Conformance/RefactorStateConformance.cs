@@ -153,7 +153,7 @@ public class RefactorStateConformance
         Assert.NotEqual(original, CursorPos(desk));
     }
 
-    [Fact(Skip = "Switching to a Workspace on another Monitor moves the cursor even with cursor:no_warps.")]
+    [Fact]
     public void CursorWarpFocusOnMonitorChange()
     {
         var desk = Prepare(new Desk());
