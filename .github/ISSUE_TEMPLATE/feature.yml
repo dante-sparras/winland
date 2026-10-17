@@ -2,6 +2,12 @@ name: Feature
 description: Something this repo should do
 labels: [needs-triage]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        This form is the proposal. Implementation waits for a maintainer comment
+        that approves the direction and the scope. The pull request links that
+        comment. See CONTRIBUTING.md.
   - type: textarea
     id: wanted
     attributes:

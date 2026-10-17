@@ -4,17 +4,17 @@ The committed version is `0.0.0`. A build without `-p:Version` is `0.0.0-dev`. D
 
 The release version is the newest published, non-prerelease GitHub release whose tag is exactly `vMAJOR.MINOR.PATCH`, bumped at cut time. With no such release the base is `0.0.0`. The first release is cut with `-Bump minor` and is `0.1.0`.
 
-`scripts/release.ps1` cuts, publishes, abandons, and prints status. `.github/workflows/stable-release.yml` admits the claim, runs release CI, and builds the artifact.
+`scripts/release.ps1` cuts, publishes, abandons, and prints status. `.github/workflows/stable-release.yml` admits the claim, runs release CI, builds the artifact, and uploads it to the draft. It does not publish. A **Run workflow** from the GitHub UI cannot ship a stable release.
 
 ## Order
 
-1. `release` pushes an annotated tag `rc.<N>-vX.Y.Z`. The message is a JSON claim: commit, attempt, version, autopublish, and the time.
-2. It opens one draft release on that tag. A warning block sits at the top and the bottom of the body.
+1. `release` pushes an annotated tag `rc.<N>-vX.Y.Z`. The message is a JSON claim: commit, attempt, version, autopublish, and the time. A new claim sets autopublish to false. The workflow ignores that field.
+2. It opens one draft release on that tag. The notes run from the previous published `vX.Y.Z` to this commit. An `rc.*` tag is not that previous release. The first release has no previous `vX.Y.Z`, so the notes start at the beginning of the history. A warning block sits at the top and the bottom of the body.
 3. It dispatches **Stable Release** from `main` with that tag.
 4. The workflow checks the claim, checks that the commit is on `origin/main`, and checks that the draft exists.
 5. It runs CI for that commit with `release: true`, so mutation testing runs and a skipped lane fails. Mutation testing is one job per mutation run and then a score gate; any of them failing fails CI (see [CONTRIBUTING.md](../CONTRIBUTING.md#mutation-testing)). Then it builds the artifact.
 6. It uploads `Winland-win-x64.zip`, `version.json`, and `SHA256SUMS` to the draft.
-7. When the claim has autopublish, it creates the annotated tag `vX.Y.Z` on the same commit, points the release at that tag, strips the warnings, and publishes. Otherwise it stops and prints the publish command.
+7. It stops. The draft stays a draft. `scripts/release.ps1 publish` creates the annotated tag `vX.Y.Z` on the same commit, points the release at that tag, strips the warnings, and publishes.
 
 Do not press Publish in the GitHub UI. That skips the receipt tag.
 
@@ -24,7 +24,7 @@ Exactly one attempt may be outstanding. An attempt is outstanding when its `rc.*
 
 ```powershell
 pwsh -NoProfile -File scripts/release.ps1 status
-pwsh -NoProfile -File scripts/release.ps1 release -Bump minor -Autopublish
+pwsh -NoProfile -File scripts/release.ps1 release -Bump minor
 pwsh -NoProfile -File scripts/release.ps1 publish -Version 0.1.0
 pwsh -NoProfile -File scripts/release.ps1 abandon rc.1-v0.1.0
 ```
@@ -51,7 +51,7 @@ The `v0.1.2` zip was one flat self-contained folder of the old host (`winland.ex
 
 ## Tags
 
-`.github/rulesets/protect-release-tags.json` blocks creation, update, and deletion of `v*`, `rc.*`, and `abandoned-rc.*` except for a repository admin (role id 5) and the GitHub Actions app (integration id 15368). The workflow token creates the receipt tag. Apply that bypass on the live ruleset. Editing the file does not change the live rule.
+`.github/rulesets/protect-release-tags.json` blocks creation, update, and deletion of `v*`, `rc.*`, and `abandoned-rc.*` except for a repository admin (role id 5) and the GitHub Actions app (integration id 15368). `scripts/release.ps1 publish` creates the receipt tag as the maintainer, who is an admin. Apply that bypass on the live ruleset. Editing the file does not change the live rule.
 
 A tag pushed by `GITHUB_TOKEN` does not start a workflow. This flow does not use a tag trigger.
 
