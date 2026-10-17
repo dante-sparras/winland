@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-147 of 197 ported cases pass.
+148 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -88,7 +88,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scrollTapeOnClickOutOfWindow | not ported | The case soft-focuses a window with a test plugin call and clicks a pointer button, and Windows, not Winland, focuses a window on a click. |
 | scroll | scrollTapeWithMouseClick | not ported | The case tells a button press from its release, and Windows, not Winland, focuses a window on a click. |
 | scroll | properFocusBehvaior | differs | movefocus wraps within the strip instead of crossing to the next Monitor. |
-| window | swapWindow | differs | swapwindow answers can't swap fullscreen window in lower case, and does not swap with a Client on another Workspace. |
+| window | swapWindow | passes | |
 | window | windowGroupRules | passes | |
 | window | windowFocusOnFullscreenConflict | passes | |
 | window | focusFloatingOrTilingUnderFullscreen | passes | |

@@ -24,7 +24,7 @@ public class WindowConformance
         windowrulev2 = tag +tag_kitty, class:tag_kitty
         """;
 
-    [Fact(Skip = "swapwindow answers can't swap fullscreen window in lower case, and does not swap with a Client on another Workspace.")]
+    [Fact]
     public void SwapWindow()
     {
         var desk = new Desk();
