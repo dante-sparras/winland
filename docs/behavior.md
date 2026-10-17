@@ -58,6 +58,8 @@ A rule block on `exec`, `exec-once`, `execr`, `execr-once`, `exec-shutdown`, or 
 
 A console program started by `execr` gets a console window of its own. One started through `exec` shares cmd's console, which has no window, the way a program started by `sh -c` has no terminal, so a background tool stays out of sight and its redirections and pipes work. To see a console program, start it with `execr` or inside a terminal, for example `exec = wt pwsh`.
 
+`misc:initial_workspace_tracking` defaults to 1. A program `exec`, `execr`, a config `exec` line or a workspace rule's `on-created-empty` starts opens its window on the Workspace it was started on, without switching to it, as in the pinned release. That is the special workspace the focused Monitor shows, or its Workspace, and for `on-created-empty` the new Workspace. `exec-once` and `exec-shutdown` start programs without it. Every process the program starts holds the same Workspace. With 1 the first window that opens uses it up, and it lapses after `misc:initial_workspace_token_timeout` seconds, 10 by default. With 2 every window of those processes opens where the first one is now, until the first one closes. 0 turns it off. A window rule's `workspace` wins over it, and a window that comes back after a restart keeps its own Workspace.
+
 ## Window placement
 
 A new floating Client opens at the size it asked for, centered in the floating work area of its Monitor: the work area less `general:float_gaps`. A window that reports no size opens at 640 by 400. A tiled Client is placed by its Layout. `togglefloating` floats a tiled Client around the center of its tile, at the size it last had while floating, or at the size it asked for when it has not floated yet, in every Layout.

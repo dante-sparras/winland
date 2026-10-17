@@ -84,7 +84,11 @@ public sealed partial class Core
 
         var processId = appeared.ProcessId is > 0 and <= int.MaxValue ? (int)appeared.ProcessId : 0;
         if (processId > 0)
+        {
             _follow.NoteLineage(processId, appeared.AncestorProcessIds);
+            _initialWorkspaces.NoteLineage(processId, appeared.AncestorProcessIds);
+        }
+
         var followed = processId > 0 ? _follow.Take(processId, FollowNow()) : [];
         var decision = WindowRuleParser.Decide(appeared.Traits, JoinRules(_rules, followed));
         if (!decision.Adopt)
@@ -109,6 +113,15 @@ public sealed partial class Core
         var rule = WorkspaceAddress.ParseRule(decision.Workspace, Context(monitor));
         if (rule.Id is WorkspaceId addressed)
             rule = rule with { Id = Alias(addressed) };
+
+        // misc:initial_workspace_tracking: a program Winland started opens its window, silently, on the Workspace it was
+        // started on. A workspace rule still wins, and a window that comes back after a restart keeps its own.
+        if (restored is null && _session.InitialWorkspaceTracking > 0 && processId > 0)
+        {
+            var started = _initialWorkspaces.Take(processId, appeared.Window, _session.InitialWorkspaceTracking == 2, FollowNow(), window => Find(window)?.Workspace);
+            if (rule.Id is null && started is WorkspaceId origin && origin != current)
+                rule = new WorkspaceAddress.Rule(origin, Silent: true);
+        }
         var target = restored?.Workspace ?? rule.Id ?? current;
         ForgetRestored(appeared.Window);
         var desk = WorkspaceFor(target, monitor);
@@ -218,6 +231,7 @@ public sealed partial class Core
     {
         _windowState.Forget(window);
         _sizes.Remove(window);
+        _initialWorkspaces.Closed(window);
         if (ForgetSwallowedParent(window))
             return View([]);
 
