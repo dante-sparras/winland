@@ -116,14 +116,16 @@ public class MonitorDispatchTests
     }
 
     [Fact]
-    public void DwindleMoveWindowStaysWhenTheFocalPointIsStillOnThisMonitor()
+    public void DwindleMoveWindowCrossesFromATileAtTheEdgeOfTheGaps()
     {
+        // As in the pinned release, a tile that meets the work area's edge reaches the Monitor's for the focal point,
+        // so gaps_out does not keep it on this Monitor.
         var core = Gapped();
 
         var outcome = core.Handle(new Dispatch("movewindow", "r"));
 
-        Assert.Equal(new WorkspaceId("1"), Client(outcome, 1).Workspace);
-        Assert.Equal(new MonitorId(0), outcome.State.ActiveMonitor);
+        Assert.Equal(new WorkspaceId("2"), Client(outcome, 1).Workspace);
+        Assert.Equal(new MonitorId(1), outcome.State.ActiveMonitor);
     }
 
     [Fact]

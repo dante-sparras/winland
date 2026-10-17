@@ -91,6 +91,11 @@ public sealed partial class Core
                 moved.AddRange(destination.Layout.Visible());
                 followedSwitch = followedSwitch with { Placements = moved, Show = show, Hide = conceal };
             }
+            else if (IsShown(source.Id))
+            {
+                // The Workspace the window left is still shown on its own Monitor, so it is laid out again too.
+                followedSwitch = followedSwitch with { Placements = [.. source.Layout.Placed(), .. followedSwitch.Placements] };
+            }
 
             return followedSwitch.Focus is null && _active == id
                 ? followedSwitch with { Focus = id }

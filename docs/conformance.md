@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-148 of 197 ported cases pass.
+149 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -147,9 +147,9 @@ A case passes when every check in it passes, as in the reference harness. A case
 | groups | windowOpenInGroupReceivesCursorFocus | not ported | The case checks that kitty receives a real mouse click, which a core test cannot send. |
 | moveintoorcreategroup | moveIntoOrCreateGroup | passes | |
 | moveintoorcreategroup | crossMonitorGroupJoin | differs | moveintoorcreategroup does not find a Client on another Monitor, so the Client stays in its own Group. The pinned release looks for the neighbour across Monitors. |
-| workspaces | workspacesCombined | differs | general:no_focus_fallback is a Gap. movewindow r does not carry the rightmost tile onto the next Monitor. |
+| workspaces | workspacesCombined | differs | general:no_focus_fallback is a Gap, and binds:workspace_back_and_forth 2 returns to a Workspace the Monitor showed earlier in the case, where the pinned release finds no previous one. |
 | workspaces | workspacesFollowProperNoGaps | passes | |
-| workspaces | workspacesSmartGapsDirectionalMoveAcrossMonitors | differs | movewindow r does not carry the rightmost tile onto the next Monitor. |
+| workspaces | workspacesSmartGapsDirectionalMoveAcrossMonitors | passes | |
 | workspaces | workspaceRenameChangeID | passes | |
 | workspaces | workspaceRenameEmitsGlobalEvent | passes | |
 | workspaces | windowAtExplicitWorkspace | not ported | The case calls a hit test on a hidden Workspace through the reference's test plugin, which no command reaches. |
