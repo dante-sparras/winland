@@ -84,6 +84,14 @@ internal interface Layout
     /// <summary>Records the focused Client, which the next split uses.</summary>
     void NoteFocus(WindowId window);
 
+    /// <summary>
+    /// How a direction picks among the tiles next to a Client: by how recently each was focused, higher being more
+    /// recent, or by the longest shared edge when null. Layouts that do not look by edge ignore it.
+    /// </summary>
+    void RankFocus(Func<WindowId, int>? recency)
+    {
+    }
+
     /// <summary>Moves a Client in the requested direction.</summary>
     IReadOnlyList<Placement> MoveWindow(WindowId window, string arguments);
 

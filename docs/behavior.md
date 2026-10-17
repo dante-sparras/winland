@@ -193,6 +193,8 @@ A window selector `tag:` parses and matches no Client. Window tags are not track
 
 `dpms` asks for display power on, off, or toggled. An empty monitor list addresses every display. A monitor name that matches none of the enabled monitors still addresses every enabled monitor. The adapter posts `SC_MONITORPOWER` to Winland's own window, which turns every display off or on together, and does not wait for any other window. Turning the displays on also sends a zero mouse move, because Windows does not reliably honor the "on" command. Tests do not send either.
 
+`movefocus` in dwindle and master, and `movewindow` in master, with a direction from a tiled Client look at the Clients whose edge touches or slightly overlaps that side and shares more than a pixel of it. `binds:focus_preferred_method` decides among them. It defaults to 0, which picks the one focused most recently, and a Client that was never focused comes after every one that was. 1 picks the one that shares the longest edge. A tie goes to the Client that opened first.
+
 In dwindle and master, `movefocus` and `swapwindow` with a direction from a floating Client look only at floating and covering Clients, as in the pinned release. A candidate's center must lie within 90 degrees of the direction. One within 54 degrees beats a wider one, and among those the nearest center wins. A tile is never picked.
 
 `binds:window_direction_monitor_fallback` defaults to true. `movefocus` continues onto the neighbouring Monitor when nothing in that direction can take focus. `movewindow` continues when the point just outside the Client lies on another Monitor. Master, monocle and scrolling also continue when the move cannot be made inside the Workspace. False stops at the Monitor edge.

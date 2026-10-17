@@ -87,7 +87,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | layoutRuleExpand | passes | |
 | scroll | scrollTapeOnClickOutOfWindow | not ported | The case soft-focuses a window with a test plugin call and clicks a pointer button, and Windows, not Winland, focuses a window on a click. |
 | scroll | scrollTapeWithMouseClick | not ported | The case tells a button press from its release, and Windows, not Winland, focuses a window on a click. |
-| scroll | properFocusBehvaior | differs | binds:focus_preferred_method is not honored, and movefocus wraps within the strip instead of crossing to the next Monitor. |
+| scroll | properFocusBehvaior | differs | movefocus wraps within the strip instead of crossing to the next Monitor. |
 | window | swapWindow | differs | swapwindow answers can't swap fullscreen window in lower case, and does not swap with a Client on another Workspace. |
 | window | windowGroupRules | differs | getprop does not honor border_size, and the border_size window rule is not honored. |
 | window | windowFocusOnFullscreenConflict | differs | misc:on_focus_under_fullscreen is a Gap. |
@@ -147,7 +147,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | groups | windowOpenInGroupReceivesCursorFocus | not ported | The case checks that kitty receives a real mouse click, which a core test cannot send. |
 | moveintoorcreategroup | moveIntoOrCreateGroup | passes | |
 | moveintoorcreategroup | crossMonitorGroupJoin | differs | moveintoorcreategroup does not find a Client on another Monitor, so the Client stays in its own Group. The pinned release looks for the neighbour across Monitors. |
-| workspaces | workspacesCombined | differs | binds:workspace_back_and_forth, binds:allow_workspace_cycles and binds:focus_preferred_method are not honored, and binds:movefocus_cycles_fullscreen and general:no_focus_fallback are Gaps. movewindow r does not carry the rightmost tile onto the next Monitor, and getprop does not answer border_size or rounding. |
+| workspaces | workspacesCombined | differs | binds:workspace_back_and_forth and binds:allow_workspace_cycles are not honored, and binds:movefocus_cycles_fullscreen and general:no_focus_fallback are Gaps. movewindow r does not carry the rightmost tile onto the next Monitor, and getprop does not answer border_size or rounding. |
 | workspaces | workspacesFollowProperNoGaps | differs | A w[tv1] workspace rule is not applied when the first Client opens on a Workspace. The bordersize window rule and the onworkspace match are not honored. |
 | workspaces | workspacesSmartGapsDirectionalMoveAcrossMonitors | differs | A w[tv1] workspace rule is not applied when the first Client opens on a Workspace, and the bordersize window rule is not honored. movewindow r does not carry the rightmost tile onto the next Monitor. |
 | workspaces | workspaceRenameChangeID | differs | There is no dispatcher that changes a Workspace's id, and renameworkspace is not a dispatcher. |

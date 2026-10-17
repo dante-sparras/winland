@@ -34,8 +34,12 @@ internal sealed partial class MasterLayout : IMouseDragHost
             ?? Neighbor(origin, direction, active, true);
     }
 
+    private Func<WindowId, int>? _recency;
+
+    public void RankFocus(Func<WindowId, int>? recency) => _recency = recency;
+
     private WindowId? Neighbor(Rectangle origin, Side side, WindowId except, bool floating) =>
-        DirectionalNeighbor.Find(_clients, origin, side, except, floating, (WindowId window, out Rectangle box) => TryBox(window, out box, out _));
+        DirectionalNeighbor.Find(_clients, origin, side, except, floating, (WindowId window, out Rectangle box) => TryBox(window, out box, out _), _recency);
 
     public void NoteFocus(WindowId window)
     {

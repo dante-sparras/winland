@@ -1,30 +1,46 @@
 namespace Winland;
 
 /// <summary>
-/// The Client next to a rectangle in a direction: the one that touches or slightly overlaps that side
-/// and shares the most of its length with it. Dwindle and master move focus and windows this way.
-/// A floating Client looks by angle instead.
+/// The Client next to a rectangle in a direction: one that touches or slightly overlaps that side and
+/// shares more than a pixel of its length with it. Among those, <c>binds:focus_preferred_method</c> 0 picks
+/// the one focused most recently and 1 the one that shares the most length. Dwindle and master move focus
+/// and windows this way. A floating Client looks by angle instead.
 /// </summary>
 internal static class DirectionalNeighbor
 {
     public delegate bool BoxOf(WindowId window, out Rectangle box);
 
-    public static WindowId? Find(IReadOnlyList<Client> clients, Rectangle origin, Side side, WindowId except, bool floating, BoxOf boxOf)
+    /// <summary>
+    /// <paramref name="recency"/> ranks a window by how recently it was focused, higher being more recent. With it the
+    /// most recent candidate wins, and the first one wins a tie. Without it the longest shared length wins.
+    /// </summary>
+    public static WindowId? Find(
+        IReadOnlyList<Client> clients,
+        Rectangle origin,
+        Side side,
+        WindowId except,
+        bool floating,
+        BoxOf boxOf,
+        Func<WindowId, int>? recency = null)
     {
         ArgumentNullException.ThrowIfNull(clients);
         ArgumentNullException.ThrowIfNull(boxOf);
         WindowId? best = null;
-        var bestOverlap = 1.0;
+        var leader = recency is null ? 1.0 : -1.0;
         foreach (var client in clients)
         {
             if (client.Window == except || client.Minimized || client.Floating != floating)
                 continue;
             if (!boxOf(client.Window, out var box))
                 continue;
-            if (!Overlap(origin, box, side, out var overlap) || overlap <= bestOverlap)
+            if (!Overlap(origin, box, side, out var overlap))
                 continue;
 
-            bestOverlap = overlap;
+            var value = recency is null ? overlap : recency(client.Window);
+            if (value <= leader)
+                continue;
+
+            leader = value;
             best = client.Window;
         }
 

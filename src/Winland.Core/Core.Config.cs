@@ -107,9 +107,11 @@ public sealed partial class Core
         {
             desk.Layout.Apply(_master);
             desk.Layout.Configure(_scrolling);
+            RankFocus(desk.Layout);
             return;
         }
 
+        RankFocus(created);
         if (desk.Layout.Clients.Count == 0)
         {
             desk.Replace(created);

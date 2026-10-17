@@ -164,6 +164,10 @@ internal static class OptionCatalog
                 kind = "int";
                 token = LastInt(document, name, 300, 0, 2000).ToString(CultureInfo.InvariantCulture);
                 return true;
+            case "binds:focus_preferred_method":
+                kind = "int";
+                token = LastInt(document, name, 0, 0, 1).ToString(CultureInfo.InvariantCulture);
+                return true;
             case "binds:window_direction_monitor_fallback":
                 kind = "bool";
                 token = Bool(MonitorFallback(document));

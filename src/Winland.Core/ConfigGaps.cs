@@ -31,7 +31,6 @@ public static class ConfigGaps
         new("binds:allow_workspace_cycles", "Workspace cycling history is not honored."),
         new("binds:disable_keybind_grabbing", "Applications cannot ask Windows to turn binds off, so there is nothing to refuse."),
         new("binds:drag_center_window", "Centering a window on the cursor when a drag floats it is not honored."),
-        new("binds:focus_preferred_method", "Choosing the method that finds a window in a direction is not honored."),
         new("binds:movefocus_cycles_fullscreen", "Moving focus does not cycle a fullscreen Client."),
         new("binds:pass_mouse_when_bound", "Passing mouse events on after a bind runs is not honored."),
         new("binds:workspace_back_and_forth", "Switching to the focused Workspace does not go back to the previous one."),
