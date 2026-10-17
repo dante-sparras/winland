@@ -38,6 +38,13 @@ public sealed partial class Core
             warp = Plan(outcome.State, _cursor.MonitorMode());
         if (warp is null && specialToggled)
             warp = PlanFocused(outcome.State, _cursor.WarpOnSpecial);
+        if (warp is null && _crossMonitorWarp is WarpTo crossed)
+        {
+            warp = crossed;
+            _pointer = crossed.Position;
+        }
+
+        _crossMonitorWarp = null;
         if (warp is null)
             warp = DefaultMonitor(outcome);
 

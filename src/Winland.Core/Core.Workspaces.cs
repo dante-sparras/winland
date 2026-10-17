@@ -306,6 +306,38 @@ public sealed partial class Core
         _history.Insert(0, new WorkspaceVisit(workspace, monitor));
     }
 
+    // A switch to a Workspace another Monitor shows moves the cursor onto that Monitor, as in the pinned release, to the
+    // middle of the Client it focuses or of the Monitor. It is a plain move, so cursor:no_warps does not stop it. A cursor
+    // option that warps after a switch goes first.
+    private void NoteCrossMonitorWarp(MonitorId from, Outcome switched)
+    {
+        _crossMonitorWarp = null;
+        var owner = FocusedId();
+        if (owner == from || MonitorById(owner) is not LiveMonitor screen)
+            return;
+
+        var bounds = screen.Bounds;
+        if (_workspaceCenterOn == 1 && _active is WindowId window)
+        {
+            foreach (var placement in FocusedWorkspace().Layout.Visible())
+            {
+                if (placement.Client.Value == window.Value)
+                {
+                    bounds = placement.Bounds;
+                    break;
+                }
+            }
+
+            foreach (var placement in switched.Placements)
+            {
+                if (placement.Client.Value == window.Value)
+                    bounds = placement.Bounds;
+            }
+        }
+
+        _crossMonitorWarp = new WarpTo(new Point(bounds.X + (bounds.Width / 2), bounds.Y + (bounds.Height / 2)));
+    }
+
     // binds:workspace_back_and_forth: asking for the Workspace the focused Monitor shows goes to the previous one
     // instead, as in the pinned release. Without a previous one the Monitor stays where it is.
     private WorkspaceId BackAndForth(WorkspaceId target)

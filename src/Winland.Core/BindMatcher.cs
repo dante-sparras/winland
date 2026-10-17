@@ -54,6 +54,7 @@ public static class BindMatcher
         "binds:scroll_event_delay",
         "binds:window_direction_monitor_fallback",
         "binds:workspace_back_and_forth",
+        "binds:workspace_center_on",
     };
 
     public static BindDecision Decide(BindTable table, BindSession session, Input input)

@@ -420,6 +420,60 @@ public class WorkspaceTests
         Assert.Equal(new WorkspaceId(expected), again.State.ActiveWorkspace);
     }
 
+    [Theory]
+    [InlineData("1", 2880, 540)]
+    [InlineData("0", 2880, 540)]
+    public void SwitchingToAnEmptyWorkspaceOnAnotherMonitorMovesTheCursorThere(string centerOn, int x, int y)
+    {
+        var core = TwoMonitors($"binds:workspace_center_on = {centerOn}\n");
+
+        var switched = core.Execute("dispatch workspace 2").Effect;
+
+        Assert.Equal(new WarpTo(new Point(x, y)), switched.Warp);
+    }
+
+    [Theory]
+    [InlineData("1", 2400, 540)]
+    [InlineData("0", 2880, 540)]
+    public void WorkspaceCenterOnPicksTheFocusedClientOrTheMonitor(string centerOn, int x, int y)
+    {
+        var core = TwoMonitors($"binds:workspace_center_on = {centerOn}\n");
+        core.Execute("dispatch workspace 2");
+        core.Handle(new WindowAppeared(new WindowId(1), Right));
+        core.Handle(new WindowAppeared(new WindowId(2), Right));
+        core.Handle(new WindowFocused(new WindowId(1), FocusCause.User));
+        core.Execute("dispatch focusmonitor LEFT");
+
+        var switched = core.Execute("dispatch workspace 2").Effect;
+
+        Assert.Equal(new WarpTo(new Point(x, y)), switched.Warp);
+    }
+
+    [Fact]
+    public void SwitchingOnTheSameMonitorDoesNotMoveTheCursor()
+    {
+        var core = TwoMonitors("");
+
+        var switched = core.Execute("dispatch workspace 3").Effect;
+
+        Assert.Null(switched.Warp);
+    }
+
+    private static readonly Rectangle Right = new(1920, 0, 1920, 1080);
+
+    // LEFT shows workspace 1 and RIGHT shows workspace 2, and LEFT is focused.
+    private static Core TwoMonitors(string config)
+    {
+        var core = Load(config);
+        core.Handle(new MonitorsChanged(
+        [
+            new Monitor("LEFT", "Left", 0, 0, 1920, 1080, 1, true, Area),
+            new Monitor("RIGHT", "Right", 1920, 0, 1920, 1080, 1, true, Right),
+        ]));
+        core.Execute("dispatch focusmonitor LEFT");
+        return core;
+    }
+
     // A loaded config applies its gaps and borders like a reload, and these rectangles have none.
     private const string Gapless = "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n";
 

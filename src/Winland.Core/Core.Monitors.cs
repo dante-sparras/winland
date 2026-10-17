@@ -16,6 +16,13 @@ public sealed partial class Core
     // binds:drag_center_window: a dragged tile is held by its middle when it is lifted, or by the point grabbed.
     private bool _dragCenterWindow = true;
 
+    // binds:workspace_center_on: switching to a Workspace on another Monitor puts the cursor in the middle of that
+    // Monitor (0) or of the Client it focuses (1).
+    private int _workspaceCenterOn = 1;
+
+    // Where that switch puts the cursor when no cursor option warps it elsewhere.
+    private WarpTo? _crossMonitorWarp;
+
     private void ReadBinds(ConfigDocument document)
     {
         _monitorFallback = true;
@@ -23,8 +30,13 @@ public sealed partial class Core
         _backAndForth = 0;
         _allowWorkspaceCycles = false;
         _dragCenterWindow = true;
+        _workspaceCenterOn = 1;
         foreach (var setting in document.Settings)
         {
+            if (setting.Keyword == "binds:workspace_center_on"
+                && int.TryParse(setting.Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var centerOn))
+                _workspaceCenterOn = Math.Clamp(centerOn, 0, 1);
+
             if (setting.Keyword == "binds:drag_center_window" && ConfigValueSyntax.TryParseBool(setting.Value, out var center))
                 _dragCenterWindow = center;
 
