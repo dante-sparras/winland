@@ -162,12 +162,21 @@ internal sealed partial class ScrollingLayout
                 y += border;
                 width = Math.Max(0, width - (border * 2.0));
                 height = Math.Max(0, height - (border * 2.0));
-                var box = Pixels(x, y, width, height);
+                var box = _layoutOptions.KeepAspect(Pixels(x, y, width, height), _area, TiledCount());
                 cell.Logical = box;
                 cell.Box = box;
                 cursor += span;
             }
         }
+    }
+
+    private int TiledCount()
+    {
+        var count = 0;
+        foreach (var column in _columns)
+            count += column.Cells.Count;
+
+        return count;
     }
 
     private (int Left, int Top, int Right, int Bottom) GapsFor(int column, int cell, int cells, bool horizontal)

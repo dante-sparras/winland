@@ -531,6 +531,43 @@ public class LayoutOptionTests
         Assert.Equal(NewFloat.Centered(Wide, bounds), BoundsOf(outcome, 2));
     }
 
+    [Theory]
+    [InlineData("dwindle")]
+    [InlineData("master")]
+    [InlineData("monocle")]
+    [InlineData("scrolling")]
+    public void ALoneTileIsPaddedToTheAspectRatio(string layout)
+    {
+        var plain = Configured(Flat($"general:layout = {layout}\n"));
+        var ruled = Configured(Flat($"general:layout = {layout}\nlayout:single_window_aspect_ratio = 4 3\n"));
+
+        var before = BoundsOf(plain.Handle(Appeared(1, Wide)), 1);
+        var after = BoundsOf(ruled.Handle(Appeared(1, Wide)), 1);
+
+        // 4:3 on 1920 by 1080 leaves 1920 - 1080 * 4 / 3 = 480 pixels, split between the two sides.
+        Assert.Equal(before with { X = before.X + 240, Width = before.Width - 480 }, after);
+    }
+
+    [Fact]
+    public void PaddingWithinTheToleranceIsNotAdded()
+    {
+        var core = Configured(Flat("layout:single_window_aspect_ratio = 4 3\nlayout:single_window_aspect_ratio_tolerance = 0.2\n"));
+
+        Assert.Equal(new Rectangle(0, 0, 1920, 1080), BoundsOf(core.Handle(Appeared(1, Wide)), 1));
+        Assert.Equal("{\"option\":\"layout:single_window_aspect_ratio_tolerance\",\"float\":0.2,\"set\":true}", core.Execute("getoption layout:single_window_aspect_ratio_tolerance").Text);
+    }
+
+    [Fact]
+    public void TwoTilesAreNotPadded()
+    {
+        var core = Configured(Flat("layout:single_window_aspect_ratio = 4 3\n"));
+        Assert.Equal(new Rectangle(240, 0, 1440, 1080), BoundsOf(core.Handle(Appeared(1, Wide)), 1));
+
+        var split = core.Handle(Appeared(2, Wide));
+
+        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(split, 1));
+    }
+
     private static string Flat(string extra) =>
         "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 

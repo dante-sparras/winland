@@ -156,7 +156,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | input:virtualkeyboard:share_states | Virtual keyboards are not honored. |
 | layerrule | Layer shell rules have no Windows meaning. |
 | layerrulev2 | Layer shell rules have no Windows meaning. |
-| layout:single_window_aspect_ratio_tolerance | A single window's aspect ratio is not honored. |
 | locale | Locale override is not honored. |
 | mirror | Mirroring a monitor is not honored. |
 | misc:allow_session_lock_restore | The lock screen belongs to Windows. |
@@ -242,7 +241,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | input:touchdevice:enabled, input:touchdevice:output, input:touchdevice:transform |
 | gap | - | input:touchpad:clickfinger_behavior, input:touchpad:disable_while_typing, input:touchpad:drag_3fg, input:touchpad:drag_lock, input:touchpad:flip_x, input:touchpad:flip_y, input:touchpad:middle_button_emulation, input:touchpad:natural_scroll, input:touchpad:scroll_factor, input:touchpad:tap-and-drag, input:touchpad:tap-to-click, input:touchpad:tap_button_map |
 | gap | - | input:virtualkeyboard:release_pressed_on_close, input:virtualkeyboard:share_states |
-| gap | - | layout:single_window_aspect_ratio_tolerance |
 | gap | - | locale |
 | non-goal | - | misc:allow_session_lock_restore, misc:anr_missed_pings, misc:background_color, misc:bell_sound, misc:col.splash, misc:disable_scale_notification, misc:disable_splash_rendering, misc:disable_watchdog_warning, misc:disable_xdg_env_checks, misc:enable_anr_dialog, misc:force_default_wallpaper, misc:layers_hog_keyboard_focus, misc:lockdead_screen_delay, misc:middle_click_paste, misc:name_vk_after_proc, misc:render_unfocused_fps, misc:screencopy_force_8b, misc:session_lock_blur, misc:session_lock_xray, misc:splash_font_family |
 | gap | - | misc:always_follow_on_dnd, misc:animate_manual_resizes, misc:animate_mouse_windowdragging, misc:font_family, misc:key_press_enables_dpms, misc:mouse_move_enables_dpms |

@@ -192,6 +192,14 @@ internal static class OptionCatalog
                 kind = "bool";
                 token = Bool(MonitorFallback(document));
                 return true;
+            case "layout:single_window_aspect_ratio":
+                kind = "vec2";
+                token = JsonSerializer.Serialize(new[] { layout.SingleWindowAspectRatio.X, layout.SingleWindowAspectRatio.Y });
+                return true;
+            case "layout:single_window_aspect_ratio_tolerance":
+                kind = "float";
+                token = layout.SingleWindowAspectRatioTolerance.ToString(CultureInfo.InvariantCulture);
+                return true;
             case "misc:float_force_onscreen":
                 kind = "int";
                 token = layout.FloatForceOnscreen.ToString(CultureInfo.InvariantCulture);

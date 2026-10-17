@@ -328,7 +328,7 @@ internal sealed partial class DwindleLayout : Layout
         var top = box.Y == area.Y ? 0 : gaps.Top;
         var right = box.X + box.Width == area.X + area.Width ? 0 : gaps.Right;
         var bottom = box.Y + box.Height == area.Y + area.Height ? 0 : gaps.Bottom;
-        var presented = Shrink(box, left, top, right, bottom);
+        var presented = _options.KeepAspect(Shrink(box, left, top, right, bottom), _area, _nodes.Count);
         if (_pseudo.Contains(id))
             presented = Center(presented, PseudoSize(id));
 

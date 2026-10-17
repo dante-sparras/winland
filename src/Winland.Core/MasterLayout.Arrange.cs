@@ -223,7 +223,7 @@ internal sealed partial class MasterLayout
         var top = box.Y == area.Y ? 0 : gaps.Top;
         var right = box.X + box.Width == area.X + area.Width ? 0 : gaps.Right;
         var bottom = box.Y + box.Height == area.Y + area.Height ? 0 : gaps.Bottom;
-        var presented = Shrink(box, left, top, right, bottom);
+        var presented = _layout.KeepAspect(Shrink(box, left, top, right, bottom), _area, _tiles.Count);
         var border = _layout.BorderSize;
         return Shrink(presented, border, border, border, border);
     }
