@@ -55,15 +55,64 @@ public class BindFlagTests
     }
 
     [Fact]
-    public void SeparateBindFiresForEachListedKey()
+    public void SeparateBindRunsOnceItsKeysArePressedInOrder()
     {
         var core = Load("binds = SUPER, A&B, killactive");
         Appear(core, 1);
         Press(core, "Super_L");
 
-        Assert.Equal("killactive", Press(core, "A").Dispatcher);
-        Release(core, "A");
-        Assert.Equal("killactive", Press(core, "B").Dispatcher);
+        var first = Press(core, "A");
+        var second = Press(core, "B");
+
+        Assert.True(first.Consumed);
+        Assert.Null(first.Dispatcher);
+        Assert.Equal("killactive", second.Dispatcher);
+    }
+
+    [Fact]
+    public void SeparateBindIgnoresItsKeysOutOfOrder()
+    {
+        var core = Load("binds = SUPER, A&B, killactive");
+        Appear(core, 1);
+        Press(core, "Super_L");
+
+        var first = Press(core, "B");
+        var second = Press(core, "A");
+
+        Assert.False(first.Consumed);
+        Assert.Null(first.Dispatcher);
+        Assert.True(second.Consumed);
+        Assert.Null(second.Dispatcher);
+    }
+
+    [Fact]
+    public void HeldSingleKeyBindSwallowsAnotherKeyUnderTheSameModifiers()
+    {
+        var core = Load("bind = SUPER, Q, killactive");
+        Appear(core, 1);
+        Press(core, "Super_L");
+        Press(core, "Q");
+
+        var other = Press(core, "H");
+
+        Assert.True(other.Consumed);
+        Assert.Null(other.Dispatcher);
+    }
+
+    [Fact]
+    public void SeparateReleaseBindRunsOnTheLastKeyAfterAnInOrderPress()
+    {
+        var core = Load("bindsr = SUPER, A&B, killactive");
+        Appear(core, 1);
+        Press(core, "Super_L");
+        Press(core, "A");
+        Press(core, "B");
+
+        var prefix = Release(core, "A");
+        var last = Release(core, "B");
+
+        Assert.Null(prefix.Dispatcher);
+        Assert.Equal("killactive", last.Dispatcher);
     }
 
     [Fact]
@@ -205,6 +254,7 @@ public class BindFlagTests
         Press(core, "Super_L");
 
         Assert.Equal("killactive", Press(core, "Q").Dispatcher);
+        Release(core, "Q");
         Assert.False(Press(core, "H").Consumed);
     }
 

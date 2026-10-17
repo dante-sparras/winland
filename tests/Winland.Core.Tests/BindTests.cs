@@ -219,7 +219,7 @@ public class BindTests
     }
 
     [Fact]
-    public void ReleaseBindDoesNotFireAfterTheModifierIsUp()
+    public void ReleaseBindMatchesTheModifiersItsKeyWentDownUnder()
     {
         var core = Load("bindr = SUPER, Q, killactive");
         Appear(core, 1);
@@ -229,8 +229,8 @@ public class BindTests
 
         var outcome = Release(core, "Q");
 
-        AssertCaught(outcome);
-        Assert.Contains(outcome.State.Clients, client => client.Window == new WindowId(1));
+        Assert.True(outcome.Consumed);
+        Assert.Equal(new WindowId(1), outcome.Close);
     }
 
     [Fact]

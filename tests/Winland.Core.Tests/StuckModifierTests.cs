@@ -117,7 +117,7 @@ public class StuckModifierTests
     }
 
     [Fact]
-    public void ReleaseBindOnAKeyWhosePressPassedRunsButLetsTheReleaseThrough()
+    public void ReleaseOfAKeyPressedWithoutTheBindsModifiersPassesThrough()
     {
         var (core, session) = Load("bindr = SUPER, T, killactive");
         Assert.False(core.Decide(new KeyPressed("T"), session).Consumed);
@@ -125,7 +125,7 @@ public class StuckModifierTests
 
         var up = core.Decide(new KeyReleased("T"), session);
 
-        Assert.Equal("killactive", up.Dispatcher);
+        Assert.Null(up.Dispatcher);
         Assert.False(up.Consumed);
     }
 
@@ -203,7 +203,7 @@ public class StuckModifierTests
 
         var up = core.Decide(new PointerButtonReleased("mouse:272"), session);
 
-        Assert.Equal("killactive", up.Dispatcher);
+        Assert.Null(up.Dispatcher);
         Assert.False(up.Consumed);
     }
 

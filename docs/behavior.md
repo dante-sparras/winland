@@ -251,6 +251,14 @@ A modifier list in a bind, a gesture's `mod:` and `sendshortcut` is read as the 
 
 A bind on a modifier key, such as `Super_L`, is matched on its press without that key's own modifier, so `bind = , Super_L` runs when Super goes down alone. On the release the mask includes the key's own modifier, as in the pinned release, so `bindr = SUPER, Super_L` runs when Super is let go and `bindr = , Super_L` never runs: its press swallows Super, and its release matches nothing and is swallowed too. Super and its release still reach Windows under `bindr = SUPER, Super_L`, so Winland sends a mask key before the release, and Start does not open.
 
+A release bind matches the modifiers its key went down under, as in the pinned release, so `bindr = SUPER, Q` runs when Super is let go before Q, and does not run for a Q pressed before Super.
+
+## Several keys
+
+A bind with the `s` flag and its keys joined by `&`, such as `binds = , Tab&T, exec, kitty`, runs once its keys are held in that order, with no other key held, when the last one goes down. The keys are matched in the order they went down, so `B`, `A`, `C` does not run `A&B&C`. A press that starts or extends the chord is swallowed unless the bind has the `n` or `r` flag. A key that does not extend it reaches the window. A bind on one key that a longer chord starts with waits: `bind = SUPER, Q` beside `binds = SUPER, Q&K` runs when Q is released alone, and not at all once K completes the chord. A completed chord stops the shorter binds inside it from running on the release of its keys. With the `r` flag the chord is armed when its last key completes it in order, and runs when that key is released.
+
+While a key with a bind is held, another key pressed under the same modifiers is swallowed, as in the pinned release: with `bind = SUPER, Q` held, Super+H reaches no window.
+
 ## Sending keys
 
 `pass` sends the key of the bind that ran it to the Client the window selector names. The press goes on when the key goes down and the release when it comes up, so a `pass` bind runs on the release too without the `r` flag. The modifiers the user holds are left as they are. A selector that matches no Client answers `pass: window not found`.
