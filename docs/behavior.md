@@ -199,6 +199,8 @@ A `workspace` rule is honored for `monitor`, `default`, `persistent`, `defaultNa
 
 A workspace filter such as `r[1-3]` matches workspaces that already exist. It is not a workspace address, so `workspace`, `movetoworkspace` and `movetoworkspacesilent` do not switch on it.
 
+A floating Client that `movetoworkspace` or `movetoworkspacesilent` moves onto a Workspace on another Monitor keeps its place relative to the Monitor, as in the pinned release.
+
 ## Monitors
 
 A `monitor` position is in logical pixels. Windows reports the monitor rectangle in physical pixels. The layout width is that physical width divided by the monitor's scale, rounded half away from zero. A scale-2 monitor that is 3840 physical pixels wide is 1920 wide in the layout. The position that is stored is that logical position multiplied by the monitor's scale, because window placement stays in physical pixels.

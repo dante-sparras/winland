@@ -2,6 +2,17 @@ namespace Winland;
 
 public sealed partial class Core
 {
+    // A floating Client keeps its place relative to the Monitor when it moves onto a Workspace on another Monitor,
+    // as in the pinned release.
+    private Taken OntoMonitor(Taken taken, MonitorId from, MonitorId to)
+    {
+        if (!taken.Floating || from == to || MonitorById(from) is not { Effective.Enabled: true } source || MonitorById(to) is not { Effective.Enabled: true } destination)
+            return taken;
+
+        var bounds = taken.Bounds;
+        return taken with { Bounds = bounds with { X = bounds.X - source.Bounds.X + destination.Bounds.X, Y = bounds.Y - source.Bounds.Y + destination.Bounds.Y } };
+    }
+
     private Outcome MoveTo(
         string argument,
         bool silent,
@@ -35,7 +46,7 @@ public sealed partial class Core
         var destinationCovered = destination.Covered();
         var solitary = source.GroupOf(id) is null ? SolitaryGroup(destination, id) : null;
         var area = WorkArea(destination, _area);
-        destination.Receive(id, taken, area);
+        destination.Receive(id, OntoMonitor(taken, source.Monitor, destination.Monitor), area);
         CarryGroup(source, destination, id);
         JoinOnMove(destination, solitary, id);
         Restamp(source, []);
