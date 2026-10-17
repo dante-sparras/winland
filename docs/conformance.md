@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-109 of 197 ported cases pass.
+113 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -38,7 +38,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | dwindle | dwindleTestFsFocusUnderFSWindow | passes | |
 | dwindle | dwindleNewWindowTakesOverFullscreen | passes | |
 | dwindle | dwindleExitWindowRetainsFullscreen | passes | |
-| dwindle | dwindleFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap. |
+| dwindle | dwindleFullscreenPinnedWindows | passes | |
 | dwindle | dwindleFullscreenNonInterference | passes | |
 | dwindle | defaultHandledFsfocusInDirection | differs | binds:movefocus_cycles_fullscreen is a Gap. |
 | dwindle | dwindleFullsreenCenterDispatchSavesPos | not ported | The result depends on the floating size kitty asks for, which a core test cannot match. |
@@ -61,7 +61,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scroll_DEFAULT_HANDLED_testFsFocusUnderFSWindow | passes | |
 | scroll | scroll_DEFAULT_HANDLED_newWindowTakesOverFullscreen | passes | |
 | scroll | scroll_DEFAULT_HANDLED_exitWindowRetainsFullscreen | passes | |
-| scroll | scroll_DEFAULT_HANDLED_FullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap. |
+| scroll | scroll_DEFAULT_HANDLED_FullscreenPinnedWindows | passes | |
 | scroll | scroll_DEFAULT_HANDLED_FullscreenNonInterference | differs | scrolling:follow_min_visible also holds back focuswindow, and a Client out of view keeps its maximized frame after maximize ends. |
 | scroll | scroll_DEFAULT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention | passes | |
 | scroll | scroll_DEFAULT_HANDLED_posAndSizeSyncWhileFS | not ported | The case opens a layer shell surface, which has no Windows meaning. |
@@ -171,7 +171,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | master | masterFullscreenMaximiseDispatchers | passes | |
 | master | masterNewWindowTakesOverFullscreen | passes | |
 | master | masterExitWindowRetainsFullscreen | passes | |
-| master | masterFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap. |
+| master | masterFullscreenPinnedWindows | passes | |
 | master | masterFullscreenNonInterference | passes | |
 | master | rollFocus | passes | |
 | master | focusMasterClose | passes | |
@@ -183,12 +183,12 @@ A case passes when every check in it passes, as in the reference harness. A case
 | monocle | monocleTestFsFocusUnderFSWindow | passes | |
 | monocle | monocleNewWindowTakesOverFullscreen | passes | |
 | monocle | monocleExitWindowRetainsFullscreen | passes | |
-| monocle | monocleFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap. |
+| monocle | monocleFullscreenPinnedWindows | passes | |
 | monocle | monocleFullscreenNonInterference | passes | |
 | layout | single_window_aspect_ratio | passes | |
 | layout | crashOnGeomUpdate | differs | The monitor keyword refuses a mode and a scale, which are Gaps. |
 | layout | layoutRefreshDuringMonitorTeardown | differs | The monitor keyword refuses a mode and a scale, which are Gaps. |
-| layout | posPreserve | differs | movewindow r puts a floating Client's frame against the monitor edge, where the pinned release keeps its border inside, and binds:allow_pin_fullscreen is a Gap. |
+| layout | posPreserve | differs | movewindow r puts a floating Client's frame against the monitor edge, where the pinned release keeps its border inside. |
 | layout | focusMRUAfterClose | passes | |
 | layout | focusPreservedLayoutChange | passes | |
 | layout_custom | layoutCustomGrid | not ported | A custom layout is registered with hl.layout.register, which waits on the Lua config (ADR 0013). |

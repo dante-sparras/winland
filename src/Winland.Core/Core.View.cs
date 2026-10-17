@@ -162,6 +162,7 @@ public sealed partial class Core
                 {
                     Bounds = PlacedBounds(client, desk, slot),
                     Pinned = pinned,
+                    PinFullscreened = _pinFullscreened.Contains(client.Window),
                     Swallowing = SwallowedBy(client.Window),
                     InhibitingIdle = InhibitsIdle(client, shown, active),
                 });

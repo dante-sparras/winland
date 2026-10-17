@@ -19,7 +19,7 @@ public sealed partial class Core
         if (window is not WindowId id || Find(id) is not Client client || WorkspaceContaining(id) is not LiveWorkspace desk)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
-        if (!client.Floating)
+        if (!client.Floating || client.Fullscreen != FullscreenMode.None)
             return Rejected(name, "error: window does not qualify to be pinned", allowsElevation);
 
         var pinned = _pinned.Contains(id);

@@ -120,7 +120,7 @@ public static partial class CommandProtocol
             client.ProcessId,
             false,
             client.Pinned,
-            false,
+            client.PinFullscreened,
             (int)client.Fullscreen,
             (int)client.FullscreenClient,
             client.Fullscreen == FullscreenMode.None ? "" : "default",

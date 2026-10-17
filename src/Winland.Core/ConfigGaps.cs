@@ -27,7 +27,6 @@ public static class ConfigGaps
         new("animation:shadowangle", "Shadows are not honored, so their angle does not animate."),
         new("animation:zoomFactor", "Screen zoom is not honored, so it does not animate."),
         new("aurora", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
-        new("binds:allow_pin_fullscreen", "Fullscreen does not keep or restore a pin."),
         new("binds:disable_keybind_grabbing", "Applications cannot ask Windows to turn binds off, so there is nothing to refuse."),
         new("binds:movefocus_cycles_fullscreen", "Moving focus does not cycle a fullscreen Client."),
         new("bitdepth", "Changing a monitor's bit depth is not honored."),

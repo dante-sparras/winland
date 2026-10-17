@@ -143,7 +143,7 @@ public class MonocleConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "binds:allow_pin_fullscreen is a Gap.")]
+    [Fact]
     public void MonocleFullscreenPinnedWindows()
     {
         var desk = new Desk(Monocle);

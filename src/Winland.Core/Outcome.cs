@@ -17,6 +17,7 @@ public sealed record Client(
     FullscreenMode Fullscreen = FullscreenMode.None,
     FullscreenMode FullscreenClient = FullscreenMode.None,
     bool Pinned = false,
+    bool PinFullscreened = false,
     WindowId? Swallowing = null,
     bool InhibitingIdle = false);
 

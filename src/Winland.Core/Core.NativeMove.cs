@@ -28,7 +28,7 @@ public sealed partial class Core
         // Taking a maximized or fullscreen Client by its title leaves that mode first, as a drag in the pinned
         // release does. The Workspace's f[] rules are matched again, and the lift below places the windows.
         if (client.Fullscreen != FullscreenMode.None)
-            _ = Restamp(desk, desk.Layout.SetFullscreen(window, FullscreenMode.None, FullscreenMode.None));
+            _ = Restamp(desk, EndFullscreen(desk, window));
 
         var grab = new PointerDrag(false, PointerDragPhase.Begin, started.Pointer);
         _ = desk.Layout.Drag(window, grab);

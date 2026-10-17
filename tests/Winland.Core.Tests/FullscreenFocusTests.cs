@@ -77,6 +77,18 @@ public class FullscreenFocusTests
         Assert.Equal(expected, session.ExitWindowRetainsFullscreen);
     }
 
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("binds:allow_pin_fullscreen = true", true)]
+    [InlineData("binds:allow_pin_fullscreen = 1", true)]
+    [InlineData("binds:allow_pin_fullscreen = no", false)]
+    public void AllowPinFullscreenReadsAFlag(string line, bool expected)
+    {
+        var session = SessionOptions.From(ConfigParser.Parse(line));
+
+        Assert.Equal(expected, session.AllowPinFullscreen);
+    }
+
     private static Core Desk()
     {
         var core = new Core(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n"));
