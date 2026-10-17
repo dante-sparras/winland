@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-113 of 197 ported cases pass.
+114 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -40,7 +40,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | dwindle | dwindleExitWindowRetainsFullscreen | passes | |
 | dwindle | dwindleFullscreenPinnedWindows | passes | |
 | dwindle | dwindleFullscreenNonInterference | passes | |
-| dwindle | defaultHandledFsfocusInDirection | differs | binds:movefocus_cycles_fullscreen is a Gap. |
+| dwindle | defaultHandledFsfocusInDirection | passes | |
 | dwindle | dwindleFullsreenCenterDispatchSavesPos | not ported | The result depends on the floating size kitty asks for, which a core test cannot match. |
 | dwindle | dwindleFloatingOntopFullscreenWorkspaceFocusRetention | passes | |
 | scroll | scrollFocusCycling | passes | |
@@ -53,7 +53,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scroll_LAYOUT_HANDLED_fullscreenRetainsGeometryWhileScrolling | differs | fullscreenHandler reports default, and a fullscreen Client stays over the screen when focus moves to another column. |
 | scroll | scroll_LAYOUT_HANDLED_floatingWindowHiding | differs | A floating Client under a fullscreen one stays visible and accepts input, and a second fullscreen Client ends the first one's fullscreen. allowedOverFullscreen is always false. |
 | scroll | scroll_LAYOUT_HANDLED_layerVisibilityOnFs | not ported | The case opens a layer shell surface, which has no Windows meaning. |
-| scroll | scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue | differs | binds:movefocus_cycles_fullscreen is a Gap. |
+| scroll | scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue | differs | fullscreenHandler is always default, so movefocus from a fullscreen Client in scrolling cycles the windows where the pinned release moves in the direction and keeps the mode. |
 | scroll | scroll_LAYOUT_HANDLED_respectFocusFitMethodOnUnFs | differs | Leaving fullscreen does not fit the column into view by scrolling:focus_fit_method. |
 | scroll | scroll_LAYOUT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention | passes | |
 | scroll | scroll_DEFAULT_HANDLED_fullscreenMaximiseDispatchers | passes | |
@@ -147,7 +147,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | groups | windowOpenInGroupReceivesCursorFocus | not ported | The case checks that kitty receives a real mouse click, which a core test cannot send. |
 | moveintoorcreategroup | moveIntoOrCreateGroup | passes | |
 | moveintoorcreategroup | crossMonitorGroupJoin | differs | moveintoorcreategroup does not find a Client on another Monitor, so the Client stays in its own Group. The pinned release looks for the neighbour across Monitors. |
-| workspaces | workspacesCombined | differs | binds:movefocus_cycles_fullscreen and general:no_focus_fallback are Gaps. movewindow r does not carry the rightmost tile onto the next Monitor, and getprop does not answer border_size or rounding. |
+| workspaces | workspacesCombined | differs | general:no_focus_fallback is a Gap. movewindow r does not carry the rightmost tile onto the next Monitor, and getprop does not answer border_size or rounding. |
 | workspaces | workspacesFollowProperNoGaps | differs | The bordersize window rule and the onworkspace match are not honored. |
 | workspaces | workspacesSmartGapsDirectionalMoveAcrossMonitors | differs | The bordersize window rule is not honored, and movewindow r does not carry the rightmost tile onto the next Monitor. |
 | workspaces | workspaceRenameChangeID | differs | There is no dispatcher that changes a Workspace's id, and renameworkspace is not a dispatcher. |

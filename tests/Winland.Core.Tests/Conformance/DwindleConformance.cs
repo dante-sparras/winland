@@ -398,7 +398,7 @@ public class DwindleConformance
         ExpectUnmovedByMaximize(desk, names);
     }
 
-    [Fact(Skip = "binds:movefocus_cycles_fullscreen is a Gap.")]
+    [Fact]
     public void DefaultHandledFsfocusInDirection()
     {
         var desk = new Desk();

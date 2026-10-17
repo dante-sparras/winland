@@ -167,9 +167,8 @@ public class FullscreenTests
         var core = Desk();
         Appear(core, 2);
         core.Handle(new Dispatch("fullscreen", "1 set"));
-        core.Handle(new Dispatch("movefocus", "l"));
 
-        var outcome = core.Handle(new Dispatch("fullscreen", "2 set"));
+        var outcome = core.Handle(new Dispatch("fullscreenstate", "2 2 set address:0x1"));
 
         Assert.Equal(MonitorBounds, BoundsOf(outcome, 1));
         Assert.Equal(FullscreenMode.None, ClientOf(outcome, 2).Fullscreen);

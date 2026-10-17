@@ -89,6 +89,17 @@ public class FullscreenFocusTests
         Assert.Equal(expected, session.AllowPinFullscreen);
     }
 
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("binds:movefocus_cycles_fullscreen = true", true)]
+    [InlineData("binds:movefocus_cycles_fullscreen = 0", false)]
+    public void MoveFocusCyclesFullscreenReadsAFlag(string line, bool expected)
+    {
+        var session = SessionOptions.From(ConfigParser.Parse(line));
+
+        Assert.Equal(expected, session.MoveFocusCyclesFullscreen);
+    }
+
     private static Core Desk()
     {
         var core = new Core(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n"));

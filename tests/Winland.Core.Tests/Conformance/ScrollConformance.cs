@@ -373,7 +373,7 @@ public class ScrollConformance
         ExpectClient(desk, "under", floating: true, acceptsInput: false, fullscreen: 0, over: false);
     }
 
-    [Fact(Skip = "binds:movefocus_cycles_fullscreen is a Gap.")]
+    [Fact(Skip = "fullscreenHandler is always default, so movefocus from a fullscreen Client in scrolling cycles the windows where the pinned release moves in the direction and keeps the mode.")]
     public void ScrollLAYOUTHANDLEDFocusInDirectionFocusFollowFocusTrue()
     {
         var desk = new Desk(Scrolling);
