@@ -34,6 +34,7 @@ public static class Dispatchers
             "moveworkspacetomonitor",
             "swapactiveworkspaces",
             "renameworkspace",
+            "cyclenext",
             "togglespecialworkspace",
             "layoutmsg",
             "layout",
