@@ -25,7 +25,7 @@ internal sealed partial class ScrollingLayout
             return [];
 
         if (_floating.Contains(id))
-            return _floating.MoveToEdge(id, side, _layoutOptions.FloatingWorkArea(_area));
+            return _floating.MoveToEdge(id, side, _layoutOptions.FloatingWorkArea(_area), _layoutOptions.BorderFor(id));
 
         if (CellFor(window) is not Cell cell || cell.Column is null)
             return [];

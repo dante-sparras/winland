@@ -55,7 +55,7 @@ internal sealed partial class MasterLayout : IMouseDragHost
             return [];
 
         if (_floating.Contains(Id(window)))
-            return _floating.MoveToEdge(Id(window), direction, _layout.FloatingWorkArea(_area));
+            return _floating.MoveToEdge(Id(window), direction, _layout.FloatingWorkArea(_area), _layout.BorderFor(Id(window)));
 
         var tile = Find(window);
         if (tile is null)

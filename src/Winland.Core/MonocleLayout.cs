@@ -287,7 +287,7 @@ internal sealed partial class MonocleLayout : Layout
         if (!TrySide(First(arguments), out var side))
             return [];
 
-        return _floating.MoveToEdge(id, side, _options.FloatingWorkArea(_area));
+        return _floating.MoveToEdge(id, side, _options.FloatingWorkArea(_area), _options.BorderFor(id));
     }
 
     public IReadOnlyList<Placement> ResizeActive(WindowId window, string arguments)
