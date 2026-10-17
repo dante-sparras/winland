@@ -447,7 +447,7 @@ public class WindowConformance
         Assert.Equal("kitty_B", desk.ActiveClass());
     }
 
-    [Fact(Skip = "A window that floats because its maximum cannot fill its tile keeps its own size, kept inside its limits, where the pinned release sizes it for the tile it predicted. A Wayland window takes the size it is first configured with. The persistent_size window rule is not honored.")]
+    [Fact]
     public void Windows()
     {
         var desk = new Desk(SmartGaps + "\n" + TagRules);

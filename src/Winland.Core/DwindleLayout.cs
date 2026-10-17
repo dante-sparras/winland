@@ -123,8 +123,12 @@ internal sealed partial class DwindleLayout : Layout
         _limits[id] = new SizeLimits(minSize, maxSize) { Tiled = tiledLimits };
         _natural[id] = bounds;
         var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
+        var overflows = !floating && CannotFill(maxSize, pointer);
+        if (overflows)
+            placed = FloatedFromTile(new SizeLimits(minSize, maxSize), pointer);
+
         _floating.Remember(id, placed);
-        var floats = floating || CannotFill(maxSize, pointer);
+        var floats = floating || overflows;
         var client = ClientAdoption.Adopted(id, window, workspace, windowClass, title, floats, processId, initialClass, initialTitle);
         if (floats)
         {

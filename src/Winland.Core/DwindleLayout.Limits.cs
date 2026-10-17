@@ -51,6 +51,22 @@ internal sealed partial class DwindleLayout
         return limit.Width < tile.Width || limit.Height < tile.Height;
     }
 
+    // A window whose maximum cannot fill the tile it would open in floats instead, as in the pinned release. It would
+    // have been sized for that tile, half the tile it splits or the whole Monitor, so it floats at that size kept
+    // inside its limits, in the middle of the work area.
+    private Rectangle FloatedFromTile(SizeLimits limits, Point? pointer)
+    {
+        var tile = PredictedTile(pointer);
+        if (Opening(pointer) is not null)
+        {
+            tile = tile.Height * _options.SplitWidthMultiplier > tile.Width
+                ? tile with { Height = tile.Height / 2 }
+                : tile with { Width = tile.Width / 2 };
+        }
+
+        return FloatedLimits.Centered(limits, tile, _area);
+    }
+
     private Rectangle PredictedTile(Point? pointer)
     {
         var opening = Opening(pointer);

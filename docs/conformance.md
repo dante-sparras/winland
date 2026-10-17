@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-140 of 197 ported cases pass.
+141 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -105,7 +105,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | issue14134 | passes | |
 | window | specialFloatRecenters | differs | A floating Client moved off its Monitor stays there when its special workspace is shown. The pinned release centers it. |
 | window | exactWindowSelectors | differs | A stableid: window selector matches no Client. |
-| window | windows | differs | A window that floats because its maximum cannot fill its tile keeps its own size, kept inside its limits, where the pinned release sizes it for the tile it predicted. A Wayland window takes the size it is first configured with. The persistent_size window rule is not honored. |
+| window | windows | passes | |
 | window | cycle_nextTiled | passes | |
 | window | cycle_nextFloating | passes | |
 | window | discussion14233 | passes | |
