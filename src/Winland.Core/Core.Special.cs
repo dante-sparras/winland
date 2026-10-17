@@ -120,7 +120,7 @@ public sealed partial class Core
         return View(desk.Layout.Visible(), show, hide, dispatcher: dispatcher, focus: next, allowsElevation: allowsElevation);
     }
 
-    private Outcome CloseSpecial(MonitorId monitor, string dispatcher, bool allowsElevation)
+    private Outcome CloseSpecial(MonitorId monitor, string? dispatcher, bool allowsElevation)
     {
         var hidden = ConcealSpecial(monitor);
         var normal = FocusedWorkspace();

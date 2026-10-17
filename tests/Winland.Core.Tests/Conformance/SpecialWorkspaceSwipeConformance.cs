@@ -17,8 +17,6 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class SpecialWorkspaceSwipeConformance
 {
-    private const string NotHonored = "The special gesture action is not honored.";
-
     private const string Name = "hyprtester-special-swipe";
 
     private const string Replacement = "hyprtester-special-replacement";
@@ -27,7 +25,7 @@ public class SpecialWorkspaceSwipeConformance
 
     private const string PeerOutput = "HYPRTEST-SPECIAL-B";
 
-    [Fact(Skip = NotHonored)]
+    [Fact]
     public void SpecialWorkspaceSwipeThresholds()
     {
         foreach (var animations in new[] { false, true })
@@ -59,7 +57,7 @@ public class SpecialWorkspaceSwipeConformance
         }
     }
 
-    [Fact(Skip = NotHonored)]
+    [Fact]
     public void SpecialWorkspaceSwipeReplacementInvalidation()
     {
         foreach (var animations in new[] { false, true })
@@ -83,7 +81,7 @@ public class SpecialWorkspaceSwipeConformance
         }
     }
 
-    [Fact(Skip = NotHonored)]
+    [Fact]
     public void SpecialWorkspaceSwipeMoveInvalidation()
     {
         foreach (var animations in new[] { false, true })
@@ -109,7 +107,7 @@ public class SpecialWorkspaceSwipeConformance
         }
     }
 
-    [Fact(Skip = NotHonored)]
+    [Fact]
     public void SpecialWorkspaceSwipeOutputRemoval()
     {
         foreach (var animations in new[] { false, true })
@@ -127,7 +125,7 @@ public class SpecialWorkspaceSwipeConformance
         }
     }
 
-    [Fact(Skip = NotHonored)]
+    [Fact]
     public void SpecialWorkspaceSwipeEmptyWorkspaceLifetime()
     {
         foreach (var animations in new[] { false, true })

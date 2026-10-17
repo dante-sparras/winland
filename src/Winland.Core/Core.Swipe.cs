@@ -42,10 +42,17 @@ public sealed partial class Core
         if (_activeGesture is null && Math.Abs(_swipeTotalX) < SwipePickDistance && Math.Abs(_swipeTotalY) < SwipePickDistance)
             return View([]);
 
-        if (_activeGesture is null && !PickGesture(updated.Fingers))
+        Outcome? begun = null;
+        if (_activeGesture is null && !PickGesture(updated.Fingers, out begun))
         {
             _gestureFindFailed = true;
             return View([]);
+        }
+
+        if (_activeGesture is { IsSpecial: true } special)
+        {
+            StepSpecialSwipe(special.Scale * TrackpadGesture.Along(_gestureDirection, updated.DeltaX, updated.DeltaY));
+            return begun ?? View([]);
         }
 
         if (_activeGesture is not { IsWorkspace: true } gesture || _workspaceSwipe is not { } swipe)
@@ -57,15 +64,21 @@ public sealed partial class Core
 
     private Outcome EndSwipe()
     {
-        if (_activeGesture is null)
+        // An update after the fingers lift belongs to no swipe until the next one begins.
+        _gestureFindFailed = true;
+        if (_activeGesture is not { } gesture)
             return View([]);
 
         _activeGesture = null;
+        if (gesture.IsSpecial)
+            return EndSpecialSwipe();
+
         return _workspaceSwipe is { } swipe ? FinishWorkspaceSwipe(swipe) : View([]);
     }
 
-    private bool PickGesture(int fingers)
+    private bool PickGesture(int fingers, out Outcome? begun)
     {
+        begun = null;
         var axis = Math.Abs(_swipeTotalX) > Math.Abs(_swipeTotalY) ? GestureDirection.Horizontal : GestureDirection.Vertical;
         var direction = axis == GestureDirection.Horizontal
             ? _swipeTotalX < 0 ? GestureDirection.Left : GestureDirection.Right
@@ -84,6 +97,8 @@ public sealed partial class Core
             _gestureDirection = gesture.IsWorkspace ? gesture.Direction : direction;
             if (gesture.IsWorkspace)
                 StartWorkspaceSwipe();
+            else if (gesture.IsSpecial)
+                begun = BeginSpecialSwipe(gesture);
             return true;
         }
 

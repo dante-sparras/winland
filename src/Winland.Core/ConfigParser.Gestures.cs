@@ -11,7 +11,6 @@ public static partial class ConfigParser
             "dispatcher",
             "resize",
             "move",
-            "special",
             "close",
             "float",
             "fullscreen",
@@ -83,10 +82,11 @@ public static partial class ConfigParser
             }
 
             var action = index < parts.Count ? parts[index] : "";
-            var gesture = new TrackpadGesture(fingers, direction, modifiers, scale, action, disableInhibit);
+            var argument = action == TrackpadGesture.SpecialAction && index + 1 < parts.Count ? parts[index + 1].Trim() : "";
+            var gesture = new TrackpadGesture(fingers, direction, modifiers, scale, action, disableInhibit, argument);
             if (action == "unset")
             {
-                var removed = _gestures.FindIndex(old => old with { Action = "unset" } == gesture);
+                var removed = _gestures.FindIndex(old => old with { Action = "unset", Argument = "" } == gesture);
                 if (removed < 0)
                     Warn(lineNumber, "Can't remove a non-existent gesture.");
                 else
@@ -94,7 +94,7 @@ public static partial class ConfigParser
                 return;
             }
 
-            if (!gesture.IsWorkspace && !UnhonoredGestureActions.Contains(action))
+            if (!gesture.IsHonored && !UnhonoredGestureActions.Contains(action))
             {
                 Warn(lineNumber, $"Invalid gesture: {action}.");
                 return;
@@ -111,7 +111,7 @@ public static partial class ConfigParser
                 Warn(lineNumber, "Gesture flag 'p' is not honored.");
             if (TrackpadGesture.IsPinch(direction))
                 Warn(lineNumber, "Pinch gestures are not honored.");
-            else if (!gesture.IsWorkspace)
+            else if (!gesture.IsHonored)
                 Warn(lineNumber, $"Gesture action '{action}' is not honored.");
         }
 
