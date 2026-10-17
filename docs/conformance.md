@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-77 of 197 ported cases pass.
+81 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -33,7 +33,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | dwindle | dwindleForceSplitOnMoveToWorkspace | passes | |
 | dwindle | dwindleMoveAcrossToggledSplit | passes | |
 | dwindle | dwindleMoveSmallWindowAcrossSplit | passes | |
-| dwindle | dwindleFullscreenMaximiseDispatchers | differs | fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off. |
+| dwindle | dwindleFullscreenMaximiseDispatchers | passes | |
 | dwindle | dwindleTestFsingGroupedWindows | differs | A hidden Group member keeps its last frame, where the pinned release gives it the shown member's fullscreen frame. A maximized floating Group member is not moved until the Group changes, and then covers the group bar. |
 | dwindle | dwindleTestFsFocusUnderFSWindow | differs | misc:on_focus_under_fullscreen is a Gap. |
 | dwindle | dwindleNewWindowTakesOverFullscreen | differs | misc:on_focus_under_fullscreen is a Gap. |
@@ -50,13 +50,13 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scroll_LAYOUT_HANDLED_fullscreen | passes | |
 | scroll | scroll_LAYOUT_HANDLED_maximized | differs | A maximized Client in the scrolling Layout fills the work area less gaps_out. The pinned release's scrolling Layout also leaves gaps_in at its sides. |
 | scroll | scroll_LAYOUT_HANDLED_TestFsingGroupedWindows | differs | A hidden Group member keeps its last frame. |
-| scroll | scroll_LAYOUT_HANDLED_fullscreenRetainsGeometryWhileScrolling | differs | fullscreenHandler reports default, and a fullscreen Client stays over the screen when focus moves to another column. fullscreenstate does not take a window. |
+| scroll | scroll_LAYOUT_HANDLED_fullscreenRetainsGeometryWhileScrolling | differs | fullscreenHandler reports default, and a fullscreen Client stays over the screen when focus moves to another column. |
 | scroll | scroll_LAYOUT_HANDLED_floatingWindowHiding | differs | A floating Client under a fullscreen one stays visible and accepts input, and a second fullscreen Client ends the first one's fullscreen. allowedOverFullscreen is always false. |
 | scroll | scroll_LAYOUT_HANDLED_layerVisibilityOnFs | not ported | The case opens a layer shell surface, which has no Windows meaning. |
 | scroll | scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue | differs | binds:movefocus_cycles_fullscreen and misc:on_focus_under_fullscreen are Gaps. |
 | scroll | scroll_LAYOUT_HANDLED_respectFocusFitMethodOnUnFs | differs | Leaving fullscreen does not fit the column into view by scrolling:focus_fit_method. |
 | scroll | scroll_LAYOUT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention | passes | |
-| scroll | scroll_DEFAULT_HANDLED_fullscreenMaximiseDispatchers | differs | fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off. |
+| scroll | scroll_DEFAULT_HANDLED_fullscreenMaximiseDispatchers | passes | |
 | scroll | scroll_DEFAULT_HANDLED_TestFsingGroupedWindows | differs | A hidden Group member keeps its last frame. |
 | scroll | scroll_DEFAULT_HANDLED_testFsFocusUnderFSWindow | differs | misc:on_focus_under_fullscreen is a Gap. |
 | scroll | scroll_DEFAULT_HANDLED_newWindowTakesOverFullscreen | differs | misc:on_focus_under_fullscreen is a Gap. |
@@ -168,7 +168,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | monitor_rules | monitorBackgroundWorkspaceAndXpMode | not ported | The case checks which render passes a monitor's background draws, through the reference's test plugin. |
 | master | focusMasterPrevious | passes | |
 | master | masterTestFsFocusUnderFSWindow | differs | misc:on_focus_under_fullscreen is a Gap. |
-| master | masterFullscreenMaximiseDispatchers | differs | fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off. |
+| master | masterFullscreenMaximiseDispatchers | passes | |
 | master | masterNewWindowTakesOverFullscreen | differs | misc:on_focus_under_fullscreen is a Gap. |
 | master | masterExitWindowRetainsFullscreen | differs | misc:exit_window_retains_fullscreen is a Gap. |
 | master | masterFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap. |
@@ -179,7 +179,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | master | masterCenterDropAtCursor | passes | |
 | master | masterDropAtCursor | passes | |
 | monocle | monocleWorkspaceRule | differs | Closing the shown Client in monocle shows the first Client, not the one focused last. |
-| monocle | monocleFullscreenMaximiseDispatchers | differs | fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off. |
+| monocle | monocleFullscreenMaximiseDispatchers | passes | |
 | monocle | monocleTestFsFocusUnderFSWindow | differs | misc:on_focus_under_fullscreen is a Gap. |
 | monocle | monocleNewWindowTakesOverFullscreen | differs | misc:on_focus_under_fullscreen is a Gap. |
 | monocle | monocleExitWindowRetainsFullscreen | differs | misc:exit_window_retains_fullscreen is a Gap. |

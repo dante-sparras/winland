@@ -357,6 +357,39 @@ public class FullscreenTests
         Assert.Equal(MonitorBounds, Bounds(core, 2));
     }
 
+    [Theory]
+    [InlineData("2 2 set", FullscreenMode.Fullscreen, FullscreenMode.Fullscreen)]
+    [InlineData("2 2 toggle", FullscreenMode.None, FullscreenMode.None)]
+    [InlineData("2 0 toggle", FullscreenMode.None, FullscreenMode.None)]
+    [InlineData("1 1 toggle", FullscreenMode.Maximized, FullscreenMode.Maximized)]
+    [InlineData("-1 1 toggle", FullscreenMode.Fullscreen, FullscreenMode.Maximized)]
+    [InlineData("2 2 unset", FullscreenMode.None, FullscreenMode.None)]
+    [InlineData("1 1 unset", FullscreenMode.Fullscreen, FullscreenMode.Fullscreen)]
+    [InlineData("2 2", FullscreenMode.None, FullscreenMode.None)]
+    public void FullscreenStateActionsStartingFromFullscreen(string arguments, FullscreenMode internalMode, FullscreenMode clientMode)
+    {
+        var core = Desk();
+        Appear(core, 1);
+        core.Handle(new Dispatch("fullscreenstate", "2 2"));
+
+        var changed = core.Handle(new Dispatch("fullscreenstate", arguments));
+
+        Assert.Equal(internalMode, ClientOf(changed, 1).Fullscreen);
+        Assert.Equal(clientMode, ClientOf(changed, 1).FullscreenClient);
+    }
+
+    [Fact]
+    public void FullscreenStateTakesAWindowSelector()
+    {
+        var core = Desk();
+        Appear(core, 2);
+
+        var changed = core.Handle(new Dispatch("fullscreenstate", "1 1 set address:0x1"));
+
+        Assert.Equal(FullscreenMode.Maximized, ClientOf(changed, 1).Fullscreen);
+        Assert.Equal(FullscreenMode.None, ClientOf(changed, 2).Fullscreen);
+    }
+
     [Fact]
     public void MaximizeLeavesGapsOutAndTheBorder()
     {

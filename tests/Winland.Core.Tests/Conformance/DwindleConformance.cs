@@ -154,7 +154,7 @@ public class DwindleConformance
         Assert.NotEqual(before, desk.ActivePlace().At);
     }
 
-    [Fact(Skip = "fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off.")]
+    [Fact]
     public void DwindleFullscreenMaximiseDispatchers()
     {
         var desk = new Desk();
