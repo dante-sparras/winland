@@ -136,7 +136,7 @@ public class ExtraCommandTests
     }
 
     [Fact]
-    public void GapsReturnErrorsAndFloatCanBeReadAndSet()
+    public void GapsReturnErrorsAndPropsCanBeReadAndSet()
     {
         var core = new Core();
         core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 200, 100)));
@@ -145,17 +145,16 @@ public class ExtraCommandTests
         Assert.Equal("error: notifications are not supported", core.Execute("notify 1 1 0 hi").Text);
         Assert.Equal("error: notifications are not supported", core.Execute("dismissnotify").Text);
         Assert.Equal("error: rolling log is not supported", core.Execute("rollinglog").Text);
-        Assert.Equal("error: not enough args", core.Execute("getprop").Text);
-        Assert.Equal("error: window not found", core.Execute("getprop missing float").Text);
-        Assert.Equal("{\"float\":false}", core.Execute("getprop active float").Text);
-        Assert.Equal("{\"float\":false}", core.Execute("getprop 0x2a float").Text);
-        Assert.Equal("{\"pin\":false}", core.Execute("getprop active pin").Text);
-        Assert.Equal("error: prop not supported", core.Execute("getprop active opacity").Text);
-        Assert.Equal("error: prop not supported", core.Execute("setprop active pin true").Text);
+        Assert.Equal("not enough args", core.Execute("getprop").Text);
+        Assert.Equal("window not found", core.Execute("getprop missing opacity").Text);
+        Assert.Equal("1", core.Execute("getprop active opacity").Text);
+        Assert.Equal("{\"opacity\": 1}", core.Execute("j/getprop 0x2a opacity").Text);
+        Assert.Equal("prop not found", core.Execute("getprop active float").Text);
+        Assert.Equal("error: invalid prop name", core.Execute("setprop active float true").Text);
 
-        Assert.Equal("ok", core.Execute("setprop active float true").Text);
-        Assert.Equal("{\"float\":true}", core.Execute("getprop active floating").Text);
-        Assert.Equal("error: invalid value", core.Execute("setprop active float sideways").Text);
+        Assert.Equal("ok", core.Execute("setprop active opacity 0.5").Text);
+        Assert.Equal("0.5", core.Execute("getprop active opacity").Text);
+        Assert.Equal("error: invalid opacity", core.Execute("setprop active opacity sideways").Text);
     }
 
     [Fact]

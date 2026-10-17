@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-129 of 197 ported cases pass.
+132 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -89,7 +89,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scrollTapeWithMouseClick | not ported | The case tells a button press from its release, and Windows, not Winland, focuses a window on a click. |
 | scroll | properFocusBehvaior | differs | movefocus wraps within the strip instead of crossing to the next Monitor. |
 | window | swapWindow | differs | swapwindow answers can't swap fullscreen window in lower case, and does not swap with a Client on another Workspace. |
-| window | windowGroupRules | differs | getprop does not honor border_size, and the border_size window rule is not honored. |
+| window | windowGroupRules | passes | |
 | window | windowFocusOnFullscreenConflict | passes | |
 | window | focusFloatingOrTilingUnderFullscreen | passes | |
 | window | windowMaximizeSize | passes | |
@@ -100,19 +100,19 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | windowRuleFocusOnActivate | differs | The focus_on_activate window rule is not honored. |
 | window | pinnedWorkspacesValid | passes | |
 | window | windowruleWorkspaceEmpty | passes | |
-| window | contentWindowRules | differs | The content window rule is not honored, and getprop does not honor border_size or opacity. |
+| window | contentWindowRules | differs | The content window rule and match and the border_size window rule are not honored. |
 | window | issue14038 | passes | |
 | window | issue14134 | passes | |
 | window | specialFloatRecenters | differs | A floating Client moved off its Monitor stays there when its special workspace is shown. The pinned release centers it. |
 | window | exactWindowSelectors | differs | A stableid: window selector matches no Client. |
-| window | windows | differs | The border_size window rule and its workspace match are not honored, and getprop does not read min_size or max_size. |
+| window | windows | differs | The border_size window rule and its workspace match are not honored. |
 | window | cycle_nextTiled | passes | |
 | window | cycle_nextFloating | passes | |
 | window | discussion14233 | differs | The border_size window rule and its workspace match are not honored. |
 | window | execRulesWorkspaceOverride | passes | |
 | window | execRulesTagMutation | passes | |
-| window | execRulesDescendantProcess | differs | getprop and setprop do not honor no_focus or border_size. |
-| window | execRulesPendingIsolation | differs | getprop and setprop do not honor no_focus. |
+| window | execRulesDescendantProcess | differs | The border_size window rule is not honored. |
+| window | execRulesPendingIsolation | passes | |
 | window | pinnedRetainsPositionOnWorkspaceChange | passes | |
 | window | monitorrule | passes | |
 | window | mouseResize | differs | A mouse bind pressed on a Client's border does not take the Client. The keep_aspect_ratio window rule is not honored. |
@@ -120,8 +120,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | sendFsWindowToAnotherWorkspace | differs | fullscreenHandler is always default. |
 | window | floatingForceOnscreen | passes | |
 | window | specialWorkspacePinnedWindowUnmapFallback | differs | Closing a focused pinned Client focuses a Client on the normal Workspace under an open special workspace. The pinned release focuses the special workspace's Client. |
-| window | windowRuleBorderColors | differs | getprop does not honor active_border_color or inactive_border_color, and the border_color window rule is not honored. |
-| window | windowRuleBorderColorsFocus | differs | getprop does not honor active_border_color or inactive_border_color, and the border_color window rule is not honored. |
+| window | windowRuleBorderColors | differs | The border_color window rule is not honored. |
+| window | windowRuleBorderColorsFocus | differs | The border_color window rule is not honored. |
 | window | floatingMoveExpression | passes | |
 | window | newFullscreenWindowReceivesCursorFocus | not ported | The case returns before its first check in the pinned release. |
 | window | windowGoesFullscreenAndReceivesCursorFocus | not ported | The case returns before its first check in the pinned release. |
@@ -147,7 +147,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | groups | windowOpenInGroupReceivesCursorFocus | not ported | The case checks that kitty receives a real mouse click, which a core test cannot send. |
 | moveintoorcreategroup | moveIntoOrCreateGroup | passes | |
 | moveintoorcreategroup | crossMonitorGroupJoin | differs | moveintoorcreategroup does not find a Client on another Monitor, so the Client stays in its own Group. The pinned release looks for the neighbour across Monitors. |
-| workspaces | workspacesCombined | differs | general:no_focus_fallback is a Gap. movewindow r does not carry the rightmost tile onto the next Monitor, and getprop does not answer border_size or rounding. |
+| workspaces | workspacesCombined | differs | general:no_focus_fallback is a Gap. movewindow r does not carry the rightmost tile onto the next Monitor. |
 | workspaces | workspacesFollowProperNoGaps | differs | The bordersize window rule and the onworkspace match are not honored. |
 | workspaces | workspacesSmartGapsDirectionalMoveAcrossMonitors | differs | The bordersize window rule is not honored, and movewindow r does not carry the rightmost tile onto the next Monitor. |
 | workspaces | workspaceRenameChangeID | passes | |
@@ -207,7 +207,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | follow_mouse_shrink | followMouseShrink | passes | |
 | cursor | cursorPerOutputHyprcursor | not ported | The case checks the cursor image each output renders from a cursor theme, which a core test cannot see. |
 | hyprctl | hyprctlDevicesActiveLayoutIndex | differs | input:kb_layout is a Gap, and there is no switchxkblayout or devices request. |
-| hyprctl | hyprctlGetprop | differs | getprop and setprop honor only float, and there is no setprop dispatcher. |
+| hyprctl | hyprctlGetprop | passes | |
 | hyprctl | hyprctlSubmap | differs | There is no submap request. |
 | hyprctl | hyprctlJsonErrors | differs | There is no descriptions request. |
 | hyprctl | hyprctlDescriptionsCurrentValues | differs | There is no descriptions request. |
@@ -261,7 +261,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | clients/xdg-activation | xdgActivationSerial | differs | With misc:focus_on_activate a window that takes the foreground keeps it, without the fresh input serial the pinned release requires. |
 | clients/xdg-initial-maximize | xdgMaximizeBeforeInitialCommitIsIgnored | passes | |
 | clients/xdg-initial-maximize | xdgMaximizeBeforeMapIsIgnored | passes | |
-| clients/xdg-interactive | xdgInteractive | differs | There is no setprop dispatcher. A floating Client the system moves or resizes keeps its old frame in activewindow. |
+| clients/xdg-interactive | xdgInteractive | differs | A floating Client the system moves or resizes keeps its old frame in activewindow. |
 | misc/plugin | plugin | passes | |
 | misc/plugin | pluginVkb | not ported | Windows merges every keyboard into one key state and does not tell Winland which device a key came from. |
 | exec | processSpawning | passes | |
@@ -279,7 +279,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | keyboard_input | orderedReleaseChord | passes | |
 | keyboard_input | nonConsumingChordPreservesOrder | passes | |
 | swallow | swallow | differs | A Workspace's windows count includes a swallowed Client, toggleswallow on the swallowed Client does nothing, and a Client swallowed in turn loses the Client it swallowed. A window selector does not find a swallowed Client. |
-| tags | tags | differs | The tag and nodim window rule effects are refused. getprop does not read no_dim or no_shadow. |
+| tags | tags | differs | The tag and nodim window rule effects are refused. |
 | tags | tags_fullscreen_cleanup | differs | tagwindow is not a dispatcher, and window tags are not tracked. |
 | workspace_swipe | workspaceSwipeReversalCleanup | not ported | Most of its checks read render state through the test plugin: alpha, render offset, the render hold and the swipe session. The checks the replies can answer would make a partial case pass. |
 | workspace_swipe | workspaceSwipeMissingNeighborCleanup | not ported | Most of its checks read render state through the test plugin: alpha, render offset, the render hold and the swipe session. The checks the replies can answer would make a partial case pass. |

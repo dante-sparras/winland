@@ -66,7 +66,7 @@ public class WindowConformance
         Assert.Equal(workspace, WorkspaceName(desk.ActiveWindow()));
     }
 
-    [Fact(Skip = "getprop does not honor border_size, and the border_size window rule is not honored.")]
+    [Fact]
     public void WindowGroupRules()
     {
         var desk = new Desk("""
@@ -343,7 +343,7 @@ public class WindowConformance
         Assert.Equal(4, Desk.WorkspaceId(desk.ActiveWindow()));
     }
 
-    [Fact(Skip = "The content window rule is not honored, and getprop does not honor border_size or opacity.")]
+    [Fact(Skip = "The content window rule and match and the border_size window rule are not honored.")]
     public void ContentWindowRules()
     {
         var desk = new Desk("""
@@ -447,7 +447,7 @@ public class WindowConformance
         Assert.Equal("kitty_B", desk.ActiveClass());
     }
 
-    [Fact(Skip = "The border_size window rule and its workspace match are not honored, and getprop does not read min_size or max_size.")]
+    [Fact(Skip = "The border_size window rule and its workspace match are not honored.")]
     public void Windows()
     {
         var desk = new Desk(SmartGaps + "\n" + TagRules);
@@ -771,7 +771,7 @@ public class WindowConformance
         CloseAll(desk);
     }
 
-    [Fact(Skip = "getprop and setprop do not honor no_focus or border_size.")]
+    [Fact(Skip = "The border_size window rule is not honored.")]
     public void ExecRulesDescendantProcess()
     {
         var desk = new Desk();
@@ -812,7 +812,7 @@ public class WindowConformance
         CloseAll(desk);
     }
 
-    [Fact(Skip = "getprop and setprop do not honor no_focus.")]
+    [Fact]
     public void ExecRulesPendingIsolation()
     {
         var desk = new Desk();
@@ -1175,7 +1175,7 @@ public class WindowConformance
         CloseAll(desk);
     }
 
-    [Fact(Skip = "getprop does not honor active_border_color or inactive_border_color, and the border_color window rule is not honored.")]
+    [Fact(Skip = "The border_color window rule is not honored.")]
     public void WindowRuleBorderColors()
     {
         var desk = new Desk("""
@@ -1225,7 +1225,7 @@ public class WindowConformance
         ExpectColor(desk.Send("getprop active inactive_border_color"), "ff0000ff", "ffff0000", "90deg");
     }
 
-    [Fact(Skip = "getprop does not honor active_border_color or inactive_border_color, and the border_color window rule is not honored.")]
+    [Fact(Skip = "The border_color window rule is not honored.")]
     public void WindowRuleBorderColorsFocus()
     {
         var desk = new Desk("""

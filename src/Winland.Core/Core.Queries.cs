@@ -269,46 +269,6 @@ public sealed partial class Core
         return new CommandReply(string.Join("\n\n\n", parts), effect ?? View([]));
     }
 
-    private CommandReply ReadProp(GetPropRequest request)
-    {
-        if (request.Selector.Length == 0 || request.Property.Length == 0)
-            return new CommandReply("error: not enough args", View([]));
-
-        if (!TrySelect(request.Selector, out var client, out _))
-            return new CommandReply("error: window not found", View([]));
-
-        if (IsFloat(request.Property))
-            return new CommandReply(ExtraCommands.FormatProp("float", client.Floating), View([]));
-
-        if (IsPin(request.Property))
-            return new CommandReply(ExtraCommands.FormatProp("pin", false), View([]));
-
-        return new CommandReply("error: prop not supported", View([]));
-    }
-
-    private CommandReply WriteProp(SetPropRequest request)
-    {
-        if (request.Selector.Length == 0 || request.Property.Length == 0 || request.Value.Length == 0)
-            return new CommandReply("error: not enough args", View([]));
-
-        if (!TrySelect(request.Selector, out var client, out var desk) || desk is null)
-            return new CommandReply("error: window not found", View([]));
-
-        if (!IsFloat(request.Property))
-            return new CommandReply("error: prop not supported", View([]));
-
-        if (!TryFloatValue(request.Value, client.Floating, out var floating))
-            return new CommandReply("error: invalid value", View([]));
-
-        if (floating == client.Floating)
-            return new CommandReply("ok", View([]));
-
-        var covered = desk.Covered();
-        var placements = desk.Layout.ToggleFloating(client.Window);
-        _pinned.Remove(client.Window);
-        return new CommandReply("ok", IsShown(desk.Id) ? Present(desk, covered, placements) : View([]));
-    }
-
     private bool TrySelect(string selector, out Client client, out LiveWorkspace? desk)
     {
         client = null!;
@@ -355,23 +315,4 @@ public sealed partial class Core
         window = new WindowId(value);
         return true;
     }
-
-    private static bool TryFloatValue(string text, bool current, out bool value)
-    {
-        if (text.Equals("toggle", StringComparison.OrdinalIgnoreCase))
-        {
-            value = !current;
-            return true;
-        }
-
-        return ConfigValueSyntax.TryParseBool(text, out value);
-    }
-
-    private static bool IsFloat(string name) =>
-        name.Equals("float", StringComparison.OrdinalIgnoreCase)
-        || name.Equals("floating", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsPin(string name) =>
-        name.Equals("pin", StringComparison.OrdinalIgnoreCase)
-        || name.Equals("pinned", StringComparison.OrdinalIgnoreCase);
 }

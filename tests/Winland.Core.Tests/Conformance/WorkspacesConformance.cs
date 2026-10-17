@@ -7,7 +7,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class WorkspacesConformance
 {
-    [Fact(Skip = "general:no_focus_fallback is a Gap. movewindow r does not carry the rightmost tile onto the next Monitor, and getprop does not answer border_size or rounding.")]
+    [Fact(Skip = "general:no_focus_fallback is a Gap. movewindow r does not carry the rightmost tile onto the next Monitor.")]
     public void WorkspacesCombined()
     {
         var desk = new Desk("workspace = 966, persistent:true\n");

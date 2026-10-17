@@ -23,7 +23,7 @@ public class ControlConformance
         }
     }
 
-    [Fact(Skip = "getprop and setprop honor only float, and there is no setprop dispatcher.")]
+    [Fact]
     public void HyprctlGetprop()
     {
         var desk = new Desk();

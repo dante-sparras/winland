@@ -4,7 +4,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class TagsConformance
 {
-    [Fact(Skip = "The tag and nodim window rule effects are refused. getprop does not read no_dim or no_shadow.")]
+    [Fact(Skip = "The tag and nodim window rule effects are refused.")]
     public void Tags()
     {
         var desk = new Desk();

@@ -92,8 +92,12 @@ public sealed partial class Core
         return moved;
     }
 
-    private BorderColor BorderOf(WindowId window, bool active)
+    private BorderColor BorderOf(WindowId window, bool active, bool honorProps = true)
     {
+        // A border color setprop set is drawn by its first color. One with no colors falls back to the config's.
+        if (honorProps && SetPropOf(window, active ? "active_border_color" : "inactive_border_color") is BorderGradient { First: BorderColor set })
+            return set;
+
         if (WorkspaceContaining(window)?.GroupOf(window) is WindowGroup group)
         {
             var locked = group.Locked || _groupsLocked;

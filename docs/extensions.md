@@ -22,6 +22,8 @@ After that the config is edited from an elevated editor. A file the user creates
 
 `idleinhibit` is the same rule as `idle_inhibit`. `noinitialfocus` and `no_initial_focus` keep a new Client from taking focus. `nofocus` and `no_focus` refuse focus. `stayfocused` and `stay_focused` keep the focused Client focused when another window would take it. A trailing `0` turns that effect off. The last matching rule wins.
 
+`setprop WINDOW PROP VALUE` on the pipe sets a window property as the `setprop` dispatcher does and answers `ok` or the error. The pinned release has only the dispatcher.
+
 `misc:focus_on_activate` defaults to false. An application that takes the foreground without a recent click or key is sent back to the previous Client, and that application is reported as urgent when it is a Client. True accepts the change. A window that only flashes for attention, without taking the foreground, is reported as urgent too.
 
 `winland install` registers the logon task that starts Winland elevated (ADR 0006). It refuses, and exits with code 1, when a non-administrator owns or can write the folder `winland.exe` is in or anything inside it, or owns a folder above it or may delete or rename what that folder holds or change its access list, because any program the user runs could then replace what the task starts, or rename the folder away and put another in its place. Making new folders above it is allowed, as `C:\` lets users do. Copy Winland to a folder only administrators can write, such as `C:\Program Files\Winland`, and run `winland install` from there.
