@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-155 of 197 ported cases pass.
+156 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -146,7 +146,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | groups | groupedExitWindowRetainsFullscreen | passes | |
 | groups | windowOpenInGroupReceivesCursorFocus | not ported | The case checks that kitty receives a real mouse click, which a core test cannot send. |
 | moveintoorcreategroup | moveIntoOrCreateGroup | passes | |
-| moveintoorcreategroup | crossMonitorGroupJoin | differs | moveintoorcreategroup does not find a Client on another Monitor, so the Client stays in its own Group. The pinned release looks for the neighbour across Monitors. |
+| moveintoorcreategroup | crossMonitorGroupJoin | passes | |
 | workspaces | workspacesCombined | differs | general:no_focus_fallback is a Gap, and binds:workspace_back_and_forth 2 returns to a Workspace the Monitor showed earlier in the case, where the pinned release finds no previous one. |
 | workspaces | workspacesFollowProperNoGaps | passes | |
 | workspaces | workspacesSmartGapsDirectionalMoveAcrossMonitors | passes | |

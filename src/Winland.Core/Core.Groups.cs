@@ -192,9 +192,18 @@ public sealed partial class Core
         if (!_groupOptions.IgnoreGroupLock && _groupsLocked)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
-        if (ActiveWindow() is not WindowId id || WorkspaceContaining(id) is not LiveWorkspace desk
-            || desk.Layout.Neighbor(id, direction) is not WindowId neighbor || neighbor == id)
+        if (ActiveWindow() is not WindowId id || WorkspaceContaining(id) is not LiveWorkspace desk)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
+
+        // With nothing beside it on its Workspace, the window looks onto the Monitor in that direction, as the pinned
+        // release finds the neighbour across Monitors.
+        if (desk.Layout.Neighbor(id, direction) is not WindowId neighbor || neighbor == id)
+        {
+            if (NeighborAcross(desk, id, direction) is not (WindowId across, LiveWorkspace there))
+                return View([], dispatcher: name, allowsElevation: allowsElevation);
+
+            return IntoGroupAcross(desk, there, id, across, create, name, allowsElevation);
+        }
 
         var covered = desk.Covered();
         var target = desk.GroupOf(neighbor);
@@ -226,6 +235,54 @@ public sealed partial class Core
         TakeGroupFocus(desk, window);
         (_extraEvents ??= []).Add(new ClientIntoGroup(window));
         return Present(desk, covered, desk.Layout.Visible(), dispatcher: name, focus: window, allowsElevation: allowsElevation);
+    }
+
+    private (WindowId Window, LiveWorkspace Desk)? NeighborAcross(LiveWorkspace desk, WindowId window, string direction)
+    {
+        if (!_monitorFallback || !MonitorSelector.TryDirection(direction, out var side)
+            || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from
+            || MonitorSelector.InDirection(Targets(), from, side) is not MonitorTarget neighbor
+            || MonitorOf(neighbor) is not LiveMonitor screen || screen.Active is not WorkspaceId shown
+            || FindWorkspace(shown) is not LiveWorkspace there || !desk.Layout.TryBounds(window, out var box)
+            || AdjacentOn(screen, Ideal(desk, window, box), side) is not WindowId found)
+            return null;
+
+        return (found, there);
+    }
+
+    // Moves a window into the Group of a window on another Monitor's Workspace, creating it when asked, and focuses it
+    // there. The Workspace it left is laid out again.
+    private Outcome IntoGroupAcross(LiveWorkspace desk, LiveWorkspace there, WindowId window, WindowId neighbor, bool create, string name, bool allowsElevation)
+    {
+        var target = there.GroupOf(neighbor);
+        if (target is null)
+        {
+            if (!create || Find(neighbor) is { Fullscreen: not FullscreenMode.None })
+                return View([], dispatcher: name, allowsElevation: allowsElevation);
+
+            target = StartGroup(there, neighbor);
+        }
+
+        if (target.Denied || (!_groupOptions.IgnoreGroupLock && (target.Locked || desk.GroupOf(window)?.Locked == true)))
+            return View([], dispatcher: name, allowsElevation: allowsElevation);
+
+        var covered = there.Covered();
+        if (!TakeForGroup(desk, window, out var taken))
+            return View([], dispatcher: name, allowsElevation: allowsElevation);
+
+        var position = _groupOptions.InsertAfterCurrent ? target.Current + 1 : target.Count;
+        there.Join(target, window, taken, position);
+        there.Show(target, position);
+        Restamp(desk, []);
+        Restamp(there, []);
+        DropIfEmpty(desk.Id);
+        Focus(there.Monitor);
+        TakeGroupFocus(there, window);
+        (_extraEvents ??= []).Add(new ClientIntoGroup(window));
+        var outcome = Present(there, covered, there.Layout.Visible(), dispatcher: name, focus: window, allowsElevation: allowsElevation);
+        return FindWorkspace(desk.Id) is LiveWorkspace left && IsShown(left.Id)
+            ? outcome with { Placements = [.. left.Layout.Placed(), .. outcome.Placements] }
+            : outcome;
     }
 
     // Takes a window out of its own Group, or its tile, so it can join another Group.
