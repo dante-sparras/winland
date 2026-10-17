@@ -6,7 +6,7 @@ namespace Winland;
 /// <summary>One consistent bind table. Published as a whole on config load and reload.</summary>
 public sealed class BindTable
 {
-    public static BindTable Empty { get; } = new([], dragThreshold: 0, scrollDelay: 300);
+    public static BindTable Empty { get; } = new([], dragThreshold: 0, scrollDelay: 300, longPressDelay: 600);
 
     private static readonly Bind[] NoBinds = [];
 
@@ -15,8 +15,9 @@ public sealed class BindTable
     private readonly HashSet<string> _submaps;
     private readonly Bind[] _universal;
 
-    private BindTable(Bind[] entries, int dragThreshold, int scrollDelay)
+    private BindTable(Bind[] entries, int dragThreshold, int scrollDelay, int longPressDelay)
     {
+        LongPressDelay = longPressDelay;
         _entries = Array.AsReadOnly(entries);
         DragThreshold = dragThreshold;
         ScrollDelay = scrollDelay;
@@ -59,6 +60,9 @@ public sealed class BindTable
 
     internal int ScrollDelay { get; }
 
+    /// <summary>How long a key is held before a long-press bind runs: <c>input:repeat_delay</c>, as in the pinned release.</summary>
+    internal int LongPressDelay { get; }
+
     internal static BindTable From(ConfigDocument config)
     {
         ArgumentNullException.ThrowIfNull(config);
@@ -79,7 +83,7 @@ public sealed class BindTable
             }
         }
 
-        return new BindTable([.. binds], ReadThreshold(config), ReadScrollDelay(config));
+        return new BindTable([.. binds], ReadThreshold(config), ReadScrollDelay(config), ReadRepeatDelay(config));
     }
 
     private static int ReadThreshold(ConfigDocument config)
@@ -101,6 +105,18 @@ public sealed class BindTable
         {
             if (setting.Keyword == "binds:scroll_event_delay" && int.TryParse(setting.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
                 delay = Math.Clamp(parsed, 0, 2000);
+        }
+
+        return delay;
+    }
+
+    private static int ReadRepeatDelay(ConfigDocument config)
+    {
+        var delay = 600;
+        foreach (var setting in config.Settings)
+        {
+            if (setting.Keyword == "input:repeat_delay" && int.TryParse(setting.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) && parsed is >= 0 and <= 2000)
+                delay = parsed;
         }
 
         return delay;

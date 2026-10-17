@@ -82,7 +82,7 @@ public class KeybindsConformance
     private const string ShortChord = "touch /tmp/hyprtester-keybinds-short-chord.txt";
     private const string LongChord = "touch /tmp/hyprtester-keybinds-long-chord.txt";
 
-    [Fact(Skip = "A long press waits 500 ms instead of input:repeat_delay, and per-device binds are not honored.")]
+    [Fact(Skip = "Per-device binds are not honored.")]
     public void Keybinds()
     {
         var desk = new Desk(ConfigBinds);
@@ -845,7 +845,7 @@ public class KeybindsConformance
             var end = _now + milliseconds;
             while (true)
             {
-                long? longPress = _armedAt is long armed ? armed + BindMatcher.LongPressDelayMs : null;
+                long? longPress = _armedAt is long armed ? armed + RepeatDelay : null;
                 long? repeat = _repeating is not null && RepeatRate > 0 ? _nextRepeat : null;
                 var next = Math.Min(longPress ?? long.MaxValue, repeat ?? long.MaxValue);
                 if (next >= end)

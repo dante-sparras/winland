@@ -30,8 +30,6 @@ public readonly record struct BindDecision(bool Consumed, string? Dispatcher, st
 /// <summary>Matches a key or pointer button against a bind table. Takes no lock.</summary>
 public static class BindMatcher
 {
-    internal const int LongPressDelayMs = 500;
-
     private static readonly Dictionary<string, Modifier> ModifierKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         ["Super_L"] = Modifier.Super,
@@ -205,7 +203,7 @@ public static class BindMatcher
         session.LongPressMouse = mouse;
         return MaskHeld(session, Ran(immediate, consumed, trigger)) with
         {
-            ArmLongPressMs = LongPressDelayMs,
+            ArmLongPressMs = table.LongPressDelay,
             DisarmLongPress = true,
         };
     }
