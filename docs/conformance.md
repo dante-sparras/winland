@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-125 of 197 ported cases pass.
+127 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -150,10 +150,10 @@ A case passes when every check in it passes, as in the reference harness. A case
 | workspaces | workspacesCombined | differs | general:no_focus_fallback is a Gap. movewindow r does not carry the rightmost tile onto the next Monitor, and getprop does not answer border_size or rounding. |
 | workspaces | workspacesFollowProperNoGaps | differs | The bordersize window rule and the onworkspace match are not honored. |
 | workspaces | workspacesSmartGapsDirectionalMoveAcrossMonitors | differs | The bordersize window rule is not honored, and movewindow r does not carry the rightmost tile onto the next Monitor. |
-| workspaces | workspaceRenameChangeID | differs | There is no dispatcher that changes a Workspace's id. |
+| workspaces | workspaceRenameChangeID | passes | |
 | workspaces | workspaceRenameEmitsGlobalEvent | passes | |
 | workspaces | windowAtExplicitWorkspace | not ported | The case calls a hit test on a hidden Workspace through the reference's test plugin, which no command reaches. |
-| workspaces | workspaceChangeIDUpdatesRules | differs | There is no dispatcher that changes a Workspace's id. |
+| workspaces | workspaceChangeIDUpdatesRules | passes | |
 | workspaces | workspaceRenameDoesNotChangeAddress | passes | |
 | workspaces | workspaceRulesMatchBareAddressableNames | passes | |
 | workspaces | luaGetWorkspace | not ported | The case reads workspace objects from the Lua API, which a line-based command cannot reach. |

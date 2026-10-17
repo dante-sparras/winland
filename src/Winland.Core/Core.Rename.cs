@@ -37,6 +37,71 @@ public sealed partial class Core
         return View(shown ? placements : [], dispatcher: dispatcher, allowsElevation: allowsElevation);
     }
 
+    /// <summary>
+    /// <c>changeworkspaceid WORKSPACE ID</c> gives a numbered Workspace another number no Workspace has, as the pinned
+    /// release's id change does. Its Clients, the Monitor showing it and the Workspace history follow it, and the rules
+    /// for the new number apply. A Workspace that was not renamed takes the new number as its name.
+    /// </summary>
+    private Outcome ChangeWorkspaceId(string arguments, bool allowsElevation)
+    {
+        const string dispatcher = "changeworkspaceid";
+        var parts = arguments.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 2
+            || !int.TryParse(parts[1], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var number)
+            || number <= 0)
+        {
+            return View([], dispatcher: dispatcher, allowsElevation: allowsElevation) with { Error = "error: invalid workspace id" };
+        }
+
+        var to = WorkspaceId.FromNumber(number);
+        if (RenameTarget(parts[0]) is not WorkspaceId from
+            || !from.TryGetNumber(out var old)
+            || FindWorkspace(from) is not { } desk
+            || FindWorkspace(to) is not null)
+        {
+            return View([], dispatcher: dispatcher, allowsElevation: allowsElevation) with { Error = "error: bad workspace" };
+        }
+
+        desk.Readdress(to);
+        if (!desk.Renamed)
+            desk.DisplayName = null;
+
+        foreach (var screen in _monitors)
+        {
+            if (screen.Active == from)
+                screen.Active = to;
+        }
+
+        foreach (var (monitor, active) in _activeOn.ToArray())
+        {
+            if (active == from)
+                _activeOn[monitor] = to;
+        }
+
+        foreach (var (monitor, active) in _rememberedActive.ToArray())
+        {
+            if (active == from)
+                _rememberedActive[monitor] = to;
+        }
+
+        if (_returnMonitors.Remove(from, out var returning))
+            _returnMonitors[to] = returning;
+
+        for (var i = 0; i < _history.Count; i++)
+        {
+            if (_history[i].Workspace == from)
+                _history[i] = _history[i] with { Workspace = to };
+        }
+
+        _initialWorkspaces.Readdress(from, to);
+        (_readdressed ??= []).Add((from, to));
+        (_extraEvents ??= []).Add(new WorkspaceIdChanged(old, number));
+
+        var shown = ActiveOn(desk.Monitor) == to;
+        var placements = Restamp(desk, []);
+        return View(shown ? placements : [], dispatcher: dispatcher, allowsElevation: allowsElevation);
+    }
+
     // The workspace a rename names, read as the pinned release's workspace query reads it: by number, by address
     // after name: or special, or else by a bare address.
     private static WorkspaceId? RenameTarget(string selector)

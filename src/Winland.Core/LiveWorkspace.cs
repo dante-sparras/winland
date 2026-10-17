@@ -9,7 +9,16 @@ namespace Winland;
 /// </remarks>
 internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, Layout layout)
 {
-    public WorkspaceId Id { get; } = id;
+    public WorkspaceId Id { get; private set; } = id;
+
+    /// <summary>Takes a new id, with every Client and waiting Group member, as <c>changeworkspaceid</c> asks.</summary>
+    public void Readdress(WorkspaceId id)
+    {
+        Id = id;
+        Layout.Readdress(id);
+        foreach (var (window, waiting) in _waiting.ToArray())
+            _waiting[window] = waiting with { Client = waiting.Client with { Workspace = id } };
+    }
 
     public MonitorId Monitor { get; set; } = monitor;
 

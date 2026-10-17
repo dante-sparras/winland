@@ -18,6 +18,12 @@ internal sealed partial class DwindleLayout : Layout
 
     public IReadOnlyList<Client> Clients => _clients;
 
+    public void Readdress(WorkspaceId workspace)
+    {
+        for (var i = 0; i < _clients.Count; i++)
+            _clients[i] = _clients[i] with { Workspace = workspace };
+    }
+
     public void NudgeFloating(int dx, int dy) => _floating.Nudge(dx, dy);
 
     public IReadOnlyList<Placement> Apply(LayoutOptions options)

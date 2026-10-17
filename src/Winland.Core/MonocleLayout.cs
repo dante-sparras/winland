@@ -19,6 +19,12 @@ internal sealed partial class MonocleLayout : Layout
 
     public IReadOnlyList<Client> Clients => _clients;
 
+    public void Readdress(WorkspaceId workspace)
+    {
+        for (var i = 0; i < _clients.Count; i++)
+            _clients[i] = _clients[i] with { Workspace = workspace };
+    }
+
     public bool FollowsMonitorWhenUnmoved => true;
 
     public void NudgeFloating(int dx, int dy) => _floating.Nudge(dx, dy);

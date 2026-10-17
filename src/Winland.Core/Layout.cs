@@ -16,6 +16,9 @@ internal interface Layout
     /// <summary>Fits this Layout to a Monitor's work area.</summary>
     void Fit(Rectangle area);
 
+    /// <summary>Gives every Client the Workspace's new id, after <c>changeworkspaceid</c>.</summary>
+    void Readdress(WorkspaceId workspace);
+
     /// <summary>Adopts a Window as a Client of this Workspace.</summary>
     IReadOnlyList<Placement> Add(
         WindowId window,

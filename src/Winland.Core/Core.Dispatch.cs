@@ -158,6 +158,9 @@ public sealed partial class Core
         if (Is(name, "renameworkspace"))
             return RenameWorkspace(arguments, allowsElevation);
 
+        if (Is(name, "changeworkspaceid"))
+            return ChangeWorkspaceId(arguments, allowsElevation);
+
         if (Is(name, "cyclenext"))
             return CycleNext(arguments, allowsElevation);
 

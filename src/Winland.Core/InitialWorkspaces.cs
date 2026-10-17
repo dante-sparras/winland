@@ -18,6 +18,16 @@ internal sealed class InitialWorkspaces
         _tokens.Add(new Token(pid, workspace, expiresAt));
     }
 
+    /// <summary>A token for a Workspace whose id changed now names the new id.</summary>
+    internal void Readdress(WorkspaceId from, WorkspaceId to)
+    {
+        foreach (var token in _tokens)
+        {
+            if (token.Workspace == from)
+                token.Workspace = to;
+        }
+    }
+
     internal void Note(int pid, int parentPid)
     {
         if (pid <= 0 || parentPid <= 0 || pid == parentPid)
@@ -84,7 +94,7 @@ internal sealed class InitialWorkspaces
     {
         public HashSet<int> Pids { get; } = [pid];
 
-        public WorkspaceId Workspace { get; } = workspace;
+        public WorkspaceId Workspace { get; set; } = workspace;
 
         public long ExpiresAt { get; } = expiresAt;
 

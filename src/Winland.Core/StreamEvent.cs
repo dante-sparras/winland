@@ -28,6 +28,9 @@ public sealed record WorkspaceDestroyed(WorkspaceId Workspace, int Id, string Na
 
 public sealed record WorkspaceMoved(WorkspaceId Workspace, string Monitor) : StreamEvent;
 
+/// <summary><c>changeworkspaceid</c> gave the workspace numbered <paramref name="From"/> the number <paramref name="To"/>.</summary>
+public sealed record WorkspaceIdChanged(int From, int To) : StreamEvent;
+
 /// <summary><paramref name="Name"/> is the name <c>renameworkspace</c> gave the workspace.</summary>
 public sealed record WorkspaceRenamed(WorkspaceId Workspace, string Name) : StreamEvent;
 

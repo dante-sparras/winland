@@ -228,7 +228,7 @@ public class WorkspacesConformance
 
     // The reference changes a Workspace's id with its change_id dispatcher, which has no line-based name.
     // changeworkspaceid stands for it here.
-    [Fact(Skip = "There is no dispatcher that changes a Workspace's id.")]
+    [Fact]
     public void WorkspaceRenameChangeID()
     {
         var desk = new Desk();
@@ -274,7 +274,7 @@ public class WorkspacesConformance
         desk.Ok("workspace", "1");
     }
 
-    [Fact(Skip = "There is no dispatcher that changes a Workspace's id.")]
+    [Fact]
     public void WorkspaceChangeIDUpdatesRules()
     {
         var desk = new Desk("workspace = 201, gapsout:40 40 40 40\n");
