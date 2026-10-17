@@ -58,7 +58,7 @@ internal static partial class WindowRuleParser
             }
         }
 
-        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement, group, props, dynamic);
+        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement, TagOr(effect, group, out var tag), props, dynamic, tag);
         return true;
     }
 
@@ -68,8 +68,15 @@ internal static partial class WindowRuleParser
         if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out var placement, out var group, out var props, out error))
             return false;
 
-        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, ScrollingWidth: scrollingWidth, Opacity: opacity, Fullscreen: fullscreen, IdleInhibit: idle, Placement: placement, Group: group, Props: props);
+        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, ScrollingWidth: scrollingWidth, Opacity: opacity, Fullscreen: fullscreen, IdleInhibit: idle, Placement: placement, Group: TagOr(effect, group, out var tag), Props: props, Tag: tag);
         return true;
+    }
+
+    // A tag rule's argument is its tag, and any other rule's is its group options.
+    private static string? TagOr(WindowRuleEffect effect, string? argument, out string? tag)
+    {
+        tag = effect == WindowRuleEffect.Tag ? argument : null;
+        return tag is null ? argument : null;
     }
 
     internal static WindowDecision Decide(WindowTraits traits, IReadOnlyList<WindowRule> rules, RuleSubject? subject = null)
@@ -275,6 +282,18 @@ internal static partial class WindowRuleParser
 
                 effect = WindowRuleEffect.Group;
                 group = argument ?? "";
+                error = "";
+                return true;
+            case "tag":
+                if (argument is null)
+                {
+                    error = "Malformed window rule.";
+                    return false;
+                }
+
+                // The tag rides in the group argument until the rule is built.
+                effect = WindowRuleEffect.Tag;
+                group = argument;
                 error = "";
                 return true;
             case "workspace":

@@ -8,16 +8,31 @@ public sealed partial class Core
     // What each window was adopted with: its traits and the exec rules that followed its process.
     private readonly Dictionary<WindowId, (WindowTraits Traits, IReadOnlyList<WindowRule> Followed)> _ruleSubjects = [];
 
+    // The tags tagwindow gave each window, and each window's tags with what its rules give added.
+    private readonly Dictionary<WindowId, SortedSet<string>> _staticTags = [];
+    private readonly Dictionary<WindowId, SortedSet<string>> _ruleTags = [];
+
+    // Whether the last pass found a rule that reads state.
+    private bool _matchedState;
+
+    private IReadOnlyList<string> TagsOf(WindowId window) =>
+        _ruleTags.TryGetValue(window, out var tags) || _staticTags.TryGetValue(window, out tags) ? [.. tags] : [];
+
     private void RememberRuleSubject(WindowId window, WindowTraits traits, IReadOnlyList<WindowRule> followed) =>
         _ruleSubjects[window] = (traits, followed);
 
-    // Matches the property effects of every window's rules against its state now. The placements of each shown
-    // Workspace where a window's border changed, laid out again.
-    private List<Placement> MatchRulesAgain()
+    // Matches the tag and property effects of every window's rules against its state now. The placements of each
+    // shown Workspace where a window's border changed, laid out again, and whether any window's tags changed.
+    private List<Placement> MatchRulesAgain(out bool tagsChanged)
     {
+        tagsChanged = false;
         var placements = new List<Placement>();
-        if (!ReadsState(_rules) && !FollowedReadState())
+        // Once no rule reads state, one more pass puts back what the rules give a window when it opens.
+        var reads = ReadsState(_rules) || FollowedReadState();
+        if (!reads && !_matchedState)
             return placements;
+
+        _matchedState = reads;
 
         var active = ActiveWindow();
         foreach (var desk in _workspaces)
@@ -29,7 +44,18 @@ public sealed partial class Core
                     continue;
 
                 var traits = kept.Traits with { Class = client.Class, Title = client.Title };
-                var decision = WindowRuleParser.Decide(traits, JoinRules(_rules, kept.Followed), SubjectOf(desk, client, active));
+                var rules = JoinRules(_rules, kept.Followed);
+                var tags = _staticTags.TryGetValue(client.Window, out var own)
+                    ? new SortedSet<string>(own, StringComparer.Ordinal)
+                    : new SortedSet<string>(StringComparer.Ordinal);
+                foreach (var tag in WindowRuleParser.TagsFor(traits, rules, SubjectOf(desk, client, active, tags)))
+                    _ = WindowTags.Apply(tags, tag, dynamic: true);
+
+                var before = _ruleTags.TryGetValue(client.Window, out var held) ? held : own;
+                tagsChanged |= !(before ?? []).SetEquals(tags);
+                _ruleTags[client.Window] = tags;
+
+                var decision = WindowRuleParser.Decide(traits, rules, SubjectOf(desk, client, active, tags));
                 var border = RulePropOf(client.Window, "border_size");
                 RememberRuleProps(client.Window, decision);
                 changed |= !Equals(border, RulePropOf(client.Window, "border_size"));
@@ -42,7 +68,7 @@ public sealed partial class Core
         return placements;
     }
 
-    private RuleSubject SubjectOf(LiveWorkspace desk, Client client, WindowId? active)
+    private RuleSubject SubjectOf(LiveWorkspace desk, Client client, WindowId? active, IReadOnlySet<string> tags)
     {
         var screen = MonitorById(desk.Monitor);
         int Count(WindowCount wanted) => desk.CountWindows(wanted, _pinned);
@@ -53,7 +79,29 @@ public sealed partial class Core
             client.Floating && _pinned.Contains(client.Window),
             client.Window == active,
             desk.GroupOf(client.Window) is not null,
-            selector => WorkspaceRules.MatchesSelector(selector, desk.Id, desk.DisplayName, screen?.Effective, Count, desk.CoveringMode()));
+            selector => WorkspaceRules.MatchesSelector(selector, desk.Id, desk.DisplayName, screen?.Effective, Count, desk.CoveringMode()),
+            tag => WindowTags.IsTagged(tags, tag));
+    }
+
+    /// <summary><c>tagwindow tag [window]</c> applies a static tag to the window, or the focused one, as in the pinned release.</summary>
+    private Outcome TagWindow(string arguments, bool allowsElevation)
+    {
+        const string name = "tagwindow";
+        var text = arguments.Trim();
+        var space = text.IndexOfAny([' ', '	']);
+        var tag = space < 0 ? text : text[..space];
+        var selector = space < 0 ? "" : text[(space + 1)..].Trim();
+        if (tag.Length == 0 || Select(selector, emptyMeansActive: true) is not WindowId window)
+            return View([], dispatcher: name, allowsElevation: allowsElevation);
+
+        if (!_staticTags.TryGetValue(window, out var tags))
+            _staticTags[window] = tags = new SortedSet<string>(StringComparer.Ordinal);
+
+        // The rules are matched again, with the new tag, when this Outcome is decorated.
+        if (WindowTags.Apply(tags, tag, dynamic: false))
+            _ruleTags.Remove(window);
+
+        return View([], dispatcher: name, allowsElevation: allowsElevation);
     }
 
     private static bool ReadsState(IReadOnlyList<WindowRule> rules)

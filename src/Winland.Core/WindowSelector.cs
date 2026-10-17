@@ -26,8 +26,14 @@ internal static class WindowSelector
         if (text.StartsWith("tiled", StringComparison.Ordinal))
             return First(floating: false, active, clients);
 
-        // Tags are not tracked, so a tag selector parses and matches nothing.
-        if (text.StartsWith("tag:", StringComparison.Ordinal) || text.StartsWith("stableid:", StringComparison.Ordinal))
+        // A tag selector matches a Client when one of its tags matches the whole pattern, as in the pinned release.
+        if (text.StartsWith("tag:", StringComparison.Ordinal))
+        {
+            var tagPattern = text[4..];
+            return FirstMatch(active, clients, client => client.Tags is { } tags && tags.Any(tag => Matches(tag, tagPattern)));
+        }
+
+        if (text.StartsWith("stableid:", StringComparison.Ordinal))
             return null;
 
         if (text.StartsWith("address:", StringComparison.Ordinal))

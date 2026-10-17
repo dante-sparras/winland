@@ -27,6 +27,7 @@ public enum WindowRuleEffect
     NoCloseFor,
     Group,
     Prop,
+    Tag,
 }
 
 public sealed record WindowRule(
@@ -45,7 +46,8 @@ public sealed record WindowRule(
     RulePlacement? Placement = null,
     string? Group = null,
     IReadOnlyDictionary<string, object>? Props = null,
-    IReadOnlyList<RuleMatch>? Dynamic = null);
+    IReadOnlyList<RuleMatch>? Dynamic = null,
+    string? Tag = null);
 
 /// <summary>What a window rule matches on that can change while the window lives.</summary>
 public enum RuleMatchKind
@@ -59,6 +61,7 @@ public enum RuleMatchKind
     FullscreenStateInternal,
     FullscreenStateClient,
     Workspace,
+    Tag,
 }
 
 /// <summary>One match on a window's state, such as <c>float:1</c> or <c>workspace:w[tv1]</c>.</summary>
@@ -75,7 +78,8 @@ internal readonly record struct RuleSubject(
     bool Pinned,
     bool Focused,
     bool Grouped,
-    Func<string, bool> OnWorkspace);
+    Func<string, bool> OnWorkspace,
+    Func<string, bool> Tagged);
 
 /// <summary>
 /// The argument of a <c>move</c>, <c>size</c>, <c>monitor</c> or <c>no_close_for</c> rule.

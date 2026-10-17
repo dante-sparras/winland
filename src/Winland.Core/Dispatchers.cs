@@ -37,6 +37,7 @@ public static class Dispatchers
             "changeworkspaceid",
             "setprop",
             "cyclenext",
+            "tagwindow",
             "togglespecialworkspace",
             "layoutmsg",
             "layout",

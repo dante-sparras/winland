@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-137 of 197 ported cases pass.
+139 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -279,8 +279,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | keyboard_input | orderedReleaseChord | passes | |
 | keyboard_input | nonConsumingChordPreservesOrder | passes | |
 | swallow | swallow | differs | A Workspace's windows count includes a swallowed Client, toggleswallow on the swallowed Client does nothing, and a Client swallowed in turn loses the Client it swallowed. A window selector does not find a swallowed Client. |
-| tags | tags | differs | The tag and nodim window rule effects are refused. |
-| tags | tags_fullscreen_cleanup | differs | tagwindow is not a dispatcher, and window tags are not tracked. |
+| tags | tags | passes | |
+| tags | tags_fullscreen_cleanup | passes | |
 | workspace_swipe | workspaceSwipeReversalCleanup | not ported | Most of its checks read render state through the test plugin: alpha, render offset, the render hold and the swipe session. The checks the replies can answer would make a partial case pass. |
 | workspace_swipe | workspaceSwipeMissingNeighborCleanup | not ported | Most of its checks read render state through the test plugin: alpha, render offset, the render hold and the swipe session. The checks the replies can answer would make a partial case pass. |
 | workspace_swipe | workspaceSwipeCancelCleanup | not ported | Most of its checks read render state through the test plugin: alpha, render offset, the render hold and the swipe session. The checks the replies can answer would make a partial case pass. |

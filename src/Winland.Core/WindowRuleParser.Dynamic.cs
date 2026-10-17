@@ -19,6 +19,7 @@ internal static partial class WindowRuleParser
         ["fullscreen_state_client"] = RuleMatchKind.FullscreenStateClient,
         ["workspace"] = RuleMatchKind.Workspace,
         ["onworkspace"] = RuleMatchKind.Workspace,
+        ["tag"] = RuleMatchKind.Tag,
     };
 
     private static bool TryParseDynamicMatch(string text, out RuleMatch match)
@@ -55,6 +56,7 @@ internal static partial class WindowRuleParser
                 RuleMatchKind.FullscreenStateInternal => LeadingInteger(match.Value) == state.FullscreenInternal,
                 RuleMatchKind.FullscreenStateClient => LeadingInteger(match.Value) == state.FullscreenClient,
                 RuleMatchKind.Workspace => state.OnWorkspace(match.Value),
+                RuleMatchKind.Tag => state.Tagged(match.Value),
                 _ => false,
             };
 
@@ -87,8 +89,21 @@ internal static partial class WindowRuleParser
         }
     }
 
+    /// <summary>The tag requests of the rules that match the window, in the order the rules come.</summary>
+    internal static List<string> TagsFor(WindowTraits traits, IReadOnlyList<WindowRule> rules, RuleSubject subject)
+    {
+        var tags = new List<string>();
+        foreach (var rule in rules)
+        {
+            if (rule.Effect == WindowRuleEffect.Tag && rule.Tag is string tag && Matches(rule, traits) && MatchesState(rule, subject))
+                tags.Add(tag);
+        }
+
+        return tags;
+    }
+
     /// <summary>True when the rule reads a window's state, so it is checked again as that state changes.</summary>
-    internal static bool ReadsState(WindowRule rule) => rule.Dynamic is { Count: > 0 };
+    internal static bool ReadsState(WindowRule rule) => rule.Dynamic is { Count: > 0 } || rule.Effect == WindowRuleEffect.Tag;
 
     /// <summary>True when the rule's effect is one the pinned release applies again while the window lives.</summary>
     internal static bool IsDynamicEffect(WindowRule rule) => rule.Effect is WindowRuleEffect.Prop
