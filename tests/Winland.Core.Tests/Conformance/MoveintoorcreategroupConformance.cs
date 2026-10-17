@@ -37,7 +37,7 @@ public class MoveintoorcreategroupConformance
         Assert.Equal("kitty_E", desk.ActiveClass());
     }
 
-    [Fact(Skip = "moveintoorcreategroup does not find a Client on another Monitor, so the Client stays in its own Group. The pinned release looks for the neighbour across Monitors.")]
+    [Fact]
     public void CrossMonitorGroupJoin()
     {
         var desk = new Desk("""
