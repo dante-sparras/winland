@@ -86,7 +86,7 @@ public class ControlConformance
         Assert.Equal("prop not found", desk.Send("getprop class:kitty nonexistantprop"));
     }
 
-    [Fact(Skip = "There is no submap request.")]
+    [Fact]
     public void HyprctlSubmap()
     {
         var desk = new Desk();

@@ -36,6 +36,8 @@ public static class ExtraCommands
             return Exact(rest, new LockedRequest(), flags, out parse);
         if (Is(verb, "layouts"))
             return Exact(rest, new LayoutsRequest(), flags, out parse);
+        if (Is(verb, "submap"))
+            return Exact(rest, new SubmapRequest(), flags, out parse);
         if (Is(verb, "kill"))
             return Exact(rest, new ClickKillRequest(), flags, out parse);
         if (Is(verb, "rollinglog"))
@@ -140,6 +142,13 @@ public static class ExtraCommands
 
     public static string FormatLocked(bool locked) =>
         locked ? "{\"locked\":true}" : "{\"locked\":false}";
+
+    /// <summary>The submap binds run in, as the pinned release answers <c>submap</c>: <c>default</c> outside one.</summary>
+    public static string FormatSubmap(string submap, bool json)
+    {
+        var name = submap.Length == 0 ? "default" : submap;
+        return (json ? JsonSerializer.Serialize(name, Relaxed) : name) + "\n";
+    }
 
     public static string FormatLayouts() => JsonSerializer.Serialize(LayoutFactory.Names);
 
@@ -352,6 +361,8 @@ public sealed record SystemInfoRequest : CommandRequest;
 public sealed record LockedRequest : CommandRequest;
 
 public sealed record LayoutsRequest : CommandRequest;
+
+public sealed record SubmapRequest : CommandRequest;
 
 public sealed record ClickKillRequest : CommandRequest;
 
