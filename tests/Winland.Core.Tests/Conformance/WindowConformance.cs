@@ -1100,7 +1100,7 @@ public class WindowConformance
         ExpectTraveller(desk, Full, 1, 2, "default", floating: true);
     }
 
-    [Fact(Skip = "misc:float_force_onscreen and misc:new_float_force_onscreen are not honored.")]
+    [Fact]
     public void FloatingForceOnscreen()
     {
         var desk = new Desk();

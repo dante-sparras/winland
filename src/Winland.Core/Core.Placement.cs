@@ -74,16 +74,24 @@ public sealed partial class Core
         }
 
         (width, height) = Clamp(width, height, decision.MinSize, decision.MaxSize);
+        Rectangle placed;
         if (placement.Move is { } move
             && move.TryEvaluate(Variables(monitor, desired with { Width = width, Height = height }, pointer), out var x, out var y))
-            return new Rectangle(monitor.X + Pixels(x), monitor.Y + Pixels(y), width, height);
+        {
+            placed = new Rectangle(monitor.X + Pixels(x), monitor.Y + Pixels(y), width, height);
+        }
+        else
+        {
+            var floating = desk.Options.FloatingWorkArea(area);
+            placed = new Rectangle(
+                floating.X + ((floating.Width - width) / 2),
+                floating.Y + ((floating.Height - height) / 2),
+                width,
+                height);
+        }
 
-        var floating = desk.Options.FloatingWorkArea(area);
-        return new Rectangle(
-            floating.X + ((floating.Width - width) / 2),
-            floating.Y + ((floating.Height - height) / 2),
-            width,
-            height);
+        // misc:new_float_force_onscreen keeps a Client that opens floating on screen, a moved one too.
+        return decision.Floating ? desk.Options.NewFloatingOnScreen(area).Keep(placed) : placed;
     }
 
     private void NotePlaced(WindowId window, LiveWorkspace desk, WindowDecision decision, bool restored)

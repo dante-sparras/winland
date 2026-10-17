@@ -219,6 +219,7 @@ public class BorderResizeTests
             general:gaps_out = 0
             general:border_size = 0
             general:float_gaps = 500
+            misc:float_force_onscreen = 2
             """);
         Appear(core, 1);
 
@@ -245,6 +246,7 @@ public class BorderResizeTests
             general:gaps_out = 500
             general:border_size = 0
             general:float_gaps = -1
+            misc:float_force_onscreen = 2
             """);
         Appear(core, 1);
         var floated = core.Handle(new Dispatch("togglefloating"));

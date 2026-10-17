@@ -172,6 +172,14 @@ internal static class OptionCatalog
                 kind = "bool";
                 token = Bool(MonitorFallback(document));
                 return true;
+            case "misc:float_force_onscreen":
+                kind = "int";
+                token = layout.FloatForceOnscreen.ToString(CultureInfo.InvariantCulture);
+                return true;
+            case "misc:new_float_force_onscreen":
+                kind = "int";
+                token = layout.NewFloatForceOnscreen.ToString(CultureInfo.InvariantCulture);
+                return true;
             case "misc:size_limits_tiled":
                 kind = "bool";
                 token = Bool(session.SizeLimitsTiled);

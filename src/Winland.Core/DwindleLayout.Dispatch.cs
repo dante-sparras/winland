@@ -183,7 +183,7 @@ internal sealed partial class DwindleLayout
         if (_splitTarget == id)
             _splitTarget = sibling is null ? null : Leaf(sibling.Node).Id;
 
-        var floated = _floating.Around(id, tile, _options.FloatingWorkArea(_area));
+        var floated = _floating.Around(id, tile, _options.FloatingOnScreen(_area));
         _floating.Set(id, floated);
         _clients[index] = _clients[index] with { Floating = true };
         Refit();

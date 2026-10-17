@@ -78,7 +78,7 @@ internal sealed partial class MasterLayout : IMouseDragHost
             return [];
 
         if (_floating.Contains(Id(window)))
-            return _floating.Resize(Id(window), x, y, exact);
+            return _floating.Resize(Id(window), x, y, exact, _layout.FloatingOnScreen(_area));
 
         var tile = Find(window);
         if (tile is null)
@@ -115,7 +115,7 @@ internal sealed partial class MasterLayout : IMouseDragHost
 
         var tileBox = existing.Box;
         Detach(existing);
-        var floated = _floating.Around(id, tileBox, _layout.FloatingWorkArea(_area));
+        var floated = _floating.Around(id, tileBox, _layout.FloatingOnScreen(_area));
         _floating.Set(id, floated);
         MarkFloating(id, true);
         var placements = new List<Placement>(Placed()) { new(id, floated) };
@@ -127,7 +127,7 @@ internal sealed partial class MasterLayout : IMouseDragHost
     public IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds)
     {
         var id = Id(window);
-        return _floating.Place(id, bounds) ? Visible() : [];
+        return _floating.Place(id, bounds, _layout.FloatingOnScreen(_area)) ? Visible() : [];
     }
 
     FloatingClients IMouseDragHost.Floating => _floating;

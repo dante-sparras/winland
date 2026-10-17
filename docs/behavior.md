@@ -60,7 +60,11 @@ A console program started by `execr` gets a console window of its own. One start
 
 ## Window placement
 
-A new floating Client opens at the size it asked for, centered in the floating work area of its Monitor: the work area less `general:float_gaps`. A window that reports no size opens at 640 by 400. A tiled Client is placed by its Layout. `togglefloating` floats a tiled Client around the center of its tile, at the size it last had while floating, or at the size it asked for when it has not floated yet, in every Layout. A Client that comes back after a restart keeps the rectangle it had, whether it floated, its pin and its fullscreen modes, as the recovery file recorded them, before the window rules. A recovery file written before these were recorded leaves them to the rules.
+A new floating Client opens at the size it asked for, centered in the floating work area of its Monitor: the work area less `general:float_gaps`. A window that reports no size opens at 640 by 400. A tiled Client is placed by its Layout. `togglefloating` floats a tiled Client around the center of its tile, at the size it last had while floating, or at the size it asked for when it has not floated yet, in every Layout.
+
+`misc:new_float_force_onscreen` keeps a Client that opens floating on screen, also one a `move` rule places, and defaults to 2. `misc:float_force_onscreen` does the same when a floating Client starts floating, moves, is dragged or resizes, and defaults to 0. Both are measured against the floating work area, as in the pinned release. `misc:float_force_onscreen` counts the border around the frame, and `misc:new_float_force_onscreen` does not, because the pinned release applies it before the border is known. 0 leaves the Client where it is put. 1 acts only on a Client that would lie wholly outside the area, and moves it until its middle is on the nearest edge. 2 moves it, without resizing it, to lie wholly inside, so a Client larger than the area lines up with its right and bottom edges.
+
+A Client that comes back after a restart keeps the rectangle it had, whether it floated, its pin and its fullscreen modes, as the recovery file recorded them, before the window rules. A recovery file written before these were recorded leaves them to the rules.
 
 A Client whose application hides it, without minimizing it, stops being a Client, as an unmapped window does in the pinned release, and it is adopted again when the application shows it. The windows Winland hides itself, for a Workspace it does not show, stay Clients.
 

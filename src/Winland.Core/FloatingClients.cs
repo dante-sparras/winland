@@ -47,9 +47,10 @@ internal sealed class FloatingClients
 
     /// <summary>
     /// Where a tiled Client floats: around the middle of its tile, at the size it last floated at
-    /// or 640 by 400, inside the floating work area. A size that would barely differ from the tile grows by 10.
+    /// or 640 by 400, kept on screen as <c>misc:float_force_onscreen</c> asks. A size that would barely differ
+    /// from the tile grows by 10.
     /// </summary>
-    public Rectangle Around(ClientId id, Rectangle tile, Rectangle work)
+    public Rectangle Around(ClientId id, Rectangle tile, OnScreen onScreen)
     {
         var width = DefaultWidth;
         var height = DefaultHeight;
@@ -70,7 +71,7 @@ internal sealed class FloatingClients
             tile.Y + (tile.Height / 2) - (height / 2),
             width,
             height);
-        return FitInWorkArea(floated, work);
+        return onScreen.Keep(floated);
     }
 
     /// <summary>Hands a floating slot and its remembered size to the Window that takes over the slot.</summary>
@@ -128,8 +129,8 @@ internal sealed class FloatingClients
         return [new Placement(id, moved)];
     }
 
-    /// <summary>Resizes a floating Client about its center, by a delta or to an exact size.</summary>
-    public IReadOnlyList<Placement> Resize(ClientId id, int x, int y, bool exact)
+    /// <summary>Resizes a floating Client about its center, by a delta or to an exact size, and keeps it on screen.</summary>
+    public IReadOnlyList<Placement> Resize(ClientId id, int x, int y, bool exact, OnScreen onScreen)
     {
         if (!_boxes.TryGetValue(id, out var box))
             return [];
@@ -140,17 +141,18 @@ internal sealed class FloatingClients
         if (resized.Width < 1 || resized.Height < 1)
             return [];
 
+        resized = onScreen.Keep(resized);
         _boxes[id] = resized;
         return [new Placement(id, resized)];
     }
 
-    /// <summary>Moves a floating Client to a rectangle of at least one pixel. False when it is not floating.</summary>
-    public bool Place(ClientId id, Rectangle bounds)
+    /// <summary>Moves a floating Client to a rectangle of at least one pixel, kept on screen. False when it is not floating.</summary>
+    public bool Place(ClientId id, Rectangle bounds, OnScreen onScreen)
     {
         if (!_boxes.ContainsKey(id) || bounds.Width < 1 || bounds.Height < 1)
             return false;
 
-        _boxes[id] = bounds;
+        _boxes[id] = onScreen.Keep(bounds);
         return true;
     }
 
@@ -168,20 +170,46 @@ internal sealed class FloatingClients
                 placements.Add(new Placement(client.Id, box));
         }
     }
+}
 
-    /// <summary>A rectangle moved, not resized, to lie inside the work area. An empty work area leaves it.</summary>
-    public static Rectangle FitInWorkArea(Rectangle box, Rectangle work)
+/// <summary>
+/// How far a floating Client is kept on screen, as the pinned release keeps it: in <see cref="Work"/>, the floating work
+/// area, with <see cref="Border"/> drawn around the frame. <see cref="Mode"/> 0 leaves the Client where it is put. 1 moves
+/// a Client that would be wholly off the area until its middle is on the nearest edge. 2 moves it, not resizing it, to lie
+/// wholly inside with its border, so one larger than the area lines up with the right and bottom edges.
+/// </summary>
+internal readonly record struct OnScreen(Rectangle Work, int Border, int Mode)
+{
+    public Rectangle Keep(Rectangle frame)
     {
-        if (work.Width <= 0 || work.Height <= 0)
-            return box;
+        if (Mode is not (1 or 2) || Work.Width <= 0 || Work.Height <= 0)
+            return frame;
 
-        var x = Math.Max(box.X, work.X);
-        var y = Math.Max(box.Y, work.Y);
-        if (x + box.Width > work.X + work.Width)
-            x = work.X + work.Width - box.Width;
-        if (y + box.Height > work.Y + work.Height)
-            y = work.Y + work.Height - box.Height;
+        var x = frame.X - Border;
+        var y = frame.Y - Border;
+        var width = frame.Width + (2 * Border);
+        var height = frame.Height + (2 * Border);
+        var right = Work.X + Work.Width;
+        var bottom = Work.Y + Work.Height;
+        if (Mode == 2)
+        {
+            x = Math.Max(x, Work.X);
+            y = Math.Max(y, Work.Y);
+            if (x + width > right)
+                x = right - width;
+            if (y + height > bottom)
+                y = bottom - height;
+        }
+        else if (x >= right || x + width <= Work.X || y >= bottom || y + height <= Work.Y)
+        {
+            x = Math.Max(x, Work.X - (width / 2));
+            y = Math.Max(y, Work.Y - (height / 2));
+            if (x > right)
+                x = right - (width / 2);
+            if (y > bottom)
+                y = bottom - (height / 2);
+        }
 
-        return new Rectangle(x, y, box.Width, box.Height);
+        return frame with { X = x + Border, Y = y + Border };
     }
 }

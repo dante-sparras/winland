@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-74 of 197 ported cases pass.
+75 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -118,7 +118,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | mouseResize | differs | movecursor is not a dispatcher, and a mouse bind pressed on a Client's border does not take the Client. The keep_aspect_ratio window rule is not honored. |
 | window | getFullscreenHandler | differs | fullscreenHandler is always default. The pinned release reports scrolling for a tiled Client in the scrolling Layout. |
 | window | sendFsWindowToAnotherWorkspace | differs | Maximize does not leave the border around the Client, and fullscreenHandler is always default. |
-| window | floatingForceOnscreen | differs | misc:float_force_onscreen and misc:new_float_force_onscreen are not honored. |
+| window | floatingForceOnscreen | passes | |
 | window | specialWorkspacePinnedWindowUnmapFallback | differs | Closing a focused pinned Client focuses a Client on the normal Workspace under an open special workspace. The pinned release focuses the special workspace's Client. |
 | window | windowRuleBorderColors | differs | getprop does not honor active_border_color or inactive_border_color, and the border_color window rule is not honored. |
 | window | windowRuleBorderColorsFocus | differs | getprop does not honor active_border_color or inactive_border_color, and the border_color window rule is not honored. |

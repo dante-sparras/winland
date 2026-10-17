@@ -19,7 +19,7 @@ internal sealed partial class ScrollingLayout : IMouseDragHost
     public IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds)
     {
         var id = new ClientId(window.Value);
-        return _floating.Place(id, bounds) ? WithFloating(id) : [];
+        return _floating.Place(id, bounds, _layoutOptions.FloatingOnScreen(_area)) ? WithFloating(id) : [];
     }
 
     Rectangle IMouseDragHost.SnapFloating(ClientId self, Rectangle proposed, SnapEdges edges, bool resize) =>
