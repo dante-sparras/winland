@@ -369,6 +369,57 @@ public class WorkspaceTests
         Assert.Contains(blank.State.Clients, client => client.Window == new WindowId(1));
     }
 
+    [Theory]
+    [InlineData("1", "1")]
+    [InlineData("all_monitors", "1")]
+    [InlineData("true", "1")]
+    [InlineData("0", "2")]
+    public void BackAndForthGoesToThePreviousWorkspace(string value, string expected)
+    {
+        var core = Load($"binds:workspace_back_and_forth = {value}\n");
+        Appear(core, 1);
+        core.Execute("dispatch workspace 2");
+
+        var again = core.Execute("dispatch workspace 2").Effect;
+
+        Assert.Equal(new WorkspaceId(expected), again.State.ActiveWorkspace);
+    }
+
+    [Fact]
+    public void BackAndForthStaysWithoutAPreviousWorkspace()
+    {
+        var core = Load("binds:workspace_back_and_forth = 1\n");
+        Appear(core, 1);
+
+        var same = core.Execute("dispatch workspace 1").Effect;
+
+        Assert.Equal(new WorkspaceId("1"), same.State.ActiveWorkspace);
+        Assert.Equal("{\"option\":\"binds:workspace_back_and_forth\",\"int\":1,\"set\":true}", core.Execute("getoption binds:workspace_back_and_forth").Text);
+    }
+
+    [Theory]
+    [InlineData("all_monitors", "3")]
+    [InlineData("per_monitor", "1")]
+    public void BackAndForthPerMonitorLooksOnlyAtThisMonitorsWorkspaces(string value, string expected)
+    {
+        var core = Load($"binds:workspace_back_and_forth = {value}\nworkspace = 3, monitor:RIGHT\n");
+        core.Handle(new MonitorsChanged(
+        [
+            new Monitor("LEFT", "Left", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080)),
+            new Monitor("RIGHT", "Right", 1920, 0, 1920, 1080, 1, true, new Rectangle(1920, 0, 1920, 1080)),
+        ]));
+        // LEFT shows 1, then 4. RIGHT shows 3. Back on 4, the Workspace visited before it was 3, on RIGHT.
+        core.Execute("dispatch focusmonitor LEFT");
+        core.Execute("dispatch workspace 1");
+        core.Execute("dispatch workspace 4");
+        core.Execute("dispatch workspace 3");
+        core.Execute("dispatch workspace 4");
+
+        var again = core.Execute("dispatch workspace 4").Effect;
+
+        Assert.Equal(new WorkspaceId(expected), again.State.ActiveWorkspace);
+    }
+
     // A loaded config applies its gaps and borders like a reload, and these rectangles have none.
     private const string Gapless = "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n";
 

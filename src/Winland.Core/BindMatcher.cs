@@ -47,10 +47,12 @@ public static class BindMatcher
     // Settings under binds: that are read. Add a keyword here when it is applied.
     internal static IReadOnlySet<string> Keywords { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
+        "binds:allow_workspace_cycles",
         "binds:drag_threshold",
         "binds:focus_preferred_method",
         "binds:scroll_event_delay",
         "binds:window_direction_monitor_fallback",
+        "binds:workspace_back_and_forth",
     };
 
     public static BindDecision Decide(BindTable table, BindSession session, Input input)

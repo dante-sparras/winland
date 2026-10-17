@@ -7,7 +7,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class WorkspacesConformance
 {
-    [Fact(Skip = "binds:workspace_back_and_forth and binds:allow_workspace_cycles are not honored, and binds:movefocus_cycles_fullscreen and general:no_focus_fallback are Gaps. movewindow r does not carry the rightmost tile onto the next Monitor, and getprop does not answer border_size or rounding.")]
+    [Fact(Skip = "binds:movefocus_cycles_fullscreen and general:no_focus_fallback are Gaps. movewindow r does not carry the rightmost tile onto the next Monitor, and getprop does not answer border_size or rounding.")]
     public void WorkspacesCombined()
     {
         var desk = new Desk("workspace = 966, persistent:true\n");

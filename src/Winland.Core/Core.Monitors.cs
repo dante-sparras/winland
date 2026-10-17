@@ -7,12 +7,25 @@ public sealed partial class Core
     // binds:focus_preferred_method: 0 picks the tile focused most recently, 1 the one sharing the longest edge.
     private bool _focusByHistory = true;
 
+    // binds:workspace_back_and_forth: 0 off, 1 the previous Workspace on any Monitor, 2 the previous one on this Monitor.
+    private int _backAndForth;
+
+    // binds:allow_workspace_cycles: the Workspace visited last is recorded again when it is visited again.
+    private bool _allowWorkspaceCycles;
+
     private void ReadBinds(ConfigDocument document)
     {
         _monitorFallback = true;
         _focusByHistory = true;
+        _backAndForth = 0;
+        _allowWorkspaceCycles = false;
         foreach (var setting in document.Settings)
         {
+            if (setting.Keyword == "binds:workspace_back_and_forth" && TryBackAndForth(setting.Value, out var mode))
+                _backAndForth = mode;
+            else if (setting.Keyword == "binds:allow_workspace_cycles" && ConfigValueSyntax.TryParseBool(setting.Value, out var cycles))
+                _allowWorkspaceCycles = cycles;
+
             if (setting.Keyword == "binds:window_direction_monitor_fallback"
                 && ConfigValueSyntax.TryParseBool(setting.Value, out var enabled))
                 _monitorFallback = enabled;
@@ -20,6 +33,34 @@ public sealed partial class Core
                 && int.TryParse(setting.Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var method))
                 _focusByHistory = Math.Clamp(method, 0, 1) == 0;
         }
+    }
+
+    // 0, 1 or 2, a name the pinned release maps to one, or a boolean as older configs write it.
+    internal static bool TryBackAndForth(string value, out int mode)
+    {
+        mode = value.Trim() switch
+        {
+            "disabled" => 0,
+            "all_monitors" => 1,
+            "per_monitor" => 2,
+            _ => -1,
+        };
+        if (mode >= 0)
+            return true;
+
+        if (int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var number))
+        {
+            mode = Math.Clamp(number, 0, 2);
+            return true;
+        }
+
+        if (ConfigValueSyntax.TryParseBool(value, out var enabled))
+        {
+            mode = enabled ? 1 : 0;
+            return true;
+        }
+
+        return false;
     }
 
     private void RankFocus(Layout layout) => layout.RankFocus(_focusByHistory ? Recency : null);

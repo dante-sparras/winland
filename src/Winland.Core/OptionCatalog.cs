@@ -164,6 +164,14 @@ internal static class OptionCatalog
                 kind = "int";
                 token = LastInt(document, name, 300, 0, 2000).ToString(CultureInfo.InvariantCulture);
                 return true;
+            case "binds:workspace_back_and_forth":
+                kind = "int";
+                token = BackAndForth(document).ToString(CultureInfo.InvariantCulture);
+                return true;
+            case "binds:allow_workspace_cycles":
+                kind = "bool";
+                token = Bool(LastBool(document, name, false));
+                return true;
             case "binds:focus_preferred_method":
                 kind = "int";
                 token = LastInt(document, name, 0, 0, 1).ToString(CultureInfo.InvariantCulture);
@@ -255,6 +263,18 @@ internal static class OptionCatalog
         return name;
     }
 
+    private static bool LastBool(ConfigDocument document, string keyword, bool fallback)
+    {
+        var value = fallback;
+        foreach (var setting in document.Settings)
+        {
+            if (setting.Keyword == keyword && ConfigValueSyntax.TryParseBool(setting.Value, out var parsed))
+                value = parsed;
+        }
+
+        return value;
+    }
+
     private static int LastInt(ConfigDocument document, string keyword, int fallback, int min, int max)
     {
         var value = fallback;
@@ -294,6 +314,18 @@ internal static class OptionCatalog
     };
 
     private static string Bool(bool value) => value ? "true" : "false";
+
+    private static int BackAndForth(ConfigDocument document)
+    {
+        var mode = 0;
+        foreach (var setting in document.Settings)
+        {
+            if (setting.Keyword == "binds:workspace_back_and_forth" && Core.TryBackAndForth(setting.Value, out var parsed))
+                mode = parsed;
+        }
+
+        return mode;
+    }
 
     private static bool MonitorFallback(ConfigDocument document)
     {
