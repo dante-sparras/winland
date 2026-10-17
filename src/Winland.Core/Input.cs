@@ -26,6 +26,12 @@ public sealed record WindowAppeared(WindowId Window, Rectangle WorkArea) : Event
     public long ProcessId { get; init; }
 
     public IReadOnlyList<int> AncestorProcessIds { get; init; } = [];
+
+    /// <summary>
+    /// The window was maximized when it first showed, as a client that asks to be maximized before it maps. The core
+    /// ignores the maximize request that follows, as the pinned release does.
+    /// </summary>
+    public bool ShownMaximized { get; init; }
 }
 
 public sealed record WindowClosed(WindowId Window) : Event;

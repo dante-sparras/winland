@@ -209,7 +209,7 @@ public sealed partial class Core
         var before = Capture();
         var outcome = input switch
         {
-            WindowAppeared appeared => Appear(appeared),
+            WindowAppeared appeared => AppearMaybeMaximized(appeared),
             ConfigLoaded loaded => Load(loaded),
             InputInhibited inhibited => Inhibit(inhibited),
             KeyPressed or KeyReleased => RunKey(input),
