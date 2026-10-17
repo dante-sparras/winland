@@ -25,7 +25,7 @@ public class FocusConformance
         Assert.True(Reserved(desk, "HEADLESS-2", TestOutput));
     }
 
-    [Fact(Skip = "movefocus onto another Monitor focuses the tile under its fullscreen Client. The pinned release focuses the fullscreen Client.")]
+    [Fact]
     public void CrossMonitorFullscreenFocus()
     {
         // A monitor right of the first, and a workspace rule that pins the destination workspace to it. The rule
