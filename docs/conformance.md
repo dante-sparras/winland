@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-141 of 197 ported cases pass.
+142 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -34,7 +34,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | dwindle | dwindleMoveAcrossToggledSplit | passes | |
 | dwindle | dwindleMoveSmallWindowAcrossSplit | passes | |
 | dwindle | dwindleFullscreenMaximiseDispatchers | passes | |
-| dwindle | dwindleTestFsingGroupedWindows | differs | A hidden Group member keeps its last frame, where the pinned release gives it the shown member's fullscreen frame. A maximized floating Group member is not moved until the Group changes, and then covers the group bar. |
+| dwindle | dwindleTestFsingGroupedWindows | differs | A maximized floating Group member is not moved until the Group changes, and then covers the group bar. |
 | dwindle | dwindleTestFsFocusUnderFSWindow | passes | |
 | dwindle | dwindleNewWindowTakesOverFullscreen | passes | |
 | dwindle | dwindleExitWindowRetainsFullscreen | passes | |
@@ -49,7 +49,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scrollWindowRule | passes | |
 | scroll | scroll_LAYOUT_HANDLED_fullscreen | passes | |
 | scroll | scroll_LAYOUT_HANDLED_maximized | differs | A maximized Client in the scrolling Layout fills the work area less gaps_out. The pinned release's scrolling Layout also leaves gaps_in at its sides. |
-| scroll | scroll_LAYOUT_HANDLED_TestFsingGroupedWindows | differs | A hidden Group member keeps its last frame. |
+| scroll | scroll_LAYOUT_HANDLED_TestFsingGroupedWindows | differs | fullscreenHandler is always default, so a fullscreen Client in scrolling stays over the screen when focus moves to another column. |
 | scroll | scroll_LAYOUT_HANDLED_fullscreenRetainsGeometryWhileScrolling | differs | fullscreenHandler reports default, and a fullscreen Client stays over the screen when focus moves to another column. |
 | scroll | scroll_LAYOUT_HANDLED_floatingWindowHiding | differs | A floating Client under a fullscreen one stays visible and accepts input, and a second fullscreen Client ends the first one's fullscreen. allowedOverFullscreen is always false. |
 | scroll | scroll_LAYOUT_HANDLED_layerVisibilityOnFs | not ported | The case opens a layer shell surface, which has no Windows meaning. |
@@ -57,7 +57,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scroll_LAYOUT_HANDLED_respectFocusFitMethodOnUnFs | differs | Leaving fullscreen does not fit the column into view by scrolling:focus_fit_method. |
 | scroll | scroll_LAYOUT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention | passes | |
 | scroll | scroll_DEFAULT_HANDLED_fullscreenMaximiseDispatchers | passes | |
-| scroll | scroll_DEFAULT_HANDLED_TestFsingGroupedWindows | differs | A hidden Group member keeps its last frame. |
+| scroll | scroll_DEFAULT_HANDLED_TestFsingGroupedWindows | differs | A maximized floating Group member is not moved until the Group changes, and then covers the group bar. |
 | scroll | scroll_DEFAULT_HANDLED_testFsFocusUnderFSWindow | passes | |
 | scroll | scroll_DEFAULT_HANDLED_newWindowTakesOverFullscreen | passes | |
 | scroll | scroll_DEFAULT_HANDLED_exitWindowRetainsFullscreen | passes | |
@@ -139,7 +139,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | groups | groupsLuaApiCrossWorkspaceMonitor | not ported | The case drives the Lua group object API, which has no dispatcher form. |
 | groups | groupsLuaApiFullscreen | not ported | The case drives the Lua group object API, which has no dispatcher form. |
 | groups | groups_disable_when_only | passes | |
-| groups | groupbarDisableWhenOnlyDimensions | differs | A hidden Group member keeps its last frame. The pinned release gives it the frame of the shown member. |
+| groups | groupbarDisableWhenOnlyDimensions | passes | |
 | groups | autoGroupFloatedIntoTiled | passes | |
 | groups | autoGroupFloatedintoFloated | passes | |
 | groups | autoGroupTiledIntoFloated | passes | |

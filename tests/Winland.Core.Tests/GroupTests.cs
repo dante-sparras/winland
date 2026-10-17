@@ -45,8 +45,9 @@ public class GroupTests
         Assert.Contains(First, joined.Hide);
         Assert.Contains(joined.State.Hidden, client => client.Window == First);
         Assert.DoesNotContain(joined.State.Hidden, client => client.Window == Second);
-        var placement = Assert.Single(joined.Placements);
-        Assert.Equal(new ClientId(Second.Value), placement.Client);
+        // The hidden member takes the shown member's frame.
+        var placement = Assert.Single(joined.Placements, candidate => candidate.Client == new ClientId(Second.Value));
+        Assert.Equal(placement.Bounds, Assert.Single(joined.Placements, candidate => candidate.Client == new ClientId(First.Value)).Bounds);
         Assert.Equal(alone, ClientOf(joined, Second).Bounds);
         Assert.Equal(alone, ClientOf(joined, First).Bounds);
         Assert.Equal(["one", "two"], Assert.Single(joined.GroupBars).Tabs.Select(tab => tab.Title));
@@ -63,7 +64,8 @@ public class GroupTests
         Assert.Equal(First, back.Effect.Focus);
         Assert.Contains(Second, back.Effect.Hide);
         Assert.Contains(First, back.Effect.Show);
-        Assert.Equal(new ClientId(First.Value), Assert.Single(back.Effect.Placements).Client);
+        var shown = Assert.Single(back.Effect.Placements, placement => placement.Client == new ClientId(First.Value));
+        Assert.Equal(shown.Bounds, Assert.Single(back.Effect.Placements, placement => placement.Client == new ClientId(Second.Value)).Bounds);
 
         var forward = core.Execute("dispatch changegroupactive f");
         Assert.Equal(Second, forward.Effect.Focus);
@@ -131,7 +133,8 @@ public class GroupTests
         Assert.Equal([First, Second], Assert.Single(moved.Effect.State.Groups));
         Assert.Equal(Second, moved.Effect.Focus);
         Assert.Contains(First, moved.Effect.Hide);
-        Assert.Single(moved.Effect.Placements);
+        Assert.Equal(2, moved.Effect.Placements.Count);
+        Assert.Single(moved.Effect.Placements.Select(placement => placement.Bounds).Distinct());
     }
 
     [Fact]

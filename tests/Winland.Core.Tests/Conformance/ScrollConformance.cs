@@ -159,7 +159,7 @@ public class ScrollConformance
         Assert.Equal(1, Desk.Fullscreen(desk.ActiveWindow()));
     }
 
-    [Fact(Skip = "A hidden Group member keeps its last frame.")]
+    [Fact(Skip = "fullscreenHandler is always default, so a fullscreen Client in scrolling stays over the screen when focus moves to another column.")]
     public void ScrollLAYOUTHANDLEDTestFsingGroupedWindows()
     {
         var desk = new Desk(Scrolling + """
@@ -481,7 +481,7 @@ public class ScrollConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "A hidden Group member keeps its last frame.")]
+    [Fact(Skip = "A maximized floating Group member is not moved until the Group changes, and then covers the group bar.")]
     public void ScrollDEFAULTHANDLEDTestFsingGroupedWindows()
     {
         var desk = new Desk(Scrolling + """
