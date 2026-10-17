@@ -265,7 +265,7 @@ public class WindowConformance
         Assert.Equal("a", TopWindow(desk));
     }
 
-    [Fact(Skip = "The focus_on_activate window rule is not honored.")]
+    [Fact]
     public void WindowRuleFocusOnActivate()
     {
         var desk = new Desk();

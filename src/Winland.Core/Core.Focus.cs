@@ -44,7 +44,8 @@ public sealed partial class Core
             && _active != window)
             return Restore(Kept());
 
-        if (focused.Cause == FocusCause.Activated && !_session.FocusOnActivate)
+        // A focus_on_activate window rule or setprop wins over misc:focus_on_activate, as in the pinned release.
+        if (focused.Cause == FocusCause.Activated && !(OwnProp(window, "focus_on_activate") as bool? ?? _session.FocusOnActivate))
         {
             if (_active == window)
                 return View([]);
