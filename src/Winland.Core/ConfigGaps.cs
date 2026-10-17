@@ -165,7 +165,6 @@ public static class ConfigGaps
         new("misc:background_color", "The desktop background belongs to Windows."),
         new("misc:bell_sound", "The system bell sound is set in Windows."),
         new("misc:col.splash", "There is no splash text."),
-        new("misc:disable_autoreload", "The config always reloads when it is saved."),
         new("misc:disable_scale_notification", "Windows sets each monitor's scale, so there is no scale notification."),
         new("misc:disable_splash_rendering", "There is no splash text."),
         new("misc:disable_watchdog_warning", "There is no start watchdog, so there is no warning to turn off."),

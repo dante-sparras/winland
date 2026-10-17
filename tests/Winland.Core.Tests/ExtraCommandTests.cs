@@ -95,6 +95,20 @@ public class ExtraCommandTests
     }
 
     [Fact]
+    public void DisableAutoreloadStopsReloadingOnSaveUntilItIsTurnedOff()
+    {
+        var core = new Core();
+        Assert.True(core.ReloadsOnSave);
+
+        core.Handle(new Configure(ConfigParser.Parse("misc:disable_autoreload = true\n")));
+        Assert.False(core.ReloadsOnSave);
+        Assert.Equal("{\"option\":\"misc:disable_autoreload\",\"bool\":true,\"set\":true}", core.Execute("getoption misc:disable_autoreload").Text);
+
+        Assert.Equal("ok", core.Execute("keyword misc:disable_autoreload false").Text);
+        Assert.True(core.ReloadsOnSave);
+    }
+
+    [Fact]
     public void ConfigErrorsKeepTheLastLoadAndGetOptionReadsHonoredDefaults()
     {
         var core = new Core(ConfigParser.Parse("blur = on\n"));
