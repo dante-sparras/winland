@@ -28,6 +28,9 @@ public sealed record WorkspaceDestroyed(WorkspaceId Workspace, int Id, string Na
 
 public sealed record WorkspaceMoved(WorkspaceId Workspace, string Monitor) : StreamEvent;
 
+/// <summary><paramref name="Name"/> is the name <c>renameworkspace</c> gave the workspace.</summary>
+public sealed record WorkspaceRenamed(WorkspaceId Workspace, string Name) : StreamEvent;
+
 public sealed record MonitorFocused(string Name, WorkspaceId Workspace) : StreamEvent;
 
 /// <summary>The special workspace shown on a Monitor. Null when it closes.</summary>

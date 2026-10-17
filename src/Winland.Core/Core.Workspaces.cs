@@ -452,7 +452,7 @@ public sealed partial class Core
 
         foreach (var desk in _workspaces)
         {
-            if (desk.DisplayName == id.Name)
+            if (!desk.Renamed && desk.DisplayName == id.Name)
                 return desk.Id;
         }
 

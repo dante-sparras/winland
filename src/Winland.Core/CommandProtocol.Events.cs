@@ -77,6 +77,9 @@ public static partial class CommandProtocol
                 lines.Add($"moveworkspace>>{WorkspaceNameText(movedWorkspace.Workspace, indexed)},{Clean(movedWorkspace.Monitor)}");
                 lines.Add($"moveworkspacev2>>{WorkspaceIdText(movedWorkspace.Workspace, indexed)},{WorkspaceNameText(movedWorkspace.Workspace, indexed)},{Clean(movedWorkspace.Monitor)}");
                 break;
+            case WorkspaceRenamed renamed:
+                lines.Add($"renameworkspace>>{Clean(renamed.Workspace.Name)},{Clean(renamed.Name)}");
+                break;
             case MonitorFocused focusedMonitor:
                 lines.Add($"focusedmon>>{Clean(focusedMonitor.Name)},{WorkspaceNameText(focusedMonitor.Workspace, indexed)}");
                 lines.Add($"focusedmonv2>>{Clean(focusedMonitor.Name)},{WorkspaceIdText(focusedMonitor.Workspace, indexed)}");

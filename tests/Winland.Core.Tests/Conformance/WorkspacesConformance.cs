@@ -228,7 +228,7 @@ public class WorkspacesConformance
 
     // The reference changes a Workspace's id with its change_id dispatcher, which has no line-based name.
     // changeworkspaceid stands for it here.
-    [Fact(Skip = "There is no dispatcher that changes a Workspace's id, and renameworkspace is not a dispatcher.")]
+    [Fact(Skip = "There is no dispatcher that changes a Workspace's id.")]
     public void WorkspaceRenameChangeID()
     {
         var desk = new Desk();
@@ -257,7 +257,7 @@ public class WorkspacesConformance
 
     // The reference renames through its test plugin, which also counts the rename events. Here the
     // events are read from the outcome of renameworkspace.
-    [Fact(Skip = "renameworkspace is not a dispatcher. A Workspace keeps the name it was created with.")]
+    [Fact]
     public void WorkspaceRenameEmitsGlobalEvent()
     {
         var desk = new Desk();
@@ -288,7 +288,7 @@ public class WorkspacesConformance
         Assert.Equal("42,42", desk.ActivePlace().At);
     }
 
-    [Fact(Skip = "renameworkspace is not a dispatcher. A Workspace keeps the name it was created with.")]
+    [Fact]
     public void WorkspaceRenameDoesNotChangeAddress()
     {
         var desk = new Desk("workspace = name:vaxry, gapsout:40 40 40 40\n");
@@ -302,7 +302,7 @@ public class WorkspacesConformance
         Assert.Equal("22,22", desk.ActivePlace().At);
     }
 
-    [Fact(Skip = "renameworkspace is not a dispatcher. A Workspace keeps the name it was created with.")]
+    [Fact]
     public void WorkspaceRulesMatchBareAddressableNames()
     {
         var desk = new Desk("workspace = vaxry, gapsout:40 40 40 40\n");
@@ -639,13 +639,9 @@ public class WorkspacesConformance
 
     private static string[] Labels(Desk desk) => [.. desk.Workspaces().Select(Label)];
 
-    // A Workspace as the reference reply writes it, `ID (NAME)`: a numbered Workspace's id, or else its name, then its name.
-    private static string Label(JsonElement workspace)
-    {
-        var id = workspace.GetProperty("id").GetInt32();
-        var name = workspace.GetProperty("name").GetString() ?? "";
-        return id > 0 ? $"{id} ({name})" : $"{name} ({name})";
-    }
+    // A Workspace as the reference reply writes it, `ADDRESS (NAME)`: its address, then its display name.
+    private static string Label(JsonElement workspace) =>
+        $"{workspace.GetProperty("address").GetString()} ({workspace.GetProperty("name").GetString()})";
 
     private static string WorkspaceNameOf(JsonElement client) =>
         client.GetProperty("workspace").GetProperty("name").GetString() ?? "";

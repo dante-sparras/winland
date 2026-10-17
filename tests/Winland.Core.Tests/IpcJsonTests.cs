@@ -77,7 +77,7 @@ public class IpcJsonTests
 
         const string Workspace =
             """
-            {"id":1,"name":"1","monitor":"","monitorID":0,"windows":1,"hasfullscreen":false,"lastwindow":"0x2a","lastwindowtitle":"term","ispersistent":false,"tiledLayout":"dwindle"}
+            {"address":"1","id":1,"name":"1","monitor":"","monitorID":0,"windows":1,"hasfullscreen":false,"lastwindow":"0x2a","lastwindowtitle":"term","ispersistent":false,"tiledLayout":"dwindle"}
             """;
 
         Assert.Equal("[" + Workspace + "]", core.Execute("workspaces").Text);

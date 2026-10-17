@@ -23,6 +23,9 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
 
     public string? DisplayName { get; set; }
 
+    /// <summary><c>renameworkspace</c> set <see cref="DisplayName"/>, so a rule's <c>defaultName</c> no longer does.</summary>
+    public bool Renamed { get; set; }
+
     public LayoutOptions Options { get; set; } = LayoutOptions.Unconfigured;
 
     public Client? ClientOf(WindowId window)

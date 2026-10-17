@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-120 of 197 ported cases pass.
+123 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -150,12 +150,12 @@ A case passes when every check in it passes, as in the reference harness. A case
 | workspaces | workspacesCombined | differs | general:no_focus_fallback is a Gap. movewindow r does not carry the rightmost tile onto the next Monitor, and getprop does not answer border_size or rounding. |
 | workspaces | workspacesFollowProperNoGaps | differs | The bordersize window rule and the onworkspace match are not honored. |
 | workspaces | workspacesSmartGapsDirectionalMoveAcrossMonitors | differs | The bordersize window rule is not honored, and movewindow r does not carry the rightmost tile onto the next Monitor. |
-| workspaces | workspaceRenameChangeID | differs | There is no dispatcher that changes a Workspace's id, and renameworkspace is not a dispatcher. |
-| workspaces | workspaceRenameEmitsGlobalEvent | differs | renameworkspace is not a dispatcher. A Workspace keeps the name it was created with. |
+| workspaces | workspaceRenameChangeID | differs | There is no dispatcher that changes a Workspace's id. |
+| workspaces | workspaceRenameEmitsGlobalEvent | passes | |
 | workspaces | windowAtExplicitWorkspace | not ported | The case calls a hit test on a hidden Workspace through the reference's test plugin, which no command reaches. |
 | workspaces | workspaceChangeIDUpdatesRules | differs | There is no dispatcher that changes a Workspace's id. |
-| workspaces | workspaceRenameDoesNotChangeAddress | differs | renameworkspace is not a dispatcher. A Workspace keeps the name it was created with. |
-| workspaces | workspaceRulesMatchBareAddressableNames | differs | renameworkspace is not a dispatcher. A Workspace keeps the name it was created with. |
+| workspaces | workspaceRenameDoesNotChangeAddress | passes | |
+| workspaces | workspaceRulesMatchBareAddressableNames | passes | |
 | workspaces | luaGetWorkspace | not ported | The case reads workspace objects from the Lua API, which a line-based command cannot reach. |
 | workspaces | luaSetWorkspace | not ported | The case sets workspaces through monitor objects of the Lua API, which a line-based command cannot reach. |
 | workspaces | luaSetSpecialWorkspace | not ported | The case sets special workspaces through monitor objects of the Lua API, which a line-based command cannot reach. |
@@ -212,7 +212,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | hyprctl | hyprctlJsonErrors | differs | There is no descriptions request. |
 | hyprctl | hyprctlDescriptionsCurrentValues | differs | There is no descriptions request. |
 | hyprctl | hyprctlBindsJson | passes | |
-| hyprctl | hyprctlWorkspaceJson | differs | There is no renameworkspace dispatcher. The monitors and workspaces replies give a special workspace an id and give no Workspace a type. |
+| hyprctl | hyprctlWorkspaceJson | differs | The monitors and workspaces replies give a special workspace an id and give no Workspace a type. |
 | hyprctl | hyprctlREPL | not ported | It runs Lua code through repl and eval. The Lua config waits on ADR 0013. |
 | hyprctl | hyprctlBatch | not ported | Its batch runs Lua code through repl. The Lua config waits on ADR 0013. |
 | misc | misc | passes | |
