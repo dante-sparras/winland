@@ -125,6 +125,8 @@ public sealed partial class Core
         var target = restored?.Workspace ?? rule.Id ?? current;
         ForgetRestored(appeared.Window);
         var desk = WorkspaceFor(target, monitor);
+        if (restored is null)
+            decision = DecideAtOpen(appeared.Traits, JoinRules(_rules, followed), decision, desk);
         var area = WorkArea(desk, appeared.WorkArea);
         _area = area;
         var bounds = restored is null ? PlaceOnMap(appeared, decision, desk, area) : restored.Bounds ?? appeared.Bounds;

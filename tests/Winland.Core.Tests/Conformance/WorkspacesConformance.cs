@@ -317,7 +317,7 @@ public class WorkspacesConformance
         Assert.Equal("42,42", desk.ActivePlace().At);
     }
 
-    [Fact(Skip = "A window rule that matches on workspace does not apply float when the window opens, and floating gaps on a workspace rule are the float_gaps Gap.")]
+    [Fact(Skip = "Floating gaps on a workspace rule are the float_gaps Gap.")]
     public void WorkspacesDistinctTiledAndFloatGaps()
     {
         var desk = new Desk("""
