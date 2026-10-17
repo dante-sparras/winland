@@ -40,6 +40,23 @@ public class MaximizeRequestTests
     }
 
     [Fact]
+    public void AWindowThatShowedMaximizedIsTiledAndItsLaterRequestsAreHonored()
+    {
+        var core = Flat();
+        Appear(core, 1);
+        core.Handle(new WindowAppeared(new WindowId(2), Wide) { ShownMaximized = true });
+
+        var ignored = core.Handle(new WindowMaximizeRequested(new WindowId(2)));
+
+        Assert.Equal(FullscreenMode.None, Client(ignored, 2).Fullscreen);
+        Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(ignored, 2));
+
+        var maximized = core.Handle(new WindowMaximizeRequested(new WindowId(2)));
+
+        Assert.Equal(FullscreenMode.Maximized, Client(maximized, 2).Fullscreen);
+    }
+
+    [Fact]
     public void ARequestFromAnUnknownWindowChangesNothing()
     {
         var core = Flat();

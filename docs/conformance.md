@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-127 of 197 ported cases pass.
+129 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -259,8 +259,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | clients/toplevel-capture | windowShareCaptureProducesFrame | not ported | Window capture is done by the system, not by Winland. |
 | clients/wlr-foreign-toplevel | wlrForeignToplevelMinimizeEvents | passes | |
 | clients/xdg-activation | xdgActivationSerial | differs | With misc:focus_on_activate a window that takes the foreground keeps it, without the fresh input serial the pinned release requires. |
-| clients/xdg-initial-maximize | xdgMaximizeBeforeInitialCommitIsIgnored | differs | A window shown maximized is maximized. The pinned release ignores a maximize request made before the window maps. |
-| clients/xdg-initial-maximize | xdgMaximizeBeforeMapIsIgnored | differs | A window shown maximized is maximized. The pinned release ignores a maximize request made before the window maps. |
+| clients/xdg-initial-maximize | xdgMaximizeBeforeInitialCommitIsIgnored | passes | |
+| clients/xdg-initial-maximize | xdgMaximizeBeforeMapIsIgnored | passes | |
 | clients/xdg-interactive | xdgInteractive | differs | There is no setprop dispatcher. A floating Client the system moves or resizes keeps its old frame in activewindow. |
 | misc/plugin | plugin | passes | |
 | misc/plugin | pluginVkb | not ported | Windows merges every keyboard into one key state and does not tell Winland which device a key came from. |

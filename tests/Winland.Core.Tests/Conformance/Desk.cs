@@ -99,7 +99,7 @@ internal sealed class Desk
     /// Opens a window with this class on the focused monitor, where the reference harness opens kitty, and returns
     /// its id. Each window has a process of its own. A second window with the same class takes over the name.
     /// </summary>
-    internal WindowId Spawn(string windowClass, string title = "", WindowTraits? traits = null)
+    internal WindowId Spawn(string windowClass, string title = "", WindowTraits? traits = null, bool shownMaximized = false)
     {
         var id = new WindowId(_next++);
         _windows[windowClass] = id;
@@ -110,6 +110,7 @@ internal sealed class Desk
             Traits = (traits ?? WindowTraits.Normal) with { Class = windowClass, Title = title.Length == 0 ? windowClass : title },
             Bounds = new Rectangle(area.X + (area.Width / 2) - 320, area.Y + (area.Height / 2) - 240, 640, 480),
             ProcessId = 1000 + id.Value,
+            ShownMaximized = shownMaximized,
         });
         return id;
     }

@@ -234,6 +234,7 @@ public sealed partial class Core
         _windowState.Forget(window);
         _sizes.Remove(window);
         _initialWorkspaces.Closed(window);
+        _shownMaximized.Remove(window);
         if (ForgetSwallowedParent(window))
             return View([]);
 

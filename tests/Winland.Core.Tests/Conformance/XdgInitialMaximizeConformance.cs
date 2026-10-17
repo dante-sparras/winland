@@ -8,16 +8,16 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class XdgInitialMaximizeConformance
 {
-    [Fact(Skip = "A window shown maximized is maximized. The pinned release ignores a maximize request made before the window maps.")]
+    [Fact]
     public void XdgMaximizeBeforeInitialCommitIsIgnored() => InitialMaximizeIsIgnored();
 
-    [Fact(Skip = "A window shown maximized is maximized. The pinned release ignores a maximize request made before the window maps.")]
+    [Fact]
     public void XdgMaximizeBeforeMapIsIgnored() => InitialMaximizeIsIgnored();
 
     private static void InitialMaximizeIsIgnored()
     {
         var desk = new Desk();
-        var window = desk.Spawn("xdg-initial-maximize");
+        var window = desk.Spawn("xdg-initial-maximize", shownMaximized: true);
         desk.Handle(new WindowMaximizeRequested(window));
 
         var client = Assert.Single(desk.Clients());

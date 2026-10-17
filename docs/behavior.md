@@ -253,7 +253,7 @@ Mode 0 is the layout slot. Mode 1 resizes the Client to its Workspace's work are
 
 Hyprland has no minimize, so Winland has none either. When a Client is minimized, by its button, `Win+Down`, `Win+M` or a double click, Winland restores it at once and the Client keeps its place. A window that is already minimized when Winland starts is not adopted until it is restored, and a minimized window is not put back into the Layout when Winland restarts.
 
-A Client's maximize request is maximize mode 1, as in Hyprland: its maximize button, `Win+Up` or a double click on the title bar maximizes it, and asking again leaves it. It acts on that Client, whichever window has focus. The system's own maximized state is undone, so the Client fills the work area as `fullscreen 1` does. A window that was maximized before Winland started is adopted maximized.
+A Client's maximize request is maximize mode 1, as in Hyprland: its maximize button, `Win+Up` or a double click on the title bar maximizes it, and asking again leaves it. It acts on that Client, whichever window has focus. The system's own maximized state is undone, so the Client fills the work area as `fullscreen 1` does. A window that opens maximized while Winland runs asked for it before it mapped, which the pinned release ignores, so it is tiled like any other window. Its maximize button works as usual afterwards. A window that was maximized before Winland started is adopted maximized.
 
 A `fullscreen` window rule requests mode 2. A `maximize` window rule requests mode 1. A trailing `0` turns that flag off. `fullscreen_state` sets the two modes, for example `2 0`, and wins over those flags. A popup window with no caption that already covers its monitor is not adopted.
 
