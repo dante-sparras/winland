@@ -75,6 +75,58 @@ public sealed partial class Core
         return desk.Options != options ? desk.Layout.Apply(desk.Options) : placements;
     }
 
+    // misc:on_focus_under_fullscreen for a tiled window that opens on a Workspace with a fullscreen Client, as in the
+    // pinned release: 0 opens it without focus, 1 gives it the fullscreen Client's mode, and 2 ends that mode.
+    private IReadOnlyList<Placement> OpenUnderFullscreen(LiveWorkspace desk, WindowId window, IReadOnlyList<Placement> placements)
+    {
+        if (desk.ClientOf(window) is not { Floating: false } || CoveringOther(desk, window) is not Client covering)
+            return placements;
+
+        switch (_session.OnFocusUnderFullscreen)
+        {
+            case 0:
+                _awaitingMapFocus.Add(window);
+                return placements;
+            case 1:
+                return desk.Layout.SetFullscreen(window, covering.Fullscreen, covering.Fullscreen);
+            default:
+                return desk.Layout.SetFullscreen(covering.Window, FullscreenMode.None, FullscreenMode.None);
+        }
+    }
+
+    // misc:on_focus_under_fullscreen for a request to focus a tiled Client under another fullscreen one, as in the
+    // pinned release: 0 focuses the fullscreen Client instead, 1 moves its mode to the Client asked for, and 2 ends it.
+    // A floating Client is focused over it. The Client to focus, and the Layout's placements when a mode changed.
+    private WindowId FocusUnderFullscreen(LiveWorkspace desk, WindowId window, out IReadOnlyList<Placement>? placements)
+    {
+        placements = null;
+        if (desk.ClientOf(window) is not { Floating: false } || CoveringOther(desk, window) is not Client covering)
+            return window;
+
+        switch (_session.OnFocusUnderFullscreen)
+        {
+            case 0:
+                return covering.Window;
+            case 1:
+                placements = desk.Layout.SetFullscreen(window, covering.Fullscreen, covering.Fullscreen);
+                return window;
+            default:
+                placements = desk.Layout.SetFullscreen(covering.Window, FullscreenMode.None, FullscreenMode.None);
+                return window;
+        }
+    }
+
+    private static Client? CoveringOther(LiveWorkspace desk, WindowId window)
+    {
+        foreach (var client in desk.Layout.Clients)
+        {
+            if (client.Window != window && client.Fullscreen != FullscreenMode.None)
+                return client;
+        }
+
+        return null;
+    }
+
     private Outcome MissingWindow(string? dispatcher, bool allowsElevation) =>
         View([], dispatcher: dispatcher, allowsElevation: allowsElevation) with { Error = "error: window not found" };
 

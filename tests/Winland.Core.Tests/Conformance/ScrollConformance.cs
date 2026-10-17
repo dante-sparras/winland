@@ -373,7 +373,7 @@ public class ScrollConformance
         ExpectClient(desk, "under", floating: true, acceptsInput: false, fullscreen: 0, over: false);
     }
 
-    [Fact(Skip = "binds:movefocus_cycles_fullscreen and misc:on_focus_under_fullscreen are Gaps.")]
+    [Fact(Skip = "binds:movefocus_cycles_fullscreen is a Gap.")]
     public void ScrollLAYOUTHANDLEDFocusInDirectionFocusFollowFocusTrue()
     {
         var desk = new Desk(Scrolling);
@@ -528,7 +528,7 @@ public class ScrollConformance
         }
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
+    [Fact]
     public void ScrollDEFAULTHANDLEDTestFsFocusUnderFSWindow()
     {
         var desk = new Desk(Scrolling);
@@ -558,7 +558,7 @@ public class ScrollConformance
         Assert.Equal(0, Desk.Fullscreen(desk.ActiveWindow()));
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
+    [Fact]
     public void ScrollDEFAULTHANDLEDNewWindowTakesOverFullscreen()
     {
         var desk = new Desk(Scrolling + "misc:on_focus_under_fullscreen = 0\n");

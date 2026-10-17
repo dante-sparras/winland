@@ -235,7 +235,7 @@ public class DwindleConformance
         }
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
+    [Fact]
     public void DwindleTestFsFocusUnderFSWindow()
     {
         var desk = new Desk();
@@ -265,7 +265,7 @@ public class DwindleConformance
         Assert.Equal(0, Desk.Fullscreen(desk.ActiveWindow()));
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
+    [Fact]
     public void DwindleNewWindowTakesOverFullscreen()
     {
         var desk = new Desk();
@@ -398,7 +398,7 @@ public class DwindleConformance
         ExpectUnmovedByMaximize(desk, names);
     }
 
-    [Fact(Skip = "binds:movefocus_cycles_fullscreen and misc:on_focus_under_fullscreen are Gaps.")]
+    [Fact(Skip = "binds:movefocus_cycles_fullscreen is a Gap.")]
     public void DefaultHandledFsfocusInDirection()
     {
         var desk = new Desk();

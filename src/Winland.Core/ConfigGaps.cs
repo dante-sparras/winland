@@ -176,7 +176,6 @@ public static class ConfigGaps
         new("misc:middle_click_paste", "The primary selection has no Windows meaning."),
         new("misc:mouse_move_enables_dpms", "Waking a monitor turned off with dpms on a mouse move is not honored."),
         new("misc:name_vk_after_proc", "Virtual keyboards are not honored."),
-        new("misc:on_focus_under_fullscreen", "Focusing a Client under a fullscreen one does not take over or leave fullscreen."),
         new("misc:render_unfocused_fps", "Each application renders itself, so its frame rate has no Windows meaning."),
         new("misc:screencopy_force_8b", "Screen copy buffers have no Windows meaning."),
         new("misc:session_lock_blur", "The lock screen belongs to Windows."),

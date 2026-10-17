@@ -64,6 +64,20 @@ public sealed partial class Core
             return View([], hide: hidden);
         }
 
+        if (WorkspaceContaining(window) is { } owner && IsShown(owner.Id))
+        {
+            var covered = owner.Covered();
+            var target = FocusUnderFullscreen(owner, window, out var refit);
+            if (target != window)
+                return Restore(target);
+
+            if (refit is not null)
+            {
+                NoteFocus(window);
+                return Present(owner, covered, refit);
+            }
+        }
+
         NoteFocus(window);
         return View([]);
     }

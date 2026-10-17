@@ -47,7 +47,7 @@ public class MasterConformance
         desk.ExpectActive("22,22", "1025,1036");
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
+    [Fact]
     public void MasterTestFsFocusUnderFSWindow()
     {
         var desk = new Desk(Master);
@@ -110,7 +110,7 @@ public class MasterConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
+    [Fact]
     public void MasterNewWindowTakesOverFullscreen()
     {
         var desk = new Desk(Master);

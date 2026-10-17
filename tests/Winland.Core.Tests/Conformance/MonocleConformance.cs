@@ -62,7 +62,7 @@ public class MonocleConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
+    [Fact]
     public void MonocleTestFsFocusUnderFSWindow()
     {
         var desk = new Desk(Monocle);
@@ -92,7 +92,7 @@ public class MonocleConformance
         Assert.Equal(0, Desk.Fullscreen(desk.ActiveWindow()));
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
+    [Fact]
     public void MonocleNewWindowTakesOverFullscreen()
     {
         var desk = new Desk(Monocle);
