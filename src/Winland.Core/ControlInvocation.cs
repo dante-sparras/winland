@@ -197,6 +197,7 @@ public static class ControlInvocation
         || verb.Equals("systeminfo", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("locked", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("layouts", StringComparison.OrdinalIgnoreCase)
+        || verb.Equals("submap", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("kill", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("rollinglog", StringComparison.OrdinalIgnoreCase);
 
