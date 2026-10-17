@@ -771,7 +771,7 @@ public class WindowConformance
         CloseAll(desk);
     }
 
-    [Fact(Skip = "The border_size window rule is not honored.")]
+    [Fact]
     public void ExecRulesDescendantProcess()
     {
         var desk = new Desk();

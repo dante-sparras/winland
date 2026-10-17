@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-132 of 197 ported cases pass.
+133 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -111,7 +111,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | discussion14233 | differs | The border_size window rule and its workspace match are not honored. |
 | window | execRulesWorkspaceOverride | passes | |
 | window | execRulesTagMutation | passes | |
-| window | execRulesDescendantProcess | differs | The border_size window rule is not honored. |
+| window | execRulesDescendantProcess | passes | |
 | window | execRulesPendingIsolation | passes | |
 | window | pinnedRetainsPositionOnWorkspaceChange | passes | |
 | window | monitorrule | passes | |

@@ -9,8 +9,29 @@ public sealed partial class Core
     // What setprop set on each window, by storage key. It wins over the rules and the config.
     private readonly Dictionary<WindowId, Dictionary<string, object>> _setProps = [];
 
+    // What the property effects of the window rules gave each window when it was adopted.
+    private readonly Dictionary<WindowId, IReadOnlyDictionary<string, object>> _ruleProps = [];
+
     private object? SetPropOf(WindowId window, string key) =>
         _setProps.TryGetValue(window, out var props) && props.TryGetValue(key, out var value) ? value : null;
+
+    private object? RulePropOf(WindowId window, string key) =>
+        _ruleProps.TryGetValue(window, out var props) && props.TryGetValue(key, out var value) ? value : null;
+
+    // A property setprop or a window rule set, which wins over the workspace rules and the config.
+    private object? OwnProp(WindowId window, string key) => SetPropOf(window, key) ?? RulePropOf(window, key);
+
+    private void RememberRuleProps(WindowId window, WindowDecision decision)
+    {
+        if (decision.Props is { Count: > 0 } props)
+            _ruleProps[window] = props;
+        else
+            _ruleProps.Remove(window);
+    }
+
+    // The border a window's own properties give it, which the Layouts read through LayoutOptions.ClientBorder.
+    private int? ClientBorderOf(ClientId client) =>
+        OwnProp(new WindowId(client.Value), "border_size") is long border ? (int)Math.Clamp(border, 0, int.MaxValue) : null;
 
     private bool? SetBool(WindowId window, string key) => SetPropOf(window, key) as bool?;
 
@@ -21,6 +42,9 @@ public sealed partial class Core
         var sizes = _sizes.TryGetValue(window, out var kept) ? kept.Rule : default;
         var opacity = OpacityOf(window);
         var workspace = desk is null ? null : RuleFor(desk);
+        if (RulePropOf(window, key) is { } ruled)
+            return ruled;
+
         return key switch
         {
             "no_focus" when rule.NoFocus => true,
@@ -193,7 +217,12 @@ public sealed partial class Core
             props[key] = next;
         }
 
-        IReadOnlyList<Placement> placements = key is "min_size" or "max_size" or "no_max_size" ? ApplyLimits(window, desk) : [];
+        IReadOnlyList<Placement> placements = key switch
+        {
+            "min_size" or "max_size" or "no_max_size" => ApplyLimits(window, desk),
+            "border_size" => desk.Layout.Apply(desk.Options),
+            _ => [],
+        };
         return View(IsShown(desk.Id) ? placements : [], dispatcher: dispatcher, allowsElevation: allowsElevation);
     }
 

@@ -180,7 +180,7 @@ internal sealed partial class MonocleLayout : Layout
 
         if (_tiled.Contains(id))
         {
-            bounds = Tile();
+            bounds = Tile(id);
             return true;
         }
 
@@ -208,7 +208,7 @@ internal sealed partial class MonocleLayout : Layout
         if (VisibleTiled() is not ClientId id)
             return [];
 
-        return [new Placement(id, Tile())];
+        return [new Placement(id, Tile(id))];
     }
 
     public IReadOnlyList<Placement> Preselect(string direction)
@@ -306,7 +306,7 @@ internal sealed partial class MonocleLayout : Layout
         if (!DropTiled(id))
             return [];
 
-        var floated = _floating.Around(id, Tile(), _options.FloatingOnScreen(_area));
+        var floated = _floating.Around(id, Tile(id), _options.FloatingOnScreen(_area));
         _floating.Set(id, floated);
         SetFloating(id, true);
         var placements = new List<Placement>(Placed()) { new(id, floated) };
@@ -382,13 +382,13 @@ internal sealed partial class MonocleLayout : Layout
     private ClientId? VisibleTiled() =>
         _tiled.Count == 0 || _visible < 0 || _visible >= _tiled.Count ? null : _tiled[_visible];
 
-    private Rectangle Tile()
+    private Rectangle Tile(ClientId? client = null)
     {
         var gaps = _options.GapsOut;
         var width = Math.Max(0, _area.Width - gaps.Left - gaps.Right);
         var height = Math.Max(0, _area.Height - gaps.Top - gaps.Bottom);
         var box = _options.KeepAspect(new Rectangle(_area.X + gaps.Left, _area.Y + gaps.Top, width, height), _area, _tiled.Count);
-        var border = _options.BorderSize;
+        var border = client is ClientId id ? _options.BorderFor(id) : _options.BorderSize;
         return Shrink(box, border, border, border, border);
     }
 

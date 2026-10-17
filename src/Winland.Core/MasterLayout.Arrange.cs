@@ -211,11 +211,11 @@ internal sealed partial class MasterLayout
     // A window below its minimum grows over its neighbours rather than its tile growing off the Monitor.
     private Rectangle Present(Tile tile)
     {
-        var presented = Present(tile.Box);
+        var presented = Present(tile.Box, tile.Id);
         return _limits.TryGetValue(tile.Id, out var limits) ? limits.ForTiles.Raise(presented, TilingArea()) : presented;
     }
 
-    private Rectangle Present(Rectangle box)
+    private Rectangle Present(Rectangle box, ClientId? client = null)
     {
         var area = TilingArea();
         var gaps = _layout.GapsIn;
@@ -224,7 +224,7 @@ internal sealed partial class MasterLayout
         var right = box.X + box.Width == area.X + area.Width ? 0 : gaps.Right;
         var bottom = box.Y + box.Height == area.Y + area.Height ? 0 : gaps.Bottom;
         var presented = _layout.KeepAspect(Shrink(box, left, top, right, bottom), _area, _tiles.Count);
-        var border = _layout.BorderSize;
+        var border = client is ClientId id ? _layout.BorderFor(id) : _layout.BorderSize;
         return Shrink(presented, border, border, border, border);
     }
 

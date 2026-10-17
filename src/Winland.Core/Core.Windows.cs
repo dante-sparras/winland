@@ -164,6 +164,7 @@ public sealed partial class Core
         RememberFocus(appeared.Window, decision);
         RememberOpacity(appeared.Window, decision);
         RememberIdle(appeared.Window, decision);
+        RememberRuleProps(appeared.Window, decision);
         if (decision.Pin && decision.Floating)
             _pinned.Add(appeared.Window);
         var restore = _awaitingMapFocus.Contains(appeared.Window) ? Kept() : null;

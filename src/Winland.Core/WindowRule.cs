@@ -26,6 +26,7 @@ public enum WindowRuleEffect
     Monitor,
     NoCloseFor,
     Group,
+    Prop,
 }
 
 public sealed record WindowRule(
@@ -42,7 +43,8 @@ public sealed record WindowRule(
     FullscreenRule? Fullscreen = null,
     IdleInhibitMode IdleInhibit = IdleInhibitMode.None,
     RulePlacement? Placement = null,
-    string? Group = null);
+    string? Group = null,
+    IReadOnlyDictionary<string, object>? Props = null);
 
 /// <summary>
 /// The argument of a <c>move</c>, <c>size</c>, <c>monitor</c> or <c>no_close_for</c> rule.
@@ -76,7 +78,8 @@ internal readonly record struct WindowDecision(
     IdleInhibitMode IdleInhibit = IdleInhibitMode.None,
     MapPlacement Placement = default,
     GroupRuleFlags Group = GroupRuleFlags.None,
-    SizeRule Sizes = default);
+    SizeRule Sizes = default,
+    IReadOnlyDictionary<string, object>? Props = null);
 
 /// <summary>
 /// What the min_size, max_size and no_max_size window rules ask of a Client. A floating Client keeps the rule's sizes in

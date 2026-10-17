@@ -110,7 +110,6 @@ internal sealed partial class ScrollingLayout
         var fullscreen = OneColumn();
         var camera = Camera(primary, MaxExtent(primary, fullscreen));
         var reversed = IsReversed();
-        var border = _layoutOptions.BorderSize;
 
         for (var i = 0; i < _columns.Count; i++)
         {
@@ -158,6 +157,7 @@ internal sealed partial class ScrollingLayout
                 y += gaps.Top;
                 width = Math.Max(1, width - gaps.Left - gaps.Right);
                 height = Math.Max(1, height - gaps.Top - gaps.Bottom);
+                var border = _layoutOptions.BorderFor(cell.Id);
                 x += border;
                 y += border;
                 width = Math.Max(0, width - (border * 2.0));
