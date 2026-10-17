@@ -106,8 +106,9 @@ public class ProcessLauncherTests
 
         try
         {
+            // Add-Type compiles the probe before it runs, which takes more than ten seconds on a slow runner.
             var pid = ProcessLauncher.LaunchHere(launch);
-            WaitForExit(pid);
+            WaitForExit(pid, 60_000);
             var deadline = Environment.TickCount64 + 20_000;
             while (!File.Exists(file) && Environment.TickCount64 < deadline)
                 Thread.Sleep(100);
@@ -117,9 +118,30 @@ public class ProcessLauncherTests
         }
         finally
         {
-            Thread.Sleep(200);
-            if (Directory.Exists(directory))
+            DeleteWhenFree(directory);
+        }
+    }
+
+    // A child that is still exiting holds its working folder for a moment. Cleanup must not hide the
+    // assertion that failed, so a folder that stays in use is left in the temp folder.
+    private static void DeleteWhenFree(string directory)
+    {
+        var deadline = Environment.TickCount64 + 5_000;
+        while (Directory.Exists(directory))
+        {
+            try
+            {
                 Directory.Delete(directory, recursive: true);
+                return;
+            }
+            catch (IOException) when (Environment.TickCount64 < deadline)
+            {
+                Thread.Sleep(200);
+            }
+            catch (IOException)
+            {
+                return;
+            }
         }
     }
 
@@ -198,12 +220,12 @@ public class ProcessLauncherTests
         Assert.Throws<ArgumentNullException>(() => ProcessLauncher.CreationFlags(null!));
     }
 
-    private static void WaitForExit(int pid)
+    private static void WaitForExit(int pid, int milliseconds = 10_000)
     {
         try
         {
             using var process = System.Diagnostics.Process.GetProcessById(pid);
-            if (!process.WaitForExit(10_000))
+            if (!process.WaitForExit(milliseconds))
                 throw new TimeoutException("The child did not exit.");
         }
         catch (ArgumentException)
