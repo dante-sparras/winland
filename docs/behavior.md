@@ -181,6 +181,8 @@ Winland reads the fingers as raw input from a precision touchpad. A touchpad tha
 
 `special` and `special:` address the special workspace named `special:special`. `special:name` addresses `special:name`. The same address works in `workspace`, `movetoworkspace`, `movetoworkspacesilent`, and a window rule's `workspace` effect. A trailing `silent` on the rule does not show the special workspace.
 
+When the focused Client closes while a special workspace is open on its Monitor, a Client elsewhere does not take the focus: the special workspace's Client focused last does, as in the pinned release.
+
 When a special workspace opens on a Monitor, a floating Client on it whose middle is off that Monitor is brought onto it, as in the pinned release: by the offset between the Monitors when its middle is on another one, and otherwise to the Monitor's middle.
 
 `togglespecialworkspace` shows that special workspace on the focused Monitor, or hides it when it is already shown there. The argument is the name, and an empty name is `special`. `workspace special:name` shows it and does not hide it again. One special workspace is shown on a Monitor, over the normal Workspace, whose Clients stay shown. Showing a special workspace that is open on another Monitor moves it. The normal Workspace stays the active one.

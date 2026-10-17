@@ -1146,7 +1146,7 @@ public class WindowConformance
         desk.CloseActive();
     }
 
-    [Fact(Skip = "Closing a focused pinned Client focuses a Client on the normal Workspace under an open special workspace. The pinned release focuses the special workspace's Client.")]
+    [Fact]
     public void SpecialWorkspacePinnedWindowUnmapFallback()
     {
         var desk = new Desk();
