@@ -330,11 +330,10 @@ These commands are recognized and answer with an error. They are not honored.
 | kill | error | gap | - | Click to kill is not honored. |
 | notify | error | gap | - | There is no notification surface. |
 | rollinglog | error | gap | - | There is no rolling log. |
-| setprop pin | error | gap | - | The pin dispatcher and the pin window rule honor pinning. This command does not. |
 
 Every command above is a gap. No open issue tracks them.
 
-`getprop` and `setprop` honor `float`. `getprop` reports `pin` as false. `setprop pin` is an error. Any other window property is not honored.
+`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `focus_on_activate`, `keep_aspect_ratio`, `nearest_neighbor`, `no_anim`, `no_blur`, `no_dim`, `no_shadow`, `no_glow`, `no_wobble`, `no_shortcuts_inhibit`, `dim_around`, `force_rgbx`, `sync_fullscreen`, `immediate`, `xray`, `render_unfocused`, `no_follow_mouse`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `persistent_size`, `scroll_mouse`, `scroll_touchpad`, and a `border_size` set by `setprop`. Each waits on the feature it would change, most of them Gaps above. A border color is drawn by its first color, since gradient borders are a Gap.
 
 `changeworkspaceid` refuses a number above 2147483647. The pinned release takes numbers up to 4294967295, but a Workspace number here is a signed 32-bit integer. It is a gap.
 

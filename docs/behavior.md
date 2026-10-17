@@ -50,6 +50,14 @@ A layered window that input passes through, such as a screen overlay an applicat
 
 A window rule's `class`, `title`, `exe` and `aumid` patterns are regular expressions that must match the whole field, as in the pinned release, so `title:Notes` does not match a window titled `Release Notes`. A pattern that starts with `negative:` matches when the rest of the pattern does not, so `class:negative:kitty` matches every class but `kitty`. A pattern that is not a valid regular expression warns with its line number and the rule is skipped. `misc:swallow_regex` and `misc:swallow_exception_regex` also match the whole field, and take no `negative:` prefix, as in the pinned release.
 
+## Window properties
+
+`getprop WINDOW PROP` answers a window property, and `setprop WINDOW PROP VALUE` sets it, as the pinned release's `getprop` request and set_prop dispatcher do. The properties, their kinds and the forms of the replies are the pinned release's: `j/getprop` answers a one-member JSON object, such as `{"opacity": 0.5}`. A property is what `setprop` set, else what a window rule or workspace rule gives, else the config's value. `getprop` with too few arguments answers `not enough args`, for no window `window not found`, and for an unknown property `prop not found`.
+
+A bool takes `toggle`, which flips what is set, or false when nothing is, and otherwise is true for `1` or text starting with `true`, `yes` or `on`. A number takes `relative N` to add to its value. `unset` drops what `setprop` set. `min_size` and `max_size` take two expressions over the window's size and place, as a `size` rule does, and the window is held to them at once. `opacity`, `opacity_inactive` and `opacity_fullscreen` take a fraction, and their `_override` flags a number, where `true` is 1. A border color takes one color, or with more than one token the colors and angle after the first, as in the pinned release, and `-1` is no color. A value that does not parse changes nothing.
+
+These change the window: the opacities and `opaque`, `no_focus`, `stay_focused`, `min_size`, `max_size`, `no_max_size`, `idle_inhibit`, `active_border_color` and `inactive_border_color`, `rounding` and `rounding_power`. The rest are kept and reported; see [gaps.md](gaps.md).
+
 ## Exec rule blocks
 
 A rule block on `exec`, `exec-once`, `execr`, `execr-once`, `exec-shutdown`, or the `exec` and `execr` dispatchers applies to the first window mapped by that process or a child of it. Every effect a window rule honors is honored there too, including `move`, `size`, `center`, `monitor` and `no_close_for`. Any other effect warns and is skipped. The command still launches. An unclosed rule block warns and does not launch. A known effect with a bad argument warns and does not launch.

@@ -201,7 +201,7 @@ public sealed partial class Core
         // The window's own limits changed. A min_size or max_size rule still wins over them.
         var rule = _sizes.TryGetValue(changed.Window, out var kept) ? kept.Rule : default;
         var tiled = RememberSizes(changed.Window, rule, changed.MinSize, changed.MaxSize);
-        var floating = rule.Floating(changed.MinSize, changed.MaxSize);
+        var floating = EffectiveSizes(changed.Window, rule).Floating(changed.MinSize, changed.MaxSize);
         var placements = desk.Layout.UpdateLimits(changed.Window, floating.Min, floating.Max, tiled);
         return IsShown(desk.Id) ? View(placements) : View([]);
     }
@@ -213,7 +213,7 @@ public sealed partial class Core
     private TiledLimits RememberSizes(WindowId window, SizeRule rule, Size? ownMin, Size? ownMax)
     {
         _sizes[window] = (rule, ownMin, ownMax);
-        return rule.Tiled(ownMin, ownMax, _session.SizeLimitsTiled);
+        return EffectiveSizes(window, rule).Tiled(ownMin, ownMax, _session.SizeLimitsTiled);
     }
 
     // misc:size_limits_tiled changed, so every tiled Client keeps other limits. The Layouts are laid out again after.
@@ -224,8 +224,7 @@ public sealed partial class Core
             if (WorkspaceContaining(window) is not LiveWorkspace desk)
                 continue;
 
-            var floating = sizes.Rule.Floating(sizes.OwnMin, sizes.OwnMax);
-            desk.Layout.UpdateLimits(window, floating.Min, floating.Max, sizes.Rule.Tiled(sizes.OwnMin, sizes.OwnMax, _session.SizeLimitsTiled));
+            ApplyLimits(window, desk);
         }
     }
 

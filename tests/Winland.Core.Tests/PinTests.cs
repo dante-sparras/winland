@@ -184,13 +184,13 @@ public class PinTests
     }
 
     [Fact]
-    public void GetPropStillReportsPinAsFalse()
+    public void PinIsNotAWindowProperty()
     {
         var core = Floating();
         core.Execute("dispatch pin");
 
-        Assert.Equal("{\"pin\":false}", core.Execute("getprop active pin").Text);
-        Assert.Equal("error: prop not supported", core.Execute("setprop active pin false").Text);
+        Assert.Equal("prop not found", core.Execute("getprop active pin").Text);
+        Assert.Equal("error: invalid prop name", core.Execute("setprop active pin false").Text);
     }
 
     [Fact]

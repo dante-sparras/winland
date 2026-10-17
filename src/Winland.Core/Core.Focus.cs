@@ -217,14 +217,15 @@ public sealed partial class Core
     }
 
     private bool HasNoFocus(WindowId window) =>
-        _focusRules.TryGetValue(window, out var rule) && rule.NoFocus;
+        SetBool(window, "no_focus") ?? (_focusRules.TryGetValue(window, out var rule) && rule.NoFocus);
 
     private bool HeldByStay(WindowId incoming)
     {
         if (_active is not WindowId current || current == incoming)
             return false;
 
-        return _focusRules.TryGetValue(current, out var rule) && rule.StayFocused && IsShownClient(current);
+        var stays = SetBool(current, "stay_focused") ?? (_focusRules.TryGetValue(current, out var rule) && rule.StayFocused);
+        return stays && IsShownClient(current);
     }
 
     private WindowId? Kept() =>

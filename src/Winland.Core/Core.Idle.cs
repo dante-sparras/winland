@@ -16,10 +16,7 @@ public sealed partial class Core
     // fullscreen while it is fullscreen or maximized on a shown Workspace.
     private bool InhibitsIdle(Client client, bool shown, WindowId? active)
     {
-        if (!_idle.TryGetValue(client.Window, out var mode))
-            return false;
-
-        return mode switch
+        return IdleModeOf(client.Window) switch
         {
             IdleInhibitMode.Always => true,
             IdleInhibitMode.Focus => client.Window == active,

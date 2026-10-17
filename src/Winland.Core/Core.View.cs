@@ -11,7 +11,7 @@ public sealed partial class Core
             var borderless = client.Fullscreen == FullscreenMode.Fullscreen;
             var border = BorderOf(client.Window, client.Window == active);
             var corners = CornersFor(client);
-            var choice = OpacityOf(client.Window);
+            var choice = PropOpacity(client.Window, OpacityOf(client.Window));
             var special = FindWorkspace(client.Workspace) is LiveWorkspace home ? SpecialOn(home.Monitor) : null;
             var alpha = DecorationAlpha.Compute(
                 _decoration,
@@ -396,11 +396,13 @@ public sealed partial class Core
     private CornerChoice CornersFor(Client client)
     {
         var desk = FindWorkspace(client.Workspace);
-        if (desk is not null && RuleFor(desk)?.Rounding == false)
+        var rounding = SetPropOf(client.Window, "rounding") is long set ? (int)Math.Min(set, int.MaxValue) : _decoration.Rounding;
+        if (SetPropOf(client.Window, "rounding") is null && desk is not null && RuleFor(desk)?.Rounding == false)
             return CornerChoice.Square;
 
+        var power = SetPropOf(client.Window, "rounding_power") is float setPower ? Math.Clamp(setPower, 1f, 10f) : _decoration.RoundingPower;
         var screen = desk is null ? null : MonitorById(desk.Monitor);
         var scale = screen is { Effective.Enabled: true } ? screen.Effective.Scale : 1;
-        return CornerShape.For(_decoration.Rounding, _decoration.RoundingPower, scale);
+        return CornerShape.For(rounding, power, scale);
     }
 }

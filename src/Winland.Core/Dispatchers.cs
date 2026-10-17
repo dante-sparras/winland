@@ -35,6 +35,7 @@ public static class Dispatchers
             "swapactiveworkspaces",
             "renameworkspace",
             "changeworkspaceid",
+            "setprop",
             "cyclenext",
             "togglespecialworkspace",
             "layoutmsg",

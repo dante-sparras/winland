@@ -149,12 +149,6 @@ public static class ExtraCommands
         return JsonSerializer.Serialize(errors, Relaxed);
     }
 
-    public static string FormatProp(string name, bool value)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        return $"{{\"{name}\":{(value ? "true" : "false")}}}";
-    }
-
     public static string FormatSystem(State state)
     {
         ArgumentNullException.ThrowIfNull(state);
