@@ -303,6 +303,17 @@ public sealed partial class Core
         if (wasActive)
         {
             next = returned ?? FocusAfter(desk, floating, hadBounds ? bounds : default, hadBounds);
+
+            // Under an open special workspace a candidate elsewhere is dropped, and the special workspace's Client
+            // takes the focus, as in the pinned release.
+            if (SpecialOn(monitor) is WorkspaceId open && open != desk.Id && FindWorkspace(open) is LiveWorkspace shownSpecial
+                && (next is not WindowId candidate || WorkspaceContaining(candidate)?.Id != open)
+                && (shownSpecial.Remembered() ?? shownSpecial.LastVisible()) is WindowId onSpecial)
+            {
+                TakeFocus(shownSpecial, onSpecial);
+                return Present(desk, covered, placements, focus: onSpecial);
+            }
+
             if (next is WindowId chosen)
             {
                 TakeFocus(desk, chosen);

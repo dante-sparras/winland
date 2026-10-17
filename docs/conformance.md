@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-151 of 197 ported cases pass.
+152 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -119,7 +119,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | getFullscreenHandler | differs | fullscreenHandler is always default. The pinned release reports scrolling for a tiled Client in the scrolling Layout. |
 | window | sendFsWindowToAnotherWorkspace | differs | fullscreenHandler is always default. |
 | window | floatingForceOnscreen | passes | |
-| window | specialWorkspacePinnedWindowUnmapFallback | differs | Closing a focused pinned Client focuses a Client on the normal Workspace under an open special workspace. The pinned release focuses the special workspace's Client. |
+| window | specialWorkspacePinnedWindowUnmapFallback | passes | |
 | window | windowRuleBorderColors | passes | |
 | window | windowRuleBorderColorsFocus | passes | |
 | window | floatingMoveExpression | passes | |
