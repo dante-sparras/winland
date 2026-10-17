@@ -343,7 +343,7 @@ public class WindowConformance
         Assert.Equal(4, Desk.WorkspaceId(desk.ActiveWindow()));
     }
 
-    [Fact(Skip = "The content window rule and match and the border_size window rule are not honored.")]
+    [Fact(Skip = "The content window rule and match are not honored.")]
     public void ContentWindowRules()
     {
         var desk = new Desk("""
@@ -447,7 +447,7 @@ public class WindowConformance
         Assert.Equal("kitty_B", desk.ActiveClass());
     }
 
-    [Fact(Skip = "The border_size window rule and its workspace match are not honored.")]
+    [Fact(Skip = "With misc:size_limits_tiled, a tile with min_size 1200 and max_size 1500 rules is 1200 wide, where the pinned release makes it 1500.")]
     public void Windows()
     {
         var desk = new Desk(SmartGaps + "\n" + TagRules);
@@ -710,7 +710,7 @@ public class WindowConformance
         Assert.Equal("b", desk.ActiveClass());
     }
 
-    [Fact(Skip = "The border_size window rule and its workspace match are not honored.")]
+    [Fact]
     public void Discussion14233()
     {
         var desk = new Desk("""
@@ -1175,7 +1175,7 @@ public class WindowConformance
         CloseAll(desk);
     }
 
-    [Fact(Skip = "The border_color window rule is not honored.")]
+    [Fact]
     public void WindowRuleBorderColors()
     {
         var desk = new Desk("""
@@ -1225,7 +1225,7 @@ public class WindowConformance
         ExpectColor(desk.Send("getprop active inactive_border_color"), "ff0000ff", "ffff0000", "90deg");
     }
 
-    [Fact(Skip = "The border_color window rule is not honored.")]
+    [Fact]
     public void WindowRuleBorderColorsFocus()
     {
         var desk = new Desk("""

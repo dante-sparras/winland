@@ -127,6 +127,15 @@ internal static partial class WorkspaceRules
         return fatal ? null : rule;
     }
 
+    /// <summary>True when the Workspace matches the selector, as a window rule's workspace match reads it.</summary>
+    internal static bool MatchesSelector(
+        string selector,
+        WorkspaceId id,
+        string? displayName,
+        Monitor? monitor,
+        Func<WindowCount, int>? count,
+        FullscreenMode fullscreen) => Matches(selector, id, displayName, monitor, count, fullscreen);
+
     internal static WorkspaceRule? For(
         IReadOnlyList<WorkspaceRule> rules,
         WorkspaceId id,

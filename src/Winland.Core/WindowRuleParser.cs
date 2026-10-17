@@ -24,6 +24,7 @@ internal static partial class WindowRuleParser
         string? titlePattern = null;
         string? exePattern = null;
         string? aumidPattern = null;
+        List<RuleMatch>? dynamic = null;
         if (keyword == "windowrule")
         {
             var pattern = value[(comma + 1)..].Trim();
@@ -39,19 +40,25 @@ internal static partial class WindowRuleParser
         {
             foreach (var part in value[(comma + 1)..].Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
             {
+                if (TryParseDynamicMatch(part, out var match))
+                {
+                    (dynamic ??= []).Add(match);
+                    continue;
+                }
+
                 if (!TryParseMatch(part, ref classPattern, ref titlePattern, ref exePattern, ref aumidPattern, out error))
                     return false;
             }
 
             // The pinned release never applies a rule that has nothing to match on.
-            if (classPattern is null && titlePattern is null && exePattern is null && aumidPattern is null)
+            if (classPattern is null && titlePattern is null && exePattern is null && aumidPattern is null && dynamic is null)
             {
                 error = "Malformed window rule.";
                 return false;
             }
         }
 
-        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement, group, props);
+        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement, group, props, dynamic);
         return true;
     }
 
@@ -65,7 +72,7 @@ internal static partial class WindowRuleParser
         return true;
     }
 
-    internal static WindowDecision Decide(WindowTraits traits, IReadOnlyList<WindowRule> rules)
+    internal static WindowDecision Decide(WindowTraits traits, IReadOnlyList<WindowRule> rules, RuleSubject? subject = null)
     {
         bool? adopt = null;
         bool? floating = null;
@@ -89,7 +96,7 @@ internal static partial class WindowRuleParser
         Dictionary<string, object>? props = null;
         foreach (var rule in rules)
         {
-            if (!Matches(rule, traits))
+            if (!Matches(rule, traits) || !MatchesState(rule, subject))
                 continue;
 
             if (rule.Effect == WindowRuleEffect.Prop && rule.Props is not null)
@@ -97,6 +104,7 @@ internal static partial class WindowRuleParser
                 props ??= new Dictionary<string, object>(StringComparer.Ordinal);
                 foreach (var (key, value) in rule.Props)
                     props[key] = value;
+                FocusBorderColor(rule, props);
                 continue;
             }
 

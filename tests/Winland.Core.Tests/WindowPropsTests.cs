@@ -149,4 +149,46 @@ public class WindowPropsTests
         Assert.Equal("true", core.Execute("getprop active no_blur").Text);
         Assert.Equal("false", core.Execute("getprop active decorate").Text);
     }
+
+    [Fact]
+    public void AStateMatchFollowsTheWindowAsItsWorkspaceFills()
+    {
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 2\nwindowrulev2 = border_size 0, float:0, workspace:w[tv1]\n")));
+        var alone = core.Handle(new WindowAppeared(new WindowId(1), Area));
+        Assert.Equal(new Rectangle(0, 0, 1920, 1080), Assert.Single(alone.Placements).Bounds);
+        Assert.Equal("0", core.Execute("getprop address:0x1 border_size").Text);
+
+        var shared = core.Handle(new WindowAppeared(new WindowId(2), Area));
+        Assert.Equal(new Rectangle(2, 2, 956, 1076), Assert.Single(shared.Placements, placement => placement.Client == new ClientId(1)).Bounds);
+        Assert.Equal("2", core.Execute("getprop address:0x1 border_size").Text);
+
+        core.Handle(new WindowClosed(new WindowId(2)));
+        Assert.Equal("0", core.Execute("getprop address:0x1 border_size").Text);
+    }
+
+    [Fact]
+    public void AFocusMatchFollowsTheFocus()
+    {
+        var core = new Core(ConfigParser.Parse("windowrulev2 = rounding 8, focus:1\n"));
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        core.Handle(new WindowAppeared(new WindowId(2), Area));
+
+        Assert.Equal("8", core.Execute("getprop address:0x2 rounding").Text);
+        Assert.NotEqual("8", core.Execute("getprop address:0x1 rounding").Text);
+
+        core.Execute("dispatch focuswindow address:0x1");
+        Assert.Equal("8", core.Execute("getprop address:0x1 rounding").Text);
+        Assert.NotEqual("8", core.Execute("getprop address:0x2 rounding").Text);
+    }
+
+    [Fact]
+    public void AFocusedBorderColorRuleWithOneGradientColorsTheInactiveBorder()
+    {
+        var core = new Core(ConfigParser.Parse("windowrulev2 = border_color rgb(ff0000), focus:0\n"));
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        core.Handle(new WindowAppeared(new WindowId(2), Area));
+
+        Assert.Equal("ffff0000 0deg", core.Execute("getprop address:0x1 inactive_border_color").Text);
+    }
 }
