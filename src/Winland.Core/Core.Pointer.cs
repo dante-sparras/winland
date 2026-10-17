@@ -128,6 +128,9 @@ public sealed partial class Core
             return null;
 
         NoteFocus(next);
+        if (_active == next)
+            desk.Layout.NotePointerFocus(next);
+
         return _active == next ? next : null;
     }
 

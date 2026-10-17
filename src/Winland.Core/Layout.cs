@@ -92,6 +92,14 @@ internal interface Layout
     void NoteFocus(WindowId window);
 
     /// <summary>
+    /// Records that the pointer gave a Client the focus. The scrolling Layout follows it there only when enough of the
+    /// Client shows, by scrolling:follow_min_visible. Other Layouts take no note of it.
+    /// </summary>
+    void NotePointerFocus(WindowId window)
+    {
+    }
+
+    /// <summary>
     /// True once after the Layout moved its tiles by itself, as scrolling does when focus scrolls its strip, so the core
     /// sends its placements. Layouts whose tiles move only when asked return false.
     /// </summary>

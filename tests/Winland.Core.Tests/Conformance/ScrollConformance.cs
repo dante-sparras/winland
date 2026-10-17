@@ -681,7 +681,7 @@ public class ScrollConformance
         desk.ExpectActive("2,2", "1916,1076");
     }
 
-    [Fact(Skip = "scrolling:follow_min_visible also holds back focuswindow, and a Client out of view keeps its maximized frame after maximize ends.")]
+    [Fact]
     public void ScrollDEFAULTHANDLEDFullscreenNonInterference()
     {
         var desk = new Desk(Scrolling);
@@ -744,7 +744,7 @@ public class ScrollConformance
         Assert.True(ActiveX(desk) < 0);
     }
 
-    [Fact(Skip = "scrolling:follow_min_visible also holds back focuswindow.")]
+    [Fact]
     public void TestScrollingViewBehaviourDispatchFocusWindowFollowFocustrue()
     {
         var desk = new Desk(Scrolling);
@@ -882,7 +882,7 @@ public class ScrollConformance
         Assert.True(ActiveX(desk) <= 0);
     }
 
-    [Fact(Skip = "scrolling:follow_min_visible also holds back the focus moveintogroup gives. The pinned release applies it only to pointer focus.")]
+    [Fact]
     public void TestScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue()
     {
         var desk = new Desk(Scrolling + "group:auto_group = false\n");
@@ -941,7 +941,7 @@ public class ScrollConformance
         Assert.True(ActiveX(desk) <= 0);
     }
 
-    [Fact(Skip = "scrolling:follow_min_visible also holds back the focus moveintogroup and movefocus give inside a Group. The pinned release applies it only to pointer focus.")]
+    [Fact]
     public void TestScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue()
     {
         var desk = new Desk(Scrolling + "binds:movefocus_cycles_groupfirst = true\ngroup:auto_group = false\n");
