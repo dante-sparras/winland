@@ -280,7 +280,13 @@ internal sealed partial class ScrollingLayout : Layout
         return [];
     }
 
-    public void NoteFocus(WindowId window)
+    public void NoteFocus(WindowId window) => Follow(window, pointer: false);
+
+    public void NotePointerFocus(WindowId window) => Follow(window, pointer: true);
+
+    // The strip follows the focus with scrolling:follow_focus. As in the pinned release, scrolling:follow_min_visible
+    // holds it back only for focus the pointer gives, so a dispatcher, a click or a Group change always follows.
+    private void Follow(WindowId window, bool pointer)
     {
         if (CellFor(window) is not Cell cell || cell.Column is not Column column)
             return;
@@ -292,7 +298,7 @@ internal sealed partial class ScrollingLayout : Layout
 
         var view = Viewport();
         var span = IsHorizontal() ? view.Width : view.Height;
-        if (_scrolling.FollowMinVisible > 0 && VisibleLength(cell) < span * _scrolling.FollowMinVisible)
+        if (pointer && _scrolling.FollowMinVisible > 0 && VisibleLength(cell) < span * _scrolling.FollowMinVisible)
             return;
 
         CenterOrFit(column);

@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-158 of 197 ported cases pass.
+162 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -62,12 +62,12 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scroll_DEFAULT_HANDLED_newWindowTakesOverFullscreen | passes | |
 | scroll | scroll_DEFAULT_HANDLED_exitWindowRetainsFullscreen | passes | |
 | scroll | scroll_DEFAULT_HANDLED_FullscreenPinnedWindows | passes | |
-| scroll | scroll_DEFAULT_HANDLED_FullscreenNonInterference | differs | scrolling:follow_min_visible also holds back focuswindow, and a Client out of view keeps its maximized frame after maximize ends. |
+| scroll | scroll_DEFAULT_HANDLED_FullscreenNonInterference | passes | |
 | scroll | scroll_DEFAULT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention | passes | |
 | scroll | scroll_DEFAULT_HANDLED_posAndSizeSyncWhileFS | not ported | The case opens a layer shell surface, which has no Windows meaning. |
 | scroll | scrollNegativeScaleGesture | differs | The scrollMove gesture action is a Gap. |
 | scroll | testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse | passes | |
-| scroll | testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue | differs | scrolling:follow_min_visible also holds back focuswindow. |
+| scroll | testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue | passes | |
 | scroll | testScrollingViewBehaviourFocusFallback | passes | |
 | scroll | testScrollingViewBehaviourFocusFallbackWithGroups | passes | |
 | scroll | testScrollingViewBehaviourWorkspaceChange | passes | |
@@ -75,12 +75,12 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | testScrollingViewBehaviourSpecialToSpecialWorkspaceChange | passes | |
 | scroll | testScrollingViewBehaviourCloseWindowInGroup | passes | |
 | scroll | testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse | passes | |
-| scroll | testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue | differs | scrolling:follow_min_visible also holds back the focus moveintogroup gives. The pinned release applies it only to pointer focus. |
+| scroll | testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue | passes | |
 | scroll | testScrollingViewBehaviourNewLayer | not ported | The case opens a layer shell surface, which has no Windows meaning. |
 | scroll | testScrollingViewBehaviourMoveFocusFollowFocusFalse | passes | |
 | scroll | testScrollingViewBehaviourMoveFocusFollowFocusTrue | passes | |
 | scroll | testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse | passes | |
-| scroll | testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue | differs | scrolling:follow_min_visible also holds back the focus moveintogroup and movefocus give inside a Group. The pinned release applies it only to pointer focus. |
+| scroll | testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue | passes | |
 | scroll | testScrollingViewBehaviourScheduledPropRefresh | passes | |
 | scroll | testScrollInhibitor | passes | |
 | scroll | layoutmsg_fit_into_view | passes | |
