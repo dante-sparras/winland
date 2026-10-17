@@ -447,7 +447,7 @@ public class WindowConformance
         Assert.Equal("kitty_B", desk.ActiveClass());
     }
 
-    [Fact(Skip = "With misc:size_limits_tiled, a tile with min_size 1200 and max_size 1500 rules is 1200 wide, where the pinned release makes it 1500.")]
+    [Fact(Skip = "A window that floats because its maximum cannot fill its tile keeps its own size, kept inside its limits, where the pinned release sizes it for the tile it predicted. A Wayland window takes the size it is first configured with. The persistent_size window rule is not honored.")]
     public void Windows()
     {
         var desk = new Desk(SmartGaps + "\n" + TagRules);

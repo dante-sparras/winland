@@ -81,6 +81,34 @@ public sealed partial class Core
         return placements;
     }
 
+    // The pinned release reads a window's rules when it opens with the tags its rules give it and the Workspace it
+    // opens on, so a rule with a state match, such as float, tag:x or workspace:name:x, applies then too. The
+    // window is not yet floating, focused, pinned, fullscreen or in a Group. Where it opens stays as first decided.
+    private WindowDecision DecideAtOpen(WindowTraits traits, IReadOnlyList<WindowRule> rules, WindowDecision decision, LiveWorkspace desk)
+    {
+        if (!ReadsState(rules))
+            return decision;
+
+        var screen = MonitorById(desk.Monitor);
+        int Count(WindowCount wanted) => desk.CountWindows(wanted, _pinned);
+        var tags = new SortedSet<string>(StringComparer.Ordinal);
+        var opening = new RuleSubject(
+            Floating: false,
+            FullscreenInternal: 0,
+            FullscreenClient: 0,
+            Pinned: false,
+            Focused: false,
+            Grouped: false,
+            OnWorkspace: selector => WorkspaceRules.MatchesSelector(selector, desk.Id, desk.DisplayName, screen?.Effective, Count, desk.CoveringMode()),
+            Tagged: tag => WindowTags.IsTagged(tags, tag),
+            Content: decision.Content);
+        foreach (var tag in WindowRuleParser.TagsFor(traits, rules, opening))
+            _ = WindowTags.Apply(tags, tag, dynamic: true);
+
+        var matched = WindowRuleParser.Decide(traits, rules, opening);
+        return matched with { Workspace = decision.Workspace, Placement = matched.Placement with { Monitor = decision.Placement.Monitor } };
+    }
+
     private RuleSubject SubjectOf(LiveWorkspace desk, Client client, WindowId? active, IReadOnlySet<string> tags)
     {
         var screen = MonitorById(desk.Monitor);

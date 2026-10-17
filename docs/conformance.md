@@ -105,7 +105,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | issue14134 | passes | |
 | window | specialFloatRecenters | differs | A floating Client moved off its Monitor stays there when its special workspace is shown. The pinned release centers it. |
 | window | exactWindowSelectors | differs | A stableid: window selector matches no Client. |
-| window | windows | differs | With misc:size_limits_tiled, a tile with min_size 1200 and max_size 1500 rules is 1200 wide, where the pinned release makes it 1500. |
+| window | windows | differs | A window that floats because its maximum cannot fill its tile keeps its own size, kept inside its limits, where the pinned release sizes it for the tile it predicted. A Wayland window takes the size it is first configured with. The persistent_size window rule is not honored. |
 | window | cycle_nextTiled | passes | |
 | window | cycle_nextFloating | passes | |
 | window | discussion14233 | passes | |
@@ -159,7 +159,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | workspaces | luaGetWorkspace | not ported | The case reads workspace objects from the Lua API, which a line-based command cannot reach. |
 | workspaces | luaSetWorkspace | not ported | The case sets workspaces through monitor objects of the Lua API, which a line-based command cannot reach. |
 | workspaces | luaSetSpecialWorkspace | not ported | The case sets special workspaces through monitor objects of the Lua API, which a line-based command cannot reach. |
-| workspaces | workspacesDistinctTiledAndFloatGaps | differs | A window rule that matches on workspace does not apply float when the window opens, and floating gaps on a workspace rule are the float_gaps Gap. |
+| workspaces | workspacesDistinctTiledAndFloatGaps | differs | Floating gaps on a workspace rule are the float_gaps Gap. |
 | workspaces | workspaceSwitchUnfocusesWindowFromOldWorkspace | passes | |
 | workspaces | luaFocusCreatesBareNamedWorkspace | passes | |
 | persistent | persistentWorkspaces | differs | A persistent rule keeps a special workspace, and creates a Workspace bound to a Monitor that is not there yet. A new Monitor then shows such a Workspace, where the pinned release opens workspace 2. |
