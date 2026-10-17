@@ -58,7 +58,7 @@ public class LayoutConformance
         Assert.Contains("HEADLESS-5", desk.Send("monitors all"), StringComparison.Ordinal);
     }
 
-    [Fact(Skip = "movewindow r puts a floating Client's frame against the monitor edge, where the pinned release keeps its border inside.")]
+    [Fact]
     public void PosPreserve()
     {
         var desk = new Desk();

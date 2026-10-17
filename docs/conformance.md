@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-153 of 197 ported cases pass.
+154 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -188,7 +188,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | layout | single_window_aspect_ratio | passes | |
 | layout | crashOnGeomUpdate | differs | The monitor keyword refuses a mode and a scale, which are Gaps. |
 | layout | layoutRefreshDuringMonitorTeardown | differs | The monitor keyword refuses a mode and a scale, which are Gaps. |
-| layout | posPreserve | differs | movewindow r puts a floating Client's frame against the monitor edge, where the pinned release keeps its border inside. |
+| layout | posPreserve | passes | |
 | layout | focusMRUAfterClose | passes | |
 | layout | focusPreservedLayoutChange | passes | |
 | layout_custom | layoutCustomGrid | not ported | A custom layout is registered with hl.layout.register, which waits on the Lua config (ADR 0013). |

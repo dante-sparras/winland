@@ -412,7 +412,7 @@ internal sealed partial class DwindleLayout
     }
 
     private IReadOnlyList<Placement> MoveFloating(ClientId id, PendingSplit direction) =>
-        ToSide(direction) is Side side ? _floating.MoveToEdge(id, side, _options.FloatingWorkArea(_area)) : [];
+        ToSide(direction) is Side side ? _floating.MoveToEdge(id, side, _options.FloatingWorkArea(_area), _options.BorderFor(id)) : [];
 
     private bool TryGeometry(WindowId window, out Rectangle box, out bool floating)
     {

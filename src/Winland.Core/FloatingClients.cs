@@ -108,11 +108,16 @@ internal sealed class FloatingClients
         return [new Placement(id, clamped)];
     }
 
-    /// <summary>Moves a floating Client against one edge of the floating work area. Empty when it already is there.</summary>
-    public IReadOnlyList<Placement> MoveToEdge(ClientId id, Side side, Rectangle frame)
+    /// <summary>
+    /// Moves a floating Client against one edge of the floating work area, with its border inside the area, as in the
+    /// pinned release. Empty when it already is there.
+    /// </summary>
+    public IReadOnlyList<Placement> MoveToEdge(ClientId id, Side side, Rectangle area, int border)
     {
         if (!_boxes.TryGetValue(id, out var box))
             return [];
+
+        var frame = new Rectangle(area.X + border, area.Y + border, area.Width - (2 * border), area.Height - (2 * border));
 
         var moved = side switch
         {

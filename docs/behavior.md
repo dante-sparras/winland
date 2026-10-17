@@ -96,6 +96,8 @@ A Client whose application hides it, without minimizing it, stops being a Client
 
 `movewindowpixel` and `resizewindowpixel` take two numbers, a comma and a window selector. The numbers are added to the window's position or size. After `exact` they replace it. A trailing `%` is a percentage of the position or size, or of the focused Monitor after `exact`. Text that is not two numbers leaves the window as it is. `movewindowpixel` moves a floating Client and leaves a tiled one. `resizewindowpixel` resizes through the Layout, so a floating Client grows from its center and a tiled Client changes its split. A size below one pixel answers `error: Invalid size`, and a fullscreen or maximized Client answers `error: Window is fullscreen`. A selector that matches nothing answers `error: moveWindow: no window` or `error: resizeWindow: no window`.
 
+`movewindow` with a direction moves a floating Client against that edge of the floating work area, with its border inside the area, as in the pinned release.
+
 `centerwindow` centers the active floating Client in its Monitor's work area. A tiled or fullscreen Client answers `error: No floating window found`. Its argument is ignored.
 
 `bringactivetotop` raises the active Client above every window that is not topmost. `alterzorder` takes `top` or `bottom`, a comma and a window selector. Without a match it uses the active Client when that Client floats, and otherwise does nothing. Any other position answers `error: Bad z-order position: <position>`. The adapter changes the z-order with `SetWindowPos` and `HWND_TOP` or `HWND_BOTTOM`, without moving, sizing or activating the window.
