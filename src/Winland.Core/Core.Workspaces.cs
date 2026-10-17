@@ -299,8 +299,22 @@ public sealed partial class Core
 
     private void Remember(WorkspaceId workspace, MonitorId monitor)
     {
+        if (!_allowWorkspaceCycles && _history.Count > 0 && _history[0].Workspace == workspace)
+            return;
+
         _history.RemoveAll(visit => visit.Workspace == workspace);
         _history.Insert(0, new WorkspaceVisit(workspace, monitor));
+    }
+
+    // binds:workspace_back_and_forth: asking for the Workspace the focused Monitor shows goes to the previous one
+    // instead, as in the pinned release. Without a previous one the Monitor stays where it is.
+    private WorkspaceId BackAndForth(WorkspaceId target)
+    {
+        var monitor = FocusedId();
+        if (_backAndForth == 0 || target != ActiveOn(monitor))
+            return target;
+
+        return Previous(monitor, perMonitor: _backAndForth == 2) ?? target;
     }
 
     private WorkspaceId? Previous(MonitorId monitor, bool perMonitor)

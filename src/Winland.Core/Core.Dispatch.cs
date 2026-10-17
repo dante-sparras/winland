@@ -120,7 +120,7 @@ public sealed partial class Core
                 return OpenSpecial(target, null, name, allowsElevation);
 
             return SwitchTo(
-                Alias(target),
+                BackAndForth(Alias(target)),
                 focus: null,
                 consumed: false,
                 dispatcher: name,
