@@ -44,6 +44,12 @@ public sealed record LayoutOptions
 
     public EdgeInsets FloatGaps { get; init; } = EdgeInsets.Zero;
 
+    /// <summary><c>layout:single_window_aspect_ratio</c>: the width to height a lone tiled Client is padded to. 0 0 is off.</summary>
+    public Vec2 SingleWindowAspectRatio { get; init; }
+
+    /// <summary><c>layout:single_window_aspect_ratio_tolerance</c>: padding smaller than this share of the work area is not added.</summary>
+    public double SingleWindowAspectRatioTolerance { get; init; } = 0.1;
+
     /// <summary><c>misc:float_force_onscreen</c>: how far a floating Client is kept on screen when it moves, resizes or starts floating.</summary>
     public int FloatForceOnscreen { get; init; }
 
@@ -96,6 +102,8 @@ public sealed record LayoutOptions
         ["general:hover_icon_on_border"] = (options, value) => TryParseBool(value, out var hover) ? options with { HoverIconOnBorder = hover } : options,
         ["general:resize_corner"] = (options, value) => TryParseResizeCorner(value, out var corner) ? options with { ResizeCorner = corner } : options,
         ["general:float_gaps"] = (options, value) => TryParseGaps(value, out var floatGaps) ? options with { FloatGaps = floatGaps } : options,
+        ["layout:single_window_aspect_ratio"] = (options, value) => ConfigValueSyntax.TryParseVec2(value, out var ratio) && ratio.X is >= 0 and <= 1000 && ratio.Y is >= 0 and <= 1000 ? options with { SingleWindowAspectRatio = ratio } : options,
+        ["layout:single_window_aspect_ratio_tolerance"] = (options, value) => TryParseDouble(value, out var tolerance) ? options with { SingleWindowAspectRatioTolerance = Clamp(tolerance, 0, 1) } : options,
         ["misc:float_force_onscreen"] = (options, value) => TryParseInt(value, out var onscreen) ? options with { FloatForceOnscreen = Clamp(onscreen, 0, 2) } : options,
         ["misc:new_float_force_onscreen"] = (options, value) => TryParseInt(value, out var onscreen) ? options with { NewFloatForceOnscreen = Clamp(onscreen, 0, 2) } : options,
         ["general:snap:enabled"] = (options, value) => TryParseBool(value, out var snap) ? options with { SnapEnabled = snap } : options,
@@ -187,6 +195,44 @@ public sealed record LayoutOptions
             : FloatGaps;
 
     public Rectangle FloatingWorkArea(Rectangle area) => EffectiveFloatGaps.Apply(area);
+
+    /// <summary>
+    /// A tiled Client's frame, padded on two sides to <c>layout:single_window_aspect_ratio</c> when it is the only tiled
+    /// Client, as the pinned release pads it. The padding is worked out from the whole work area and split evenly, and
+    /// none is added when half of it would be less than the tolerance's share of the work area's height or width.
+    /// </summary>
+    internal Rectangle KeepAspect(Rectangle frame, Rectangle area, int tiled)
+    {
+        var ratio = SingleWindowAspectRatio;
+        if (ratio.Y == 0 || tiled > 1 || area.Width <= 0 || area.Height <= 0)
+            return frame;
+
+        var requested = ratio.X / ratio.Y;
+        var original = area.Width / (double)area.Height;
+        var padX = 0.0;
+        var padY = 0.0;
+        if (requested > original)
+        {
+            var padding = area.Height - (area.Width / requested);
+            if (padding / 2 > SingleWindowAspectRatioTolerance * area.Height)
+                padY = padding;
+        }
+        else if (requested < original)
+        {
+            var padding = area.Width - (area.Height * requested);
+            if (padding / 2 > SingleWindowAspectRatioTolerance * area.Width)
+                padX = padding;
+        }
+
+        if (padX == 0 && padY == 0)
+            return frame;
+
+        return new Rectangle(
+            (int)Math.Round(frame.X + (padX / 2)),
+            (int)Math.Round(frame.Y + (padY / 2)),
+            Math.Max(1, (int)Math.Round(frame.Width - padX)),
+            Math.Max(1, (int)Math.Round(frame.Height - padY)));
+    }
 
     /// <summary>How a floating Client on this area is kept on screen when it moves, resizes or starts floating.</summary>
     internal OnScreen FloatingOnScreen(Rectangle area) => new(FloatingWorkArea(area), BorderSize, FloatForceOnscreen);

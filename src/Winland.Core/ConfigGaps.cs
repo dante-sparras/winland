@@ -152,7 +152,6 @@ public static class ConfigGaps
         new("input:virtualkeyboard:share_states", "Virtual keyboards are not honored."),
         new("layerrule", "Layer shell rules have no Windows meaning."),
         new("layerrulev2", "Layer shell rules have no Windows meaning."),
-        new("layout:single_window_aspect_ratio_tolerance", "A single window's aspect ratio is not honored."),
         new("locale", "Locale override is not honored."),
         new("mirror", "Mirroring a monitor is not honored."),
         new("misc:allow_session_lock_restore", "The lock screen belongs to Windows."),

@@ -185,7 +185,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | monocle | monocleExitWindowRetainsFullscreen | differs | misc:exit_window_retains_fullscreen is a Gap. |
 | monocle | monocleFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap, and maximize does not leave the border around the Client. |
 | monocle | monocleFullscreenNonInterference | passes | |
-| layout | single_window_aspect_ratio | differs | layout:single_window_aspect_ratio is not read, and maximize does not leave gaps_out and the border around the Client. |
+| layout | single_window_aspect_ratio | differs | maximize does not leave gaps_out and the border around the Client. |
 | layout | crashOnGeomUpdate | differs | The monitor keyword refuses a mode and a scale, which are Gaps. |
 | layout | layoutRefreshDuringMonitorTeardown | differs | The monitor keyword refuses a mode and a scale, which are Gaps. |
 | layout | posPreserve | differs | movewindow r puts a floating Client's frame against the monitor edge, where the pinned release keeps its border inside, and binds:allow_pin_fullscreen is a Gap. |

@@ -381,7 +381,7 @@ internal sealed partial class MonocleLayout : Layout
         var gaps = _options.GapsOut;
         var width = Math.Max(0, _area.Width - gaps.Left - gaps.Right);
         var height = Math.Max(0, _area.Height - gaps.Top - gaps.Bottom);
-        var box = new Rectangle(_area.X + gaps.Left, _area.Y + gaps.Top, width, height);
+        var box = _options.KeepAspect(new Rectangle(_area.X + gaps.Left, _area.Y + gaps.Top, width, height), _area, _tiled.Count);
         var border = _options.BorderSize;
         return Shrink(box, border, border, border, border);
     }
