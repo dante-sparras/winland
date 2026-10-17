@@ -235,7 +235,7 @@ public class DwindleConformance
         }
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap, and maximize does not leave gaps_out and the border around the Client.")]
+    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
     public void DwindleTestFsFocusUnderFSWindow()
     {
         var desk = new Desk();
@@ -316,7 +316,7 @@ public class DwindleConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "binds:allow_pin_fullscreen is a Gap, and maximize does not leave the border around the Client.")]
+    [Fact(Skip = "binds:allow_pin_fullscreen is a Gap.")]
     public void DwindleFullscreenPinnedWindows()
     {
         var desk = new Desk();

@@ -62,7 +62,7 @@ public class MonocleConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap, and maximize does not leave gaps_out and the border around the Client.")]
+    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
     public void MonocleTestFsFocusUnderFSWindow()
     {
         var desk = new Desk(Monocle);
@@ -143,7 +143,7 @@ public class MonocleConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "binds:allow_pin_fullscreen is a Gap, and maximize does not leave the border around the Client.")]
+    [Fact(Skip = "binds:allow_pin_fullscreen is a Gap.")]
     public void MonocleFullscreenPinnedWindows()
     {
         var desk = new Desk(Monocle);

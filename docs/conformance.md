@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-75 of 197 ported cases pass.
+77 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -35,10 +35,10 @@ A case passes when every check in it passes, as in the reference harness. A case
 | dwindle | dwindleMoveSmallWindowAcrossSplit | passes | |
 | dwindle | dwindleFullscreenMaximiseDispatchers | differs | fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off. |
 | dwindle | dwindleTestFsingGroupedWindows | differs | A hidden Group member keeps its last frame, where the pinned release gives it the shown member's fullscreen frame. A maximized floating Group member is not moved until the Group changes, and then covers the group bar. |
-| dwindle | dwindleTestFsFocusUnderFSWindow | differs | misc:on_focus_under_fullscreen is a Gap, and maximize does not leave gaps_out and the border around the Client. |
+| dwindle | dwindleTestFsFocusUnderFSWindow | differs | misc:on_focus_under_fullscreen is a Gap. |
 | dwindle | dwindleNewWindowTakesOverFullscreen | differs | misc:on_focus_under_fullscreen is a Gap. |
 | dwindle | dwindleExitWindowRetainsFullscreen | differs | misc:exit_window_retains_fullscreen is a Gap. |
-| dwindle | dwindleFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap, and maximize does not leave the border around the Client. |
+| dwindle | dwindleFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap. |
 | dwindle | dwindleFullscreenNonInterference | passes | |
 | dwindle | defaultHandledFsfocusInDirection | differs | binds:movefocus_cycles_fullscreen and misc:on_focus_under_fullscreen are Gaps. |
 | dwindle | dwindleFullsreenCenterDispatchSavesPos | not ported | The result depends on the floating size kitty asks for, which a core test cannot match. |
@@ -48,7 +48,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scrollSwapcolWrapping | passes | |
 | scroll | scrollWindowRule | passes | |
 | scroll | scroll_LAYOUT_HANDLED_fullscreen | passes | |
-| scroll | scroll_LAYOUT_HANDLED_maximized | differs | maximize does not leave gaps_out and the border around the Client. |
+| scroll | scroll_LAYOUT_HANDLED_maximized | differs | A maximized Client in the scrolling Layout fills the work area less gaps_out. The pinned release's scrolling Layout also leaves gaps_in at its sides. |
 | scroll | scroll_LAYOUT_HANDLED_TestFsingGroupedWindows | differs | A hidden Group member keeps its last frame. |
 | scroll | scroll_LAYOUT_HANDLED_fullscreenRetainsGeometryWhileScrolling | differs | fullscreenHandler reports default, and a fullscreen Client stays over the screen when focus moves to another column. fullscreenstate does not take a window. |
 | scroll | scroll_LAYOUT_HANDLED_floatingWindowHiding | differs | A floating Client under a fullscreen one stays visible and accepts input, and a second fullscreen Client ends the first one's fullscreen. allowedOverFullscreen is always false. |
@@ -57,11 +57,11 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scroll_LAYOUT_HANDLED_respectFocusFitMethodOnUnFs | differs | Leaving fullscreen does not fit the column into view by scrolling:focus_fit_method. |
 | scroll | scroll_LAYOUT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention | passes | |
 | scroll | scroll_DEFAULT_HANDLED_fullscreenMaximiseDispatchers | differs | fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off. |
-| scroll | scroll_DEFAULT_HANDLED_TestFsingGroupedWindows | differs | A hidden Group member keeps its last frame, and maximize does not leave room for the group bar. |
-| scroll | scroll_DEFAULT_HANDLED_testFsFocusUnderFSWindow | differs | misc:on_focus_under_fullscreen is a Gap, and maximize does not leave gaps_out and the border around the Client. |
+| scroll | scroll_DEFAULT_HANDLED_TestFsingGroupedWindows | differs | A hidden Group member keeps its last frame. |
+| scroll | scroll_DEFAULT_HANDLED_testFsFocusUnderFSWindow | differs | misc:on_focus_under_fullscreen is a Gap. |
 | scroll | scroll_DEFAULT_HANDLED_newWindowTakesOverFullscreen | differs | misc:on_focus_under_fullscreen is a Gap. |
 | scroll | scroll_DEFAULT_HANDLED_exitWindowRetainsFullscreen | differs | misc:exit_window_retains_fullscreen is a Gap. |
-| scroll | scroll_DEFAULT_HANDLED_FullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap, and maximize does not leave the border around the Client. |
+| scroll | scroll_DEFAULT_HANDLED_FullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap. |
 | scroll | scroll_DEFAULT_HANDLED_FullscreenNonInterference | differs | scrolling:follow_min_visible also holds back focuswindow, and a Client out of view keeps its maximized frame after maximize ends. |
 | scroll | scroll_DEFAULT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention | passes | |
 | scroll | scroll_DEFAULT_HANDLED_posAndSizeSyncWhileFS | not ported | The case opens a layer shell surface, which has no Windows meaning. |
@@ -92,7 +92,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | windowGroupRules | differs | getprop does not honor border_size, and the border_size window rule is not honored. |
 | window | windowFocusOnFullscreenConflict | differs | misc:on_focus_under_fullscreen is a Gap. |
 | window | focusFloatingOrTilingUnderFullscreen | differs | misc:on_focus_under_fullscreen is a Gap. |
-| window | windowMaximizeSize | differs | Maximize does not leave gaps_out and the border around the Client. |
+| window | windowMaximizeSize | passes | |
 | window | floatingFocusOnFullscreen | not ported | Its only check is a call into the test plugin, which a core test cannot make. |
 | window | groupFallbackFocus | differs | Closing the shown Group member shows its neighbour. The pinned release shows the member focused last. |
 | window | bringActiveToTopMouseMovement | differs | movecursor is not a dispatcher, and clients does not list Clients in stacking order. |
@@ -117,7 +117,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | monitorrule | passes | |
 | window | mouseResize | differs | movecursor is not a dispatcher, and a mouse bind pressed on a Client's border does not take the Client. The keep_aspect_ratio window rule is not honored. |
 | window | getFullscreenHandler | differs | fullscreenHandler is always default. The pinned release reports scrolling for a tiled Client in the scrolling Layout. |
-| window | sendFsWindowToAnotherWorkspace | differs | Maximize does not leave the border around the Client, and fullscreenHandler is always default. |
+| window | sendFsWindowToAnotherWorkspace | differs | fullscreenHandler is always default. |
 | window | floatingForceOnscreen | passes | |
 | window | specialWorkspacePinnedWindowUnmapFallback | differs | Closing a focused pinned Client focuses a Client on the normal Workspace under an open special workspace. The pinned release focuses the special workspace's Client. |
 | window | windowRuleBorderColors | differs | getprop does not honor active_border_color or inactive_border_color, and the border_color window rule is not honored. |
@@ -167,11 +167,11 @@ A case passes when every check in it passes, as in the reference harness. A case
 | monitor_rules | monitorMirrorAppliedWhenTargetAppears | not ported | The case checks which render passes a mirrored monitor draws, through the reference's test plugin. |
 | monitor_rules | monitorBackgroundWorkspaceAndXpMode | not ported | The case checks which render passes a monitor's background draws, through the reference's test plugin. |
 | master | focusMasterPrevious | passes | |
-| master | masterTestFsFocusUnderFSWindow | differs | misc:on_focus_under_fullscreen is a Gap, and maximize does not leave gaps_out and the border around the Client. |
+| master | masterTestFsFocusUnderFSWindow | differs | misc:on_focus_under_fullscreen is a Gap. |
 | master | masterFullscreenMaximiseDispatchers | differs | fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off. |
 | master | masterNewWindowTakesOverFullscreen | differs | misc:on_focus_under_fullscreen is a Gap. |
 | master | masterExitWindowRetainsFullscreen | differs | misc:exit_window_retains_fullscreen is a Gap. |
-| master | masterFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap, and maximize does not leave the border around the Client. |
+| master | masterFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap. |
 | master | masterFullscreenNonInterference | passes | |
 | master | rollFocus | passes | |
 | master | focusMasterClose | passes | |
@@ -180,12 +180,12 @@ A case passes when every check in it passes, as in the reference harness. A case
 | master | masterDropAtCursor | passes | |
 | monocle | monocleWorkspaceRule | differs | Closing the shown Client in monocle shows the first Client, not the one focused last. |
 | monocle | monocleFullscreenMaximiseDispatchers | differs | fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off. |
-| monocle | monocleTestFsFocusUnderFSWindow | differs | misc:on_focus_under_fullscreen is a Gap, and maximize does not leave gaps_out and the border around the Client. |
+| monocle | monocleTestFsFocusUnderFSWindow | differs | misc:on_focus_under_fullscreen is a Gap. |
 | monocle | monocleNewWindowTakesOverFullscreen | differs | misc:on_focus_under_fullscreen is a Gap. |
 | monocle | monocleExitWindowRetainsFullscreen | differs | misc:exit_window_retains_fullscreen is a Gap. |
-| monocle | monocleFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap, and maximize does not leave the border around the Client. |
+| monocle | monocleFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap. |
 | monocle | monocleFullscreenNonInterference | passes | |
-| layout | single_window_aspect_ratio | differs | maximize does not leave gaps_out and the border around the Client. |
+| layout | single_window_aspect_ratio | passes | |
 | layout | crashOnGeomUpdate | differs | The monitor keyword refuses a mode and a scale, which are Gaps. |
 | layout | layoutRefreshDuringMonitorTeardown | differs | The monitor keyword refuses a mode and a scale, which are Gaps. |
 | layout | posPreserve | differs | movewindow r puts a floating Client's frame against the monitor edge, where the pinned release keeps its border inside, and binds:allow_pin_fullscreen is a Gap. |

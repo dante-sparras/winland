@@ -357,6 +357,54 @@ public class FullscreenTests
         Assert.Equal(MonitorBounds, Bounds(core, 2));
     }
 
+    [Fact]
+    public void MaximizeLeavesGapsOutAndTheBorder()
+    {
+        var core = Desk("general:gaps_out = 20\ngeneral:border_size = 2\n");
+        Appear(core, 2);
+
+        var maximized = core.Handle(new Dispatch("fullscreen", "1"));
+
+        Assert.Equal(new Rectangle(22, 62, 1876, 996), BoundsOf(maximized, 2));
+    }
+
+    [Fact]
+    public void AFloatingClientMaximizesInsideTheFloatGaps()
+    {
+        var core = Desk("general:gaps_out = 20\ngeneral:border_size = 2\ngeneral:float_gaps = 10\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("setfloating"));
+
+        var maximized = core.Handle(new Dispatch("fullscreen", "1"));
+
+        Assert.Equal(new Rectangle(12, 52, 1896, 1016), BoundsOf(maximized, 1));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AMaximizedGroupMemberLeavesRoomForTheBar(bool floating)
+    {
+        var core = Desk("general:gaps_out = 0\ngeneral:border_size = 0\ngroup:auto_group = true\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(new WindowAppeared(new WindowId(2), Work));
+        if (floating)
+            core.Handle(new Dispatch("setfloating"));
+
+        var maximized = core.Handle(new Dispatch("fullscreen", "1"));
+
+        Assert.Equal(new Rectangle(0, 61, 1920, 1019), BoundsOf(maximized, 2));
+    }
+
+    private static Core Desk(string config)
+    {
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse(config)));
+        core.Handle(new MonitorsChanged([Screen()]));
+        return core;
+    }
+
     private static Core Desk()
     {
         var core = new Core();
