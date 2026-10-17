@@ -126,7 +126,7 @@ public static partial class CommandProtocol
             client.Fullscreen == FullscreenMode.None ? "" : "default",
             false,
             GroupedOf(state, client.Window),
-            NoStrings,
+            client.Tags is { Count: > 0 } tags ? [.. tags] : NoStrings,
             client.Swallowing is WindowId swallowed ? Address(swallowed) : "0x0",
             0,
             client.InhibitingIdle,

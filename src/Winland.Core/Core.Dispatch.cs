@@ -164,6 +164,9 @@ public sealed partial class Core
         if (Is(name, "setprop"))
             return SetPropDispatch(arguments, allowsElevation);
 
+        if (Is(name, "tagwindow"))
+            return TagWindow(arguments, allowsElevation);
+
         if (Is(name, "cyclenext"))
             return CycleNext(arguments, allowsElevation);
 

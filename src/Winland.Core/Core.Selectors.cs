@@ -242,7 +242,14 @@ public sealed partial class Core
         if (text.Length == 0)
             return emptyMeansActive ? ActiveWindow() : null;
 
-        return WindowSelector.Find(text, ActiveWindow(), EveryClient());
+        var clients = EveryClient();
+        if (text.StartsWith("tag:", StringComparison.Ordinal))
+        {
+            for (var i = 0; i < clients.Count; i++)
+                clients[i] = clients[i] with { Tags = TagsOf(clients[i].Window) };
+        }
+
+        return WindowSelector.Find(text, ActiveWindow(), clients);
     }
 
     private List<Client> EveryClient()

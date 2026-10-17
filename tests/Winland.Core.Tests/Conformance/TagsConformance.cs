@@ -4,7 +4,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class TagsConformance
 {
-    [Fact(Skip = "The tag and nodim window rule effects are refused.")]
+    [Fact]
     public void Tags()
     {
         var desk = new Desk();
@@ -12,8 +12,8 @@ public class TagsConformance
         desk.Spawn("untagged");
 
         Assert.Equal("ok", desk.Send("keyword windowrulev2 tag +testTag, class:tagged"));
-        Assert.Equal("ok", desk.Send("keyword windowrulev2 noshadow, tag:negative:testTag"));
-        Assert.Equal("ok", desk.Send("keyword windowrulev2 nodim, tag:testTag"));
+        Assert.Equal("ok", desk.Send("keyword windowrulev2 no_shadow, tag:negative:testTag"));
+        Assert.Equal("ok", desk.Send("keyword windowrulev2 no_dim, tag:testTag"));
 
         Assert.Equal(2, desk.Clients().Length);
         desk.Ok("focuswindow", "class:tagged");
@@ -27,7 +27,7 @@ public class TagsConformance
         Assert.Contains("false", desk.Send("getprop activewindow no_dim"), StringComparison.Ordinal);
     }
 
-    [Fact(Skip = "tagwindow is not a dispatcher, and window tags are not tracked.")]
+    [Fact]
     public void TagsFullscreenCleanup()
     {
         var desk = new Desk();
@@ -52,7 +52,9 @@ public class TagsConformance
                 Assert.Equal("hyprtester-16423-foo", ActiveTags(desk));
             }
 
-            // The reference turns the rule off here. The line-based syntax has no way to do that.
+            // The reference turns the rule off here. The line-based syntax has no way to, so a reload drops the rules
+            // the keywords added.
+            Assert.Equal("ok", desk.Send("reload"));
         }
     }
 

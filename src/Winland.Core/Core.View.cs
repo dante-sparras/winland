@@ -4,8 +4,8 @@ public sealed partial class Core
 {
     private Outcome Decorate(Outcome outcome, State before)
     {
-        var refit = MatchRulesAgain();
-        if (refit.Count > 0)
+        var refit = MatchRulesAgain(out var tagsChanged);
+        if (refit.Count > 0 || tagsChanged)
             outcome = outcome with { Placements = Union(outcome.Placements, refit, outcome.State), State = Snapshot() };
 
         var active = ActiveWindow();
@@ -168,6 +168,7 @@ public sealed partial class Core
                     Pinned = pinned,
                     PinFullscreened = _pinFullscreened.Contains(client.Window),
                     Swallowing = SwallowedBy(client.Window),
+                    Tags = TagsOf(client.Window),
                     InhibitingIdle = InhibitsIdle(client, shown, active),
                 });
             }

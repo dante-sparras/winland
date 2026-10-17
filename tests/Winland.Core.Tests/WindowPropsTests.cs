@@ -191,4 +191,41 @@ public class WindowPropsTests
 
         Assert.Equal("ffff0000 0deg", core.Execute("getprop address:0x1 inactive_border_color").Text);
     }
+
+    [Fact]
+    public void TagRequestsSetClearAndToggleAsThePinnedReleaseDoes()
+    {
+        var tags = new SortedSet<string>(StringComparer.Ordinal);
+
+        Assert.True(WindowTags.Apply(tags, "+work", dynamic: false));
+        Assert.False(WindowTags.Apply(tags, "+work", dynamic: false));
+        Assert.True(WindowTags.Apply(tags, "work", dynamic: true));
+        Assert.Equal(["work", "work*"], tags);
+        Assert.True(WindowTags.IsTagged(tags, "work"));
+        Assert.False(WindowTags.IsTagged(tags, "negative:work"));
+
+        Assert.True(WindowTags.Apply(tags, "work", dynamic: false));
+        Assert.True(WindowTags.Apply(tags, "-work*", dynamic: false));
+        Assert.Empty(tags);
+    }
+
+    [Fact]
+    public void ATagRuleFollowsTheStateItMatches()
+    {
+        var core = new Core(ConfigParser.Parse("windowrulev2 = tag +big, fullscreen:1\nwindowrulev2 = rounding 8, tag:big\n"));
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        core.Execute("dispatch tagwindow +mine");
+
+        core.Execute("dispatch fullscreen 0");
+        Assert.Contains("\"big*\"", core.Execute("j/clients").Text, StringComparison.Ordinal);
+        Assert.Equal("8", core.Execute("getprop active rounding").Text);
+        Assert.Equal(new WindowId(1), Find(core, "tag:mi.e"));
+
+        core.Execute("dispatch fullscreen 0");
+        Assert.DoesNotContain("big", core.Execute("j/clients").Text, StringComparison.Ordinal);
+        Assert.Contains("\"mine\"", core.Execute("j/clients").Text, StringComparison.Ordinal);
+    }
+
+    private static WindowId? Find(Core core, string selector) =>
+        core.Execute($"dispatch focuswindow {selector}").Text == "ok" ? new WindowId(1) : null;
 }
