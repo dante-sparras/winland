@@ -71,7 +71,7 @@ public sealed partial class Core
         bool allowsElevation = false)
     {
         var snapshot = Snapshot();
-        placements = Cover(placements, snapshot);
+        placements = Cover(WithMoved(placements), snapshot);
         var minimized = PlanMinimized(snapshot);
         var swallowed = TakeSwallowChanges();
         return new(placements, snapshot, consumed, dispatcher, focus)
@@ -83,6 +83,30 @@ public sealed partial class Core
             AllowsElevation = allowsElevation,
             Launches = TakeBorn(),
         };
+    }
+
+    // A Layout that moved its tiles by itself, as scrolling does when focus scrolls its strip, has its placements sent with
+    // the outcome, over any older ones for the same Clients.
+    private IReadOnlyList<Placement> WithMoved(IReadOnlyList<Placement> placements)
+    {
+        List<Placement>? merged = null;
+        foreach (var desk in _workspaces)
+        {
+            if (!desk.Layout.TakeMoved() || !IsShown(desk.Id))
+                continue;
+
+            merged ??= [.. placements];
+            foreach (var placement in desk.Layout.Placed())
+            {
+                var index = merged.FindIndex(existing => existing.Client == placement.Client);
+                if (index >= 0)
+                    merged[index] = placement;
+                else
+                    merged.Add(placement);
+            }
+        }
+
+        return merged ?? placements;
     }
 
     private MinimizedPlan PlanMinimized(State snapshot)

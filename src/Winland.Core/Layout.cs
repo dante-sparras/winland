@@ -89,6 +89,12 @@ internal interface Layout
     void NoteFocus(WindowId window);
 
     /// <summary>
+    /// True once after the Layout moved its tiles by itself, as scrolling does when focus scrolls its strip, so the core
+    /// sends its placements. Layouts whose tiles move only when asked return false.
+    /// </summary>
+    bool TakeMoved() => false;
+
+    /// <summary>
     /// How a direction picks among the tiles next to a Client: by how recently each was focused, higher being more
     /// recent, or by the longest shared edge when null. Layouts that do not look by edge ignore it.
     /// </summary>

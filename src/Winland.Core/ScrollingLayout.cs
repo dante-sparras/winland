@@ -291,6 +291,17 @@ internal sealed partial class ScrollingLayout : Layout
 
         CenterOrFit(column);
         Recalculate();
+        _moved = true;
+    }
+
+    // The strip scrolled because focus moved, and its placements have not been sent yet.
+    private bool _moved;
+
+    public bool TakeMoved()
+    {
+        var moved = _moved;
+        _moved = false;
+        return moved;
     }
 
     public IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode)

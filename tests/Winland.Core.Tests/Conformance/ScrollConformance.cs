@@ -744,7 +744,7 @@ public class ScrollConformance
         Assert.True(ActiveX(desk) < 0);
     }
 
-    [Fact(Skip = "scrolling:follow_min_visible also holds back focuswindow, and a scroll that focuswindow makes places no window.")]
+    [Fact(Skip = "scrolling:follow_min_visible also holds back focuswindow.")]
     public void TestScrollingViewBehaviourDispatchFocusWindowFollowFocustrue()
     {
         var desk = new Desk(Scrolling);
@@ -898,7 +898,7 @@ public class ScrollConformance
         Assert.True(ActiveX(desk) >= 0);
     }
 
-    [Fact(Skip = "movefocus scrolls the strip even with scrolling:follow_focus false. The scroll places no window, so the check reads the frame from before it.")]
+    [Fact(Skip = "movefocus scrolls the strip even with scrolling:follow_focus false.")]
     public void TestScrollingViewBehaviourMoveFocusFollowFocusFalse()
     {
         var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
@@ -911,7 +911,7 @@ public class ScrollConformance
         Assert.True(ActiveX(desk) <= 0);
     }
 
-    [Fact(Skip = "movefocus scrolls the strip but places no window.")]
+    [Fact]
     public void TestScrollingViewBehaviourMoveFocusFollowFocusTrue()
     {
         var desk = new Desk(Scrolling);

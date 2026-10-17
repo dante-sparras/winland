@@ -181,6 +181,7 @@ internal sealed partial class ScrollingLayout
 
         CenterOrFit(neighbor);
         Recalculate();
+        _moved = true;
         next = Remember(neighbor, target);
         return next is not null;
     }
