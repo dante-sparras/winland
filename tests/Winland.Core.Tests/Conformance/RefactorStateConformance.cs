@@ -153,7 +153,7 @@ public class RefactorStateConformance
         Assert.NotEqual(original, CursorPos(desk));
     }
 
-    [Fact(Skip = "cursor options are not applied live through keyword, and there is no movecursor dispatcher.")]
+    [Fact(Skip = "There is no movecursor dispatcher.")]
     public void CursorWarpFocusOnMonitorChange()
     {
         var desk = Prepare(new Desk());

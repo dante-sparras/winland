@@ -12,7 +12,7 @@ public class SwallowConformance
 {
     private const string None = "0x0";
 
-    [Fact(Skip = "A Workspace's windows count includes a swallowed Client, toggleswallow on the swallowed Client does nothing, and a Client swallowed in turn loses the Client it swallowed. A window selector does not find a swallowed Client, and misc:swallow_regex and group:auto_group are not applied live.")]
+    [Fact(Skip = "A Workspace's windows count includes a swallowed Client, toggleswallow on the swallowed Client does nothing, and a Client swallowed in turn loses the Client it swallowed. A window selector does not find a swallowed Client.")]
     public void Swallow()
     {
         // The case turns swallowing on before its first window opens.

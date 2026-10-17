@@ -6,7 +6,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class GroupsConformance
 {
-    [Fact(Skip = "group:groupbar:enabled is not applied live.")]
+    [Fact]
     public void GroupDimensions()
     {
         var desk = new Desk();
@@ -89,7 +89,7 @@ public class GroupsConformance
         Assert.Equal(before, desk.ActiveId());
     }
 
-    [Fact(Skip = "group:auto_group and group:insert_after_current are not applied live.")]
+    [Fact]
     public void AutoGroupInsertAfterCurrent()
     {
         var desk = new Desk("group:groupbar:enabled = false\n");
@@ -134,7 +134,7 @@ public class GroupsConformance
         Assert.Equal(1, CountAt(desk, "22,22"));
     }
 
-    [Fact(Skip = "keyword does not add a window rule.")]
+    [Fact]
     public void GroupLock()
     {
         var desk = new Desk("group:groupbar:enabled = false\n");
@@ -181,7 +181,7 @@ public class GroupsConformance
         Assert.Equal("kittyA", desk.ActiveClass());
     }
 
-    [Fact(Skip = "group:groupbar:disable_when_only is not applied live.")]
+    [Fact]
     public void GroupsDisableWhenOnly()
     {
         var desk = new Desk();

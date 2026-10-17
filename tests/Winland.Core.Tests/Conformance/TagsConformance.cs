@@ -4,7 +4,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class TagsConformance
 {
-    [Fact(Skip = "The tag and nodim window rule effects are refused, and keyword does not apply windowrulev2 live. getprop does not read no_dim or no_shadow.")]
+    [Fact(Skip = "The tag and nodim window rule effects are refused. getprop does not read no_dim or no_shadow.")]
     public void Tags()
     {
         var desk = new Desk();
@@ -27,7 +27,7 @@ public class TagsConformance
         Assert.Contains("false", desk.Send("getprop activewindow no_dim"), StringComparison.Ordinal);
     }
 
-    [Fact(Skip = "tagwindow is not a dispatcher, window tags are not tracked, and keyword does not apply windowrulev2 live.")]
+    [Fact(Skip = "tagwindow is not a dispatcher, and window tags are not tracked.")]
     public void TagsFullscreenCleanup()
     {
         var desk = new Desk();

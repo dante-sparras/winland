@@ -45,7 +45,7 @@ public class GesturesConformance
         Assert.NotEqual("special:special", SpecialWorkspace(desk));
     }
 
-    [Fact(Skip = "Only the workspace gesture action is honored. gestures and cursor options are not applied live, and movecursor is not a dispatcher.")]
+    [Fact(Skip = "Only the workspace gesture action is honored, and movecursor is not a dispatcher.")]
     public void Gestures()
     {
         var desk = new Desk(Config());

@@ -11,7 +11,7 @@ public class ChildWindowConformance
 {
     private static readonly WindowTraits Child = WindowTraits.Normal with { Dialog = true };
 
-    [Fact(Skip = "A window owned by a pinned Client is not pinned with it, and keyword does not apply group:auto_group live.")]
+    [Fact(Skip = "A window owned by a pinned Client is not pinned with it.")]
     public void ChildWindow()
     {
         var desk = new Desk();

@@ -310,6 +310,8 @@ A client has 5 seconds after it connects to send its request line, as in the pin
 
 The pipe refuses clients on other machines. When another process already holds the pipe name, the Daemon fails to start and says so, instead of sharing the name with it.
 
+`keyword NAME VALUE` applies one config line at once, as in the pinned release. An option such as `misc:focus_on_activate` replaces its value. A line that may repeat, such as `windowrulev2`, `workspace`, `monitor` or a bind, is added after the lines already read, so a window rule applies to the windows that open next and a workspace rule merges into the rule for the same Workspace. `exec` and its variants, `env`, `source` and `plugin` answer `error: keyword 'NAME' is not applied live`, because they launch a program, load a file or set the environment, which happens only when the config is read. A keyword the config would warn about answers with that warning. `reload` drops every line `keyword` added.
+
 ## Virtual desktops
 
 Winland's Workspaces are not Windows virtual desktops. A shown Client that a virtual desktop switch cloaks stops being a Client, and it is adopted again when it is uncloaked. A Client Winland has hidden stays a Client on its Workspace while it is cloaked, so it comes back when its Workspace is shown.

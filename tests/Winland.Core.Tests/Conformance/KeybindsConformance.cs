@@ -82,7 +82,7 @@ public class KeybindsConformance
     private const string ShortChord = "touch /tmp/hyprtester-keybinds-short-chord.txt";
     private const string LongChord = "touch /tmp/hyprtester-keybinds-long-chord.txt";
 
-    [Fact(Skip = "A bind on several keys runs on each of them, a long press waits 500 ms instead of input:repeat_delay, and per-device binds are not honored. input:repeat_delay and input:repeat_rate are not applied live.")]
+    [Fact(Skip = "A bind on several keys runs on each of them, a long press waits 500 ms instead of input:repeat_delay, and per-device binds are not honored.")]
     public void Keybinds()
     {
         var desk = new Desk(ConfigBinds);

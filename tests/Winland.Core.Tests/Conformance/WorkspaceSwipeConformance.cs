@@ -17,9 +17,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class WorkspaceSwipeConformance
 {
-    private const string LiveOptions = "keyword does not apply gestures:workspace_swipe_use_r live.";
-
-    [Fact(Skip = LiveOptions)]
+    [Fact]
     public void WorkspaceSwipeInvalidUpdateCleanup()
     {
         var swipe = Fixture.Run(bounds: true);
@@ -38,7 +36,7 @@ public class WorkspaceSwipeConformance
         swipe.Cleaned();
     }
 
-    [Fact(Skip = LiveOptions)]
+    [Fact]
     public void WorkspaceSwipeInvalidEndCleanup()
     {
         var swipe = Fixture.Run(bounds: true);
@@ -59,7 +57,7 @@ public class WorkspaceSwipeConformance
 
     // The fixture's Workspaces are rendered before the swipe starts, which has no core form, so these parts run as
     // the ones without it.
-    [Fact(Skip = LiveOptions)]
+    [Fact]
     public void WorkspaceSwipePreexistingForce()
     {
         var swipe = Fixture.Run();

@@ -6,7 +6,7 @@ public class MasterConformance
 {
     private const string Master = "general:layout = master\n";
 
-    [Fact(Skip = "keyword refuses master:orientation as not applied live.")]
+    [Fact]
     public void FocusMasterPrevious()
     {
         var desk = new Desk(Master);
@@ -298,7 +298,7 @@ public class MasterConformance
         }
     }
 
-    [Fact(Skip = "keyword refuses master:smart_resizing and master:center_master_fallback as not applied live.")]
+    [Fact]
     public void CenterMasterColumnResize()
     {
         var desk = new Desk(Master + """

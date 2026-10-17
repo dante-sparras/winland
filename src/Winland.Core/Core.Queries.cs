@@ -159,6 +159,9 @@ public sealed partial class Core
         if (request.Name.Length == 0 || request.Value.Length == 0)
             return new CommandReply("error: invalid keyword", View([]));
 
+        if (!LiveKeyword(request.Name))
+            return new CommandReply($"error: keyword '{request.Name}' is not applied live", View([]));
+
         var parsed = ConfigParser.Parse(request.Name + " = " + request.Value + "\n");
         if (parsed.Warnings.Count > 0)
             return new CommandReply("error: " + parsed.Warnings[0].Message, View([]));
@@ -185,12 +188,13 @@ public sealed partial class Core
         return new CommandReply("ok", outcome);
     }
 
+    // A line that launches a program, loads code or a file, or sets the environment takes effect only when the
+    // config is read. Every other line, an option or a rule, applies at once, as in the pinned release.
     private static bool LiveKeyword(string keyword) =>
-        keyword.StartsWith("general:", StringComparison.Ordinal)
-        || keyword.StartsWith("dwindle:", StringComparison.Ordinal)
-        || keyword.StartsWith("decoration:", StringComparison.Ordinal)
-        || keyword.StartsWith("binds:", StringComparison.Ordinal);
+        keyword is not ("exec" or "exec-once" or "execr" or "execr-once" or "exec-shutdown" or "env" or "source" or "plugin");
 
+    // An option, a keyword with a category such as general:gaps_in, replaces its old value. A keyword that may
+    // repeat, such as monitor, workspace or windowrulev2, adds its line after the ones already read.
     private static ConfigDocument MergeLive(ConfigDocument? current, ConfigDocument incoming)
     {
         var settings = new List<Setting>();
@@ -201,7 +205,7 @@ public sealed partial class Core
                 var replaced = false;
                 foreach (var update in incoming.Settings)
                 {
-                    if (update.Keyword == setting.Keyword)
+                    if (update.Keyword == setting.Keyword && setting.Keyword.Contains(':', StringComparison.Ordinal))
                     {
                         replaced = true;
                         break;
@@ -228,13 +232,23 @@ public sealed partial class Core
 
         return new ConfigDocument(settings, binds, [])
         {
-            WindowRules = current?.WindowRules ?? [],
-            WorkspaceRules = current?.WorkspaceRules ?? WorkspaceRule.None,
+            WindowRules = [.. current?.WindowRules ?? [], .. incoming.WindowRules],
+            WorkspaceRules = MergeWorkspaceRules(current?.WorkspaceRules ?? WorkspaceRule.None, incoming.WorkspaceRules),
             Sources = current?.Sources ?? [],
             Environment = current?.Environment ?? EnvironmentAssignment.None,
-            Gestures = current?.Gestures ?? [],
+            Gestures = [.. current?.Gestures ?? [], .. incoming.Gestures],
             ElevationTrusted = current?.ElevationTrusted ?? false,
         };
+    }
+
+    // A rule for a Workspace that already has one merges into it, as a second line in the config does.
+    private static List<WorkspaceRule> MergeWorkspaceRules(IReadOnlyList<WorkspaceRule> current, IReadOnlyList<WorkspaceRule> incoming)
+    {
+        var rules = new List<WorkspaceRule>(current);
+        foreach (var rule in incoming)
+            WorkspaceRules.ReplaceOrAdd(rules, rule);
+
+        return rules;
     }
 
     private CommandReply RunBatch(string payload)

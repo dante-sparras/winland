@@ -99,7 +99,7 @@ public class WindowConformance
         Assert.Contains("8", desk.Send("getprop active border_size"), StringComparison.Ordinal);
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap, and keyword does not apply misc:focus_on_activate live.")]
+    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
     public void WindowFocusOnFullscreenConflict()
     {
         var desk = new Desk();
@@ -265,7 +265,7 @@ public class WindowConformance
         Assert.Equal("a", TopWindow(desk));
     }
 
-    [Fact(Skip = "keyword does not apply misc:focus_on_activate live, and the focus_on_activate window rule is not honored.")]
+    [Fact(Skip = "The focus_on_activate window rule is not honored.")]
     public void WindowRuleFocusOnActivate()
     {
         var desk = new Desk();
@@ -447,7 +447,7 @@ public class WindowConformance
         Assert.Equal("kitty_B", desk.ActiveClass());
     }
 
-    [Fact(Skip = "A w[tv1] workspace rule is matched before a new window is counted, keyword does not add a window rule live, and misc:size_limits_tiled is not honored.")]
+    [Fact(Skip = "A w[tv1] workspace rule is matched before a new window is counted, and misc:size_limits_tiled is not honored.")]
     public void Windows()
     {
         var desk = new Desk(SmartGaps + "\n" + TagRules);
@@ -872,7 +872,7 @@ public class WindowConformance
         Assert.Equal("1900,1000", desk.PlaceOf("a").At);
     }
 
-    [Fact(Skip = "keyword does not add a window rule live.")]
+    [Fact]
     public void Monitorrule()
     {
         var desk = new Desk("windowrulev2 = monitor HEADLESS-3, class:monitor_kitty\n");

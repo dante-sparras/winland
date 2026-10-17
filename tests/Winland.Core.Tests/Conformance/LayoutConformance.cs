@@ -20,7 +20,7 @@ public class LayoutConformance
         desk.ExpectActive("22,22", "1876,1036");
     }
 
-    [Fact(Skip = "The monitor keyword refuses a mode and a scale, which are Gaps, and is not applied live.")]
+    [Fact(Skip = "The monitor keyword refuses a mode and a scale, which are Gaps.")]
     public void CrashOnGeomUpdate()
     {
         var desk = new Desk();
@@ -33,7 +33,7 @@ public class LayoutConformance
         Assert.Equal("ok", desk.Send("keyword monitor HEADLESS-2,1920x1080@60,0x0,1"));
     }
 
-    [Fact(Skip = "The monitor keyword refuses a mode and a scale, which are Gaps, and is not applied live.")]
+    [Fact(Skip = "The monitor keyword refuses a mode and a scale, which are Gaps.")]
     public void LayoutRefreshDuringMonitorTeardown()
     {
         var desk = new Desk();
