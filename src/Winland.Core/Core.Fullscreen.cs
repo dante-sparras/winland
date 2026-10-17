@@ -4,6 +4,8 @@ namespace Winland;
 
 public sealed partial class Core
 {
+    private readonly HashSet<WindowId> _pinFullscreened = [];
+
     private Outcome FullscreenDispatcher(string name, string arguments, bool allowsElevation)
     {
         if (Is(name, "fullscreenstate"))
@@ -20,7 +22,7 @@ public sealed partial class Core
         if (!FullscreenCommands.Changed(client.Fullscreen, parsed.Mode, parsed.Action, out var next))
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
-        return CommitFullscreen(window, next, next, name, allowsElevation);
+        return CommitFullscreen(window, next, next, name, allowsElevation, Synced(client));
     }
 
     private Outcome FullscreenState(string arguments, bool allowsElevation)
@@ -48,14 +50,20 @@ public sealed partial class Core
         if (target.Internal == client.Fullscreen && target.Client == client.FullscreenClient)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
-        return CommitFullscreen(window, target.Internal, target.Client, name, allowsElevation);
+        return CommitFullscreen(window, target.Internal, target.Client, name, allowsElevation, synced: false);
     }
 
-    private Outcome CommitFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, string? dispatcher, bool allowsElevation)
+    // A request sets the client mode along with the internal one unless fullscreenstate last set them apart.
+    private static bool Synced(Client client) => client.Fullscreen == client.FullscreenClient;
+
+    private Outcome CommitFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, string? dispatcher, bool allowsElevation, bool synced)
     {
         var desk = WorkspaceContaining(window);
-        if (desk is null)
+        if (desk is null || desk.ClientOf(window) is not Client client)
             return MissingWindow(dispatcher, allowsElevation);
+
+        if (!PinFullscreen(window, client.Fullscreen, ref mode, synced))
+            return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
 
         var covered = desk.Covered();
         var placements = Restamp(desk, desk.Layout.SetFullscreen(window, mode, clientMode));
@@ -63,6 +71,48 @@ public sealed partial class Core
             return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
 
         return Present(desk, covered, placements, dispatcher: dispatcher, allowsElevation: allowsElevation);
+    }
+
+    // binds:allow_pin_fullscreen, as in the pinned release. With it on, a pinned Client that goes fullscreen or
+    // maximized loses its pin, and gets it back when it leaves that mode. With it off, a pinned Client stays as it
+    // is: a synced request changes nothing, and fullscreenstate sets only the client mode. False when nothing changes.
+    private bool PinFullscreen(WindowId window, FullscreenMode old, ref FullscreenMode mode, bool synced)
+    {
+        var pinned = _pinned.Contains(window);
+        var held = _pinFullscreened.Contains(window);
+        if (!pinned && !held)
+            return true;
+
+        var allow = _session.AllowPinFullscreen;
+        if (allow && pinned && !held && old == FullscreenMode.None)
+        {
+            _pinned.Remove(window);
+            _pinFullscreened.Add(window);
+        }
+        else if (allow && held && !pinned && old != FullscreenMode.None && mode == FullscreenMode.None)
+        {
+            _pinned.Add(window);
+            _pinFullscreened.Remove(window);
+        }
+        else if (!allow)
+        {
+            if (synced)
+                return false;
+
+            mode = FullscreenMode.None;
+        }
+
+        return true;
+    }
+
+    // Ends a Client's fullscreen or maximized mode, and gives back a pin binds:allow_pin_fullscreen took from it.
+    private IReadOnlyList<Placement> EndFullscreen(LiveWorkspace desk, WindowId window)
+    {
+        var none = FullscreenMode.None;
+        if (desk.ClientOf(window) is Client client && _session.AllowPinFullscreen)
+            _ = PinFullscreen(window, client.Fullscreen, ref none, synced: true);
+
+        return desk.Layout.SetFullscreen(window, FullscreenMode.None, FullscreenMode.None);
     }
 
     // An f[] workspace rule follows the fullscreen state, so a Client that covers, uncovers, closes or moves
@@ -90,7 +140,7 @@ public sealed partial class Core
             case 1:
                 return desk.Layout.SetFullscreen(window, covering.Fullscreen, covering.Fullscreen);
             default:
-                return desk.Layout.SetFullscreen(covering.Window, FullscreenMode.None, FullscreenMode.None);
+                return EndFullscreen(desk, covering.Window);
         }
     }
 
@@ -111,7 +161,7 @@ public sealed partial class Core
                 placements = desk.Layout.SetFullscreen(window, covering.Fullscreen, covering.Fullscreen);
                 return window;
             default:
-                placements = desk.Layout.SetFullscreen(covering.Window, FullscreenMode.None, FullscreenMode.None);
+                placements = EndFullscreen(desk, covering.Window);
                 return window;
         }
     }

@@ -161,7 +161,7 @@ public class MasterConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "binds:allow_pin_fullscreen is a Gap.")]
+    [Fact]
     public void MasterFullscreenPinnedWindows()
     {
         var desk = new Desk(Master);
