@@ -112,7 +112,19 @@ public sealed partial class Core
         if (active is WindowId grouped && CycleGroupFirst(desk, grouped, arguments, name, allowsElevation) is Outcome cycled)
             return cycled;
 
-        if (active is WindowId current)
+        if (active is WindowId fullscreen
+            && _session.MoveFocusCyclesFullscreen
+            && desk.ClientOf(fullscreen) is { Fullscreen: not FullscreenMode.None })
+        {
+            var previous = direction is MonitorDirection.Left or MonitorDirection.Up;
+            return CycleFrom(desk, fullscreen, previous) is WindowId next
+                ? FocusClient(next, name, allowsElevation)
+                : View([], dispatcher: name, allowsElevation: allowsElevation);
+        }
+
+        // A Workspace with a fullscreen or maximized Client offers no window in a direction, as in the pinned
+        // release, so focus moves on to the next Monitor.
+        if (active is WindowId current && !HasFullscreen(desk))
         {
             var focus = desk.Layout.MoveFocus(current, arguments);
             if (focus is WindowId chosen)
@@ -139,6 +151,47 @@ public sealed partial class Core
             adjacent = AdjacentOn(destination, Ideal(desk, fromWindow, box), direction);
 
         return FocusOnto(destination, name, allowsElevation, adjacent);
+    }
+
+    private static bool HasFullscreen(LiveWorkspace desk)
+    {
+        foreach (var client in desk.Layout.Clients)
+        {
+            if (client.Fullscreen != FullscreenMode.None)
+                return true;
+        }
+
+        return false;
+    }
+
+    // The window after or before this one on its Workspace in the order they opened, wrapping around, as the
+    // pinned release cycles. A hidden Group member, a minimized window and one with nofocus are passed over.
+    private WindowId? CycleFrom(LiveWorkspace desk, WindowId current, bool previous)
+    {
+        var clients = desk.Layout.Clients;
+        var start = -1;
+        for (var i = 0; i < clients.Count; i++)
+        {
+            if (clients[i].Window == current)
+                start = i;
+        }
+
+        if (start < 0)
+            return null;
+
+        for (var step = 1; step < clients.Count; step++)
+        {
+            var index = previous
+                ? (start - step + clients.Count) % clients.Count
+                : (start + step) % clients.Count;
+            var client = clients[index];
+            if (client.Minimized || HasNoFocus(client.Window) || desk.GroupOf(client.Window) is WindowGroup group && group.Shown != client.Window)
+                continue;
+
+            return client.Window;
+        }
+
+        return null;
     }
 
     private Outcome MoveWindowDirection(string arguments, bool allowsElevation)

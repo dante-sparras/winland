@@ -41,6 +41,9 @@ public sealed record SessionOptions
     /// <summary><c>binds:allow_pin_fullscreen</c>: a pinned Client can go fullscreen, and is pinned again when it leaves that mode.</summary>
     public bool AllowPinFullscreen { get; init; }
 
+    /// <summary><c>binds:movefocus_cycles_fullscreen</c>: movefocus from a fullscreen Client cycles its Workspace's windows instead of looking in the direction.</summary>
+    public bool MoveFocusCyclesFullscreen { get; init; }
+
     public static SessionOptions Documented { get; } = new();
 
     // Adding an entry here applies that keyword and stops the config warning.
@@ -59,6 +62,7 @@ public sealed record SessionOptions
         ["misc:on_focus_under_fullscreen"] = (options, value) => UnderFullscreen(value) is int mode ? options with { OnFocusUnderFullscreen = mode } : options,
         ["misc:exit_window_retains_fullscreen"] = (options, value) => RetainsFullscreen(value) is int retain ? options with { ExitWindowRetainsFullscreen = retain } : options,
         ["binds:allow_pin_fullscreen"] = (options, value) => TryParseBool(value, out var allow) ? options with { AllowPinFullscreen = allow } : options,
+        ["binds:movefocus_cycles_fullscreen"] = (options, value) => TryParseBool(value, out var cycles) ? options with { MoveFocusCyclesFullscreen = cycles } : options,
         ["misc:size_limits_tiled"] = (options, value) => TryParseBool(value, out var tiled) ? options with { SizeLimitsTiled = tiled } : options,
     };
 

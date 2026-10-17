@@ -28,7 +28,6 @@ public static class ConfigGaps
         new("animation:zoomFactor", "Screen zoom is not honored, so it does not animate."),
         new("aurora", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("binds:disable_keybind_grabbing", "Applications cannot ask Windows to turn binds off, so there is nothing to refuse."),
-        new("binds:movefocus_cycles_fullscreen", "Moving focus does not cycle a fullscreen Client."),
         new("bitdepth", "Changing a monitor's bit depth is not honored."),
         new("center_ignores_reserved", "Reserved monitor regions are not separate from the work area, so the master area cannot ignore them."),
         new("cm", "Monitor color management is not honored."),
