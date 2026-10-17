@@ -48,6 +48,26 @@ internal sealed partial class MasterLayout
             || max.Height < monitor.Height / (double)(_tiles.Count - 1);
     }
 
+    // The size the pinned release gives a window that opens: the whole Monitor on an empty Workspace, the master's
+    // with new_status master, half the Monitor beside a lone master, or a slave's share otherwise.
+    private Rectangle? PredictedTile()
+    {
+        var monitor = _monitor.Width > 0 && _monitor.Height > 0 ? _monitor : _area;
+        if (_tiles.Count == 0)
+            return new Rectangle(0, 0, monitor.Width, monitor.Height);
+
+        if (_tiles.Find(static tile => tile.Master) is not Tile master)
+            return null;
+
+        if (_master.NewStatus == MasterNewStatus.Master)
+            return new Rectangle(0, 0, master.Box.Width, master.Box.Height);
+
+        var slaves = _tiles.Count - MasterCount();
+        return slaves == 0
+            ? new Rectangle(0, 0, monitor.Width / 2, monitor.Height)
+            : new Rectangle(0, 0, monitor.Width - master.Box.Width, monitor.Height / (slaves + 1));
+    }
+
     private void PlaceNew(Tile tile, bool becomesMaster)
     {
         if (_master.NewOnActive != MasterNewOnActive.None && !becomesMaster)

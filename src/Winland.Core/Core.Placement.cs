@@ -63,6 +63,8 @@ public sealed partial class Core
         var sized = desired.Width > 2 && desired.Height > 2;
         var width = sized || !decision.Floating ? desired.Width : DefaultFloatWidth;
         var height = sized || !decision.Floating ? desired.Height : DefaultFloatHeight;
+        if (decision.Floating && PersistentSize(appeared.Traits, decision) is Size stored)
+            (width, height) = (stored.Width, stored.Height);
         var pointer = appeared.Pointer ?? Cursor?.Read() ?? new Point(monitor.X + (monitor.Width / 2), monitor.Y + (monitor.Height / 2));
         if (placement.Size is { } size
             && size.TryEvaluate(Variables(monitor, desired with { Width = width, Height = height }, pointer), out var sizedWidth, out var sizedHeight)
@@ -92,6 +94,51 @@ public sealed partial class Core
 
         // misc:new_float_force_onscreen keeps a Client that opens floating on screen, a moved one too.
         return decision.Floating ? desk.Options.NewFloatingOnScreen(area).Keep(placed) : placed;
+    }
+
+    // persistent_size, as in the pinned release: a floating window that closes leaves its size behind for its initial
+    // class and title, and a window of that class and title that opens floating with the rule takes it back.
+    private readonly Dictionary<(string Class, string Title), Size> _persistentSizes = [];
+
+    private void RememberPersistentSize(WindowId window)
+    {
+        if (WorkspaceContaining(window) is not LiveWorkspace desk
+            || desk.ClientOf(window) is not { Floating: true } client
+            || OwnProp(window, "persistent_size") is not true
+            || !desk.Layout.TryBounds(window, out var bounds))
+            return;
+
+        var key = (client.InitialClass.Length == 0 ? client.Class : client.InitialClass, client.InitialTitle.Length == 0 ? client.Title : client.InitialTitle);
+        _persistentSizes[key] = new Size(bounds.Width, bounds.Height);
+    }
+
+    private Size? PersistentSize(WindowTraits traits, WindowDecision decision) =>
+        decision.Props?.GetValueOrDefault("persistent_size") is true && _persistentSizes.TryGetValue((traits.Class, traits.Title), out var size)
+            ? size
+            : null;
+
+    // A min_size or max_size rule written as an expression is read once the window's Monitor is known, as the pinned
+    // release reads it when the window opens. A size below 1 leaves the limit unset, and a later number wins.
+    private WindowDecision EvaluateSizeRules(WindowAppeared appeared, WindowDecision decision, LiveWorkspace desk, Rectangle area)
+    {
+        if (decision.MinSizeExpression is null && decision.MaxSizeExpression is null)
+            return decision;
+
+        var monitor = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Bounds : area;
+        var pointer = appeared.Pointer ?? Cursor?.Read() ?? new Point(monitor.X + (monitor.Width / 2), monitor.Y + (monitor.Height / 2));
+        var variables = Variables(monitor, appeared.Bounds, pointer);
+        Size? Read(ExpressionPair? expression) =>
+            expression is { } pair && pair.TryEvaluate(variables, out var width, out var height) && width >= 1 && height >= 1
+                ? new Size(Pixels(width), Pixels(height))
+                : null;
+
+        var sizes = decision.Sizes with
+        {
+            Min = decision.Sizes.Min ?? Read(decision.MinSizeExpression),
+            Max = decision.Sizes.Max ?? Read(decision.MaxSizeExpression),
+        };
+        var limits = sizes.Floating(appeared.Traits.MinSize, appeared.Traits.MaxSize);
+        return decision with { Sizes = sizes, MinSize = limits.Min, MaxSize = limits.Max };
     }
 
     private void NotePlaced(WindowId window, LiveWorkspace desk, WindowDecision decision, bool restored)

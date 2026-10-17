@@ -92,11 +92,16 @@ internal sealed partial class MasterLayout : Layout
         }
 
         _clients.Add(client);
+        var predicted = PredictedTile();
         var tile = new Tile { Id = id, MasterFraction = _master.Mfact };
         var tiled = Adopt(tile, firstMap: true, dragging: false, pointer: null);
         _focused = window;
         if (!tiled)
         {
+            // It would have been sized for the tile it was given, so it floats at that size, as in the pinned release.
+            if (predicted is Rectangle size)
+                placed = FloatedLimits.Centered(new SizeLimits(minSize, maxSize), size, _area);
+
             MarkFloating(id, true);
             _floating.Set(id, placed);
             return [.. Placed(), new Placement(id, placed)];

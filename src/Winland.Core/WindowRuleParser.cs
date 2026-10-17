@@ -89,6 +89,8 @@ internal static partial class WindowRuleParser
         bool? stayFocused = null;
         Size? ruleMin = null;
         Size? ruleMax = null;
+        ExpressionPair? minExpression = null;
+        ExpressionPair? maxExpression = null;
         var suppressMax = false;
         double? scrollingWidth = null;
         OpacityRule? opacity = null;
@@ -144,9 +146,11 @@ internal static partial class WindowRuleParser
                     break;
                 case WindowRuleEffect.MinSize:
                     ruleMin = rule.Size;
+                    minExpression = rule.Size is null ? rule.Placement?.Expression : null;
                     break;
                 case WindowRuleEffect.MaxSize:
                     ruleMax = rule.Size;
+                    maxExpression = rule.Size is null ? rule.Placement?.Expression : null;
                     break;
                 case WindowRuleEffect.NoMaxSize:
                     suppressMax = rule.Enabled;
@@ -208,7 +212,9 @@ internal static partial class WindowRuleParser
             group,
             sizes,
             props,
-            content);
+            content,
+            minExpression,
+            maxExpression);
     }
 
     private static bool TryParseEffect(
@@ -315,16 +321,23 @@ internal static partial class WindowRuleParser
                 return true;
             case "min_size":
             case "max_size":
-                if (argument is null || !TryParseSize(argument, out var parsed))
+                effect = name == "min_size" ? WindowRuleEffect.MinSize : WindowRuleEffect.MaxSize;
+                error = "";
+                if (argument is not null && TryParseSize(argument, out var parsed))
                 {
-                    error = "Malformed window rule.";
-                    return false;
+                    size = parsed;
+                    return true;
                 }
 
-                effect = name == "min_size" ? WindowRuleEffect.MinSize : WindowRuleEffect.MaxSize;
-                size = parsed;
-                error = "";
-                return true;
+                // As in the pinned release, either size may be an expression, read when the window opens.
+                if (argument is not null && ExpressionPair.TryParse(argument, out var expression))
+                {
+                    placement = new RulePlacement(Expression: expression);
+                    return true;
+                }
+
+                error = "Malformed window rule.";
+                return false;
             case "no_max_size":
                 if (argument is null)
                     enabled = true;

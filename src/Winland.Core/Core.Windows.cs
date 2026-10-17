@@ -129,6 +129,7 @@ public sealed partial class Core
             decision = DecideAtOpen(appeared.Traits, JoinRules(_rules, followed), decision, desk);
         var area = WorkArea(desk, appeared.WorkArea);
         _area = area;
+        decision = EvaluateSizeRules(appeared, decision, desk, area);
         var bounds = restored is null ? PlaceOnMap(appeared, decision, desk, area) : restored.Bounds ?? appeared.Bounds;
         var covered = desk.Covered();
         if (decision.ScrollingWidth is double scrollingWidth)
@@ -234,6 +235,7 @@ public sealed partial class Core
 
     private Outcome Close(WindowId window)
     {
+        RememberPersistentSize(window);
         _windowState.Forget(window);
         _sizes.Remove(window);
         _initialWorkspaces.Closed(window);

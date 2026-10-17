@@ -21,7 +21,7 @@ public class SizeLimitTests
 
         var client = Assert.Single(outcome.State.Clients);
         Assert.True(client.Floating);
-        Assert.Equal(NewFloat.Centered(Area, bounds), Assert.Single(outcome.Placements).Bounds);
+        Assert.Equal(new Rectangle(760, 390, 400, 300), Assert.Single(outcome.Placements).Bounds);
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public class SizeLimitTests
 
         var client = Assert.Single(floated.State.Clients, candidate => candidate.Window == new WindowId(2));
         Assert.True(client.Floating);
-        Assert.Equal(NewFloat.Centered(Area, bounds), Assert.Single(floated.Placements, placement => placement.Client == client.Id).Bounds);
+        Assert.Equal(new Rectangle(760, 390, 400, 300), Assert.Single(floated.Placements, placement => placement.Client == client.Id).Bounds);
         Assert.Contains(floated.State.Clients, candidate => candidate.Window == new WindowId(1) && !candidate.Floating);
 
         var split = core.Handle(new WindowAppeared(new WindowId(3), Area));
@@ -64,7 +64,7 @@ public class SizeLimitTests
         });
 
         Assert.True(Assert.Single(floated.State.Clients, candidate => candidate.Window == new WindowId(2)).Floating);
-        Assert.Equal(NewFloat.Centered(Area, bounds), BoundsOf(floated, 2));
+        Assert.Equal(new Rectangle(480, 0, 960, 1080), BoundsOf(floated, 2));
     }
 
     [Fact]
@@ -342,7 +342,7 @@ public class SizeLimitTests
         });
 
         Assert.True(Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(2)).Floating);
-        Assert.Equal(NewFloat.Centered(Area, bounds), BoundsOf(outcome, 2));
+        Assert.Equal(new Rectangle(760, 390, 400, 300), BoundsOf(outcome, 2));
     }
 
     [Fact]
@@ -375,7 +375,7 @@ public class SizeLimitTests
         });
 
         Assert.True(Assert.Single(outcome.State.Clients).Floating);
-        Assert.Equal(NewFloat.Centered(Area, bounds), BoundsOf(outcome, 1));
+        Assert.Equal(new Rectangle(760, 390, 400, 300), BoundsOf(outcome, 1));
     }
 
     [Fact]
@@ -485,7 +485,7 @@ public class SizeLimitTests
 
         var client = Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(2));
         Assert.True(client.Floating);
-        Assert.Equal(NewFloat.Centered(Area, bounds), BoundsOf(outcome, 2));
+        Assert.Equal(new Rectangle(760, 390, 400, 300), BoundsOf(outcome, 2));
         Assert.Equal(new WindowId(1), outcome.Focus);
         Assert.Equal(new WindowId(1), core.Handle(new Dispatch("killactive")).Close);
     }
@@ -495,5 +495,32 @@ public class SizeLimitTests
         var client = Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
         var placement = Assert.Single(outcome.Placements, candidate => candidate.Client == client.Id);
         return placement.Bounds;
+    }
+
+    [Fact]
+    public void PersistentSizeGivesAFloatingWindowItsLastSizeBack()
+    {
+        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(notes)$\nwindowrulev2 = persistent_size, class:^(notes)$\n"));
+        var notes = WindowTraits.Normal with { Class = "notes", Title = "Notes" };
+        core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = notes, Bounds = new Rectangle(0, 0, 640, 480) });
+        core.Execute("dispatch resizewindowpixel exact 600 400,address:0x1");
+        core.Handle(new WindowClosed(new WindowId(1)));
+
+        var reopened = core.Handle(new WindowAppeared(new WindowId(2), Area) { Traits = notes, Bounds = new Rectangle(0, 0, 640, 480) });
+
+        var bounds = BoundsOf(reopened, 2);
+        Assert.Equal((600, 400), (bounds.Width, bounds.Height));
+    }
+
+    [Fact]
+    public void ASizeLimitRuleTakesExpressions()
+    {
+        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:.*\nwindowrulev2 = min_size monitor_w*0.5 monitor_h*0.5, class:.*\n"));
+
+        var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area) { Bounds = new Rectangle(0, 0, 200, 100) });
+
+        var bounds = BoundsOf(outcome, 1);
+        Assert.Equal((960, 540), (bounds.Width, bounds.Height));
+        Assert.Contains("960", core.Execute("getprop active min_size").Text, StringComparison.Ordinal);
     }
 }

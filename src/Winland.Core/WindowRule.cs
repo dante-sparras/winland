@@ -118,7 +118,9 @@ internal readonly record struct WindowDecision(
     GroupRuleFlags Group = GroupRuleFlags.None,
     SizeRule Sizes = default,
     IReadOnlyDictionary<string, object>? Props = null,
-    int Content = 0);
+    int Content = 0,
+    ExpressionPair? MinSizeExpression = null,
+    ExpressionPair? MaxSizeExpression = null);
 
 /// <summary>
 /// What the min_size, max_size and no_max_size window rules ask of a Client. A floating Client keeps the rule's sizes in
