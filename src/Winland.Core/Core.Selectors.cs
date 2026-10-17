@@ -135,41 +135,100 @@ public sealed partial class Core
         const string name = "swapwindow";
         var text = arguments.Trim();
         if (ActiveWindow() is not WindowId current || WorkspaceContaining(current) is not LiveWorkspace home)
-            return Rejected(name, "error: no window to swap with", allowsElevation);
+            return Rejected(name, "error: No window to swap with", allowsElevation);
 
+        // The pinned release's answers, in its order.
         if (Find(current) is { Fullscreen: not FullscreenMode.None })
-            return Rejected(name, "error: can't swap fullscreen window", allowsElevation);
+            return Rejected(name, "error: Can't swap fullscreen window", allowsElevation);
 
         WindowId other;
         if (IsDirection(text))
         {
             if (home.Layout.Neighbor(current, text) is not WindowId neighbor || neighbor == current)
-                return Rejected(name, "error: no window to swap with", allowsElevation);
+                return Rejected(name, "error: No window to swap with in that direction", allowsElevation);
 
             other = neighbor;
         }
-        else if (WindowSelector.Find(text, current, EveryClient()) is WindowId selected && selected != current)
+        else if (WindowSelector.Find(text, current, EveryClient()) is not WindowId selected)
         {
-            other = selected;
+            return Rejected(name, "error: No window to swap with", allowsElevation);
+        }
+        else if (selected == current)
+        {
+            return Rejected(name, "error: Can't swap a window with itself", allowsElevation);
         }
         else
         {
-            return Rejected(name, "error: no window to swap with", allowsElevation);
+            other = selected;
         }
 
-        if (WorkspaceContaining(other) is not LiveWorkspace away || away.Id != home.Id)
-            return Rejected(name, "error: no window to swap with", allowsElevation);
+        if (WorkspaceContaining(other) is not LiveWorkspace away)
+            return Rejected(name, "error: No window to swap with", allowsElevation);
         if (Find(other) is { Fullscreen: not FullscreenMode.None })
-            return Rejected(name, "error: can't swap fullscreen window", allowsElevation);
+            return Rejected(name, "error: Can't swap fullscreen window", allowsElevation);
+        if (away.Id != home.Id)
+            return SwapAcross(current, other, home, away, name, allowsElevation);
 
         var covered = home.Covered();
         var placements = home.Layout.Swap(current, other);
         if (placements.Count == 0)
-            return Rejected(name, "error: no window to swap with", allowsElevation);
+            return Rejected(name, "error: No window to swap with", allowsElevation);
 
         return IsShown(home.Id)
             ? Present(home, covered, placements, dispatcher: name, allowsElevation: allowsElevation)
             : View(placements, dispatcher: name, allowsElevation: allowsElevation);
+    }
+
+    // Two windows on different Workspaces trade places, each taking the other's slot and Workspace, as the pinned
+    // release switches their targets. A window in a Group is not swapped across Workspaces.
+    private Outcome SwapAcross(WindowId current, WindowId other, LiveWorkspace home, LiveWorkspace away, string name, bool allowsElevation)
+    {
+        if (home.GroupOf(current) is not null || away.GroupOf(other) is not null)
+            return Rejected(name, "error: No window to swap with", allowsElevation);
+
+        // The first slot is held by a placeholder while the second changes hands.
+        var placeholder = new WindowId(long.MinValue);
+        if (!home.Layout.Substitute(current, placeholder, new Taken(Floating: false, Minimized: false, Bounds: default), out var mine))
+            return Rejected(name, "error: No window to swap with", allowsElevation);
+
+        if (!away.Layout.Substitute(other, current, mine, out var theirs))
+        {
+            _ = home.Layout.Substitute(placeholder, current, mine, out _);
+            return Rejected(name, "error: No window to swap with", allowsElevation);
+        }
+
+        _ = home.Layout.Substitute(placeholder, other, theirs, out _);
+        if (home.Focus == current)
+            home.Focus = other;
+        if (away.Focus == other)
+            away.Focus = current;
+
+        var homeShown = IsShown(home.Id);
+        var awayShown = IsShown(away.Id);
+        var show = new List<WindowId>();
+        var hide = new List<WindowId>();
+        if (homeShown != awayShown)
+        {
+            show.Add(homeShown ? other : current);
+            hide.Add(homeShown ? current : other);
+        }
+
+        // The focus stays on a shown Workspace: the window that came onto the focused one takes it there.
+        WindowId? focus = null;
+        if (_active == current && !awayShown)
+        {
+            _active = other;
+            home.Layout.NoteFocus(other);
+            focus = other;
+        }
+
+        var placements = new List<Placement>();
+        if (homeShown)
+            placements.AddRange(home.Layout.Visible());
+        if (awayShown)
+            placements.AddRange(away.Layout.Visible());
+
+        return View(placements, show, hide, dispatcher: name, focus: focus, allowsElevation: allowsElevation);
     }
 
     private Outcome ExitDaemon(bool allowsElevation) =>

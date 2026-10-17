@@ -174,7 +174,26 @@ public class SelectorDispatcherTests
 
         Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(selected, 1));
         Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(selected, 2));
-        Assert.Equal("error: no window to swap with", core.Execute("dispatch swapwindow class:missing").Text);
+        Assert.Equal("error: No window to swap with", core.Execute("dispatch swapwindow class:missing").Text);
+    }
+
+    [Fact]
+    public void SwapWindowTradesWorkspacesWithAClientOnAnotherOne()
+    {
+        var core = Flat();
+        Appear(core, 1, "Left", "a");
+        Appear(core, 2, "Right", "b");
+        core.Handle(new Dispatch("movetoworkspacesilent", "2"));
+
+        var swapped = core.Handle(new Dispatch("swapwindow", "class:Right"));
+
+        Assert.Null(swapped.Error);
+        Assert.Equal(WorkspaceId.FromNumber(1), Client(swapped, 2).Workspace);
+        Assert.Equal(WorkspaceId.FromNumber(2), Client(swapped, 1).Workspace);
+        Assert.Contains(new WindowId(2), swapped.Show);
+        Assert.Contains(new WindowId(1), swapped.Hide);
+        Assert.Equal(new WindowId(2), swapped.Focus);
+        Assert.Equal("error: Can't swap a window with itself", core.Execute("dispatch swapwindow class:Right").Text);
     }
 
     [Fact]
