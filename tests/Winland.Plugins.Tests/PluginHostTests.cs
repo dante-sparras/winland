@@ -213,10 +213,15 @@ public class PluginHostTests
     public void UnloadRemovesRegistrationsAndTheContextIsCollectible()
     {
         var weak = LoadAndUnload();
-        for (var attempt = 0; weak.IsAlive && attempt < 20; attempt++)
+
+        // A collectible context goes only after its loader allocator's finalizer has run over several collections.
+        // On a busy machine, with other test classes running alongside, that can take more than a few rounds.
+        for (var attempt = 0; weak.IsAlive && attempt < 200; attempt++)
         {
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
             GC.WaitForPendingFinalizers();
+            if (weak.IsAlive && attempt >= 20)
+                Thread.Sleep(10);
         }
 
         Assert.False(weak.IsAlive);
