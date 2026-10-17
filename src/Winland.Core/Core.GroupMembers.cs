@@ -78,12 +78,27 @@ public sealed partial class Core
         IReadOnlyList<Placement>? retained = null;
         if (wasActive)
         {
-            focus = returned ?? group.Shown;
+            // As in the pinned release, the member focused most recently takes the focus, and so is shown.
+            focus = returned ?? RecentMember(group) ?? group.Shown;
+            if (focus != group.Shown && group.Members.IndexOf(focus.Value) is var index and >= 0)
+                _ = desk.Show(group, index);
+
             TakeGroupFocus(desk, focus.Value);
             retained = RetainFullscreen(desk, focus.Value, mode, grouped: true);
         }
 
         return Present(desk, covered, retained ?? desk.Layout.Visible(), focus: focus);
+    }
+
+    private WindowId? RecentMember(WindowGroup group)
+    {
+        foreach (var window in _focusHistory)
+        {
+            if (group.Members.Contains(window))
+                return window;
+        }
+
+        return null;
     }
 
     /// <summary>Shows a hidden member before it is focused. Null when the window is not hidden in a Group.</summary>

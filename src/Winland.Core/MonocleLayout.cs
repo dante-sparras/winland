@@ -17,6 +17,9 @@ internal sealed partial class MonocleLayout : Layout
     private Rectangle _area;
     private int _visible;
 
+    // The tiled Clients by how recently they were focused, the newest first.
+    private readonly List<ClientId> _recent = [];
+
     public IReadOnlyList<Client> Clients => _clients;
 
     public void Readdress(WorkspaceId workspace)
@@ -82,6 +85,8 @@ internal sealed partial class MonocleLayout : Layout
 
         _tiled.Add(id);
         _visible = _tiled.Count - 1;
+        _recent.Remove(id);
+        _recent.Insert(0, id);
         return Placed();
     }
 
@@ -132,6 +137,8 @@ internal sealed partial class MonocleLayout : Layout
 
         _tiled.Add(id);
         _visible = _tiled.Count - 1;
+        _recent.Remove(id);
+        _recent.Insert(0, id);
         return Placed();
     }
 
@@ -257,11 +264,18 @@ internal sealed partial class MonocleLayout : Layout
         return Window(_tiled[(((_visible + delta) % count) + count) % count]);
     }
 
+    // The shown tile takes the focus when the focused Client closes, as the pinned release's monocle picks it.
+    public WindowId? FocusAfterClose() => VisibleTiled() is ClientId shown ? Window(shown) : null;
+
     public void NoteFocus(WindowId window)
     {
-        var index = _tiled.IndexOf(new ClientId(window.Value));
+        var id = new ClientId(window.Value);
+        var index = _tiled.IndexOf(id);
         if (index >= 0)
             _visible = index;
+
+        _recent.Remove(id);
+        _recent.Insert(0, id);
     }
 
     public IReadOnlyList<Placement> MoveWindow(WindowId window, string arguments)
@@ -365,18 +379,32 @@ internal sealed partial class MonocleLayout : Layout
 
         var shown = index == _visible;
         _tiled.RemoveAt(index);
+        _recent.Remove(id);
         if (_tiled.Count == 0)
         {
             _visible = 0;
             return true;
         }
 
+        // As in the pinned release, the Client focused most recently is shown in its place, else the next one.
         if (shown)
-            _visible = index % _tiled.Count;
+            _visible = MostRecentTiled() ?? index % _tiled.Count;
         else if (index < _visible)
             _visible--;
 
         return true;
+    }
+
+    private int? MostRecentTiled()
+    {
+        foreach (var id in _recent)
+        {
+            var index = _tiled.IndexOf(id);
+            if (index >= 0)
+                return index;
+        }
+
+        return null;
     }
 
     private ClientId? VisibleTiled() =>

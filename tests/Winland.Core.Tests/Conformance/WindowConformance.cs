@@ -213,7 +213,7 @@ public class WindowConformance
         Assert.Equal(1, Desk.Fullscreen(desk.Client("kitty_A")));
     }
 
-    [Fact(Skip = "Closing the shown Group member shows its neighbour. The pinned release shows the member focused last.")]
+    [Fact]
     public void GroupFallbackFocus()
     {
         var desk = new Desk();
