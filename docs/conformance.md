@@ -269,7 +269,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | gestures | defaultSpecialWorkspaceGesture | differs | The special gesture action is not honored. |
 | gestures | live_gesture_callbacks | not ported | Gesture actions with start, update and end callbacks are Lua-only. |
 | gestures | gestures | differs | Only the workspace gesture action is honored. |
-| keybinds | keybinds | differs | A long press waits 500 ms instead of input:repeat_delay, and per-device binds are not honored. |
+| keybinds | keybinds | differs | Per-device binds are not honored. |
 | keybinds | orderedSubChordDeferral | passes | |
 | keybinds | modifierReleaseBindShadowing | differs | A release bind on a modifier key still runs after another bind used that modifier. The pinned release skips it. |
 | keybinds | luaDispatcherStrings | not ported | It reads the handler of a bind as a Lua value, which is Lua-only. |

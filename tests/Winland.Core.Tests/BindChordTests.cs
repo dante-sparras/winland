@@ -5,6 +5,17 @@ namespace Winland.Tests;
 public class BindChordTests
 {
     [Fact]
+    public void LongPressWaitsTheRepeatDelay()
+    {
+        var core = new Core();
+        core.Handle(new ConfigLoaded(ConfigParser.Parse("input {\n    repeat_delay = 250\n}\nbindo = , Q, killactive\n")));
+
+        var pressed = core.Decide(new KeyPressed("Q"), new BindSession());
+
+        Assert.Equal(250, pressed.ArmLongPressMs);
+    }
+
+    [Fact]
     public void LongPressAndNormalBindOnTheSameChordBothRun()
     {
         var core = new Core();
@@ -17,7 +28,7 @@ public class BindChordTests
         Assert.Equal("exec", pressed.Dispatcher);
         Assert.Equal("notepad", pressed.Arguments);
         Assert.Equal(new BindDispatch[] { new("exec", "notepad") }, pressed.Dispatches);
-        Assert.Equal(BindMatcher.LongPressDelayMs, pressed.ArmLongPressMs);
+        Assert.Equal(600, pressed.ArmLongPressMs);
         Assert.True(pressed.DisarmLongPress);
 
         var elapsed = core.Decide(new LongPressElapsed(), session);
@@ -40,7 +51,7 @@ public class BindChordTests
 
         Assert.False(pressed.Consumed);
         Assert.Equal(new BindDispatch[] { new("exec", "notepad") }, pressed.Dispatches);
-        Assert.Equal(BindMatcher.LongPressDelayMs, pressed.ArmLongPressMs);
+        Assert.Equal(600, pressed.ArmLongPressMs);
         Assert.False(released.Consumed);
         Assert.Null(elapsed.Dispatcher);
         Assert.Empty(elapsed.Dispatches);
