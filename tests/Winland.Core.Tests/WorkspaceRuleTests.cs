@@ -599,6 +599,26 @@ public class WorkspaceRuleTests
         return WorkspaceRules.For(parsed, id, displayName, null)?.GapsIn?.Top;
     }
 
+    [Fact]
+    public void ASmartGapsRuleHoldsFromTheFirstWindowOn()
+    {
+        var core = Configured("""
+            general:gaps_in = 5
+            general:gaps_out = 20
+            general:border_size = 0
+            workspace = w[tv1], gapsout:0, gapsin:0
+            """);
+
+        var first = core.Handle(Appeared(1, Wide));
+        Assert.Equal(new Rectangle(0, 0, 1920, 1080), BoundsOf(first, 1));
+
+        var second = core.Handle(Appeared(2, Wide));
+        Assert.Equal(new Rectangle(20, 20, 935, 1040), BoundsOf(second, 1));
+
+        var closed = core.Handle(new WindowClosed(new WindowId(2)));
+        Assert.Equal(new Rectangle(0, 0, 1920, 1080), BoundsOf(closed, 1));
+    }
+
     private static string Flat(string extra) =>
         "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 

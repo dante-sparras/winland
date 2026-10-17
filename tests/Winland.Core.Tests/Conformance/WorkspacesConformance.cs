@@ -168,7 +168,7 @@ public class WorkspacesConformance
         Assert.Empty(desk.Clients());
     }
 
-    [Fact(Skip = "A w[tv1] workspace rule is not applied when the first Client opens on a Workspace. The bordersize window rule and the onworkspace match are not honored.")]
+    [Fact(Skip = "The bordersize window rule and the onworkspace match are not honored.")]
     public void WorkspacesFollowProperNoGaps()
     {
         var desk = new Desk("""
@@ -190,7 +190,7 @@ public class WorkspacesConformance
         Assert.Equal("101 (101)", ActiveLabel(desk));
     }
 
-    [Fact(Skip = "A w[tv1] workspace rule is not applied when the first Client opens on a Workspace, and the bordersize window rule is not honored. movewindow r does not carry the rightmost tile onto the next Monitor.")]
+    [Fact(Skip = "The bordersize window rule is not honored, and movewindow r does not carry the rightmost tile onto the next Monitor.")]
     public void WorkspacesSmartGapsDirectionalMoveAcrossMonitors()
     {
         var desk = new Desk("""
