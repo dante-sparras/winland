@@ -279,7 +279,7 @@ internal sealed partial class MonocleLayout : Layout
         if (!ResizeArguments.TryParse(arguments, out var x, out var y, out var exact))
             return [];
 
-        return _floating.Resize(id, x, y, exact);
+        return _floating.Resize(id, x, y, exact, _options.FloatingOnScreen(_area));
     }
 
     public IReadOnlyList<Placement> ToggleFloating(WindowId window)
@@ -300,7 +300,7 @@ internal sealed partial class MonocleLayout : Layout
         if (!DropTiled(id))
             return [];
 
-        var floated = _floating.Around(id, Tile(), _options.FloatingWorkArea(_area));
+        var floated = _floating.Around(id, Tile(), _options.FloatingOnScreen(_area));
         _floating.Set(id, floated);
         SetFloating(id, true);
         var placements = new List<Placement>(Placed()) { new(id, floated) };
@@ -389,7 +389,7 @@ internal sealed partial class MonocleLayout : Layout
     public IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds)
     {
         var id = new ClientId(window.Value);
-        return _floating.Place(id, bounds) ? Visible() : [];
+        return _floating.Place(id, bounds, _options.FloatingOnScreen(_area)) ? Visible() : [];
     }
 
     private static Rectangle Shrink(Rectangle box, int left, int top, int right, int bottom)

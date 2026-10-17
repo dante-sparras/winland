@@ -44,6 +44,12 @@ public sealed record LayoutOptions
 
     public EdgeInsets FloatGaps { get; init; } = EdgeInsets.Zero;
 
+    /// <summary><c>misc:float_force_onscreen</c>: how far a floating Client is kept on screen when it moves, resizes or starts floating.</summary>
+    public int FloatForceOnscreen { get; init; }
+
+    /// <summary><c>misc:new_float_force_onscreen</c>: how far a Client that opens floating is kept on screen.</summary>
+    public int NewFloatForceOnscreen { get; init; } = 2;
+
     public int ForceSplit { get; init; }
 
     public bool PreserveSplit { get; init; }
@@ -90,6 +96,8 @@ public sealed record LayoutOptions
         ["general:hover_icon_on_border"] = (options, value) => TryParseBool(value, out var hover) ? options with { HoverIconOnBorder = hover } : options,
         ["general:resize_corner"] = (options, value) => TryParseResizeCorner(value, out var corner) ? options with { ResizeCorner = corner } : options,
         ["general:float_gaps"] = (options, value) => TryParseGaps(value, out var floatGaps) ? options with { FloatGaps = floatGaps } : options,
+        ["misc:float_force_onscreen"] = (options, value) => TryParseInt(value, out var onscreen) ? options with { FloatForceOnscreen = Clamp(onscreen, 0, 2) } : options,
+        ["misc:new_float_force_onscreen"] = (options, value) => TryParseInt(value, out var onscreen) ? options with { NewFloatForceOnscreen = Clamp(onscreen, 0, 2) } : options,
         ["general:snap:enabled"] = (options, value) => TryParseBool(value, out var snap) ? options with { SnapEnabled = snap } : options,
         ["general:snap:window_gap"] = (options, value) => TryParseInt(value, out var windowGap) ? options with { SnapWindowGap = Clamp(windowGap, 0, 100) } : options,
         ["general:snap:monitor_gap"] = (options, value) => TryParseInt(value, out var monitorGap) ? options with { SnapMonitorGap = Clamp(monitorGap, 0, 100) } : options,
@@ -179,6 +187,15 @@ public sealed record LayoutOptions
             : FloatGaps;
 
     public Rectangle FloatingWorkArea(Rectangle area) => EffectiveFloatGaps.Apply(area);
+
+    /// <summary>How a floating Client on this area is kept on screen when it moves, resizes or starts floating.</summary>
+    internal OnScreen FloatingOnScreen(Rectangle area) => new(FloatingWorkArea(area), BorderSize, FloatForceOnscreen);
+
+    /// <summary>
+    /// How a Client that opens floating on this area is kept on screen. Its border is left out, as in the pinned
+    /// release, which keeps it on screen before the border is known.
+    /// </summary>
+    internal OnScreen NewFloatingOnScreen(Rectangle area) => new(FloatingWorkArea(area), 0, NewFloatForceOnscreen);
 
     private static readonly Dictionary<string, int> ResizeCornerNames = new(StringComparer.OrdinalIgnoreCase)
     {

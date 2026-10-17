@@ -315,7 +315,8 @@ public class DispatcherTests
 
         var grown = same.Handle(new Dispatch("togglefloating"));
 
-        Assert.Equal(new Rectangle(-10, -10, 1930, 1090), BoundsOf(grown, 1));
+        // misc:float_force_onscreen 0 leaves it around the middle of the tile, partly off the Monitor.
+        Assert.Equal(new Rectangle(-5, -5, 1930, 1090), BoundsOf(grown, 1));
     }
 
     [Fact]
