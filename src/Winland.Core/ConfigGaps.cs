@@ -31,7 +31,6 @@ public static class ConfigGaps
         new("binds:disable_keybind_grabbing", "Applications cannot ask Windows to turn binds off, so there is nothing to refuse."),
         new("binds:movefocus_cycles_fullscreen", "Moving focus does not cycle a fullscreen Client."),
         new("binds:pass_mouse_when_bound", "Passing mouse events on after a bind runs is not honored."),
-        new("binds:workspace_center_on", "Where the cursor lands after a Workspace switch is not configurable."),
         new("bitdepth", "Changing a monitor's bit depth is not honored."),
         new("center_ignores_reserved", "Reserved monitor regions are not separate from the work area, so the master area cannot ignore them."),
         new("cm", "Monitor color management is not honored."),

@@ -119,13 +119,16 @@ public sealed partial class Core
             if (target.IsSpecial)
                 return OpenSpecial(target, null, name, allowsElevation);
 
-            return SwitchTo(
+            var from = FocusedId();
+            var switched = SwitchTo(
                 BackAndForth(Alias(target)),
                 focus: null,
                 consumed: false,
                 dispatcher: name,
                 allowsElevation: allowsElevation,
                 pull: Is(name, "focusworkspaceoncurrentmonitor"));
+            NoteCrossMonitorWarp(from, switched);
+            return switched;
         }
 
         if (Is(name, "movetoworkspace"))
