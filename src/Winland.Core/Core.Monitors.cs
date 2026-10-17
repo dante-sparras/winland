@@ -435,7 +435,10 @@ public sealed partial class Core
         {
             if (client.Minimized || HasNoFocus(client.Window) || !desk.Layout.TryBounds(client.Window, out var box))
                 continue;
-            if (!MonitorSelector.Overlaps(origin, Ideal(desk, client.Window, box), direction, out var overlap) || overlap <= bestOverlap)
+            // A tie goes to the Client focused most recently, as binds:focus_preferred_method 0 picks.
+            if (!MonitorSelector.Overlaps(origin, Ideal(desk, client.Window, box), direction, out var overlap)
+                || overlap < bestOverlap
+                || (overlap == bestOverlap && (best is not WindowId held || Recency(client.Window) <= Recency(held))))
                 continue;
 
             bestOverlap = overlap;
@@ -450,10 +453,13 @@ public sealed partial class Core
     // space then no longer keep two tiles on neighbouring Monitors apart. A floating box is left as it is.
     private Rectangle Ideal(LiveWorkspace desk, WindowId window, Rectangle box)
     {
-        if (desk.ClientOf(window) is not { Floating: false } client || MonitorById(desk.Monitor) is not { Effective.Enabled: true } screen)
+        if (desk.ClientOf(window) is not Client client || MonitorById(desk.Monitor) is not { Effective.Enabled: true } screen)
             return box;
+        // A fullscreen Client covers its Monitor, floating or not.
         if (client.Fullscreen != FullscreenMode.None)
             return screen.Bounds;
+        if (client.Floating)
+            return box;
 
         var border = desk.Options.BorderSize;
         var work = desk.Options.GapsOut.Apply(screen.Effective.WorkArea);

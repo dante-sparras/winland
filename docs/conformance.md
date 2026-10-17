@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-149 of 197 ported cases pass.
+150 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -201,7 +201,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | drag | dragThresholdSurvivesScrollEvents | passes | |
 | snap | snap | passes | |
 | focus | errorBarReservationFollowsFocusedMonitor | differs | seterror is not a request. |
-| focus | crossMonitorFullscreenFocus | differs | movefocus onto another Monitor focuses the tile under its fullscreen Client. The pinned release focuses the fullscreen Client. |
+| focus | crossMonitorFullscreenFocus | passes | |
 | focus | silentMoveLastTiledWindowUnfocusesWindow | passes | |
 | focus | crossMonitorEmptyWorkspaceUnfocusesWindow | passes | |
 | follow_mouse_shrink | followMouseShrink | passes | |
