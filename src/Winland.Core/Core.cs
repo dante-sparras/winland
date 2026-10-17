@@ -19,6 +19,9 @@ public sealed partial class Core
     private readonly Lock _gate = new();
     private ConfigDocument? _config;
     private LayoutOptions _options = LayoutOptions.Unconfigured;
+
+    // One lookup for every Workspace's options, so they still compare equal.
+    private readonly Func<ClientId, int?> _clientBorder;
     private ScrollingOptions _scrolling = ScrollingOptions.Defaults;
     private MasterOptions _master = MasterOptions.Documented;
     private DecorationOptions _decoration = DecorationOptions.Documented;
@@ -50,6 +53,7 @@ public sealed partial class Core
 
     public Core(ConfigDocument? config = null)
     {
+        _clientBorder = ClientBorderOf;
         TrackWindowState();
         _rules = config?.WindowRules ?? [];
         _workspaceRules = config?.WorkspaceRules ?? WorkspaceRule.None;

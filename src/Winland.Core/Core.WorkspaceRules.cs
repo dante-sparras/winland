@@ -122,7 +122,7 @@ public sealed partial class Core
     {
         var screen = MonitorById(desk.Monitor);
         var scale = screen is { Effective.Enabled: true } ? screen.Effective.Scale : 1;
-        var options = _options;
+        var options = _options with { ClientBorder = _clientBorder };
         if (rule is not null)
         {
             if (rule.GapsIn is EdgeInsets gapsIn)

@@ -24,6 +24,19 @@ public sealed record LayoutOptions
 
     public int BorderSize { get; init; }
 
+    /// <summary>
+    /// The border a Client's window properties give it, in logical pixels, or null to use <see cref="BorderSize"/>.
+    /// The core sets one lookup for every Workspace, so options still compare equal.
+    /// </summary>
+    public Func<ClientId, int?>? ClientBorder { get; init; }
+
+    /// <summary>The Monitor scale <see cref="ScaledBy"/> applied, which a Client's own border is multiplied by too.</summary>
+    public double BorderScale { get; init; } = 1;
+
+    /// <summary>The border around this Client, in pixels.</summary>
+    internal int BorderFor(ClientId client) =>
+        ClientBorder?.Invoke(client) is int own ? Scale(Math.Max(0, own), BorderScale) : BorderSize;
+
     public bool ResizeOnBorder { get; init; }
 
     public int ExtendBorderGrabArea { get; init; } = 15;
@@ -315,6 +328,7 @@ public sealed record LayoutOptions
             GapsOut = Scale(GapsOut, scale),
             FloatGaps = Scale(FloatGaps, scale),
             BorderSize = Scale(BorderSize, scale),
+            BorderScale = scale,
             ExtendBorderGrabArea = Scale(ExtendBorderGrabArea, scale),
             SnapWindowGap = Scale(SnapWindowGap, scale),
             SnapMonitorGap = Scale(SnapMonitorGap, scale),

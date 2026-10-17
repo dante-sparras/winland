@@ -66,12 +66,12 @@ public class ConfigTests
     [Fact]
     public void MalformedWindowRuleWarnsAndTheConfigStillLoads()
     {
-        var document = ConfigParser.Parse("windowrulev2 = dim_around, class:^(kitty)$\nwindowrulev2 = float, class:^(unclosed\ngeneral:gaps_in = 2\n");
+        var document = ConfigParser.Parse("windowrulev2 = confine_pointer, class:^(kitty)$\nwindowrulev2 = float, class:^(unclosed\ngeneral:gaps_in = 2\n");
 
         Assert.Equal(
             new[]
             {
-                new Setting("windowrulev2", "dim_around, class:^(kitty)$"),
+                new Setting("windowrulev2", "confine_pointer, class:^(kitty)$"),
                 new Setting("windowrulev2", "float, class:^(unclosed"),
                 new Setting("general:gaps_in", "2"),
             },
@@ -80,7 +80,7 @@ public class ConfigTests
         Assert.Equal(
             new[]
             {
-                new ConfigWarning(1, "Unsupported window rule 'dim_around'."),
+                new ConfigWarning(1, "Unsupported window rule 'confine_pointer'."),
                 new ConfigWarning(2, "Invalid window rule pattern."),
             },
             document.Warnings);

@@ -17,7 +17,7 @@ internal static partial class WindowRuleParser
             return false;
         }
 
-        if (!TryParseEffect(value[..comma].Trim(), out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out var placement, out var group, out error))
+        if (!TryParseEffect(value[..comma].Trim(), out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out var placement, out var group, out var props, out error))
             return false;
 
         string? classPattern = null;
@@ -51,17 +51,17 @@ internal static partial class WindowRuleParser
             }
         }
 
-        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement, group);
+        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement, group, props);
         return true;
     }
 
     internal static bool TryParseBare(string text, out WindowRule? rule, out string error)
     {
         rule = null;
-        if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out var placement, out var group, out error))
+        if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out var placement, out var group, out var props, out error))
             return false;
 
-        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, ScrollingWidth: scrollingWidth, Opacity: opacity, Fullscreen: fullscreen, IdleInhibit: idle, Placement: placement, Group: group);
+        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, ScrollingWidth: scrollingWidth, Opacity: opacity, Fullscreen: fullscreen, IdleInhibit: idle, Placement: placement, Group: group, Props: props);
         return true;
     }
 
@@ -86,10 +86,19 @@ internal static partial class WindowRuleParser
         IdleInhibitMode? idle = null;
         var placement = default(MapPlacement);
         var group = GroupRuleFlags.None;
+        Dictionary<string, object>? props = null;
         foreach (var rule in rules)
         {
             if (!Matches(rule, traits))
                 continue;
+
+            if (rule.Effect == WindowRuleEffect.Prop && rule.Props is not null)
+            {
+                props ??= new Dictionary<string, object>(StringComparer.Ordinal);
+                foreach (var (key, value) in rule.Props)
+                    props[key] = value;
+                continue;
+            }
 
             switch (rule.Effect)
             {
@@ -178,7 +187,8 @@ internal static partial class WindowRuleParser
             idle ?? IdleInhibitMode.None,
             placement,
             group,
-            sizes);
+            sizes,
+            props);
     }
 
     private static bool TryParseEffect(
@@ -193,8 +203,10 @@ internal static partial class WindowRuleParser
         out IdleInhibitMode idle,
         out RulePlacement? placement,
         out string? group,
+        out IReadOnlyDictionary<string, object>? props,
         out string error)
     {
+        props = null;
         idle = IdleInhibitMode.None;
         effect = default;
         workspace = null;
@@ -354,6 +366,15 @@ internal static partial class WindowRuleParser
                 error = "";
                 return true;
             default:
+                if (TryParsePropRule(name, argument, out props, out error))
+                {
+                    effect = WindowRuleEffect.Prop;
+                    return true;
+                }
+
+                if (error.Length > 0)
+                    return false;
+
                 if (TryParsePlacement(name, argument, out effect, out enabled, out placement, out error))
                     return true;
 
