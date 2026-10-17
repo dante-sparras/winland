@@ -52,13 +52,20 @@ public class WindowSelectorTests
     }
 
     [Fact]
-    public void TagAndStableIdMatchNothing()
+    public void TagMatchesAWholeTagAndStableIdTheHexId()
     {
-        var clients = new[] { Client(1, "tag:name", workspace: Home), Client(2, "stableid:1", workspace: Home) };
+        var clients = new[]
+        {
+            Client(1, "tag:name", workspace: Home),
+            Client(26, "other", workspace: Home) with { Tags = ["work", "work*"] },
+        };
         var active = new WindowId(1);
 
         Assert.Null(WindowSelector.Find("tag:name", active, clients));
-        Assert.Null(WindowSelector.Find("stableid:1", active, clients));
+        Assert.Equal(new WindowId(26), WindowSelector.Find("tag:wo.k", active, clients));
+        Assert.Null(WindowSelector.Find("tag:wor", active, clients));
+        Assert.Equal(new WindowId(26), WindowSelector.Find("stableid:1a", active, clients));
+        Assert.Null(WindowSelector.Find("stableid:26", active, clients));
     }
 
     [Fact]
