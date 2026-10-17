@@ -33,8 +33,12 @@ internal static class WindowSelector
             return FirstMatch(active, clients, client => client.Tags is { } tags && tags.Any(tag => Matches(tag, tagPattern)));
         }
 
+        // The stable id clients reports, in hex, compared exactly as in the pinned release.
         if (text.StartsWith("stableid:", StringComparison.Ordinal))
-            return null;
+        {
+            var stable = text[9..];
+            return FirstMatch(active, clients, client => client.Id.Value.ToString("x", CultureInfo.InvariantCulture) == stable);
+        }
 
         if (text.StartsWith("address:", StringComparison.Ordinal))
         {

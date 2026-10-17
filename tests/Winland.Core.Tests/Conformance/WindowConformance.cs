@@ -421,7 +421,7 @@ public class WindowConformance
         Assert.Empty(desk.Clients());
     }
 
-    [Fact(Skip = "A stableid: window selector matches no Client.")]
+    [Fact]
     public void ExactWindowSelectors()
     {
         var desk = new Desk();

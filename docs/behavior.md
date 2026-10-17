@@ -217,7 +217,7 @@ Resolution, refresh rate and scale changes stay Gaps. So do mirroring, variable 
 
 `forcerendererreload` returns ok and does nothing. Reloading a renderer has no Windows meaning.
 
-A window selector `tag:` takes a pattern that must match one of a Client's tags in full.
+A window selector `tag:` takes a pattern that must match one of a Client's tags in full. `stableid:` takes the `stableId` that `clients` reports, in hex, and matches it exactly.
 
 Window tags are kept as in the pinned release. `tagwindow tag [window]` tags the window, or the focused one: `+tag` sets the tag, `-tag` clears it, and a bare tag toggles it. A `tag` window rule gives a dynamic tag, which `clients` lists with a trailing `*`, beside a static tag of the same name. The tag rules are matched again whenever a window's state changes, so `tag +fs, fullscreen:1` tags a window only while it is fullscreen. `tag:` in a window rule matches a static or a dynamic tag, and `tag:negative:name` matches a window without it. `clients` lists the tags in order.
 
