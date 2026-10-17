@@ -169,6 +169,7 @@ public sealed partial class Core
                     PinFullscreened = _pinFullscreened.Contains(client.Window),
                     Swallowing = SwallowedBy(client.Window),
                     Tags = TagsOf(client.Window),
+                    Content = ContentOf(client.Window),
                     InhibitingIdle = InhibitsIdle(client, shown, active),
                 });
             }

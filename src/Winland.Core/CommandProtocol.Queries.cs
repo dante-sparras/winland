@@ -132,7 +132,7 @@ public static partial class CommandProtocol
             client.InhibitingIdle,
             "",
             "",
-            "none",
+            ContentTypes.Name(client.Content),
             false,
             client.Id.Value.ToString("x", CultureInfo.InvariantCulture));
     }

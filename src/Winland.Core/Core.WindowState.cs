@@ -32,6 +32,7 @@ public sealed partial class Core
         _windowState.Track(_ruleSubjects);
         _windowState.Track(_staticTags);
         _windowState.Track(_ruleTags);
+        _windowState.Track(_content);
         _windowState.Track(_shownMaximized);
     }
 }

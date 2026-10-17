@@ -20,6 +20,7 @@ public sealed record Client(
     bool PinFullscreened = false,
     WindowId? Swallowing = null,
     IReadOnlyList<string>? Tags = null,
+    int Content = 0,
     bool InhibitingIdle = false);
 
 public readonly record struct Placement(ClientId Client, Rectangle Bounds);

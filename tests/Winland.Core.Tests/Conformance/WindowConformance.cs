@@ -343,7 +343,7 @@ public class WindowConformance
         Assert.Equal(4, Desk.WorkspaceId(desk.ActiveWindow()));
     }
 
-    [Fact(Skip = "The content window rule and match are not honored.")]
+    [Fact]
     public void ContentWindowRules()
     {
         var desk = new Desk("""

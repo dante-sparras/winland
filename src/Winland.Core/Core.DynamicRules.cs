@@ -18,10 +18,19 @@ public sealed partial class Core
     private IReadOnlyList<string> TagsOf(WindowId window) =>
         _ruleTags.TryGetValue(window, out var tags) || _staticTags.TryGetValue(window, out tags) ? [.. tags] : [];
 
-    private void RememberRuleSubject(WindowId window, WindowTraits traits, IReadOnlyList<WindowRule> followed) =>
-        _ruleSubjects[window] = (traits, followed);
+    // The content type a content window rule gave each window when it opened.
+    private readonly Dictionary<WindowId, int> _content = [];
 
-    // Matches the tag and property effects of every window's rules against its state now. The placements of each
+    private int ContentOf(WindowId window) => _content.TryGetValue(window, out var content) ? content : 0;
+
+    private void RememberRuleSubject(WindowId window, WindowTraits traits, IReadOnlyList<WindowRule> followed, WindowDecision decision)
+    {
+        _ruleSubjects[window] = (traits, followed);
+        if (decision.Content != 0)
+            _content[window] = decision.Content;
+    }
+
+    // Matches the tag, property, opacity, focus and idle effects of every window's rules against its state now. The placements of each
     // shown Workspace where a window's border changed, laid out again, and whether any window's tags changed.
     private List<Placement> MatchRulesAgain(out bool tagsChanged)
     {
@@ -58,6 +67,10 @@ public sealed partial class Core
                 var decision = WindowRuleParser.Decide(traits, rules, SubjectOf(desk, client, active, tags));
                 var border = RulePropOf(client.Window, "border_size");
                 RememberRuleProps(client.Window, decision);
+                RememberOpacity(client.Window, decision);
+                RememberIdle(client.Window, decision);
+                if (_focusRules.TryGetValue(client.Window, out var focus))
+                    _focusRules[client.Window] = focus with { NoFocus = decision.NoFocus, StayFocused = decision.StayFocused };
                 changed |= !Equals(border, RulePropOf(client.Window, "border_size"));
             }
 
@@ -80,7 +93,8 @@ public sealed partial class Core
             client.Window == active,
             desk.GroupOf(client.Window) is not null,
             selector => WorkspaceRules.MatchesSelector(selector, desk.Id, desk.DisplayName, screen?.Effective, Count, desk.CoveringMode()),
-            tag => WindowTags.IsTagged(tags, tag));
+            tag => WindowTags.IsTagged(tags, tag),
+            ContentOf(client.Window));
     }
 
     /// <summary><c>tagwindow tag [window]</c> applies a static tag to the window, or the focused one, as in the pinned release.</summary>

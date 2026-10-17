@@ -101,11 +101,11 @@ public class ConfigTests
     [Fact]
     public void UnsupportedWindowRuleMatchDropsTheRule()
     {
-        var document = ConfigParser.Parse("windowrulev2 = float, class:^(kitty)$, content:game\n");
+        var document = ConfigParser.Parse("windowrulev2 = float, class:^(kitty)$, xdg_tag:foo\n");
 
         Assert.Empty(document.WindowRules);
         Assert.Equal(
-            new ConfigWarning(1, "Unsupported window rule match 'content'."),
+            new ConfigWarning(1, "Unsupported window rule match 'xdg_tag'."),
             Assert.Single(document.Warnings));
     }
 
