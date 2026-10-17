@@ -199,7 +199,7 @@ public class MonocleLayoutTests
     }
 
     [Fact]
-    public void ClosingTheShownClientShowsTheNextOne()
+    public void ClosingTheShownClientShowsTheOneFocusedLast()
     {
         var core = Open();
         core.Handle(Appeared(1));
@@ -208,17 +208,17 @@ public class MonocleLayoutTests
 
         var closed = core.Handle(new WindowClosed(new WindowId(3)));
 
-        Assert.Equal(new WindowId(1), closed.Focus);
-        Assert.Equal(Area, BoundsOf(closed, 1));
-        Assert.Equal([new WindowId(1)], closed.Show);
+        Assert.Equal(new WindowId(2), closed.Focus);
+        Assert.Equal(Area, BoundsOf(closed, 2));
+        Assert.Equal([new WindowId(2)], closed.Show);
         Assert.DoesNotContain(closed.State.Clients, client => client.Window == new WindowId(3));
 
         var shown = core.Handle(new Dispatch("layoutmsg", "cyclenext"));
-        var middle = core.Handle(new WindowClosed(new WindowId(2)));
+        var first = core.Handle(new WindowClosed(new WindowId(1)));
 
-        Assert.Equal(new WindowId(2), shown.Focus);
-        Assert.Equal(new WindowId(1), middle.Focus);
-        Assert.Equal(Area, BoundsOf(middle, 1));
+        Assert.Equal(new WindowId(1), shown.Focus);
+        Assert.Equal(new WindowId(2), first.Focus);
+        Assert.Equal(Area, BoundsOf(first, 2));
     }
 
     [Fact]

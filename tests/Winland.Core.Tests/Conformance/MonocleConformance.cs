@@ -6,7 +6,7 @@ public class MonocleConformance
 {
     private const string Monocle = "general:layout = monocle\n";
 
-    [Fact(Skip = "Closing the shown Client in monocle shows the first Client, not the one focused last.")]
+    [Fact]
     public void MonocleWorkspaceRule()
     {
         // Monocle shows one tiled Client at a time, so w[tv1] matches whichever is shown.

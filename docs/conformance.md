@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-142 of 197 ported cases pass.
+144 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -94,7 +94,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | focusFloatingOrTilingUnderFullscreen | passes | |
 | window | windowMaximizeSize | passes | |
 | window | floatingFocusOnFullscreen | not ported | Its only check is a call into the test plugin, which a core test cannot make. |
-| window | groupFallbackFocus | differs | Closing the shown Group member shows its neighbour. The pinned release shows the member focused last. |
+| window | groupFallbackFocus | passes | |
 | window | bringActiveToTopMouseMovement | differs | clients does not list Clients in stacking order. |
 | window | initialFloatSize | not ported | The result depends on the floating size kitty asks for, which a core test cannot match. |
 | window | windowRuleFocusOnActivate | differs | The focus_on_activate window rule is not honored. |
@@ -178,7 +178,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | master | centerMasterColumnResize | passes | |
 | master | masterCenterDropAtCursor | passes | |
 | master | masterDropAtCursor | passes | |
-| monocle | monocleWorkspaceRule | differs | Closing the shown Client in monocle shows the first Client, not the one focused last. |
+| monocle | monocleWorkspaceRule | passes | |
 | monocle | monocleFullscreenMaximiseDispatchers | passes | |
 | monocle | monocleTestFsFocusUnderFSWindow | passes | |
 | monocle | monocleNewWindowTakesOverFullscreen | passes | |
