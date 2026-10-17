@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-59 of 197 ported cases pass.
+74 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -44,17 +44,17 @@ A case passes when every check in it passes, as in the reference harness. A case
 | dwindle | dwindleFullsreenCenterDispatchSavesPos | not ported | The result depends on the floating size kitty asks for, which a core test cannot match. |
 | dwindle | dwindleFloatingOntopFullscreenWorkspaceFocusRetention | passes | |
 | scroll | scrollFocusCycling | passes | |
-| scroll | scrollFocusWrapping | differs | keyword does not apply scrolling:wrap_focus live. |
-| scroll | scrollSwapcolWrapping | differs | keyword does not apply scrolling:wrap_swapcol live. |
+| scroll | scrollFocusWrapping | passes | |
+| scroll | scrollSwapcolWrapping | passes | |
 | scroll | scrollWindowRule | passes | |
 | scroll | scroll_LAYOUT_HANDLED_fullscreen | passes | |
 | scroll | scroll_LAYOUT_HANDLED_maximized | differs | maximize does not leave gaps_out and the border around the Client. |
-| scroll | scroll_LAYOUT_HANDLED_TestFsingGroupedWindows | differs | keyword does not apply group:auto_group or scrolling:follow_focus live, and a hidden Group member keeps its last frame. |
+| scroll | scroll_LAYOUT_HANDLED_TestFsingGroupedWindows | differs | A hidden Group member keeps its last frame. |
 | scroll | scroll_LAYOUT_HANDLED_fullscreenRetainsGeometryWhileScrolling | differs | fullscreenHandler reports default, and a fullscreen Client stays over the screen when focus moves to another column. fullscreenstate does not take a window. |
-| scroll | scroll_LAYOUT_HANDLED_floatingWindowHiding | differs | A floating Client under a fullscreen one stays visible and accepts input, and a second fullscreen Client ends the first one's fullscreen. allowedOverFullscreen is always false, and keyword does not add a window rule live. |
+| scroll | scroll_LAYOUT_HANDLED_floatingWindowHiding | differs | A floating Client under a fullscreen one stays visible and accepts input, and a second fullscreen Client ends the first one's fullscreen. allowedOverFullscreen is always false. |
 | scroll | scroll_LAYOUT_HANDLED_layerVisibilityOnFs | not ported | The case opens a layer shell surface, which has no Windows meaning. |
 | scroll | scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue | differs | binds:movefocus_cycles_fullscreen and misc:on_focus_under_fullscreen are Gaps. |
-| scroll | scroll_LAYOUT_HANDLED_respectFocusFitMethodOnUnFs | differs | keyword does not apply scrolling:focus_fit_method live. |
+| scroll | scroll_LAYOUT_HANDLED_respectFocusFitMethodOnUnFs | differs | Leaving fullscreen does not fit the column into view by scrolling:focus_fit_method. |
 | scroll | scroll_LAYOUT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention | passes | |
 | scroll | scroll_DEFAULT_HANDLED_fullscreenMaximiseDispatchers | differs | fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off. |
 | scroll | scroll_DEFAULT_HANDLED_TestFsingGroupedWindows | differs | A hidden Group member keeps its last frame, and maximize does not leave room for the group bar. |
@@ -81,7 +81,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | testScrollingViewBehaviourMoveFocusFollowFocusTrue | differs | movefocus scrolls the strip but places no window. |
 | scroll | testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse | passes | |
 | scroll | testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue | differs | scrolling:follow_min_visible also holds back the focus moveintogroup and movefocus give inside a Group. The pinned release applies it only to pointer focus. |
-| scroll | testScrollingViewBehaviourScheduledPropRefresh | differs | keyword does not apply a workspace rule live. |
+| scroll | testScrollingViewBehaviourScheduledPropRefresh | passes | |
 | scroll | testScrollInhibitor | passes | |
 | scroll | layoutmsg_fit_into_view | passes | |
 | scroll | layoutRuleExpand | passes | |
@@ -90,14 +90,14 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | properFocusBehvaior | differs | binds:focus_preferred_method is not honored, and movefocus wraps within the strip instead of crossing to the next Monitor. |
 | window | swapWindow | differs | swapwindow answers can't swap fullscreen window in lower case, and does not swap with a Client on another Workspace. |
 | window | windowGroupRules | differs | getprop does not honor border_size, and the border_size window rule is not honored. |
-| window | windowFocusOnFullscreenConflict | differs | misc:on_focus_under_fullscreen is a Gap, and keyword does not apply misc:focus_on_activate live. |
+| window | windowFocusOnFullscreenConflict | differs | misc:on_focus_under_fullscreen is a Gap. |
 | window | focusFloatingOrTilingUnderFullscreen | differs | misc:on_focus_under_fullscreen is a Gap. |
 | window | windowMaximizeSize | differs | Maximize does not leave gaps_out and the border around the Client. |
 | window | floatingFocusOnFullscreen | not ported | Its only check is a call into the test plugin, which a core test cannot make. |
 | window | groupFallbackFocus | differs | Closing the shown Group member shows its neighbour. The pinned release shows the member focused last. |
 | window | bringActiveToTopMouseMovement | differs | movecursor is not a dispatcher, and clients does not list Clients in stacking order. |
 | window | initialFloatSize | not ported | The result depends on the floating size kitty asks for, which a core test cannot match. |
-| window | windowRuleFocusOnActivate | differs | keyword does not apply misc:focus_on_activate live, and the focus_on_activate window rule is not honored. |
+| window | windowRuleFocusOnActivate | differs | The focus_on_activate window rule is not honored. |
 | window | pinnedWorkspacesValid | passes | |
 | window | windowruleWorkspaceEmpty | passes | |
 | window | contentWindowRules | differs | The content window rule is not honored, and getprop does not honor border_size or opacity. |
@@ -105,7 +105,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | issue14134 | passes | |
 | window | specialFloatRecenters | differs | A floating Client moved off its Monitor stays there when its special workspace is shown. The pinned release centers it. |
 | window | exactWindowSelectors | differs | A stableid: window selector matches no Client. |
-| window | windows | differs | A w[tv1] workspace rule is matched before a new window is counted, keyword does not add a window rule live, and misc:size_limits_tiled is not honored. |
+| window | windows | differs | A w[tv1] workspace rule is matched before a new window is counted, and misc:size_limits_tiled is not honored. |
 | window | cycle_nextTiled | differs | cyclenext is not a dispatcher. |
 | window | cycle_nextFloating | differs | cyclenext is not a dispatcher. |
 | window | discussion14233 | differs | The border_size window rule is not honored, and a w[tv1] workspace rule is matched before a new window is counted. |
@@ -114,7 +114,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | execRulesDescendantProcess | differs | getprop and setprop do not honor no_focus or border_size. |
 | window | execRulesPendingIsolation | differs | getprop and setprop do not honor no_focus. |
 | window | pinnedRetainsPositionOnWorkspaceChange | passes | |
-| window | monitorrule | differs | keyword does not add a window rule live. |
+| window | monitorrule | passes | |
 | window | mouseResize | differs | movecursor is not a dispatcher, and a mouse bind pressed on a Client's border does not take the Client. The keep_aspect_ratio window rule is not honored. |
 | window | getFullscreenHandler | differs | fullscreenHandler is always default. The pinned release reports scrolling for a tiled Client in the scrolling Layout. |
 | window | sendFsWindowToAnotherWorkspace | differs | Maximize does not leave the border around the Client, and fullscreenHandler is always default. |
@@ -126,19 +126,19 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | newFullscreenWindowReceivesCursorFocus | not ported | The case returns before its first check in the pinned release. |
 | window | windowGoesFullscreenAndReceivesCursorFocus | not ported | The case returns before its first check in the pinned release. |
 | window | windowThatGoesFullscreenBecomesActive | not ported | The case returns before its first check in the pinned release. |
-| groups | groupDimensions | differs | group:groupbar:enabled is not applied live. |
+| groups | groupDimensions | passes | |
 | groups | groupNext | passes | |
 | groups | groupMoveWindow | passes | |
-| groups | autoGroupInsertAfterCurrent | differs | group:auto_group and group:insert_after_current are not applied live. |
+| groups | autoGroupInsertAfterCurrent | passes | |
 | groups | moveWindowOrGroup | passes | |
-| groups | groupLock | differs | keyword does not add a window rule. |
+| groups | groupLock | passes | |
 | groups | groupbarMiddleClick | not ported | The case middle-clicks the tab bar, which the Windows adapter handles and a core test cannot send. |
 | groups | groupsNoCrash | passes | |
 | groups | groupsLuaApi | not ported | The case drives the Lua group object API, which has no dispatcher form. |
 | groups | groupsLuaApiInvalidOps | not ported | The case drives the Lua group object API, which has no dispatcher form. |
 | groups | groupsLuaApiCrossWorkspaceMonitor | not ported | The case drives the Lua group object API, which has no dispatcher form. |
 | groups | groupsLuaApiFullscreen | not ported | The case drives the Lua group object API, which has no dispatcher form. |
-| groups | groups_disable_when_only | differs | group:groupbar:disable_when_only is not applied live. |
+| groups | groups_disable_when_only | passes | |
 | groups | groupbarDisableWhenOnlyDimensions | differs | A hidden Group member keeps its last frame. The pinned release gives it the frame of the shown member. |
 | groups | autoGroupFloatedIntoTiled | passes | |
 | groups | autoGroupFloatedintoFloated | passes | |
@@ -147,7 +147,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | groups | windowOpenInGroupReceivesCursorFocus | not ported | The case checks that kitty receives a real mouse click, which a core test cannot send. |
 | moveintoorcreategroup | moveIntoOrCreateGroup | passes | |
 | moveintoorcreategroup | crossMonitorGroupJoin | differs | moveintoorcreategroup does not find a Client on another Monitor, so the Client stays in its own Group. The pinned release looks for the neighbour across Monitors. |
-| workspaces | workspacesCombined | differs | binds:workspace_back_and_forth, binds:allow_workspace_cycles and binds:focus_preferred_method are not honored, and binds:movefocus_cycles_fullscreen and general:no_focus_fallback are Gaps. Workspace rules and input:follow_mouse are not applied live, movewindow r does not carry the rightmost tile onto the next Monitor, and getprop does not answer border_size or rounding. |
+| workspaces | workspacesCombined | differs | binds:workspace_back_and_forth, binds:allow_workspace_cycles and binds:focus_preferred_method are not honored, and binds:movefocus_cycles_fullscreen and general:no_focus_fallback are Gaps. movewindow r does not carry the rightmost tile onto the next Monitor, and getprop does not answer border_size or rounding. |
 | workspaces | workspacesFollowProperNoGaps | differs | A w[tv1] workspace rule is not applied when the first Client opens on a Workspace. The bordersize window rule and the onworkspace match are not honored. |
 | workspaces | workspacesSmartGapsDirectionalMoveAcrossMonitors | differs | A w[tv1] workspace rule is not applied when the first Client opens on a Workspace, and the bordersize window rule is not honored. movewindow r does not carry the rightmost tile onto the next Monitor. |
 | workspaces | workspaceRenameChangeID | differs | There is no dispatcher that changes a Workspace's id, and renameworkspace is not a dispatcher. |
@@ -160,13 +160,13 @@ A case passes when every check in it passes, as in the reference harness. A case
 | workspaces | luaSetWorkspace | not ported | The case sets workspaces through monitor objects of the Lua API, which a line-based command cannot reach. |
 | workspaces | luaSetSpecialWorkspace | not ported | The case sets special workspaces through monitor objects of the Lua API, which a line-based command cannot reach. |
 | workspaces | workspacesDistinctTiledAndFloatGaps | differs | A window rule cannot match on workspace, and floating gaps on a workspace rule are the float_gaps Gap. |
-| workspaces | workspaceSwitchUnfocusesWindowFromOldWorkspace | differs | input:follow_mouse is not applied live. |
+| workspaces | workspaceSwitchUnfocusesWindowFromOldWorkspace | passes | |
 | workspaces | luaFocusCreatesBareNamedWorkspace | passes | |
 | persistent | persistentWorkspaces | differs | A persistent rule keeps a special workspace, and creates a Workspace bound to a Monitor that is not there yet. A new Monitor then shows such a Workspace, where the pinned release opens workspace 2. |
 | persistent | workspaceLifecycleReleasesEmptyWorkspaces | differs | An empty Workspace on a Monitor that goes away is kept on the Monitor that takes it. The pinned release removes it. |
 | monitor_rules | monitorMirrorAppliedWhenTargetAppears | not ported | The case checks which render passes a mirrored monitor draws, through the reference's test plugin. |
 | monitor_rules | monitorBackgroundWorkspaceAndXpMode | not ported | The case checks which render passes a monitor's background draws, through the reference's test plugin. |
-| master | focusMasterPrevious | differs | keyword refuses master:orientation as not applied live. |
+| master | focusMasterPrevious | passes | |
 | master | masterTestFsFocusUnderFSWindow | differs | misc:on_focus_under_fullscreen is a Gap, and maximize does not leave gaps_out and the border around the Client. |
 | master | masterFullscreenMaximiseDispatchers | differs | fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off. |
 | master | masterNewWindowTakesOverFullscreen | differs | misc:on_focus_under_fullscreen is a Gap. |
@@ -175,7 +175,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | master | masterFullscreenNonInterference | passes | |
 | master | rollFocus | passes | |
 | master | focusMasterClose | passes | |
-| master | centerMasterColumnResize | differs | keyword refuses master:smart_resizing and master:center_master_fallback as not applied live. |
+| master | centerMasterColumnResize | passes | |
 | master | masterCenterDropAtCursor | passes | |
 | master | masterDropAtCursor | passes | |
 | monocle | monocleWorkspaceRule | differs | A w[] workspace rule is not matched again when a Client opens, and closing the shown Client in monocle shows the first Client, not the one focused last. |
@@ -186,8 +186,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | monocle | monocleFullscreenPinnedWindows | differs | binds:allow_pin_fullscreen is a Gap, and maximize does not leave the border around the Client. |
 | monocle | monocleFullscreenNonInterference | passes | |
 | layout | single_window_aspect_ratio | differs | layout:single_window_aspect_ratio is not read, and maximize does not leave gaps_out and the border around the Client. |
-| layout | crashOnGeomUpdate | differs | The monitor keyword refuses a mode and a scale, which are Gaps, and is not applied live. |
-| layout | layoutRefreshDuringMonitorTeardown | differs | The monitor keyword refuses a mode and a scale, which are Gaps, and is not applied live. |
+| layout | crashOnGeomUpdate | differs | The monitor keyword refuses a mode and a scale, which are Gaps. |
+| layout | layoutRefreshDuringMonitorTeardown | differs | The monitor keyword refuses a mode and a scale, which are Gaps. |
 | layout | posPreserve | differs | movewindow r puts a floating Client's frame against the monitor edge, where the pinned release keeps its border inside, and binds:allow_pin_fullscreen is a Gap. |
 | layout | focusMRUAfterClose | passes | |
 | layout | focusPreservedLayoutChange | passes | |
@@ -204,27 +204,27 @@ A case passes when every check in it passes, as in the reference harness. A case
 | focus | crossMonitorFullscreenFocus | differs | movefocus onto another Monitor focuses the tile under its fullscreen Client. The pinned release focuses the fullscreen Client. |
 | focus | silentMoveLastTiledWindowUnfocusesWindow | passes | |
 | focus | crossMonitorEmptyWorkspaceUnfocusesWindow | passes | |
-| follow_mouse_shrink | followMouseShrink | differs | input:follow_mouse_shrink is not applied live, and movecursor is not a dispatcher. |
+| follow_mouse_shrink | followMouseShrink | differs | movecursor is not a dispatcher. |
 | cursor | cursorPerOutputHyprcursor | not ported | The case checks the cursor image each output renders from a cursor theme, which a core test cannot see. |
 | hyprctl | hyprctlDevicesActiveLayoutIndex | differs | input:kb_layout is a Gap, and there is no switchxkblayout or devices request. |
 | hyprctl | hyprctlGetprop | differs | getprop and setprop honor only float, and there is no setprop dispatcher. |
 | hyprctl | hyprctlSubmap | differs | There is no submap request. |
 | hyprctl | hyprctlJsonErrors | differs | There is no descriptions request. |
-| hyprctl | hyprctlDescriptionsCurrentValues | differs | There is no descriptions request, and master and scrolling options are not applied live through keyword. |
+| hyprctl | hyprctlDescriptionsCurrentValues | differs | There is no descriptions request. |
 | hyprctl | hyprctlBindsJson | passes | |
 | hyprctl | hyprctlWorkspaceJson | differs | There is no renameworkspace dispatcher. The monitors and workspaces replies give a special workspace an id and give no Workspace a type. |
 | hyprctl | hyprctlREPL | not ported | It runs Lua code through repl and eval. The Lua config waits on ADR 0013. |
 | hyprctl | hyprctlBatch | not ported | Its batch runs Lua code through repl. The Lua config waits on ADR 0013. |
-| misc | misc | differs | misc:close_special_on_empty is not applied live through keyword. |
+| misc | misc | passes | |
 | misc | processesThatDieEarlyAreReaped | not ported | It checks that the OS reaps a process the config starts, which a core test cannot see. |
-| state | state | differs | monitor is not applied live through keyword. |
+| state | state | differs | Turning every monitor off leaves no monitor. The pinned release adds a FALLBACK monitor that keeps the Workspaces. |
 | refactor_state | workspacePlacementActiveMove | passes | |
 | refactor_state | workspacePlacementWindowState | passes | |
 | refactor_state | globalWindowMoveState | differs | movetoworkspace keeps a floating Client's position when the Workspace is on another Monitor. The pinned release moves it by the offset between the Monitors. |
 | refactor_state | pointerNoWarpsFocusesMonitorOnly | differs | There is no movecursor dispatcher. |
-| refactor_state | cursorWarpFocusOnMonitorChange | differs | cursor options are not applied live through keyword, and there is no movecursor dispatcher. |
+| refactor_state | cursorWarpFocusOnMonitorChange | differs | There is no movecursor dispatcher. |
 | solitary | solitaryClients | not ported | Solitary, tearing and direct scanout are render paths, which a core test cannot see. |
-| colors | monitorsColorManagement | differs | bitdepth and cm are Gaps, and monitor is not applied live through keyword. |
+| colors | monitorsColorManagement | differs | bitdepth and cm are Gaps. |
 | animations | animationsTrivial | differs | There is no animations request. |
 | layer | plugin_layerrules | not ported | It opens layer shell surfaces and checks a layer rule through the test plugin. |
 | layer | layerPointerFocusPreservedOnKeyboardRefocus | not ported | It opens a layer shell surface and reads the seat's pointer focus through the test plugin. |
@@ -244,7 +244,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | lua_config | luaDevicesEnumerationAndHyprctlParity | not ported | It reads the devices through Lua. The Lua config waits on ADR 0013. |
 | lua_config | luaDevicesRetainedKeyboardTracksLayoutChanges | not ported | It reads a keyboard through Lua. The Lua config waits on ADR 0013. |
 | xwayland_selection | xwaylandSelectionSourceGuard | not ported | It checks X11 selections through the test plugin. |
-| clients/child-window | childWindow | differs | A window owned by a pinned Client is not pinned with it, and keyword does not apply group:auto_group live. |
+| clients/child-window | childWindow | differs | A window owned by a pinned Client is not pinned with it. |
 | clients/fullscreen-with-monitor | fullscreenWithExplicitMonitor | not ported | An application that asks to be fullscreen is not observed, so the core has no input for the request. |
 | clients/keyboard-modifiers | keyboardModifiersMergedOnFocus | not ported | Windows keeps one keyboard state and gives the focused window its lock keys itself. |
 | clients/pointer-constraints | nativePointerConstraintsPersistent | not ported | Pointer constraints are a Wayland protocol with no Windows meaning. |
@@ -268,8 +268,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | gestures | pinchDeltaScalePropagation | not ported | It checks a gesture the test plugin registers through the C++ plugin interface, which has no core form. |
 | gestures | defaultSpecialWorkspaceGesture | differs | The special gesture action is not honored. |
 | gestures | live_gesture_callbacks | not ported | Gesture actions with start, update and end callbacks are Lua-only. |
-| gestures | gestures | differs | Only the workspace gesture action is honored. gestures and cursor options are not applied live, and movecursor is not a dispatcher. |
-| keybinds | keybinds | differs | A bind on several keys runs on each of them, a long press waits 500 ms instead of input:repeat_delay, and per-device binds are not honored. input:repeat_delay and input:repeat_rate are not applied live. |
+| gestures | gestures | differs | Only the workspace gesture action is honored, and movecursor is not a dispatcher. |
+| keybinds | keybinds | differs | A bind on several keys runs on each of them, a long press waits 500 ms instead of input:repeat_delay, and per-device binds are not honored. |
 | keybinds | orderedSubChordDeferral | differs | A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order, and holds back a shorter bind that starts the same chord. |
 | keybinds | modifierReleaseBindShadowing | differs | A release bind on a modifier key still runs after another bind used that modifier. The pinned release skips it. |
 | keybinds | luaDispatcherStrings | not ported | It reads the handler of a bind as a Lua value, which is Lua-only. |
@@ -278,15 +278,15 @@ A case passes when every check in it passes, as in the reference harness. A case
 | keyboard_input | orderedChordRejectsReorderedPrefix | differs | A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order. |
 | keyboard_input | orderedReleaseChord | differs | A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order. |
 | keyboard_input | nonConsumingChordPreservesOrder | differs | A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order. |
-| swallow | swallow | differs | A Workspace's windows count includes a swallowed Client, toggleswallow on the swallowed Client does nothing, and a Client swallowed in turn loses the Client it swallowed. A window selector does not find a swallowed Client, and misc:swallow_regex and group:auto_group are not applied live. |
-| tags | tags | differs | The tag and nodim window rule effects are refused, and keyword does not apply windowrulev2 live. getprop does not read no_dim or no_shadow. |
-| tags | tags_fullscreen_cleanup | differs | tagwindow is not a dispatcher, window tags are not tracked, and keyword does not apply windowrulev2 live. |
+| swallow | swallow | differs | A Workspace's windows count includes a swallowed Client, toggleswallow on the swallowed Client does nothing, and a Client swallowed in turn loses the Client it swallowed. A window selector does not find a swallowed Client. |
+| tags | tags | differs | The tag and nodim window rule effects are refused. getprop does not read no_dim or no_shadow. |
+| tags | tags_fullscreen_cleanup | differs | tagwindow is not a dispatcher, and window tags are not tracked. |
 | workspace_swipe | workspaceSwipeReversalCleanup | not ported | Most of its checks read render state through the test plugin: alpha, render offset, the render hold and the swipe session. The checks the replies can answer would make a partial case pass. |
 | workspace_swipe | workspaceSwipeMissingNeighborCleanup | not ported | Most of its checks read render state through the test plugin: alpha, render offset, the render hold and the swipe session. The checks the replies can answer would make a partial case pass. |
 | workspace_swipe | workspaceSwipeCancelCleanup | not ported | Most of its checks read render state through the test plugin: alpha, render offset, the render hold and the swipe session. The checks the replies can answer would make a partial case pass. |
-| workspace_swipe | workspaceSwipeInvalidUpdateCleanup | differs | keyword does not apply gestures:workspace_swipe_use_r live. |
-| workspace_swipe | workspaceSwipeInvalidEndCleanup | differs | keyword does not apply gestures:workspace_swipe_use_r live. |
-| workspace_swipe | workspaceSwipePreexistingForce | differs | keyword does not apply gestures:workspace_swipe_use_r live. |
+| workspace_swipe | workspaceSwipeInvalidUpdateCleanup | passes | |
+| workspace_swipe | workspaceSwipeInvalidEndCleanup | passes | |
+| workspace_swipe | workspaceSwipePreexistingForce | passes | |
 | workspace_swipe | workspaceSwipeCommitRollbackThresholds | not ported | Most of its checks read render state through the test plugin: alpha, render offset, the render hold and the swipe session. The checks the replies can answer would make a partial case pass. |
 | workspace_swipe | workspaceSwipeSpeedThresholds | not ported | Most of its checks read render state through the test plugin: alpha, render offset, the render hold and the swipe session. The checks the replies can answer would make a partial case pass. |
 | workspace_swipe | workspaceSwipeOriginOutputFocus | not ported | Most of its checks read render state through the test plugin: alpha, render offset, the render hold and the swipe session. The checks the replies can answer would make a partial case pass. |

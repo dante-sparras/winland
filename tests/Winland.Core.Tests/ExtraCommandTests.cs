@@ -5,6 +5,8 @@ namespace Winland.Tests;
 
 public class ExtraCommandTests
 {
+    private static readonly Rectangle Area = new(0, 0, 1920, 1080);
+
     private const string SuperKill =
         """
         [{"locked":false,"mouse":false,"release":false,"repeat":false,"longPress":false,"non_consuming":false,"auto_consuming":false,"has_description":false,"modmask":64,"submap":"","submap_universal":"false","key":"Q","keycode":0,"catch_all":false,"description":"","allow_input_capture":false,"dispatcher":"killactive","arg":""}]
@@ -105,7 +107,8 @@ public class ExtraCommandTests
         Assert.Equal("ok", core.Execute("keyword general:border_size 4").Text);
         Assert.Equal("{\"option\":\"general:border_size\",\"int\":4,\"set\":true}", core.Execute("getoption general:border_size").Text);
         Assert.Equal("[\"line 1: Unsupported keyword 'blur'.\"]", core.Execute("configerrors").Text);
-        Assert.Equal("error: keyword 'misc:focus_on_activate' is not applied live", core.Execute("keyword misc:focus_on_activate true").Text);
+        Assert.Equal("ok", core.Execute("keyword misc:focus_on_activate true").Text);
+        Assert.Equal("{\"option\":\"misc:focus_on_activate\",\"bool\":true,\"set\":true}", core.Execute("getoption misc:focus_on_activate").Text);
         Assert.Equal("error: Unsupported keyword 'blur'.", core.Execute("keyword blur on").Text);
         Assert.Equal("error: invalid keyword", core.Execute("keyword general:border_size").Text);
     }
@@ -316,6 +319,46 @@ public class ExtraCommandTests
                 new DisplayPowerRequest(@"\\.\DISPLAY2", true),
             ],
             effect.DisplayPower);
+    }
+
+    [Fact]
+    public void KeywordAddsAWindowRuleAndKeepsTheOnesAlreadyRead()
+    {
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse("windowrulev2 = float, class:^(first)$\n")));
+
+        Assert.Equal("ok", core.Execute("keyword windowrulev2 float, class:^(second)$").Text);
+        core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Class = "first" } });
+        var opened = core.Handle(new WindowAppeared(new WindowId(2), Area) { Traits = WindowTraits.Normal with { Class = "second" } });
+
+        Assert.All(opened.State.Clients, client => Assert.True(client.Floating));
+    }
+
+    [Fact]
+    public void KeywordAddsAWorkspaceRuleAndKeepsTheOnesAlreadyRead()
+    {
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse("workspace = 1, gapsout:0\n")));
+
+        Assert.Equal("ok", core.Execute("keyword workspace 2, gapsout:7").Text);
+
+        var rules = core.Execute("j/workspacerules").Text;
+        Assert.Contains("\"workspaceString\":\"1\"", rules, StringComparison.Ordinal);
+        Assert.Contains("\"workspaceString\":\"2\"", rules, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("exec", "notepad")]
+    [InlineData("exec-once", "notepad")]
+    [InlineData("env", "A,1")]
+    [InlineData("source", "other.conf")]
+    [InlineData("plugin", "plugins\\sample.dll")]
+    public void KeywordDoesNotLaunchLoadOrSetTheEnvironment(string keyword, string value)
+    {
+        var reply = new Core().Execute($"keyword {keyword} {value}");
+
+        Assert.Equal($"error: keyword '{keyword}' is not applied live", reply.Text);
+        Assert.Empty(reply.Effect.Launches);
     }
 
     private static Rectangle PlacedAt(Outcome outcome, long window)

@@ -34,7 +34,7 @@ public class ScrollConformance
         Assert.Equal("c", desk.ActiveClass());
     }
 
-    [Fact(Skip = "keyword does not apply scrolling:wrap_focus live.")]
+    [Fact]
     public void ScrollFocusWrapping()
     {
         var desk = new Desk(Scrolling);
@@ -59,7 +59,7 @@ public class ScrollConformance
         Assert.Equal("d", desk.ActiveClass());
     }
 
-    [Fact(Skip = "keyword does not apply scrolling:wrap_swapcol live.")]
+    [Fact]
     public void ScrollSwapcolWrapping()
     {
         var desk = new Desk(Scrolling);
@@ -159,7 +159,7 @@ public class ScrollConformance
         Assert.Equal(1, Desk.Fullscreen(desk.ActiveWindow()));
     }
 
-    [Fact(Skip = "keyword does not apply group:auto_group or scrolling:follow_focus live, and a hidden Group member keeps its last frame.")]
+    [Fact(Skip = "A hidden Group member keeps its last frame.")]
     public void ScrollLAYOUTHANDLEDTestFsingGroupedWindows()
     {
         var desk = new Desk(Scrolling + """
@@ -311,7 +311,7 @@ public class ScrollConformance
         Assert.Equal(0, Desk.FullscreenClient(b));
     }
 
-    [Fact(Skip = "A floating Client under a fullscreen one stays visible and accepts input, and a second fullscreen Client ends the first one's fullscreen. allowedOverFullscreen is always false, and keyword does not add a window rule live.")]
+    [Fact(Skip = "A floating Client under a fullscreen one stays visible and accepts input, and a second fullscreen Client ends the first one's fullscreen. allowedOverFullscreen is always false.")]
     public void ScrollLAYOUTHANDLEDFloatingWindowHiding()
     {
         var desk = new Desk(Scrolling);
@@ -424,7 +424,7 @@ public class ScrollConformance
         }
     }
 
-    [Fact(Skip = "keyword does not apply scrolling:focus_fit_method live.")]
+    [Fact(Skip = "Leaving fullscreen does not fit the column into view by scrolling:focus_fit_method.")]
     public void ScrollLAYOUTHANDLEDRespectFocusFitMethodOnUnFs()
     {
         var desk = new Desk(Scrolling);
@@ -958,7 +958,7 @@ public class ScrollConformance
         Assert.True(ActiveX(desk) >= 0);
     }
 
-    [Fact(Skip = "keyword does not apply a workspace rule live.")]
+    [Fact]
     public void TestScrollingViewBehaviourScheduledPropRefresh()
     {
         var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");

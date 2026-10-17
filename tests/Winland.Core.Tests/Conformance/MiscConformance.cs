@@ -4,7 +4,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class MiscConformance
 {
-    [Fact(Skip = "misc:close_special_on_empty is not applied live through keyword.")]
+    [Fact]
     public void Misc()
     {
         const string special = "special:test";

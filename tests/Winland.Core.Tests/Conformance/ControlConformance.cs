@@ -103,7 +103,7 @@ public class ControlConformance
         Assert.Equal(JsonValueKind.Array, Json(desk.Send("descriptions")).ValueKind);
     }
 
-    [Fact(Skip = "There is no descriptions request, and master and scrolling options are not applied live through keyword.")]
+    [Fact(Skip = "There is no descriptions request.")]
     public void HyprctlDescriptionsCurrentValues()
     {
         var desk = new Desk();

@@ -4,7 +4,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class StateConformance
 {
-    [Fact(Skip = "monitor is not applied live through keyword.")]
+    [Fact(Skip = "Turning every monitor off leaves no monitor. The pinned release adds a FALLBACK monitor that keeps the Workspaces.")]
     public void State()
     {
         var desk = new Desk();
