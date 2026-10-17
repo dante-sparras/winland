@@ -336,6 +336,8 @@ Every command above is a gap. No open issue tracks them.
 
 `getprop` and `setprop` honor `float`. `getprop` reports `pin` as false. `setprop pin` is an error. Any other window property is not honored.
 
+`changeworkspaceid` refuses a number above 2147483647. The pinned release takes numbers up to 4294967295, but a Workspace number here is a signed 32-bit integer. It is a gap.
+
 ## Events
 
 `windowtitle` and `windowtitlev2` are not emitted. They wait on a title change after a window is adopted. The title is read once, when the window appears.

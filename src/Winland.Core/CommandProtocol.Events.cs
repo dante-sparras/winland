@@ -77,6 +77,9 @@ public static partial class CommandProtocol
                 lines.Add($"moveworkspace>>{WorkspaceNameText(movedWorkspace.Workspace, indexed)},{Clean(movedWorkspace.Monitor)}");
                 lines.Add($"moveworkspacev2>>{WorkspaceIdText(movedWorkspace.Workspace, indexed)},{WorkspaceNameText(movedWorkspace.Workspace, indexed)},{Clean(movedWorkspace.Monitor)}");
                 break;
+            case WorkspaceIdChanged changed:
+                lines.Add($"changeworkspaceid>>{changed.From.ToString(CultureInfo.InvariantCulture)},{changed.To.ToString(CultureInfo.InvariantCulture)}");
+                break;
             case WorkspaceRenamed renamed:
                 lines.Add($"renameworkspace>>{Clean(renamed.Workspace.Name)},{Clean(renamed.Name)}");
                 break;

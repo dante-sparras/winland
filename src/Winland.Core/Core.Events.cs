@@ -6,8 +6,20 @@ public sealed partial class Core
 
     private Captured Capture() => new(Snapshot(), ActiveWindow());
 
+    // Workspaces changeworkspaceid gave a new id during this input, oldest first.
+    private List<(WorkspaceId From, WorkspaceId To)>? _readdressed;
+
     private Outcome WithEvents(Outcome outcome, Captured before, Input? input)
     {
+        // A Workspace that only changed its id is the same Workspace, so it is compared under its new id and emits
+        // neither a destroy nor a create, nor moves its Clients or the cursor.
+        if (_readdressed is { } readdressed)
+        {
+            _readdressed = null;
+            foreach (var (from, to) in readdressed)
+                before = before with { State = Readdressed(before.State, from, to) };
+        }
+
         outcome = FinishCursor(before, outcome, input);
         var events = Diff(before.State, outcome.State, before.Active, ActiveWindow());
         if (_configEvents is not null)
@@ -29,6 +41,25 @@ public sealed partial class Core
         }
 
         return events.Count == 0 ? outcome : outcome with { Events = events };
+    }
+
+    private static State Readdressed(State state, WorkspaceId from, WorkspaceId to)
+    {
+        WorkspaceId Map(WorkspaceId id) => id == from ? to : id;
+        WorkspaceId? MapOptional(WorkspaceId? id) => id is WorkspaceId some ? Map(some) : null;
+        return state with
+        {
+            Clients = [.. state.Clients.Select(client => client with { Workspace = Map(client.Workspace) })],
+            Hidden = [.. state.Hidden.Select(client => client with { Workspace = Map(client.Workspace) })],
+            Workspaces = [.. state.Workspaces.Select(workspace => workspace with { Id = Map(workspace.Id) })],
+            ActiveWorkspace = Map(state.ActiveWorkspace),
+            SpecialWorkspace = MapOptional(state.SpecialWorkspace),
+            Screens = [.. state.Screens.Select(screen => screen with
+            {
+                ActiveWorkspace = Map(screen.ActiveWorkspace),
+                SpecialWorkspace = MapOptional(screen.SpecialWorkspace),
+            })],
+        };
     }
 
     private static List<StreamEvent> Diff(State before, State after, WindowId? activeBefore, WindowId? activeAfter)

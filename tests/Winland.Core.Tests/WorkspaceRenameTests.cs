@@ -66,6 +66,48 @@ public class WorkspaceRenameTests
         Assert.Equal("", ActiveName(core));
     }
 
+    [Fact]
+    public void ChangingTheIdEmitsOnlyThatEvent()
+    {
+        var core = new Core();
+        core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
+
+        var reply = core.Execute("dispatch changeworkspaceid 1 7");
+
+        Assert.Equal("ok", reply.Text);
+        Assert.Equal(["changeworkspaceid>>1,7"], CommandProtocol.FormatStream(reply.Effect.Events, reply.Effect.State));
+        Assert.Equal(new WorkspaceId("7"), Assert.Single(reply.Effect.State.Clients).Workspace);
+        Assert.Equal("7", ActiveName(core));
+    }
+
+    [Fact]
+    public void TheWorkspaceHistoryFollowsTheNewId()
+    {
+        var core = new Core();
+        core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
+        core.Execute("dispatch workspace 2");
+        core.Handle(new WindowAppeared(new WindowId(2), new Rectangle(0, 0, 800, 600)));
+
+        core.Execute("dispatch changeworkspaceid 1 5");
+        core.Execute("dispatch workspace previous");
+
+        Assert.Equal("5", Active(core).GetProperty("address").GetString());
+    }
+
+    [Theory]
+    [InlineData("1 0")]
+    [InlineData("1 2 3")]
+    [InlineData("name:mail 4")]
+    public void AnIdChangeTheReferenceRefusesIsAnError(string arguments)
+    {
+        var core = new Core();
+        core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
+        core.Execute("dispatch workspace name:mail");
+        core.Handle(new WindowAppeared(new WindowId(2), new Rectangle(0, 0, 800, 600)));
+
+        Assert.StartsWith("error:", core.Execute("dispatch changeworkspaceid " + arguments).Text);
+    }
+
     private static JsonElement Active(Core core)
     {
         using var document = JsonDocument.Parse(core.Execute("activeworkspace").Text);
