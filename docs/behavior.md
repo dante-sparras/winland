@@ -213,6 +213,8 @@ Resolution, refresh rate and scale changes stay Gaps. So do mirroring, variable 
 
 `winlandctl` reads an argument that starts with `-` as a flag unless it is a number. A number may have a fraction and one trailing comma, so `winlandctl dispatch splitratio -0.1` and `winlandctl dispatch moveactive -50, 0` pass their numbers to the dispatcher.
 
+In dwindle, `layoutmsg splitratio` changes the split of the focused Client's parent, by a delta or with `exact` to a value, clamped from 0.1 to 1.9. As in the pinned release, it answers `error: splitratio requires an arg` without a ratio, `error: cannot alter split ratio on no / single node` for a Client with no sibling, and `error: bad layoutmsg 'splitratio'` for a ratio that does not parse, in that order.
+
 `movecursor X Y` puts the cursor at that point on the desktop and handles it as a pointer move, so focus follows it as it follows the mouse, as in the pinned release. `cursor:no_warps` does not stop it. Coordinates may be split by a space or a comma.
 
 `forcerendererreload` returns ok and does nothing. Reloading a renderer has no Windows meaning.

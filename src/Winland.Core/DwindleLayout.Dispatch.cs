@@ -360,17 +360,28 @@ internal sealed partial class DwindleLayout
         return true;
     }
 
+    // As in the pinned release, a missing ratio is refused first, then a Client with no sibling, then a bad ratio.
     private IReadOnlyList<Placement> SplitRatio(WindowId? active, string[] tokens)
     {
-        if (tokens.Length < 2 || !double.TryParse(tokens[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var delta) || !double.IsFinite(delta))
+        if (tokens.Length < 2)
+        {
+            LayoutMessageError = "error: " + DwindleMessages.SplitRatio + " requires an arg";
+            return [];
+        }
+
+        if (!TryNode(active, out var node) || node.Parent is null)
+        {
+            LayoutMessageError = "error: cannot alter split ratio on no / single node";
+            return [];
+        }
+
+        if (!double.TryParse(tokens[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var delta) || !double.IsFinite(delta))
         {
             LayoutMessageError = "error: bad layoutmsg '" + DwindleMessages.SplitRatio + "'";
             return [];
         }
 
         var exact = tokens.Length >= 3 && tokens[2].StartsWith("exact", StringComparison.OrdinalIgnoreCase);
-        if (!TryNode(active, out var node) || node.Parent is null)
-            return [];
 
         var ratio = exact ? delta : node.Parent.SplitRatio + delta;
         node.Parent.SplitRatio = Math.Clamp(ratio, 0.1, 1.9);
