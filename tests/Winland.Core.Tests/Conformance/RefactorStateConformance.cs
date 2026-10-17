@@ -77,7 +77,7 @@ public class RefactorStateConformance
         desk.ExpectActive("1920,0", "1920,1080");
     }
 
-    [Fact(Skip = "movetoworkspace keeps a floating Client's position when the Workspace is on another Monitor. The pinned release moves it by the offset between the Monitors.")]
+    [Fact]
     public void GlobalWindowMoveState()
     {
         var desk = Prepare(new Desk("""
