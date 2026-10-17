@@ -4,15 +4,32 @@ public sealed partial class Core
 {
     private bool _monitorFallback = true;
 
+    // binds:focus_preferred_method: 0 picks the tile focused most recently, 1 the one sharing the longest edge.
+    private bool _focusByHistory = true;
+
     private void ReadBinds(ConfigDocument document)
     {
         _monitorFallback = true;
+        _focusByHistory = true;
         foreach (var setting in document.Settings)
         {
             if (setting.Keyword == "binds:window_direction_monitor_fallback"
                 && ConfigValueSyntax.TryParseBool(setting.Value, out var enabled))
                 _monitorFallback = enabled;
+            else if (setting.Keyword == "binds:focus_preferred_method"
+                && int.TryParse(setting.Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var method))
+                _focusByHistory = Math.Clamp(method, 0, 1) == 0;
         }
+    }
+
+    private void RankFocus(Layout layout) => layout.RankFocus(_focusByHistory ? Recency : null);
+
+    // How recently a window was focused: the newest is highest. One never focused is 0, below every focused one,
+    // as the pinned release puts a window that opens at the old end of its history.
+    private int Recency(WindowId window)
+    {
+        var index = _focusHistory.IndexOf(window);
+        return index < 0 ? 0 : _focusHistory.Count - index;
     }
 
     private Outcome MoveFocusDirection(string arguments, bool allowsElevation)

@@ -48,6 +48,7 @@ public static class BindMatcher
     internal static IReadOnlySet<string> Keywords { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
         "binds:drag_threshold",
+        "binds:focus_preferred_method",
         "binds:scroll_event_delay",
         "binds:window_direction_monitor_fallback",
     };

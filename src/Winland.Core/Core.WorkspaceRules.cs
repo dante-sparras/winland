@@ -13,6 +13,7 @@ public sealed partial class Core
         var owner = bound?.Id ?? monitor ?? FocusedId();
         var layout = LayoutFactory.Create(_config);
         layout.Configure(_scrolling);
+        RankFocus(layout);
         var desk = new LiveWorkspace(id, owner, layout);
         _workspaces.Add(desk);
         Stamp(desk);

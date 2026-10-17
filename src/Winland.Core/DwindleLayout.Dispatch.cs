@@ -37,9 +37,13 @@ internal sealed partial class DwindleLayout
             ?? Neighbor(origin, direction, active, true);
     }
 
+    private Func<WindowId, int>? _recency;
+
+    public void RankFocus(Func<WindowId, int>? recency) => _recency = recency;
+
     private WindowId? Neighbor(Rectangle origin, PendingSplit direction, WindowId except, bool floating) =>
         ToSide(direction) is Side side
-            ? DirectionalNeighbor.Find(_clients, origin, side, except, floating, (WindowId window, out Rectangle box) => TryGeometry(window, out box, out _))
+            ? DirectionalNeighbor.Find(_clients, origin, side, except, floating, (WindowId window, out Rectangle box) => TryGeometry(window, out box, out _), _recency)
             : null;
 
     private static Side? ToSide(PendingSplit direction) => direction switch

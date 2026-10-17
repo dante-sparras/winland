@@ -31,11 +31,39 @@ public class DispatcherTests
     }
 
     [Fact]
-    public void MoveFocusFromTheLeftHalfPrefersTheUpperNeighbor()
+    public void MoveFocusPicksTheNeighborFocusedLast()
     {
         var core = ThreeWindows();
-        core.Handle(new Dispatch("movefocus", "l"));
+        core.Handle(new WindowFocused(new WindowId(1), FocusCause.User));
 
+        Assert.Equal(new WindowId(3), core.Handle(new Dispatch("movefocus", "r")).Focus);
+    }
+
+    [Fact]
+    public void MoveFocusByLengthPrefersTheUpperOfTwoEqualNeighbors()
+    {
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse("binds:focus_preferred_method = 1\n")));
+        Appear(core, 1);
+        Appear(core, 2);
+        Appear(core, 3);
+        core.Handle(new WindowFocused(new WindowId(1), FocusCause.User));
+
+        Assert.Equal(new WindowId(2), core.Handle(new Dispatch("movefocus", "r")).Focus);
+        Assert.Equal("{\"option\":\"binds:focus_preferred_method\",\"int\":1,\"set\":true}", core.Execute("getoption binds:focus_preferred_method").Text);
+    }
+
+    [Fact]
+    public void MoveFocusByLengthPrefersTheNeighborSharingMore()
+    {
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse("binds:focus_preferred_method = 1\ndwindle:default_split_ratio = 1.5\n")));
+        Appear(core, 1);
+        Appear(core, 2);
+        Appear(core, 3);
+        core.Handle(new WindowFocused(new WindowId(1), FocusCause.User));
+
+        // The right half is split 1.5 to 0.5, so the upper tile shares more of the left tile's edge.
         Assert.Equal(new WindowId(2), core.Handle(new Dispatch("movefocus", "r")).Focus);
     }
 
