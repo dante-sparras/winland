@@ -4,6 +4,10 @@ public sealed partial class Core
 {
     private Outcome Decorate(Outcome outcome, State before)
     {
+        var refit = MatchRulesAgain();
+        if (refit.Count > 0)
+            outcome = outcome with { Placements = Union(outcome.Placements, refit, outcome.State), State = Snapshot() };
+
         var active = ActiveWindow();
         var decorations = new List<Decoration>(outcome.State.Clients.Count);
         foreach (var client in outcome.State.Clients)

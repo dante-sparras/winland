@@ -101,11 +101,11 @@ public class ConfigTests
     [Fact]
     public void UnsupportedWindowRuleMatchDropsTheRule()
     {
-        var document = ConfigParser.Parse("windowrulev2 = float, class:^(kitty)$, fullscreen:1\n");
+        var document = ConfigParser.Parse("windowrulev2 = float, class:^(kitty)$, content:game\n");
 
         Assert.Empty(document.WindowRules);
         Assert.Equal(
-            new ConfigWarning(1, "Unsupported window rule match 'fullscreen'."),
+            new ConfigWarning(1, "Unsupported window rule match 'content'."),
             Assert.Single(document.Warnings));
     }
 

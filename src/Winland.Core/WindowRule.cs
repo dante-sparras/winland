@@ -44,7 +44,38 @@ public sealed record WindowRule(
     IdleInhibitMode IdleInhibit = IdleInhibitMode.None,
     RulePlacement? Placement = null,
     string? Group = null,
-    IReadOnlyDictionary<string, object>? Props = null);
+    IReadOnlyDictionary<string, object>? Props = null,
+    IReadOnlyList<RuleMatch>? Dynamic = null);
+
+/// <summary>What a window rule matches on that can change while the window lives.</summary>
+public enum RuleMatchKind
+{
+    Float,
+    Fullscreen,
+    Pin,
+    Focus,
+    Group,
+    Modal,
+    FullscreenStateInternal,
+    FullscreenStateClient,
+    Workspace,
+}
+
+/// <summary>One match on a window's state, such as <c>float:1</c> or <c>workspace:w[tv1]</c>.</summary>
+public sealed record RuleMatch(RuleMatchKind Kind, string Value);
+
+/// <summary>
+/// The state of a window a rule's dynamic matches read. <paramref name="OnWorkspace"/> answers whether the window's
+/// Workspace matches a workspace selector.
+/// </summary>
+internal readonly record struct RuleSubject(
+    bool Floating,
+    int FullscreenInternal,
+    int FullscreenClient,
+    bool Pinned,
+    bool Focused,
+    bool Grouped,
+    Func<string, bool> OnWorkspace);
 
 /// <summary>
 /// The argument of a <c>move</c>, <c>size</c>, <c>monitor</c> or <c>no_close_for</c> rule.

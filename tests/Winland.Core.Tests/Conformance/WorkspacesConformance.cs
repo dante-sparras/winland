@@ -168,16 +168,16 @@ public class WorkspacesConformance
         Assert.Empty(desk.Clients());
     }
 
-    [Fact(Skip = "The bordersize window rule and the onworkspace match are not honored.")]
+    [Fact]
     public void WorkspacesFollowProperNoGaps()
     {
         var desk = new Desk("""
             workspace = w[tv1], gapsout:0, gapsin:0
             workspace = f[1], gapsout:0, gapsin:0
-            windowrulev2 = bordersize 0, floating:0, onworkspace:w[tv1]
-            windowrulev2 = rounding 0, floating:0, onworkspace:w[tv1]
-            windowrulev2 = bordersize 0, floating:0, onworkspace:f[1]
-            windowrulev2 = rounding 0, floating:0, onworkspace:f[1]
+            windowrulev2 = border_size 0, float:0, workspace:w[tv1]
+            windowrulev2 = rounding 0, float:0, workspace:w[tv1]
+            windowrulev2 = border_size 0, float:0, workspace:f[1]
+            windowrulev2 = rounding 0, float:0, workspace:f[1]
             """);
         desk.Ok("workspace", "100");
 
@@ -190,14 +190,14 @@ public class WorkspacesConformance
         Assert.Equal("101 (101)", ActiveLabel(desk));
     }
 
-    [Fact(Skip = "The bordersize window rule is not honored, and movewindow r does not carry the rightmost tile onto the next Monitor.")]
+    [Fact(Skip = "movewindow r does not carry the rightmost tile onto the next Monitor.")]
     public void WorkspacesSmartGapsDirectionalMoveAcrossMonitors()
     {
         var desk = new Desk("""
             binds:window_direction_monitor_fallback = true
             workspace = w[tv1], gapsout:0, gapsin:0
-            windowrulev2 = bordersize 0, floating:0, onworkspace:w[tv1]
-            windowrulev2 = rounding 0, floating:0, onworkspace:w[tv1]
+            windowrulev2 = border_size 0, float:0, workspace:w[tv1]
+            windowrulev2 = rounding 0, float:0, workspace:w[tv1]
             """);
         desk.AddMonitor("HSG-L", new Rectangle(20000, 0, 1920, 1080));
         desk.AddMonitor("HSG-R", new Rectangle(21920, 0, 1920, 1080));
@@ -317,7 +317,7 @@ public class WorkspacesConformance
         Assert.Equal("42,42", desk.ActivePlace().At);
     }
 
-    [Fact(Skip = "A window rule cannot match on workspace, and floating gaps on a workspace rule are the float_gaps Gap.")]
+    [Fact(Skip = "A window rule that matches on workspace does not apply float when the window opens, and floating gaps on a workspace rule are the float_gaps Gap.")]
     public void WorkspacesDistinctTiledAndFloatGaps()
     {
         var desk = new Desk("""

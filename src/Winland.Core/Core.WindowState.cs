@@ -29,6 +29,7 @@ public sealed partial class Core
         _windowState.Track(ForgetDrag);
         _windowState.Track(_setProps);
         _windowState.Track(_ruleProps);
+        _windowState.Track(_ruleSubjects);
         _windowState.Track(_shownMaximized);
     }
 }

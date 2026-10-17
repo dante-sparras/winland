@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-133 of 197 ported cases pass.
+137 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -100,15 +100,15 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | windowRuleFocusOnActivate | differs | The focus_on_activate window rule is not honored. |
 | window | pinnedWorkspacesValid | passes | |
 | window | windowruleWorkspaceEmpty | passes | |
-| window | contentWindowRules | differs | The content window rule and match and the border_size window rule are not honored. |
+| window | contentWindowRules | differs | The content window rule and match are not honored. |
 | window | issue14038 | passes | |
 | window | issue14134 | passes | |
 | window | specialFloatRecenters | differs | A floating Client moved off its Monitor stays there when its special workspace is shown. The pinned release centers it. |
 | window | exactWindowSelectors | differs | A stableid: window selector matches no Client. |
-| window | windows | differs | The border_size window rule and its workspace match are not honored. |
+| window | windows | differs | With misc:size_limits_tiled, a tile with min_size 1200 and max_size 1500 rules is 1200 wide, where the pinned release makes it 1500. |
 | window | cycle_nextTiled | passes | |
 | window | cycle_nextFloating | passes | |
-| window | discussion14233 | differs | The border_size window rule and its workspace match are not honored. |
+| window | discussion14233 | passes | |
 | window | execRulesWorkspaceOverride | passes | |
 | window | execRulesTagMutation | passes | |
 | window | execRulesDescendantProcess | passes | |
@@ -120,8 +120,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | sendFsWindowToAnotherWorkspace | differs | fullscreenHandler is always default. |
 | window | floatingForceOnscreen | passes | |
 | window | specialWorkspacePinnedWindowUnmapFallback | differs | Closing a focused pinned Client focuses a Client on the normal Workspace under an open special workspace. The pinned release focuses the special workspace's Client. |
-| window | windowRuleBorderColors | differs | The border_color window rule is not honored. |
-| window | windowRuleBorderColorsFocus | differs | The border_color window rule is not honored. |
+| window | windowRuleBorderColors | passes | |
+| window | windowRuleBorderColorsFocus | passes | |
 | window | floatingMoveExpression | passes | |
 | window | newFullscreenWindowReceivesCursorFocus | not ported | The case returns before its first check in the pinned release. |
 | window | windowGoesFullscreenAndReceivesCursorFocus | not ported | The case returns before its first check in the pinned release. |
@@ -148,8 +148,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | moveintoorcreategroup | moveIntoOrCreateGroup | passes | |
 | moveintoorcreategroup | crossMonitorGroupJoin | differs | moveintoorcreategroup does not find a Client on another Monitor, so the Client stays in its own Group. The pinned release looks for the neighbour across Monitors. |
 | workspaces | workspacesCombined | differs | general:no_focus_fallback is a Gap. movewindow r does not carry the rightmost tile onto the next Monitor. |
-| workspaces | workspacesFollowProperNoGaps | differs | The bordersize window rule and the onworkspace match are not honored. |
-| workspaces | workspacesSmartGapsDirectionalMoveAcrossMonitors | differs | The bordersize window rule is not honored, and movewindow r does not carry the rightmost tile onto the next Monitor. |
+| workspaces | workspacesFollowProperNoGaps | passes | |
+| workspaces | workspacesSmartGapsDirectionalMoveAcrossMonitors | differs | movewindow r does not carry the rightmost tile onto the next Monitor. |
 | workspaces | workspaceRenameChangeID | passes | |
 | workspaces | workspaceRenameEmitsGlobalEvent | passes | |
 | workspaces | windowAtExplicitWorkspace | not ported | The case calls a hit test on a hidden Workspace through the reference's test plugin, which no command reaches. |
@@ -159,7 +159,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | workspaces | luaGetWorkspace | not ported | The case reads workspace objects from the Lua API, which a line-based command cannot reach. |
 | workspaces | luaSetWorkspace | not ported | The case sets workspaces through monitor objects of the Lua API, which a line-based command cannot reach. |
 | workspaces | luaSetSpecialWorkspace | not ported | The case sets special workspaces through monitor objects of the Lua API, which a line-based command cannot reach. |
-| workspaces | workspacesDistinctTiledAndFloatGaps | differs | A window rule cannot match on workspace, and floating gaps on a workspace rule are the float_gaps Gap. |
+| workspaces | workspacesDistinctTiledAndFloatGaps | differs | A window rule that matches on workspace does not apply float when the window opens, and floating gaps on a workspace rule are the float_gaps Gap. |
 | workspaces | workspaceSwitchUnfocusesWindowFromOldWorkspace | passes | |
 | workspaces | luaFocusCreatesBareNamedWorkspace | passes | |
 | persistent | persistentWorkspaces | differs | A persistent rule keeps a special workspace, and creates a Workspace bound to a Monitor that is not there yet. A new Monitor then shows such a Workspace, where the pinned release opens workspace 2. |
