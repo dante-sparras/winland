@@ -510,6 +510,21 @@ public class ScrollingLayoutTests
         return placement.Bounds;
     }
 
+    [Fact]
+    public void FocusThatScrollsTheStripPlacesTheWindows()
+    {
+        var core = Flat();
+        core.Handle(Appeared(1));
+        core.Execute("dispatch layoutmsg colresize 0.8");
+        var opened = core.Handle(Appeared(2));
+        Assert.True(BoundsOf(opened, 1).X < 0);
+
+        var focused = core.Execute("dispatch movefocus l").Effect;
+
+        Assert.Equal(0, BoundsOf(focused, 1).X);
+        Assert.True(BoundsOf(focused, 2).X >= 800);
+    }
+
     private static Core Configured(string text)
     {
         var core = new Core();

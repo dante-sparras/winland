@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-87 of 197 ported cases pass.
+88 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -67,7 +67,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scroll_DEFAULT_HANDLED_posAndSizeSyncWhileFS | not ported | The case opens a layer shell surface, which has no Windows meaning. |
 | scroll | scrollNegativeScaleGesture | differs | The scrollMove gesture action is a Gap. |
 | scroll | testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse | passes | |
-| scroll | testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue | differs | scrolling:follow_min_visible also holds back focuswindow, and a scroll that focuswindow makes places no window. |
+| scroll | testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue | differs | scrolling:follow_min_visible also holds back focuswindow. |
 | scroll | testScrollingViewBehaviourFocusFallback | passes | |
 | scroll | testScrollingViewBehaviourFocusFallbackWithGroups | passes | |
 | scroll | testScrollingViewBehaviourWorkspaceChange | passes | |
@@ -77,8 +77,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse | passes | |
 | scroll | testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue | differs | scrolling:follow_min_visible also holds back the focus moveintogroup gives. The pinned release applies it only to pointer focus. |
 | scroll | testScrollingViewBehaviourNewLayer | not ported | The case opens a layer shell surface, which has no Windows meaning. |
-| scroll | testScrollingViewBehaviourMoveFocusFollowFocusFalse | differs | movefocus scrolls the strip even with scrolling:follow_focus false. The scroll places no window, so the check reads the frame from before it. |
-| scroll | testScrollingViewBehaviourMoveFocusFollowFocusTrue | differs | movefocus scrolls the strip but places no window. |
+| scroll | testScrollingViewBehaviourMoveFocusFollowFocusFalse | differs | movefocus scrolls the strip even with scrolling:follow_focus false. |
+| scroll | testScrollingViewBehaviourMoveFocusFollowFocusTrue | passes | |
 | scroll | testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse | passes | |
 | scroll | testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue | differs | scrolling:follow_min_visible also holds back the focus moveintogroup and movefocus give inside a Group. The pinned release applies it only to pointer focus. |
 | scroll | testScrollingViewBehaviourScheduledPropRefresh | passes | |
