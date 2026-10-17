@@ -1029,7 +1029,7 @@ public class ScrollConformance
         Assert.True(X(desk.ActivePlace().Size) >= single - 200);
     }
 
-    [Fact(Skip = "movefocus wraps within the strip instead of crossing to the next Monitor.")]
+    [Fact]
     public void ProperFocusBehvaior()
     {
         var desk = new Desk(Scrolling);

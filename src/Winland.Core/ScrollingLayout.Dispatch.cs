@@ -4,16 +4,18 @@ namespace Winland;
 
 internal sealed partial class ScrollingLayout
 {
+    // movefocus and the dispatchers that look for a neighbour do not wrap around the strip, as the pinned release
+    // looks in a direction across Monitors there. Only layoutmsg focus follows scrolling:wrap_focus.
     public WindowId? MoveFocus(WindowId active, string arguments)
     {
-        if (!FocusToward(active, arguments, out var next))
+        if (!FocusToward(active, arguments, out var next, wrap: false))
             return null;
 
         return next;
     }
 
     public WindowId? Neighbor(WindowId active, string arguments) =>
-        FocusToward(active, arguments, out var next, commit: false) ? next : null;
+        FocusToward(active, arguments, out var next, commit: false, wrap: false) ? next : null;
 
     public IReadOnlyList<Placement> MoveWindow(WindowId window, string arguments)
     {

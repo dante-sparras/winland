@@ -133,7 +133,7 @@ internal sealed partial class ScrollingLayout
     }
 
     // Without commit this only finds the Client: the strip does not scroll and nothing is remembered.
-    private bool FocusToward(WindowId active, string direction, out WindowId? next, bool commit = true)
+    private bool FocusToward(WindowId active, string direction, out WindowId? next, bool commit = true, bool wrap = true)
     {
         next = null;
         if (direction.Length == 0 || CellFor(active) is not Cell cell || cell.Column is not Column column)
@@ -147,12 +147,18 @@ internal sealed partial class ScrollingLayout
         var nextColumn = (!vertical && token == 'r') || (vertical && token is 'b' or 'd');
         if (previousInColumn)
         {
+            if (!wrap && PreviousCell(column, cell) is null)
+                return false;
+
             next = Choose(column, PreviousCell(column, cell) ?? column.Cells[^1], commit);
             return next is not null;
         }
 
         if (nextInColumn)
         {
+            if (!wrap && NextCell(column, cell) is null)
+                return false;
+
             next = Choose(column, NextCell(column, cell) ?? column.Cells[0], commit);
             return next is not null;
         }
@@ -161,6 +167,9 @@ internal sealed partial class ScrollingLayout
             return false;
 
         var neighbor = previousColumn ? Previous(column) : Next(column);
+        if (neighbor is null && !wrap)
+            return false;
+
         if (neighbor is null)
         {
             if (_scrolling.WrapFocus)
