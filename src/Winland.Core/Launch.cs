@@ -14,6 +14,12 @@ public sealed record Launch(string CommandLine, string? WorkingDirectory, bool E
     public IReadOnlyList<EnvironmentAssignment> Environment { get; init; } = EnvironmentAssignment.None;
 
     public IReadOnlyList<WindowRule> Rules { get; init; } = NoRules;
+
+    /// <summary>
+    /// The Workspace this program was started on, which its window opens on under <c>misc:initial_workspace_tracking</c>.
+    /// Null for <c>exec-once</c> and <c>exec-shutdown</c>, which the pinned release starts without a token.
+    /// </summary>
+    public WorkspaceId? InitialWorkspace { get; init; }
 }
 
 internal readonly record struct LaunchParse(Launch? Launch, IReadOnlyList<string> Warnings);
@@ -80,7 +86,7 @@ internal static class LaunchParser
         return new LaunchParse(launch, warnings);
     }
 
-    internal static IReadOnlyList<Launch> FromConfig(ConfigDocument config, LaunchMoment moment)
+    internal static IReadOnlyList<Launch> FromConfig(ConfigDocument config, LaunchMoment moment, WorkspaceId? initialWorkspace = null)
     {
         ArgumentNullException.ThrowIfNull(config);
         var launches = new List<Launch>();
@@ -105,6 +111,8 @@ internal static class LaunchParser
 
             if (config.Environment.Count > 0)
                 launch = launch with { Environment = config.Environment };
+            if (!once && !shutdown)
+                launch = launch with { InitialWorkspace = initialWorkspace };
             launches.Add(launch);
         }
 

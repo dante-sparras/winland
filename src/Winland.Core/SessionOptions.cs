@@ -26,6 +26,12 @@ public sealed record SessionOptions
     /// <summary><c>misc:disable_autoreload</c>: saving the config does not reload it.</summary>
     public bool DisableAutoreload { get; init; }
 
+    /// <summary><c>misc:initial_workspace_tracking</c>: 0 off, 1 the first window of a started program, 2 all of them.</summary>
+    public int InitialWorkspaceTracking { get; init; } = 1;
+
+    /// <summary><c>misc:initial_workspace_token_timeout</c>: seconds a started program has to open its window, with tracking 1.</summary>
+    public int InitialWorkspaceTokenTimeout { get; init; } = 10;
+
     public static SessionOptions Documented { get; } = new();
 
     // Adding an entry here applies that keyword and stops the config warning.
@@ -38,6 +44,8 @@ public sealed record SessionOptions
         ["misc:enable_swallow"] = (options, value) => TryParseBool(value, out var swallow) ? options with { EnableSwallow = swallow } : options,
         ["misc:swallow_regex"] = (options, value) => options with { SwallowRegex = Unset(value) },
         ["misc:swallow_exception_regex"] = (options, value) => options with { SwallowExceptionRegex = Unset(value) },
+        ["misc:initial_workspace_tracking"] = (options, value) => int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var tracking) ? options with { InitialWorkspaceTracking = Math.Clamp(tracking, 0, 2) } : options,
+        ["misc:initial_workspace_token_timeout"] = (options, value) => int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var timeout) ? options with { InitialWorkspaceTokenTimeout = Math.Clamp(timeout, 1, 3600) } : options,
         ["misc:disable_autoreload"] = (options, value) => TryParseBool(value, out var disable) ? options with { DisableAutoreload = disable } : options,
         ["misc:size_limits_tiled"] = (options, value) => TryParseBool(value, out var tiled) ? options with { SizeLimitsTiled = tiled } : options,
     };

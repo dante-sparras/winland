@@ -171,8 +171,9 @@ public sealed partial class Core
             return;
 
         var parsed = LaunchParser.Parse(command, allowsElevation: ElevationTrusted, raw: false);
+        // The pinned release starts on-created-empty with the new Workspace as its initial workspace.
         if (parsed.Launch is Launch launch)
-            _born.Enqueue(WithEnvironment(launch) ?? launch);
+            _born.Enqueue((WithEnvironment(launch) ?? launch) with { InitialWorkspace = desk.Id });
     }
 
     // Every workspace created since the last outcome runs its command, so all of them leave together.

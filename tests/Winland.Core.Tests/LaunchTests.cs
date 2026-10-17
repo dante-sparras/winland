@@ -11,7 +11,7 @@ public class LaunchTests
 
         Assert.Equal("exec", outcome.Dispatcher);
         Assert.True(outcome.AllowsElevation);
-        Assert.Equal(new Launch("notepad --title hello", null, false), outcome.Launch);
+        Assert.Equal(new Launch("notepad --title hello", null, false) { InitialWorkspace = WorkspaceId.Initial }, outcome.Launch);
     }
 
     [Fact]
@@ -19,7 +19,7 @@ public class LaunchTests
     {
         var outcome = new Core().Dispatch("exec", "[elevated] notepad", allowsElevation: true);
 
-        Assert.Equal(new Launch("notepad", null, true), outcome.Launch);
+        Assert.Equal(new Launch("notepad", null, true) { InitialWorkspace = WorkspaceId.Initial }, outcome.Launch);
     }
 
     [Fact]
@@ -29,7 +29,7 @@ public class LaunchTests
 
         Assert.Equal("ok", reply.Text);
         Assert.False(reply.Effect.AllowsElevation);
-        Assert.Equal(new Launch("notepad", null, false), reply.Effect.Launch);
+        Assert.Equal(new Launch("notepad", null, false) { InitialWorkspace = WorkspaceId.Initial }, reply.Effect.Launch);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public class LaunchTests
     {
         var outcome = new Core().Dispatch("exec", "elevated notepad", allowsElevation: true);
 
-        Assert.Equal(new Launch("elevated notepad", null, false), outcome.Launch);
+        Assert.Equal(new Launch("elevated notepad", null, false) { InitialWorkspace = WorkspaceId.Initial }, outcome.Launch);
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public class LaunchTests
         var plain = core.Handle(new KeyPressed("E"));
 
         Assert.True(plain.AllowsElevation);
-        Assert.Equal(new Launch("notepad", null, false), plain.Launch);
+        Assert.Equal(new Launch("notepad", null, false) { InitialWorkspace = WorkspaceId.Initial }, plain.Launch);
 
         core = new Core();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, E, exec, [elevated] notepad") with { ElevationTrusted = true }));
@@ -59,7 +59,7 @@ public class LaunchTests
         var asked = core.Handle(new KeyPressed("E"));
 
         Assert.True(asked.AllowsElevation);
-        Assert.Equal(new Launch("notepad", null, true), asked.Launch);
+        Assert.Equal(new Launch("notepad", null, true) { InitialWorkspace = WorkspaceId.Initial }, asked.Launch);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class LaunchTests
     {
         var outcome = new Core().Dispatch("execr", "[elevated] notepad", allowsElevation: true);
 
-        Assert.Equal(new Launch("notepad", null, true) { Raw = true }, outcome.Launch);
+        Assert.Equal(new Launch("notepad", null, true) { Raw = true, InitialWorkspace = WorkspaceId.Initial }, outcome.Launch);
     }
 
     [Fact]
@@ -181,16 +181,16 @@ public class LaunchTests
 
         Assert.Equal(
             [
-                new Launch("every", null, false),
+                new Launch("every", null, false) { InitialWorkspace = WorkspaceId.Initial },
                 new Launch("once", null, true),
-                new Launch("raw-every", null, false) { Raw = true },
+                new Launch("raw-every", null, false) { Raw = true, InitialWorkspace = WorkspaceId.Initial },
                 new Launch("raw-once", null, false) { Raw = true },
             ],
             startup);
         Assert.Equal(
             [
-                new Launch("every", null, false),
-                new Launch("raw-every", null, false) { Raw = true },
+                new Launch("every", null, false) { InitialWorkspace = WorkspaceId.Initial },
+                new Launch("raw-every", null, false) { Raw = true, InitialWorkspace = WorkspaceId.Initial },
             ],
             reload);
         Assert.Equal([new Launch("bye", null, false)], shutdown);

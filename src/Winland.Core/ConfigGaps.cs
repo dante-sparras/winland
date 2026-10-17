@@ -171,8 +171,6 @@ public static class ConfigGaps
         new("misc:exit_window_retains_fullscreen", "Closing a fullscreen Client does not pass fullscreen to the next Client."),
         new("misc:font_family", "The global font is not honored."),
         new("misc:force_default_wallpaper", "There is no wallpaper. The desktop background belongs to Windows."),
-        new("misc:initial_workspace_token_timeout", "Opening a window on the Workspace it was launched from is not honored."),
-        new("misc:initial_workspace_tracking", "Opening a window on the Workspace it was launched from is not honored."),
         new("misc:key_press_enables_dpms", "Waking a monitor turned off with dpms on a key press is not honored."),
         new("misc:layers_hog_keyboard_focus", "Layer shell surfaces have no Windows meaning."),
         new("misc:lockdead_screen_delay", "The lock screen belongs to Windows."),

@@ -11,6 +11,7 @@ public sealed partial class Core
     private readonly Queue<Launch> _born = new();
     private IReadOnlyList<EnvironmentAssignment> _environment = EnvironmentAssignment.None;
     private readonly PidFollowSet _follow = new();
+    private readonly InitialWorkspaces _initialWorkspaces = new();
     private readonly BindSession _keyState = new();
     private volatile BindTable _binds = BindTable.Empty;
 
@@ -135,11 +136,17 @@ public sealed partial class Core
         }
     }
 
-    public IReadOnlyList<Launch> StartupLaunches(ConfigDocument config) =>
-        ConfigLaunches(config, LaunchParser.LaunchMoment.Startup);
+    public IReadOnlyList<Launch> StartupLaunches(ConfigDocument config)
+    {
+        lock (_gate)
+            return ConfigLaunches(config, LaunchParser.LaunchMoment.Startup, LaunchWorkspace());
+    }
 
-    public IReadOnlyList<Launch> ReloadLaunches(ConfigDocument config) =>
-        ConfigLaunches(config, LaunchParser.LaunchMoment.Reload);
+    public IReadOnlyList<Launch> ReloadLaunches(ConfigDocument config)
+    {
+        lock (_gate)
+            return ConfigLaunches(config, LaunchParser.LaunchMoment.Reload, LaunchWorkspace());
+    }
 
     public IReadOnlyList<Launch> ShutdownLaunches(ConfigDocument config) =>
         ConfigLaunches(config, LaunchParser.LaunchMoment.Shutdown);
@@ -149,17 +156,31 @@ public sealed partial class Core
     public void NoteLaunched(int processId, Launch launch)
     {
         ArgumentNullException.ThrowIfNull(launch);
-        if (processId <= 0 || launch.Rules.Count == 0)
+        if (processId <= 0)
             return;
 
         lock (_gate)
-            _follow.Track(processId, launch.Rules, FollowNow());
+        {
+            if (launch.Rules.Count > 0)
+                _follow.Track(processId, launch.Rules, FollowNow());
+
+            // misc:initial_workspace_tracking 2 keeps the token for good, as the pinned release gives it a very long life.
+            var tracking = _session.InitialWorkspaceTracking;
+            if (tracking > 0 && launch.InitialWorkspace is WorkspaceId workspace)
+            {
+                var expires = tracking == 2 ? long.MaxValue : FollowNow() + (_session.InitialWorkspaceTokenTimeout * 1000L);
+                _initialWorkspaces.Track(processId, workspace, expires);
+            }
+        }
     }
 
     internal void NoteProcess(int processId, int parentProcessId)
     {
         lock (_gate)
+        {
             _follow.Note(processId, parentProcessId);
+            _initialWorkspaces.Note(processId, parentProcessId);
+        }
     }
 
     public CommandReply Execute(string? line)
@@ -235,10 +256,18 @@ public sealed partial class Core
 
     private bool ElevationTrusted => _config?.ElevationTrusted == true;
 
-    private static IReadOnlyList<Launch> ConfigLaunches(ConfigDocument config, LaunchParser.LaunchMoment moment)
+    private static IReadOnlyList<Launch> ConfigLaunches(ConfigDocument config, LaunchParser.LaunchMoment moment, WorkspaceId? initialWorkspace = null)
     {
         ArgumentNullException.ThrowIfNull(config);
-        return LaunchParser.FromConfig(config, moment);
+        return LaunchParser.FromConfig(config, moment, initialWorkspace);
+    }
+
+    // The Workspace a program started now is started on: the special workspace the focused Monitor shows, or its
+    // Workspace, as in the pinned release.
+    private WorkspaceId LaunchWorkspace()
+    {
+        var monitor = FocusedId();
+        return SpecialOn(monitor) ?? ActiveOn(monitor);
     }
 
     private long FollowNow() => FollowClock?.Invoke() ?? Environment.TickCount64;

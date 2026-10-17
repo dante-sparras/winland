@@ -200,6 +200,14 @@ internal static class OptionCatalog
                 kind = "int";
                 token = layout.NewFloatForceOnscreen.ToString(CultureInfo.InvariantCulture);
                 return true;
+            case "misc:initial_workspace_tracking":
+                kind = "int";
+                token = session.InitialWorkspaceTracking.ToString(CultureInfo.InvariantCulture);
+                return true;
+            case "misc:initial_workspace_token_timeout":
+                kind = "int";
+                token = session.InitialWorkspaceTokenTimeout.ToString(CultureInfo.InvariantCulture);
+                return true;
             case "misc:disable_autoreload":
                 kind = "bool";
                 token = Bool(session.DisableAutoreload);

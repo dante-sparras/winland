@@ -237,7 +237,7 @@ public sealed partial class Core
 
             var launched = View([], dispatcher: name, allowsElevation: allowsElevation);
             return WithEnvironment(parsed.Launch) is Launch launch
-                ? launched with { Launches = [.. launched.Launches, launch] }
+                ? launched with { Launches = [.. launched.Launches, launch with { InitialWorkspace = LaunchWorkspace() }] }
                 : launched;
         }
         else if (Is(name, "submap"))
