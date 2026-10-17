@@ -7,7 +7,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class WorkspacesConformance
 {
-    [Fact(Skip = "general:no_focus_fallback is a Gap. movewindow r does not carry the rightmost tile onto the next Monitor.")]
+    [Fact(Skip = "general:no_focus_fallback is a Gap, and binds:workspace_back_and_forth 2 returns to a Workspace the Monitor showed earlier in the case, where the pinned release finds no previous one.")]
     public void WorkspacesCombined()
     {
         var desk = new Desk("workspace = 966, persistent:true\n");
@@ -190,7 +190,7 @@ public class WorkspacesConformance
         Assert.Equal("101 (101)", ActiveLabel(desk));
     }
 
-    [Fact(Skip = "movewindow r does not carry the rightmost tile onto the next Monitor.")]
+    [Fact]
     public void WorkspacesSmartGapsDirectionalMoveAcrossMonitors()
     {
         var desk = new Desk("""
@@ -654,7 +654,12 @@ public class WorkspacesConformance
 
     private static string NameOf(JsonElement monitor) => monitor.GetProperty("name").GetString() ?? "";
 
-    private static string ShownOn(JsonElement monitor) => Label(monitor.GetProperty("activeWorkspace"));
+    // The reference writes a Monitor's Workspace as `ID (NAME)`.
+    private static string ShownOn(JsonElement monitor)
+    {
+        var workspace = monitor.GetProperty("activeWorkspace");
+        return $"{workspace.GetProperty("id").GetInt32()} ({workspace.GetProperty("name").GetString()})";
+    }
 
     private static string SpecialOn(JsonElement monitor) => monitor.GetProperty("specialWorkspace").GetProperty("name").GetString() ?? "";
 

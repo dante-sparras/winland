@@ -35,7 +35,7 @@ public sealed partial class Core
         // A change that lands on another Monitor follows cursor:warp_on_monitor_change, or warp_on_change_workspace when
         // that is -1, and one on the same Monitor follows warp_on_change_workspace, as in the pinned release.
         if (warp is null && monitorChanged)
-            warp = Plan(outcome.State, _cursor.MonitorMode());
+            warp = Plan(outcome.State, _cursor.MonitorMode()) ?? EmptyMonitorMiddle(outcome);
         else if (warp is null && workspaceChanged)
             warp = Plan(outcome.State, _cursor.WarpOnWorkspace);
         if (warp is null && specialToggled)
@@ -145,6 +145,27 @@ public sealed partial class Core
         if (warp is WarpTo to)
             _pointer = to.Position;
         return warp;
+    }
+
+    // focusmonitor, and movefocus onto another Monitor, put the pointer in the middle of a Monitor with nothing to
+    // focus, as the pinned release does, unless cursor:no_warps is set.
+    private WarpTo? EmptyMonitorMiddle(Outcome outcome)
+    {
+        if (_cursor.NoWarps || outcome.Dispatcher is not ("focusmonitor" or "movefocus") || FocusedClient(outcome.State) is not null)
+            return null;
+
+        foreach (var screen in outcome.State.Screens)
+        {
+            if (screen.Id != outcome.State.ActiveMonitor || !screen.Monitor.Enabled)
+                continue;
+
+            var monitor = screen.Monitor;
+            var point = new Point(monitor.X + (monitor.Width / 2), monitor.Y + (monitor.Height / 2));
+            _pointer = point;
+            return new WarpTo(point);
+        }
+
+        return null;
     }
 
     private WarpTo? DefaultMonitor(Outcome outcome)

@@ -226,7 +226,9 @@ public sealed partial class Core
             && MonitorHolding(desk) is LiveMonitor origin
             && desk.Layout.TryBounds(window, out var box))
         {
-            var hit = MonitorSelector.At(Targets(), MonitorSelector.Focal(box, direction));
+            // As in the pinned release, the focal point is taken from the window's ideal box, which reaches the
+            // Monitor's edge when the tile touches the work area's.
+            var hit = MonitorSelector.At(Targets(), MonitorSelector.Focal(Ideal(desk, window, box), direction));
             if (hit is MonitorTarget other && other.Id != origin.Id && MonitorOf(other) is LiveMonitor across)
                 return MoveActiveOnto(across, silent: false, name, allowsElevation);
         }
