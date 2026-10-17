@@ -82,7 +82,7 @@ public class KeybindsConformance
     private const string ShortChord = "touch /tmp/hyprtester-keybinds-short-chord.txt";
     private const string LongChord = "touch /tmp/hyprtester-keybinds-long-chord.txt";
 
-    [Fact(Skip = "A bind on several keys runs on each of them, a long press waits 500 ms instead of input:repeat_delay, and per-device binds are not honored.")]
+    [Fact(Skip = "A long press waits 500 ms instead of input:repeat_delay, and per-device binds are not honored.")]
     public void Keybinds()
     {
         var desk = new Desk(ConfigBinds);
@@ -113,7 +113,7 @@ public class KeybindsConformance
         Unbind(desk, keys);
     }
 
-    [Fact(Skip = "A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order, and holds back a shorter bind that starts the same chord.")]
+    [Fact]
     public void OrderedSubChordDeferral()
     {
         var desk = new Desk(ConfigBinds);

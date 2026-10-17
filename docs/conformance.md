@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-88 of 197 ported cases pass.
+93 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -269,15 +269,15 @@ A case passes when every check in it passes, as in the reference harness. A case
 | gestures | defaultSpecialWorkspaceGesture | differs | The special gesture action is not honored. |
 | gestures | live_gesture_callbacks | not ported | Gesture actions with start, update and end callbacks are Lua-only. |
 | gestures | gestures | differs | Only the workspace gesture action is honored. |
-| keybinds | keybinds | differs | A bind on several keys runs on each of them, a long press waits 500 ms instead of input:repeat_delay, and per-device binds are not honored. |
-| keybinds | orderedSubChordDeferral | differs | A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order, and holds back a shorter bind that starts the same chord. |
+| keybinds | keybinds | differs | A long press waits 500 ms instead of input:repeat_delay, and per-device binds are not honored. |
+| keybinds | orderedSubChordDeferral | passes | |
 | keybinds | modifierReleaseBindShadowing | differs | A release bind on a modifier key still runs after another bind used that modifier. The pinned release skips it. |
 | keybinds | luaDispatcherStrings | not ported | It reads the handler of a bind as a Lua value, which is Lua-only. |
 | keyboard_input | pluginKeyboardEventHandler | not ported | It checks a keyboard event handler registered through the C++ plugin interface, which has no core form. |
-| keyboard_input | orderedChordConsumption | differs | A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order. |
-| keyboard_input | orderedChordRejectsReorderedPrefix | differs | A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order. |
-| keyboard_input | orderedReleaseChord | differs | A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order. |
-| keyboard_input | nonConsumingChordPreservesOrder | differs | A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order. |
+| keyboard_input | orderedChordConsumption | passes | |
+| keyboard_input | orderedChordRejectsReorderedPrefix | passes | |
+| keyboard_input | orderedReleaseChord | passes | |
+| keyboard_input | nonConsumingChordPreservesOrder | passes | |
 | swallow | swallow | differs | A Workspace's windows count includes a swallowed Client, toggleswallow on the swallowed Client does nothing, and a Client swallowed in turn loses the Client it swallowed. A window selector does not find a swallowed Client. |
 | tags | tags | differs | The tag and nodim window rule effects are refused. getprop does not read no_dim or no_shadow. |
 | tags | tags_fullscreen_cleanup | differs | tagwindow is not a dispatcher, and window tags are not tracked. |

@@ -276,19 +276,36 @@ public class BindChordTests
     }
 
     [Fact]
-    public void MultiKeyBindSharesAChordWithASingleKeyBind()
+    public void MultiKeyBindHoldsBackASingleKeyBindItStartsWith()
     {
         var core = Load("binds = , A&B, killactive\nbind = , A, exec, notepad\n");
         Appear(core, 1);
 
         var a = Press(core, "A");
         var b = Press(core, "B");
+        Release(core, "B");
+        var lifted = Release(core, "A");
 
-        Assert.Equal("killactive", a.Dispatcher);
-        Assert.Equal("notepad", a.Launch?.CommandLine);
-        Assert.Equal(new WindowId(1), a.Close);
+        Assert.True(a.Consumed);
+        Assert.Null(a.Dispatcher);
         Assert.Equal("killactive", b.Dispatcher);
-        Assert.Null(b.Launch);
+        Assert.Equal(new WindowId(1), b.Close);
+        Assert.Null(lifted.Dispatcher);
+    }
+
+    [Fact]
+    public void HeldBackSingleKeyBindRunsWhenItsKeyIsReleasedAlone()
+    {
+        var core = Load("binds = , A&B, killactive\nbind = , A, exec, notepad\n");
+        Appear(core, 1);
+
+        var pressed = Press(core, "A");
+        var released = Release(core, "A");
+
+        Assert.True(pressed.Consumed);
+        Assert.Null(pressed.Launch);
+        Assert.True(released.Consumed);
+        Assert.Equal("notepad", released.Launch?.CommandLine);
     }
 
     [Fact]

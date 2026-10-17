@@ -11,7 +11,7 @@ public class KeyboardInputConformance
 {
     private const string Chord = "chord";
 
-    [Fact(Skip = "A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order.")]
+    [Fact]
     public void OrderedChordConsumption()
     {
         var desk = new Desk(KeybindsConformance.ConfigBinds);
@@ -57,7 +57,7 @@ public class KeyboardInputConformance
         keys.Expect(("T", true), ("T", false));
     }
 
-    [Fact(Skip = "A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order.")]
+    [Fact]
     public void OrderedChordRejectsReorderedPrefix()
     {
         var desk = new Desk(KeybindsConformance.ConfigBinds);
@@ -86,7 +86,7 @@ public class KeyboardInputConformance
         Assert.Equal(1, keys.Count(Chord));
     }
 
-    [Fact(Skip = "A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order.")]
+    [Fact]
     public void OrderedReleaseChord()
     {
         var desk = new Desk(KeybindsConformance.ConfigBinds);
@@ -116,7 +116,7 @@ public class KeyboardInputConformance
         Assert.Equal(1, keys.Count(Chord));
     }
 
-    [Fact(Skip = "A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order.")]
+    [Fact]
     public void NonConsumingChordPreservesOrder()
     {
         var desk = new Desk(KeybindsConformance.ConfigBinds);
