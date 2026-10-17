@@ -23,6 +23,9 @@ public sealed record SessionOptions
     /// <summary>Whether the minimum and maximum size window rules also hold a tiled Client, not only a floating one.</summary>
     public bool SizeLimitsTiled { get; init; }
 
+    /// <summary><c>misc:disable_autoreload</c>: saving the config does not reload it.</summary>
+    public bool DisableAutoreload { get; init; }
+
     public static SessionOptions Documented { get; } = new();
 
     // Adding an entry here applies that keyword and stops the config warning.
@@ -35,6 +38,7 @@ public sealed record SessionOptions
         ["misc:enable_swallow"] = (options, value) => TryParseBool(value, out var swallow) ? options with { EnableSwallow = swallow } : options,
         ["misc:swallow_regex"] = (options, value) => options with { SwallowRegex = Unset(value) },
         ["misc:swallow_exception_regex"] = (options, value) => options with { SwallowExceptionRegex = Unset(value) },
+        ["misc:disable_autoreload"] = (options, value) => TryParseBool(value, out var disable) ? options with { DisableAutoreload = disable } : options,
         ["misc:size_limits_tiled"] = (options, value) => TryParseBool(value, out var tiled) ? options with { SizeLimitsTiled = tiled } : options,
     };
 

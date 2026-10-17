@@ -192,6 +192,10 @@ internal static class OptionCatalog
                 kind = "int";
                 token = layout.NewFloatForceOnscreen.ToString(CultureInfo.InvariantCulture);
                 return true;
+            case "misc:disable_autoreload":
+                kind = "bool";
+                token = Bool(session.DisableAutoreload);
+                return true;
             case "misc:size_limits_tiled":
                 kind = "bool";
                 token = Bool(session.SizeLimitsTiled);

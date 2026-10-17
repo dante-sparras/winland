@@ -188,6 +188,9 @@ static int Run(string? path)
     AppDomain.CurrentDomain.UnhandledException += onCrash;
     using var watching = new ConfigWatcher(() =>
     {
+        if (!core.ReloadsOnSave)
+            return;
+
         try
         {
             host.Reload();

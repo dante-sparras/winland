@@ -35,6 +35,12 @@ public sealed partial class Core
 
     public Func<ConfigRead>? ReadConfig { get; set; }
 
+    /// <summary>
+    /// Whether saving the config reloads it. <c>misc:disable_autoreload</c> turns it off, and turning the option off
+    /// again, with <c>keyword</c> or a reload by hand, turns it back on.
+    /// </summary>
+    public bool ReloadsOnSave => !_session.DisableAutoreload;
+
     public ICursorPosition? Cursor { get; set; }
 
     public ISessionLock? SessionLock { get; set; }
