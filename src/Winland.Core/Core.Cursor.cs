@@ -32,13 +32,15 @@ public sealed partial class Core
             RememberLeaving(before);
 
         var warp = TakeRequestedWarp();
-        if (warp is null && workspaceChanged)
-            warp = Plan(outcome.State, _cursor.WarpOnWorkspace);
+        // A change that lands on another Monitor follows cursor:warp_on_monitor_change, or warp_on_change_workspace when
+        // that is -1, and one on the same Monitor follows warp_on_change_workspace, as in the pinned release.
         if (warp is null && monitorChanged)
             warp = Plan(outcome.State, _cursor.MonitorMode());
+        else if (warp is null && workspaceChanged)
+            warp = Plan(outcome.State, _cursor.WarpOnWorkspace);
         if (warp is null && specialToggled)
             warp = PlanFocused(outcome.State, _cursor.WarpOnSpecial);
-        if (warp is null && _crossMonitorWarp is WarpTo crossed)
+        if (warp is null && _crossMonitorWarp is WarpTo crossed && !_cursor.NoWarps)
         {
             warp = crossed;
             _pointer = crossed.Position;

@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-86 of 197 ported cases pass.
+87 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -222,7 +222,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | refactor_state | workspacePlacementWindowState | passes | |
 | refactor_state | globalWindowMoveState | differs | movetoworkspace keeps a floating Client's position when the Workspace is on another Monitor. The pinned release moves it by the offset between the Monitors. |
 | refactor_state | pointerNoWarpsFocusesMonitorOnly | passes | |
-| refactor_state | cursorWarpFocusOnMonitorChange | differs | Switching to a Workspace on another Monitor moves the cursor even with cursor:no_warps. |
+| refactor_state | cursorWarpFocusOnMonitorChange | passes | |
 | solitary | solitaryClients | not ported | Solitary, tearing and direct scanout are render paths, which a core test cannot see. |
 | colors | monitorsColorManagement | differs | bitdepth and cm are Gaps. |
 | animations | animationsTrivial | differs | There is no animations request. |
