@@ -21,6 +21,8 @@ public sealed partial class Core
         if (_pinned.Contains(id) && Find(id) is { Floating: true })
             return FocusPinned(desk, id, name, allowsElevation);
 
+        var covered = desk.Covered();
+        id = FocusUnderFullscreen(desk, id, out var refit);
         var raised = RaiseMember(desk, id, name, allowsElevation);
         desk.Layout.NoteFocus(id);
         if (desk.Id.IsSpecial)
@@ -31,6 +33,8 @@ public sealed partial class Core
 
         var outcome = SwitchTo(desk.Id, id, consumed: false, dispatcher: name, allowsElevation: allowsElevation);
         outcome = outcome.Focus is null ? outcome with { Focus = id } : outcome;
+        if (refit is not null && IsShown(desk.Id))
+            outcome = Merge(Present(desk, covered, refit), outcome);
         return raised is null ? outcome : Merge(raised, outcome);
     }
 

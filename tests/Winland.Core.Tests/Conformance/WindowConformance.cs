@@ -99,7 +99,7 @@ public class WindowConformance
         Assert.Contains("8", desk.Send("getprop active border_size"), StringComparison.Ordinal);
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
+    [Fact]
     public void WindowFocusOnFullscreenConflict()
     {
         var desk = new Desk();
@@ -168,7 +168,7 @@ public class WindowConformance
         ExpectFocused(desk, "kitty_A", 2);
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
+    [Fact]
     public void FocusFloatingOrTilingUnderFullscreen()
     {
         var desk = new Desk("""

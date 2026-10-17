@@ -32,6 +32,9 @@ public sealed record SessionOptions
     /// <summary><c>misc:initial_workspace_token_timeout</c>: seconds a started program has to open its window, with tracking 1.</summary>
     public int InitialWorkspaceTokenTimeout { get; init; } = 10;
 
+    /// <summary><c>misc:on_focus_under_fullscreen</c>: 0 keeps the fullscreen Client focused, 1 hands it over, 2 ends it.</summary>
+    public int OnFocusUnderFullscreen { get; init; } = 2;
+
     public static SessionOptions Documented { get; } = new();
 
     // Adding an entry here applies that keyword and stops the config warning.
@@ -47,7 +50,17 @@ public sealed record SessionOptions
         ["misc:initial_workspace_tracking"] = (options, value) => int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var tracking) ? options with { InitialWorkspaceTracking = Math.Clamp(tracking, 0, 2) } : options,
         ["misc:initial_workspace_token_timeout"] = (options, value) => int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var timeout) ? options with { InitialWorkspaceTokenTimeout = Math.Clamp(timeout, 1, 3600) } : options,
         ["misc:disable_autoreload"] = (options, value) => TryParseBool(value, out var disable) ? options with { DisableAutoreload = disable } : options,
+        ["misc:on_focus_under_fullscreen"] = (options, value) => UnderFullscreen(value) is int mode ? options with { OnFocusUnderFullscreen = mode } : options,
         ["misc:size_limits_tiled"] = (options, value) => TryParseBool(value, out var tiled) ? options with { SizeLimitsTiled = tiled } : options,
+    };
+
+    private static int? UnderFullscreen(string value) => value.Trim() switch
+    {
+        "ignore" => 0,
+        "take_over" => 1,
+        "exit_fullscreen" => 2,
+        var number when int.TryParse(number, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var mode) && mode is >= 0 and <= 2 => mode,
+        _ => null,
     };
 
     internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);

@@ -28,8 +28,8 @@ public class FullscreenFocusTests
     public void AMaximizedClientTakesTheFocusWhenThePointerIsOverIt()
     {
         var core = Desk();
-        core.Handle(new WindowMaximizeRequested(new WindowId(2)));
         core.Handle(new Dispatch("focuswindow", "address:0x1"));
+        core.Handle(new WindowMaximizeRequested(new WindowId(2)));
         Assert.Equal("\"address\":\"0x1\"", Address(core));
 
         Move(core, new Point(300, 500), 1_000);
@@ -47,6 +47,20 @@ public class FullscreenFocusTests
         var over = Move(core, new Point(300, 500), 1_100);
 
         Assert.Equal(new WindowId(1), over.Focus);
+    }
+
+    [Theory]
+    [InlineData("", 2)]
+    [InlineData("misc:on_focus_under_fullscreen = ignore", 0)]
+    [InlineData("misc:on_focus_under_fullscreen = take_over", 1)]
+    [InlineData("misc:on_focus_under_fullscreen = exit_fullscreen", 2)]
+    [InlineData("misc:on_focus_under_fullscreen = 1", 1)]
+    [InlineData("misc:on_focus_under_fullscreen = 3", 2)]
+    public void OnFocusUnderFullscreenReadsANumberOrAName(string line, int expected)
+    {
+        var session = SessionOptions.From(ConfigParser.Parse(line));
+
+        Assert.Equal(expected, session.OnFocusUnderFullscreen);
     }
 
     private static Core Desk()

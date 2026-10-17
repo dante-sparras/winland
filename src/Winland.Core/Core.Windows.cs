@@ -148,6 +148,8 @@ public sealed partial class Core
             tiledLimits: RememberSizes(appeared.Window, decision.Sizes, appeared.Traits.MinSize, appeared.Traits.MaxSize));
         if (decision.FullscreenRequest is { } fullscreen)
             placements = desk.Layout.SetFullscreen(appeared.Window, fullscreen.Internal, fullscreen.Client);
+        else
+            placements = OpenUnderFullscreen(desk, appeared.Window, placements);
 
         // A window joins the Group focused when it opened even when it swallows its parent, as in the pinned
         // release. Only a window that took its parent's place in a Group stays out of the focused one.
