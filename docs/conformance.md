@@ -105,10 +105,10 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | issue14134 | passes | |
 | window | specialFloatRecenters | differs | A floating Client moved off its Monitor stays there when its special workspace is shown. The pinned release centers it. |
 | window | exactWindowSelectors | differs | A stableid: window selector matches no Client. |
-| window | windows | differs | A w[tv1] workspace rule is matched before a new window is counted, and getprop does not read min_size or max_size. |
+| window | windows | differs | The border_size window rule and its workspace match are not honored, and getprop does not read min_size or max_size. |
 | window | cycle_nextTiled | differs | cyclenext is not a dispatcher. |
 | window | cycle_nextFloating | differs | cyclenext is not a dispatcher. |
-| window | discussion14233 | differs | The border_size window rule is not honored, and a w[tv1] workspace rule is matched before a new window is counted. |
+| window | discussion14233 | differs | The border_size window rule and its workspace match are not honored. |
 | window | execRulesWorkspaceOverride | passes | |
 | window | execRulesTagMutation | passes | |
 | window | execRulesDescendantProcess | differs | getprop and setprop do not honor no_focus or border_size. |
@@ -148,8 +148,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | moveintoorcreategroup | moveIntoOrCreateGroup | passes | |
 | moveintoorcreategroup | crossMonitorGroupJoin | differs | moveintoorcreategroup does not find a Client on another Monitor, so the Client stays in its own Group. The pinned release looks for the neighbour across Monitors. |
 | workspaces | workspacesCombined | differs | binds:movefocus_cycles_fullscreen and general:no_focus_fallback are Gaps. movewindow r does not carry the rightmost tile onto the next Monitor, and getprop does not answer border_size or rounding. |
-| workspaces | workspacesFollowProperNoGaps | differs | A w[tv1] workspace rule is not applied when the first Client opens on a Workspace. The bordersize window rule and the onworkspace match are not honored. |
-| workspaces | workspacesSmartGapsDirectionalMoveAcrossMonitors | differs | A w[tv1] workspace rule is not applied when the first Client opens on a Workspace, and the bordersize window rule is not honored. movewindow r does not carry the rightmost tile onto the next Monitor. |
+| workspaces | workspacesFollowProperNoGaps | differs | The bordersize window rule and the onworkspace match are not honored. |
+| workspaces | workspacesSmartGapsDirectionalMoveAcrossMonitors | differs | The bordersize window rule is not honored, and movewindow r does not carry the rightmost tile onto the next Monitor. |
 | workspaces | workspaceRenameChangeID | differs | There is no dispatcher that changes a Workspace's id, and renameworkspace is not a dispatcher. |
 | workspaces | workspaceRenameEmitsGlobalEvent | differs | renameworkspace is not a dispatcher. A Workspace keeps the name it was created with. |
 | workspaces | windowAtExplicitWorkspace | not ported | The case calls a hit test on a hidden Workspace through the reference's test plugin, which no command reaches. |
@@ -178,7 +178,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | master | centerMasterColumnResize | passes | |
 | master | masterCenterDropAtCursor | passes | |
 | master | masterDropAtCursor | passes | |
-| monocle | monocleWorkspaceRule | differs | A w[] workspace rule is not matched again when a Client opens, and closing the shown Client in monocle shows the first Client, not the one focused last. |
+| monocle | monocleWorkspaceRule | differs | Closing the shown Client in monocle shows the first Client, not the one focused last. |
 | monocle | monocleFullscreenMaximiseDispatchers | differs | fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off. |
 | monocle | monocleTestFsFocusUnderFSWindow | differs | misc:on_focus_under_fullscreen is a Gap, and maximize does not leave gaps_out and the border around the Client. |
 | monocle | monocleNewWindowTakesOverFullscreen | differs | misc:on_focus_under_fullscreen is a Gap. |

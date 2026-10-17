@@ -447,7 +447,7 @@ public class WindowConformance
         Assert.Equal("kitty_B", desk.ActiveClass());
     }
 
-    [Fact(Skip = "A w[tv1] workspace rule is matched before a new window is counted, and getprop does not read min_size or max_size.")]
+    [Fact(Skip = "The border_size window rule and its workspace match are not honored, and getprop does not read min_size or max_size.")]
     public void Windows()
     {
         var desk = new Desk(SmartGaps + "\n" + TagRules);
@@ -710,7 +710,7 @@ public class WindowConformance
         Assert.Equal("b", desk.ActiveClass());
     }
 
-    [Fact(Skip = "The border_size window rule is not honored, and a w[tv1] workspace rule is matched before a new window is counted.")]
+    [Fact(Skip = "The border_size window rule and its workspace match are not honored.")]
     public void Discussion14233()
     {
         var desk = new Desk("""

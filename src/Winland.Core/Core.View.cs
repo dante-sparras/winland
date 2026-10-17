@@ -229,6 +229,9 @@ public sealed partial class Core
         bool allowsElevation = false,
         bool focusRevealed = false)
     {
+        // A w[] workspace rule counts the Clients, so a Client that opens, closes, floats or moves can match another
+        // rule. The pinned release reads its rules again whenever a window changes its workspace's layout.
+        placements = Restamp(desk, placements);
         var showList = new List<WindowId>(show ?? []);
         var hideList = new List<WindowId>(hide ?? []);
         desk.Collect(covered, showList, hideList);
