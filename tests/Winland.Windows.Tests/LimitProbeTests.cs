@@ -51,7 +51,9 @@ public class LimitProbeTests
             AssertClose(ProbeNative.Visible(probe.Anchor), anchorBox, "anchor");
 
             var bounds = new Rectangle(80, 90, 200, 150);
-            var centered = new Rectangle(860, 465, 200, 150);
+            // It floats at the tile it would have taken, held to its maximum, in the middle of the area.
+            var small = smallLimits.Max.Value;
+            var centered = new Rectangle((area.Width - small.Width) / 2, (area.Height - small.Height) / 2, small.Width, small.Height);
             var floated = core.Handle(new WindowAppeared(new WindowId(smallId), area)
             {
                 Traits = WindowTraits.Normal with { MinSize = smallLimits.Min, MaxSize = smallLimits.Max },
