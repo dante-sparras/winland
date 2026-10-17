@@ -898,7 +898,7 @@ public class ScrollConformance
         Assert.True(ActiveX(desk) >= 0);
     }
 
-    [Fact(Skip = "movefocus scrolls the strip even with scrolling:follow_focus false.")]
+    [Fact]
     public void TestScrollingViewBehaviourMoveFocusFollowFocusFalse()
     {
         var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");

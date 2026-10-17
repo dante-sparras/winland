@@ -188,9 +188,14 @@ internal sealed partial class ScrollingLayout
             return next is not null;
         }
 
-        CenterOrFit(neighbor);
-        Recalculate();
-        _moved = true;
+        // movefocus scrolls to the column only with scrolling:follow_focus, as in the pinned release. layoutmsg focus always does.
+        if (wrap || _scrolling.FollowFocus)
+        {
+            CenterOrFit(neighbor);
+            Recalculate();
+            _moved = true;
+        }
+
         next = Remember(neighbor, target);
         return next is not null;
     }

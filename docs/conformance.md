@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-157 of 197 ported cases pass.
+158 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -77,7 +77,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse | passes | |
 | scroll | testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue | differs | scrolling:follow_min_visible also holds back the focus moveintogroup gives. The pinned release applies it only to pointer focus. |
 | scroll | testScrollingViewBehaviourNewLayer | not ported | The case opens a layer shell surface, which has no Windows meaning. |
-| scroll | testScrollingViewBehaviourMoveFocusFollowFocusFalse | differs | movefocus scrolls the strip even with scrolling:follow_focus false. |
+| scroll | testScrollingViewBehaviourMoveFocusFollowFocusFalse | passes | |
 | scroll | testScrollingViewBehaviourMoveFocusFollowFocusTrue | passes | |
 | scroll | testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse | passes | |
 | scroll | testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue | differs | scrolling:follow_min_visible also holds back the focus moveintogroup and movefocus give inside a Group. The pinned release applies it only to pointer focus. |
