@@ -26,8 +26,13 @@ public sealed class BindSession
     internal readonly Dictionary<string, List<Bind>> HeldBack = new(StringComparer.OrdinalIgnoreCase);
     internal readonly Dictionary<string, List<Bind>> Suppressed = new(StringComparer.OrdinalIgnoreCase);
     internal readonly Dictionary<string, List<Bind>> Armed = new(StringComparer.OrdinalIgnoreCase);
+    // Release binds on one key that a held key already fully matches when another key is caught or let go. They do not
+    // run on that key's release.
+    internal readonly HashSet<Bind> Shadowed = new(ReferenceEqualityComparer.Instance);
     // The modifiers each held key or button went down under. Its release binds match against them.
     internal readonly Dictionary<string, Modifier> PressedUnder = new(StringComparer.OrdinalIgnoreCase);
+    // The scan code each held key went down with.
+    internal readonly Dictionary<string, int> ScanCodes = new(StringComparer.OrdinalIgnoreCase);
     internal Modifier Held;
     internal bool Inhibited;
     internal Point Pointer;
@@ -45,6 +50,8 @@ public sealed class BindSession
     private readonly Dictionary<string, (string Submap, Point Anchor)> _pressedButtons = new(StringComparer.OrdinalIgnoreCase);
 
     public void Inhibit(bool inhibited) => Inhibited = inhibited;
+
+    internal int ScanCodeOf(string key) => ScanCodes.TryGetValue(key, out var code) ? code : 0;
 
     internal void Remember(string key, bool mouse) =>
         Pressed(mouse)[key] = (Submap, Pointer);

@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-93 of 197 ported cases pass.
+94 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -271,7 +271,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | gestures | gestures | differs | Only the workspace gesture action is honored. |
 | keybinds | keybinds | differs | Per-device binds are not honored. |
 | keybinds | orderedSubChordDeferral | passes | |
-| keybinds | modifierReleaseBindShadowing | differs | A release bind on a modifier key still runs after another bind used that modifier. The pinned release skips it. |
+| keybinds | modifierReleaseBindShadowing | passes | |
 | keybinds | luaDispatcherStrings | not ported | It reads the handler of a bind as a Lua value, which is Lua-only. |
 | keyboard_input | pluginKeyboardEventHandler | not ported | It checks a keyboard event handler registered through the C++ plugin interface, which has no core form. |
 | keyboard_input | orderedChordConsumption | passes | |
