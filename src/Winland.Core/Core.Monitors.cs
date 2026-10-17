@@ -166,7 +166,9 @@ public sealed partial class Core
 
     // The window after or before this one on its Workspace in the order they opened, wrapping around, as the
     // pinned release cycles. A hidden Group member, a minimized window and one with nofocus are passed over.
-    private WindowId? CycleFrom(LiveWorkspace desk, WindowId current, bool previous)
+    // The next window on the Workspace in the order the windows opened, as the pinned release's window cycle walks
+    // them. floating, when given, takes only floating windows or only tiles.
+    private WindowId? CycleFrom(LiveWorkspace desk, WindowId current, bool previous, bool? floating = null)
     {
         var clients = desk.Layout.Clients;
         var start = -1;
@@ -186,6 +188,9 @@ public sealed partial class Core
                 : (start + step) % clients.Count;
             var client = clients[index];
             if (client.Minimized || HasNoFocus(client.Window) || desk.GroupOf(client.Window) is WindowGroup group && group.Shown != client.Window)
+                continue;
+
+            if (floating is bool wanted && client.Floating != wanted)
                 continue;
 
             return client.Window;

@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-123 of 197 ported cases pass.
+125 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -106,8 +106,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | specialFloatRecenters | differs | A floating Client moved off its Monitor stays there when its special workspace is shown. The pinned release centers it. |
 | window | exactWindowSelectors | differs | A stableid: window selector matches no Client. |
 | window | windows | differs | The border_size window rule and its workspace match are not honored, and getprop does not read min_size or max_size. |
-| window | cycle_nextTiled | differs | cyclenext is not a dispatcher. |
-| window | cycle_nextFloating | differs | cyclenext is not a dispatcher. |
+| window | cycle_nextTiled | passes | |
+| window | cycle_nextFloating | passes | |
 | window | discussion14233 | differs | The border_size window rule and its workspace match are not honored. |
 | window | execRulesWorkspaceOverride | passes | |
 | window | execRulesTagMutation | passes | |

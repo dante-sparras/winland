@@ -668,7 +668,7 @@ public class WindowConformance
         // The rest of the case checks a window rule registered by the test plugin, which a core test cannot load.
     }
 
-    [Fact(Skip = "cyclenext is not a dispatcher.")]
+    [Fact]
     public void CycleNextTiled()
     {
         var desk = new Desk();
@@ -690,7 +690,7 @@ public class WindowConformance
         Assert.Equal("b", desk.ActiveClass());
     }
 
-    [Fact(Skip = "cyclenext is not a dispatcher.")]
+    [Fact]
     public void CycleNextFloating()
     {
         var desk = new Desk();

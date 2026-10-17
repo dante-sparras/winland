@@ -207,6 +207,8 @@ A window selector `tag:` parses and matches no Client. Window tags are not track
 
 `killwindow` ends the process that owns the Client, read from the window again when the kill runs. A Store app's frame belongs to ApplicationFrameHost, which hosts every Store app, so its Client's process, `pid` in `clients` and the `pid:` selector are the app hosted in the frame. ApplicationFrameHost itself is never ended: a frame that hosts no app is left alone.
 
+`cyclenext` focuses the next Client on the focused Client's Workspace, in the order the Clients opened, and wraps around, as in the pinned release. `prev` goes the other way. `tiled` or `floating` alone takes only that kind of Client, and both or neither take either. Minimized Clients, hidden Group members and `nofocus` Clients are skipped. `tiled` from a tile in master or monocle runs that Layout's `cyclenext` or `cycleprev` instead. With nothing focused, the first Client on the focused Monitor's Workspace takes focus. Other words are ignored.
+
 `swapwindow` exchanges two Clients that share a Workspace. A selector that matches a Client on another Workspace does not swap.
 
 `dpms` asks for display power on, off, or toggled. An empty monitor list addresses every display. A monitor name that matches none of the enabled monitors still addresses every enabled monitor. The adapter posts `SC_MONITORPOWER` to Winland's own window, which turns every display off or on together, and does not wait for any other window. Turning the displays on also sends a zero mouse move, because Windows does not reliably honor the "on" command. Tests do not send either.
