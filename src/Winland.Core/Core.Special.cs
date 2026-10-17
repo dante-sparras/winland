@@ -68,6 +68,41 @@ public sealed partial class Core
         return new WorkspaceId("special:" + suffix);
     }
 
+    // A floating Client whose middle is off the Monitor a special workspace opens on is brought onto it, as in the
+    // pinned release: by the offset between the Monitors when its middle is on another one, else to the middle.
+    private void BringFloatingOnto(LiveWorkspace desk, MonitorId monitor)
+    {
+        if (MonitorById(monitor) is not { Effective.Enabled: true } screen)
+            return;
+
+        var here = screen.Bounds;
+        foreach (var client in desk.Layout.Clients)
+        {
+            if (!client.Floating || client.Minimized || !desk.Layout.TryBounds(client.Window, out var box))
+                continue;
+
+            var middle = new Point(box.X + (box.Width / 2), box.Y + (box.Height / 2));
+            if (Holds(here, middle))
+                continue;
+
+            Rectangle? holder = null;
+            foreach (var other in _monitors)
+            {
+                if (other.Effective.Enabled && Holds(other.Bounds, middle))
+                    holder = other.Bounds;
+            }
+
+            var moved = holder is Rectangle from
+                ? box with { X = box.X - from.X + here.X, Y = box.Y - from.Y + here.Y }
+                : box with { X = here.X + (here.Width / 2) - (box.Width / 2), Y = here.Y + (here.Height / 2) - (box.Height / 2) };
+            _ = desk.Layout.PlaceFloating(client.Window, moved);
+        }
+    }
+
+    // Edges count as inside, as the pinned release tests a point against a Monitor.
+    private static bool Holds(Rectangle bounds, Point point) =>
+        point.X >= bounds.X && point.X <= bounds.X + bounds.Width && point.Y >= bounds.Y && point.Y <= bounds.Y + bounds.Height;
+
     private Outcome OpenSpecial(WorkspaceId target, WindowId? focus, string? dispatcher, bool allowsElevation)
     {
         var monitor = FocusedId();
@@ -103,6 +138,7 @@ public sealed partial class Core
         }
 
         SetSpecial(monitor, target);
+        BringFloatingOnto(desk, monitor);
         foreach (var window in VisibleIds(target))
         {
             if (!hide.Contains(window))

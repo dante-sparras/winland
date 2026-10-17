@@ -399,7 +399,7 @@ public class WindowConformance
         Assert.Empty(desk.Clients());
     }
 
-    [Fact(Skip = "A floating Client moved off its Monitor stays there when its special workspace is shown. The pinned release centers it.")]
+    [Fact]
     public void SpecialFloatRecenters()
     {
         var desk = new Desk();
