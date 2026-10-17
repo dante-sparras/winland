@@ -23,6 +23,10 @@ public sealed partial class Core
     // Where that switch puts the cursor when no cursor option warps it elsewhere.
     private WarpTo? _crossMonitorWarp;
 
+    // binds:pass_mouse_when_bound: a mouse button that runs a bind still reaches the window under the pointer. The
+    // hook thread reads it outside the lock.
+    private volatile bool _passMouseWhenBound;
+
     private void ReadBinds(ConfigDocument document)
     {
         _monitorFallback = true;
@@ -31,8 +35,12 @@ public sealed partial class Core
         _allowWorkspaceCycles = false;
         _dragCenterWindow = true;
         _workspaceCenterOn = 1;
+        _passMouseWhenBound = false;
         foreach (var setting in document.Settings)
         {
+            if (setting.Keyword == "binds:pass_mouse_when_bound" && ConfigValueSyntax.TryParseBool(setting.Value, out var passMouse))
+                _passMouseWhenBound = passMouse;
+
             if (setting.Keyword == "binds:workspace_center_on"
                 && int.TryParse(setting.Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var centerOn))
                 _workspaceCenterOn = Math.Clamp(centerOn, 0, 1);

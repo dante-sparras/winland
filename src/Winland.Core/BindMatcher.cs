@@ -51,6 +51,7 @@ public static class BindMatcher
         "binds:drag_center_window",
         "binds:drag_threshold",
         "binds:focus_preferred_method",
+        "binds:pass_mouse_when_bound",
         "binds:scroll_event_delay",
         "binds:window_direction_monitor_fallback",
         "binds:workspace_back_and_forth",
