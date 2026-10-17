@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-150 of 197 ported cases pass.
+151 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -103,7 +103,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | contentWindowRules | passes | |
 | window | issue14038 | passes | |
 | window | issue14134 | passes | |
-| window | specialFloatRecenters | differs | A floating Client moved off its Monitor stays there when its special workspace is shown. The pinned release centers it. |
+| window | specialFloatRecenters | passes | |
 | window | exactWindowSelectors | passes | |
 | window | windows | passes | |
 | window | cycle_nextTiled | passes | |
