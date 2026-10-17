@@ -28,6 +28,7 @@ public enum WindowRuleEffect
     Group,
     Prop,
     Tag,
+    Content,
 }
 
 public sealed record WindowRule(
@@ -47,7 +48,7 @@ public sealed record WindowRule(
     string? Group = null,
     IReadOnlyDictionary<string, object>? Props = null,
     IReadOnlyList<RuleMatch>? Dynamic = null,
-    string? Tag = null);
+    string? Text = null);
 
 /// <summary>What a window rule matches on that can change while the window lives.</summary>
 public enum RuleMatchKind
@@ -62,6 +63,7 @@ public enum RuleMatchKind
     FullscreenStateClient,
     Workspace,
     Tag,
+    Content,
 }
 
 /// <summary>One match on a window's state, such as <c>float:1</c> or <c>workspace:w[tv1]</c>.</summary>
@@ -79,7 +81,8 @@ internal readonly record struct RuleSubject(
     bool Focused,
     bool Grouped,
     Func<string, bool> OnWorkspace,
-    Func<string, bool> Tagged);
+    Func<string, bool> Tagged,
+    int Content = 0);
 
 /// <summary>
 /// The argument of a <c>move</c>, <c>size</c>, <c>monitor</c> or <c>no_close_for</c> rule.
@@ -114,7 +117,8 @@ internal readonly record struct WindowDecision(
     MapPlacement Placement = default,
     GroupRuleFlags Group = GroupRuleFlags.None,
     SizeRule Sizes = default,
-    IReadOnlyDictionary<string, object>? Props = null);
+    IReadOnlyDictionary<string, object>? Props = null,
+    int Content = 0);
 
 /// <summary>
 /// What the min_size, max_size and no_max_size window rules ask of a Client. A floating Client keeps the rule's sizes in

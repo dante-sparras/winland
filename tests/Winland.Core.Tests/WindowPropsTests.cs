@@ -228,4 +228,26 @@ public class WindowPropsTests
 
     private static WindowId? Find(Core core, string selector) =>
         core.Execute($"dispatch focuswindow {selector}").Text == "ok" ? new WindowId(1) : null;
+
+    [Theory]
+    [InlineData("game", 3, "game")]
+    [InlineData("2", 2, "video")]
+    [InlineData("7", 0, "none")]
+    [InlineData("cinema", 0, "none")]
+    public void AContentTypeReadsANumberOrAName(string text, int type, string name)
+    {
+        Assert.Equal(type, ContentTypes.FromString(text));
+        Assert.Equal(name, ContentTypes.Name(type));
+    }
+
+    [Fact]
+    public void AContentRuleIsMatchedByNameAndNumber()
+    {
+        var core = new Core(ConfigParser.Parse("windowrulev2 = content photo, class:.*\nwindowrulev2 = opacity 0.5, content:1\nwindowrulev2 = rounding 3, content:photo\n"));
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+
+        Assert.Contains("\"contentType\":\"photo\"", core.Execute("j/clients").Text, StringComparison.Ordinal);
+        Assert.Equal("0.5", core.Execute("getprop active opacity").Text);
+        Assert.Equal("3", core.Execute("getprop active rounding").Text);
+    }
 }

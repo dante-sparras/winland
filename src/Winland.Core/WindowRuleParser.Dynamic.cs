@@ -20,6 +20,7 @@ internal static partial class WindowRuleParser
         ["workspace"] = RuleMatchKind.Workspace,
         ["onworkspace"] = RuleMatchKind.Workspace,
         ["tag"] = RuleMatchKind.Tag,
+        ["content"] = RuleMatchKind.Content,
     };
 
     private static bool TryParseDynamicMatch(string text, out RuleMatch match)
@@ -57,6 +58,9 @@ internal static partial class WindowRuleParser
                 RuleMatchKind.FullscreenStateClient => LeadingInteger(match.Value) == state.FullscreenClient,
                 RuleMatchKind.Workspace => state.OnWorkspace(match.Value),
                 RuleMatchKind.Tag => state.Tagged(match.Value),
+                // As the pinned release reads it, the pattern matches the type's number or its name.
+                RuleMatchKind.Content => Matches(match.Value, state.Content.ToString(CultureInfo.InvariantCulture))
+                    || Matches(match.Value, ContentTypes.Name(state.Content)),
                 _ => false,
             };
 
@@ -95,7 +99,7 @@ internal static partial class WindowRuleParser
         var tags = new List<string>();
         foreach (var rule in rules)
         {
-            if (rule.Effect == WindowRuleEffect.Tag && rule.Tag is string tag && Matches(rule, traits) && MatchesState(rule, subject))
+            if (rule.Effect == WindowRuleEffect.Tag && rule.Text is string tag && Matches(rule, traits) && MatchesState(rule, subject))
                 tags.Add(tag);
         }
 

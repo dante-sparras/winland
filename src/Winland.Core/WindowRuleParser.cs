@@ -58,7 +58,7 @@ internal static partial class WindowRuleParser
             }
         }
 
-        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement, TagOr(effect, group, out var tag), props, dynamic, tag);
+        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement, TextOr(effect, group, out var ruleText), props, dynamic, ruleText);
         return true;
     }
 
@@ -68,15 +68,15 @@ internal static partial class WindowRuleParser
         if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out var placement, out var group, out var props, out error))
             return false;
 
-        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, ScrollingWidth: scrollingWidth, Opacity: opacity, Fullscreen: fullscreen, IdleInhibit: idle, Placement: placement, Group: TagOr(effect, group, out var tag), Props: props, Tag: tag);
+        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, ScrollingWidth: scrollingWidth, Opacity: opacity, Fullscreen: fullscreen, IdleInhibit: idle, Placement: placement, Group: TextOr(effect, group, out var ruleText), Props: props, Text: ruleText);
         return true;
     }
 
-    // A tag rule's argument is its tag, and any other rule's is its group options.
-    private static string? TagOr(WindowRuleEffect effect, string? argument, out string? tag)
+    // A tag or content rule's argument is its text, and any other rule's is its group options.
+    private static string? TextOr(WindowRuleEffect effect, string? argument, out string? text)
     {
-        tag = effect == WindowRuleEffect.Tag ? argument : null;
-        return tag is null ? argument : null;
+        text = effect is WindowRuleEffect.Tag or WindowRuleEffect.Content ? argument : null;
+        return text is null ? argument : null;
     }
 
     internal static WindowDecision Decide(WindowTraits traits, IReadOnlyList<WindowRule> rules, RuleSubject? subject = null)
@@ -101,6 +101,7 @@ internal static partial class WindowRuleParser
         var placement = default(MapPlacement);
         var group = GroupRuleFlags.None;
         Dictionary<string, object>? props = null;
+        var content = 0;
         foreach (var rule in rules)
         {
             if (!Matches(rule, traits) || !MatchesState(rule, subject))
@@ -177,6 +178,9 @@ internal static partial class WindowRuleParser
                 case WindowRuleEffect.Group:
                     group = GroupRules.Parse(rule.Group);
                     break;
+                case WindowRuleEffect.Content:
+                    content = ContentTypes.FromString(rule.Text ?? "");
+                    break;
                 default:
                     placement = Place(placement, rule);
                     break;
@@ -203,7 +207,8 @@ internal static partial class WindowRuleParser
             placement,
             group,
             sizes,
-            props);
+            props,
+            content);
     }
 
     private static bool TryParseEffect(
@@ -285,14 +290,15 @@ internal static partial class WindowRuleParser
                 error = "";
                 return true;
             case "tag":
+            case "content":
                 if (argument is null)
                 {
                     error = "Malformed window rule.";
                     return false;
                 }
 
-                // The tag rides in the group argument until the rule is built.
-                effect = WindowRuleEffect.Tag;
+                // The tag or content type rides in the group argument until the rule is built.
+                effect = name == "tag" ? WindowRuleEffect.Tag : WindowRuleEffect.Content;
                 group = argument;
                 error = "";
                 return true;

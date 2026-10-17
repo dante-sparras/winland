@@ -133,7 +133,7 @@ public class LaunchTests
     [Fact]
     public void UnknownExecEffectsWarnAndTheCommandStillLaunches()
     {
-        var outcome = new Core().Dispatch("exec", "[float; suppress_event maximize; content game] cmd", allowsElevation: true);
+        var outcome = new Core().Dispatch("exec", "[float; suppress_event maximize; confine_pointer] cmd", allowsElevation: true);
 
         Assert.NotNull(outcome.Launch);
         Assert.Equal("cmd", outcome.Launch.CommandLine);
@@ -141,7 +141,7 @@ public class LaunchTests
         Assert.Equal(
             [
                 new ConfigWarned(0, "Unsupported window rule 'suppress_event'.", null),
-                new ConfigWarned(0, "Unsupported window rule 'content'.", null),
+                new ConfigWarned(0, "Unsupported window rule 'confine_pointer'.", null),
             ],
             outcome.Events.OfType<ConfigWarned>());
     }
@@ -200,13 +200,13 @@ public class LaunchTests
     public void StartupHonorsKnownRulesAndWarnsOnUnknownOnes()
     {
         var document = ConfigParser.Parse(
-            "exec = [float; workspace 2; content game] kitty\n" +
+            "exec = [float; workspace 2; confine_pointer] kitty\n" +
             "exec-once = notepad\n" +
             "exec = [float; workspace] broken\n");
 
         Assert.Equal(
             [
-                new ConfigWarning(1, "Unsupported window rule 'content'."),
+                new ConfigWarning(1, "Unsupported window rule 'confine_pointer'."),
                 new ConfigWarning(3, "Malformed window rule."),
             ],
             document.Warnings);
