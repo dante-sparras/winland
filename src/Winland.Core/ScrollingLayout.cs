@@ -87,7 +87,8 @@ internal sealed partial class ScrollingLayout : Layout
         string initialClass = "",
         string initialTitle = "",
         Size? minSize = null,
-        Size? maxSize = null)
+        Size? maxSize = null,
+        TiledLimits? tiledLimits = null)
     {
         _ = pointer;
         _ = minSize;
@@ -102,7 +103,7 @@ internal sealed partial class ScrollingLayout : Layout
             return [];
 
         _natural[id] = bounds;
-        _limits[id] = new SizeLimits(minSize, maxSize);
+        _limits[id] = new SizeLimits(minSize, maxSize) { Tiled = tiledLimits };
         var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
         _floating.Remember(id, placed);
 
@@ -219,20 +220,20 @@ internal sealed partial class ScrollingLayout : Layout
         double? width = _cells.TryGetValue(id, out var cell) && cell.Column is Column column
             ? column.Width
             : _suspended.TryGetValue(id, out var suspension) ? suspension.Column.Width : null;
-        taken = SlotHandover.Describe(client, bounds, limits.Min, limits.Max, width);
+        taken = SlotHandover.Describe(client, bounds, limits, width);
         Remove(window);
         return true;
     }
 
     // Column widths come from the tape, so a window's size limits do not change a tiled placement here.
     // They are kept so a later layout can still honor them. A floating Client is clamped to them.
-    public IReadOnlyList<Placement> UpdateLimits(WindowId window, Size? minSize, Size? maxSize)
+    public IReadOnlyList<Placement> UpdateLimits(WindowId window, Size? minSize, Size? maxSize, TiledLimits? tiledLimits = null)
     {
         var id = new ClientId(window.Value);
         if (_clients.FindIndex(client => client.Id == id) < 0)
             return [];
 
-        _limits[id] = new SizeLimits(minSize, maxSize);
+        _limits[id] = new SizeLimits(minSize, maxSize) { Tiled = tiledLimits };
         return _floating.Clamp(id, new SizeLimits(minSize, maxSize));
     }
 

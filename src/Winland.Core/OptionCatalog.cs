@@ -172,6 +172,10 @@ internal static class OptionCatalog
                 kind = "bool";
                 token = Bool(MonitorFallback(document));
                 return true;
+            case "misc:size_limits_tiled":
+                kind = "bool";
+                token = Bool(session.SizeLimitsTiled);
+                return true;
             case "misc:focus_on_activate":
                 kind = "bool";
                 token = Bool(session.FocusOnActivate);

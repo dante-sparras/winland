@@ -56,7 +56,7 @@ internal sealed partial class MasterLayout
 
     private int AlongNeed(Tile tile, bool vertical, bool atStart, bool atEnd)
     {
-        if (!_limits.TryGetValue(tile.Id, out var limits) || limits.Min is not { } min)
+        if (!_limits.TryGetValue(tile.Id, out var limits) || limits.ForTiles.Min is not { } min)
             return 0;
 
         var want = vertical ? min.Height : min.Width;

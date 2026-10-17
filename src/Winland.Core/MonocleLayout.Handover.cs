@@ -16,7 +16,7 @@ internal sealed partial class MonocleLayout
             ? floating
             : _natural.TryGetValue(from, out var natural) ? natural : default;
         _limits.TryGetValue(from, out var limits);
-        outgoing = SlotHandover.Describe(client, bounds, limits.Min, limits.Max);
+        outgoing = SlotHandover.Describe(client, bounds, limits);
 
         _clients[index] = SlotHandover.Rename(client, next, incoming);
         SlotHandover.Move(_tiled, from, to);
@@ -24,7 +24,7 @@ internal sealed partial class MonocleLayout
         _natural.Remove(from);
         _natural[to] = incoming.Bounds;
         _limits.Remove(from);
-        _limits[to] = new SizeLimits(incoming.MinSize, incoming.MaxSize);
+        _limits[to] = new SizeLimits(incoming.MinSize, incoming.MaxSize) { Tiled = incoming.TiledLimits };
         return true;
     }
 }

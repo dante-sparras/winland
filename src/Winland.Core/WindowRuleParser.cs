@@ -73,9 +73,8 @@ internal static partial class WindowRuleParser
         bool? noInitialFocus = null;
         bool? noFocus = null;
         bool? stayFocused = null;
-        var min = traits.MinSize;
-        var max = traits.MaxSize;
-        var maxFromRule = false;
+        Size? ruleMin = null;
+        Size? ruleMax = null;
         var suppressMax = false;
         double? scrollingWidth = null;
         OpacityRule? opacity = null;
@@ -119,11 +118,10 @@ internal static partial class WindowRuleParser
                     stayFocused = rule.Enabled;
                     break;
                 case WindowRuleEffect.MinSize:
-                    min = rule.Size;
+                    ruleMin = rule.Size;
                     break;
                 case WindowRuleEffect.MaxSize:
-                    max = rule.Size;
-                    maxFromRule = true;
+                    ruleMax = rule.Size;
                     break;
                 case WindowRuleEffect.NoMaxSize:
                     suppressMax = rule.Enabled;
@@ -161,9 +159,8 @@ internal static partial class WindowRuleParser
             }
         }
 
-        if (suppressMax && !maxFromRule)
-            max = null;
-
+        var sizes = new SizeRule(ruleMin, ruleMax, suppressMax);
+        var limits = sizes.Floating(traits.MinSize, traits.MaxSize);
         return new WindowDecision(
             adopt ?? Adopts(traits),
             floating ?? traits.Dialog,
@@ -171,8 +168,8 @@ internal static partial class WindowRuleParser
             noInitialFocus ?? false,
             noFocus ?? false,
             stayFocused ?? false,
-            min,
-            max,
+            limits.Min,
+            limits.Max,
             scrollingWidth,
             opacity,
             opaque ?? false,
@@ -180,7 +177,8 @@ internal static partial class WindowRuleParser
             pin ?? false,
             idle ?? IdleInhibitMode.None,
             placement,
-            group);
+            group,
+            sizes);
     }
 
     private static bool TryParseEffect(

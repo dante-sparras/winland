@@ -10,6 +10,10 @@ Issues are GitHub Issues on this repo. A bug or a task goes here when this repo'
 
 An issue labelled `ready-for-agent` is specified well enough for an agent to fix without asking: the behavior wanted, how to see it, and what is out of scope.
 
+A feature, and any intentional change to behavior, starts only after a maintainer comment approves the direction and the scope. The pull request links that comment. A link to the issue is not the approval.
+
+A substantial bug fix links an issue a maintainer has triaged. A very small fix for an obvious bug can skip the issue, and the pull request says why. `CONTRIBUTING.md` is the rule.
+
 ## Wayfinding
 
 Used by `/wayfinder`, and kept on disk, not on GitHub. The **map** is `.scratch/<effort>/map.md` (Notes, Decisions-so-far, Fog), with one **child** ticket per question in `issues/NN-<slug>.md`.

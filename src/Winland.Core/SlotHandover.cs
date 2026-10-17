@@ -7,7 +7,7 @@ namespace Winland;
 internal static class SlotHandover
 {
     /// <summary>What the Layout knew about the Client that leaves the slot.</summary>
-    public static Taken Describe(Client client, Rectangle bounds, Size? min, Size? max, double? scrollingWidth = null) =>
+    public static Taken Describe(Client client, Rectangle bounds, SizeLimits limits, double? scrollingWidth = null) =>
         new(
             client.Floating,
             client.Minimized,
@@ -17,9 +17,12 @@ internal static class SlotHandover
             client.ProcessId,
             client.InitialClass,
             client.InitialTitle,
-            min,
-            max,
-            scrollingWidth);
+            limits.Min,
+            limits.Max,
+            scrollingWidth)
+        {
+            TiledLimits = limits.Tiled,
+        };
 
     /// <summary>The slot's Client record, now naming <paramref name="next"/>.</summary>
     public static Client Rename(Client client, WindowId next, Taken incoming) =>

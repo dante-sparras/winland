@@ -192,7 +192,6 @@ public static class ConfigGaps
         new("misc:screencopy_force_8b", "Screen copy buffers have no Windows meaning."),
         new("misc:session_lock_blur", "The lock screen belongs to Windows."),
         new("misc:session_lock_xray", "The lock screen belongs to Windows."),
-        new("misc:size_limits_tiled", "A tiled window always keeps its minimum size, as with this option on. It cannot be turned off."),
         new("misc:splash_font_family", "There is no splash text."),
         new("mode", "Changing a monitor's resolution and refresh rate is not honored."),
         new("modal_parent_blocking", "Modal parent blocking is not honored."),

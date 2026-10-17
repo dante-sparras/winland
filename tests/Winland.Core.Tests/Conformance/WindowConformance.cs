@@ -447,7 +447,7 @@ public class WindowConformance
         Assert.Equal("kitty_B", desk.ActiveClass());
     }
 
-    [Fact(Skip = "A w[tv1] workspace rule is matched before a new window is counted, and misc:size_limits_tiled is not honored.")]
+    [Fact(Skip = "A w[tv1] workspace rule is matched before a new window is counted, and getprop does not read min_size or max_size.")]
     public void Windows()
     {
         var desk = new Desk(SmartGaps + "\n" + TagRules);

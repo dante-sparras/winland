@@ -75,4 +75,23 @@ internal readonly record struct WindowDecision(
     bool Pin = false,
     IdleInhibitMode IdleInhibit = IdleInhibitMode.None,
     MapPlacement Placement = default,
-    GroupRuleFlags Group = GroupRuleFlags.None);
+    GroupRuleFlags Group = GroupRuleFlags.None,
+    SizeRule Sizes = default);
+
+/// <summary>
+/// What the min_size, max_size and no_max_size window rules ask of a Client. A floating Client keeps the rule's sizes in
+/// place of the window's own. A tiled Client keeps them only with <c>misc:size_limits_tiled</c>, as in the pinned release.
+/// </summary>
+internal readonly record struct SizeRule(Size? Min, Size? Max, bool NoMax)
+{
+    /// <summary>The limits a floating Client keeps, given the window's own.</summary>
+    public SizeLimits Floating(Size? ownMin, Size? ownMax) =>
+        new(Min ?? ownMin, Max ?? (NoMax ? null : ownMax));
+
+    /// <summary>The limits a tiled Client keeps, given the window's own.</summary>
+    public TiledLimits Tiled(Size? ownMin, Size? ownMax, bool sizeLimitsTiled)
+    {
+        var limits = sizeLimitsTiled ? Floating(ownMin, ownMax) : new SizeLimits(ownMin, NoMax ? null : ownMax);
+        return new TiledLimits(limits.Min, limits.Max);
+    }
+}

@@ -53,6 +53,7 @@ public sealed partial class Core
         _workspaceRules = document.WorkspaceRules;
         NoteConfigErrors(document);
         _rules = document.WindowRules;
+        var tiledBefore = _session.SizeLimitsTiled;
         _session = SessionOptions.From(document);
         _environment = document.Environment;
         InstallBinds(document);
@@ -65,6 +66,9 @@ public sealed partial class Core
         ReadCursor(document);
         ReadGestures(document);
         ReadBinds(document);
+        if (_session.SizeLimitsTiled != tiledBefore)
+            RefreshTiledLimits();
+
         var active = FocusedWorkspace();
         var covered = active.Covered();
         foreach (var desk in _workspaces)

@@ -32,10 +32,14 @@ internal interface Layout
         string initialClass = "",
         string initialTitle = "",
         Size? minSize = null,
-        Size? maxSize = null);
+        Size? maxSize = null,
+        TiledLimits? tiledLimits = null);
 
-    /// <summary>Stores a Client's minimum and maximum and lays the Workspace out again.</summary>
-    IReadOnlyList<Placement> UpdateLimits(WindowId window, Size? minSize, Size? maxSize);
+    /// <summary>
+    /// Stores a Client's minimum and maximum and lays the Workspace out again. <paramref name="tiledLimits"/> are the
+    /// limits it keeps while tiled, when they differ.
+    /// </summary>
+    IReadOnlyList<Placement> UpdateLimits(WindowId window, Size? minSize, Size? maxSize, TiledLimits? tiledLimits = null);
 
     /// <summary>Drops a Client from this Workspace.</summary>
     IReadOnlyList<Placement> Remove(WindowId window);
@@ -179,4 +183,5 @@ internal readonly record struct Taken(
     Size? MaxSize = null,
     double? ScrollingWidth = null,
     FullscreenMode Fullscreen = FullscreenMode.None,
-    FullscreenMode FullscreenClient = FullscreenMode.None);
+    FullscreenMode FullscreenClient = FullscreenMode.None,
+    TiledLimits? TiledLimits = null);

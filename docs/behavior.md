@@ -14,6 +14,8 @@ A line that ends with a backslash is joined to the next line, so a value that en
 
 A tiled Client's minimum size moves a dwindle split or a master stack where the minimums fit, and the neighbour takes what remains. Each side keeps at least the share the smallest split ratio leaves it in dwindle, and a fifth of an even share in a master stack. Where they do not fit, the side that needs more takes all of that but the other side's share in dwindle, and a master stack keeps its even split, so no tile leaves the Monitor. A window cannot be smaller than its minimum, so a window below it grows around the middle of its tile and moves to stay inside the work area, over its neighbours, as the pinned release places a window with `misc:size_limits_tiled`. A minimum larger than the work area starts at its top left corner.
 
+`misc:size_limits_tiled` defaults to false. A `min_size` or `max_size` window rule then holds a Client only while it floats, as in the pinned release, and a tiled Client keeps the window's own minimum, which Windows enforces whatever the option says. True makes the rule's minimum hold a tiled Client too, as above. A maximum that cannot fill the tile floats the Client either way, the rule's or the window's own, as in the pinned release. When the window changes its own limits, a rule's minimum or maximum still wins over them.
+
 A window whose maximum size cannot fill the tile it would get floats instead of tiling. In master that tile is a share of the whole Monitor: a master needs the master fraction of its width and all of its height, and a slave needs the rest of the width and the height divided by one less than the number of tiles. This also holds when the Client is toggled back to tiled or dropped by a drag.
 
 ## Decoration

@@ -3,6 +3,16 @@ namespace Winland;
 /// <summary>A Client's minimum and maximum size. Either may be missing, and a zero or unbounded side is no limit.</summary>
 internal readonly record struct SizeLimits(Size? Min, Size? Max)
 {
+    /// <summary>
+    /// The limits a tiled Client keeps when they differ from <see cref="Min"/> and <see cref="Max"/>, which a floating
+    /// Client keeps. Without <c>misc:size_limits_tiled</c> a tiled Client keeps only the window's own limits, and the
+    /// minimum and maximum size window rules apply to it only while it floats.
+    /// </summary>
+    public TiledLimits? Tiled { get; init; }
+
+    /// <summary>The limits a tiled Client keeps.</summary>
+    public SizeLimits ForTiles => Tiled is { } tiled ? new SizeLimits(tiled.Min, tiled.Max) : this;
+
     /// <summary>The rectangle with its size kept inside the limits. Its top left corner does not move.</summary>
     public Rectangle Clamp(Rectangle bounds)
     {
@@ -53,3 +63,6 @@ internal readonly record struct SizeLimits(Size? Min, Size? Max)
         return new Rectangle(x, y, width, height);
     }
 }
+
+/// <summary>A tiled Client's minimum and maximum size, when they differ from its floating ones.</summary>
+internal readonly record struct TiledLimits(Size? Min, Size? Max);

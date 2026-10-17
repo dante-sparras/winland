@@ -224,7 +224,8 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
             initialClass: taken.InitialClass,
             initialTitle: taken.InitialTitle,
             minSize: taken.MinSize,
-            maxSize: taken.MaxSize);
+            maxSize: taken.MaxSize,
+            tiledLimits: taken.TiledLimits);
         if (taken.Fullscreen != FullscreenMode.None || taken.FullscreenClient != FullscreenMode.None)
             Layout.SetFullscreen(window, taken.Fullscreen, taken.FullscreenClient);
         if (taken.Minimized)
