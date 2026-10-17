@@ -155,7 +155,7 @@ public static class ConfigGaps
         new("locale", "Locale override is not honored."),
         new("mirror", "Mirroring a monitor is not honored."),
         new("misc:allow_session_lock_restore", "The lock screen belongs to Windows."),
-        new("misc:always_follow_on_dnd", "Focus following the pointer during drag and drop is not honored."),
+        new("misc:always_follow_on_dnd", "Windows tells no other program that a drag and drop is under way, so focus cannot follow the pointer only then."),
         new("misc:animate_manual_resizes", "A window moved or resized by hand moves at once."),
         new("misc:animate_mouse_windowdragging", "A window dragged with the pointer moves at once."),
         new("misc:anr_missed_pings", "Windows marks a hung window as not responding itself."),

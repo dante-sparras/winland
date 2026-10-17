@@ -159,7 +159,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 | locale | Locale override is not honored. |
 | mirror | Mirroring a monitor is not honored. |
 | misc:allow_session_lock_restore | The lock screen belongs to Windows. |
-| misc:always_follow_on_dnd | Focus following the pointer during drag and drop is not honored. |
+| misc:always_follow_on_dnd | Windows tells no other program that a drag and drop is under way, so focus cannot follow the pointer only then. |
 | misc:animate_manual_resizes | A window moved or resized by hand moves at once. |
 | misc:animate_mouse_windowdragging | A window dragged with the pointer moves at once. |
 | misc:anr_missed_pings | Windows marks a hung window as not responding itself. |
