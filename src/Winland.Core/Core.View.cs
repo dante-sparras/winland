@@ -56,12 +56,50 @@ public sealed partial class Core
         return Animate(
             outcome with
             {
-                Placements = BelowBars(outcome.Placements, outcome.State, bars),
+                Placements = WithHiddenMembers(BelowBars(outcome.Placements, outcome.State, bars)),
                 GroupBars = bars,
                 Decorations = decorations,
                 ResetDecorations = reset,
             },
             before);
+    }
+
+    // A hidden Group member takes the frame of the shown member whenever that one is placed, as in the pinned
+    // release, so it is already in place when the Group shows it. A hidden window stays hidden when it is moved.
+    private IReadOnlyList<Placement> WithHiddenMembers(IReadOnlyList<Placement> placements)
+    {
+        List<Placement>? added = null;
+        foreach (var desk in _workspaces)
+        {
+            foreach (var group in desk.Groups)
+            {
+                if (group.Members.Count < 2 || !TryPlacement(placements, new ClientId(group.Shown.Value), out var shown))
+                    continue;
+
+                foreach (var member in group.Members)
+                {
+                    if (member != group.Shown && desk.IsWaiting(member) && !TryPlacement(placements, new ClientId(member.Value), out _))
+                        (added ??= []).Add(new Placement(new ClientId(member.Value), shown));
+                }
+            }
+        }
+
+        return added is null ? placements : [.. placements, .. added];
+    }
+
+    private static bool TryPlacement(IReadOnlyList<Placement> placements, ClientId client, out Rectangle bounds)
+    {
+        foreach (var placement in placements)
+        {
+            if (placement.Client == client)
+            {
+                bounds = placement.Bounds;
+                return true;
+            }
+        }
+
+        bounds = default;
+        return false;
     }
 
     private Outcome View(

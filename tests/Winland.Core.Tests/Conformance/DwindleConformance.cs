@@ -188,7 +188,7 @@ public class DwindleConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "A hidden Group member keeps its last frame, where the pinned release gives it the shown member's fullscreen frame. A maximized floating Group member is not moved until the Group changes, and then covers the group bar.")]
+    [Fact(Skip = "A maximized floating Group member is not moved until the Group changes, and then covers the group bar.")]
     public void DwindleTestFsingGroupedWindows()
     {
         var desk = new Desk("""

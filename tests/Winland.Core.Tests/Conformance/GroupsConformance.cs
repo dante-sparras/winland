@@ -208,7 +208,7 @@ public class GroupsConformance
         desk.ExpectActive("22,43", "1876,1015");
     }
 
-    [Fact(Skip = "A hidden Group member keeps its last frame. The pinned release gives it the frame of the shown member.")]
+    [Fact]
     public void GroupbarDisableWhenOnlyDimensions()
     {
         var desk = new Desk("group:groupbar:disable_when_only = true\n");
