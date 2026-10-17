@@ -212,7 +212,7 @@ internal sealed partial class MasterLayout
     private Rectangle Present(Tile tile)
     {
         var presented = Present(tile.Box);
-        return _limits.TryGetValue(tile.Id, out var limits) ? limits.Raise(presented, TilingArea()) : presented;
+        return _limits.TryGetValue(tile.Id, out var limits) ? limits.ForTiles.Raise(presented, TilingArea()) : presented;
     }
 
     private Rectangle Present(Rectangle box)

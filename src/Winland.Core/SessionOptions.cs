@@ -20,6 +20,9 @@ public sealed record SessionOptions
     /// <summary>The title that keeps a parent Client from being swallowed. Empty excludes nothing.</summary>
     public string SwallowExceptionRegex { get; init; } = "";
 
+    /// <summary>Whether the minimum and maximum size window rules also hold a tiled Client, not only a floating one.</summary>
+    public bool SizeLimitsTiled { get; init; }
+
     public static SessionOptions Documented { get; } = new();
 
     // Adding an entry here applies that keyword and stops the config warning.
@@ -32,6 +35,7 @@ public sealed record SessionOptions
         ["misc:enable_swallow"] = (options, value) => TryParseBool(value, out var swallow) ? options with { EnableSwallow = swallow } : options,
         ["misc:swallow_regex"] = (options, value) => options with { SwallowRegex = Unset(value) },
         ["misc:swallow_exception_regex"] = (options, value) => options with { SwallowExceptionRegex = Unset(value) },
+        ["misc:size_limits_tiled"] = (options, value) => TryParseBool(value, out var tiled) ? options with { SizeLimitsTiled = tiled } : options,
     };
 
     internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);

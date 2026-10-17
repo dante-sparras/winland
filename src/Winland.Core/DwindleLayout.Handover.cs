@@ -16,7 +16,7 @@ internal sealed partial class DwindleLayout
             ? floating
             : _natural.TryGetValue(from, out var natural) ? natural : default;
         _limits.TryGetValue(from, out var limits);
-        outgoing = SlotHandover.Describe(client, bounds, limits.Min, limits.Max);
+        outgoing = SlotHandover.Describe(client, bounds, limits);
 
         _clients[index] = SlotHandover.Rename(client, next, incoming);
         if (_nodes.TryGetValue(from, out var node))
@@ -31,7 +31,7 @@ internal sealed partial class DwindleLayout
         _natural.Remove(from);
         _natural[to] = incoming.Bounds;
         _limits.Remove(from);
-        _limits[to] = new SizeLimits(incoming.MinSize, incoming.MaxSize);
+        _limits[to] = new SizeLimits(incoming.MinSize, incoming.MaxSize) { Tiled = incoming.TiledLimits };
         if (_splitTarget == from)
             _splitTarget = to;
         _drag.Forget(from);

@@ -19,7 +19,7 @@ internal sealed partial class ScrollingLayout
         double? width = _cells.TryGetValue(from, out var cell) && cell.Column is Column column
             ? column.Width
             : _suspended.TryGetValue(from, out var suspension) ? suspension.Column.Width : null;
-        outgoing = SlotHandover.Describe(client, bounds, limits.Min, limits.Max, width);
+        outgoing = SlotHandover.Describe(client, bounds, limits, width);
 
         _clients[index] = SlotHandover.Rename(client, next, incoming);
         if (cell is not null)
@@ -31,7 +31,7 @@ internal sealed partial class ScrollingLayout
         _natural.Remove(from);
         _natural[to] = incoming.Bounds;
         _limits.Remove(from);
-        _limits[to] = new SizeLimits(incoming.MinSize, incoming.MaxSize);
+        _limits[to] = new SizeLimits(incoming.MinSize, incoming.MaxSize) { Tiled = incoming.TiledLimits };
         _widths.Remove(current);
         if (_focus == current)
             _focus = next;

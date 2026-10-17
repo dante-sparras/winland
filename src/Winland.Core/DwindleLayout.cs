@@ -104,7 +104,8 @@ internal sealed partial class DwindleLayout : Layout
         string initialClass = "",
         string initialTitle = "",
         Size? minSize = null,
-        Size? maxSize = null)
+        Size? maxSize = null,
+        TiledLimits? tiledLimits = null)
     {
         _area = area;
         _monitor = monitor;
@@ -113,7 +114,7 @@ internal sealed partial class DwindleLayout : Layout
         if (_nodes.ContainsKey(id) || _suspended.ContainsKey(id) || _floating.Contains(id))
             return [];
 
-        _limits[id] = new SizeLimits(minSize, maxSize);
+        _limits[id] = new SizeLimits(minSize, maxSize) { Tiled = tiledLimits };
         _natural[id] = bounds;
         var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
         _floating.Remember(id, placed);
@@ -245,7 +246,7 @@ internal sealed partial class DwindleLayout : Layout
             ? floating
             : _natural.TryGetValue(id, out var natural) ? natural : default;
         _limits.TryGetValue(id, out var limits);
-        taken = SlotHandover.Describe(client, bounds, limits.Min, limits.Max);
+        taken = SlotHandover.Describe(client, bounds, limits);
         Remove(window);
         return true;
     }
@@ -333,7 +334,7 @@ internal sealed partial class DwindleLayout : Layout
 
         var border = _options.BorderSize;
         presented = Shrink(presented, border, border, border, border);
-        return _limits.TryGetValue(id, out var limits) ? limits.Raise(presented, area) : presented;
+        return _limits.TryGetValue(id, out var limits) ? limits.ForTiles.Raise(presented, area) : presented;
     }
 
     private (int Width, int Height) PseudoSize(ClientId id)

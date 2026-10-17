@@ -4,14 +4,15 @@ internal sealed partial class DwindleLayout
 {
     private readonly Dictionary<ClientId, SizeLimits> _limits = [];
 
-    public IReadOnlyList<Placement> UpdateLimits(WindowId window, Size? minSize, Size? maxSize)
+    public IReadOnlyList<Placement> UpdateLimits(WindowId window, Size? minSize, Size? maxSize, TiledLimits? tiledLimits = null)
     {
         var id = new ClientId(window.Value);
         var index = _clients.FindIndex(client => client.Id == id);
         if (index < 0)
             return [];
 
-        _limits[id] = new SizeLimits(minSize, maxSize);
+        var limits = new SizeLimits(minSize, maxSize) { Tiled = tiledLimits };
+        _limits[id] = limits;
         if (_floating.Contains(id))
             return _floating.Clamp(id, new SizeLimits(minSize, maxSize));
 
@@ -143,7 +144,7 @@ internal sealed partial class DwindleLayout
     {
         if (node.Id is { } id)
         {
-            if (!_limits.TryGetValue(id, out var limits) || limits.Min is not { } min)
+            if (!_limits.TryGetValue(id, out var limits) || limits.ForTiles.Min is not { } min)
                 return 0;
 
             var want = horizontal ? min.Width : min.Height;

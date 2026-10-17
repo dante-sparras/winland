@@ -105,7 +105,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | issue14134 | passes | |
 | window | specialFloatRecenters | differs | A floating Client moved off its Monitor stays there when its special workspace is shown. The pinned release centers it. |
 | window | exactWindowSelectors | differs | A stableid: window selector matches no Client. |
-| window | windows | differs | A w[tv1] workspace rule is matched before a new window is counted, and misc:size_limits_tiled is not honored. |
+| window | windows | differs | A w[tv1] workspace rule is matched before a new window is counted, and getprop does not read min_size or max_size. |
 | window | cycle_nextTiled | differs | cyclenext is not a dispatcher. |
 | window | cycle_nextFloating | differs | cyclenext is not a dispatcher. |
 | window | discussion14233 | differs | The border_size window rule is not honored, and a w[tv1] workspace rule is matched before a new window is counted. |

@@ -61,7 +61,8 @@ internal sealed partial class MasterLayout : Layout
         string initialClass = "",
         string initialTitle = "",
         Size? minSize = null,
-        Size? maxSize = null)
+        Size? maxSize = null,
+        TiledLimits? tiledLimits = null)
     {
         _ = pointer;
         _ = activeWorkspace;
@@ -71,7 +72,7 @@ internal sealed partial class MasterLayout : Layout
         if (Known(id))
             return [];
 
-        _limits[id] = new SizeLimits(minSize, maxSize);
+        _limits[id] = new SizeLimits(minSize, maxSize) { Tiled = tiledLimits };
         _natural[id] = bounds;
         var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
         _floating.Remember(id, placed);
@@ -191,20 +192,20 @@ internal sealed partial class MasterLayout : Layout
             ? floating
             : _natural.TryGetValue(id, out var natural) ? natural : default;
         _limits.TryGetValue(id, out var limits);
-        taken = SlotHandover.Describe(client, bounds, limits.Min, limits.Max);
+        taken = SlotHandover.Describe(client, bounds, limits);
         Remove(window);
         return true;
     }
 
     // A maximum is remembered and handed on with the Client. It clamps a floating window.
     // It does not shrink a tiled master or slave: the master fraction owns that size.
-    public IReadOnlyList<Placement> UpdateLimits(WindowId window, Size? minSize, Size? maxSize)
+    public IReadOnlyList<Placement> UpdateLimits(WindowId window, Size? minSize, Size? maxSize, TiledLimits? tiledLimits = null)
     {
         var id = Id(window);
         if (FindClient(id) < 0)
             return [];
 
-        _limits[id] = new SizeLimits(minSize, maxSize);
+        _limits[id] = new SizeLimits(minSize, maxSize) { Tiled = tiledLimits };
         if (_floating.Contains(id))
             return _floating.Clamp(id, new SizeLimits(minSize, maxSize));
 
