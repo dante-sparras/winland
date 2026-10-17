@@ -151,7 +151,7 @@ public class KeybindsConformance
         Assert.Equal("ok", desk.Send("keyword unbind SUPER, X&D&F"));
     }
 
-    [Fact(Skip = "A release bind on a modifier key still runs after another bind used that modifier. The pinned release skips it.")]
+    [Fact]
     public void ModifierReleaseBindShadowing()
     {
         var desk = new Desk(ConfigBinds);

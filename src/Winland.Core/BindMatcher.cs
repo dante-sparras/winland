@@ -63,10 +63,10 @@ public static class BindMatcher
         ArgumentNullException.ThrowIfNull(input);
         return input switch
         {
-            KeyPressed pressed => OnPress(table, session, pressed.Key, pressed.ScanCode, mouse: false),
-            KeyReleased released => OnRelease(table, session, released.Key, released.ScanCode, mouse: false),
-            PointerButtonPressed button => OnButton(table, session, button.Button, button.Position, up: false),
-            PointerButtonReleased button => OnButton(table, session, button.Button, button.Position, up: true),
+            KeyPressed pressed => Shadow(table, session, OnPress(table, session, pressed.Key, pressed.ScanCode, mouse: false), pressed.Key),
+            KeyReleased released => Shadow(table, session, OnRelease(table, session, released.Key, released.ScanCode, mouse: false), excluded: null),
+            PointerButtonPressed button => Shadow(table, session, OnButton(table, session, button.Button, button.Position, up: false), button.Button),
+            PointerButtonReleased button => Shadow(table, session, OnButton(table, session, button.Button, button.Position, up: true), excluded: null),
             PointerMoved moved => OnMoved(session, moved.Position),
             WheelTurned wheel => OnWheel(table, session, wheel),
             LongPressElapsed => OnLongPress(table, session),
@@ -85,7 +85,10 @@ public static class BindMatcher
         foreach (var key in session.PressedUnder.Keys.ToArray())
         {
             if (!session.DownKeys.Contains(key) && !session.DownButtons.Contains(key))
+            {
                 session.PressedUnder.Remove(key);
+                session.ScanCodes.Remove(key);
+            }
         }
 
         foreach (var (key, _) in session.Order.ToArray())
@@ -147,6 +150,7 @@ public static class BindMatcher
 
         session.Remember(key, mouse);
         session.PressedUnder[key] = MaskFor(session, key, mouse);
+        session.ScanCodes[key] = scanCode;
         var immediate = new List<Bind>();
         var deferred = new List<Bind>();
         var longPress = new List<Bind>();
@@ -252,6 +256,7 @@ public static class BindMatcher
 
         fire.AddRange(Collect(table, session, key, scanCode, mouse, releasing: true, submap, anchor));
         session.PressedUnder.Remove(key);
+        session.ScanCodes.Remove(key);
         if (!mouse)
             session.Lift(key);
 
@@ -269,6 +274,36 @@ public static class BindMatcher
             decision = decision with { Mask = true };
 
         return decision with { DisarmLongPress = true };
+    }
+
+    // As the pinned release does after a caught press, which skips the key just pressed, and after every release: a
+    // release bind on one key that a held key fully matches is shadowed, so it does not run when that key is released.
+    // With "bindr = ALT, Alt_L" and "bind = ALT, P", Alt+P does not also run the release bind.
+    private static BindDecision Shadow(BindTable table, BindSession session, BindDecision decision, string? excluded)
+    {
+        if (excluded is not null && !decision.Consumed)
+            return decision;
+
+        session.Shadowed.Clear();
+        foreach (var bind in table.Active(session.Submap))
+        {
+            if (!bind.Flags.HasFlag(BindFlag.Release) || bind.Flags.HasFlag(BindFlag.Transparent) || Parts(bind).Length > 1 || IsMouseBind(bind) || IsCatchAll(bind))
+                continue;
+
+            foreach (var held in session.DownKeys)
+            {
+                if (held.Equals(excluded, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (Eligible(bind, session, held, session.ScanCodeOf(held), mouse: false, releasing: true, anyKey: false))
+                {
+                    session.Shadowed.Add(bind);
+                    break;
+                }
+            }
+        }
+
+        return decision;
     }
 
     // A swallowed chord under a Super or Alt the OS saw gets one mask per hold.
@@ -375,6 +410,8 @@ public static class BindMatcher
             if (!bind.Flags.HasFlag(BindFlag.Release) && !SendsBothEdges(bind))
                 return false;
             if (!mouse && Listed(session.Suppressed, key, bind))
+                return false;
+            if (session.Shadowed.Contains(bind))
                 return false;
             if (!mouse && bind.Flags.HasFlag(BindFlag.Release) && Parts(bind).Length > 1 && !Listed(session.Armed, key, bind))
                 return false;

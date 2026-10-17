@@ -253,7 +253,7 @@ A modifier list in a bind, a gesture's `mod:` and `sendshortcut` is read as the 
 
 A bind on a modifier key, such as `Super_L`, is matched on its press without that key's own modifier, so `bind = , Super_L` runs when Super goes down alone. On the release the mask includes the key's own modifier, as in the pinned release, so `bindr = SUPER, Super_L` runs when Super is let go and `bindr = , Super_L` never runs: its press swallows Super, and its release matches nothing and is swallowed too. Super and its release still reach Windows under `bindr = SUPER, Super_L`, so Winland sends a mask key before the release, and Start does not open.
 
-A release bind matches the modifiers its key went down under, as in the pinned release, so `bindr = SUPER, Q` runs when Super is let go before Q, and does not run for a Q pressed before Super.
+A release bind matches the modifiers its key went down under, as in the pinned release, so `bindr = SUPER, Q` does not run for a Q pressed before Super. A release bind on one key is skipped when, while its key is held, a bind catches another key or any other key is let go: `bindr = ALT, Alt_L` does not run after Alt+P ran `bind = ALT, P`, and `bindr = SUPER, Q` does not run when Super is let go before Q.
 
 ## Several keys
 
