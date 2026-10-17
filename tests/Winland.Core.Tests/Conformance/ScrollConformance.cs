@@ -133,7 +133,7 @@ public class ScrollConformance
         Assert.Equal("kitty_scroll_B", desk.ActiveClass());
     }
 
-    [Fact(Skip = "maximize does not leave gaps_out and the border around the Client.")]
+    [Fact(Skip = "A maximized Client in the scrolling Layout fills the work area less gaps_out. The pinned release's scrolling Layout also leaves gaps_in at its sides.")]
     public void ScrollLAYOUTHANDLEDMaximized()
     {
         var desk = new Desk(Scrolling);
@@ -481,7 +481,7 @@ public class ScrollConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "A hidden Group member keeps its last frame, and maximize does not leave room for the group bar.")]
+    [Fact(Skip = "A hidden Group member keeps its last frame.")]
     public void ScrollDEFAULTHANDLEDTestFsingGroupedWindows()
     {
         var desk = new Desk(Scrolling + """
@@ -528,7 +528,7 @@ public class ScrollConformance
         }
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap, and maximize does not leave gaps_out and the border around the Client.")]
+    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
     public void ScrollDEFAULTHANDLEDTestFsFocusUnderFSWindow()
     {
         var desk = new Desk(Scrolling);
@@ -602,7 +602,7 @@ public class ScrollConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "binds:allow_pin_fullscreen is a Gap, and maximize does not leave the border around the Client.")]
+    [Fact(Skip = "binds:allow_pin_fullscreen is a Gap.")]
     public void ScrollDEFAULTHANDLEDFullscreenPinnedWindows()
     {
         var desk = new Desk(Scrolling);

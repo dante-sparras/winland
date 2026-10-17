@@ -4,7 +4,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class LayoutConformance
 {
-    [Fact(Skip = "maximize does not leave gaps_out and the border around the Client.")]
+    [Fact]
     public void SingleWindowAspectRatio()
     {
         var desk = new Desk("layout:single_window_aspect_ratio = 1 1\n");

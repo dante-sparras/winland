@@ -198,7 +198,7 @@ public class WindowConformance
         Assert.Equal(0, Desk.Fullscreen(desk.Client("kitty_b")));
     }
 
-    [Fact(Skip = "Maximize does not leave gaps_out and the border around the Client.")]
+    [Fact]
     public void WindowMaximizeSize()
     {
         var desk = new Desk();
@@ -963,7 +963,7 @@ public class WindowConformance
         desk.Ok("fullscreen", "0");
     }
 
-    [Fact(Skip = "Maximize does not leave the border around the Client, and fullscreenHandler is always default.")]
+    [Fact(Skip = "fullscreenHandler is always default.")]
     public void SendFsWindowToAnotherWorkspace()
     {
         var desk = new Desk("""

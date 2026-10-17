@@ -47,7 +47,7 @@ public class MasterConformance
         desk.ExpectActive("22,22", "1025,1036");
     }
 
-    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap, and maximize does not leave gaps_out and the border around the Client.")]
+    [Fact(Skip = "misc:on_focus_under_fullscreen is a Gap.")]
     public void MasterTestFsFocusUnderFSWindow()
     {
         var desk = new Desk(Master);
@@ -161,7 +161,7 @@ public class MasterConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "binds:allow_pin_fullscreen is a Gap, and maximize does not leave the border around the Client.")]
+    [Fact(Skip = "binds:allow_pin_fullscreen is a Gap.")]
     public void MasterFullscreenPinnedWindows()
     {
         var desk = new Desk(Master);

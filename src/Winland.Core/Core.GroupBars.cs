@@ -67,7 +67,8 @@ public sealed partial class Core
         var floating = new HashSet<ClientId>();
         foreach (var client in snapshot.Clients)
         {
-            if (client.Floating)
+            // A maximized Group member keeps room for its bar even while it floats, as in the pinned release.
+            if (client.Floating && client.Fullscreen != FullscreenMode.Maximized)
                 floating.Add(client.Id);
         }
 

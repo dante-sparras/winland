@@ -121,10 +121,27 @@ public sealed partial class Core
             return slot;
 
         var work = WorkArea(desk, _area);
-        var monitor = client.Fullscreen == FullscreenMode.Fullscreen ? CoveringBounds(desk) : default;
-        if (client.Fullscreen == FullscreenMode.Fullscreen && (monitor.Width <= 0 || monitor.Height <= 0))
+        if (client.Fullscreen == FullscreenMode.Maximized)
+            return Maximized(client, desk, work);
+
+        var monitor = CoveringBounds(desk);
+        if (monitor.Width <= 0 || monitor.Height <= 0)
             monitor = work;
 
         return FullscreenGeometry.Cover(client.Fullscreen, work, monitor);
+    }
+
+    // A maximized Client fills its Workspace's work area as the pinned release lays it out: less gaps_out, or
+    // general:float_gaps for a floating Client, and less its border.
+    private static Rectangle Maximized(Client client, LiveWorkspace desk, Rectangle work)
+    {
+        var options = desk.Options;
+        var area = client.Floating ? options.FloatingWorkArea(work) : options.GapsOut.Apply(work);
+        var border = options.BorderSize;
+        return new Rectangle(
+            area.X + border,
+            area.Y + border,
+            Math.Max(1, area.Width - (2 * border)),
+            Math.Max(1, area.Height - (2 * border)));
     }
 }
