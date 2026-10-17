@@ -85,7 +85,14 @@ public sealed partial class Core
         ArgumentNullException.ThrowIfNull(session);
         if (input is WheelTurned wheel)
             input = NaturalScroll.Apply(_input, wheel);
-        return BindMatcher.Decide(_binds, session, input);
+        var decision = BindMatcher.Decide(_binds, session, input);
+
+        // binds:pass_mouse_when_bound: a button that runs a bind is not swallowed, as in the pinned release, so the window
+        // under the pointer gets its press and release. A wheel notch is not a button and stays swallowed.
+        if (_passMouseWhenBound && decision.Consumed && input is PointerButtonPressed or PointerButtonReleased)
+            decision = decision with { Consumed = false };
+
+        return decision;
     }
 
     internal void WhileLocked(Action action)

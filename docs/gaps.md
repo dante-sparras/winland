@@ -34,7 +34,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | binds:allow_pin_fullscreen | Fullscreen does not keep or restore a pin. |
 | binds:disable_keybind_grabbing | Applications cannot ask Windows to turn binds off, so there is nothing to refuse. |
 | binds:movefocus_cycles_fullscreen | Moving focus does not cycle a fullscreen Client. |
-| binds:pass_mouse_when_bound | Passing mouse events on after a bind runs is not honored. |
 | bitdepth | Changing a monitor's bit depth is not honored. |
 | center_ignores_reserved | Reserved monitor regions are not separate from the work area, so the master area cannot ignore them. |
 | cm | Monitor color management is not honored. |
@@ -220,7 +219,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | animation:borderangle, animation:fadeDim, animation:fadeDpms, animation:fadeGlow, animation:fadeShadow, animation:glowangle, animation:monitorAdded, animation:shadowangle, animation:zoomFactor |
 | non-goal | - | animation:fadeLayers, animation:fadeLayersIn, animation:fadeLayersOut, animation:fadePopups, animation:fadePopupsIn, animation:fadePopupsOut, animation:layers, animation:layersIn, animation:layersOut |
 | gap | - | binds:allow_pin_fullscreen, binds:movefocus_cycles_fullscreen |
-| gap | - | binds:pass_mouse_when_bound |
 | non-goal | - | binds:disable_keybind_grabbing |
 | gap | - | bitdepth, cm, mirror, mode, scale, vrr |
 | gap | - | center_ignores_reserved, special_scale_factor |
