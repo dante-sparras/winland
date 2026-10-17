@@ -267,7 +267,7 @@ public class ScrollConformance
         ExpectPlace(desk, "kitten2", "0,21", "1920,1059");
     }
 
-    [Fact(Skip = "fullscreenHandler reports default, and a fullscreen Client stays over the screen when focus moves to another column. fullscreenstate does not take a window.")]
+    [Fact(Skip = "fullscreenHandler reports default, and a fullscreen Client stays over the screen when focus moves to another column.")]
     public void ScrollLAYOUTHANDLEDFullscreenRetainsGeometryWhileScrolling()
     {
         var desk = new Desk(Scrolling);
@@ -448,7 +448,7 @@ public class ScrollConformance
     public void ScrollLAYOUTHANDLEDFloatingOntopFullscreenWorkspaceFocusRetention() =>
         FloatingOntopFullscreenWorkspaceFocusRetention();
 
-    [Fact(Skip = "fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off.")]
+    [Fact]
     public void ScrollDEFAULTHANDLEDFullscreenMaximiseDispatchers()
     {
         var desk = new Desk(Scrolling);

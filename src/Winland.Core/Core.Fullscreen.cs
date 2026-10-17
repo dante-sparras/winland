@@ -26,8 +26,23 @@ public sealed partial class Core
     private Outcome FullscreenState(string arguments, bool allowsElevation)
     {
         const string name = "fullscreenstate";
-        if (ActiveWindow() is not WindowId window || WorkspaceContaining(window) is not LiveWorkspace desk || desk.ClientOf(window) is not Client client)
+        var selector = FullscreenCommands.StateSelector(arguments);
+        Client client;
+        if (selector.Length > 0)
+        {
+            if (!TrySelect(selector, out client, out _))
+                return MissingWindow(name, allowsElevation);
+        }
+        else if (ActiveWindow() is not WindowId active || WorkspaceContaining(active) is not LiveWorkspace desk || desk.ClientOf(active) is not Client focused)
+        {
             return MissingWindow(name, allowsElevation);
+        }
+        else
+        {
+            client = focused;
+        }
+
+        var window = client.Window;
 
         var target = FullscreenCommands.ResolveState(arguments, client.Fullscreen, client.FullscreenClient);
         if (target.Internal == client.Fullscreen && target.Client == client.FullscreenClient)

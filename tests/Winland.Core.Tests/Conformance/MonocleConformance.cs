@@ -29,7 +29,7 @@ public class MonocleConformance
         ExpectCat(desk, "neutral_cat");
     }
 
-    [Fact(Skip = "fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off.")]
+    [Fact]
     public void MonocleFullscreenMaximiseDispatchers()
     {
         var desk = new Desk(Monocle);

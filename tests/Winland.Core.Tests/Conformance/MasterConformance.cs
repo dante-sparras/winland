@@ -77,7 +77,7 @@ public class MasterConformance
         Assert.Equal(0, Desk.Fullscreen(desk.ActiveWindow()));
     }
 
-    [Fact(Skip = "fullscreenstate does not read its set or toggle argument, so the same pair twice turns both modes off.")]
+    [Fact]
     public void MasterFullscreenMaximiseDispatchers()
     {
         var desk = new Desk(Master);

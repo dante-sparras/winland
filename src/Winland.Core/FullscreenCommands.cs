@@ -63,6 +63,22 @@ internal static class FullscreenCommands
     /// The same pair as the Client already has turns both modes off. A kept mode is the
     /// current one in that comparison, as in the pinned release, so <c>-1 -1</c> turns both off.
     /// </summary>
+    /// <summary>
+    /// The window selector after <c>fullscreenstate INTERNAL CLIENT [ACTION]</c>, or empty for the focused Client.
+    /// </summary>
+    internal static string StateSelector(string arguments)
+    {
+        var tokens = Tokens(arguments);
+        var start = tokens.Length > 2 && TryStateAction(tokens[2], out _) ? 3 : 2;
+        return tokens.Length > start ? string.Join(' ', tokens[start..]) : "";
+    }
+
+    /// <summary>
+    /// The modes <c>fullscreenstate INTERNAL CLIENT [set|toggle|unset] [WINDOW]</c> leaves the Client in. A mode of -1
+    /// is the current one. Without an action, the pair the Client already has turns both modes off, and any other pair is
+    /// set. The actions are the pinned release's: set applies the pair unless the Client has it, toggle turns each mode off
+    /// that already has its value and sets the other, and unset turns both off when the Client has the pair.
+    /// </summary>
     internal static FullscreenTarget ResolveState(string arguments, FullscreenMode currentInternal, FullscreenMode currentClient)
     {
         var tokens = Tokens(arguments);
@@ -74,10 +90,39 @@ internal static class FullscreenCommands
             : -1;
         var internalMode = internalRaw == -1 ? currentInternal : (FullscreenMode)Clamp(internalRaw);
         var clientMode = clientRaw == -1 ? currentClient : (FullscreenMode)Clamp(clientRaw);
-        if (internalMode == currentInternal && clientMode == currentClient)
-            return new FullscreenTarget(FullscreenMode.None, FullscreenMode.None);
+        var atPair = internalMode == currentInternal && clientMode == currentClient;
+        var current = new FullscreenTarget(currentInternal, currentClient);
+        var none = new FullscreenTarget(FullscreenMode.None, FullscreenMode.None);
+        if (tokens.Length <= 2 || !TryStateAction(tokens[2], out var action))
+            return atPair ? none : new FullscreenTarget(internalMode, clientMode);
 
-        return new FullscreenTarget(internalMode, clientMode);
+        return action switch
+        {
+            StateAction.Set => atPair ? current : new FullscreenTarget(internalMode, clientMode),
+            StateAction.Unset => atPair ? none : current,
+            _ => new FullscreenTarget(
+                internalRaw != -1 && internalMode == currentInternal ? FullscreenMode.None : internalMode,
+                clientRaw != -1 && clientMode == currentClient ? FullscreenMode.None : clientMode),
+        };
+    }
+
+    private enum StateAction
+    {
+        Set,
+        Toggle,
+        Unset,
+    }
+
+    private static bool TryStateAction(string token, out StateAction action)
+    {
+        action = token.ToLowerInvariant() switch
+        {
+            "set" => StateAction.Set,
+            "toggle" => StateAction.Toggle,
+            "unset" => StateAction.Unset,
+            _ => (StateAction)(-1),
+        };
+        return Enum.IsDefined(action);
     }
 
     private static int Clamp(int value)
