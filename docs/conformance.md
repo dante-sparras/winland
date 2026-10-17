@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-114 of 197 ported cases pass.
+120 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -266,9 +266,9 @@ A case passes when every check in it passes, as in the reference harness. A case
 | misc/plugin | pluginVkb | not ported | Windows merges every keyboard into one key state and does not tell Winland which device a key came from. |
 | exec | processSpawning | passes | |
 | gestures | pinchDeltaScalePropagation | not ported | It checks a gesture the test plugin registers through the C++ plugin interface, which has no core form. |
-| gestures | defaultSpecialWorkspaceGesture | differs | The special gesture action is not honored. |
+| gestures | defaultSpecialWorkspaceGesture | passes | |
 | gestures | live_gesture_callbacks | not ported | Gesture actions with start, update and end callbacks are Lua-only. |
-| gestures | gestures | differs | Only the workspace gesture action is honored. |
+| gestures | gestures | differs | Only the workspace and special gesture actions are honored. |
 | keybinds | keybinds | differs | Per-device binds are not honored. |
 | keybinds | orderedSubChordDeferral | passes | |
 | keybinds | modifierReleaseBindShadowing | passes | |
@@ -298,11 +298,11 @@ A case passes when every check in it passes, as in the reference harness. A case
 | workspace_swipe | workspaceSwipeTrackpadOwnership | not ported | It drives the compositor's swipe objects directly through the test plugin, which core input cannot do. |
 | workspace_swipe | workspaceSwipeTouchDeviceIdentity | not ported | It swipes with touchscreen contacts, which have no core input. Touchscreen swipes are the gestures:workspace_swipe_touch Gap. |
 | workspace_swipe | workspaceSwipeTouchConsumedAfterCancel | not ported | It swipes with touchscreen contacts, which have no core input. Touchscreen swipes are the gestures:workspace_swipe_touch Gap. |
-| special_workspace_swipe | specialWorkspaceSwipeThresholds | differs | The special gesture action is not honored. |
+| special_workspace_swipe | specialWorkspaceSwipeThresholds | passes | |
 | special_workspace_swipe | specialWorkspaceSwipeRestartAndDestructor | not ported | It destroys the gesture object mid-swipe through the test plugin, which core input cannot do. |
-| special_workspace_swipe | specialWorkspaceSwipeReplacementInvalidation | differs | The special gesture action is not honored. |
-| special_workspace_swipe | specialWorkspaceSwipeMoveInvalidation | differs | The special gesture action is not honored. |
+| special_workspace_swipe | specialWorkspaceSwipeReplacementInvalidation | passes | |
+| special_workspace_swipe | specialWorkspaceSwipeMoveInvalidation | passes | |
 | special_workspace_swipe | specialWorkspaceSwipeMoveExternalState | not ported | It sets the special workspace's alpha, offset and animation through the test plugin, which have no core form. |
-| special_workspace_swipe | specialWorkspaceSwipeOutputRemoval | differs | The special gesture action is not honored. |
+| special_workspace_swipe | specialWorkspaceSwipeOutputRemoval | passes | |
 | special_workspace_swipe | specialWorkspaceSwipeReentrantEnd | not ported | It starts a second swipe from inside the first one's end, through the test plugin, which core input cannot do. |
-| special_workspace_swipe | specialWorkspaceSwipeEmptyWorkspaceLifetime | differs | The special gesture action is not honored. |
+| special_workspace_swipe | specialWorkspaceSwipeEmptyWorkspaceLifetime | passes | |

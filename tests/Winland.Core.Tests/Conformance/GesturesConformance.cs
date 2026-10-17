@@ -32,7 +32,7 @@ public class GesturesConformance
     private static string Config(string extra = "") =>
         KeybindsConformance.ConfigBinds + "\n" + ConfigGestures + "\n" + extra;
 
-    [Fact(Skip = "The special gesture action is not honored.")]
+    [Fact]
     public void DefaultSpecialWorkspaceGesture()
     {
         // The case adds the gesture before any window opens.
@@ -45,7 +45,7 @@ public class GesturesConformance
         Assert.NotEqual("special:special", SpecialWorkspace(desk));
     }
 
-    [Fact(Skip = "Only the workspace gesture action is honored.")]
+    [Fact(Skip = "Only the workspace and special gesture actions are honored.")]
     public void Gestures()
     {
         var desk = new Desk(Config());

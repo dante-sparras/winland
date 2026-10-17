@@ -301,6 +301,47 @@ public class GestureTests
     }
 
     [Fact]
+    public void SpecialGestureKeepsItsWorkspaceNameAndUnsetIgnoresIt()
+    {
+        var document = ConfigParser.Parse("""
+            gesture = 3, up, special, scratch
+            gesture = 4, up, special
+            gesture = 4, up, unset
+            """);
+
+        Assert.Empty(document.Warnings);
+        Assert.Equal(
+            new TrackpadGesture(3, GestureDirection.Up, Modifier.None, 1, "special", Argument: "scratch"),
+            Assert.Single(document.Gestures));
+    }
+
+    [Theory]
+    [InlineData(150, true)]
+    [InlineData(45, true)]
+    [InlineData(44, false)]
+    public void SpecialSwipeShowsItsWorkspaceOnceItCoversThirtyPercent(double distance, bool shown)
+    {
+        var core = Twin("gesture = 3, up, special, scratch\n");
+        var scratch = new WorkspaceId("special:scratch");
+
+        var opened = Swipe(core, 3, [(0, -distance)]);
+        Assert.Equal(shown ? scratch : null, opened.State.SpecialWorkspace);
+
+        // A second swipe the same length closes what the first one opened.
+        if (shown)
+            Assert.Null(Swipe(core, 3, [(0, -distance)]).State.SpecialWorkspace);
+    }
+
+    [Fact]
+    public void LockedSessionDoesNotSwipeTheSpecialWorkspace()
+    {
+        var core = Twin("gesture = 3, up, special\n");
+        core.Handle(new InputInhibited(true));
+
+        Assert.Null(Swipe(core, 3, [(0, -150)]).State.SpecialWorkspace);
+    }
+
+    [Fact]
     public void UnhonoredActionTakesTheSwipeAndDoesNothing()
     {
         var core = Twin("gesture = 3, swipe, close\n");

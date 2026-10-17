@@ -16,7 +16,7 @@ public enum GestureDirection
 
 /// <summary>
 /// One <c>gesture</c> line. Every action is kept so a later line is shadowed and <c>unset</c> matches as configured,
-/// but only <c>workspace</c> runs.
+/// but only <c>workspace</c> and <c>special</c> run. <paramref name="Argument"/> is the special workspace's name.
 /// </summary>
 public sealed record TrackpadGesture(
     int Fingers,
@@ -24,11 +24,18 @@ public sealed record TrackpadGesture(
     Modifier Modifiers,
     double Scale,
     string Action,
-    bool DisableInhibit = false)
+    bool DisableInhibit = false,
+    string Argument = "")
 {
     public const string WorkspaceAction = "workspace";
 
+    public const string SpecialAction = "special";
+
     public bool IsWorkspace => Action == WorkspaceAction;
+
+    public bool IsSpecial => Action == SpecialAction;
+
+    public bool IsHonored => IsWorkspace || IsSpecial;
 
     internal static bool TryDirection(string text, out GestureDirection direction)
     {
