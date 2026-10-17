@@ -278,7 +278,7 @@ public class GroupsConformance
         Assert.NotEqual(0, Grouped(b));
     }
 
-    [Fact(Skip = "misc:exit_window_retains_fullscreen is a Gap.")]
+    [Fact]
     public void GroupedExitWindowRetainsFullscreen()
     {
         var desk = new Desk("misc:exit_window_retains_fullscreen = 3\n");

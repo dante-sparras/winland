@@ -121,7 +121,7 @@ public class MonocleConformance
         Assert.Equal("kitty_D", desk.ActiveClass());
     }
 
-    [Fact(Skip = "misc:exit_window_retains_fullscreen is a Gap.")]
+    [Fact]
     public void MonocleExitWindowRetainsFullscreen()
     {
         var desk = new Desk(Monocle);

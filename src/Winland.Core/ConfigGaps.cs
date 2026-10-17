@@ -167,7 +167,6 @@ public static class ConfigGaps
         new("misc:disable_watchdog_warning", "There is no start watchdog, so there is no warning to turn off."),
         new("misc:disable_xdg_env_checks", "XDG environment variables have no Windows meaning."),
         new("misc:enable_anr_dialog", "Windows marks a hung window as not responding itself."),
-        new("misc:exit_window_retains_fullscreen", "Closing a fullscreen Client does not pass fullscreen to the next Client."),
         new("misc:font_family", "The global font is not honored."),
         new("misc:force_default_wallpaper", "There is no wallpaper. The desktop background belongs to Windows."),
         new("misc:key_press_enables_dpms", "Waking a monitor turned off with dpms on a key press is not honored."),

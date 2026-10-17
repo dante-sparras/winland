@@ -35,6 +35,9 @@ public sealed record SessionOptions
     /// <summary><c>misc:on_focus_under_fullscreen</c>: 0 keeps the fullscreen Client focused, 1 hands it over, 2 ends it.</summary>
     public int OnFocusUnderFullscreen { get; init; } = 2;
 
+    /// <summary><c>misc:exit_window_retains_fullscreen</c>: 0 off, 1 always, 2 only within a Group, 3 only outside one.</summary>
+    public int ExitWindowRetainsFullscreen { get; init; }
+
     public static SessionOptions Documented { get; } = new();
 
     // Adding an entry here applies that keyword and stops the config warning.
@@ -51,6 +54,7 @@ public sealed record SessionOptions
         ["misc:initial_workspace_token_timeout"] = (options, value) => int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var timeout) ? options with { InitialWorkspaceTokenTimeout = Math.Clamp(timeout, 1, 3600) } : options,
         ["misc:disable_autoreload"] = (options, value) => TryParseBool(value, out var disable) ? options with { DisableAutoreload = disable } : options,
         ["misc:on_focus_under_fullscreen"] = (options, value) => UnderFullscreen(value) is int mode ? options with { OnFocusUnderFullscreen = mode } : options,
+        ["misc:exit_window_retains_fullscreen"] = (options, value) => RetainsFullscreen(value) is int retain ? options with { ExitWindowRetainsFullscreen = retain } : options,
         ["misc:size_limits_tiled"] = (options, value) => TryParseBool(value, out var tiled) ? options with { SizeLimitsTiled = tiled } : options,
     };
 
@@ -60,6 +64,17 @@ public sealed record SessionOptions
         "take_over" => 1,
         "exit_fullscreen" => 2,
         var number when int.TryParse(number, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var mode) && mode is >= 0 and <= 2 => mode,
+        _ => null,
+    };
+
+    private static int? RetainsFullscreen(string value) => value.Trim() switch
+    {
+        "disable" => 0,
+        "enable" => 1,
+        "only_when_grouped" => 2,
+        "only_when_nongrouped" => 3,
+        var number when int.TryParse(number, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var mode) && mode is >= 0 and <= 3 => mode,
+        var flag when TryParseBool(flag, out var on) => on ? 1 : 0,
         _ => null,
     };
 

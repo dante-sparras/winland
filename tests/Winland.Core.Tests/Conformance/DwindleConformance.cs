@@ -294,7 +294,7 @@ public class DwindleConformance
         Assert.Equal("kitty_D", desk.ActiveClass());
     }
 
-    [Fact(Skip = "misc:exit_window_retains_fullscreen is a Gap.")]
+    [Fact]
     public void DwindleExitWindowRetainsFullscreen()
     {
         var desk = new Desk();

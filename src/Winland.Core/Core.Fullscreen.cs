@@ -116,6 +116,23 @@ public sealed partial class Core
         }
     }
 
+    // misc:exit_window_retains_fullscreen, as in the pinned release: the Client that takes the focus from a closed
+    // fullscreen or maximized one takes its mode. 1 always, 2 only for the next member of its Group, 3 only otherwise.
+    private IReadOnlyList<Placement>? RetainFullscreen(LiveWorkspace desk, WindowId next, FullscreenMode mode, bool grouped)
+    {
+        var retain = _session.ExitWindowRetainsFullscreen switch
+        {
+            1 => true,
+            2 => grouped,
+            3 => !grouped,
+            _ => false,
+        };
+        if (!retain || mode == FullscreenMode.None || desk.ClientOf(next) is null)
+            return null;
+
+        return desk.Layout.SetFullscreen(next, mode, mode);
+    }
+
     private static Client? CoveringOther(LiveWorkspace desk, WindowId window)
     {
         foreach (var client in desk.Layout.Clients)
