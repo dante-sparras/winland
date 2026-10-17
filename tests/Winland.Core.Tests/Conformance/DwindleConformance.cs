@@ -38,7 +38,7 @@ public class DwindleConformance
         desk.ExpectActive("967,547", "931,511");
     }
 
-    [Fact(Skip = "splitratio on a Workspace with one Client answers ok. The pinned release refuses it.")]
+    [Fact]
     public void DwindleSplit()
     {
         var desk = new Desk();
