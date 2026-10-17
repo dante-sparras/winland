@@ -10,7 +10,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class XdgInteractiveConformance
 {
-    [Fact(Skip = "There is no setprop or movecursor dispatcher. A floating Client the system moves or resizes keeps its old frame in activewindow.")]
+    [Fact(Skip = "There is no setprop dispatcher. A floating Client the system moves or resizes keeps its old frame in activewindow.")]
     public void XdgInteractive()
     {
         var desk = new Desk();

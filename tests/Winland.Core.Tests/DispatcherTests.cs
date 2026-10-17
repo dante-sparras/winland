@@ -31,6 +31,37 @@ public class DispatcherTests
     }
 
     [Fact]
+    public void MoveCursorWarpsAndFocusFollowsIt()
+    {
+        var core = TwoWindows();
+        core.Handle(new PointerMoved(new Point(1500, 500)));
+        Assert.Equal(new WindowId(2), Active(core));
+
+        var moved = core.Handle(new Dispatch("movecursor", "300 400"));
+
+        Assert.Equal(new WarpTo(new Point(300, 400)), moved.Warp);
+        Assert.Equal("movecursor", moved.Dispatcher);
+        Assert.Equal(new WindowId(1), Active(core));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("300")]
+    [InlineData("a b")]
+    public void MoveCursorNeedsTwoCoordinates(string arguments)
+    {
+        var reply = new Core().Execute($"dispatch movecursor {arguments}");
+
+        Assert.Equal("error: movecursor takes two coordinates", reply.Text);
+    }
+
+    private static WindowId? Active(Core core)
+    {
+        var address = System.Text.Json.JsonDocument.Parse(core.Execute("j/activewindow").Text).RootElement.GetProperty("address").GetString() ?? "";
+        return address.Length > 2 ? new WindowId(Convert.ToInt64(address[2..], 16)) : null;
+    }
+
+    [Fact]
     public void MoveFocusPicksTheNeighborFocusedLast()
     {
         var core = ThreeWindows();

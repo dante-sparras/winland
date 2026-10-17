@@ -63,7 +63,8 @@ public static class Dispatchers
             "centerwindow",
             "bringactivetotop",
             "alterzorder",
-            "movecursortocorner");
+            "movecursortocorner",
+            "movecursor");
         Register([.. DwindleMessages.Names]);
         Register(
             "togglegroup",

@@ -195,6 +195,8 @@ Resolution, refresh rate and scale changes stay Gaps. So do mirroring, variable 
 
 `winlandctl` reads an argument that starts with `-` as a flag unless it is a number. A number may have a fraction and one trailing comma, so `winlandctl dispatch splitratio -0.1` and `winlandctl dispatch moveactive -50, 0` pass their numbers to the dispatcher.
 
+`movecursor X Y` puts the cursor at that point on the desktop and handles it as a pointer move, so focus follows it as it follows the mouse, as in the pinned release. `cursor:no_warps` does not stop it. Coordinates may be split by a space or a comma.
+
 `forcerendererreload` returns ok and does nothing. Reloading a renderer has no Windows meaning.
 
 A window selector `tag:` parses and matches no Client. Window tags are not tracked.

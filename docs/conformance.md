@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-81 of 197 ported cases pass.
+86 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -95,7 +95,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | windowMaximizeSize | passes | |
 | window | floatingFocusOnFullscreen | not ported | Its only check is a call into the test plugin, which a core test cannot make. |
 | window | groupFallbackFocus | differs | Closing the shown Group member shows its neighbour. The pinned release shows the member focused last. |
-| window | bringActiveToTopMouseMovement | differs | movecursor is not a dispatcher, and clients does not list Clients in stacking order. |
+| window | bringActiveToTopMouseMovement | differs | clients does not list Clients in stacking order. |
 | window | initialFloatSize | not ported | The result depends on the floating size kitty asks for, which a core test cannot match. |
 | window | windowRuleFocusOnActivate | differs | The focus_on_activate window rule is not honored. |
 | window | pinnedWorkspacesValid | passes | |
@@ -115,7 +115,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | execRulesPendingIsolation | differs | getprop and setprop do not honor no_focus. |
 | window | pinnedRetainsPositionOnWorkspaceChange | passes | |
 | window | monitorrule | passes | |
-| window | mouseResize | differs | movecursor is not a dispatcher, and a mouse bind pressed on a Client's border does not take the Client. The keep_aspect_ratio window rule is not honored. |
+| window | mouseResize | differs | A mouse bind pressed on a Client's border does not take the Client. The keep_aspect_ratio window rule is not honored. |
 | window | getFullscreenHandler | differs | fullscreenHandler is always default. The pinned release reports scrolling for a tiled Client in the scrolling Layout. |
 | window | sendFsWindowToAnotherWorkspace | differs | fullscreenHandler is always default. |
 | window | floatingForceOnscreen | passes | |
@@ -193,18 +193,18 @@ A case passes when every check in it passes, as in the reference harness. A case
 | layout | focusPreservedLayoutChange | passes | |
 | layout_custom | layoutCustomGrid | not ported | A custom layout is registered with hl.layout.register, which waits on the Lua config (ADR 0013). |
 | layout_custom | layoutCustomColumns | not ported | A custom layout is registered with hl.layout.register, which waits on the Lua config (ADR 0013). |
-| drag | dragTiledCentered | differs | movecursor is not a dispatcher. |
-| drag | dragTiledProportional | differs | movecursor is not a dispatcher. |
-| drag | dragFullscreenCentered | differs | movecursor is not a dispatcher, and a movewindow drag leaves a fullscreen Client fullscreen where it is. |
-| drag | dragFullscreenProportional | differs | movecursor is not a dispatcher, and a movewindow drag leaves a fullscreen Client fullscreen where it is. |
+| drag | dragTiledCentered | passes | |
+| drag | dragTiledProportional | passes | |
+| drag | dragFullscreenCentered | differs | A movewindow drag leaves a fullscreen Client fullscreen where it is. |
+| drag | dragFullscreenProportional | differs | A movewindow drag leaves a fullscreen Client fullscreen where it is. |
 | drag | dragLifecycleSignals | not ported | The case checks the signals of the drag controller inside the compositor through the test plugin, which the core has no counterpart for. |
-| drag | dragThresholdSurvivesScrollEvents | differs | movecursor is not a dispatcher. |
+| drag | dragThresholdSurvivesScrollEvents | passes | |
 | snap | snap | passes | |
 | focus | errorBarReservationFollowsFocusedMonitor | differs | seterror is not a request. |
 | focus | crossMonitorFullscreenFocus | differs | movefocus onto another Monitor focuses the tile under its fullscreen Client. The pinned release focuses the fullscreen Client. |
 | focus | silentMoveLastTiledWindowUnfocusesWindow | passes | |
 | focus | crossMonitorEmptyWorkspaceUnfocusesWindow | passes | |
-| follow_mouse_shrink | followMouseShrink | differs | movecursor is not a dispatcher. |
+| follow_mouse_shrink | followMouseShrink | passes | |
 | cursor | cursorPerOutputHyprcursor | not ported | The case checks the cursor image each output renders from a cursor theme, which a core test cannot see. |
 | hyprctl | hyprctlDevicesActiveLayoutIndex | differs | input:kb_layout is a Gap, and there is no switchxkblayout or devices request. |
 | hyprctl | hyprctlGetprop | differs | getprop and setprop honor only float, and there is no setprop dispatcher. |
@@ -221,8 +221,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | refactor_state | workspacePlacementActiveMove | passes | |
 | refactor_state | workspacePlacementWindowState | passes | |
 | refactor_state | globalWindowMoveState | differs | movetoworkspace keeps a floating Client's position when the Workspace is on another Monitor. The pinned release moves it by the offset between the Monitors. |
-| refactor_state | pointerNoWarpsFocusesMonitorOnly | differs | There is no movecursor dispatcher. |
-| refactor_state | cursorWarpFocusOnMonitorChange | differs | There is no movecursor dispatcher. |
+| refactor_state | pointerNoWarpsFocusesMonitorOnly | passes | |
+| refactor_state | cursorWarpFocusOnMonitorChange | differs | Switching to a Workspace on another Monitor moves the cursor even with cursor:no_warps. |
 | solitary | solitaryClients | not ported | Solitary, tearing and direct scanout are render paths, which a core test cannot see. |
 | colors | monitorsColorManagement | differs | bitdepth and cm are Gaps. |
 | animations | animationsTrivial | differs | There is no animations request. |
@@ -258,17 +258,17 @@ A case passes when every check in it passes, as in the reference harness. A case
 | clients/surface-scale-transform | surfaceScaleTransform | not ported | Surface scale and transform are Wayland protocol state. Windows scales a window by its DPI awareness. |
 | clients/toplevel-capture | windowShareCaptureProducesFrame | not ported | Window capture is done by the system, not by Winland. |
 | clients/wlr-foreign-toplevel | wlrForeignToplevelMinimizeEvents | passes | |
-| clients/xdg-activation | xdgActivationSerial | differs | With misc:focus_on_activate a window that takes the foreground keeps it, without the fresh input serial the pinned release requires. There is no movecursor dispatcher. |
+| clients/xdg-activation | xdgActivationSerial | differs | With misc:focus_on_activate a window that takes the foreground keeps it, without the fresh input serial the pinned release requires. |
 | clients/xdg-initial-maximize | xdgMaximizeBeforeInitialCommitIsIgnored | differs | A window shown maximized is maximized. The pinned release ignores a maximize request made before the window maps. |
 | clients/xdg-initial-maximize | xdgMaximizeBeforeMapIsIgnored | differs | A window shown maximized is maximized. The pinned release ignores a maximize request made before the window maps. |
-| clients/xdg-interactive | xdgInteractive | differs | There is no setprop or movecursor dispatcher. A floating Client the system moves or resizes keeps its old frame in activewindow. |
+| clients/xdg-interactive | xdgInteractive | differs | There is no setprop dispatcher. A floating Client the system moves or resizes keeps its old frame in activewindow. |
 | misc/plugin | plugin | passes | |
 | misc/plugin | pluginVkb | not ported | Windows merges every keyboard into one key state and does not tell Winland which device a key came from. |
 | exec | processSpawning | passes | |
 | gestures | pinchDeltaScalePropagation | not ported | It checks a gesture the test plugin registers through the C++ plugin interface, which has no core form. |
 | gestures | defaultSpecialWorkspaceGesture | differs | The special gesture action is not honored. |
 | gestures | live_gesture_callbacks | not ported | Gesture actions with start, update and end callbacks are Lua-only. |
-| gestures | gestures | differs | Only the workspace gesture action is honored, and movecursor is not a dispatcher. |
+| gestures | gestures | differs | Only the workspace gesture action is honored. |
 | keybinds | keybinds | differs | A bind on several keys runs on each of them, a long press waits 500 ms instead of input:repeat_delay, and per-device binds are not honored. |
 | keybinds | orderedSubChordDeferral | differs | A bind on several keys runs on each of them. The pinned release runs it once they are all pressed in order, and holds back a shorter bind that starts the same chord. |
 | keybinds | modifierReleaseBindShadowing | differs | A release bind on a modifier key still runs after another bind used that modifier. The pinned release skips it. |

@@ -103,6 +103,24 @@ public sealed partial class Core
         };
     }
 
+    // movecursor X Y: puts the cursor at a point on the desktop and handles it as a pointer move, so focus follows it as
+    // it would follow the mouse, as the pinned release warps the pointer and simulates a mouse movement.
+    private Outcome MoveCursor(string arguments, bool allowsElevation)
+    {
+        const string name = "movecursor";
+        var parts = arguments.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length != 2
+            || !int.TryParse(parts[0], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var x)
+            || !int.TryParse(parts[1], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var y))
+            return Rejected(name, "error: movecursor takes two coordinates", allowsElevation);
+
+        var point = new Point(x, y);
+        var moved = MovePointer(new PointerMoved(point));
+        _pointer = point;
+        _requestedWarp = new WarpTo(point);
+        return moved with { Dispatcher = name, AllowsElevation = allowsElevation };
+    }
+
     // Corners count from the bottom left, counterclockwise: 0 bottom left, 1 bottom right, 2 top right, 3 top left.
     private Outcome MoveCursorToCorner(string arguments, bool allowsElevation)
     {
