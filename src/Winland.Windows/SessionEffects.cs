@@ -32,10 +32,17 @@ public static class SessionEffects
     {
         ArgumentNullException.ThrowIfNull(outcome);
         if (outcome.Cursor is CursorBehavior behavior)
+        {
             Idle.Configure(behavior);
+            if (Volatile.Read(ref _installed) != 0)
+                ScreenZoom.Configure(behavior.Zoom);
+        }
 
         if (outcome.Warp is WarpTo warp)
+        {
             Idle.Warp(warp.Position);
+            ScreenZoom.Moved(warp.Position);
+        }
 
         if (outcome.InputSettings is InputSettingsRequest settings)
             _session?.Apply(settings);
@@ -54,7 +61,10 @@ public static class SessionEffects
     {
         ArgumentNullException.ThrowIfNull(outcome);
         if (outcome.Warp is WarpTo warp)
+        {
             Idle.Warp(warp.Position);
+            ScreenZoom.Moved(warp.Position);
+        }
 
         Relay(outcome);
     }
@@ -68,13 +78,18 @@ public static class SessionEffects
             relay.Send(key);
     }
 
-    public static void NoteMove() => Idle.Moved();
+    public static void NoteMove(Point position)
+    {
+        Idle.Moved();
+        ScreenZoom.Moved(position);
+    }
 
     public static void NoteKey() => Idle.KeyPressed();
 
     public static void Restore()
     {
         _session?.Restore();
+        ScreenZoom.Stop();
         Idle.Reveal();
         _timer?.Dispose();
         _timer = null;

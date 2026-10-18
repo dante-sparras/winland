@@ -65,10 +65,10 @@ public class CursorInputTests
     [Fact]
     public void UnhonoredCursorKeyStillWarns()
     {
-        var document = ConfigParser.Parse("cursor:zoom_factor = 2\n");
+        var document = ConfigParser.Parse("cursor:zoom_disable_aa = true\n");
 
         Assert.Empty(document.Settings);
-        Assert.Equal(new ConfigWarning(1, "Unsupported keyword 'cursor:zoom_factor'."), Assert.Single(document.Warnings));
+        Assert.Equal(new ConfigWarning(1, "Unsupported keyword 'cursor:zoom_disable_aa'."), Assert.Single(document.Warnings));
     }
 
     [Fact]

@@ -29,7 +29,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 | animation:layersOut | Layer shell surfaces have no Windows meaning. |
 | animation:monitorAdded | A monitor that is added does not animate. |
 | animation:shadowangle | Shadows are not honored, so their angle does not animate. |
-| animation:zoomFactor | Screen zoom is not honored, so it does not animate. |
+| animation:zoomFactor | The cursor zoom changes factor at once and does not animate. |
 | aurora | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | binds:disable_keybind_grabbing | Applications cannot ask Windows to turn binds off, so there is nothing to refuse. |
 | bitdepth | Changing a monitor's bit depth is not honored. |
@@ -45,10 +45,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 | cursor:sync_gsettings_theme | Syncing the cursor theme with the desktop has no Windows meaning. |
 | cursor:use_cpu_buffer | Hardware cursor buffers have no Windows meaning. |
 | cursor:warp_back_after_non_mouse_input | Returning the cursor after non-mouse input is not honored. |
-| cursor:zoom_detached_camera | Cursor zoom is not honored. |
-| cursor:zoom_disable_aa | Cursor zoom is not honored. |
-| cursor:zoom_factor | Cursor zoom is not honored. |
-| cursor:zoom_rigid | Cursor zoom is not honored. |
+| cursor:zoom_disable_aa | The system magnifier that draws the cursor zoom offers no choice of filtering. |
 | debug | Compositor debug options have no Windows meaning. |
 | decoration:blur:brightness | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | decoration:blur:contrast | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
@@ -203,7 +200,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | non-goal | - | binds:disable_keybind_grabbing |
 | gap | - | bitdepth, cm, mirror, mode, scale, vrr |
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
-| gap | - | cursor:hide_on_tablet, cursor:hide_on_touch, cursor:hotspot_padding, cursor:invisible, cursor:warp_back_after_non_mouse_input, cursor:zoom_detached_camera, cursor:zoom_disable_aa, cursor:zoom_factor, cursor:zoom_rigid |
+| gap | - | cursor:hide_on_tablet, cursor:hide_on_touch, cursor:hotspot_padding, cursor:invisible, cursor:warp_back_after_non_mouse_input, cursor:zoom_disable_aa |
 | gap | - | decoration:blur:brightness, decoration:blur:contrast, decoration:blur:ignore_opacity, decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:noise, decoration:blur:passes, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:size, decoration:blur:special, decoration:blur:vibrancy, decoration:blur:vibrancy_darkness, decoration:blur:xray |
 | gap | - | decoration:border_part_of_window, group:groupbar:blur, wobble |
 | gap | - | decoration:shadow:color, decoration:shadow:color_inactive, decoration:shadow:offset, decoration:shadow:range, decoration:shadow:render_power, decoration:shadow:scale, decoration:shadow:sharp |

@@ -144,11 +144,13 @@ In the scrolling Layout a resize keeps the camera where it is. A column's far ed
 
 ## Cursor and input
 
-These cursor keys are honored: `warp_on_change_workspace`, `warp_on_monitor_change`, `warp_on_toggle_special`, `no_warps`, `persistent_warps`, `inactive_timeout`, `hide_on_key_press`, and `default_monitor`. Every other `cursor` key stays a Gap.
+These cursor keys are honored: `warp_on_change_workspace`, `warp_on_monitor_change`, `warp_on_toggle_special`, `no_warps`, `persistent_warps`, `inactive_timeout`, `hide_on_key_press`, `default_monitor`, `zoom_factor`, `zoom_rigid`, and `zoom_detached_camera`. Every other `cursor` key stays a Gap.
 
 `warp_on_change_workspace` and `warp_on_toggle_special` default to 0. 1 warps to the middle of the last focused window, or to the cursor's last point in that window when `persistent_warps` is on. 2 does the same and still warps when `no_warps` is on. `warp_on_monitor_change` defaults to -1, which follows `warp_on_change_workspace`, and takes the same modes. A change that lands on another Monitor follows `warp_on_monitor_change`, and one on the same Monitor follows `warp_on_change_workspace`, as in the pinned release. `warp_on_toggle_special` warps when `togglespecialworkspace` shows or hides a special workspace.
 
 `inactive_timeout` is seconds from 0 to 20, default 0. Above 0 the cursor hides once it has been still for longer than that. `hide_on_key_press` hides it on a key press until it moves. Over other programs the cursor stays visible; see [gaps.md](gaps.md). `default_monitor` warps once to the middle of the named monitor. An empty value does not warp, and `no_warps` does not block that warp.
+
+`zoom_factor` zooms the Monitor under the cursor by that factor, from 1 to 10, default 1, which is no zoom. With `zoom_detached_camera`, on by default, the view keeps the point under the cursor in place when the factor changes, and follows the cursor only when it leaves the middle 90% of the view, or not at all with `zoom_rigid`. With `zoom_detached_camera` off the view zooms about the cursor, or keeps the cursor in its middle with `zoom_rigid`. The view never shows past the Monitor's edge, and the cursor points where it is drawn. The zoom is drawn by the system magnifier, which zooms the whole desktop as one surface, so while the Monitor under the cursor is zoomed, the others show what lies beside it at the same factor; in the pinned release only that Monitor zooms. It goes away when Winland exits.
 
 These input keys are honored: `repeat_rate`, `repeat_delay`, `numlock_by_default`, `left_handed`, `natural_scroll`, `accel_profile`, `sensitivity`, and `scroll_factor`. A key left unset does not change the system. The value it replaced is saved and put back on a clean exit, and again on the next start if the process crashed.
 
