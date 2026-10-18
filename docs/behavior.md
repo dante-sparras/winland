@@ -10,6 +10,8 @@ A line that ends with a backslash is joined to the next line, so a value that en
 
 ## Layout
 
+`master:center_ignores_reserved` defaults to false. True centers a centered master on its Monitor rather than on the work area, as in the pinned release. The strips left and right of the work area, such as a taskbar or an `addreserved` rule, count toward the width the master is centered in and its share of it, and the side stacks keep to the work area.
+
 `dwindle:special_scale_factor`, `master:special_scale_factor` and `misc:animate_mouse_windowdragging` are read and change nothing, as in the pinned release, which defines them and never reads them.
 
 `general:layout` is honored for `dwindle`, `master`, `monocle`, and `scrolling`. Any other value warns with its line number. Dwindle still runs when the named layout is not available. When monocle's shown tile closes or is minimized, the tile focused most recently is shown in its place, as in the pinned release, and otherwise the next one.

@@ -45,6 +45,9 @@ public sealed record MasterOptions
 
     public MasterOrientation CenterFallback { get; init; } = MasterOrientation.Left;
 
+    /// <summary><c>master:center_ignores_reserved</c>: a centered master is centered on the Monitor, not on its work area.</summary>
+    public bool CenterIgnoresReserved { get; init; }
+
     public bool SmartResizing { get; init; } = true;
 
     public bool DropAtCursor { get; init; } = true;
@@ -64,6 +67,7 @@ public sealed record MasterOptions
         ["master:new_on_active"] = (options, value) => TryOnActive(value, out var placed) ? options with { NewOnActive = placed } : options,
         ["master:orientation"] = (options, value) => TryOrientation(value, out var orientation) ? options with { Orientation = orientation } : options,
         ["master:slave_count_for_center_master"] = (options, value) => TryInt(value, out var count) ? options with { SlaveCountForCenter = Clamp(count, 0, 10) } : options,
+        ["master:center_ignores_reserved"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var ignore) ? options with { CenterIgnoresReserved = ignore } : options,
         ["master:center_master_fallback"] = (options, value) => TryFallback(value, out var fallback) ? options with { CenterFallback = fallback } : options,
         ["master:smart_resizing"] = (options, value) => TryBool(value, out var smart) ? options with { SmartResizing = smart } : options,
         ["master:drop_at_cursor"] = (options, value) => TryBool(value, out var drop) ? options with { DropAtCursor = drop } : options,

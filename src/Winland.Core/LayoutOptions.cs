@@ -57,6 +57,14 @@ public sealed record LayoutOptions
 
     public EdgeInsets FloatGaps { get; init; } = EdgeInsets.Zero;
 
+    /// <summary>
+    /// The Monitor's strips to the left and right of its work area, such as a taskbar or an <c>addreserved</c> rule,
+    /// in pixels. A centered master can ignore them with <c>master:center_ignores_reserved</c>.
+    /// </summary>
+    public int ReservedLeft { get; init; }
+
+    public int ReservedRight { get; init; }
+
     /// <summary><c>layout:single_window_aspect_ratio</c>: the width to height a lone tiled Client is padded to. 0 0 is off.</summary>
     public Vec2 SingleWindowAspectRatio { get; init; }
 

@@ -155,7 +155,15 @@ public sealed partial class Core
                 LayoutOptions.TryOverrideDwindle(options, pair.Key, pair.Value, out options);
         }
 
-        return options.ScaledBy(scale);
+        var scaled = options.ScaledBy(scale);
+        if (screen is not { Effective: { Enabled: true } monitor })
+            return scaled;
+
+        return scaled with
+        {
+            ReservedLeft = Math.Max(0, monitor.WorkArea.X - monitor.X),
+            ReservedRight = Math.Max(0, monitor.X + monitor.Width - (monitor.WorkArea.X + monitor.WorkArea.Width)),
+        };
     }
 
     private LiveMonitor? BoundMonitor(WorkspaceId id)

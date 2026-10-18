@@ -61,7 +61,7 @@ public class MasterLayoutTests
     }
 
     [Fact]
-    public void MasterOptionsThatCannotApplyStayGaps()
+    public void SpecialScaleFactorAndCenterIgnoresReservedAreRead()
     {
         var document = ConfigParser.Parse("""
             master:special_scale_factor = 0.5
@@ -70,10 +70,27 @@ public class MasterLayoutTests
             """);
 
         // special_scale_factor is read without a warning, and changes nothing, as the pinned release never reads it.
-        Assert.Equal([new ConfigWarning(2, "Unsupported keyword 'master:center_ignores_reserved'.")], document.Warnings);
-        Assert.Equal(
-            [new Setting("master:special_scale_factor", "0.5"), new Setting("master:mfact", "0.5")],
-            document.Settings);
+        Assert.Empty(document.Warnings);
+        Assert.Equal(3, document.Settings.Count);
+        Assert.True(MasterOptions.From(document).CenterIgnoresReserved);
+    }
+
+    [Theory]
+    [InlineData("false", 1060)]
+    [InlineData("true", 960)]
+    public void ACenteredMasterCentersOnTheMonitorWhenItIgnoresTheReservedStrip(string ignore, int middle)
+    {
+        // The Monitor keeps a 200 pixel strip on its left out of the work area.
+        var core = new Core(ConfigParser.Parse(
+            $"general:layout = master\ngeneral:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nmaster:orientation = center\nmaster:center_ignores_reserved = {ignore}\n"));
+        var work = new Rectangle(200, 0, 1720, 1080);
+        core.Handle(new MonitorsChanged([new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, work)]));
+        Outcome opened = null!;
+        for (var window = 1; window <= 3; window++)
+            opened = core.Handle(new WindowAppeared(new WindowId(window), work));
+
+        var master = Assert.Single(opened.State.Clients, client => client.Window == new WindowId(1)).Bounds;
+        Assert.InRange(master.X + (master.Width / 2), middle - 1, middle + 1);
     }
 
     [Fact]
