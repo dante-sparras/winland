@@ -38,6 +38,11 @@ public sealed partial class Core
             next.Add(screen);
         }
 
+        // While no Monitor is enabled the pinned release keeps the Workspaces on a FALLBACK Monitor, and gives them back
+        // when one comes back.
+        if (next.Count > 0 && !next.Exists(screen => screen.Effective.Enabled))
+            next.Add(FindNamed(previous, FallbackName) ?? new LiveMonitor(NextMonitorId(previous, next), Fallback, Fallback));
+
         _monitors.Clear();
         _monitors.AddRange(next);
 
@@ -349,6 +354,10 @@ public sealed partial class Core
 
         return false;
     }
+
+    private const string FallbackName = "FALLBACK";
+
+    private static readonly Monitor Fallback = new(FallbackName, "", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080));
 
     private List<LiveMonitor> EnabledMonitors()
     {
