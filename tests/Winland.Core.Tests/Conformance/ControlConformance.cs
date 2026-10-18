@@ -9,7 +9,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class ControlConformance
 {
-    [Fact(Skip = "input:kb_layout is a Gap, and there is no switchxkblayout or devices request.")]
+    [Fact]
     public void HyprctlDevicesActiveLayoutIndex()
     {
         var desk = new Desk();

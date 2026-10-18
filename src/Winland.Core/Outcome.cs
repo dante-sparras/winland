@@ -118,6 +118,9 @@ public sealed record Outcome(
     /// <summary>The error bar to show, or null when none is.</summary>
     public ErrorBar? ErrorBar { get; init; }
 
+    /// <summary>The keyboard layouts to load and the one to use, or null to leave the system's alone.</summary>
+    public KeyboardLayoutRequest? KeyboardLayout { get; init; }
+
     /// <summary>The dim layers to keep below windows with the dim_around property.</summary>
     public IReadOnlyList<DimAround> Dims { get; init; } = [];
 

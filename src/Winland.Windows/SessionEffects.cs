@@ -10,6 +10,7 @@ public static class SessionEffects
     private static readonly CursorIdle Idle = new(NullCursor.Instance, new SystemClock());
     private static readonly WarpBack Back = new();
     private static SystemInputSession? _session;
+    private static KeyboardLayoutSwitcher? _layouts;
     private static CursorIdleTimer? _timer;
     private static IKeyRelaySender? _relay;
     private static IdleKeeper? _idle;
@@ -24,6 +25,7 @@ public static class SessionEffects
 
         Idle.Use(new Win32Cursor());
         _session = new SystemInputSession(new Win32SystemInput());
+        _layouts = new KeyboardLayoutSwitcher(new Win32KeyboardLayouts());
         _timer = new CursorIdleTimer(Idle);
         _relay = new Win32KeyRelaySender();
         _idle = new IdleKeeper();
@@ -47,6 +49,7 @@ public static class SessionEffects
             Magnifier.Moved(warp.Position);
         }
 
+        _layouts?.Apply(outcome.KeyboardLayout);
         if (outcome.InputSettings is InputSettingsRequest settings)
             _session?.Apply(settings);
         else
@@ -99,6 +102,7 @@ public static class SessionEffects
     public static void Restore()
     {
         _session?.Restore();
+        _layouts?.Restore();
         Magnifier.Stop();
         Idle.Reveal();
         _timer?.Dispose();

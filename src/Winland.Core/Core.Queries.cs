@@ -71,6 +71,8 @@ public sealed partial class Core
         GetPropRequest prop => ReadProp(prop),
         SetPropRequest prop => WriteProp(prop),
         SetErrorRequest error => SetError(error),
+        SwitchLayoutRequest layout => SwitchLayout(layout),
+        DevicesRequest devices => Devices(devices),
         BatchRequest batch => RunBatch(batch.Payload),
         _ => throw new InvalidOperationException("No handler for this command."),
     };

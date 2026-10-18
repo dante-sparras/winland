@@ -110,6 +110,7 @@ public class DisplayOrientationTests
             nameof(Outcome.Orientations), // WindowAdapter.ApplyCore
             nameof(Outcome.Warp), // SessionEffects
             nameof(Outcome.InputSettings), // SessionEffects
+            nameof(Outcome.KeyboardLayout), // SessionEffects
             nameof(Outcome.Cursor), // SessionEffects
             nameof(Outcome.ResizeCursor), // not applied: behavior.md says the system pointer is not changed
             nameof(Outcome.Error), // command replies

@@ -66,6 +66,12 @@ public sealed record InputOptions
 
     public int FocusOnClose { get; init; }
 
+    /// <summary><c>input:kb_layout</c>: comma-separated XKB layout names. Null leaves the system's layouts alone.</summary>
+    public string? KbLayout { get; init; }
+
+    /// <summary><c>input:kb_variant</c>: the variant of each layout, at the same places.</summary>
+    public string? KbVariant { get; init; }
+
     public static InputOptions Documented { get; } = new();
 
     public bool InvertsScroll => NaturalScroll == true;
@@ -116,6 +122,8 @@ public sealed record InputOptions
         ["input:follow_mouse_shrink"] = (options, value) => TryInt(value, 0, 300, out var shrink) ? options with { FollowMouseShrink = shrink } : options,
         ["input:mouse_refocus"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var refocus) ? options with { MouseRefocus = refocus } : options,
         ["input:float_switch_override_focus"] = (options, value) => TryInt(value, 0, 2, out var behavior) ? options with { FloatSwitchOverrideFocus = behavior } : options,
+        ["input:kb_layout"] = (options, value) => options with { KbLayout = value.Trim() },
+        ["input:kb_variant"] = (options, value) => options with { KbVariant = value.Trim() },
         ["input:focus_on_close"] = (options, value) => TryMode(value, FocusOnCloseNames, 0, 2, out var close) ? options with { FocusOnClose = close } : options,
     };
 
