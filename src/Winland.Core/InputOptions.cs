@@ -8,6 +8,16 @@ public enum PointerAcceleration
     Adaptive,
 }
 
+/// <summary>
+/// The Windows precision touchpad settings Winland sets: tapping, tap and drag, a reversed scroll direction, how
+/// sensitive the touchpad stays while typing (0, the most, never turns it off), and the right-click zone. A null field
+/// is left alone.
+/// </summary>
+public readonly record struct TouchpadSettings(bool? Tap, bool? TapAndDrag, bool? ReverseScroll, int? Sensitivity, bool? RightClickZone)
+{
+    public bool Any => Tap is not null || TapAndDrag is not null || ReverseScroll is not null || Sensitivity is not null || RightClickZone is not null;
+}
+
 public sealed record InputSettingsRequest
 {
     public int? KeyboardDelay { get; init; }
@@ -24,6 +34,8 @@ public sealed record InputSettingsRequest
 
     public int? WheelLines { get; init; }
 
+    public TouchpadSettings? Touchpad { get; init; }
+
     public bool Any =>
         KeyboardDelay is not null
         || KeyboardSpeed is not null
@@ -31,7 +43,8 @@ public sealed record InputSettingsRequest
         || SwapButtons is not null
         || Acceleration is not null
         || MouseSpeed is not null
-        || WheelLines is not null;
+        || WheelLines is not null
+        || Touchpad is not null;
 }
 
 public sealed record InputOptions
@@ -66,6 +79,16 @@ public sealed record InputOptions
 
     public int FocusOnClose { get; init; }
 
+    public bool? TouchpadTapToClick { get; init; }
+
+    public bool? TouchpadTapAndDrag { get; init; }
+
+    public bool? TouchpadNaturalScroll { get; init; }
+
+    public bool? TouchpadDisableWhileTyping { get; init; }
+
+    public bool? TouchpadClickfinger { get; init; }
+
     /// <summary><c>input:kb_layout</c>: comma-separated XKB layout names. Null leaves the system's layouts alone.</summary>
     public string? KbLayout { get; init; }
 
@@ -87,8 +110,22 @@ public sealed record InputOptions
             Acceleration = Acceleration,
             MouseSpeed = Sensitivity is double sensitivity ? InputMapping.MouseSpeed(sensitivity) : null,
             WheelLines = ScrollFactor is double factor ? InputMapping.WheelLines(factor) : null,
+            Touchpad = TouchpadRequest(),
         };
         return request.Any ? request : null;
+    }
+
+    // libinput's natural scrolling is Windows' default direction, and its button areas are Windows' right-click zone.
+    // Disabling the touchpad while typing is Windows' medium sensitivity, its default; not disabling it is the most.
+    private TouchpadSettings? TouchpadRequest()
+    {
+        var settings = new TouchpadSettings(
+            TouchpadTapToClick,
+            TouchpadTapAndDrag,
+            TouchpadNaturalScroll is bool natural ? !natural : null,
+            TouchpadDisableWhileTyping is bool disable ? (disable ? 2 : 0) : null,
+            TouchpadClickfinger is bool clickfinger ? !clickfinger : null);
+        return settings.Any ? settings : null;
     }
 
     private static readonly Dictionary<string, int> FollowMouseNames = new(StringComparer.OrdinalIgnoreCase)
@@ -122,6 +159,11 @@ public sealed record InputOptions
         ["input:follow_mouse_shrink"] = (options, value) => TryInt(value, 0, 300, out var shrink) ? options with { FollowMouseShrink = shrink } : options,
         ["input:mouse_refocus"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var refocus) ? options with { MouseRefocus = refocus } : options,
         ["input:float_switch_override_focus"] = (options, value) => TryInt(value, 0, 2, out var behavior) ? options with { FloatSwitchOverrideFocus = behavior } : options,
+        ["input:touchpad:tap-to-click"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var tap) ? options with { TouchpadTapToClick = tap } : options,
+        ["input:touchpad:tap-and-drag"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var drag) ? options with { TouchpadTapAndDrag = drag } : options,
+        ["input:touchpad:natural_scroll"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var natural) ? options with { TouchpadNaturalScroll = natural } : options,
+        ["input:touchpad:disable_while_typing"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var disable) ? options with { TouchpadDisableWhileTyping = disable } : options,
+        ["input:touchpad:clickfinger_behavior"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var clickfinger) ? options with { TouchpadClickfinger = clickfinger } : options,
         ["input:kb_layout"] = (options, value) => options with { KbLayout = value.Trim() },
         ["input:kb_variant"] = (options, value) => options with { KbVariant = value.Trim() },
         ["input:focus_on_close"] = (options, value) => TryMode(value, FocusOnCloseNames, 0, 2, out var close) ? options with { FocusOnClose = close } : options,
