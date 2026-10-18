@@ -258,9 +258,11 @@ public sealed partial class Core
         var chosen = new List<LiveMonitor>();
         if (_monitors.Count == 0)
         {
+            var on = PowerAfter("", turnOn, toggle);
+            Volatile.Write(ref _displaysOn, on);
             return View([], dispatcher: "dpms", allowsElevation: allowsElevation) with
             {
-                DisplayPower = [new DisplayPowerRequest("", PowerAfter("", turnOn, toggle))],
+                DisplayPower = [new DisplayPowerRequest("", on)],
             };
         }
 
@@ -288,6 +290,9 @@ public sealed partial class Core
             var device = chosen[i].Effective.Name;
             requests[i] = new DisplayPowerRequest(device, PowerAfter(device, turnOn, toggle));
         }
+
+        if (requests.Length > 0)
+            Volatile.Write(ref _displaysOn, requests[^1].On);
 
         return View([], dispatcher: "dpms", allowsElevation: allowsElevation) with { DisplayPower = requests };
     }

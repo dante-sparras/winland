@@ -50,6 +50,12 @@ public sealed record SessionOptions
     /// <summary><c>binds:movefocus_cycles_fullscreen</c>: movefocus from a fullscreen Client cycles its Workspace's windows instead of looking in the direction.</summary>
     public bool MoveFocusCyclesFullscreen { get; init; }
 
+    /// <summary><c>misc:mouse_move_enables_dpms</c>: a pointer move or the start of a swipe turns the displays back on after dpms off.</summary>
+    public bool MouseMoveEnablesDpms { get; init; }
+
+    /// <summary><c>misc:key_press_enables_dpms</c>: a key press or release turns the displays back on after dpms off.</summary>
+    public bool KeyPressEnablesDpms { get; init; }
+
     public static SessionOptions Documented { get; } = new();
 
     // Adding an entry here applies that keyword and stops the config warning.
@@ -71,6 +77,8 @@ public sealed record SessionOptions
         ["misc:animate_manual_resizes"] = (options, value) => TryParseBool(value, out var animate) ? options with { AnimateManualResizes = animate } : options,
         ["general:no_focus_fallback"] = (options, value) => TryParseBool(value, out var none) ? options with { NoFocusFallback = none } : options,
         ["binds:movefocus_cycles_fullscreen"] = (options, value) => TryParseBool(value, out var cycles) ? options with { MoveFocusCyclesFullscreen = cycles } : options,
+        ["misc:mouse_move_enables_dpms"] = (options, value) => TryParseBool(value, out var mouse) ? options with { MouseMoveEnablesDpms = mouse } : options,
+        ["misc:key_press_enables_dpms"] = (options, value) => TryParseBool(value, out var key) ? options with { KeyPressEnablesDpms = key } : options,
         ["misc:size_limits_tiled"] = (options, value) => TryParseBool(value, out var tiled) ? options with { SizeLimitsTiled = tiled } : options,
     };
 
