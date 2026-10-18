@@ -133,7 +133,7 @@ public class ScrollConformance
         Assert.Equal("kitty_scroll_B", desk.ActiveClass());
     }
 
-    [Fact(Skip = "A maximized Client in the scrolling Layout fills the work area less gaps_out. The pinned release's scrolling Layout also leaves gaps_in at its sides.")]
+    [Fact]
     public void ScrollLAYOUTHANDLEDMaximized()
     {
         var desk = new Desk(Scrolling);
@@ -159,7 +159,7 @@ public class ScrollConformance
         Assert.Equal(1, Desk.Fullscreen(desk.ActiveWindow()));
     }
 
-    [Fact(Skip = "fullscreenHandler is always default, so a fullscreen Client in scrolling stays over the screen when focus moves to another column.")]
+    [Fact(Skip = "A maximized floating Group member is not moved until the Group changes, and then covers the group bar.")]
     public void ScrollLAYOUTHANDLEDTestFsingGroupedWindows()
     {
         var desk = new Desk(Scrolling + """
@@ -267,7 +267,7 @@ public class ScrollConformance
         ExpectPlace(desk, "kitten2", "0,21", "1920,1059");
     }
 
-    [Fact(Skip = "fullscreenHandler reports default, and a fullscreen Client stays over the screen when focus moves to another column.")]
+    [Fact]
     public void ScrollLAYOUTHANDLEDFullscreenRetainsGeometryWhileScrolling()
     {
         var desk = new Desk(Scrolling);
@@ -288,7 +288,7 @@ public class ScrollConformance
         Assert.Equal("1920,1080", desk.PlaceOf("kitty_scroll_B").Size);
         Assert.NotEqual(fullscreenAt, desk.PlaceOf("kitty_scroll_B").At);
 
-        desk.Ok("fullscreenstate", "0 0 set,class:kitty_scroll_B");
+        desk.Ok("fullscreenstate", "0 0 set class:kitty_scroll_B");
         Assert.Equal(0, Desk.Fullscreen(desk.Client("kitty_scroll_B")));
         Assert.Equal(regularSize, desk.PlaceOf("kitty_scroll_B").Size);
 
@@ -373,7 +373,7 @@ public class ScrollConformance
         ExpectClient(desk, "under", floating: true, acceptsInput: false, fullscreen: 0, over: false);
     }
 
-    [Fact(Skip = "fullscreenHandler is always default, so movefocus from a fullscreen Client in scrolling cycles the windows where the pinned release moves in the direction and keeps the mode.")]
+    [Fact]
     public void ScrollLAYOUTHANDLEDFocusInDirectionFocusFollowFocusTrue()
     {
         var desk = new Desk(Scrolling);
@@ -424,7 +424,7 @@ public class ScrollConformance
         }
     }
 
-    [Fact(Skip = "Leaving fullscreen does not fit the column into view by scrolling:focus_fit_method.")]
+    [Fact]
     public void ScrollLAYOUTHANDLEDRespectFocusFitMethodOnUnFs()
     {
         var desk = new Desk(Scrolling);
@@ -446,7 +446,7 @@ public class ScrollConformance
 
     [Fact]
     public void ScrollLAYOUTHANDLEDFloatingOntopFullscreenWorkspaceFocusRetention() =>
-        FloatingOntopFullscreenWorkspaceFocusRetention();
+        FloatingOntopFullscreenWorkspaceFocusRetention("");
 
     [Fact]
     public void ScrollDEFAULTHANDLEDFullscreenMaximiseDispatchers()
@@ -499,7 +499,7 @@ public class ScrollConformance
 
         foreach (var (mode, at, size) in new[] { ("0", "0,0", "1920,1080"), ("1", "0,21", "1920,1059") })
         {
-            desk.Ok("fullscreen", mode + " set");
+            desk.Ok("fullscreen", mode + " set default");
             ExpectActive(desk, "kitten2", at, size);
             ExpectPlace(desk, "kitten1", at, size);
 
@@ -508,10 +508,10 @@ public class ScrollConformance
             ExpectPlace(desk, "kitten2", at, size);
 
             desk.Ok("changegroupactive", "b");
-            desk.Ok("fullscreen", mode + " unset");
+            desk.Ok("fullscreen", mode + " unset default");
 
             desk.Ok("setfloating");
-            desk.Ok("fullscreen", mode + " set");
+            desk.Ok("fullscreen", mode + " set default");
             ExpectActive(desk, "kitten2", at, size);
             ExpectPlace(desk, "kitten1", at, size);
 
@@ -524,7 +524,7 @@ public class ScrollConformance
 
             desk.Ok("changegroupactive", "b");
             desk.Ok("settiled");
-            desk.Ok("fullscreen", mode + " unset");
+            desk.Ok("fullscreen", mode + " unset default");
         }
     }
 
@@ -536,7 +536,7 @@ public class ScrollConformance
             desk.Spawn(name);
 
         desk.Ok("focuswindow", "class:one");
-        desk.Ok("fullscreen", "1");
+        desk.Ok("fullscreen", "1 default");
         desk.ExpectActive("22,22", "1876,1036");
         Assert.Equal("one", desk.ActiveClass());
 
@@ -563,7 +563,7 @@ public class ScrollConformance
     {
         var desk = new Desk(Scrolling + "misc:on_focus_under_fullscreen = 0\n");
         desk.Spawn("kitty_A");
-        desk.Ok("fullscreen", "0");
+        desk.Ok("fullscreen", "0 default");
         ExpectActiveFullscreen(desk, "kitty_A", 2);
 
         desk.Spawn("kitty_B");
@@ -588,14 +588,14 @@ public class ScrollConformance
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
 
-        desk.Ok("fullscreen", "0");
+        desk.Ok("fullscreen", "0 default");
         ExpectFullscreen(desk, 2, 2);
 
         desk.CloseActive();
         ExpectFullscreen(desk, 0, 0);
 
         desk.Spawn("kitty_B");
-        desk.Ok("fullscreen", "0");
+        desk.Ok("fullscreen", "0 default");
         desk.Keyword("misc:exit_window_retains_fullscreen", "true");
 
         desk.CloseActive();
@@ -616,7 +616,7 @@ public class ScrollConformance
         desk.Ok("focuswindow", "class:cake");
         foreach (var mode in new[] { "0", "1" })
         {
-            desk.Ok("fullscreen", mode);
+            desk.Ok("fullscreen", mode + " default");
             var active = desk.ActiveWindow();
             Assert.Equal("cake", Desk.ClassOf(active));
             ExpectPin(active, pinned: true, pinFullscreened: false);
@@ -635,7 +635,7 @@ public class ScrollConformance
         desk.Ok("workspace", "1");
         foreach (var mode in new[] { 2, 1 })
         {
-            desk.Ok("fullscreenstate", $"{mode} {mode} set");
+            desk.Ok("fullscreenstate", $"{mode} {mode} set default");
             cake = desk.Client("cake");
             ExpectPin(cake, pinned: true, pinFullscreened: false);
             Assert.Equal(0, Desk.Fullscreen(cake));
@@ -644,21 +644,21 @@ public class ScrollConformance
             Assert.Equal(1, Desk.WorkspaceId(cake));
         }
 
-        desk.Ok("fullscreenstate", "0 0 set");
+        desk.Ok("fullscreenstate", "0 0 set default");
         Assert.Equal("ok", desk.Send("r/keyword binds:allow_pin_fullscreen true"));
         desk.Ok("focuswindow", "class:cake");
 
-        desk.Ok("fullscreen", "0");
+        desk.Ok("fullscreen", "0 default");
         ExpectPin(desk.ActiveWindow(), pinned: false, pinFullscreened: true);
         ExpectFullscreen(desk, 2, 2);
         desk.ExpectActive("0,0", "1920,1080");
 
-        desk.Ok("fullscreen", "1");
+        desk.Ok("fullscreen", "1 default");
         ExpectPin(desk.ActiveWindow(), pinned: false, pinFullscreened: true);
         ExpectFullscreen(desk, 1, 1);
         desk.ExpectActive("2,2", "1916,1076");
 
-        desk.Ok("fullscreenstate", "0 0 set");
+        desk.Ok("fullscreenstate", "0 0 set default");
         desk.Ok("workspace", "2");
         cake = desk.Client("cake");
         ExpectPin(cake, pinned: true, pinFullscreened: false);
@@ -670,12 +670,12 @@ public class ScrollConformance
         Assert.Equal("ok", desk.Send("r/keyword binds:allow_pin_fullscreen false"));
         Assert.Equal("ok", desk.Send("r/dispatch pin class:cake"));
 
-        desk.Ok("fullscreen", "0");
+        desk.Ok("fullscreen", "0 default");
         ExpectPin(desk.ActiveWindow(), pinned: false, pinFullscreened: false);
         ExpectFullscreen(desk, 2, 2);
         desk.ExpectActive("0,0", "1920,1080");
 
-        desk.Ok("fullscreen", "1");
+        desk.Ok("fullscreen", "1 default");
         ExpectPin(desk.ActiveWindow(), pinned: false, pinFullscreened: false);
         ExpectFullscreen(desk, 1, 1);
         desk.ExpectActive("2,2", "1916,1076");
@@ -698,7 +698,7 @@ public class ScrollConformance
 
     [Fact]
     public void ScrollDEFAULTHANDLEDFloatingOntopFullscreenWorkspaceFocusRetention() =>
-        FloatingOntopFullscreenWorkspaceFocusRetention();
+        FloatingOntopFullscreenWorkspaceFocusRetention(" default");
 
     [Fact(Skip = "The scrollMove gesture action is a Gap.")]
     public void ScrollNegativeScaleGesture()
@@ -1070,8 +1070,8 @@ public class ScrollConformance
         }
     }
 
-    // Shared by the layout handled and default handled cases: Winland's fullscreen has no layout_aware switch.
-    private static void FloatingOntopFullscreenWorkspaceFocusRetention()
+    // Shared by the layout handled and default handled cases. The default handled one asks for the default fullscreen.
+    private static void FloatingOntopFullscreenWorkspaceFocusRetention(string handler)
     {
         var desk = new Desk(Scrolling + "windowrulev2 = float, class:^(kitty_floated)$\n");
         desk.Ok("workspace", "1");
@@ -1080,7 +1080,7 @@ public class ScrollConformance
         {
             var expected = mode == "0" ? 2 : 1;
             desk.Spawn("kitty_tiled");
-            desk.Ok("fullscreen", mode + " set");
+            desk.Ok("fullscreen", mode + " set" + handler);
             Assert.Equal("kitty_tiled", desk.ActiveClass());
             Assert.False(Desk.Floating(desk.ActiveWindow()));
             ExpectFullscreen(desk, expected, expected);
@@ -1173,8 +1173,8 @@ public class ScrollConformance
         }
 
         desk.Ok("focuswindow", "class:red");
-        desk.Ok("fullscreen", "1");
-        desk.Ok("fullscreen", "1");
+        desk.Ok("fullscreen", "1 default");
+        desk.Ok("fullscreen", "1 default");
 
         foreach (var name in names)
         {

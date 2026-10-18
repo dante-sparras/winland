@@ -927,7 +927,7 @@ public class WindowConformance
         Assert.Equal("700,200", desk.PlaceOf("kitty").Size);
     }
 
-    [Fact(Skip = "fullscreenHandler is always default. The pinned release reports scrolling for a tiled Client in the scrolling Layout.")]
+    [Fact]
     public void GetFullscreenHandler()
     {
         var desk = new Desk();
@@ -953,17 +953,17 @@ public class WindowConformance
 
         desk.Ok("settiled");
 
-        // The line form has no layout_aware flag. The reference turns it off here.
-        desk.Ok("fullscreen", "0");
+        // The reference turns layout_aware off here.
+        desk.Ok("fullscreen", "0 default");
         Assert.Equal("default", Handler(desk));
-        desk.Ok("fullscreen", "0");
+        desk.Ok("fullscreen", "0 default");
 
         desk.Ok("fullscreen", "0");
         Assert.Equal("scrolling", Handler(desk));
         desk.Ok("fullscreen", "0");
     }
 
-    [Fact(Skip = "fullscreenHandler is always default.")]
+    [Fact(Skip = "The layout workspace rule is not honored, so every Workspace in the case uses general:layout.")]
     public void SendFsWindowToAnotherWorkspace()
     {
         var desk = new Desk("""

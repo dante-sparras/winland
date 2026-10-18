@@ -9,7 +9,7 @@ internal enum FullscreenAction
     Unset,
 }
 
-internal readonly record struct FullscreenParse(bool Ignored, FullscreenMode Mode, FullscreenAction Action);
+internal readonly record struct FullscreenParse(bool Ignored, FullscreenMode Mode, FullscreenAction Action, bool LayoutAware = true);
 
 internal readonly record struct FullscreenTarget(FullscreenMode Internal, FullscreenMode Client);
 
@@ -17,26 +17,31 @@ internal readonly record struct FullscreenTarget(FullscreenMode Internal, Fullsc
 /// <c>fullscreen</c> and <c>fullscreenstate</c> arguments.
 /// The first <c>fullscreen</c> argument selects maximize only for <c>1</c>, <c>maximize</c>, or <c>maximized</c>.
 /// Every other argument, including <c>0</c> and <c>2</c>, selects fullscreen. The second argument is <c>toggle</c>, <c>set</c>, or <c>unset</c>.
+/// A last word <c>default</c> asks for the default fullscreen, as the pinned release's <c>layout_aware = false</c> does.
 /// </summary>
 internal static class FullscreenCommands
 {
+    internal const string DefaultHandler = "default";
+
     internal static FullscreenParse Parse(string arguments)
     {
         var tokens = Tokens(arguments);
         var mode = tokens.Length > 0 && IsMaximize(tokens[0])
             ? FullscreenMode.Maximized
             : FullscreenMode.Fullscreen;
-        if (tokens.Length < 2)
-            return new FullscreenParse(false, mode, FullscreenAction.Toggle);
+        var layoutAware = !(tokens.Length > 1 && Is(tokens[^1], DefaultHandler));
+        var words = layoutAware ? tokens.Length : tokens.Length - 1;
+        if (words < 2)
+            return new FullscreenParse(false, mode, FullscreenAction.Toggle, layoutAware);
 
         if (Is(tokens[1], "toggle"))
-            return new FullscreenParse(false, mode, FullscreenAction.Toggle);
+            return new FullscreenParse(false, mode, FullscreenAction.Toggle, layoutAware);
         if (Is(tokens[1], "set"))
-            return new FullscreenParse(false, mode, FullscreenAction.Set);
+            return new FullscreenParse(false, mode, FullscreenAction.Set, layoutAware);
         if (Is(tokens[1], "unset"))
-            return new FullscreenParse(false, mode, FullscreenAction.Unset);
+            return new FullscreenParse(false, mode, FullscreenAction.Unset, layoutAware);
 
-        return new FullscreenParse(true, mode, FullscreenAction.Toggle);
+        return new FullscreenParse(true, mode, FullscreenAction.Toggle, layoutAware);
     }
 
     internal static bool Changed(FullscreenMode current, FullscreenMode mode, FullscreenAction action, out FullscreenMode next)
@@ -69,8 +74,23 @@ internal static class FullscreenCommands
     internal static string StateSelector(string arguments)
     {
         var tokens = Tokens(arguments);
-        var start = tokens.Length > 2 && TryStateAction(tokens[2], out _) ? 3 : 2;
+        var start = StateWords(tokens, out _);
         return tokens.Length > start ? string.Join(' ', tokens[start..]) : "";
+    }
+
+    /// <summary>Whether <c>fullscreenstate</c> asks for the Layout's fullscreen: false after a word <c>default</c> past the action.</summary>
+    internal static bool StateLayoutAware(string arguments)
+    {
+        _ = StateWords(Tokens(arguments), out var layoutAware);
+        return layoutAware;
+    }
+
+    // The words before the window selector: the two modes, an action, and then <c>default</c>.
+    private static int StateWords(string[] tokens, out bool layoutAware)
+    {
+        var start = tokens.Length > 2 && TryStateAction(tokens[2], out _) ? 3 : 2;
+        layoutAware = !(tokens.Length > start && Is(tokens[start], DefaultHandler));
+        return layoutAware ? start : start + 1;
     }
 
     /// <summary>

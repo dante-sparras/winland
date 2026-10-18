@@ -429,6 +429,64 @@ public class FullscreenTests
         Assert.Equal(new Rectangle(0, 61, 1920, 1019), BoundsOf(maximized, 2));
     }
 
+    [Theory]
+    [InlineData("0", FullscreenMode.Fullscreen, "Toggle", true)]
+    [InlineData("1 default", FullscreenMode.Maximized, "Toggle", false)]
+    [InlineData("0 set default", FullscreenMode.Fullscreen, "Set", false)]
+    [InlineData("1 unset", FullscreenMode.Maximized, "Unset", true)]
+    public void ALastWordDefaultAsksForTheDefaultFullscreen(string arguments, FullscreenMode mode, string action, bool layoutAware)
+    {
+        var parsed = FullscreenCommands.Parse(arguments);
+
+        Assert.False(parsed.Ignored);
+        Assert.Equal(mode, parsed.Mode);
+        Assert.Equal(action, parsed.Action.ToString());
+        Assert.Equal(layoutAware, parsed.LayoutAware);
+    }
+
+    [Fact]
+    public void FullscreenStateReadsDefaultAfterTheAction()
+    {
+        Assert.False(FullscreenCommands.StateLayoutAware("2 0 set default class:kitty"));
+        Assert.Equal("class:kitty", FullscreenCommands.StateSelector("2 0 set default class:kitty"));
+        Assert.True(FullscreenCommands.StateLayoutAware("2 0 set class:kitty"));
+        Assert.Equal("class:kitty", FullscreenCommands.StateSelector("2 0 set class:kitty"));
+    }
+
+    [Fact]
+    public void TheScrollingLayoutKeepsAFullscreenTileOnItsTapeWhenFocusScrollsAway()
+    {
+        var core = Desk("general:layout = scrolling\n");
+        Appear(core, 2);
+
+        var entered = core.Handle(new Dispatch("fullscreen", "0"));
+        Assert.Equal(MonitorBounds, BoundsOf(entered, 2));
+        Assert.True(ClientOf(entered, 2).LayoutFullscreen);
+
+        var away = core.Handle(new Dispatch("focuswindow", "address:0x1"));
+        var held = ClientOf(away, 2);
+        Assert.Equal(FullscreenMode.Fullscreen, held.Fullscreen);
+        Assert.Equal((MonitorBounds.Width, MonitorBounds.Height), (held.Bounds.Width, held.Bounds.Height));
+        Assert.NotEqual(MonitorBounds.X, held.Bounds.X);
+
+        using var clients = JsonDocument.Parse(core.Execute("clients").Text);
+        Assert.All(clients.RootElement.EnumerateArray(), client => Assert.Equal("scrolling", client.GetProperty("fullscreenHandler").GetString()));
+    }
+
+    [Fact]
+    public void DefaultFullscreenInTheScrollingLayoutCoversTheMonitorAsElsewhere()
+    {
+        var core = Desk("general:layout = scrolling\n");
+        Appear(core, 2);
+
+        var entered = core.Handle(new Dispatch("fullscreen", "0 default"));
+
+        Assert.Equal(MonitorBounds, BoundsOf(entered, 2));
+        Assert.False(ClientOf(entered, 2).LayoutFullscreen);
+        using var active = JsonDocument.Parse(core.Execute("activewindow").Text);
+        Assert.Equal("default", active.RootElement.GetProperty("fullscreenHandler").GetString());
+    }
+
     private static Core Desk(string config)
     {
         var core = new Core();

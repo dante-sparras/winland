@@ -21,7 +21,8 @@ public sealed record Client(
     WindowId? Swallowing = null,
     IReadOnlyList<string>? Tags = null,
     int Content = 0,
-    bool InhibitingIdle = false);
+    bool InhibitingIdle = false,
+    bool LayoutFullscreen = false);
 
 public readonly record struct Placement(ClientId Client, Rectangle Bounds);
 
