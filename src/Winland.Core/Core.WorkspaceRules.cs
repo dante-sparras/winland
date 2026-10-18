@@ -125,13 +125,16 @@ public sealed partial class Core
     {
         var screen = MonitorById(desk.Monitor);
         var scale = screen is { Effective.Enabled: true } ? screen.Effective.Scale : 1;
-        var options = _options with { ClientBorder = _clientBorder };
+        // A negative general:float_gaps side takes general:gaps_out, not the rule's, as in the pinned release.
+        var options = _options with { ClientBorder = _clientBorder, FloatGaps = _options.EffectiveFloatGaps };
         if (rule is not null)
         {
             if (rule.GapsIn is EdgeInsets gapsIn)
                 options = options with { GapsIn = gapsIn };
             if (rule.GapsOut is EdgeInsets gapsOut)
                 options = options with { GapsOut = gapsOut };
+            if (rule.FloatGaps is EdgeInsets floatGaps)
+                options = options with { FloatGaps = floatGaps };
 
             var border = options.BorderSize;
             if (rule.BorderSize is int size)

@@ -44,7 +44,6 @@ public class WorkspaceRuleTests
             [
                 new ConfigWarning(1, "A workspace rule's shadow is not honored."),
                 new ConfigWarning(1, "Workspace rule animation styles are not honored."),
-                new ConfigWarning(1, "Floating window gaps are not honored."),
             ],
             document.Warnings);
         var rule = Assert.Single(document.WorkspaceRules);
@@ -54,6 +53,22 @@ public class WorkspaceRuleTests
         Assert.Equal("true", Assert.Contains("smart_resizing", rule.LayoutOpts));
         Assert.Equal(3, rule.LayoutOpts.Count);
         Assert.Equal("master", rule.Layout);
+        Assert.Equal(EdgeInsets.Uniform(4), rule.FloatGaps);
+    }
+
+    [Theory]
+    [InlineData("workspace = 1, gapsout:100, float_gaps:12\n", 12)]
+    [InlineData("general:float_gaps = -1\nworkspace = 1, gapsout:100\n", 30)]
+    public void AFloatingClientKeepsTheRulesFloatGapsOrTheGeneralGapsOut(string rules, int left)
+    {
+        var core = Configured("general:gaps_out = 30\ngeneral:border_size = 0\n" + rules);
+        core.Handle(new MonitorsChanged([Display("DP-1", "One", 0, 0, 1920, 1080, 1)]));
+        core.Handle(Appeared(1, new Rectangle(500, 500, 400, 300)));
+        core.Handle(new Dispatch("setfloating"));
+
+        var moved = core.Handle(new Dispatch("movewindow", "l"));
+
+        Assert.Equal(left, BoundsOf(moved, 1).X);
     }
 
     [Fact]

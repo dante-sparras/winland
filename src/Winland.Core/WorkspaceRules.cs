@@ -25,6 +25,9 @@ public sealed record WorkspaceRule
 
     public EdgeInsets? GapsOut { get; init; }
 
+    /// <summary>The gaps between a floating Client and the Monitor edges, in place of <c>general:float_gaps</c>.</summary>
+    public EdgeInsets? FloatGaps { get; init; }
+
     public int? BorderSize { get; init; }
 
     public bool? Border { get; init; }
@@ -59,6 +62,7 @@ public sealed record WorkspaceRule
             Persistent = other.Persistent ?? Persistent,
             GapsIn = other.GapsIn ?? GapsIn,
             GapsOut = other.GapsOut ?? GapsOut,
+            FloatGaps = other.FloatGaps ?? FloatGaps,
             BorderSize = other.BorderSize ?? BorderSize,
             Border = other.Border ?? Border,
             Rounding = other.Rounding ?? Rounding,
@@ -339,11 +343,8 @@ internal static partial class WorkspaceRules
             return true;
         }
 
-        if (Take(field, "floatgaps:", out _) || Take(field, "float_gaps:", out _))
-        {
-            warnings.Add(GapReason("float_gaps") ?? "Floating window gaps are not honored.");
-            return true;
-        }
+        if (Take(field, "floatgaps:", out var floatGaps) || Take(field, "float_gaps:", out floatGaps))
+            return TryGaps(rule, floatGaps, warnings, static (current, gaps) => current with { FloatGaps = gaps }, out updated, out failed);
 
         return true;
     }
