@@ -65,6 +65,9 @@ public sealed record InputOptions
 
     public double? ScrollFactor { get; init; }
 
+    /// <summary><c>input:force_no_accel</c>: pointer acceleration is off, whatever <c>accel_profile</c> says.</summary>
+    public bool ForceNoAccel { get; init; }
+
     public bool SpecialFallthrough { get; init; }
 
     public int FollowMouse { get; init; } = 1;
@@ -107,7 +110,7 @@ public sealed record InputOptions
             KeyboardSpeed = RepeatRate is int rate ? InputMapping.KeyboardSpeed(rate) : null,
             NumLock = NumLock,
             SwapButtons = LeftHanded,
-            Acceleration = Acceleration,
+            Acceleration = ForceNoAccel ? PointerAcceleration.Flat : Acceleration,
             MouseSpeed = Sensitivity is double sensitivity ? InputMapping.MouseSpeed(sensitivity) : null,
             WheelLines = ScrollFactor is double factor ? InputMapping.WheelLines(factor) : null,
             Touchpad = TouchpadRequest(),
@@ -151,6 +154,7 @@ public sealed record InputOptions
         ["input:left_handed"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var left) ? options with { LeftHanded = left } : options,
         ["input:natural_scroll"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var natural) ? options with { NaturalScroll = natural } : options,
         ["input:accel_profile"] = (options, value) => options with { Acceleration = ParseAcceleration(value, options.Acceleration) },
+        ["input:force_no_accel"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var none) ? options with { ForceNoAccel = none } : options,
         ["input:sensitivity"] = (options, value) => TryFloat(value, -1, 1, out var sensitivity) ? options with { Sensitivity = sensitivity } : options,
         ["input:scroll_factor"] = (options, value) => TryFloat(value, 0, 2, out var factor) ? options with { ScrollFactor = factor } : options,
         ["input:special_fallthrough"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var fallthrough) ? options with { SpecialFallthrough = fallthrough } : options,

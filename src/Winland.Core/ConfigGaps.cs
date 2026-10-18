@@ -82,7 +82,6 @@ public static class ConfigGaps
         new("heat_shimmer", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("input-capture", "The input capture portal has no Windows meaning."),
         new("input:emulate_discrete_scroll", "High resolution scroll emulation is not honored."),
-        new("input:force_no_accel", "Forcing acceleration off apart from the acceleration profile is not honored."),
         new("input:kb_file", "XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant."),
         new("input:kb_model", "XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant."),
         new("input:kb_options", "XKB options, such as a key that switches layouts or remaps Caps Lock, are not honored."),
