@@ -4,7 +4,11 @@ namespace Winland;
 /// The error bar <c>seterror</c> shows, as the pinned release draws it: a strip across the top of the focused Monitor,
 /// in pixels, holding up to five lines of the message. Its height is kept out of that Monitor's work area.
 /// </summary>
-public sealed record ErrorBar(Rectangle Bounds, string Text, BorderColor Color, int FontSize);
+public sealed record ErrorBar(Rectangle Bounds, string Text, BorderColor Color, int FontSize)
+{
+    /// <summary>The Windows font of the message, from <c>misc:font_family</c>.</summary>
+    public string Font { get; init; } = FontNames.Default;
+}
 
 public sealed partial class Core
 {
@@ -47,7 +51,7 @@ public sealed partial class Core
             var reserve = 0;
             if (_error is { } error && screen == focused)
             {
-                bar = ErrorBarOn(screen.Arranged, error.Text, error.Color, out reserve);
+                bar = ErrorBarOn(screen.Arranged, error.Text, error.Color, out reserve) with { Font = FontNames.Windows(_session.FontFamily) };
             }
 
             if (screen.BarReserve != reserve)
