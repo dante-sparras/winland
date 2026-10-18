@@ -394,6 +394,8 @@ The pipe refuses clients on other machines. When another process already holds t
 
 `animations` lists every node of the animation tree, with whether a line set it, its curve, whether it is on, its speed and its style, and then every curve with its two control points, in the pinned release's text and JSON forms. The nodes follow the tree, and the curves come newest first.
 
+`descriptions` answers a JSON array with, for each option `getoption` answers, its `name`, its `default` and its `current` value, each written as JSON, as in the pinned release.
+
 ## Virtual desktops
 
 Winland's Workspaces are not Windows virtual desktops. A shown Client that a virtual desktop switch cloaks stops being a Client, and it is adopted again when it is uncloaked. A Client Winland has hidden stays a Client on its Workspace while it is cloaked, so it comes back when its Workspace is shown.

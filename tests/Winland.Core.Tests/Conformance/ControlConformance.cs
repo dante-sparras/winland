@@ -95,7 +95,7 @@ public class ControlConformance
         Assert.Equal("default", Json(desk.Send("j/submap")).GetString());
     }
 
-    [Fact(Skip = "There is no descriptions request.")]
+    [Fact]
     public void HyprctlJsonErrors()
     {
         var desk = new Desk();
@@ -103,7 +103,7 @@ public class ControlConformance
         Assert.Equal(JsonValueKind.Array, Json(desk.Send("descriptions")).ValueKind);
     }
 
-    [Fact(Skip = "There is no descriptions request.")]
+    [Fact]
     public void HyprctlDescriptionsCurrentValues()
     {
         var desk = new Desk();
