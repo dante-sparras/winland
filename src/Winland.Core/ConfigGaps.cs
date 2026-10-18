@@ -25,7 +25,6 @@ public static class ConfigGaps
         new("animation:layersOut", "Layer shell surfaces have no Windows meaning."),
         new("animation:monitorAdded", "A monitor that is added does not animate."),
         new("animation:shadowangle", "Shadows are not honored, so their angle does not animate."),
-        new("animation:zoomFactor", "The cursor zoom changes factor at once and does not animate."),
         new("aurora", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("binds:disable_keybind_grabbing", "Applications cannot ask Windows to turn binds off, so there is nothing to refuse."),
         new("bitdepth", "Changing a monitor's bit depth is not honored."),

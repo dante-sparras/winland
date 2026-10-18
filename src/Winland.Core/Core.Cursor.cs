@@ -55,7 +55,7 @@ public sealed partial class Core
             Warp = warp,
             InputSettings = _input.Request(),
             KeyboardLayout = LayoutRequest(),
-            Cursor = _cursor.Behavior(),
+            Cursor = WithZoomTiming(_cursor.Behavior()),
             ResizeCursor = _resizeCursor,
         };
     }
@@ -247,4 +247,8 @@ public sealed partial class Core
 
         return null;
     }
+
+    // animation:zoomFactor animates a change of cursor:zoom_factor, as the pinned release's cursor zoom variable does.
+    private CursorBehavior WithZoomTiming(CursorBehavior behavior) =>
+        behavior with { Zoom = behavior.Zoom with { Animation = _animations.TimingOf("zoomFactor") } };
 }

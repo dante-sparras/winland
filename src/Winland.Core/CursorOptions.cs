@@ -27,6 +27,25 @@ public sealed record CursorBehavior(bool HideOnKeyPress, double InactiveTimeoutS
 public sealed record CursorZoom(double Factor, bool Rigid, bool DetachedCamera)
 {
     public static CursorZoom None { get; } = new(1, false, true);
+
+    /// <summary>How a change of factor animates, from <c>animation:zoomFactor</c>, or null when it changes at once.</summary>
+    public Timing? Animation { get; init; }
+}
+
+/// <summary>A cursor zoom factor easing from one value to another.</summary>
+public sealed record ZoomTween(double From, double To, Timing Timing)
+{
+    /// <summary>The factor <paramref name="milliseconds"/> after the change began.</summary>
+    public double At(double milliseconds)
+    {
+        if (Timing.Milliseconds <= 0 || milliseconds >= Timing.Milliseconds)
+            return To;
+
+        var t = Math.Clamp(milliseconds / Timing.Milliseconds, 0, 1);
+        return From + ((To - From) * Timing.Curve.Ease(t));
+    }
+
+    public bool Done(double milliseconds) => Timing.Milliseconds <= 0 || milliseconds >= Timing.Milliseconds;
 }
 
 public sealed record CursorOptions
