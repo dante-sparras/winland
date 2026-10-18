@@ -154,7 +154,6 @@ public static class ConfigGaps
         new("mirror", "Mirroring a monitor is not honored."),
         new("misc:allow_session_lock_restore", "The lock screen belongs to Windows."),
         new("misc:always_follow_on_dnd", "Windows tells no other program that a drag and drop is under way, so focus cannot follow the pointer only then."),
-        new("misc:animate_manual_resizes", "A window moved or resized by hand moves at once."),
         new("misc:anr_missed_pings", "Windows marks a hung window as not responding itself."),
         new("misc:background_color", "The desktop background belongs to Windows."),
         new("misc:bell_sound", "The system bell sound is set in Windows."),
