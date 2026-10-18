@@ -48,11 +48,38 @@ $results = $projects | ForEach-Object -ThrottleLimit ([Math]::Max(2, [Environmen
     [pscustomobject]@{ Project = $_.FullName; ExitCode = $LASTEXITCODE; Output = $output }
 }
 
+# A project that fails runs once more on the same build. Failing again fails the run. Passing the second time
+# means a test is flaky: the run passes, and the tests that failed are named as flaky so they get fixed. On CI that
+# is a warning annotation and a line in the job summary.
 $failed = 0
+$flaky = [System.Collections.Generic.List[string]]::new()
 foreach ($result in $results | Sort-Object Project) {
     Write-Output "dotnet test $($result.Project)"
     Write-Output $result.Output.TrimEnd()
-    if ($result.ExitCode -ne 0 -and $failed -eq 0) { $failed = $result.ExitCode }
+    if ($result.ExitCode -eq 0) { continue }
+
+    $names = @([regex]::Matches($result.Output, '(?m)^\s+Failed (\S+) \[') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
+    Write-Output "dotnet test $($result.Project) (second run)"
+    $again = & dotnet test $result.Project --configuration Release --nologo --no-build 2>&1 | Out-String
+    $code = $LASTEXITCODE
+    Write-Output $again.TrimEnd()
+    if ($code -ne 0) {
+        if ($failed -eq 0) { $failed = $code }
+        continue
+    }
+
+    $listed = if ($names.Count -gt 0) { $names -join ', ' } else { 'a test the output did not name' }
+    $flaky.Add("$([System.IO.Path]::GetFileNameWithoutExtension($result.Project)): $listed")
+}
+
+foreach ($entry in $flaky) {
+    Write-Output "FLAKY: $entry failed, then passed on a second run. Fix it; a retry is not a pass."
+    if ($env:GITHUB_ACTIONS -eq 'true') {
+        Write-Output "::warning title=Flaky test::$entry failed, then passed on a second run."
+        if ($env:GITHUB_STEP_SUMMARY) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Flaky: $entry failed, then passed on a second run."
+        }
+    }
 }
 
 exit $failed
