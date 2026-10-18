@@ -82,6 +82,8 @@ Pull requests run `.github/workflows/ci.yml`, and so does the push a merge makes
 
 Every lane except Mutation is a step in that one Windows job, because each job pays its own setup. The lint step builds the solution once, and the test step runs every test project side by side on that build (`scripts/test.ps1 -NoBuild`). The pre-push hook runs the same lint and tests locally, so CI should rarely be the first to find a failure.
 
+A test project that fails runs once more on the same build, locally and in CI. If it fails again, the run fails. If it passes, the run passes, and `scripts/test.ps1` names the tests that failed as flaky: a `FLAKY:` line, and in CI a warning annotation and a line in the job summary. A flaky test is a bug. Fix it in its own pull request, usually by waiting for a condition instead of a fixed time, or by giving it more time on a busy machine. Do not leave it to the retry. To hunt for flaky tests, run the test projects many times at once, so the machine is busy as a CI runner is.
+
 | Lane | What it does | When it runs |
 | --- | --- | --- |
 | History | Fails when the branch shares no commit with `main`. Merging such a branch would add a second root commit to `main` and break `git blame`. | Always. |
