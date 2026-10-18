@@ -11,16 +11,17 @@ public class ChildWindowConformance
 {
     private static readonly WindowTraits Child = WindowTraits.Normal with { Dialog = true };
 
-    [Fact(Skip = "A window owned by a pinned Client is not pinned with it.")]
+    [Fact]
     public void ChildWindow()
     {
         var desk = new Desk();
-        desk.Spawn("child-test-parent");
+        var parent = desk.Spawn("child-test-parent");
 
         desk.Ok("setfloating", "class:child-test-parent");
         desk.Ok("pin", "enable class:child-test-parent");
 
-        desk.Spawn("child-test-child", traits: Child);
+        // The reference's child names its parent, as a Windows dialog names its owner.
+        desk.Spawn("child-test-child", traits: Child, owner: parent);
         desk.Ok("focuswindow", "class:child-test-child");
         Assert.Equal(2, desk.Clients().Length);
         Assert.Equal(2, desk.Clients().Count(Desk.Pinned));
@@ -35,9 +36,9 @@ public class ChildWindowConformance
         desk.Ok("togglegroup");
         desk.Keyword("group:auto_group", "true");
 
-        desk.Spawn("child-test-parent");
+        var second = desk.Spawn("child-test-parent");
         Assert.Equal(2, desk.Clients().Length);
-        desk.Spawn("child-test-child", traits: Child);
+        desk.Spawn("child-test-child", traits: Child, owner: second);
         desk.Ok("focuswindow", "class:child-test-child");
         Assert.Equal(3, desk.Clients().Length);
 

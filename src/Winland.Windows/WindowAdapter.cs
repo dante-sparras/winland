@@ -460,9 +460,11 @@ public sealed partial class WindowAdapter : IDisposable
         var ancestors = ProcessFacts.Shared.For(identity.ProcessId).Ancestors;
         var (min, max) = LimitsOf(hwnd, window);
 
+        var ownerWindow = PInvoke.GetWindow(hwnd, GET_WINDOW_CMD.GW_OWNER);
         appeared = new WindowAppeared(window, From(info.rcWork))
         {
             Pointer = pointer,
+            Owner = ownerWindow.IsNull ? null : new WindowId(((IntPtr)ownerWindow).ToInt64()),
             Bounds = bounds,
             ProcessId = processId,
             AncestorProcessIds = ancestors,
