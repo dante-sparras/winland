@@ -11,7 +11,7 @@ public sealed partial class Core
         var hinted = WorkspaceRules.For(_workspaceRules, id, null, null);
         var bound = BoundMonitor(hinted);
         var owner = bound?.Id ?? monitor ?? FocusedId();
-        var layout = LayoutFactory.Create(_config);
+        var layout = LayoutFactory.Create(_config, hinted?.Layout);
         layout.Configure(_scrolling);
         RankFocus(layout);
         var desk = new LiveWorkspace(id, owner, layout);
@@ -21,6 +21,9 @@ public sealed partial class Core
         if (settled is not null && desk.Monitor != settled.Id)
             desk.Monitor = settled.Id;
 
+        // A rule that matches by name picks the Layout once the Workspace has its name.
+        MatchLayout(desk);
+        layout = desk.Layout;
         layout.Apply(_master);
         var screen = MonitorById(desk.Monitor);
         if (screen is { Effective.Enabled: true })

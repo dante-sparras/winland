@@ -963,7 +963,7 @@ public class WindowConformance
         desk.Ok("fullscreen", "0");
     }
 
-    [Fact(Skip = "The layout workspace rule is not honored, so every Workspace in the case uses general:layout.")]
+    [Fact]
     public void SendFsWindowToAnotherWorkspace()
     {
         var desk = new Desk("""

@@ -53,6 +53,47 @@ public class WorkspaceRuleTests
         Assert.Equal("1", Assert.Contains("precise_mouse_move", rule.LayoutOpts));
         Assert.Equal("true", Assert.Contains("smart_resizing", rule.LayoutOpts));
         Assert.Equal(3, rule.LayoutOpts.Count);
+        Assert.Equal("master", rule.Layout);
+    }
+
+    [Fact]
+    public void ALayoutThatIsNoLayoutWarnsAndUsesDwindle()
+    {
+        var document = ConfigParser.Parse("workspace = 2, layout:spiral\n");
+
+        Assert.Equal([new ConfigWarning(1, "Layout 'spiral' is not available; using dwindle.")], document.Warnings);
+        Assert.Equal("spiral", Assert.Single(document.WorkspaceRules).Layout);
+    }
+
+    [Fact]
+    public void AWorkspaceUsesTheLayoutItsRuleNames()
+    {
+        var core = Configured("general:layout = dwindle\nworkspace = 2, layout:scrolling\nworkspace = name:notes, layout:monocle\n");
+        core.Handle(new MonitorsChanged([Display("DP-1", "One", 0, 0, 1920, 1080, 1)]));
+        core.Handle(Appeared(1, Wide));
+
+        var moved = core.Handle(new Dispatch("movetoworkspace", "2"));
+        Assert.Equal("scrolling", Workspace(moved, "2").TiledLayout);
+
+        var named = core.Handle(new Dispatch("workspace", "name:notes"));
+        Assert.Equal("monocle", Workspace(named, "notes").TiledLayout);
+
+        var first = core.Handle(new Dispatch("workspace", "1"));
+        Assert.Equal("dwindle", Workspace(first, "1").TiledLayout);
+    }
+
+    [Fact]
+    public void AWorkspaceKeepsItsClientsWhenAReloadChangesItsLayout()
+    {
+        var core = Configured("workspace = 1, layout:master\n");
+        core.Handle(new MonitorsChanged([Display("DP-1", "One", 0, 0, 1920, 1080, 1)]));
+        core.Handle(Appeared(1, Wide));
+        core.Handle(Appeared(2, Wide));
+
+        var reloaded = core.Handle(new Configure(ConfigParser.Parse("workspace = 1, layout:scrolling\n")));
+
+        Assert.Equal("scrolling", Workspace(reloaded, "1").TiledLayout);
+        Assert.Equal(2, reloaded.State.Clients.Count);
     }
 
     [Fact]
