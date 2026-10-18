@@ -709,6 +709,7 @@ public sealed partial class WindowAdapter : IDisposable
             GroupBarHost.Update(outcome.GroupBars);
             ErrorBarHost.Update(outcome.ErrorBar);
             DimHost.Update(outcome.Dims);
+            NotificationHost.Update(outcome.Notifications);
         }
 
         if (current)

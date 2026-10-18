@@ -91,13 +91,13 @@ public static class ExtraCommands
 
         if (Is(verb, "notify"))
         {
-            parse = Parsed(new NotifyRequest(), flags);
+            parse = Parsed(new NotifyRequest(rest), flags);
             return true;
         }
 
         if (Is(verb, "dismissnotify"))
         {
-            parse = Parsed(new DismissNotifyRequest(), flags);
+            parse = Parsed(new DismissNotifyRequest(rest), flags);
             return true;
         }
 
@@ -395,9 +395,9 @@ public sealed record RollingLogRequest : CommandRequest;
 
 public sealed record KeywordRequest(string Name, string Value) : CommandRequest;
 
-public sealed record NotifyRequest : CommandRequest;
+public sealed record NotifyRequest(string Arguments) : CommandRequest;
 
-public sealed record DismissNotifyRequest : CommandRequest;
+public sealed record DismissNotifyRequest(string Arguments) : CommandRequest;
 
 /// <summary><c>seterror COLOR MESSAGE</c>, or <c>seterror disable</c>.</summary>
 public sealed record SetErrorRequest(string Arguments) : CommandRequest;
