@@ -248,6 +248,7 @@ public sealed partial class Core
             _ => throw new ArgumentOutOfRangeException(nameof(input), input, "No handler for this input."),
         };
 
+        outcome = WakeDisplays(input, outcome);
         Note(input);
         return WithEvents(Decorate(outcome, before.State), before, input);
     }

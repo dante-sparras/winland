@@ -237,6 +237,11 @@ public sealed class KeyboardHook : IDisposable
 
             var up = info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_UP);
             NoteHeld(info.vkCode, up);
+
+            // misc:key_press_enables_dpms: any key turns the displays back on after dpms turned them off.
+            if (_core.KeyWakesDisplays)
+                PostDispatch("dpms", "on");
+
             if (!up && !info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_INJECTED))
                 InputClock.NoteClickOrKey(info.time);
 

@@ -269,6 +269,42 @@ public class SelectorDispatcherTests
         Assert.Equal("ok", core.Execute("dispatch dpms on").Text);
     }
 
+    [Fact]
+    public void MouseMoveWakesDisplaysOnlyWithTheOption()
+    {
+        const string Name = @"\\.\DISPLAY1";
+        var plain = new Core();
+        plain.Handle(new MonitorsChanged([Display(Name, "Dell", 0, 0, 1920, 1080, 1)]));
+        plain.Handle(new Dispatch("dpms", "off"));
+        Assert.Empty(plain.Handle(new PointerMoved(new Point(5, 5))).DisplayPower);
+
+        var core = new Core(ConfigParser.Parse("misc:mouse_move_enables_dpms = true\n"));
+        core.Handle(new MonitorsChanged([Display(Name, "Dell", 0, 0, 1920, 1080, 1)]));
+        Assert.Empty(core.Handle(new PointerMoved(new Point(5, 5))).DisplayPower);
+
+        core.Handle(new Dispatch("dpms", "off"));
+        Assert.Equal([new DisplayPowerRequest(Name, true)], core.Handle(new PointerMoved(new Point(6, 6))).DisplayPower);
+        Assert.Empty(core.Handle(new PointerMoved(new Point(7, 7))).DisplayPower);
+
+        core.Handle(new Dispatch("dpms", "off"));
+        Assert.Equal([new DisplayPowerRequest(Name, true)], core.Handle(new SwipeBegan(3)).DisplayPower);
+    }
+
+    [Fact]
+    public void KeyWakesDisplaysOnlyWithTheOptionAfterDpmsOff()
+    {
+        var plain = new Core();
+        plain.Handle(new Dispatch("dpms", "off"));
+        Assert.False(plain.KeyWakesDisplays);
+
+        var core = new Core(ConfigParser.Parse("misc:key_press_enables_dpms = true\n"));
+        Assert.False(core.KeyWakesDisplays);
+        core.Handle(new Dispatch("dpms", "off"));
+        Assert.True(core.KeyWakesDisplays);
+        core.Handle(new Dispatch("dpms", "on"));
+        Assert.False(core.KeyWakesDisplays);
+    }
+
     private static Core Flat()
     {
         var core = new Core();
