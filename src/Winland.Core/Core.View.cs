@@ -277,6 +277,7 @@ public sealed partial class Core
             SpecialWorkspace = SpecialOn(focused),
             ActiveMonitor = focused,
             Hidden = hidden,
+            Swallowed = SwallowedParents(),
             Monitors = monitors,
             Screens = screens,
             Groups = groups,

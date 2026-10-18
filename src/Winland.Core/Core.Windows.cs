@@ -244,8 +244,9 @@ public sealed partial class Core
         _sizes.Remove(window);
         _initialWorkspaces.Closed(window);
         _shownMaximized.Remove(window);
+        var swallowHome = SwallowHome(window, _swallows.Count);
         if (ForgetSwallowedParent(window))
-            return View([]);
+            return ReturnSwallowedInTurn(window, swallowHome);
 
         var desk = WorkspaceContaining(window);
         if (desk is null)

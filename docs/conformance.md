@@ -278,7 +278,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | keyboard_input | orderedChordRejectsReorderedPrefix | passes | |
 | keyboard_input | orderedReleaseChord | passes | |
 | keyboard_input | nonConsumingChordPreservesOrder | passes | |
-| swallow | swallow | differs | A Workspace's windows count includes a swallowed Client, toggleswallow on the swallowed Client does nothing, and a Client swallowed in turn loses the Client it swallowed. A window selector does not find a swallowed Client. |
+| swallow | swallow | differs | toggleswallow in a Group slot shows the swallowed Client as its own tile. The pinned release puts it back in the slot and hides the swallowing Client. |
 | tags | tags | passes | |
 | tags | tags_fullscreen_cleanup | passes | |
 | workspace_swipe | workspaceSwipeReversalCleanup | not ported | Most of its checks read render state through the test plugin: alpha, render offset, the render hold and the swipe session. The checks the replies can answer would make a partial case pass. |

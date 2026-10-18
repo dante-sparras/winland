@@ -55,7 +55,7 @@ public sealed partial class Core
     {
         const string name = "killwindow";
         var window = Select(arguments, emptyMeansActive: false);
-        if (window is not WindowId id || Find(id) is not Client client || client.ProcessId <= 0)
+        if (window is not WindowId id || (Find(id) ?? EveryClient().Find(client => client.Window == id)) is not Client client || client.ProcessId <= 0)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
         return View([], dispatcher: name, allowsElevation: allowsElevation) with
@@ -311,6 +311,7 @@ public sealed partial class Core
         return WindowSelector.Find(text, ActiveWindow(), clients);
     }
 
+    // Every Client a window selector can find, a swallowed one too, as in the pinned release.
     private List<Client> EveryClient()
     {
         var clients = new List<Client>();
@@ -320,6 +321,8 @@ public sealed partial class Core
             clients.AddRange(desk.WaitingClients);
         }
 
+        var hidden = new List<Client>();
+        AddSwallowed(clients, hidden);
         return clients;
     }
 

@@ -44,6 +44,9 @@ public sealed record State(IReadOnlyList<Client> Clients)
 
     public IReadOnlyList<Client> Hidden { get; init; } = [];
 
+    /// <summary>The Clients another Client swallowed and that are hidden for it. They are in no Layout.</summary>
+    public IReadOnlyList<WindowId> Swallowed { get; init; } = [];
+
     public IReadOnlyList<Monitor> Monitors { get; init; } = [];
 
     public IReadOnlyList<MonitorSnapshot> Screens { get; init; } = [];
