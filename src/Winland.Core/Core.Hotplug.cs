@@ -65,9 +65,12 @@ public sealed partial class Core
         SyncActive();
         var refocus = RefocusShown();
         var outcome = View(ShownPlacements(), ShownWindows(), HiddenWindows(), focus: refocus);
-        return arrangement.Orientations.Length == 0
-            ? outcome
-            : outcome with { Orientations = arrangement.Orientations };
+        return outcome with
+        {
+            Orientations = arrangement.Orientations,
+            DisplayModes = arrangement.Modes,
+            DisplayScales = arrangement.Scales,
+        };
     }
 
     // As in the pinned release, each Workspace of a Monitor that goes away moves intact onto the first

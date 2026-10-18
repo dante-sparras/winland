@@ -108,6 +108,8 @@ public class DisplayOrientationTests
             nameof(Outcome.ErrorBar), // WindowAdapter.ApplyCore
             nameof(Outcome.Dims), // WindowAdapter.ApplyCore
             nameof(Outcome.Orientations), // WindowAdapter.ApplyCore
+            nameof(Outcome.DisplayModes), // WindowAdapter.ApplyCore
+            nameof(Outcome.DisplayScales), // WindowAdapter.ApplyCore
             nameof(Outcome.Warp), // SessionEffects
             nameof(Outcome.InputSettings), // SessionEffects
             nameof(Outcome.KeyboardLayout), // SessionEffects

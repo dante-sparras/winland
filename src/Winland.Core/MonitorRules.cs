@@ -34,9 +34,15 @@ internal readonly record struct MonitorRule(
     int ReservedLeft,
     int ReservedRight,
     bool HasReserved,
-    DisplayOrientation? Orientation);
+    DisplayOrientation? Orientation,
+    string? Mode = null,
+    double? Scale = null);
 
-internal readonly record struct MonitorArrangement(Monitor[] Monitors, DisplayOrientationRequest[] Orientations);
+internal readonly record struct MonitorArrangement(
+    Monitor[] Monitors,
+    DisplayOrientationRequest[] Orientations,
+    DisplayModeRequest[] Modes,
+    DisplayScaleRequest[] Scales);
 
 internal static class MonitorRules
 {
@@ -100,15 +106,27 @@ internal static class MonitorRules
             auto = direction;
         }
 
+        string? mode = null;
         if (parts.Count >= 2 && parts[1].Length > 0 && !LeavesMode(parts[1]))
-            found.Add("Changing a monitor's resolution and refresh rate is not honored.");
+        {
+            if (DisplaySettings.IsMode(parts[1]))
+                mode = parts[1].ToLowerInvariant();
+            else
+                found.Add("Custom monitor modes are not honored.");
+        }
 
+        double? scale = null;
         if (parts.Count >= 4 && parts[3].Length > 0 && !IsAuto(parts[3]))
-            found.Add("Changing a monitor's scale is not honored.");
+        {
+            if (double.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedScale) && parsedScale > 0 && double.IsFinite(parsedScale))
+                scale = parsedScale;
+            else
+                found.Add("Invalid scale.");
+        }
 
         DisplayOrientation? orientation = null;
         ReadOptions(parts, found, ref orientation);
-        rule = new MonitorRule(selector, MonitorRuleKind.Full, true, x, y, auto, 0, 0, 0, 0, false, orientation);
+        rule = new MonitorRule(selector, MonitorRuleKind.Full, true, x, y, auto, 0, 0, 0, 0, false, orientation, mode, scale);
         return true;
     }
 
@@ -142,6 +160,8 @@ internal static class MonitorRules
         var placed = new bool[count];
         var pending = new AutoDirection?[count];
         var requests = new List<DisplayOrientationRequest>();
+        var modes = new List<DisplayModeRequest>();
+        var scales = new List<DisplayScaleRequest>();
 
         for (var i = 0; i < count; i++)
         {
@@ -153,6 +173,13 @@ internal static class MonitorRules
 
             if (rule?.Orientation is DisplayOrientation orientation)
                 requests.Add(new DisplayOrientationRequest(monitor.Name, orientation));
+
+            if (rule?.Mode is string mode)
+                modes.Add(new DisplayModeRequest(monitor.Name, mode));
+
+            // A scale Windows already shows asks for nothing, so the display change a new scale causes does not loop.
+            if (rule?.Scale is double scale && DisplaySettings.NearestPercent(scale) != DisplaySettings.NearestPercent(monitor.Scale <= 0 ? 1 : monitor.Scale))
+                scales.Add(new DisplayScaleRequest(monitor.Name, scale));
 
             if (rule?.X is int x && rule.Value.Y is int y)
             {
@@ -185,7 +212,7 @@ internal static class MonitorRules
             result[i] = Move(result[i], MonitorPixels.Physical(x, monitor.Scale), MonitorPixels.Physical(y, monitor.Scale));
         }
 
-        return new MonitorArrangement(result, requests.ToArray());
+        return new MonitorArrangement(result, requests.ToArray(), modes.ToArray(), scales.ToArray());
     }
 
     private static MonitorRule Merge(MonitorRule prior, MonitorRule next) => next.Kind switch
@@ -216,6 +243,8 @@ internal static class MonitorRules
             ReservedLeft = next.HasReserved ? next.ReservedLeft : prior.ReservedLeft,
             ReservedRight = next.HasReserved ? next.ReservedRight : prior.ReservedRight,
             Orientation = next.Orientation ?? prior.Orientation,
+            Mode = next.Mode ?? prior.Mode,
+            Scale = next.Scale ?? prior.Scale,
         },
     };
 

@@ -150,7 +150,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | misc:session_lock_blur | The lock screen belongs to Windows. |
 | misc:session_lock_xray | The lock screen belongs to Windows. |
 | misc:splash_font_family | There is no splash text. |
-| mode | Changing a monitor's resolution and refresh rate is not honored. |
 | modal_parent_blocking | Modal parent blocking is not honored. |
 | motion_blur | Motion blur is not honored. |
 | opengl | GPU rendering options have no Windows meaning. |
@@ -158,7 +157,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | quirks | Display buffer quirks have no Windows meaning. |
 | render | GPU rendering options have no Windows meaning. |
 | ripple | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| scale | Changing a monitor's scale is not honored. |
 | screen_shader | Screen shaders have no Windows meaning. |
 | vrr | Variable refresh rate is not honored. |
 | water | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
@@ -176,7 +174,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | animation:borderangle, animation:fadeDim, animation:fadeDpms, animation:fadeGlow, animation:fadeShadow, animation:glowangle, animation:monitorAdded, animation:shadowangle, animation:zoomFactor |
 | non-goal | - | animation:fadeLayers, animation:fadeLayersIn, animation:fadeLayersOut, animation:fadePopups, animation:fadePopupsIn, animation:fadePopupsOut, animation:layers, animation:layersIn, animation:layersOut |
 | non-goal | - | binds:disable_keybind_grabbing |
-| gap | - | bitdepth, cm, mirror, mode, scale, vrr |
+| gap | - | bitdepth, cm, mirror, vrr |
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
 | gap | - | cursor:hotspot_padding, cursor:zoom_disable_aa |
 | gap | - | decoration:blur:brightness, decoration:blur:contrast, decoration:blur:ignore_opacity, decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:noise, decoration:blur:passes, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:size, decoration:blur:special, decoration:blur:vibrancy, decoration:blur:vibrancy_darkness, decoration:blur:xray |

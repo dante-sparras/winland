@@ -126,6 +126,12 @@ public sealed record Outcome(
 
     public IReadOnlyList<DisplayOrientationRequest> Orientations { get; init; } = [];
 
+    /// <summary>The display modes the monitor rules ask for.</summary>
+    public IReadOnlyList<DisplayModeRequest> DisplayModes { get; init; } = [];
+
+    /// <summary>The display scales the monitor rules ask for that the displays do not show yet.</summary>
+    public IReadOnlyList<DisplayScaleRequest> DisplayScales { get; init; } = [];
+
     public WarpTo? Warp { get; init; }
 
     public InputSettingsRequest? InputSettings { get; init; }
