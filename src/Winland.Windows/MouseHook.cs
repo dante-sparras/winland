@@ -116,7 +116,7 @@ public sealed class MouseHook : IDisposable
                     SessionEffects.NoteTouch(source == PointerSource.Pen);
 
                 if (!up && (info.flags & 0x1) == 0)
-                    InputClock.NoteClickOrKey(info.time);
+                    InputClock.NoteClickOrKey(info.time, ClickedWindow(info.pt));
 
                 return OnButton(button, up, position) ? new LRESULT(1) : Next(code, wParam, lParam);
             }
@@ -129,6 +129,13 @@ public sealed class MouseHook : IDisposable
         }
 
         return Next(code, wParam, lParam);
+    }
+
+    // The top-level window under a click, so the core can tell a window the user clicked from one another activated.
+    private static unsafe nint ClickedWindow(System.Drawing.Point point)
+    {
+        var under = PInvoke.WindowFromPoint(point);
+        return under.IsNull ? 0 : (nint)PInvoke.GetAncestor(under, GET_ANCESTOR_FLAGS.GA_ROOT).Value;
     }
 
     private LRESULT OnMove(int code, WPARAM wParam, LPARAM lParam, Point position, uint time, PointerSource source)

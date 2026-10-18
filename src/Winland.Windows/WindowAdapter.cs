@@ -334,7 +334,8 @@ public sealed partial class WindowAdapter : IDisposable
             switch (@event)
             {
                 case PInvoke.EVENT_SYSTEM_FOREGROUND:
-                    Apply(_core.Handle(new WindowFocused(window, Foreground.Classify(window, dwmsEventTime))));
+                    var cause = Foreground.Classify(window, dwmsEventTime);
+                    Apply(_core.Handle(new WindowFocused(window, cause) { Clicked = cause == FocusCause.User ? InputClock.Clicked : null }));
                     return;
                 case PInvoke.EVENT_OBJECT_DESTROY:
                     Concealed.TryRemove(window, out _);

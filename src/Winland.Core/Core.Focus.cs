@@ -57,8 +57,12 @@ public sealed partial class Core
             && _active != window)
             return Restore(Kept());
 
-        // A focus_on_activate window rule or setprop wins over misc:focus_on_activate, as in the pinned release.
-        if (focused.Cause == FocusCause.Activated && !(OwnProp(window, "focus_on_activate") as bool? ?? _session.FocusOnActivate))
+        // The pinned release rejects an activation without a fresh input serial, and honors one with it only under
+        // focus_on_activate, which a window rule or setprop wins over. A window that takes the foreground with no click or
+        // key before it has no such serial. One that takes it right after a click in a Client of another program has one.
+        var activated = focused.Cause == FocusCause.Activated;
+        var afterInput = ActivatedAfterClick(focused);
+        if ((activated || afterInput) && (activated || !(OwnProp(window, "focus_on_activate") as bool? ?? _session.FocusOnActivate)))
         {
             if (_active == window)
                 return View([]);
@@ -94,6 +98,22 @@ public sealed partial class Core
 
         NoteFocus(window);
         return View([]);
+    }
+
+    // A click in a Client of one program, then another program's window taking the foreground, is an activation with
+    // input. A click on the window itself, on a window Winland does not manage such as the taskbar, or in the same
+    // program, is the user's own change.
+    private bool ActivatedAfterClick(WindowFocused focused)
+    {
+        if (focused.Cause != FocusCause.User
+            || focused.Clicked is not WindowId clicked
+            || clicked == focused.Window
+            || Find(clicked) is not { } source
+            || Find(focused.Window) is not { } target)
+            return false;
+
+        // A program Winland does not know the process of counts as another program.
+        return source.ProcessId == 0 || target.ProcessId == 0 || source.ProcessId != target.ProcessId;
     }
 
     private void RememberFocus(WindowId window, WindowDecision decision)

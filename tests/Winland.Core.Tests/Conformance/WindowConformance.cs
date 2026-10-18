@@ -1308,8 +1308,10 @@ public class WindowConformance
     }
 
     // The window asks for the foreground by itself, as kitty does when the reference removes its file.
+    // The test plugin activates with a fresh serial: on Windows, a window taking the foreground right after a click in
+    // the focused Client of another program.
     private static void Activate(Desk desk, WindowId window) =>
-        desk.Handle(new WindowFocused(window, FocusCause.Activated));
+        desk.Handle(new WindowFocused(window, FocusCause.User) { Clicked = desk.ActiveId() });
 
     // The test plugin's click with a button held down, and with it let go, where the pointer is.
     private static void Press(Desk desk, string button) =>

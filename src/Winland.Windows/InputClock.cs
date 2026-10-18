@@ -17,9 +17,19 @@ internal static class InputClock
     // The hook's own time stamp of the last click or key, or -1 before the first.
     private static long _lastClickOrKey = -1;
 
+    // The top-level window the last click landed on, or 0 when the last input was a key.
+    private static nint _clicked;
+
     internal static void Watch() => Volatile.Write(ref _watching, 1);
 
-    internal static void NoteClickOrKey(uint time) => Volatile.Write(ref _lastClickOrKey, time);
+    internal static void NoteClickOrKey(uint time, nint clicked = 0)
+    {
+        Volatile.Write(ref _clicked, clicked);
+        Volatile.Write(ref _lastClickOrKey, time);
+    }
+
+    /// <summary>The top-level window the last click landed on, or null when the last input was a key.</summary>
+    internal static WindowId? Clicked => Volatile.Read(ref _clicked) is var clicked and not 0 ? new WindowId(clicked) : null;
 
     internal static bool Recent(uint eventTime)
     {

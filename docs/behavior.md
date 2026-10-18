@@ -345,7 +345,7 @@ Every 2 seconds, and on unlock, Winland lets go of a modifier that Windows holds
 
 ## Urgency
 
-A Client is urgent when it flashes for attention, and when it takes the foreground and `misc:focus_on_activate` sends the focus back. Each emits `urgent` with the Client's address. The focused Client flashing is not urgent. Focusing a Client clears its urgency.
+A window that takes the foreground is handled as an activation request, as in the pinned release, which honors one only with a fresh input serial. A window that takes the foreground with no click or key just before it has none, so the focus goes back, whatever `misc:focus_on_activate` says. A window of one program that takes it right after a click in a Client of another program has one: it keeps the focus only with `misc:focus_on_activate`, default false, or a `focus_on_activate` window rule or property, which wins. Any other change after a click or key is the user's own: a click on the window itself, a key such as Alt+Tab, a click on a window Winland does not manage such as the taskbar, the Start menu or a notification, and a window of the program that was clicked. A Client is urgent when it flashes for attention, and when it takes the foreground and the focus is sent back. Each emits `urgent` with the Client's address. The focused Client flashing is not urgent. Focusing a Client clears its urgency.
 
 `focusurgentorlast` focuses the first urgent Client in Workspace order and switches to its Workspace. With none, it focuses the Client focused before the current one, or the Client focused last when none is focused. With neither it answers `error: window not found`.
 
