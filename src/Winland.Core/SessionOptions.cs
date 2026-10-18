@@ -56,6 +56,9 @@ public sealed record SessionOptions
     /// <summary><c>misc:key_press_enables_dpms</c>: a key press or release turns the displays back on after dpms off.</summary>
     public bool KeyPressEnablesDpms { get; init; }
 
+    /// <summary><c>misc:font_family</c>: the font of the text Winland draws, where nothing names another.</summary>
+    public string FontFamily { get; init; } = "Sans";
+
     public static SessionOptions Documented { get; } = new();
 
     // Adding an entry here applies that keyword and stops the config warning.
@@ -79,6 +82,7 @@ public sealed record SessionOptions
         ["binds:movefocus_cycles_fullscreen"] = (options, value) => TryParseBool(value, out var cycles) ? options with { MoveFocusCyclesFullscreen = cycles } : options,
         ["misc:mouse_move_enables_dpms"] = (options, value) => TryParseBool(value, out var mouse) ? options with { MouseMoveEnablesDpms = mouse } : options,
         ["misc:key_press_enables_dpms"] = (options, value) => TryParseBool(value, out var key) ? options with { KeyPressEnablesDpms = key } : options,
+        ["misc:font_family"] = (options, value) => options with { FontFamily = value.Trim() },
         ["misc:size_limits_tiled"] = (options, value) => TryParseBool(value, out var tiled) ? options with { SizeLimitsTiled = tiled } : options,
     };
 

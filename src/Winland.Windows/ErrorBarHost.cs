@@ -14,7 +14,6 @@ namespace Winland.Windows;
 internal static class ErrorBarHost
 {
     private const string ClassName = "WinlandErrorBar";
-    private const string Font = "Segoe UI";
     private const int ClassAlreadyExists = 1410;
     private const uint SyncMessage = 0x8000 + 0x48;
     private const uint QuitMessage = 0x0012;
@@ -239,7 +238,7 @@ internal static class ErrorBarHost
     private static unsafe void DrawText(HDC memory, ErrorBar bar, int width, int height)
     {
         _ = PInvoke.SetBkMode(memory, BACKGROUND_MODE.TRANSPARENT);
-        using var font = GdiFonts.Create(bar.FontSize, 400, FONT_QUALITY.ANTIALIASED_QUALITY, Font);
+        using var font = GdiFonts.Create(bar.FontSize, 400, FONT_QUALITY.ANTIALIASED_QUALITY, bar.Font);
         var previous = PInvoke.SelectObject(memory, font);
         _ = PInvoke.SetTextColor(memory, new COLORREF(0x00E6E6E6));
         var inset = BorderWidth + Math.Min(10, Math.Max(0, (height / 2) - 1));

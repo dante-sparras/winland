@@ -135,7 +135,6 @@ public static class ConfigGaps
         new("misc:disable_watchdog_warning", "There is no start watchdog, so there is no warning to turn off."),
         new("misc:disable_xdg_env_checks", "XDG environment variables have no Windows meaning."),
         new("misc:enable_anr_dialog", "Windows marks a hung window as not responding itself."),
-        new("misc:font_family", "The global font is not honored."),
         new("misc:force_default_wallpaper", "There is no wallpaper. The desktop background belongs to Windows."),
         new("misc:layers_hog_keyboard_focus", "Layer shell surfaces have no Windows meaning."),
         new("misc:lockdead_screen_delay", "The lock screen belongs to Windows."),

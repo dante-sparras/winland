@@ -22,6 +22,9 @@ public sealed partial class Core
                 continue;
 
             var scaled = style.ScaledBy(MonitorById(desk.Monitor)?.Effective.Scale ?? 1);
+
+            // The bar's own font_family wins, and misc:font_family stands in for an empty one, as in the pinned release.
+            scaled = scaled with { FontFamily = FontNames.Windows(scaled.FontFamily.Length == 0 ? _session.FontFamily : scaled.FontFamily) };
             var showing = desk.Showing();
             foreach (var group in desk.Groups)
             {
