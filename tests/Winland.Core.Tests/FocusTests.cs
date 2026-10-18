@@ -27,10 +27,57 @@ public class FocusTests
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
-        var stolen = core.Handle(new WindowFocused(new WindowId(1), FocusCause.Activated));
+        var stolen = core.Handle(new WindowFocused(new WindowId(1), FocusCause.User) { Clicked = new WindowId(2) });
 
         Assert.Null(stolen.Focus);
         Assert.Equal(["activewindow>>,", "activewindowv2>>1"], Lines(stolen));
+        Assert.Equal(new WindowId(1), Active(core));
+    }
+
+    [Fact]
+    public void AWindowTakingTheForegroundWithoutInputIsRefusedEvenWithFocusOnActivate()
+    {
+        var core = new Core(ConfigParser.Parse("misc:focus_on_activate = true\n"));
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        core.Handle(new WindowAppeared(new WindowId(2), Area));
+
+        var stolen = core.Handle(new WindowFocused(new WindowId(1), FocusCause.Activated));
+
+        Assert.Equal(new WindowId(2), stolen.Focus);
+        Assert.Equal(new WindowId(2), Active(core));
+    }
+
+    [Fact]
+    public void AWindowTakingTheForegroundAfterAClickInAnotherProgramNeedsFocusOnActivate()
+    {
+        var core = new Core();
+        core.Handle(new WindowAppeared(new WindowId(1), Area) { ProcessId = 10 });
+        core.Handle(new WindowAppeared(new WindowId(2), Area) { ProcessId = 20 });
+
+        var refused = core.Handle(new WindowFocused(new WindowId(1), FocusCause.User) { Clicked = new WindowId(2) });
+
+        Assert.Equal(new WindowId(2), refused.Focus);
+        Assert.Equal(["urgent>>1"], Lines(refused));
+    }
+
+    [Fact]
+    public void AClickOnTheWindowItsOwnProgramOrAnUnmanagedWindowIsTheUsersChange()
+    {
+        var core = new Core();
+        core.Handle(new WindowAppeared(new WindowId(1), Area) { ProcessId = 10 });
+        core.Handle(new WindowAppeared(new WindowId(2), Area) { ProcessId = 10 });
+        core.Handle(new WindowAppeared(new WindowId(3), Area) { ProcessId = 30 });
+
+        core.Handle(new WindowFocused(new WindowId(1), FocusCause.User) { Clicked = new WindowId(1) });
+        Assert.Equal(new WindowId(1), Active(core));
+
+        core.Handle(new WindowFocused(new WindowId(2), FocusCause.User) { Clicked = new WindowId(1) });
+        Assert.Equal(new WindowId(2), Active(core));
+
+        core.Handle(new WindowFocused(new WindowId(3), FocusCause.User) { Clicked = new WindowId(99) });
+        Assert.Equal(new WindowId(3), Active(core));
+
+        core.Handle(new WindowFocused(new WindowId(1), FocusCause.User));
         Assert.Equal(new WindowId(1), Active(core));
     }
 

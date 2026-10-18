@@ -97,7 +97,11 @@ public enum FocusCause
     Activated,
 }
 
-public sealed record WindowFocused(WindowId Window, FocusCause Cause = FocusCause.User) : Event;
+public sealed record WindowFocused(WindowId Window, FocusCause Cause = FocusCause.User) : Event
+{
+    /// <summary>The top-level window the click before a <see cref="FocusCause.User"/> change landed on, if it was a click.</summary>
+    public WindowId? Clicked { get; init; }
+}
 
 public sealed record KeyPressed(string Key) : Event
 {

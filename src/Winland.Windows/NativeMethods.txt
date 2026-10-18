@@ -165,3 +165,4 @@ GetKeyboardLayoutList
 LoadKeyboardLayout
 UnloadKeyboardLayout
 DisplayConfigSetDeviceInfo
+WindowFromPoint

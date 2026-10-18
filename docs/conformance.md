@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-194 of 197 ported cases pass.
+195 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -258,7 +258,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | clients/surface-scale-transform | surfaceScaleTransform | not ported | Surface scale and transform are Wayland protocol state. Windows scales a window by its DPI awareness. |
 | clients/toplevel-capture | windowShareCaptureProducesFrame | not ported | Window capture is done by the system, not by Winland. |
 | clients/wlr-foreign-toplevel | wlrForeignToplevelMinimizeEvents | passes | |
-| clients/xdg-activation | xdgActivationSerial | differs | With misc:focus_on_activate a window that takes the foreground keeps it, without the fresh input serial the pinned release requires. |
+| clients/xdg-activation | xdgActivationSerial | passes | |
 | clients/xdg-initial-maximize | xdgMaximizeBeforeInitialCommitIsIgnored | passes | |
 | clients/xdg-initial-maximize | xdgMaximizeBeforeMapIsIgnored | passes | |
 | clients/xdg-interactive | xdgInteractive | passes | |
