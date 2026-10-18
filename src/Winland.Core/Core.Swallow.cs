@@ -8,12 +8,13 @@ public sealed partial class Core
 
     // Each child Client and the parent Client it swallowed. Hidden is false after toggleswallow
     // shows the parent; the link stays so the parent is not swallowed by a second child. Slot is set
-    // when the child took the parent's place in its Group.
+    // when the child took the parent's place in its Group. HiddenChild is the child, hidden, when toggleswallow
+    // gave that place back to the parent, as the pinned release reveals a swallowed Group member.
     private readonly Dictionary<WindowId, Swallow> _swallows = [];
     private List<WindowId>? _swallowShow;
     private List<WindowId>? _swallowHide;
 
-    private sealed record Swallow(Client Parent, bool Hidden, bool Slot = false);
+    private sealed record Swallow(Client Parent, bool Hidden, bool Slot = false, Client? HiddenChild = null);
 
     private WindowId? SwallowedBy(WindowId child) =>
         _swallows.TryGetValue(child, out var swallow) ? swallow.Parent.Window : null;
@@ -40,6 +41,18 @@ public sealed partial class Core
         return false;
     }
 
+    private bool IsHiddenChild(WindowId window)
+    {
+        foreach (var swallow in _swallows.Values)
+        {
+            if (swallow.HiddenChild?.Window == window)
+                return true;
+        }
+
+        return false;
+    }
+
+    // The Clients swallowing hides: hidden parents, and children hidden behind a parent shown in their Group slot.
     private WindowId[] SwallowedParents()
     {
         var parents = new List<WindowId>();
@@ -47,6 +60,8 @@ public sealed partial class Core
         {
             if (swallow.Hidden)
                 parents.Add(swallow.Parent.Window);
+            if (swallow.HiddenChild is Client child)
+                parents.Add(child.Window);
         }
 
         return [.. parents];
@@ -68,6 +83,21 @@ public sealed partial class Core
             };
             clients.Add(parent);
             hidden.Add(parent);
+        }
+
+        foreach (var swallow in _swallows.Values)
+        {
+            if (swallow.HiddenChild is not Client child || WorkspaceContaining(swallow.Parent.Window) is not LiveWorkspace home)
+                continue;
+
+            var hiddenChild = child with
+            {
+                Workspace = home.Id,
+                Swallowing = swallow.Parent.Window,
+                InhibitingIdle = InhibitsIdle(child, shown: false, active: null),
+            };
+            clients.Add(hiddenChild);
+            hidden.Add(hiddenChild);
         }
     }
 
@@ -99,7 +129,7 @@ public sealed partial class Core
         // A swallowed Client is hidden, so it takes no input and swallows nothing, as in the pinned release.
         var candidates = new List<Client>();
         var clients = EveryClient();
-        clients.RemoveAll(client => IsSwallowedParent(client.Window));
+        clients.RemoveAll(client => IsSwallowedParent(client.Window) || IsHiddenChild(client.Window));
         foreach (var ancestor in appeared.AncestorProcessIds)
         {
             foreach (var client in clients)
@@ -212,16 +242,7 @@ public sealed partial class Core
             return null;
 
         var parent = swallow.Parent;
-        var incoming = new Taken(
-            parent.Floating,
-            Minimized: false,
-            parent.Bounds,
-            parent.Class,
-            parent.Title,
-            parent.ProcessId,
-            parent.InitialClass,
-            parent.InitialTitle);
-        if (!desk.ReplaceMember(group, child, parent.Window, incoming))
+        if (desk.ClientOf(child) is not Client slotted || !SwapSlot(desk, group, slotted, parent))
             return null;
 
         _swallows.Remove(child);
@@ -305,13 +326,18 @@ public sealed partial class Core
         if (ActiveWindow() is not WindowId active
             || SwallowerOf(active) is not WindowId child
             || !_swallows.TryGetValue(child, out var swallow)
-            || WorkspaceContaining(child) is not LiveWorkspace desk)
+            || (WorkspaceContaining(child) ?? WorkspaceContaining(swallow.Parent.Window)) is not LiveWorkspace desk)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
         var covered = desk.Covered();
         IReadOnlyList<Placement> placements;
         WindowId? focus = null;
-        if (swallow.Hidden)
+        if (ToggleSlot(desk, child, swallow, active) is WindowId slotted)
+        {
+            focus = active == slotted ? null : FocusAfterSlot(desk, active, child, swallow.Parent.Window);
+            placements = desk.Layout.Visible();
+        }
+        else if (swallow.Hidden)
         {
             _swallows[child] = swallow with { Hidden = false, Slot = false };
             placements = ReturnParent(swallow.Parent, desk);
@@ -331,6 +357,117 @@ public sealed partial class Core
         return IsShown(desk.Id)
             ? Present(desk, covered, placements, dispatcher: name, focus: focus, allowsElevation: allowsElevation)
             : View([], dispatcher: name, allowsElevation: allowsElevation);
+    }
+
+    // toggleswallow in a Group slot, as the pinned release's toggleGroupSlot: the hidden one of the parent and the child
+    // takes the slot, and the other is hidden. The window now in the slot, or null when the relation is not in a slot.
+    private WindowId? ToggleSlot(LiveWorkspace desk, WindowId child, Swallow swallow, WindowId active)
+    {
+        if (!swallow.Slot)
+            return null;
+
+        if (swallow.Hidden)
+        {
+            if (desk.GroupOf(child) is not WindowGroup group || desk.ClientOf(child) is not Client current || !SwapSlot(desk, group, current, swallow.Parent))
+                return null;
+
+            _swallows[child] = swallow with { Hidden = false, HiddenChild = Unslotted(current) };
+            Conceal(child, swallow.Parent.Window, group, desk);
+            return swallow.Parent.Window;
+        }
+
+        if (swallow.HiddenChild is not Client hidden
+            || desk.GroupOf(swallow.Parent.Window) is not WindowGroup slot
+            || desk.ClientOf(swallow.Parent.Window) is not Client parent
+            || !SwapSlot(desk, slot, parent, hidden))
+            return null;
+
+        _swallows[child] = new Swallow(Unslotted(parent), Hidden: true, Slot: true);
+        Conceal(swallow.Parent.Window, child, slot, desk);
+        return child;
+    }
+
+    // The window that left a slot is hidden, and the one that came in is shown when its Group shows it.
+    private void Conceal(WindowId left, WindowId came, WindowGroup group, LiveWorkspace desk)
+    {
+        (_swallowHide ??= []).Add(left);
+        if (group.Shown == came && IsShown(desk.Id))
+            (_swallowShow ??= []).Add(came);
+    }
+
+    // A window that left focus with its slot hands it to the window that took the slot.
+    private WindowId? FocusAfterSlot(LiveWorkspace desk, WindowId active, WindowId child, WindowId parent)
+    {
+        var came = active == child ? parent : child;
+        TakeGroupFocus(desk, came);
+        return came;
+    }
+
+    // A Client out of its slot keeps its own client mode and none of the slot's internal one.
+    private static Client Unslotted(Client client) =>
+        client with { Fullscreen = FullscreenMode.None, LayoutFullscreen = false };
+
+    // Puts incoming in the Group slot outgoing holds, as the pinned release's replaceMember: the slot's internal
+    // fullscreen mode stays with the slot, and each window keeps its own client mode.
+    private bool SwapSlot(LiveWorkspace desk, WindowGroup group, Client outgoing, Client incoming)
+    {
+        var taken = new Taken(
+            incoming.Floating,
+            Minimized: false,
+            incoming.Bounds,
+            incoming.Class,
+            incoming.Title,
+            incoming.ProcessId,
+            incoming.InitialClass,
+            incoming.InitialTitle);
+        if (!desk.ReplaceMember(group, outgoing.Window, incoming.Window, taken))
+            return false;
+
+        if (group.Shown == incoming.Window
+            && desk.ClientOf(incoming.Window) is Client placed
+            && (placed.Fullscreen != outgoing.Fullscreen || placed.FullscreenClient != incoming.FullscreenClient))
+            desk.Layout.SetFullscreen(incoming.Window, outgoing.Fullscreen, incoming.FullscreenClient, outgoing.LayoutFullscreen);
+
+        return true;
+    }
+
+    // The parent of a child it hides in its Group slot closed. The child takes the slot back, as in the pinned release.
+    private Outcome? GiveSlotToChild(WindowId closed)
+    {
+        foreach (var (child, swallow) in _swallows)
+        {
+            if (swallow.Parent.Window != closed || swallow.HiddenChild is not Client hidden)
+                continue;
+
+            _swallows.Remove(child);
+            if (WorkspaceContaining(closed) is not LiveWorkspace desk
+                || desk.GroupOf(closed) is not WindowGroup group
+                || desk.ClientOf(closed) is not Client parent)
+                return null;
+
+            var covered = desk.Covered();
+            var wasActive = _active == closed;
+            if (!SwapSlot(desk, group, parent, hidden))
+                return null;
+
+            if (!IsShown(desk.Id))
+                return View([]);
+
+            WindowId? focus = null;
+            if (group.Shown == child)
+            {
+                (_swallowShow ??= []).Add(child);
+                if (wasActive)
+                {
+                    TakeGroupFocus(desk, child);
+                    focus = child;
+                }
+            }
+
+            return Present(desk, covered, desk.Layout.Visible(), focus: focus);
+        }
+
+        return null;
     }
 
     // The child that swallowed this window, or the window itself when it swallowed one.
