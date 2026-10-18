@@ -40,6 +40,8 @@ public static class ExtraCommands
             return Exact(rest, new SubmapRequest(), flags, out parse);
         if (Is(verb, "animations"))
             return Exact(rest, new AnimationsRequest(), flags, out parse);
+        if (Is(verb, "descriptions"))
+            return Exact(rest, new DescriptionsRequest(), flags, out parse);
         if (Is(verb, "kill"))
             return Exact(rest, new ClickKillRequest(), flags, out parse);
         if (Is(verb, "rollinglog"))
@@ -367,6 +369,8 @@ public sealed record LayoutsRequest : CommandRequest;
 public sealed record SubmapRequest : CommandRequest;
 
 public sealed record AnimationsRequest : CommandRequest;
+
+public sealed record DescriptionsRequest : CommandRequest;
 
 public sealed record ClickKillRequest : CommandRequest;
 

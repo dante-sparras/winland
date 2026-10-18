@@ -7,6 +7,90 @@ internal static class OptionCatalog
 {
     private static readonly ConfigDocument Empty = new([], [], []);
 
+    // Every option getoption and descriptions answer, in the order descriptions lists them.
+    private static readonly string[] Names =
+    [
+        "general:gaps_in",
+        "general:gaps_out",
+        "general:border_size",
+        "general:resize_on_border",
+        "general:extend_border_grab_area",
+        "general:hover_icon_on_border",
+        "general:resize_corner",
+        "general:float_gaps",
+        "general:snap:enabled",
+        "general:snap:window_gap",
+        "general:snap:monitor_gap",
+        "general:snap:border_overlap",
+        "general:snap:respect_gaps",
+        "general:layout",
+        "general:col.active_border",
+        "general:col.inactive_border",
+        "decoration:rounding",
+        "decoration:rounding_power",
+        "decoration:blur:enabled",
+        "decoration:shadow:enabled",
+        "master:new_status",
+        "dwindle:force_split",
+        "dwindle:preserve_split",
+        "dwindle:smart_split",
+        "dwindle:permanent_direction_override",
+        "dwindle:split_width_multiplier",
+        "dwindle:use_active_for_splits",
+        "dwindle:default_split_ratio",
+        "dwindle:split_bias",
+        "dwindle:smart_resizing",
+        "dwindle:precise_mouse_move",
+        "binds:drag_threshold",
+        "binds:scroll_event_delay",
+        "binds:workspace_back_and_forth",
+        "binds:pass_mouse_when_bound",
+        "binds:workspace_center_on",
+        "binds:drag_center_window",
+        "binds:allow_workspace_cycles",
+        "binds:focus_preferred_method",
+        "binds:window_direction_monitor_fallback",
+        "layout:single_window_aspect_ratio",
+        "layout:single_window_aspect_ratio_tolerance",
+        "misc:float_force_onscreen",
+        "misc:new_float_force_onscreen",
+        "misc:initial_workspace_tracking",
+        "misc:initial_workspace_token_timeout",
+        "misc:disable_autoreload",
+        "misc:size_limits_tiled",
+        "misc:focus_on_activate",
+        "misc:close_special_on_empty",
+        "binds:hide_special_on_workspace_change",
+        "input:special_fallthrough",
+        "scrolling:fullscreen_on_one_column",
+        "scrolling:column_width",
+        "scrolling:focus_fit_method",
+        "scrolling:follow_focus",
+        "scrolling:follow_min_visible",
+        "scrolling:explicit_column_widths",
+        "scrolling:direction",
+        "scrolling:wrap_focus",
+        "scrolling:wrap_swapcol",
+    ];
+
+    /// <summary>
+    /// Each option with its default and its current value, written as JSON, as the pinned release answers
+    /// <c>descriptions</c>. Only the options Winland reads are listed, and their descriptions are empty.
+    /// </summary>
+    public static string Descriptions(ConfigDocument? config)
+    {
+        var entries = new List<string>(Names.Length);
+        foreach (var name in Names)
+        {
+            if (!TryValue(name, Empty, out _, out var fallback) || !TryValue(name, config ?? Empty, out _, out var current))
+                continue;
+
+            entries.Add("{\"name\":" + JsonSerializer.Serialize(name) + ",\"description\":\"\",\"default\":" + fallback + ",\"current\":" + current + "}");
+        }
+
+        return "[" + string.Join(',', entries) + "]";
+    }
+
     public static string Describe(string name, ConfigDocument? config)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -34,8 +118,13 @@ internal static class OptionCatalog
         var scrolling = ScrollingOptions.From(document);
         var session = SessionOptions.From(document);
         var input = InputOptions.From(document);
+        var master = MasterOptions.From(document);
         switch (name)
         {
+            case "master:new_status":
+                kind = "str";
+                token = JsonSerializer.Serialize(master.NewStatus.ToString().ToLowerInvariant());
+                return true;
             case "general:gaps_in":
                 kind = "css";
                 token = JsonSerializer.Serialize(Gaps(layout.GapsIn));

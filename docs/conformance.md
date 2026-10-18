@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-166 of 197 ported cases pass.
+168 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -209,8 +209,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | hyprctl | hyprctlDevicesActiveLayoutIndex | differs | input:kb_layout is a Gap, and there is no switchxkblayout or devices request. |
 | hyprctl | hyprctlGetprop | passes | |
 | hyprctl | hyprctlSubmap | passes | |
-| hyprctl | hyprctlJsonErrors | differs | There is no descriptions request. |
-| hyprctl | hyprctlDescriptionsCurrentValues | differs | There is no descriptions request. |
+| hyprctl | hyprctlJsonErrors | passes | |
+| hyprctl | hyprctlDescriptionsCurrentValues | passes | |
 | hyprctl | hyprctlBindsJson | passes | |
 | hyprctl | hyprctlWorkspaceJson | passes | |
 | hyprctl | hyprctlREPL | not ported | It runs Lua code through repl and eval. The Lua config waits on ADR 0013. |

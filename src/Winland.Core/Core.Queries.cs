@@ -59,6 +59,7 @@ public sealed partial class Core
         SystemInfoRequest => Describe(ExtraCommands.FormatSystem),
         LockedRequest => new CommandReply(ExtraCommands.FormatLocked(SessionLock?.Locked == true), View([])),
         LayoutsRequest => new CommandReply(ExtraCommands.FormatLayouts(), View([])),
+        DescriptionsRequest => new CommandReply(OptionCatalog.Descriptions(_config), View([])),
         AnimationsRequest animations => new CommandReply(_animations.Describe(animations.Flags.HasFlag(CommandFlags.Json)), View([])),
         SubmapRequest submap => new CommandReply(ExtraCommands.FormatSubmap(_keyState.Submap, submap.Flags.HasFlag(CommandFlags.Json)), View([])),
         ClickKillRequest => new CommandReply("error: click to kill is not supported", View([])),
