@@ -129,7 +129,7 @@ public static partial class CommandProtocol
             client.PinFullscreened,
             (int)client.Fullscreen,
             (int)client.FullscreenClient,
-            client.Fullscreen == FullscreenMode.None ? "" : "default",
+            FullscreenHandlerOf(state, client),
             false,
             GroupedOf(state, client.Window),
             client.Tags is { Count: > 0 } tags ? [.. tags] : NoStrings,
@@ -376,6 +376,25 @@ public static partial class CommandProtocol
             if (seen.Add(id))
                 ids.Add(id);
         }
+    }
+
+    // The handler of a Client's fullscreen, as the pinned release names it: scrolling when the scrolling Layout holds
+    // it, or would take it as a tile that is not fullscreen, and default otherwise.
+    private static string FullscreenHandlerOf(State state, Client client)
+    {
+        if (client.LayoutFullscreen)
+            return "scrolling";
+
+        if (client.Floating || client.Fullscreen != FullscreenMode.None || client.FullscreenClient != FullscreenMode.None)
+            return "default";
+
+        foreach (var workspace in state.Workspaces)
+        {
+            if (workspace.Id == client.Workspace)
+                return workspace.TiledLayout == "scrolling" ? "scrolling" : "default";
+        }
+
+        return "default";
     }
 
     private static int MonitorOf(State state, WorkspaceId id)

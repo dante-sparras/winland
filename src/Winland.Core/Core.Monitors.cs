@@ -114,7 +114,7 @@ public sealed partial class Core
 
         if (active is WindowId fullscreen
             && _session.MoveFocusCyclesFullscreen
-            && desk.ClientOf(fullscreen) is { Fullscreen: not FullscreenMode.None })
+            && desk.ClientOf(fullscreen) is { Fullscreen: not FullscreenMode.None, LayoutFullscreen: false })
         {
             var previous = direction is MonitorDirection.Left or MonitorDirection.Up;
             return CycleFrom(desk, fullscreen, previous) is WindowId next
@@ -123,7 +123,8 @@ public sealed partial class Core
         }
 
         // A Workspace with a fullscreen or maximized Client offers no window in a direction, as in the pinned
-        // release, so focus moves on to the next Monitor.
+        // release, so focus moves on to the next Monitor. One its Layout holds fullscreen lets focus move on the
+        // Workspace when binds:movefocus_cycles_fullscreen is on and misc:on_focus_under_fullscreen is not 0.
         if (active is WindowId current && !HasFullscreen(desk))
         {
             var focus = desk.Layout.MoveFocus(current, arguments);
@@ -153,11 +154,14 @@ public sealed partial class Core
         return FocusOnto(destination, name, allowsElevation, adjacent);
     }
 
-    private static bool HasFullscreen(LiveWorkspace desk)
+    private bool HasFullscreen(LiveWorkspace desk)
     {
         foreach (var client in desk.Layout.Clients)
         {
-            if (client.Fullscreen != FullscreenMode.None)
+            if (!desk.IsCovering(client))
+                continue;
+
+            if (!client.LayoutFullscreen || !_session.MoveFocusCyclesFullscreen || _session.OnFocusUnderFullscreen == 0)
                 return true;
         }
 
@@ -456,7 +460,7 @@ public sealed partial class Core
         if (desk.ClientOf(window) is not Client client || MonitorById(desk.Monitor) is not { Effective.Enabled: true } screen)
             return box;
         // A fullscreen Client covers its Monitor, floating or not.
-        if (client.Fullscreen != FullscreenMode.None)
+        if (desk.IsCovering(client))
             return screen.Bounds;
         if (client.Floating)
             return box;

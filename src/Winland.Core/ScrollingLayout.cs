@@ -132,6 +132,7 @@ internal sealed partial class ScrollingLayout : Layout
         _natural.Remove(id);
         _limits.Remove(id);
         _widths.Remove(window);
+        _restoreWidths.Remove(id);
         var suspended = _suspended.Remove(id);
         if (_focus == window)
             _focus = null;
@@ -315,24 +316,6 @@ internal sealed partial class ScrollingLayout : Layout
         _moved = false;
         return moved;
     }
-
-    public IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode)
-    {
-        if (!FullscreenClients.Assign(_clients, window, mode, clientMode))
-            return [];
-
-        var placements = new List<Placement>(Visible());
-        var id = new ClientId(window.Value);
-        if (mode != FullscreenMode.None && !placements.Exists(placement => placement.Client == id) && TryBounds(window, out var bounds))
-            placements.Add(new Placement(id, bounds));
-
-        return placements;
-    }
-
-    /// <summary>
-    /// The tape keeps this Client's slot. A covering rectangle is applied outside the layout.
-    /// </summary>
-    internal Rectangle? FullscreenPlacement(ClientId client) => null;
 
     private Placement[] Placements()
     {

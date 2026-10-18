@@ -53,12 +53,19 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
     {
         foreach (var client in Layout.Clients)
         {
-            if (client.Fullscreen != FullscreenMode.None)
+            if (IsCovering(client))
                 return client.Fullscreen;
         }
 
         return FullscreenMode.None;
     }
+
+    /// <summary>
+    /// Whether a Client's fullscreen or maximized mode covers this Workspace. One its Layout holds fullscreen
+    /// covers only while it fills the view, as the pinned release's scrolling Layout reports it.
+    /// </summary>
+    public bool IsCovering(Client client) =>
+        client.Fullscreen != FullscreenMode.None && (!client.LayoutFullscreen || Layout.FullscreenCovers(client.Window));
 
     /// <summary>
     /// The Clients a <c>w[]</c> workspace selector counts, as the pinned release does. A Group counts by its
@@ -72,7 +79,7 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
         WindowId? covering = null;
         foreach (var client in Layout.Clients)
         {
-            if (client.Fullscreen != FullscreenMode.None)
+            if (IsCovering(client))
             {
                 covering = client.Window;
                 break;
@@ -211,7 +218,7 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
             return false;
 
         if (client is not null)
-            taken = taken with { Fullscreen = client.Fullscreen, FullscreenClient = client.FullscreenClient };
+            taken = taken with { Fullscreen = client.Fullscreen, FullscreenClient = client.FullscreenClient, LayoutFullscreen = client.LayoutFullscreen };
 
         return true;
     }
@@ -239,7 +246,7 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
             maxSize: taken.MaxSize,
             tiledLimits: taken.TiledLimits);
         if (taken.Fullscreen != FullscreenMode.None || taken.FullscreenClient != FullscreenMode.None)
-            Layout.SetFullscreen(window, taken.Fullscreen, taken.FullscreenClient);
+            Layout.SetFullscreen(window, taken.Fullscreen, taken.FullscreenClient, taken.LayoutFullscreen);
         if (taken.Minimized)
             Layout.Minimize(window);
     }

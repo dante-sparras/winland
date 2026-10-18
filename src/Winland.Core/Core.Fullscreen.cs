@@ -22,7 +22,7 @@ public sealed partial class Core
         if (!FullscreenCommands.Changed(client.Fullscreen, parsed.Mode, parsed.Action, out var next))
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
-        return CommitFullscreen(window, next, next, name, allowsElevation, Synced(client));
+        return CommitFullscreen(window, next, next, name, allowsElevation, Synced(client), parsed.LayoutAware);
     }
 
     private Outcome FullscreenState(string arguments, bool allowsElevation)
@@ -50,13 +50,13 @@ public sealed partial class Core
         if (target.Internal == client.Fullscreen && target.Client == client.FullscreenClient)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
-        return CommitFullscreen(window, target.Internal, target.Client, name, allowsElevation, synced: false);
+        return CommitFullscreen(window, target.Internal, target.Client, name, allowsElevation, synced: false, FullscreenCommands.StateLayoutAware(arguments));
     }
 
     // A request sets the client mode along with the internal one unless fullscreenstate last set them apart.
     private static bool Synced(Client client) => client.Fullscreen == client.FullscreenClient;
 
-    private Outcome CommitFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, string? dispatcher, bool allowsElevation, bool synced)
+    private Outcome CommitFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, string? dispatcher, bool allowsElevation, bool synced, bool layoutAware = true)
     {
         var desk = WorkspaceContaining(window);
         if (desk is null || desk.ClientOf(window) is not Client client)
@@ -66,7 +66,7 @@ public sealed partial class Core
             return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
 
         var covered = desk.Covered();
-        var placements = Restamp(desk, desk.Layout.SetFullscreen(window, mode, clientMode));
+        var placements = Restamp(desk, desk.Layout.SetFullscreen(window, mode, clientMode, layoutAware));
         if (!IsShown(desk.Id))
             return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
 
@@ -138,7 +138,7 @@ public sealed partial class Core
                 _awaitingMapFocus.Add(window);
                 return placements;
             case 1:
-                return desk.Layout.SetFullscreen(window, covering.Fullscreen, covering.Fullscreen);
+                return desk.Layout.SetFullscreen(window, covering.Fullscreen, covering.Fullscreen, covering.LayoutFullscreen);
             default:
                 return EndFullscreen(desk, covering.Window);
         }
@@ -147,10 +147,11 @@ public sealed partial class Core
     // misc:on_focus_under_fullscreen for a request to focus a tiled Client under another fullscreen one, as in the
     // pinned release: 0 focuses the fullscreen Client instead, 1 moves its mode to the Client asked for, and 2 ends it.
     // A floating Client is focused over it. The Client to focus, and the Layout's placements when a mode changed.
+    // A Client its Layout holds fullscreen is left alone, and the Layout scrolls to the Client asked for.
     private WindowId FocusUnderFullscreen(LiveWorkspace desk, WindowId window, out IReadOnlyList<Placement>? placements)
     {
         placements = null;
-        if (desk.ClientOf(window) is not { Floating: false } || CoveringOther(desk, window) is not Client covering)
+        if (desk.ClientOf(window) is not { Floating: false } || CoveringOther(desk, window) is not { LayoutFullscreen: false } covering)
             return window;
 
         switch (_session.OnFocusUnderFullscreen)
@@ -187,7 +188,7 @@ public sealed partial class Core
     {
         foreach (var client in desk.Layout.Clients)
         {
-            if (client.Window != window && client.Fullscreen != FullscreenMode.None)
+            if (client.Window != window && desk.IsCovering(client))
                 return client;
         }
 
@@ -242,7 +243,7 @@ public sealed partial class Core
     {
         foreach (var client in desk.Layout.Clients)
         {
-            if (client.Fullscreen != FullscreenMode.None && !client.Minimized && showing.Contains(client.Window))
+            if (desk.IsCovering(client) && !client.Minimized && showing.Contains(client.Window))
                 return client;
         }
 
@@ -251,7 +252,8 @@ public sealed partial class Core
 
     private Rectangle PlacedBounds(Client client, LiveWorkspace desk, Rectangle slot)
     {
-        if (client.Fullscreen == FullscreenMode.None)
+        // A Client its Layout holds fullscreen is where the Layout put it.
+        if (client.Fullscreen == FullscreenMode.None || client.LayoutFullscreen)
             return slot;
 
         var work = WorkArea(desk, _area);

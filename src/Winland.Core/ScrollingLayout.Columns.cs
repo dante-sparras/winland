@@ -104,6 +104,8 @@ internal sealed partial class ScrollingLayout
         if (usable.Width <= 0 || usable.Height <= 0 || _columns.Count == 0)
             return;
 
+        SyncFullscreen();
+
         var horizontal = IsHorizontal();
         var primary = horizontal ? usable.Width : usable.Height;
         var secondary = horizontal ? usable.Height : usable.Width;
@@ -120,19 +122,17 @@ internal sealed partial class ScrollingLayout
 
             var size = StripSize(i, primary, fullscreen);
             var primaryPos = reversed ? primary - start - size + camera : start - camera;
+            if (column.Cells.Count == 1 && HeldFullscreen(column.Cells[0].Id) is FullscreenMode held)
+            {
+                PlaceFullscreen(column.Cells[0], held, i, start, size, primaryPos);
+                continue;
+            }
+
             var cursor = 0.0;
             for (var j = 0; j < column.Cells.Count; j++)
             {
                 var cell = column.Cells[j];
                 var span = cell.Size * secondary;
-                if (FullscreenPlacement(cell.Id) is Rectangle covering)
-                {
-                    cell.Logical = covering;
-                    cell.Box = covering;
-                    cursor += span;
-                    continue;
-                }
-
                 double x;
                 double y;
                 double width;

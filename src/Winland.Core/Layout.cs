@@ -176,6 +176,20 @@ internal interface Layout
     /// </summary>
     IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode);
 
+    /// <summary>
+    /// Records a Client's fullscreen modes. With <paramref name="layoutAware"/> a Layout that lays out its own
+    /// fullscreen Clients takes this one, as the pinned release's scrolling Layout does, and marks it
+    /// <see cref="Client.LayoutFullscreen"/>. Other Layouts ignore it.
+    /// </summary>
+    IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, bool layoutAware) =>
+        SetFullscreen(window, mode, clientMode);
+
+    /// <summary>
+    /// Whether this Client's fullscreen or maximized mode covers its Workspace now. A Client the Layout lays out
+    /// fullscreen itself covers only while its column fills the view.
+    /// </summary>
+    bool FullscreenCovers(WindowId window) => true;
+
     /// <summary>Moves a floating Client to a rectangle. An empty list means that Client is not floating.</summary>
     IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds) => [];
 }
@@ -205,4 +219,5 @@ internal readonly record struct Taken(
     double? ScrollingWidth = null,
     FullscreenMode Fullscreen = FullscreenMode.None,
     FullscreenMode FullscreenClient = FullscreenMode.None,
-    TiledLimits? TiledLimits = null);
+    TiledLimits? TiledLimits = null,
+    bool LayoutFullscreen = false);

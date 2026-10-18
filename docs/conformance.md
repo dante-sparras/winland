@@ -6,14 +6,14 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-170 of 197 ported cases pass.
+175 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
 ## How a case is ported
 
 - The desktop is the reference harness's: one 1920x1080 monitor, HEADLESS-2, at 0,0, its config, workspace 1 focused and the pointer at 960,540. `Desk` in the conformance folder builds it. A monitor a case creates goes to the right of HEADLESS-2, as the reference's monitor rule puts it.
-- Each test is named after its case, with the first letter of each part between underscores capitalized and the underscores dropped, so `groups_disable_when_only` is `GroupsDisableWhenOnly`. It sends the same commands in the same order. The reference config and dispatchers are Lua calls, and a test sends the line-based form: `hl.dsp.focus({ window = 'class:a' })` is `focuswindow class:a`, `hl.dsp.layout('togglesplit')` is `layoutmsg togglesplit`, and `hl.config({ dwindle = { force_split = 2 } })` is `keyword dwindle:force_split 2`.
+- Each test is named after its case, with the first letter of each part between underscores capitalized and the underscores dropped, so `groups_disable_when_only` is `GroupsDisableWhenOnly`. It sends the same commands in the same order. The reference config and dispatchers are Lua calls, and a test sends the line-based form: `hl.dsp.focus({ window = 'class:a' })` is `focuswindow class:a`, `hl.dsp.layout('togglesplit')` is `layoutmsg togglesplit`, and `hl.config({ dwindle = { force_split = 2 } })` is `keyword dwindle:force_split 2`. `layout_aware = false` in a fullscreen dispatcher is a last word `default`.
 - An option the case sets before its first window opens goes into the starting config. The reference sets it over the socket only because its compositor is already running. An option the case changes later goes through `keyword`.
 - Opening kitty with a class is a window that appears with that class on the focused monitor, with a process of its own. Killing it is the window closing.
 - `Desk` answers the core as the Windows adapter does: a window the core focuses reports focus back, and the pointer goes where the core warps it.
@@ -48,13 +48,13 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scrollSwapcolWrapping | passes | |
 | scroll | scrollWindowRule | passes | |
 | scroll | scroll_LAYOUT_HANDLED_fullscreen | passes | |
-| scroll | scroll_LAYOUT_HANDLED_maximized | differs | A maximized Client in the scrolling Layout fills the work area less gaps_out. The pinned release's scrolling Layout also leaves gaps_in at its sides. |
-| scroll | scroll_LAYOUT_HANDLED_TestFsingGroupedWindows | differs | fullscreenHandler is always default, so a fullscreen Client in scrolling stays over the screen when focus moves to another column. |
-| scroll | scroll_LAYOUT_HANDLED_fullscreenRetainsGeometryWhileScrolling | differs | fullscreenHandler reports default, and a fullscreen Client stays over the screen when focus moves to another column. |
+| scroll | scroll_LAYOUT_HANDLED_maximized | passes | |
+| scroll | scroll_LAYOUT_HANDLED_TestFsingGroupedWindows | differs | A maximized floating Group member is not moved until the Group changes, and then covers the group bar. |
+| scroll | scroll_LAYOUT_HANDLED_fullscreenRetainsGeometryWhileScrolling | passes | |
 | scroll | scroll_LAYOUT_HANDLED_floatingWindowHiding | differs | A floating Client under a fullscreen one stays visible and accepts input, and a second fullscreen Client ends the first one's fullscreen. allowedOverFullscreen is always false. |
 | scroll | scroll_LAYOUT_HANDLED_layerVisibilityOnFs | not ported | The case opens a layer shell surface, which has no Windows meaning. |
-| scroll | scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue | differs | fullscreenHandler is always default, so movefocus from a fullscreen Client in scrolling cycles the windows where the pinned release moves in the direction and keeps the mode. |
-| scroll | scroll_LAYOUT_HANDLED_respectFocusFitMethodOnUnFs | differs | Leaving fullscreen does not fit the column into view by scrolling:focus_fit_method. |
+| scroll | scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue | passes | |
+| scroll | scroll_LAYOUT_HANDLED_respectFocusFitMethodOnUnFs | passes | |
 | scroll | scroll_LAYOUT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention | passes | |
 | scroll | scroll_DEFAULT_HANDLED_fullscreenMaximiseDispatchers | passes | |
 | scroll | scroll_DEFAULT_HANDLED_TestFsingGroupedWindows | differs | A maximized floating Group member is not moved until the Group changes, and then covers the group bar. |
@@ -116,8 +116,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | pinnedRetainsPositionOnWorkspaceChange | passes | |
 | window | monitorrule | passes | |
 | window | mouseResize | differs | A mouse bind pressed on a Client's border does not take the Client. The keep_aspect_ratio window rule is not honored. |
-| window | getFullscreenHandler | differs | fullscreenHandler is always default. The pinned release reports scrolling for a tiled Client in the scrolling Layout. |
-| window | sendFsWindowToAnotherWorkspace | differs | fullscreenHandler is always default. |
+| window | getFullscreenHandler | passes | |
+| window | sendFsWindowToAnotherWorkspace | differs | The layout workspace rule is not honored, so every Workspace in the case uses general:layout. |
 | window | floatingForceOnscreen | passes | |
 | window | specialWorkspacePinnedWindowUnmapFallback | passes | |
 | window | windowRuleBorderColors | passes | |
