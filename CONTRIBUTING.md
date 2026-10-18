@@ -78,9 +78,9 @@ It never deletes `main`, `master`, `release/*`, a branch checked out in a worktr
 
 ## CI
 
-Pull requests run `.github/workflows/ci.yml`. The push a merge makes to `main` does not. A pull request can merge only when the check **All required checks pass (v1)** is green. It is the only check the ruleset requires.
+Pull requests run `.github/workflows/ci.yml`, and so does the push a merge makes to `main`. That run checks `main` after the merge and fills the .NET SDK and NuGet caches, which a pull request can read only when its own branch or the default branch saved them. A pull request can merge only when the check **All required checks pass (v1)** is green. It is the only check the ruleset requires.
 
-Every lane except Mutation is a step in that one Windows job. GitHub bills each job by the started minute, so separate jobs for checks that take seconds cost more than the checks. The pre-push hook runs the same lint and tests locally, so CI should rarely be the first to find a failure.
+Every lane except Mutation is a step in that one Windows job, because each job pays its own setup. The lint step builds the solution once, and the test step runs every test project side by side on that build (`scripts/test.ps1 -NoBuild`). The pre-push hook runs the same lint and tests locally, so CI should rarely be the first to find a failure.
 
 | Lane | What it does | When it runs |
 | --- | --- | --- |
@@ -119,7 +119,7 @@ pwsh -NoProfile -File scripts/mutate.ps1 -Gate <folder>   # gate the run summari
 ## Rules on `main` and `release/*`
 
 - **No direct changes.** Direct pushes, force-pushes, and deletions are rejected. Everything lands through a pull request.
-- **Rebase and merge is the only allowed method.** The ruleset and the repository settings both reject a merge commit and a squash. A pull request does not need to contain the latest `main`, and the merge does not run CI again. Two pull requests that each pass alone can still break `main` together. A release run tests the exact commit it ships, so such a break is caught before a release at the latest.
+- **Rebase and merge is the only allowed method.** The ruleset and the repository settings both reject a merge commit and a squash. A pull request does not need to contain the latest `main`, and the pull request is not tested again with it. The push to `main` that the merge makes runs CI. Two pull requests that each pass alone can still break `main` together. A release run tests the exact commit it ships, so such a break is caught before a release at the latest.
 - **The CI check is the gate.** **All required checks pass (v1)** must be green. Approving reviews required: **0**. There is one maintainer, so requiring 1 would make every pull request unmergeable.
 - **Code owners must review code-owned paths.** The paths are in `.github/CODEOWNERS`, and the owner is `@dante-sparras`. A pull request author cannot approve their own pull request.
 - **Admins can bypass the rules when merging a pull request.** Repository admins (role id 5) can bypass them, which is how a code-owned file lands without a second approver. The bypass covers every rule, including the CI check, so an admin can merge a pull request whose CI is red. Do not. Admins still cannot push straight to `main`. Turn the bypass off once a second maintainer can approve those paths.

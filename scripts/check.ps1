@@ -213,7 +213,12 @@ try {
     if ($Test -and $failed -eq 0) {
         $testScript = Join-Path $root 'scripts/test.ps1'
         Write-Output "pwsh $testScript"
-        pwsh -NoProfile -File $testScript
+        # The solution was just built above in Release, so the tests run on that build.
+        if ($solutions.Count -gt 0) {
+            pwsh -NoProfile -File $testScript -NoBuild
+        } else {
+            pwsh -NoProfile -File $testScript
+        }
         if ($LASTEXITCODE -ne 0) { $failed = 1 }
     }
 } finally {
