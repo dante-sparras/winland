@@ -438,7 +438,7 @@ public class GroupTests
     }
 
     [Fact]
-    public void GroupKeywordsAreHonoredAndDragOptionsAreGaps()
+    public void GroupKeywordsAreHonoredAndTheStackedBarIsAGap()
     {
         var document = ConfigParser.Parse("""
             group:auto_group = false
@@ -447,12 +447,11 @@ public class GroupTests
             group:groupbar:stacked = true
             """);
 
-        Assert.Equal(
-            [new ConfigWarning(3, "Unsupported keyword 'group:drag_into_group'."), new ConfigWarning(4, "Unsupported keyword 'group:groupbar:stacked'.")],
-            document.Warnings);
+        Assert.Equal([new ConfigWarning(4, "Unsupported keyword 'group:groupbar:stacked'.")], document.Warnings);
         var options = GroupOptions.From(document);
         Assert.False(options.AutoGroup);
         Assert.Equal(10, options.Bar.FontSize);
+        Assert.Equal(2, options.DragIntoGroup);
     }
 
     [Theory]

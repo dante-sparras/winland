@@ -20,6 +20,15 @@ public sealed record GroupOptions
 
     public bool MoveFocusCyclesGroupFirst { get; init; }
 
+    /// <summary><c>group:drag_into_group</c>: 0 never, 1 onto a member or its tab bar, 2 only onto the tab bar.</summary>
+    public int DragIntoGroup { get; init; } = 1;
+
+    public bool MergeGroupsOnDrag { get; init; } = true;
+
+    public bool MergeGroupsOnGroupbar { get; init; } = true;
+
+    public bool MergeFloatedIntoTiledOnGroupbar { get; init; }
+
     public BorderColor ActiveBorder { get; init; } = new(0x66, 0xFF, 0xFF, 0x00);
 
     public BorderColor InactiveBorder { get; init; } = new(0x66, 0x77, 0x77, 0x00);
@@ -43,6 +52,10 @@ public sealed record GroupOptions
         ["group:group_on_movetoworkspace"] = (o, v) => TryParseBool(v, out var b) ? o with { GroupOnMoveToWorkspace = b } : o,
         ["binds:ignore_group_lock"] = (o, v) => TryParseBool(v, out var b) ? o with { IgnoreGroupLock = b } : o,
         ["binds:movefocus_cycles_groupfirst"] = (o, v) => TryParseBool(v, out var b) ? o with { MoveFocusCyclesGroupFirst = b } : o,
+        ["group:drag_into_group"] = (o, v) => TryInt(v, 0, 2, out var i) ? o with { DragIntoGroup = i } : o,
+        ["group:merge_groups_on_drag"] = (o, v) => TryParseBool(v, out var b) ? o with { MergeGroupsOnDrag = b } : o,
+        ["group:merge_groups_on_groupbar"] = (o, v) => TryParseBool(v, out var b) ? o with { MergeGroupsOnGroupbar = b } : o,
+        ["group:merge_floated_into_tiled_on_groupbar"] = (o, v) => TryParseBool(v, out var b) ? o with { MergeFloatedIntoTiledOnGroupbar = b } : o,
         ["group:col.border_active"] = (o, v) => TryColor(v, out var c) ? o with { ActiveBorder = c } : o,
         ["group:col.border_inactive"] = (o, v) => TryColor(v, out var c) ? o with { InactiveBorder = c } : o,
         ["group:col.border_locked_active"] = (o, v) => TryColor(v, out var c) ? o with { LockedActiveBorder = c } : o,

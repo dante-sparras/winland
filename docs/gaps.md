@@ -89,7 +89,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | glass | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | gradient | Gradient borders are not honored. |
 | glow | Inner glow is not honored. |
-| group:drag_into_group | Dragging a window into a Group is not honored. |
 | group:groupbar:blur | Groupbar blur is not honored. |
 | group:groupbar:gradient_round_only_edges | The tab bar is drawn with square corners. |
 | group:groupbar:gradient_rounding | The tab bar is drawn with square corners. |
@@ -100,9 +99,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | group:groupbar:rounding | The tab bar is drawn with square corners. |
 | group:groupbar:rounding_power | The tab bar is drawn with square corners. |
 | group:groupbar:stacked | A stacked tab bar is not honored. |
-| group:merge_floated_into_tiled_on_groupbar | Dragging a window into a Group is not honored. |
-| group:merge_groups_on_drag | Dragging a window into a Group is not honored. |
-| group:merge_groups_on_groupbar | Dragging a window into a Group is not honored. |
 | haze | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | heat_shimmer | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | input-capture | The input capture portal has no Windows meaning. |
@@ -225,7 +221,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | gestures:close_max_timeout, gestures:workspace_swipe_touch, gestures:workspace_swipe_touch_invert |
 | gap | - | glow, motion_blur |
 | gap | - | gradient |
-| gap | - | group:drag_into_group, group:groupbar:gradient_round_only_edges, group:groupbar:gradient_rounding, group:groupbar:gradient_rounding_power, group:groupbar:gradients, group:groupbar:priority, group:groupbar:round_only_edges, group:groupbar:rounding, group:groupbar:rounding_power, group:groupbar:stacked, group:merge_floated_into_tiled_on_groupbar, group:merge_groups_on_drag, group:merge_groups_on_groupbar |
+| gap | - | group:groupbar:gradient_round_only_edges, group:groupbar:gradient_rounding, group:groupbar:gradient_rounding_power, group:groupbar:gradients, group:groupbar:priority, group:groupbar:round_only_edges, group:groupbar:rounding, group:groupbar:rounding_power, group:groupbar:stacked |
 | gap | - | input:emulate_discrete_scroll, input:force_no_accel, input:off_window_axis_events, input:resolve_binds_by_sym, input:rotation, input:scroll_button, input:scroll_button_lock, input:scroll_method, input:scroll_points |
 | gap | - | input:kb_file, input:kb_layout, input:kb_model, input:kb_options, input:kb_rules, input:kb_variant |
 | gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:enabled, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
@@ -313,7 +309,7 @@ Mouse drag has these Gaps. Each is a gap with no open issue:
 - In the monocle Layout a drag does not move or resize the Client.
 - The pointer shape does not change while a Client is dragged or resized.
 
-Group drag and drop is a Gap: dragging a window onto a Group or its tab bar does not merge them, so `group:drag_into_group`, `group:merge_groups_on_drag`, `group:merge_groups_on_groupbar` and `group:merge_floated_into_tiled_on_groupbar` warn. The tab bar draws flat, square tabs: gradients, rounding and a stacked bar are Gaps, and `group:groupbar:blur` is the `blur` gap. Titles are drawn without antialiasing, because antialiased text would blend with the transparent strip. The wheel over the bar focuses the next member instead of only showing it. The bar is a separate window. It is put just above the shown member in the z-order each time the core reports a change, not each time another window is raised.
+Dragging a tab out of a tab bar is a Gap: a press on a tab focuses that member, and a drag from it moves nothing. The tab bar draws flat, square tabs: gradients, rounding and a stacked bar are Gaps, and `group:groupbar:blur` is the `blur` gap. Titles are drawn without antialiasing, because antialiased text would blend with the transparent strip. The wheel over the bar focuses the next member instead of only showing it. The bar is a separate window. It is put just above the shown member in the z-order each time the core reports a change, not each time another window is raised.
 
 ## Commands
 
