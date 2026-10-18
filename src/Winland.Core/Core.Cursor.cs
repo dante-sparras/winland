@@ -31,7 +31,7 @@ public sealed partial class Core
         if (workspaceChanged || monitorChanged || specialToggled)
             RememberLeaving(before);
 
-        var warp = TakeRequestedWarp();
+        var warp = TakeRequestedWarp() ?? SwitchWarp(before, outcome);
         // A change that lands on another Monitor follows cursor:warp_on_monitor_change, or warp_on_change_workspace when
         // that is -1, and one on the same Monitor follows warp_on_change_workspace, as in the pinned release.
         if (warp is null && monitorChanged)
@@ -57,6 +57,42 @@ public sealed partial class Core
             Cursor = _cursor.Behavior(),
             ResizeCursor = _resizeCursor,
         };
+    }
+
+    // movefocus, cyclenext, focusurgentorlast and focuscurrentorlast move the cursor to the middle of the window they
+    // focus, or to its last point there with cursor:persistent_warps, as the pinned release's switch to a window does.
+    // Leaving a fullscreen window for another on its Workspace does not, and cursor:no_warps stops it.
+    private WarpTo? SwitchWarp(Captured before, Outcome outcome)
+    {
+        if (outcome.Dispatcher is not ("movefocus" or "cyclenext" or "focusurgentorlast" or "focuscurrentorlast")
+            || _active is not WindowId window
+            || window == before.Active)
+            return null;
+
+        Client? target = null;
+        Client? left = null;
+        foreach (var client in outcome.State.Clients)
+        {
+            if (client.Window == window)
+                target = client;
+        }
+
+        foreach (var client in before.State.Clients)
+        {
+            if (client.Window == before.Active)
+                left = client;
+        }
+
+        if (target is null || left is { Fullscreen: not FullscreenMode.None, LayoutFullscreen: false } && left.Workspace == target.Workspace)
+            return null;
+
+        RememberLeaving(before);
+        Point? relative = _cursorOnWindow.Remove(window, out var saved) ? saved : null;
+        var warp = CursorWarp.Place(1, _cursor.NoWarps, _cursor.PersistentWarps, target.Bounds, relative);
+        if (warp is WarpTo to)
+            _pointer = to.Position;
+
+        return warp;
     }
 
     private void RememberLeaving(Captured before)

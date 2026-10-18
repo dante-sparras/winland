@@ -7,7 +7,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class WorkspacesConformance
 {
-    [Fact(Skip = "general:no_focus_fallback is a Gap, and binds:workspace_back_and_forth 2 returns to a Workspace the Monitor showed earlier in the case, where the pinned release finds no previous one.")]
+    [Fact]
     public void WorkspacesCombined()
     {
         var desk = new Desk("workspace = 966, persistent:true\n");

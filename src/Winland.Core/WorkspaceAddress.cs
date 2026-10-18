@@ -6,8 +6,8 @@ internal static class WorkspaceAddress
 {
     internal readonly record struct Context(
         WorkspaceId Active,
-        WorkspaceId? Previous,
-        WorkspaceId? PreviousOnMonitor,
+        Func<WorkspaceId?> Previous,
+        Func<WorkspaceId?> PreviousOnMonitor,
         IReadOnlyList<WorkspaceId> OnMonitor,
         IReadOnlyList<WorkspaceId> Open,
         Func<int, bool> NumberIsEmpty,
@@ -58,7 +58,8 @@ internal static class WorkspaceAddress
         if (text is "prev" or "previous" or "previous_per_monitor")
         {
             var perMonitor = text == "previous_per_monitor";
-            if ((perMonitor ? context.PreviousOnMonitor : context.Previous) is not WorkspaceId previous)
+            // The history is read only for these words, so it is collected only when one is asked for.
+            if ((perMonitor ? context.PreviousOnMonitor() : context.Previous()) is not WorkspaceId previous)
                 return false;
 
             id = previous;

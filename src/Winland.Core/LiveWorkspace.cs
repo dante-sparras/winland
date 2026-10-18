@@ -224,7 +224,8 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
     }
 
     /// <summary>Adds a window another Layout gave up, keeping what it knew about the window.</summary>
-    public void Receive(WindowId window, Taken taken, Rectangle area, Rectangle monitor = default)
+    /// <remarks><paramref name="pointer"/> is where the window goes in, as a Layout places a window opening at the pointer.</remarks>
+    public void Receive(WindowId window, Taken taken, Rectangle area, Rectangle monitor = default, Point? pointer = null)
     {
         if (taken.ScrollingWidth is double width)
             Layout.NoteScrollingWidth(window, width);
@@ -232,7 +233,7 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
         Layout.Add(
             window,
             area,
-            null,
+            pointer,
             taken.Floating,
             taken.Bounds,
             Id,
