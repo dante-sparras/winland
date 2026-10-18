@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-169 of 197 ported cases pass.
+170 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -95,7 +95,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | windowMaximizeSize | passes | |
 | window | floatingFocusOnFullscreen | not ported | Its only check is a call into the test plugin, which a core test cannot make. |
 | window | groupFallbackFocus | passes | |
-| window | bringActiveToTopMouseMovement | differs | clients does not list Clients in stacking order. |
+| window | bringActiveToTopMouseMovement | passes | |
 | window | initialFloatSize | not ported | The result depends on the floating size kitty asks for, which a core test cannot match. |
 | window | windowRuleFocusOnActivate | passes | |
 | window | pinnedWorkspacesValid | passes | |

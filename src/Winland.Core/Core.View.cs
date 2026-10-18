@@ -280,6 +280,7 @@ public sealed partial class Core
             Monitors = monitors,
             Screens = screens,
             Groups = groups,
+            Stacking = [.. _stacking],
         };
     }
 

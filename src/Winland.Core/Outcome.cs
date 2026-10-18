@@ -49,6 +49,9 @@ public sealed record State(IReadOnlyList<Client> Clients)
 
     /// <summary>The members of each Group, in Group order.</summary>
     public IReadOnlyList<IReadOnlyList<WindowId>> Groups { get; init; } = [];
+
+    /// <summary>The Clients from the bottom of the stacking order to the top, as far as Winland raised or lowered them.</summary>
+    public IReadOnlyList<WindowId> Stacking { get; init; } = [];
 }
 
 public sealed record Outcome(
