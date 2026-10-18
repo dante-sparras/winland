@@ -6,7 +6,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class PersistentConformance
 {
-    [Fact(Skip = "A persistent rule keeps a special workspace, and creates a Workspace bound to a Monitor that is not there yet. A new Monitor then shows such a Workspace, where the pinned release opens workspace 2.")]
+    [Fact]
     public void PersistentWorkspaces()
     {
         var desk = new Desk("""
@@ -83,7 +83,7 @@ public class PersistentConformance
     // A Workspace as the reference reply writes it, `ID (NAME)`: a numbered Workspace's id, or else its name, then its name.
     private static string Label(JsonElement workspace)
     {
-        var id = workspace.GetProperty("id").GetInt32();
+        var id = workspace.TryGetProperty("id", out var number) ? number.GetInt32() : 0;
         return id > 0 ? $"{id} ({Name(workspace)})" : $"{Name(workspace)} ({Name(workspace)})";
     }
 
