@@ -225,7 +225,7 @@ A `monitor` position is in logical pixels. Windows reports the monitor rectangle
 
 `reserved_area` and `addreserved` take top, bottom, left and right, in logical pixels, and subtract them from the work area. Values below zero count as zero.
 
-`disable` and `disabled` remove the monitor from the layout. The display stays powered on.
+`disable` and `disabled` remove the monitor from the layout. The display stays powered on. When no monitor is left enabled, the Workspaces move to a `FALLBACK` Monitor of 1920x1080 at 0,0, as in the pinned release, and go back when a monitor is enabled again. Because the displays stay on, the Clients on it stay visible, placed in that area of the desktop.
 
 When a Monitor is unplugged or disabled, each of its Workspaces moves intact onto the first Monitor that remains, with its Groups, fullscreen Clients and pinned Clients. They are hidden there, except a special workspace that was shown, which is shown on that Monitor in place of any special workspace shown there. A pinned Client stays shown on that Monitor; see [gaps.md](gaps.md). An empty Workspace that is not persistent is removed once it is hidden there, as in the pinned release. When the Monitor comes back, by the same name, its Workspaces move back to it and it shows the Workspace it showed when it left, as in the pinned release, or a new one when that one was removed.
 

@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-193 of 197 ported cases pass.
+194 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -217,7 +217,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | hyprctl | hyprctlBatch | not ported | Its batch runs Lua code through repl. The Lua config waits on ADR 0013. |
 | misc | misc | passes | |
 | misc | processesThatDieEarlyAreReaped | not ported | It checks that the OS reaps a process the config starts, which a core test cannot see. |
-| state | state | differs | Turning every monitor off leaves no monitor. The pinned release adds a FALLBACK monitor that keeps the Workspaces. |
+| state | state | passes | |
 | refactor_state | workspacePlacementActiveMove | passes | |
 | refactor_state | workspacePlacementWindowState | passes | |
 | refactor_state | globalWindowMoveState | passes | |

@@ -115,18 +115,20 @@ public class MonitorTests
     }
 
     [Fact]
-    public void AWindowIsLeftAloneWhenEveryMonitorIsDisabled()
+    public void AWindowOpensOnTheFallbackMonitorWhenEveryMonitorIsDisabled()
     {
         var core = new Core(ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, disable
+            general:gaps_out = 0
+            general:border_size = 0
             """));
-        var display = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var display = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 2560, 1440, 1);
         core.Handle(new MonitorsChanged([display]));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), display.WorkArea));
 
-        Assert.Empty(outcome.State.Clients);
-        Assert.Empty(outcome.Placements);
+        Assert.Single(outcome.State.Clients);
+        Assert.Equal(new Rectangle(0, 0, 1920, 1080), BoundsOf(outcome, 1));
     }
 
     [Fact]
@@ -487,7 +489,8 @@ public class MonitorTests
             Display(@"\\.\DISPLAY1", "Dell", 0, 0, 100, 100, 1),
         ]));
 
-        Assert.False(Assert.Single(outcome.State.Monitors).Enabled);
+        Assert.False(outcome.State.Monitors[0].Enabled);
+        Assert.Equal("FALLBACK", outcome.State.Monitors[1].Name);
         Assert.Contains(outcome.Events, static item => item is MonitorAdded);
         Assert.DoesNotContain(outcome.Events, static item => item is MonitorRemoved);
     }
