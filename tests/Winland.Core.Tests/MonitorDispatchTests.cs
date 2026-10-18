@@ -55,8 +55,9 @@ public class MonitorDispatchTests
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
         Assert.Equal(new WorkspaceId("2"), Client(outcome, 1).Workspace);
         Assert.Equal(new WorkspaceId("2"), Client(outcome, 2).Workspace);
-        Assert.Equal(new Rectangle(1920, 0, 960, 1080), BoundsOf(outcome, 2));
-        Assert.Equal(new Rectangle(2880, 0, 960, 1080), BoundsOf(outcome, 1));
+        // As in the pinned release, the window goes in at the point just past the edge it crossed.
+        Assert.Equal(new Rectangle(1920, 0, 960, 1080), BoundsOf(outcome, 1));
+        Assert.Equal(new Rectangle(2880, 0, 960, 1080), BoundsOf(outcome, 2));
         Assert.Equal(
             [
                 "movewindow>>1,2",
@@ -356,6 +357,39 @@ public class MonitorDispatchTests
     private static readonly Rectangle Left = new(0, 0, 1920, 1080);
 
     private static readonly Rectangle Right = new(1920, 0, 1920, 1080);
+
+    [Fact]
+    public void MoveFocusOntoAnotherMonitorMovesTheCursorToTheWindowsMiddle()
+    {
+        var core = TwoMonitors();
+
+        var moved = core.Handle(new Dispatch("movefocus", "r"));
+
+        var target = Client(moved, 2).Bounds;
+        Assert.Equal(new WarpTo(new Point(target.X + (target.Width / 2), target.Y + (target.Height / 2))), moved.Warp);
+    }
+
+    [Fact]
+    public void NoWarpsKeepsTheCursorWhereItIsOnMoveFocus()
+    {
+        var core = TwoMonitors("cursor:no_warps = true\n");
+
+        var moved = core.Handle(new Dispatch("movefocus", "r"));
+
+        Assert.Null(moved.Warp);
+    }
+
+    [Theory]
+    [InlineData("true", "error: Nothing to focus to in direction left")]
+    [InlineData("false", null)]
+    public void NoFocusFallbackAnswersAnErrorWhenNothingTakesTheFocus(string value, string? error)
+    {
+        var core = TwoMonitors($"general:no_focus_fallback = {value}\n");
+
+        var moved = core.Handle(new Dispatch("movefocus", "l"));
+
+        Assert.Equal(error, moved.Error);
+    }
 
     private static Core TwoMonitors(string? config = null)
     {

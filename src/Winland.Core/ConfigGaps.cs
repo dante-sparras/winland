@@ -183,7 +183,6 @@ public static class ConfigGaps
         new("motion_blur", "Motion blur is not honored."),
         new("move_snap_cursor", "Trackpad scroll-move cursor snapping is a gesture, not part of the layout."),
         new("move_snap_to_grid", "Trackpad scroll-move snapping is a gesture, not part of the layout."),
-        new("no_focus_fallback", "Focus fallback is not honored."),
         new("opengl", "GPU rendering options have no Windows meaning."),
         new("permission", "Permission rules have no Windows meaning."),
         new("quirks", "Display buffer quirks have no Windows meaning."),

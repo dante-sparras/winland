@@ -89,7 +89,7 @@ public sealed partial class Core
 
         for (var i = 0; i < _history.Count; i++)
         {
-            if (_history[i].Workspace == from)
+            if (!_history[i].Gone && _history[i].Workspace == from)
                 _history[i] = _history[i] with { Workspace = to };
         }
 

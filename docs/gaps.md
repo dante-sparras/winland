@@ -187,7 +187,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | motion_blur | Motion blur is not honored. |
 | move_snap_cursor | Trackpad scroll-move cursor snapping is a gesture, not part of the layout. |
 | move_snap_to_grid | Trackpad scroll-move snapping is a gesture, not part of the layout. |
-| no_focus_fallback | Focus fallback is not honored. |
 | opengl | GPU rendering options have no Windows meaning. |
 | permission | Permission rules have no Windows meaning. |
 | quirks | Display buffer quirks have no Windows meaning. |
@@ -241,7 +240,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | misc:always_follow_on_dnd, misc:animate_manual_resizes, misc:animate_mouse_windowdragging, misc:font_family, misc:key_press_enables_dpms, misc:mouse_move_enables_dpms |
 | gap | - | modal_parent_blocking |
 | gap | - | move_snap_cursor, move_snap_to_grid |
-| gap | - | no_focus_fallback |
 
 ## Notes
 

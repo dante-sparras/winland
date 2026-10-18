@@ -20,7 +20,8 @@ public sealed partial class Core
         string dispatcher,
         bool allowsElevation = false,
         WindowId? chosen = null,
-        bool windowChosen = false)
+        bool windowChosen = false,
+        Point? focal = null)
     {
         var window = windowChosen ? chosen : ActiveWindow();
         if (window is not WindowId id || !WorkspaceAddress.TryResolve(argument, Context(), out var resolved))
@@ -46,7 +47,7 @@ public sealed partial class Core
         var destinationCovered = destination.Covered();
         var solitary = source.GroupOf(id) is null ? SolitaryGroup(destination, id) : null;
         var area = WorkArea(destination, _area);
-        destination.Receive(id, OntoMonitor(taken, source.Monitor, destination.Monitor), area);
+        destination.Receive(id, OntoMonitor(taken, source.Monitor, destination.Monitor), area, pointer: focal);
         CarryGroup(source, destination, id);
         JoinOnMove(destination, solitary, id);
         Restamp(source, []);
@@ -313,13 +314,42 @@ public sealed partial class Core
             Transfer(desk, home, window);
     }
 
+    // The visits are the pinned release's workspace history: newest first, each with the Monitor it was on. A visit to a
+    // Workspace that was removed since stays, as a gone one, until the history is collected.
     private void Remember(WorkspaceId workspace, MonitorId monitor)
     {
-        if (!_allowWorkspaceCycles && _history.Count > 0 && _history[0].Workspace == workspace)
+        if (!_allowWorkspaceCycles && _history.Count > 0 && _history[0] is { Gone: false } newest && newest.Workspace == workspace)
             return;
 
-        _history.RemoveAll(visit => visit.Workspace == workspace);
+        _history.RemoveAll(visit => !visit.Gone && visit.Workspace == workspace);
         _history.Insert(0, new WorkspaceVisit(workspace, monitor));
+    }
+
+    private void ForgetVisits(WorkspaceId workspace)
+    {
+        for (var i = 0; i < _history.Count; i++)
+        {
+            if (_history[i].Workspace == workspace)
+                _history[i] = _history[i] with { Gone = true };
+        }
+    }
+
+    // Drops the visits to removed Workspaces as the pinned release collects its history: the newest visit on each
+    // Monitor is kept until that Monitor has been seen past the first one in the list, so it can still be gone to.
+    private void CollectVisits()
+    {
+        var seen = new List<MonitorId>();
+        _history.RemoveAll(visit =>
+        {
+            for (var i = 1; i < seen.Count; i++)
+            {
+                if (seen[i] == visit.Monitor)
+                    return visit.Gone;
+            }
+
+            seen.Add(visit.Monitor);
+            return false;
+        });
     }
 
     // A switch to a Workspace another Monitor shows moves the cursor onto that Monitor, as in the pinned release, to the
@@ -367,8 +397,9 @@ public sealed partial class Core
 
     private WorkspaceId? Previous(MonitorId monitor, bool perMonitor)
     {
+        CollectVisits();
         var active = ActiveOn(monitor);
-        var index = _history.FindIndex(visit => visit.Workspace == active);
+        var index = _history.FindIndex(visit => !visit.Gone && visit.Workspace == active);
         if (!perMonitor)
             return index >= 0 && index + 1 < _history.Count ? _history[index + 1].Workspace : null;
 
@@ -386,8 +417,8 @@ public sealed partial class Core
     private WorkspaceAddress.Context Context(MonitorId monitor) =>
         new(
             ActiveOn(monitor),
-            Previous(monitor, perMonitor: false),
-            Previous(monitor, perMonitor: true),
+            () => Previous(monitor, perMonitor: false),
+            () => Previous(monitor, perMonitor: true),
             Listed(monitor),
             Listed(null),
             NumberIsEmpty,
@@ -439,6 +470,7 @@ public sealed partial class Core
 
         _workspaces.Remove(desk);
         ForgetReturn(id);
+        ForgetVisits(id);
     }
 
     private WorkspaceId NextFree(MonitorId monitor)
@@ -475,5 +507,5 @@ public sealed partial class Core
         return id;
     }
 
-    private readonly record struct WorkspaceVisit(WorkspaceId Workspace, MonitorId Monitor);
+    private readonly record struct WorkspaceVisit(WorkspaceId Workspace, MonitorId Monitor, bool Gone = false);
 }

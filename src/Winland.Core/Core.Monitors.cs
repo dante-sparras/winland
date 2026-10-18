@@ -141,11 +141,11 @@ public sealed partial class Core
         }
 
         if (!_monitorFallback || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from)
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return NothingToFocus(name, direction, allowsElevation);
 
         if (MonitorSelector.InDirection(Targets(), from, direction) is not MonitorTarget neighbor
             || MonitorOf(neighbor) is not LiveMonitor destination)
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return NothingToFocus(name, direction, allowsElevation);
 
         WindowId? adjacent = null;
         if (active is WindowId fromWindow && desk.Layout.TryBounds(fromWindow, out var box))
@@ -153,6 +153,12 @@ public sealed partial class Core
 
         return FocusOnto(destination, name, allowsElevation, adjacent);
     }
+
+    // general:no_focus_fallback makes a movefocus that finds nothing answer an error, as in the pinned release.
+    private Outcome NothingToFocus(string name, MonitorDirection direction, bool allowsElevation) =>
+        _session.NoFocusFallback
+            ? Rejected(name, "error: Nothing to focus to in direction " + direction.ToString().ToLowerInvariant(), allowsElevation)
+            : View([], dispatcher: name, allowsElevation: allowsElevation);
 
     private bool HasFullscreen(LiveWorkspace desk)
     {
@@ -232,9 +238,11 @@ public sealed partial class Core
         {
             // As in the pinned release, the focal point is taken from the window's ideal box, which reaches the
             // Monitor's edge when the tile touches the work area's.
-            var hit = MonitorSelector.At(Targets(), MonitorSelector.Focal(Ideal(desk, window, box), direction));
+            // The window goes in at that point there, as the pinned release assigns it to the other Workspace with it.
+            var focal = MonitorSelector.Focal(Ideal(desk, window, box), direction);
+            var hit = MonitorSelector.At(Targets(), focal);
             if (hit is MonitorTarget other && other.Id != origin.Id && MonitorOf(other) is LiveMonitor across)
-                return MoveActiveOnto(across, silent: false, name, allowsElevation);
+                return MoveActiveOnto(across, silent: false, name, allowsElevation, focal);
         }
 
         var placements = desk.Layout.MoveWindow(window, arguments);
@@ -375,12 +383,12 @@ public sealed partial class Core
         return View(ShownPlacements(), show, hide, dispatcher: dispatcher, focus: focus, allowsElevation: allowsElevation);
     }
 
-    private Outcome MoveActiveOnto(LiveMonitor screen, bool silent, string dispatcher, bool allowsElevation)
+    private Outcome MoveActiveOnto(LiveMonitor screen, bool silent, string dispatcher, bool allowsElevation, Point? focal = null)
     {
         if (screen.Active is not WorkspaceId target)
             return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
 
-        return MoveTo(target.Name, silent, consumed: false, dispatcher, allowsElevation);
+        return MoveTo(target.Name, silent, consumed: false, dispatcher, allowsElevation, focal: focal);
     }
 
     private Outcome FocusOnto(LiveMonitor screen, string dispatcher, bool allowsElevation, WindowId? preferred)
