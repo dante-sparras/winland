@@ -47,12 +47,18 @@ public sealed partial class Core
             return View([]);
 
         _nativeMove = null;
+        var drop = GroupDrop(ended.Window, wasTiled: !_nativeFloating, ended.Pointer);
         if (_nativeFloating)
-            return EndNativeFloating(ended.Window, ended.Bounds);
+        {
+            var left = EndNativeFloating(ended.Window, ended.Bounds);
+            return drop is { } onto ? JoinDragged(ended.Window, onto, dispatcher: null) : left;
+        }
 
-        _released = ended.Bounds is Rectangle left ? (ended.Window, left) : null;
+        _released = ended.Bounds is Rectangle frame ? (ended.Window, frame) : null;
         var layout = LayoutWorkspace(ended.Window).Layout;
         var dropped = layout.Drag(ended.Window, new PointerDrag(false, PointerDragPhase.End, ended.Pointer));
+        if (drop is { } into)
+            return JoinDragged(ended.Window, into, dispatcher: null);
 
         // A Layout that has no drop of its own still has to take the window back from where it was left.
         return View(dropped.Count > 0 ? dropped : layout.Placed());
