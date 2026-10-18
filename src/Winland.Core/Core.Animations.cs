@@ -39,7 +39,7 @@ public sealed partial class Core
         foreach (var closing in outcome.Closes)
             plan.Close(closing);
 
-        if (_gesture is null && _border is null && _nativeSize is null)
+        if (_gesture is null && _border is null && _nativeSize is null && !InstantResize(outcome, before))
         {
             foreach (var placement in outcome.Placements)
             {
@@ -50,6 +50,30 @@ public sealed partial class Core
 
         plan.Switches(previous, _painted);
         return plan.Count == 0 ? outcome : outcome with { Motions = plan.Finish(_painted) };
+    }
+
+    // A dwindle tile resized by resizeactive or resizewindowpixel, and the tiles that make room for it, move at once
+    // unless misc:animate_manual_resizes is on, as the pinned release's dwindle resize warps them. Master tiles and
+    // floating Clients animate, as there.
+    private bool InstantResize(Outcome outcome, State before)
+    {
+        if (_session.AnimateManualResizes || outcome.Dispatcher is not ("resizeactive" or "resizewindowpixel"))
+            return false;
+
+        if (ActiveWindow() is not WindowId active)
+            return false;
+
+        foreach (var client in before.Clients)
+        {
+            if (client.Window != active)
+                continue;
+
+            return !client.Floating
+                && FindWorkspace(client.Workspace) is LiveWorkspace desk
+                && desk.Layout is DwindleLayout;
+        }
+
+        return false;
     }
 
     private Rectangle MonitorRectangle(WorkspaceId workspace)
