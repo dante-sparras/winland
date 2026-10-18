@@ -178,7 +178,7 @@ public class ExtraCommandTests
         var core = new Core();
         core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 200, 100)));
 
-        Assert.Equal("error: click to kill is not supported", core.Execute("kill").Text);
+        Assert.Equal("ok", core.Execute("kill").Text);
         Assert.Equal("ok", core.Execute("notify 1 1 0 hi").Text);
         Assert.Equal("ok", core.Execute("dismissnotify").Text);
         Assert.Equal("error: rolling log is not supported", core.Execute("rollinglog").Text);

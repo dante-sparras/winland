@@ -28,6 +28,7 @@ public sealed class MouseHook : IDisposable
     private readonly HOOKPROC _callback;
     private HHOOK _hook;
     private readonly MouseDrag _drag = new();
+    private readonly HashSet<string> _killed = new(StringComparer.Ordinal);
     private bool _disposed;
 
     public MouseHook(Core core, KeyboardHook keys)
@@ -165,6 +166,17 @@ public sealed class MouseHook : IDisposable
 
     private bool OnButton(string button, bool up, Point position)
     {
+        // kill: the armed click goes to the core, not to the window, and so does its release.
+        if (up && _killed.Remove(button))
+            return true;
+
+        if (!up && _core.ClickKillArmed)
+        {
+            _killed.Add(button);
+            _keys.PostInput(new ClickKillChosen(position));
+            return true;
+        }
+
         if (up)
         {
             if (_drag.Release(button) is MouseDrag.Active drag)

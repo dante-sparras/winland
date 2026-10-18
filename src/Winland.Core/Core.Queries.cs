@@ -64,7 +64,7 @@ public sealed partial class Core
         DescriptionsRequest => new CommandReply(OptionCatalog.Descriptions(_config), View([])),
         AnimationsRequest animations => new CommandReply(_animations.Describe(animations.Flags.HasFlag(CommandFlags.Json)), View([])),
         SubmapRequest submap => new CommandReply(ExtraCommands.FormatSubmap(_keyState.Submap, submap.Flags.HasFlag(CommandFlags.Json)), View([])),
-        ClickKillRequest => new CommandReply("error: click to kill is not supported", View([])),
+        ClickKillRequest => ArmClickKill(),
         RollingLogRequest => new CommandReply("error: rolling log is not supported", View([])),
         NotifyRequest notify => Notify(notify),
         DismissNotifyRequest dismiss => DismissNotify(dismiss),

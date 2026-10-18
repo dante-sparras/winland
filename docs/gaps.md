@@ -278,7 +278,6 @@ These commands are recognized and answer with an error. They are not honored.
 
 | command | status | kind | issue | reason |
 | --- | --- | --- | --- | --- |
-| kill | error | gap | - | Click to kill is not honored. |
 | rollinglog | error | gap | - | There is no rolling log. |
 
 Every command above is a gap. No open issue tracks them.
