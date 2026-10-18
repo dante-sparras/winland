@@ -1,7 +1,11 @@
 # Run unit test projects under tests/. Passes when none exist yet.
 # Smoke projects stay off this lane. A release run does not execute them either.
 # scripts/release.tests.ps1 runs first when it exists.
-#   pwsh -NoProfile -File scripts/test.ps1
+#   pwsh -NoProfile -File scripts/test.ps1            builds once, then runs every project at the same time
+#   pwsh -NoProfile -File scripts/test.ps1 -NoBuild   runs them on the Release build already there, as check.ps1 leaves it
+param(
+    [switch]$NoBuild
+)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $releaseTests = Join-Path $PSScriptRoot 'release.tests.ps1'
@@ -17,13 +21,38 @@ if (-not (Test-Path $tests)) {
 }
 $projects = @(Get-ChildItem -Path $tests -Filter *.csproj -Recurse -File | Where-Object {
     $_.Name -like '*.Tests.csproj' -and $_.Name -notlike '*.Smoke.Tests.csproj'
-})
+} | Sort-Object FullName)
 if ($projects.Count -eq 0) {
     Write-Output 'No unit test project under tests/. The test lane passes until one is added.'
     exit 0
 }
-foreach ($project in $projects) {
-    Write-Output "dotnet test $($project.FullName)"
-    dotnet test $project.FullName --configuration Release --nologo
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+# Building once first lets the projects run side by side: each one only runs its tests, and none rebuilds the
+# projects they share. Without a solution each project is built in turn.
+if (-not $NoBuild) {
+    $solutions = @(Get-ChildItem -Path $root -Filter *.slnx -File -ErrorAction SilentlyContinue)
+    if ($solutions.Count -eq 0) {
+        $solutions = @(Get-ChildItem -Path $root -Filter *.sln -File -ErrorAction SilentlyContinue)
+    }
+    $targets = if ($solutions.Count -gt 0) { $solutions } else { $projects }
+    foreach ($target in $targets) {
+        Write-Output "dotnet build $($target.FullName)"
+        dotnet build $target.FullName --configuration Release --nologo
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    }
 }
+
+# Each project's output is printed whole once it finishes, so the logs do not interleave.
+$results = $projects | ForEach-Object -ThrottleLimit ([Math]::Max(2, [Environment]::ProcessorCount)) -Parallel {
+    $output = & dotnet test $_.FullName --configuration Release --nologo --no-build 2>&1 | Out-String
+    [pscustomobject]@{ Project = $_.FullName; ExitCode = $LASTEXITCODE; Output = $output }
+}
+
+$failed = 0
+foreach ($result in $results | Sort-Object Project) {
+    Write-Output "dotnet test $($result.Project)"
+    Write-Output $result.Output.TrimEnd()
+    if ($result.ExitCode -ne 0 -and $failed -eq 0) { $failed = $result.ExitCode }
+}
+
+exit $failed

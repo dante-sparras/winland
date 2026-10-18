@@ -7,15 +7,18 @@
 # Do not add secrets to this workflow. pull_request runs the file from the pull request.
 #
 # Every check is a step in one Windows job. A net10.0-windows project does not build on
-# Ubuntu, and GitHub bills each job by the started minute, so small separate jobs cost more
-# than the work they do. CI runs on pull requests, not on the push a merge makes to main.
-# A release run tests the exact commit it ships.
+# Ubuntu, and each job pays its own setup, so small separate jobs cost more time than the
+# work they do. CI runs on pull requests and on the push a merge makes to main. The push run
+# also fills the .NET and NuGet caches, because a pull request can only read caches its own
+# branch or the default branch saved. A release run tests the exact commit it ships.
 # Mutation testing is the slow lane. It runs when CI is dispatched with release=true.
 
 name: CI
 
 on:
   pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       release:
@@ -45,17 +48,39 @@ jobs:
     name: All required checks pass (v1)
     runs-on: windows-latest
     timeout-minutes: 60
+    # The SDK and the packages go to fixed folders so they can be cached between runs.
+    env:
+      DOTNET_INSTALL_DIR: C:/dotnet
+      NUGET_PACKAGES: C:/nuget
+      DOTNET_NOLOGO: "true"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
     steps:
       # fetch-depth 0 also fetches every branch, so origin/main and the pull request's base
-      # are present without a second fetch, and no credential has to stay on disk.
+      # are present without a second fetch, and no credential has to stay on disk. The blobless
+      # filter keeps every commit and tree, which the history and diff steps read, and fetches
+      # file contents only for the commit that is checked out.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
+      # setup-dotnet skips the download when the cached folder already holds the SDK global.json names.
+      - name: Restore the .NET SDK
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: C:/dotnet
+          key: dotnet-${{ runner.os }}-${{ hashFiles('global.json') }}
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
+      - name: Restore the NuGet packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: C:/nuget
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', 'nuget.config', 'Directory.Packages.props', 'Directory.Build.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
       # A branch that shares no commit with main would add a second root commit to main
       # and break git blame.
       - name: Reject unrelated history
@@ -118,10 +143,11 @@ jobs:
           $test = if ($code.Count -gt 0) { 'true' } else { 'false' }
           "test=$test" >> $env:GITHUB_OUTPUT
           Write-Output "test lane: $test"
+      # The lint step built the solution in Release, so the tests run on that build, side by side.
       - name: Run tests
         if: steps.classify.outputs.test == 'true'
         shell: pwsh
-        run: ./scripts/test.ps1
+        run: ./scripts/test.ps1 -NoBuild
 
   # Runs beside the check, not after it, so a release run is no slower.
   # A failure fails the release run. Pull requests never run it.
