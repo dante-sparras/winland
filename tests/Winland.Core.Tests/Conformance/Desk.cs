@@ -226,7 +226,9 @@ internal sealed class Desk
 
     internal static bool Pinned(JsonElement client) => client.GetProperty("pinned").GetBoolean();
 
-    internal static int WorkspaceId(JsonElement client) => client.GetProperty("workspace").GetProperty("id").GetInt32();
+    // A named or special Workspace has no id in the reply, as in the pinned release, and reads as 0 here.
+    internal static int WorkspaceId(JsonElement client) =>
+        client.GetProperty("workspace").TryGetProperty("id", out var id) ? id.GetInt32() : 0;
 
     /// <summary>The active window's class, as the reference checks <c>class: name</c>.</summary>
     internal string ActiveClass() => ClassOf(ActiveWindow());

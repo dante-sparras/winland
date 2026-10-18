@@ -17,7 +17,7 @@ public class IpcJsonTests
 
         const string Client =
             """
-            {"address":"0x2a","mapped":true,"hidden":false,"visible":true,"acceptsInput":true,"at":[0,0],"size":[800,600],"workspace":{"id":1,"name":"1"},"floating":false,"monitor":0,"class":"kitty","title":"term","initialClass":"kitty","initialTitle":"term","pid":4242,"xwayland":false,"pinned":false,"pinFullscreened":false,"fullscreen":0,"fullscreenClient":0,"fullscreenHandler":"","allowedOverFullscreen":false,"grouped":[],"tags":[],"swallowing":"0x0","focusHistoryID":0,"inhibitingIdle":false,"xdgTag":"","xdgDescription":"","contentType":"none","tearingHint":false,"stableId":"2a"}
+            {"address":"0x2a","mapped":true,"hidden":false,"visible":true,"acceptsInput":true,"at":[0,0],"size":[800,600],"workspace":{"address":"1","id":1,"type":"normal","name":"1"},"floating":false,"monitor":0,"class":"kitty","title":"term","initialClass":"kitty","initialTitle":"term","pid":4242,"xwayland":false,"pinned":false,"pinFullscreened":false,"fullscreen":0,"fullscreenClient":0,"fullscreenHandler":"","allowedOverFullscreen":false,"grouped":[],"tags":[],"swallowing":"0x0","focusHistoryID":0,"inhibitingIdle":false,"xdgTag":"","xdgDescription":"","contentType":"none","tearingHint":false,"stableId":"2a"}
             """;
 
         Assert.Equal("[" + Client + "]", core.Execute("clients").Text);
@@ -77,7 +77,7 @@ public class IpcJsonTests
 
         const string Workspace =
             """
-            {"address":"1","id":1,"name":"1","monitor":"","monitorID":0,"windows":1,"hasfullscreen":false,"lastwindow":"0x2a","lastwindowtitle":"term","ispersistent":false,"tiledLayout":"dwindle"}
+            {"address":"1","id":1,"type":"normal","name":"1","monitor":"","monitorID":0,"windows":1,"hasfullscreen":false,"lastwindow":"0x2a","lastwindowtitle":"term","ispersistent":false,"tiledLayout":"dwindle"}
             """;
 
         Assert.Equal("[" + Workspace + "]", core.Execute("workspaces").Text);
@@ -130,7 +130,7 @@ public class IpcJsonTests
 
         const string Monitor =
             """
-            {"id":0,"name":"Dell","description":"Dell U2720Q","make":"DEL","model":"U2720Q","serial":"ABC123","width":1920,"height":1080,"physicalWidth":597,"physicalHeight":336,"refreshRate":60,"x":0,"y":0,"activeWorkspace":{"id":1,"name":"1"},"specialWorkspace":{"id":0,"name":""},"reserved":[0,0,0,40],"scale":1,"transform":0,"focused":true,"dpmsStatus":true,"vrr":false,"solitary":"0","solitaryBlockedBy":null,"activelyTearing":false,"tearingBlockedBy":null,"directScanoutTo":"0","directScanoutBlockedBy":null,"disabled":false,"currentFormat":"","mirrorOf":"none","availableModes":["1920x1080@60.00Hz"],"colorManagementPreset":"","sdrBrightness":0,"sdrSaturation":0,"sdrMinLuminance":0,"sdrMaxLuminance":0,"hardwareCursorsInUse":false}
+            {"id":0,"name":"Dell","description":"Dell U2720Q","make":"DEL","model":"U2720Q","serial":"ABC123","width":1920,"height":1080,"physicalWidth":597,"physicalHeight":336,"refreshRate":60,"x":0,"y":0,"activeWorkspace":{"address":"1","id":1,"type":"normal","name":"1"},"specialWorkspace":{"address":"","type":"","name":""},"reserved":[0,0,0,40],"scale":1,"transform":0,"focused":true,"dpmsStatus":true,"vrr":false,"solitary":"0","solitaryBlockedBy":null,"activelyTearing":false,"tearingBlockedBy":null,"directScanoutTo":"0","directScanoutBlockedBy":null,"disabled":false,"currentFormat":"","mirrorOf":"none","availableModes":["1920x1080@60.00Hz"],"colorManagementPreset":"","sdrBrightness":0,"sdrSaturation":0,"sdrMinLuminance":0,"sdrMaxLuminance":0,"hardwareCursorsInUse":false}
             """;
 
         Assert.Equal("[" + Monitor + "]", core.Execute("monitors").Text);
@@ -184,7 +184,7 @@ public class IpcJsonTests
         Assert.Equal(JsonValueKind.Array, disabled.GetProperty("reserved").ValueKind);
         Assert.Equal(4, disabled.GetProperty("reserved").GetArrayLength());
         Assert.Equal(JsonValueKind.Object, disabled.GetProperty("specialWorkspace").ValueKind);
-        Assert.Equal(0, disabled.GetProperty("specialWorkspace").GetProperty("id").GetInt32());
+        Assert.False(disabled.GetProperty("specialWorkspace").TryGetProperty("id", out _));
         Assert.Equal("", disabled.GetProperty("specialWorkspace").GetProperty("name").GetString());
     }
 
@@ -193,7 +193,7 @@ public class IpcJsonTests
     {
         const string Monitor =
             """
-            {"id":0,"name":"","description":"","make":"","model":"","serial":"","width":0,"height":0,"physicalWidth":0,"physicalHeight":0,"refreshRate":0,"x":0,"y":0,"activeWorkspace":{"id":1,"name":"1"},"specialWorkspace":{"id":0,"name":""},"reserved":[0,0,0,0],"scale":1,"transform":0,"focused":true,"dpmsStatus":true,"vrr":false,"solitary":"0","solitaryBlockedBy":null,"activelyTearing":false,"tearingBlockedBy":null,"directScanoutTo":"0","directScanoutBlockedBy":null,"disabled":false,"currentFormat":"","mirrorOf":"none","availableModes":[],"colorManagementPreset":"","sdrBrightness":0,"sdrSaturation":0,"sdrMinLuminance":0,"sdrMaxLuminance":0,"hardwareCursorsInUse":false}
+            {"id":0,"name":"","description":"","make":"","model":"","serial":"","width":0,"height":0,"physicalWidth":0,"physicalHeight":0,"refreshRate":0,"x":0,"y":0,"activeWorkspace":{"address":"1","id":1,"type":"normal","name":"1"},"specialWorkspace":{"address":"","type":"","name":""},"reserved":[0,0,0,0],"scale":1,"transform":0,"focused":true,"dpmsStatus":true,"vrr":false,"solitary":"0","solitaryBlockedBy":null,"activelyTearing":false,"tearingBlockedBy":null,"directScanoutTo":"0","directScanoutBlockedBy":null,"disabled":false,"currentFormat":"","mirrorOf":"none","availableModes":[],"colorManagementPreset":"","sdrBrightness":0,"sdrSaturation":0,"sdrMinLuminance":0,"sdrMaxLuminance":0,"hardwareCursorsInUse":false}
             """;
 
         Assert.Equal("[" + Monitor + "]", new Core().Execute("monitors").Text);

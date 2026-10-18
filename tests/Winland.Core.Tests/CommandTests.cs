@@ -215,12 +215,13 @@ public class CommandTests
 
         Assert.Equal(1, byName["1"].GetProperty("id").GetInt32());
         Assert.Equal(1, byName["1"].GetProperty("windows").GetInt32());
-        Assert.Equal(-1, byName["notes"].GetProperty("id").GetInt32());
+        // As in the pinned release, a named Workspace has no id.
+        Assert.False(byName["notes"].TryGetProperty("id", out _));
         Assert.Equal(1, byName["notes"].GetProperty("windows").GetInt32());
     }
 
     [Fact]
-    public void NamedWorkspacesReceiveDistinctNegativeIdsInNameOrder()
+    public void NamedWorkspacesHaveNoId()
     {
         var text =
             "windowrulev2 = workspace name:beta, class:^(beta)$\n" +
@@ -240,8 +241,8 @@ public class CommandTests
             .EnumerateArray()
             .ToDictionary(item => item.GetProperty("name").GetString()!);
 
-        Assert.Equal(-1, byName["alpha"].GetProperty("id").GetInt32());
-        Assert.Equal(-2, byName["beta"].GetProperty("id").GetInt32());
+        Assert.False(byName["alpha"].TryGetProperty("id", out _));
+        Assert.Equal("normal", byName["beta"].GetProperty("type").GetString());
     }
 
     [Fact]

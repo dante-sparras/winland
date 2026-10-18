@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-164 of 197 ported cases pass.
+165 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -212,7 +212,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | hyprctl | hyprctlJsonErrors | differs | There is no descriptions request. |
 | hyprctl | hyprctlDescriptionsCurrentValues | differs | There is no descriptions request. |
 | hyprctl | hyprctlBindsJson | passes | |
-| hyprctl | hyprctlWorkspaceJson | differs | The monitors and workspaces replies give a special workspace an id and give no Workspace a type. |
+| hyprctl | hyprctlWorkspaceJson | passes | |
 | hyprctl | hyprctlREPL | not ported | It runs Lua code through repl and eval. The Lua config waits on ADR 0013. |
 | hyprctl | hyprctlBatch | not ported | Its batch runs Lua code through repl. The Lua config waits on ADR 0013. |
 | misc | misc | passes | |
