@@ -4,7 +4,9 @@
 #   pwsh -NoProfile -File scripts/check.ps1 -Ref <sha> -Test   also runs scripts/test.ps1 on that commit
 param(
     [string]$Ref,
-    [switch]$Test
+    [switch]$Test,
+    # CI passes this when nothing that compiles scripts/fetch-reference.cs changed.
+    [switch]$SkipReference
 )
 
 $ErrorActionPreference = 'Stop'
@@ -190,9 +192,13 @@ try {
 
     # scripts/fetch-reference.cs is a file-based app that no solution builds. Compile it here,
     # without running it, so it stays under the repo's compiler rules.
-    Write-Output 'dotnet build scripts/fetch-reference.cs'
-    dotnet build (Join-Path $root 'scripts/fetch-reference.cs') --configuration Release --nologo
-    if ($LASTEXITCODE -ne 0) { $failed = 1 }
+    if ($SkipReference) {
+        Write-Output 'scripts/fetch-reference.cs is not built: nothing it compiles from changed.'
+    } else {
+        Write-Output 'dotnet build scripts/fetch-reference.cs'
+        dotnet build (Join-Path $root 'scripts/fetch-reference.cs') --configuration Release --nologo
+        if ($LASTEXITCODE -ne 0) { $failed = 1 }
+    }
     if ((Test-MarkdownLinks $root $tracked) -gt 0) { $failed = 1 }
 
     $solutions = @()
