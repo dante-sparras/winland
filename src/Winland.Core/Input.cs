@@ -154,7 +154,11 @@ public sealed record SwipeBegan(int Fingers) : Event;
 /// <summary>
 /// The fingers of a touchpad swipe moved. The delta is in pixels since the last update, right and down positive.
 /// </summary>
-public sealed record SwipeUpdated(int Fingers, double DeltaX, double DeltaY) : Event;
+public sealed record SwipeUpdated(int Fingers, double DeltaX, double DeltaY) : Event
+{
+    /// <summary>When the update happened, in milliseconds of a steady clock, or 0 when it is not known.</summary>
+    public long TimeMs { get; init; }
+}
 
 /// <summary>The swipe ended. A cancelled swipe ended because the finger count changed, not because the fingers lifted.</summary>
 public sealed record SwipeEnded(bool Cancelled = false) : Event;

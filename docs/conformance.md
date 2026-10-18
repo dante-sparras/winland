@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-186 of 197 ported cases pass.
+187 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -65,7 +65,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scroll_DEFAULT_HANDLED_FullscreenNonInterference | passes | |
 | scroll | scroll_DEFAULT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention | passes | |
 | scroll | scroll_DEFAULT_HANDLED_posAndSizeSyncWhileFS | not ported | The case opens a layer shell surface, which has no Windows meaning. |
-| scroll | scrollNegativeScaleGesture | differs | The scrollMove gesture action is a Gap. |
+| scroll | scrollNegativeScaleGesture | passes | |
 | scroll | testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse | passes | |
 | scroll | testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue | passes | |
 | scroll | testScrollingViewBehaviourFocusFallback | passes | |
@@ -268,7 +268,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | gestures | pinchDeltaScalePropagation | not ported | It checks a gesture the test plugin registers through the C++ plugin interface, which has no core form. |
 | gestures | defaultSpecialWorkspaceGesture | passes | |
 | gestures | live_gesture_callbacks | not ported | Gesture actions with start, update and end callbacks are Lua-only. |
-| gestures | gestures | differs | Only the workspace and special gesture actions are honored. |
+| gestures | gestures | differs | cursor:zoom_factor is the cursor zoom Gap, so the keyword the case sets at its end is refused. |
 | keybinds | keybinds | differs | Per-device binds are not honored. |
 | keybinds | orderedSubChordDeferral | passes | |
 | keybinds | modifierReleaseBindShadowing | passes | |

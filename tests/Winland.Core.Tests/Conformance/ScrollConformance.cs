@@ -700,7 +700,7 @@ public class ScrollConformance
     public void ScrollDEFAULTHANDLEDFloatingOntopFullscreenWorkspaceFocusRetention() =>
         FloatingOntopFullscreenWorkspaceFocusRetention(" default");
 
-    [Fact(Skip = "The scrollMove gesture action is a Gap.")]
+    [Fact]
     public void ScrollNegativeScaleGesture()
     {
         var desk = new Desk(Scrolling + """
@@ -715,20 +715,20 @@ public class ScrollConformance
         foreach (var name in new[] { "negative_scale_a", "negative_scale_b", "negative_scale_c", "negative_scale_d" })
             desk.Spawn(name);
 
-        var start = X(desk.PlaceOf("negative_scale_a").At);
+        var start = TapeX(desk, "negative_scale_a");
 
         SwipeLeft(desk, 7);
-        var plusTwo = X(desk.PlaceOf("negative_scale_a").At);
+        var plusTwo = TapeX(desk, "negative_scale_a");
 
         SwipeLeft(desk, 8);
-        var plusOne = X(desk.PlaceOf("negative_scale_a").At);
+        var plusOne = TapeX(desk, "negative_scale_a");
         Assert.True(plusOne > plusTwo, $"A negative scale should move the view right, from x={plusTwo} to x={plusOne}.");
 
         SwipeLeft(desk, 9);
-        Assert.Equal(plusTwo, X(desk.PlaceOf("negative_scale_a").At));
+        Assert.Equal(plusTwo, TapeX(desk, "negative_scale_a"));
 
         SwipeLeft(desk, 6);
-        Assert.Equal(start, X(desk.PlaceOf("negative_scale_a").At));
+        Assert.Equal(start, TapeX(desk, "negative_scale_a"));
     }
 
     [Fact]
@@ -1100,6 +1100,11 @@ public class ScrollConformance
             Assert.Empty(desk.Clients());
         }
     }
+
+    // The reference reads at from clients. A column scrolled out of view has no frame on screen, and the clients reply
+    // gives its slot on the tape, which is where the reference's window is.
+    private static int TapeX(Desk desk, string windowClass) =>
+        desk.Client(windowClass).GetProperty("at")[0].GetInt32();
 
     private static void SwipeLeft(Desk desk, int fingers)
     {

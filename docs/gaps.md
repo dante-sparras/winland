@@ -83,7 +83,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 | experimental | Experimental Wayland protocol options have no Windows meaning. |
 | fluid_jar | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | gaps_workspaces | Workspace swipe gaps are not honored. |
-| gestures:close_max_timeout | The close gesture is not honored, so its timeout has nothing to time. |
+| gestures:close_max_timeout | The close gesture closes the window without fading it out first, so its timeout has nothing to time. |
 | gestures:workspace_swipe_touch | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | gestures:workspace_swipe_touch_invert | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | glass | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
@@ -179,8 +179,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | mode | Changing a monitor's resolution and refresh rate is not honored. |
 | modal_parent_blocking | Modal parent blocking is not honored. |
 | motion_blur | Motion blur is not honored. |
-| move_snap_cursor | Trackpad scroll-move cursor snapping is a gesture, not part of the layout. |
-| move_snap_to_grid | Trackpad scroll-move snapping is a gesture, not part of the layout. |
 | opengl | GPU rendering options have no Windows meaning. |
 | permission | Permission rules have no Windows meaning. |
 | quirks | Display buffer quirks have no Windows meaning. |
@@ -232,7 +230,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | non-goal | - | misc:allow_session_lock_restore, misc:anr_missed_pings, misc:background_color, misc:bell_sound, misc:col.splash, misc:disable_scale_notification, misc:disable_splash_rendering, misc:disable_watchdog_warning, misc:disable_xdg_env_checks, misc:enable_anr_dialog, misc:force_default_wallpaper, misc:layers_hog_keyboard_focus, misc:lockdead_screen_delay, misc:middle_click_paste, misc:name_vk_after_proc, misc:render_unfocused_fps, misc:screencopy_force_8b, misc:session_lock_blur, misc:session_lock_xray, misc:splash_font_family |
 | gap | - | misc:always_follow_on_dnd, misc:font_family, misc:key_press_enables_dpms, misc:mouse_move_enables_dpms |
 | gap | - | modal_parent_blocking |
-| gap | - | move_snap_cursor, move_snap_to_grid |
 
 ## Notes
 
@@ -252,9 +249,7 @@ A row named by one part of a keyword covers every keyword with that part. `decor
 
 Two `misc` options turn off the reference compositor's logo and its check for its GUI utilities. Both are non-goals: Winland draws no logo and has no GUI utilities. Their names contain the name that [ADR 0002](adr/0002-hyprland-compatibility-without-its-name.md) keeps out of the code, so neither has a row above or an entry in the gap list in code. Each warns like any keyword Winland does not read.
 
-`gestures:scrolling:move_snap_to_grid` and `gestures:scrolling:move_snap_cursor` snap the `scrollMove` gesture. That action is not honored, so those options stay Gaps.
-
-A `gesture` line is honored for the `workspace` and `special` actions, described in [behavior.md](behavior.md#touchpad-swipe). Every other action (`dispatcher`, `move`, `resize`, `close`, `float`, `fullscreen`, `cursorZoom`, `scrollMove`) and every pinch direction (`pinch`, `pinchin`, `pinchout`) warns and does nothing when the swipe is made. The line is still kept, so it shadows a later gesture and `unset` removes it, as it would in the pinned release. Flag `p` (`gesturep`) warns and is ignored, for the same reason as bind flag `p`. Live Lua gestures wait on the Lua config (ADR 0013).
+A `gesture` line is honored for the `workspace`, `special`, `dispatcher`, `close`, `float`, `fullscreen` and `scrollMove` actions, described in [behavior.md](behavior.md#touchpad-swipe). The other actions (`move`, `resize`, `cursorZoom`) and every pinch direction (`pinch`, `pinchin`, `pinchout`) warns and does nothing when the swipe is made. The line is still kept, so it shadows a later gesture and `unset` removes it, as it would in the pinned release. Flag `p` (`gesturep`) warns and is ignored, for the same reason as bind flag `p`. Live Lua gestures wait on the Lua config (ADR 0013).
 
 A touchpad swipe cannot be consumed. Windows reads the same fingers, so its own three- and four-finger gestures still run unless they are turned off (see [behavior.md](behavior.md#touchpad-swipe)). The swipe is not animated: the Workspace changes when the fingers lift, or at each full distance with `workspace_swipe_forever`. That is the `animations` Gap. `general:gaps_workspaces` stays a Gap for the same reason.
 

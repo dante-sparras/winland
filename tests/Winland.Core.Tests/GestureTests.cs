@@ -36,7 +36,7 @@ public class GestureTests
     }
 
     [Theory]
-    [InlineData("gesture = 3, down, close", "Gesture action 'close' is not honored.")]
+    [InlineData("gesture = 3, down, resize", "Gesture action 'resize' is not honored.")]
     [InlineData("gesture = 2, pinch, cursorZoom, 2, mult", "Pinch gestures are not honored.")]
     [InlineData("gesturep = 3, horizontal, workspace", "Gesture flag 'p' is not honored.")]
     public void UnhonoredGestureWarnsAndStillShadows(string line, string warning)
@@ -51,7 +51,7 @@ public class GestureTests
     public void ShadowedGestureWarnsAndUnsetRemovesTheMatch()
     {
         var document = ConfigParser.Parse("""
-            gesture = 3, swipe, close
+            gesture = 3, swipe, move
             gesture = 3, left, workspace
             gesture = 3, swipe, unset
             gesture = 3, left, workspace
@@ -62,7 +62,7 @@ public class GestureTests
             Assert.Single(document.Gestures));
         Assert.Equal(
             [
-                new ConfigWarning(1, "Gesture action 'close' is not honored."),
+                new ConfigWarning(1, "Gesture action 'move' is not honored."),
                 new ConfigWarning(2, "Gesture will be overshadowed by a previous gesture. Previous SWIPE shadows new LEFT."),
             ],
             document.Warnings);
@@ -344,12 +344,56 @@ public class GestureTests
     [Fact]
     public void UnhonoredActionTakesTheSwipeAndDoesNothing()
     {
-        var core = Twin("gesture = 3, swipe, close\n");
+        var core = Twin("gesture = 3, swipe, move\n");
 
         var ended = Swipe(core, 3, Steps(20, -10, 0));
 
         Assert.Equal(WorkspaceId.Initial, ended.State.ActiveWorkspace);
         Assert.Null(ended.Close);
+    }
+
+    [Theory]
+    [InlineData(-30, false)]
+    [InlineData(-60, true)]
+    public void TheCloseGestureClosesTheFocusedWindowOnceItWentFarEnough(int along, bool closes)
+    {
+        var core = Twin("gesture = 3, left, close\n");
+
+        var ended = Swipe(core, 3, [(along, 0)]);
+
+        Assert.Equal(closes, ended.Close is not null);
+    }
+
+    [Fact]
+    public void ADispatcherGestureRunsItsDispatcherWhenTheFingersLift()
+    {
+        var core = Twin("gesture = 3, left, dispatcher, workspace, 2\n");
+
+        var moved = Swipe(core, 3, [(-10, 0)]);
+
+        Assert.Equal(new WorkspaceId("2"), moved.State.ActiveWorkspace);
+    }
+
+    [Theory]
+    [InlineData("float", true)]
+    [InlineData("tile", false)]
+    [InlineData("", true)]
+    public void TheFloatGestureFloatsOrTilesTheFocusedWindow(string mode, bool floating)
+    {
+        var core = Twin($"gesture = 3, right, float, {mode}\n");
+
+        var ended = Swipe(core, 3, [(80, 0)]);
+
+        Assert.Equal(floating, Assert.Single(ended.State.Clients, client => client.Window == new WindowId(1)).Floating);
+    }
+
+    [Fact]
+    public void ANegativeScaleIsKeptAndATinyOneWarns()
+    {
+        var document = ConfigParser.Parse("gesture = 3, left, scale:-2, workspace\ngesture = 4, left, scale:0.05, workspace\n");
+
+        Assert.Equal(-2, Assert.Single(document.Gestures).Scale);
+        Assert.Single(document.Warnings);
     }
 
     [Fact]

@@ -232,7 +232,7 @@ public sealed partial class Core
             WindowMoveEnded ended => EndNativeMove(ended),
             SwipeBegan => BeginSwipe(),
             SwipeUpdated updated => UpdateSwipe(updated),
-            SwipeEnded => EndSwipe(),
+            SwipeEnded ended => EndSwipe(ended.Cancelled),
             Dispatch dispatched => ExecuteTriggered(dispatched.Name, dispatched.Arguments, dispatched.Trigger),
             WindowFlashed flashed => Flash(flashed.Window),
             WindowFocused focused => Consider(focused),
