@@ -3,12 +3,100 @@ using Winland.Windows;
 
 namespace Winland.Windows.Tests;
 
-public class ConfigWatcherTests
+// The watch tests wait out real debounces, so each one is a class of its own and xUnit runs them side by side.
+// They share the helpers below.
+public abstract class ConfigWatcherFacts
 {
     // Long enough that the several events of one rename always fall inside one debounce,
     // even on a loaded machine, so "once" does not depend on how fast events arrive.
-    private static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(500);
+    protected static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(500);
 
+    protected static bool WaitUntil(Func<bool> condition)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (DateTime.UtcNow < deadline)
+        {
+            if (condition())
+                return true;
+
+            Thread.Sleep(20);
+        }
+
+        return condition();
+    }
+
+    // The count once it has stayed the same for three debounce periods, so a late
+    // reload that a short fixed sleep would miss is counted.
+    protected static int Settled(ref int count)
+    {
+        var quiet = Debounce * 3;
+        var value = Volatile.Read(ref count);
+        var since = DateTime.UtcNow;
+        while (DateTime.UtcNow - since < quiet)
+        {
+            Thread.Sleep(20);
+            var now = Volatile.Read(ref count);
+            if (now != value)
+            {
+                value = now;
+                since = DateTime.UtcNow;
+            }
+        }
+
+        return value;
+    }
+
+    protected static TempDir Temp() => new(Directory.CreateTempSubdirectory("winland-watch-").FullName);
+
+    protected sealed class TempDir(string path) : IDisposable
+    {
+        public string Path { get; } = path;
+
+        public void Dispose()
+        {
+            try
+            {
+                Directory.Delete(Path, recursive: true);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+    }
+}
+
+public class ConfigWatcherTests : ConfigWatcherFacts
+{
+    [Fact]
+    public void ADebounceThatIsNotPositiveIsRefused()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ConfigWatcher(() => { }, TimeSpan.Zero));
+        Assert.Throws<ArgumentNullException>(() => new ConfigWatcher(null!));
+        using var watcher = new ConfigWatcher(() => { });
+        Assert.Throws<ArgumentNullException>(() => watcher.Watch(null!));
+        Assert.Equal(TimeSpan.FromMilliseconds(150), ConfigWatcher.DefaultDebounce);
+    }
+
+    [Fact]
+    public void HostReloadAppliesTheCoreReply()
+    {
+        var core = new Core
+        {
+            ReadConfig = () => new ConfigRead(ConfigParser.Parse("blur = on\n")),
+        };
+        using var host = new WindowHost(core);
+
+        var reply = host.Reload();
+
+        Assert.Equal("ok", reply.Text);
+        Assert.Equal(
+            ["warning>>1,,Unsupported keyword 'blur'.", "configreloaded>>"],
+            CommandProtocol.FormatStream(reply.Effect.Events, reply.Effect.State));
+    }
+}
+
+public class ConfigWatcherRenameTests : ConfigWatcherFacts
+{
     [Fact]
     public void RenamingOverAWatchedFileReloadsOnce()
     {
@@ -39,7 +127,10 @@ public class ConfigWatcherTests
         Assert.True(WaitUntil(() => Volatile.Read(ref count) > 0), "The rename did not reload.");
         Assert.Equal(1, Settled(ref count));
     }
+}
 
+public class ConfigWatcherSourceTests : ConfigWatcherFacts
+{
     [Fact]
     public void ASourcedFileChangeReloads()
     {
@@ -59,7 +150,10 @@ public class ConfigWatcherTests
         Assert.True(WaitUntil(() => Volatile.Read(ref count) > 0), "The sourced file change did not reload.");
         Assert.Equal(1, Settled(ref count));
     }
+}
 
+public class ConfigWatcherEditTests : ConfigWatcherFacts
+{
     // An editor that saves in place, one that deletes and writes again, and a config that appears
     // where there was none each reload.
     [Fact]
@@ -84,7 +178,10 @@ public class ConfigWatcherTests
         File.WriteAllText(later, "general:gaps_in = 2\n");
         Assert.True(WaitUntil(() => Volatile.Read(ref count) > deleted), "A new watched file did not reload.");
     }
+}
 
+public class ConfigWatcherRewatchTests : ConfigWatcherFacts
+{
     // A reload can drop a source. A change to it then reloads nothing, and the new list is watched.
     [Fact]
     public void WatchingAgainReplacesTheWatchedFiles()
@@ -107,7 +204,10 @@ public class ConfigWatcherTests
         Assert.Equal(0, afterDropped);
         Assert.True(WaitUntil(() => Volatile.Read(ref count) > 0), "The newly watched file did not reload.");
     }
+}
 
+public class ConfigWatcherDisposeTests : ConfigWatcherFacts
+{
     [Fact]
     public void NothingReloadsAfterDispose()
     {
@@ -125,7 +225,10 @@ public class ConfigWatcherTests
 
         Assert.Equal(0, Settled(ref count));
     }
+}
 
+public class ConfigWatcherThrowTests : ConfigWatcherFacts
+{
     [Fact]
     public void AReloadThatThrowsDoesNotStopTheWatch()
     {
@@ -148,85 +251,5 @@ public class ConfigWatcherTests
         File.AppendAllText(config, "b\n");
 
         Assert.True(WaitUntil(() => Volatile.Read(ref count) > first), "The watch stopped after a reload threw.");
-    }
-
-    [Fact]
-    public void ADebounceThatIsNotPositiveIsRefused()
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new ConfigWatcher(() => { }, TimeSpan.Zero));
-        Assert.Throws<ArgumentNullException>(() => new ConfigWatcher(null!));
-        using var watcher = new ConfigWatcher(() => { });
-        Assert.Throws<ArgumentNullException>(() => watcher.Watch(null!));
-        Assert.Equal(TimeSpan.FromMilliseconds(150), ConfigWatcher.DefaultDebounce);
-    }
-
-    [Fact]
-    public void HostReloadAppliesTheCoreReply()
-    {
-        var core = new Core
-        {
-            ReadConfig = () => new ConfigRead(ConfigParser.Parse("blur = on\n")),
-        };
-        using var host = new WindowHost(core);
-
-        var reply = host.Reload();
-
-        Assert.Equal("ok", reply.Text);
-        Assert.Equal(
-            ["warning>>1,,Unsupported keyword 'blur'.", "configreloaded>>"],
-            CommandProtocol.FormatStream(reply.Effect.Events, reply.Effect.State));
-    }
-
-    private static bool WaitUntil(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow.AddSeconds(30);
-        while (DateTime.UtcNow < deadline)
-        {
-            if (condition())
-                return true;
-
-            Thread.Sleep(20);
-        }
-
-        return condition();
-    }
-
-    // The count once it has stayed the same for three debounce periods, so a late
-    // reload that a short fixed sleep would miss is counted.
-    private static int Settled(ref int count)
-    {
-        var quiet = Debounce * 3;
-        var value = Volatile.Read(ref count);
-        var since = DateTime.UtcNow;
-        while (DateTime.UtcNow - since < quiet)
-        {
-            Thread.Sleep(20);
-            var now = Volatile.Read(ref count);
-            if (now != value)
-            {
-                value = now;
-                since = DateTime.UtcNow;
-            }
-        }
-
-        return value;
-    }
-
-    private static TempDir Temp() => new(Directory.CreateTempSubdirectory("winland-watch-").FullName);
-
-    private sealed class TempDir(string path) : IDisposable
-    {
-        public string Path { get; } = path;
-
-        public void Dispose()
-        {
-            try
-            {
-                Directory.Delete(Path, recursive: true);
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-            }
-        }
     }
 }
