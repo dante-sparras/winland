@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-165 of 197 ported cases pass.
+166 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -225,7 +225,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | refactor_state | cursorWarpFocusOnMonitorChange | passes | |
 | solitary | solitaryClients | not ported | Solitary, tearing and direct scanout are render paths, which a core test cannot see. |
 | colors | monitorsColorManagement | differs | bitdepth and cm are Gaps. |
-| animations | animationsTrivial | differs | There is no animations request. |
+| animations | animationsTrivial | passes | |
 | layer | plugin_layerrules | not ported | It opens layer shell surfaces and checks a layer rule through the test plugin. |
 | layer | layerPointerFocusPreservedOnKeyboardRefocus | not ported | It opens a layer shell surface and reads the seat's pointer focus through the test plugin. |
 | layer | exclusiveLayerTakesPointerFocusFromRuleConfinedWindow | not ported | It opens an exclusive layer shell surface and reads the seat's focus through the test plugin. |
