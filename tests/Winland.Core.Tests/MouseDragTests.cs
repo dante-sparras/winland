@@ -304,6 +304,42 @@ public class MouseDragTests
         Assert.Equal(new Rectangle(640, 340, 740, 463), BoundsOf(resized, 1));
     }
 
+    [Theory]
+    [InlineData("resizewindow", 463)]
+    [InlineData("resizewindow 2", 410)]
+    public void TheKeepAspectRatioPropertyKeepsTheRatioUnlessTheBindSaysTwo(string dispatch, int height)
+    {
+        var core = Flat($"bindm = SUPER, mouse:273, {dispatch}\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        core.Handle(new Dispatch("setprop", "address:0x1 keep_aspect_ratio 1"));
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(1270, 730) });
+
+        var resized = core.Handle(new PointerMoved(new Point(1370, 740)));
+
+        Assert.Equal(new Rectangle(640, 340, 740, height), BoundsOf(resized, 1));
+    }
+
+    [Fact]
+    public void AMouseBindPressedOnTheBorderTakesTheClient()
+    {
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse(
+            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 2\nbindm = SUPER, mouse:273, resizewindow\n")));
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        var frame = Client(core.Handle(new Dispatch("no_op")), 1).Bounds;
+        Press(core, "Super_L");
+
+        // One pixel past the frame's bottom right corner, on the border.
+        var corner = new Point(frame.X + frame.Width, frame.Y + frame.Height);
+        core.Handle(new PointerButtonPressed("mouse:273") { Position = corner });
+        var resized = core.Handle(new PointerMoved(new Point(corner.X + 100, corner.Y + 10)));
+
+        Assert.Equal(frame with { Width = frame.Width + 100, Height = frame.Height + 10 }, BoundsOf(resized, 1));
+    }
+
     [Fact]
     public void AMouseBindCarriesTheResizeMode()
     {

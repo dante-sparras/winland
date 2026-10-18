@@ -314,7 +314,6 @@ Mouse drag has these Gaps. Each is a gap with no open issue:
 - A Client dragged onto another Monitor stays on its own Workspace, and a lifted tile drops back into that Workspace's Layout.
 - In the monocle Layout a drag does not move or resize the Client.
 - The pointer shape does not change while a Client is dragged or resized.
-- The `keep_aspect_ratio` window rule is not honored, so `resizewindow 2` resizes exactly as no argument does.
 
 Group drag and drop is a Gap: dragging a window onto a Group or its tab bar does not merge them, so `group:drag_into_group`, `group:merge_groups_on_drag`, `group:merge_groups_on_groupbar` and `group:merge_floated_into_tiled_on_groupbar` warn. The tab bar draws flat, square tabs: gradients, rounding and a stacked bar are Gaps, and `group:groupbar:blur` is the `blur` gap. Titles are drawn without antialiasing, because antialiased text would blend with the transparent strip. The wheel over the bar focuses the next member instead of only showing it. The bar is a separate window. It is put just above the shown member in the z-order each time the core reports a change, not each time another window is raised.
 
@@ -333,7 +332,7 @@ Every command above is a gap. No open issue tracks them.
 
 `descriptions` lists only the options Winland reads, and their `description` is empty: the pinned release's descriptions are not carried.
 
-`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `keep_aspect_ratio`, `nearest_neighbor`, `no_anim`, `no_blur`, `no_dim`, `no_shadow`, `no_glow`, `no_wobble`, `no_shortcuts_inhibit`, `dim_around`, `force_rgbx`, `sync_fullscreen`, `immediate`, `xray`, `render_unfocused`, `no_follow_mouse`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `scroll_mouse` and `scroll_touchpad`. Each waits on the feature it would change, most of them Gaps above. A border color is drawn by its first color, since gradient borders are a Gap.
+`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_anim`, `no_blur`, `no_dim`, `no_shadow`, `no_glow`, `no_wobble`, `no_shortcuts_inhibit`, `dim_around`, `force_rgbx`, `sync_fullscreen`, `immediate`, `xray`, `render_unfocused`, `no_follow_mouse`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `scroll_mouse` and `scroll_touchpad`. Each waits on the feature it would change, most of them Gaps above. A border color is drawn by its first color, since gradient borders are a Gap.
 
 `changeworkspaceid` refuses a number above 2147483647. The pinned release takes numbers up to 4294967295, but a Workspace number here is a signed 32-bit integer. It is a gap.
 
