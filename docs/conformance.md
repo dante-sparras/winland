@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-175 of 197 ported cases pass.
+178 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -34,7 +34,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | dwindle | dwindleMoveAcrossToggledSplit | passes | |
 | dwindle | dwindleMoveSmallWindowAcrossSplit | passes | |
 | dwindle | dwindleFullscreenMaximiseDispatchers | passes | |
-| dwindle | dwindleTestFsingGroupedWindows | differs | A maximized floating Group member is not moved until the Group changes, and then covers the group bar. |
+| dwindle | dwindleTestFsingGroupedWindows | passes | |
 | dwindle | dwindleTestFsFocusUnderFSWindow | passes | |
 | dwindle | dwindleNewWindowTakesOverFullscreen | passes | |
 | dwindle | dwindleExitWindowRetainsFullscreen | passes | |
@@ -49,7 +49,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scrollWindowRule | passes | |
 | scroll | scroll_LAYOUT_HANDLED_fullscreen | passes | |
 | scroll | scroll_LAYOUT_HANDLED_maximized | passes | |
-| scroll | scroll_LAYOUT_HANDLED_TestFsingGroupedWindows | differs | A maximized floating Group member is not moved until the Group changes, and then covers the group bar. |
+| scroll | scroll_LAYOUT_HANDLED_TestFsingGroupedWindows | passes | |
 | scroll | scroll_LAYOUT_HANDLED_fullscreenRetainsGeometryWhileScrolling | passes | |
 | scroll | scroll_LAYOUT_HANDLED_floatingWindowHiding | differs | A floating Client under a fullscreen one stays visible and accepts input, and a second fullscreen Client ends the first one's fullscreen. allowedOverFullscreen is always false. |
 | scroll | scroll_LAYOUT_HANDLED_layerVisibilityOnFs | not ported | The case opens a layer shell surface, which has no Windows meaning. |
@@ -57,7 +57,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scroll_LAYOUT_HANDLED_respectFocusFitMethodOnUnFs | passes | |
 | scroll | scroll_LAYOUT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention | passes | |
 | scroll | scroll_DEFAULT_HANDLED_fullscreenMaximiseDispatchers | passes | |
-| scroll | scroll_DEFAULT_HANDLED_TestFsingGroupedWindows | differs | A maximized floating Group member is not moved until the Group changes, and then covers the group bar. |
+| scroll | scroll_DEFAULT_HANDLED_TestFsingGroupedWindows | passes | |
 | scroll | scroll_DEFAULT_HANDLED_testFsFocusUnderFSWindow | passes | |
 | scroll | scroll_DEFAULT_HANDLED_newWindowTakesOverFullscreen | passes | |
 | scroll | scroll_DEFAULT_HANDLED_exitWindowRetainsFullscreen | passes | |

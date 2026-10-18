@@ -487,6 +487,19 @@ public class FullscreenTests
         Assert.Equal("default", active.RootElement.GetProperty("fullscreenHandler").GetString());
     }
 
+    [Fact]
+    public void AFloatingClientIsPlacedWhenAFullscreenRuleChangesTheWorkspaceOptions()
+    {
+        var core = Desk("general:gaps_out = 20\nworkspace = f[1], gapsout:0\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("setfloating"));
+
+        var maximized = core.Handle(new Dispatch("fullscreen", "1"));
+
+        Assert.Equal(ClientOf(maximized, 1).Bounds, BoundsOf(maximized, 1));
+        Assert.Equal(FullscreenMode.Maximized, ClientOf(maximized, 1).Fullscreen);
+    }
+
     private static Core Desk(string config)
     {
         var core = new Core();

@@ -188,7 +188,7 @@ public class DwindleConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "A maximized floating Group member is not moved until the Group changes, and then covers the group bar.")]
+    [Fact]
     public void DwindleTestFsingGroupedWindows()
     {
         var desk = new Desk("""
