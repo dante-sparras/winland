@@ -31,8 +31,6 @@ public static class ConfigGaps
         new("bitdepth", "Changing a monitor's bit depth is not honored."),
         new("cm", "Monitor color management is not honored."),
         new("cursor:enable_hyprcursor", "The cursor theme format has no Windows meaning."),
-        new("cursor:hide_on_tablet", "Tablet input is not honored."),
-        new("cursor:hide_on_touch", "Touch input is not honored."),
         new("cursor:hotspot_padding", "Cursor edge padding is not honored."),
         new("cursor:min_refresh_rate", "Cursor refresh rate has no Windows meaning."),
         new("cursor:no_break_fs_vrr", "Pausing frames while the cursor moves has no Windows meaning."),
