@@ -87,6 +87,24 @@ public static class ConfigValueSyntax
         return true;
     }
 
+    /// <summary>Every color of a gradient value, in the order the value lists them. Its angle is skipped.</summary>
+    public static bool TryParseColors(string text, out BorderColor[] colors)
+    {
+        colors = [];
+        if (!TryParseGradient(text, out _))
+            return false;
+
+        var found = new List<BorderColor>();
+        foreach (var part in text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (TryColor(part, out var parsed))
+                found.Add(parsed);
+        }
+
+        colors = [.. found];
+        return true;
+    }
+
     private static bool TryColor(string token, out BorderColor color)
     {
         if (TryWrapped(token, "rgba", 8, out var rgba))

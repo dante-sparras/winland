@@ -27,10 +27,10 @@ public sealed record GroupBar(WindowId Shown, Rectangle Bounds, IReadOnlyList<Gr
         return new Rectangle(TabX(index), y, TabWidth, Style.IndicatorHeight);
     }
 
-    /// <summary>The title row of tab <paramref name="index"/>, relative to the strip. Empty when titles are not drawn.</summary>
+    /// <summary>The title row of tab <paramref name="index"/>, relative to the strip. Empty when neither titles nor gradients are drawn.</summary>
     public Rectangle TitleBounds(int index)
     {
-        if (!Style.RenderTitles)
+        if (!Style.RenderTitles && !Style.Gradients)
             return new Rectangle(TabX(index), 0, 0, 0);
 
         var y = IndicatorBounds(index).Y - Style.IndicatorGap - Style.Height;
@@ -55,6 +55,14 @@ public sealed record GroupBar(WindowId Shown, Rectangle Bounds, IReadOnlyList<Gr
     }
 
     private int TabX(int index) => index * (TabWidth + Style.GapsIn);
+}
+
+/// <summary>The colors of a tab bar gradient, as the config lists them. Two are equal when their colors are.</summary>
+public sealed record BarGradient(IReadOnlyList<BorderColor> Colors)
+{
+    public bool Equals(BarGradient? other) => other is not null && Colors.SequenceEqual(other.Colors);
+
+    public override int GetHashCode() => Colors.Count == 0 ? 0 : HashCode.Combine(Colors.Count, Colors[0]);
 }
 
 /// <summary>One member's tab. <see cref="Focused"/> marks the focused window, which the bar colors as active.</summary>

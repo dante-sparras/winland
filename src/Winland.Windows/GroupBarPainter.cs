@@ -58,10 +58,28 @@ internal static class GroupBarPainter
         var old = PInvoke.SelectObject(memory, bitmap);
         var pixels = new Span<uint>(bits, width * height);
         pixels.Fill(0x01000000);
-        for (var i = 0; i < bar.Tabs.Count; i++)
+        var style = bar.Style;
+        var count = bar.Tabs.Count;
+        for (var i = 0; i < count; i++)
         {
-            var color = bar.Style.IndicatorColor(bar.Tabs[i].Focused, bar.Locked);
-            Fill(pixels, width, height, bar.IndicatorBounds(i), color);
+            var active = bar.Tabs[i].Focused;
+            var corners = BarShapes.Rounded(i, count, style.Rounding, style.RoundOnlyEdges);
+            var indicator = bar.IndicatorBounds(i);
+            var color = style.IndicatorColor(active, bar.Locked);
+            Fill(pixels, width, height, indicator, (x, y) => Shaded(color, BarShapes.Coverage(x, y, indicator, style.Rounding, style.RoundingPower, corners)));
+
+            if (!style.Gradients)
+                continue;
+
+            // The pinned release fills the title row with a vertical gradient of the tab's colors, rounded on its own.
+            var row = bar.TitleBounds(i);
+            var colors = style.GradientColors(active, bar.Locked);
+            var rowCorners = BarShapes.Rounded(i, count, style.GradientRounding, style.GradientRoundOnlyEdges);
+            Fill(pixels, width, height, row, (x, y) =>
+            {
+                var shade = BarShapes.GradientAt(colors, (y - row.Y + 0.5) / row.Height);
+                return Shaded(shade, BarShapes.Coverage(x, y, row, style.GradientRounding, style.GradientRoundingPower, rowCorners));
+            });
         }
 
         if (bar.Style.RenderTitles)
@@ -114,18 +132,29 @@ internal static class GroupBarPainter
         }
     }
 
-    // Premultiplied BGRA.
-    private static void Fill(Span<uint> pixels, int width, int height, Rectangle box, BorderColor color)
+    // Premultiplied BGRA of a color over the part of a pixel a shape covers. A pixel keeps an alpha of at least 1, so the
+    // strip still takes clicks there.
+    private static uint Shaded(BorderColor color, double coverage)
     {
-        var alpha = (uint)color.A;
+        var alpha = (uint)Math.Round(color.A * Math.Clamp(coverage, 0, 1));
         var pixel = (alpha << 24)
             | ((uint)(color.R * alpha / 255) << 16)
             | ((uint)(color.G * alpha / 255) << 8)
             | (uint)(color.B * alpha / 255);
-        if (pixel == 0)
-            pixel = 0x01000000;
+        return pixel == 0 ? 0x01000000 : pixel;
+    }
 
-        ForEach(pixels, width, height, box, (ref uint value) => value = pixel);
+    private static void Fill(Span<uint> pixels, int width, int height, Rectangle box, Func<int, int, uint> pixel)
+    {
+        var left = Math.Max(0, box.X);
+        var top = Math.Max(0, box.Y);
+        var right = Math.Min(width, box.X + box.Width);
+        var bottom = Math.Min(height, box.Y + box.Height);
+        for (var y = top; y < bottom; y++)
+        {
+            for (var x = left; x < right; x++)
+                pixels[(y * width) + x] = pixel(x, y);
+        }
     }
 
     // Gives the pixels GDI drew text on the title color's alpha, premultiplied. Unantialiased text holds

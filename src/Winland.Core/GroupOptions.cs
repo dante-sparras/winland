@@ -83,10 +83,17 @@ public sealed record GroupOptions
         ["group:groupbar:text_color_inactive"] = (o, v) => TryColor(v, out var c) ? o.WithBar(o.Bar with { TextColorInactive = c }) : o,
         ["group:groupbar:text_color_locked_active"] = (o, v) => TryColor(v, out var c) ? o.WithBar(o.Bar with { TextColorLockedActive = c }) : o,
         ["group:groupbar:text_color_locked_inactive"] = (o, v) => TryColor(v, out var c) ? o.WithBar(o.Bar with { TextColorLockedInactive = c }) : o,
-        ["group:groupbar:col.active"] = (o, v) => TryColor(v, out var c) ? o.WithBar(o.Bar with { Active = c }) : o,
-        ["group:groupbar:col.inactive"] = (o, v) => TryColor(v, out var c) ? o.WithBar(o.Bar with { Inactive = c }) : o,
-        ["group:groupbar:col.locked_active"] = (o, v) => TryColor(v, out var c) ? o.WithBar(o.Bar with { LockedActive = c }) : o,
-        ["group:groupbar:col.locked_inactive"] = (o, v) => TryColor(v, out var c) ? o.WithBar(o.Bar with { LockedInactive = c }) : o,
+        ["group:groupbar:col.active"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { Active = c[0], ActiveGradient = new BarGradient(c) }) : o,
+        ["group:groupbar:col.inactive"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { Inactive = c[0], InactiveGradient = new BarGradient(c) }) : o,
+        ["group:groupbar:col.locked_active"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { LockedActive = c[0], LockedActiveGradient = new BarGradient(c) }) : o,
+        ["group:groupbar:col.locked_inactive"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { LockedInactive = c[0], LockedInactiveGradient = new BarGradient(c) }) : o,
+        ["group:groupbar:gradients"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { Gradients = b }) : o,
+        ["group:groupbar:rounding"] = (o, v) => TryInt(v, 0, 40, out var i) ? o.WithBar(o.Bar with { Rounding = i }) : o,
+        ["group:groupbar:rounding_power"] = (o, v) => TryPower(v, out var p) ? o.WithBar(o.Bar with { RoundingPower = p }) : o,
+        ["group:groupbar:round_only_edges"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { RoundOnlyEdges = b }) : o,
+        ["group:groupbar:gradient_rounding"] = (o, v) => TryInt(v, 0, 40, out var i) ? o.WithBar(o.Bar with { GradientRounding = i }) : o,
+        ["group:groupbar:gradient_rounding_power"] = (o, v) => TryPower(v, out var p) ? o.WithBar(o.Bar with { GradientRoundingPower = p }) : o,
+        ["group:groupbar:gradient_round_only_edges"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { GradientRoundOnlyEdges = b }) : o,
     };
 
     internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);
@@ -107,6 +114,19 @@ public sealed record GroupOptions
     private GroupOptions WithBar(GroupBarStyle bar) => this with { Bar = bar };
 
     private static bool TryColor(string text, out BorderColor color) => BorderColor.TryParse(text, out color, out _);
+
+    private static bool TryColors(string text, out BorderColor[] colors) =>
+        ConfigValueSyntax.TryParseColors(text, out colors) && colors.Length > 0;
+
+    // A corner's rounding power, from 1 to 10, where 2 is a circle.
+    private static bool TryPower(string text, out double power)
+    {
+        if (!double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out power) || !double.IsFinite(power))
+            return false;
+
+        power = Math.Clamp(power, 1, 10);
+        return true;
+    }
 
     private static bool TryInt(string text, int min, int max, out int value)
     {
@@ -201,6 +221,32 @@ public sealed record GroupBarStyle
 
     public BorderColor LockedInactive { get; init; } = new(0x66, 0x77, 0x55, 0x00);
 
+    /// <summary>Every color <c>col.active</c> lists, which a gradient runs through. Null for the one default color.</summary>
+    public BarGradient? ActiveGradient { get; init; }
+
+    public BarGradient? InactiveGradient { get; init; }
+
+    public BarGradient? LockedActiveGradient { get; init; }
+
+    public BarGradient? LockedInactiveGradient { get; init; }
+
+    /// <summary><c>gradients</c>: each tab's title row is filled with a gradient of its colors.</summary>
+    public bool Gradients { get; init; }
+
+    /// <summary><c>rounding</c>: the corner radius of the indicators, in pixels.</summary>
+    public int Rounding { get; init; } = 1;
+
+    public double RoundingPower { get; init; } = 2;
+
+    /// <summary><c>round_only_edges</c>: with several tabs, only the outer corners of the first and last indicator are round.</summary>
+    public bool RoundOnlyEdges { get; init; } = true;
+
+    public int GradientRounding { get; init; } = 2;
+
+    public double GradientRoundingPower { get; init; } = 2;
+
+    public bool GradientRoundOnlyEdges { get; init; } = true;
+
     /// <summary>Multiplies the sizes, which the config gives in logical pixels, by a Monitor's scale.</summary>
     public GroupBarStyle ScaledBy(double scale)
     {
@@ -223,7 +269,7 @@ public sealed record GroupBarStyle
 
     /// <summary>The strip the bar takes from the top of the tile: gaps, indicator and title row.</summary>
     public int Reserved =>
-        (GapsOut * (KeepUpperGap ? 2 : 1)) + IndicatorHeight + IndicatorGap + (RenderTitles ? Height : 0);
+        (GapsOut * (KeepUpperGap ? 2 : 1)) + IndicatorHeight + IndicatorGap + (RenderTitles || Gradients ? Height : 0);
 
     /// <summary>The title color of one tab.</summary>
     public BorderColor TitleColor(bool active, bool locked)
@@ -238,4 +284,11 @@ public sealed record GroupBarStyle
     /// <summary>The indicator color of one tab.</summary>
     public BorderColor IndicatorColor(bool active, bool locked) =>
         locked ? (active ? LockedActive : LockedInactive) : (active ? Active : Inactive);
+
+    /// <summary>The colors the gradient of one tab runs through.</summary>
+    public IReadOnlyList<BorderColor> GradientColors(bool active, bool locked)
+    {
+        var gradient = locked ? (active ? LockedActiveGradient : LockedInactiveGradient) : (active ? ActiveGradient : InactiveGradient);
+        return gradient?.Colors ?? [IndicatorColor(active, locked)];
+    }
 }
