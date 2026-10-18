@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-185 of 197 ported cases pass.
+186 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -278,7 +278,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | keyboard_input | orderedChordRejectsReorderedPrefix | passes | |
 | keyboard_input | orderedReleaseChord | passes | |
 | keyboard_input | nonConsumingChordPreservesOrder | passes | |
-| swallow | swallow | differs | toggleswallow in a Group slot shows the swallowed Client as its own tile. The pinned release puts it back in the slot and hides the swallowing Client. |
+| swallow | swallow | passes | |
 | tags | tags | passes | |
 | tags | tags_fullscreen_cleanup | passes | |
 | workspace_swipe | workspaceSwipeReversalCleanup | not ported | Most of its checks read render state through the test plugin: alpha, render offset, the render hold and the swipe session. The checks the replies can answer would make a partial case pass. |

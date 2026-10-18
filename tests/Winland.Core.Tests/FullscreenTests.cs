@@ -488,6 +488,23 @@ public class FullscreenTests
     }
 
     [Fact]
+    public void AMaximizedClientAskedForClientFullscreenGoesBackToClientMaximized()
+    {
+        var core = Desk();
+        Appear(core, 1);
+        core.Handle(new Dispatch("fullscreenstate", "1 1 set"));
+        core.Handle(new Dispatch("fullscreenstate", "2 2 set"));
+
+        var left = core.Handle(new Dispatch("fullscreenstate", "0 0 set"));
+
+        Assert.Equal(FullscreenMode.None, ClientOf(left, 1).Fullscreen);
+        Assert.Equal(FullscreenMode.Maximized, ClientOf(left, 1).FullscreenClient);
+
+        var again = core.Handle(new Dispatch("fullscreenstate", "0 0 set"));
+        Assert.Equal(FullscreenMode.None, ClientOf(again, 1).FullscreenClient);
+    }
+
+    [Fact]
     public void AFloatingClientIsPlacedWhenAFullscreenRuleChangesTheWorkspaceOptions()
     {
         var core = Desk("general:gaps_out = 20\nworkspace = f[1], gapsout:0\n");

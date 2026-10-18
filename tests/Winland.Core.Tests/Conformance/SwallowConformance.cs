@@ -12,7 +12,7 @@ public class SwallowConformance
 {
     private const string None = "0x0";
 
-    [Fact(Skip = "toggleswallow in a Group slot shows the swallowed Client as its own tile. The pinned release puts it back in the slot and hides the swallowing Client.")]
+    [Fact]
     public void Swallow()
     {
         // The case turns swallowing on before its first window opens.

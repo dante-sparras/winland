@@ -6,6 +6,10 @@ public sealed partial class Core
 {
     private readonly HashSet<WindowId> _pinFullscreened = [];
 
+    // Clients asked for client mode 2 while maximized, as the pinned release's restoreClientMaximized marks them. Asked
+    // for client mode 0 after that, such a Client goes back to client mode 1.
+    private readonly HashSet<WindowId> _restoreClientMaximized = [];
+
     private Outcome FullscreenDispatcher(string name, string arguments, bool allowsElevation)
     {
         if (Is(name, "fullscreenstate"))
@@ -50,7 +54,16 @@ public sealed partial class Core
         if (target.Internal == client.Fullscreen && target.Client == client.FullscreenClient)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
-        return CommitFullscreen(window, target.Internal, target.Client, name, allowsElevation, synced: false, FullscreenCommands.StateLayoutAware(arguments));
+        var clientMode = target.Client;
+        if (FullscreenCommands.StateClientGiven(arguments))
+        {
+            if (clientMode == FullscreenMode.Fullscreen && client.Fullscreen == FullscreenMode.Maximized)
+                _restoreClientMaximized.Add(window);
+            else if (clientMode == FullscreenMode.None && _restoreClientMaximized.Remove(window))
+                clientMode = FullscreenMode.Maximized;
+        }
+
+        return CommitFullscreen(window, target.Internal, clientMode, name, allowsElevation, synced: false, FullscreenCommands.StateLayoutAware(arguments));
     }
 
     // A request sets the client mode along with the internal one unless fullscreenstate last set them apart.
@@ -67,6 +80,8 @@ public sealed partial class Core
 
         var covered = desk.Covered();
         var placements = Restamp(desk, desk.Layout.SetFullscreen(window, mode, clientMode, layoutAware));
+        if (mode != FullscreenMode.Fullscreen)
+            _restoreClientMaximized.Remove(window);
         if (!IsShown(desk.Id))
             return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
 

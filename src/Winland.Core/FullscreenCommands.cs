@@ -78,6 +78,15 @@ internal static class FullscreenCommands
         return tokens.Length > start ? string.Join(' ', tokens[start..]) : "";
     }
 
+    /// <summary>Whether <c>fullscreenstate</c> names a client mode, rather than keeping it with <c>-1</c>.</summary>
+    internal static bool StateClientGiven(string arguments)
+    {
+        var tokens = Tokens(arguments);
+        return tokens.Length > 1
+            && int.TryParse(tokens[1], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var client)
+            && client != -1;
+    }
+
     /// <summary>Whether <c>fullscreenstate</c> asks for the Layout's fullscreen: false after a word <c>default</c> past the action.</summary>
     internal static bool StateLayoutAware(string arguments)
     {

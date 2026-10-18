@@ -244,6 +244,9 @@ public sealed partial class Core
         _sizes.Remove(window);
         _initialWorkspaces.Closed(window);
         _shownMaximized.Remove(window);
+        if (GiveSlotToChild(window) is Outcome slotBack)
+            return slotBack;
+
         var swallowHome = SwallowHome(window, _swallows.Count);
         if (ForgetSwallowedParent(window))
             return ReturnSwallowedInTurn(window, swallowHome);

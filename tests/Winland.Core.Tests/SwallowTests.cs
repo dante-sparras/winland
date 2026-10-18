@@ -278,6 +278,48 @@ public class SwallowTests
     }
 
     [Fact]
+    public void ToggleSwallowInAGroupSlotTradesPlacesWithTheTerminal()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(Unrelated(3));
+        core.Handle(new Dispatch("changegroupactive", "b"));
+        core.Handle(Child(2, parentProcess: 100));
+
+        var revealed = core.Handle(new Dispatch("toggleswallow"));
+
+        Assert.Equal([new WindowId(1), new WindowId(3)], Assert.Single(revealed.State.Groups));
+        Assert.Contains(new WindowId(2), revealed.Hide);
+        Assert.Contains(new WindowId(1), revealed.Show);
+        Assert.Equal(new WindowId(1), revealed.Focus);
+        Assert.Contains(revealed.State.Hidden, client => client.Window == new WindowId(2));
+        Assert.Equal(new WindowId(1), Client(revealed, 2).Swallowing);
+
+        var swallowed = core.Handle(new Dispatch("toggleswallow"));
+
+        Assert.Equal([new WindowId(2), new WindowId(3)], Assert.Single(swallowed.State.Groups));
+        Assert.Contains(new WindowId(1), swallowed.Hide);
+        Assert.Equal(new WindowId(2), swallowed.Focus);
+    }
+
+    [Fact]
+    public void TheTerminalClosingInTheSlotGivesItBackToTheChild()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(Unrelated(3));
+        core.Handle(new Dispatch("changegroupactive", "b"));
+        core.Handle(Child(2, parentProcess: 100));
+        core.Handle(new Dispatch("toggleswallow"));
+
+        var closed = core.Handle(new WindowClosed(new WindowId(1)));
+
+        Assert.Equal([new WindowId(2), new WindowId(3)], Assert.Single(closed.State.Groups));
+        Assert.Contains(new WindowId(2), closed.Show);
+        Assert.Null(Client(closed, 2).Swallowing);
+    }
+
+    [Fact]
     public void AWorkspaceHoldingOnlyAChildsGroupIsKeptWhenTheChildMoves()
     {
         var core = WithTerminal(Swallowing);
