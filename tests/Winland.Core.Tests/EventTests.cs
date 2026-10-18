@@ -465,6 +465,7 @@ public class EventTests
         var left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, Area);
         var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024));
         core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
 
         var outcome = core.Handle(new MonitorsChanged([left]));
 
@@ -476,6 +477,27 @@ public class EventTests
                 @"monitorremovedv2>>1,\\.\DISPLAY2,Samsung",
             ],
             Lines(outcome));
+    }
+
+    [Fact]
+    public void UnpluggingAMonitorDestroysItsEmptyWorkspace()
+    {
+        var core = new Core();
+        var left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, Area);
+        var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024));
+        core.Handle(new MonitorsChanged([left, right]));
+
+        var outcome = core.Handle(new MonitorsChanged([left]));
+
+        Assert.Equal(
+            [
+                "destroyworkspace>>2",
+                "destroyworkspacev2>>2,2",
+                @"monitorremoved>>\\.\DISPLAY2",
+                @"monitorremovedv2>>1,\\.\DISPLAY2,Samsung",
+            ],
+            Lines(outcome));
+        Assert.DoesNotContain(outcome.State.Workspaces, workspace => workspace.Id == WorkspaceId.FromNumber(2));
     }
 
     [Fact]
