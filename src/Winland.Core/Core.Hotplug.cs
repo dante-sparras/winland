@@ -199,10 +199,12 @@ public sealed partial class Core
                 claimed.Remove(preferred);
             }
 
+            // An empty persistent Workspace is not what a Monitor shows when it comes, as in the pinned release, which
+            // makes those after the Monitor picks one.
             LiveWorkspace? own = null;
             foreach (var desk in _workspaces)
             {
-            if (desk.Monitor != screen.Id || desk.Id.IsSpecial || !claimed.Add(desk.Id))
+            if (desk.Monitor != screen.Id || desk.Id.IsSpecial || (desk.Persistent && desk.Layout.Clients.Count == 0) || !claimed.Add(desk.Id))
                 continue;
 
                 own = desk;

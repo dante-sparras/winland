@@ -65,11 +65,15 @@ public sealed partial class Core
             if (rule.Persistent != true || !WorkspaceRules.TryConcrete(rule.WorkspaceString, out var id) || FindWorkspace(id) is not null)
                 continue;
 
+            // A Workspace bound to a Monitor that is not there yet waits for it, as in the pinned release.
+            if (rule.Monitor.Length > 0 && BoundMonitor(rule) is null)
+                continue;
+
             WorkspaceFor(id, BoundMonitor(rule)?.Id);
         }
 
         foreach (var desk in _workspaces)
-            desk.Persistent = RuleFor(desk)?.Persistent == true;
+            desk.Persistent = PersistentBy(desk, RuleFor(desk));
     }
 
     private void PlaceBound()
@@ -90,11 +94,16 @@ public sealed partial class Core
     private void Stamp(LiveWorkspace desk)
     {
         var rule = RuleFor(desk);
-        desk.Persistent = rule?.Persistent == true;
+        desk.Persistent = PersistentBy(desk, rule);
         if (!desk.Renamed)
             desk.DisplayName = rule?.DefaultName;
         desk.Options = OptionsFor(desk, rule);
     }
+
+    // A persistent rule keeps a normal Workspace whose Monitor is there, as the pinned release marks it. A special
+    // workspace is never kept.
+    private bool PersistentBy(LiveWorkspace desk, WorkspaceRule? rule) =>
+        rule?.Persistent == true && !desk.Id.IsSpecial && (rule.Monitor.Length == 0 || BoundMonitor(rule) is not null);
 
     private WorkspaceRule? RuleFor(LiveWorkspace desk)
     {
