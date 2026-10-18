@@ -169,6 +169,7 @@ public sealed partial class Core
         RememberIdle(appeared.Window, decision);
         RememberRuleProps(appeared.Window, decision);
         RememberRuleSubject(appeared.Window, appeared.Traits, followed, decision);
+        Stack(appeared.Window, top: true);
         // A window owned by a pinned Client is pinned too, as the pinned release pins a child of a pinned parent. A
         // tiled window is never pinned.
         var ownerPinned = appeared.Owner is WindowId owning && _pinned.Contains(owning);

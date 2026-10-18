@@ -10,9 +10,15 @@ public static partial class CommandProtocol
     {
         var indexed = Index(state);
         var views = new List<ClientJson>(state.Clients.Count);
-        for (var i = 0; i < state.Clients.Count; i++)
+
+        // As in the pinned release, the Clients are listed from the bottom of the stacking order to the top.
+        var stacked = new Dictionary<WindowId, int>(state.Stacking.Count);
+        for (var i = 0; i < state.Stacking.Count; i++)
+            stacked[state.Stacking[i]] = i;
+        var ordered = state.Clients.OrderBy(client => stacked.TryGetValue(client.Window, out var at) ? at : -1).ToList();
+        for (var i = 0; i < ordered.Count; i++)
         {
-            var client = state.Clients[i];
+            var client = ordered[i];
             if (!includeUnmapped && client.Minimized)
                 continue;
 

@@ -233,7 +233,7 @@ public class WindowConformance
         Assert.Equal("kitty_B", desk.ActiveClass());
     }
 
-    [Fact(Skip = "clients does not list Clients in stacking order.")]
+    [Fact]
     public void BringActiveToTopMouseMovement()
     {
         var desk = new Desk("""

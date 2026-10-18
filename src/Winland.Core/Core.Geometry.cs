@@ -97,6 +97,7 @@ public sealed partial class Core
         if (mode is not ("top" or "bottom"))
             return Rejected(name, "error: Bad z-order position: " + mode, allowsElevation);
 
+        Stack(chosen, top: mode == "top");
         return View([], dispatcher: name, allowsElevation: allowsElevation) with
         {
             ZOrder = [new ZOrderRequest(chosen, mode == "top")],

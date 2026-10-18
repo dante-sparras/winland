@@ -24,6 +24,7 @@ public sealed partial class Core
         _windowState.Track(_closeableAt);
         _windowState.Track(_cursorOnWindow);
         _windowState.Track(_pinned);
+        _windowState.Track(_stacking);
         _windowState.Track(_pinFullscreened);
         _windowState.Track(_groupRules);
         _windowState.Track(ForgetDrag);

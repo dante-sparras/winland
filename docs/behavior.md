@@ -100,7 +100,7 @@ A Client whose application hides it, without minimizing it, stops being a Client
 
 `centerwindow` centers the active floating Client in its Monitor's work area. A tiled or fullscreen Client answers `error: No floating window found`. Its argument is ignored.
 
-`bringactivetotop` raises the active Client above every window that is not topmost. `alterzorder` takes `top` or `bottom`, a comma and a window selector. Without a match it uses the active Client when that Client floats, and otherwise does nothing. Any other position answers `error: Bad z-order position: <position>`. The adapter changes the z-order with `SetWindowPos` and `HWND_TOP` or `HWND_BOTTOM`, without moving, sizing or activating the window.
+`bringactivetotop` raises the active Client above every window that is not topmost. `alterzorder` takes `top` or `bottom`, a comma and a window selector. Without a match it uses the active Client when that Client floats, and otherwise does nothing. Any other position answers `error: Bad z-order position: <position>`. The adapter changes the z-order with `SetWindowPos` and `HWND_TOP` or `HWND_BOTTOM`, without moving, sizing or activating the window. `clients` lists the Clients from the bottom of the stacking order to the top, as in the pinned release: a new Client opens on top, and `bringactivetotop` and `alterzorder` move one. A window Windows raises by itself is not followed.
 
 `movecursortocorner` warps the cursor to a corner of the active Client: 0 bottom left, 1 bottom right, 2 top right, 3 top left. Any other number answers `error: Corner must be 0 - 3`, and text that is not a number answers `error: moveCursorToCorner, arg has to be a number`.
 

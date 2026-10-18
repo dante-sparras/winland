@@ -5,6 +5,19 @@ public sealed partial class Core
     private readonly Dictionary<WindowId, FocusRule> _focusRules = [];
     private readonly HashSet<WindowId> _awaitingMapFocus = [];
     private readonly List<WindowId> _focusHistory = [];
+
+    // The Clients from the bottom of the stacking order to the top. A new Client opens on top, and alterzorder and
+    // bringactivetotop move one, as the pinned release orders its window list.
+    private readonly List<WindowId> _stacking = [];
+
+    private void Stack(WindowId window, bool top)
+    {
+        _stacking.Remove(window);
+        if (top)
+            _stacking.Add(window);
+        else
+            _stacking.Insert(0, window);
+    }
     private SessionOptions _session = SessionOptions.Documented;
     private WindowId? _unmanagedFocus;
     private WindowId? _beforeUnmanaged;
