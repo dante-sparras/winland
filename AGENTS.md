@@ -6,9 +6,10 @@ Issues are GitHub Issues on `dante-sparras/winland`, labelled with the roles in 
 
 # Conventions
 
-- Branch names, commit messages, and how a pull request lands are in `CONTRIBUTING.md`.
+- Branch names, commit messages, pull-request approval, evidence, and how a pull request lands are in `CONTRIBUTING.md`. Open a pull request only when the maintainer asks.
 - C# on .NET 10. Nullable reference types and implicit usings are on. Warnings are errors.
-- Commands: `pwsh -NoProfile -File scripts/check.ps1` lints and builds, `scripts/test.ps1` runs the unit tests, and `scripts/mutate.ps1` runs mutation testing.
+- Commands: `pwsh -NoProfile -File scripts/check.ps1` lints and builds. `dotnet test` the test project that covers the change. CI runs `scripts/test.ps1`. `scripts/mutate.ps1` is the release lane.
+- Update a document when this change makes it false, and edit it in place. When to leave a document alone is in `CONTRIBUTING.md`.
 - The committed version is `0.0.0`. Releases are cut with `scripts/release.ps1`. See `docs/releasing.md`.
 - Triage labels are the five default roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), each label string equal to its role name.
 - The Hyprland checkout and its wiki are gitignored.

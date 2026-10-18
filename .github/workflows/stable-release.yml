@@ -1,6 +1,8 @@
-# Dispatched by scripts/release.ps1. It is not a pull-request entry point.
+# Dispatched by scripts/release.ps1, or by Run workflow in the GitHub UI.
+# It is not a pull-request entry point.
 # The attempt tag is the input. The commit under test is the claim inside that tag.
-# Tags this workflow pushes do not start other workflows.
+# This workflow uploads the draft and stops. scripts/release.ps1 publish is the publisher.
+# A run from the GitHub UI cannot ship a stable release.
 
 name: Stable Release
 
@@ -31,7 +33,6 @@ jobs:
       tag: ${{ steps.claim.outputs.tag }}
       commit: ${{ steps.claim.outputs.commit }}
       version: ${{ steps.claim.outputs.version }}
-      autopublish: ${{ steps.claim.outputs.autopublish }}
       draft_id: ${{ steps.claim.outputs.draft_id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -82,8 +83,8 @@ jobs:
             echo "tag=$TAG"
             echo "commit=$commit"
             echo "version=$claim_version"
-            echo "autopublish=$autopublish"
             echo "draft_id=$draft_id"
+            echo "claim autopublish=$autopublish (ignored; this workflow does not publish)"
           } >> "$GITHUB_OUTPUT"
 
   ci:
@@ -152,8 +153,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  publish:
-    name: Upload and maybe publish
+  upload:
+    name: Upload the assets
     needs: [admit, ci, build]
     if: needs.ci.result == 'success' && needs.build.result == 'success'
     runs-on: windows-latest
@@ -161,9 +162,6 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: stable-release
@@ -178,42 +176,30 @@ jobs:
           $ErrorActionPreference = 'Stop'
           gh release upload $env:TAG dist/Winland-win-x64.zip dist/version.json dist/SHA256SUMS --repo $env:REPO --clobber
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Publish when the claim says so
-        if: needs.admit.outputs.autopublish == 'true'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_VERSION: ${{ needs.admit.outputs.version }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          ./scripts/release.ps1 publish -Version $env:RELEASE_VERSION
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Leave the draft when autopublish is off
-        if: needs.admit.outputs.autopublish != 'true'
+      - name: Leave the draft unpublished
         env:
           RELEASE_VERSION: ${{ needs.admit.outputs.version }}
         run: |
-          echo "The draft has its assets. Do not press Publish in the GitHub UI."
+          echo "The draft has its assets. The workflow does not publish."
+          echo "Do not press Publish in the GitHub UI."
           echo "pwsh -NoProfile -File scripts/release.ps1 publish -Version $RELEASE_VERSION"
 
   gate:
     name: Release gate
-    needs: [admit, ci, build, publish]
+    needs: [admit, ci, build, upload]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Fail unless CI, the build, and publish succeeded
+      - name: Fail unless CI, the build, and the upload succeeded
         env:
           ADMIT: ${{ needs.admit.result }}
           CI_RESULT: ${{ needs.ci.result }}
           BUILD: ${{ needs.build.result }}
-          PUBLISH: ${{ needs.publish.result }}
+          UPLOAD: ${{ needs.upload.result }}
         run: |
           set -eu
-          echo "admit=$ADMIT ci=$CI_RESULT build=$BUILD publish=$PUBLISH"
+          echo "admit=$ADMIT ci=$CI_RESULT build=$BUILD upload=$UPLOAD"
           test "$CI_RESULT" = "success"
           test "$BUILD" = "success"
-          test "$PUBLISH" = "success"
+          test "$UPLOAD" = "success"

@@ -1,6 +1,7 @@
 # Cuts, publishes, and abandons stable releases. Tags are the source of truth for versions.
 # The committed version is 0.0.0. See docs/releasing.md.
-#   pwsh -NoProfile -File scripts/release.ps1 release [-Commit <sha>] [-Bump patch|minor|major] [-Autopublish] [-Remote origin] [-DryRun]
+#   pwsh -NoProfile -File scripts/release.ps1 release [-Commit <sha>] [-Bump patch|minor|major] [-Remote origin] [-DryRun]
+# -Autopublish is rejected. The Stable Release workflow uploads the draft and stops.
 #   pwsh -NoProfile -File scripts/release.ps1 publish [-Version X.Y.Z] [-Remote origin] [-DryRun]
 #   pwsh -NoProfile -File scripts/release.ps1 abandon <attempt-tag> [-Remote origin] [-DryRun]
 #   pwsh -NoProfile -File scripts/release.ps1 status
@@ -194,7 +195,7 @@ function Get-WarningBlock {
             $script:WarningBegin
             '> [!WARNING]'
             '> **Do not publish this draft from the GitHub UI.** Publishing it by hand skips the final `vX.Y.Z` tag.'
-            '> `scripts/release.ps1 publish` does it, and the Stable Release workflow calls that for an autopublish release.'
+            '> `scripts/release.ps1 publish` does it after the Stable Release run is green. The workflow uploads the assets and stops.'
             $script:WarningEnd
         ) -join "`n")
 }
@@ -211,6 +212,23 @@ function Test-WarningBlocks([string]$Body) {
 function Remove-WarningBlocks([string]$Body) {
     $pattern = '(?s)' + [regex]::Escape($script:WarningBegin) + '.*?' + [regex]::Escape($script:WarningEnd)
     return ([regex]::Replace($Body, $pattern, '')).Trim() + "`n"
+}
+
+# Notes for vX.Y.Z run from the previous published vX.Y.Z. An rc.* tag is not a previous release.
+function Get-ReleaseNotesRequest([string]$Version, [string]$Commit, [string]$PreviousTag) {
+    if (-not (Get-StableVersion "v$Version")) { throw "Invalid version '$Version'." }
+    if ($Commit -cnotmatch '^[0-9a-f]{40}$') { throw "Invalid commit '$Commit'." }
+    $request = [ordered]@{
+        tag_name         = "v$Version"
+        target_commitish = $Commit
+    }
+    if ($PreviousTag) {
+        if (-not (Get-StableVersion $PreviousTag)) {
+            throw "Release notes start at a published vX.Y.Z tag, not '$PreviousTag'."
+        }
+        $request.previous_tag_name = $PreviousTag
+    }
+    return $request
 }
 
 # The text of git ls-remote --tags. An annotated tag lists its tag object, then its commit as <name>^{}.
@@ -292,6 +310,25 @@ function Invoke-Git([string[]]$Arguments, [switch]$AllowFailure) {
 
 function Invoke-Gh([string[]]$Arguments, [switch]$AllowFailure) {
     return Invoke-Native 'gh' $Arguments -AllowFailure:$AllowFailure
+}
+
+function Get-GeneratedReleaseNotes($Context, [string]$Version, [string]$Commit, [string]$PreviousTag) {
+    $request = Get-ReleaseNotesRequest $Version $Commit $PreviousTag
+    $path = Write-TempText ($request | ConvertTo-Json -Compress)
+    try {
+        $json = (Invoke-Gh @('api', '--method', 'POST', "repos/$($Context.Repo)/releases/generate-notes", '--input', $path)).Output
+    } finally {
+        Remove-Item -LiteralPath $path -ErrorAction SilentlyContinue
+    }
+    $notes = [string](($json | ConvertFrom-Json).body)
+    if ([string]::IsNullOrWhiteSpace($notes)) { throw "GitHub returned no release notes for v$Version." }
+    return $notes.Trim()
+}
+
+function Get-FirstReleaseNotes($Context, [string]$Sha, [string]$Version) {
+    $log = (Invoke-Git @('log', '--reverse', '--pretty=format:* %s', $Sha)).Output
+    if ([string]::IsNullOrWhiteSpace($log)) { throw "No commits to write notes for $Sha." }
+    return "First stable release v$Version.`n`n$($log.Trim())"
 }
 
 # Every change goes through here, so -DryRun can list it and skip it.
@@ -499,7 +536,7 @@ function Invoke-Release($Context) {
     $attempt = Get-NextAttempt $next @($tags.Keys)
     $ref = New-AttemptRef $next $attempt
     $epoch = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
-    $claim = ConvertTo-ClaimJson $sha $attempt $next ([bool]$Autopublish) $epoch
+    $claim = ConvertTo-ClaimJson $sha $attempt $next $false $epoch
 
     Write-Step "Release $next (attempt $attempt) of $sha from $(if ($published) { "published $($published.Version)" } else { 'nothing published' }), -Bump $Bump."
     if (-not $published -and $Bump -ne 'minor') {
@@ -507,11 +544,20 @@ function Invoke-Release($Context) {
     }
     Write-Step "Claim: $claim"
 
+    $previousTag = if ($published) { $published.Tag } else { '' }
+    $from = if ($previousTag) { $previousTag } else { 'the start of history' }
+    Write-Step "Release notes for v$next run from $from to $($sha.Substring(0, 12)). An rc.* tag is not a previous release."
+    if ($previousTag) {
+        $notes = Get-GeneratedReleaseNotes $Context $next $sha $previousTag
+    } else {
+        $notes = Get-FirstReleaseNotes $Context $sha $next
+    }
+    $body = Add-WarningBlocks $notes
+
     Invoke-Mutation "push the annotated tag $ref on $sha to $($Context.Remote)" {
         New-RemoteTag $Context $ref $sha $claim
     } | Out-Null
     try {
-        $body = Add-WarningBlocks "Winland $next, built from $sha."
         $bodyFile = Write-TempText $body
         try {
             Invoke-Mutation "create the draft release 'Winland $next' on $ref" {
@@ -530,9 +576,7 @@ function Invoke-Release($Context) {
     }
     if (-not $script:PreviewOnly) {
         Write-Step "Started $ref. Watch it: gh run list -R $($Context.Repo) --workflow $script:WorkflowFile"
-        if (-not $Autopublish) {
-            Write-Step "When the run is green, publish with './scripts/release.ps1 publish -Version $next'. Do not press Publish in the GitHub UI."
-        }
+        Write-Step "When the run is green, publish with './scripts/release.ps1 publish -Version $next'. The workflow uploads the draft and stops. Do not press Publish in the GitHub UI."
     }
 }
 
@@ -663,6 +707,9 @@ foreach ($name in @('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_PREFIX'))
     Remove-Item "Env:$name" -ErrorAction SilentlyContinue
 }
 
+if ($Autopublish) {
+    throw "-Autopublish is not accepted. The Stable Release workflow uploads the draft and stops. When the run is green, publish with './scripts/release.ps1 publish -Version X.Y.Z'. Do not press Publish in the GitHub UI."
+}
 if (-not $Command) {
     throw 'Usage: release.ps1 release|publish|abandon|status. See the header of this file and docs/releasing.md.'
 }

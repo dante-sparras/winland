@@ -164,6 +164,34 @@ Test-Case 'warning blocks go on and come off' {
 Test-Case 'removing blocks from a clean body changes nothing' {
     Assert-Equal (Remove-WarningBlocks "Winland 0.1.0.`n") "Winland 0.1.0.`n"
 }
+Test-Case 'warning blocks wrap release notes and come off' {
+    $notes = "First stable release v0.1.0.`n`n* keep the name"
+    $body = Add-WarningBlocks $notes
+    if (([regex]::Matches($body, 'scripts/release.ps1 publish')).Count -ne 2) { throw 'expected the publish line in both blocks' }
+    if ($body.Contains('autopublish release')) { throw 'the warning still says the workflow publishes' }
+    Assert-Equal (Remove-WarningBlocks $body) "$notes`n"
+}
+Test-Case 'notes request uses the previous stable tag' {
+    $request = Get-ReleaseNotesRequest '0.2.0' $sha 'v0.1.0'
+    Assert-Equal $request.tag_name 'v0.2.0'
+    Assert-Equal $request.target_commitish $sha
+    Assert-Equal $request.previous_tag_name 'v0.1.0'
+}
+Test-Case 'notes request for the first release names no previous tag' {
+    $request = Get-ReleaseNotesRequest '0.1.0' $sha ''
+    Assert-Equal $request.tag_name 'v0.1.0'
+    Assert-Equal $request.target_commitish $sha
+    if ($request.Contains('previous_tag_name')) { throw 'the first release named a previous tag' }
+}
+Test-Case 'notes request rejects an attempt tag as the previous release' {
+    Assert-Throws { Get-ReleaseNotesRequest '0.2.0' $sha 'rc.1-v0.1.0' }
+}
+Test-Case 'notes request rejects an abandoned attempt as the previous release' {
+    Assert-Throws { Get-ReleaseNotesRequest '0.2.0' $sha 'abandoned-rc.1-v0.1.0' }
+}
+Test-Case 'notes request rejects a bad version' {
+    Assert-Throws { Get-ReleaseNotesRequest '0.1' $sha '' }
+}
 
 Test-Case 'ls-remote lists annotated and lightweight tags' {
     $b = 'b' * 40
