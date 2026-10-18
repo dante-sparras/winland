@@ -130,7 +130,7 @@ public sealed class MouseHook : IDisposable
     private LRESULT OnMove(int code, WPARAM wParam, LPARAM lParam, Point position, uint time)
     {
         _ = _core.Decide(new PointerMoved(position), _keys.Session);
-        SessionEffects.NoteMove();
+        SessionEffects.NoteMove(position);
         if (_drag.Current is MouseDrag.Active drag)
             _keys.PostGesture(drag.Dispatcher, drag.Arguments, position, PointerDragPhase.Move, drag.Button);
         else

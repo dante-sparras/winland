@@ -147,8 +147,10 @@ public static class ExtraCommands
             "",
             []));
 
-    public static string FormatCursor(Point point) =>
-        string.Create(CultureInfo.InvariantCulture, $"{{\"x\":{point.X},\"y\":{point.Y}}}");
+    // The plain form is "x, y", as in the pinned release.
+    public static string FormatCursor(Point point, bool json) => json
+        ? string.Create(CultureInfo.InvariantCulture, $"{{\"x\":{point.X},\"y\":{point.Y}}}")
+        : string.Create(CultureInfo.InvariantCulture, $"{point.X}, {point.Y}");
 
     public static string FormatLocked(bool locked) =>
         locked ? "{\"locked\":true}" : "{\"locked\":false}";

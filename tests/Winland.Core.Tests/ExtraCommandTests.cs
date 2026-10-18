@@ -81,7 +81,8 @@ public class ExtraCommandTests
         Assert.Equal(JsonValueKind.Array, version.GetProperty("flags").ValueKind);
         Assert.StartsWith("{\"branch\":", core.Execute("version").Text, StringComparison.Ordinal);
 
-        Assert.Equal("{\"x\":4,\"y\":9}", core.Execute("cursorpos").Text);
+        Assert.Equal("4, 9", core.Execute("cursorpos").Text);
+        Assert.Equal("{\"x\":4,\"y\":9}", core.Execute("j/cursorpos").Text);
         Assert.Equal("{\"locked\":false}", core.Execute("locked").Text);
         core.SessionLock = new FixedLock(true);
         Assert.Equal("{\"locked\":true}", core.Execute("locked").Text);

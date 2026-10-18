@@ -263,7 +263,7 @@ public class CommandServerTests
         using var server = new CommandServer(core, name);
         server.Start();
 
-        using var cursor = JsonDocument.Parse(CommandClient.Transact("cursorpos", name));
+        using var cursor = JsonDocument.Parse(CommandClient.Transact("j/cursorpos", name));
         Assert.Equal(JsonValueKind.Number, cursor.RootElement.GetProperty("x").ValueKind);
         Assert.Equal(JsonValueKind.Number, cursor.RootElement.GetProperty("y").ValueKind);
 

@@ -53,7 +53,9 @@ public sealed partial class Core
     {
         BindsRequest => Describe(_ => ExtraCommands.FormatBinds(_binds.Entries)),
         VersionRequest => new CommandReply(ExtraCommands.FormatVersion(), View([])),
-        CursorPosRequest => new CommandReply(ExtraCommands.FormatCursor(Cursor?.Read() ?? new Point(0, 0)), View([])),
+        CursorPosRequest cursor => new CommandReply(
+            ExtraCommands.FormatCursor(Cursor?.Read() ?? new Point(0, 0), cursor.Flags.HasFlag(CommandFlags.Json)),
+            View([])),
         ConfigErrorsRequest => new CommandReply(ExtraCommands.FormatErrors(_configErrors), View([])),
         GetOptionRequest option => new CommandReply(OptionCatalog.Describe(option.Name, _config), View([])),
         SystemInfoRequest => Describe(ExtraCommands.FormatSystem),

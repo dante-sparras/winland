@@ -2,7 +2,20 @@ using System.Globalization;
 
 namespace Winland;
 
-public sealed record CursorBehavior(bool HideOnKeyPress, double InactiveTimeoutSeconds);
+public sealed record CursorBehavior(bool HideOnKeyPress, double InactiveTimeoutSeconds)
+{
+    /// <summary>How far the Monitor under the cursor is zoomed, and how its view follows the cursor.</summary>
+    public CursorZoom Zoom { get; init; } = CursorZoom.None;
+}
+
+/// <summary>
+/// <c>cursor:zoom_factor</c>, <c>cursor:zoom_rigid</c> and <c>cursor:zoom_detached_camera</c>: the factor, from 1 to
+/// 10, by which the Monitor under the cursor is zoomed, and how its view follows the cursor.
+/// </summary>
+public sealed record CursorZoom(double Factor, bool Rigid, bool DetachedCamera)
+{
+    public static CursorZoom None { get; } = new(1, false, true);
+}
 
 public sealed record CursorOptions
 {
@@ -23,11 +36,20 @@ public sealed record CursorOptions
 
     public string DefaultMonitor { get; init; } = "";
 
+    public double ZoomFactor { get; init; } = 1;
+
+    public bool ZoomRigid { get; init; }
+
+    public bool ZoomDetachedCamera { get; init; } = true;
+
     public static CursorOptions Documented { get; } = new();
 
     public int MonitorMode() => WarpOnMonitor < 0 ? WarpOnWorkspace : WarpOnMonitor;
 
-    public CursorBehavior Behavior() => new(HideOnKeyPress, InactiveTimeoutSeconds);
+    public CursorBehavior Behavior() => new(HideOnKeyPress, InactiveTimeoutSeconds)
+    {
+        Zoom = new CursorZoom(ZoomFactor, ZoomRigid, ZoomDetachedCamera),
+    };
 
     private static readonly Dictionary<string, int> WorkspaceModes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -54,6 +76,9 @@ public sealed record CursorOptions
         ["cursor:inactive_timeout"] = (options, value) => TryTimeout(value, out var seconds) ? options with { InactiveTimeoutSeconds = seconds } : options,
         ["cursor:hide_on_key_press"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var hide) ? options with { HideOnKeyPress = hide } : options,
         ["cursor:default_monitor"] = (options, value) => options with { DefaultMonitor = value.Trim() },
+        ["cursor:zoom_factor"] = (options, value) => TryZoom(value, out var factor) ? options with { ZoomFactor = factor } : options,
+        ["cursor:zoom_rigid"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var rigid) ? options with { ZoomRigid = rigid } : options,
+        ["cursor:zoom_detached_camera"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var detached) ? options with { ZoomDetachedCamera = detached } : options,
     };
 
     internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);
@@ -79,6 +104,15 @@ public sealed record CursorOptions
         }
 
         mode = Math.Clamp(parsed, min, max);
+        return true;
+    }
+
+    private static bool TryZoom(string text, out double factor)
+    {
+        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out factor) || !double.IsFinite(factor))
+            return false;
+
+        factor = Math.Clamp(factor, 1, 10);
         return true;
     }
 

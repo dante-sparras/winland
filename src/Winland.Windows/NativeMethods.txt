@@ -156,3 +156,7 @@ DwmUpdateThumbnailProperties
 DwmQueryThumbnailSourceSize
 SendMessage
 DwmExtendFrameIntoClientArea
+MonitorFromPoint
+MagInitialize
+MagUninitialize
+MagSetFullscreenTransform

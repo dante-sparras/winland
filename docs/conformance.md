@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-189 of 197 ported cases pass.
+190 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -268,7 +268,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | gestures | pinchDeltaScalePropagation | not ported | It checks a gesture the test plugin registers through the C++ plugin interface, which has no core form. |
 | gestures | defaultSpecialWorkspaceGesture | passes | |
 | gestures | live_gesture_callbacks | not ported | Gesture actions with start, update and end callbacks are Lua-only. |
-| gestures | gestures | differs | cursor:zoom_factor is the cursor zoom Gap, so the keyword the case sets at its end is refused. |
+| gestures | gestures | passes | |
 | keybinds | keybinds | differs | Per-device binds are not honored. |
 | keybinds | orderedSubChordDeferral | passes | |
 | keybinds | modifierReleaseBindShadowing | passes | |
