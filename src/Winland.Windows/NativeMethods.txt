@@ -161,3 +161,6 @@ MagUninitialize
 MagSetFullscreenTransform
 MagShowSystemCursor
 GetStockObject
+GetKeyboardLayoutList
+LoadKeyboardLayout
+UnloadKeyboardLayout

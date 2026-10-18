@@ -74,6 +74,15 @@ public static class ExtraCommands
             return true;
         }
 
+        if (Is(verb, "devices"))
+            return Exact(rest, new DevicesRequest(), flags, out parse);
+
+        if (Is(verb, "switchxkblayout"))
+        {
+            parse = Parsed(new SwitchLayoutRequest(rest), flags);
+            return true;
+        }
+
         if (Is(verb, "seterror"))
         {
             parse = Parsed(new SetErrorRequest(rest), flags);

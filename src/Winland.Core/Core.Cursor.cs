@@ -54,6 +54,7 @@ public sealed partial class Core
         {
             Warp = warp,
             InputSettings = _input.Request(),
+            KeyboardLayout = LayoutRequest(),
             Cursor = _cursor.Behavior(),
             ResizeCursor = _resizeCursor,
         };

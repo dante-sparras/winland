@@ -87,12 +87,10 @@ This table has one row per keyword. A test checks it against the keywords the co
 | input-capture | The input capture portal has no Windows meaning. |
 | input:emulate_discrete_scroll | High resolution scroll emulation is not honored. |
 | input:force_no_accel | Forcing acceleration off apart from the acceleration profile is not honored. |
-| input:kb_file | Keyboard layout is not changed. |
-| input:kb_layout | Keyboard layout is not changed. |
-| input:kb_model | Keyboard layout is not changed. |
-| input:kb_options | Keyboard layout is not changed. |
-| input:kb_rules | Keyboard layout is not changed. |
-| input:kb_variant | Keyboard layout is not changed. |
+| input:kb_file | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
+| input:kb_model | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
+| input:kb_options | XKB options, such as a key that switches layouts or remaps Caps Lock, are not honored. |
+| input:kb_rules | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | input:off_window_axis_events | Scroll events outside a window are not honored. |
 | input:resolve_binds_by_sym | Binds are not resolved by key symbol. |
 | input:rotation | Device rotation is not honored. |
@@ -199,7 +197,8 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | gradient |
 | gap | - | group:groupbar:priority |
 | gap | - | input:emulate_discrete_scroll, input:force_no_accel, input:off_window_axis_events, input:resolve_binds_by_sym, input:rotation, input:scroll_button, input:scroll_button_lock, input:scroll_method, input:scroll_points |
-| gap | - | input:kb_file, input:kb_layout, input:kb_model, input:kb_options, input:kb_rules, input:kb_variant |
+| non-goal | - | input:kb_file, input:kb_model, input:kb_rules |
+| gap | - | input:kb_options |
 | gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:enabled, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
 | gap | - | input:tablettool:eraser_button_mode, input:tablettool:eraser_button_override, input:tablettool:pressure_range_max, input:tablettool:pressure_range_min |
 | gap | - | input:touchdevice:enabled, input:touchdevice:output, input:touchdevice:transform |
@@ -236,7 +235,7 @@ The modifiers `CAPS`, `MOD2`, `MOD3` and `MOD5` are not honored. A modifier list
 
 Blur is DWM's acrylic backdrop, so it shows only where DWM draws that backdrop: the title bar and any area a window leaves for it. What a window paints itself is not blurred, and a translucent Client does not blur what is behind its content. The blur `size`, `passes` and color options, and the shadow `range`, `offset`, `scale` and colors, have no DWM equivalent. `glow` and `motion_blur` are not drawn. A corner radius DWM does not draw is cut as a window region, and that edge is not antialiased. `shadow` on a workspace rule and the `no_blur`, `no_shadow`, `rounding` and `rounding_power` window rule effects are not honored. The backdrop, shadow and DWM corner preference are not undone after a crash. A corner region Winland cut is removed on the next start.
 
-Per-device `device` options are not honored. Keyboard layout keys and the other input keys stay Gaps.
+Per-device `device` options are not honored. The other input keys stay Gaps.
 
 
 `pass`, `sendshortcut` and `sendkeystate` to a window that is not focused bring that window to the foreground, send the key, and give the foreground back 30 ms later. Windows gives keys only to the foreground window. Each change of focus is reported. A mouse button goes to the window under the pointer, not to the named window.

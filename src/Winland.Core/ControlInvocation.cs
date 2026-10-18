@@ -23,6 +23,8 @@ public static class ControlInvocation
                winlandctl [-j] [-r] [-a] systeminfo
                winlandctl [-j] [-r] [-a] locked
                winlandctl [-j] [-r] [-a] layouts
+               winlandctl [-j] [-r] [-a] devices
+               winlandctl [-j] [-r] [-a] switchxkblayout <keyboard> <next|prev|index>
                winlandctl [-j] [-r] [-a] kill
                winlandctl [-j] [-r] [-a] rollinglog
                winlandctl [-j] [-r] [-a] keyword <name> <value>
@@ -182,6 +184,7 @@ public static class ControlInvocation
         || verb.Equals("setprop", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("notify", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("seterror", StringComparison.OrdinalIgnoreCase)
+        || verb.Equals("switchxkblayout", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("dismissnotify", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsBare(string verb) =>
@@ -198,6 +201,7 @@ public static class ControlInvocation
         || verb.Equals("systeminfo", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("locked", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("layouts", StringComparison.OrdinalIgnoreCase)
+        || verb.Equals("devices", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("submap", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("animations", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("descriptions", StringComparison.OrdinalIgnoreCase)

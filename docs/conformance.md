@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-190 of 197 ported cases pass.
+191 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -206,7 +206,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | focus | crossMonitorEmptyWorkspaceUnfocusesWindow | passes | |
 | follow_mouse_shrink | followMouseShrink | passes | |
 | cursor | cursorPerOutputHyprcursor | not ported | The case checks the cursor image each output renders from a cursor theme, which a core test cannot see. |
-| hyprctl | hyprctlDevicesActiveLayoutIndex | differs | input:kb_layout is a Gap, and there is no switchxkblayout or devices request. |
+| hyprctl | hyprctlDevicesActiveLayoutIndex | passes | |
 | hyprctl | hyprctlGetprop | passes | |
 | hyprctl | hyprctlSubmap | passes | |
 | hyprctl | hyprctlJsonErrors | passes | |
