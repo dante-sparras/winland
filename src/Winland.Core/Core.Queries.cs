@@ -68,6 +68,7 @@ public sealed partial class Core
         KeywordRequest keyword => ApplyKeyword(keyword),
         GetPropRequest prop => ReadProp(prop),
         SetPropRequest prop => WriteProp(prop),
+        SetErrorRequest error => SetError(error),
         BatchRequest batch => RunBatch(batch.Payload),
         _ => throw new InvalidOperationException("No handler for this command."),
     };

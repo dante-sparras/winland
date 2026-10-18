@@ -14,7 +14,23 @@ internal sealed class LiveMonitor(MonitorId id, Monitor reported, Monitor effect
 
     public Monitor Reported { get; set; } = reported;
 
-    public Monitor Effective { get; set; } = effective;
+    /// <summary>The Monitor as the monitor rules arrange it.</summary>
+    public Monitor Arranged { get; set; } = effective;
+
+    /// <summary>The pixels the error bar keeps at the top of this Monitor's work area.</summary>
+    public int BarReserve { get; set; }
+
+    /// <summary>The Monitor as Winland uses it: arranged, less the error bar.</summary>
+    public Monitor Effective => BarReserve <= 0
+        ? Arranged
+        : Arranged with
+        {
+            WorkArea = Arranged.WorkArea with
+            {
+                Y = Arranged.WorkArea.Y + Math.Min(BarReserve, Arranged.WorkArea.Height),
+                Height = Math.Max(0, Arranged.WorkArea.Height - BarReserve),
+            },
+        };
 
     public WorkspaceId? Active { get; set; }
 

@@ -115,6 +115,9 @@ public sealed record Outcome(
     /// <summary>Every Group tab bar to draw now. A bar that is not listed is removed.</summary>
     public IReadOnlyList<GroupBar> GroupBars { get; init; } = [];
 
+    /// <summary>The error bar to show, or null when none is.</summary>
+    public ErrorBar? ErrorBar { get; init; }
+
     public IReadOnlyList<DisplayOrientationRequest> Orientations { get; init; } = [];
 
     public WarpTo? Warp { get; init; }

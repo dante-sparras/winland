@@ -93,21 +93,7 @@ internal static class GroupBarPainter
                 continue;
 
             var weight = tab.Focused ? bar.Style.FontWeightActive : bar.Style.FontWeightInactive;
-            using var font = PInvoke.CreateFont(
-                -Math.Max(1, bar.Style.FontSize),
-                0,
-                0,
-                0,
-                weight,
-                0,
-                0,
-                0,
-                FONT_CHARSET.DEFAULT_CHARSET,
-                FONT_OUTPUT_PRECISION.OUT_DEFAULT_PRECIS,
-                FONT_CLIP_PRECISION.CLIP_DEFAULT_PRECIS,
-                Quality,
-                0,
-                family);
+            using var font = GdiFonts.Create(bar.Style.FontSize, weight, Quality, family);
             var previous = PInvoke.SelectObject(memory, font);
             var color = bar.Style.TitleColor(tab.Focused, bar.Locked);
             _ = PInvoke.SetTextColor(memory, new COLORREF((uint)(color.R | (color.G << 8) | (color.B << 16))));

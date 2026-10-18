@@ -700,7 +700,10 @@ public sealed partial class WindowAdapter : IDisposable
         }
 
         if (!Releasing && current)
+        {
             GroupBarHost.Update(outcome.GroupBars);
+            ErrorBarHost.Update(outcome.ErrorBar);
+        }
 
         if (current)
             SessionEffects.Apply(outcome);

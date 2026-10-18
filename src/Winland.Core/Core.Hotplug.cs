@@ -32,7 +32,7 @@ public sealed partial class Core
             else
             {
                 screen.Reported = monitor;
-                screen.Effective = effective;
+                screen.Arranged = effective;
             }
 
             next.Add(screen);

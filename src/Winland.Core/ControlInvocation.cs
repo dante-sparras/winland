@@ -181,6 +181,7 @@ public static class ControlInvocation
         || verb.Equals("getprop", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("setprop", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("notify", StringComparison.OrdinalIgnoreCase)
+        || verb.Equals("seterror", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("dismissnotify", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsBare(string verb) =>
