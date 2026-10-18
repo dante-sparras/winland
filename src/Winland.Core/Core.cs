@@ -230,6 +230,7 @@ public sealed partial class Core
             WindowSizing sizing => ContinueNativeSize(sizing),
             WindowMoveStarted started => BeginNativeMove(started),
             WindowMoveEnded ended => EndNativeMove(ended),
+            ClickKillChosen chosen => ChooseKill(chosen),
             SwipeBegan => BeginSwipe(),
             SwipeUpdated updated => UpdateSwipe(updated),
             SwipeEnded ended => EndSwipe(ended.Cancelled),

@@ -33,6 +33,9 @@ public static partial class CommandProtocol
             case FocusChanged focused:
                 AppendFocus(lines, focused, state);
                 break;
+            case ClientKilled killed:
+                lines.Add("kill>>" + EventAddress(killed.Window));
+                break;
             case ClientUrgent urgent:
                 lines.Add("urgent>>" + EventAddress(urgent.Window));
                 break;
