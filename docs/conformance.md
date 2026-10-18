@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-179 of 197 ported cases pass.
+180 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -159,7 +159,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | workspaces | luaGetWorkspace | not ported | The case reads workspace objects from the Lua API, which a line-based command cannot reach. |
 | workspaces | luaSetWorkspace | not ported | The case sets workspaces through monitor objects of the Lua API, which a line-based command cannot reach. |
 | workspaces | luaSetSpecialWorkspace | not ported | The case sets special workspaces through monitor objects of the Lua API, which a line-based command cannot reach. |
-| workspaces | workspacesDistinctTiledAndFloatGaps | differs | Floating gaps on a workspace rule are the float_gaps Gap. |
+| workspaces | workspacesDistinctTiledAndFloatGaps | passes | |
 | workspaces | workspaceSwitchUnfocusesWindowFromOldWorkspace | passes | |
 | workspaces | luaFocusCreatesBareNamedWorkspace | passes | |
 | persistent | persistentWorkspaces | differs | A persistent rule keeps a special workspace, and creates a Workspace bound to a Monitor that is not there yet. A new Monitor then shows such a Workspace, where the pinned release opens workspace 2. |
