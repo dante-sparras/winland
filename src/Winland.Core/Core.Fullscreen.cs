@@ -117,12 +117,23 @@ public sealed partial class Core
 
     // An f[] workspace rule follows the fullscreen state, so a Client that covers, uncovers, closes or moves
     // can bring other options, as the pinned release reads its rules again. The Layout's placements when
-    // the options changed, or the ones given.
+    // the options changed, with the given ones for the Clients those leave out, such as a floating one, or the ones given.
     private IReadOnlyList<Placement> Restamp(LiveWorkspace desk, IReadOnlyList<Placement> placements)
     {
         var options = desk.Options;
         Stamp(desk);
-        return desk.Options != options ? desk.Layout.Apply(desk.Options) : placements;
+        if (desk.Options == options)
+            return placements;
+
+        var applied = desk.Layout.Apply(desk.Options);
+        var merged = new List<Placement>(applied);
+        foreach (var placement in placements)
+        {
+            if (!merged.Exists(other => other.Client == placement.Client))
+                merged.Add(placement);
+        }
+
+        return merged;
     }
 
     // misc:on_focus_under_fullscreen for a tiled window that opens on a Workspace with a fullscreen Client, as in the

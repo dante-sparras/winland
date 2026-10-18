@@ -159,7 +159,7 @@ public class ScrollConformance
         Assert.Equal(1, Desk.Fullscreen(desk.ActiveWindow()));
     }
 
-    [Fact(Skip = "A maximized floating Group member is not moved until the Group changes, and then covers the group bar.")]
+    [Fact]
     public void ScrollLAYOUTHANDLEDTestFsingGroupedWindows()
     {
         var desk = new Desk(Scrolling + """
@@ -481,7 +481,7 @@ public class ScrollConformance
         ExpectFullscreen(desk, 2, 2);
     }
 
-    [Fact(Skip = "A maximized floating Group member is not moved until the Group changes, and then covers the group bar.")]
+    [Fact]
     public void ScrollDEFAULTHANDLEDTestFsingGroupedWindows()
     {
         var desk = new Desk(Scrolling + """
