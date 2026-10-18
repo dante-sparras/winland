@@ -63,7 +63,8 @@ internal static class GroupBarPainter
         for (var i = 0; i < count; i++)
         {
             var active = bar.Tabs[i].Focused;
-            var corners = BarShapes.Rounded(i, count, style.Rounding, style.RoundOnlyEdges);
+            var order = bar.DrawOrder(i);
+            var corners = BarShapes.Rounded(order, count, style.Rounding, style.RoundOnlyEdges);
             var indicator = bar.IndicatorBounds(i);
             var color = style.IndicatorColor(active, bar.Locked);
             Fill(pixels, width, height, indicator, (x, y) => Shaded(color, BarShapes.Coverage(x, y, indicator, style.Rounding, style.RoundingPower, corners)));
@@ -74,7 +75,7 @@ internal static class GroupBarPainter
             // The pinned release fills the title row with a vertical gradient of the tab's colors, rounded on its own.
             var row = bar.TitleBounds(i);
             var colors = style.GradientColors(active, bar.Locked);
-            var rowCorners = BarShapes.Rounded(i, count, style.GradientRounding, style.GradientRoundOnlyEdges);
+            var rowCorners = BarShapes.Rounded(order, count, style.GradientRounding, style.GradientRoundOnlyEdges);
             Fill(pixels, width, height, row, (x, y) =>
             {
                 var shade = BarShapes.GradientAt(colors, (y - row.Y + 0.5) / row.Height);

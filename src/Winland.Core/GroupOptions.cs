@@ -87,6 +87,7 @@ public sealed record GroupOptions
         ["group:groupbar:col.inactive"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { Inactive = c[0], InactiveGradient = new BarGradient(c) }) : o,
         ["group:groupbar:col.locked_active"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { LockedActive = c[0], LockedActiveGradient = new BarGradient(c) }) : o,
         ["group:groupbar:col.locked_inactive"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { LockedInactive = c[0], LockedInactiveGradient = new BarGradient(c) }) : o,
+        ["group:groupbar:stacked"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { Stacked = b }) : o,
         ["group:groupbar:gradients"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { Gradients = b }) : o,
         ["group:groupbar:rounding"] = (o, v) => TryInt(v, 0, 40, out var i) ? o.WithBar(o.Bar with { Rounding = i }) : o,
         ["group:groupbar:rounding_power"] = (o, v) => TryPower(v, out var p) ? o.WithBar(o.Bar with { RoundingPower = p }) : o,
@@ -230,6 +231,9 @@ public sealed record GroupBarStyle
 
     public BarGradient? LockedInactiveGradient { get; init; }
 
+    /// <summary><c>stacked</c>: the tabs are rows, one above the other, instead of side by side.</summary>
+    public bool Stacked { get; init; }
+
     /// <summary><c>gradients</c>: each tab's title row is filled with a gradient of its colors.</summary>
     public bool Gradients { get; init; }
 
@@ -270,6 +274,13 @@ public sealed record GroupBarStyle
     /// <summary>The strip the bar takes from the top of the tile: gaps, indicator and title row.</summary>
     public int Reserved =>
         (GapsOut * (KeepUpperGap ? 2 : 1)) + IndicatorHeight + IndicatorGap + (RenderTitles || Gradients ? Height : 0);
+
+    /// <summary>One tab's row: gaps_out, the indicator, its gap and the title row.</summary>
+    public int OneBarHeight => GapsOut + IndicatorHeight + IndicatorGap + (RenderTitles || Gradients ? Height : 0);
+
+    /// <summary>The strip a bar of <paramref name="tabs"/> tabs takes: one row each when stacked, with the upper gap.</summary>
+    public int ReservedFor(int tabs) =>
+        Stacked ? (OneBarHeight * Math.Max(1, tabs)) + (KeepUpperGap ? GapsOut : 0) : Reserved;
 
     /// <summary>The title color of one tab.</summary>
     public BorderColor TitleColor(bool active, bool locked)

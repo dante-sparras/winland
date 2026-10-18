@@ -22,7 +22,6 @@ public sealed partial class Core
                 continue;
 
             var scaled = style.ScaledBy(MonitorById(desk.Monitor)?.Effective.Scale ?? 1);
-            var reserved = scaled.Reserved;
             var showing = desk.Showing();
             foreach (var group in desk.Groups)
             {
@@ -35,6 +34,7 @@ public sealed partial class Core
                     || !showing.Contains(group.Shown))
                     continue;
 
+                var reserved = scaled.ReservedFor(group.Count);
                 var box = shown.Bounds;
                 var strip = shown.Floating
                     ? new Rectangle(box.X, box.Y - reserved, box.Width, reserved)
