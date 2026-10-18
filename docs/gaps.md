@@ -70,7 +70,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | decoration:shadow:scale | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
 | decoration:shadow:sharp | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
 | device | Per-device input is not honored. Honored input settings apply to the whole system. |
-| dim_around | Dimming the area around a window is not honored. |
 | dont_inhibit | Applications cannot inhibit binds, so this flag has nothing to bypass. |
 | drops | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | ecosystem | Ecosystem tools have no Windows meaning. |
@@ -193,7 +192,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | decoration:border_part_of_window, group:groupbar:blur, wobble |
 | gap | - | decoration:shadow:color, decoration:shadow:color_inactive, decoration:shadow:offset, decoration:shadow:range, decoration:shadow:render_power, decoration:shadow:scale, decoration:shadow:sharp |
 | gap | - | device |
-| gap | - | dim_around |
 | gap | - | dont_inhibit |
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
 | non-goal | - | experimental, input-capture |
@@ -300,7 +298,7 @@ Every command above is a gap. No open issue tracks them.
 
 `descriptions` lists only the options Winland reads, and their `description` is empty: the pinned release's descriptions are not carried.
 
-`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_anim`, `no_blur`, `no_dim`, `no_shadow`, `no_glow`, `no_wobble`, `no_shortcuts_inhibit`, `dim_around`, `force_rgbx`, `sync_fullscreen`, `immediate`, `xray`, `render_unfocused`, `no_follow_mouse`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `scroll_mouse` and `scroll_touchpad`. Each waits on the feature it would change, most of them Gaps above. A border color is drawn by its first color, since gradient borders are a Gap.
+`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_anim`, `no_blur`, `no_dim`, `no_shadow`, `no_glow`, `no_wobble`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `xray`, `render_unfocused`, `no_follow_mouse`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `scroll_mouse` and `scroll_touchpad`. Each waits on the feature it would change, most of them Gaps above. A border color is drawn by its first color, since gradient borders are a Gap.
 
 `changeworkspaceid` refuses a number above 2147483647. The pinned release takes numbers up to 4294967295, but a Workspace number here is a signed 32-bit integer. It is a gap.
 

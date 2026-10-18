@@ -33,7 +33,7 @@ public class OpacityTests
     }
 
     [Fact]
-    public void OpacityKeysAreHonoredAndDimAroundBlurAndShadowStayGaps()
+    public void OpacityAndDimKeysAreHonored()
     {
         var document = ConfigParser.Parse("""
             decoration:active_opacity = 0.8
@@ -48,13 +48,9 @@ public class OpacityTests
             decoration:shadow:enabled = true
             """);
 
-        Assert.Equal(
-            new[]
-            {
-                new ConfigWarning(8, "Unsupported keyword 'decoration:dim_around'."),
-            },
-            document.Warnings);
-        Assert.Equal(9, document.Settings.Count);
+        Assert.Empty(document.Warnings);
+        Assert.Equal(10, document.Settings.Count);
+        Assert.Equal(0.4f, DecorationOptions.From(document).DimAround);
     }
 
     [Fact]

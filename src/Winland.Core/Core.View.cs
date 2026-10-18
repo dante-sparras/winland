@@ -69,6 +69,7 @@ public sealed partial class Core
                 Placements = WithHiddenMembers(BelowBars(outcome.Placements, outcome.State, bars)),
                 GroupBars = bars,
                 Decorations = decorations,
+                Dims = DimsAround(outcome.State, decorations),
                 ResetDecorations = reset,
             },
             before);
