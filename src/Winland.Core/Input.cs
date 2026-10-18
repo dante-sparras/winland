@@ -27,6 +27,9 @@ public sealed record WindowAppeared(WindowId Window, Rectangle WorkArea) : Event
 
     public IReadOnlyList<int> AncestorProcessIds { get; init; } = [];
 
+    /// <summary>The window that owns this one, as a dialog's owner, or null.</summary>
+    public WindowId? Owner { get; init; }
+
     /// <summary>
     /// The window was maximized when it first showed, as a client that asks to be maximized before it maps. The core
     /// ignores the maximize request that follows, as the pinned release does.

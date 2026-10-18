@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-168 of 197 ported cases pass.
+169 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -244,7 +244,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | lua_config | luaDevicesEnumerationAndHyprctlParity | not ported | It reads the devices through Lua. The Lua config waits on ADR 0013. |
 | lua_config | luaDevicesRetainedKeyboardTracksLayoutChanges | not ported | It reads a keyboard through Lua. The Lua config waits on ADR 0013. |
 | xwayland_selection | xwaylandSelectionSourceGuard | not ported | It checks X11 selections through the test plugin. |
-| clients/child-window | childWindow | differs | A window owned by a pinned Client is not pinned with it. |
+| clients/child-window | childWindow | passes | |
 | clients/fullscreen-with-monitor | fullscreenWithExplicitMonitor | not ported | An application that asks to be fullscreen is not observed, so the core has no input for the request. |
 | clients/keyboard-modifiers | keyboardModifiersMergedOnFocus | not ported | Windows keeps one keyboard state and gives the focused window its lock keys itself. |
 | clients/pointer-constraints | nativePointerConstraintsPersistent | not ported | Pointer constraints are a Wayland protocol with no Windows meaning. |
