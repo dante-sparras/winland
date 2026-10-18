@@ -108,12 +108,13 @@ public static partial class CommandProtocol
     {
         var hidden = client.Minimized || ListedHidden(state, client.Window);
         var shown = !hidden;
+        var reachable = shown && !client.BelowFullscreen;
         return new(
             Address(client.Window),
             shown,
             hidden,
-            shown,
-            shown,
+            reachable,
+            reachable,
             [client.Bounds.X, client.Bounds.Y],
             [client.Bounds.Width, client.Bounds.Height],
             indexed.ByWorkspace[client.Workspace],
@@ -130,7 +131,7 @@ public static partial class CommandProtocol
             (int)client.Fullscreen,
             (int)client.FullscreenClient,
             FullscreenHandlerOf(state, client),
-            false,
+            client.AllowedOverFullscreen,
             GroupedOf(state, client.Window),
             client.Tags is { Count: > 0 } tags ? [.. tags] : NoStrings,
             client.Swallowing is WindowId swallowed ? Address(swallowed) : "0x0",

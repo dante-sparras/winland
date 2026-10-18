@@ -488,6 +488,34 @@ public class FullscreenTests
     }
 
     [Fact]
+    public void AFloatingWindowUnderAFullscreenTileIsLoweredAndRaisedWhenItEnds()
+    {
+        var core = Desk();
+        Appear(core, 2);
+        core.Handle(new Dispatch("focuswindow", "address:0x1"));
+        core.Handle(new Dispatch("setfloating"));
+        core.Handle(new Dispatch("focuswindow", "address:0x2"));
+
+        var covered = core.Handle(new Dispatch("fullscreen", "0"));
+
+        Assert.Contains(new ZOrderRequest(new WindowId(1), Top: false), covered.ZOrder);
+        Assert.False(ClientOf(covered, 1).AllowedOverFullscreen);
+        Assert.True(ClientOf(covered, 1).BelowFullscreen);
+        using (var clients = JsonDocument.Parse(core.Execute("clients").Text))
+        {
+            var floating = clients.RootElement.EnumerateArray().Single(client => client.GetProperty("address").GetString() == "0x1");
+            Assert.False(floating.GetProperty("acceptsInput").GetBoolean());
+            Assert.False(floating.GetProperty("visible").GetBoolean());
+        }
+
+        var ended = core.Handle(new Dispatch("fullscreen", "0"));
+
+        Assert.Contains(new ZOrderRequest(new WindowId(1), Top: true), ended.ZOrder);
+        Assert.True(ClientOf(ended, 1).AllowedOverFullscreen);
+        Assert.False(ClientOf(ended, 1).BelowFullscreen);
+    }
+
+    [Fact]
     public void AMaximizedClientAskedForClientFullscreenGoesBackToClientMaximized()
     {
         var core = Desk();

@@ -177,6 +177,11 @@ public sealed partial class Core
     private WindowId FocusUnderFullscreen(LiveWorkspace desk, WindowId window, out IReadOnlyList<Placement>? placements)
     {
         placements = null;
+
+        // A floating window focused over a default fullscreen one is let over it.
+        if (desk.ClientOf(window) is { Floating: true } && CoveringOther(desk, window) is { LayoutFullscreen: false })
+            SetOverFullscreen(window, true);
+
         if (desk.ClientOf(window) is not { Floating: false } || CoveringOther(desk, window) is not { LayoutFullscreen: false } covering)
             return window;
 
