@@ -81,7 +81,6 @@ public static class ConfigGaps
         new("glow", "Inner glow is not honored."),
         new("group:groupbar:blur", "Groupbar blur is not honored."),
         new("group:groupbar:priority", "The tab bar is the only decoration drawn over a tile, so it has no order."),
-        new("group:groupbar:stacked", "A stacked tab bar is not honored."),
         new("haze", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("heat_shimmer", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("input-capture", "The input capture portal has no Windows meaning."),

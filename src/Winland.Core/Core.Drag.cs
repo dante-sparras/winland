@@ -127,10 +127,7 @@ public sealed partial class Core
                 || (own is not null && !_groupOptions.MergeGroupsOnGroupbar))
                 break;
 
-            var relative = pointer.X - bar.Bounds.X - (bar.TabWidth / 2);
-            var step = bar.TabWidth + bar.Style.GapsIn;
-            var index = (relative < 0 || step <= 0 ? -1 : relative / step) + 1;
-            return new DropTarget(there, target, index);
+            return new DropTarget(there, target, bar.DropIndex(pointer));
         }
 
         if (_groupOptions.DragIntoGroup != 1

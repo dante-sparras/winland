@@ -438,16 +438,16 @@ public class GroupTests
     }
 
     [Fact]
-    public void GroupKeywordsAreHonoredAndTheStackedBarIsAGap()
+    public void GroupKeywordsAreHonoredAndTheBarPriorityIsAGap()
     {
         var document = ConfigParser.Parse("""
             group:auto_group = false
             group:groupbar:font_size = 10
             group:drag_into_group = 2
-            group:groupbar:stacked = true
+            group:groupbar:priority = 2
             """);
 
-        Assert.Equal([new ConfigWarning(4, "Unsupported keyword 'group:groupbar:stacked'.")], document.Warnings);
+        Assert.Equal([new ConfigWarning(4, "Unsupported keyword 'group:groupbar:priority'.")], document.Warnings);
         var options = GroupOptions.From(document);
         Assert.False(options.AutoGroup);
         Assert.Equal(10, options.Bar.FontSize);
