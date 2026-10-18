@@ -344,7 +344,7 @@ public class CursorInputTests
         Assert.Equal(31, outcome.InputSettings.KeyboardSpeed);
         Assert.Equal(6, outcome.InputSettings.WheelLines);
         Assert.Null(outcome.InputSettings.KeyboardDelay);
-        Assert.Equal(new CursorBehavior(false, 0), outcome.Cursor);
+        Assert.Equal(new CursorBehavior(false, 0) { Zoom = CursorZoom.None with { Animation = new Timing(Bezier.Default, 800) } }, outcome.Cursor);
     }
 
     [Fact]

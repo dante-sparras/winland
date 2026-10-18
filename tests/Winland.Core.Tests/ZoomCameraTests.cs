@@ -103,4 +103,28 @@ public class ZoomCameraTests
 
         Assert.Equal(new ZoomView(3, 0, 0), camera.Follow(Screen, new Point(0, 0), new CursorZoom(3, false, true)));
     }
+
+    [Fact]
+    public void AZoomChangeEasesOverItsAnimation()
+    {
+        var tween = new ZoomTween(1, 3, new Timing(Bezier.Linear, 400));
+
+        Assert.Equal(1, tween.At(0));
+        Assert.Equal(2, tween.At(200), 3);
+        Assert.Equal(3, tween.At(400));
+        Assert.False(tween.Done(399));
+        Assert.True(tween.Done(400));
+        Assert.True(new ZoomTween(1, 2, new Timing(Bezier.Linear, 0)).Done(0));
+    }
+
+    [Fact]
+    public void TheZoomCarriesTheZoomFactorAnimation()
+    {
+        var core = new Core(ConfigParser.Parse("animation = zoomFactor, 1, 3, linear\n"));
+        var animated = core.Handle(new PointerMoved(new Point(1, 1))).Cursor?.Zoom.Animation;
+        Assert.Equal(new Timing(Bezier.Linear, 300), animated);
+
+        var off = new Core(ConfigParser.Parse("animation = zoomFactor, 0\n"));
+        Assert.Null(off.Handle(new PointerMoved(new Point(1, 1))).Cursor?.Zoom.Animation);
+    }
 }

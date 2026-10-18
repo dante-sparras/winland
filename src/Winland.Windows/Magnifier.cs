@@ -16,6 +16,10 @@ internal static class Magnifier
     private static readonly AutoResetEvent Wake = new(false);
     private static readonly ZoomCamera Camera = new();
     private static CursorZoom _zoom = CursorZoom.None;
+    private static readonly System.Diagnostics.Stopwatch Clock = System.Diagnostics.Stopwatch.StartNew();
+    private static ZoomTween? _tween;
+    private static double _tweenStart;
+    private static double _factorShown = 1;
     private static Point? _pointer;
     private static bool _cursorHidden;
     private static bool _cursorShownHidden;
@@ -32,8 +36,19 @@ internal static class Magnifier
             if (zoom == _zoom || _stopping)
                 return;
 
+            // A new factor eases from the one on screen when the zoomFactor animation is on.
+            if (zoom.Factor != _zoom.Factor && zoom.Animation is Timing timing && timing.Milliseconds > 0)
+            {
+                _tween = new ZoomTween(Volatile.Read(ref _factorShown), zoom.Factor, timing);
+                _tweenStart = Clock.Elapsed.TotalMilliseconds;
+            }
+            else if (zoom.Factor != _zoom.Factor)
+            {
+                _tween = null;
+            }
+
             _zoom = zoom;
-            if (_worker is null && zoom.Factor <= 1)
+            if (_worker is null && zoom.Factor <= 1 && _tween is null)
                 return;
 
             Start();
@@ -102,7 +117,12 @@ internal static class Magnifier
         {
             while (true)
             {
-                _ = Wake.WaitOne();
+                bool easing;
+                lock (Gate)
+                    easing = _tween is not null;
+
+                // While the factor eases the view is drawn about sixty times a second.
+                _ = Wake.WaitOne(easing ? 16 : Timeout.Infinite);
                 CursorZoom zoom;
                 Point? pointer;
                 bool hidden;
@@ -112,9 +132,19 @@ internal static class Magnifier
                         break;
 
                     zoom = _zoom;
+                    if (_tween is ZoomTween tween)
+                    {
+                        var elapsed = Clock.Elapsed.TotalMilliseconds - _tweenStart;
+                        zoom = zoom with { Factor = tween.At(elapsed) };
+                        if (tween.Done(elapsed))
+                            _tween = null;
+                    }
+
                     pointer = _pointer;
                     hidden = _cursorHidden;
                 }
+
+                Volatile.Write(ref _factorShown, zoom.Factor);
 
                 Show(zoom, pointer);
                 ShowCursor(hidden);

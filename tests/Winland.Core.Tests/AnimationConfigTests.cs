@@ -135,7 +135,7 @@ public class AnimationConfigTests
             bezier = word, 0, a, 1, 1
             bezier = long, 0, 0, 1, 1, 2
             animation = layers, 1, 3, default
-            animation = zoomFactor, 1, 3, default
+            animation = fadeDpms, 1, 3, default
             """);
 
         Assert.Equal(
@@ -150,7 +150,7 @@ public class AnimationConfigTests
                 new ConfigWarning(9, "Bezier point 'a' is not a number."),
                 new ConfigWarning(10, "Bezier has too many arguments."),
                 new ConfigWarning(11, "Layer shell surfaces have no Windows meaning."),
-                new ConfigWarning(12, "The cursor zoom changes factor at once and does not animate."),
+                new ConfigWarning(12, "Turning a monitor off does not fade."),
             ],
             document.Warnings);
     }

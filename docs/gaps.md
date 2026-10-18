@@ -29,7 +29,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | animation:layersOut | Layer shell surfaces have no Windows meaning. |
 | animation:monitorAdded | A monitor that is added does not animate. |
 | animation:shadowangle | Shadows are not honored, so their angle does not animate. |
-| animation:zoomFactor | The cursor zoom changes factor at once and does not animate. |
 | aurora | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | binds:disable_keybind_grabbing | Applications cannot ask Windows to turn binds off, so there is nothing to refuse. |
 | bitdepth | Changing a monitor's bit depth is not honored. |
@@ -169,7 +168,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | --- | --- | --- |
 | gap | - | acrylic, aurora, decoration:blur:variant, drops, fluid_jar, glass, haze, heat_shimmer, ripple, water |
 | non-goal | - | allow_tearing, debug, opengl, quirks, render, screen_shader |
-| gap | - | animation:borderangle, animation:fadeDim, animation:fadeDpms, animation:fadeGlow, animation:fadeShadow, animation:glowangle, animation:monitorAdded, animation:shadowangle, animation:zoomFactor |
+| gap | - | animation:borderangle, animation:fadeDim, animation:fadeDpms, animation:fadeGlow, animation:fadeShadow, animation:glowangle, animation:monitorAdded, animation:shadowangle |
 | non-goal | - | animation:fadeLayers, animation:fadeLayersIn, animation:fadeLayersOut, animation:fadePopups, animation:fadePopupsIn, animation:fadePopupsOut, animation:layers, animation:layersIn, animation:layersOut |
 | non-goal | - | binds:disable_keybind_grabbing |
 | gap | - | bitdepth, cm, mirror, vrr |
