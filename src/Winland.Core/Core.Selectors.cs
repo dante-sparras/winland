@@ -83,6 +83,11 @@ public sealed partial class Core
         var covered = desk.Covered();
         var placements = desk.Layout.ToggleFloating(id);
         _pinned.Remove(id);
+
+        // A window that floats is raised, and so allowed over a fullscreen one, as in the pinned release.
+        if (want)
+            SetOverFullscreen(id, true);
+
         return IsShown(desk.Id)
             ? Present(desk, covered, placements, dispatcher: name, allowsElevation: allowsElevation)
             : View([], dispatcher: name, allowsElevation: allowsElevation);

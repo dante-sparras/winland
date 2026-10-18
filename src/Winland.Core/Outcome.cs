@@ -22,7 +22,9 @@ public sealed record Client(
     IReadOnlyList<string>? Tags = null,
     int Content = 0,
     bool InhibitingIdle = false,
-    bool LayoutFullscreen = false);
+    bool LayoutFullscreen = false,
+    bool AllowedOverFullscreen = true,
+    bool BelowFullscreen = false);
 
 public readonly record struct Placement(ClientId Client, Rectangle Bounds);
 

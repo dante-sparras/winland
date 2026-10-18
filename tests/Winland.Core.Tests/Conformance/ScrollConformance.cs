@@ -311,7 +311,7 @@ public class ScrollConformance
         Assert.Equal(0, Desk.FullscreenClient(b));
     }
 
-    [Fact(Skip = "A floating Client under a fullscreen one stays visible and accepts input, and a second fullscreen Client ends the first one's fullscreen. allowedOverFullscreen is always false.")]
+    [Fact]
     public void ScrollLAYOUTHANDLEDFloatingWindowHiding()
     {
         var desk = new Desk(Scrolling);

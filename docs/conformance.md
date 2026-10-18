@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-187 of 197 ported cases pass.
+188 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -51,7 +51,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | scroll | scroll_LAYOUT_HANDLED_maximized | passes | |
 | scroll | scroll_LAYOUT_HANDLED_TestFsingGroupedWindows | passes | |
 | scroll | scroll_LAYOUT_HANDLED_fullscreenRetainsGeometryWhileScrolling | passes | |
-| scroll | scroll_LAYOUT_HANDLED_floatingWindowHiding | differs | A floating Client under a fullscreen one stays visible and accepts input, and a second fullscreen Client ends the first one's fullscreen. allowedOverFullscreen is always false. |
+| scroll | scroll_LAYOUT_HANDLED_floatingWindowHiding | passes | |
 | scroll | scroll_LAYOUT_HANDLED_layerVisibilityOnFs | not ported | The case opens a layer shell surface, which has no Windows meaning. |
 | scroll | scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue | passes | |
 | scroll | scroll_LAYOUT_HANDLED_respectFocusFitMethodOnUnFs | passes | |

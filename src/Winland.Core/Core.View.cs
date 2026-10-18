@@ -8,6 +8,11 @@ public sealed partial class Core
         if (refit.Count > 0 || tagsChanged)
             outcome = outcome with { Placements = Union(outcome.Placements, refit, outcome.State), State = Snapshot() };
 
+        var restack = SyncFullscreenHiding();
+        outcome = outcome with { State = WithHiding(outcome.State) };
+        if (restack.Count > 0)
+            outcome = outcome with { ZOrder = [.. outcome.ZOrder, .. restack] };
+
         var active = ActiveWindow();
         var decorations = new List<Decoration>(outcome.State.Clients.Count);
         foreach (var client in outcome.State.Clients)
@@ -209,6 +214,8 @@ public sealed partial class Core
                     Tags = TagsOf(client.Window),
                     Content = ContentOf(client.Window),
                     InhibitingIdle = InhibitsIdle(client, shown, active),
+                    AllowedOverFullscreen = OverFullscreenFlag(client.Window),
+                    BelowFullscreen = _belowFullscreen.Contains(client.Window),
                 });
             }
 
@@ -283,6 +290,23 @@ public sealed partial class Core
             Groups = groups,
             Stacking = [.. _stacking],
         };
+    }
+
+    // The allowedOverFullscreen flag and whether a covering Client keeps the window under it, as the last sync left them.
+    private State WithHiding(State state)
+    {
+        var clients = new Client[state.Clients.Count];
+        for (var i = 0; i < clients.Length; i++)
+        {
+            var client = state.Clients[i];
+            clients[i] = client with
+            {
+                AllowedOverFullscreen = OverFullscreenFlag(client.Window),
+                BelowFullscreen = _belowFullscreen.Contains(client.Window),
+            };
+        }
+
+        return state with { Clients = clients };
     }
 
     private WindowId[] VisibleIds(WorkspaceId id) => FindWorkspace(id)?.VisibleWindows() ?? [];
