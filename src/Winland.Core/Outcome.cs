@@ -118,6 +118,9 @@ public sealed record Outcome(
     /// <summary>The error bar to show, or null when none is.</summary>
     public ErrorBar? ErrorBar { get; init; }
 
+    /// <summary>The dim layers to keep below windows with the dim_around property.</summary>
+    public IReadOnlyList<DimAround> Dims { get; init; } = [];
+
     public IReadOnlyList<DisplayOrientationRequest> Orientations { get; init; } = [];
 
     public WarpTo? Warp { get; init; }

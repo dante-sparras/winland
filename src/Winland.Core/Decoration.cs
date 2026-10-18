@@ -76,6 +76,9 @@ public sealed record DecorationOptions
 
     public float DimSpecial { get; init; } = 0.2f;
 
+    /// <summary><c>decoration:dim_around</c>: how much a window with the dim_around property dims what lies under it.</summary>
+    public float DimAround { get; init; } = 0.4f;
+
     // Adding an entry here applies that keyword and stops the config warning.
     private static readonly Dictionary<string, Func<DecorationOptions, string, DecorationOptions>> Appliers = new(StringComparer.Ordinal)
     {
@@ -92,6 +95,7 @@ public sealed record DecorationOptions
         ["decoration:dim_strength"] = (options, value) => TryParseUnit(value, out var strength) ? options with { DimStrength = strength } : options,
         ["decoration:dim_modal"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { DimModal = enabled } : options,
         ["decoration:dim_special"] = (options, value) => TryParseUnit(value, out var strength) ? options with { DimSpecial = strength } : options,
+        ["decoration:dim_around"] = (options, value) => TryParseUnit(value, out var strength) ? options with { DimAround = strength } : options,
     };
 
     internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);

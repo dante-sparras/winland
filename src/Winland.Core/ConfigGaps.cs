@@ -66,7 +66,6 @@ public static class ConfigGaps
         new("decoration:shadow:scale", "Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned."),
         new("decoration:shadow:sharp", "Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned."),
         new("device", "Per-device input is not honored. Honored input settings apply to the whole system."),
-        new("dim_around", "Dimming the area around a window is not honored."),
         new("dont_inhibit", "Applications cannot inhibit binds, so this flag has nothing to bypass."),
         new("drops", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("ecosystem", "Ecosystem tools have no Windows meaning."),
