@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-188 of 197 ported cases pass.
+189 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -200,7 +200,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | drag | dragLifecycleSignals | not ported | The case checks the signals of the drag controller inside the compositor through the test plugin, which the core has no counterpart for. |
 | drag | dragThresholdSurvivesScrollEvents | passes | |
 | snap | snap | passes | |
-| focus | errorBarReservationFollowsFocusedMonitor | differs | seterror is not a request. |
+| focus | errorBarReservationFollowsFocusedMonitor | passes | |
 | focus | crossMonitorFullscreenFocus | passes | |
 | focus | silentMoveLastTiledWindowUnfocusesWindow | passes | |
 | focus | crossMonitorEmptyWorkspaceUnfocusesWindow | passes | |

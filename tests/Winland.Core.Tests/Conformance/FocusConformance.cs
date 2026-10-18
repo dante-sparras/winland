@@ -7,7 +7,7 @@ public class FocusConformance
     // The reference's text reply says Invalid when no window is active. The JSON reply is an empty object.
     private const string NoWindow = "{}";
 
-    [Fact(Skip = "seterror is not a request.")]
+    [Fact]
     public void ErrorBarReservationFollowsFocusedMonitor()
     {
         const string TestOutput = "HYPRTEST-ERROR-BAR";

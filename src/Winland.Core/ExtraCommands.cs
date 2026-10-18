@@ -74,6 +74,12 @@ public static class ExtraCommands
             return true;
         }
 
+        if (Is(verb, "seterror"))
+        {
+            parse = Parsed(new SetErrorRequest(rest), flags);
+            return true;
+        }
+
         if (Is(verb, "notify"))
         {
             parse = Parsed(new NotifyRequest(), flags);
@@ -381,6 +387,9 @@ public sealed record KeywordRequest(string Name, string Value) : CommandRequest;
 public sealed record NotifyRequest : CommandRequest;
 
 public sealed record DismissNotifyRequest : CommandRequest;
+
+/// <summary><c>seterror COLOR MESSAGE</c>, or <c>seterror disable</c>.</summary>
+public sealed record SetErrorRequest(string Arguments) : CommandRequest;
 
 public sealed record GetPropRequest(string Selector, string Property) : CommandRequest;
 

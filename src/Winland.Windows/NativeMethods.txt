@@ -140,7 +140,8 @@ SelectObject
 GetDC
 ReleaseDC
 UpdateLayeredWindow
-CreateFont
+CreateFontIndirect
+LOGFONTW
 SetTextColor
 SetBkMode
 DrawText

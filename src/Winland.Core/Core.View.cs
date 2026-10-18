@@ -8,6 +8,11 @@ public sealed partial class Core
         if (refit.Count > 0 || tagsChanged)
             outcome = outcome with { Placements = Union(outcome.Placements, refit, outcome.State), State = Snapshot() };
 
+        var moved = PlaceErrorBar(out var errorBar);
+        if (moved.Count > 0)
+            outcome = outcome with { Placements = Union(outcome.Placements, moved, outcome.State), State = Snapshot() };
+
+        outcome = outcome with { ErrorBar = errorBar };
         var restack = SyncFullscreenHiding();
         outcome = outcome with { State = WithHiding(outcome.State) };
         if (restack.Count > 0)

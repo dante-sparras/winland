@@ -136,6 +136,42 @@ public class ExtraCommandTests
     }
 
     [Fact]
+    public void SetErrorShowsTheBarOnTheFocusedMonitorAndKeepsItsHeightOutOfTheWorkArea()
+    {
+        var core = new Core();
+        var work = new Rectangle(0, 0, 1920, 1080);
+        core.Handle(new MonitorsChanged([new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, work)]));
+        core.Handle(new WindowAppeared(new WindowId(1), work));
+
+        var shown = core.Execute("seterror rgb(ff0000) something broke");
+        var tile = Assert.Single(shown.Effect.State.Clients).Bounds;
+
+        Assert.Equal("ok", shown.Text);
+        Assert.NotNull(shown.Effect.ErrorBar);
+        Assert.Equal("something broke", shown.Effect.ErrorBar!.Text);
+        Assert.Equal(new BorderColor(0xFF, 0xFF, 0x00, 0x00), shown.Effect.ErrorBar.Color);
+        Assert.True(tile.Y >= shown.Effect.ErrorBar.Bounds.Y + shown.Effect.ErrorBar.Bounds.Height);
+
+        var gone = core.Execute("seterror disable");
+
+        Assert.Equal("ok", gone.Text);
+        Assert.Null(gone.Effect.ErrorBar);
+        Assert.Equal("var 1 not color or disable", core.Execute("seterror red").Text);
+    }
+
+    [Fact]
+    public void ALongErrorShowsItsFirstFiveLines()
+    {
+        var core = new Core();
+        var work = new Rectangle(0, 0, 1920, 1080);
+        core.Handle(new MonitorsChanged([new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, work)]));
+
+        var shown = core.Execute("seterror rgb(ff0000) 1\n2\n3\n4\n5\n6\n7");
+
+        Assert.Equal("1\n2\n3\n4\n5\n(2 more...)", shown.Effect.ErrorBar!.Text);
+    }
+
+    [Fact]
     public void GapsReturnErrorsAndPropsCanBeReadAndSet()
     {
         var core = new Core();
