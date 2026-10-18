@@ -12,6 +12,7 @@ namespace Winland.Windows;
 public sealed class MouseHook : IDisposable
 {
     private const uint MoveMessage = 0x0200;
+    private const ulong PenSignature = 0xFF515700;
     private const uint LeftDown = 0x0201;
     private const uint LeftUp = 0x0202;
     private const uint RightDown = 0x0204;
@@ -107,7 +108,7 @@ public sealed class MouseHook : IDisposable
             var position = new Point(info.pt.X, info.pt.Y);
             var message = (uint)wParam.Value;
             if (message == MoveMessage)
-                return OnMove(code, wParam, lParam, position, info.time);
+                return OnMove(code, wParam, lParam, position, info.time, FromMouse(info));
 
             if (TryButton(message, info.mouseData, out var button, out var up))
             {
@@ -127,8 +128,25 @@ public sealed class MouseHook : IDisposable
         return Next(code, wParam, lParam);
     }
 
-    private LRESULT OnMove(int code, WPARAM wParam, LPARAM lParam, Point position, uint time)
+    // A move Windows made from touch or a pen carries the pen signature, and one another program sent is injected.
+    private static bool FromMouse(MSLLHOOKSTRUCT info) =>
+        (info.flags & 0x1) == 0 && ((ulong)info.dwExtraInfo & 0xFFFFFF00) != PenSignature;
+
+    private LRESULT OnMove(int code, WPARAM wParam, LPARAM lParam, Point position, uint time, bool mouse)
     {
+        var redirected = false;
+        if (!mouse)
+        {
+            SessionEffects.NoteNonMouse();
+        }
+        else if (PInvoke.GetCursorPos(out var from) && SessionEffects.MouseMoved(new Point(from.X, from.Y), position) is Point back)
+        {
+            // cursor:warp_back_after_non_mouse_input: the move starts where the mouse left the cursor instead.
+            _ = PInvoke.SetCursorPos(back.X, back.Y);
+            position = PInvoke.GetCursorPos(out var landed) ? new Point(landed.X, landed.Y) : back;
+            redirected = true;
+        }
+
         _ = _core.Decide(new PointerMoved(position), _keys.Session);
         SessionEffects.NoteMove(position);
         if (_drag.Current is MouseDrag.Active drag)
@@ -136,7 +154,7 @@ public sealed class MouseHook : IDisposable
         else
             _keys.PostMove(position, time);
 
-        return Next(code, wParam, lParam);
+        return redirected ? new LRESULT(1) : Next(code, wParam, lParam);
     }
 
     private bool OnButton(string button, bool up, Point position)

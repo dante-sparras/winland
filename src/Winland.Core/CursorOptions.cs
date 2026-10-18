@@ -9,6 +9,9 @@ public sealed record CursorBehavior(bool HideOnKeyPress, double InactiveTimeoutS
 
     /// <summary><c>cursor:invisible</c>: the cursor is never shown.</summary>
     public bool Invisible { get; init; }
+
+    /// <summary><c>cursor:warp_back_after_non_mouse_input</c>: a mouse move after another input moved the cursor starts where the mouse left it.</summary>
+    public bool WarpBackAfterNonMouseInput { get; init; }
 }
 
 /// <summary>
@@ -39,6 +42,8 @@ public sealed record CursorOptions
 
     public bool Invisible { get; init; }
 
+    public bool WarpBackAfterNonMouseInput { get; init; }
+
     public string DefaultMonitor { get; init; } = "";
 
     public double ZoomFactor { get; init; } = 1;
@@ -55,6 +60,7 @@ public sealed record CursorOptions
     {
         Zoom = new CursorZoom(ZoomFactor, ZoomRigid, ZoomDetachedCamera),
         Invisible = Invisible,
+        WarpBackAfterNonMouseInput = WarpBackAfterNonMouseInput,
     };
 
     private static readonly Dictionary<string, int> WorkspaceModes = new(StringComparer.OrdinalIgnoreCase)
@@ -80,6 +86,7 @@ public sealed record CursorOptions
         ["cursor:no_warps"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var noWarps) ? options with { NoWarps = noWarps } : options,
         ["cursor:persistent_warps"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var persistent) ? options with { PersistentWarps = persistent } : options,
         ["cursor:inactive_timeout"] = (options, value) => TryTimeout(value, out var seconds) ? options with { InactiveTimeoutSeconds = seconds } : options,
+        ["cursor:warp_back_after_non_mouse_input"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var back) ? options with { WarpBackAfterNonMouseInput = back } : options,
         ["cursor:invisible"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var invisible) ? options with { Invisible = invisible } : options,
         ["cursor:hide_on_key_press"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var hide) ? options with { HideOnKeyPress = hide } : options,
         ["cursor:default_monitor"] = (options, value) => options with { DefaultMonitor = value.Trim() },
