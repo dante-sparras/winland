@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-191 of 197 ported cases pass.
+193 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -186,8 +186,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | monocle | monocleFullscreenPinnedWindows | passes | |
 | monocle | monocleFullscreenNonInterference | passes | |
 | layout | single_window_aspect_ratio | passes | |
-| layout | crashOnGeomUpdate | differs | The monitor keyword refuses a mode and a scale, which are Gaps. |
-| layout | layoutRefreshDuringMonitorTeardown | differs | The monitor keyword refuses a mode and a scale, which are Gaps. |
+| layout | crashOnGeomUpdate | passes | |
+| layout | layoutRefreshDuringMonitorTeardown | passes | |
 | layout | posPreserve | passes | |
 | layout | focusMRUAfterClose | passes | |
 | layout | focusPreservedLayoutChange | passes | |

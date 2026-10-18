@@ -58,6 +58,10 @@ public sealed partial class WindowAdapter : IDisposable
     /// <summary>Commits a display rotation. Tests replace it so no real display turns.</summary>
     internal static Func<DisplayOrientationRequest, bool> Rotate = DisplayOrientationAdapter.TryApplyToSystem;
 
+    internal static Func<DisplayModeRequest, bool> ChangeMode = DisplayModeAdapter.TryApplyToSystem;
+
+    internal static Func<DisplayScaleRequest, bool> ChangeScale = DisplayModeAdapter.TryApplyScaleToSystem;
+
     private const long SettleMilliseconds = 1500;
 
     // Windows whose maximize request was just answered, and when they stop being watched for drifting off their tile.
@@ -722,6 +726,12 @@ public sealed partial class WindowAdapter : IDisposable
         // A rotation that matches the display commits nothing, so the display change it causes does not loop.
         foreach (var orientation in outcome.Orientations)
             Rotate(orientation);
+
+        foreach (var mode in outcome.DisplayModes)
+            ChangeMode(mode);
+
+        foreach (var scale in outcome.DisplayScales)
+            ChangeScale(scale);
 
         if (outcome.Exit)
             SessionHalt.Request();

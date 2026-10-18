@@ -220,7 +220,7 @@ public class MonitorTests
     }
 
     [Fact]
-    public void AnExplicitScaleInTheRuleDoesNotReplaceTheMonitorScale()
+    public void ARuleAsksForItsModeAndScaleAndKeepsTheScaleWindowsShows()
     {
         var document = ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, 1920x1080@60, 30x40, 1.5
@@ -228,12 +228,7 @@ public class MonitorTests
             general:gaps_out = 10
             general:border_size = 0
             """);
-        Assert.Equal(
-            [
-                new ConfigWarning(1, "Changing a monitor's resolution and refresh rate is not honored."),
-                new ConfigWarning(1, "Changing a monitor's scale is not honored."),
-            ],
-            document.Warnings);
+        Assert.Empty(document.Warnings);
 
         var core = new Core();
         core.Handle(new Configure(document));
@@ -241,6 +236,8 @@ public class MonitorTests
         var listed = core.Handle(new MonitorsChanged([display]));
         var placed = core.Handle(new WindowAppeared(new WindowId(1), display.WorkArea));
 
+        Assert.Equal([new DisplayModeRequest(@"\\.\DISPLAY1", "1920x1080@60")], listed.DisplayModes);
+        Assert.Equal([new DisplayScaleRequest(@"\\.\DISPLAY1", 1.5)], listed.DisplayScales);
         var monitor = Assert.Single(listed.State.Monitors);
         Assert.Equal(2, monitor.Scale);
         Assert.Equal(60, monitor.X);

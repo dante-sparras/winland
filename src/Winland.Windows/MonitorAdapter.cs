@@ -84,6 +84,27 @@ public static class MonitorAdapter
         return panels;
     }
 
+    /// <summary>The display-config source of a display, by its device name.</summary>
+    internal static bool TrySource(string device, out LUID adapter, out uint source)
+    {
+        adapter = default;
+        source = 0;
+        if (!TryPaths(out var paths))
+            return false;
+
+        foreach (var path in paths)
+        {
+            if (!string.Equals(SourceName(path), device, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            adapter = path.sourceInfo.adapterId;
+            source = path.sourceInfo.id;
+            return true;
+        }
+
+        return false;
+    }
+
     private static bool TryPaths(out DISPLAYCONFIG_PATH_INFO[] paths)
     {
         paths = [];
