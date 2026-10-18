@@ -18,6 +18,8 @@ public sealed record InputOriginals
 
     public int? WheelLines { get; init; }
 
+    public TouchpadSettings? Touchpad { get; init; }
+
     public bool Any =>
         KeyboardDelay is not null
         || KeyboardSpeed is not null
@@ -25,5 +27,6 @@ public sealed record InputOriginals
         || SwappedButtons is not null
         || MouseCurve is not null
         || MouseSpeed is not null
-        || WheelLines is not null;
+        || WheelLines is not null
+        || Touchpad is not null;
 }

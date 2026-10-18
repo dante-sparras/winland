@@ -128,7 +128,8 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
         [property: JsonPropertyName("swappedButtons")] bool? SwappedButtons,
         [property: JsonPropertyName("mouse")] MouseBody? Mouse,
         [property: JsonPropertyName("mouseSpeed")] int? MouseSpeed,
-        [property: JsonPropertyName("wheelLines")] int? WheelLines)
+        [property: JsonPropertyName("wheelLines")] int? WheelLines,
+        [property: JsonPropertyName("touchpad")] TouchpadBody? Touchpad = null)
     {
         public static InputBody? From(InputOriginals? originals)
         {
@@ -145,7 +146,10 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 saved.SwappedButtons,
                 mouse,
                 saved.MouseSpeed,
-                saved.WheelLines);
+                saved.WheelLines,
+                saved.Touchpad is TouchpadSettings pad
+                    ? new TouchpadBody(pad.Tap, pad.TapAndDrag, pad.ReverseScroll, pad.Sensitivity, pad.RightClickZone)
+                    : null);
         }
 
         public InputOriginals ToOriginals() => new()
@@ -159,8 +163,18 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 : null,
             MouseSpeed = MouseSpeed,
             WheelLines = WheelLines,
+            Touchpad = Touchpad is TouchpadBody pad
+                ? new TouchpadSettings(pad.Tap, pad.TapAndDrag, pad.ReverseScroll, pad.Sensitivity, pad.RightClickZone)
+                : null,
         };
     }
+
+    private sealed record TouchpadBody(
+        [property: JsonPropertyName("tap")] bool? Tap,
+        [property: JsonPropertyName("tapAndDrag")] bool? TapAndDrag,
+        [property: JsonPropertyName("reverseScroll")] bool? ReverseScroll,
+        [property: JsonPropertyName("sensitivity")] int? Sensitivity,
+        [property: JsonPropertyName("rightClickZone")] bool? RightClickZone);
 
     private sealed record MouseBody(
         [property: JsonPropertyName("threshold1")] int Threshold1,

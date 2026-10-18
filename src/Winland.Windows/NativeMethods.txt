@@ -164,3 +164,4 @@ GetStockObject
 GetKeyboardLayoutList
 LoadKeyboardLayout
 UnloadKeyboardLayout
+TOUCHPAD_PARAMETERS_V1

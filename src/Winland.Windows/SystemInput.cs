@@ -33,6 +33,12 @@ public interface ISystemInput
     bool TryReadWheelLines(out int lines);
 
     void WriteWheelLines(int lines);
+
+    /// <summary>Reads every touchpad setting. False when Windows does not report them.</summary>
+    bool TryReadTouchpad(out TouchpadSettings settings);
+
+    /// <summary>Writes the touchpad settings that are not null and leaves the others.</summary>
+    void WriteTouchpad(TouchpadSettings settings);
 }
 
 /// <summary>
@@ -76,6 +82,7 @@ public sealed class SystemInputSession
             SyncCurve(request.Acceleration);
             SyncMouseSpeed(request.MouseSpeed);
             SyncWheel(request.WheelLines);
+            SyncTouchpad(request.Touchpad);
             _applied = request;
         }
     }
@@ -115,7 +122,8 @@ public sealed class SystemInputSession
         && (request.SwapButtons is null || _originals.SwappedButtons is not null)
         && (request.Acceleration is null || _originals.MouseCurve is not null)
         && (request.MouseSpeed is null || _originals.MouseSpeed is not null)
-        && (request.WheelLines is null || _originals.WheelLines is not null);
+        && (request.WheelLines is null || _originals.WheelLines is not null)
+        && (request.Touchpad is null || _originals.Touchpad is not null);
 
     private void RestoreLocked()
     {
@@ -140,6 +148,34 @@ public sealed class SystemInputSession
             _input.WriteMouseSpeed(mouse);
         if (saved.WheelLines is int lines)
             _input.WriteWheelLines(lines);
+        if (saved.Touchpad is TouchpadSettings touchpad)
+            _input.WriteTouchpad(touchpad);
+    }
+
+    private void SyncTouchpad(TouchpadSettings? desired)
+    {
+        if (desired is TouchpadSettings settings)
+        {
+            var fresh = false;
+            if (_originals.Touchpad is null)
+            {
+                if (!_input.TryReadTouchpad(out var original))
+                    return;
+
+                _originals = _originals with { Touchpad = original };
+                fresh = true;
+            }
+
+            if (fresh || _applied?.Touchpad != settings)
+                _input.WriteTouchpad(settings);
+            return;
+        }
+
+        if (_originals.Touchpad is TouchpadSettings remembered)
+        {
+            _input.WriteTouchpad(remembered);
+            _originals = _originals with { Touchpad = null };
+        }
     }
 
     private void SyncKeyboardDelay(int? desired)
@@ -342,7 +378,76 @@ internal sealed class Win32SystemInput : ISystemInput
         SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS.SPIF_UPDATEINIFILE
         | SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS.SPIF_SENDCHANGE;
 
+    private const uint GetTouchpad = 0x00AE;
+    private const uint SetTouchpad = 0x00AF;
+
     public bool TryReadKeyboardDelay(out int delay) => TryRead(SYSTEM_PARAMETERS_INFO_ACTION.SPI_GETKEYBOARDDELAY, out delay);
+
+    public unsafe bool TryReadTouchpad(out TouchpadSettings settings)
+    {
+        settings = default;
+        if (!TryReadTouchpadParameters(out var parameters))
+            return false;
+
+        settings = new TouchpadSettings(
+            parameters.Has(TouchpadParameters.Tap),
+            parameters.Has(TouchpadParameters.TapAndDrag),
+            parameters.Has(TouchpadParameters.ReverseScroll),
+            parameters.Sensitivity,
+            parameters.Has(TouchpadParameters.RightClickZone));
+        return true;
+    }
+
+    public unsafe void WriteTouchpad(TouchpadSettings settings)
+    {
+        if (!TryReadTouchpadParameters(out var parameters))
+            return;
+
+        parameters.Set(TouchpadParameters.Tap, settings.Tap);
+        parameters.Set(TouchpadParameters.TapAndDrag, settings.TapAndDrag);
+        parameters.Set(TouchpadParameters.ReverseScroll, settings.ReverseScroll);
+        parameters.Set(TouchpadParameters.RightClickZone, settings.RightClickZone);
+        if (settings.Sensitivity is int sensitivity)
+            parameters.Sensitivity = sensitivity;
+
+        _ = PInvoke.SystemParametersInfo((SYSTEM_PARAMETERS_INFO_ACTION)SetTouchpad, (uint)sizeof(TouchpadParameters), &parameters, Update);
+    }
+
+    private static unsafe bool TryReadTouchpadParameters(out TouchpadParameters parameters)
+    {
+        parameters = new TouchpadParameters { Version = 1 };
+        fixed (TouchpadParameters* pointer = &parameters)
+            return PInvoke.SystemParametersInfo((SYSTEM_PARAMETERS_INFO_ACTION)GetTouchpad, (uint)sizeof(TouchpadParameters), pointer, 0);
+    }
+
+    // TOUCHPAD_PARAMETERS version 1. Its second set of bit fields holds the settings Winland changes.
+    private struct TouchpadParameters
+    {
+        public const uint Tap = 1 << 2;
+        public const uint TapAndDrag = 1 << 3;
+        public const uint RightClickZone = 1 << 5;
+        public const uint ReverseScroll = 1 << 9;
+
+        public uint Version;
+        public uint MaxContacts;
+        public int LegacyFeatures;
+        public uint Present;
+        public uint Settings;
+        public int Sensitivity;
+        public uint CursorSpeed;
+        public uint FeedbackIntensity;
+        public uint ClickForceSensitivity;
+        public uint RightClickZoneWidth;
+        public uint RightClickZoneHeight;
+
+        public readonly bool Has(uint bit) => (Settings & bit) != 0;
+
+        public void Set(uint bit, bool? on)
+        {
+            if (on is bool value)
+                Settings = value ? Settings | bit : Settings & ~bit;
+        }
+    }
 
     public void WriteKeyboardDelay(int delay) => Write(SYSTEM_PARAMETERS_INFO_ACTION.SPI_SETKEYBOARDDELAY, (uint)delay);
 

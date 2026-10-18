@@ -288,6 +288,23 @@ public class SystemInputSessionTests
         Assert.Throws<ArgumentNullException>(() => session.RestoreSaved(null!));
     }
 
+    [Fact]
+    public void TouchpadSettingsAreSetAndPutBack()
+    {
+        var input = new FakeInput();
+        var session = new SystemInputSession(input);
+
+        session.Apply(new InputSettingsRequest { Touchpad = new TouchpadSettings(false, null, true, 0, null) });
+        Assert.Equal(new TouchpadSettings(false, true, true, 0, true), input.Touchpad);
+        Assert.Equal(new TouchpadSettings(true, true, false, 2, true), session.Originals?.Touchpad);
+
+        session.Apply(new InputSettingsRequest { Touchpad = new TouchpadSettings(false, null, true, 0, null) });
+        Assert.Equal(1, input.TouchpadWrites);
+
+        session.Restore();
+        Assert.Equal(new TouchpadSettings(true, true, false, 2, true), input.Touchpad);
+    }
+
     private sealed class FakeInput : ISystemInput
     {
         public int KeyboardDelay { get; set; } = 2;
@@ -390,6 +407,27 @@ public class SystemInputSessionTests
         {
             Writes.WheelLines++;
             WheelLines = lines;
+        }
+
+        public TouchpadSettings Touchpad { get; set; } = new(true, true, false, 2, true);
+
+        public int TouchpadWrites { get; private set; }
+
+        public bool TryReadTouchpad(out TouchpadSettings settings)
+        {
+            settings = Touchpad;
+            return !Failing.Contains(nameof(Touchpad));
+        }
+
+        public void WriteTouchpad(TouchpadSettings settings)
+        {
+            TouchpadWrites++;
+            Touchpad = new TouchpadSettings(
+                settings.Tap ?? Touchpad.Tap,
+                settings.TapAndDrag ?? Touchpad.TapAndDrag,
+                settings.ReverseScroll ?? Touchpad.ReverseScroll,
+                settings.Sensitivity ?? Touchpad.Sensitivity,
+                settings.RightClickZone ?? Touchpad.RightClickZone);
         }
 
         public static readonly string[] Fields =
