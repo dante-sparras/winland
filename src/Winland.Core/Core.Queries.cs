@@ -65,7 +65,7 @@ public sealed partial class Core
         AnimationsRequest animations => new CommandReply(_animations.Describe(animations.Flags.HasFlag(CommandFlags.Json)), View([])),
         SubmapRequest submap => new CommandReply(ExtraCommands.FormatSubmap(_keyState.Submap, submap.Flags.HasFlag(CommandFlags.Json)), View([])),
         ClickKillRequest => ArmClickKill(),
-        RollingLogRequest => new CommandReply("error: rolling log is not supported", View([])),
+        RollingLogRequest log => new CommandReply(ExtraCommands.FormatRollingLog(RollingLog.Read(), log.Flags.HasFlag(CommandFlags.Json)), View([])),
         NotifyRequest notify => Notify(notify),
         DismissNotifyRequest dismiss => DismissNotify(dismiss),
         KeywordRequest keyword => ApplyKeyword(keyword),
