@@ -4,7 +4,9 @@
 #   pwsh -NoProfile -File scripts/check.ps1 -Ref <sha> -Test   also runs scripts/test.ps1 on that commit
 param(
     [string]$Ref,
-    [switch]$Test
+    [switch]$Test,
+    # CI passes this when nothing that compiles scripts/fetch-reference.cs changed.
+    [switch]$SkipReference
 )
 
 $ErrorActionPreference = 'Stop'
@@ -189,14 +191,14 @@ try {
     }
 
     # scripts/fetch-reference.cs is a file-based app that no solution builds. Compile it here,
-    # without running it, so it stays under the repo's compiler rules. It builds in a job of its
-    # own beside the solution build below, which has no project in common with it.
-    $reference = Join-Path $root 'scripts/fetch-reference.cs'
-    $referenceBuild = Start-Job -ScriptBlock {
-        param($path)
-        $output = dotnet build $path --configuration Release --nologo 2>&1 | Out-String
-        [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $output }
-    } -ArgumentList $reference
+    # without running it, so it stays under the repo's compiler rules.
+    if ($SkipReference) {
+        Write-Output 'scripts/fetch-reference.cs is not built: nothing it compiles from changed.'
+    } else {
+        Write-Output 'dotnet build scripts/fetch-reference.cs'
+        dotnet build (Join-Path $root 'scripts/fetch-reference.cs') --configuration Release --nologo
+        if ($LASTEXITCODE -ne 0) { $failed = 1 }
+    }
     if ((Test-MarkdownLinks $root $tracked) -gt 0) { $failed = 1 }
 
     $solutions = @()
@@ -212,11 +214,6 @@ try {
         dotnet build $solution.FullName --configuration Release --nologo
         if ($LASTEXITCODE -ne 0) { $failed = 1 }
     }
-
-    $built = Receive-Job -Job $referenceBuild -Wait -AutoRemoveJob
-    Write-Output 'dotnet build scripts/fetch-reference.cs'
-    Write-Output $built.Output.TrimEnd()
-    if ($built.ExitCode -ne 0) { $failed = 1 }
 
     # The tests run from the checked commit's own scripts/test.ps1. A failed lint skips them.
     if ($Test -and $failed -eq 0) {

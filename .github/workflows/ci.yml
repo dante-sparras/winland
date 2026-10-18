@@ -103,9 +103,45 @@ jobs:
             exit 1
           }
           exit 0
+      # Tests run unless the pull request only changes docs and repo metadata.
+      # Any other changed file turns them on, so a new kind of file is tested by default.
+      # An empty diff turns them off. --no-renames lists the old path of a rename too,
+      # so moving a code file into docs/ still counts as a code change.
+      # Manual and release runs fail open so a bad classification cannot weaken a release.
+      - name: Classify the diff
+        id: classify
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_SHA: ${{ inputs.ref || github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if ($env:EVENT_NAME -ne 'pull_request') {
+            "test=true" >> $env:GITHUB_OUTPUT
+            "reference=true" >> $env:GITHUB_OUTPUT
+            Write-Output 'test lane: true (fail open)'
+            exit 0
+          }
+          $files = @(git diff --name-only --no-renames "origin/$($env:BASE_REF)...$($env:HEAD_SHA)")
+          if ($LASTEXITCODE -ne 0) { throw "git diff failed with $LASTEXITCODE" }
+          $docs = '^(.*\.md|docs/.*|\.github/ISSUE_TEMPLATE/.*|\.github/PULL_REQUEST_TEMPLATE\.md|\.github/CODEOWNERS|\.github/rulesets/.*|\.gitignore|\.gitattributes|LICENSE.*)$'
+          $code = @($files | Where-Object { $_ -and $_ -cnotmatch $docs })
+          $test = if ($code.Count -gt 0) { 'true' } else { 'false' }
+          "test=$test" >> $env:GITHUB_OUTPUT
+          Write-Output "test lane: $test"
+          # scripts/fetch-reference.cs is a developer script nothing else uses. It is built only when it,
+          # or something it compiles from, changed.
+          $inputs = '^(scripts/fetch-reference\.cs|global\.json|nuget\.config|\.editorconfig|Directory\.(Build|Packages)\.(props|targets))$'
+          $reference = if (@($files | Where-Object { $_ -cmatch $inputs }).Count -gt 0) { 'true' } else { 'false' }
+          "reference=$reference" >> $env:GITHUB_OUTPUT
+          Write-Output "reference script build: $reference"
       - name: Run lint
         shell: pwsh
-        run: ./scripts/check.ps1
+        env:
+          SKIP_REFERENCE: ${{ steps.classify.outputs.reference != 'true' }}
+        run: |
+          if ($env:SKIP_REFERENCE -eq 'true') { ./scripts/check.ps1 -SkipReference } else { ./scripts/check.ps1 }
+          exit $LASTEXITCODE
       # actionlint is pinned by version and SHA-256. To upgrade, take both from the
       # release's actionlint_<version>_checksums.txt (windows_amd64 zip).
       - name: Lint the workflows
@@ -127,31 +163,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "actionlint reported problems (exit code $LASTEXITCODE)."
           }
-      # Tests run unless the pull request only changes docs and repo metadata.
-      # Any other changed file turns them on, so a new kind of file is tested by default.
-      # An empty diff turns them off. --no-renames lists the old path of a rename too,
-      # so moving a code file into docs/ still counts as a code change.
-      # Manual and release runs fail open so a bad classification cannot weaken a release.
-      - name: Classify the diff
-        id: classify
-        shell: pwsh
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          BASE_REF: ${{ github.base_ref }}
-          HEAD_SHA: ${{ inputs.ref || github.event.pull_request.head.sha || github.sha }}
-        run: |
-          if ($env:EVENT_NAME -ne 'pull_request') {
-            "test=true" >> $env:GITHUB_OUTPUT
-            Write-Output 'test lane: true (fail open)'
-            exit 0
-          }
-          $files = @(git diff --name-only --no-renames "origin/$($env:BASE_REF)...$($env:HEAD_SHA)")
-          if ($LASTEXITCODE -ne 0) { throw "git diff failed with $LASTEXITCODE" }
-          $docs = '^(.*\.md|docs/.*|\.github/ISSUE_TEMPLATE/.*|\.github/PULL_REQUEST_TEMPLATE\.md|\.github/CODEOWNERS|\.github/rulesets/.*|\.gitignore|\.gitattributes|LICENSE.*)$'
-          $code = @($files | Where-Object { $_ -and $_ -cnotmatch $docs })
-          $test = if ($code.Count -gt 0) { 'true' } else { 'false' }
-          "test=$test" >> $env:GITHUB_OUTPUT
-          Write-Output "test lane: $test"
       # The lint step built the solution in Release, so the tests run on that build, side by side.
       - name: Run tests
         if: steps.classify.outputs.test == 'true'

@@ -85,7 +85,7 @@ Every lane except Mutation is a step in that one Windows job, because each job p
 | Lane | What it does | When it runs |
 | --- | --- | --- |
 | History | Fails when the branch shares no commit with `main`. Merging such a branch would add a second root commit to `main` and break `git blame`. | Always. |
-| Lint | Parses the PowerShell, rejects file or folder names that differ only by case, builds the solution at the repo root if there is one, and runs `actionlint` on `.github/workflows/*.yml`. | Always. |
+| Lint | Parses the PowerShell, rejects file or folder names that differ only by case, builds the solution at the repo root if there is one, builds `scripts/fetch-reference.cs`, and runs `actionlint` on `.github/workflows/*.yml`. On a pull request, `fetch-reference.cs` is built only when it, `global.json`, `nuget.config`, `.editorconfig` or a `Directory.*` props or targets file changed. | Always. |
 | Test | Runs `dotnet test` on each `*.Tests.csproj` under `tests/`, except `*.Smoke.Tests.csproj`. | On manual and release runs. On a pull request, unless every changed file is documentation or repo metadata: `*.md`, `docs/`, `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/CODEOWNERS`, `.github/rulesets/`, `.gitignore`, `.gitattributes`, or `LICENSE*`. Any other change, including one to a workflow or a script, runs it. |
 | Mutation | Mutation testing, one job per mutation run, then a score gate (see [Mutation testing](#mutation-testing)). It is the slow lane, and its jobs run beside the others. | Only on a release run: CI dispatched with **Release run** turned on, or called by a release workflow. |
 
