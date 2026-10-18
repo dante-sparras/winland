@@ -8,6 +8,7 @@ namespace Winland.Windows;
 public static class SessionEffects
 {
     private static readonly CursorIdle Idle = new(NullCursor.Instance, new SystemClock());
+    private static readonly WarpBack Back = new();
     private static SystemInputSession? _session;
     private static CursorIdleTimer? _timer;
     private static IKeyRelaySender? _relay;
@@ -34,6 +35,7 @@ public static class SessionEffects
         if (outcome.Cursor is CursorBehavior behavior)
         {
             Idle.Configure(behavior);
+            Back.Configure(behavior.WarpBackAfterNonMouseInput);
             if (Volatile.Read(ref _installed) != 0)
                 Magnifier.Configure(behavior.Zoom);
         }
@@ -41,6 +43,7 @@ public static class SessionEffects
         if (outcome.Warp is WarpTo warp)
         {
             Idle.Warp(warp.Position);
+            Back.NonMouse();
             Magnifier.Moved(warp.Position);
         }
 
@@ -63,6 +66,7 @@ public static class SessionEffects
         if (outcome.Warp is WarpTo warp)
         {
             Idle.Warp(warp.Position);
+            Back.NonMouse();
             Magnifier.Moved(warp.Position);
         }
 
@@ -85,6 +89,12 @@ public static class SessionEffects
     }
 
     public static void NoteKey() => Idle.KeyPressed();
+
+    /// <summary>Something other than the mouse moved the cursor: touch, a pen, or a move another program injected.</summary>
+    public static void NoteNonMouse() => Back.NonMouse();
+
+    /// <summary>The mouse moves the cursor. Returns where it goes instead, with <c>cursor:warp_back_after_non_mouse_input</c>.</summary>
+    public static Point? MouseMoved(Point from, Point to) => Back.Mouse(from, to);
 
     public static void Restore()
     {
