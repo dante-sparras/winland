@@ -63,11 +63,14 @@ public sealed record WindowDrifted(WindowId Window, Rectangle Bounds) : Event;
 /// <summary>The system began resizing a window by its border. <see cref="Pointer"/> is where the pointer is.</summary>
 public sealed record WindowSizeStarted(WindowId Window, Point Pointer) : Event;
 
-/// <summary>The system finished resizing a window by its border.</summary>
-public sealed record WindowSizeEnded(WindowId Window, Point Pointer) : Event;
+/// <summary>The system finished resizing a window by its border. <see cref="Bounds"/> is the visible frame it was left at.</summary>
+public sealed record WindowSizeEnded(WindowId Window, Point Pointer, Rectangle? Bounds = null) : Event;
 
-/// <summary>The border of a window the system is resizing moved. <see cref="Pointer"/> is where the pointer is.</summary>
-public sealed record WindowSizing(WindowId Window, Point Pointer) : Event;
+/// <summary>
+/// The border of a window the system is resizing moved. <see cref="Pointer"/> is where the pointer is, and
+/// <see cref="Bounds"/> the visible frame now.
+/// </summary>
+public sealed record WindowSizing(WindowId Window, Point Pointer, Rectangle? Bounds = null) : Event;
 
 /// <summary>An application asked to be maximized, or to leave it. That is maximize mode 1, toggled.</summary>
 public sealed record WindowMaximizeRequested(WindowId Window) : Event;

@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-181 of 197 ported cases pass.
+182 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -261,7 +261,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | clients/xdg-activation | xdgActivationSerial | differs | With misc:focus_on_activate a window that takes the foreground keeps it, without the fresh input serial the pinned release requires. |
 | clients/xdg-initial-maximize | xdgMaximizeBeforeInitialCommitIsIgnored | passes | |
 | clients/xdg-initial-maximize | xdgMaximizeBeforeMapIsIgnored | passes | |
-| clients/xdg-interactive | xdgInteractive | differs | A floating Client the system moves or resizes keeps its old frame in activewindow. |
+| clients/xdg-interactive | xdgInteractive | passes | |
 | misc/plugin | plugin | passes | |
 | misc/plugin | pluginVkb | not ported | Windows merges every keyboard into one key state and does not tell Winland which device a key came from. |
 | exec | processSpawning | passes | |

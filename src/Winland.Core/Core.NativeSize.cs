@@ -4,7 +4,8 @@ namespace Winland;
 /// A Client the system resizes by its border. The pinned release treats the resize request of a client like a
 /// <c>resizewindow</c> drag, so a tiled Client changes its split, live, while the border is held. The system
 /// resizes the window itself, so the core never places that window in between: its neighbours follow the
-/// border, and the window gets the Layout's rectangle when the border is let go.
+/// border, and the window gets the Layout's rectangle when the border is let go. A floating Client keeps the
+/// frame the system gives it.
 /// </summary>
 public sealed partial class Core
 {
@@ -17,10 +18,12 @@ public sealed partial class Core
 
         var window = started.Window;
         if (WorkspaceContaining(window) is not LiveWorkspace desk
-            || desk.ClientOf(window) is not { Floating: false, Minimized: false })
+            || desk.ClientOf(window) is not { Minimized: false } client)
             return View([]);
 
         _nativeSize = window;
+        if (client.Floating)
+            return BeginNativeFloating(desk, client);
         _ = desk.Layout.Drag(window, new PointerDrag(true, PointerDragPhase.Begin, started.Pointer));
         return View([]);
     }
@@ -29,6 +32,9 @@ public sealed partial class Core
     {
         if (_nativeSize != sizing.Window)
             return View([]);
+
+        if (_nativeFloating)
+            return FollowNativeFloating(sizing.Window, sizing.Bounds, done: false) with { Live = true };
 
         var resized = LayoutWorkspace(sizing.Window).Layout.Drag(sizing.Window, new PointerDrag(true, PointerDragPhase.Move, sizing.Pointer));
         var self = new ClientId(sizing.Window.Value);
@@ -42,6 +48,9 @@ public sealed partial class Core
             return View([]);
 
         _nativeSize = null;
+        if (_nativeFloating)
+            return EndNativeFloating(ended.Window, ended.Bounds);
+
         var layout = LayoutWorkspace(ended.Window).Layout;
         var covering = layout.Visible();
         var resized = layout.Drag(ended.Window, new PointerDrag(true, PointerDragPhase.Move, ended.Pointer));
