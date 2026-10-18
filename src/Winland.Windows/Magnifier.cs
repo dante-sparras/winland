@@ -5,17 +5,20 @@ using Windows.Win32.Graphics.Gdi;
 namespace Winland.Windows;
 
 /// <summary>
-/// Draws the cursor zoom with the system magnifier, on its own thread so a pointer move never waits for it. The
-/// magnifier zooms the whole desktop as one surface, so while the Monitor under the cursor is zoomed, the others show
-/// the same factor of what lies beside it. The zoom goes away with this process.
+/// Draws the cursor zoom and hides the cursor with the system magnifier, on its own thread so a pointer move never
+/// waits for it. The magnifier zooms the whole desktop as one surface, so while the Monitor under the cursor is zoomed,
+/// the others show the same factor of what lies beside it. It hides the cursor over every program, not only over
+/// Winland's own windows. Both go away with this process, even when it is killed.
 /// </summary>
-internal static class ScreenZoom
+internal static class Magnifier
 {
     private static readonly Lock Gate = new();
     private static readonly AutoResetEvent Wake = new(false);
     private static readonly ZoomCamera Camera = new();
     private static CursorZoom _zoom = CursorZoom.None;
     private static Point? _pointer;
+    private static bool _cursorHidden;
+    private static bool _cursorShownHidden;
     private static Thread? _worker;
     private static bool _stopping;
     private static bool _started;
@@ -39,6 +42,21 @@ internal static class ScreenZoom
         _ = Wake.Set();
     }
 
+    /// <summary>Hides the cursor everywhere, or shows it again.</summary>
+    internal static void HideCursor(bool hidden)
+    {
+        lock (Gate)
+        {
+            if (hidden == _cursorHidden || _stopping)
+                return;
+
+            _cursorHidden = hidden;
+            Start();
+        }
+
+        _ = Wake.Set();
+    }
+
     /// <summary>Follows the cursor to <paramref name="position"/>.</summary>
     internal static void Moved(Point position)
     {
@@ -52,7 +70,7 @@ internal static class ScreenZoom
         _ = Wake.Set();
     }
 
-    /// <summary>Takes the zoom away and ends its thread.</summary>
+    /// <summary>Takes the zoom away, shows the cursor and ends the thread.</summary>
     internal static void Stop()
     {
         Thread? worker;
@@ -74,7 +92,7 @@ internal static class ScreenZoom
         if (_worker is not null)
             return;
 
-        _worker = new Thread(Run) { IsBackground = true, Name = "Winland cursor zoom" };
+        _worker = new Thread(Run) { IsBackground = true, Name = "Winland magnifier" };
         _worker.Start();
     }
 
@@ -87,6 +105,7 @@ internal static class ScreenZoom
                 _ = Wake.WaitOne();
                 CursorZoom zoom;
                 Point? pointer;
+                bool hidden;
                 lock (Gate)
                 {
                     if (_stopping)
@@ -94,9 +113,11 @@ internal static class ScreenZoom
 
                     zoom = _zoom;
                     pointer = _pointer;
+                    hidden = _cursorHidden;
                 }
 
                 Show(zoom, pointer);
+                ShowCursor(hidden);
             }
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
@@ -107,6 +128,7 @@ internal static class ScreenZoom
         {
             if (_started)
             {
+                _ = PInvoke.MagShowSystemCursor(true);
                 _ = PInvoke.MagSetFullscreenTransform(1, 0, 0);
                 _ = PInvoke.MagUninitialize();
                 _started = false;
@@ -128,19 +150,29 @@ internal static class ScreenZoom
                 (int)Math.Round(view.Y - (monitor.Y / view.Factor)));
         }
 
-        if (wanted == _shown)
+        if (wanted == _shown || !Started())
             return;
-
-        if (!_started)
-        {
-            if (!PInvoke.MagInitialize())
-                return;
-
-            _started = true;
-        }
 
         if (PInvoke.MagSetFullscreenTransform(wanted.Factor, wanted.X, wanted.Y))
             _shown = wanted;
+    }
+
+    // The system cursor stays hidden only while this process runs, so a Daemon that is killed leaves it visible.
+    private static void ShowCursor(bool hidden)
+    {
+        if (hidden == _cursorShownHidden || !Started())
+            return;
+
+        if (PInvoke.MagShowSystemCursor(!hidden))
+            _cursorShownHidden = hidden;
+    }
+
+    private static bool Started()
+    {
+        if (!_started && PInvoke.MagInitialize())
+            _started = true;
+
+        return _started;
     }
 
     private static Point Cursor() =>

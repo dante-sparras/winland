@@ -437,7 +437,7 @@ internal sealed class Win32Cursor : ICursorSurface
             return;
 
         _hidden = true;
-        _ = PInvoke.ShowCursor(false);
+        Magnifier.HideCursor(true);
     }
 
     public void Show()
@@ -446,6 +446,6 @@ internal sealed class Win32Cursor : ICursorSurface
             return;
 
         _hidden = false;
-        _ = PInvoke.ShowCursor(true);
+        Magnifier.HideCursor(false);
     }
 }

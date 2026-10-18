@@ -23,6 +23,13 @@ public class ZoomCameraTests
     }
 
     [Fact]
+    public void InvisibleIsHonored()
+    {
+        Assert.True(CursorOptions.From(ConfigParser.Parse("cursor:invisible = true\n")).Behavior().Invisible);
+        Assert.False(CursorOptions.From(ConfigParser.Parse("")).Behavior().Invisible);
+    }
+
+    [Fact]
     public void NoZoomShowsNothing()
     {
         var camera = new ZoomCamera();

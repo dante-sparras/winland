@@ -35,13 +35,13 @@ public static class SessionEffects
         {
             Idle.Configure(behavior);
             if (Volatile.Read(ref _installed) != 0)
-                ScreenZoom.Configure(behavior.Zoom);
+                Magnifier.Configure(behavior.Zoom);
         }
 
         if (outcome.Warp is WarpTo warp)
         {
             Idle.Warp(warp.Position);
-            ScreenZoom.Moved(warp.Position);
+            Magnifier.Moved(warp.Position);
         }
 
         if (outcome.InputSettings is InputSettingsRequest settings)
@@ -63,7 +63,7 @@ public static class SessionEffects
         if (outcome.Warp is WarpTo warp)
         {
             Idle.Warp(warp.Position);
-            ScreenZoom.Moved(warp.Position);
+            Magnifier.Moved(warp.Position);
         }
 
         Relay(outcome);
@@ -81,7 +81,7 @@ public static class SessionEffects
     public static void NoteMove(Point position)
     {
         Idle.Moved();
-        ScreenZoom.Moved(position);
+        Magnifier.Moved(position);
     }
 
     public static void NoteKey() => Idle.KeyPressed();
@@ -89,7 +89,7 @@ public static class SessionEffects
     public static void Restore()
     {
         _session?.Restore();
-        ScreenZoom.Stop();
+        Magnifier.Stop();
         Idle.Reveal();
         _timer?.Dispose();
         _timer = null;

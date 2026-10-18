@@ -6,6 +6,9 @@ public sealed record CursorBehavior(bool HideOnKeyPress, double InactiveTimeoutS
 {
     /// <summary>How far the Monitor under the cursor is zoomed, and how its view follows the cursor.</summary>
     public CursorZoom Zoom { get; init; } = CursorZoom.None;
+
+    /// <summary><c>cursor:invisible</c>: the cursor is never shown.</summary>
+    public bool Invisible { get; init; }
 }
 
 /// <summary>
@@ -34,6 +37,8 @@ public sealed record CursorOptions
 
     public bool HideOnKeyPress { get; init; }
 
+    public bool Invisible { get; init; }
+
     public string DefaultMonitor { get; init; } = "";
 
     public double ZoomFactor { get; init; } = 1;
@@ -49,6 +54,7 @@ public sealed record CursorOptions
     public CursorBehavior Behavior() => new(HideOnKeyPress, InactiveTimeoutSeconds)
     {
         Zoom = new CursorZoom(ZoomFactor, ZoomRigid, ZoomDetachedCamera),
+        Invisible = Invisible,
     };
 
     private static readonly Dictionary<string, int> WorkspaceModes = new(StringComparer.OrdinalIgnoreCase)
@@ -74,6 +80,7 @@ public sealed record CursorOptions
         ["cursor:no_warps"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var noWarps) ? options with { NoWarps = noWarps } : options,
         ["cursor:persistent_warps"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var persistent) ? options with { PersistentWarps = persistent } : options,
         ["cursor:inactive_timeout"] = (options, value) => TryTimeout(value, out var seconds) ? options with { InactiveTimeoutSeconds = seconds } : options,
+        ["cursor:invisible"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var invisible) ? options with { Invisible = invisible } : options,
         ["cursor:hide_on_key_press"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var hide) ? options with { HideOnKeyPress = hide } : options,
         ["cursor:default_monitor"] = (options, value) => options with { DefaultMonitor = value.Trim() },
         ["cursor:zoom_factor"] = (options, value) => TryZoom(value, out var factor) ? options with { ZoomFactor = factor } : options,
