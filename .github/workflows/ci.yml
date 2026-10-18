@@ -9,8 +9,8 @@
 # Every check is a step in one Windows job. A net10.0-windows project does not build on
 # Ubuntu, and each job pays its own setup, so small separate jobs cost more time than the
 # work they do. CI runs on pull requests and on the push a merge makes to main. The push run
-# also fills the .NET and NuGet caches, because a pull request can only read caches its own
-# branch or the default branch saved. A release run tests the exact commit it ships.
+# also fills the NuGet cache, because a pull request can only read caches its own branch or
+# the default branch saved. A release run tests the exact commit it ships.
 # Mutation testing is the slow lane. It runs when CI is dispatched with release=true.
 
 name: CI
@@ -48,9 +48,8 @@ jobs:
     name: All required checks pass (v1)
     runs-on: windows-latest
     timeout-minutes: 60
-    # The SDK and the packages go to fixed folders so they can be cached between runs.
+    # The packages go to a fixed folder so they can be cached between runs.
     env:
-      DOTNET_INSTALL_DIR: C:/dotnet
       NUGET_PACKAGES: C:/nuget
       DOTNET_NOLOGO: "true"
       DOTNET_CLI_TELEMETRY_OPTOUT: "true"
@@ -66,13 +65,23 @@ jobs:
           fetch-depth: 0
           filter: blob:none
           persist-credentials: false
-      # setup-dotnet skips the download when the cached folder already holds the SDK global.json names.
-      - name: Restore the .NET SDK
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: C:/dotnet
-          key: dotnet-${{ runner.os }}-${{ hashFiles('global.json') }}
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      # The runner image ships several .NET SDKs. When one of them is what global.json asks for,
+      # dotnet resolves it and nothing is installed. Otherwise setup-dotnet installs it.
+      - name: Find the .NET SDK
+        id: sdk
+        shell: pwsh
+        run: |
+          $version = dotnet --version 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Output "Using the preinstalled .NET SDK $version."
+            "found=true" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Output 'No preinstalled .NET SDK matches global.json.'
+            "found=false" >> $env:GITHUB_OUTPUT
+          }
+          exit 0
+      - if: steps.sdk.outputs.found != 'true'
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
       - name: Restore the NuGet packages
