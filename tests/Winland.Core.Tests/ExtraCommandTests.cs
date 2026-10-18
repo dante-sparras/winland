@@ -179,8 +179,8 @@ public class ExtraCommandTests
         core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 200, 100)));
 
         Assert.Equal("error: click to kill is not supported", core.Execute("kill").Text);
-        Assert.Equal("error: notifications are not supported", core.Execute("notify 1 1 0 hi").Text);
-        Assert.Equal("error: notifications are not supported", core.Execute("dismissnotify").Text);
+        Assert.Equal("ok", core.Execute("notify 1 1 0 hi").Text);
+        Assert.Equal("ok", core.Execute("dismissnotify").Text);
         Assert.Equal("error: rolling log is not supported", core.Execute("rollinglog").Text);
         Assert.Equal("not enough args", core.Execute("getprop").Text);
         Assert.Equal("window not found", core.Execute("getprop missing opacity").Text);

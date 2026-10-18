@@ -121,6 +121,9 @@ public sealed record Outcome(
     /// <summary>The keyboard layouts to load and the one to use, or null to leave the system's alone.</summary>
     public KeyboardLayoutRequest? KeyboardLayout { get; init; }
 
+    /// <summary>Notifications to show or take away.</summary>
+    public IReadOnlyList<NotificationAction> Notifications { get; init; } = [];
+
     /// <summary>The dim layers to keep below windows with the dim_around property.</summary>
     public IReadOnlyList<DimAround> Dims { get; init; } = [];
 
