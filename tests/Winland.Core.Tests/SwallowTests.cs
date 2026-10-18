@@ -148,6 +148,61 @@ public class SwallowTests
     }
 
     [Fact]
+    public void ToggleSwallowOnTheShownTerminalHidesItAndFocusesTheChild()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(Child(2, parentProcess: 100));
+        core.Handle(new Dispatch("toggleswallow"));
+        core.Handle(new Dispatch("focuswindow", "address:0x1"));
+
+        var hidden = core.Handle(new Dispatch("toggleswallow"));
+
+        Assert.Contains(new WindowId(1), hidden.Hide);
+        Assert.Equal(new WindowId(2), hidden.Focus);
+        using var active = JsonDocument.Parse(core.Execute("j/activewindow").Text);
+        Assert.Equal("0x2", active.RootElement.GetProperty("address").GetString());
+    }
+
+    [Fact]
+    public void TheWorkspacesQueryDoesNotCountTheSwallowedTerminal()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(Child(2, parentProcess: 100));
+
+        using var workspaces = JsonDocument.Parse(core.Execute("j/workspaces").Text);
+
+        Assert.Equal(1, workspaces.RootElement[0].GetProperty("windows").GetInt32());
+    }
+
+    [Fact]
+    public void AWindowSelectorFindsTheSwallowedTerminal()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(Child(2, parentProcess: 100));
+
+        var reply = core.Execute("dispatch killwindow address:0x1");
+
+        Assert.Equal(100, reply.Effect.Kill?.ProcessId);
+    }
+
+    [Fact]
+    public void AChildSwallowedInTurnGivesBackTheTerminalWhenItCloses()
+    {
+        var core = WithTerminal("misc:enable_swallow = true\nmisc:swallow_regex = ^(kitty|mpv)$\n");
+        core.Handle(Child(2, parentProcess: 100));
+        var chained = core.Handle(Child(3, parentProcess: 202));
+
+        Assert.Equal(new WindowId(1), Client(chained, 2).Swallowing);
+        Assert.Equal(new WindowId(2), Client(chained, 3).Swallowing);
+
+        var closed = core.Handle(new WindowClosed(new WindowId(2)));
+
+        Assert.Equal(2, closed.State.Clients.Count);
+        Assert.DoesNotContain(closed.State.Hidden, client => client.Window == new WindowId(1));
+        Assert.Contains(new WindowId(1), closed.Show);
+    }
+
+    [Fact]
     public void ClosingAChildAfterToggleSwallowLeavesTheTerminalWhereItIs()
     {
         var core = WithTerminal(Swallowing);

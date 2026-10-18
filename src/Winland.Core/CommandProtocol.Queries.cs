@@ -311,11 +311,14 @@ public static partial class CommandProtocol
             nextSpecial++;
         }
 
+        // A swallowed Client is out of its Workspace's Layout, so the pinned release does not count it.
         var windows = new Dictionary<WorkspaceId, int>();
         var fullscreen = new HashSet<WorkspaceId>();
+        var swallowed = new HashSet<WindowId>(state.Swallowed);
         foreach (var client in state.Clients)
         {
-            windows[client.Workspace] = windows.GetValueOrDefault(client.Workspace) + 1;
+            if (!swallowed.Contains(client.Window))
+                windows[client.Workspace] = windows.GetValueOrDefault(client.Workspace) + 1;
             if (client.Fullscreen != FullscreenMode.None)
                 fullscreen.Add(client.Workspace);
         }

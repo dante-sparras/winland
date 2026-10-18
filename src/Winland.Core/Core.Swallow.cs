@@ -40,22 +40,53 @@ public sealed partial class Core
         return false;
     }
 
+    private WindowId[] SwallowedParents()
+    {
+        var parents = new List<WindowId>();
+        foreach (var swallow in _swallows.Values)
+        {
+            if (swallow.Hidden)
+                parents.Add(swallow.Parent.Window);
+        }
+
+        return [.. parents];
+    }
+
     // A swallowed parent is still a Client: hidden, and on its child's Workspace.
     private void AddSwallowed(List<Client> clients, List<Client> hidden)
     {
         foreach (var (child, swallow) in _swallows)
         {
-            if (!swallow.Hidden || WorkspaceContaining(child) is not LiveWorkspace desk)
+            if (!swallow.Hidden || SwallowHome(child, _swallows.Count) is not LiveWorkspace desk)
                 continue;
 
             var parent = swallow.Parent with
             {
                 Workspace = desk.Id,
+                Swallowing = SwallowedBy(swallow.Parent.Window),
                 InhibitingIdle = InhibitsIdle(swallow.Parent, shown: false, active: null),
             };
             clients.Add(parent);
             hidden.Add(parent);
         }
+    }
+
+    // The Workspace of a child, or, for a child that is swallowed in turn, of the child that hides it.
+    private LiveWorkspace? SwallowHome(WindowId child, int depth)
+    {
+        if (WorkspaceContaining(child) is LiveWorkspace desk)
+            return desk;
+
+        if (depth <= 0)
+            return null;
+
+        foreach (var (outer, swallow) in _swallows)
+        {
+            if (swallow.Hidden && swallow.Parent.Window == child)
+                return SwallowHome(outer, depth - 1);
+        }
+
+        return null;
     }
 
     // The Client of an ancestor process whose class matches swallow_regex and whose title does
@@ -65,8 +96,10 @@ public sealed partial class Core
         if (!_session.EnableSwallow || _session.SwallowRegex.Length == 0 || appeared.AncestorProcessIds.Count == 0)
             return null;
 
+        // A swallowed Client is hidden, so it takes no input and swallows nothing, as in the pinned release.
         var candidates = new List<Client>();
         var clients = EveryClient();
+        clients.RemoveAll(client => IsSwallowedParent(client.Window));
         foreach (var ancestor in appeared.AncestorProcessIds)
         {
             foreach (var client in clients)
@@ -238,6 +271,18 @@ public sealed partial class Core
         return placements;
     }
 
+    // A hidden parent closed that had swallowed a window of its own. That window comes back on the Workspace of the
+    // child that hid the parent, as in the pinned release.
+    private Outcome ReturnSwallowedInTurn(WindowId closed, LiveWorkspace? home)
+    {
+        if (!_swallows.Remove(closed, out var own) || !own.Hidden || home is null)
+            return View([]);
+
+        var covered = home.Covered();
+        var placements = ReturnParent(own.Parent, home);
+        return IsShown(home.Id) ? Present(home, covered, placements) : View([]);
+    }
+
     // The parent closed. True when it was hidden, so no Layout holds it.
     private bool ForgetSwallowedParent(WindowId window)
     {
@@ -257,13 +302,15 @@ public sealed partial class Core
     private Outcome ToggleSwallow(bool allowsElevation)
     {
         const string name = "toggleswallow";
-        if (ActiveWindow() is not WindowId child
+        if (ActiveWindow() is not WindowId active
+            || SwallowerOf(active) is not WindowId child
             || !_swallows.TryGetValue(child, out var swallow)
             || WorkspaceContaining(child) is not LiveWorkspace desk)
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
         var covered = desk.Covered();
         IReadOnlyList<Placement> placements;
+        WindowId? focus = null;
         if (swallow.Hidden)
         {
             _swallows[child] = swallow with { Hidden = false, Slot = false };
@@ -271,13 +318,34 @@ public sealed partial class Core
         }
         else
         {
+            // Hiding the parent again from the parent itself gives the focus to the child, as in the pinned release.
             _swallows.Remove(child);
             placements = SwallowParent(child, swallow.Parent, desk, [], RulesOf(child));
+            if (active == swallow.Parent.Window)
+            {
+                TakeFocus(desk, child);
+                focus = child;
+            }
         }
 
         return IsShown(desk.Id)
-            ? Present(desk, covered, placements, dispatcher: name, allowsElevation: allowsElevation)
+            ? Present(desk, covered, placements, dispatcher: name, focus: focus, allowsElevation: allowsElevation)
             : View([], dispatcher: name, allowsElevation: allowsElevation);
+    }
+
+    // The child that swallowed this window, or the window itself when it swallowed one.
+    private WindowId? SwallowerOf(WindowId window)
+    {
+        if (_swallows.ContainsKey(window))
+            return window;
+
+        foreach (var (child, swallow) in _swallows)
+        {
+            if (swallow.Parent.Window == window)
+                return child;
+        }
+
+        return null;
     }
 
     private (IReadOnlyList<WindowId> Show, IReadOnlyList<WindowId> Hide) TakeSwallowChanges()
