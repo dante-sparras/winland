@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-183 of 197 ported cases pass.
+184 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -115,7 +115,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | window | execRulesPendingIsolation | passes | |
 | window | pinnedRetainsPositionOnWorkspaceChange | passes | |
 | window | monitorrule | passes | |
-| window | mouseResize | differs | A mouse bind pressed on a Client's border does not take the Client. The keep_aspect_ratio window rule is not honored. |
+| window | mouseResize | passes | |
 | window | getFullscreenHandler | passes | |
 | window | sendFsWindowToAnotherWorkspace | passes | |
 | window | floatingForceOnscreen | passes | |

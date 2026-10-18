@@ -16,7 +16,7 @@ public sealed partial class Core
         {
             case PointerDragPhase.Begin:
                 // A drag already running keeps the pointer. A second drag button does not start another one.
-                if (_gesture is not null || WindowUnder(gesture.Position, shrink: false) is not WindowId window)
+                if (_gesture is not null || DragTarget(gesture.Position) is not WindowId window)
                     return View([], consumed: true, dispatcher: gesture.Dispatcher);
 
                 var begun = BeginGesture(window, new BindDispatch(gesture.Dispatcher, gesture.Arguments), gesture.Button, gesture.Position);
@@ -37,7 +37,7 @@ public sealed partial class Core
         layout.NoteFocus(window);
         _gesture = new Gesture(window, button, IsResize(drag.Dispatcher), drag.Dispatcher, pointer)
         {
-            KeepRatio = IsResize(drag.Dispatcher) && KeepsRatio(drag.Arguments),
+            KeepRatio = IsResize(drag.Dispatcher) && KeepsRatio(window, drag.Arguments),
             PickedUp = _binds.DragThreshold <= 0,
             CenterOnLift = _dragCenterWindow,
         };
@@ -117,10 +117,40 @@ public sealed partial class Core
         return (dx * dx) + (dy * dy) > (long)threshold * threshold;
     }
 
-    // resizewindow 1 keeps the aspect ratio. 2 never keeps it, which is also what no argument does,
-    // because no window rule asks to keep the aspect ratio.
-    private static bool KeepsRatio(string arguments) =>
-        int.TryParse(arguments.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var mode) && mode == 1;
+    // resizewindow 1 keeps the aspect ratio and 2 never keeps it. Without either, the window's keep_aspect_ratio rule or
+    // property decides, as in the pinned release.
+    private bool KeepsRatio(WindowId window, string arguments)
+    {
+        var mode = int.TryParse(arguments.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
+        return mode == 1 || (mode != 2 && OwnProp(window, "keep_aspect_ratio") is true);
+    }
+
+    // The Client a mouse bind takes: the one under the pointer, or else one whose border is under it, as the pinned
+    // release finds the window with its reserved extents.
+    private WindowId? DragTarget(Point? point)
+    {
+        if (point is not Point at)
+            return null;
+
+        if (WindowUnder(at, shrink: false) is WindowId inside)
+            return inside;
+
+        foreach (var special in new[] { true, false })
+        {
+            var grown = new List<PointerFocus.Target>();
+            foreach (var target in Targets(at, special))
+            {
+                var border = WorkspaceContaining(target.Window)?.Options.BorderFor(new ClientId(target.Window.Value)) ?? 0;
+                var bounds = target.Bounds;
+                grown.Add(target with { Bounds = new Rectangle(bounds.X - border, bounds.Y - border, bounds.Width + (2 * border), bounds.Height + (2 * border)) });
+            }
+
+            if (PointerFocus.At(grown, at, 0, null) is WindowId edge)
+                return edge;
+        }
+
+        return null;
+    }
 
     private static bool TryDragHit(BindDecision match, out BindDispatch drag)
     {

@@ -896,7 +896,7 @@ public class WindowConformance
         Assert.Equal("HEADLESS-2", desk.ActiveWorkspace().GetProperty("monitor").GetString());
     }
 
-    [Fact(Skip = "A mouse bind pressed on a Client's border does not take the Client. The keep_aspect_ratio window rule is not honored.")]
+    [Fact]
     public void MouseResize()
     {
         var desk = new Desk("windowrulev2 = float, class:kitty\n");
