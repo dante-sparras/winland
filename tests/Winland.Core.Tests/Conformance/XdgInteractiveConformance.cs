@@ -10,7 +10,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class XdgInteractiveConformance
 {
-    [Fact(Skip = "A floating Client the system moves or resizes keeps its old frame in activewindow.")]
+    [Fact]
     public void XdgInteractive()
     {
         var desk = new Desk();
@@ -44,11 +44,11 @@ public class XdgInteractiveConformance
         Press(desk);
         desk.Handle(new WindowSizeStarted(client, desk.Pointer));
         desk.Ok("movecursor", $"{startResize.X + 410} {startResize.Y + 200}");
-        desk.Handle(new WindowSizing(client, desk.Pointer));
+        desk.Handle(new WindowSizing(client, desk.Pointer, startResize with { Width = startResize.Width + 160 }));
         Assert.True(ActiveGeometry(desk).Width >= startResize.Width + 150, "The resize did not change the frame before the release.");
 
         Release(desk);
-        desk.Handle(new WindowSizeEnded(client, desk.Pointer));
+        desk.Handle(new WindowSizeEnded(client, desk.Pointer, startResize with { Width = startResize.Width + 160 }));
 
         var endResize = ActiveGeometry(desk);
         Near(startResize.X, endResize.X, 2);

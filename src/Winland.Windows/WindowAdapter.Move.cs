@@ -83,7 +83,10 @@ public sealed partial class WindowAdapter
     private void FollowSizing(WindowId window)
     {
         if (PInvoke.GetCursorPos(out var cursor))
-            Apply(_core.Handle(new WindowSizing(window, new Point(cursor.X, cursor.Y))));
+        {
+            var bounds = TryVisible(new HWND((nint)window.Value), out var visible) ? visible : (Rectangle?)null;
+            Apply(_core.Handle(new WindowSizing(window, new Point(cursor.X, cursor.Y), bounds)));
+        }
     }
 
     private void EndMove(WindowId window)
@@ -106,7 +109,7 @@ public sealed partial class WindowAdapter
         else if (_sizing == window)
         {
             _sizing = null;
-            Apply(_core.Handle(new WindowSizeEnded(window, pointer)));
+            Apply(_core.Handle(new WindowSizeEnded(window, pointer, dropped)));
         }
     }
 

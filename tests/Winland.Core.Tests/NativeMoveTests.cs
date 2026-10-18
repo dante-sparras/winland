@@ -70,6 +70,29 @@ public class NativeMoveTests
     }
 
     [Fact]
+    public void AFloatingClientKeepsTheFrameTheSystemMovedOrSizedItTo()
+    {
+        var core = Flat("");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        var window = new WindowId(1);
+
+        core.Handle(new WindowMoveStarted(window, new Point(700, 400)));
+        var moved = core.Handle(new WindowMoveEnded(window, new Point(900, 500), new Rectangle(300, 200, 640, 400)));
+
+        Assert.Empty(moved.Placements);
+        Assert.Equal(new Rectangle(300, 200, 640, 400), Client(moved, 1).Bounds);
+
+        core.Handle(new WindowSizeStarted(window, new Point(940, 400)));
+        var sizing = core.Handle(new WindowSizing(window, new Point(1040, 400), new Rectangle(300, 200, 740, 400)));
+        var sized = core.Handle(new WindowSizeEnded(window, new Point(1100, 400), new Rectangle(300, 200, 800, 400)));
+
+        Assert.Empty(sizing.Placements);
+        Assert.Equal(new Rectangle(300, 200, 740, 400), Client(sizing, 1).Bounds);
+        Assert.Equal(new Rectangle(300, 200, 800, 400), Client(sized, 1).Bounds);
+    }
+
+    [Fact]
     public void AMonocleClientGoesBackToFillingTheArea()
     {
         var core = Flat("general:layout = monocle\n");
