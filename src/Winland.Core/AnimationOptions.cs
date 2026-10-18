@@ -33,6 +33,9 @@ public sealed class AnimationOptions
 
     public bool Wraparound { get; }
 
+    /// <summary>The animation tree and the curves, as the <c>animations</c> request answers.</summary>
+    internal string Describe(bool json) => _book.Describe(json);
+
     public static AnimationOptions From(ConfigDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);

@@ -59,6 +59,7 @@ public sealed partial class Core
         SystemInfoRequest => Describe(ExtraCommands.FormatSystem),
         LockedRequest => new CommandReply(ExtraCommands.FormatLocked(SessionLock?.Locked == true), View([])),
         LayoutsRequest => new CommandReply(ExtraCommands.FormatLayouts(), View([])),
+        AnimationsRequest animations => new CommandReply(_animations.Describe(animations.Flags.HasFlag(CommandFlags.Json)), View([])),
         SubmapRequest submap => new CommandReply(ExtraCommands.FormatSubmap(_keyState.Submap, submap.Flags.HasFlag(CommandFlags.Json)), View([])),
         ClickKillRequest => new CommandReply("error: click to kill is not supported", View([])),
         RollingLogRequest => new CommandReply("error: rolling log is not supported", View([])),

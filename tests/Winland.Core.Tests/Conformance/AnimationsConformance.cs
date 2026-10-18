@@ -4,7 +4,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class AnimationsConformance
 {
-    [Fact(Skip = "There is no animations request.")]
+    [Fact]
     public void AnimationsTrivial()
     {
         // The reference config defines the curve the case reads back.
