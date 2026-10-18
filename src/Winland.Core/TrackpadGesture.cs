@@ -25,17 +25,44 @@ public sealed record TrackpadGesture(
     double Scale,
     string Action,
     bool DisableInhibit = false,
-    string Argument = "")
+    string Argument = "",
+    string DispatchArguments = "")
 {
     public const string WorkspaceAction = "workspace";
 
     public const string SpecialAction = "special";
 
+    public const string DispatcherAction = "dispatcher";
+
+    public const string CloseAction = "close";
+
+    public const string FloatAction = "float";
+
+    public const string FullscreenAction = "fullscreen";
+
+    public const string ScrollMoveAction = "scrollMove";
+
+    public bool IsScrollMove => Action == ScrollMoveAction;
+
     public bool IsWorkspace => Action == WorkspaceAction;
 
     public bool IsSpecial => Action == SpecialAction;
 
-    public bool IsHonored => IsWorkspace || IsSpecial;
+    /// <summary>An action that runs once the fingers lift: a dispatcher, or close, float or fullscreen far enough.</summary>
+    public bool IsOnRelease => Action is DispatcherAction or CloseAction or FloatAction or FullscreenAction;
+
+    public bool IsHonored => IsWorkspace || IsSpecial || IsOnRelease || IsScrollMove;
+
+    /// <summary>
+    /// How far close must travel, as the pinned release measures it: a fifth of 200 pixels for close and of 250 for
+    /// float and fullscreen. A dispatcher runs at any distance.
+    /// </summary>
+    internal double ReleaseDistance => Action switch
+    {
+        CloseAction => 0.2 * 200,
+        FloatAction or FullscreenAction => 0.2 * 250,
+        _ => double.NegativeInfinity,
+    };
 
     internal static bool TryDirection(string text, out GestureDirection direction)
     {

@@ -67,7 +67,7 @@ internal sealed class TouchpadSwipe
             if (down.Count == _fingers)
             {
                 if (TryMove(down, out var dx, out var dy))
-                    inputs.Add(new SwipeUpdated(_fingers, dx, dy));
+                    inputs.Add(new SwipeUpdated(_fingers, dx, dy) { TimeMs = Environment.TickCount64 });
             }
             else if (down.Count > _fingers)
             {

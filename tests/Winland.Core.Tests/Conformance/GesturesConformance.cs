@@ -45,7 +45,7 @@ public class GesturesConformance
         Assert.NotEqual("special:special", SpecialWorkspace(desk));
     }
 
-    [Fact(Skip = "Only the workspace and special gesture actions are honored.")]
+    [Fact(Skip = "cursor:zoom_factor is the cursor zoom Gap, so the keyword the case sets at its end is refused.")]
     public void Gestures()
     {
         var desk = new Desk(Config());

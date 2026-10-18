@@ -8,14 +8,9 @@ public static partial class ConfigParser
     {
         private static readonly HashSet<string> UnhonoredGestureActions = new(StringComparer.Ordinal)
         {
-            "dispatcher",
             "resize",
             "move",
-            "close",
-            "float",
-            "fullscreen",
             "cursorZoom",
-            "scrollMove",
         };
 
         private void HandleGesture(string lhs, string rhs, int lineNumber)
@@ -73,7 +68,14 @@ public static partial class ConfigParser
                         return;
                     }
 
-                    scale = Math.Clamp(scale, 0.1, 10);
+                    // As in the pinned release, a negative scale turns the gesture around.
+                    if (Math.Abs(scale) < 0.1)
+                    {
+                        Warn(lineNumber, $"Delta scale must be between -10 and -0.1 or between 0.1 and 10. It is {text}.");
+                        return;
+                    }
+
+                    scale = Math.Clamp(scale, -10, 10);
                     index++;
                     continue;
                 }
@@ -82,11 +84,18 @@ public static partial class ConfigParser
             }
 
             var action = index < parts.Count ? parts[index] : "";
-            var argument = action == TrackpadGesture.SpecialAction && index + 1 < parts.Count ? parts[index + 1].Trim() : "";
-            var gesture = new TrackpadGesture(fingers, direction, modifiers, scale, action, disableInhibit, argument);
+            var takesArgument = action is TrackpadGesture.SpecialAction or TrackpadGesture.DispatcherAction
+                or TrackpadGesture.FloatAction or TrackpadGesture.FullscreenAction;
+            var argument = takesArgument && index + 1 < parts.Count ? parts[index + 1].Trim() : "";
+
+            // A dispatcher gesture takes the dispatcher and then its arguments, which may hold commas of their own.
+            var dispatchArguments = action == TrackpadGesture.DispatcherAction && index + 2 < parts.Count
+                ? string.Join(",", parts.Skip(index + 2))
+                : "";
+            var gesture = new TrackpadGesture(fingers, direction, modifiers, scale, action, disableInhibit, argument, dispatchArguments);
             if (action == "unset")
             {
-                var removed = _gestures.FindIndex(old => old with { Action = "unset", Argument = "" } == gesture);
+                var removed = _gestures.FindIndex(old => old with { Action = "unset", Argument = "", DispatchArguments = "" } == gesture);
                 if (removed < 0)
                     Warn(lineNumber, "Can't remove a non-existent gesture.");
                 else

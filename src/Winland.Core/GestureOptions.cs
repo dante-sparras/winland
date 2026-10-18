@@ -23,6 +23,12 @@ public sealed record GestureOptions
 
     public bool UseRelative { get; init; }
 
+    /// <summary><c>gestures:scrolling:move_snap_to_grid</c>: a scrollMove swipe settles on the nearest column.</summary>
+    public bool MoveSnapToGrid { get; init; } = true;
+
+    /// <summary><c>gestures:scrolling:move_snap_cursor</c>: the cursor goes to the window a scrollMove swipe focuses.</summary>
+    public bool MoveSnapCursor { get; init; } = true;
+
     public static GestureOptions Documented { get; } = new();
 
     // Adding an entry here applies that keyword and stops the config warning.
@@ -36,6 +42,8 @@ public sealed record GestureOptions
         ["gestures:workspace_swipe_direction_lock"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var locked) ? options with { DirectionLock = locked } : options,
         ["gestures:workspace_swipe_direction_lock_threshold"] = (options, value) => TryInt(value, 0, 200, out var threshold) ? options with { DirectionLockThreshold = threshold } : options,
         ["gestures:workspace_swipe_forever"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var forever) ? options with { Forever = forever } : options,
+        ["gestures:scrolling:move_snap_to_grid"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var snap) ? options with { MoveSnapToGrid = snap } : options,
+        ["gestures:scrolling:move_snap_cursor"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var cursor) ? options with { MoveSnapCursor = cursor } : options,
         ["gestures:workspace_swipe_use_r"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var relative) ? options with { UseRelative = relative } : options,
     };
 

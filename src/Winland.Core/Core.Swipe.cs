@@ -15,6 +15,9 @@ public sealed partial class Core
     private WorkspaceSwipe? _workspaceSwipe;
     private int _swipeInitialDirection;
 
+    // How far the fingers have gone, along their direction, since a gesture that acts on release was picked.
+    private double _releaseDistance;
+
     private void ReadGestures(ConfigDocument document)
     {
         _gestures = document.Gestures;
@@ -49,6 +52,18 @@ public sealed partial class Core
             return View([]);
         }
 
+        if (_activeGesture is { IsScrollMove: true } scrollMove)
+        {
+            var stepped = StepScrollMove(scrollMove, updated);
+            return begun is null ? stepped : Merge(begun, stepped);
+        }
+
+        if (_activeGesture is { IsOnRelease: true } onRelease)
+        {
+            _releaseDistance += onRelease.Scale * TrackpadGesture.Along(_gestureDirection, updated.DeltaX, updated.DeltaY);
+            return begun ?? View([]);
+        }
+
         if (_activeGesture is { IsSpecial: true } special)
         {
             StepSpecialSwipe(special.Scale * TrackpadGesture.Along(_gestureDirection, updated.DeltaX, updated.DeltaY));
@@ -62,7 +77,7 @@ public sealed partial class Core
         return StepWorkspaceSwipe(swipe, swipe.Delta + (_swipe.Invert ? -along : along)) ?? View([]);
     }
 
-    private Outcome EndSwipe()
+    private Outcome EndSwipe(bool cancelled = false)
     {
         // An update after the fingers lift belongs to no swipe until the next one begins.
         _gestureFindFailed = true;
@@ -70,6 +85,12 @@ public sealed partial class Core
             return View([]);
 
         _activeGesture = null;
+        if (gesture.IsScrollMove)
+            return EndScrollMove(cancelled);
+
+        if (gesture.IsOnRelease)
+            return ReleaseGesture(gesture, _releaseDistance);
+
         if (gesture.IsSpecial)
             return EndSpecialSwipe();
 
@@ -93,16 +114,45 @@ public sealed partial class Core
                 continue;
 
             _activeGesture = gesture;
+            _releaseDistance = 0;
             // The workspace swipe reads distance along the configured direction, not the one the fingers took.
             _gestureDirection = gesture.IsWorkspace ? gesture.Direction : direction;
             if (gesture.IsWorkspace)
                 StartWorkspaceSwipe();
             else if (gesture.IsSpecial)
                 begun = BeginSpecialSwipe(gesture);
+            else if (gesture.IsScrollMove)
+                BeginScrollMove();
             return true;
         }
 
         return false;
+    }
+
+    // The dispatcher, close, float and fullscreen gestures act once the fingers lift, as the pinned release ends them:
+    // a dispatcher always runs, and close, float and fullscreen act on the focused window when the fingers went far
+    // enough along their direction. float takes float, tile or toggle, and fullscreen takes fullscreen or maximize.
+    private Outcome ReleaseGesture(TrackpadGesture gesture, double distance)
+    {
+        if (distance < gesture.ReleaseDistance)
+            return View([]);
+
+        switch (gesture.Action)
+        {
+            case TrackpadGesture.DispatcherAction:
+                return gesture.Argument.Length == 0 ? View([]) : ExecuteTriggered(gesture.Argument, gesture.DispatchArguments, trigger: null);
+            case TrackpadGesture.CloseAction:
+                return ActiveWindow() is null ? View([]) : ExecuteTriggered("killactive", "", trigger: null);
+            case TrackpadGesture.FloatAction:
+                var mode = gesture.Argument.ToLowerInvariant();
+                var floating = mode.StartsWith("float", StringComparison.Ordinal) ? "setfloating"
+                    : mode.StartsWith("tile", StringComparison.Ordinal) ? "settiled"
+                    : "togglefloating";
+                return ExecuteTriggered(floating, "", trigger: null);
+            default:
+                var maximize = gesture.Argument.StartsWith("maximize", StringComparison.OrdinalIgnoreCase);
+                return ExecuteTriggered("fullscreen", maximize ? "1" : "0", trigger: null);
+        }
     }
 
     private void StartWorkspaceSwipe()
