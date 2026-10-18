@@ -274,13 +274,7 @@ Dragging a tab out of a tab bar is a Gap: a press on a tab focuses that member, 
 
 ## Commands
 
-These commands are recognized and answer with an error. They are not honored.
-
-| command | status | kind | issue | reason |
-| --- | --- | --- | --- | --- |
-| rollinglog | error | gap | - | There is no rolling log. |
-
-Every command above is a gap. No open issue tracks them.
+Every command the pinned release's control socket answers is recognized. The ones below differ.
 
 `descriptions` lists only the options Winland reads, and their `description` is empty: the pinned release's descriptions are not carried.
 

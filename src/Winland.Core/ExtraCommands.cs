@@ -156,6 +156,16 @@ public static class ExtraCommands
             "",
             []));
 
+    // The pinned release's JSON form is this bracketed key, as it writes it.
+    public static string FormatRollingLog(string log, bool json) =>
+        json ? "[\n\"log\":\"" + JsonText(log) + "\"]" : log;
+
+    private static string JsonText(string text)
+    {
+        var escaped = System.Text.Json.JsonSerializer.Serialize(text);
+        return escaped[1..^1];
+    }
+
     // The plain form is "x, y", as in the pinned release.
     public static string FormatCursor(Point point, bool json) => json
         ? string.Create(CultureInfo.InvariantCulture, $"{{\"x\":{point.X},\"y\":{point.Y}}}")

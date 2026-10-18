@@ -181,7 +181,7 @@ public class ExtraCommandTests
         Assert.Equal("ok", core.Execute("kill").Text);
         Assert.Equal("ok", core.Execute("notify 1 1 0 hi").Text);
         Assert.Equal("ok", core.Execute("dismissnotify").Text);
-        Assert.Equal("error: rolling log is not supported", core.Execute("rollinglog").Text);
+        Assert.Equal(RollingLog.Read(), core.Execute("rollinglog").Text);
         Assert.Equal("not enough args", core.Execute("getprop").Text);
         Assert.Equal("window not found", core.Execute("getprop missing opacity").Text);
         Assert.Equal("1", core.Execute("getprop active opacity").Text);

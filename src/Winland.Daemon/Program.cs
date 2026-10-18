@@ -4,6 +4,9 @@ using Winland.Install;
 using Winland.Plugins;
 using Winland.Windows;
 
+// rollinglog answers with the tail of what Winland writes here.
+Console.SetError(new RollingLogWriter(Console.Error));
+
 if (IsInstall(args))
     return RunInstall(args);
 
