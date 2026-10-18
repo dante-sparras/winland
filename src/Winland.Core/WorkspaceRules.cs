@@ -37,6 +37,9 @@ public sealed record WorkspaceRule
 
     public string? OnCreatedEmpty { get; init; }
 
+    /// <summary>The Layout this Workspace uses in place of <c>general:layout</c>.</summary>
+    public string? Layout { get; init; }
+
     public IReadOnlyDictionary<string, string> LayoutOpts { get; init; } = EmptyOpts;
 
     private static readonly IReadOnlyDictionary<string, string> EmptyOpts =
@@ -62,6 +65,7 @@ public sealed record WorkspaceRule
             Decorate = other.Decorate ?? Decorate,
             DefaultName = other.DefaultName ?? DefaultName,
             OnCreatedEmpty = other.OnCreatedEmpty ?? OnCreatedEmpty,
+            Layout = other.Layout ?? Layout,
             LayoutOpts = opts.Count == 0 ? EmptyOpts : opts,
         };
     }
@@ -281,6 +285,16 @@ internal static partial class WorkspaceRules
             }
 
             updated = rule with { OnCreatedEmpty = cleaned };
+            return true;
+        }
+
+        if (Take(field, "layout:", out var layout))
+        {
+            var name = layout.Trim();
+            if (LayoutFactory.Fallback(name).Warning is string unknown)
+                warnings.Add(unknown);
+
+            updated = rule with { Layout = name };
             return true;
         }
 

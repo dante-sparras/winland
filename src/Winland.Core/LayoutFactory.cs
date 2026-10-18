@@ -17,6 +17,13 @@ internal static class LayoutFactory
     public static Layout Create(ConfigDocument? config) => Fallback(Name(config)).Layout;
 
     /// <summary>
+    /// Creates the Layout for a Workspace whose rule may name one, as the pinned release picks it: the rule's
+    /// <c>layout</c>, or else <c>general:layout</c>. A name that is no Layout uses dwindle.
+    /// </summary>
+    public static Layout Create(ConfigDocument? config, string? ruleLayout) =>
+        ruleLayout is null ? Create(config) : Fallback(ruleLayout).Layout;
+
+    /// <summary>
     /// Resolves a <c>general:layout</c> value. <c>dwindle</c>, <c>master</c>, <c>monocle</c>,
     /// <c>scrolling</c>, and a missing name select a Layout and return no warning. A missing name
     /// selects dwindle. Any other value keeps the dwindle Layout and returns a warning.
