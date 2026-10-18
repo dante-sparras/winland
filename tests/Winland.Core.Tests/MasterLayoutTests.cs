@@ -69,13 +69,11 @@ public class MasterLayoutTests
             master:mfact = 0.5
             """);
 
+        // special_scale_factor is read without a warning, and changes nothing, as the pinned release never reads it.
+        Assert.Equal([new ConfigWarning(2, "Unsupported keyword 'master:center_ignores_reserved'.")], document.Warnings);
         Assert.Equal(
-            [
-                new ConfigWarning(1, "Unsupported keyword 'master:special_scale_factor'."),
-                new ConfigWarning(2, "Unsupported keyword 'master:center_ignores_reserved'."),
-            ],
-            document.Warnings);
-        Assert.Equal(new Setting("master:mfact", "0.5"), Assert.Single(document.Settings));
+            [new Setting("master:special_scale_factor", "0.5"), new Setting("master:mfact", "0.5")],
+            document.Settings);
     }
 
     [Fact]

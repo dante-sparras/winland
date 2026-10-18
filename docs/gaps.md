@@ -159,7 +159,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | misc:allow_session_lock_restore | The lock screen belongs to Windows. |
 | misc:always_follow_on_dnd | Windows tells no other program that a drag and drop is under way, so focus cannot follow the pointer only then. |
 | misc:animate_manual_resizes | A window moved or resized by hand moves at once. |
-| misc:animate_mouse_windowdragging | A window dragged with the pointer moves at once. |
 | misc:anr_missed_pings | Windows marks a hung window as not responding itself. |
 | misc:background_color | The desktop background belongs to Windows. |
 | misc:bell_sound | The system bell sound is set in Windows. |
@@ -194,7 +193,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | ripple | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | scale | Changing a monitor's scale is not honored. |
 | screen_shader | Screen shaders have no Windows meaning. |
-| special_scale_factor | The master layout does not scale a special workspace. |
 | vrr | Variable refresh rate is not honored. |
 | water | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | wobble | DWM cannot deform a window, so wobble is not honored. |
@@ -212,7 +210,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | non-goal | - | animation:fadeLayers, animation:fadeLayersIn, animation:fadeLayersOut, animation:fadePopups, animation:fadePopupsIn, animation:fadePopupsOut, animation:layers, animation:layersIn, animation:layersOut |
 | non-goal | - | binds:disable_keybind_grabbing |
 | gap | - | bitdepth, cm, mirror, mode, scale, vrr |
-| gap | - | center_ignores_reserved, special_scale_factor |
+| gap | - | center_ignores_reserved |
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
 | gap | - | cursor:hide_on_tablet, cursor:hide_on_touch, cursor:hotspot_padding, cursor:invisible, cursor:warp_back_after_non_mouse_input, cursor:zoom_detached_camera, cursor:zoom_disable_aa, cursor:zoom_factor, cursor:zoom_rigid |
 | gap | - | decoration:blur:brightness, decoration:blur:contrast, decoration:blur:ignore_opacity, decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:noise, decoration:blur:passes, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:size, decoration:blur:special, decoration:blur:vibrancy, decoration:blur:vibrancy_darkness, decoration:blur:xray |
@@ -237,7 +235,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | input:virtualkeyboard:release_pressed_on_close, input:virtualkeyboard:share_states |
 | gap | - | locale |
 | non-goal | - | misc:allow_session_lock_restore, misc:anr_missed_pings, misc:background_color, misc:bell_sound, misc:col.splash, misc:disable_scale_notification, misc:disable_splash_rendering, misc:disable_watchdog_warning, misc:disable_xdg_env_checks, misc:enable_anr_dialog, misc:force_default_wallpaper, misc:layers_hog_keyboard_focus, misc:lockdead_screen_delay, misc:middle_click_paste, misc:name_vk_after_proc, misc:render_unfocused_fps, misc:screencopy_force_8b, misc:session_lock_blur, misc:session_lock_xray, misc:splash_font_family |
-| gap | - | misc:always_follow_on_dnd, misc:animate_manual_resizes, misc:animate_mouse_windowdragging, misc:font_family, misc:key_press_enables_dpms, misc:mouse_move_enables_dpms |
+| gap | - | misc:always_follow_on_dnd, misc:animate_manual_resizes, misc:font_family, misc:key_press_enables_dpms, misc:mouse_move_enables_dpms |
 | gap | - | modal_parent_blocking |
 | gap | - | move_snap_cursor, move_snap_to_grid |
 
@@ -253,7 +251,7 @@ An `animation:NAME` row is a node of the animation tree. An `animation` line tha
 - An `animation` window rule is not honored.
 - Hyprland scales a growing window's last frame into each animated rectangle. Winland shows it unscaled from its top left and cut to the rectangle, the way a shrinking window shows, and the see-through areas of a window with a system backdrop look flatter while it grows.
 
-`master:special_scale_factor` is the `special_scale_factor` gap: a special workspace uses the same master scale as a normal one. `master:center_ignores_reserved` is the `center_ignores_reserved` gap.
+`master:center_ignores_reserved` is the `center_ignores_reserved` gap.
 
 A row named by one part of a keyword covers every keyword with that part. `decoration:wobble:enabled` is the `wobble` gap, and `decoration:blur:glass:size` is the `glass` gap.
 

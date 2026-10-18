@@ -4,6 +4,17 @@ namespace Winland;
 // Add a keyword to that type's set to stop the warning.
 internal static class HonoredKeywords
 {
+    /// <summary>
+    /// Options the pinned release defines and never reads, so they change nothing there either. They are read and
+    /// change nothing here, without a warning.
+    /// </summary>
+    internal static IReadOnlyList<string> Inert { get; } =
+    [
+        "dwindle:special_scale_factor",
+        "master:special_scale_factor",
+        "misc:animate_mouse_windowdragging",
+    ];
+
     private static readonly Dictionary<string, HashSet<string>> ByCategory = Build();
 
     internal static bool Contains(string keyword)
@@ -33,6 +44,7 @@ internal static class HonoredKeywords
         Add(table, GestureOptions.Keywords);
         Add(table, AnimationOptions.Keywords);
         Add(table, GroupOptions.Keywords);
+        Add(table, Inert);
         return table;
     }
 
