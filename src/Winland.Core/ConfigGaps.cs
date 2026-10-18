@@ -34,7 +34,6 @@ public static class ConfigGaps
         new("cursor:hide_on_tablet", "Tablet input is not honored."),
         new("cursor:hide_on_touch", "Touch input is not honored."),
         new("cursor:hotspot_padding", "Cursor edge padding is not honored."),
-        new("cursor:invisible", "Always hiding the cursor is not honored."),
         new("cursor:min_refresh_rate", "Cursor refresh rate has no Windows meaning."),
         new("cursor:no_break_fs_vrr", "Pausing frames while the cursor moves has no Windows meaning."),
         new("cursor:no_hardware_cursors", "Hardware cursors have no Windows meaning."),

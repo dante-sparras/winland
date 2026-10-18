@@ -20,7 +20,8 @@ public interface ICursorSurface
 }
 
 /// <summary>
-/// Hides the cursor after it has been still, and on a key press. Tests advance <see cref="IClock"/>.
+/// Hides the cursor after it has been still, on a key press, and always with <c>cursor:invisible</c>. Tests advance
+/// <see cref="IClock"/>.
 /// </summary>
 public sealed class CursorIdle
 {
@@ -30,6 +31,7 @@ public sealed class CursorIdle
     private DateTimeOffset _lastMove;
     private TimeSpan _timeout;
     private bool _hideOnKey;
+    private bool _invisible;
     private bool _idleHidden;
     private bool _keyHidden;
     private bool _hidden;
@@ -56,6 +58,7 @@ public sealed class CursorIdle
         lock (_gate)
         {
             _hideOnKey = behavior.HideOnKeyPress;
+            _invisible = behavior.Invisible;
             _timeout = behavior.InactiveTimeoutSeconds > 0
                 ? TimeSpan.FromSeconds(behavior.InactiveTimeoutSeconds)
                 : TimeSpan.Zero;
@@ -121,13 +124,14 @@ public sealed class CursorIdle
         {
             _idleHidden = false;
             _keyHidden = false;
+            _invisible = false;
             Publish();
         }
     }
 
     private void Publish()
     {
-        var hide = _idleHidden || _keyHidden;
+        var hide = _idleHidden || _keyHidden || _invisible;
         if (hide == _hidden)
             return;
 

@@ -107,7 +107,6 @@ ToUnicodeEx
 GetKeyState
 GetSystemMetrics
 SetCursorPos
-ShowCursor
 SwapMouseButton
 SystemParametersInfo
 INPUT
@@ -160,3 +159,4 @@ MonitorFromPoint
 MagInitialize
 MagUninitialize
 MagSetFullscreenTransform
+MagShowSystemCursor
