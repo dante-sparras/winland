@@ -207,8 +207,9 @@ public static partial class CommandProtocol
     {
         ArgumentNullException.ThrowIfNull(state);
         var indexed = Index(state);
+        // Events and text replies still number a named or special Workspace as before, below zero.
         if (indexed.ByWorkspace.TryGetValue(id, out var described))
-            return described.Id;
+            return described.Order;
 
         if (id.TryGetNumber(out var number))
             return number;
@@ -219,7 +220,7 @@ public static partial class CommandProtocol
     private static string WorkspaceIdText(WorkspaceId id, Indexed indexed)
     {
         if (indexed.ByWorkspace.TryGetValue(id, out var described))
-            return described.Id.ToString(CultureInfo.InvariantCulture);
+            return described.Order.ToString(CultureInfo.InvariantCulture);
 
         if (id.TryGetNumber(out var number))
             return number.ToString(CultureInfo.InvariantCulture);
@@ -342,8 +343,9 @@ public static partial class CommandProtocol
             }
 
             counts.Add(new WorkspaceEntryJson(
-                id.Name,
+                json.Address,
                 json.Id,
+                json.Type,
                 json.Name,
                 MonitorName(state, id),
                 MonitorOf(state, id),
@@ -355,8 +357,13 @@ public static partial class CommandProtocol
                 tiledLayouts.GetValueOrDefault(id, "dwindle")));
         }
 
-        counts.Sort(static (left, right) => left.Id.CompareTo(right.Id));
-        return new Indexed(byWorkspace, counts);
+        // Numbered Workspaces in order, then the named ones and the special ones by the order they had as ids.
+        var keys = new int[counts.Count];
+        for (var i = 0; i < counts.Count; i++)
+            keys[i] = byWorkspace[ids[i]].Order;
+        var entries = counts.ToArray();
+        Array.Sort(keys, entries);
+        return new Indexed(byWorkspace, [.. entries]);
 
         void Add(WorkspaceId id)
         {
@@ -410,12 +417,12 @@ public static partial class CommandProtocol
     {
         var name = names.TryGetValue(id, out var display) ? display : id.Name;
         if (id.IsSpecial)
-            return new WorkspaceJson(specialIds[id.Name], name);
+            return new WorkspaceJson(id.Name, null, "special", name) { Order = specialIds[id.Name] };
 
         if (id.TryGetNumber(out var number))
-            return new WorkspaceJson(number, name);
+            return new WorkspaceJson(id.Name, number, "normal", name) { Order = number };
 
-        return new WorkspaceJson(namedIds[id.Name], name);
+        return new WorkspaceJson(id.Name, null, "normal", name) { Order = namedIds[id.Name] };
     }
 
     private static int IndexOfWhitespace(string text)
@@ -465,13 +472,22 @@ public static partial class CommandProtocol
         [property: JsonPropertyName("tearingHint")] bool TearingHint,
         [property: JsonPropertyName("stableId")] string StableId);
 
+    // A Workspace as the pinned release writes one: its address, an id only when it is numbered, its type and its
+    // display name. Order sorts the list and is not written.
     private sealed record WorkspaceJson(
-        [property: JsonPropertyName("id")] int Id,
-        [property: JsonPropertyName("name")] string Name);
+        [property: JsonPropertyName("address")] string Address,
+        [property: JsonPropertyName("id"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Id,
+        [property: JsonPropertyName("type")] string Type,
+        [property: JsonPropertyName("name")] string Name)
+    {
+        [JsonIgnore]
+        public int Order { get; init; }
+    }
 
     private sealed record WorkspaceEntryJson(
         [property: JsonPropertyName("address")] string Address,
-        [property: JsonPropertyName("id")] int Id,
+        [property: JsonPropertyName("id"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Id,
+        [property: JsonPropertyName("type")] string Type,
         [property: JsonPropertyName("name")] string Name,
         [property: JsonPropertyName("monitor")] string Monitor,
         [property: JsonPropertyName("monitorID")] int MonitorId,
