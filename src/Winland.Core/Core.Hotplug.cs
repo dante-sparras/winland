@@ -57,6 +57,9 @@ public sealed partial class Core
         EnsurePersistent();
         PlaceBound();
         AssignActives(enabled);
+        // An empty Workspace a Monitor took from one that left is hidden there, so it goes, as in the pinned release,
+        // and the Monitor that comes back does not show it again.
+        DropEmpty();
         RefitAll();
         EnsureFocus(home);
         SyncActive();

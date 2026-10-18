@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-180 of 197 ported cases pass.
+181 of 197 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -163,7 +163,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | workspaces | workspaceSwitchUnfocusesWindowFromOldWorkspace | passes | |
 | workspaces | luaFocusCreatesBareNamedWorkspace | passes | |
 | persistent | persistentWorkspaces | differs | A persistent rule keeps a special workspace, and creates a Workspace bound to a Monitor that is not there yet. A new Monitor then shows such a Workspace, where the pinned release opens workspace 2. |
-| persistent | workspaceLifecycleReleasesEmptyWorkspaces | differs | An empty Workspace on a Monitor that goes away is kept on the Monitor that takes it. The pinned release removes it. |
+| persistent | workspaceLifecycleReleasesEmptyWorkspaces | passes | |
 | monitor_rules | monitorMirrorAppliedWhenTargetAppears | not ported | The case checks which render passes a mirrored monitor draws, through the reference's test plugin. |
 | monitor_rules | monitorBackgroundWorkspaceAndXpMode | not ported | The case checks which render passes a monitor's background draws, through the reference's test plugin. |
 | master | focusMasterPrevious | passes | |

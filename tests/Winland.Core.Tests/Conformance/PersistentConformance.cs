@@ -51,7 +51,7 @@ public class PersistentConformance
         desk.RemoveMonitor("HEADLESS-PERSISTENT-TEST");
     }
 
-    [Fact(Skip = "An empty Workspace on a Monitor that goes away is kept on the Monitor that takes it. The pinned release removes it.")]
+    [Fact]
     public void WorkspaceLifecycleReleasesEmptyWorkspaces()
     {
         var desk = new Desk();
