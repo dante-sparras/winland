@@ -32,6 +32,9 @@ public sealed class CursorIdle
     private TimeSpan _timeout;
     private bool _hideOnKey;
     private bool _invisible;
+    private bool _hideOnTouch = true;
+    private bool _hideOnTablet;
+    private bool _touchHidden;
     private bool _idleHidden;
     private bool _keyHidden;
     private bool _hidden;
@@ -59,6 +62,10 @@ public sealed class CursorIdle
         {
             _hideOnKey = behavior.HideOnKeyPress;
             _invisible = behavior.Invisible;
+            _hideOnTouch = behavior.HideOnTouch;
+            _hideOnTablet = behavior.HideOnTablet;
+            if (!_hideOnTouch && !_hideOnTablet)
+                _touchHidden = false;
             _timeout = behavior.InactiveTimeoutSeconds > 0
                 ? TimeSpan.FromSeconds(behavior.InactiveTimeoutSeconds)
                 : TimeSpan.Zero;
@@ -89,6 +96,20 @@ public sealed class CursorIdle
             _lastMove = _clock.Now;
             _idleHidden = false;
             _keyHidden = false;
+            _touchHidden = false;
+            Publish();
+        }
+    }
+
+    /// <summary>Touch or a pen moved the pointer: with hide_on_touch or hide_on_tablet the cursor hides until the mouse moves.</summary>
+    public void Touched(bool pen)
+    {
+        lock (_gate)
+        {
+            if (!(pen ? _hideOnTablet : _hideOnTouch))
+                return;
+
+            _touchHidden = true;
             Publish();
         }
     }
@@ -124,6 +145,7 @@ public sealed class CursorIdle
         {
             _idleHidden = false;
             _keyHidden = false;
+            _touchHidden = false;
             _invisible = false;
             Publish();
         }
@@ -131,7 +153,7 @@ public sealed class CursorIdle
 
     private void Publish()
     {
-        var hide = _idleHidden || _keyHidden || _invisible;
+        var hide = _idleHidden || _keyHidden || _touchHidden || _invisible;
         if (hide == _hidden)
             return;
 

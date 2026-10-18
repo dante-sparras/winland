@@ -12,6 +12,12 @@ public sealed record CursorBehavior(bool HideOnKeyPress, double InactiveTimeoutS
 
     /// <summary><c>cursor:warp_back_after_non_mouse_input</c>: a mouse move after another input moved the cursor starts where the mouse left it.</summary>
     public bool WarpBackAfterNonMouseInput { get; init; }
+
+    /// <summary><c>cursor:hide_on_touch</c>: touch hides the cursor until the mouse moves.</summary>
+    public bool HideOnTouch { get; init; } = true;
+
+    /// <summary><c>cursor:hide_on_tablet</c>: a pen hides the cursor until the mouse moves.</summary>
+    public bool HideOnTablet { get; init; }
 }
 
 /// <summary>
@@ -44,6 +50,10 @@ public sealed record CursorOptions
 
     public bool WarpBackAfterNonMouseInput { get; init; }
 
+    public bool HideOnTouch { get; init; } = true;
+
+    public bool HideOnTablet { get; init; }
+
     public string DefaultMonitor { get; init; } = "";
 
     public double ZoomFactor { get; init; } = 1;
@@ -61,6 +71,8 @@ public sealed record CursorOptions
         Zoom = new CursorZoom(ZoomFactor, ZoomRigid, ZoomDetachedCamera),
         Invisible = Invisible,
         WarpBackAfterNonMouseInput = WarpBackAfterNonMouseInput,
+        HideOnTouch = HideOnTouch,
+        HideOnTablet = HideOnTablet,
     };
 
     private static readonly Dictionary<string, int> WorkspaceModes = new(StringComparer.OrdinalIgnoreCase)
@@ -87,6 +99,8 @@ public sealed record CursorOptions
         ["cursor:persistent_warps"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var persistent) ? options with { PersistentWarps = persistent } : options,
         ["cursor:inactive_timeout"] = (options, value) => TryTimeout(value, out var seconds) ? options with { InactiveTimeoutSeconds = seconds } : options,
         ["cursor:warp_back_after_non_mouse_input"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var back) ? options with { WarpBackAfterNonMouseInput = back } : options,
+        ["cursor:hide_on_touch"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var touch) ? options with { HideOnTouch = touch } : options,
+        ["cursor:hide_on_tablet"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var tablet) ? options with { HideOnTablet = tablet } : options,
         ["cursor:invisible"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var invisible) ? options with { Invisible = invisible } : options,
         ["cursor:hide_on_key_press"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var hide) ? options with { HideOnKeyPress = hide } : options,
         ["cursor:default_monitor"] = (options, value) => options with { DefaultMonitor = value.Trim() },

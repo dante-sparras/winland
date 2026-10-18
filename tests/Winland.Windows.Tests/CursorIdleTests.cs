@@ -3,7 +3,7 @@ using Winland.Windows;
 
 namespace Winland.Windows.Tests;
 
-public class CursorIdleTests
+public partial class CursorIdleTests
 {
     [Fact]
     public void CursorHidesOnlyAfterTheIdleTimeAndReturnsOnMovement()

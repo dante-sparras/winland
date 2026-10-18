@@ -82,11 +82,18 @@ public static class SessionEffects
             relay.Send(key);
     }
 
-    public static void NoteMove(Point position)
+    public static void NoteMove(Point position, PointerSource source = PointerSource.Mouse)
     {
-        Idle.Moved();
+        if (source is PointerSource.Touch or PointerSource.Pen)
+            Idle.Touched(pen: source == PointerSource.Pen);
+        else
+            Idle.Moved();
+
         Magnifier.Moved(position);
     }
+
+    /// <summary>A touch or a pen pressed down.</summary>
+    public static void NoteTouch(bool pen) => Idle.Touched(pen);
 
     public static void NoteKey() => Idle.KeyPressed();
 
