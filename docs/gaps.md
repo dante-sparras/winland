@@ -86,7 +86,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | heat_shimmer | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | input-capture | The input capture portal has no Windows meaning. |
 | input:emulate_discrete_scroll | High resolution scroll emulation is not honored. |
-| input:force_no_accel | Forcing acceleration off apart from the acceleration profile is not honored. |
 | input:kb_file | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | input:kb_model | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | input:kb_options | XKB options, such as a key that switches layouts or remaps Caps Lock, are not honored. |
@@ -188,7 +187,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | glow, motion_blur |
 | gap | - | gradient |
 | gap | - | group:groupbar:priority |
-| gap | - | input:emulate_discrete_scroll, input:force_no_accel, input:off_window_axis_events, input:resolve_binds_by_sym, input:rotation, input:scroll_button, input:scroll_button_lock, input:scroll_method, input:scroll_points |
+| gap | - | input:emulate_discrete_scroll, input:off_window_axis_events, input:resolve_binds_by_sym, input:rotation, input:scroll_button, input:scroll_button_lock, input:scroll_method, input:scroll_points |
 | non-goal | - | input:kb_file, input:kb_model, input:kb_rules |
 | gap | - | input:kb_options |
 | gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:enabled, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
