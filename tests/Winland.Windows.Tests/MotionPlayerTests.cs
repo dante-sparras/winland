@@ -300,7 +300,9 @@ public class MotionPlayerTests
     {
         var target = new RecordingTarget();
         var player = new MotionPlayer(target);
-        var quick = new Timing(Bezier.Linear, 40);
+        // Long enough that the thread still has frames to pace when it first steps, even on a busy machine where it
+        // starts late. A shorter motion can land in one step and never pace.
+        var quick = new Timing(Bezier.Linear, 400);
 
         player.Begin(new Motion(Window, Goal) { From = Start, Move = quick });
         var first = WaitUntil(() => target.Contains("place 100"));
