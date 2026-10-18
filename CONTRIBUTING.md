@@ -78,7 +78,7 @@ It never deletes `main`, `master`, `release/*`, a branch checked out in a worktr
 
 ## CI
 
-Pull requests run `.github/workflows/ci.yml`, and so does the push a merge makes to `main`. That run checks `main` after the merge and fills the .NET SDK and NuGet caches, which a pull request can read only when its own branch or the default branch saved them. A pull request can merge only when the check **All required checks pass (v1)** is green. It is the only check the ruleset requires.
+Pull requests run `.github/workflows/ci.yml`, and so does the push a merge makes to `main`. That run checks `main` after the merge and fills the NuGet cache, which a pull request can read only when its own branch or the default branch saved it. CI uses the .NET SDK the runner image already has when it is the one `global.json` asks for, and installs it otherwise. A pull request can merge only when the check **All required checks pass (v1)** is green. It is the only check the ruleset requires.
 
 Every lane except Mutation is a step in that one Windows job, because each job pays its own setup. The lint step builds the solution once, and the test step runs every test project side by side on that build (`scripts/test.ps1 -NoBuild`). The pre-push hook runs the same lint and tests locally, so CI should rarely be the first to find a failure.
 
