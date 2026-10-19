@@ -1,7 +1,48 @@
 namespace Winland.Windows;
 
-/// <summary>One finger in a precision touchpad report, in millimetres from the pad's origin.</summary>
+/// <summary>
+/// One finger in a precision touchpad report, in millimetres from the pad's origin, or in a touch screen report, from 0
+/// to 1 across the screen.
+/// </summary>
 internal readonly record struct TouchContact(int Id, bool Down, double X, double Y);
+
+/// <summary>
+/// Gathers a digitizer's reports into frames. A report with a contact count opens a frame of that many contacts, and
+/// later reports with a count of 0 carry the rest of it, as precision touchpads and touch screens report in hybrid mode.
+/// </summary>
+internal sealed class ContactFrame
+{
+    private readonly List<TouchContact> _pending = [];
+    private int _expected;
+
+    /// <summary>Adds one report. Returns the frame it finished, or null while the frame waits for more.</summary>
+    internal IReadOnlyList<TouchContact>? Add(int contactCount, IReadOnlyList<TouchContact> contacts)
+    {
+        ArgumentNullException.ThrowIfNull(contacts);
+        if (contactCount > 0)
+        {
+            _expected = contactCount;
+            _pending.Clear();
+        }
+
+        if (_expected == 0)
+            return null;
+
+        foreach (var contact in contacts)
+        {
+            if (_pending.Count >= _expected)
+                break;
+
+            _pending.Add(contact);
+        }
+
+        if (_pending.Count < _expected)
+            return null;
+
+        _expected = 0;
+        return _pending;
+    }
+}
 
 /// <summary>
 /// Turns precision touchpad reports into swipe and pinch inputs. Fingers that come down together wait until they
@@ -25,9 +66,8 @@ internal sealed class TouchpadSwipe
     internal const double SwipeStart = 1;
     internal const double PinchStart = 0.08;
 
-    private readonly List<TouchContact> _pending = [];
+    private readonly ContactFrame _frames = new();
     private readonly Dictionary<int, (double X, double Y)> _last = [];
-    private int _expected;
     private int _fingers;
     private Kind _kind;
     private (double X, double Y) _startCentre;
@@ -53,34 +93,10 @@ internal sealed class TouchpadSwipe
     /// Adds one report. A report with a contact count opens a frame of that many contacts, and later reports with a
     /// count of 0 carry the rest of it. Returns the inputs a finished frame produced.
     /// </summary>
-    internal IReadOnlyList<Input> Report(int contactCount, IReadOnlyList<TouchContact> contacts)
-    {
-        ArgumentNullException.ThrowIfNull(contacts);
-        if (contactCount > 0)
-        {
-            _expected = contactCount;
-            _pending.Clear();
-        }
+    internal IReadOnlyList<Input> Report(int contactCount, IReadOnlyList<TouchContact> contacts) =>
+        _frames.Add(contactCount, contacts) is { } frame ? Frame(frame) : [];
 
-        if (_expected == 0)
-            return [];
-
-        foreach (var contact in contacts)
-        {
-            if (_pending.Count >= _expected)
-                break;
-
-            _pending.Add(contact);
-        }
-
-        if (_pending.Count < _expected)
-            return [];
-
-        _expected = 0;
-        return Frame(_pending);
-    }
-
-    private List<Input> Frame(List<TouchContact> contacts)
+    private List<Input> Frame(IReadOnlyList<TouchContact> contacts)
     {
         var inputs = new List<Input>(2);
         var down = new Dictionary<int, (double X, double Y)>();

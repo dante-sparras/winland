@@ -18,6 +18,9 @@ public sealed partial class Core
     // How far the fingers have gone, along their direction, since a gesture that acts on release was picked.
     private double _releaseDistance;
 
+    /// <summary><c>gestures:workspace_swipe_touch</c>, which the touch screen reader reads with no lock.</summary>
+    public bool TouchSwipe => _swipe.Touch;
+
     private void ReadGestures(ConfigDocument document)
     {
         _gestures = document.Gestures;

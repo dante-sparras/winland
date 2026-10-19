@@ -117,6 +117,8 @@ HidP_GetCaps
 HidP_GetValueCaps
 HidP_GetUsageValue
 HidP_GetUsages
+GetPointerDevices
+GetPointerDeviceRects
 RAWINPUTHEADER
 RAWHID
 HWND_MESSAGE

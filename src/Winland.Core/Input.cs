@@ -183,6 +183,19 @@ public sealed record SwipeEnded(bool Cancelled = false) : Event
     public long TimeMs { get; init; }
 }
 
+/// <summary>
+/// A finger touched a touch screen. <see cref="X"/> and <see cref="Y"/> run from 0 to 1 across the screen, left to right
+/// and top to bottom. <see cref="Display"/> is the desktop rectangle Windows maps the touch screen to, or null when it is
+/// not known. <see cref="Device"/> and <see cref="Id"/> name the finger until it lifts.
+/// </summary>
+public sealed record TouchDown(long Device, int Id, double X, double Y, Rectangle? Display = null) : Event;
+
+/// <summary>A finger on a touch screen moved, to the place <see cref="TouchDown"/> describes.</summary>
+public sealed record TouchMoved(long Device, int Id, double X, double Y, Rectangle? Display = null) : Event;
+
+/// <summary>A finger left a touch screen. A cancelled one went because its device did, not because it lifted.</summary>
+public sealed record TouchUp(long Device, int Id, bool Cancelled = false) : Event;
+
 /// <summary>Fingers on a touchpad began to spread apart or close together. <see cref="PinchUpdated"/> follows.</summary>
 public sealed record PinchBegan(int Fingers) : Event;
 
