@@ -200,7 +200,7 @@ public class LuaBindTests
     [InlineData("hl.dsp.group.move_window({ forward = false })", "bind = SUPER, X, movegroupwindow, b")]
     [InlineData("hl.dsp.group.lock()", "bind = SUPER, X, lockactivegroup, toggle")]
     [InlineData("hl.dsp.group.lock({ action = 'enable' })", "bind = SUPER, X, lockactivegroup, lock")]
-    [InlineData("hl.dsp.group.lock({ all = true, action = 'off' })", "bind = SUPER, X, lockgroups, unlock")]
+    [InlineData("hl.dsp.group.lock({ all = true, action = 'off' })", "bind = SUPER, X, lockactivegroup, unlock")]
     [InlineData("hl.dsp.group.lock_active({ action = 'toggle' })", "bind = SUPER, X, lockactivegroup, toggle")]
     [InlineData("hl.dsp.window.close({ window = 'class:kitty' })", "bind = SUPER, X, closewindow, class:kitty")]
     [InlineData("hl.dsp.window.kill()", "bind = SUPER, X, killwindow, activewindow")]

@@ -153,10 +153,7 @@ internal sealed partial class LuaRun
     private Dispatch GroupLock(string label)
     {
         if (!_lua.IsTable(1))
-            return _lua.IsNoneOrNil(1) ? new Dispatch("lockactivegroup", "toggle") : throw Mistake("expected a table { window?, all?, action? } or no args");
-
-        if (Bool("all") == true)
-            return new Dispatch("lockgroups", LockWord(Action()));
+            return _lua.IsNoneOrNil(1) ? new Dispatch("lockactivegroup", "toggle") : throw Mistake("expected a table { window?, action? } or no args");
 
         return NoWindow(label) ?? new Dispatch("lockactivegroup", LockWord(Action()));
     }
