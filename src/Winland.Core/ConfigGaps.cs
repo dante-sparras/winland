@@ -107,7 +107,6 @@ public static class ConfigGaps
         new("layerrule", "Layer shell rules have no Windows meaning."),
         new("layerrulev2", "Layer shell rules have no Windows meaning."),
         new("locale", "Locale override is not honored."),
-        new("mirror", "Mirroring a monitor is not honored."),
         new("misc:allow_session_lock_restore", "The lock screen belongs to Windows."),
         new("misc:always_follow_on_dnd", "Windows tells no other program that a drag and drop is under way, so focus cannot follow the pointer only then."),
         new("misc:anr_missed_pings", "Windows marks a hung window as not responding itself."),

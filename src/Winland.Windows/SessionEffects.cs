@@ -1,9 +1,9 @@
 namespace Winland.Windows;
 
 /// <summary>
-/// Applies cursor, input, relayed key and idle requests from an outcome. Until <see cref="InstallSystem"/>
-/// the cursor and the system input are stand-ins, no key is sent and no idle state is set, so tests
-/// that apply an outcome do not change the machine.
+/// Applies cursor, input, relayed key, idle and display mirror requests from an outcome. Until <see cref="InstallSystem"/>
+/// the cursor and the system input are stand-ins, no key is sent, no idle state is set and no display is mirrored, so
+/// tests that apply an outcome do not change the machine.
 /// </summary>
 public static class SessionEffects
 {
@@ -18,9 +18,13 @@ public static class SessionEffects
     private static CursorIdleTimer? _timer;
     private static IKeyRelaySender? _relay;
     private static IdleKeeper? _idle;
+    private static DisplayMirrorSession? _mirrors;
     private static int _installed;
 
     public static InputOriginals? Originals => _session?.Originals;
+
+    /// <summary>The displays Winland made mirror another, to put back.</summary>
+    public static IReadOnlyList<DisplayMirrorOriginal> MirrorOriginals => _mirrors?.Originals ?? [];
 
     /// <summary>The first layout <c>kb_layout</c> names, once loaded, or 0.</summary>
     public static nint FirstLayout => _layouts?.First ?? 0;
@@ -36,6 +40,7 @@ public static class SessionEffects
         _timer = new CursorIdleTimer(Idle);
         _relay = new Win32KeyRelaySender();
         _idle = new IdleKeeper();
+        _mirrors = new DisplayMirrorSession(new Win32DisplayTopology());
     }
 
     public static void Apply(Outcome outcome)
@@ -79,6 +84,8 @@ public static class SessionEffects
 
         Relay(outcome);
         _idle?.Set(IdleInhibit.Wanted(outcome.State));
+        if (outcome.DisplayMirrors is { } mirrors)
+            _mirrors?.Apply(mirrors);
     }
 
     /// <summary>
@@ -134,6 +141,7 @@ public static class SessionEffects
     public static void Restore()
     {
         _session?.Restore();
+        _mirrors?.Restore();
         _layouts?.Restore();
         Magnifier.Stop();
         Idle.Reveal();
@@ -144,6 +152,9 @@ public static class SessionEffects
     }
 
     public static void RestoreSaved(InputOriginals saved) => _session?.RestoreSaved(saved);
+
+    /// <summary>Puts back the mirrors a run that did not stop cleanly left.</summary>
+    public static void RestoreSaved(IReadOnlyList<DisplayMirrorOriginal> mirrors) => _mirrors?.RestoreSaved(mirrors);
 
     private sealed class NullCursor : ICursorSurface
     {

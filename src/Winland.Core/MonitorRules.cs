@@ -37,14 +37,16 @@ internal readonly record struct MonitorRule(
     DisplayOrientation? Orientation,
     string? Mode = null,
     double? Scale = null,
-    string? ColorPreset = null);
+    string? ColorPreset = null,
+    string? Mirror = null);
 
 internal readonly record struct MonitorArrangement(
     Monitor[] Monitors,
     DisplayOrientationRequest[] Orientations,
     DisplayModeRequest[] Modes,
     DisplayScaleRequest[] Scales,
-    DisplayColorRequest[] Colors);
+    DisplayColorRequest[] Colors,
+    DisplayMirrorRequest[] Mirrors);
 
 internal static class MonitorRules
 {
@@ -128,8 +130,9 @@ internal static class MonitorRules
 
         DisplayOrientation? orientation = null;
         string? preset = null;
-        ReadOptions(parts, found, ref orientation, ref preset);
-        rule = new MonitorRule(selector, MonitorRuleKind.Full, true, x, y, auto, 0, 0, 0, 0, false, orientation, mode, scale, preset);
+        string? mirror = null;
+        ReadOptions(parts, found, ref orientation, ref preset, ref mirror);
+        rule = new MonitorRule(selector, MonitorRuleKind.Full, true, x, y, auto, 0, 0, 0, 0, false, orientation, mode, scale, preset, mirror);
         return true;
     }
 
@@ -166,12 +169,20 @@ internal static class MonitorRules
         var modes = new List<DisplayModeRequest>();
         var scales = new List<DisplayScaleRequest>();
         var colors = new List<DisplayColorRequest>();
+        var chosen = new MonitorRule?[count];
+        for (var i = 0; i < count; i++)
+            chosen[i] = Select(reported[i] ?? throw new ArgumentNullException(nameof(reported)), rules);
+
+        var (sources, mirrors) = Mirrors(reported, chosen);
 
         for (var i = 0; i < count; i++)
         {
-            var monitor = reported[i] ?? throw new ArgumentNullException(nameof(reported));
-            var rule = Select(monitor, rules);
+            var monitor = reported[i];
+            var rule = chosen[i];
             result[i] = Present(monitor, rule);
+            if (sources[i] >= 0)
+                result[i] = result[i] with { Enabled = false, MirrorOf = reported[sources[i]].Name };
+
             if (!result[i].Enabled)
                 continue;
 
@@ -219,7 +230,60 @@ internal static class MonitorRules
             result[i] = Move(result[i], MonitorPixels.Physical(x, monitor.Scale), MonitorPixels.Physical(y, monitor.Scale));
         }
 
-        return new MonitorArrangement(result, requests.ToArray(), modes.ToArray(), scales.ToArray(), colors.ToArray());
+        // A mirror shows its source's picture, so it sits where its source does.
+        for (var i = 0; i < count; i++)
+        {
+            if (sources[i] >= 0)
+                result[i] = Move(result[i], result[sources[i]].X, result[sources[i]].Y);
+        }
+
+        return new MonitorArrangement(result, requests.ToArray(), modes.ToArray(), scales.ToArray(), colors.ToArray(), mirrors);
+    }
+
+    // Which display each one mirrors, by index, or -1, and the mirrors to ask Windows for. As in the pinned release, a
+    // display cannot mirror itself, a mirror, or a display that is off, and a display another one mirrors cannot
+    // become a mirror. A display Windows still shows as a mirror stays out of the layout until it is put back.
+    private static (int[] Sources, DisplayMirrorRequest[] Requests) Mirrors(IReadOnlyList<Monitor> reported, MonitorRule?[] rules)
+    {
+        var count = reported.Count;
+        var sources = new int[count];
+        Array.Fill(sources, -1);
+        var requests = new List<DisplayMirrorRequest>();
+        for (var i = 0; i < count; i++)
+        {
+            if (rules[i] is not { Enabled: true, Mirror: { Length: > 0 } name })
+                continue;
+
+            var source = Find(reported, rules, candidate => Matches(reported[candidate], name), i);
+            if (source < 0 || sources[source] >= 0 || Array.IndexOf(sources, i) >= 0)
+                continue;
+
+            sources[i] = source;
+            requests.Add(new DisplayMirrorRequest(reported[i].Name, reported[source].Name));
+        }
+
+        for (var i = 0; i < count; i++)
+        {
+            if (sources[i] >= 0 || reported[i].MirrorOf.Length == 0)
+                continue;
+
+            var source = Find(reported, rules, candidate => string.Equals(reported[candidate].Name, reported[i].MirrorOf, StringComparison.OrdinalIgnoreCase), i);
+            if (source >= 0 && sources[source] < 0)
+                sources[i] = source;
+        }
+
+        return (sources, requests.ToArray());
+    }
+
+    private static int Find(IReadOnlyList<Monitor> reported, MonitorRule?[] rules, Func<int, bool> matches, int self)
+    {
+        for (var i = 0; i < reported.Count; i++)
+        {
+            if (i != self && rules[i]?.Enabled != false && matches(i))
+                return i;
+        }
+
+        return -1;
     }
 
     private static MonitorRule Merge(MonitorRule prior, MonitorRule next) => next.Kind switch
@@ -253,6 +317,7 @@ internal static class MonitorRules
             Mode = next.Mode ?? prior.Mode,
             Scale = next.Scale ?? prior.Scale,
             ColorPreset = next.ColorPreset ?? prior.ColorPreset,
+            Mirror = next.Mirror ?? prior.Mirror,
         },
     };
 
@@ -308,7 +373,7 @@ internal static class MonitorRules
         return true;
     }
 
-    private static void ReadOptions(List<string> parts, List<string> warnings, ref DisplayOrientation? orientation, ref string? preset)
+    private static void ReadOptions(List<string> parts, List<string> warnings, ref DisplayOrientation? orientation, ref string? preset, ref string? mirror)
     {
         for (var i = 4; i < parts.Count; i++)
         {
@@ -326,7 +391,7 @@ internal static class MonitorRules
             if (IsTransform(key))
                 orientation = ParseTransform(option, warnings) ?? orientation;
             else if (key.Equals("mirror", StringComparison.OrdinalIgnoreCase))
-                warnings.Add("Mirroring a monitor is not honored.");
+                mirror = option;
             else if (key.Equals("bitdepth", StringComparison.OrdinalIgnoreCase))
                 warnings.Add("Changing a monitor's bit depth is not honored.");
             else if (key.Equals("vrr", StringComparison.OrdinalIgnoreCase))

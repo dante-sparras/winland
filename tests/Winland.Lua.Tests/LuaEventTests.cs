@@ -517,6 +517,24 @@ public class LuaEventTests
     }
 
     [Fact]
+    public void AMonitorListsTheMonitorsThatMirrorIt()
+    {
+        var (runtime, world) = Start("");
+        using var _r = runtime;
+        var mirror = JsonDocument.Parse(Monitors).RootElement[1].GetRawText()
+            .Replace("\"id\":1", "\"id\":2", StringComparison.Ordinal)
+            .Replace("HDMI-A-1", "DP-2", StringComparison.Ordinal)
+            .Replace("\"mirrorOf\":\"none\"", "\"mirrorOf\":\"0\"", StringComparison.Ordinal);
+        world.Replies["j/monitors all"] = "[" + Monitors.Trim()[1..^1] + "," + mirror + "]";
+
+        Check(runtime, """
+            local m = hl.get_monitor("DP-1")
+            assert(#m.mirrors == 1 and m.mirrors[1].name == "DP-2" and m.mirrors[1].is_mirror and m.is_mirror == false)
+            assert(#hl.get_monitor(1).mirrors == 0)
+            """);
+    }
+
+    [Fact]
     public void AMonitorShowsAWorkspaceThroughThePipe()
     {
         var (runtime, world) = Start("");

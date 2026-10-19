@@ -278,7 +278,9 @@ A monitor rule's `cm` preset turns Windows' HDR and wide color switches for the 
 
 Transforms 0, 1, 2 and 3 ask for a rotation of 0, 90, 180 and 270 degrees. Winland sets the display to that orientation with the system display settings whenever the monitors are laid out, and changes nothing when the display already has it. Transforms 4, 5, 6 and 7 flip the picture. They warn "Flipped monitor transforms are not honored." and are not applied.
 
-Resolution, refresh rate and scale changes stay Gaps. So do mirroring, variable refresh, bit depth, HDR and color management, including SDR brightness, SDR saturation and an ICC profile.
+A monitor rule's `mirror, NAME` makes the monitor show the same picture as the monitor NAME, a display name or `desc:`, as in the pinned release. Winland asks Windows to show the two displays as one, as Duplicate in Display settings does, and does not save that, so the layout Windows keeps stays as it was. Windows picks a resolution both displays can show, so the source can change resolution too. The mirror is not part of the layout: its Workspaces move to the first other Monitor, `monitors` leaves it out, and `monitors all` lists it with `disabled` false and `mirrorOf` the id of the Monitor it shows. The mirror's own position, mode, scale, transform and `cm` preset are not applied. A monitor cannot mirror itself, a mirror, or a monitor that is disabled or not connected, and a monitor another one mirrors cannot become a mirror. A rule whose source is not connected yet mirrors once it is, and a mirror whose source goes away is a Monitor of its own again. Windows shows two displays as one only when one graphics adapter drives both; when it cannot, the log says why, the displays are left alone, and Winland tries again once the rule has gone away and come back. When the rule goes away or Winland exits, the display gets back the picture it showed, at its old resolution and position. After Winland stops without cleaning up, the next start does it.
+
+Variable refresh, bit depth, SDR brightness, SDR saturation and an ICC profile stay Gaps.
 
 ## Dispatchers
 

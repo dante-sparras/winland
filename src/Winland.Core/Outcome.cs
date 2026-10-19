@@ -141,6 +141,12 @@ public sealed record Outcome(
     /// <summary>The color modes monitor rules ask the displays to show.</summary>
     public IReadOnlyList<DisplayColorRequest> DisplayColors { get; init; } = [];
 
+    /// <summary>
+    /// Every display the monitor rules ask to mirror another, when this outcome lays the monitors out, or null when it
+    /// does not. A mirror Winland made that is not listed is put back.
+    /// </summary>
+    public IReadOnlyList<DisplayMirrorRequest>? DisplayMirrors { get; init; }
+
     public WarpTo? Warp { get; init; }
 
     public InputSettingsRequest? InputSettings { get; init; }
