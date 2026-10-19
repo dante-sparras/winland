@@ -56,7 +56,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | experimental | Experimental Wayland protocol options have no Windows meaning. |
 | fluid_jar | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | glass | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| group:groupbar:blur | Groupbar blur is not honored. |
 | haze | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | heat_shimmer | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | input-capture | The input capture portal has no Windows meaning. |
@@ -134,7 +133,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
 | gap | - | cursor:zoom_disable_aa |
 | gap | - | decoration:blur:brightness, decoration:blur:contrast, decoration:blur:ignore_opacity, decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:noise, decoration:blur:passes, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:size, decoration:blur:special, decoration:blur:vibrancy, decoration:blur:vibrancy_darkness, decoration:blur:xray |
-| gap | - | group:groupbar:blur, wobble |
+| gap | - | wobble |
 | gap | - | device |
 | gap | - | dont_inhibit |
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
@@ -158,7 +157,7 @@ Input Windows already has: `device`, so an honored input setting can name one de
 
 Monitors and the process locale: `bitdepth` and `locale` (`general:locale`).
 
-Drawing on windows Winland already owns: `group:groupbar:blur` on the bar Winland draws; `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`; and the animation node `animation:monitorAdded`.
+Drawing on windows Winland already owns: `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`; and the animation node `animation:monitorAdded`.
 
 Logging and the error bar: `debug:disable_logs`, `debug:disable_time`, `debug:enable_stdout_logs`, `debug:colored_stdout_logs`, `debug:suppress_errors`, `debug:error_limit` and `debug:error_position`.
 
@@ -236,7 +235,7 @@ Mouse drag has these Gaps. Each is a gap with no open issue:
 - In the monocle Layout a drag does not move or resize the Client.
 - The pointer shape does not change while a Client is dragged or resized.
 
-Dragging a tab out of a tab bar is a Gap: a press on a tab focuses that member, and a drag from it moves nothing. `group:groupbar:blur` is the `blur` gap. Titles are drawn without antialiasing, because antialiased text would blend with the transparent strip. The wheel over the bar focuses the next member instead of only showing it. The bar is a separate window. It is put just above the shown member in the z-order each time the core reports a change, not each time another window is raised.
+Dragging a tab out of a tab bar is a Gap: a press on a tab focuses that member, and a drag from it moves nothing. Titles are drawn without antialiasing, because antialiased text would blend with the transparent strip. The wheel over the bar focuses the next member instead of only showing it. The bar is a separate window. It is put just above the shown member in the z-order each time the core reports a change, not each time another window is raised.
 
 ## Lua config
 

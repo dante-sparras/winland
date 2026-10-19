@@ -52,7 +52,6 @@ public static class ConfigGaps
         new("experimental", "Experimental Wayland protocol options have no Windows meaning."),
         new("fluid_jar", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("glass", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
-        new("group:groupbar:blur", "Groupbar blur is not honored."),
         new("haze", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("heat_shimmer", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("input-capture", "The input capture portal has no Windows meaning."),
