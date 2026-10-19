@@ -351,6 +351,10 @@ public class ExtraCommandTests
         Assert.Equal(new Rectangle(300, 400, 200, 150), PlacedAt(effect, 2));
     }
 
+    // The requests without their fade, which the default animations give every one.
+    private static DisplayPowerRequest[] Unfaded(IReadOnlyList<DisplayPowerRequest> requests) =>
+        [.. requests.Select(request => request with { Fade = null })];
+
     [Fact]
     public void ABatchKeepsEveryDisplayPowerRequest()
     {
@@ -368,7 +372,7 @@ public class ExtraCommandTests
                 new DisplayPowerRequest(@"\\.\DISPLAY1", false),
                 new DisplayPowerRequest(@"\\.\DISPLAY2", true),
             ],
-            effect.DisplayPower);
+            Unfaded(effect.DisplayPower));
     }
 
     [Fact]

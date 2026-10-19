@@ -738,7 +738,12 @@ public sealed partial class WindowAdapter : IDisposable
             Kill(kill);
 
         foreach (var power in outcome.DisplayPower)
-            DisplayPowerAdapter.TryApplyToSystem(power);
+        {
+            if (power.Fade is null && !DpmsFadeHost.Started)
+                DisplayPowerAdapter.TryApplyToSystem(power);
+            else
+                DpmsFadeHost.Request(power);
+        }
 
         // A rotation that matches the display commits nothing, so the display change it causes does not loop.
         foreach (var orientation in outcome.Orientations)

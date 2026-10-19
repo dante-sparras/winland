@@ -190,4 +190,8 @@ public readonly record struct KillRequest(long ProcessId)
 public readonly record struct ZOrderRequest(WindowId Window, bool Top);
 
 /// <summary>A request to turn one display, or every display when <see cref="Device"/> is empty, on or off.</summary>
-public readonly record struct DisplayPowerRequest(string Device, bool On);
+public readonly record struct DisplayPowerRequest(string Device, bool On)
+{
+    /// <summary>How the displays fade to and from black, from <c>animation:fadeDpms</c>, or null when they do not.</summary>
+    public Timing? Fade { get; init; }
+}
