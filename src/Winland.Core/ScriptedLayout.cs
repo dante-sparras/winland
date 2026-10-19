@@ -54,6 +54,15 @@ internal sealed partial class ScriptedLayout : Layout
             _clients[i] = _clients[i] with { Workspace = workspace };
     }
 
+    public void Retitle(WindowId window, string title)
+    {
+        for (var i = 0; i < _clients.Count; i++)
+        {
+            if (_clients[i].Window == window)
+                _clients[i] = _clients[i] with { Title = title };
+        }
+    }
+
     public void NudgeFloating(int dx, int dy) => _floating.Nudge(dx, dy);
 
     public IReadOnlyList<Placement> Apply(LayoutOptions options)

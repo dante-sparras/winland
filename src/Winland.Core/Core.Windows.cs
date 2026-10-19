@@ -90,7 +90,8 @@ public sealed partial class Core
         }
 
         var followed = processId > 0 ? _follow.Take(processId, FollowNow()) : [];
-        var decision = WindowRuleParser.Decide(appeared.Traits, JoinRules(_rules, followed));
+        var traits = WithInitialTitle(appeared.Traits);
+        var decision = WindowRuleParser.Decide(traits, JoinRules(_rules, followed));
         if (!decision.Adopt)
             return View([]);
 
@@ -126,7 +127,7 @@ public sealed partial class Core
         ForgetRestored(appeared.Window);
         var desk = WorkspaceFor(target, monitor);
         if (restored is null)
-            decision = DecideAtOpen(appeared.Traits, JoinRules(_rules, followed), decision, desk, appeared.Owner is WindowId owner && _disabled.Contains(owner));
+            decision = DecideAtOpen(traits, JoinRules(_rules, followed), decision, desk, appeared.Owner is WindowId owner && _disabled.Contains(owner));
         var area = WorkArea(desk, appeared.WorkArea);
         _area = area;
         decision = EvaluateSizeRules(appeared, decision, desk, area);
@@ -168,7 +169,7 @@ public sealed partial class Core
         RememberOpacity(appeared.Window, decision);
         RememberIdle(appeared.Window, decision);
         RememberRuleProps(appeared.Window, decision);
-        RememberRuleSubject(appeared.Window, appeared.Traits, followed, decision);
+        RememberRuleSubject(appeared.Window, traits, followed, decision);
         NoteOwner(appeared);
         Stack(appeared.Window, top: true);
         // A window owned by a pinned Client is pinned too, as the pinned release pins a child of a pinned parent. A

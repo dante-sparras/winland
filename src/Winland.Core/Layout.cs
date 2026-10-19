@@ -19,6 +19,9 @@ internal interface Layout
     /// <summary>Gives every Client the Workspace's new id, after <c>changeworkspaceid</c>.</summary>
     void Readdress(WorkspaceId workspace);
 
+    /// <summary>Gives the Client its window's new title.</summary>
+    void Retitle(WindowId window, string title);
+
     /// <summary>Adopts a Window as a Client of this Workspace.</summary>
     IReadOnlyList<Placement> Add(
         WindowId window,

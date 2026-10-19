@@ -441,11 +441,14 @@ public sealed partial class WindowAdapter : IDisposable
                     if (PInvoke.IsIconic(hwnd))
                         return;
 
-                    // Titles change all the time. A Client's new title changes nothing the core keeps, and
-                    // restoring a window the core does not manage does nothing, so neither is sent to it.
+                    // A Client's new title goes to the core, which keeps it. Restoring a window the core does not manage
+                    // does nothing, so that is not sent to it.
                     var managed = _core.Manages(window);
                     if (managed && @event == PInvoke.EVENT_OBJECT_NAMECHANGE)
+                    {
+                        Apply(_core.Handle(new WindowTitleChanged(window, WindowTitle(hwnd))));
                         return;
+                    }
 
                     if (managed)
                         Apply(_core.Handle(new WindowRestored(window)));

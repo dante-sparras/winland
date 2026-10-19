@@ -33,6 +33,13 @@ public static partial class CommandProtocol
             case FocusChanged focused:
                 AppendFocus(lines, focused, state);
                 break;
+            case ClientRetitled retitled:
+                lines.Add("windowtitle>>" + EventAddress(retitled.Window));
+                lines.Add($"windowtitlev2>>{EventAddress(retitled.Window)},{Clean(retitled.Title)}");
+                // A new title of the focused window is told again as the active window, as in the pinned release.
+                if (retitled.Active)
+                    AppendFocus(lines, new FocusChanged(retitled.Window), state);
+                break;
             case ClientKilled killed:
                 lines.Add("kill>>" + EventAddress(killed.Window));
                 break;

@@ -25,9 +25,10 @@ public class WindowEventTests
         Assert.True(adapter.StartDrag(next, sizing: true, new Point(10, 10)));
     }
 
-    // Each outcome the core decides is numbered, so a gap of one shows that the event asked it nothing.
+    // Each outcome the core decides is numbered. The id is not a window, so the title read is empty, and the
+    // sequence still moves by one because the name change was given to the core.
     [Fact]
-    public void AClientsTitleChangeDoesNotGoToTheCore()
+    public void AClientsTitleChangeGoesToTheCore()
     {
         var core = new Core();
         using var adapter = new WindowAdapter(core);
@@ -38,7 +39,7 @@ public class WindowEventTests
         adapter.Notice(Events.EVENT_OBJECT_NAMECHANGE, (nint)window.Value);
 
         var after = core.Dispatch("workspace", "1", allowsElevation: false).Order!.Value.Sequence;
-        Assert.Equal(before + 1, after);
+        Assert.Equal(before + 2, after);
     }
 
     // Switching virtual desktops cloaks every window on the old one, hidden Clients too. A hidden

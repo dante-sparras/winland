@@ -25,7 +25,7 @@ public sealed partial class Core
 
     private void RememberRuleSubject(WindowId window, WindowTraits traits, IReadOnlyList<WindowRule> followed, WindowDecision decision)
     {
-        _ruleSubjects[window] = (traits, followed);
+        _ruleSubjects[window] = (WithInitialTitle(traits), followed);
         if (decision.Content != 0)
             _content[window] = decision.Content;
     }
@@ -147,6 +147,10 @@ public sealed partial class Core
 
         return View([], dispatcher: name, allowsElevation: allowsElevation);
     }
+
+    // initialTitle matches the title a window had when it appeared, including an empty one, so a later title does not stand in for it.
+    private static WindowTraits WithInitialTitle(WindowTraits traits) =>
+        traits.InitialTitle is null ? traits with { InitialTitle = traits.Title } : traits;
 
     private static bool ReadsState(IReadOnlyList<WindowRule> rules)
     {

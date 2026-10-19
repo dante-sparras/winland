@@ -12,6 +12,9 @@ public sealed record ClientUrgent(WindowId Window) : StreamEvent;
 
 public sealed record ClientMoved(WindowId Window, WorkspaceId Workspace) : StreamEvent;
 
+/// <summary>A Client's window changed its title. <paramref name="Active"/> when it is the focused Client.</summary>
+public sealed record ClientRetitled(WindowId Window, string Title, bool Active) : StreamEvent;
+
 public sealed record FloatingChanged(WindowId Window, bool Floating) : StreamEvent;
 
 public sealed record ClientMinimized(WindowId Window, bool Minimized) : StreamEvent;
