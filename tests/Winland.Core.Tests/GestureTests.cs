@@ -36,8 +36,6 @@ public class GestureTests
     }
 
     [Theory]
-    [InlineData("gesture = 3, down, cursorZoom", "Gesture action 'cursorZoom' is not honored.")]
-    [InlineData("gesture = 2, pinch, cursorZoom, 2, mult", "Gesture action 'cursorZoom' is not honored.")]
     [InlineData("gesturep = 3, horizontal, workspace", "Gesture flag 'p' is not honored.")]
     public void UnhonoredGestureWarnsAndStillShadows(string line, string warning)
     {
@@ -61,10 +59,7 @@ public class GestureTests
             new TrackpadGesture(3, GestureDirection.Left, Modifier.None, 1, "workspace"),
             Assert.Single(document.Gestures));
         Assert.Equal(
-            [
-                new ConfigWarning(1, "Gesture action 'cursorZoom' is not honored."),
-                new ConfigWarning(2, "Gesture will be overshadowed by a previous gesture. Previous SWIPE shadows new LEFT."),
-            ],
+            [new ConfigWarning(2, "Gesture will be overshadowed by a previous gesture. Previous SWIPE shadows new LEFT.")],
             document.Warnings);
     }
 
@@ -366,14 +361,16 @@ public class GestureTests
     }
 
     [Fact]
-    public void UnhonoredActionTakesTheSwipeAndDoesNothing()
+    public void ACursorZoomSwipeTogglesTheZoomAndLeavesTheWorkspace()
     {
-        var core = Twin("gesture = 3, swipe, cursorZoom\n");
+        var core = Twin("gesture = 3, swipe, cursorZoom, 3\n");
 
-        var ended = Swipe(core, 3, Steps(20, -10, 0));
+        var zoomed = Swipe(core, 3, Steps(20, -10, 0));
+        var back = Swipe(core, 3, Steps(20, -10, 0));
 
-        Assert.Equal(WorkspaceId.Initial, ended.State.ActiveWorkspace);
-        Assert.Null(ended.Close);
+        Assert.Equal(WorkspaceId.Initial, zoomed.State.ActiveWorkspace);
+        Assert.Equal(3, zoomed.Cursor!.Zoom.Factor);
+        Assert.Equal(1, back.Cursor!.Zoom.Factor);
     }
 
     [Theory]

@@ -68,6 +68,12 @@ public sealed partial class Core
             return begun is null ? stepped : Merge(begun, stepped);
         }
 
+        if (_activeGesture is { IsCursorZoom: true })
+        {
+            StepCursorZoom();
+            return begun ?? View([]);
+        }
+
         if (_activeGesture is { IsMove: true } or { IsResize: true })
         {
             var stepped = StepWindowGesture(_activeGesture.Scale * updated.DeltaX, _activeGesture.Scale * updated.DeltaY);
@@ -121,6 +127,12 @@ public sealed partial class Core
 
         if (gesture.IsMove || gesture.IsResize)
             return EndWindowGesture();
+
+        if (gesture.IsCursorZoom)
+        {
+            EndCursorZoom();
+            return View([]);
+        }
 
         if (gesture.IsOnRelease)
             return ReleaseGesture(gesture, _releaseDistance);
@@ -176,6 +188,8 @@ public sealed partial class Core
             BeginCloseSwipe();
         else if (gesture.IsMove || gesture.IsResize)
             return BeginWindowGesture(gesture);
+        else if (gesture.IsCursorZoom)
+            BeginCursorZoom(gesture);
 
         return null;
     }
