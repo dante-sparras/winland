@@ -76,4 +76,18 @@ public class KeyboardLayoutTests
         using var devices = JsonDocument.Parse(core.Execute("j/devices").Text);
         return devices.RootElement.GetProperty("keyboards")[0].GetProperty("active_layout_index").GetInt32();
     }
+
+    [Fact]
+    public void BindsReadTheFirstLayoutUnlessResolvedBySymbol()
+    {
+        Assert.False(new Core().BindsInFirstLayout);
+
+        var configured = new Core();
+        configured.Handle(new Configure(ConfigParser.Parse("input:kb_layout = us,se" + Environment.NewLine)));
+        Assert.True(configured.BindsInFirstLayout);
+
+        var bySymbol = new Core();
+        bySymbol.Handle(new Configure(ConfigParser.Parse("input:kb_layout = us,se" + Environment.NewLine + "input:resolve_binds_by_sym = true" + Environment.NewLine)));
+        Assert.False(bySymbol.BindsInFirstLayout);
+    }
 }

@@ -35,6 +35,13 @@ public sealed partial class Core
 
     private int _layoutIndex;
 
+    /// <summary>
+    /// Whether binds read keys in the first layout <c>kb_layout</c> names, as the pinned release does unless
+    /// <c>resolve_binds_by_sym</c> is set. With no <c>kb_layout</c> Winland leaves the layouts alone, and binds read keys in
+    /// the layout in use. The keyboard hook reads it with no lock.
+    /// </summary>
+    public bool BindsInFirstLayout => !_input.ResolveBindsBySym && _input.KbLayout is not null;
+
     /// <summary>The <c>kb_options</c> the keyboard hook carries out. It reads them with no lock.</summary>
     public KeyboardOptions KeyOptions { get; private set; } = KeyboardOptions.None;
 
