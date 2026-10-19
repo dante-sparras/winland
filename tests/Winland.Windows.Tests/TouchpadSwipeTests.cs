@@ -97,6 +97,48 @@ public class TouchpadSwipeTests
         Assert.Equal(new SwipeBegan(4), moved[0]);
     }
 
+    [Fact]
+    public void TheDragFingerCountMakesNoSwipeOrPinchButOthersStill()
+    {
+        var swipe = new TouchpadSwipe { DragFingers = 3 };
+
+        Assert.Empty(swipe.Report(3, Fingers((0, 10, 10), (1, 20, 10), (2, 30, 10))));
+        Assert.Empty(swipe.Report(3, Fingers((0, 15, 10), (1, 25, 10), (2, 35, 10))));
+        Assert.Empty(swipe.Report(3, Fingers((0, 15, 10), (1, 35, 10), (2, 55, 10))));
+        Assert.Empty(swipe.Report(1, []));
+
+        Assert.Empty(swipe.Report(4, Fingers((0, 10, 10), (1, 20, 10), (2, 30, 10), (3, 40, 10))));
+        Assert.Equal(new SwipeBegan(4), swipe.Report(4, Fingers((0, 15, 10), (1, 25, 10), (2, 35, 10), (3, 45, 10)))[0]);
+    }
+
+    [Fact]
+    public void EachFinishedFrameIsHandedOnWithTheFingersDown()
+    {
+        var frames = new List<IReadOnlyDictionary<int, (double X, double Y)>>();
+        var swipe = new TouchpadSwipe { Framed = down => frames.Add(new Dictionary<int, (double X, double Y)>(down)) };
+
+        _ = swipe.Report(2, [new TouchContact(0, true, 1, 2)]);
+        Assert.Empty(frames);
+        _ = swipe.Report(0, [new TouchContact(1, false, 3, 4)]);
+
+        Assert.Equal((1d, 2d), Assert.Single(Assert.Single(frames)).Value);
+    }
+
+    [Fact]
+    public void TheMouseHookSeesTheFingersTheTouchpadLastReported()
+    {
+        TouchpadFingers.Note(1, 1000);
+        Assert.True(TouchpadFingers.Moves(1000 + TouchpadPointer.StaleMs));
+        Assert.False(TouchpadFingers.Moves(1001 + TouchpadPointer.StaleMs));
+        Assert.False(TouchpadFingers.Scrolls(1000, 30));
+
+        TouchpadFingers.Note(2, 2000);
+        TouchpadFingers.Note(0, 2100);
+        Assert.False(TouchpadFingers.Moves(2100));
+        Assert.True(TouchpadFingers.Scrolls(2100, 30));
+        Assert.False(TouchpadFingers.Scrolls(2100, 120));
+    }
+
     // The inputs with the time of an end left out, which the clock sets.
     private static Input[] Untimed(IEnumerable<Input> inputs) =>
         [.. inputs.Select(input => input switch

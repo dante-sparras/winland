@@ -394,7 +394,8 @@ internal sealed class Win32SystemInput : ISystemInput
             parameters.Has(TouchpadParameters.TapAndDrag),
             parameters.Has(TouchpadParameters.ReverseScroll),
             parameters.Sensitivity,
-            parameters.Has(TouchpadParameters.RightClickZone));
+            parameters.Has(TouchpadParameters.RightClickZone),
+            parameters.Has(TouchpadParameters.TwoFingerTap));
         return true;
     }
 
@@ -407,6 +408,7 @@ internal sealed class Win32SystemInput : ISystemInput
         parameters.Set(TouchpadParameters.TapAndDrag, settings.TapAndDrag);
         parameters.Set(TouchpadParameters.ReverseScroll, settings.ReverseScroll);
         parameters.Set(TouchpadParameters.RightClickZone, settings.RightClickZone);
+        parameters.Set(TouchpadParameters.TwoFingerTap, settings.TwoFingerTap);
         if (settings.Sensitivity is int sensitivity)
             parameters.Sensitivity = sensitivity;
 
@@ -425,6 +427,7 @@ internal sealed class Win32SystemInput : ISystemInput
     {
         public const uint Tap = 1 << 2;
         public const uint TapAndDrag = 1 << 3;
+        public const uint TwoFingerTap = 1 << 4;
         public const uint RightClickZone = 1 << 5;
         public const uint ReverseScroll = 1 << 9;
 

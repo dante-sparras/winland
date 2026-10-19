@@ -31,6 +31,7 @@ public sealed class MouseHook : IDisposable
     private readonly MouseDrag _drag = new();
     private readonly ButtonScroller _scroller = new();
     private readonly PointerRotation _rotation = new();
+    private readonly TouchpadPointer _touchpadWheel = new();
     private readonly HashSet<string> _killed = new(StringComparer.Ordinal);
     private bool _disposed;
 
@@ -129,7 +130,7 @@ public sealed class MouseHook : IDisposable
             }
 
             if (TryWheel(message, info.mouseData, out var key))
-                return OnWheel(key, position) ? new LRESULT(1) : Next(code, wParam, lParam);
+                return OnWheel(key, position) || ScaleWheel(message, info.mouseData, source) ? new LRESULT(1) : Next(code, wParam, lParam);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -209,10 +210,19 @@ public sealed class MouseHook : IDisposable
             redirected = true;
         }
 
-        // input:rotation: the mouse's move turns about where the cursor is.
-        if (source == PointerSource.Mouse && _core.PointerRotation != 0 && PInvoke.GetCursorPos(out var at))
+        // input:rotation: the mouse's move turns about where the cursor is. input:touchpad:flip_x and flip_y then turn
+        // the touchpad's move around, as the pinned release flips the touchpad's motion after libinput rotated it.
+        var touchpad = _core.Touchpad;
+        var flip = source == PointerSource.Mouse && touchpad.Flips && TouchpadFingers.Moves(Environment.TickCount64);
+        if (source == PointerSource.Mouse && (_core.PointerRotation != 0 || flip) && PInvoke.GetCursorPos(out var at))
         {
             var (dx, dy) = _rotation.Turn(position.X - at.X, position.Y - at.Y, _core.PointerRotation);
+            if (flip)
+            {
+                var (flippedX, flippedY) = touchpad.Flip(dx, dy);
+                (dx, dy) = ((int)flippedX, (int)flippedY);
+            }
+
             var turned = new Point(at.X + dx, at.Y + dy);
             if (turned != position)
             {
@@ -303,6 +313,25 @@ public sealed class MouseHook : IDisposable
         _keys.NoteTiming(decision);
         _keys.Enqueue(decision);
         return decision.Consumed;
+    }
+
+    // input:touchpad:scroll_factor: the touchpad's wheel turn is taken and sent again multiplied. True when it was taken.
+    private bool ScaleWheel(uint message, uint mouseData, PointerSource source)
+    {
+        if (source != PointerSource.Mouse)
+            return false;
+
+        var delta = (short)(mouseData >> 16);
+        var scale = _core.Touchpad.WheelScale(TouchpadFingers.Scrolls(Environment.TickCount64, delta));
+        if (scale == 1)
+            return false;
+
+        var horizontal = message == HorizontalWheel;
+        var scaled = _touchpadWheel.Scale(delta, scale, horizontal);
+        if (scaled != 0)
+            InputInjector.Post(Mouse(horizontal ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL : MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, scaled));
+
+        return true;
     }
 
     // Stryker restore all
