@@ -216,17 +216,20 @@ public static class ControlInvocation
     {
         var prefix = flags + "/";
         var result = new StringBuilder(prefix);
-        var bracket = 0;
+
+        // The flags go before each command the batch splits into, so an escaped \; or \\ is passed over as the split
+        // passes it over.
         for (var i = 0; i < payload.Length; i++)
         {
             var ch = payload[i];
-            if (ch == '[')
-                bracket++;
-            else if (ch == ']')
-                bracket--;
-
             result.Append(ch);
-            if (ch != ';' || bracket != 0)
+            if (ch == '\\' && i + 1 < payload.Length && payload[i + 1] is '\\' or ';')
+            {
+                result.Append(payload[++i]);
+                continue;
+            }
+
+            if (ch != ';')
                 continue;
 
             while (i + 1 < payload.Length && char.IsWhiteSpace(payload[i + 1]))

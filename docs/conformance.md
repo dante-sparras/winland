@@ -7,10 +7,14 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 ## Score
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 207 of 214 ported cases pass.
 =======
 204 of 214 ported cases pass.
 >>>>>>> 257fb8b (feat(lua): require reads paths and wildcards through the config's reader)
+=======
+205 of 214 ported cases pass.
+>>>>>>> 40bfeec (feat(ipc): split a batch with the pinned release's escapes)
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -219,7 +223,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | hyprctl | hyprctlBindsJson | passes | |
 | hyprctl | hyprctlWorkspaceJson | passes | |
 | hyprctl | hyprctlREPL | passes | |
-| hyprctl | hyprctlBatch | differs | A batch splits at every ;, as a backslash escapes nothing there, so \; does not keep a ; in its command. With no active window, activewindow replies {} where the pinned release replies Invalid. |
+| hyprctl | hyprctlBatch | passes | |
 | misc | misc | passes | |
 | misc | processesThatDieEarlyAreReaped | not ported | It checks that the OS reaps a process the config starts, which a core test cannot see. |
 | state | state | passes | |

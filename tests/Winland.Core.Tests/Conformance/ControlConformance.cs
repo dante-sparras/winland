@@ -183,7 +183,7 @@ public class ControlConformance
         Assert.Equal("ok", desk.Send("eval print(type(hl))"));
     }
 
-    [Fact(Skip = "A batch splits at every ;, as a backslash escapes nothing there, so \\; does not keep a ; in its command. With no active window, activewindow replies {} where the pinned release replies Invalid.")]
+    [Fact]
     public void HyprctlBatch()
     {
         using var desk = Desk.WithLua("");

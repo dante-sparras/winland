@@ -267,7 +267,7 @@ Every command the pinned release's control socket answers is recognized. The one
 
 `descriptions` lists only the options Winland reads, and their `description` is empty: the pinned release's descriptions are not carried.
 
-A batch splits at every `;` outside brackets, and a backslash escapes nothing in it, where the pinned release reads `\;` as a `;` in the command and `\\` as a backslash. Windows display names, such as `\\.\DISPLAY1`, keep their backslashes that way. With no active window, `activewindow` replies `{}` where the pinned release replies `Invalid`.
+`clients` and `activewindow` reply in JSON with or without `j/`, where the pinned release replies in text without it. With no window they reply its text, `no open windows` and `Invalid`.
 
 `getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_anim`, `no_blur`, `no_dim`, `no_shadow`, `no_glow`, `no_wobble`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `xray`, `render_unfocused`, `no_follow_mouse`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `scroll_mouse` and `scroll_touchpad`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
 

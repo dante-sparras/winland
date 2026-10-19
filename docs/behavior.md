@@ -458,6 +458,10 @@ The pipe refuses clients on other machines. When another process already holds t
 
 `seterror COLOR MESSAGE` shows an error bar across the top of the focused Monitor, as in the pinned release. It is a dark strip with a two-pixel border in that color, rounded at its ends, with the message in light text. The text size is 10 pixels for each 1920 pixels of the Monitor's width, from 8 to 40. The message keeps its first five lines and says how many more there are. The bar's height and its 10-pixel margin are taken off the top of that Monitor's work area, which `monitors` reports as reserved, and the bar and the space follow the focus to another Monitor. `seterror` alone or `seterror disable` takes it away, and another word alone answers `var 1 not color or disable`. A color that does not parse draws no border. The bar takes no clicks.
 
+A batch, `[[BATCH]]` or `winlandctl --batch`, splits as in the pinned release: at every `;`, brackets or not, and each command is trimmed. `\;` puts a `;` in a command and `\\` a backslash, and a backslash before anything else stays as it is. So a Windows display name in a batch is written `\\\\.\\DISPLAY1`, and a rule block with more than one rule `[float\; tile]`. The replies are joined by two empty lines, and a command left empty, as after a last `;`, replies as an unknown command does. With `-j`, `winlandctl` puts `j/` before each command the batch splits into.
+
+With no window, `clients` replies `no open windows` and `activewindow` replies `Invalid`, as in the pinned release. With `j/` they reply `[]` and `{}`.
+
 `submap` answers the submap binds run in, or `default` outside one, as in the pinned release. With `j/` the name is a JSON string.
 
 `animations` lists every node of the animation tree, with whether a line set it, its curve, whether it is on, its speed and its style, and then every curve with its two control points, in the pinned release's text and JSON forms. The nodes follow the tree, and the curves come newest first.
