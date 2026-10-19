@@ -116,9 +116,7 @@ public static partial class ConfigParser
             _gestures.Add(gesture);
             if (disableInhibit)
                 Warn(lineNumber, "Gesture flag 'p' is not honored.");
-            if (TrackpadGesture.IsPinch(direction))
-                Warn(lineNumber, "Pinch gestures are not honored.");
-            else if (!gesture.IsHonored)
+            if (!gesture.IsHonored)
                 Warn(lineNumber, $"Gesture action '{action}' is not honored.");
         }
 

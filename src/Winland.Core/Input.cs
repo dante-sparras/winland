@@ -177,6 +177,26 @@ public sealed record SwipeEnded(bool Cancelled = false) : Event
     public long TimeMs { get; init; }
 }
 
+/// <summary>Fingers on a touchpad began to spread apart or close together. <see cref="PinchUpdated"/> follows.</summary>
+public sealed record PinchBegan(int Fingers) : Event;
+
+/// <summary>
+/// The fingers of a touchpad pinch moved. The delta is how far their middle moved since the last update, in pixels, and
+/// <see cref="Scale"/> how far they have spread since the pinch began: below 1 closer together, above 1 further apart.
+/// </summary>
+public sealed record PinchUpdated(int Fingers, double DeltaX, double DeltaY, double Scale) : Event
+{
+    /// <summary>When the update happened, in milliseconds of a steady clock, or 0 when it is not known.</summary>
+    public long TimeMs { get; init; }
+}
+
+/// <summary>The pinch ended. A cancelled pinch ended because the finger count changed.</summary>
+public sealed record PinchEnded(bool Cancelled = false) : Event
+{
+    /// <summary>When the pinch ended, in milliseconds of a steady clock, or 0 when it is not known.</summary>
+    public long TimeMs { get; init; }
+}
+
 public sealed record ConfigLoaded(ConfigDocument Config) : Command;
 
 public sealed record Dispatch(string Name, string Arguments = "") : Command
