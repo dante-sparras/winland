@@ -77,7 +77,7 @@ public sealed partial class Core
             return View([]);
 
         var along = gesture.Scale * TrackpadGesture.Along(_gestureDirection, updated.DeltaX, updated.DeltaY);
-        return StepWorkspaceSwipe(swipe, swipe.Delta + (_swipe.Invert ? -along : along)) ?? View([]);
+        return StepWorkspaceSwipe(swipe, swipe.Delta + (_swipe.Invert ? -along : along));
     }
 
     private Outcome EndSwipe(bool cancelled, long timeMs)
@@ -202,7 +202,7 @@ public sealed partial class Core
     private void BeginWorkspaceSwipe(MonitorId monitor) =>
         _workspaceSwipe = new WorkspaceSwipe(ActiveOn(monitor), monitor);
 
-    private Outcome? StepWorkspaceSwipe(WorkspaceSwipe swipe, double delta)
+    private Outcome StepWorkspaceSwipe(WorkspaceSwipe swipe, double delta)
     {
         var distance = Math.Max(1, _swipe.Distance);
         var step = swipe.Delta - delta;
@@ -215,7 +215,7 @@ public sealed partial class Core
         if ((left is null || right is null || left == begin) && !_swipe.CreateNew)
         {
             _workspaceSwipe = null;
-            return null;
+            return ReturnSwipe(swipe);
         }
 
         swipe.Delta = Math.Clamp(swipe.Delta, -distance, distance);
@@ -226,7 +226,7 @@ public sealed partial class Core
             || (swipe.Delta < 0 && beginRank <= SwipeRank(left)))
         {
             swipe.Delta = 0;
-            return null;
+            return PreviewSwipe(swipe, null);
         }
 
         if (_swipe.DirectionLock)
@@ -245,11 +245,11 @@ public sealed partial class Core
             // Past the last Workspace the swipe only continues when it may create one.
             if (!_swipe.CreateNew)
                 swipe.Delta = 0;
-            return null;
+            return PreviewSwipe(swipe, null);
         }
 
         if (!_swipe.Forever || Math.Abs(swipe.Delta) < distance)
-            return null;
+            return PreviewSwipe(swipe, target);
 
         var switched = FinishWorkspaceSwipe(swipe);
         BeginWorkspaceSwipe(swipe.Monitor);
@@ -272,14 +272,15 @@ public sealed partial class Core
         var magnitude = Math.Abs(swipe.Delta);
         var slow = _swipe.MinSpeedToForce == 0 || swipe.AverageSpeed < _swipe.MinSpeedToForce;
         if ((magnitude < distance * _swipe.CancelRatio && slow) || magnitude < 2)
-            return View([]);
+            return ReturnSwipe(swipe);
 
         if ((swipe.Delta < 0 ? left : right) is not WorkspaceId target)
-            return View([]);
+            return ReturnSwipe(swipe);
 
         if (FocusedId() != swipe.Monitor && MonitorById(swipe.Monitor) is not null)
             Focus(swipe.Monitor);
 
+        LandSwipe();
         return SwitchTo(Alias(target), focus: null, consumed: false, dispatcher: "workspace");
     }
 
