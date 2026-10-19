@@ -122,10 +122,10 @@ internal sealed class MotionPlayer : IDisposable
         return false;
     }
 
-    internal PaintHold Paint(WindowId window, byte alpha, BorderColor border)
+    internal PaintHold Paint(WindowId window, byte alpha, BorderColor border, byte? opacity = null, byte keep = 255)
     {
         lock (_gate)
-            return _animator.Paint(window, alpha, border, _clock());
+            return _animator.Paint(window, alpha, border, _clock(), opacity, keep);
     }
 
     /// <summary>Stops any motion on the window. The caller holds <see cref="For"/> and puts the window in place.</summary>

@@ -24,6 +24,12 @@ public readonly record struct Decoration(
 {
     public CornerRegion? Region { get; init; }
 
+    /// <summary>The opacity part of <see cref="Alpha"/>, from 0 to 255. <c>fadeSwitch</c> animates it.</summary>
+    public byte Opacity { get; init; } = Alpha;
+
+    /// <summary>What dimming leaves of <see cref="Alpha"/>, from 0 to 255, where 255 is not dimmed. <c>fadeDim</c> animates it.</summary>
+    public byte Keep { get; init; } = 255;
+
     public bool Blur { get; init; }
 
     public bool Shadow { get; init; } = true;

@@ -244,8 +244,9 @@ public sealed partial class Core
         public void Switches(Dictionary<WindowId, Decoration> previous, Dictionary<WindowId, Decoration> painted)
         {
             var alphaTiming = Options.TimingOf("fadeSwitch");
+            var dimTiming = Options.TimingOf("fadeDim");
             var borderTiming = Options.TimingOf("border");
-            if (alphaTiming is null && borderTiming is null)
+            if (alphaTiming is null && dimTiming is null && borderTiming is null)
                 return;
 
             foreach (var (window, now) in painted)
@@ -253,14 +254,17 @@ public sealed partial class Core
                 if (!previous.TryGetValue(window, out var was) || _isHidden.Contains(window) || _wasHidden.Contains(window) || !_was.ContainsKey(window))
                     continue;
 
-                var alpha = alphaTiming is not null && was.Alpha != now.Alpha;
+                var alpha = alphaTiming is not null && was.Opacity != now.Opacity;
+                var dim = dimTiming is not null && was.Keep != now.Keep;
                 var border = borderTiming is not null && was.Border != now.Border && !was.Borderless && !now.Borderless;
-                if (!alpha && !border)
+                if (!alpha && !dim && !border)
                     continue;
 
                 var motion = _motions.TryGetValue(window, out var planned) ? planned : new Motion(window, BoundsOf(window));
                 if (alpha)
-                    motion = motion with { AlphaFrom = was.Alpha, Alpha = alphaTiming };
+                    motion = motion with { AlphaFrom = was.Opacity, Alpha = alphaTiming };
+                if (dim)
+                    motion = motion with { DimFrom = was.Keep, Dim = dimTiming };
                 if (border)
                     motion = motion with { BorderFrom = was.Border, Border = borderTiming };
                 _motions[window] = motion;
@@ -274,7 +278,7 @@ public sealed partial class Core
             foreach (var motion in _motions.Values)
             {
                 motions[i++] = painted.TryGetValue(motion.Window, out var decoration)
-                    ? motion with { AlphaTo = decoration.Alpha, BorderTo = decoration.Borderless ? null : decoration.Border }
+                    ? motion with { AlphaTo = decoration.Alpha, OpacityTo = decoration.Opacity, DimTo = decoration.Keep, BorderTo = decoration.Borderless ? null : decoration.Border }
                     : motion;
             }
 
