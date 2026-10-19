@@ -252,6 +252,10 @@ Mouse drag has these Gaps. Each is a gap with no open issue:
 
 Dragging a tab out of a tab bar is a Gap: a press on a tab focuses that member, and a drag from it moves nothing. `group:groupbar:blur` is the `blur` gap. Titles are drawn without antialiasing, because antialiased text would blend with the transparent strip. The wheel over the bar focuses the next member instead of only showing it. The bar is a separate window. It is put just above the shown member in the z-order each time the core reports a change, not each time another window is raised.
 
+## Lua config
+
+A `winland.lua` runs while the config loads (ADR 0013), so what needs Lua to run while Winland runs is a gap: a bind whose dispatcher is a Lua function, `hl.dispatch`, handlers of `hl.on` events other than `winland.start` and `winland.shutdown`, `hl.timer`, the `hl.get_*` queries, `hl.notification` and the object methods on what they return. The `hl` calls not built yet warn once and do nothing: `hl.monitor`, `hl.window_rule`, `hl.layer_rule`, `hl.workspace_rule`, `hl.gesture`, `hl.curve`, `hl.animation`, `hl.device`, `hl.permission` and `hl.load`. These `hl.dsp` dispatchers have no line dispatcher and warn: `window.signal`, `window.clear_tags`, `reload_config`, `global`, `force_idle`, `release_input_capture` and `focus({ last = true })`, and a `window` selector on `cursor.move_to_corner`, the `group` toggles, `window.fullscreen` and `window.center`, which act only on the focused window. A bind's `device` option makes no bind, and `auto_consuming` warns. A description with a comma is dropped, since the line form cannot hold it.
+
 ## Commands
 
 Every command the pinned release's control socket answers is recognized. The ones below differ.
