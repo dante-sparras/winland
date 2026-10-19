@@ -75,7 +75,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | glass | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | glow | Inner glow is not honored. |
 | group:groupbar:blur | Groupbar blur is not honored. |
-| group:groupbar:priority | The tab bar is the only decoration drawn over a tile, so it has no order. |
 | haze | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | heat_shimmer | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | input-capture | The input capture portal has no Windows meaning. |
@@ -173,7 +172,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | non-goal | - | experimental, input-capture |
 | gap | - | gestures:close_max_timeout, gestures:workspace_swipe_touch, gestures:workspace_swipe_touch_invert |
 | gap | - | glow, motion_blur |
-| gap | - | group:groupbar:priority |
 | gap | - | input:emulate_discrete_scroll, input:off_window_axis_events, input:rotation, input:scroll_points |
 | non-goal | - | input:kb_file, input:kb_model, input:kb_rules |
 | gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:enabled, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
