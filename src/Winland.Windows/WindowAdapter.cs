@@ -676,10 +676,12 @@ public sealed partial class WindowAdapter : IDisposable
         foreach (var window in outcome.ShowMinimized)
             Reveal(window);
 
-        Restack(outcome.ZOrder);
-
+        // The foreground moves first: Windows brings the window it focuses to the top, and the z-order requests then put
+        // the floating Clients back above it.
         if (outcome.Focus is WindowId focus)
             _ = Foreground.MoveTo(focus);
+
+        Restack(outcome.ZOrder);
 
         foreach (var launch in outcome.Launches)
         {
