@@ -47,4 +47,8 @@ public sealed record Monitor(
     double RefreshRate = 0,
     int PhysicalWidth = 0,
     int PhysicalHeight = 0,
-    DisplayOrientation? Orientation = null);
+    DisplayOrientation? Orientation = null)
+{
+    /// <summary>The <c>cm</c> preset its monitor rule names, or empty when none does.</summary>
+    public string ColorPreset { get; init; } = "";
+}

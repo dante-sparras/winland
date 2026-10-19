@@ -36,13 +36,15 @@ internal readonly record struct MonitorRule(
     bool HasReserved,
     DisplayOrientation? Orientation,
     string? Mode = null,
-    double? Scale = null);
+    double? Scale = null,
+    string? ColorPreset = null);
 
 internal readonly record struct MonitorArrangement(
     Monitor[] Monitors,
     DisplayOrientationRequest[] Orientations,
     DisplayModeRequest[] Modes,
-    DisplayScaleRequest[] Scales);
+    DisplayScaleRequest[] Scales,
+    DisplayColorRequest[] Colors);
 
 internal static class MonitorRules
 {
@@ -125,8 +127,9 @@ internal static class MonitorRules
         }
 
         DisplayOrientation? orientation = null;
-        ReadOptions(parts, found, ref orientation);
-        rule = new MonitorRule(selector, MonitorRuleKind.Full, true, x, y, auto, 0, 0, 0, 0, false, orientation, mode, scale);
+        string? preset = null;
+        ReadOptions(parts, found, ref orientation, ref preset);
+        rule = new MonitorRule(selector, MonitorRuleKind.Full, true, x, y, auto, 0, 0, 0, 0, false, orientation, mode, scale, preset);
         return true;
     }
 
@@ -162,6 +165,7 @@ internal static class MonitorRules
         var requests = new List<DisplayOrientationRequest>();
         var modes = new List<DisplayModeRequest>();
         var scales = new List<DisplayScaleRequest>();
+        var colors = new List<DisplayColorRequest>();
 
         for (var i = 0; i < count; i++)
         {
@@ -176,6 +180,9 @@ internal static class MonitorRules
 
             if (rule?.Mode is string mode)
                 modes.Add(new DisplayModeRequest(monitor.Name, mode));
+
+            if (rule?.ColorPreset is string preset && preset != DisplayColors.Auto)
+                colors.Add(new DisplayColorRequest(monitor.Name, preset));
 
             // A scale Windows already shows asks for nothing, so the display change a new scale causes does not loop.
             if (rule?.Scale is double scale && DisplaySettings.NearestPercent(scale) != DisplaySettings.NearestPercent(monitor.Scale <= 0 ? 1 : monitor.Scale))
@@ -212,7 +219,7 @@ internal static class MonitorRules
             result[i] = Move(result[i], MonitorPixels.Physical(x, monitor.Scale), MonitorPixels.Physical(y, monitor.Scale));
         }
 
-        return new MonitorArrangement(result, requests.ToArray(), modes.ToArray(), scales.ToArray());
+        return new MonitorArrangement(result, requests.ToArray(), modes.ToArray(), scales.ToArray(), colors.ToArray());
     }
 
     private static MonitorRule Merge(MonitorRule prior, MonitorRule next) => next.Kind switch
@@ -245,6 +252,7 @@ internal static class MonitorRules
             Orientation = next.Orientation ?? prior.Orientation,
             Mode = next.Mode ?? prior.Mode,
             Scale = next.Scale ?? prior.Scale,
+            ColorPreset = next.ColorPreset ?? prior.ColorPreset,
         },
     };
 
@@ -300,7 +308,7 @@ internal static class MonitorRules
         return true;
     }
 
-    private static void ReadOptions(List<string> parts, List<string> warnings, ref DisplayOrientation? orientation)
+    private static void ReadOptions(List<string> parts, List<string> warnings, ref DisplayOrientation? orientation, ref string? preset)
     {
         for (var i = 4; i < parts.Count; i++)
         {
@@ -323,8 +331,12 @@ internal static class MonitorRules
                 warnings.Add("Changing a monitor's bit depth is not honored.");
             else if (key.Equals("vrr", StringComparison.OrdinalIgnoreCase))
                 warnings.Add("Variable refresh rate is not honored.");
+            else if (key.Equals("cm", StringComparison.OrdinalIgnoreCase) && DisplayColors.IsPreset(option))
+                preset = option.ToLowerInvariant();
+            else if (key.Equals("cm", StringComparison.OrdinalIgnoreCase))
+                warnings.Add("Invalid color management preset.");
             else if (IsColor(key))
-                warnings.Add("Monitor color management is not honored.");
+                warnings.Add("Monitor color management other than its cm preset is not honored.");
             else
                 warnings.Add("Malformed monitor rule.");
         }
@@ -357,6 +369,7 @@ internal static class MonitorRules
             Enabled = rule.Value.Enabled,
             WorkArea = Inset(reported.WorkArea, rule.Value, reported.Scale),
             Orientation = rule.Value.Orientation,
+            ColorPreset = rule.Value.ColorPreset ?? "",
         };
     }
 
@@ -544,8 +557,7 @@ internal static class MonitorRules
         text.Equals("transform", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsColor(string text) =>
-        text.Equals("cm", StringComparison.OrdinalIgnoreCase)
-        || text.Equals("icc", StringComparison.OrdinalIgnoreCase)
+        text.Equals("icc", StringComparison.OrdinalIgnoreCase)
         || text.Equals("sdrbrightness", StringComparison.OrdinalIgnoreCase)
         || text.Equals("sdrsaturation", StringComparison.OrdinalIgnoreCase)
         || text.Equals("sdr_eotf", StringComparison.OrdinalIgnoreCase);

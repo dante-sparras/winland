@@ -752,6 +752,9 @@ public sealed partial class WindowAdapter : IDisposable
         foreach (var mode in outcome.DisplayModes)
             ChangeMode(mode);
 
+        foreach (var color in outcome.DisplayColors)
+            DisplayColorAdapter.TryApplyToSystem(color);
+
         foreach (var scale in outcome.DisplayScales)
             ChangeScale(scale);
 

@@ -468,7 +468,6 @@ public class MonitorTests
             [
                 new ConfigWarning(1, "Mirroring a monitor is not honored."),
                 new ConfigWarning(1, "Changing a monitor's bit depth is not honored."),
-                new ConfigWarning(1, "Monitor color management is not honored."),
                 new ConfigWarning(1, "Variable refresh rate is not honored."),
                 new ConfigWarning(1, "Flipped monitor transforms are not honored."),
             ],

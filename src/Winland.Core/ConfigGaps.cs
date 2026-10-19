@@ -26,7 +26,6 @@ public static class ConfigGaps
         new("aurora", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("binds:disable_keybind_grabbing", "Applications cannot ask Windows to turn binds off, so there is nothing to refuse."),
         new("bitdepth", "Changing a monitor's bit depth is not honored."),
-        new("cm", "Monitor color management is not honored."),
         new("cursor:enable_hyprcursor", "The cursor theme format has no Windows meaning."),
         new("cursor:hotspot_padding", "Cursor edge padding is not honored."),
         new("cursor:min_refresh_rate", "Cursor refresh rate has no Windows meaning."),
