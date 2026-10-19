@@ -21,6 +21,11 @@ public sealed partial class WindowAdapter
         if (!TryDescribe(hwnd, window, out var appeared))
             return;
 
+        // A managed window described again may name a different class, as a Store frame does once its hosted
+        // window appears. The class it had when it was adopted stays. Showing it again still follows.
+        if (_core.Manages(window))
+            Apply(_core.Handle(new WindowClassChanged(window, appeared.Traits.Class)));
+
         // A window that opens maximized asked for it before it mapped, which the core ignores. A window that was
         // maximized before Winland started is adopted elsewhere, and stays maximized.
         appeared = appeared with { ShownMaximized = PInvoke.IsZoomed(hwnd) };

@@ -45,6 +45,9 @@ public sealed record WindowClosed(WindowId Window) : Event;
 /// <summary>A window's title changed.</summary>
 public sealed record WindowTitleChanged(WindowId Window, string Title) : Event;
 
+/// <summary>A window's class changed.</summary>
+public sealed record WindowClassChanged(WindowId Window, string Class) : Event;
+
 /// <summary>Windows disabled a Client, as it does while a modal dialog it owns is open, or enabled it again.</summary>
 public sealed record WindowEnabledChanged(WindowId Window, bool Enabled) : Event;
 

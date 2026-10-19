@@ -107,6 +107,9 @@ internal sealed partial class LuaRun
             case ClientRetitled retitled:
                 yield return ("window.title", [new WindowEventArgument(retitled.Window)]);
                 break;
+            case ClientReclassed reclassed:
+                yield return ("window.class", [new WindowEventArgument(reclassed.Window)]);
+                break;
             case ClientKilled killed:
                 yield return ("window.kill", [new WindowEventArgument(killed.Window)]);
                 break;

@@ -40,6 +40,12 @@ public static partial class CommandProtocol
                 if (retitled.Active)
                     AppendFocus(lines, new FocusChanged(retitled.Window), state);
                 break;
+            case ClientReclassed reclassed:
+                // The pinned release has no windowclass event. A new class of the focused window is told again as
+                // the active window.
+                if (reclassed.Active)
+                    AppendFocus(lines, new FocusChanged(reclassed.Window), state);
+                break;
             case ClientKilled killed:
                 lines.Add("kill>>" + EventAddress(killed.Window));
                 break;

@@ -49,7 +49,8 @@ public sealed record WindowRule(
     IReadOnlyDictionary<string, object>? Props = null,
     IReadOnlyList<RuleMatch>? Dynamic = null,
     string? Text = null,
-    string? InitialTitlePattern = null);
+    string? InitialTitlePattern = null,
+    string? InitialClassPattern = null);
 
 /// <summary>What a window rule matches on that can change while the window lives.</summary>
 public enum RuleMatchKind

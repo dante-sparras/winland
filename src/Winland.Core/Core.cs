@@ -251,6 +251,7 @@ public sealed partial class Core
             WindowRestored restored => Restore(restored),
             WindowResized resized => Reapply(resized),
             WindowTitleChanged retitled => Retitle(retitled),
+            WindowClassChanged reclassed => Reclass(reclassed),
             Configure configure => Apply(configure.Document),
             Preselect preselect => View(CurrentWorkspace().Layout.Preselect(preselect.Direction)),
             Pseudo pseudo => ChangePseudo(pseudo.Window),

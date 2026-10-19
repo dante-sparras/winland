@@ -204,6 +204,20 @@ public class LuaEventTests
     }
 
     [Fact]
+    public void ANewClassRunsTheWindowClassHandler()
+    {
+        var (runtime, _) = Start("""
+            seen = ""
+            hl.on("window.class", function(w) seen = tostring(w) .. " " .. w.class end)
+            """);
+        using var _ = runtime;
+
+        runtime.Deliver([new ClientReclassed(Term, "foot", true)]);
+
+        Assert.Equal("HL.Window(0x1a) kitty", Repl(runtime, "seen"));
+    }
+
+    [Fact]
     public void WinlandsEventsAreThePinnedReleasesEvents()
     {
         var (runtime, _) = Start("""
