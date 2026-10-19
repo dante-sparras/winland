@@ -18,6 +18,7 @@ public sealed partial class Core
     {
         _cursor = CursorOptions.From(document);
         _input = InputOptions.From(document);
+        ForgetGestureZoom();
         KeyOptions = KeyboardOptions.Parse(_input.KbOptions);
     }
 
@@ -63,7 +64,7 @@ public sealed partial class Core
             Warp = warp,
             InputSettings = _input.Request(),
             KeyboardLayout = LayoutRequest(),
-            Cursor = WithZoomTiming(_cursor.Behavior()),
+            Cursor = WithGestureZoom(WithZoomTiming(_cursor.Behavior())),
             ResizeCursor = _resizeCursor,
         };
     }

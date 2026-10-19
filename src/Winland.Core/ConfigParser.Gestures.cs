@@ -8,7 +8,6 @@ public static partial class ConfigParser
     {
         private static readonly HashSet<string> UnhonoredGestureActions = new(StringComparer.Ordinal)
         {
-            "cursorZoom",
         };
 
         private void HandleGesture(string lhs, string rhs, int lineNumber)
@@ -83,12 +82,15 @@ public static partial class ConfigParser
 
             var action = index < parts.Count ? parts[index] : "";
             var takesArgument = action is TrackpadGesture.SpecialAction or TrackpadGesture.DispatcherAction
-                or TrackpadGesture.FloatAction or TrackpadGesture.FullscreenAction or TrackpadGesture.FunctionAction;
+                or TrackpadGesture.FloatAction or TrackpadGesture.FullscreenAction or TrackpadGesture.FunctionAction
+                or TrackpadGesture.CursorZoomAction;
             var argument = takesArgument && index + 1 < parts.Count ? parts[index + 1].Trim() : "";
 
-            // A dispatcher gesture takes the dispatcher and then its arguments, which may hold commas of their own.
-            var dispatchArguments = action == TrackpadGesture.DispatcherAction && index + 2 < parts.Count
-                ? string.Join(",", parts.Skip(index + 2))
+            // A dispatcher gesture takes the dispatcher and then its arguments, which may hold commas of their own. A
+            // cursorZoom gesture takes its zoom and then its mode.
+            var dispatchArguments = index + 2 >= parts.Count ? ""
+                : action == TrackpadGesture.DispatcherAction ? string.Join(",", parts.Skip(index + 2))
+                : action == TrackpadGesture.CursorZoomAction ? parts[index + 2].Trim()
                 : "";
             var gesture = new TrackpadGesture(fingers, direction, modifiers, scale, action, disableInhibit, argument, dispatchArguments);
             if (action == "unset")
