@@ -23,6 +23,9 @@ internal static class TouchpadFingers
     /// <summary>Whether a cursor move made now is the touchpad's.</summary>
     internal static bool Moves(long now) => TouchpadPointer.Moves(Volatile.Read(ref _count), now - Volatile.Read(ref _reportMs));
 
+    /// <summary>Whether a finger is on the touchpad now.</summary>
+    internal static bool Touched(long now) => Moves(now);
+
     /// <summary>Whether a wheel turn of <paramref name="delta"/> made now is the touchpad's.</summary>
     internal static bool Scrolls(long now, int delta) =>
         TouchpadPointer.Scrolls(Volatile.Read(ref _count), now - Volatile.Read(ref _reportMs), now - Volatile.Read(ref _twoFingersMs), delta);

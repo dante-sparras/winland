@@ -33,6 +33,8 @@ public sealed class MouseHook : IDisposable
     private readonly PointerRotation _rotation = new();
     private readonly TouchpadPointer _touchpadWheel = new();
     private readonly HashSet<string> _killed = new(StringComparer.Ordinal);
+    private readonly MiddleButtonEmulation _middle = new();
+    private readonly Timer _middleTimer;
     private bool _disposed;
 
     public MouseHook(Core core, KeyboardHook keys)
@@ -42,6 +44,7 @@ public sealed class MouseHook : IDisposable
         _core = core;
         _keys = keys;
         _callback = OnMouse;
+        _middleTimer = new Timer(_ => ReleaseHeldPress(), null, Timeout.Infinite, Timeout.Infinite);
     }
 
     // Stryker disable all : from here to TryDrag, installing the low-level mouse hook and its callback, which need real mouse input.
@@ -90,6 +93,7 @@ public sealed class MouseHook : IDisposable
             return;
 
         _disposed = true;
+        _middleTimer.Dispose();
         if (_hook.IsNull)
             return;
 
@@ -112,6 +116,9 @@ public sealed class MouseHook : IDisposable
             var position = new Point(info.pt.X, info.pt.Y);
             var message = (uint)wParam.Value;
             var source = PointerSources.Of(info.flags, (ulong)info.dwExtraInfo);
+            if (source == PointerSource.Mouse && EmulateMiddle(message))
+                return new LRESULT(1);
+
             if (ButtonScroll(message, info.mouseData, position))
                 return new LRESULT(1);
 
@@ -173,6 +180,75 @@ public sealed class MouseHook : IDisposable
             InputInjector.Post(Mouse(press, data), Mouse(release, data));
 
         return result.Swallow;
+    }
+
+    // input:touchpad:middle_button_emulation: the first of the left and right buttons pressed with a finger on the
+    // touchpad is held back for a moment. True when the event was taken.
+    private bool EmulateMiddle(uint message)
+    {
+        if (message is not (LeftDown or LeftUp or RightDown or RightUp))
+            return false;
+
+        var button = message is LeftDown or LeftUp ? EmulatedButton.Left : EmulatedButton.Right;
+        var now = Environment.TickCount64;
+        var step = message is LeftUp or RightUp
+            ? _middle.Up(button, now)
+            : _middle.Down(button, now, TouchpadFingers.Touched(now), _core.Touchpad.MiddleEmulation);
+        SendEmulation(step);
+        if (_middle.ExpiresAt is long at)
+            _ = _middleTimer.Change(Math.Max(0, at - now), Timeout.Infinite);
+
+        return step.Swallow;
+    }
+
+    // The timer can fire a tick early, and a held press must not wait past its time.
+    private void ReleaseHeldPress()
+    {
+        try
+        {
+            SendEmulation(_middle.Expire(Environment.TickCount64 + 16));
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            Console.Error.WriteLine(exception.Message);
+        }
+    }
+
+    // The held press, or the middle button, goes out with the emulation's tag: the hook handles it as clicked, so binds
+    // see it, and does not hold it again. The buttons are sent as the hardware's, so swapped buttons swap back.
+    private static void SendEmulation(MiddleStep step)
+    {
+        var inputs = new List<INPUT>(2);
+        if (step.Press is EmulatedButton press)
+            inputs.Add(Emulated(Side(press, down: true)));
+        if (step.Release is EmulatedButton release)
+            inputs.Add(Emulated(Side(release, down: false)));
+        if (step.MiddleDown)
+            inputs.Add(Emulated(MOUSE_EVENT_FLAGS.MOUSEEVENTF_MIDDLEDOWN));
+        if (step.MiddleUp)
+            inputs.Add(Emulated(MOUSE_EVENT_FLAGS.MOUSEEVENTF_MIDDLEUP));
+
+        InputInjector.Post([.. inputs]);
+    }
+
+    private static MOUSE_EVENT_FLAGS Side(EmulatedButton button, bool down)
+    {
+        var right = (button == EmulatedButton.Right) != (PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_SWAPBUTTON) != 0);
+        return (right, down) switch
+        {
+            (true, true) => MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTDOWN,
+            (true, false) => MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTUP,
+            (false, true) => MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTDOWN,
+            _ => MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTUP,
+        };
+    }
+
+    private static INPUT Emulated(MOUSE_EVENT_FLAGS flags)
+    {
+        var input = new INPUT { type = INPUT_TYPE.INPUT_MOUSE };
+        input.Anonymous.mi.dwFlags = flags;
+        input.Anonymous.mi.dwExtraInfo = KeyboardHook.EmulationTag;
+        return input;
     }
 
     private static (MOUSE_EVENT_FLAGS Press, MOUSE_EVENT_FLAGS Release, int Data)? Buttons(string button) => button switch

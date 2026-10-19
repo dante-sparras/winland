@@ -110,6 +110,9 @@ public sealed record InputOptions
     /// <summary><c>input:touchpad:drag_lock</c>: 0 is off, 1 lets the dragged button go after a timeout and 2 at the next tap.</summary>
     public int TouchpadDragLock { get; init; }
 
+    /// <summary><c>input:touchpad:middle_button_emulation</c>: the left and right buttons pressed together are a middle click.</summary>
+    public bool TouchpadMiddleEmulation { get; init; }
+
     /// <summary><c>input:touchpad:tap_button_map</c>: <c>lrm</c> or <c>lmr</c>. Null leaves Windows' two-finger tap alone.</summary>
     public string? TouchpadTapButtonMap { get; init; }
 
@@ -126,7 +129,8 @@ public sealed record InputOptions
             _ => 0,
         },
         TouchpadTapButtonMap == "lmr" && TouchpadTapToClick != false,
-        DragLockActive ? TouchpadDragLock : 0);
+        DragLockActive ? TouchpadDragLock : 0,
+        TouchpadMiddleEmulation);
 
     // Winland does the tap and drag itself when it has a lock to hold, and only where tapping and tap and drag are on.
     private bool DragLockActive => TouchpadDragLock > 0 && TouchpadTapToClick != false && TouchpadTapAndDrag != false;
@@ -256,6 +260,7 @@ public sealed record InputOptions
         ["input:touchpad:flip_y"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var flip) ? options with { TouchpadFlipY = flip } : options,
         ["input:touchpad:drag_3fg"] = (options, value) => TryMode(value, Drag3fgNames, 0, 2, out var drag) ? options with { TouchpadDrag3fg = drag } : options,
         ["input:touchpad:drag_lock"] = (options, value) => TryInt(value, 0, 2, out var hold) ? options with { TouchpadDragLock = hold } : options,
+        ["input:touchpad:middle_button_emulation"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var emulate) ? options with { TouchpadMiddleEmulation = emulate } : options,
         ["input:touchpad:tap_button_map"] = (options, value) => ParseTapMap(value) is var map && (map is not null || value.Trim().Length == 0) ? options with { TouchpadTapButtonMap = map } : options,
         ["input:kb_layout"] = (options, value) => options with { KbLayout = value.Trim() },
         ["input:kb_variant"] = (options, value) => options with { KbVariant = value.Trim() },
