@@ -187,7 +187,7 @@ public sealed partial class Core
         if (parsed.Warnings.Count > 0)
             return new CommandReply("error: " + parsed.Warnings[0].Message, View([]));
 
-        if (parsed.Settings.Count == 0 && parsed.Binds.Count == 0)
+        if (parsed.Settings.Count == 0 && parsed.Binds.Count == 0 && parsed.Gestures.Count == 0)
             return new CommandReply("error: invalid keyword", View([]));
 
         foreach (var setting in parsed.Settings)

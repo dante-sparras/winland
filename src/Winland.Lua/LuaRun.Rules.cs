@@ -563,7 +563,8 @@ internal sealed partial class LuaRun
     }
 
     // hl.gesture({ fingers, direction, action, mods, scale, disable_inhibit, ... }) is
-    // "gesture = fingers, direction[, mod:MODS][, scale:S], action[, argument]", "gesturep" with disable_inhibit.
+    // "gesture = fingers, direction[, mod:MODS][, scale:S], action[, argument]", "gesturep" with disable_inhibit. An
+    // action that is a Lua function, or a table of them, is "luafunction, N".
     private int AddGesture(IntPtr state)
     {
         const string Label = "hl.gesture";
@@ -585,35 +586,43 @@ internal sealed partial class LuaRun
             return 0;
         }
 
-        _lua.GetField(1, "action");
-        var type = _lua.Type(-1);
-        _lua.Pop(1);
-        if (type is LuaType.Function or LuaType.Table)
+        // An action that is a Lua function, or a table of them, is Winland's luafunction action with the number they
+        // are kept under.
+        var (function, error) = KeepGestureAction();
+        if (error is not null)
         {
-            WarnOnce("hl.gesture: gestures that call a Lua function are not honored yet");
+            Warn(error);
             return 0;
         }
 
-        if (StringField(1, "action") is not string action)
+        IEnumerable<string>? arguments;
+        if (function is int id)
         {
-            Warn("hl.gesture: missing required field \"action\"");
-            return 0;
+            arguments = [TrackpadGesture.FunctionAction, id.ToString(CultureInfo.InvariantCulture)];
         }
-
-        IEnumerable<string>? arguments = action switch
+        else
         {
-            "workspace" or "resize" or "move" or "close" or "unset" => [action],
-            "scroll_move" => ["scrollMove"],
-            "special" => Given(Part(1, "workspace_name", Label)).Prepend("special"),
-            "float" or "fullscreen" => Given(Part(1, "mode", Label)).Prepend(action),
-            "cursor_zoom" or "cursorZoom" => Given(Part(1, "zoom_level", Label), Part(1, "mode", Label)).Prepend("cursorZoom"),
-            _ => null,
-        };
+            if (StringField(1, "action") is not string action)
+            {
+                Warn("hl.gesture: missing required field \"action\"");
+                return 0;
+            }
 
-        if (arguments is null)
-        {
-            Warn($"hl.gesture: unknown action \"{action}\"");
-            return 0;
+            arguments = action switch
+            {
+                "workspace" or "resize" or "move" or "close" or "unset" => [action],
+                "scroll_move" => ["scrollMove"],
+                "special" => Given(Part(1, "workspace_name", Label)).Prepend("special"),
+                "float" or "fullscreen" => Given(Part(1, "mode", Label)).Prepend(action),
+                "cursor_zoom" or "cursorZoom" => Given(Part(1, "zoom_level", Label), Part(1, "mode", Label)).Prepend("cursorZoom"),
+                _ => null,
+            };
+
+            if (arguments is null)
+            {
+                Warn($"hl.gesture: unknown action \"{action}\"");
+                return 0;
+            }
         }
 
         var line = new StringBuilder(Bool(1, "disable_inhibit") == true ? "gesturep" : "gesture")
@@ -626,6 +635,9 @@ internal sealed partial class LuaRun
             var value = double.Parse(scale, CultureInfo.InvariantCulture);
             if (Math.Abs(value) < 0.1 || Math.Abs(value) > 10)
             {
+                if (function is int dropped)
+                    DropCallbacks(dropped);
+
                 Warn($"hl.gesture: field \"scale\": value must be between -10 and -0.1 or between 0.1 and 10 - It's currently: {scale}");
                 return 0;
             }

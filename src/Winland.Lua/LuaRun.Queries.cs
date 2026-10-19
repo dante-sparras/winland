@@ -84,7 +84,7 @@ internal sealed partial class LuaRun
 
         if (!_replies.TryGetValue(command, out var reference))
         {
-            PushReply(_world.Command(command));
+            PushReply(Command(command));
             reference = _lua.Ref(LuaRegistry.Index);
             _replies[command] = reference;
         }
@@ -108,7 +108,7 @@ internal sealed partial class LuaRun
             return 1;
         }
 
-        var reply = _world.Command(command);
+        var reply = Command(command);
         Forget();
         _lua.PushString(reply);
         return 1;

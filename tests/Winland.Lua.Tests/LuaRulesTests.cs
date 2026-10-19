@@ -349,8 +349,6 @@ public class LuaRulesTests
     public void GesturesWithoutALineFormWarn()
     {
         var translation = Run("""
-            hl.gesture({ fingers = 3, direction = "up", action = function() end })
-            hl.gesture({ fingers = 3, direction = "down", action = { start = function() end } })
             hl.gesture({ fingers = 3, direction = "left", action = "teleport" })
             hl.gesture({ direction = "left", action = "close" })
             """);
@@ -358,11 +356,37 @@ public class LuaRulesTests
         Assert.Empty(Lines(translation));
         Assert.Equal(
             [
-                "hl.gesture: gestures that call a Lua function are not honored yet",
                 "hl.gesture: unknown action \"teleport\"",
                 "hl.gesture: missing required field \"fingers\"",
             ],
             translation.Warnings.Select(warning => warning.Message));
+    }
+
+    [Fact]
+    public void AGestureWhoseActionIsAFunctionNamesItsNumber()
+    {
+        var translation = Run("""
+            hl.gesture({ fingers = 3, direction = "up", action = function() end })
+            hl.gesture({ fingers = 4, direction = "down", mods = "SUPER", disable_inhibit = true, action = { start = function() end, finish = function() end } })
+            hl.gesture({ fingers = 5, direction = "up", action = { start = 1 } })
+            hl.gesture({ fingers = 5, direction = "up", action = { ["end"] = function() end } })
+            hl.gesture({ fingers = 5, direction = "up", action = function() end, scale = 0 })
+            """);
+
+        Assert.Equal(["gesture = 3, up, luafunction, 1", "gesturep = 4, down, mod:SUPER, luafunction, 2"], Lines(translation));
+        Assert.Equal(
+            [
+                "hl.gesture: action.start must be a function",
+                "hl.gesture: action callback table must define at least one of start, update, end, or finish",
+                "hl.gesture: field \"scale\": value must be between -10 and -0.1 or between 0.1 and 10 - It's currently: 0",
+            ],
+            translation.Warnings.Select(warning => warning.Message));
+
+        var document = Parse(translation);
+        Assert.Equal(["Gesture flag 'p' is not honored."], Messages(document).Skip(translation.Warnings.Count));
+        Assert.Equal(
+            new TrackpadGesture(3, GestureDirection.Up, Modifier.None, 1, TrackpadGesture.FunctionAction, Argument: "1"),
+            document.Gestures[0]);
     }
 
     [Fact]

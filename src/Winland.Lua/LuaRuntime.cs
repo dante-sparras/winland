@@ -87,11 +87,42 @@ public sealed class LuaRuntime : IDisposable
         Post(() => _session?.Deliver(events, cause));
     }
 
-    /// <summary>Hands the Lua's <c>hl.on</c> handlers the events of each outcome <paramref name="core"/> notices.</summary>
+    /// <summary>
+    /// Hands the phases of a swipe that a <c>luafunction</c> gesture took to the gesture's Lua functions. Like
+    /// <see cref="Deliver"/> it only queues them. A swipe the running Lua's own command made runs them as soon as that
+    /// command returns, before the Lua goes on, as in the pinned release.
+    /// </summary>
+    public void Gesture(IReadOnlyList<GestureCall> calls)
+    {
+        ArgumentNullException.ThrowIfNull(calls);
+        if (calls.Count == 0 || !Running)
+            return;
+
+        if (Thread.CurrentThread == _thread)
+        {
+            _session?.Hold(calls);
+            return;
+        }
+
+        Post(() =>
+        {
+            foreach (var call in calls)
+                _session?.Gesture(call);
+        });
+    }
+
+    /// <summary>
+    /// Hands the Lua's <c>hl.on</c> handlers the events of each outcome <paramref name="core"/> notices, and its
+    /// gesture functions the swipes they follow.
+    /// </summary>
     public void Listen(Core core)
     {
         ArgumentNullException.ThrowIfNull(core);
-        core.Noticed += outcome => Deliver(outcome.Events);
+        core.Noticed += outcome =>
+        {
+            Deliver(outcome.Events);
+            Gesture(outcome.GestureCalls);
+        };
     }
 
     /// <summary>
@@ -183,6 +214,7 @@ public sealed class LuaRuntime : IDisposable
             try
             {
                 work();
+                _session?.RunHeldGestures();
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {

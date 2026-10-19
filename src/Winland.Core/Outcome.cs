@@ -99,6 +99,9 @@ public sealed record Outcome(
 
     public IReadOnlyList<StreamEvent> Events { get; init; } = [];
 
+    /// <summary>The phases of a swipe that <c>luafunction</c> gestures took, in order, for the host to hand the Lua config.</summary>
+    public IReadOnlyList<GestureCall> GestureCalls { get; init; } = [];
+
     public IReadOnlyList<Decoration> Decorations { get; init; } = [];
 
     /// <summary>How the windows in this outcome animate to their placements, shows, hides and closes.</summary>

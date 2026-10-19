@@ -237,7 +237,7 @@ public sealed partial class Core
             LayoutCycled => CycleLayout(),
             SwipeBegan => BeginSwipe(),
             SwipeUpdated updated => UpdateSwipe(updated),
-            SwipeEnded ended => EndSwipe(ended.Cancelled),
+            SwipeEnded ended => EndSwipe(ended.Cancelled, ended.TimeMs),
             Dispatch dispatched => ExecuteTriggered(dispatched.Name, dispatched.Arguments, dispatched.Trigger),
             WindowFlashed flashed => Flash(flashed.Window),
             WindowFocused focused => Consider(focused),
@@ -296,7 +296,7 @@ public sealed partial class Core
 
     private void Emit(Outcome outcome)
     {
-        if (outcome.Events.Count == 0)
+        if (outcome.Events.Count == 0 && outcome.GestureCalls.Count == 0)
             return;
 
         var handlers = Noticed;
