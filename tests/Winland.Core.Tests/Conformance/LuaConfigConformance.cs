@@ -7,7 +7,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class LuaConfigConformance
 {
-    [Fact(Skip = "require takes a module name only. A path, such as ./lua-require/relative.lua or an absolute one, and a wildcard path are not read.")]
+    [Fact]
     public void LuaRequire()
     {
         const string expected = "absolute:relative:a:b";

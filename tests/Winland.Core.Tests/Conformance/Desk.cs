@@ -137,11 +137,7 @@ internal sealed class Desk : IDisposable
     // config it came with is in use, as the daemon's does.
     private ConfigDocument ReadLua(string text, string lua, IReadOnlyDictionary<string, string>? files)
     {
-        var load = LuaConfig.Load(lua, Path.Combine(LuaFolder, "winland.lua"), full =>
-        {
-            var relative = Path.GetRelativePath(LuaFolder, full).Replace(Path.DirectorySeparatorChar, '/');
-            return files is not null && files.TryGetValue(relative, out var content) ? content : null;
-        });
+        var load = LuaConfig.Load(lua, Path.Combine(LuaFolder, "winland.lua"), new LuaFiles(files ?? new Dictionary<string, string>()));
         _pending?.Dispose();
         _pending = load.Session;
         return ConfigParser.Parse(text + "\n" + load.Translation.Text);
@@ -388,6 +384,18 @@ internal sealed class Desk : IDisposable
     private sealed class PointerReader(Desk desk) : ICursorPosition
     {
         public Point Read() => desk.Pointer;
+    }
+
+    // The files a Lua config can require, by their path from LuaFolder, read and listed as the daemon's reader does.
+    private sealed class LuaFiles(IReadOnlyDictionary<string, string> files) : IConfigSource
+    {
+        public string? Read(string path) => files.TryGetValue(Relative(path), out var content) ? content : null;
+
+        public IReadOnlyList<string> Match(string pattern) =>
+            [.. files.Keys.Select(file => Path.GetFullPath(Path.Combine(LuaFolder, file))).Where(full => SourcePath.Matches(pattern, full))];
+
+        private static string Relative(string full) =>
+            Path.GetRelativePath(LuaFolder, full).Replace(Path.DirectorySeparatorChar, '/');
     }
 
     // What the running Lua reaches: the desk's pipe, as the daemon's window host is, and its log.

@@ -6,7 +6,11 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
+<<<<<<< HEAD
 207 of 214 ported cases pass.
+=======
+204 of 214 ported cases pass.
+>>>>>>> 257fb8b (feat(lua): require reads paths and wildcards through the config's reader)
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -237,7 +241,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | layer | ruleConfinementRuntimeToggle | not ported | It changes a named window rule through Lua and reads the seat's focus through the test plugin. |
 | layer | layerVisibilityOnFs | not ported | It opens a layer shell surface and reads its alpha from the layers reply. |
 | layer | windowRefocusRestoresKeyboardFocusAfterSurfaceFocusCleared | not ported | It clears and checks the seat's keyboard focus through the test plugin. |
-| lua_config | luaRequire | differs | require takes a module name only. A path, such as ./lua-require/relative.lua or an absolute one, and a wildcard path are not read. |
+| lua_config | luaRequire | passes | |
 | lua_config | luaSpecialWorkspaceDeactivationEventNil | passes | |
 | lua_config | luaDefaultSpecialWorkspaceName | passes | |
 | lua_config | luaEventConfigUnload | differs | os.execute is not in Winland's Lua (ADR 0007), so the handler cannot write the file the case reads. |

@@ -45,8 +45,8 @@ public sealed record LuaTranslation(
 /// <summary>
 /// Runs a Lua config, <c>winland.lua</c>, and turns its <c>hl</c> calls into the line-based config, so the parser and
 /// the core read it as they read <c>winland.conf</c>. The Lua runs without the libraries that reach the system: no
-/// <c>io</c>, no <c>os.execute</c>, no C modules and no binary chunks, and <c>require</c> reads Lua files from the
-/// config's folder through the same reader, because Winland runs elevated (ADR 0007, ADR 0013).
+/// <c>io</c>, no <c>os.execute</c>, no C modules and no binary chunks, and <c>require</c> reads Lua files, by module
+/// name from the config's folder or by path, through the same reader, because Winland runs elevated (ADR 0007, ADR 0013).
 /// </summary>
 public static class LuaConfig
 {
@@ -60,15 +60,31 @@ public static class LuaConfig
     public static LuaTranslation Translate(string code, string path, Func<string, string?> read) => Translate(code, path, read, Budget);
 
     /// <summary>
+    /// Runs <paramref name="code"/>, read from <paramref name="path"/>. <paramref name="source"/> reads a required file
+    /// by its full path and lists the files a wildcard <c>require</c> matches.
+    /// </summary>
+    public static LuaTranslation Translate(string code, string path, IConfigSource source) => Translate(code, path, source, Budget);
+
+    /// <summary>
     /// Runs the config as <see cref="Translate(string, string, Func{string, string?})"/> does and keeps its Lua, so a
     /// <see cref="LuaRuntime"/> can run its binds, timers and evals while Winland runs.
     /// </summary>
     public static LuaLoad Load(string code, string path, Func<string, string?> read)
     {
+        ArgumentNullException.ThrowIfNull(read);
+        return Load(code, path, new Reader(read));
+    }
+
+    /// <summary>
+    /// Runs the config as <see cref="Translate(string, string, IConfigSource)"/> does and keeps its Lua, so a
+    /// <see cref="LuaRuntime"/> can run its binds, timers and evals while Winland runs.
+    /// </summary>
+    public static LuaLoad Load(string code, string path, IConfigSource source)
+    {
         ArgumentNullException.ThrowIfNull(code);
         ArgumentNullException.ThrowIfNull(path);
-        ArgumentNullException.ThrowIfNull(read);
-        var run = new LuaRun(path, read);
+        ArgumentNullException.ThrowIfNull(source);
+        var run = new LuaRun(path, source);
         try
         {
             return new LuaLoad(run.Translate(code, Budget), new LuaSession(run));
@@ -82,11 +98,23 @@ public static class LuaConfig
 
     internal static LuaTranslation Translate(string code, string path, Func<string, string?> read, double budget)
     {
+        ArgumentNullException.ThrowIfNull(read);
+        return Translate(code, path, new Reader(read), budget);
+    }
+
+    internal static LuaTranslation Translate(string code, string path, IConfigSource source, double budget)
+    {
         ArgumentNullException.ThrowIfNull(code);
         ArgumentNullException.ThrowIfNull(path);
-        ArgumentNullException.ThrowIfNull(read);
-        using var run = new LuaRun(path, read);
+        ArgumentNullException.ThrowIfNull(source);
+        using var run = new LuaRun(path, source);
         return run.Translate(code, budget);
+    }
+
+    // A reader alone, which matches no wildcard.
+    private sealed class Reader(Func<string, string?> read) : IConfigSource
+    {
+        public string? Read(string path) => read(path);
     }
 }
 
@@ -111,8 +139,8 @@ internal sealed partial class LuaRun : IDisposable
     private const string StartEvent = "winland.start";
     private const string ShutdownEvent = "winland.shutdown";
 
-    // Runs before the config: takes away what reaches the system, limits load to text and require to the config's
-    // folder, and stops a config that runs too long. The hook is set before debug goes away.
+    // Runs before the config: takes away what reaches the system, limits load to text and require to Lua files read
+    // through the config's reader, and stops a config that runs too long. The hook is set before debug goes away.
     private const string Prelude = """
         local clock = os.clock
         local started, budget, label = clock(), ...
@@ -129,14 +157,14 @@ internal sealed partial class LuaRun : IDisposable
         local textOnly = load
         load = function(chunk, name, _, env) return textOnly(chunk, name, "t", env) end
 
-        local readModule = __winland_require
-        __winland_require = nil
+        local readModule, matchModules, failed = __winland_require, __winland_match, __winland_require_failed
+        __winland_require, __winland_match, __winland_require_failed = nil, nil, nil
         package.loadlib, package.cpath, package.path = nil, "", ""
         package.loaded.io, package.loaded.debug, package.loaded.os = nil, nil, os
         package.searchers = { package.searchers[1], function(name)
             local text, file = readModule(name)
             if not text then
-                return "\n\tno file for '" .. name .. "' in the config's folder"
+                return "\n\tno file for '" .. name .. "'"
             end
             local chunk, problem = textOnly(text, "@" .. file, "t")
             if not chunk then
@@ -145,12 +173,56 @@ internal sealed partial class LuaRun : IDisposable
             return chunk, file
         end }
 
+        -- A module that is not found is an error. One that fails as it runs warns where it failed and gives an empty
+        -- table, and the config runs on. A path with a wildcard requires each file it matches, in order, and gives a
+        -- table of what each returned.
+        local requireOne = require
+        require = function(name, ...)
+            local loaded = type(name) == "string" and package.loaded[name]
+            if loaded then
+                return loaded
+            end
+            local files = type(name) == "string" and matchModules(name)
+            if not files then
+                local results = table.pack(pcall(requireOne, name, ...))
+                if results[1] then
+                    return table.unpack(results, 2, results.n)
+                end
+                local problem = tostring(results[2])
+                if problem:sub(1, #("module '" .. tostring(name) .. "' not found")) == "module '" .. tostring(name) .. "' not found" then
+                    error(problem, 0)
+                end
+                failed(problem)
+                local empty = {}
+                if type(name) == "string" then
+                    package.loaded[name] = empty
+                end
+                return empty
+            end
+            if #files == 0 then
+                error("module '" .. name .. "' not found: wildcard found no match", 2)
+            end
+            local results = {}
+            for index, file in ipairs(files) do
+                local ok, value = pcall(requireOne, file)
+                if ok then
+                    if value == nil then value = true end
+                    results[index] = value
+                else
+                    failed(value)
+                    results[index] = {}
+                end
+            end
+            package.loaded[name] = results
+            return results
+        end
+
         return function(seconds, what) started, budget, label = clock(), seconds, what end
         """;
 
     private readonly string _path;
     private readonly string _directory;
-    private readonly Func<string, string?> _read;
+    private readonly IConfigSource _source;
     private readonly KeraLua.Lua _lua = new();
     private readonly List<(string Text, LuaOrigin Origin)> _lines = [];
     private readonly List<ConfigWarning> _warnings = [];
@@ -167,11 +239,11 @@ internal sealed partial class LuaRun : IDisposable
         Running,
     }
 
-    public LuaRun(string path, Func<string, string?> read)
+    public LuaRun(string path, IConfigSource source)
     {
         _path = Path.GetFullPath(path);
         _directory = Path.GetDirectoryName(_path) ?? ".";
-        _read = read;
+        _source = source;
     }
 
     public LuaTranslation Translate(string code, double budget)
@@ -244,6 +316,12 @@ internal sealed partial class LuaRun : IDisposable
         Keep(RequireModule);
         _lua.PushCFunction(_kept[^1]);
         _lua.SetGlobal("__winland_require");
+        Keep(MatchModules);
+        _lua.PushCFunction(_kept[^1]);
+        _lua.SetGlobal("__winland_match");
+        Keep(RequireFailed);
+        _lua.PushCFunction(_kept[^1]);
+        _lua.SetGlobal("__winland_require_failed");
     }
 
     private void Function(string name, LuaFunction body) => Function(name, "hl." + name, body);
@@ -565,15 +643,30 @@ internal sealed partial class LuaRun : IDisposable
         return 0;
     }
 
-    // require("name") reads name.lua, or name/init.lua, from the config's folder.
+    // require("a.b") reads a/b.lua, or a/b/init.lua, from the config's folder. A path, one that starts with ./, ../,
+    // ~/, / or a drive, reads that file, or the file with .lua added, or its init.lua, as the pinned release does.
     private int RequireModule(IntPtr state)
     {
         var name = _lua.IsString(1) ? _lua.ToString(1, false) : "";
-        var relative = name.Replace('.', Path.DirectorySeparatorChar);
-        foreach (var candidate in (string[])[relative + ".lua", Path.Combine(relative, "init.lua")])
+        IEnumerable<string> candidates;
+        if (IsPath(name))
         {
-            var full = Path.GetFullPath(Path.Combine(_directory, candidate));
-            if (!full.StartsWith(_directory, StringComparison.OrdinalIgnoreCase) || _read(full) is not string text)
+            var full = Resolve(name);
+            candidates = full.EndsWith(".lua", StringComparison.Ordinal)
+                ? [full, Path.Combine(full, "init.lua")]
+                : [full, full + ".lua", Path.Combine(full, "init.lua")];
+        }
+        else
+        {
+            var relative = name.Replace('.', Path.DirectorySeparatorChar);
+            candidates = ((string[])[relative + ".lua", Path.Combine(relative, "init.lua")])
+                .Select(candidate => Path.GetFullPath(Path.Combine(_directory, candidate)))
+                .Where(full => full.StartsWith(_directory, StringComparison.OrdinalIgnoreCase));
+        }
+
+        foreach (var full in candidates)
+        {
+            if (_source.Read(full) is not string text)
                 continue;
 
             _sources.Add(full);
@@ -585,6 +678,53 @@ internal sealed partial class LuaRun : IDisposable
         _lua.PushNil();
         return 1;
     }
+
+    // The files a path with a wildcard matches, in order, or nil for a name that is not such a path. The listing goes
+    // through the same reader as the files, as a source glob's does.
+    private int MatchModules(IntPtr state)
+    {
+        var name = _lua.IsString(1) ? _lua.ToString(1, false) : "";
+        if (!IsPath(name) || !SourcePath.HasGlob(name))
+        {
+            _lua.PushNil();
+            return 1;
+        }
+
+        var files = _source.Match(Resolve(name)).Order(StringComparer.Ordinal).ToArray();
+        _lua.CreateTable(files.Length, 0);
+        for (var i = 0; i < files.Length; i++)
+        {
+            _lua.PushString(files[i]);
+            _lua.RawSetInteger(-2, i + 1);
+        }
+
+        return 1;
+    }
+
+    // A file a wildcard matched failed as it ran: the config warns where it failed and runs on, as in the pinned release.
+    private int RequireFailed(IntPtr state)
+    {
+        var problem = _lua.ToString(1, false);
+        if (_phase == Phase.Running)
+            WarnRunning(problem, new LuaOrigin(0, null));
+        else
+            NoteError(problem);
+
+        return 0;
+    }
+
+    // A name require reads as a path rather than a module name: the pinned release's /, ./, ../ and ~/, and the same
+    // with a backslash, and a drive.
+    internal static bool IsPath(string name) =>
+        name.StartsWith('/') || name.StartsWith('\\')
+        || name.StartsWith("./", StringComparison.Ordinal) || name.StartsWith(".\\", StringComparison.Ordinal)
+        || name.StartsWith("../", StringComparison.Ordinal) || name.StartsWith("..\\", StringComparison.Ordinal)
+        || name.StartsWith("~/", StringComparison.Ordinal) || name.StartsWith("~\\", StringComparison.Ordinal)
+        || (name.Length >= 3 && char.IsAsciiLetter(name[0]) && name[1] == ':' && name[2] is '/' or '\\');
+
+    // A path require reads, made full: ~ is the home folder, and a relative path is from the config's folder.
+    private string Resolve(string name) =>
+        Path.GetFullPath(Path.Combine(_directory, SourcePath.ExpandTilde(name)));
 
     private void Emit(string line)
     {
