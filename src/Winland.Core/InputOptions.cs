@@ -65,6 +65,15 @@ public sealed record InputOptions
 
     public double? ScrollFactor { get; init; }
 
+    /// <summary>The <c>input:accel_profile</c> text as written, which <c>scroll_points</c> reads for <c>custom</c>.</summary>
+    public string? AccelProfileText { get; init; }
+
+    /// <summary><c>input:scroll_points</c> as written.</summary>
+    public string? ScrollPoints { get; init; }
+
+    /// <summary>The custom scroll curve the mouse hook carries out, or null.</summary>
+    public ScrollCurve? ScrollCurve => ScrollCurve.Parse(AccelProfileText, ScrollPoints);
+
     /// <summary><c>input:force_no_accel</c>: pointer acceleration is off, whatever <c>accel_profile</c> says.</summary>
     public bool ForceNoAccel { get; init; }
 
@@ -228,7 +237,8 @@ public sealed record InputOptions
         ["input:numlock_by_default"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var numLock) ? options with { NumLock = numLock } : options,
         ["input:left_handed"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var left) ? options with { LeftHanded = left } : options,
         ["input:natural_scroll"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var natural) ? options with { NaturalScroll = natural } : options,
-        ["input:accel_profile"] = (options, value) => options with { Acceleration = ParseAcceleration(value, options.Acceleration) },
+        ["input:accel_profile"] = (options, value) => options with { Acceleration = ParseAcceleration(value, options.Acceleration), AccelProfileText = value.Trim() },
+        ["input:scroll_points"] = (options, value) => options with { ScrollPoints = value.Trim() },
         ["input:rotation"] = (options, value) => TryInt(value, 0, 359, out var degrees) ? options with { Rotation = degrees } : options,
         ["input:force_no_accel"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var none) ? options with { ForceNoAccel = none } : options,
         ["input:sensitivity"] = (options, value) => TryFloat(value, -1, 1, out var sensitivity) ? options with { Sensitivity = sensitivity } : options,
@@ -282,7 +292,7 @@ public sealed record InputOptions
             return PointerAcceleration.Adaptive;
 
         // custom is a known profile with no system equivalent. Leave acceleration untouched.
-        if (text.Equals("custom", StringComparison.OrdinalIgnoreCase))
+        if (text.TrimStart().StartsWith("custom", StringComparison.OrdinalIgnoreCase))
             return null;
 
         return current;

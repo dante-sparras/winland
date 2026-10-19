@@ -169,12 +169,12 @@ public class CursorInputTests
     }
 
     [Fact]
-    public void FollowMouseIsReadAndScrollPointsStayAGap()
+    public void FollowMouseIsReadAndTabletsStayAGap()
     {
-        var document = ConfigParser.Parse("input:follow_mouse = detached\ninput:scroll_points = 0.2 1.0\n");
+        var document = ConfigParser.Parse("input:follow_mouse = detached\ninput:tablet:enabled = true\n");
 
         Assert.Equal(new Setting("input:follow_mouse", "detached"), Assert.Single(document.Settings));
-        Assert.Equal(new ConfigWarning(2, "Unsupported keyword 'input:scroll_points'."), Assert.Single(document.Warnings));
+        Assert.Equal(new ConfigWarning(2, "Unsupported keyword 'input:tablet:enabled'."), Assert.Single(document.Warnings));
         Assert.Equal(2, InputOptions.From(document).FollowMouse);
     }
 

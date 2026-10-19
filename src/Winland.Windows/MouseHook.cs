@@ -32,6 +32,7 @@ public sealed class MouseHook : IDisposable
     private readonly ButtonScroller _scroller = new();
     private readonly PointerRotation _rotation = new();
     private readonly TouchpadPointer _touchpadWheel = new();
+    private readonly ScrollAccelerator _curveWheel = new();
     private readonly HashSet<string> _killed = new(StringComparer.Ordinal);
     private bool _disposed;
 
@@ -130,7 +131,7 @@ public sealed class MouseHook : IDisposable
             }
 
             if (TryWheel(message, info.mouseData, out var key))
-                return OnWheel(key, position) || ScaleWheel(message, info.mouseData, source) ? new LRESULT(1) : Next(code, wParam, lParam);
+                return OnWheel(key, position) || ScaleWheel(message, info.mouseData, source, info.time)? new LRESULT(1) : Next(code, wParam, lParam);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -316,20 +317,32 @@ public sealed class MouseHook : IDisposable
     }
 
     // input:touchpad:scroll_factor: the touchpad's wheel turn is taken and sent again multiplied. True when it was taken.
-    private bool ScaleWheel(uint message, uint mouseData, PointerSource source)
+    private bool ScaleWheel(uint message, uint mouseData, PointerSource source, uint time)
     {
         if (source != PointerSource.Mouse)
             return false;
 
         var delta = (short)(mouseData >> 16);
-        var scale = _core.Touchpad.WheelScale(TouchpadFingers.Scrolls(Environment.TickCount64, delta));
+        var touchpad = TouchpadFingers.Scrolls(Environment.TickCount64, delta);
+        var scale = _core.Touchpad.WheelScale(touchpad);
         if (scale == 1)
-            return false;
+            return !touchpad && _core.ScrollCurve is ScrollCurve curve && CurveWheel(curve, message, delta, time);
 
         var horizontal = message == HorizontalWheel;
         var scaled = _touchpadWheel.Scale(delta, scale, horizontal);
         if (scaled != 0)
             InputInjector.Post(Mouse(horizontal ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL : MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, scaled));
+
+        return true;
+    }
+
+    // input:scroll_points: a mouse wheel turn is taken and sent again at the factor its speed asks for. Always taken.
+    private bool CurveWheel(ScrollCurve curve, uint message, int delta, uint time)
+    {
+        var horizontal = message == HorizontalWheel;
+        var accelerated = _curveWheel.Accelerate(curve, delta, horizontal, time);
+        if (accelerated != 0)
+            InputInjector.Post(Mouse(horizontal ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL : MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, accelerated));
 
         return true;
     }
