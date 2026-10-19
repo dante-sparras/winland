@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
+using Windows.Win32.UI.Input.KeyboardAndMouse;
 using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winland.Windows;
@@ -28,6 +29,7 @@ public sealed class MouseHook : IDisposable
     private readonly HOOKPROC _callback;
     private HHOOK _hook;
     private readonly MouseDrag _drag = new();
+    private readonly ButtonScroller _scroller = new();
     private readonly HashSet<string> _killed = new(StringComparer.Ordinal);
     private bool _disposed;
 
@@ -108,6 +110,9 @@ public sealed class MouseHook : IDisposable
             var position = new Point(info.pt.X, info.pt.Y);
             var message = (uint)wParam.Value;
             var source = PointerSources.Of(info.flags, (ulong)info.dwExtraInfo);
+            if (ButtonScroll(message, info.mouseData, position))
+                return new LRESULT(1);
+
             if (message == MoveMessage)
                 return OnMove(code, wParam, lParam, position, info.time, source);
 
@@ -137,6 +142,55 @@ public sealed class MouseHook : IDisposable
     {
         var under = PInvoke.WindowFromPoint(point);
         return under.IsNull ? 0 : (nint)PInvoke.GetAncestor(under, GET_ANCESTOR_FLAGS.GA_ROOT).Value;
+    }
+
+    // input:scroll_method on_button_down: the scroll button is held back, and moving the pointer while it is down turns
+    // the wheel instead. True when the event was taken.
+    private bool ButtonScroll(uint message, uint mouseData, Point position)
+    {
+        _scroller.Configure(_core.ButtonScroll);
+        if (message == MoveMessage)
+        {
+            if (!_scroller.Scrolling || !PInvoke.GetCursorPos(out var from))
+                return false;
+
+            var step = _scroller.Move(position.X - from.X, position.Y - from.Y);
+            if (step.WheelY != 0)
+                InputInjector.Post(Mouse(MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, step.WheelY));
+            if (step.WheelX != 0)
+                InputInjector.Post(Mouse(MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL, step.WheelX));
+
+            return step.Swallow;
+        }
+
+        if (!TryButton(message, mouseData, out var button, out var up))
+            return false;
+
+        var result = up ? _scroller.Release(button) : _scroller.Press(button);
+        if (result.Click && Buttons(button) is var (press, release, data))
+            InputInjector.Post(Mouse(press, data), Mouse(release, data));
+
+        return result.Swallow;
+    }
+
+    private static (MOUSE_EVENT_FLAGS Press, MOUSE_EVENT_FLAGS Release, int Data)? Buttons(string button) => button switch
+    {
+        "mouse:272" => (MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTDOWN, MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTUP, 0),
+        "mouse:273" => (MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTDOWN, MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTUP, 0),
+        "mouse:274" => (MOUSE_EVENT_FLAGS.MOUSEEVENTF_MIDDLEDOWN, MOUSE_EVENT_FLAGS.MOUSEEVENTF_MIDDLEUP, 0),
+        "mouse:275" => (MOUSE_EVENT_FLAGS.MOUSEEVENTF_XDOWN, MOUSE_EVENT_FLAGS.MOUSEEVENTF_XUP, 1),
+        "mouse:276" => (MOUSE_EVENT_FLAGS.MOUSEEVENTF_XDOWN, MOUSE_EVENT_FLAGS.MOUSEEVENTF_XUP, 2),
+        _ => null,
+    };
+
+    // Sent with Winland's tag, so this hook passes it on and the window under the pointer gets it.
+    private static INPUT Mouse(MOUSE_EVENT_FLAGS flags, int data)
+    {
+        var input = new INPUT { type = INPUT_TYPE.INPUT_MOUSE };
+        input.Anonymous.mi.dwFlags = flags;
+        input.Anonymous.mi.mouseData = unchecked((uint)data);
+        input.Anonymous.mi.dwExtraInfo = KeyboardHook.InjectedTag;
+        return input;
     }
 
     private LRESULT OnMove(int code, WPARAM wParam, LPARAM lParam, Point position, uint time, PointerSource source)

@@ -88,9 +88,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | input:kb_rules | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | input:off_window_axis_events | Scroll events outside a window are not honored. |
 | input:rotation | Device rotation is not honored. |
-| input:scroll_button | Touchpad scroll button has no Windows meaning. |
-| input:scroll_button_lock | Touchpad scroll button lock has no Windows meaning. |
-| input:scroll_method | Touchpad scroll method has no Windows meaning. |
 | input:scroll_points | Custom scroll curves are not honored. |
 | input:tablet:absolute_region_position | Tablets are not honored. |
 | input:tablet:active_area_position | Tablets are not honored. |
@@ -181,7 +178,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | gestures:close_max_timeout, gestures:workspace_swipe_touch, gestures:workspace_swipe_touch_invert |
 | gap | - | glow, motion_blur |
 | gap | - | group:groupbar:priority |
-| gap | - | input:emulate_discrete_scroll, input:off_window_axis_events, input:rotation, input:scroll_button, input:scroll_button_lock, input:scroll_method, input:scroll_points |
+| gap | - | input:emulate_discrete_scroll, input:off_window_axis_events, input:rotation, input:scroll_points |
 | non-goal | - | input:kb_file, input:kb_model, input:kb_rules |
 | gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:enabled, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
 | gap | - | input:tablettool:eraser_button_mode, input:tablettool:eraser_button_override, input:tablettool:pressure_range_max, input:tablettool:pressure_range_min |
