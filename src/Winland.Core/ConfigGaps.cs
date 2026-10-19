@@ -81,7 +81,6 @@ public static class ConfigGaps
         new("input:emulate_discrete_scroll", "High resolution scroll emulation is not honored."),
         new("input:kb_file", "XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant."),
         new("input:kb_model", "XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant."),
-        new("input:kb_options", "XKB options, such as a key that switches layouts or remaps Caps Lock, are not honored."),
         new("input:kb_rules", "XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant."),
         new("input:off_window_axis_events", "Scroll events outside a window are not honored."),
         new("input:resolve_binds_by_sym", "Binds are not resolved by key symbol."),

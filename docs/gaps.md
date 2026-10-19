@@ -85,7 +85,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | input:emulate_discrete_scroll | High resolution scroll emulation is not honored. |
 | input:kb_file | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | input:kb_model | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
-| input:kb_options | XKB options, such as a key that switches layouts or remaps Caps Lock, are not honored. |
 | input:kb_rules | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | input:off_window_axis_events | Scroll events outside a window are not honored. |
 | input:resolve_binds_by_sym | Binds are not resolved by key symbol. |
@@ -185,7 +184,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | group:groupbar:priority |
 | gap | - | input:emulate_discrete_scroll, input:off_window_axis_events, input:resolve_binds_by_sym, input:rotation, input:scroll_button, input:scroll_button_lock, input:scroll_method, input:scroll_points |
 | non-goal | - | input:kb_file, input:kb_model, input:kb_rules |
-| gap | - | input:kb_options |
 | gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:enabled, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
 | gap | - | input:tablettool:eraser_button_mode, input:tablettool:eraser_button_override, input:tablettool:pressure_range_max, input:tablettool:pressure_range_min |
 | gap | - | input:touchdevice:enabled, input:touchdevice:output, input:touchdevice:transform |

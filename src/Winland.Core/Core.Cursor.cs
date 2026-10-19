@@ -18,6 +18,7 @@ public sealed partial class Core
     {
         _cursor = CursorOptions.From(document);
         _input = InputOptions.From(document);
+        KeyOptions = KeyboardOptions.Parse(_input.KbOptions);
     }
 
     private Outcome FinishCursor(Captured before, Outcome outcome, Input? input)

@@ -18,6 +18,9 @@ public sealed record SwitchLayoutRequest(string Arguments) : CommandRequest;
 /// <summary><c>devices</c>: the keyboards and pointers.</summary>
 public sealed record DevicesRequest : CommandRequest;
 
+/// <summary>The <c>grp:</c> key combination of <c>kb_options</c> was pressed, so the next layout is used.</summary>
+public sealed record LayoutCycled : Event;
+
 /// <summary><c>activelayout&gt;&gt;KEYBOARD,LAYOUT</c>.</summary>
 public sealed record ActiveLayoutChanged(string Keyboard, string Layout) : StreamEvent;
 
@@ -31,6 +34,15 @@ public sealed partial class Core
     private const string MouseName = "mouse";
 
     private int _layoutIndex;
+
+    /// <summary>The <c>kb_options</c> the keyboard hook carries out. It reads them with no lock.</summary>
+    public KeyboardOptions KeyOptions { get; private set; } = KeyboardOptions.None;
+
+    private Outcome CycleLayout()
+    {
+        _ = SwitchLayout(new SwitchLayoutRequest("all next"));
+        return View([]);
+    }
 
     private IReadOnlyList<KeyboardLayoutChoice> Layouts() =>
         XkbLayouts.Parse(_input.KbLayout ?? "us", _input.KbVariant ?? "");

@@ -169,12 +169,12 @@ public class CursorInputTests
     }
 
     [Fact]
-    public void FollowMouseIsReadAndKeyboardOptionsStayAGap()
+    public void FollowMouseIsReadAndScrollPointsStayAGap()
     {
-        var document = ConfigParser.Parse("input:follow_mouse = detached\ninput:kb_options = caps:escape\n");
+        var document = ConfigParser.Parse("input:follow_mouse = detached\ninput:scroll_points = 0.2 1.0\n");
 
         Assert.Equal(new Setting("input:follow_mouse", "detached"), Assert.Single(document.Settings));
-        Assert.Equal(new ConfigWarning(2, "Unsupported keyword 'input:kb_options'."), Assert.Single(document.Warnings));
+        Assert.Equal(new ConfigWarning(2, "Unsupported keyword 'input:scroll_points'."), Assert.Single(document.Warnings));
         Assert.Equal(2, InputOptions.From(document).FollowMouse);
     }
 

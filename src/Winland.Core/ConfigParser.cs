@@ -258,6 +258,11 @@ public static partial class ConfigParser
             _settings.Add(new Setting(keyword, rhs));
             if (keyword == LayoutOptions.LayoutKeyword && !LayoutOptions.HonorsLayout(rhs))
                 Warn(lineNumber, $"Layout '{rhs}' is not honored.");
+            else if (keyword == "input:kb_options")
+            {
+                foreach (var option in KeyboardOptions.Parse(rhs).Unknown)
+                    Warn(lineNumber, $"XKB option '{option}' is not honored.");
+            }
             else if (keyword == "input:accel_profile" && rhs.Equals("custom", StringComparison.OrdinalIgnoreCase))
                 Warn(lineNumber, "Custom acceleration profiles are not honored.");
         }

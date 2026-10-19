@@ -98,6 +98,9 @@ public sealed record InputOptions
     /// <summary><c>input:kb_variant</c>: the variant of each layout, at the same places.</summary>
     public string? KbVariant { get; init; }
 
+    /// <summary><c>input:kb_options</c>: the XKB options, comma-separated.</summary>
+    public string? KbOptions { get; init; }
+
     public static InputOptions Documented { get; } = new();
 
     public bool InvertsScroll => NaturalScroll == true;
@@ -170,6 +173,7 @@ public sealed record InputOptions
         ["input:touchpad:clickfinger_behavior"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var clickfinger) ? options with { TouchpadClickfinger = clickfinger } : options,
         ["input:kb_layout"] = (options, value) => options with { KbLayout = value.Trim() },
         ["input:kb_variant"] = (options, value) => options with { KbVariant = value.Trim() },
+        ["input:kb_options"] = (options, value) => options with { KbOptions = value.Trim() },
         ["input:focus_on_close"] = (options, value) => TryMode(value, FocusOnCloseNames, 0, 2, out var close) ? options with { FocusOnClose = close } : options,
     };
 
