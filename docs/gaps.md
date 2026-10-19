@@ -57,8 +57,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | ecosystem | Ecosystem tools have no Windows meaning. |
 | experimental | Experimental Wayland protocol options have no Windows meaning. |
 | fluid_jar | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| gestures:workspace_swipe_touch | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
-| gestures:workspace_swipe_touch_invert | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | glass | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | group:groupbar:blur | Groupbar blur is not honored. |
 | haze | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
@@ -84,9 +82,9 @@ This table has one row per keyword. A test checks it against the keywords the co
 | input:tablettool:eraser_button_override | Tablet tools are not honored. |
 | input:tablettool:pressure_range_max | Tablet tools are not honored. |
 | input:tablettool:pressure_range_min | Tablet tools are not honored. |
-| input:touchdevice:enabled | Touch screens are not honored. |
-| input:touchdevice:output | Touch screens are not honored. |
-| input:touchdevice:transform | Touch screens are not honored. |
+| input:touchdevice:enabled | Windows turns a touch screen off only by disabling its device, which needs administrator rights. |
+| input:touchdevice:output | Windows maps a touch screen to a display in its Tablet PC settings, which Winland cannot set. The touch screen swipe reads the display Windows maps it to. |
+| input:touchdevice:transform | Windows turns touch input with its display's orientation and has no setting to turn it apart from that. |
 | input:touchpad:drag_lock | Windows' tap and drag has no lock, and its release reaches the mouse hook like any other, so Winland cannot hold it. |
 | input:touchpad:middle_button_emulation | A button press reaches the mouse hook without its device, so a touchpad's buttons cannot be told from a mouse's, and Windows has no such touchpad setting. |
 | input:virtualkeyboard:release_pressed_on_close | Virtual keyboards are not honored. |
@@ -147,7 +145,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | dont_inhibit |
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
 | non-goal | - | experimental, input-capture |
-| gap | - | gestures:workspace_swipe_touch, gestures:workspace_swipe_touch_invert |
 | gap | - | motion_blur |
 | gap | - | input:emulate_discrete_scroll, input:off_window_axis_events, input:scroll_points |
 | non-goal | - | input:kb_file, input:kb_model, input:kb_rules |
@@ -164,11 +161,11 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 
 These are the uncovered keywords and behaviors Windows can honor. A gap keyword in the tables above is in this list when Windows has the thing it names. The seven logging and error-bar options are the part of the `debug` non-goal that can be honored, and `misc:name_vk_after_proc` is grouped with the virtual-keyboard gaps.
 
-Input Windows already has: `device`, so an honored input setting can name one device; `input:tablet:enabled`, `input:tablet:left_handed`, `input:tablet:output`, `input:tablet:transform`, `input:tablet:region_position`, `input:tablet:region_size`, `input:tablet:absolute_region_position`, `input:tablet:relative_input`, `input:tablet:active_area_position` and `input:tablet:active_area_size`; `input:tablettool:eraser_button_mode`, `input:tablettool:eraser_button_override`, `input:tablettool:pressure_range_min` and `input:tablettool:pressure_range_max`; `input:touchdevice:enabled`, `input:touchdevice:output` and `input:touchdevice:transform`; `input:virtualkeyboard:share_states`, `input:virtualkeyboard:release_pressed_on_close` and `misc:name_vk_after_proc`; `input:emulate_discrete_scroll`, `input:off_window_axis_events` and `input:scroll_points`.
+Input Windows already has: `device`, so an honored input setting can name one device; `input:tablet:enabled`, `input:tablet:left_handed`, `input:tablet:output`, `input:tablet:transform`, `input:tablet:region_position`, `input:tablet:region_size`, `input:tablet:absolute_region_position`, `input:tablet:relative_input`, `input:tablet:active_area_position` and `input:tablet:active_area_size`; `input:tablettool:eraser_button_mode`, `input:tablettool:eraser_button_override`, `input:tablettool:pressure_range_min` and `input:tablettool:pressure_range_max`; `input:virtualkeyboard:share_states`, `input:virtualkeyboard:release_pressed_on_close` and `misc:name_vk_after_proc`; `input:emulate_discrete_scroll`, `input:off_window_axis_events` and `input:scroll_points`.
 
 Monitors and the process locale: `bitdepth` and `locale` (`general:locale`).
 
-Drawing and gestures on windows Winland already owns: `gestures:workspace_swipe_touch` and `gestures:workspace_swipe_touch_invert`; `group:groupbar:blur` on the bar Winland draws; `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`; `decoration:border_part_of_window`; and the animation nodes `animation:fadeDim` and `animation:monitorAdded`.
+Drawing on windows Winland already owns: `group:groupbar:blur` on the bar Winland draws; `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`; `decoration:border_part_of_window`; and the animation nodes `animation:fadeDim` and `animation:monitorAdded`.
 
 Logging and the error bar: `debug:disable_logs`, `debug:disable_time`, `debug:enable_stdout_logs`, `debug:colored_stdout_logs`, `debug:suppress_errors`, `debug:error_limit` and `debug:error_position`.
 
