@@ -258,8 +258,6 @@ public static partial class ConfigParser
             _settings.Add(new Setting(keyword, rhs));
             if (keyword == LayoutOptions.LayoutKeyword && !LayoutOptions.HonorsLayout(rhs))
                 Warn(lineNumber, $"Layout '{rhs}' is not honored.");
-            else if (IsBorderColor(keyword) && BorderColor.TryParse(rhs, out _, out var gradient) && gradient)
-                Warn(lineNumber, "Gradient borders are not honored.");
             else if (keyword == "input:accel_profile" && rhs.Equals("custom", StringComparison.OrdinalIgnoreCase))
                 Warn(lineNumber, "Custom acceleration profiles are not honored.");
         }
@@ -366,9 +364,6 @@ public static partial class ConfigParser
 
             _warnings.Add(new ConfigWarning(line, message, _source));
         }
-
-        private static bool IsBorderColor(string keyword) =>
-            keyword is "general:col.active_border" or "general:col.inactive_border";
 
         private static bool IsLaunchKeyword(string keyword) =>
             keyword is "exec" or "exec-once" or "execr" or "execr-once" or "exec-shutdown";

@@ -221,6 +221,9 @@ internal sealed class AnimationBook
             return bad;
         }
 
+        if (name == "borderangle")
+            return style is "once" or "loop" ? null : bad;
+
         return $"Animation '{name}' has no styles.";
     }
 

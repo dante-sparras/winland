@@ -91,4 +91,38 @@ public class BorderRingTests
         core.Execute("setprop address:0x1 decorate 0");
         Assert.Null(Assert.Single(core.Execute("dispatch no_op").Effect.Decorations).Ring);
     }
+
+    [Fact]
+    public void ATurnGoesOnceRoundOverItsAnimation()
+    {
+        var spin = new Timing(Bezier.Linear, 1000);
+
+        Assert.Equal(0, BorderPainter.Turn(spin, 0));
+        Assert.Equal(90, BorderPainter.Turn(spin, 250), 3);
+        Assert.Equal(360, BorderPainter.Turn(spin, 2000));
+    }
+
+    [Fact]
+    public void TheBorderAngleAnimationTurnsAGradientRing()
+    {
+        var document = ConfigParser.Parse("""
+            animation = borderangle, 1, 10, linear, loop
+            general:border_size = 2
+            general:col.active_border = rgb(ff0000) rgb(0000ff)
+            """);
+        Assert.Empty(document.Warnings);
+        Assert.Contains(ConfigParser.Parse("animation = borderangle, 1, 10, linear, spin\n").Warnings, warning => warning.Message == "Style 'spin' is not valid for animation 'borderangle'.");
+
+        var core = new Core();
+        core.Handle(new Configure(document));
+        core.Handle(new MonitorsChanged([new Monitor("DISPLAY1", "", 0, 0, 1920, 1080, 1, true, Area)]));
+        var ring = Assert.Single(core.Handle(new WindowAppeared(new WindowId(1), Area)).Decorations).Ring;
+
+        Assert.NotNull(ring);
+        Assert.Equal(new Timing(Bezier.Linear, 1000), ring.Spin);
+        Assert.True(ring.SpinLoops);
+        Assert.True(ring.Spins);
+        Assert.True(ring.Focused);
+        Assert.False((ring with { Gradient = BorderGradient.Of(Cyan) }).Spins);
+    }
 }

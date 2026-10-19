@@ -8,7 +8,6 @@ public static class ConfigGaps
     [
         new("acrylic", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("allow_tearing", "Tearing is a compositor feature with no Windows meaning."),
-        new("animation:borderangle", "A gradient border keeps its angle and does not turn."),
         new("animation:fadeDim", "Dimming is part of a window's alpha, so fadeSwitch animates it."),
         new("animation:fadeDpms", "Turning a monitor off does not fade."),
         new("animation:fadeGlow", "Glow is not honored, so it does not fade."),
