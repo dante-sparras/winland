@@ -45,6 +45,9 @@ public sealed partial class Core
     /// <summary>The button scrolling the mouse hook carries out. It reads it with no lock.</summary>
     public ButtonScrollOptions ButtonScroll => _input.ButtonScroll;
 
+    /// <summary><c>input:rotation</c>, in degrees, which the mouse hook reads with no lock.</summary>
+    public int PointerRotation => _input.Rotation;
+
     /// <summary>The <c>kb_options</c> the keyboard hook carries out. It reads them with no lock.</summary>
     public KeyboardOptions KeyOptions { get; private set; } = KeyboardOptions.None;
 

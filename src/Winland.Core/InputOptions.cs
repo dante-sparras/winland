@@ -68,6 +68,9 @@ public sealed record InputOptions
     /// <summary><c>input:force_no_accel</c>: pointer acceleration is off, whatever <c>accel_profile</c> says.</summary>
     public bool ForceNoAccel { get; init; }
 
+    /// <summary><c>input:rotation</c>: the mouse's motion turns clockwise by this many degrees, 0 to 359.</summary>
+    public int Rotation { get; init; }
+
     public bool SpecialFallthrough { get; init; }
 
     public int FollowMouse { get; init; } = 1;
@@ -176,6 +179,7 @@ public sealed record InputOptions
         ["input:left_handed"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var left) ? options with { LeftHanded = left } : options,
         ["input:natural_scroll"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var natural) ? options with { NaturalScroll = natural } : options,
         ["input:accel_profile"] = (options, value) => options with { Acceleration = ParseAcceleration(value, options.Acceleration) },
+        ["input:rotation"] = (options, value) => TryInt(value, 0, 359, out var degrees) ? options with { Rotation = degrees } : options,
         ["input:force_no_accel"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var none) ? options with { ForceNoAccel = none } : options,
         ["input:sensitivity"] = (options, value) => TryFloat(value, -1, 1, out var sensitivity) ? options with { Sensitivity = sensitivity } : options,
         ["input:scroll_factor"] = (options, value) => TryFloat(value, 0, 2, out var factor) ? options with { ScrollFactor = factor } : options,

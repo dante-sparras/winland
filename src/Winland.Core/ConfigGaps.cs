@@ -78,7 +78,6 @@ public static class ConfigGaps
         new("input:kb_model", "XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant."),
         new("input:kb_rules", "XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant."),
         new("input:off_window_axis_events", "Scroll events outside a window are not honored."),
-        new("input:rotation", "Device rotation is not honored."),
         new("input:scroll_points", "Custom scroll curves are not honored."),
         new("input:tablet:absolute_region_position", "Tablets are not honored."),
         new("input:tablet:active_area_position", "Tablets are not honored."),

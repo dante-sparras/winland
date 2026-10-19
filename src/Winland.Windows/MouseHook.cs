@@ -30,6 +30,7 @@ public sealed class MouseHook : IDisposable
     private HHOOK _hook;
     private readonly MouseDrag _drag = new();
     private readonly ButtonScroller _scroller = new();
+    private readonly PointerRotation _rotation = new();
     private readonly HashSet<string> _killed = new(StringComparer.Ordinal);
     private bool _disposed;
 
@@ -206,6 +207,19 @@ public sealed class MouseHook : IDisposable
             _ = PInvoke.SetCursorPos(back.X, back.Y);
             position = PInvoke.GetCursorPos(out var landed) ? new Point(landed.X, landed.Y) : back;
             redirected = true;
+        }
+
+        // input:rotation: the mouse's move turns about where the cursor is.
+        if (source == PointerSource.Mouse && _core.PointerRotation != 0 && PInvoke.GetCursorPos(out var at))
+        {
+            var (dx, dy) = _rotation.Turn(position.X - at.X, position.Y - at.Y, _core.PointerRotation);
+            var turned = new Point(at.X + dx, at.Y + dy);
+            if (turned != position)
+            {
+                _ = PInvoke.SetCursorPos(turned.X, turned.Y);
+                position = PInvoke.GetCursorPos(out var moved) ? new Point(moved.X, moved.Y) : turned;
+                redirected = true;
+            }
         }
 
         // cursor:hotspot_padding: the cursor stops short of the monitors' outer edges.
