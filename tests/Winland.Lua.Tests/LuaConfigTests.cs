@@ -109,13 +109,13 @@ public class LuaConfigTests
     public void CallsOfLaterPhasesWarnOnceAndTheConfigRunsOn()
     {
         var translation = Run("""
-            hl.timer(function() end, { timeout = 100 })
-            hl.timer(function() end, { timeout = 200 })
+            hl.get_windows()
+            hl.get_windows()
             hl.config({ general = { gaps_in = 3 } })
             """);
 
         var warning = Assert.Single(translation.Warnings);
-        Assert.Equal(new ConfigWarning(1, "hl.timer is not honored yet"), warning);
+        Assert.Equal(new ConfigWarning(1, "hl.get_windows is not honored yet"), warning);
         Assert.Equal(["general:gaps_in = 3"], Lines(translation));
     }
 

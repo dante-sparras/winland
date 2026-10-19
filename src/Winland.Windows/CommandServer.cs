@@ -16,6 +16,12 @@ public sealed class CommandServer : IDisposable
 {
     private const int MaxCommandBytes = 64 * 1024;
 
+    /// <summary>
+    /// Answers a command before the core does, or returns null to leave it to the core. The daemon sets it so the Lua
+    /// config answers <c>eval</c> and <c>repl</c>.
+    /// </summary>
+    public static Func<string, string?>? Intercept { get; set; }
+
     private const int SubscriberQueueCapacity = 256;
 
     private readonly Core _core;
@@ -293,9 +299,16 @@ public sealed class CommandServer : IDisposable
         string text;
         try
         {
-            var reply = _core.Execute(command);
-            Apply(reply.Effect);
-            text = reply.Text;
+            if (Intercept?.Invoke(command) is string answered)
+            {
+                text = answered;
+            }
+            else
+            {
+                var reply = _core.Execute(command);
+                Apply(reply.Effect);
+                text = reply.Text;
+            }
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {

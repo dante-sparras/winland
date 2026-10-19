@@ -29,9 +29,15 @@ A line that ends with a backslash is joined to the next line, so a value that en
 - `hl.device({ name, field = value, ... })` is `device[name]:field = value` for each field, with each space in the name a `-`, so it warns as a per-device option does.
 - `hl.permission(binary, type, mode)`, or a table of them, is `permission = binary, type, mode`, which warns as that keyword does.
 - A value with a comma, which would split a line, warns that it is not honored yet and is left out: in a match the whole rule is.
-- The other `hl` calls, among them `hl.dispatch` and `hl.timer`, warn once that they are not honored yet and return nothing. The config runs on.
+- A bind whose dispatcher is a Lua function, `hl.bind("SUPER + X", function() ... end)`, is `bind = SUPER, X, luafunction, N`, and the function runs when the keys are pressed (see [extensions.md](extensions.md)).
+- `hl.dispatch(dispatcher)` runs an `hl.dsp` dispatcher and returns `{ ok = true, pass_event = false }`, or `{ ok = false, error = message }` with the error reported. Called while the config loads, it runs once Winland runs.
+- `hl.timer(fn, { timeout = ms, type = "repeat" | "oneshot" })` calls `fn` after `timeout` milliseconds, again and again with `repeat`. A reload stops the timers of the config it replaces.
+- While Winland runs, an `hl` call that sets something, such as `hl.config` in an eval, is sent as a `keyword`, and its warnings and errors go to the log, or to the eval's reply.
+- The other `hl` calls warn once that they are not honored yet and return nothing. The config runs on.
 
-The Lua is Lua 5.4. It has no `io`, `debug`, `dofile` or `loadfile`, its `os` has only `time`, `clock`, `date`, `getenv` and `difftime`, and `load` takes text, not compiled chunks. `require("a.b")` reads `a\b.lua` or `a\b\init.lua` from the config's folder and nowhere else, and a change to such a file reloads the config. An error stops the config at that line and warns with the error. The lines made before it stay. A config that runs for more than five seconds of processor time is stopped the same way.
+The Lua is Lua 5.4. It has no `io`, `debug`, `dofile` or `loadfile`, its `os` has only `time`, `clock`, `date`, `getenv` and `difftime`, and `load` takes text, not compiled chunks. `require("a.b")` reads `a\b.lua` or `a\b\init.lua` from the config's folder and nowhere else, and a change to such a file reloads the config. An error stops the config at that line and warns with the error. The lines made before it stay. The config's Lua keeps running after it loads, on a thread of its own, so it never runs inside Winland's handling of a key or a window: a bind's function, a timer and an eval wait their turn there. Each has the pinned release's limit of processor time, after which it is stopped the same way and the log says so: 1.5 seconds for the config as it loads, 100 milliseconds for a bind's function and a dispatch, 50 for a timer and 250 for an eval. `print` writes to the log, or to a `repl` reply.
+
+`winlandctl eval <lua>` runs Lua in the config's Lua and replies `ok`, or the errors. Code that is an expression is run as `return <code>`. `winlandctl repl <lua>` replies with what the code printed and returned instead, as `tostring` shows it. With a Lua config, `winlandctl dispatch` with a call in its argument is `eval 'hl.dispatch(...)'`, as in the pinned release, and `winlandctl dispatch workspace 2` still runs the line dispatcher. Without a Lua config, `eval` and `repl` reply `eval is only supported with a Lua config`.
 
 ## Layout
 

@@ -290,7 +290,7 @@ public class LuaBindTests
     }
 
     [Fact]
-    public void FunctionBindsAndWrongDispatchersWarn()
+    public void FunctionBindsCallTheirFunctionAndWrongDispatchersWarn()
     {
         var translation = Run("""
             hl.bind("SUPER + A", function() hl.dispatch(hl.dsp.exit()) end)
@@ -301,10 +301,9 @@ public class LuaBindTests
             hl.bind("SUPER + F", hl.dsp.exit())
             """);
 
-        Assert.Equal(["bind = SUPER, F, exit"], Lines(translation));
+        Assert.Equal(["bind = SUPER, A, luafunction, 1", "bind = SUPER, B, luafunction, 2", "bind = SUPER, F, exit"], Lines(translation));
         Assert.Equal(
             [
-                new ConfigWarning(1, "hl.bind: binds that call a Lua function are not honored yet"),
                 new ConfigWarning(3, "hl.bind: dispatcher factory supplied instead of a dispatcher; call the factory first (missing parentheses?)"),
                 new ConfigWarning(4, "hl.bind: expected a dispatcher (e.g. hl.dsp.window.close()) or a lua function"),
                 new ConfigWarning(5, "hl.dsp.focus: invalid direction \"sideways\" (expected left/right/up/down)"),

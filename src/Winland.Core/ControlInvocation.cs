@@ -32,6 +32,8 @@ public static class ControlInvocation
                winlandctl [-j] [-r] [-a] dismissnotify [args]
                winlandctl [-j] [-r] [-a] getprop <window> <property>
                winlandctl [-j] [-r] [-a] setprop <window> <property> <value>
+               winlandctl eval <lua>
+               winlandctl repl <lua>
                winlandctl plugin list
                winlandctl plugin load <path>
                winlandctl plugin unload <name>
@@ -185,7 +187,9 @@ public static class ControlInvocation
         || verb.Equals("notify", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("seterror", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("switchxkblayout", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("dismissnotify", StringComparison.OrdinalIgnoreCase);
+        || verb.Equals("dismissnotify", StringComparison.OrdinalIgnoreCase)
+        || verb.Equals("eval", StringComparison.OrdinalIgnoreCase)
+        || verb.Equals("repl", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsBare(string verb) =>
         verb.Equals("clients", StringComparison.OrdinalIgnoreCase)

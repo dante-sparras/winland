@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using KeraLua;
 
@@ -41,16 +42,15 @@ internal sealed partial class LuaRun
             return 0;
         }
 
-        if (_lua.IsFunction(2))
+        if (_lua.IsCFunction(2))
         {
-            if (_lua.IsCFunction(2))
-                Warn("hl.bind: dispatcher factory supplied instead of a dispatcher; call the factory first (missing parentheses?)");
-            else
-                WarnOnce("hl.bind: binds that call a Lua function are not honored yet");
+            Warn("hl.bind: dispatcher factory supplied instead of a dispatcher; call the factory first (missing parentheses?)");
             return 0;
         }
 
-        if (ReadDispatch(2) is not Dispatch dispatch)
+        // A Lua function runs when the keys are pressed, through Winland's own dispatcher.
+        var called = _lua.IsFunction(2) ? new Dispatch(LuaConfig.FunctionDispatcher, KeepFunction(2).ToString(CultureInfo.InvariantCulture)) : (Dispatch?)null;
+        if ((called ?? ReadDispatch(2)) is not Dispatch dispatch)
         {
             Warn("hl.bind: expected a dispatcher (e.g. hl.dsp.window.close()) or a lua function");
             return 0;
