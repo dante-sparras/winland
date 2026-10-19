@@ -36,7 +36,7 @@ public class GestureTests
     }
 
     [Theory]
-    [InlineData("gesture = 3, down, resize", "Gesture action 'resize' is not honored.")]
+    [InlineData("gesture = 3, down, cursorZoom", "Gesture action 'cursorZoom' is not honored.")]
     [InlineData("gesture = 2, pinch, cursorZoom, 2, mult", "Pinch gestures are not honored.")]
     [InlineData("gesturep = 3, horizontal, workspace", "Gesture flag 'p' is not honored.")]
     public void UnhonoredGestureWarnsAndStillShadows(string line, string warning)
@@ -51,7 +51,7 @@ public class GestureTests
     public void ShadowedGestureWarnsAndUnsetRemovesTheMatch()
     {
         var document = ConfigParser.Parse("""
-            gesture = 3, swipe, move
+            gesture = 3, swipe, cursorZoom
             gesture = 3, left, workspace
             gesture = 3, swipe, unset
             gesture = 3, left, workspace
@@ -62,7 +62,7 @@ public class GestureTests
             Assert.Single(document.Gestures));
         Assert.Equal(
             [
-                new ConfigWarning(1, "Gesture action 'move' is not honored."),
+                new ConfigWarning(1, "Gesture action 'cursorZoom' is not honored."),
                 new ConfigWarning(2, "Gesture will be overshadowed by a previous gesture. Previous SWIPE shadows new LEFT."),
             ],
             document.Warnings);
@@ -368,7 +368,7 @@ public class GestureTests
     [Fact]
     public void UnhonoredActionTakesTheSwipeAndDoesNothing()
     {
-        var core = Twin("gesture = 3, swipe, move\n");
+        var core = Twin("gesture = 3, swipe, cursorZoom\n");
 
         var ended = Swipe(core, 3, Steps(20, -10, 0));
 

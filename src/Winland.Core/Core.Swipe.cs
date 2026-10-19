@@ -61,6 +61,12 @@ public sealed partial class Core
             return begun is null ? stepped : Merge(begun, stepped);
         }
 
+        if (_activeGesture is { IsMove: true } or { IsResize: true })
+        {
+            var stepped = StepWindowGesture(_activeGesture.Scale * updated.DeltaX, _activeGesture.Scale * updated.DeltaY);
+            return begun is null ? stepped : Merge(begun, stepped);
+        }
+
         if (_activeGesture is { IsClose: true } closing)
         {
             var preview = StepCloseSwipe(closing.Scale * TrackpadGesture.Along(_gestureDirection, updated.DeltaX, updated.DeltaY));
@@ -106,6 +112,9 @@ public sealed partial class Core
         if (gesture.IsClose)
             return EndCloseSwipe();
 
+        if (gesture.IsMove || gesture.IsResize)
+            return EndWindowGesture();
+
         if (gesture.IsOnRelease)
             return ReleaseGesture(gesture, _releaseDistance);
 
@@ -145,6 +154,8 @@ public sealed partial class Core
                 begun = View([]);
             else if (gesture.IsClose)
                 BeginCloseSwipe();
+            else if (gesture.IsMove || gesture.IsResize)
+                begun = BeginWindowGesture(gesture);
             return true;
         }
 
