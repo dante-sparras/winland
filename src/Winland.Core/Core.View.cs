@@ -18,6 +18,10 @@ public sealed partial class Core
         if (restack.Count > 0)
             outcome = outcome with { ZOrder = [.. outcome.ZOrder, .. restack] };
 
+        var above = FloatingAboveTiles();
+        if (above.Count > 0)
+            outcome = outcome with { ZOrder = [.. outcome.ZOrder, .. above] };
+
         var active = ActiveWindow();
         var hidden = new HashSet<WindowId>(outcome.State.Hidden.Select(client => client.Window));
         var decorations = new List<Decoration>(outcome.State.Clients.Count);
