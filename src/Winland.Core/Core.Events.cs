@@ -80,7 +80,7 @@ public sealed partial class Core
             {
                 events.Add(new ClientOpened(pair.Key, pair.Value.Workspace, pair.Value.Class, pair.Value.Title));
                 if (pair.Value.Fullscreen != FullscreenMode.None)
-                    events.Add(new FullscreenChanged(true));
+                    events.Add(new FullscreenChanged(true, pair.Key));
                 continue;
             }
 
@@ -94,7 +94,7 @@ public sealed partial class Core
                 events.Add(new ClientMinimized(pair.Key, pair.Value.Minimized));
 
             if (prior.Fullscreen != pair.Value.Fullscreen)
-                events.Add(new FullscreenChanged(pair.Value.Fullscreen != FullscreenMode.None));
+                events.Add(new FullscreenChanged(pair.Value.Fullscreen != FullscreenMode.None, pair.Key));
         }
 
         if (after.ActiveMonitor != before.ActiveMonitor)

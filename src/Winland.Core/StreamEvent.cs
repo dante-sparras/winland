@@ -57,8 +57,11 @@ public sealed record MonitorRemovedV2(int Id, string Name, string Description) :
 /// <summary>A custom event line, <c>custom&gt;&gt;text</c>.</summary>
 public sealed record CustomEvent(string Text) : StreamEvent;
 
-/// <summary>A Client entered or left a covering fullscreen mode. The data is <c>1</c> or <c>0</c>.</summary>
-public sealed record FullscreenChanged(bool Entered) : StreamEvent;
+/// <summary>
+/// A Client entered or left a covering fullscreen mode. The data is <c>1</c> or <c>0</c>. <paramref name="Window"/> is
+/// the Client, which the event line leaves out and a Lua config's <c>window.fullscreen</c> handler is given.
+/// </summary>
+public sealed record FullscreenChanged(bool Entered, WindowId? Window = null) : StreamEvent;
 
 /// <summary>A Group was made (<paramref name="Created"/>) or ended. <paramref name="Window"/> is its first member.</summary>
 public sealed record GroupToggled(WindowId Window, bool Created) : StreamEvent;

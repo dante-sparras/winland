@@ -70,6 +70,22 @@ public sealed class LuaRuntime : IDisposable
             Post(() => _session?.Call(id));
     }
 
+    /// <summary>
+    /// Hands the config's <c>hl.on</c> handlers the events of an outcome. It only queues them, since the core calls it
+    /// inside its lock: they run on the Lua thread after what is queued before. An event a handler's own dispatch
+    /// raised runs after that handler and is not handed to it again.
+    /// </summary>
+    public void Deliver(IReadOnlyList<StreamEvent> events)
+    {
+        ArgumentNullException.ThrowIfNull(events);
+        if (events.Count == 0 || !Running)
+            return;
+
+        // A dispatch from Lua runs the core on the Lua thread, so an event noticed there came from the running Lua.
+        var cause = Thread.CurrentThread == _thread ? _session?.Cause : null;
+        Post(() => _session?.Deliver(events, cause));
+    }
+
     /// <summary><c>eval</c> or <c>repl</c>: waits for the Lua thread and gives the reply.</summary>
     public string Eval(string code, bool repl)
     {

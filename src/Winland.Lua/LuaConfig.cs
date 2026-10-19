@@ -94,15 +94,8 @@ public static class LuaConfig
 // callback never raises a Lua error: it notes a warning and returns, because an error would unwind past managed frames.
 internal sealed partial class LuaRun : IDisposable
 {
-    // Calls the later phases of the Lua config take on. Until then each warns once and does nothing.
-    private static readonly string[] Pending =
-    [
-        "load", "get_config", "get_devices",
-        "get_windows", "get_window", "get_active_window", "get_urgent_window", "get_workspaces", "get_workspace",
-        "get_active_workspace", "get_active_special_workspace", "get_monitors", "get_monitor", "get_active_monitor",
-        "get_monitor_at", "get_monitor_at_cursor", "get_layers", "get_workspace_windows", "get_cursor_pos",
-        "get_last_window", "get_last_workspace", "get_current_submap", "version", "get_loaded_plugins", "is_key_down",
-    ];
+    // Calls Winland does not take on yet. Each warns once and does nothing.
+    private static readonly string[] Pending = ["load", "get_devices", "is_key_down"];
 
     // The events hl.on knows, named as the pinned release names them with Winland's own name for its start and shutdown.
     private static readonly string[] Events =
@@ -243,6 +236,7 @@ internal sealed partial class LuaRun : IDisposable
             throw new InvalidOperationException(_lua.ToString(-1));
         }
 
+        RegisterObjects();
         RegisterHandle();
         Keep(Print);
         _lua.PushCFunction(_kept[^1]);
@@ -518,8 +512,9 @@ internal sealed partial class LuaRun : IDisposable
         return rules;
     }
 
-    // hl.on(event, handler): the start and shutdown handlers run now, so what they call is set up for the start or the
-    // exit. Other events are known but their handlers do not run yet.
+    // hl.on(event, handler): adds the handler to the event's and returns its subscription. The start and shutdown
+    // handlers also run now, so what they call is set up for the start or the exit; the others run when Winland
+    // notices their event.
     private int On(IntPtr state)
     {
         var name = _lua.IsString(1) ? _lua.ToString(1, false) : "";
@@ -535,23 +530,31 @@ internal sealed partial class LuaRun : IDisposable
             return 0;
         }
 
-        if (name is not (StartEvent or ShutdownEvent))
+        _lua.PushCopy(2);
+        var handle = Subscribe(name, _lua.Ref(LuaRegistry.Index));
+        if (name is StartEvent or ShutdownEvent && _phase != Phase.Running)
         {
-            Warn($"hl.on: handlers for \"{name}\" do not run yet");
+            var before = _phase;
+            _phase = name == StartEvent ? Phase.Start : Phase.Shutdown;
+            _lua.PushCopy(2);
+            if (_lua.PCall(0, 0, 0) != LuaStatus.OK)
+            {
+                NoteError(_lua.ToString(-1));
+                _lua.Pop(1);
+            }
+
+            _phase = before;
+        }
+
+        _lua.RawGetInteger(LuaRegistry.Index, _makeSubscription);
+        _lua.PushInteger(handle);
+        if (_lua.PCall(1, 1, 0) != LuaStatus.OK)
+        {
+            _lua.Pop(1);
             return 0;
         }
 
-        var before = _phase;
-        _phase = name == StartEvent ? Phase.Start : Phase.Shutdown;
-        _lua.PushCopy(2);
-        if (_lua.PCall(0, 0, 0) != LuaStatus.OK)
-        {
-            NoteError(_lua.ToString(-1));
-            _lua.Pop(1);
-        }
-
-        _phase = before;
-        return 0;
+        return 1;
     }
 
     private int NotYet(string name)

@@ -38,6 +38,14 @@ static class LuaHosting
         }
     }
 
+    /// <summary>Hands the Lua's <c>hl.on</c> handlers the events of each outcome the core notices.</summary>
+    public static void Listen(Core core, LuaRuntime runtime)
+    {
+        ArgumentNullException.ThrowIfNull(core);
+        ArgumentNullException.ThrowIfNull(runtime);
+        core.Noticed += outcome => runtime.Deliver(outcome.Events);
+    }
+
     /// <summary>Forgets the Lua a read left, when the config read last was not a Lua config.</summary>
     public static void Clear() => Take()?.Dispose();
 
