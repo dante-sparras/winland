@@ -30,6 +30,9 @@ public readonly record struct Decoration(
 
     /// <summary>The border Winland draws outside the window, or null for none.</summary>
     public BorderRing? Ring { get; init; }
+
+    /// <summary>The shadow Winland draws under the window, or null for none.</summary>
+    public DropShadow? DrawnShadow { get; init; }
 }
 
 /// <summary>One opacity fraction from a window rule. <see cref="Overridden"/> replaces the configured fraction; otherwise the two multiply.</summary>
@@ -70,6 +73,33 @@ public sealed record DecorationOptions
 
     public bool Shadow { get; init; } = true;
 
+    /// <summary>
+    /// Whether the config set any shadow option past <c>decoration:shadow:enabled</c>. Winland then draws the shadow
+    /// itself and turns DWM's off. Otherwise DWM's shadow stays.
+    /// </summary>
+    public bool ShadowDrawn { get; init; }
+
+    /// <summary><c>decoration:shadow:range</c>: how far the shadow reaches past the border, in logical pixels.</summary>
+    public int ShadowRange { get; init; } = 4;
+
+    /// <summary><c>decoration:shadow:render_power</c>: how fast the shadow falls off, from 1 to 4.</summary>
+    public int ShadowPower { get; init; } = 3;
+
+    /// <summary><c>decoration:shadow:sharp</c>: a flat shadow in its first color, with no falloff.</summary>
+    public bool ShadowSharp { get; init; }
+
+    /// <summary><c>decoration:shadow:color</c>.</summary>
+    public BorderGradient ShadowColor { get; init; } = BorderGradient.Of(new BorderColor(0xEE, 0x1A, 0x1A, 0x1A));
+
+    /// <summary><c>decoration:shadow:color_inactive</c>, or null to use <see cref="ShadowColor"/> on every window.</summary>
+    public BorderGradient? ShadowColorInactive { get; init; }
+
+    /// <summary><c>decoration:shadow:offset</c>, in logical pixels.</summary>
+    public Vec2 ShadowOffset { get; init; }
+
+    /// <summary><c>decoration:shadow:scale</c>, from 0.05 to 2. The shadow is drawn at no more than 1.</summary>
+    public float ShadowScale { get; init; } = 1;
+
     public float ActiveOpacity { get; init; } = 1;
 
     public float InactiveOpacity { get; init; } = 1;
@@ -100,6 +130,13 @@ public sealed record DecorationOptions
         ["decoration:rounding_power"] = (options, value) => TryParsePower(value, out var power) ? options with { RoundingPower = power } : options,
         ["decoration:blur:enabled"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { Blur = enabled } : options,
         ["decoration:shadow:enabled"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { Shadow = enabled } : options,
+        ["decoration:shadow:range"] = (options, value) => TryParseWhole(value, 0, 100, out var range) ? options with { ShadowRange = range, ShadowDrawn = true } : options,
+        ["decoration:shadow:render_power"] = (options, value) => TryParseWhole(value, 1, 4, out var power) ? options with { ShadowPower = power, ShadowDrawn = true } : options,
+        ["decoration:shadow:sharp"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var sharp) ? options with { ShadowSharp = sharp, ShadowDrawn = true } : options,
+        ["decoration:shadow:color"] = (options, value) => BorderGradient.TryParse(value, out var color) ? options with { ShadowColor = color, ShadowDrawn = true } : options,
+        ["decoration:shadow:color_inactive"] = (options, value) => BorderGradient.TryParse(value, out var color) ? options with { ShadowColorInactive = color, ShadowDrawn = true } : options,
+        ["decoration:shadow:offset"] = (options, value) => TryParseOffset(value, out var offset) ? options with { ShadowOffset = offset, ShadowDrawn = true } : options,
+        ["decoration:shadow:scale"] = (options, value) => TryParseScale(value, out var scale) ? options with { ShadowScale = scale, ShadowDrawn = true } : options,
         ["decoration:active_opacity"] = (options, value) => TryParseUnit(value, out var opacity) ? options with { ActiveOpacity = opacity } : options,
         ["decoration:inactive_opacity"] = (options, value) => TryParseUnit(value, out var opacity) ? options with { InactiveOpacity = opacity } : options,
         ["decoration:fullscreen_opacity"] = (options, value) => TryParseUnit(value, out var opacity) ? options with { FullscreenOpacity = opacity } : options,
@@ -134,6 +171,37 @@ public sealed record DecorationOptions
             return false;
 
         power = Math.Clamp(parsed, 1f, 10f);
+        return true;
+    }
+
+    private static bool TryParseWhole(string text, int min, int max, out int value)
+    {
+        value = 0;
+        if (!int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+            return false;
+
+        value = Math.Clamp(parsed, min, max);
+        return true;
+    }
+
+    // Each axis from -250 to 250, as the pinned release's validator allows.
+    private static bool TryParseOffset(string text, out Vec2 offset)
+    {
+        offset = default;
+        if (!ConfigValueSyntax.TryParseVec2(text.Trim(), out var parsed) || !double.IsFinite(parsed.X) || !double.IsFinite(parsed.Y))
+            return false;
+
+        offset = new Vec2(Math.Clamp(parsed.X, -250, 250), Math.Clamp(parsed.Y, -250, 250));
+        return true;
+    }
+
+    private static bool TryParseScale(string text, out float scale)
+    {
+        scale = 0;
+        if (!float.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) || !float.IsFinite(parsed))
+            return false;
+
+        scale = Math.Clamp(parsed, 0.05f, 2f);
         return true;
     }
 

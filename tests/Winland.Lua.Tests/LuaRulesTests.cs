@@ -214,7 +214,8 @@ public class LuaRulesTests
             Lines(translation));
 
         var document = Parse(translation);
-        Assert.Equal(["hl.workspace_rule: unknown field 'gapsin'", "A workspace rule's shadow is not honored."], Messages(document));
+        Assert.Equal(["hl.workspace_rule: unknown field 'gapsin'"], Messages(document));
+        Assert.False(Assert.Single(document.WorkspaceRules, rule => rule.WorkspaceString == "5").Shadow);
         var third = Assert.Single(document.WorkspaceRules, rule => rule.WorkspaceString == "3");
         Assert.Equal("DP-1", third.Monitor);
         Assert.Equal(new EdgeInsets(5, 10, 0, 0), third.GapsIn);
@@ -593,9 +594,6 @@ public class LuaRulesTests
                 "Unsupported keyword 'decoration:blur:passes'.",
                 "Unsupported keyword 'decoration:blur:size'.",
                 "Unsupported keyword 'decoration:blur:vibrancy'.",
-                "Unsupported keyword 'decoration:shadow:color'.",
-                "Unsupported keyword 'decoration:shadow:range'.",
-                "Unsupported keyword 'decoration:shadow:render_power'.",
                 "Unsupported keyword 'device:sensitivity'.",
                 "Unsupported keyword 'general:allow_tearing'.",
                 "Unsupported keyword 'input:kb_model'.",

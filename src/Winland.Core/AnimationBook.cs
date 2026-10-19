@@ -221,7 +221,7 @@ internal sealed class AnimationBook
             return bad;
         }
 
-        if (name == "borderangle")
+        if (name.EndsWith("angle", StringComparison.Ordinal))
             return style is "once" or "loop" ? null : bad;
 
         return $"Animation '{name}' has no styles.";

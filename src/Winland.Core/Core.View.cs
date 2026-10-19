@@ -43,6 +43,7 @@ public sealed partial class Core
                 choice.Rule,
                 choice.Opaque);
             var shape = borderless ? CornerChoice.Square : corners;
+            var noShadow = NoShadow(client);
             decorations.Add(new Decoration(
                 client.Id,
                 border,
@@ -52,8 +53,9 @@ public sealed partial class Core
             {
                 Region = shape.Region,
                 Blur = _decoration.Blur,
-                Shadow = _decoration.Shadow,
+                Shadow = _decoration.Shadow && !_decoration.ShadowDrawn && !noShadow,
                 Ring = borderless || hidden.Contains(client.Window) ? null : RingFor(client, client.Window == active, shape, alpha),
+                DrawnShadow = borderless || noShadow || hidden.Contains(client.Window) ? null : ShadowFor(client, client.Window == active, shape, alpha),
             });
         }
 
@@ -488,13 +490,7 @@ public sealed partial class Core
             return null;
 
         var scale = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Effective.Scale : 1;
-        var (radius, power) = shape switch
-        {
-            { Region: CornerRegion region } => (region.Radius, region.Power),
-            { Preference: CornerPreference.Round } => ((int)Math.Round(CornerShape.Round * scale), 2f),
-            { Preference: CornerPreference.RoundSmall } => ((int)Math.Round(CornerShape.RoundSmall * scale), 2f),
-            _ => (0, 2f),
-        };
+        var (radius, power) = CornerRadius(shape, scale);
         return new BorderRing(BorderGradientOf(client.Window, active), thickness, radius, power, alpha)
         {
             Focused = active,
@@ -502,6 +498,55 @@ public sealed partial class Core
             SpinLoops = _animations.StyleOf("borderangle") == "loop",
         };
     }
+
+    // The shadow the pinned release draws under a Client, when the config tuned it past turning it on or off. A minimized
+    // Client, one with decorate 0, and a shadow with no color that shows have none.
+    private DropShadow? ShadowFor(Client client, bool active, CornerChoice shape, byte alpha)
+    {
+        if (!_decoration.Shadow || !_decoration.ShadowDrawn || client.Minimized || FindWorkspace(client.Workspace) is not LiveWorkspace desk)
+            return null;
+
+        if ((OwnProp(client.Window, "decorate") as bool? ?? RuleFor(desk)?.Decorate) == false)
+            return null;
+
+        var gradient = active ? _decoration.ShadowColor : _decoration.ShadowColorInactive ?? _decoration.ShadowColor;
+        if (gradient.Colors.All(color => color.A == 0))
+            return null;
+
+        var scale = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Effective.Scale : 1;
+        var (radius, power) = CornerRadius(shape, scale);
+        var thickness = Math.Max(0, desk.Options.BorderFor(client.Id));
+        var outer = radius <= 0 ? 0 : radius + thickness - (thickness * (Math.Sqrt(2) - 1) * Math.Max(2.0 - power, 0));
+        return new DropShadow(gradient, (int)Math.Round(_decoration.ShadowRange * scale), _decoration.ShadowPower, alpha)
+        {
+            Border = thickness,
+            Rounding = (int)outer,
+            RoundingPower = power,
+            WindowRounding = radius,
+            Scale = Math.Clamp(_decoration.ShadowScale, 0, 1),
+            OffsetX = _decoration.ShadowOffset.X * scale,
+            OffsetY = _decoration.ShadowOffset.Y * scale,
+            Sharp = _decoration.ShadowSharp,
+            Focused = active,
+            Spin = _animations.TimingOf("shadowangle"),
+            SpinLoops = _animations.StyleOf("shadowangle") == "loop",
+            Fade = _animations.TimingOf("fadeShadow"),
+        };
+    }
+
+    // no_shadow from setprop, a window rule or the workspace rule's shadow:0.
+    private bool NoShadow(Client client) =>
+        OwnProp(client.Window, "no_shadow") is bool own
+            ? own
+            : FindWorkspace(client.Workspace) is LiveWorkspace desk && RuleFor(desk)?.Shadow == false;
+
+    private static (int Radius, float Power) CornerRadius(CornerChoice shape, double scale) => shape switch
+    {
+        { Region: CornerRegion region } => (region.Radius, region.Power),
+        { Preference: CornerPreference.Round } => ((int)Math.Round(CornerShape.Round * scale), 2f),
+        { Preference: CornerPreference.RoundSmall } => ((int)Math.Round(CornerShape.RoundSmall * scale), 2f),
+        _ => (0, 2f),
+    };
 
     private CornerChoice CornersFor(Client client)
     {
