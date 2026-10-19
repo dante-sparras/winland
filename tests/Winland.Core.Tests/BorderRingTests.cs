@@ -93,6 +93,21 @@ public class BorderRingTests
     }
 
     [Fact]
+    public void AGroupBorderTakesItsGradient()
+    {
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse("general:border_size = 2\ngroup:col.border_active = rgba(33ccffff) rgba(00ff99ff) 90deg\n")));
+        core.Handle(new MonitorsChanged([new Monitor("DISPLAY1", "", 0, 0, 1920, 1080, 1, true, Area)]));
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+
+        var ring = Assert.Single(core.Execute("dispatch togglegroup").Effect.Decorations).Ring;
+
+        Assert.NotNull(ring);
+        Assert.Equal([Cyan, Green], ring.Gradient.Colors);
+        Assert.Equal(90, ring.Gradient.AngleDegrees);
+    }
+
+    [Fact]
     public void ATurnGoesOnceRoundOverItsAnimation()
     {
         var spin = new Timing(Bezier.Linear, 1000);
