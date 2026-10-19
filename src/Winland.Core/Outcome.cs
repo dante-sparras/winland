@@ -135,6 +135,9 @@ public sealed record Outcome(
     /// <summary>The display scales the monitor rules ask for that the displays do not show yet.</summary>
     public IReadOnlyList<DisplayScaleRequest> DisplayScales { get; init; } = [];
 
+    /// <summary>The color modes monitor rules ask the displays to show.</summary>
+    public IReadOnlyList<DisplayColorRequest> DisplayColors { get; init; } = [];
+
     public WarpTo? Warp { get; init; }
 
     public InputSettingsRequest? InputSettings { get; init; }

@@ -6,7 +6,7 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class ColorsConformance
 {
-    [Fact(Skip = "bitdepth and cm are Gaps.")]
+    [Fact(Skip = "bitdepth is a Gap.")]
     public void MonitorsColorManagement()
     {
         var desk = new Desk();

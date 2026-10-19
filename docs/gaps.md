@@ -30,7 +30,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | aurora | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | binds:disable_keybind_grabbing | Applications cannot ask Windows to turn binds off, so there is nothing to refuse. |
 | bitdepth | Changing a monitor's bit depth is not honored. |
-| cm | Monitor color management is not honored. |
 | cursor:enable_hyprcursor | The cursor theme format has no Windows meaning. |
 | cursor:hotspot_padding | Cursor edge padding is not honored. |
 | cursor:min_refresh_rate | Cursor refresh rate has no Windows meaning. |
@@ -163,7 +162,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | animation:fadeDim, animation:fadeGlow, animation:fadeShadow, animation:glowangle, animation:monitorAdded, animation:shadowangle |
 | non-goal | - | animation:fadeLayers, animation:fadeLayersIn, animation:fadeLayersOut, animation:fadePopups, animation:fadePopupsIn, animation:fadePopupsOut, animation:layers, animation:layersIn, animation:layersOut |
 | non-goal | - | binds:disable_keybind_grabbing |
-| gap | - | bitdepth, cm, mirror, vrr |
+| gap | - | bitdepth, mirror, vrr |
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
 | gap | - | cursor:hotspot_padding, cursor:zoom_disable_aa |
 | gap | - | decoration:blur:brightness, decoration:blur:contrast, decoration:blur:ignore_opacity, decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:noise, decoration:blur:passes, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:size, decoration:blur:special, decoration:blur:vibrancy, decoration:blur:vibrancy_darkness, decoration:blur:xray |

@@ -75,6 +75,7 @@ public sealed partial class Core
             Orientations = arrangement.Orientations,
             DisplayModes = arrangement.Modes,
             DisplayScales = arrangement.Scales,
+            DisplayColors = arrangement.Colors,
         };
     }
 

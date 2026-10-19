@@ -180,7 +180,7 @@ public static partial class CommandProtocol
             "",
             "none",
             Modes(monitor),
-            "",
+            monitor.ColorPreset,
             0,
             0,
             0,
