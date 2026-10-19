@@ -90,6 +90,9 @@ public sealed partial class Core
             if (prior.Title != pair.Value.Title)
                 events.Add(new ClientRetitled(pair.Key, pair.Value.Title, pair.Key == activeAfter));
 
+            if (prior.Class != pair.Value.Class)
+                events.Add(new ClientReclassed(pair.Key, pair.Value.Class, pair.Key == activeAfter));
+
             if (prior.Floating != pair.Value.Floating)
                 events.Add(new FloatingChanged(pair.Key, pair.Value.Floating));
 

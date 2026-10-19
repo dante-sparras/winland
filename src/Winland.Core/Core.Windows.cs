@@ -90,7 +90,7 @@ public sealed partial class Core
         }
 
         var followed = processId > 0 ? _follow.Take(processId, FollowNow()) : [];
-        var traits = WithInitialTitle(appeared.Traits);
+        var traits = WithInitialClass(WithInitialTitle(appeared.Traits));
         var decision = WindowRuleParser.Decide(traits, JoinRules(_rules, followed));
         if (!decision.Adopt)
             return View([]);

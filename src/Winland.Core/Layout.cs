@@ -22,6 +22,9 @@ internal interface Layout
     /// <summary>Gives the Client its window's new title.</summary>
     void Retitle(WindowId window, string title);
 
+    /// <summary>Gives the Client its window's new class. The class it had when it appeared stays.</summary>
+    void Reclass(WindowId window, string windowClass);
+
     /// <summary>Adopts a Window as a Client of this Workspace.</summary>
     IReadOnlyList<Placement> Add(
         WindowId window,

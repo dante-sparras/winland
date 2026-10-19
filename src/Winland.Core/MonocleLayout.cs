@@ -31,6 +31,15 @@ internal sealed partial class MonocleLayout : Layout
         }
     }
 
+    public void Reclass(WindowId window, string windowClass)
+    {
+        for (var i = 0; i < _clients.Count; i++)
+        {
+            if (_clients[i].Window == window)
+                _clients[i] = _clients[i] with { Class = windowClass };
+        }
+    }
+
     public void Readdress(WorkspaceId workspace)
     {
         for (var i = 0; i < _clients.Count; i++)

@@ -18,7 +18,8 @@ public readonly record struct WindowTraits(
     Size? MaxSize = null,
     bool ExclusiveFullscreen = false,
     bool Overlay = false,
-    string? InitialTitle = null)
+    string? InitialTitle = null,
+    string? InitialClass = null)
 {
     public static WindowTraits Normal { get; } = new(
         Visible: true,

@@ -25,7 +25,7 @@ public sealed partial class Core
 
     private void RememberRuleSubject(WindowId window, WindowTraits traits, IReadOnlyList<WindowRule> followed, WindowDecision decision)
     {
-        _ruleSubjects[window] = (WithInitialTitle(traits), followed);
+        _ruleSubjects[window] = (WithInitialClass(WithInitialTitle(traits)), followed);
         if (decision.Content != 0)
             _content[window] = decision.Content;
     }
@@ -151,6 +151,10 @@ public sealed partial class Core
     // initialTitle matches the title a window had when it appeared, including an empty one, so a later title does not stand in for it.
     private static WindowTraits WithInitialTitle(WindowTraits traits) =>
         traits.InitialTitle is null ? traits with { InitialTitle = traits.Title } : traits;
+
+    // initialClass matches the class a window had when it appeared, including an empty one, so a later class does not stand in for it.
+    private static WindowTraits WithInitialClass(WindowTraits traits) =>
+        traits.InitialClass is null ? traits with { InitialClass = traits.Class } : traits;
 
     private static bool ReadsState(IReadOnlyList<WindowRule> rules)
     {
