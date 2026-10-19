@@ -61,6 +61,12 @@ public sealed partial class Core
             return begun is null ? stepped : Merge(begun, stepped);
         }
 
+        if (_activeGesture is { IsClose: true } closing)
+        {
+            var preview = StepCloseSwipe(closing.Scale * TrackpadGesture.Along(_gestureDirection, updated.DeltaX, updated.DeltaY));
+            return begun is null ? preview : Merge(begun, preview);
+        }
+
         if (_activeGesture is { IsOnRelease: true } onRelease)
         {
             _releaseDistance += onRelease.Scale * TrackpadGesture.Along(_gestureDirection, updated.DeltaX, updated.DeltaY);
@@ -96,6 +102,9 @@ public sealed partial class Core
 
         if (gesture.IsScrollMove)
             return EndScrollMove(cancelled);
+
+        if (gesture.IsClose)
+            return EndCloseSwipe();
 
         if (gesture.IsOnRelease)
             return ReleaseGesture(gesture, _releaseDistance);
@@ -134,6 +143,8 @@ public sealed partial class Core
                 BeginScrollMove();
             else if (gesture.IsFunction)
                 begun = View([]);
+            else if (gesture.IsClose)
+                BeginCloseSwipe();
             return true;
         }
 

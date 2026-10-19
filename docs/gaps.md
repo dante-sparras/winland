@@ -68,7 +68,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | ecosystem | Ecosystem tools have no Windows meaning. |
 | experimental | Experimental Wayland protocol options have no Windows meaning. |
 | fluid_jar | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| gestures:close_max_timeout | The close gesture closes the window without fading it out first, so its timeout has nothing to time. |
 | gestures:workspace_swipe_touch | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | gestures:workspace_swipe_touch_invert | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | glass | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
@@ -167,7 +166,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | dont_inhibit |
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
 | non-goal | - | experimental, input-capture |
-| gap | - | gestures:close_max_timeout, gestures:workspace_swipe_touch, gestures:workspace_swipe_touch_invert |
+| gap | - | gestures:workspace_swipe_touch, gestures:workspace_swipe_touch_invert |
 | gap | - | glow, motion_blur |
 | gap | - | input:emulate_discrete_scroll, input:off_window_axis_events, input:scroll_points |
 | non-goal | - | input:kb_file, input:kb_model, input:kb_rules |
