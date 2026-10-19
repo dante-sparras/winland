@@ -88,6 +88,7 @@ public sealed record GroupOptions
         ["group:groupbar:font_size"] = (o, v) => TryInt(v, 2, 64, out var i) ? o.WithBar(o.Bar with { FontSize = i }) : o,
         ["group:groupbar:font_weight_active"] = (o, v) => TryWeight(v, out var w) ? o.WithBar(o.Bar with { FontWeightActive = w }) : o,
         ["group:groupbar:font_weight_inactive"] = (o, v) => TryWeight(v, out var w) ? o.WithBar(o.Bar with { FontWeightInactive = w }) : o,
+        ["group:groupbar:priority"] = (o, v) => TryInt(v, 0, 6, out var i) ? o.WithBar(o.Bar with { Priority = i }) : o,
         ["group:groupbar:height"] = (o, v) => TryInt(v, 1, 64, out var i) ? o.WithBar(o.Bar with { Height = i }) : o,
         ["group:groupbar:indicator_height"] = (o, v) => TryInt(v, 1, 64, out var i) ? o.WithBar(o.Bar with { IndicatorHeight = i }) : o,
         ["group:groupbar:indicator_gap"] = (o, v) => TryInt(v, 0, 64, out var i) ? o.WithBar(o.Bar with { IndicatorGap = i }) : o,
@@ -249,6 +250,12 @@ public sealed record GroupBarStyle
 
     /// <summary><c>stacked</c>: the tabs are rows, one above the other, instead of side by side.</summary>
     public bool Stacked { get; init; }
+
+    /// <summary>
+    /// <c>priority</c>: where the bar goes among the decorations on a window's top edge. The bar is the only one Winland
+    /// draws there, as it is in the pinned release without a plugin that adds one, so it changes nothing yet.
+    /// </summary>
+    public int Priority { get; init; } = 3;
 
     /// <summary><c>gradients</c>: each tab's title row is filled with a gradient of its colors.</summary>
     public bool Gradients { get; init; }

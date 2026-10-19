@@ -8,6 +8,15 @@ public class BarShapesTests
     private static readonly BorderColor Blue = new(0xFF, 0, 0, 0xFF);
 
     [Fact]
+    public void PriorityIsKeptWithoutAWarning()
+    {
+        Assert.Equal(3, GroupOptions.From(ConfigParser.Parse("")).Bar.Priority);
+        var document = ConfigParser.Parse("group:groupbar:priority = 5\ngroup:groupbar:priority = 9\n");
+        Assert.Equal(6, GroupOptions.From(document).Bar.Priority);
+        Assert.Empty(document.Warnings);
+    }
+
+    [Fact]
     public void ShapeKeysAreHonoredWithTheirDefaults()
     {
         var plain = GroupOptions.From(ConfigParser.Parse("")).Bar;

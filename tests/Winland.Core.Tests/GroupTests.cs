@@ -438,7 +438,7 @@ public class GroupTests
     }
 
     [Fact]
-    public void GroupKeywordsAreHonoredAndTheBarPriorityIsAGap()
+    public void GroupKeywordsAreHonored()
     {
         var document = ConfigParser.Parse("""
             group:auto_group = false
@@ -447,11 +447,12 @@ public class GroupTests
             group:groupbar:priority = 2
             """);
 
-        Assert.Equal([new ConfigWarning(4, "Unsupported keyword 'group:groupbar:priority'.")], document.Warnings);
+        Assert.Empty(document.Warnings);
         var options = GroupOptions.From(document);
         Assert.False(options.AutoGroup);
         Assert.Equal(10, options.Bar.FontSize);
         Assert.Equal(2, options.DragIntoGroup);
+        Assert.Equal(2, options.Bar.Priority);
     }
 
     [Theory]
