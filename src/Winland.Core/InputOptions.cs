@@ -77,6 +77,9 @@ public sealed record InputOptions
     /// <summary><c>input:emulate_discrete_scroll</c>: 0 never, 1 for turns that are not whole notches, 2 for every turn.</summary>
     public int EmulateDiscreteScroll { get; init; } = 1;
 
+    /// <summary><c>input:off_window_axis_events</c>: 0 ignore, 1 send, 2 clamp, 3 warp.</summary>
+    public int OffWindowAxisEvents { get; init; } = 1;
+
     /// <summary><c>input:force_no_accel</c>: pointer acceleration is off, whatever <c>accel_profile</c> says.</summary>
     public bool ForceNoAccel { get; init; }
 
@@ -233,6 +236,14 @@ public sealed record InputOptions
         ["force_all"] = 2,
     };
 
+    private static readonly Dictionary<string, int> OffWindowAxisNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["ignore"] = 0,
+        ["send"] = 1,
+        ["clamp"] = 2,
+        ["warp"] = 3,
+    };
+
     private static readonly Dictionary<string, int> Drag3fgNames = new(StringComparer.OrdinalIgnoreCase)
     {
         ["disable"] = 0,
@@ -261,6 +272,7 @@ public sealed record InputOptions
         ["input:sensitivity"] = (options, value) => TryFloat(value, -1, 1, out var sensitivity) ? options with { Sensitivity = sensitivity } : options,
         ["input:scroll_factor"] = (options, value) => TryFloat(value, 0, 2, out var factor) ? options with { ScrollFactor = factor } : options,
         ["input:emulate_discrete_scroll"] = (options, value) => TryMode(value, DiscreteScrollNames, 0, 2, out var mode) ? options with { EmulateDiscreteScroll = mode } : options,
+        ["input:off_window_axis_events"] = (options, value) => TryMode(value, OffWindowAxisNames, 0, 3, out var mode) ? options with { OffWindowAxisEvents = mode } : options,
         ["input:special_fallthrough"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var fallthrough) ? options with { SpecialFallthrough = fallthrough } : options,
         ["input:follow_mouse"] = (options, value) => TryMode(value, FollowMouseNames, 0, 3, out var mode) ? options with { FollowMouse = mode } : options,
         ["input:follow_mouse_threshold"] = (options, value) => TryUnbounded(value, out var threshold) ? options with { FollowMouseThreshold = threshold } : options,

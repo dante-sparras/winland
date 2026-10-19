@@ -36,6 +36,18 @@ internal static class BorderPointer
     public static int Reach(LayoutOptions options) =>
         options.ResizeOnBorder ? Math.Max(0, options.BorderSize) + Math.Max(0, options.ExtendBorderGrabArea) : 0;
 
+    /// <summary>
+    /// How far around a window a wheel turn still counts as meant for it: the border, and the grab area around it when
+    /// <c>resize_on_border</c> is on, as the pinned release extends a window's input past its surface by its decorations.
+    /// </summary>
+    public static int AxisReach(LayoutOptions options) =>
+        Math.Max(0, options.BorderSize) + (options.ResizeOnBorder ? Math.Max(0, options.ExtendBorderGrabArea) : 0);
+
+    /// <summary>The point of <paramref name="box"/> nearest <paramref name="point"/>, one pixel in from the far edges.</summary>
+    public static Point Clamp(Rectangle box, Point point) => new(
+        Math.Clamp(point.X, box.X, Math.Max(box.X, box.X + box.Width - 1)),
+        Math.Clamp(point.Y, box.Y, Math.Max(box.Y, box.Y + box.Height - 1)));
+
     /// <summary>Corner icon zone. The configured corner radius is not applied, so only the border and a 10 pixel leeway count.</summary>
     public static int Corner(LayoutOptions options) => Math.Max(0, options.BorderSize) + 10;
 
