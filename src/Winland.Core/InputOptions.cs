@@ -10,12 +10,12 @@ public enum PointerAcceleration
 
 /// <summary>
 /// The Windows precision touchpad settings Winland sets: tapping, tap and drag, a reversed scroll direction, how
-/// sensitive the touchpad stays while typing (0, the most, never turns it off), and the right-click zone. A null field
-/// is left alone.
+/// sensitive the touchpad stays while typing (0, the most, never turns it off), the right-click zone, and whether a
+/// two-finger tap is a right click. A null field is left alone.
 /// </summary>
-public readonly record struct TouchpadSettings(bool? Tap, bool? TapAndDrag, bool? ReverseScroll, int? Sensitivity, bool? RightClickZone)
+public readonly record struct TouchpadSettings(bool? Tap, bool? TapAndDrag, bool? ReverseScroll, int? Sensitivity, bool? RightClickZone, bool? TwoFingerTap = null)
 {
-    public bool Any => Tap is not null || TapAndDrag is not null || ReverseScroll is not null || Sensitivity is not null || RightClickZone is not null;
+    public bool Any => Tap is not null || TapAndDrag is not null || ReverseScroll is not null || Sensitivity is not null || RightClickZone is not null || TwoFingerTap is not null;
 }
 
 public sealed record InputSettingsRequest
@@ -95,6 +95,35 @@ public sealed record InputOptions
 
     public bool? TouchpadClickfinger { get; init; }
 
+    /// <summary><c>input:touchpad:scroll_factor</c>: the touchpad's scrolling is multiplied by this, 0 to 100.</summary>
+    public double TouchpadScrollFactor { get; init; } = 1;
+
+    /// <summary><c>input:touchpad:flip_x</c>: the touchpad moves the cursor the other way across.</summary>
+    public bool TouchpadFlipX { get; init; }
+
+    /// <summary><c>input:touchpad:flip_y</c>: the touchpad moves the cursor the other way up and down.</summary>
+    public bool TouchpadFlipY { get; init; }
+
+    /// <summary><c>input:touchpad:drag_3fg</c>: 0 is off, 1 drags with three fingers and 2 with four.</summary>
+    public int TouchpadDrag3fg { get; init; }
+
+    /// <summary><c>input:touchpad:tap_button_map</c>: <c>lrm</c> or <c>lmr</c>. Null leaves Windows' two-finger tap alone.</summary>
+    public string? TouchpadTapButtonMap { get; init; }
+
+    /// <summary>The touchpad behavior the mouse hook and the touchpad reader carry out.</summary>
+    public TouchpadBehavior Touchpad => new(
+        TouchpadScrollFactor,
+        ScrollFactor is double factor ? InputMapping.WheelLines(factor) / 3d : null,
+        TouchpadFlipX,
+        TouchpadFlipY,
+        TouchpadDrag3fg switch
+        {
+            1 => 3,
+            2 => 4,
+            _ => 0,
+        },
+        TouchpadTapButtonMap == "lmr" && TouchpadTapToClick != false);
+
     /// <summary><c>input:kb_layout</c>: comma-separated XKB layout names. Null leaves the system's layouts alone.</summary>
     public string? KbLayout { get; init; }
 
@@ -144,6 +173,7 @@ public sealed record InputOptions
     }
 
     // libinput's natural scrolling is Windows' default direction, and its button areas are Windows' right-click zone.
+    // lrm is Windows' two-finger tap to right-click; lmr turns that off, and Winland makes the two-finger tap a middle click.
     // Disabling the touchpad while typing is Windows' medium sensitivity, its default; not disabling it is the most.
     private TouchpadSettings? TouchpadRequest()
     {
@@ -152,7 +182,13 @@ public sealed record InputOptions
             TouchpadTapAndDrag,
             TouchpadNaturalScroll is bool natural ? !natural : null,
             TouchpadDisableWhileTyping is bool disable ? (disable ? 2 : 0) : null,
-            TouchpadClickfinger is bool clickfinger ? !clickfinger : null);
+            TouchpadClickfinger is bool clickfinger ? !clickfinger : null,
+            TouchpadTapButtonMap switch
+            {
+                "lrm" => true,
+                "lmr" => false,
+                _ => null,
+            });
         return settings.Any ? settings : null;
     }
 
@@ -170,6 +206,20 @@ public sealed record InputOptions
         ["cursor"] = 1,
         ["mru"] = 2,
     };
+
+    private static readonly Dictionary<string, int> Drag3fgNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["disable"] = 0,
+        ["3_finger"] = 1,
+        ["4_finger"] = 2,
+    };
+
+    // lrm or lmr, as the pinned release's validator allows. Empty is its default, lrm, which leaves Windows alone here.
+    private static string? ParseTapMap(string text)
+    {
+        var map = text.Trim().ToLowerInvariant();
+        return map is "lrm" or "lmr" ? map : null;
+    }
 
     private static readonly Dictionary<string, Func<InputOptions, string, InputOptions>> Appliers = new(StringComparer.Ordinal)
     {
@@ -194,6 +244,11 @@ public sealed record InputOptions
         ["input:touchpad:natural_scroll"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var natural) ? options with { TouchpadNaturalScroll = natural } : options,
         ["input:touchpad:disable_while_typing"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var disable) ? options with { TouchpadDisableWhileTyping = disable } : options,
         ["input:touchpad:clickfinger_behavior"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var clickfinger) ? options with { TouchpadClickfinger = clickfinger } : options,
+        ["input:touchpad:scroll_factor"] = (options, value) => TryFloat(value, 0, 100, out var factor) ? options with { TouchpadScrollFactor = factor } : options,
+        ["input:touchpad:flip_x"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var flip) ? options with { TouchpadFlipX = flip } : options,
+        ["input:touchpad:flip_y"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var flip) ? options with { TouchpadFlipY = flip } : options,
+        ["input:touchpad:drag_3fg"] = (options, value) => TryMode(value, Drag3fgNames, 0, 2, out var drag) ? options with { TouchpadDrag3fg = drag } : options,
+        ["input:touchpad:tap_button_map"] = (options, value) => ParseTapMap(value) is var map && (map is not null || value.Trim().Length == 0) ? options with { TouchpadTapButtonMap = map } : options,
         ["input:kb_layout"] = (options, value) => options with { KbLayout = value.Trim() },
         ["input:kb_variant"] = (options, value) => options with { KbVariant = value.Trim() },
         ["input:scroll_method"] = (options, value) => options with { ScrollMethod = value.Trim() },

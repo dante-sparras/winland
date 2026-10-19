@@ -48,6 +48,9 @@ public sealed partial class Core
     /// <summary><c>input:rotation</c>, in degrees, which the mouse hook reads with no lock.</summary>
     public int PointerRotation => _input.Rotation;
 
+    /// <summary>The touchpad options Winland carries out, which the mouse hook and the touchpad reader read with no lock.</summary>
+    public TouchpadBehavior Touchpad { get; private set; } = TouchpadBehavior.Default;
+
     /// <summary>The <c>kb_options</c> the keyboard hook carries out. It reads them with no lock.</summary>
     public KeyboardOptions KeyOptions { get; private set; } = KeyboardOptions.None;
 

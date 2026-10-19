@@ -90,13 +90,8 @@ This table has one row per keyword. A test checks it against the keywords the co
 | input:touchdevice:enabled | Touch screens are not honored. |
 | input:touchdevice:output | Touch screens are not honored. |
 | input:touchdevice:transform | Touch screens are not honored. |
-| input:touchpad:drag_3fg | Touchpad options are not honored. |
-| input:touchpad:drag_lock | Touchpad options are not honored. |
-| input:touchpad:flip_x | Touchpad options are not honored. |
-| input:touchpad:flip_y | Touchpad options are not honored. |
-| input:touchpad:middle_button_emulation | Touchpad options are not honored. |
-| input:touchpad:scroll_factor | Touchpad options are not honored. |
-| input:touchpad:tap_button_map | Touchpad options are not honored. |
+| input:touchpad:drag_lock | Windows' tap and drag has no lock, and its release reaches the mouse hook like any other, so Winland cannot hold it. |
+| input:touchpad:middle_button_emulation | A button press reaches the mouse hook without its device, so a touchpad's buttons cannot be told from a mouse's, and Windows has no such touchpad setting. |
 | input:virtualkeyboard:release_pressed_on_close | Virtual keyboards are not honored. |
 | input:virtualkeyboard:share_states | Virtual keyboards are not honored. |
 | layerrule | Layer shell rules have no Windows meaning. |
@@ -162,7 +157,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:enabled, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
 | gap | - | input:tablettool:eraser_button_mode, input:tablettool:eraser_button_override, input:tablettool:pressure_range_max, input:tablettool:pressure_range_min |
 | gap | - | input:touchdevice:enabled, input:touchdevice:output, input:touchdevice:transform |
-| gap | - | input:touchpad:drag_3fg, input:touchpad:drag_lock, input:touchpad:flip_x, input:touchpad:flip_y, input:touchpad:middle_button_emulation, input:touchpad:scroll_factor, input:touchpad:tap_button_map |
+| gap | - | input:touchpad:drag_lock, input:touchpad:middle_button_emulation |
 | gap | - | input:virtualkeyboard:release_pressed_on_close, input:virtualkeyboard:share_states, misc:name_vk_after_proc |
 | gap | - | locale |
 | non-goal | - | misc:allow_session_lock_restore, misc:anr_missed_pings, misc:background_color, misc:bell_sound, misc:col.splash, misc:disable_scale_notification, misc:disable_splash_rendering, misc:disable_watchdog_warning, misc:disable_xdg_env_checks, misc:enable_anr_dialog, misc:force_default_wallpaper, misc:layers_hog_keyboard_focus, misc:lockdead_screen_delay, misc:middle_click_paste, misc:render_unfocused_fps, misc:screencopy_force_8b, misc:session_lock_blur, misc:session_lock_xray, misc:splash_font_family |
@@ -172,7 +167,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 
 These are the uncovered keywords and behaviors Windows can honor. A gap keyword in the tables above is in this list when Windows has the thing it names. The seven logging and error-bar options are the part of the `debug` non-goal that can be honored, and `misc:name_vk_after_proc` is grouped with the virtual-keyboard gaps.
 
-Input Windows already has: `device`, so an honored input setting can name one device; `input:tablet:enabled`, `input:tablet:left_handed`, `input:tablet:output`, `input:tablet:transform`, `input:tablet:region_position`, `input:tablet:region_size`, `input:tablet:absolute_region_position`, `input:tablet:relative_input`, `input:tablet:active_area_position` and `input:tablet:active_area_size`; `input:tablettool:eraser_button_mode`, `input:tablettool:eraser_button_override`, `input:tablettool:pressure_range_min` and `input:tablettool:pressure_range_max`; `input:touchdevice:enabled`, `input:touchdevice:output` and `input:touchdevice:transform`; `input:touchpad:tap_button_map`, `input:touchpad:middle_button_emulation`, `input:touchpad:drag_lock`, `input:touchpad:drag_3fg`, `input:touchpad:flip_x`, `input:touchpad:flip_y` and `input:touchpad:scroll_factor`; `input:virtualkeyboard:share_states`, `input:virtualkeyboard:release_pressed_on_close` and `misc:name_vk_after_proc`; `input:emulate_discrete_scroll`, `input:off_window_axis_events` and `input:scroll_points`.
+Input Windows already has: `device`, so an honored input setting can name one device; `input:tablet:enabled`, `input:tablet:left_handed`, `input:tablet:output`, `input:tablet:transform`, `input:tablet:region_position`, `input:tablet:region_size`, `input:tablet:absolute_region_position`, `input:tablet:relative_input`, `input:tablet:active_area_position` and `input:tablet:active_area_size`; `input:tablettool:eraser_button_mode`, `input:tablettool:eraser_button_override`, `input:tablettool:pressure_range_min` and `input:tablettool:pressure_range_max`; `input:touchdevice:enabled`, `input:touchdevice:output` and `input:touchdevice:transform`; `input:virtualkeyboard:share_states`, `input:virtualkeyboard:release_pressed_on_close` and `misc:name_vk_after_proc`; `input:emulate_discrete_scroll`, `input:off_window_axis_events` and `input:scroll_points`.
 
 Monitors and the process locale: `bitdepth` and `locale` (`general:locale`).
 

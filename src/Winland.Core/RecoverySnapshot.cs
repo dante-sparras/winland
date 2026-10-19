@@ -215,7 +215,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 saved.MouseSpeed,
                 saved.WheelLines,
                 saved.Touchpad is TouchpadSettings pad
-                    ? new TouchpadBody(pad.Tap, pad.TapAndDrag, pad.ReverseScroll, pad.Sensitivity, pad.RightClickZone)
+                    ? new TouchpadBody(pad.Tap, pad.TapAndDrag, pad.ReverseScroll, pad.Sensitivity, pad.RightClickZone, pad.TwoFingerTap)
                     : null);
         }
 
@@ -231,7 +231,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
             MouseSpeed = MouseSpeed,
             WheelLines = WheelLines,
             Touchpad = Touchpad is TouchpadBody pad
-                ? new TouchpadSettings(pad.Tap, pad.TapAndDrag, pad.ReverseScroll, pad.Sensitivity, pad.RightClickZone)
+                ? new TouchpadSettings(pad.Tap, pad.TapAndDrag, pad.ReverseScroll, pad.Sensitivity, pad.RightClickZone, pad.TwoFingerTap)
                 : null,
         };
     }
@@ -241,7 +241,8 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
         [property: JsonPropertyName("tapAndDrag")] bool? TapAndDrag,
         [property: JsonPropertyName("reverseScroll")] bool? ReverseScroll,
         [property: JsonPropertyName("sensitivity")] int? Sensitivity,
-        [property: JsonPropertyName("rightClickZone")] bool? RightClickZone);
+        [property: JsonPropertyName("rightClickZone")] bool? RightClickZone,
+        [property: JsonPropertyName("twoFingerTap")] bool? TwoFingerTap = null);
 
     private sealed record MouseBody(
         [property: JsonPropertyName("threshold1")] int Threshold1,

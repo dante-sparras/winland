@@ -18,6 +18,7 @@ public sealed partial class Core
     {
         _cursor = CursorOptions.From(document);
         _input = InputOptions.From(document);
+        Touchpad = _input.Touchpad;
         ForgetGestureZoom();
         KeyOptions = KeyboardOptions.Parse(_input.KbOptions);
     }

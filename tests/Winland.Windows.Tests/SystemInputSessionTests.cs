@@ -427,7 +427,8 @@ public class SystemInputSessionTests
                 settings.TapAndDrag ?? Touchpad.TapAndDrag,
                 settings.ReverseScroll ?? Touchpad.ReverseScroll,
                 settings.Sensitivity ?? Touchpad.Sensitivity,
-                settings.RightClickZone ?? Touchpad.RightClickZone);
+                settings.RightClickZone ?? Touchpad.RightClickZone,
+                settings.TwoFingerTap ?? Touchpad.TwoFingerTap);
         }
 
         public static readonly string[] Fields =
