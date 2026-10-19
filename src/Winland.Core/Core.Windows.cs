@@ -126,7 +126,7 @@ public sealed partial class Core
         ForgetRestored(appeared.Window);
         var desk = WorkspaceFor(target, monitor);
         if (restored is null)
-            decision = DecideAtOpen(appeared.Traits, JoinRules(_rules, followed), decision, desk);
+            decision = DecideAtOpen(appeared.Traits, JoinRules(_rules, followed), decision, desk, appeared.Owner is WindowId owner && _disabled.Contains(owner));
         var area = WorkArea(desk, appeared.WorkArea);
         _area = area;
         decision = EvaluateSizeRules(appeared, decision, desk, area);
@@ -169,6 +169,7 @@ public sealed partial class Core
         RememberIdle(appeared.Window, decision);
         RememberRuleProps(appeared.Window, decision);
         RememberRuleSubject(appeared.Window, appeared.Traits, followed, decision);
+        NoteOwner(appeared);
         Stack(appeared.Window, top: true);
         // A window owned by a pinned Client is pinned too, as the pinned release pins a child of a pinned parent. A
         // tiled window is never pinned.
@@ -244,6 +245,7 @@ public sealed partial class Core
         _sizes.Remove(window);
         _initialWorkspaces.Closed(window);
         _shownMaximized.Remove(window);
+        ForgetOwner(window);
         if (GiveSlotToChild(window) is Outcome slotBack)
             return slotBack;
 

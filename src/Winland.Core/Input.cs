@@ -30,6 +30,9 @@ public sealed record WindowAppeared(WindowId Window, Rectangle WorkArea) : Event
     /// <summary>The window that owns this one, as a dialog's owner, or null.</summary>
     public WindowId? Owner { get; init; }
 
+    /// <summary>Windows has disabled the window, as it does the owner of an open modal dialog.</summary>
+    public bool Disabled { get; init; }
+
     /// <summary>
     /// The window was maximized when it first showed, as a client that asks to be maximized before it maps. The core
     /// ignores the maximize request that follows, as the pinned release does.
@@ -38,6 +41,9 @@ public sealed record WindowAppeared(WindowId Window, Rectangle WorkArea) : Event
 }
 
 public sealed record WindowClosed(WindowId Window) : Event;
+
+/// <summary>Windows disabled a Client, as it does while a modal dialog it owns is open, or enabled it again.</summary>
+public sealed record WindowEnabledChanged(WindowId Window, bool Enabled) : Event;
 
 /// <summary>The window's minimum or maximum track size changed. A null size is no limit.</summary>
 public sealed record WindowLimitsChanged(WindowId Window, Size? MinSize, Size? MaxSize) : Event;

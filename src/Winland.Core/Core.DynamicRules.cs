@@ -84,7 +84,7 @@ public sealed partial class Core
     // The pinned release reads a window's rules when it opens with the tags its rules give it and the Workspace it
     // opens on, so a rule with a state match, such as float, tag:x or workspace:name:x, applies then too. The
     // window is not yet floating, focused, pinned, fullscreen or in a Group. Where it opens stays as first decided.
-    private WindowDecision DecideAtOpen(WindowTraits traits, IReadOnlyList<WindowRule> rules, WindowDecision decision, LiveWorkspace desk)
+    private WindowDecision DecideAtOpen(WindowTraits traits, IReadOnlyList<WindowRule> rules, WindowDecision decision, LiveWorkspace desk, bool modal)
     {
         if (!ReadsState(rules))
             return decision;
@@ -101,7 +101,8 @@ public sealed partial class Core
             Grouped: false,
             OnWorkspace: selector => WorkspaceRules.MatchesSelector(selector, desk.Id, desk.DisplayName, screen?.Effective, Count, desk.CoveringMode()),
             Tagged: tag => WindowTags.IsTagged(tags, tag),
-            Content: decision.Content);
+            Content: decision.Content,
+            Modal: modal);
         foreach (var tag in WindowRuleParser.TagsFor(traits, rules, opening))
             _ = WindowTags.Apply(tags, tag, dynamic: true);
 
@@ -122,7 +123,8 @@ public sealed partial class Core
             desk.GroupOf(client.Window) is not null,
             selector => WorkspaceRules.MatchesSelector(selector, desk.Id, desk.DisplayName, screen?.Effective, Count, desk.CoveringMode()),
             tag => WindowTags.IsTagged(tags, tag),
-            ContentOf(client.Window));
+            ContentOf(client.Window),
+            IsModal(client.Window));
     }
 
     /// <summary><c>tagwindow tag [window]</c> applies a static tag to the window, or the focused one, as in the pinned release.</summary>

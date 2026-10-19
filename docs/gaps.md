@@ -137,7 +137,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | misc:session_lock_blur | The lock screen belongs to Windows. |
 | misc:session_lock_xray | The lock screen belongs to Windows. |
 | misc:splash_font_family | There is no splash text. |
-| modal_parent_blocking | Modal parent blocking is not honored. |
 | motion_blur | Motion blur is not honored. |
 | opengl | GPU rendering options have no Windows meaning. |
 | permission | Permission rules have no Windows meaning. |
@@ -184,7 +183,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | locale |
 | non-goal | - | misc:allow_session_lock_restore, misc:anr_missed_pings, misc:background_color, misc:bell_sound, misc:col.splash, misc:disable_scale_notification, misc:disable_splash_rendering, misc:disable_watchdog_warning, misc:disable_xdg_env_checks, misc:enable_anr_dialog, misc:force_default_wallpaper, misc:layers_hog_keyboard_focus, misc:lockdead_screen_delay, misc:middle_click_paste, misc:name_vk_after_proc, misc:render_unfocused_fps, misc:screencopy_force_8b, misc:session_lock_blur, misc:session_lock_xray, misc:splash_font_family |
 | gap | - | misc:always_follow_on_dnd |
-| gap | - | modal_parent_blocking |
 
 ## Notes
 

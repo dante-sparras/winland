@@ -52,8 +52,7 @@ internal static partial class WindowRuleParser
                 RuleMatchKind.Pin => WindowProps.Truthy(match.Value) == state.Pinned,
                 RuleMatchKind.Focus => WindowProps.Truthy(match.Value) == state.Focused,
                 RuleMatchKind.Group => WindowProps.Truthy(match.Value) == state.Grouped,
-                // Winland does not track modal windows, so no window is modal.
-                RuleMatchKind.Modal => !WindowProps.Truthy(match.Value),
+                RuleMatchKind.Modal => WindowProps.Truthy(match.Value) == state.Modal,
                 RuleMatchKind.FullscreenStateInternal => LeadingInteger(match.Value) == state.FullscreenInternal,
                 RuleMatchKind.FullscreenStateClient => LeadingInteger(match.Value) == state.FullscreenClient,
                 RuleMatchKind.Workspace => state.OnWorkspace(match.Value),
