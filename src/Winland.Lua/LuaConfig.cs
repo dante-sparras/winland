@@ -1,0 +1,565 @@
+using System.Globalization;
+using System.Text;
+using KeraLua;
+
+namespace Winland.Lua;
+
+/// <summary>Where a config line made from a Lua call came from: the line of the call and its file, null for the config itself.</summary>
+public readonly record struct LuaOrigin(int Line, string? Source);
+
+/// <summary>
+/// A Lua config turned into the line-based config: one line for each setting a call made, where each came from, what
+/// went wrong while it ran, and the Lua files it required.
+/// </summary>
+public sealed record LuaTranslation(
+    string Text,
+    IReadOnlyList<LuaOrigin> Origins,
+    IReadOnlyList<ConfigWarning> Warnings,
+    IReadOnlyList<string> Sources)
+{
+    /// <summary>
+    /// The parsed document with its warnings moved to the Lua lines that made them, after the warnings the Lua run
+    /// itself gave, and with the required files as its sources.
+    /// </summary>
+    public ConfigDocument Remap(ConfigDocument parsed)
+    {
+        ArgumentNullException.ThrowIfNull(parsed);
+        var warnings = new List<ConfigWarning>(Warnings);
+        foreach (var warning in parsed.Warnings)
+        {
+            if (warning.Source is null && warning.Line >= 1 && warning.Line <= Origins.Count)
+            {
+                var origin = Origins[warning.Line - 1];
+                warnings.Add(warning with { Line = origin.Line, Source = origin.Source });
+            }
+            else
+            {
+                warnings.Add(warning);
+            }
+        }
+
+        return parsed with { Warnings = warnings, Sources = [.. parsed.Sources, .. Sources] };
+    }
+}
+
+/// <summary>
+/// Runs a Lua config, <c>winland.lua</c>, and turns its <c>hl</c> calls into the line-based config, so the parser and
+/// the core read it as they read <c>winland.conf</c>. The Lua runs without the libraries that reach the system: no
+/// <c>io</c>, no <c>os.execute</c>, no C modules and no binary chunks, and <c>require</c> reads Lua files from the
+/// config's folder through the same reader, because Winland runs elevated (ADR 0007, ADR 0013).
+/// </summary>
+public static class LuaConfig
+{
+    /// <summary>How long a config may run before it is stopped, in seconds of processor time.</summary>
+    public const int Budget = 5;
+
+    /// <summary>Runs <paramref name="code"/>, read from <paramref name="path"/>. <paramref name="read"/> reads a required file by its full path.</summary>
+    public static LuaTranslation Translate(string code, string path, Func<string, string?> read) => Translate(code, path, read, Budget);
+
+    internal static LuaTranslation Translate(string code, string path, Func<string, string?> read, double budget)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(read);
+        using var run = new LuaRun(path, read);
+        return run.Translate(code, budget);
+    }
+}
+
+// One run of a config. The delegates Lua calls back into are kept in fields so the collector leaves them alone, and a
+// callback never raises a Lua error: it notes a warning and returns, because an error would unwind past managed frames.
+internal sealed class LuaRun : IDisposable
+{
+    // Calls the later phases of the Lua config take on. Until then each warns once and does nothing.
+    private static readonly string[] Pending =
+    [
+        "bind", "unbind", "define_submap", "monitor", "window_rule", "layer_rule", "workspace_rule", "gesture",
+        "curve", "animation", "device", "permission", "load", "timer", "dispatch", "get_config", "get_devices",
+        "get_windows", "get_window", "get_active_window", "get_urgent_window", "get_workspaces", "get_workspace",
+        "get_active_workspace", "get_active_special_workspace", "get_monitors", "get_monitor", "get_active_monitor",
+        "get_monitor_at", "get_monitor_at_cursor", "get_layers", "get_workspace_windows", "get_cursor_pos",
+        "get_last_window", "get_last_workspace", "get_current_submap", "version", "get_loaded_plugins", "is_key_down",
+    ];
+
+    // The events hl.on knows, named as the pinned release names them with Winland's own name for its start and shutdown.
+    private static readonly string[] Events =
+    [
+        "window.open", "window.open_early", "window.close", "window.destroy", "window.kill", "window.active",
+        "window.urgent", "window.title", "window.class", "window.pin", "window.fullscreen", "window.update_rules",
+        "window.move_to_workspace", "window.bell", "window.minimize", "layer.opened", "layer.closed", "monitor.added",
+        "monitor.removed", "monitor.focused", "monitor.layout_changed", "workspace.active", "workspace.special_active",
+        "workspace.created", "workspace.removed", "workspace.move_to_monitor", "config.reloaded", "config.unload",
+        "config.props_refreshed", "keybinds.submap", "screenshare.state", StartEvent, ShutdownEvent, "input.keyboard.key",
+    ];
+
+    private const string StartEvent = "winland.start";
+    private const string ShutdownEvent = "winland.shutdown";
+
+    // Runs before the config: takes away what reaches the system, limits load to text and require to the config's
+    // folder, and stops a config that runs too long. The hook is set before debug goes away.
+    private const string Prelude = """
+        local clock, budget = os.clock, ...
+        local started = clock()
+        debug.sethook(function()
+            if clock() - started > budget then
+                error("the config ran longer than " .. budget .. " seconds", 2)
+            end
+        end, "", 100000)
+
+        local system = os
+        os = { time = system.time, clock = system.clock, date = system.date, getenv = system.getenv, difftime = system.difftime }
+        io, debug, dofile, loadfile = nil, nil, nil, nil
+
+        local textOnly = load
+        load = function(chunk, name, _, env) return textOnly(chunk, name, "t", env) end
+
+        local readModule = __winland_require
+        __winland_require = nil
+        package.loadlib, package.cpath, package.path = nil, "", ""
+        package.loaded.io, package.loaded.debug, package.loaded.os = nil, nil, os
+        package.searchers = { package.searchers[1], function(name)
+            local text, file = readModule(name)
+            if not text then
+                return "\n\tno file for '" .. name .. "' in the config's folder"
+            end
+            local chunk, problem = textOnly(text, "@" .. file, "t")
+            if not chunk then
+                error(problem, 0)
+            end
+            return chunk, file
+        end }
+        """;
+
+    private readonly string _path;
+    private readonly string _directory;
+    private readonly Func<string, string?> _read;
+    private readonly KeraLua.Lua _lua = new();
+    private readonly List<(string Text, LuaOrigin Origin)> _lines = [];
+    private readonly List<ConfigWarning> _warnings = [];
+    private readonly List<string> _sources = [];
+    private readonly HashSet<string> _warnedPending = new(StringComparer.Ordinal);
+    private readonly List<LuaFunction> _kept = [];
+    private Phase _phase;
+
+    private enum Phase
+    {
+        Load,
+        Start,
+        Shutdown,
+    }
+
+    public LuaRun(string path, Func<string, string?> read)
+    {
+        _path = Path.GetFullPath(path);
+        _directory = Path.GetDirectoryName(_path) ?? ".";
+        _read = read;
+    }
+
+    public LuaTranslation Translate(string code, double budget)
+    {
+        _lua.OpenLibs();
+        Register();
+        if (_lua.LoadString(Prelude, "=prelude") != LuaStatus.OK)
+            throw new InvalidOperationException(_lua.ToString(-1));
+
+        _lua.PushNumber(budget);
+        if (_lua.PCall(1, 0, 0) != LuaStatus.OK)
+            throw new InvalidOperationException(_lua.ToString(-1));
+
+        if (_lua.LoadString(code, "@" + Path.GetFileName(_path)) != LuaStatus.OK || _lua.PCall(0, 0, 0) != LuaStatus.OK)
+            NoteError(_lua.ToString(-1));
+
+        var text = new StringBuilder();
+        var origins = new List<LuaOrigin>(_lines.Count);
+        foreach (var (line, origin) in _lines)
+        {
+            text.Append(line).Append('\n');
+            origins.Add(origin);
+        }
+
+        return new LuaTranslation(text.ToString(), origins, _warnings, _sources);
+    }
+
+    public void Dispose() => _lua.Dispose();
+
+    private void Register()
+    {
+        _lua.NewTable();
+        Function("config", Config);
+        Function("env", Env);
+        Function("exec_cmd", ExecCmd);
+        Function("on", On);
+        foreach (var name in Pending)
+            Function(name, state => NotYet(name));
+
+        // hl.dsp and hl.notification hold the dispatchers and notifications the later phases take on.
+        _lua.SetGlobal("hl");
+        if (_lua.DoString("""
+            local function stub()
+                return setmetatable({}, { __index = function() return stub() end, __call = function() return nil end })
+            end
+            hl.dsp, hl.notification = stub(), stub()
+            """))
+        {
+            throw new InvalidOperationException(_lua.ToString(-1));
+        }
+
+        Keep(RequireModule);
+        _lua.PushCFunction(_kept[^1]);
+        _lua.SetGlobal("__winland_require");
+    }
+
+    private void Function(string name, LuaFunction body)
+    {
+        Keep(state =>
+        {
+            // A call from a coroutine has a stack of its own, which these callbacks do not read.
+            if (state != _lua.Handle)
+            {
+                Warn($"hl.{name}: cannot be called from a coroutine");
+                return 0;
+            }
+
+            try
+            {
+                return body(state);
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                Warn($"hl.{name}: {exception.Message}");
+                return 0;
+            }
+        });
+        _lua.PushCFunction(_kept[^1]);
+        _lua.SetField(-2, name);
+    }
+
+    private void Keep(LuaFunction function) => _kept.Add(function);
+
+    // hl.config({ section = { key = value } }): each value whose key is not a section becomes "section:key = value".
+    private int Config(IntPtr state)
+    {
+        if (!_lua.IsTable(1))
+        {
+            Warn("hl.config: argument must be a table");
+            return 0;
+        }
+
+        Walk("", 1);
+        return 0;
+    }
+
+    private void Walk(string prefix, int table)
+    {
+        table = _lua.AbsIndex(table);
+        _lua.PushNil();
+        while (_lua.Next(table))
+        {
+            if (_lua.Type(-2) != LuaType.String)
+            {
+                _lua.Pop(1);
+                continue;
+            }
+
+            var key = prefix.Length == 0 ? _lua.ToString(-2, false) : prefix + "." + _lua.ToString(-2, false);
+            if (_lua.IsTable(-1) && !IsValueTable(-1))
+                Walk(key, -1);
+            else if (Value(-1, OptionName(key)) is string value)
+                Emit($"{OptionName(key)} = {value}");
+            else
+                Warn($"hl.config: '{key}' has a value of a type it cannot take");
+
+            _lua.Pop(1);
+        }
+    }
+
+    // A table that is one option's value rather than a section: a gradient, a gap per side, or a list such as a vector.
+    private bool IsValueTable(int index)
+    {
+        if (_lua.RawLen(index) > 0)
+            return true;
+
+        foreach (var field in (string[])["colors", "top", "right", "bottom", "left"])
+        {
+            _lua.GetField(index, field);
+            var present = !_lua.IsNil(-1);
+            _lua.Pop(1);
+            if (present)
+                return true;
+        }
+
+        return false;
+    }
+
+    // The option a Lua path names. The pinned release names an option in Lua by its name with ':' as '.' and '-' as
+    // '_', so a "col" part joins the next with a '.' again, and the three names with a '-' get it back.
+    internal static string OptionName(string path)
+    {
+        var parts = path.Split('.');
+        var name = new StringBuilder();
+        for (var i = 0; i < parts.Length; i++)
+        {
+            if (i > 0)
+                name.Append(parts[i - 1] == "col" ? '.' : ':');
+
+            name.Append(parts[i]);
+        }
+
+        return name.ToString() switch
+        {
+            "input:touchpad:tap_and_drag" => "input:touchpad:tap-and-drag",
+            "input:touchpad:tap_to_click" => "input:touchpad:tap-to-click",
+            var other when other.StartsWith("input_capture:", StringComparison.Ordinal) => "input-capture:" + other["input_capture:".Length..],
+            var other => other,
+        };
+    }
+
+    // A color option, which takes a number as the color's 0xAARRGGBB value.
+    private static bool IsColor(string option)
+    {
+        var last = option[(option.LastIndexOf(':') + 1)..];
+        return last.StartsWith("col.", StringComparison.Ordinal)
+            || (last.Contains("color", StringComparison.Ordinal) && !last.Contains("colored", StringComparison.Ordinal));
+    }
+
+    // The config text of the value at index, or null when it has none.
+    private string? Value(int index, string option)
+    {
+        index = _lua.AbsIndex(index);
+        switch (_lua.Type(index))
+        {
+            case LuaType.Boolean:
+                return _lua.ToBoolean(index) ? "true" : "false";
+            case LuaType.Number when _lua.IsInteger(index):
+                var integer = _lua.ToInteger(index);
+                return IsColor(option)
+                    ? "0x" + ((uint)integer).ToString("X8", CultureInfo.InvariantCulture)
+                    : integer.ToString(CultureInfo.InvariantCulture);
+            case LuaType.Number:
+                return _lua.ToNumber(index).ToString("R", CultureInfo.InvariantCulture);
+            case LuaType.String:
+                return _lua.ToString(index, false);
+            case LuaType.Table:
+                return TableValue(index, option);
+            default:
+                return null;
+        }
+    }
+
+    // { colors = { ... }, angle = n } is a gradient, { top = .., right = .., bottom = .., left = .. } a gap per side, and
+    // a list its items with spaces between.
+    private string? TableValue(int index, string option)
+    {
+        _lua.GetField(index, "colors");
+        if (_lua.IsTable(-1))
+        {
+            var colors = Items(_lua.AbsIndex(-1), option);
+            _lua.Pop(1);
+            _lua.GetField(index, "angle");
+            var angle = _lua.IsNumber(-1) ? " " + _lua.ToNumber(-1).ToString("R", CultureInfo.InvariantCulture) + "deg" : "";
+            _lua.Pop(1);
+            return colors is null ? null : colors + angle;
+        }
+
+        _lua.Pop(1);
+        if (_lua.RawLen(index) > 0)
+            return Items(index, option);
+
+        var sides = new string[4];
+        var names = (string[])["top", "right", "bottom", "left"];
+        for (var i = 0; i < names.Length; i++)
+        {
+            _lua.GetField(index, names[i]);
+            sides[i] = _lua.IsNumber(-1) ? _lua.ToInteger(-1).ToString(CultureInfo.InvariantCulture) : "0";
+            _lua.Pop(1);
+        }
+
+        return string.Join(' ', sides);
+    }
+
+    private string? Items(int index, string option)
+    {
+        var count = _lua.RawLen(index);
+        var items = new List<string>((int)count);
+        for (var i = 1; i <= count; i++)
+        {
+            _lua.RawGetInteger(index, i);
+            var item = Value(-1, option);
+            _lua.Pop(1);
+            if (item is null)
+                return null;
+
+            items.Add(item);
+        }
+
+        return string.Join(' ', items);
+    }
+
+    // hl.env(name, value).
+    private int Env(IntPtr state)
+    {
+        if (!_lua.IsStringOrNumber(1) || !_lua.IsStringOrNumber(2))
+        {
+            Warn("hl.env: name and value must be strings");
+            return 0;
+        }
+
+        var name = _lua.ToString(1, false);
+        if (name.Length == 0)
+        {
+            Warn("hl.env: name must not be empty");
+            return 0;
+        }
+
+        Emit($"env = {name},{_lua.ToString(2, false)}");
+        return 0;
+    }
+
+    // hl.exec_cmd(command, rules): runs on every load, once at start in a winland.start handler, and at exit in a
+    // winland.shutdown one. The rules are window rule effects for the window the command opens.
+    private int ExecCmd(IntPtr state)
+    {
+        var command = _lua.IsStringOrNumber(1) ? _lua.ToString(1, false) : "";
+        if (command.Length == 0)
+        {
+            Warn("hl.exec_cmd: expected command as first argument");
+            return 0;
+        }
+
+        var rules = "";
+        if (_lua.IsTable(2))
+        {
+            var effects = new List<string>();
+            _lua.PushNil();
+            while (_lua.Next(2))
+            {
+                if (_lua.Type(-2) == LuaType.String)
+                {
+                    var effect = _lua.ToString(-2, false);
+                    effect = effect == "floating" ? "float" : effect;
+                    if (_lua.Type(-1) == LuaType.Boolean)
+                    {
+                        if (_lua.ToBoolean(-1))
+                            effects.Add(effect);
+                    }
+                    else if (Value(-1, effect) is string value)
+                    {
+                        effects.Add(effect + " " + value);
+                    }
+                }
+
+                _lua.Pop(1);
+            }
+
+            if (effects.Count > 0)
+                rules = "[" + string.Join("; ", effects) + "] ";
+        }
+
+        var keyword = _phase switch
+        {
+            Phase.Start => "exec-once",
+            Phase.Shutdown => "exec-shutdown",
+            _ => "exec",
+        };
+        Emit($"{keyword} = {rules}{command}");
+        return 0;
+    }
+
+    // hl.on(event, handler): the start and shutdown handlers run now, so what they call is set up for the start or the
+    // exit. Other events are known but their handlers do not run yet.
+    private int On(IntPtr state)
+    {
+        var name = _lua.IsString(1) ? _lua.ToString(1, false) : "";
+        if (!_lua.IsFunction(2))
+        {
+            Warn("hl.on: bad argument 2: expected a function");
+            return 0;
+        }
+
+        if (!Events.Contains(name, StringComparer.Ordinal))
+        {
+            Warn($"hl.on: unknown event \"{name}\". Known events: {string.Join(", ", Events)}");
+            return 0;
+        }
+
+        if (name is not (StartEvent or ShutdownEvent))
+        {
+            Warn($"hl.on: handlers for \"{name}\" do not run yet");
+            return 0;
+        }
+
+        var before = _phase;
+        _phase = name == StartEvent ? Phase.Start : Phase.Shutdown;
+        _lua.PushCopy(2);
+        if (_lua.PCall(0, 0, 0) != LuaStatus.OK)
+        {
+            NoteError(_lua.ToString(-1));
+            _lua.Pop(1);
+        }
+
+        _phase = before;
+        return 0;
+    }
+
+    private int NotYet(string name)
+    {
+        if (_warnedPending.Add(name))
+            Warn($"hl.{name} is not honored yet");
+
+        return 0;
+    }
+
+    // require("name") reads name.lua, or name/init.lua, from the config's folder.
+    private int RequireModule(IntPtr state)
+    {
+        var name = _lua.IsString(1) ? _lua.ToString(1, false) : "";
+        var relative = name.Replace('.', Path.DirectorySeparatorChar);
+        foreach (var candidate in (string[])[relative + ".lua", Path.Combine(relative, "init.lua")])
+        {
+            var full = Path.GetFullPath(Path.Combine(_directory, candidate));
+            if (!full.StartsWith(_directory, StringComparison.OrdinalIgnoreCase) || _read(full) is not string text)
+                continue;
+
+            _sources.Add(full);
+            _lua.PushString(text);
+            _lua.PushString(Path.GetRelativePath(_directory, full));
+            return 2;
+        }
+
+        _lua.PushNil();
+        return 1;
+    }
+
+    private void Emit(string line) => _lines.Add((line, Caller()));
+
+    private void Warn(string message)
+    {
+        var origin = Caller();
+        _warnings.Add(new ConfigWarning(origin.Line, message, origin.Source));
+    }
+
+    // "file:line: message" from a Lua error, at that line of that file.
+    private void NoteError(string message)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(message, @"^(.+?):(\d+): (.*)$", System.Text.RegularExpressions.RegexOptions.Singleline);
+        if (match.Success && int.TryParse(match.Groups[2].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var line))
+            _warnings.Add(new ConfigWarning(line, match.Groups[3].Value, SourceOf(match.Groups[1].Value)));
+        else
+            _warnings.Add(new ConfigWarning(0, message));
+    }
+
+    // A chunk is named by its path from the config's folder. The config itself has no source in a warning.
+    private string? SourceOf(string chunk) =>
+        string.Equals(chunk, Path.GetFileName(_path), StringComparison.OrdinalIgnoreCase) ? null : Path.GetFullPath(Path.Combine(_directory, chunk));
+
+    // The line of the Lua code that made the call, and its file when it is not the config itself.
+    private LuaOrigin Caller()
+    {
+        var debug = new LuaDebug();
+        if (_lua.GetStack(1, ref debug) == 0 || !_lua.GetInfo("Sl", ref debug))
+            return new LuaOrigin(0, null);
+
+        var chunk = debug.Source is { Length: > 1 } named && named[0] == '@' ? named[1..] : null;
+        return new LuaOrigin(Math.Max(0, debug.CurrentLine), chunk is null ? null : SourceOf(chunk));
+    }
+}

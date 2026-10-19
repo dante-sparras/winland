@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Winland.Core\Winland.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="KeraLua" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Winland.Lua.Tests" />
+  </ItemGroup>
+
+</Project>

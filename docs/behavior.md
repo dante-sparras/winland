@@ -8,6 +8,18 @@ A line that ends with a backslash is joined to the next line, so a value that en
 
 `source` reads another file in place of the line. A relative path is read from the config's folder, and a glob reads each file it matches in name order. A file is named the same however its path is spelled: paths are compared without case, after a relative path is joined to the config's folder. A `source` that names a file already being read, the config itself included, warns `Source '<path>' includes itself.` and is skipped. A glob passes over such a file without a warning, so `source = ./*.conf` in the config's own folder does not read the config a second time.
 
+### Lua config
+
+`winland.lua` in `%APPDATA%\winland` is read in place of `winland.conf` when it exists, as the pinned release reads a Lua config. Each `hl` call becomes the config line for it, which is read as the line-based config is, so the same options are honored, and a warning names the Lua line that made it and, for a required file, that file (ADR 0013).
+
+- `hl.config(table)` sets each value whose key is not a section: `{ general = { gaps_in = 5 } }` is `general:gaps_in = 5`. `col = { active_border = ... }` names `general:col.active_border`. A gradient is `{ colors = { ... }, angle = 45 }`, a gap per side `{ top = 10, right = 0, bottom = 0, left = 4 }`, a list its items with spaces between, and a number for a color option its `0xAARRGGBB` value.
+- `hl.env(name, value)` is `env = name,value`.
+- `hl.exec_cmd(command, rules)` is `exec`, which runs on every load, with the rules table as its window rule block: `{ workspace = 2, float = true }` is `[workspace 2; float]`. In an `hl.on("winland.start", ...)` handler it is `exec-once`, and in `winland.shutdown` it is `exec-shutdown`. The manual's `hyprland.start` and `hyprland.shutdown` are those events.
+- `hl.on` takes the pinned release's event names. Only the start and shutdown handlers run, while the config loads; another event warns that its handlers do not run yet, and an unknown one lists the events it knows.
+- The other `hl` calls, among them `hl.bind`, `hl.monitor` and `hl.window_rule`, warn once that they are not honored yet and return nothing. The config runs on.
+
+The Lua is Lua 5.4. It has no `io`, `debug`, `dofile` or `loadfile`, its `os` has only `time`, `clock`, `date`, `getenv` and `difftime`, and `load` takes text, not compiled chunks. `require("a.b")` reads `a\b.lua` or `a\b\init.lua` from the config's folder and nowhere else, and a change to such a file reloads the config. An error stops the config at that line and warns with the error. The lines made before it stay. A config that runs for more than five seconds of processor time is stopped the same way.
+
 ## Layout
 
 `master:center_ignores_reserved` defaults to false. True centers a centered master on its Monitor rather than on the work area, as in the pinned release. The strips left and right of the work area, such as a taskbar or an `addreserved` rule, count toward the width the master is centered in and its share of it, and the side stacks keep to the work area.
