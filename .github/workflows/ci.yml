@@ -124,7 +124,7 @@ jobs:
           }
           $files = @(git diff --name-only --no-renames "origin/$($env:BASE_REF)...$($env:HEAD_SHA)")
           if ($LASTEXITCODE -ne 0) { throw "git diff failed with $LASTEXITCODE" }
-          $docs = '^(.*\.md|docs/.*|\.github/ISSUE_TEMPLATE/.*|\.github/PULL_REQUEST_TEMPLATE\.md|\.github/CODEOWNERS|\.github/rulesets/.*|\.gitignore|\.gitattributes|LICENSE.*)$'
+          $docs = '^(.*\.md|docs/.*|\.github/ISSUE_TEMPLATE/.*|\.github/PULL_REQUEST_TEMPLATE\.md|\.github/rulesets/.*|\.gitignore|\.gitattributes|LICENSE.*)$'
           $code = @($files | Where-Object { $_ -and $_ -cnotmatch $docs })
           $test = if ($code.Count -gt 0) { 'true' } else { 'false' }
           "test=$test" >> $env:GITHUB_OUTPUT
