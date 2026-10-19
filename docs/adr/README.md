@@ -18,7 +18,7 @@ An ADR without a Status line is accepted and true against the code. `Status: Pro
 ## Compatibility
 
 - [0002](0002-hyprland-compatibility-without-its-name.md): Hyprland's names and semantics, Gaps documented, and "hyprland" never appears in the code.
-- [0008](0008-the-spec-is-a-pinned-hyprland-release.md): the spec is one pinned Hyprland release tag.
+- [0008](0008-the-spec-is-a-pinned-hyprland-release.md): the spec is one pinned Hyprland commit, `e2d94f5` after v0.56.2.
 - [0010](0010-unsupported-keywords-warn-and-are-ignored.md): unsupported keywords warn and are ignored, and the config still loads.
 - [0013](0013-config-is-line-based-or-lua.md): `winland.lua` or `winland.conf`; Lua 5.4 in a sandbox turns `hl` calls into config lines.
 
