@@ -106,7 +106,7 @@ public static class BorderPainter
     }
 
     // How much of a pixel at px, py from the middle lies inside a rounded rectangle of these half sizes.
-    private static double Inside(double px, double py, double halfWidth, double halfHeight, double radius, float power)
+    internal static double Inside(double px, double py, double halfWidth, double halfHeight, double radius, float power)
     {
         if (halfWidth <= 0 || halfHeight <= 0)
             return 0;
@@ -129,7 +129,7 @@ public static class BorderPainter
     }
 
     // The gradient line's position of a pixel, folded into one quadrant as the shader folds the angle.
-    private static int RampIndex(double nx, double ny, double angle, int steps)
+    internal static int RampIndex(double nx, double ny, double angle, int steps)
     {
         angle %= 2 * Math.PI;
         if (angle < 0)
@@ -163,7 +163,7 @@ public static class BorderPainter
     }
 
     // The gradient's colors, blended in OkLab, at evenly spaced places along its line.
-    private static BorderColor[] Ramp(BorderGradient gradient)
+    internal static BorderColor[] Ramp(BorderGradient gradient)
     {
         var stops = gradient.Colors;
         if (stops.Count == 0)
@@ -189,7 +189,7 @@ public static class BorderPainter
         return ramp;
     }
 
-    private static uint Premultiply(BorderColor color, double alpha)
+    internal static uint Premultiply(BorderColor color, double alpha)
     {
         var a = Math.Clamp(color.A * alpha, 0, 255);
         var factor = a / 255.0;

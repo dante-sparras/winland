@@ -60,6 +60,7 @@ public sealed partial class Core
             "border_size" when workspace?.BorderSize is int border => (long)border,
             "rounding" when workspace?.Rounding == false => 0L,
             "decorate" when workspace?.Decorate is bool decorate => decorate,
+            "no_shadow" when workspace?.Shadow is bool shadow => !shadow,
             _ => null,
         };
     }

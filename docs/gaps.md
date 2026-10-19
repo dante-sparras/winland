@@ -20,13 +20,11 @@ This table has one row per keyword. A test checks it against the keywords the co
 | animation:fadePopups | Wayland popups have no Windows meaning. |
 | animation:fadePopupsIn | Wayland popups have no Windows meaning. |
 | animation:fadePopupsOut | Wayland popups have no Windows meaning. |
-| animation:fadeShadow | Shadows are not honored, so they do not fade. |
 | animation:glowangle | Glow is not honored, so its angle does not animate. |
 | animation:layers | Layer shell surfaces have no Windows meaning. |
 | animation:layersIn | Layer shell surfaces have no Windows meaning. |
 | animation:layersOut | Layer shell surfaces have no Windows meaning. |
 | animation:monitorAdded | A monitor that is added does not animate. |
-| animation:shadowangle | Shadows are not honored, so their angle does not animate. |
 | aurora | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | binds:disable_keybind_grabbing | Applications cannot ask Windows to turn binds off, so there is nothing to refuse. |
 | bitdepth | Changing a monitor's bit depth is not honored. |
@@ -55,13 +53,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | decoration:blur:vibrancy_darkness | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | decoration:blur:xray | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | decoration:border_part_of_window | Whether the border counts as part of the window is not configurable. |
-| decoration:shadow:color | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
-| decoration:shadow:color_inactive | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
-| decoration:shadow:offset | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
-| decoration:shadow:range | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
-| decoration:shadow:render_power | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
-| decoration:shadow:scale | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
-| decoration:shadow:sharp | Only turning the shadow off is honored. DWM draws its own shadow and it cannot be tuned. |
 | device | Per-device input is not honored. Honored input settings apply to the whole system. |
 | dont_inhibit | Applications cannot inhibit binds, so this flag has nothing to bypass. |
 | drops | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
@@ -152,7 +143,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | --- | --- | --- |
 | gap | - | acrylic, aurora, decoration:blur:variant, drops, fluid_jar, glass, haze, heat_shimmer, ripple, water |
 | non-goal | - | allow_tearing, debug, opengl, quirks, render, screen_shader |
-| gap | - | animation:fadeDim, animation:fadeGlow, animation:fadeShadow, animation:glowangle, animation:monitorAdded, animation:shadowangle |
+| gap | - | animation:fadeDim, animation:fadeGlow, animation:glowangle, animation:monitorAdded |
 | non-goal | - | animation:fadeLayers, animation:fadeLayersIn, animation:fadeLayersOut, animation:fadePopups, animation:fadePopupsIn, animation:fadePopupsOut, animation:layers, animation:layersIn, animation:layersOut |
 | non-goal | - | binds:disable_keybind_grabbing |
 | gap | - | bitdepth, vrr |
@@ -160,7 +151,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | cursor:zoom_disable_aa |
 | gap | - | decoration:blur:brightness, decoration:blur:contrast, decoration:blur:ignore_opacity, decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:noise, decoration:blur:passes, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:size, decoration:blur:special, decoration:blur:vibrancy, decoration:blur:vibrancy_darkness, decoration:blur:xray |
 | gap | - | decoration:border_part_of_window, group:groupbar:blur, wobble |
-| gap | - | decoration:shadow:color, decoration:shadow:color_inactive, decoration:shadow:offset, decoration:shadow:range, decoration:shadow:render_power, decoration:shadow:scale, decoration:shadow:sharp |
 | gap | - | device |
 | gap | - | dont_inhibit |
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
@@ -219,7 +209,7 @@ Bind flag `p` warns and is ignored. The bind itself still runs. Applications can
 
 The modifiers `CAPS`, `MOD2`, `MOD3` and `MOD5` are not honored. A modifier list that names one warns `Modifier '<name>' is not honored.` and the bind, gesture or `sendshortcut` is skipped. Winland tracks Shift, Ctrl, Alt and the Windows key as held modifiers, and has no held state for the lock and level modifiers.
 
-Blur is DWM's acrylic backdrop, so it shows only where DWM draws that backdrop: the title bar and any area a window leaves for it. What a window paints itself is not blurred, and a translucent Client does not blur what is behind its content. The blur `size`, `passes` and color options, and the shadow `range`, `offset`, `scale` and colors, have no DWM equivalent. `glow` and `motion_blur` are not drawn. A corner radius DWM does not draw is cut as a window region, and that edge is not antialiased. `shadow` on a workspace rule and the `no_blur`, `no_shadow`, `rounding` and `rounding_power` window rule effects are not honored. The backdrop, shadow and DWM corner preference are not undone after a crash. A corner region Winland cut is removed on the next start.
+Blur is DWM's acrylic backdrop, so it shows only where DWM draws that backdrop: the title bar and any area a window leaves for it. What a window paints itself is not blurred, and a translucent Client does not blur what is behind its content. The blur `size`, `passes` and color options have no DWM equivalent. `glow` and `motion_blur` are not drawn. A corner radius DWM does not draw is cut as a window region, and that edge is not antialiased. The drawn shadow surrounds the window and its border but not a Group's bar, and a `sharp` shadow is not drawn under the window, so a translucent Client does not show it through. The `no_blur`, `rounding` and `rounding_power` window rule effects are not honored. The backdrop, shadow and DWM corner preference are not undone after a crash. A corner region Winland cut is removed on the next start.
 
 Per-device `device` options are not honored. The other input keys stay Gaps.
 
@@ -283,7 +273,7 @@ Every command the pinned release's control socket answers is recognized. The one
 
 `clients` and `activewindow` reply in JSON with or without `j/`, where the pinned release replies in text without it. With no window they reply its text, `no open windows` and `Invalid`.
 
-`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_anim`, `no_blur`, `no_dim`, `no_shadow`, `no_glow`, `no_wobble`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `xray`, `render_unfocused`, `no_follow_mouse`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `scroll_mouse` and `scroll_touchpad`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
+`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_anim`, `no_blur`, `no_dim`, `no_glow`, `no_wobble`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `xray`, `render_unfocused`, `no_follow_mouse`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `scroll_mouse` and `scroll_touchpad`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
 
 `changeworkspaceid` refuses a number above 2147483647. The pinned release takes numbers up to 4294967295, but a Workspace number here is a signed 32-bit integer. It is a gap.
 

@@ -41,14 +41,10 @@ public class BlurShadowRoundingTests
 
         var off = For(core.Handle(Appeared(2)), 1);
 
-        Assert.Equal(
-            [
-                new ConfigWarning(4, "Unsupported keyword 'decoration:blur:passes'."),
-                new ConfigWarning(8, "Unsupported keyword 'decoration:shadow:range'."),
-            ],
-            document.Warnings);
+        Assert.Equal([new ConfigWarning(4, "Unsupported keyword 'decoration:blur:passes'.")], document.Warnings);
         Assert.False(off.Blur);
         Assert.False(off.Shadow);
+        Assert.Null(off.DrawnShadow);
 
         var reloaded = core.Handle(new Configure(ConfigParser.Parse("decoration:shadow:enabled = true\n")));
 
