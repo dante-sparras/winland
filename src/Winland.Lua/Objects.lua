@@ -430,7 +430,15 @@ local monitorFields = {
     dpms_status = function(m) return m.dpmsStatus end,
     vrr_active = function(m) return m.vrr end,
     is_mirror = function(m) return m.mirrorOf ~= nil and m.mirrorOf ~= "" and m.mirrorOf ~= "none" end,
-    mirrors = function() return {} end,
+    mirrors = function(m)
+        local found = {}
+        for _, entry in ipairs(list("j/monitors all")) do
+            if tostring(entry.mirrorOf) == tostring(m.id) then
+                found[#found + 1] = monitor(entry.name)
+            end
+        end
+        return found
+    end,
     available_modes = function(m)
         local modes = {}
         for _, mode in ipairs(m.availableModes or {}) do

@@ -26,7 +26,7 @@ namespace Winland;
 /// remove them from <see cref="WorkArea"/>. <c>disable</c> drops the monitor from the layout and does
 /// not power the display off. <see cref="Orientation"/> is set when the rule asks for a rotation of
 /// 0, 90, 180 or 270 degrees. The rectangle is not swapped; the adapter rotates the display.
-/// Mode and scale in the rule are not applied.
+/// <c>mirror</c> makes the display show another one's picture; see <see cref="MirrorOf"/>.
 /// <see cref="Make"/>, <see cref="Model"/>, <see cref="Serial"/>, <see cref="RefreshRate"/>,
 /// <see cref="PhysicalWidth"/> and <see cref="PhysicalHeight"/> stay empty unless the adapter has them.
 /// </para>
@@ -51,4 +51,10 @@ public sealed record Monitor(
 {
     /// <summary>The <c>cm</c> preset its monitor rule names, or empty when none does.</summary>
     public string ColorPreset { get; init; } = "";
+
+    /// <summary>
+    /// The name of the display this one shows the picture of, or empty. A mirror is not in the layout: it is not
+    /// <see cref="Enabled"/>, and it has its source's position.
+    /// </summary>
+    public string MirrorOf { get; init; } = "";
 }

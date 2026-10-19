@@ -52,7 +52,7 @@ public static partial class CommandProtocol
             var active = indexed.ByWorkspace[state.ActiveWorkspace];
             var synthetic = new Monitor("", "", 0, 0, 0, 0, 1, true, default);
             return JsonSerializer.Serialize<MonitorJson[]>([
-                DescribeMonitor(state.ActiveMonitor.Value, synthetic, true, active, SpecialJson(state.SpecialWorkspace, indexed)),
+                DescribeMonitor(state.ActiveMonitor.Value, synthetic, true, active, SpecialJson(state.SpecialWorkspace, indexed), "none"),
             ]);
         }
 
@@ -67,7 +67,8 @@ public static partial class CommandProtocol
                 screen.Monitor,
                 screen.Focused,
                 indexed.ByWorkspace[screen.ActiveWorkspace],
-                SpecialJson(screen.SpecialWorkspace, indexed)));
+                SpecialJson(screen.SpecialWorkspace, indexed),
+                MirrorOf(state, screen.Monitor)));
         }
 
         return JsonSerializer.Serialize(views);
@@ -147,7 +148,22 @@ public static partial class CommandProtocol
     private static WorkspaceJson SpecialJson(WorkspaceId? workspace, Indexed indexed) =>
         workspace is WorkspaceId id && indexed.ByWorkspace.TryGetValue(id, out var described) ? described : NoSpecial;
 
-    private static MonitorJson DescribeMonitor(int id, Monitor monitor, bool focused, WorkspaceJson active, WorkspaceJson special) =>
+    // A mirror names the id of the Monitor it shows, as in the pinned release, and "none" otherwise.
+    private static string MirrorOf(State state, Monitor monitor)
+    {
+        if (monitor.MirrorOf.Length == 0)
+            return "none";
+
+        foreach (var screen in state.Screens)
+        {
+            if (string.Equals(screen.Monitor.Name, monitor.MirrorOf, StringComparison.OrdinalIgnoreCase))
+                return screen.Id.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        return "none";
+    }
+
+    private static MonitorJson DescribeMonitor(int id, Monitor monitor, bool focused, WorkspaceJson active, WorkspaceJson special, string mirrorOf) =>
         new(
             id,
             monitor.Name,
@@ -176,9 +192,9 @@ public static partial class CommandProtocol
             null,
             "0",
             null,
-            !monitor.Enabled,
+            !monitor.Enabled && monitor.MirrorOf.Length == 0,
             "",
-            "none",
+            mirrorOf,
             Modes(monitor),
             monitor.ColorPreset,
             0,

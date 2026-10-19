@@ -64,7 +64,6 @@ public class LuaRulesTests
                 "hl.monitor: 'supports_hdr': monitor HDR ranges are not honored",
                 "hl.monitor: 'output' field is required and must be a string",
                 "hl.monitor: argument must be a table",
-                "Mirroring a monitor is not honored.",
                 "Changing a monitor's bit depth is not honored.",
                 "Variable refresh rate is not honored.",
             ],

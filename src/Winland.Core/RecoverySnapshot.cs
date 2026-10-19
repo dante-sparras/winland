@@ -34,6 +34,9 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
 {
     public InputOriginals? Input { get; init; }
 
+    /// <summary>The displays Winland made mirror another, to put back when it starts again after it did not stop cleanly.</summary>
+    public IReadOnlyList<DisplayMirrorOriginal>? Mirrors { get; init; }
+
     private static readonly JsonSerializerOptions Json = new()
     {
         PropertyNamingPolicy = null,
@@ -64,7 +67,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 client.Region);
         }
 
-        return JsonSerializer.Serialize(new FileBody(rows, InputBody.From(Input)), Json);
+        return JsonSerializer.Serialize(new FileBody(rows, InputBody.From(Input), MirrorBody.From(Mirrors)), Json);
     }
 
     public static bool TryParse(string? json, out RecoverySnapshot snapshot)
@@ -105,7 +108,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 });
             }
 
-            snapshot = new RecoverySnapshot(clients) { Input = body.Input?.ToOriginals() };
+            snapshot = new RecoverySnapshot(clients) { Input = body.Input?.ToOriginals(), Mirrors = MirrorBody.ToOriginals(body.Mirrors) };
             return true;
         }
         catch (JsonException)
@@ -119,7 +122,71 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
 
     private sealed record FileBody(
         [property: JsonPropertyName("clients")] ClientBody?[]? Clients,
-        [property: JsonPropertyName("input")] InputBody? Input);
+        [property: JsonPropertyName("input")] InputBody? Input,
+        [property: JsonPropertyName("mirrors")] MirrorBody?[]? Mirrors = null);
+
+    private sealed record MirrorBody(
+        [property: JsonPropertyName("device")] string? Device,
+        [property: JsonPropertyName("source")] string? Source,
+        [property: JsonPropertyName("description")] string? Description,
+        [property: JsonPropertyName("adapter")] long Adapter,
+        [property: JsonPropertyName("target")] uint Target,
+        [property: JsonPropertyName("sourceId")] uint SourceId,
+        [property: JsonPropertyName("mode")] SourceModeBody? Mode)
+    {
+        public static MirrorBody[]? From(IReadOnlyList<DisplayMirrorOriginal>? mirrors)
+        {
+            if (mirrors is not { Count: > 0 })
+                return null;
+
+            var rows = new MirrorBody[mirrors.Count];
+            for (var i = 0; i < mirrors.Count; i++)
+            {
+                var mirror = mirrors[i];
+                rows[i] = new MirrorBody(
+                    mirror.Device,
+                    mirror.Source,
+                    mirror.Description,
+                    mirror.Adapter,
+                    mirror.Target,
+                    mirror.SourceId,
+                    mirror.Mode is DisplaySourceMode mode ? new SourceModeBody(mode.Width, mode.Height, mode.PixelFormat, mode.X, mode.Y) : null);
+            }
+
+            return rows;
+        }
+
+        public static IReadOnlyList<DisplayMirrorOriginal>? ToOriginals(MirrorBody?[]? rows)
+        {
+            if (rows is null)
+                return null;
+
+            var mirrors = new List<DisplayMirrorOriginal>(rows.Length);
+            foreach (var row in rows)
+            {
+                if (row is null || string.IsNullOrEmpty(row.Device))
+                    continue;
+
+                mirrors.Add(new DisplayMirrorOriginal(
+                    row.Device,
+                    row.Source ?? "",
+                    row.Description ?? "",
+                    row.Adapter,
+                    row.Target,
+                    row.SourceId,
+                    row.Mode is SourceModeBody mode ? new DisplaySourceMode(mode.Width, mode.Height, mode.PixelFormat, mode.X, mode.Y) : null));
+            }
+
+            return mirrors.Count == 0 ? null : mirrors;
+        }
+    }
+
+    private sealed record SourceModeBody(
+        [property: JsonPropertyName("width")] uint Width,
+        [property: JsonPropertyName("height")] uint Height,
+        [property: JsonPropertyName("pixelFormat")] uint PixelFormat,
+        [property: JsonPropertyName("x")] int X,
+        [property: JsonPropertyName("y")] int Y);
 
     private sealed record InputBody(
         [property: JsonPropertyName("keyboardDelay")] int? KeyboardDelay,

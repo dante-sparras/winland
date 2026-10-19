@@ -13,7 +13,8 @@ public static class MonitorAdapter
         // -4 is per-monitor v2 awareness. The manifest asks for the same thing, and this call
         // covers a host that has not declared it yet. A second call fails, which is fine.
         _ = PInvoke.SetProcessDpiAwarenessContext((DPI_AWARENESS_CONTEXT)(nint)(-4));
-        return Enumerate(Panels());
+        var mirrors = SessionEffects.MirrorOriginals;
+        return DisplayMirrors.Report(Enumerate(Panels(mirrors)), mirrors);
     }
 
     private static unsafe List<Winland.Monitor> Enumerate(Dictionary<string, Panel> panels)
@@ -65,7 +66,8 @@ public static class MonitorAdapter
 
     private readonly record struct Panel(string? Description, string? Make, double RefreshRate);
 
-    private static Dictionary<string, Panel> Panels()
+    // A display Winland mirrors shares its source's name, so its panel does not describe that source.
+    private static Dictionary<string, Panel> Panels(IReadOnlyList<DisplayMirrorOriginal> mirrors)
     {
         var panels = new Dictionary<string, Panel>(StringComparer.OrdinalIgnoreCase);
         if (!TryPaths(out var paths))
@@ -74,7 +76,7 @@ public static class MonitorAdapter
         foreach (var path in paths)
         {
             var source = SourceName(path);
-            if (source is null)
+            if (source is null || IsMirror(path, mirrors))
                 continue;
 
             var target = ReadTarget(path);
@@ -126,9 +128,24 @@ public static class MonitorAdapter
         return false;
     }
 
-    private static bool TryPaths(out DISPLAYCONFIG_PATH_INFO[] paths)
+    private static bool IsMirror(DISPLAYCONFIG_PATH_INFO path, IReadOnlyList<DisplayMirrorOriginal> mirrors)
+    {
+        foreach (var mirror in mirrors)
+        {
+            if (mirror.Adapter == DisplayTopology.Key(path.targetInfo.adapterId) && mirror.Target == path.targetInfo.id)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryPaths(out DISPLAYCONFIG_PATH_INFO[] paths) => TryConfig(out paths, out _);
+
+    /// <summary>The active display-config paths and the modes they name.</summary>
+    internal static bool TryConfig(out DISPLAYCONFIG_PATH_INFO[] paths, out DISPLAYCONFIG_MODE_INFO[] modes)
     {
         paths = [];
+        modes = [];
         var flags = QUERY_DISPLAY_CONFIG_FLAGS.QDC_ONLY_ACTIVE_PATHS;
         if (PInvoke.GetDisplayConfigBufferSizes(flags, out var pathCount, out var modeCount) != WIN32_ERROR.ERROR_SUCCESS)
             return false;
@@ -141,6 +158,7 @@ public static class MonitorAdapter
             if (error == WIN32_ERROR.ERROR_SUCCESS)
             {
                 paths = pathCount == pathBuffer.Length ? pathBuffer : pathBuffer[..(int)pathCount];
+                modes = modeCount == modeBuffer.Length ? modeBuffer : modeBuffer[..(int)modeCount];
                 return true;
             }
 
@@ -151,7 +169,7 @@ public static class MonitorAdapter
         return false;
     }
 
-    private static unsafe string? SourceName(DISPLAYCONFIG_PATH_INFO path)
+    internal static unsafe string? SourceName(DISPLAYCONFIG_PATH_INFO path)
     {
         var request = new DISPLAYCONFIG_SOURCE_DEVICE_NAME();
         request.header.type = DISPLAYCONFIG_DEVICE_INFO_TYPE.DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME;
@@ -165,9 +183,9 @@ public static class MonitorAdapter
         return name.Length == 0 ? null : name;
     }
 
-    private readonly record struct Target(string Description, string Make);
+    internal readonly record struct Target(string Description, string Make);
 
-    private static unsafe Target ReadTarget(DISPLAYCONFIG_PATH_INFO path)
+    internal static unsafe Target ReadTarget(DISPLAYCONFIG_PATH_INFO path)
     {
         var request = new DISPLAYCONFIG_TARGET_DEVICE_NAME();
         request.header.type = DISPLAYCONFIG_DEVICE_INFO_TYPE.DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME;

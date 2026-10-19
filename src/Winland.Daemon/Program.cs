@@ -194,6 +194,8 @@ static int Run(string? path)
     SessionEffects.InstallSystem();
     if (prior?.Input is InputOriginals saved)
         SessionEffects.RestoreSaved(saved);
+    if (prior?.Mirrors is { Count: > 0 } mirrored)
+        SessionEffects.RestoreSaved(mirrored);
     using var host = new WindowHost(core, snapshot => Persist(store, snapshot), PipeName());
     luaWorld.Host = host;
     lua.Adopt(LuaHosting.Take());
@@ -271,7 +273,7 @@ static string? ConfigDirectory(string path)
 static void Persist(RecoveryStore store, RecoverySnapshot snapshot)
 {
     // A Client that closed since the snapshot was taken is left out. The rest are still recorded.
-    store.Save(WindowIdentity.Annotate(snapshot with { Input = SessionEffects.Originals }));
+    store.Save(WindowIdentity.Annotate(snapshot with { Input = SessionEffects.Originals, Mirrors = SessionEffects.MirrorOriginals }));
 }
 
 static void Stop(WindowHost host, RecoveryStore store)
