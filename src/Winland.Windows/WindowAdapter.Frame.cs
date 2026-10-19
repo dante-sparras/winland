@@ -205,6 +205,7 @@ public sealed partial class WindowAdapter
         DpmsFadeHost.Stop();
         BorderHost.Stop();
         ShadowHost.Stop();
+        GlowHost.Stop();
         NotificationHost.Stop();
         EndStandIns();
         StandInHost.Stop();

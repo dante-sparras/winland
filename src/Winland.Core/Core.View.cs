@@ -56,6 +56,7 @@ public sealed partial class Core
                 Shadow = _decoration.Shadow && !_decoration.ShadowDrawn && !noShadow,
                 Ring = borderless || hidden.Contains(client.Window) ? null : RingFor(client, client.Window == active, shape, alpha),
                 DrawnShadow = borderless || noShadow || hidden.Contains(client.Window) ? null : ShadowFor(client, client.Window == active, shape, alpha),
+                Glow = borderless || hidden.Contains(client.Window) ? null : GlowFor(client, client.Window == active, shape, alpha),
             });
         }
 
@@ -531,6 +532,33 @@ public sealed partial class Core
             Spin = _animations.TimingOf("shadowangle"),
             SpinLoops = _animations.StyleOf("shadowangle") == "loop",
             Fade = _animations.TimingOf("fadeShadow"),
+        };
+    }
+
+    // The glow the pinned release draws inside a Client's edge when decoration:glow:enabled is set, its corners a pixel
+    // inside the window's. A minimized Client, one with decorate 0 or no_glow, and a glow with no color that shows have none.
+    private InnerGlow? GlowFor(Client client, bool active, CornerChoice shape, byte alpha)
+    {
+        if (!_decoration.Glow || _decoration.GlowRange <= 0 || client.Minimized || FindWorkspace(client.Workspace) is not LiveWorkspace desk)
+            return null;
+
+        if ((OwnProp(client.Window, "decorate") as bool? ?? RuleFor(desk)?.Decorate) == false || OwnProp(client.Window, "no_glow") is true)
+            return null;
+
+        var gradient = active ? _decoration.GlowColor : _decoration.GlowColorInactive ?? _decoration.GlowColor;
+        if (gradient.Colors.All(color => color.A == 0))
+            return null;
+
+        var scale = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Effective.Scale : 1;
+        var (radius, power) = CornerRadius(shape, scale);
+        return new InnerGlow(gradient, (int)Math.Round(_decoration.GlowRange * scale), _decoration.GlowPower, alpha)
+        {
+            Rounding = radius <= 0 ? 0 : Math.Max(0, (int)(radius - scale)),
+            RoundingPower = power,
+            Focused = active,
+            Spin = _animations.TimingOf("glowangle"),
+            SpinLoops = _animations.StyleOf("glowangle") == "loop",
+            Fade = _animations.TimingOf("fadeGlow"),
         };
     }
 

@@ -36,6 +36,7 @@ internal sealed class GradientLayerHost<T>(
     private const uint FrameMilliseconds = 16;
     private const int NoActivate = 3;
     private const int TopmostStyle = 0x00000008;
+    private const int TransparentStyle = 0x00000020;
 
     private static readonly WNDPROC Proc = OnWindow;
 
@@ -503,14 +504,14 @@ internal sealed class GradientLayerHost<T>(
                 SET_WINDOW_POS_FLAGS.SWP_NOSIZE | SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
         }
 
-        // Just below or just above the window, so a window raised over it covers the layer too. Pieces already there
-        // stay put.
+        // Just below or just above the window, so a window raised over it covers the layer too. Pieces already there,
+        // among the other layers Winland keeps next to the window, stay put, so two kinds of layer do not keep trading
+        // places.
         private void Stack(HWND target)
         {
             if (host.Below)
             {
-                var next = PInvoke.GetWindow(target, GET_WINDOW_CMD.GW_HWNDNEXT);
-                if (Array.IndexOf(_pieces, next) >= 0)
+                if (Beside(target, GET_WINDOW_CMD.GW_HWNDNEXT))
                     return;
 
                 // Each piece goes under the one before it, the first under the window.
@@ -534,10 +535,10 @@ internal sealed class GradientLayerHost<T>(
                 return;
             }
 
-            var above = PInvoke.GetWindow(target, GET_WINDOW_CMD.GW_HWNDPREV);
-            if (Array.IndexOf(_pieces, above) >= 0)
+            if (Beside(target, GET_WINDOW_CMD.GW_HWNDPREV))
                 return;
 
+            var above = PInvoke.GetWindow(target, GET_WINDOW_CMD.GW_HWNDPREV);
             var topmost = (PInvoke.GetWindowLong(target, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE) & TopmostStyle) != 0;
             var insert = topmost ? new HWND(-1) : above.IsNull ? new HWND(0) : above;
             foreach (var piece in _pieces)
@@ -554,6 +555,33 @@ internal sealed class GradientLayerHost<T>(
                     0,
                     SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
             }
+        }
+
+        // Whether one of these pieces is among the click-through layers of this process found next to the window, going
+        // the one way through the z-order.
+        private bool Beside(HWND target, GET_WINDOW_CMD direction)
+        {
+            var current = PInvoke.GetWindow(target, direction);
+            for (var step = 0; step < 16 && !current.IsNull; step++)
+            {
+                if (Array.IndexOf(_pieces, current) >= 0)
+                    return true;
+
+                if (!OwnLayer(current))
+                    return false;
+
+                current = PInvoke.GetWindow(current, direction);
+            }
+
+            return false;
+        }
+
+        private static unsafe bool OwnLayer(HWND hwnd)
+        {
+            uint process = 0;
+            _ = PInvoke.GetWindowThreadProcessId(hwnd, &process);
+            return process == (uint)Environment.ProcessId
+                && (PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE) & TransparentStyle) != 0;
         }
 
         private static unsafe bool Visible(HWND target)

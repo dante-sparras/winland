@@ -23,9 +23,10 @@ public sealed partial class WindowAdapter
                 0,
                 SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
 
-            // A change of z-order moves nothing, so the window's border and shadow are told to follow it there.
+            // A change of z-order moves nothing, so the window's border, shadow and glow are told to follow it there.
             BorderHost.Follow(request.Window);
             ShadowHost.Follow(request.Window);
+            GlowHost.Follow(request.Window);
         }
     }
 

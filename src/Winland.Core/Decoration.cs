@@ -33,6 +33,9 @@ public readonly record struct Decoration(
 
     /// <summary>The shadow Winland draws under the window, or null for none.</summary>
     public DropShadow? DrawnShadow { get; init; }
+
+    /// <summary>The glow Winland draws inside the window's edge, or null for none.</summary>
+    public InnerGlow? Glow { get; init; }
 }
 
 /// <summary>One opacity fraction from a window rule. <see cref="Overridden"/> replaces the configured fraction; otherwise the two multiply.</summary>
@@ -100,6 +103,21 @@ public sealed record DecorationOptions
     /// <summary><c>decoration:shadow:scale</c>, from 0.05 to 2. The shadow is drawn at no more than 1.</summary>
     public float ShadowScale { get; init; } = 1;
 
+    /// <summary><c>decoration:glow:enabled</c>: draw a glow inside each Client's edge.</summary>
+    public bool Glow { get; init; }
+
+    /// <summary><c>decoration:glow:range</c>: how far the glow reaches into the window, in logical pixels.</summary>
+    public int GlowRange { get; init; } = 10;
+
+    /// <summary><c>decoration:glow:render_power</c>: how fast the glow falls off, from 1 to 4.</summary>
+    public int GlowPower { get; init; } = 3;
+
+    /// <summary><c>decoration:glow:color</c>.</summary>
+    public BorderGradient GlowColor { get; init; } = BorderGradient.Of(new BorderColor(0xEE, 0x33, 0xCC, 0xFF));
+
+    /// <summary><c>decoration:glow:color_inactive</c>, or null to use <see cref="GlowColor"/> on every window.</summary>
+    public BorderGradient? GlowColorInactive { get; init; }
+
     public float ActiveOpacity { get; init; } = 1;
 
     public float InactiveOpacity { get; init; } = 1;
@@ -137,6 +155,11 @@ public sealed record DecorationOptions
         ["decoration:shadow:color_inactive"] = (options, value) => BorderGradient.TryParse(value, out var color) ? options with { ShadowColorInactive = color, ShadowDrawn = true } : options,
         ["decoration:shadow:offset"] = (options, value) => TryParseOffset(value, out var offset) ? options with { ShadowOffset = offset, ShadowDrawn = true } : options,
         ["decoration:shadow:scale"] = (options, value) => TryParseScale(value, out var scale) ? options with { ShadowScale = scale, ShadowDrawn = true } : options,
+        ["decoration:glow:enabled"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { Glow = enabled } : options,
+        ["decoration:glow:range"] = (options, value) => TryParseWhole(value, 0, 100, out var range) ? options with { GlowRange = range } : options,
+        ["decoration:glow:render_power"] = (options, value) => TryParseWhole(value, 1, 4, out var power) ? options with { GlowPower = power } : options,
+        ["decoration:glow:color"] = (options, value) => BorderGradient.TryParse(value, out var color) ? options with { GlowColor = color } : options,
+        ["decoration:glow:color_inactive"] = (options, value) => BorderGradient.TryParse(value, out var color) ? options with { GlowColorInactive = color } : options,
         ["decoration:active_opacity"] = (options, value) => TryParseUnit(value, out var opacity) ? options with { ActiveOpacity = opacity } : options,
         ["decoration:inactive_opacity"] = (options, value) => TryParseUnit(value, out var opacity) ? options with { InactiveOpacity = opacity } : options,
         ["decoration:fullscreen_opacity"] = (options, value) => TryParseUnit(value, out var opacity) ? options with { FullscreenOpacity = opacity } : options,
