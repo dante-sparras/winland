@@ -50,11 +50,35 @@ public sealed record LuaTranslation(
 /// </summary>
 public static class LuaConfig
 {
-    /// <summary>How long a config may run before it is stopped, in seconds of processor time.</summary>
-    public const int Budget = 5;
+    /// <summary>How long a config may run as it loads before it is stopped, in seconds of processor time, as in the pinned release.</summary>
+    public const double Budget = 1.5;
+
+    /// <summary>The dispatcher a bind that calls a Lua function names, with the function's id. It is Winland's own.</summary>
+    public const string FunctionDispatcher = "luafunction";
 
     /// <summary>Runs <paramref name="code"/>, read from <paramref name="path"/>. <paramref name="read"/> reads a required file by its full path.</summary>
     public static LuaTranslation Translate(string code, string path, Func<string, string?> read) => Translate(code, path, read, Budget);
+
+    /// <summary>
+    /// Runs the config as <see cref="Translate(string, string, Func{string, string?})"/> does and keeps its Lua, so a
+    /// <see cref="LuaRuntime"/> can run its binds, timers and evals while Winland runs.
+    /// </summary>
+    public static LuaLoad Load(string code, string path, Func<string, string?> read)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(read);
+        var run = new LuaRun(path, read);
+        try
+        {
+            return new LuaLoad(run.Translate(code, Budget), new LuaSession(run));
+        }
+        catch
+        {
+            run.Dispose();
+            throw;
+        }
+    }
 
     internal static LuaTranslation Translate(string code, string path, Func<string, string?> read, double budget)
     {
@@ -73,7 +97,7 @@ internal sealed partial class LuaRun : IDisposable
     // Calls the later phases of the Lua config take on. Until then each warns once and does nothing.
     private static readonly string[] Pending =
     [
-        "load", "timer", "dispatch", "get_config", "get_devices",
+        "load", "get_config", "get_devices",
         "get_windows", "get_window", "get_active_window", "get_urgent_window", "get_workspaces", "get_workspace",
         "get_active_workspace", "get_active_special_workspace", "get_monitors", "get_monitor", "get_active_monitor",
         "get_monitor_at", "get_monitor_at_cursor", "get_layers", "get_workspace_windows", "get_cursor_pos",
@@ -97,11 +121,11 @@ internal sealed partial class LuaRun : IDisposable
     // Runs before the config: takes away what reaches the system, limits load to text and require to the config's
     // folder, and stops a config that runs too long. The hook is set before debug goes away.
     private const string Prelude = """
-        local clock, budget = os.clock, ...
-        local started = clock()
+        local clock = os.clock
+        local started, budget, label = clock(), ...
         debug.sethook(function()
-            if clock() - started > budget then
-                error("the config ran longer than " .. budget .. " seconds", 2)
+            if budget and clock() - started > budget then
+                error(label .. " ran longer than " .. budget .. " seconds", 2)
             end
         end, "", 100000)
 
@@ -127,6 +151,8 @@ internal sealed partial class LuaRun : IDisposable
             end
             return chunk, file
         end }
+
+        return function(seconds, what) started, budget, label = clock(), seconds, what end
         """;
 
     private readonly string _path;
@@ -145,6 +171,7 @@ internal sealed partial class LuaRun : IDisposable
         Load,
         Start,
         Shutdown,
+        Running,
     }
 
     public LuaRun(string path, Func<string, string?> read)
@@ -162,11 +189,16 @@ internal sealed partial class LuaRun : IDisposable
             throw new InvalidOperationException(_lua.ToString(-1));
 
         _lua.PushNumber(budget);
-        if (_lua.PCall(1, 0, 0) != LuaStatus.OK)
+        _lua.PushString("the config");
+        if (_lua.PCall(2, 1, 0) != LuaStatus.OK)
             throw new InvalidOperationException(_lua.ToString(-1));
+
+        _arm = _lua.Ref(LuaRegistry.Index);
 
         if (_lua.LoadString(code, "@" + Path.GetFileName(_path)) != LuaStatus.OK || _lua.PCall(0, 0, 0) != LuaStatus.OK)
             NoteError(_lua.ToString(-1));
+
+        Arm(0, "");
 
         var text = new StringBuilder();
         var origins = new List<LuaOrigin>(_lines.Count);
@@ -191,6 +223,8 @@ internal sealed partial class LuaRun : IDisposable
         Function("bind", Bind);
         Function("unbind", Unbind);
         Function("define_submap", DefineSubmap);
+        Function("dispatch", DispatchNow);
+        Function("timer", Timer);
         RegisterRules();
         foreach (var name in Pending)
             Function(name, state => NotYet(name));
@@ -210,6 +244,9 @@ internal sealed partial class LuaRun : IDisposable
         }
 
         RegisterHandle();
+        Keep(Print);
+        _lua.PushCFunction(_kept[^1]);
+        _lua.SetGlobal("print");
         Keep(RequireModule);
         _lua.PushCFunction(_kept[^1]);
         _lua.SetGlobal("__winland_require");
@@ -546,13 +583,22 @@ internal sealed partial class LuaRun : IDisposable
         return 1;
     }
 
-    private void Emit(string line) => _lines.Add((line, Caller()));
+    private void Emit(string line)
+    {
+        if (_phase == Phase.Running)
+            Send(line);
+        else
+            _lines.Add((line, Caller()));
+    }
 
     // A warning at the Lua code level calls up the stack: 1 is the code that called the callback.
     private void Warn(string message, int level = 1)
     {
         var origin = Caller(level);
-        _warnings.Add(new ConfigWarning(origin.Line, message, origin.Source));
+        if (_phase == Phase.Running)
+            WarnRunning(message, origin);
+        else
+            _warnings.Add(new ConfigWarning(origin.Line, message, origin.Source));
     }
 
     // "file:line: message" from a Lua error, at that line of that file.

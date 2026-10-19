@@ -1,6 +1,7 @@
 using System.Security.Principal;
 using Winland;
 using Winland.Install;
+using Winland.Lua;
 using Winland.Plugins;
 using Winland.Windows;
 
@@ -140,6 +141,14 @@ static int Run(string? path)
         return 1;
     }
 
+    // A Lua config keeps running: its binds' functions, timers and evals run on the runtime's thread (ADR 0013).
+    var luaWorld = new LuaWorld();
+    using var lua = new LuaRuntime(luaWorld);
+    if (!Dispatchers.TryBind(LuaConfig.FunctionDispatcher, arguments => { lua.Call(arguments); return new DispatcherResult(null, null); }, out var luaError))
+        Console.Error.WriteLine(luaError);
+
+    CommandServer.Intercept = line => LuaHosting.Answer(lua, line);
+
     var configPath = path ?? ConfigPaths.Default(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
     ConfigDocument current;
     if (!File.Exists(configPath))
@@ -174,6 +183,7 @@ static int Run(string? path)
         watcher?.Watch(ConfigPaths.Watched(configPath, document.Sources));
         // exec-once ran at process start. A reload launches only the commands that repeat.
         LaunchConfigured(core, core.ReloadLaunches(document));
+        lua.Adopt(LuaHosting.Take());
     };
 
     core.Handle(new Configure(current));
@@ -183,6 +193,8 @@ static int Run(string? path)
     if (prior?.Input is InputOriginals saved)
         SessionEffects.RestoreSaved(saved);
     using var host = new WindowHost(core, snapshot => Persist(store, snapshot), PipeName());
+    luaWorld.Host = host;
+    lua.Adopt(LuaHosting.Take());
     // Log off and shut down clean up from WM_ENDSESSION, on the loop thread. Closing the console calls in from
     // a thread of its own, so the cleanup is handed to the loop thread there too.
     host.SessionEnding = () => Stop(host, store);
@@ -346,7 +358,11 @@ static ConfigDocument ReadConfig(string path)
         ?? throw new InvalidOperationException($"Could not read config '{full}'.");
 
     // A Lua config runs first and gives the lines its hl calls make (ADR 0013).
-    var lua = full.EndsWith(".lua", StringComparison.OrdinalIgnoreCase) ? Winland.Lua.LuaConfig.Translate(text, full, source.Read) : null;
+    var isLua = full.EndsWith(".lua", StringComparison.OrdinalIgnoreCase);
+    if (!isLua)
+        LuaHosting.Clear();
+
+    var lua = isLua ? LuaHosting.Load(text, full, source.Read) : null;
 
     // [elevated] runs with Winland's administrator token, so only a config that only
     // administrators can write, sources included, may use it (ADR 0007).

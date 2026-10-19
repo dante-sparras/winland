@@ -63,6 +63,15 @@ public sealed class WindowHost : IDisposable
     /// </summary>
     public void OnLoop(Action action) => _loop.Invoke(action, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(4.5));
 
+    /// <summary>Runs a command as the pipe does, with its effect applied, and gives the reply's text.</summary>
+    public string Command(string line)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var reply = _core.Execute(line);
+        WindowAdapter.Apply(reply.Effect);
+        return reply.Text;
+    }
+
     public CommandReply Reload()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
