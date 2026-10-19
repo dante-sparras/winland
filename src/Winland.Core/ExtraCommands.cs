@@ -83,6 +83,30 @@ public static class ExtraCommands
             return true;
         }
 
+        if (Is(verb, "groupadd"))
+        {
+            parse = Parsed(new GroupAddRequest(rest), flags);
+            return true;
+        }
+
+        if (Is(verb, "groupremove"))
+        {
+            parse = Parsed(new GroupRemoveRequest(rest), flags);
+            return true;
+        }
+
+        if (Is(verb, "setworkspace"))
+        {
+            parse = Parsed(new SetWorkspaceRequest(rest), flags);
+            return true;
+        }
+
+        if (Is(verb, "setspecialworkspace"))
+        {
+            parse = Parsed(new SetSpecialWorkspaceRequest(rest), flags);
+            return true;
+        }
+
         if (Is(verb, "switchxkblayout"))
         {
             parse = Parsed(new SwitchLayoutRequest(rest), flags);
@@ -429,3 +453,24 @@ public sealed record BatchRequest(string Payload) : CommandRequest;
 /// monitor reads it, when the workspace exists. It creates nothing. The Lua config's workspace queries use it.
 /// </summary>
 public sealed record ResolveWorkspaceRequest(string Arguments) : CommandRequest;
+
+/// <summary>
+/// <c>groupadd MEMBER WINDOW [INDEX]</c>: puts a window into the Group of another at a 1-based place. The Lua config's
+/// group objects use it.
+/// </summary>
+public sealed record GroupAddRequest(string Arguments) : CommandRequest;
+
+/// <summary><c>groupremove WINDOW</c>: takes a window out of its Group. The Lua config's group objects use it.</summary>
+public sealed record GroupRemoveRequest(string Arguments) : CommandRequest;
+
+/// <summary>
+/// <c>setworkspace MONITOR SELECTOR</c>: shows a Workspace on a Monitor without focusing that Monitor. The Lua config's
+/// monitor objects use it.
+/// </summary>
+public sealed record SetWorkspaceRequest(string Arguments) : CommandRequest;
+
+/// <summary>
+/// <c>setspecialworkspace MONITOR [SELECTOR]</c>: opens a special Workspace on a Monitor, or closes the one open there,
+/// without focusing that Monitor. The Lua config's monitor objects use it.
+/// </summary>
+public sealed record SetSpecialWorkspaceRequest(string Arguments) : CommandRequest;

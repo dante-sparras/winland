@@ -184,7 +184,7 @@ public class GroupsConformance
     // The group options the Lua group cases set first.
     private const string LuaGroupOptions = "eval hl.config({ group = { auto_group = false, insert_after_current = false, groupbar = { enabled = false } } })";
 
-    [Fact(Skip = LuaGroupMethods)]
+    [Fact]
     public void GroupsLuaApi()
     {
         using var desk = Desk.WithLua("");
@@ -216,7 +216,7 @@ public class GroupsConformance
         Assert.Empty(desk.Clients());
     }
 
-    [Fact(Skip = LuaGroupMethods)]
+    [Fact]
     public void GroupsLuaApiInvalidOps()
     {
         using var desk = Desk.WithLua("");
@@ -248,7 +248,7 @@ public class GroupsConformance
         Assert.Empty(desk.Clients());
     }
 
-    [Fact(Skip = LuaGroupMethods)]
+    [Fact]
     public void GroupsLuaApiCrossWorkspaceMonitor()
     {
         using var desk = Desk.WithLua("");
@@ -284,7 +284,7 @@ public class GroupsConformance
         desk.RemoveMonitor("HEADLESS-LUA-GROUP");
     }
 
-    [Fact(Skip = LuaGroupMethods)]
+    [Fact]
     public void GroupsLuaApiFullscreen()
     {
         using var desk = Desk.WithLua("");
@@ -318,8 +318,6 @@ public class GroupsConformance
         desk.CloseAll();
         Assert.Empty(desk.Clients());
     }
-
-    private const string LuaGroupMethods = "HL.Group:add and HL.Group:remove are not honored yet.";
 
     private static void LuaOk(Desk desk, string line) => Assert.Equal("ok", desk.Send(line));
 

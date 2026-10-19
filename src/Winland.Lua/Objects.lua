@@ -131,12 +131,6 @@ local function shown(entry)
     return false
 end
 
-local function notHonored(what)
-    return function()
-        note(what .. " is not honored yet", 2)
-    end
-end
-
 -- Window.
 
 local function groupMembers(address)
@@ -246,9 +240,10 @@ local function currentIndex(members)
     return 1
 end
 
+-- add and remove, set further down.
+local groupMethods = {}
+
 local groupFields = {
-    add = function() return notHonored("HL.Group:add") end,
-    remove = function() return notHonored("HL.Group:remove") end,
     size = function(members) return #members end,
     current_index = currentIndex,
     current = function(members) return window(members[currentIndex(members)]) end,
@@ -263,11 +258,31 @@ local groupFields = {
 
 Group.__index = function(self, key)
     local members = groupMembers(keys[self])
+    if members == nil then
+        return nil
+    end
+    if groupMethods[key] then
+        return groupMethods[key]
+    end
     local field = groupFields[key]
-    if members == nil or field == nil then
+    if field == nil then
         return nil
     end
     return field(members)
+end
+
+-- Two group objects are the same group when the windows they were read from are members of one group.
+Group.__eq = function(a, b)
+    local members = groupMembers(keys[a])
+    if members == nil then
+        return keys[a] == keys[b]
+    end
+    for _, address in ipairs(members) do
+        if address == keys[b] then
+            return true
+        end
+    end
+    return false
 end
 
 Group.__tostring = function(self)
@@ -839,25 +854,21 @@ local function selector(value)
     return nil
 end
 
--- The monitor methods, made of dispatchers: with another monitor focused, that monitor is focused for them and the
--- focus goes back after.
+-- The monitor methods and the group methods, made of Winland's pipe commands, which change nothing but what they
+-- name: the focus stays on the monitor it is on.
 
-local function onMonitor(name, body)
-    local focused = focusedMonitor()
-    local away = focused ~= nil and focused.name ~= name
-    if away then
-        run("dispatch focusmonitor " .. name)
+-- An error from a pipe command as a warning at the caller, without its "error: " prefix.
+local function failed(label, reply, level)
+    if type(reply) == "string" and reply ~= "ok" then
+        note(label .. ": " .. reply:gsub("^error: ", ""), level + 1)
+        return true
     end
-    body()
-    if away then
-        run("dispatch focusmonitor " .. focused.name)
-    end
+    return false
 end
 
--- m:set_workspace(selector or workspace): shows the workspace on the monitor, read from that monitor, and moves it there
--- first when another monitor has it. A special workspace is left alone.
+-- m:set_workspace(selector or workspace): shows the workspace on the monitor, read from that monitor, made when missing
+-- and moved there first when another monitor has it. A special workspace is left alone.
 function monitorMethods.set_workspace(self, value)
-    local name = keys[self]
     local text
     if kindOf(value) == Workspace then
         if keys[value] == nil or workspaceEntry(keys[value]) == nil then
@@ -872,32 +883,11 @@ function monitorMethods.set_workspace(self, value)
         return
     end
 
-    local existing = fetch("j/resolveworkspace " .. name .. " " .. text)
-    if text == "special" or startsWith(text, "special:") or (type(existing) == "string" and startsWith(existing, "special:")) then
-        return
-    end
-
-    onMonitor(name, function()
-        local target = text
-        if type(existing) == "string" then
-            target = workspaceSelector(existing)
-            run("dispatch moveworkspacetomonitor " .. target .. " " .. name)
-        end
-        run("dispatch workspace " .. target)
-    end)
-end
-
--- The name togglespecialworkspace takes for a special workspace's address: none for the unnamed one.
-local function specialName(address)
-    if address == "special:special" then
-        return ""
-    end
-    return address:sub(#"special:" + 1)
+    failed("HLMonitor.set_workspace", run("setworkspace " .. keys[self] .. " " .. text), 2)
 end
 
 -- m:set_special_workspace(name or workspace): opens that special workspace on the monitor. nil closes the one open.
 function monitorMethods.set_special_workspace(self, value)
-    local name = keys[self]
     local target
     if type(value) == "string" or type(value) == "number" then
         local text = selectorText(value)
@@ -915,18 +905,107 @@ function monitorMethods.set_special_workspace(self, value)
         return
     end
 
-    local entry = monitorEntry(name)
-    local open = entry and entry.specialWorkspace and entry.specialWorkspace.address
-    if open == "" then
-        open = nil
+    local command = "setspecialworkspace " .. keys[self]
+    if target ~= nil then
+        command = command .. " " .. target
     end
-    if open == target then
+    failed("HLMonitor.set_special_workspace", run(command), 2)
+end
+
+-- The 1-based index a group method takes, checked against the most it may be, or false after a warning. nil when none is
+-- given.
+local function groupIndex(label, index, most)
+    if index == nil then
+        return nil
+    end
+    if math.type(index) ~= "integer" then
+        note(label .. ": index must be an integer", 3)
+        return false
+    end
+    if index < 1 or index > most then
+        note(label .. ": index out of range", 3)
+        return false
+    end
+    return index
+end
+
+-- g:add(window, index): puts the window into the group at that index, or where group:insert_after_current puts it, and
+-- shows it there. A window in another group brings that group's members with it.
+function groupMethods.add(self, value, index)
+    local label = "HL.Group:add"
+    local members = groupMembers(keys[self])
+    if members == nil then
+        note(label .. ": group object is expired", 2)
+        return
+    end
+    if kindOf(value) ~= Window then
+        note(label .. ": expected a window object", 2)
+        return
+    end
+    if client(keys[value]) == nil then
+        note(label .. ": window object is expired", 2)
+        return
+    end
+    local at = groupIndex(label, index, #members + 1)
+    if at == false then
         return
     end
 
-    onMonitor(name, function()
-        run("dispatch togglespecialworkspace " .. specialName(target or open))
-    end)
+    local command = "groupadd address:" .. keys[self] .. " address:" .. keys[value]
+    if at ~= nil then
+        command = command .. " " .. at
+    end
+    failed(label, run(command), 2)
+end
+
+-- g:remove(window or index): takes that member out of the group.
+function groupMethods.remove(self, value)
+    local label = "HL.Group:remove"
+    local members = groupMembers(keys[self])
+    if members == nil then
+        note(label .. ": group object is expired", 2)
+        return
+    end
+
+    local address
+    if math.type(value) == "integer" then
+        local at = groupIndex(label, value, #members)
+        if not at then
+            return
+        end
+        address = members[at]
+    elseif kindOf(value) == Window then
+        if client(keys[value]) == nil then
+            note(label .. ": window object is expired", 2)
+            return
+        end
+        address = keys[value]
+    else
+        note(label .. ": expected a window object", 2)
+        return
+    end
+
+    local member = false
+    for _, other in ipairs(members) do
+        if other == address then
+            member = true
+        end
+    end
+    if not member then
+        note(label .. ": window is not a group member", 2)
+        return
+    end
+
+    -- The object keeps naming the group when the window it was read from is the one that leaves.
+    if address == keys[self] then
+        for _, other in ipairs(members) do
+            if other ~= address then
+                keys[self] = other
+                break
+            end
+        end
+    end
+    failed(label, run("groupremove address:" .. address), 2)
 end
 
 -- The queries.

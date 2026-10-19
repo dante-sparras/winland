@@ -481,6 +481,117 @@ public class MonitorWorkspaceTests
         Assert.Equal(new WorkspaceId("1"), opened.State.ActiveWorkspace);
     }
 
+    [Fact]
+    public void SetWorkspaceShowsAWorkspaceOnAnotherMonitorWithoutFocusingIt()
+    {
+        var core = new Core(ConfigParser.Parse("cursor:warp_on_change_workspace = 1\ncursor:warp_on_monitor_change = 1\n"));
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
+        core.Handle(new Dispatch("focuswindow", "address:0x1"));
+
+        var reply = core.Execute(@"setworkspace \\.\DISPLAY2 5");
+
+        Assert.Equal("ok", reply.Text);
+        var outcome = reply.Effect;
+        Assert.Null(outcome.Focus);
+        Assert.Null(outcome.Warp);
+        Assert.Equal(new MonitorId(0), outcome.State.ActiveMonitor);
+        Assert.Equal(new WorkspaceId("1"), outcome.State.ActiveWorkspace);
+        Assert.Equal(new WorkspaceId("5"), Assert.Single(outcome.State.Screens, screen => screen.Id == new MonitorId(1)).ActiveWorkspace);
+        Assert.Equal(new MonitorId(1), Workspace(outcome, "5").Monitor);
+        Assert.Contains(new WindowId(2), outcome.Hide);
+        Assert.Contains(outcome.State.Hidden, client => client.Window == new WindowId(2));
+        Assert.DoesNotContain(Lines(outcome), line => line.StartsWith("focusedmon", StringComparison.Ordinal) || line.StartsWith("activewindow", StringComparison.Ordinal));
+        Assert.Equal("1", Json(core.Execute("j/activewindow").Text).GetProperty("workspace").GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public void SetWorkspaceOnTheFocusedMonitorTakesTheWorkspaceFromTheOtherAndFocusesItsWindowWithoutAWarp()
+    {
+        var core = new Core(ConfigParser.Parse("cursor:warp_on_change_workspace = 1\ncursor:warp_on_monitor_change = 1\n"));
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
+        core.Handle(new Dispatch("focuswindow", "address:0x1"));
+
+        var outcome = core.Execute(@"setworkspace \\.\DISPLAY1 2").Effect;
+
+        Assert.Equal(new WindowId(2), outcome.Focus);
+        Assert.Null(outcome.Warp);
+        Assert.Equal(new MonitorId(0), outcome.State.ActiveMonitor);
+        Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
+        Assert.Equal(new MonitorId(0), Workspace(outcome, "2").Monitor);
+        Assert.NotEqual(new WorkspaceId("2"), Assert.Single(outcome.State.Screens, screen => screen.Id == new MonitorId(1)).ActiveWorkspace);
+        Assert.Equal(left.WorkArea, BoundsOf(outcome, 2));
+        Assert.Contains(new WindowId(1), outcome.Hide);
+    }
+
+    [Fact]
+    public void SetWorkspaceRefusesAMonitorItCannotFindAndLeavesASpecialWorkspaceAlone()
+    {
+        var core = new Core();
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        core.Handle(new MonitorsChanged([left]));
+
+        Assert.Equal("error: monitor not found", core.Execute("setworkspace nowhere 3").Text);
+        var special = core.Execute(@"setworkspace \\.\DISPLAY1 special:notes");
+
+        Assert.Equal("ok", special.Text);
+        Assert.Null(Assert.Single(special.Effect.State.Screens).SpecialWorkspace);
+        Assert.Equal(new WorkspaceId("1"), special.Effect.State.ActiveWorkspace);
+    }
+
+    [Fact]
+    public void SetSpecialWorkspaceOpensAndClosesOnAnotherMonitorWithoutFocusingIt()
+    {
+        var core = new Core();
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new Dispatch("togglespecialworkspace", "notes"));
+        core.Handle(new WindowAppeared(new WindowId(3), left.WorkArea));
+        core.Handle(new Dispatch("togglespecialworkspace", "notes"));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+
+        var opened = core.Execute(@"setspecialworkspace \\.\DISPLAY2 special:notes").Effect;
+
+        Assert.Null(opened.Focus);
+        Assert.Equal(new MonitorId(0), opened.State.ActiveMonitor);
+        Assert.Equal(new WorkspaceId("special:notes"), Assert.Single(opened.State.Screens, screen => screen.Id == new MonitorId(1)).SpecialWorkspace);
+        Assert.Contains(new WindowId(3), opened.Show);
+        Assert.Equal(new MonitorId(1), Workspace(opened, "special:notes").Monitor);
+        Assert.Equal("0x1", Json(core.Execute("j/activewindow").Text).GetProperty("address").GetString());
+
+        var closed = core.Execute(@"setspecialworkspace \\.\DISPLAY2").Effect;
+
+        Assert.Null(closed.Focus);
+        Assert.Null(Assert.Single(closed.State.Screens, screen => screen.Id == new MonitorId(1)).SpecialWorkspace);
+        Assert.Contains(new WindowId(3), closed.Hide);
+        Assert.Equal("0x1", Json(core.Execute("j/activewindow").Text).GetProperty("address").GetString());
+    }
+
+    [Fact]
+    public void SetSpecialWorkspaceOnTheFocusedMonitorFocusesItsWindow()
+    {
+        var core = new Core();
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        core.Handle(new MonitorsChanged([left]));
+        core.Handle(new Dispatch("togglespecialworkspace", "notes"));
+        core.Handle(new WindowAppeared(new WindowId(3), left.WorkArea));
+        core.Handle(new Dispatch("togglespecialworkspace", "notes"));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+
+        var opened = core.Execute(@"setspecialworkspace \\.\DISPLAY1 special:notes").Effect;
+
+        Assert.Equal(new WindowId(3), opened.Focus);
+        Assert.Equal(new WorkspaceId("special:notes"), Assert.Single(opened.State.Screens).SpecialWorkspace);
+    }
+
     private static Monitor Display(
         string name,
         string description,

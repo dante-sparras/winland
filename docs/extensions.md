@@ -18,6 +18,8 @@ After that the config is edited from an elevated editor. A file the user creates
 
 `resolveworkspace MONITOR SELECTOR` on the pipe answers the address of the workspace a selector names, read as a dispatcher on that monitor reads it, relative forms such as `e-1` too, when the workspace exists, and nothing otherwise. It makes no workspace. With `j/` the answer is a JSON string, or `null`. The Lua config's workspace queries use it, since the pinned release reads its selectors in place.
 
+`groupadd MEMBER WINDOW [INDEX]` on the pipe puts WINDOW into the group MEMBER is in, at the 1-based INDEX, as `HL.Group:add` does, and `groupremove WINDOW` takes WINDOW out of its group, as `HL.Group:remove` does. `setworkspace MONITOR SELECTOR` shows a workspace on that monitor and `setspecialworkspace MONITOR [SELECTOR]` opens a special workspace there, or with no selector closes the one open, as `HL.Monitor:set_workspace` and `HL.Monitor:set_special_workspace` do, without focusing that monitor or moving the cursor. Each answers `ok` or the error. The pinned release does these only from its Lua objects, and Winland's Lua config reaches them through the pipe.
+
 `exe` is a `windowrulev2` match on the executable file name, including its extension. It uses the same regular expressions as `class` and `title`. `initialClass` and `initial_class` match the class, and `initialTitle` and `initial_title` match the title, because a rule is applied once when the window appears.
 
 `aumid` is a `windowrulev2` match on a packaged app's AppUserModelID. It uses the same regular expressions as `class`, `title` and `exe`. For a Store app hosted in a frame, `class` and `exe` are the hosted app's window class and executable file name, and `aumid` is that app's AppUserModelID.

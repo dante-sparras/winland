@@ -391,8 +391,37 @@ public class LuaEventTests
             assert(g.members[1].address == "0x1a" and g.members[2].address == "0x2b")
             assert(g.locked == nil and g.denied == nil and hl.get_window("class:code").group == nil)
             assert(#hl.get_workspace(1):get_groups() == 1 and hl.get_workspace(1).groups == 1)
+            assert(hl.get_window("address:0x1a").group == g)
             """);
-        Assert.Equal("error: line 1: HL.Group:add is not honored yet", runtime.Eval("local _ = hl.get_active_window().group:add(hl.get_window('class:code'))", repl: false));
+    }
+
+    [Fact]
+    public void AGroupAddsAndRemovesThroughThePipe()
+    {
+        var (runtime, world) = Start("");
+        using var _r = runtime;
+
+        Check(runtime, """
+            local g = hl.get_window("address:0x2b").group
+            g:add(hl.get_window("class:code"))
+            g:add(hl.get_window("class:code"), 3)
+            g:remove(2)
+            g:remove(hl.get_window("address:0x1a"))
+            """);
+
+        Assert.Equal(
+            ["groupadd address:0x2b address:0x3c", "groupadd address:0x2b address:0x3c 3", "groupremove address:0x2b", "groupremove address:0x1a"],
+            world.Commands.Where(command => command.StartsWith("group", StringComparison.Ordinal)));
+        Assert.Equal("error: line 1: HL.Group:add: index out of range", runtime.Eval("local _ = hl.get_active_window().group:add(hl.get_window('class:code'), 4)", repl: false));
+        Assert.Equal("error: line 1: HL.Group:add: index must be an integer", runtime.Eval("local _ = hl.get_active_window().group:add(hl.get_window('class:code'), 1.5)", repl: false));
+        Assert.Equal("error: line 1: HL.Group:add: expected a window object", runtime.Eval("local _ = hl.get_active_window().group:add('class:code')", repl: false));
+        Assert.Equal("error: line 1: HL.Group:remove: index out of range", runtime.Eval("local _ = hl.get_active_window().group:remove(0)", repl: false));
+        Assert.Equal("error: line 1: HL.Group:remove: window is not a group member", runtime.Eval("local _ = hl.get_active_window().group:remove(hl.get_window('class:code'))", repl: false));
+
+        lock (world.Replies)
+            world.Replies["groupadd address:0x1a address:0x3c"] = "error: target group is denied";
+
+        Assert.Equal("error: line 1: HL.Group:add: target group is denied", runtime.Eval("local _ = hl.get_active_window().group:add(hl.get_window('class:code'))", repl: false));
     }
 
     [Fact]
@@ -446,24 +475,33 @@ public class LuaEventTests
     }
 
     [Fact]
-    public void AMonitorShowsAWorkspaceThroughItsDispatchers()
+    public void AMonitorShowsAWorkspaceThroughThePipe()
     {
         var (runtime, world) = Start("");
         using var _r = runtime;
 
-        // HDMI-A-1 is not focused: it is focused for the dispatchers, and DP-1 again after.
         Check(runtime, "hl.get_monitor('HDMI-A-1'):set_workspace(1)");
         Check(runtime, "hl.get_monitor('DP-1'):set_workspace('name:new')");
+        Check(runtime, "hl.get_monitor('DP-1'):set_workspace(hl.get_workspace('web'))");
         Check(runtime, "hl.get_monitor('DP-1'):set_special_workspace(nil)");
         Check(runtime, "hl.get_monitor('HDMI-A-1'):set_special_workspace('')");
+        Check(runtime, "hl.get_monitor('HDMI-A-1'):set_special_workspace(hl.get_workspace('special:scratch'))");
         Assert.Equal(
             [
-                "dispatch focusmonitor HDMI-A-1", "dispatch moveworkspacetomonitor 1 HDMI-A-1", "dispatch workspace 1", "dispatch focusmonitor DP-1",
-                "dispatch workspace name:new",
-                "dispatch togglespecialworkspace scratch",
-                "dispatch focusmonitor HDMI-A-1", "dispatch togglespecialworkspace ", "dispatch focusmonitor DP-1",
+                "setworkspace HDMI-A-1 1",
+                "setworkspace DP-1 name:new",
+                "setworkspace DP-1 name:web",
+                "setspecialworkspace DP-1",
+                "setspecialworkspace HDMI-A-1 special:special",
+                "setspecialworkspace HDMI-A-1 special:scratch",
             ],
-            world.Commands.Where(command => command.StartsWith("dispatch ", StringComparison.Ordinal)));
+            world.Commands.Where(command => command.StartsWith("set", StringComparison.Ordinal)));
+        Assert.DoesNotContain(world.Commands, command => command.StartsWith("dispatch ", StringComparison.Ordinal));
+
+        lock (world.Replies)
+            world.Replies["setworkspace DP-1 7"] = "error: invalid workspace";
+
+        Assert.Equal("error: line 1: HLMonitor.set_workspace: invalid workspace", runtime.Eval("local _ = hl.get_monitor('DP-1'):set_workspace(7)", repl: false));
     }
 
     [Fact]

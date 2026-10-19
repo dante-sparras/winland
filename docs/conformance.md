@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-203 of 214 ported cases pass.
+207 of 214 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -135,10 +135,10 @@ A case passes when every check in it passes, as in the reference harness. A case
 | groups | groupLock | passes | |
 | groups | groupbarMiddleClick | not ported | The case middle-clicks the tab bar, which the Windows adapter handles and a core test cannot send. |
 | groups | groupsNoCrash | passes | |
-| groups | groupsLuaApi | differs | HL.Group:add and HL.Group:remove are not honored yet. |
-| groups | groupsLuaApiInvalidOps | differs | HL.Group:add and HL.Group:remove are not honored yet. |
-| groups | groupsLuaApiCrossWorkspaceMonitor | differs | HL.Group:add and HL.Group:remove are not honored yet. |
-| groups | groupsLuaApiFullscreen | differs | HL.Group:add and HL.Group:remove are not honored yet. |
+| groups | groupsLuaApi | passes | |
+| groups | groupsLuaApiInvalidOps | passes | |
+| groups | groupsLuaApiCrossWorkspaceMonitor | passes | |
+| groups | groupsLuaApiFullscreen | passes | |
 | groups | groups_disable_when_only | passes | |
 | groups | groupbarDisableWhenOnlyDimensions | passes | |
 | groups | autoGroupFloatedIntoTiled | passes | |

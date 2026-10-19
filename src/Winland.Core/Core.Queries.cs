@@ -76,6 +76,10 @@ public sealed partial class Core
         DevicesRequest devices => Devices(devices),
         BatchRequest batch => RunBatch(batch.Payload),
         ResolveWorkspaceRequest resolve => ResolveWorkspace(resolve.Arguments, resolve.Flags.HasFlag(CommandFlags.Json)),
+        GroupAddRequest add => GroupAdd(add.Arguments),
+        GroupRemoveRequest remove => GroupRemove(remove.Arguments),
+        SetWorkspaceRequest show => SetWorkspaceOn(show.Arguments),
+        SetSpecialWorkspaceRequest special => SetSpecialOn(special.Arguments),
         _ => throw new InvalidOperationException("No handler for this command."),
     };
 
