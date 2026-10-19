@@ -18,6 +18,9 @@ public static class SessionEffects
 
     public static InputOriginals? Originals => _session?.Originals;
 
+    /// <summary>The first layout <c>kb_layout</c> names, once loaded, or 0.</summary>
+    public static nint FirstLayout => _layouts?.First ?? 0;
+
     public static void InstallSystem()
     {
         if (Interlocked.Exchange(ref _installed, 1) != 0)

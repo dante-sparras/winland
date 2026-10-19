@@ -541,7 +541,9 @@ public sealed class KeyboardHook : IDisposable
         nint handle;
         try
         {
-            handle = KeyboardLayout.ForegroundHandle();
+            // input:resolve_binds_by_sym off: binds read keys in the first layout the config names, whatever is in use.
+            var first = _core.BindsInFirstLayout ? SessionEffects.FirstLayout : 0;
+            handle = first != 0 ? first : KeyboardLayout.ForegroundHandle();
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {

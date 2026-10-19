@@ -30,6 +30,10 @@ public sealed class KeyboardLayoutSwitcher(IKeyboardLayouts system)
     private readonly HashSet<nint> _ours = [];
     private readonly Dictionary<string, nint> _ids = new(StringComparer.OrdinalIgnoreCase);
     private KeyboardLayoutRequest? _applied;
+    private nint _first;
+
+    /// <summary>The first layout the config names, once loaded, or 0. The keyboard hook reads it to name keys for binds.</summary>
+    public nint First => Volatile.Read(ref _first);
     private HashSet<nint>? _before;
     private nint? _beforeActive;
 
@@ -73,6 +77,7 @@ public sealed class KeyboardLayoutSwitcher(IKeyboardLayouts system)
             }
         }
 
+        Volatile.Write(ref _first, wanted.Count > 0 ? wanted[0] : 0);
         if (request.Active < wanted.Count && wanted[request.Active] != 0)
             system.Activate(wanted[request.Active]);
 
@@ -93,6 +98,7 @@ public sealed class KeyboardLayoutSwitcher(IKeyboardLayouts system)
 
         _ours.Clear();
         _ids.Clear();
+        Volatile.Write(ref _first, 0);
         _applied = null;
         _before = null;
         _beforeActive = null;

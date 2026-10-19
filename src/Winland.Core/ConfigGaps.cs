@@ -83,7 +83,6 @@ public static class ConfigGaps
         new("input:kb_model", "XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant."),
         new("input:kb_rules", "XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant."),
         new("input:off_window_axis_events", "Scroll events outside a window are not honored."),
-        new("input:resolve_binds_by_sym", "Binds are not resolved by key symbol."),
         new("input:rotation", "Device rotation is not honored."),
         new("input:scroll_button", "Touchpad scroll button has no Windows meaning."),
         new("input:scroll_button_lock", "Touchpad scroll button lock has no Windows meaning."),

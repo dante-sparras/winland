@@ -78,4 +78,18 @@ public class KeyboardLayoutSwitcherTests
 
         public void Activate(nint layout) => Active = layout;
     }
+
+    [Fact]
+    public void TheFirstLayoutIsPublishedForBinds()
+    {
+        var system = new FakeLayouts(0x409);
+        var switcher = new KeyboardLayoutSwitcher(system);
+        Assert.Equal(0, switcher.First);
+
+        switcher.Apply(new KeyboardLayoutRequest("0000041D,00000409", 1));
+        Assert.Equal(0x41D, switcher.First);
+
+        switcher.Apply(null);
+        Assert.Equal(0, switcher.First);
+    }
 }
