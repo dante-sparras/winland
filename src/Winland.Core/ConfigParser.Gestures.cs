@@ -8,8 +8,6 @@ public static partial class ConfigParser
     {
         private static readonly HashSet<string> UnhonoredGestureActions = new(StringComparer.Ordinal)
         {
-            "resize",
-            "move",
             "cursorZoom",
         };
 

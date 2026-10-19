@@ -59,7 +59,15 @@ public sealed record TrackpadGesture(
 
     public bool IsClose => Action == CloseAction;
 
-    public bool IsHonored => IsWorkspace || IsSpecial || IsOnRelease || IsScrollMove || IsFunction;
+    public bool IsHonored => IsWorkspace || IsSpecial || IsOnRelease || IsScrollMove || IsFunction || IsMove || IsResize;
+
+    public const string MoveAction = "move";
+
+    public const string ResizeAction = "resize";
+
+    public bool IsMove => Action == MoveAction;
+
+    public bool IsResize => Action == ResizeAction;
 
     /// <summary>
     /// How far close must travel, as the pinned release measures it: a fifth of 200 pixels for close and of 250 for
