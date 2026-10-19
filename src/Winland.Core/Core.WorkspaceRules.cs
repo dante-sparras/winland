@@ -11,7 +11,7 @@ public sealed partial class Core
         var hinted = WorkspaceRules.For(_workspaceRules, id, null, null);
         var bound = BoundMonitor(hinted);
         var owner = bound?.Id ?? monitor ?? FocusedId();
-        var layout = LayoutFactory.Create(_config, hinted?.Layout);
+        var layout = LayoutFactory.Create(_config, hinted?.Layout, LayoutScripts);
         layout.Configure(_scrolling);
         RankFocus(layout);
         var desk = new LiveWorkspace(id, owner, layout);

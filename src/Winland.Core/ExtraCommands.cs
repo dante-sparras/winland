@@ -107,6 +107,12 @@ public static class ExtraCommands
             return true;
         }
 
+        if (Is(verb, LayoutRequest.Verb))
+        {
+            parse = Parsed(new LayoutPlaceRequest(rest), flags);
+            return true;
+        }
+
         if (Is(verb, "switchxkblayout"))
         {
             parse = Parsed(new SwitchLayoutRequest(rest), flags);
@@ -456,6 +462,12 @@ public sealed record ResolveWorkspaceRequest(string Arguments) : CommandRequest;
 /// group objects use it.
 /// </summary>
 public sealed record GroupAddRequest(string Arguments) : CommandRequest;
+
+/// <summary>
+/// <c>layoutplace LAYOUT GENERATION [failed | WINDOW X Y W H ...]</c>: a script's answer to a request to lay out the
+/// Workspace of a Layout it arranges. The Lua config's custom layouts use it.
+/// </summary>
+public sealed record LayoutPlaceRequest(string Arguments) : CommandRequest;
 
 /// <summary><c>groupremove WINDOW</c>: takes a window out of its Group. The Lua config's group objects use it.</summary>
 public sealed record GroupRemoveRequest(string Arguments) : CommandRequest;
