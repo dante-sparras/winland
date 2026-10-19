@@ -186,7 +186,7 @@ public class LuaBindTests
             """);
 
         Assert.Equal(["binds = SUPER, X&D, exit", "bindr = SUPER, mouse:276, exit"], Lines(translation));
-        Assert.Equal(new ConfigWarning(3, "hl.bind: failed to parse key string: Modifiers cannot appear after keys"), Assert.Single(translation.Warnings));
+        Assert.Equal(new ConfigWarning(3, "hl.bind: failed to create bind: Modifiers cannot appear after keys"), Assert.Single(translation.Warnings));
     }
 
     [Theory]
@@ -200,8 +200,7 @@ public class LuaBindTests
     [InlineData("hl.dsp.group.move_window({ forward = false })", "bind = SUPER, X, movegroupwindow, b")]
     [InlineData("hl.dsp.group.lock()", "bind = SUPER, X, lockactivegroup, toggle")]
     [InlineData("hl.dsp.group.lock({ action = 'enable' })", "bind = SUPER, X, lockactivegroup, lock")]
-    [InlineData("hl.dsp.group.lock({ all = true, action = 'off' })", "bind = SUPER, X, lockactivegroup, unlock")]
-    [InlineData("hl.dsp.group.lock_active({ action = 'toggle' })", "bind = SUPER, X, lockactivegroup, toggle")]
+    [InlineData("hl.dsp.group.lock({ all = true, action = 'off' })", "bind = SUPER, X, lockgroups, unlock")]
     [InlineData("hl.dsp.window.close({ window = 'class:kitty' })", "bind = SUPER, X, closewindow, class:kitty")]
     [InlineData("hl.dsp.window.kill()", "bind = SUPER, X, killwindow, activewindow")]
     [InlineData("hl.dsp.window.float({ action = 'enable' })", "bind = SUPER, X, setfloating")]
@@ -269,7 +268,6 @@ public class LuaBindTests
     [Theory]
     [InlineData("hl.dsp.window.signal({ signal = 9 })", "hl.dsp.window.signal is not honored yet")]
     [InlineData("hl.dsp.window.clear_tags()", "hl.dsp.window.clear_tags is not honored yet")]
-    [InlineData("hl.dsp.reload_config()", "hl.dsp.reload_config is not honored yet")]
     [InlineData("hl.dsp.global('app:action')", "hl.dsp.global is not honored yet")]
     [InlineData("hl.dsp.force_idle(5)", "hl.dsp.force_idle is not honored yet")]
     [InlineData("hl.dsp.release_input_capture()", "hl.dsp.release_input_capture is not honored yet")]
@@ -287,6 +285,61 @@ public class LuaBindTests
 
         Assert.Empty(Lines(translation));
         Assert.Equal(new ConfigWarning(1, warning), Assert.Single(translation.Warnings));
+    }
+
+    [Fact]
+    public void LockActiveIsGroupLockAndIsNotedAsDeprecated()
+    {
+        var translation = Run("""
+            hl.bind("SUPER + X", hl.dsp.group.lock_active({ action = 'toggle' }))
+            hl.bind("SUPER + Y", hl.dsp.group.lock_active())
+            """);
+
+        Assert.Equal(["bind = SUPER, X, lockactivegroup, toggle", "bind = SUPER, Y, lockactivegroup, toggle"], Lines(translation));
+        Assert.Equal(
+            new ConfigWarning(1, "hl.dsp.group.lock_active(): The group.lock_active() dispatcher is deprecated, use group.lock() instead"),
+            Assert.Single(translation.Warnings));
+    }
+
+    [Fact]
+    public void ADispatcherThatIsACommandIsBoundThroughAFunction()
+    {
+        var translation = Run("hl.bind(\"SUPER + R\", hl.dsp.reload_config())\n");
+
+        Assert.Equal(["bind = SUPER, R, luafunction, 1"], Lines(translation));
+        Assert.Empty(translation.Warnings);
+    }
+
+    [Fact]
+    public void ADispatcherShowsItsNameAndTakesNoMoreArgumentsThanItCan()
+    {
+        var translation = Run("""
+            assert(tostring(hl.dsp.window.close()) == "HL.Dispatcher(close)")
+            assert(tostring(hl.dsp.exec_cmd("kitty")) == "HL.Dispatcher(exec_cmd)")
+            assert(hl.dsp.exit(1) == nil)
+            """);
+
+        Assert.Equal(new ConfigWarning(3, "exit: expected at most 0 arguments, got 1"), Assert.Single(translation.Warnings));
+    }
+
+    [Fact]
+    public void ABindReturnsItsKeybind()
+    {
+        var translation = Run("""
+            local b = hl.bind("SUPER + SHIFT + F24", hl.dsp.exec_cmd("true"), { locked = true, description = "run it" })
+            assert(b.handler == "HL.Dispatcher(exec_cmd)" and b.display_key == "SUPER + SHIFT + F24" and b.key == "F24")
+            assert(b.modmask == 65 and b.locked and not b.release and b.description == "run it" and b.has_description)
+            assert(b:is_enabled() and b.enabled and b.submap == "" and b.keycode == 0 and #b.devices == 0)
+            local f = hl.bind("SUPER + G", function() end)
+            assert(f.handler:sub(1, 10) == "function: ")
+            f:set_enabled(false)
+            assert(f:is_enabled() == false)
+            b:unbind()
+            assert(b.handler == nil and b:is_enabled() == nil and tostring(b) == "HL.Keybind(expired)")
+            """);
+
+        Assert.Empty(translation.Warnings);
+        Assert.Empty(Lines(translation));
     }
 
     [Fact]

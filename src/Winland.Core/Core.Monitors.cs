@@ -396,7 +396,10 @@ public sealed partial class Core
         if (screen.Focused && preferred is null)
             return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
 
-        var desk = screen.Active is WorkspaceId workspace ? FindWorkspace(workspace) : null;
+        // A monitor with a special workspace open gives the focus to that workspace's window, as the pinned release does.
+        var desk = SpecialOn(screen.Id) is WorkspaceId special && FindWorkspace(special) is LiveWorkspace open
+            ? open
+            : screen.Active is WorkspaceId workspace ? FindWorkspace(workspace) : null;
         var next = preferred;
         if (next is WindowId wanted && (desk is null || desk.ClientOf(wanted) is null || HasNoFocus(wanted)))
             next = null;

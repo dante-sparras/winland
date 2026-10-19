@@ -1,14 +1,16 @@
 using System.Text.Json;
 using Winland;
+using Winland.Lua;
 
 namespace Winland.Tests.Conformance;
 
 /// <summary>
 /// The reference test harness's desktop, rebuilt on the core: two 1920x1080 monitors side by side, its config,
 /// workspace 1 focused and the pointer in the middle of the first monitor. A conformance test drives it with the
-/// same commands the reference case sends over its socket, and checks the same replies.
+/// same commands the reference case sends over its socket, and checks the same replies. <see cref="WithLua"/> builds
+/// it with a Lua config running, as the reference's is.
 /// </summary>
-internal sealed class Desk
+internal sealed class Desk : IDisposable
 {
     /// <summary>The reference harness's config, in the line-based syntax. Options Winland does not read are left out.</summary>
     internal const string Config = """
@@ -74,22 +76,88 @@ internal sealed class Desk
     private readonly List<Monitor> _monitors = [];
     private State _state = new([]);
 
+    // The Lua's dispatches reach the desk from the Lua thread, so the desk's own state is changed under this.
+    private readonly Lock _gate = new();
+    private readonly LuaRuntime? _lua;
+    private LuaSession? _pending;
+
     /// <summary>
     /// Builds the desktop. <paramref name="extra"/> is config after the reference config: the options a case sets
     /// before its first window opens. <c>reload</c> reads the same text again.
     /// </summary>
     internal Desk(string extra = "")
+        : this(extra, lua: null, files: null)
+    {
+    }
+
+    private Desk(string extra, string? lua, IReadOnlyDictionary<string, string>? files)
     {
         var text = Config + "\n" + extra;
-        Core = new Core
+        Core = new Core { Cursor = new PointerReader(this) };
+        if (lua is null)
         {
-            ReadConfig = () => new ConfigRead(ConfigParser.Parse(text)),
-            Cursor = new PointerReader(this),
-        };
-        Handle(new Configure(ConfigParser.Parse(text)));
+            Core.ReadConfig = () => new ConfigRead(ConfigParser.Parse(text));
+            Handle(new Configure(ConfigParser.Parse(text)));
+        }
+        else
+        {
+            // A bind to a Lua function names Winland's own dispatcher, which the daemon binds. No case presses one.
+            _ = Dispatchers.TryBind(LuaConfig.FunctionDispatcher, _ => new DispatcherResult(null, null), out _);
+            var runtime = new LuaRuntime(new LuaWorld(this));
+            _lua = runtime;
+            runtime.Listen(Core);
+            Core.ReadConfig = () => new ConfigRead(ReadLua(text, lua, files));
+            Core.AfterReload = _ => runtime.Adopt(TakeLua());
+            Handle(new Configure(ReadLua(text, lua, files)));
+        }
+
         Pointer = new Point(960, 540);
         AddMonitor("HEADLESS-2", First);
         Handle(new PointerMoved(Pointer));
+        _lua?.Adopt(TakeLua());
+    }
+
+    /// <summary>The folder of the Lua config of <see cref="WithLua"/>. Nothing is written there.</summary>
+    internal static readonly string LuaFolder = Path.Combine(Path.GetTempPath(), "winland-desk");
+
+    /// <summary>
+    /// Builds the desktop with <paramref name="lua"/> as a running Lua config, read from <c>winland.lua</c> in
+    /// <see cref="LuaFolder"/> after the reference config. <paramref name="files"/> are the files it can require, by
+    /// their path from that folder with forward slashes. <c>eval</c>, <c>repl</c> and a <c>dispatch</c> with a Lua
+    /// call in it go to the Lua, as the daemon routes them, and the Lua's dispatches come back as pipe commands do.
+    /// <c>reload</c> runs the Lua again.
+    /// </summary>
+    internal static Desk WithLua(string lua, string extra = "", IReadOnlyDictionary<string, string>? files = null) =>
+        new(extra, lua, files);
+
+    /// <summary>What the running Lua wrote to the log.</summary>
+    internal List<string> LuaLog { get; } = [];
+
+    // A read of the Lua config: the reference config, then the lines its hl calls make. Its Lua waits until the
+    // config it came with is in use, as the daemon's does.
+    private ConfigDocument ReadLua(string text, string lua, IReadOnlyDictionary<string, string>? files)
+    {
+        var load = LuaConfig.Load(lua, Path.Combine(LuaFolder, "winland.lua"), full =>
+        {
+            var relative = Path.GetRelativePath(LuaFolder, full).Replace(Path.DirectorySeparatorChar, '/');
+            return files is not null && files.TryGetValue(relative, out var content) ? content : null;
+        });
+        _pending?.Dispose();
+        _pending = load.Session;
+        return ConfigParser.Parse(text + "\n" + load.Translation.Text);
+    }
+
+    private LuaSession? TakeLua()
+    {
+        var session = _pending;
+        _pending = null;
+        return session;
+    }
+
+    public void Dispose()
+    {
+        _lua?.Dispose();
+        _pending?.Dispose();
     }
 
     internal Core Core { get; }
@@ -122,6 +190,13 @@ internal sealed class Desk
 
     /// <summary>Closes the window as its application would, as the reference harness kills kitty.</summary>
     internal void Close(string windowClass) => Handle(new WindowClosed(_windows[windowClass]));
+
+    /// <summary>Closes every window as its application would, as the reference harness kills all its windows.</summary>
+    internal void CloseAll()
+    {
+        foreach (var client in Clients())
+            Handle(new WindowClosed(IdOf(client)));
+    }
 
     /// <summary>Closes the active window as its application would.</summary>
     internal void CloseActive() => Handle(new WindowClosed(ActiveId()));
@@ -159,17 +234,28 @@ internal sealed class Desk
     /// </summary>
     internal Outcome Handle(Input input)
     {
-        var outcome = Core.Handle(input);
-        Follow(outcome);
-        return outcome;
+        lock (_gate)
+        {
+            var outcome = Core.Handle(input);
+            Follow(outcome);
+            return outcome;
+        }
     }
 
-    /// <summary>Sends one pipe line, such as <c>dispatch focuswindow class:a</c> or <c>keyword general:gaps_in 0</c>.</summary>
-    internal string Send(string line)
+    /// <summary>
+    /// Sends one pipe line, such as <c>dispatch focuswindow class:a</c> or <c>keyword general:gaps_in 0</c>. With a
+    /// Lua config, the lines the Lua answers go to it.
+    /// </summary>
+    internal string Send(string line) => _lua?.Answer(line, Execute) ?? Execute(line);
+
+    private string Execute(string line)
     {
-        var reply = Core.Execute(line);
-        Follow(reply.Effect);
-        return reply.Text;
+        lock (_gate)
+        {
+            var reply = Core.Execute(line);
+            Follow(reply.Effect);
+            return reply.Text;
+        }
     }
 
     private void Follow(Outcome outcome, WindowId? echoed = null)
@@ -251,9 +337,11 @@ internal sealed class Desk
     /// <summary>Checks the active window's place, as the reference checks <c>at: x,y</c> and <c>size: w,h</c>.</summary>
     internal void ExpectActive(string at, string size) => Assert.Equal((at, size), ActivePlace());
 
-    internal WindowId ActiveId()
+    internal WindowId ActiveId() => IdOf(ActiveWindow());
+
+    internal static WindowId IdOf(JsonElement client)
     {
-        var address = ActiveWindow().GetProperty("address").GetString() ?? "";
+        var address = client.GetProperty("address").GetString() ?? "";
         return new WindowId(Convert.ToInt64(address[2..], 16));
     }
 
@@ -300,5 +388,17 @@ internal sealed class Desk
     private sealed class PointerReader(Desk desk) : ICursorPosition
     {
         public Point Read() => desk.Pointer;
+    }
+
+    // What the running Lua reaches: the desk's pipe, as the daemon's window host is, and its log.
+    private sealed class LuaWorld(Desk desk) : ILuaWorld
+    {
+        public string Command(string command) => desk.Execute(command);
+
+        public void Log(string message)
+        {
+            lock (desk.LuaLog)
+                desk.LuaLog.Add(message);
+        }
     }
 }

@@ -282,6 +282,38 @@ public class LuaRulesTests
     }
 
     [Fact]
+    public void ASpringTakesDampingAndStillTheOldSpelling()
+    {
+        var translation = Run("""
+            hl.curve("new", { type = "spring", mass = 1, stiffness = 238, damping = 24 })
+            hl.curve("old", { type = "spring", mass = 1, stiffness = 238, dampening = 24 })
+            hl.curve("none", { type = "spring", mass = 1, stiffness = 238 })
+            """);
+
+        Assert.Equal(
+            [
+                "hl.curve(\"new\"): spring curves are not honored yet",
+                "hl.curve(\"old\"): spring curves are not honored yet",
+                "hl.curve(\"none\"): damping expects a number",
+            ],
+            translation.Warnings.Select(warning => warning.Message));
+    }
+
+    [Fact]
+    public void AGestureScaleIsFromATenthToTenEitherWay()
+    {
+        var translation = Run("""
+            hl.gesture({ fingers = 3, direction = "left", action = "close", scale = -2 })
+            hl.gesture({ fingers = 3, direction = "right", action = "close", scale = 0 })
+            """);
+
+        Assert.Equal(["gesture = 3, left, scale:-2, close"], Lines(translation));
+        Assert.Equal(
+            "hl.gesture: field \"scale\": value must be between -10 and -0.1 or between 0.1 and 10 - It's currently: 0",
+            Assert.Single(translation.Warnings).Message);
+    }
+
+    [Fact]
     public void GesturesBecomeGestureLines()
     {
         var translation = Run("""

@@ -231,6 +231,24 @@ public class MonitorWorkspaceTests
     }
 
     [Fact]
+    public void FocusingAMonitorWithASpecialWorkspaceOpenFocusesItsWindow()
+    {
+        var core = new Core();
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new Dispatch("focusmonitor", right.Name));
+        core.Handle(new WindowAppeared(new WindowId(1), right.WorkArea));
+        core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
+        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
+        core.Handle(new Dispatch("focusmonitor", left.Name));
+
+        var back = core.Handle(new Dispatch("focusmonitor", right.Name));
+
+        Assert.Equal(new WindowId(2), back.Focus);
+    }
+
+    [Fact]
     public void UnpluggingCarriesAShownSpecialWorkspaceAndAFullscreenClient()
     {
         var core = new Core();

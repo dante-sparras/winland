@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using KeraLua;
 
@@ -397,9 +398,15 @@ internal sealed partial class LuaRun
                     EmitLine($"bezier = {name}, {points}", "hl.curve");
                 return 0;
             case "spring":
-                foreach (var field in (string[])["stiffness", "dampening", "mass"])
+                foreach (var field in (string[])["stiffness", "damping", "mass"])
                 {
-                    _lua.GetField(2, field);
+                    // damping was spelled dampening before, and the pinned release still reads that spelling.
+                    if (_lua.GetField(2, field) == LuaType.Nil && field == "damping")
+                    {
+                        _lua.Pop(1);
+                        _lua.GetField(2, "dampening");
+                    }
+
                     var number = _lua.IsNumber(-1) ? _lua.ToNumber(-1) : (double?)null;
                     _lua.Pop(1);
                     if (number is not double value)
@@ -614,7 +621,17 @@ internal sealed partial class LuaRun
         if (Part(1, "mods", Label) is string mods)
             line.Append(", mod:").Append(mods);
         if (Number(1, "scale") is string scale)
+        {
+            // A scale is from 0.1 to 10 either way: a negative one reverses the gesture.
+            var value = double.Parse(scale, CultureInfo.InvariantCulture);
+            if (Math.Abs(value) < 0.1 || Math.Abs(value) > 10)
+            {
+                Warn($"hl.gesture: field \"scale\": value must be between -10 and -0.1 or between 0.1 and 10 - It's currently: {scale}");
+                return 0;
+            }
+
             line.Append(", scale:").Append(scale);
+        }
         foreach (var argument in arguments)
             line.Append(", ").Append(argument);
 

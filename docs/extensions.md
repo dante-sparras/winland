@@ -16,6 +16,8 @@ After that the config is edited from an elevated editor. A file the user creates
 
 `luafunction <id>` is Winland's dispatcher for a bind that calls a Lua function in `winland.lua`. The pinned release keeps such a function in the bind itself; Winland's bind lines name a dispatcher, so the function is kept in the config's Lua under a number and the bind names it. `winlandctl dispatch luafunction <id>` calls it too. A reload numbers the functions again.
 
+`resolveworkspace MONITOR SELECTOR` on the pipe answers the address of the workspace a selector names, read as a dispatcher on that monitor reads it, relative forms such as `e-1` too, when the workspace exists, and nothing otherwise. It makes no workspace. With `j/` the answer is a JSON string, or `null`. The Lua config's workspace queries use it, since the pinned release reads its selectors in place.
+
 `exe` is a `windowrulev2` match on the executable file name, including its extension. It uses the same regular expressions as `class` and `title`. `initialClass` and `initial_class` match the class, and `initialTitle` and `initial_title` match the title, because a rule is applied once when the window appears.
 
 `aumid` is a `windowrulev2` match on a packaged app's AppUserModelID. It uses the same regular expressions as `class`, `title` and `exe`. For a Store app hosted in a frame, `class` and `exe` are the hosted app's window class and executable file name, and `aumid` is that app's AppUserModelID.

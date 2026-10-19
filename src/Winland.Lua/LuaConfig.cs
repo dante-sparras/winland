@@ -95,17 +95,17 @@ public static class LuaConfig
 internal sealed partial class LuaRun : IDisposable
 {
     // Calls Winland does not take on yet. Each warns once and does nothing.
-    private static readonly string[] Pending = ["load", "get_devices", "is_key_down"];
+    private static readonly string[] Pending = ["load", "is_key_down"];
 
     // The events hl.on knows, named as the pinned release names them with Winland's own name for its start and shutdown.
     private static readonly string[] Events =
     [
         "window.open", "window.open_early", "window.close", "window.destroy", "window.kill", "window.active",
         "window.urgent", "window.title", "window.class", "window.pin", "window.fullscreen", "window.update_rules",
-        "window.move_to_workspace", "layer.opened", "layer.closed", "monitor.added",
+        "window.move_to_workspace", "window.bell", "window.minimize", "layer.opened", "layer.closed", "monitor.added",
         "monitor.removed", "monitor.focused", "monitor.layout_changed", "workspace.active", "workspace.special_active",
         "workspace.created", "workspace.removed", "workspace.move_to_monitor", "config.reloaded",
-        "config.props_refreshed", "keybinds.submap", "screenshare.state", StartEvent, ShutdownEvent, "input.keyboard.key",
+        "config.props_refreshed", "config.unload", "keybinds.submap", "screenshare.state", StartEvent, ShutdownEvent, "input.keyboard.key",
     ];
 
     private const string StartEvent = "winland.start";

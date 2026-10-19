@@ -28,7 +28,7 @@ public sealed class LuaRuntime : IDisposable
     private readonly ILuaWorld _world;
     private readonly BlockingCollection<Action> _work = new();
     private readonly Thread _thread;
-    private readonly List<Timer> _timers = [];
+    private readonly Dictionary<int, Timer> _timers = [];
     private LuaRun? _session;
     private int _generation;
     private bool _running;
@@ -54,10 +54,11 @@ public sealed class LuaRuntime : IDisposable
     private void Replace(LuaSession? session)
     {
         _generation++;
-        foreach (var timer in _timers)
+        foreach (var timer in _timers.Values)
             timer.Dispose();
 
         _timers.Clear();
+        _session?.Unload();
         _session?.Dispose();
         _session = session?.Run;
         _session?.Start(_world, new Timers(this, _generation));
@@ -84,6 +85,65 @@ public sealed class LuaRuntime : IDisposable
         // A dispatch from Lua runs the core on the Lua thread, so an event noticed there came from the running Lua.
         var cause = Thread.CurrentThread == _thread ? _session?.Cause : null;
         Post(() => _session?.Deliver(events, cause));
+    }
+
+    /// <summary>Hands the Lua's <c>hl.on</c> handlers the events of each outcome <paramref name="core"/> notices.</summary>
+    public void Listen(Core core)
+    {
+        ArgumentNullException.ThrowIfNull(core);
+        core.Noticed += outcome => Deliver(outcome.Events);
+    }
+
+    /// <summary>
+    /// The pipe commands the Lua answers: <c>eval</c> and <c>repl</c> run Lua, and with a Lua config <c>dispatch</c>
+    /// with a call in it is <c>eval 'hl.dispatch(...)'</c>, as in the pinned release. A batch with one of them in it
+    /// runs its other commands through <paramref name="execute"/>, as the pipe would. Anything else is the core's,
+    /// and gives null.
+    /// </summary>
+    public string? Answer(string line, Func<string, string> execute)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+        ArgumentNullException.ThrowIfNull(execute);
+        var text = line.Trim();
+        if (text.StartsWith(BatchPrefix, StringComparison.Ordinal))
+        {
+            var commands = ExtraCommands.SplitBatch(text[BatchPrefix.Length..]);
+            if (!commands.Any(command => Single(command) is not null))
+                return null;
+
+            return string.Join("\n\n\n", commands.Select(command => Answer(command, execute) ?? execute(command)));
+        }
+
+        return Single(text) is { } single ? Answer(single.Verb, single.Argument) : null;
+    }
+
+    private const string BatchPrefix = "[[BATCH]]";
+
+    private string Answer(string verb, string rest) => verb switch
+    {
+        "eval" or "repl" => Running ? Eval(rest, verb == "repl") : "eval is only supported with a Lua config",
+        _ => Eval($"return hl.dispatch({rest})", repl: false),
+    };
+
+    // The verb and the rest of a command the Lua answers, or null for one it leaves to the core.
+    private (string Verb, string Argument)? Single(string line)
+    {
+        var text = line.Trim();
+
+        // The flags winlandctl puts before a command, such as "j/", are not the Lua's.
+        var slash = text.IndexOf('/', StringComparison.Ordinal);
+        if (slash > 0 && slash <= 3 && text[..slash].All(char.IsAsciiLetterLower))
+            text = text[(slash + 1)..];
+
+        var space = text.IndexOf(' ', StringComparison.Ordinal);
+        var verb = space < 0 ? text : text[..space];
+        var rest = space < 0 ? "" : text[(space + 1)..].Trim();
+        return verb switch
+        {
+            "eval" or "repl" => (verb, rest),
+            "dispatch" when Running && rest.Contains('(', StringComparison.Ordinal) => (verb, rest),
+            _ => null,
+        };
     }
 
     /// <summary><c>eval</c> or <c>repl</c>: waits for the Lua thread and gives the reply.</summary>
@@ -134,16 +194,25 @@ public sealed class LuaRuntime : IDisposable
     // A config's timers. One that fires after a reload belongs to the Lua that was replaced and does nothing.
     private sealed class Timers(LuaRuntime runtime, int generation) : ILuaTimers
     {
-        public void Start(int id, int milliseconds, bool repeat)
+        public void Start(int id, int due, int period)
         {
-            var period = repeat ? milliseconds : Timeout.Infinite;
-            var timer = new Timer(_ => runtime.Post(() =>
+            if (!runtime._timers.TryGetValue(id, out var timer))
             {
-                if (runtime._generation == generation)
-                    runtime._session?.Tick(id);
-            }));
-            runtime._timers.Add(timer);
-            _ = timer.Change(milliseconds, period);
+                timer = new Timer(_ => runtime.Post(() =>
+                {
+                    if (runtime._generation == generation)
+                        runtime._session?.Tick(id);
+                }));
+                runtime._timers[id] = timer;
+            }
+
+            _ = timer.Change(due, period);
+        }
+
+        public void Stop(int id)
+        {
+            if (runtime._timers.TryGetValue(id, out var timer))
+                _ = timer.Change(Timeout.Infinite, Timeout.Infinite);
         }
     }
 }

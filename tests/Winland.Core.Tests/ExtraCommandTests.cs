@@ -129,6 +129,34 @@ public class ExtraCommandTests
     }
 
     [Fact]
+    public void AKeyboardOptionCanBeSetToNothing()
+    {
+        var core = new Core();
+        Assert.Equal("ok", core.Execute("keyword input:kb_variant nodeadkeys").Text);
+
+        Assert.Equal("ok", core.Execute("keyword input:kb_variant ").Text);
+
+        Assert.Contains("\"variant\": \"\"", core.Execute("j/devices").Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ResolveWorkspaceNamesAnExistingWorkspaceAndMakesNone()
+    {
+        var core = new Core();
+        core.Handle(new MonitorsChanged([new Monitor("HEADLESS-2", "HEADLESS-2", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080))]));
+        core.Handle(new Dispatch("workspace", "name:test"));
+        core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 1920, 1080)));
+        core.Handle(new Dispatch("workspace", "1"));
+
+        Assert.Equal("\"test\"", core.Execute("j/resolveworkspace HEADLESS-2 e-1").Text);
+        Assert.Equal("test", core.Execute("resolveworkspace HEADLESS-2 name:test").Text);
+        Assert.Equal("null", core.Execute("j/resolveworkspace HEADLESS-2 42").Text);
+        Assert.Equal("", core.Execute("resolveworkspace HEADLESS-2 r+1").Text);
+        Assert.Equal("error: monitor not found", core.Execute("resolveworkspace nosuch 1").Text);
+        Assert.DoesNotContain("42", core.Execute("j/workspaces").Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GetOptionReportsGapsAsCssWithFourEdges()
     {
         var core = new Core(ConfigParser.Parse("general:gaps_out = 10 20\n"));
