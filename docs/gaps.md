@@ -130,7 +130,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 | render | GPU rendering options have no Windows meaning. |
 | ripple | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | screen_shader | Screen shaders have no Windows meaning. |
-| vrr | Variable refresh rate is not honored. |
+| vrr | Windows has no switch for a display's adaptive sync, since each game turns VRR on for itself. The Variable refresh rate graphics setting only lets DirectX 11 fullscreen games without VRR of their own use it, and Dynamic refresh rate has no documented interface. |
 | water | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | wobble | DWM cannot deform a window, so wobble is not honored. |
 | xwayland | X11 compatibility has no Windows meaning. A window rule that matches on xwayland is not honored. |
@@ -174,7 +174,7 @@ These are the uncovered keywords and behaviors Windows can honor. A gap keyword 
 
 Input Windows already has: `device`, so an honored input setting can name one device; `input:tablet:enabled`, `input:tablet:left_handed`, `input:tablet:output`, `input:tablet:transform`, `input:tablet:region_position`, `input:tablet:region_size`, `input:tablet:absolute_region_position`, `input:tablet:relative_input`, `input:tablet:active_area_position` and `input:tablet:active_area_size`; `input:tablettool:eraser_button_mode`, `input:tablettool:eraser_button_override`, `input:tablettool:pressure_range_min` and `input:tablettool:pressure_range_max`; `input:touchdevice:enabled`, `input:touchdevice:output` and `input:touchdevice:transform`; `input:touchpad:tap_button_map`, `input:touchpad:middle_button_emulation`, `input:touchpad:drag_lock`, `input:touchpad:drag_3fg`, `input:touchpad:flip_x`, `input:touchpad:flip_y` and `input:touchpad:scroll_factor`; `input:virtualkeyboard:share_states`, `input:virtualkeyboard:release_pressed_on_close` and `misc:name_vk_after_proc`; `input:emulate_discrete_scroll`, `input:off_window_axis_events` and `input:scroll_points`.
 
-Monitors and the process locale: `bitdepth`, `vrr` (`misc:vrr`) and `locale` (`general:locale`).
+Monitors and the process locale: `bitdepth` and `locale` (`general:locale`).
 
 Drawing and gestures on windows Winland already owns: `gestures:workspace_swipe_touch` and `gestures:workspace_swipe_touch_invert`; `group:groupbar:blur` on the bar Winland draws; `glow`, which is `decoration:glow:enabled`, `decoration:glow:range`, `decoration:glow:render_power`, `decoration:glow:color` and `decoration:glow:color_inactive`; `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`; `decoration:border_part_of_window`; and the animation nodes `animation:fadeDim`, `animation:fadeGlow`, `animation:glowangle` and `animation:monitorAdded`.
 
