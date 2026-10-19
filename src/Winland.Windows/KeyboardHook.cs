@@ -365,9 +365,9 @@ public sealed class KeyboardHook : IDisposable
 
             // Letting go of Super or Alt alone opens Start or a menu bar. The mask key makes it a chord.
             if (vk is 0x5B or 0x5C or 0xA4 or 0xA5)
-                Send(Key(MaskKey, up: false), Key(MaskKey, up: true), Key(vk, up: true));
+                InputInjector.Post(Key(MaskKey, up: false), Key(MaskKey, up: true), Key(vk, up: true));
             else
-                Send(Key(vk, up: true));
+                InputInjector.Post(Key(vk, up: true));
         }
     }
 
@@ -412,7 +412,8 @@ public sealed class KeyboardHook : IDisposable
         return 0;
     }
 
-    internal static void Mask() => Send(Key(MaskKey, up: false), Key(MaskKey, up: true));
+    // Called from the mouse hook, so it is sent from the injector's thread.
+    internal static void Mask() => InputInjector.Post(Key(MaskKey, up: false), Key(MaskKey, up: true));
 
     // True when the key event was taken: moved to another key, dropped, or used to switch layouts.
     private bool Remap(KBDLLHOOKSTRUCT info, bool up)
@@ -442,7 +443,7 @@ public sealed class KeyboardHook : IDisposable
         {
             var moved = Key((ushort)to, up, (ushort)PInvoke.MapVirtualKey((uint)to, MAP_VIRTUAL_KEY_TYPE.MAPVK_VK_TO_VSC));
             moved.Anonymous.ki.dwExtraInfo = RemapTag;
-            Send(moved);
+            InputInjector.Post(moved);
         }
 
         return true;
