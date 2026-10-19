@@ -42,6 +42,9 @@ public sealed partial class Core
     /// </summary>
     public bool BindsInFirstLayout => !_input.ResolveBindsBySym && _input.KbLayout is not null;
 
+    /// <summary>The button scrolling the mouse hook carries out. It reads it with no lock.</summary>
+    public ButtonScrollOptions ButtonScroll => _input.ButtonScroll;
+
     /// <summary>The <c>kb_options</c> the keyboard hook carries out. It reads them with no lock.</summary>
     public KeyboardOptions KeyOptions { get; private set; } = KeyboardOptions.None;
 

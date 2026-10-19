@@ -98,6 +98,22 @@ public sealed record InputOptions
     /// <summary><c>input:kb_variant</c>: the variant of each layout, at the same places.</summary>
     public string? KbVariant { get; init; }
 
+    /// <summary><c>input:scroll_method</c>: <c>on_button_down</c> scrolls by moving the pointer with the scroll button held.</summary>
+    public string? ScrollMethod { get; init; }
+
+    /// <summary><c>input:scroll_button</c>: the button, by its Linux code; 0 is the middle button.</summary>
+    public int ScrollButton { get; init; }
+
+    /// <summary><c>input:scroll_button_lock</c>: a click of the scroll button turns scrolling on until the next click.</summary>
+    public bool ScrollButtonLock { get; init; }
+
+    /// <summary>The button scrolling the hook carries out.</summary>
+    public ButtonScrollOptions ButtonScroll => new(
+        string.Equals(ScrollMethod, "on_button_down", StringComparison.OrdinalIgnoreCase),
+        $"mouse:{(ScrollButton <= 0 ? 274 : ScrollButton)}",
+        ScrollButtonLock,
+        NaturalScroll == true);
+
     /// <summary><c>input:resolve_binds_by_sym</c>: binds read keys in the layout in use, not the first one.</summary>
     public bool ResolveBindsBySym { get; init; }
 
@@ -176,6 +192,9 @@ public sealed record InputOptions
         ["input:touchpad:clickfinger_behavior"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var clickfinger) ? options with { TouchpadClickfinger = clickfinger } : options,
         ["input:kb_layout"] = (options, value) => options with { KbLayout = value.Trim() },
         ["input:kb_variant"] = (options, value) => options with { KbVariant = value.Trim() },
+        ["input:scroll_method"] = (options, value) => options with { ScrollMethod = value.Trim() },
+        ["input:scroll_button"] = (options, value) => TryInt(value, 0, 300, out var button) ? options with { ScrollButton = button } : options,
+        ["input:scroll_button_lock"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var locked) ? options with { ScrollButtonLock = locked } : options,
         ["input:resolve_binds_by_sym"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var bySym) ? options with { ResolveBindsBySym = bySym } : options,
         ["input:kb_options"] = (options, value) => options with { KbOptions = value.Trim() },
         ["input:focus_on_close"] = (options, value) => TryMode(value, FocusOnCloseNames, 0, 2, out var close) ? options with { FocusOnClose = close } : options,
