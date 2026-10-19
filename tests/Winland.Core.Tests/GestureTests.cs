@@ -37,7 +37,7 @@ public class GestureTests
 
     [Theory]
     [InlineData("gesture = 3, down, cursorZoom", "Gesture action 'cursorZoom' is not honored.")]
-    [InlineData("gesture = 2, pinch, cursorZoom, 2, mult", "Pinch gestures are not honored.")]
+    [InlineData("gesture = 2, pinch, cursorZoom, 2, mult", "Gesture action 'cursorZoom' is not honored.")]
     [InlineData("gesturep = 3, horizontal, workspace", "Gesture flag 'p' is not honored.")]
     public void UnhonoredGestureWarnsAndStillShadows(string line, string warning)
     {

@@ -338,7 +338,7 @@ public class LuaRulesTests
 
         var document = Parse(translation);
         Assert.Equal(
-            ["Gesture flag 'p' is not honored.", "Pinch gestures are not honored."],
+            ["Gesture flag 'p' is not honored.", "Gesture action 'cursorZoom' is not honored."],
             Messages(document));
         Assert.Equal(["workspace", "float", "scrollMove", "cursorZoom"], document.Gestures.Select(gesture => gesture.Action));
         Assert.Equal(Modifier.Super, document.Gestures[1].Modifiers);

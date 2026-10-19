@@ -29,6 +29,7 @@ public sealed partial class Core
         if (_activeGesture is not null)
             return View([]);
 
+        _pinching = false;
         _gestureFindFailed = false;
         _swipeTotalX = 0;
         _swipeTotalY = 0;
@@ -52,6 +53,12 @@ public sealed partial class Core
             return View([]);
         }
 
+        return UpdateActive(updated, begun);
+    }
+
+    // One step of the gesture a swipe or pinch picked. The update that picked it is its first step.
+    private Outcome UpdateActive(SwipeUpdated updated, Outcome? begun)
+    {
         if (_activeGesture is { IsFunction: true } function)
             return CallFunction(function, begun is null ? GesturePhase.Update : GesturePhase.Start, updated);
 
@@ -69,26 +76,26 @@ public sealed partial class Core
 
         if (_activeGesture is { IsClose: true } closing)
         {
-            var preview = StepCloseSwipe(closing.Scale * TrackpadGesture.Along(_gestureDirection, updated.DeltaX, updated.DeltaY));
+            var preview = StepCloseSwipe(closing.Scale * Travel(updated.DeltaX, updated.DeltaY));
             return begun is null ? preview : Merge(begun, preview);
         }
 
         if (_activeGesture is { IsOnRelease: true } onRelease)
         {
-            _releaseDistance += onRelease.Scale * TrackpadGesture.Along(_gestureDirection, updated.DeltaX, updated.DeltaY);
+            _releaseDistance += onRelease.Scale * Travel(updated.DeltaX, updated.DeltaY);
             return begun ?? View([]);
         }
 
         if (_activeGesture is { IsSpecial: true } special)
         {
-            StepSpecialSwipe(special.Scale * TrackpadGesture.Along(_gestureDirection, updated.DeltaX, updated.DeltaY));
+            StepSpecialSwipe(special.Scale * Travel(updated.DeltaX, updated.DeltaY));
             return begun ?? View([]);
         }
 
         if (_activeGesture is not { IsWorkspace: true } gesture || _workspaceSwipe is not { } swipe)
             return View([]);
 
-        var along = gesture.Scale * TrackpadGesture.Along(_gestureDirection, updated.DeltaX, updated.DeltaY);
+        var along = gesture.Scale * Travel(updated.DeltaX, updated.DeltaY);
         return StepWorkspaceSwipe(swipe, swipe.Delta + (_swipe.Invert ? -along : along));
     }
 
@@ -127,6 +134,9 @@ public sealed partial class Core
     private bool PickGesture(int fingers, out Outcome? begun)
     {
         begun = null;
+        if (_pinching)
+            return false;
+
         var axis = Math.Abs(_swipeTotalX) > Math.Abs(_swipeTotalY) ? GestureDirection.Horizontal : GestureDirection.Vertical;
         var direction = axis == GestureDirection.Horizontal
             ? _swipeTotalX < 0 ? GestureDirection.Left : GestureDirection.Right
@@ -140,26 +150,34 @@ public sealed partial class Core
             if (gesture.Fingers != fingers || gesture.Modifiers != held)
                 continue;
 
-            _activeGesture = gesture;
-            _releaseDistance = 0;
-            // The workspace swipe reads distance along the configured direction, not the one the fingers took.
-            _gestureDirection = gesture.IsWorkspace ? gesture.Direction : direction;
-            if (gesture.IsWorkspace)
-                StartWorkspaceSwipe();
-            else if (gesture.IsSpecial)
-                begun = BeginSpecialSwipe(gesture);
-            else if (gesture.IsScrollMove)
-                BeginScrollMove();
-            else if (gesture.IsFunction)
-                begun = View([]);
-            else if (gesture.IsClose)
-                BeginCloseSwipe();
-            else if (gesture.IsMove || gesture.IsResize)
-                begun = BeginWindowGesture(gesture);
+            begun = Activate(gesture, direction);
             return true;
         }
 
         return false;
+    }
+
+    // Starts the gesture a swipe or pinch picked. A workspace swipe reads distance along its configured direction, as
+    // the pinned release's direction sensitive gestures do, and every other gesture along the one the fingers took.
+    private Outcome? Activate(TrackpadGesture gesture, GestureDirection direction)
+    {
+        _activeGesture = gesture;
+        _releaseDistance = 0;
+        _gestureDirection = gesture.IsWorkspace ? gesture.Direction : direction;
+        if (gesture.IsWorkspace)
+            StartWorkspaceSwipe();
+        else if (gesture.IsSpecial)
+            return BeginSpecialSwipe(gesture);
+        else if (gesture.IsScrollMove)
+            BeginScrollMove();
+        else if (gesture.IsFunction)
+            return View([]);
+        else if (gesture.IsClose)
+            BeginCloseSwipe();
+        else if (gesture.IsMove || gesture.IsResize)
+            return BeginWindowGesture(gesture);
+
+        return null;
     }
 
     // A luafunction gesture hands the Lua config each phase of the swipe. The update that picks the gesture starts it
