@@ -101,6 +101,8 @@ internal sealed class Desk : IDisposable
         }
         else
         {
+            // A bind to a Lua function names Winland's own dispatcher, which the daemon binds. No case presses one.
+            _ = Dispatchers.TryBind(LuaConfig.FunctionDispatcher, _ => new DispatcherResult(null, null), out _);
             var runtime = new LuaRuntime(new LuaWorld(this));
             _lua = runtime;
             runtime.Listen(Core);
@@ -244,7 +246,7 @@ internal sealed class Desk : IDisposable
     /// Sends one pipe line, such as <c>dispatch focuswindow class:a</c> or <c>keyword general:gaps_in 0</c>. With a
     /// Lua config, the lines the Lua answers go to it.
     /// </summary>
-    internal string Send(string line) => _lua?.Answer(line) ?? Execute(line);
+    internal string Send(string line) => _lua?.Answer(line, Execute) ?? Execute(line);
 
     private string Execute(string line)
     {

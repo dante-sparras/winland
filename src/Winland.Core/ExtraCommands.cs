@@ -77,6 +77,12 @@ public static class ExtraCommands
         if (Is(verb, "devices"))
             return Exact(rest, new DevicesRequest(), flags, out parse);
 
+        if (Is(verb, "resolveworkspace"))
+        {
+            parse = Parsed(new ResolveWorkspaceRequest(rest), flags);
+            return true;
+        }
+
         if (Is(verb, "switchxkblayout"))
         {
             parse = Parsed(new SwitchLayoutRequest(rest), flags);
@@ -417,3 +423,9 @@ public sealed record GetPropRequest(string Selector, string Property) : CommandR
 public sealed record SetPropRequest(string Selector, string Property, string Value) : CommandRequest;
 
 public sealed record BatchRequest(string Payload) : CommandRequest;
+
+/// <summary>
+/// <c>resolveworkspace MONITOR SELECTOR</c>: the address of the workspace a selector names, read as a dispatcher on that
+/// monitor reads it, when the workspace exists. It creates nothing. The Lua config's workspace queries use it.
+/// </summary>
+public sealed record ResolveWorkspaceRequest(string Arguments) : CommandRequest;

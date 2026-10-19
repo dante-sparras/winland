@@ -147,7 +147,7 @@ static int Run(string? path)
     if (!Dispatchers.TryBind(LuaConfig.FunctionDispatcher, arguments => { lua.Call(arguments); return new DispatcherResult(null, null); }, out var luaError))
         Console.Error.WriteLine(luaError);
 
-    CommandServer.Intercept = lua.Answer;
+    CommandServer.Intercept = line => lua.Answer(line, luaWorld.Command);
 
     var configPath = path ?? ConfigPaths.Default(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
     ConfigDocument current;

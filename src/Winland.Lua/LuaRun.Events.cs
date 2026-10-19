@@ -46,6 +46,8 @@ internal sealed partial class LuaRun
 
     private sealed record TextEventArgument(string Value) : EventArgument;
 
+    private sealed record BooleanEventArgument(bool Value) : EventArgument;
+
     private long Subscribe(string name, int reference)
     {
         var handle = ++_nextHandle;
@@ -115,6 +117,9 @@ internal sealed partial class LuaRun
             case ClientPinned pinned:
                 yield return ("window.pin", [new WindowEventArgument(pinned.Window)]);
                 break;
+            case ClientMinimized minimized:
+                yield return ("window.minimize", [new WindowEventArgument(minimized.Window), new BooleanEventArgument(minimized.Minimized)]);
+                break;
             case FullscreenChanged fullscreen:
                 yield return ("window.fullscreen", [new WindowEventArgument(fullscreen.Window)]);
                 break;
@@ -154,6 +159,16 @@ internal sealed partial class LuaRun
                 yield return ("keybinds.submap", [new TextEventArgument(submap.Name)]);
                 break;
         }
+    }
+
+    /// <summary>
+    /// The config's Lua is about to be let go, for a reload or because Winland exits: its <c>config.unload</c>
+    /// handlers run, as in the pinned release.
+    /// </summary>
+    public void Unload()
+    {
+        if (_phase == Phase.Running)
+            Notify("config.unload", [], null);
     }
 
     // Calls each handler of the event in the order they were added, each with the time limit. A handler's error is
@@ -204,11 +219,16 @@ internal sealed partial class LuaRun
     {
         switch (argument)
         {
+            // No window or workspace is nil, as in the pinned release; one that is gone is an expired object.
+            case WindowEventArgument { Window: null }:
+            case WorkspaceEventArgument { Workspace: null }:
+                _lua.PushNil();
+                break;
             case WindowEventArgument window:
-                Make(_makeWindow, window.Window is WindowId id ? Address(id) : null);
+                Make(_makeWindow, Address(window.Window!.Value));
                 break;
             case WorkspaceEventArgument workspace:
-                Make(_makeWorkspace, workspace.Workspace?.Name);
+                Make(_makeWorkspace, workspace.Workspace!.Value.Name);
                 break;
             case MonitorEventArgument monitor:
                 Make(_makeMonitor, monitor.Name);
@@ -218,6 +238,9 @@ internal sealed partial class LuaRun
                 break;
             case TextEventArgument text:
                 _lua.PushString(text.Value);
+                break;
+            case BooleanEventArgument flag:
+                _lua.PushBoolean(flag.Value);
                 break;
             default:
                 _lua.PushNil();

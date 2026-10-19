@@ -24,7 +24,7 @@ public class LuaHostingTests
         runtime.Adopt(LuaHosting.Take());
         Assert.Null(LuaHosting.Take());
 
-        Assert.Equal("7", runtime.Answer("repl value + 1"));
+        Assert.Equal("7", runtime.Answer("repl value + 1", command => command));
     }
 
     [Fact]

@@ -84,6 +84,62 @@ public class LuaRuntimeTests
     }
 
     [Fact]
+    public void EvalAnswersAsThePinnedReleaseDoes()
+    {
+        var (runtime, _, _) = Start("");
+        using var _runtime = runtime;
+
+        // A print with nothing to print adds no line, and a chunk that does not load says the first load's status.
+        Assert.Equal("1", runtime.Eval("print() return 1", repl: true));
+        Assert.StartsWith("error: 3 eval:1:", runtime.Eval("this is not lua", repl: false), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReloadConfigReloadsAndAFunctionIsDispatched()
+    {
+        var (runtime, world, _) = Start("");
+        using var _runtime = runtime;
+
+        Assert.Equal("ok", runtime.Eval("hl.dispatch(hl.dsp.reload_config())", repl: false));
+        Assert.Equal("ok", runtime.Eval("hl.dispatch(function() hl.dispatch(hl.dsp.exit()) end)", repl: false));
+
+        Assert.Equal(["reload", "dispatch exit"], world.Commands);
+    }
+
+    [Fact]
+    public void ATimerCanBeStoppedStartedAndGivenANewTimeout()
+    {
+        var (runtime, world, _) = Start("""
+            ticks = 0
+            t = hl.timer(function() ticks = ticks + 1 hl.dispatch(hl.dsp.no_op()) end, { timeout = 60000, type = "oneshot" })
+            """);
+        using var _ = runtime;
+
+        Assert.Equal("true", runtime.Eval("t:is_enabled()", repl: true));
+        Assert.Equal("false", runtime.Eval("t:set_enabled(false) return t:is_enabled()", repl: true));
+        Assert.Equal("ok", runtime.Eval("t:set_timeout(10)", repl: false));
+
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (!world.Commands.Contains("dispatch no_op") && DateTime.UtcNow < deadline)
+            Thread.Sleep(10);
+
+        Settle(runtime);
+        Assert.Equal("1\tnil\tHL.Timer(expired)", runtime.Eval("return ticks, t:is_enabled(), tostring(t)", repl: true));
+    }
+
+    [Fact]
+    public void TheConfigsUnloadHandlersRunBeforeItIsReplaced()
+    {
+        var (runtime, world, _) = Start("hl.on('config.unload', function() hl.dispatch(hl.dsp.no_op()) end)\n");
+        using var _ = runtime;
+
+        runtime.Adopt(LuaConfig.Load("", ConfigPath, _ => null).Session);
+        Settle(runtime);
+
+        Assert.Equal(["dispatch no_op"], world.Commands);
+    }
+
+    [Fact]
     public void AFailedDispatchIsAnErrorOfTheEval()
     {
         var (runtime, world, _) = Start("");
@@ -148,18 +204,31 @@ public class LuaRuntimeTests
     {
         var world = new World();
         using var runtime = new LuaRuntime(world);
-        Assert.Equal("eval is only supported with a Lua config", runtime.Answer("eval 1"));
-        Assert.Null(runtime.Answer("dispatch workspace 2"));
+        Assert.Equal("eval is only supported with a Lua config", runtime.Answer("eval 1", Execute));
+        Assert.Null(runtime.Answer("dispatch workspace 2", Execute));
 
         runtime.Adopt(LuaConfig.Load("value = 6\n", ConfigPath, _ => null).Session);
 
-        Assert.Equal("7", runtime.Answer("repl value + 1"));
-        Assert.Equal("ok", runtime.Answer("j/eval value"));
-        Assert.Equal("ok", runtime.Answer("dispatch hl.dsp.focus({ workspace = 2 })"));
-        Assert.Null(runtime.Answer("dispatch workspace 2"));
-        Assert.Null(runtime.Answer("clients"));
+        Assert.Equal("7", runtime.Answer("repl value + 1", Execute));
+        Assert.Equal("ok", runtime.Answer("j/eval value", Execute));
+        Assert.Equal("ok", runtime.Answer("dispatch hl.dsp.focus({ workspace = 2 })", Execute));
+        Assert.Null(runtime.Answer("dispatch workspace 2", Execute));
+        Assert.Null(runtime.Answer("clients", Execute));
 
         Assert.Equal(["dispatch workspace 2"], world.Commands);
+    }
+
+    // What the core would answer, for the commands a batch leaves to it.
+    private static string Execute(string command) => "core " + command;
+
+    [Fact]
+    public void ABatchWithLuaInItRunsEachCommandWhereItBelongs()
+    {
+        using var runtime = new LuaRuntime(new World());
+        runtime.Adopt(LuaConfig.Load("value = 6\n", ConfigPath, _ => null).Session);
+
+        Assert.Null(runtime.Answer("[[BATCH]]clients;workspaces", Execute));
+        Assert.Equal("core clients\n\n\n7\n\n\ncore workspaces", runtime.Answer("[[BATCH]]clients; repl value + 1; workspaces", Execute));
     }
 
     [Fact]

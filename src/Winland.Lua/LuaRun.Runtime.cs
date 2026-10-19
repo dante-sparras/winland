@@ -23,7 +23,7 @@ internal sealed partial class LuaRun
 
     private readonly Dictionary<int, int> _functions = [];
     private readonly List<string> _queued = [];
-    private readonly List<(int Id, int Milliseconds, bool Repeat)> _pendingTimers = [];
+    private readonly List<int> _pendingTimers = [];
     private readonly List<string> _prints = [];
     private readonly List<string> _issues = [];
     private ILuaWorld? _world;
@@ -52,8 +52,11 @@ internal sealed partial class LuaRun
             Report(world.Command(command), command);
 
         _queued.Clear();
-        foreach (var (id, milliseconds, repeat) in _pendingTimers)
-            timers.Start(id, milliseconds, repeat);
+        foreach (var id in _pendingTimers)
+        {
+            if (_timerStates.TryGetValue(id, out var timer) && timer.Armed && !timer.Gone)
+                timers.Start(id, Math.Max(timer.Due, 1), timer.Period);
+        }
 
         _pendingTimers.Clear();
     }
@@ -61,8 +64,27 @@ internal sealed partial class LuaRun
     /// <summary>Calls the function a bind names.</summary>
     public void Call(int id) => Call(id, BindLimit, "keybind callback");
 
-    /// <summary>Calls a timer's function.</summary>
-    public void Tick(int id) => Call(id, TimerLimit, "hl.timer callback");
+    /// <summary>Calls a timer's function. A one-shot timer is gone once it fires.</summary>
+    public void Tick(int id)
+    {
+        if (_timerStates.TryGetValue(id, out var timer))
+        {
+            if (timer.Gone || !timer.Armed)
+                return;
+
+            if (timer.Repeat)
+            {
+                timer.Due = timer.Milliseconds;
+            }
+            else
+            {
+                timer.Armed = false;
+                timer.Gone = true;
+            }
+        }
+
+        Call(id, TimerLimit, "hl.timer callback");
+    }
 
     private void Call(int id, double limit, string label)
     {
@@ -122,14 +144,16 @@ internal sealed partial class LuaRun
         try
         {
             var expression = code.StartsWith("return", StringComparison.Ordinal) ? code : $"return {code};";
-            if (_lua.LoadString(expression, "=eval") != LuaStatus.OK)
+            var status = _lua.LoadString(expression, "=eval");
+            if (status != LuaStatus.OK)
             {
                 _lua.Pop(1);
                 if (_lua.LoadString(code, "=eval") != LuaStatus.OK)
                 {
+                    // The pinned release puts the status of the first load before the error.
                     var error = _lua.ToString(-1);
                     _lua.Pop(1);
-                    return "error: " + error;
+                    return $"error: {(int)status} {error}";
                 }
             }
 
@@ -181,7 +205,11 @@ internal sealed partial class LuaRun
     // print: into an eval's reply while it runs, into the log otherwise.
     private int Print(IntPtr state)
     {
+        // print() with nothing to print prints nothing, as in the pinned release.
         var count = _lua.GetTop();
+        if (count == 0)
+            return 0;
+
         var values = new List<string>(count);
         for (var i = 1; i <= count; i++)
             values.Add(Show(i));
@@ -200,13 +228,35 @@ internal sealed partial class LuaRun
     // hl.dispatch(dispatcher): runs it now, or once Winland runs when the config calls it as it loads.
     private int DispatchNow(IntPtr state)
     {
+        if (_lua.IsCFunction(1))
+            return Result(false, "hl.dispatch: dispatcher factory supplied instead of a dispatcher; call the factory first (missing parentheses?)");
+
+        // A Lua function is called, and what it returns is the result: success when it returns nothing.
+        if (_lua.IsFunction(1))
+        {
+            _lua.PushCopy(1);
+            var top = _lua.GetTop() - 1;
+            if (_lua.PCall(0, 1, 0) != LuaStatus.OK)
+            {
+                var error = _lua.ToString(-1);
+                _lua.Pop(1);
+                return Result(false, "hl.dispatch: " + error);
+            }
+
+            if (!_lua.IsNil(-1))
+                return 1;
+
+            _lua.SetTop(top);
+            return Result(true, null);
+        }
+
         if (ReadDispatch(1) is not Dispatch dispatch)
-            return Result(false, "hl.dispatch: expected a dispatcher (e.g. hl.dsp.window.close())");
+            return Result(false, "hl.dispatch: expected a dispatcher (e.g. hl.dsp.window.close()) or a lua function");
 
         if (dispatch.Unhonored is string unhonored)
             return Result(false, $"hl.dispatch: {unhonored} is not honored yet");
 
-        var command = ("dispatch " + dispatch.Dispatcher + " " + dispatch.Arguments).TrimEnd();
+        var command = dispatch.Command ? dispatch.Dispatcher : ("dispatch " + dispatch.Dispatcher + " " + dispatch.Arguments).TrimEnd();
         if (_world is null)
         {
             _queued.Add(command);
@@ -285,10 +335,85 @@ internal sealed partial class LuaRun
         }
 
         var id = KeepFunction(1);
+        var timer = new TimerState(timeout, type == "repeat") { Due = timeout, Armed = true };
+        _timerStates[id] = timer;
         if (_timers is null)
-            _pendingTimers.Add((id, timeout, type == "repeat"));
+            _pendingTimers.Add(id);
         else
-            _timers.Start(id, timeout, type == "repeat");
+            _timers.Start(id, timeout, timer.Period);
+
+        _lua.RawGetInteger(LuaRegistry.Index, _makeTimer);
+        _lua.PushInteger(id);
+        if (_lua.PCall(1, 1, 0) != LuaStatus.OK)
+        {
+            _lua.Pop(1);
+            return 0;
+        }
+
+        return 1;
+    }
+
+    // A timer's state: the period a repeating one keeps, which is the timeout it was made with as in the pinned
+    // release, the delay it was last armed with, and whether it is armed. A one-shot timer that fired is gone.
+    private sealed record TimerState(int Milliseconds, bool Repeat)
+    {
+        public int Due { get; set; }
+
+        public bool Armed { get; set; }
+
+        public bool Gone { get; set; }
+
+        public int Period => Repeat ? Milliseconds : Timeout.Infinite;
+    }
+
+    private readonly Dictionary<int, TimerState> _timerStates = [];
+    private int _makeTimer;
+
+    // timerinfo(id): whether the timer is armed, or nil once it is gone.
+    private int TimerInfo(IntPtr state)
+    {
+        if (!_lua.IsInteger(1) || !_timerStates.TryGetValue((int)_lua.ToInteger(1), out var timer) || timer.Gone)
+        {
+            _lua.PushNil();
+            return 1;
+        }
+
+        _lua.PushBoolean(timer.Armed);
+        return 1;
+    }
+
+    // timerset(id, enabled, timeout): set_enabled arms the timer with its last timeout or disarms it, and
+    // set_timeout arms it with a new one.
+    private int TimerSet(IntPtr state)
+    {
+        if (!_lua.IsInteger(1) || !_timerStates.TryGetValue((int)_lua.ToInteger(1), out var timer) || timer.Gone)
+            return 0;
+
+        var id = (int)_lua.ToInteger(1);
+        if (_lua.IsInteger(3))
+        {
+            var timeout = _lua.ToInteger(3);
+            if (timeout < 1)
+            {
+                Warn("hl.timer:set_timeout: timeout must be greater or equal to 1ms");
+                return 0;
+            }
+
+            timer.Due = (int)Math.Min(timeout, int.MaxValue);
+            timer.Armed = true;
+        }
+        else
+        {
+            timer.Armed = _lua.ToBoolean(2);
+        }
+
+        if (_timers is null)
+            return 0;
+
+        if (timer.Armed)
+            _timers.Start(id, Math.Max(timer.Due, 1), timer.Period);
+        else
+            _timers.Stop(id);
 
         return 0;
     }
@@ -330,5 +455,8 @@ internal sealed partial class LuaRun
 /// <summary>Starts the timers a config makes. The runtime calls back on its own thread.</summary>
 internal interface ILuaTimers
 {
-    void Start(int id, int milliseconds, bool repeat);
+    /// <summary>Arms a timer to fire after <paramref name="due"/> and then every <paramref name="period"/>, or once with <see cref="Timeout.Infinite"/>.</summary>
+    void Start(int id, int due, int period);
+
+    void Stop(int id);
 }

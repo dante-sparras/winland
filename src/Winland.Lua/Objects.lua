@@ -4,8 +4,10 @@
 -- read, from Winland's query replies, which the runtime keeps until a dispatch runs or the call ends. An object whose
 -- window, workspace or monitor is gone reads nil for every field, as an expired object does in the pinned release.
 local hl, native, version = ...
-local fetch, userdata, note, matches, history, unsubscribe, optionName, running =
-    native.fetch, native.userdata, native.note, native.matches, native.history, native.unsubscribe, native.option, native.running
+local fetch, userdata, note, matches, history, unsubscribe, optionName, running, run =
+    native.fetch, native.userdata, native.note, native.matches, native.history, native.unsubscribe, native.option, native.running, native.run
+local bindInfo, bindEnable, bindRemove, timerInfo, timerSet =
+    native.bindinfo, native.bindenable, native.bindremove, native.timerinfo, native.timerset
 
 local keys = setmetatable({}, { __mode = "k" })
 
@@ -14,6 +16,9 @@ local Workspace = { __name = "HL.Workspace" }
 local Monitor = { __name = "HL.Monitor" }
 local Group = { __name = "HL.Group" }
 local Subscription = { __name = "HL.EventSubscription" }
+local Keybind = { __name = "HL.Keybind" }
+local Timer = { __name = "HL.Timer" }
+local Device = { __name = "HL.Device" }
 
 local function readOnly()
     note("attempt to modify read-only hl object", 2)
@@ -23,7 +28,7 @@ local function same(a, b)
     return getmetatable(a) == getmetatable(b) and keys[a] == keys[b]
 end
 
-for _, kind in ipairs({ Window, Workspace, Monitor, Group, Subscription }) do
+for _, kind in ipairs({ Window, Workspace, Monitor, Group, Subscription, Keybind, Timer, Device }) do
     kind.__newindex = readOnly
     kind.__eq = same
 end
@@ -65,7 +70,8 @@ end
 
 local function client(address) return find(clients(), "address", address) end
 local function workspaceEntry(key) return find(workspaces(), "address", key) end
-local function monitorEntry(name) return find(monitors(), "name", name) end
+-- A monitor, enabled or not.
+local function monitorEntry(name) return find(monitors(), "name", name) or find(list("j/monitors all"), "name", name) end
 
 local function activeAddress()
     local active = fetch("j/activewindow")
@@ -104,50 +110,6 @@ end
 
 local function workspaceOf(entry)
     return entry.workspace and entry.workspace.address or nil
-end
-
--- A workspace's id. The replies give it only for a numbered workspace; a named one is -1, -2, ... in name order, and a
--- special one -99 for the unnamed one and -98, -97, ... for the others in name order, as Winland numbers them.
-local function workspaceId(entry)
-    if entry.id ~= nil then
-        return entry.id
-    end
-
-    local named, specials = {}, {}
-    for _, other in ipairs(workspaces()) do
-        if other.id == nil then
-            if other.type == "special" then
-                specials[#specials + 1] = other.address
-            else
-                named[#named + 1] = other.address
-            end
-        end
-    end
-
-    table.sort(named)
-    table.sort(specials)
-    if entry.type == "special" then
-        if entry.address == "special:special" then
-            return -99
-        end
-        local next = -98
-        for _, address in ipairs(specials) do
-            if address == entry.address then
-                return next
-            end
-            if address ~= "special:special" then
-                next = next + 1
-            end
-        end
-        return 0
-    end
-
-    for i, address in ipairs(named) do
-        if address == entry.address then
-            return -i
-        end
-    end
-    return 0
 end
 
 -- The workspace a dispatcher's selector names: its number, special:name, or name:name.
@@ -240,7 +202,7 @@ local windowFields = {
     xdg_tag = function(c) return nonEmpty(c.xdgTag) end,
     xdg_description = function(c) return nonEmpty(c.xdgDescription) end,
     content_type = function(c) return c.contentType end,
-    stable_id = function(c) return tonumber(c.stableId or "", 16) end,
+    stable_id = function(c) return c.stableId and string.lower(c.stableId) or nil end,
     layout = function(c)
         if c.floating then
             return nil
@@ -341,8 +303,10 @@ local function groupsOn(entry)
 end
 
 local workspaceFields = {
-    id = workspaceId,
+    -- Only a numbered workspace has an id.
+    id = function(w) return w.id end,
     name = function(w) return w.name end,
+    addressable_name = function(w) return w.address end,
     monitor = function(w)
         if w.monitor and w.monitor ~= "" then
             return monitor(w.monitor)
@@ -374,15 +338,6 @@ local workspaceFields = {
     has_fullscreen = function(w) return w.hasfullscreen end,
     is_persistent = function(w) return w.ispersistent end,
     is_empty = function(w) return w.windows == 0 end,
-    config_name = function(w)
-        if w.type == "special" then
-            return w.name
-        end
-        if w.id ~= nil and w.id > 0 then
-            return tostring(w.id)
-        end
-        return "name:" .. w.name
-    end,
     tiled_layout = function(w) return w.tiledLayout or "unknown" end,
     last_window = function(w)
         if w.lastwindow and w.lastwindow ~= "0x0" then
@@ -427,7 +382,7 @@ Workspace.__tostring = function(self)
     if entry == nil then
         return "HL.Workspace(expired)"
     end
-    return "HL.Workspace(" .. workspaceId(entry) .. ":" .. entry.name .. ")"
+    return "HL.Workspace(" .. entry.address .. ":" .. entry.name .. ")"
 end
 
 -- Monitor.
@@ -477,14 +432,25 @@ local monitorFields = {
         local r = m.reserved or { 0, 0, 0, 0 }
         return { top = float(r[2]), right = float(r[3]), bottom = float(r[4]), left = float(r[1]) }
     end,
-    set_workspace = function() return notHonored("HL.Monitor:set_workspace") end,
-    set_special_workspace = function() return notHonored("HL.Monitor:set_special_workspace") end,
+    mode = function(m) return { width = m.width, height = m.height, refresh_rate = float(m.refreshRate) } end,
+    enabled = function(m) return not m.disabled end,
+    -- Windows reports none of these, and Winland runs on no other backend.
+    hardware_details = function() return { backend = "windows", hdr = false, chroma = false, bt2020 = false, vrr_capable = false } end,
 }
+
+-- set_workspace and set_special_workspace, set further down.
+local monitorMethods = {}
 
 Monitor.__index = function(self, key)
     local entry = monitorEntry(keys[self])
+    if entry == nil then
+        return nil
+    end
+    if monitorMethods[key] then
+        return monitorMethods[key]
+    end
     local field = monitorFields[key]
-    if entry == nil or field == nil then
+    if field == nil then
         return nil
     end
     return field(entry)
@@ -530,6 +496,158 @@ local function subscription(handle)
     local made = object(Subscription, handle)
     subscriptions[made] = { handle = handle, active = true }
     return made
+end
+
+-- Keybinds: what hl.bind returns. Its fields are the bind's until it is removed, and nil after.
+
+local keybindMethods = {
+    set_enabled = function(self, enabled)
+        if type(enabled) ~= "boolean" then
+            note("HL.Keybind:set_enabled: expected a boolean", 2)
+            return
+        end
+        bindEnable(keys[self], enabled)
+    end,
+    is_enabled = function(self)
+        local info = bindInfo(keys[self])
+        if info == nil then
+            return nil
+        end
+        return info.enabled
+    end,
+    remove = function(self) bindRemove(keys[self]) end,
+}
+keybindMethods.unbind = keybindMethods.remove
+
+Keybind.__index = function(self, key)
+    if keybindMethods[key] then
+        return keybindMethods[key]
+    end
+    local info = bindInfo(keys[self])
+    if info == nil then
+        return nil
+    end
+    return info[key]
+end
+
+Keybind.__tostring = function(self)
+    if bindInfo(keys[self]) == nil then
+        return "HL.Keybind(expired)"
+    end
+    return string.format("HL.Keybind(0x%x)", keys[self])
+end
+
+local function keybind(id) return object(Keybind, id) end
+
+-- Timers: what hl.timer returns. A one-shot timer that fired is gone.
+
+local timerMethods = {
+    set_enabled = function(self, enabled)
+        if type(enabled) ~= "boolean" then
+            note("HL.Timer:set_enabled: expected a boolean", 2)
+            return
+        end
+        timerSet(keys[self], enabled, nil)
+    end,
+    set_timeout = function(self, timeout)
+        if type(timeout) ~= "number" then
+            note("HL.Timer:set_timeout: expected a number", 2)
+            return
+        end
+        timerSet(keys[self], true, math.floor(timeout))
+    end,
+    is_enabled = function(self) return timerInfo(keys[self]) end,
+}
+
+Timer.__index = function(_, key)
+    return timerMethods[key]
+end
+
+Timer.__tostring = function(self)
+    if timerInfo(keys[self]) == nil then
+        return "HL.Timer(expired)"
+    end
+    return string.format("HL.Timer(0x%x)", keys[self])
+end
+
+local function timer(id) return object(Timer, id) end
+
+-- Devices: what hl.get_devices returns, read from Winland's devices reply, which has one keyboard and one mouse.
+
+local function devices()
+    local reply = fetch("j/devices")
+    local found = {}
+    if type(reply) ~= "table" then
+        return found
+    end
+    for _, group in ipairs({ { "mice", "pointer" }, { "keyboards", "keyboard" }, { "tablets", "tablet" }, { "touch", "touch" }, { "switches", "switch" } }) do
+        for _, entry in ipairs(reply[group[1]] or {}) do
+            found[#found + 1] = { kind = group[2], entry = entry }
+        end
+    end
+    return found
+end
+
+local function deviceEntry(address)
+    for _, device in ipairs(devices()) do
+        if device.entry.address == address then
+            return device
+        end
+    end
+    return nil
+end
+
+local deviceFields = {
+    pointer = {
+        default_speed = function(e) return float(e.defaultSpeed) end,
+        scroll_factor = function(e) return float(e.scrollFactor) end,
+    },
+    keyboard = {
+        rules = function(e) return e.rules end,
+        model = function(e) return e.model end,
+        layout = function(e) return e.layout end,
+        variant = function(e) return e.variant end,
+        options = function(e) return e.options end,
+        main = function(e) return e.main end,
+        active_layout_index = function(e) return e.active_layout_index end,
+        active_keymap = function(e) return e.active_keymap end,
+        caps_lock = function(e) return e.capsLock end,
+        num_lock = function(e) return e.numLock end,
+    },
+}
+
+Device.__index = function(self, key)
+    local device = deviceEntry(keys[self])
+    if device == nil then
+        return nil
+    end
+    if key == "address" then
+        return device.entry.address
+    elseif key == "type" then
+        return device.kind
+    elseif key == "name" then
+        return device.entry.name
+    end
+    local field = (deviceFields[device.kind] or {})[key]
+    if field == nil then
+        return nil
+    end
+    return field(device.entry)
+end
+
+Device.__tostring = function(self)
+    if deviceEntry(keys[self]) == nil then
+        return "HL.Device(expired)"
+    end
+    return "HL.Device(" .. keys[self] .. ")"
+end
+
+function hl.get_devices()
+    local found = {}
+    for i, device in ipairs(devices()) do
+        found[i] = object(Device, device.entry.address)
+    end
+    return found
 end
 
 -- Selectors: an object, or the text a dispatcher takes.
@@ -657,26 +775,17 @@ local function resolveWorkspace(value, label)
         return nil
     end
 
-    local text = selectorText(value)
-    local number = math.tointeger(tonumber(text))
-    for _, entry in ipairs(workspaces()) do
-        if number ~= nil then
-            if workspaceId(entry) == number then
-                return entry
-            end
-        elseif text == "special" then
-            if entry.address == "special:special" then
-                return entry
-            end
-        elseif startsWith(text, "name:") then
-            if entry.type ~= "special" and (entry.name == text:sub(6) or entry.address == text:sub(6)) then
-                return entry
-            end
-        elseif entry.address == text or entry.name == text then
-            return entry
-        end
+    -- Winland reads the selector as a dispatcher on the focused monitor reads it, relative forms too, and finds the
+    -- workspace it names without making one.
+    local focused = focusedMonitor()
+    if focused == nil then
+        return nil
     end
-    return nil
+    local address = fetch("j/resolveworkspace " .. focused.name .. " " .. selectorText(value))
+    if type(address) ~= "string" then
+        return nil
+    end
+    return workspaceEntry(address)
 end
 
 -- The monitor entry a selector or a monitor object names, or nil: its id, its name, or desc: and its description.
@@ -728,6 +837,96 @@ local function selector(value)
         return keys[value] or nil
     end
     return nil
+end
+
+-- The monitor methods, made of dispatchers: with another monitor focused, that monitor is focused for them and the
+-- focus goes back after.
+
+local function onMonitor(name, body)
+    local focused = focusedMonitor()
+    local away = focused ~= nil and focused.name ~= name
+    if away then
+        run("dispatch focusmonitor " .. name)
+    end
+    body()
+    if away then
+        run("dispatch focusmonitor " .. focused.name)
+    end
+end
+
+-- m:set_workspace(selector or workspace): shows the workspace on the monitor, read from that monitor, and moves it there
+-- first when another monitor has it. A special workspace is left alone.
+function monitorMethods.set_workspace(self, value)
+    local name = keys[self]
+    local text
+    if kindOf(value) == Workspace then
+        if keys[value] == nil or workspaceEntry(keys[value]) == nil then
+            note("HLMonitor.set_workspace: workspace object is expired", 2)
+            return
+        end
+        text = workspaceSelector(keys[value])
+    elseif type(value) == "string" or type(value) == "number" then
+        text = selectorText(value)
+    else
+        note("HLMonitor.set_workspace: expected a workspace object or selector", 2)
+        return
+    end
+
+    local existing = fetch("j/resolveworkspace " .. name .. " " .. text)
+    if text == "special" or startsWith(text, "special:") or (type(existing) == "string" and startsWith(existing, "special:")) then
+        return
+    end
+
+    onMonitor(name, function()
+        local target = text
+        if type(existing) == "string" then
+            target = workspaceSelector(existing)
+            run("dispatch moveworkspacetomonitor " .. target .. " " .. name)
+        end
+        run("dispatch workspace " .. target)
+    end)
+end
+
+-- The name togglespecialworkspace takes for a special workspace's address: none for the unnamed one.
+local function specialName(address)
+    if address == "special:special" then
+        return ""
+    end
+    return address:sub(#"special:" + 1)
+end
+
+-- m:set_special_workspace(name or workspace): opens that special workspace on the monitor. nil closes the one open.
+function monitorMethods.set_special_workspace(self, value)
+    local name = keys[self]
+    local target
+    if type(value) == "string" or type(value) == "number" then
+        local text = selectorText(value)
+        if startsWith(text, "special:") then
+            text = text:sub(#"special:" + 1)
+        end
+        target = (text == "" or text == "special") and "special:special" or ("special:" .. text)
+    elseif kindOf(value) == Workspace then
+        target = keys[value]
+        if target == nil or not startsWith(target, "special:") then
+            return
+        end
+    elseif value ~= nil then
+        note("HLMonitor.set_special_workspace: expected a workspace object or selector", 2)
+        return
+    end
+
+    local entry = monitorEntry(name)
+    local open = entry and entry.specialWorkspace and entry.specialWorkspace.address
+    if open == "" then
+        open = nil
+    end
+    if open == target then
+        return
+    end
+
+    onMonitor(name, function()
+        run("dispatch togglespecialworkspace " .. specialName(target or open))
+    end)
 end
 
 -- The queries.
@@ -844,9 +1043,25 @@ function hl.get_active_special_workspace(value)
     return entry and workspaceIn(entry.specialWorkspace) or nil
 end
 
-function hl.get_monitors()
+-- hl.get_monitors({ all = true }) lists the disabled monitors too.
+function hl.get_monitors(options)
+    local all = false
+    if options ~= nil then
+        if type(options) ~= "table" then
+            note("hl.get_monitors: expected no args or a table of options", 2)
+            return nil
+        end
+        if options.all ~= nil then
+            if type(options.all) ~= "boolean" then
+                note("hl.get_monitors: option 'all': expected a boolean", 2)
+                return nil
+            end
+            all = options.all
+        end
+    end
+
     local found = {}
-    for i, entry in ipairs(monitors()) do
+    for i, entry in ipairs(all and list("j/monitors all") or monitors()) do
         found[i] = monitor(entry.name)
     end
     return found
@@ -999,4 +1214,6 @@ return {
     monitor = monitor,
     subscription = subscription,
     selector = selector,
+    keybind = keybind,
+    timer = timer,
 }

@@ -41,6 +41,12 @@ internal sealed partial class LuaRun
         Function("history", "hl", History);
         Function("unsubscribe", "hl", Unsubscribe);
         Function("option", "hl", Option);
+        Function("run", "hl", RunCommand);
+        Function("bindinfo", "hl", BindInfo);
+        Function("bindenable", "hl", BindEnable);
+        Function("bindremove", "hl", BindRemove);
+        Function("timerinfo", "hl", TimerInfo);
+        Function("timerset", "hl", TimerSet);
         Function("running", "hl", state =>
         {
             _lua.PushBoolean(_world is not null);
@@ -55,6 +61,8 @@ internal sealed partial class LuaRun
         _makeMonitor = Field("monitor");
         _makeSubscription = Field("subscription");
         _selectorOf = Field("selector");
+        _makeKeybind = Field("keybind");
+        _makeTimer = Field("timer");
         _lua.Pop(1);
 
         int Field(string name)
@@ -82,6 +90,27 @@ internal sealed partial class LuaRun
         }
 
         _lua.RawGetInteger(LuaRegistry.Index, reference);
+        return 1;
+    }
+
+    // run(command): runs a command as the pipe does and gives its reply. While the config loads it waits until Winland
+    // runs, as hl.dispatch does.
+    private int RunCommand(IntPtr state)
+    {
+        var command = _lua.IsString(1) ? _lua.ToString(1, false) : "";
+        if (command.Length == 0)
+            return 0;
+
+        if (_world is null)
+        {
+            _queued.Add(command);
+            _lua.PushString("ok");
+            return 1;
+        }
+
+        var reply = _world.Command(command);
+        Forget();
+        _lua.PushString(reply);
         return 1;
     }
 

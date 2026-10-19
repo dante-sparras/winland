@@ -75,6 +75,7 @@ public sealed partial class Core
         SwitchLayoutRequest layout => SwitchLayout(layout),
         DevicesRequest devices => Devices(devices),
         BatchRequest batch => RunBatch(batch.Payload),
+        ResolveWorkspaceRequest resolve => ResolveWorkspace(resolve.Arguments, resolve.Flags.HasFlag(CommandFlags.Json)),
         _ => throw new InvalidOperationException("No handler for this command."),
     };
 
@@ -165,7 +166,9 @@ public sealed partial class Core
 
     private CommandReply ApplyKeyword(KeywordRequest request)
     {
-        if (request.Name.Length == 0 || request.Value.Length == 0)
+        // An empty value is a value only for the keyboard options, whose default is empty, and which the Lua config's
+        // hl.config sets to "" through here.
+        if (request.Name.Length == 0 || (request.Value.Length == 0 && !request.Name.StartsWith("input:kb_", StringComparison.Ordinal)))
             return new CommandReply("error: invalid keyword", View([]));
 
         if (!LiveKeyword(request.Name))

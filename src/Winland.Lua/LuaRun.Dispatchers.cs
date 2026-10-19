@@ -11,6 +11,10 @@ internal sealed partial class LuaRun
     private const string DispatcherField = "__winland_dispatcher";
     private const string ArgumentsField = "__winland_arguments";
     private const string UnhonoredField = "__winland_unhonored";
+    private const string NameField = "__winland_name";
+    private const string CommandField = "__winland_command";
+
+    private int _dispatcherMetatable;
 
     private enum Toggle
     {
@@ -19,7 +23,9 @@ internal sealed partial class LuaRun
         Disable,
     }
 
-    private readonly record struct Dispatch(string Dispatcher, string Arguments, string? Unhonored = null);
+    // Command is a pipe command rather than a dispatcher, such as reload, which hl.dispatch sends as it is and a bind
+    // runs through a Lua function.
+    private readonly record struct Dispatch(string Dispatcher, string Arguments, string? Unhonored = null, bool Command = false);
 
     // A config mistake in a constructor's arguments: the constructor warns with it and returns nothing.
     private sealed class DispatchArgumentException(string message) : Exception(message);
@@ -40,7 +46,7 @@ internal sealed partial class LuaRun
         Constructor("group", "active", GroupActive);
         Constructor("group", "move_window", label => new Dispatch("movegroupwindow", Bool("forward") == false ? "b" : ""));
         Constructor("group", "lock", GroupLock);
-        Constructor("group", "lock_active", label => new Dispatch("lockactivegroup", LockWord(Action())));
+        Constructor("group", "lock_active", GroupLockActive);
         _lua.SetField(-2, "group");
 
         _lua.NewTable();
@@ -57,13 +63,13 @@ internal sealed partial class LuaRun
         Constructor("window", "cycle_next", WindowCycleNext);
         Constructor("window", "tag", label => new Dispatch("tagwindow", Join(Required("tag"), Window() ?? "")));
         Constructor("window", "clear_tags", label => NotHonored(label));
-        Constructor("window", "toggle_swallow", label => new Dispatch("toggleswallow", ""));
+        Constructor("window", "toggle_swallow", label => new Dispatch("toggleswallow", ""), 0);
         Constructor("window", "pin", label => new Dispatch("pin", Join(Action() switch { Toggle.Enable => "enable", Toggle.Disable => "disable", _ => "" }, Window() ?? "")));
-        Constructor("window", "bring_to_top", label => new Dispatch("bringactivetotop", ""));
+        Constructor("window", "bring_to_top", label => new Dispatch("bringactivetotop", ""), 0);
         Constructor("window", "alter_zorder", label => new Dispatch("alterzorder", WithSelector(Required("mode"), Window())));
         Constructor("window", "set_prop", label => new Dispatch("setprop", $"{Window() ?? "activewindow"} {Required("prop")} {Required("value")}"));
         Constructor("window", "deny_from_group", label => new Dispatch("denywindowfromgroup", Action() switch { Toggle.Enable => "on", Toggle.Disable => "off", _ => "toggle" }));
-        Constructor("window", "drag", label => new Dispatch("mouse", "movewindow"));
+        Constructor("window", "drag", label => new Dispatch("mouse", "movewindow"), 0);
         Constructor("window", "resize", WindowResize);
         _lua.SetField(-2, "window");
 
@@ -75,10 +81,10 @@ internal sealed partial class LuaRun
         Constructor("workspace", "toggle_special", label => new Dispatch("togglespecialworkspace", _lua.IsStringOrNumber(1) ? _lua.ToString(1, false) : ""));
         _lua.SetField(-2, "workspace");
 
-        Constructor(null, "exec_cmd", ExecCommand);
+        Constructor(null, "exec_cmd", ExecCommand, 2);
         Constructor(null, "exec_raw", label => new Dispatch("execr", Argument()));
-        Constructor(null, "exit", label => new Dispatch("exit", ""));
-        Constructor(null, "reload_config", label => NotHonored(label));
+        Constructor(null, "exit", label => new Dispatch("exit", ""), 0);
+        Constructor(null, "reload_config", label => new Dispatch("reload", "", Command: true), 0);
         Constructor(null, "submap", label => new Dispatch("submap", Argument()));
         Constructor(null, "pass", label => new Dispatch("pass", Required("window")));
         Constructor(null, "send_shortcut", SendShortcut);
@@ -87,24 +93,37 @@ internal sealed partial class LuaRun
         Constructor(null, "dpms", Dpms);
         Constructor(null, "event", label => new Dispatch("event", Argument()));
         Constructor(null, "global", label => NotHonored(label));
-        Constructor(null, "force_renderer_reload", label => new Dispatch("forcerendererreload", ""));
+        Constructor(null, "force_renderer_reload", label => new Dispatch("forcerendererreload", ""), 0);
         Constructor(null, "force_idle", label => NotHonored(label));
-        Constructor(null, "release_input_capture", label => NotHonored(label));
+        Constructor(null, "release_input_capture", label => NotHonored(label), 0);
         Constructor(null, "focus", Focus);
-        Constructor(null, "no_op", label => new Dispatch("no_op", ""));
+        Constructor(null, "no_op", label => new Dispatch("no_op", ""), 0);
 
         _lua.SetField(-2, "dsp");
     }
 
     // Sets field name of the table on top of the stack to a constructor that pushes the table for what build returns.
-    private void Constructor(string? group, string name, Func<string, Dispatch> build)
+    // The table shows as HL.Dispatcher(name), as the pinned release's dispatcher does, and a constructor given more
+    // arguments than it takes warns and returns nothing.
+    private void Constructor(string? group, string name, Func<string, Dispatch> build, int maxArguments = 1)
     {
         var label = group is null ? $"hl.dsp.{name}" : $"hl.dsp.{group}.{name}";
         // A DispatchArgumentException warns with the label and returns nothing, as any exception in a callback does.
         Function(name, label, state =>
         {
+            var given = _lua.GetTop();
+            if (given > maxArguments)
+            {
+                Warn($"{name}: expected at most {maxArguments} argument{(maxArguments == 1 ? "" : "s")}, got {given}");
+                return 0;
+            }
+
             var dispatch = build(label);
-            _lua.CreateTable(0, 2);
+            _lua.CreateTable(0, 4);
+            _lua.PushString(name);
+            _lua.SetField(-2, NameField);
+            _lua.RawGetInteger(LuaRegistry.Index, DispatcherMetatable());
+            _lua.SetMetaTable(-2);
             if (dispatch.Unhonored is string unhonored)
             {
                 _lua.PushString(unhonored);
@@ -116,8 +135,31 @@ internal sealed partial class LuaRun
             _lua.SetField(-2, DispatcherField);
             _lua.PushString(dispatch.Arguments);
             _lua.SetField(-2, ArgumentsField);
+            if (dispatch.Command)
+            {
+                _lua.PushBoolean(true);
+                _lua.SetField(-2, CommandField);
+            }
+
             return 1;
         });
+    }
+
+    // The metatable of the dispatcher tables: tostring shows the constructor's name.
+    private int DispatcherMetatable()
+    {
+        if (_dispatcherMetatable != 0)
+            return _dispatcherMetatable;
+
+        if (_lua.DoString($$"""
+            return { __name = "HL.Dispatcher", __tostring = function(self) return "HL.Dispatcher(" .. tostring(rawget(self, "{{NameField}}")) .. ")" end }
+            """))
+        {
+            throw new InvalidOperationException(_lua.ToString(-1));
+        }
+
+        _dispatcherMetatable = _lua.Ref(LuaRegistry.Index);
+        return _dispatcherMetatable;
     }
 
     // The dispatch a constructor's table at index names, or null for any other value.
@@ -130,7 +172,7 @@ internal sealed partial class LuaRun
             return new Dispatch("", "", unhonored);
 
         return Text(index, DispatcherField) is string dispatcher
-            ? new Dispatch(dispatcher, Text(index, ArgumentsField) ?? "")
+            ? new Dispatch(dispatcher, Text(index, ArgumentsField) ?? "", Command: Text(index, CommandField) == "true")
             : null;
     }
 
@@ -150,12 +192,32 @@ internal sealed partial class LuaRun
     private Dispatch GroupActive(string label) =>
         NoWindow(label) ?? new Dispatch("changegroupactive", Required("index"));
 
+    // No argument toggles the lock of the focused window's group. { all = true } locks every group, as lockgroups does.
     private Dispatch GroupLock(string label)
     {
         if (!_lua.IsTable(1))
-            return _lua.IsNoneOrNil(1) ? new Dispatch("lockactivegroup", "toggle") : throw Mistake("expected a table { window?, action? } or no args");
+            return _lua.IsNoneOrNil(1) ? new Dispatch("lockactivegroup", "toggle") : throw Mistake("expected a table { window?, all?, action? } or no args");
+
+        if (Bool("all") == true)
+            return new Dispatch("lockgroups", LockWord(Action()));
 
         return NoWindow(label) ?? new Dispatch("lockactivegroup", LockWord(Action()));
+    }
+
+    // The pinned release keeps lock_active as group.lock without all, and notes that it is deprecated.
+    private Dispatch GroupLockActive(string label)
+    {
+        const string Notice = "hl.dsp.group.lock_active(): The group.lock_active() dispatcher is deprecated, use group.lock() instead";
+        if (_warnedPending.Add(Notice))
+        {
+            // A deprecation is a notice, not an error: an eval that uses it still succeeds.
+            if (_phase == Phase.Running)
+                _world?.Log("lua: " + Notice);
+            else
+                Warn(Notice);
+        }
+
+        return new Dispatch("lockactivegroup", LockWord(Action()));
     }
 
     private static string LockWord(Toggle action) => action switch

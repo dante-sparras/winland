@@ -38,7 +38,9 @@ internal sealed partial class LuaRun
 
         if (ParseKeys(_lua.ToString(1, false), out var error) is not LuaKeys keys)
         {
-            Warn("hl.bind: failed to parse key string: " + error);
+            // The pinned release splits the string first and makes the bind from its keys after, and says which failed.
+            var stage = error is "Empty key in key list" or "Repeated key in the key string" ? "failed to parse key string" : "failed to create bind";
+            Warn($"hl.bind: {stage}: {error}");
             return 0;
         }
 
@@ -48,13 +50,20 @@ internal sealed partial class LuaRun
             return 0;
         }
 
-        // A Lua function runs when the keys are pressed, through Winland's own dispatcher.
+        // The handler a keybind object shows: the dispatcher as HL.Dispatcher(name), or the function.
+        var handler = Show(2);
+
+        // A Lua function runs when the keys are pressed, through Winland's own dispatcher. So does a dispatcher that is
+        // a pipe command, such as reload_config, which no line dispatcher runs.
         var called = _lua.IsFunction(2) ? new Dispatch(LuaConfig.FunctionDispatcher, KeepFunction(2).ToString(CultureInfo.InvariantCulture)) : (Dispatch?)null;
         if ((called ?? ReadDispatch(2)) is not Dispatch dispatch)
         {
             Warn("hl.bind: expected a dispatcher (e.g. hl.dsp.window.close()) or a lua function");
             return 0;
         }
+
+        if (dispatch.Command)
+            dispatch = new Dispatch(LuaConfig.FunctionDispatcher, KeepDispatch(2).ToString(CultureInfo.InvariantCulture));
 
         if (dispatch.Unhonored is string unhonored)
         {
@@ -114,7 +123,182 @@ internal sealed partial class LuaRun
                 line.Append(", ").Append(Escape(dispatch.Arguments));
         }
 
-        EmitLine(line.ToString(), "hl.bind");
+        var text = line.ToString();
+        var at = _lines.Count;
+        if (!EmitLine(text, "hl.bind"))
+            return 0;
+
+        var record = new BindRecord(++_nextBind, text, $"unbind = {keys.Modifiers}, {keys.Key}")
+        {
+            Line = _lines.Count > at ? at : -1,
+            DisplayKey = _lua.ToString(1, false),
+            Handler = handler,
+            Argument = dispatch.Arguments,
+            Submap = _submaps.TryPeek(out var submap) ? submap.Name : "",
+            ModifierMask = ModifierMask(keys.Modifiers),
+            Key = keys.Key,
+            Flags = flags.ToString(),
+            Description = description,
+        };
+        _binds[record.Id] = record;
+        _lua.RawGetInteger(LuaRegistry.Index, _makeKeybind);
+        _lua.PushInteger(record.Id);
+        if (_lua.PCall(1, 1, 0) != LuaStatus.OK)
+        {
+            _lua.Pop(1);
+            return 0;
+        }
+
+        return 1;
+    }
+
+    // What a keybind object reads: the bind's line, the line that removes it, and its fields as the pinned release
+    // shows them.
+    private sealed record BindRecord(int Id, string BindLine, string UnbindLine)
+    {
+        public int Line { get; set; } = -1;
+
+        public bool Enabled { get; set; } = true;
+
+        public bool Removed { get; set; }
+
+        public string DisplayKey { get; init; } = "";
+
+        public string Handler { get; init; } = "";
+
+        public string Argument { get; init; } = "";
+
+        public string Submap { get; init; } = "";
+
+        public long ModifierMask { get; init; }
+
+        public string Key { get; init; } = "";
+
+        public string Flags { get; init; } = "";
+
+        public string? Description { get; init; }
+    }
+
+    private readonly Dictionary<int, BindRecord> _binds = [];
+    private int _nextBind;
+    private int _makeKeybind;
+
+    // The modifier mask of the pinned release for the modifier names of a key string.
+    private static long ModifierMask(string modifiers)
+    {
+        long mask = 0;
+        foreach (var name in modifiers.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            mask |= name switch
+            {
+                "SHIFT" => 1L,
+                "CAPS" => 2L,
+                "CTRL" or "CONTROL" => 4L,
+                "ALT" or "MOD1" => 8L,
+                "MOD2" => 16L,
+                "MOD3" => 32L,
+                "SUPER" or "WIN" or "LOGO" or "MOD4" or "META" => 64L,
+                "MOD5" => 128L,
+                _ => 0L,
+            };
+        }
+
+        return mask;
+    }
+
+    // The Lua function a bind runs for a dispatcher that is a pipe command: it calls hl.dispatch with the dispatcher.
+    private int KeepDispatch(int index)
+    {
+        index = _lua.AbsIndex(index);
+        if (_lua.LoadString("local d = ... return function() return hl.dispatch(d) end", "=bind") != LuaStatus.OK)
+            throw new InvalidOperationException(_lua.ToString(-1));
+
+        _lua.PushCopy(index);
+        _lua.Call(1, 1);
+        var id = KeepFunction(-1);
+        _lua.Pop(1);
+        return id;
+    }
+
+    // bindinfo(id): the fields of a keybind object, or nil once the bind is removed.
+    private int BindInfo(IntPtr state)
+    {
+        if (!_lua.IsInteger(1) || !_binds.TryGetValue((int)_lua.ToInteger(1), out var bind) || bind.Removed)
+        {
+            _lua.PushNil();
+            return 1;
+        }
+
+        _lua.NewTable();
+        SetField("enabled", bind.Enabled);
+        SetField("has_description", bind.Description is not null);
+        if (bind.Description is not null)
+            SetField("description", bind.Description);
+        SetField("display_key", bind.DisplayKey);
+        SetField("submap", bind.Submap);
+        SetField("handler", bind.Handler);
+        SetField("arg", bind.Argument);
+        _lua.PushInteger(bind.ModifierMask);
+        _lua.SetField(-2, "modmask");
+        var catchAll = bind.Key == "catchall";
+        var code = bind.Key.StartsWith("code:", StringComparison.Ordinal) && long.TryParse(bind.Key[5..], NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) ? number : 0;
+        SetField("key", catchAll || code != 0 ? "" : bind.Key[(bind.Key.LastIndexOf('&') + 1)..]);
+        _lua.PushInteger(code);
+        _lua.SetField(-2, "keycode");
+        SetField("catchall", catchAll);
+        foreach (var (option, flag) in BindFlags)
+            SetField(option, bind.Flags.Contains(flag, StringComparison.Ordinal));
+
+        SetField("auto_consuming", false);
+        SetField("device_inclusive", false);
+        SetField("allow_input_capture", false);
+        _lua.NewTable();
+        _lua.SetField(-2, "devices");
+        return 1;
+
+        void SetField(string name, object value)
+        {
+            if (value is bool flag)
+                _lua.PushBoolean(flag);
+            else
+                _lua.PushString((string)value);
+
+            _lua.SetField(-2, name);
+        }
+    }
+
+    // bindenable(id, enabled): a disabled bind is unbound, and enabling it binds it again. While the config loads
+    // its line is left out instead.
+    private int BindEnable(IntPtr state)
+    {
+        if (!_lua.IsInteger(1) || !_binds.TryGetValue((int)_lua.ToInteger(1), out var bind) || bind.Removed)
+            return 0;
+
+        var enabled = _lua.ToBoolean(2);
+        if (enabled == bind.Enabled)
+            return 0;
+
+        bind.Enabled = enabled;
+        if (_phase != Phase.Running && bind.Line >= 0)
+            _lines[bind.Line] = (enabled ? bind.BindLine : "", _lines[bind.Line].Origin);
+        else
+            Emit(enabled ? bind.BindLine : bind.UnbindLine);
+
+        return 0;
+    }
+
+    // bindremove(id): removes the bind, as hl.unbind with its keys does.
+    private int BindRemove(IntPtr state)
+    {
+        if (!_lua.IsInteger(1) || !_binds.TryGetValue((int)_lua.ToInteger(1), out var bind) || bind.Removed)
+            return 0;
+
+        bind.Removed = true;
+        if (_phase != Phase.Running && bind.Line >= 0)
+            _lines[bind.Line] = ("", _lines[bind.Line].Origin);
+        else if (bind.Enabled)
+            Emit(bind.UnbindLine);
+
         return 0;
     }
 
@@ -260,15 +444,16 @@ internal sealed partial class LuaRun
     private static string Join(string first, string second) => second.Length == 0 ? first : first + " " + second;
 
     // A line holds no line break: a value with one would end it there.
-    private void EmitLine(string line, string label)
+    private bool EmitLine(string line, string label)
     {
         if (line.AsSpan().IndexOfAny('\r', '\n') >= 0)
         {
             Warn($"{label}: a value with a line break is not honored");
-            return;
+            return false;
         }
 
         Emit(line);
+        return true;
     }
 
     private void WarnOnce(string message, int level = 1)

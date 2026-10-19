@@ -354,16 +354,163 @@ public class WorkspacesConformance
         }
     }
 
-    // The reference first checks with the Lua API that no workspace hi exists. Here the workspaces reply shows it.
     [Fact]
     public void LuaFocusCreatesBareNamedWorkspace()
     {
-        var desk = new Desk();
-        Assert.DoesNotContain("hi (hi)", Labels(desk));
-
-        desk.Ok("workspace", "hi");
+        using var desk = Desk.WithLua("");
+        Assert.Equal("nil", desk.Send("repl hl.get_workspace('hi')"));
+        LuaOk(desk, "dispatch hl.dsp.focus({ workspace = 'hi' })");
         Assert.Equal("hi (hi)", ActiveLabel(desk));
     }
+
+    [Fact]
+    public void LuaGetWorkspace()
+    {
+        using var desk = Desk.WithLua("");
+        LuaOk(desk, "dispatch hl.dsp.focus({ workspace = 'name:test' })");
+        Assert.Equal("test (test)", ActiveLabel(desk));
+        desk.Spawn("a");
+
+        Assert.Equal("HL.Workspace(test:test)", desk.Send("repl hl.get_workspace('name:test')"));
+        Assert.Equal("HL.Workspace(test:test)", desk.Send("repl hl.get_workspace('test')"));
+        Assert.Equal("true", desk.Send("repl hl.get_workspace('name:test') == hl.get_active_workspace()"));
+        Assert.Equal("true", desk.Send("repl hl.get_workspace('test') == hl.get_active_workspace()"));
+        Assert.Equal("nil", desk.Send("repl type(hl.get_active_workspace().id)"));
+
+        LuaOk(desk, "dispatch hl.dsp.focus({ workspace = 1})");
+        Assert.Equal("1 (1)", ActiveLabel(desk));
+        Assert.Equal("1", desk.Send("repl hl.get_active_workspace().id"));
+        Assert.Equal("integer", desk.Send("repl math.type(hl.get_active_workspace().id)"));
+
+        Assert.Equal("HL.Workspace(test:test)", desk.Send("repl hl.get_workspace('e-1')"));
+        Assert.Equal("nil", desk.Send("repl hl.get_workspace('r+1')"));
+        Assert.Equal("nil", desk.Send("repl hl.get_workspace(42)"));
+    }
+
+    [Fact]
+    public void LuaSetWorkspace()
+    {
+        using var desk = Desk.WithLua("");
+
+        // A new monitor takes workspace 2.
+        desk.AddMonitor("HEADLESS-3", Desk.Second);
+        Assert.Contains("2 (2)", Monitors(desk).Select(ShownOn));
+        Assert.Contains("1 (1)", Monitors(desk).Select(ShownOn));
+
+        // A recognizable window on the first monitor.
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })");
+        desk.Spawn("ws1");
+        Assert.Equal("1 (1)", WorkspaceLabelOf(desk.ActiveWindow()));
+
+        LuaOk(desk, "eval M1 = hl.get_monitors()[1]");
+        LuaOk(desk, "eval M2 = hl.get_monitors()[2]");
+
+        // Create: four new workspaces on monitor 2.
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = M2 })");
+        Assert.Equal("HEADLESS-3", ActiveMonitor(desk));
+        LuaOk(desk, "eval M2:set_workspace(100)");
+        desk.Spawn("ws100");
+        LuaOk(desk, "eval M2:set_workspace(101)");
+        desk.Spawn("ws101");
+        Assert.Contains("100 (100) on HEADLESS-3", Placed(desk));
+        Assert.Contains("101 (101) on HEADLESS-3", Placed(desk));
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })");
+        Assert.Equal("HEADLESS-2", ActiveMonitor(desk));
+
+        // Inactive to focused: monitor 1 takes workspace 100, and 101 stays on monitor 2.
+        LuaOk(desk, "eval M1:set_workspace(100)");
+        Assert.Equal("ws100", desk.ActiveClass());
+        Assert.Equal(("100 (100)", "HEADLESS-2"), (ActiveLabel(desk), ActiveMonitor(desk)));
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })");
+        Assert.Equal(("101 (101)", "HEADLESS-3"), (ActiveLabel(desk), ActiveMonitor(desk)));
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })");
+
+        // Active to focused: monitor 1 takes 101, and monitor 2 gets a new workspace 2.
+        LuaOk(desk, "eval M1:set_workspace(101)");
+        Assert.Equal("ws101", desk.ActiveClass());
+        Assert.Equal(("101 (101)", "HEADLESS-2"), (ActiveLabel(desk), ActiveMonitor(desk)));
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })");
+        Assert.Equal(("2 (2)", "HEADLESS-3"), (ActiveLabel(desk), ActiveMonitor(desk)));
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })");
+
+        // Inactive to unfocused: monitor 2 takes 100 from monitor 1, and the focus stays.
+        LuaOk(desk, "eval M2:set_workspace(100)");
+        Assert.Equal("ws101", desk.ActiveClass());
+        Assert.Equal(("101 (101)", "HEADLESS-2"), (ActiveLabel(desk), ActiveMonitor(desk)));
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })");
+        Assert.Equal(("100 (100)", "HEADLESS-3"), (ActiveLabel(desk), ActiveMonitor(desk)));
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })");
+
+        // Active to unfocused: monitor 2 takes 101, which monitor 1 shows, and monitor 1 goes back to 1.
+        LuaOk(desk, "eval M2:set_workspace(101)");
+        Assert.Equal("ws1", desk.ActiveClass());
+        Assert.Equal(("1 (1)", "HEADLESS-2"), (ActiveLabel(desk), ActiveMonitor(desk)));
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })");
+        Assert.Equal(("101 (101)", "HEADLESS-3"), (ActiveLabel(desk), ActiveMonitor(desk)));
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })");
+
+        // Unfocused relative: m-1 is read on monitor 2.
+        LuaOk(desk, "eval M2:set_workspace('m-1')");
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })");
+        Assert.Equal("ws100", desk.ActiveClass());
+        Assert.Equal(("100 (100)", "HEADLESS-3"), (ActiveLabel(desk), ActiveMonitor(desk)));
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })");
+
+        KillAll(desk);
+        desk.RemoveMonitor("HEADLESS-3");
+    }
+
+    [Fact]
+    public void LuaSetSpecialWorkspace()
+    {
+        using var desk = Desk.WithLua("");
+
+        // A new monitor takes workspace 2.
+        desk.AddMonitor("HEADLESS-3", Desk.Second);
+        Assert.Contains("2 (2)", Monitors(desk).Select(ShownOn));
+        Assert.Contains("1 (1)", Monitors(desk).Select(ShownOn));
+
+        LuaOk(desk, "eval M1 = hl.get_monitor('HEADLESS-2')");
+        LuaOk(desk, "eval M2 = hl.get_monitor('HEADLESS-3')");
+
+        // A special workspace with a window on the focused monitor.
+        LuaOk(desk, "eval M1:set_special_workspace(1)");
+        desk.Spawn("a");
+        Assert.Equal("true", desk.Send("repl hl.get_active_window().monitor == M1"));
+        Assert.Equal("special:1 (special:1)", WorkspaceLabelOf(desk.ActiveWindow()));
+
+        // A new special workspace on the unfocused monitor.
+        LuaOk(desk, "eval M2:set_special_workspace(2)");
+        Assert.Contains("special:2 (special:2) on HEADLESS-3", Placed(desk));
+
+        // The focused monitor's special workspace moves to the unfocused one.
+        LuaOk(desk, "eval M2:set_special_workspace(1)");
+        Assert.Equal(("1 (1)", "HEADLESS-2"), (ActiveLabel(desk), ActiveMonitor(desk)));
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })");
+        Assert.Equal("true", desk.Send("repl hl.get_active_window().monitor == M2"));
+        Assert.Equal("special:1 (special:1)", WorkspaceLabelOf(desk.ActiveWindow()));
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })");
+
+        // Clearing the unfocused monitor's special workspace.
+        LuaOk(desk, "eval M2:set_special_workspace(nil)");
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })");
+        Assert.Equal(("2 (2)", "HEADLESS-3"), (ActiveLabel(desk), ActiveMonitor(desk)));
+        LuaOk(desk, "dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })");
+
+        KillAll(desk);
+        desk.RemoveMonitor("HEADLESS-3");
+    }
+
+    private static void LuaOk(Desk desk, string line) => Assert.Equal("ok", desk.Send(line));
+
+    private static string ActiveMonitor(Desk desk) => desk.ActiveWorkspace().GetProperty("monitor").GetString() ?? "";
+
+    // A client's workspace, as the reference writes it: `ADDRESS (NAME)`.
+    private static string WorkspaceLabelOf(JsonElement client) => Label(client.GetProperty("workspace"));
+
+    // Each workspace and its monitor, as the reference's workspaces reply writes `workspace ID (NAME) on monitor M:`.
+    private static string[] Placed(Desk desk) =>
+        [.. desk.Workspaces().Select(workspace => $"{Label(workspace)} on {workspace.GetProperty("monitor").GetString()}")];
 
     private static void MultimonBaf(Desk desk)
     {

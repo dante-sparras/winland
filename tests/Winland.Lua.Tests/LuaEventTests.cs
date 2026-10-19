@@ -109,8 +109,23 @@ public class LuaEventTests
                 return "ok";
             }
 
+            if (command.StartsWith("j/resolveworkspace ", StringComparison.Ordinal))
+                return Resolve(command.Split(' ', 3)[2]);
+
             lock (Replies)
                 return Replies.TryGetValue(command, out var reply) ? reply : command.StartsWith("getoption ", StringComparison.Ordinal) ? "no such option" : "ok";
+        }
+
+        // resolveworkspace as the core answers it for the workspaces above: the address of the one the selector names.
+        private static string Resolve(string selector)
+        {
+            var address = selector switch
+            {
+                "special" => "special:special",
+                _ when selector.StartsWith("name:", StringComparison.Ordinal) => selector[5..],
+                _ => selector,
+            };
+            return address is "1" or "web" or "special:scratch" ? JsonSerializer.Serialize(address) : "null";
         }
 
         public void Log(string message) => Logged.Enqueue(message);
@@ -153,8 +168,8 @@ public class LuaEventTests
             hl.on("window.open", function(w) seen[#seen + 1] = "first " .. w.class .. " " .. w.title end)
             hl.on("window.open", function(w) seen[#seen + 1] = "second " .. w.address end)
             hl.on("window.move_to_workspace", function(w, ws) seen[#seen + 1] = w.class .. " to " .. ws.name end)
-            hl.on("window.active", function(w, reason) seen[#seen + 1] = "active " .. tostring(w.title) .. " " .. reason end)
-            hl.on("workspace.special_active", function(ws, m) seen[#seen + 1] = tostring(ws.name) .. " on " .. m.name end)
+            hl.on("window.active", function(w, reason) seen[#seen + 1] = "active " .. tostring(w and w.title) .. " " .. reason end)
+            hl.on("workspace.special_active", function(ws, m) seen[#seen + 1] = tostring(ws and ws.name) .. " on " .. m.name end)
             hl.on("keybinds.submap", function(name) seen[#seen + 1] = "submap '" .. name .. "'" end)
             hl.on("config.reloaded", function(...) seen[#seen + 1] = "reloaded " .. select("#", ...) end)
             """);
@@ -185,7 +200,7 @@ public class LuaEventTests
                 "workspace.special_active", "workspace.created", "workspace.removed", "workspace.move_to_monitor",
                 "config.reloaded", "keybinds.submap", "window.title", "window.class", "window.open_early",
                 "window.update_rules", "layer.opened", "layer.closed", "config.props_refreshed", "screenshare.state",
-                "input.keyboard.key" }) do
+                "input.keyboard.key", "window.minimize", "window.bell", "config.unload" }) do
                 hl.on(name, function(...)
                     local parts = { name }
                     for i = 1, select("#", ...) do
@@ -205,6 +220,7 @@ public class LuaEventTests
             new FocusChanged(Editor),
             new ClientUrgent(Term),
             new ClientPinned(Editor, true),
+            new ClientMinimized(Term, true),
             new FullscreenChanged(true, Editor),
             new MonitorAdded("DP-1"),
             new MonitorAddedV2(0, "DP-1", "Dell"),
@@ -229,6 +245,7 @@ public class LuaEventTests
                 "window.active HL.Window(0x3c) 0",
                 "window.urgent HL.Window(0x1a)",
                 "window.pin HL.Window(0x3c)",
+                "window.minimize HL.Window(0x1a) true",
                 "window.fullscreen HL.Window(0x3c)",
                 "monitor.added HL.Monitor(0:DP-1)",
                 "monitor.layout_changed",
@@ -236,10 +253,10 @@ public class LuaEventTests
                 "monitor.layout_changed",
                 "monitor.focused HL.Monitor(1:HDMI-A-1)",
                 "workspace.active HL.Workspace(1:1)",
-                "workspace.special_active HL.Workspace(-98:special:scratch) HL.Monitor(0:DP-1)",
-                "workspace.created HL.Workspace(-1:web)",
+                "workspace.special_active HL.Workspace(special:scratch:special:scratch) HL.Monitor(0:DP-1)",
+                "workspace.created HL.Workspace(web:web)",
                 "workspace.removed HL.Workspace(expired)",
-                "workspace.move_to_monitor HL.Workspace(-1:web) HL.Monitor(1:HDMI-A-1)"),
+                "workspace.move_to_monitor HL.Workspace(web:web) HL.Monitor(1:HDMI-A-1)"),
             Repl(runtime, "table.concat(seen, '\\n')"));
     }
 
@@ -354,7 +371,7 @@ public class LuaEventTests
             assert(w.fullscreen == 0 and w.fullscreen_client == 0 and w.allowed_over_fullscreen == false)
             assert(w.fullscreen_handler == "default" and w.tags[1] == "dev" and w.swallowing == nil)
             assert(w.inhibiting_idle == false and w.xdg_tag == nil and w.xdg_description == nil and w.content_type == "none")
-            assert(w.stable_id == 31 and math.type(w.stable_id) == "integer" and w.layout.name == "dwindle")
+            assert(w.stable_id == "1f" and w.layout.name == "dwindle")
             assert(w.active == true and w.tearing_hint == false and w.focus_history_id == -1 and w.nosuch == nil)
             local e = hl.get_window("class:code")
             assert(e.swallowing == w and e.layout == nil and e.xdg_tag == "tag" and e.fullscreen == 1 and e.active == false)
@@ -389,14 +406,16 @@ public class LuaEventTests
             assert(one.id == 1 and one.name == "1" and one.monitor.name == "DP-1" and one.windows == 2)
             assert(one.visible and one.active and not one.special and one.has_urgent == false)
             assert(one.fullscreen_mode == 0 and one.has_fullscreen == false and one.is_persistent == false)
-            assert(one.is_empty == false and one.config_name == "1" and one.tiled_layout == "dwindle")
+            assert(one.is_empty == false and one.config_name == nil and one.tiled_layout == "dwindle")
             assert(one.last_window.address == "0x1a" and one.fullscreen_window == nil and #one:get_windows() == 2)
+            assert(one.addressable_name == "1" and math.type(one.id) == "integer" and tostring(one) == "HL.Workspace(1:1)")
             local web = hl.get_workspace("name:web")
-            assert(web.id == -1 and web.config_name == "name:web" and web.fullscreen_mode == 1 and web.has_fullscreen)
+            assert(web.id == nil and web.addressable_name == "web" and web.fullscreen_mode == 1 and web.has_fullscreen)
             assert(web.fullscreen_window.class == "code" and web.is_persistent and web.tiled_layout == "master")
+            assert(hl.get_workspace("web") == web)
             local scratch = hl.get_workspace("special:scratch")
-            assert(scratch.id == -98 and scratch.special and scratch.visible and scratch.config_name == "special:scratch")
-            assert(tostring(scratch) == "HL.Workspace(-98:special:scratch)" and hl.get_workspace(-98) == scratch)
+            assert(scratch.id == nil and scratch.special and scratch.visible and scratch.addressable_name == "special:scratch")
+            assert(tostring(scratch) == "HL.Workspace(special:scratch:special:scratch)")
             assert(hl.get_workspace("nosuch") == nil and hl.get_workspace(9) == nil)
             """);
     }
@@ -420,8 +439,31 @@ public class LuaEventTests
             local h = hl.get_monitor(1)
             assert(h.name == "HDMI-A-1" and h.active_special_workspace == nil and h.vrr_active and h.scale == 1.25)
             assert(hl.get_monitor("desc:LG") == h and tostring(h) == "HL.Monitor(1:HDMI-A-1)" and h ~= m)
+            assert(h.mode.width == 2560 and h.mode.refresh_rate == 143.998 and h.enabled and h.hardware_details.hdr == false)
+            assert(#hl.get_monitors() == 2)
             """);
-        Assert.Equal("error: line 1: HL.Monitor:set_workspace is not honored yet", runtime.Eval("local _ = hl.get_monitor(1):set_workspace({ workspace = 1 })", repl: false));
+        Assert.Equal("error: HLMonitor.set_workspace: expected a workspace object or selector", runtime.Eval("hl.get_monitor(1):set_workspace({ workspace = 1 })", repl: false));
+    }
+
+    [Fact]
+    public void AMonitorShowsAWorkspaceThroughItsDispatchers()
+    {
+        var (runtime, world) = Start("");
+        using var _r = runtime;
+
+        // HDMI-A-1 is not focused: it is focused for the dispatchers, and DP-1 again after.
+        Check(runtime, "hl.get_monitor('HDMI-A-1'):set_workspace(1)");
+        Check(runtime, "hl.get_monitor('DP-1'):set_workspace('name:new')");
+        Check(runtime, "hl.get_monitor('DP-1'):set_special_workspace(nil)");
+        Check(runtime, "hl.get_monitor('HDMI-A-1'):set_special_workspace('')");
+        Assert.Equal(
+            [
+                "dispatch focusmonitor HDMI-A-1", "dispatch moveworkspacetomonitor 1 HDMI-A-1", "dispatch workspace 1", "dispatch focusmonitor DP-1",
+                "dispatch workspace name:new",
+                "dispatch togglespecialworkspace scratch",
+                "dispatch focusmonitor HDMI-A-1", "dispatch togglespecialworkspace ", "dispatch focusmonitor DP-1",
+            ],
+            world.Commands.Where(command => command.StartsWith("dispatch ", StringComparison.Ordinal)));
     }
 
     [Fact]
