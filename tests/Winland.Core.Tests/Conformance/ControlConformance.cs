@@ -173,6 +173,16 @@ public class ControlConformance
             !workspace.TryGetProperty("id", out _) && Text(workspace, "name") == special && Text(workspace, "type") == "special");
     }
 
+    [Fact]
+    public void HyprctlREPL()
+    {
+        // The reference runs hyprctl from a shell, which takes the quotes off its argument.
+        using var desk = Desk.WithLua("");
+
+        Assert.Equal("table", desk.Send("repl print(type(hl))"));
+        Assert.Equal("ok", desk.Send("eval print(type(hl))"));
+    }
+
     private static void SetProp(Desk desk, string prop, string value) =>
         desk.Dispatch("setprop", $"class:kitty {prop} {value}");
 

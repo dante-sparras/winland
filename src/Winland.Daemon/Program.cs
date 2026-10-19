@@ -147,7 +147,7 @@ static int Run(string? path)
     if (!Dispatchers.TryBind(LuaConfig.FunctionDispatcher, arguments => { lua.Call(arguments); return new DispatcherResult(null, null); }, out var luaError))
         Console.Error.WriteLine(luaError);
 
-    CommandServer.Intercept = line => LuaHosting.Answer(lua, line);
+    CommandServer.Intercept = lua.Answer;
 
     var configPath = path ?? ConfigPaths.Default(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
     ConfigDocument current;
@@ -175,7 +175,7 @@ static int Run(string? path)
     var core = new Core();
     core.Plugins = plugins;
     core.Noticed += outcome => plugins.Deliver(outcome.Events);
-    LuaHosting.Listen(core, lua);
+    lua.Listen(core);
     core.ReadConfig = () => ReadForReload(configPath, plugins);
     ConfigWatcher? watcher = null;
     core.AfterReload = document =>

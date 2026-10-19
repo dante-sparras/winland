@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-195 of 197 ported cases pass.
+196 of 203 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -14,6 +14,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 
 - The desktop is the reference harness's: one 1920x1080 monitor, HEADLESS-2, at 0,0, its config, workspace 1 focused and the pointer at 960,540. `Desk` in the conformance folder builds it. A monitor a case creates goes to the right of HEADLESS-2, as the reference's monitor rule puts it.
 - Each test is named after its case, with the first letter of each part between underscores capitalized and the underscores dropped, so `groups_disable_when_only` is `GroupsDisableWhenOnly`. It sends the same commands in the same order. The reference config and dispatchers are Lua calls, and a test sends the line-based form: `hl.dsp.focus({ window = 'class:a' })` is `focuswindow class:a`, `hl.dsp.layout('togglesplit')` is `layoutmsg togglesplit`, and `hl.config({ dwindle = { force_split = 2 } })` is `keyword dwindle:force_split 2`. `layout_aware = false` in a fullscreen dispatcher is a last word `default`.
+- A case that runs Lua through `eval` or `repl` runs with a Lua config, which `Desk.WithLua` starts. Its `eval` and `repl` calls stay Lua, and its dispatches are sent as the reference sends them, which the Lua runs.
 - An option the case sets before its first window opens goes into the starting config. The reference sets it over the socket only because its compositor is already running. An option the case changes later goes through `keyword`.
 - Opening kitty with a class is a window that appears with that class on the focused monitor, with a process of its own. Killing it is the window closing.
 - `Desk` answers the core as the Windows adapter does: a window the core focuses reports focus back, and the pointer goes where the core warps it.
@@ -134,10 +135,10 @@ A case passes when every check in it passes, as in the reference harness. A case
 | groups | groupLock | passes | |
 | groups | groupbarMiddleClick | not ported | The case middle-clicks the tab bar, which the Windows adapter handles and a core test cannot send. |
 | groups | groupsNoCrash | passes | |
-| groups | groupsLuaApi | not ported | The case drives the Lua group object API, which has no dispatcher form. |
-| groups | groupsLuaApiInvalidOps | not ported | The case drives the Lua group object API, which has no dispatcher form. |
-| groups | groupsLuaApiCrossWorkspaceMonitor | not ported | The case drives the Lua group object API, which has no dispatcher form. |
-| groups | groupsLuaApiFullscreen | not ported | The case drives the Lua group object API, which has no dispatcher form. |
+| groups | groupsLuaApi | differs | HL.Group:add and HL.Group:remove are not honored yet. |
+| groups | groupsLuaApiInvalidOps | differs | HL.Group:add and HL.Group:remove are not honored yet. |
+| groups | groupsLuaApiCrossWorkspaceMonitor | differs | HL.Group:add and HL.Group:remove are not honored yet. |
+| groups | groupsLuaApiFullscreen | differs | HL.Group:add and HL.Group:remove are not honored yet. |
 | groups | groups_disable_when_only | passes | |
 | groups | groupbarDisableWhenOnlyDimensions | passes | |
 | groups | autoGroupFloatedIntoTiled | passes | |
@@ -156,9 +157,9 @@ A case passes when every check in it passes, as in the reference harness. A case
 | workspaces | workspaceChangeIDUpdatesRules | passes | |
 | workspaces | workspaceRenameDoesNotChangeAddress | passes | |
 | workspaces | workspaceRulesMatchBareAddressableNames | passes | |
-| workspaces | luaGetWorkspace | not ported | The case reads workspace objects from the Lua API, which a line-based command cannot reach. |
-| workspaces | luaSetWorkspace | not ported | The case sets workspaces through monitor objects of the Lua API, which a line-based command cannot reach. |
-| workspaces | luaSetSpecialWorkspace | not ported | The case sets special workspaces through monitor objects of the Lua API, which a line-based command cannot reach. |
+| workspaces | luaGetWorkspace | not ported | The case is not in the pinned release's tests, so there is no reference to port. |
+| workspaces | luaSetWorkspace | not ported | The case is not in the pinned release's tests, so there is no reference to port. |
+| workspaces | luaSetSpecialWorkspace | not ported | The case is not in the pinned release's tests, so there is no reference to port. |
 | workspaces | workspacesDistinctTiledAndFloatGaps | passes | |
 | workspaces | workspaceSwitchUnfocusesWindowFromOldWorkspace | passes | |
 | workspaces | luaFocusCreatesBareNamedWorkspace | passes | |
@@ -191,8 +192,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | layout | posPreserve | passes | |
 | layout | focusMRUAfterClose | passes | |
 | layout | focusPreservedLayoutChange | passes | |
-| layout_custom | layoutCustomGrid | not ported | A custom layout is registered with hl.layout.register, which waits on the Lua config (ADR 0013). |
-| layout_custom | layoutCustomColumns | not ported | A custom layout is registered with hl.layout.register, which waits on the Lua config (ADR 0013). |
+| layout_custom | layoutCustomGrid | not ported | A custom layout is registered with hl.layout.register, which Winland's Lua config does not have. |
+| layout_custom | layoutCustomColumns | not ported | A custom layout is registered with hl.layout.register, which Winland's Lua config does not have. |
 | drag | dragTiledCentered | passes | |
 | drag | dragTiledProportional | passes | |
 | drag | dragFullscreenCentered | passes | |
@@ -213,8 +214,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | hyprctl | hyprctlDescriptionsCurrentValues | passes | |
 | hyprctl | hyprctlBindsJson | passes | |
 | hyprctl | hyprctlWorkspaceJson | passes | |
-| hyprctl | hyprctlREPL | not ported | It runs Lua code through repl and eval. The Lua config waits on ADR 0013. |
-| hyprctl | hyprctlBatch | not ported | Its batch runs Lua code through repl. The Lua config waits on ADR 0013. |
+| hyprctl | hyprctlREPL | passes | |
+| hyprctl | hyprctlBatch | not ported | The case is not in the pinned release's tests, so there is no reference to port. |
 | misc | misc | passes | |
 | misc | processesThatDieEarlyAreReaped | not ported | It checks that the OS reaps a process the config starts, which a core test cannot see. |
 | state | state | passes | |
@@ -236,13 +237,13 @@ A case passes when every check in it passes, as in the reference harness. A case
 | layer | ruleConfinementRuntimeToggle | not ported | It changes a named window rule through Lua and reads the seat's focus through the test plugin. |
 | layer | layerVisibilityOnFs | not ported | It opens a layer shell surface and reads its alpha from the layers reply. |
 | layer | windowRefocusRestoresKeyboardFocusAfterSurfaceFocusCleared | not ported | It clears and checks the seat's keyboard focus through the test plugin. |
-| lua_config | luaRequire | not ported | It reads a Lua global set through require. The Lua config waits on ADR 0013. |
-| lua_config | luaSpecialWorkspaceDeactivationEventNil | not ported | It subscribes a Lua function to an event. The Lua config waits on ADR 0013. |
-| lua_config | luaDefaultSpecialWorkspaceName | not ported | Its second half calls a Lua method on a monitor. The Lua config waits on ADR 0013. |
-| lua_config | luaEventConfigUnload | not ported | It subscribes a Lua function to an event. The Lua config waits on ADR 0013. |
-| lua_config | luaReloadConfig | not ported | It reads a Lua global after a reload. The Lua config waits on ADR 0013. |
-| lua_config | luaDevicesEnumerationAndHyprctlParity | not ported | It reads the devices through Lua. The Lua config waits on ADR 0013. |
-| lua_config | luaDevicesRetainedKeyboardTracksLayoutChanges | not ported | It reads a keyboard through Lua. The Lua config waits on ADR 0013. |
+| lua_config | luaRequire | differs | require takes a module name only. A path, such as ./lua-require/relative.lua or an absolute one, and a wildcard path are not read. |
+| lua_config | luaSpecialWorkspaceDeactivationEventNil | not ported | The case is not in the pinned release's tests, so there is no reference to port. |
+| lua_config | luaDefaultSpecialWorkspaceName | not ported | The case is not in the pinned release's tests, so there is no reference to port. |
+| lua_config | luaEventConfigUnload | not ported | The case is not in the pinned release's tests, so there is no reference to port. |
+| lua_config | luaReloadConfig | not ported | The case is not in the pinned release's tests, so there is no reference to port. |
+| lua_config | luaDevicesEnumerationAndHyprctlParity | not ported | The case is not in the pinned release's tests, so there is no reference to port. |
+| lua_config | luaDevicesRetainedKeyboardTracksLayoutChanges | not ported | The case is not in the pinned release's tests, so there is no reference to port. |
 | xwayland_selection | xwaylandSelectionSourceGuard | not ported | It checks X11 selections through the test plugin. |
 | clients/child-window | childWindow | passes | |
 | clients/fullscreen-with-monitor | fullscreenWithExplicitMonitor | not ported | An application that asks to be fullscreen is not observed, so the core has no input for the request. |
@@ -267,12 +268,12 @@ A case passes when every check in it passes, as in the reference harness. A case
 | exec | processSpawning | passes | |
 | gestures | pinchDeltaScalePropagation | not ported | It checks a gesture the test plugin registers through the C++ plugin interface, which has no core form. |
 | gestures | defaultSpecialWorkspaceGesture | passes | |
-| gestures | live_gesture_callbacks | not ported | Gesture actions with start, update and end callbacks are Lua-only. |
+| gestures | live_gesture_callbacks | not ported | Its gesture actions are Lua functions, which make no gesture yet, and it swipes from Lua through the test plugin's hl.plugin.test.gesture. |
 | gestures | gestures | passes | |
 | keybinds | keybinds | differs | Per-device binds are not honored. |
 | keybinds | orderedSubChordDeferral | passes | |
 | keybinds | modifierReleaseBindShadowing | passes | |
-| keybinds | luaDispatcherStrings | not ported | It reads the handler of a bind as a Lua value, which is Lua-only. |
+| keybinds | luaDispatcherStrings | not ported | The case is not in the pinned release's tests, so there is no reference to port. |
 | keyboard_input | pluginKeyboardEventHandler | not ported | It checks a keyboard event handler registered through the C++ plugin interface, which has no core form. |
 | keyboard_input | orderedChordConsumption | passes | |
 | keyboard_input | orderedChordRejectsReorderedPrefix | passes | |

@@ -86,6 +86,42 @@ public sealed class LuaRuntime : IDisposable
         Post(() => _session?.Deliver(events, cause));
     }
 
+    /// <summary>Hands the Lua's <c>hl.on</c> handlers the events of each outcome <paramref name="core"/> notices.</summary>
+    public void Listen(Core core)
+    {
+        ArgumentNullException.ThrowIfNull(core);
+        core.Noticed += outcome => Deliver(outcome.Events);
+    }
+
+    /// <summary>
+    /// The pipe commands the Lua answers: <c>eval</c> and <c>repl</c> run Lua, and with a Lua config <c>dispatch</c>
+    /// with a call in it is <c>eval 'hl.dispatch(...)'</c>, as in the pinned release. Anything else is the core's,
+    /// and gives null.
+    /// </summary>
+    public string? Answer(string line)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+        var text = line.Trim();
+
+        // The flags winlandctl puts before a command, such as "j/", are not the Lua's.
+        var slash = text.IndexOf('/', StringComparison.Ordinal);
+        if (slash > 0 && slash <= 3 && text[..slash].All(char.IsAsciiLetterLower))
+            text = text[(slash + 1)..];
+
+        var space = text.IndexOf(' ', StringComparison.Ordinal);
+        var verb = space < 0 ? text : text[..space];
+        var rest = space < 0 ? "" : text[(space + 1)..].Trim();
+        switch (verb)
+        {
+            case "eval" or "repl":
+                return Running ? Eval(rest, verb == "repl") : "eval is only supported with a Lua config";
+            case "dispatch" when Running && rest.Contains('(', StringComparison.Ordinal):
+                return Eval($"return hl.dispatch({rest})", repl: false);
+            default:
+                return null;
+        }
+    }
+
     /// <summary><c>eval</c> or <c>repl</c>: waits for the Lua thread and gives the reply.</summary>
     public string Eval(string code, bool repl)
     {

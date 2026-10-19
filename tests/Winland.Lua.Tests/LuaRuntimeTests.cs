@@ -144,6 +144,41 @@ public class LuaRuntimeTests
     }
 
     [Fact]
+    public void EvalReplAndLuaDispatchesGoToTheLuaAndTheRestToTheCore()
+    {
+        var world = new World();
+        using var runtime = new LuaRuntime(world);
+        Assert.Equal("eval is only supported with a Lua config", runtime.Answer("eval 1"));
+        Assert.Null(runtime.Answer("dispatch workspace 2"));
+
+        runtime.Adopt(LuaConfig.Load("value = 6\n", ConfigPath, _ => null).Session);
+
+        Assert.Equal("7", runtime.Answer("repl value + 1"));
+        Assert.Equal("ok", runtime.Answer("j/eval value"));
+        Assert.Equal("ok", runtime.Answer("dispatch hl.dsp.focus({ workspace = 2 })"));
+        Assert.Null(runtime.Answer("dispatch workspace 2"));
+        Assert.Null(runtime.Answer("clients"));
+
+        Assert.Equal(["dispatch workspace 2"], world.Commands);
+    }
+
+    [Fact]
+    public void TheLuaHearsTheEventsTheCoreNotices()
+    {
+        using var runtime = new LuaRuntime(new World());
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse("submap = resize\nbind = , H, killactive\nsubmap = reset\n")));
+        runtime.Listen(core);
+
+        runtime.Adopt(LuaConfig.Load("seen = {}\nhl.on('keybinds.submap', function(name) seen[#seen + 1] = '[' .. name .. ']' end)\n", ConfigPath, _ => null).Session);
+
+        Assert.Equal("ok", core.Execute("dispatch submap resize").Text);
+        Assert.Equal("ok", core.Execute("dispatch submap reset").Text);
+
+        Assert.Equal("[resize][]", runtime.Eval("table.concat(seen)", repl: true));
+    }
+
+    [Fact]
     public void TheParserTakesTheFunctionDispatcher()
     {
         _ = Dispatchers.TryBind(LuaConfig.FunctionDispatcher, _ => new DispatcherResult(null, null), out _);
