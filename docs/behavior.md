@@ -176,7 +176,9 @@ In the scrolling Layout a resize keeps the camera where it is. A column's far ed
 
 ## Cursor and input
 
-These cursor keys are honored: `warp_on_change_workspace`, `warp_on_monitor_change`, `warp_on_toggle_special`, `no_warps`, `persistent_warps`, `inactive_timeout`, `hide_on_key_press`, `hide_on_touch`, `hide_on_tablet`, `invisible`, `warp_back_after_non_mouse_input`, `default_monitor`, `zoom_factor`, `zoom_rigid`, and `zoom_detached_camera`. Every other `cursor` key stays a Gap.
+These cursor keys are honored: `warp_on_change_workspace`, `warp_on_monitor_change`, `warp_on_toggle_special`, `no_warps`, `persistent_warps`, `inactive_timeout`, `hide_on_key_press`, `hide_on_touch`, `hide_on_tablet`, `invisible`, `warp_back_after_non_mouse_input`, `default_monitor`, `zoom_factor`, `zoom_rigid`, `zoom_detached_camera`, and `hotspot_padding`. Every other `cursor` key stays a Gap.
+
+`hotspot_padding`, from 0 to 20 logical pixels and 0 by default, keeps the cursor that far from the outer edges of the monitors, as in the pinned release: a mouse move that would take it closer stops short, and the edges between monitors are crossed as before. The padding is multiplied by the largest monitor scale. Only the mouse is held back; a program that sets the cursor position itself, or touch and a pen, are not.
 
 `warp_on_change_workspace` and `warp_on_toggle_special` default to 0. 1 warps to the middle of the last focused window, or to the cursor's last point in that window when `persistent_warps` is on. 2 does the same and still warps when `no_warps` is on. `warp_on_monitor_change` defaults to -1, which follows `warp_on_change_workspace`, and takes the same modes. A change that lands on another Monitor follows `warp_on_monitor_change`, and one on the same Monitor follows `warp_on_change_workspace`, as in the pinned release. `warp_on_toggle_special` warps when `togglespecialworkspace` shows or hides a special workspace.
 
