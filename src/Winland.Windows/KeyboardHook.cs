@@ -13,6 +13,12 @@ public sealed class KeyboardHook : IDisposable
     // Marks events Winland injects, so its own hook lets them through untouched.
     internal const nuint InjectedTag = 0x574C4E44;
 
+    // A key kb_options moved, sent again as its new key. Unlike InjectedTag, the hook handles it as typed.
+    internal const nuint RemapTag = 0x574C4E52;
+
+    // The keys kb_options took that are held now. Used on the hook thread only.
+    private readonly HashSet<int> _taken = [];
+
     // An unassigned virtual key. Pressed under Super or Alt, it makes the shell treat the
     // modifier as part of a chord, so its release does not open Start or a menu bar.
     internal const ushort MaskKey = 0xE8;
@@ -237,6 +243,11 @@ public sealed class KeyboardHook : IDisposable
                 return Next(code, wParam, lParam);
 
             var up = info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_UP);
+
+            // kb_options: a key an option moves goes on as the key it moves to, and a grp: combination switches layouts.
+            if (info.dwExtraInfo != RemapTag && Remap(info, up))
+                return new LRESULT(1);
+
             NoteHeld(info.vkCode, up);
 
             // misc:key_press_enables_dpms: any key turns the displays back on after dpms turned them off.
@@ -402,6 +413,76 @@ public sealed class KeyboardHook : IDisposable
     }
 
     internal static void Mask() => Send(Key(MaskKey, up: false), Key(MaskKey, up: true));
+
+    // True when the key event was taken: moved to another key, dropped, or used to switch layouts.
+    private bool Remap(KBDLLHOOKSTRUCT info, bool up)
+    {
+        var options = _core.KeyOptions;
+        var vk = (int)info.vkCode;
+
+        // A key taken here never reaches Windows' key state, so its repeats are told apart by what is held here.
+        var repeat = !up && (Down(vk) || _taken.Contains(vk));
+        if (options.Toggle == LayoutToggle.Caps && vk == KeyboardOptions.CapsLock)
+        {
+            if (!up && !repeat)
+                PostInput(new LayoutCycled());
+
+            return Take(info, vk, up);
+        }
+
+        if (!up && !repeat && Toggles(options.Toggle, vk))
+            PostInput(new LayoutCycled());
+
+        if (!options.Remaps.TryGetValue(vk, out var to))
+            return false;
+
+        Take(info, vk, up);
+
+        if (to != 0)
+        {
+            var moved = Key((ushort)to, up, (ushort)PInvoke.MapVirtualKey((uint)to, MAP_VIRTUAL_KEY_TYPE.MAPVK_VK_TO_VSC));
+            moved.Anonymous.ki.dwExtraInfo = RemapTag;
+            Send(moved);
+        }
+
+        return true;
+    }
+
+    private bool Take(KBDLLHOOKSTRUCT info, int vk, bool up)
+    {
+        if (up)
+        {
+            _taken.Remove(vk);
+            return true;
+        }
+
+        _taken.Add(vk);
+        if (!info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_INJECTED))
+            InputClock.NoteClickOrKey(info.time);
+
+        return true;
+    }
+
+    // The grp: combinations: the key pressed with the one already held completes the pair.
+    private static bool Toggles(LayoutToggle toggle, int vk)
+    {
+        bool Shift() => Down(0x10);
+        bool Control() => Down(0x11);
+        bool Alt() => Down(0x12);
+        var isShift = vk is 0xA0 or 0xA1;
+        var isControl = vk is 0xA2 or 0xA3;
+        var isAlt = vk is 0xA4 or 0xA5;
+        return toggle switch
+        {
+            LayoutToggle.AltShift => (isShift && Alt()) || (isAlt && Shift()),
+            LayoutToggle.CtrlShift => (isShift && Control()) || (isControl && Shift()),
+            LayoutToggle.CtrlAlt => (isControl && Alt()) || (isAlt && Control()),
+            LayoutToggle.WinSpace => vk == 0x20 && (Down(0x5B) || Down(0x5C)),
+            LayoutToggle.AltSpace => vk == 0x20 && Alt(),
+            LayoutToggle.BothAlts => (vk == 0xA4 && Down(0xA5)) || (vk == 0xA5 && Down(0xA4)),
+            _ => false,
+        };
+    }
 
     internal static void Send(params ReadOnlySpan<INPUT> inputs)
     {

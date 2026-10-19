@@ -166,3 +166,4 @@ LoadKeyboardLayout
 UnloadKeyboardLayout
 DisplayConfigSetDeviceInfo
 WindowFromPoint
+MapVirtualKey

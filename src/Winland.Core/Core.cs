@@ -231,6 +231,7 @@ public sealed partial class Core
             WindowMoveStarted started => BeginNativeMove(started),
             WindowMoveEnded ended => EndNativeMove(ended),
             ClickKillChosen chosen => ChooseKill(chosen),
+            LayoutCycled => CycleLayout(),
             SwipeBegan => BeginSwipe(),
             SwipeUpdated updated => UpdateSwipe(updated),
             SwipeEnded ended => EndSwipe(ended.Cancelled),
