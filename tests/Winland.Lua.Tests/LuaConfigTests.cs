@@ -109,13 +109,13 @@ public class LuaConfigTests
     public void CallsOfLaterPhasesWarnOnceAndTheConfigRunsOn()
     {
         var translation = Run("""
-            hl.bind("SUPER + Q", hl.dsp.exec_cmd("kitty"))
-            hl.bind("SUPER + C", hl.dsp.window.close())
+            hl.monitor({ output = "DP-1", mode = "preferred" })
+            hl.monitor({ output = "DP-2", mode = "preferred" })
             hl.config({ general = { gaps_in = 3 } })
             """);
 
         var warning = Assert.Single(translation.Warnings);
-        Assert.Equal(new ConfigWarning(1, "hl.bind is not honored yet"), warning);
+        Assert.Equal(new ConfigWarning(1, "hl.monitor is not honored yet"), warning);
         Assert.Equal(["general:gaps_in = 3"], Lines(translation));
     }
 

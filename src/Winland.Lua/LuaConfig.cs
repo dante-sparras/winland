@@ -68,12 +68,12 @@ public static class LuaConfig
 
 // One run of a config. The delegates Lua calls back into are kept in fields so the collector leaves them alone, and a
 // callback never raises a Lua error: it notes a warning and returns, because an error would unwind past managed frames.
-internal sealed class LuaRun : IDisposable
+internal sealed partial class LuaRun : IDisposable
 {
     // Calls the later phases of the Lua config take on. Until then each warns once and does nothing.
     private static readonly string[] Pending =
     [
-        "bind", "unbind", "define_submap", "monitor", "window_rule", "layer_rule", "workspace_rule", "gesture",
+        "monitor", "window_rule", "layer_rule", "workspace_rule", "gesture",
         "curve", "animation", "device", "permission", "load", "timer", "dispatch", "get_config", "get_devices",
         "get_windows", "get_window", "get_active_window", "get_urgent_window", "get_workspaces", "get_workspace",
         "get_active_workspace", "get_active_special_workspace", "get_monitors", "get_monitor", "get_active_monitor",
@@ -86,9 +86,9 @@ internal sealed class LuaRun : IDisposable
     [
         "window.open", "window.open_early", "window.close", "window.destroy", "window.kill", "window.active",
         "window.urgent", "window.title", "window.class", "window.pin", "window.fullscreen", "window.update_rules",
-        "window.move_to_workspace", "window.bell", "window.minimize", "layer.opened", "layer.closed", "monitor.added",
+        "window.move_to_workspace", "layer.opened", "layer.closed", "monitor.added",
         "monitor.removed", "monitor.focused", "monitor.layout_changed", "workspace.active", "workspace.special_active",
-        "workspace.created", "workspace.removed", "workspace.move_to_monitor", "config.reloaded", "config.unload",
+        "workspace.created", "workspace.removed", "workspace.move_to_monitor", "config.reloaded",
         "config.props_refreshed", "keybinds.submap", "screenshare.state", StartEvent, ShutdownEvent, "input.keyboard.key",
     ];
 
@@ -189,16 +189,21 @@ internal sealed class LuaRun : IDisposable
         Function("env", Env);
         Function("exec_cmd", ExecCmd);
         Function("on", On);
+        Function("bind", Bind);
+        Function("unbind", Unbind);
+        Function("define_submap", DefineSubmap);
         foreach (var name in Pending)
             Function(name, state => NotYet(name));
 
-        // hl.dsp and hl.notification hold the dispatchers and notifications the later phases take on.
+        RegisterDispatchers();
+
+        // hl.notification holds the notifications a later phase takes on.
         _lua.SetGlobal("hl");
         if (_lua.DoString("""
             local function stub()
                 return setmetatable({}, { __index = function() return stub() end, __call = function() return nil end })
             end
-            hl.dsp, hl.notification = stub(), stub()
+            hl.notification = stub()
             """))
         {
             throw new InvalidOperationException(_lua.ToString(-1));
@@ -209,14 +214,17 @@ internal sealed class LuaRun : IDisposable
         _lua.SetGlobal("__winland_require");
     }
 
-    private void Function(string name, LuaFunction body)
+    private void Function(string name, LuaFunction body) => Function(name, "hl." + name, body);
+
+    // Sets field name of the table on top of the stack to a callback that warns as label.
+    private void Function(string name, string label, LuaFunction body)
     {
         Keep(state =>
         {
             // A call from a coroutine has a stack of its own, which these callbacks do not read.
             if (state != _lua.Handle)
             {
-                Warn($"hl.{name}: cannot be called from a coroutine");
+                Warn($"{label}: cannot be called from a coroutine");
                 return 0;
             }
 
@@ -226,7 +234,7 @@ internal sealed class LuaRun : IDisposable
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                Warn($"hl.{name}: {exception.Message}");
+                Warn($"{label}: {exception.Message}");
                 return 0;
             }
         });
@@ -426,12 +434,26 @@ internal sealed class LuaRun : IDisposable
             return 0;
         }
 
-        var rules = "";
-        if (_lua.IsTable(2))
+        var keyword = _phase switch
         {
+            Phase.Start => "exec-once",
+            Phase.Shutdown => "exec-shutdown",
+            _ => "exec",
+        };
+        Emit($"{keyword} = {ExecRules(2)}{command}");
+        return 0;
+    }
+
+    // The window rule block "[effect; effect value] " an exec rules table at index makes, or "" for none.
+    private string ExecRules(int index)
+    {
+        var rules = "";
+        if (_lua.IsTable(index))
+        {
+            index = _lua.AbsIndex(index);
             var effects = new List<string>();
             _lua.PushNil();
-            while (_lua.Next(2))
+            while (_lua.Next(index))
             {
                 if (_lua.Type(-2) == LuaType.String)
                 {
@@ -455,14 +477,7 @@ internal sealed class LuaRun : IDisposable
                 rules = "[" + string.Join("; ", effects) + "] ";
         }
 
-        var keyword = _phase switch
-        {
-            Phase.Start => "exec-once",
-            Phase.Shutdown => "exec-shutdown",
-            _ => "exec",
-        };
-        Emit($"{keyword} = {rules}{command}");
-        return 0;
+        return rules;
     }
 
     // hl.on(event, handler): the start and shutdown handlers run now, so what they call is set up for the start or the
