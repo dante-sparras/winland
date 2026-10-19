@@ -2,7 +2,7 @@
 
 Winland reads `winland.lua` when it exists and `winland.conf` otherwise, from `%APPDATA%\winland`. `--config` takes either, by its extension.
 
-The pinned release, Hyprland v0.56, reads only Lua (`hl.config`, `hl.bind`, `hl.monitor`, `hl.window_rule`), and its manual shows only that form. Most existing Hyprland configs and dotfiles use the line-based syntax (`bind = SUPER, Q, killactive`), so Winland keeps reading it and reads Lua as well.
+The pinned release, a Hyprland v0.56 commit (ADR 0008), reads only Lua (`hl.config`, `hl.bind`, `hl.monitor`, `hl.window_rule`), and its manual shows only that form. Most existing Hyprland configs and dotfiles use the line-based syntax (`bind = SUPER, Q, killactive`), so Winland keeps reading it and reads Lua as well.
 
 A Lua config runs each time the config loads, and each `hl` call becomes the line the line-based syntax has for it: `hl.config({ general = { gaps_in = 5 } })` is `general:gaps_in = 5`. The parser and the core then read those lines as they read `winland.conf`, so both forms honor the same options and give the same warnings, which point at the Lua line that made them. Lua names an option with `.` for `:` and `_` for `-`, so a `col` part joins the next with a `.` again and the three names with a `-` get it back.
 

@@ -33,5 +33,5 @@ Issues are GitHub Issues on `dante-sparras/winland`, labelled with the roles in 
 Winland is the Windows 11 window manager that matches Hyprland's features and behavior. It is not packaged as MSIX.
 
 - Domain docs are single-context: `CONTEXT.md` is the glossary and `docs/adr/` holds decisions. See `docs/agents/domain.md`.
-- Hyprland repo: `docs/agents/hyprland/` (<https://github.com/hyprwm/Hyprland>, tag v0.56.2).
+- Hyprland repo: `docs/agents/hyprland/` (<https://github.com/hyprwm/Hyprland>, commit `e2d94f5`, after v0.56.2; ADR 0008).
 - Hyprland docs: `docs/agents/hyprland/site/`.
