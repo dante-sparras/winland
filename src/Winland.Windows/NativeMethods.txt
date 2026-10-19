@@ -167,3 +167,5 @@ UnloadKeyboardLayout
 DisplayConfigSetDeviceInfo
 WindowFromPoint
 MapVirtualKey
+LASTINPUTINFO
+HWND_TOPMOST

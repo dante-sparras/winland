@@ -13,7 +13,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | acrylic | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | allow_tearing | Tearing is a compositor feature with no Windows meaning. |
 | animation:fadeDim | Dimming is part of a window's alpha, so fadeSwitch animates it. |
-| animation:fadeDpms | Turning a monitor off does not fade. |
 | animation:fadeGlow | Glow is not honored, so it does not fade. |
 | animation:fadeLayers | Layer shell surfaces have no Windows meaning. |
 | animation:fadeLayersIn | Layer shell surfaces have no Windows meaning. |
@@ -164,7 +163,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | --- | --- | --- |
 | gap | - | acrylic, aurora, decoration:blur:variant, drops, fluid_jar, glass, haze, heat_shimmer, ripple, water |
 | non-goal | - | allow_tearing, debug, opengl, quirks, render, screen_shader |
-| gap | - | animation:fadeDim, animation:fadeDpms, animation:fadeGlow, animation:fadeShadow, animation:glowangle, animation:monitorAdded, animation:shadowangle |
+| gap | - | animation:fadeDim, animation:fadeGlow, animation:fadeShadow, animation:glowangle, animation:monitorAdded, animation:shadowangle |
 | non-goal | - | animation:fadeLayers, animation:fadeLayersIn, animation:fadeLayersOut, animation:fadePopups, animation:fadePopupsIn, animation:fadePopupsOut, animation:layers, animation:layersIn, animation:layersOut |
 | non-goal | - | binds:disable_keybind_grabbing |
 | gap | - | bitdepth, cm, mirror, vrr |

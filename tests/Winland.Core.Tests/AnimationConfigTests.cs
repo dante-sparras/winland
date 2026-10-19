@@ -150,7 +150,6 @@ public class AnimationConfigTests
                 new ConfigWarning(9, "Bezier point 'a' is not a number."),
                 new ConfigWarning(10, "Bezier has too many arguments."),
                 new ConfigWarning(11, "Layer shell surfaces have no Windows meaning."),
-                new ConfigWarning(12, "Turning a monitor off does not fade."),
             ],
             document.Warnings);
     }

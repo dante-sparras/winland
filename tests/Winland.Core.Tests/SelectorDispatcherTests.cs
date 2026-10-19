@@ -241,11 +241,15 @@ public class SelectorDispatcherTests
         Assert.False(reload.Effect.Exit);
     }
 
+    // The requests without their fade, which the default animations give every one.
+    private static DisplayPowerRequest[] Unfaded(IReadOnlyList<DisplayPowerRequest> requests) =>
+        [.. requests.Select(request => request with { Fade = null })];
+
     [Fact]
     public void DpmsRequestsPowerForTheNamedMonitorOrEveryMonitor()
     {
         var bare = new Core().Handle(new Dispatch("dpms", "off"));
-        Assert.Equal([new DisplayPowerRequest("", false)], bare.DisplayPower);
+        Assert.Equal([new DisplayPowerRequest("", false)], Unfaded(bare.DisplayPower));
 
         var core = new Core();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
@@ -253,10 +257,10 @@ public class SelectorDispatcherTests
         core.Handle(new MonitorsChanged([left, right]));
 
         var one = core.Handle(new Dispatch("dpms", @"off \\.\DISPLAY2"));
-        Assert.Equal([new DisplayPowerRequest(@"\\.\DISPLAY2", false)], one.DisplayPower);
+        Assert.Equal([new DisplayPowerRequest(@"\\.\DISPLAY2", false)], Unfaded(one.DisplayPower));
 
         var back = core.Handle(new Dispatch("dpms", "toggle Samsung"));
-        Assert.Equal([new DisplayPowerRequest(@"\\.\DISPLAY2", true)], back.DisplayPower);
+        Assert.Equal([new DisplayPowerRequest(@"\\.\DISPLAY2", true)], Unfaded(back.DisplayPower));
 
         var all = core.Handle(new Dispatch("dpms", "off nosuch"));
         Assert.Equal(
@@ -264,7 +268,7 @@ public class SelectorDispatcherTests
                 new DisplayPowerRequest(@"\\.\DISPLAY1", false),
                 new DisplayPowerRequest(@"\\.\DISPLAY2", false),
             ],
-            all.DisplayPower);
+            Unfaded(all.DisplayPower));
 
         Assert.Equal("ok", core.Execute("dispatch dpms on").Text);
     }
@@ -283,11 +287,11 @@ public class SelectorDispatcherTests
         Assert.Empty(core.Handle(new PointerMoved(new Point(5, 5))).DisplayPower);
 
         core.Handle(new Dispatch("dpms", "off"));
-        Assert.Equal([new DisplayPowerRequest(Name, true)], core.Handle(new PointerMoved(new Point(6, 6))).DisplayPower);
+        Assert.Equal([new DisplayPowerRequest(Name, true)], Unfaded(core.Handle(new PointerMoved(new Point(6, 6))).DisplayPower));
         Assert.Empty(core.Handle(new PointerMoved(new Point(7, 7))).DisplayPower);
 
         core.Handle(new Dispatch("dpms", "off"));
-        Assert.Equal([new DisplayPowerRequest(Name, true)], core.Handle(new SwipeBegan(3)).DisplayPower);
+        Assert.Equal([new DisplayPowerRequest(Name, true)], Unfaded(core.Handle(new SwipeBegan(3)).DisplayPower));
     }
 
     [Fact]
