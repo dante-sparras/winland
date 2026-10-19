@@ -126,6 +126,7 @@ public sealed partial class Core
                 _configEvents = null;
                 _extraEvents = null;
                 _noted = null;
+                _modalRules = null;
             }
         }
     }
@@ -207,6 +208,7 @@ public sealed partial class Core
                 _configEvents = null;
                 _extraEvents = null;
                 _noted = null;
+                _modalRules = null;
             }
         }
     }

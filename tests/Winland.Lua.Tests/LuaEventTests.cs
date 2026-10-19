@@ -218,6 +218,20 @@ public class LuaEventTests
     }
 
     [Fact]
+    public void ARulesUpdateRunsTheWindowUpdateRulesHandler()
+    {
+        var (runtime, _) = Start("""
+            seen = ""
+            hl.on("window.update_rules", function(w) seen = tostring(w) end)
+            """);
+        using var _ = runtime;
+
+        runtime.Deliver([new ClientRulesUpdated(Term)]);
+
+        Assert.Equal("HL.Window(0x1a)", Repl(runtime, "seen"));
+    }
+
+    [Fact]
     public void WinlandsEventsAreThePinnedReleasesEvents()
     {
         var (runtime, _) = Start("""
