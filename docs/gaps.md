@@ -12,7 +12,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 | --- | --- |
 | acrylic | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | allow_tearing | Tearing is a compositor feature with no Windows meaning. |
-| animation:borderangle | Gradient borders are not honored, so the border angle does not animate. |
+| animation:borderangle | A gradient border keeps its angle and does not turn. |
 | animation:fadeDim | Dimming is part of a window's alpha, so fadeSwitch animates it. |
 | animation:fadeDpms | Turning a monitor off does not fade. |
 | animation:fadeGlow | Glow is not honored, so it does not fade. |
@@ -77,7 +77,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | gestures:workspace_swipe_touch | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | gestures:workspace_swipe_touch_invert | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | glass | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| gradient | Gradient borders are not honored. |
 | glow | Inner glow is not honored. |
 | group:groupbar:blur | Groupbar blur is not honored. |
 | group:groupbar:priority | The tab bar is the only decoration drawn over a tile, so it has no order. |
@@ -184,7 +183,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | gaps_workspaces |
 | gap | - | gestures:close_max_timeout, gestures:workspace_swipe_touch, gestures:workspace_swipe_touch_invert |
 | gap | - | glow, motion_blur |
-| gap | - | gradient |
 | gap | - | group:groupbar:priority |
 | gap | - | input:emulate_discrete_scroll, input:off_window_axis_events, input:resolve_binds_by_sym, input:rotation, input:scroll_button, input:scroll_button_lock, input:scroll_method, input:scroll_points |
 | non-goal | - | input:kb_file, input:kb_model, input:kb_rules |
@@ -276,7 +274,7 @@ Every command the pinned release's control socket answers is recognized. The one
 
 `descriptions` lists only the options Winland reads, and their `description` is empty: the pinned release's descriptions are not carried.
 
-`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_anim`, `no_blur`, `no_dim`, `no_shadow`, `no_glow`, `no_wobble`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `xray`, `render_unfocused`, `no_follow_mouse`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `scroll_mouse` and `scroll_touchpad`. Each waits on the feature it would change, most of them Gaps above. A border color is drawn by its first color, since gradient borders are a Gap.
+`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_anim`, `no_blur`, `no_dim`, `no_shadow`, `no_glow`, `no_wobble`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `xray`, `render_unfocused`, `no_follow_mouse`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `scroll_mouse` and `scroll_touchpad`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
 
 `changeworkspaceid` refuses a number above 2147483647. The pinned release takes numbers up to 4294967295, but a Workspace number here is a signed 32-bit integer. It is a gap.
 

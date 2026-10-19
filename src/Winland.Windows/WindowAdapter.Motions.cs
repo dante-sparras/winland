@@ -149,7 +149,7 @@ public sealed partial class WindowAdapter
             if (Releasing)
                 return;
 
-            SetAttribute(new HWND((nint)window.Value), BorderColorAttribute, ColorRef(color));
+            BorderHost.Tint(window, color);
         }
 
         public void Hide(WindowId window)

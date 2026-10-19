@@ -331,6 +331,13 @@ public sealed partial class WindowAdapter : IDisposable
         try
         {
             var window = new WindowId(((IntPtr)hwnd).ToInt64());
+
+            // A Client's border follows its window wherever it goes, and hides with it.
+            if (@event is PInvoke.EVENT_OBJECT_LOCATIONCHANGE or PInvoke.EVENT_OBJECT_SHOW or PInvoke.EVENT_OBJECT_HIDE
+                or PInvoke.EVENT_OBJECT_CLOAKED or PInvoke.EVENT_OBJECT_UNCLOAKED or PInvoke.EVENT_SYSTEM_MINIMIZESTART
+                or PInvoke.EVENT_SYSTEM_MINIMIZEEND or PInvoke.EVENT_SYSTEM_FOREGROUND)
+                BorderHost.Follow(window);
+
             switch (@event)
             {
                 case PInvoke.EVENT_SYSTEM_FOREGROUND:
@@ -681,6 +688,7 @@ public sealed partial class WindowAdapter : IDisposable
                 Session?.NoteLaunched(id, launch);
         }
 
+        var rings = new Dictionary<WindowId, BorderRing>();
         lock (PaintGate)
         {
             if (!Releasing)
@@ -700,12 +708,17 @@ public sealed partial class WindowAdapter : IDisposable
 
                     Paint(window, decoration);
                     Painted.Add(window);
+                    if (decoration.Ring is BorderRing ring)
+                        rings[window] = ring;
                 }
             }
         }
 
         if (!Releasing && current)
         {
+            if (outcome.Decorations.Count > 0 || outcome.ResetDecorations.Count > 0)
+                BorderHost.Update(rings);
+
             GroupBarHost.Update(outcome.GroupBars);
             ErrorBarHost.Update(outcome.ErrorBar);
             DimHost.Update(outcome.Dims);
