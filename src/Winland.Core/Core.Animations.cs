@@ -154,7 +154,8 @@ public sealed partial class Core
                     continue;
 
                 var monitor = _core.MonitorRectangle(client.Workspace);
-                var shift = MotionStyles.Workspace(Options.StyleOf(leaf), entering, left, client.Workspace.IsSpecial, monitor);
+                var between = _core.FindWorkspace(client.Workspace)?.Options.GapsWorkspaces ?? 0;
+                var shift = MotionStyles.Workspace(Options.StyleOf(leaf), entering, left, client.Workspace.IsSpecial, monitor, between);
                 var rest = _placed.TryGetValue(window, out var placed) ? placed : client.Bounds;
                 var away = rest with { X = rest.X + shift.Dx, Y = rest.Y + shift.Dy };
                 var moves = shift.Dx != 0 || shift.Dy != 0;

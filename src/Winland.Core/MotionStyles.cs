@@ -30,7 +30,7 @@ internal static class MotionStyles
     /// The offset and fade of a Workspace that is shown (<paramref name="entering"/>) or hidden, for a
     /// <c>workspaces</c> style. Entering windows start at the offset; leaving windows end at it.
     /// </summary>
-    internal static WorkspaceShift Workspace(string style, bool entering, bool left, bool special, Rectangle monitor)
+    internal static WorkspaceShift Workspace(string style, bool entering, bool left, bool special, Rectangle monitor, int gap = 0)
     {
         var words = Words(style);
         var vertical = style.StartsWith("slidevert", StringComparison.Ordinal) || style.StartsWith("slidefadevert", StringComparison.Ordinal);
@@ -71,8 +71,8 @@ internal static class MotionStyles
         }
         else
         {
-            // gaps_workspaces is a Gap, so the travel is the monitor alone.
-            distance = (vertical ? monitor.Height : monitor.Width) * (percent / 100);
+            // A slide travels the monitor and gaps_workspaces; a slidefade the monitor alone.
+            distance = ((vertical ? monitor.Height : monitor.Width) + gap) * (percent / 100);
         }
 
         var sign = entering == left ? 1 : -1;

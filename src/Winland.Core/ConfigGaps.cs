@@ -65,7 +65,6 @@ public static class ConfigGaps
         new("ecosystem", "Ecosystem tools have no Windows meaning."),
         new("experimental", "Experimental Wayland protocol options have no Windows meaning."),
         new("fluid_jar", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
-        new("gaps_workspaces", "Workspace swipe gaps are not honored."),
         new("gestures:close_max_timeout", "The close gesture closes the window without fading it out first, so its timeout has nothing to time."),
         new("gestures:workspace_swipe_touch", "Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces."),
         new("gestures:workspace_swipe_touch_invert", "Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces."),

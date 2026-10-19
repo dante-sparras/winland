@@ -69,7 +69,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | ecosystem | Ecosystem tools have no Windows meaning. |
 | experimental | Experimental Wayland protocol options have no Windows meaning. |
 | fluid_jar | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| gaps_workspaces | Workspace swipe gaps are not honored. |
 | gestures:close_max_timeout | The close gesture closes the window without fading it out first, so its timeout has nothing to time. |
 | gestures:workspace_swipe_touch | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | gestures:workspace_swipe_touch_invert | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
@@ -172,7 +171,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | dont_inhibit |
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
 | non-goal | - | experimental, input-capture |
-| gap | - | gaps_workspaces |
 | gap | - | gestures:close_max_timeout, gestures:workspace_swipe_touch, gestures:workspace_swipe_touch_invert |
 | gap | - | glow, motion_blur |
 | gap | - | group:groupbar:priority |
@@ -196,7 +194,6 @@ An `animation:NAME` row is a node of the animation tree. An `animation` line tha
 - A Client entering or leaving fullscreen mode 2 moves at once.
 - Dragging a window with the pointer moves it at once. The windows that make room for it animate when it is dropped.
 - A workspace rule's `animation:` style is not honored, and warns.
-- `gaps_workspaces` is a Gap, so a sliding Workspace travels the width or height of its monitor alone.
 - An `animation` window rule is not honored.
 - Hyprland scales a growing window's last frame into each animated rectangle. Winland shows it unscaled from its top left and cut to the rectangle, the way a shrinking window shows, and the see-through areas of a window with a system backdrop look flatter while it grows.
 
@@ -206,7 +203,7 @@ Two `misc` options turn off the reference compositor's logo and its check for it
 
 A `gesture` line is honored for the `workspace`, `special`, `dispatcher`, `close`, `float`, `fullscreen` and `scrollMove` actions, described in [behavior.md](behavior.md#touchpad-swipe). The other actions (`move`, `resize`, `cursorZoom`) and every pinch direction (`pinch`, `pinchin`, `pinchout`) warns and does nothing when the swipe is made. The line is still kept, so it shadows a later gesture and `unset` removes it, as it would in the pinned release. Flag `p` (`gesturep`) warns and is ignored, for the same reason as bind flag `p`. Live Lua gestures wait on the Lua config (ADR 0013).
 
-A touchpad swipe cannot be consumed. Windows reads the same fingers, so its own three- and four-finger gestures still run unless they are turned off (see [behavior.md](behavior.md#touchpad-swipe)). The swipe is not animated: the Workspace changes when the fingers lift, or at each full distance with `workspace_swipe_forever`. That is the `animations` Gap. `general:gaps_workspaces` stays a Gap for the same reason.
+A touchpad swipe cannot be consumed. Windows reads the same fingers, so its own three- and four-finger gestures still run unless they are turned off (see [behavior.md](behavior.md#touchpad-swipe)). The swipe is not animated: the Workspace changes when the fingers lift, or at each full distance with `workspace_swipe_forever`. That is the `animations` Gap.
 
 Bind flag `p` warns and is ignored. The bind itself still runs. Applications cannot inhibit binds, so there is nothing for that flag to bypass.
 
