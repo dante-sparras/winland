@@ -271,10 +271,10 @@ internal sealed partial class LuaRun
         Emit(line);
     }
 
-    private void WarnOnce(string message)
+    private void WarnOnce(string message, int level = 1)
     {
         if (_warnedPending.Add(message))
-            Warn(message);
+            Warn(message, level);
     }
 
     private bool Present(int table, string field)

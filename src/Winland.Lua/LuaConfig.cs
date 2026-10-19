@@ -73,8 +73,7 @@ internal sealed partial class LuaRun : IDisposable
     // Calls the later phases of the Lua config take on. Until then each warns once and does nothing.
     private static readonly string[] Pending =
     [
-        "monitor", "window_rule", "layer_rule", "workspace_rule", "gesture",
-        "curve", "animation", "device", "permission", "load", "timer", "dispatch", "get_config", "get_devices",
+        "load", "timer", "dispatch", "get_config", "get_devices",
         "get_windows", "get_window", "get_active_window", "get_urgent_window", "get_workspaces", "get_workspace",
         "get_active_workspace", "get_active_special_workspace", "get_monitors", "get_monitor", "get_active_monitor",
         "get_monitor_at", "get_monitor_at_cursor", "get_layers", "get_workspace_windows", "get_cursor_pos",
@@ -192,6 +191,7 @@ internal sealed partial class LuaRun : IDisposable
         Function("bind", Bind);
         Function("unbind", Unbind);
         Function("define_submap", DefineSubmap);
+        RegisterRules();
         foreach (var name in Pending)
             Function(name, state => NotYet(name));
 
@@ -209,6 +209,7 @@ internal sealed partial class LuaRun : IDisposable
             throw new InvalidOperationException(_lua.ToString(-1));
         }
 
+        RegisterHandle();
         Keep(RequireModule);
         _lua.PushCFunction(_kept[^1]);
         _lua.SetGlobal("__winland_require");
@@ -547,9 +548,10 @@ internal sealed partial class LuaRun : IDisposable
 
     private void Emit(string line) => _lines.Add((line, Caller()));
 
-    private void Warn(string message)
+    // A warning at the Lua code level calls up the stack: 1 is the code that called the callback.
+    private void Warn(string message, int level = 1)
     {
-        var origin = Caller();
+        var origin = Caller(level);
         _warnings.Add(new ConfigWarning(origin.Line, message, origin.Source));
     }
 
@@ -568,10 +570,10 @@ internal sealed partial class LuaRun : IDisposable
         string.Equals(chunk, Path.GetFileName(_path), StringComparison.OrdinalIgnoreCase) ? null : Path.GetFullPath(Path.Combine(_directory, chunk));
 
     // The line of the Lua code that made the call, and its file when it is not the config itself.
-    private LuaOrigin Caller()
+    private LuaOrigin Caller(int level = 1)
     {
         var debug = new LuaDebug();
-        if (_lua.GetStack(1, ref debug) == 0 || !_lua.GetInfo("Sl", ref debug))
+        if (_lua.GetStack(level, ref debug) == 0 || !_lua.GetInfo("Sl", ref debug))
             return new LuaOrigin(0, null);
 
         var chunk = debug.Source is { Length: > 1 } named && named[0] == '@' ? named[1..] : null;
