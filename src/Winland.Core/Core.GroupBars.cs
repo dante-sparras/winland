@@ -95,16 +95,32 @@ public sealed partial class Core
         return moved;
     }
 
-    // Every color of the border, at its angle: a setprop gradient, the configured gradient, or a Group's one color.
+    // Every color of the border, at its angle: a setprop gradient, then the Group's or the configured gradient.
     private BorderGradient BorderGradientOf(WindowId window, bool active)
     {
         if (OwnProp(window, active ? "active_border_color" : "inactive_border_color") is BorderGradient { Colors.Count: > 0 } set)
             return set;
 
-        var color = BorderOf(window, active, honorProps: false);
-        if (WorkspaceContaining(window)?.GroupOf(window) is not null || RulesOf(window).HasFlag(GroupRuleFlags.Deny))
-            return BorderGradient.Of(color);
+        if (WorkspaceContaining(window)?.GroupOf(window) is WindowGroup group)
+        {
+            var locked = group.Locked || _groupsLocked;
+            return active
+                ? locked
+                    ? _groupOptions.GradientOf("group:col.border_locked_active", _groupOptions.LockedActiveBorder)
+                    : _groupOptions.GradientOf("group:col.border_active", _groupOptions.ActiveBorder)
+                : locked
+                    ? _groupOptions.GradientOf("group:col.border_locked_inactive", _groupOptions.LockedInactiveBorder)
+                    : _groupOptions.GradientOf("group:col.border_inactive", _groupOptions.InactiveBorder);
+        }
 
+        if (RulesOf(window).HasFlag(GroupRuleFlags.Deny))
+        {
+            return active
+                ? _groupOptions.GradientOf("general:col.nogroup_border_active", _groupOptions.NoGroupActiveBorder)
+                : _groupOptions.GradientOf("general:col.nogroup_border", _groupOptions.NoGroupBorder);
+        }
+
+        var color = BorderOf(window, active, honorProps: false);
         var gradient = active ? _decoration.ActiveBorderGradient : _decoration.InactiveBorderGradient;
         return gradient is { Colors.Count: > 0 } ? gradient : BorderGradient.Of(color);
     }
