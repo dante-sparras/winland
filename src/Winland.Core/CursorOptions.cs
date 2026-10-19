@@ -18,6 +18,9 @@ public sealed record CursorBehavior(bool HideOnKeyPress, double InactiveTimeoutS
 
     /// <summary><c>cursor:hide_on_tablet</c>: a pen hides the cursor until the mouse moves.</summary>
     public bool HideOnTablet { get; init; }
+
+    /// <summary><c>cursor:hotspot_padding</c>: how many logical pixels the cursor keeps from the outer edges of the monitors.</summary>
+    public int HotspotPadding { get; init; }
 }
 
 /// <summary>
@@ -81,6 +84,8 @@ public sealed record CursorOptions
 
     public bool ZoomDetachedCamera { get; init; } = true;
 
+    public int HotspotPadding { get; init; }
+
     public static CursorOptions Documented { get; } = new();
 
     public int MonitorMode() => WarpOnMonitor < 0 ? WarpOnWorkspace : WarpOnMonitor;
@@ -92,6 +97,7 @@ public sealed record CursorOptions
         WarpBackAfterNonMouseInput = WarpBackAfterNonMouseInput,
         HideOnTouch = HideOnTouch,
         HideOnTablet = HideOnTablet,
+        HotspotPadding = HotspotPadding,
     };
 
     private static readonly Dictionary<string, int> WorkspaceModes = new(StringComparer.OrdinalIgnoreCase)
@@ -125,6 +131,7 @@ public sealed record CursorOptions
         ["cursor:default_monitor"] = (options, value) => options with { DefaultMonitor = value.Trim() },
         ["cursor:zoom_factor"] = (options, value) => TryZoom(value, out var factor) ? options with { ZoomFactor = factor } : options,
         ["cursor:zoom_rigid"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var rigid) ? options with { ZoomRigid = rigid } : options,
+        ["cursor:hotspot_padding"] = (options, value) => int.TryParse(value.Trim(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var padding) ? options with { HotspotPadding = Math.Clamp(padding, 0, 20) } : options,
         ["cursor:zoom_detached_camera"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var detached) ? options with { ZoomDetachedCamera = detached } : options,
     };
 

@@ -208,6 +208,14 @@ public sealed class MouseHook : IDisposable
             redirected = true;
         }
 
+        // cursor:hotspot_padding: the cursor stops short of the monitors' outer edges.
+        if (SessionEffects.Padded(position) is var padded && padded != position)
+        {
+            _ = PInvoke.SetCursorPos(padded.X, padded.Y);
+            position = padded;
+            redirected = true;
+        }
+
         _ = _core.Decide(new PointerMoved(position), _keys.Session);
         SessionEffects.NoteMove(position, source);
         if (_drag.Current is MouseDrag.Active drag)

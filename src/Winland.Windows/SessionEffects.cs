@@ -9,6 +9,10 @@ public static class SessionEffects
 {
     private static readonly CursorIdle Idle = new(NullCursor.Instance, new SystemClock());
     private static readonly WarpBack Back = new();
+
+    // cursor:hotspot_padding and the monitors it keeps the cursor inside, in physical pixels. The mouse hook reads both.
+    private static volatile int _padding;
+    private static volatile Rectangle[] _monitors = [];
     private static SystemInputSession? _session;
     private static KeyboardLayoutSwitcher? _layouts;
     private static CursorIdleTimer? _timer;
@@ -37,8 +41,23 @@ public static class SessionEffects
     public static void Apply(Outcome outcome)
     {
         ArgumentNullException.ThrowIfNull(outcome);
+        var monitors = new List<Rectangle>(outcome.State.Monitors.Count);
+        var scale = 1.0;
+        foreach (var monitor in outcome.State.Monitors)
+        {
+            if (!monitor.Enabled || monitor.Width <= 0 || monitor.Height <= 0)
+                continue;
+
+            monitors.Add(new Rectangle(monitor.X, monitor.Y, monitor.Width, monitor.Height));
+            scale = Math.Max(scale, monitor.Scale);
+        }
+
+        if (monitors.Count > 0)
+            _monitors = [.. monitors];
+
         if (outcome.Cursor is CursorBehavior behavior)
         {
+            _padding = (int)Math.Round(behavior.HotspotPadding * scale);
             Idle.Configure(behavior);
             Back.Configure(behavior.WarpBackAfterNonMouseInput);
             if (Volatile.Read(ref _installed) != 0)
@@ -105,6 +124,9 @@ public static class SessionEffects
 
     /// <summary>Something other than the mouse moved the cursor: touch, a pen, or a move another program injected.</summary>
     public static void NoteNonMouse() => Back.NonMouse();
+
+    /// <summary>Where the cursor goes instead of <paramref name="point"/>, to keep <c>cursor:hotspot_padding</c> from the monitors' edges.</summary>
+    public static Point Padded(Point point) => _padding == 0 ? point : HotspotPadding.ClosestValid(point, _monitors, _padding);
 
     /// <summary>The mouse moves the cursor. Returns where it goes instead, with <c>cursor:warp_back_after_non_mouse_input</c>.</summary>
     public static Point? MouseMoved(Point from, Point to) => Back.Mouse(from, to);
