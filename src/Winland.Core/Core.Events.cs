@@ -87,6 +87,9 @@ public sealed partial class Core
             if (prior.Workspace != pair.Value.Workspace)
                 events.Add(new ClientMoved(pair.Key, pair.Value.Workspace));
 
+            if (prior.Title != pair.Value.Title)
+                events.Add(new ClientRetitled(pair.Key, pair.Value.Title, pair.Key == activeAfter));
+
             if (prior.Floating != pair.Value.Floating)
                 events.Add(new FloatingChanged(pair.Key, pair.Value.Floating));
 

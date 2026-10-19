@@ -17,6 +17,15 @@ internal sealed partial class MasterLayout : Layout
 
     public IReadOnlyList<Client> Clients => _clients;
 
+    public void Retitle(WindowId window, string title)
+    {
+        for (var i = 0; i < _clients.Count; i++)
+        {
+            if (_clients[i].Window == window)
+                _clients[i] = _clients[i] with { Title = title };
+        }
+    }
+
     public void Readdress(WorkspaceId workspace)
     {
         for (var i = 0; i < _clients.Count; i++)

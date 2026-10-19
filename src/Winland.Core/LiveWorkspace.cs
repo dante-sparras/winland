@@ -11,6 +11,14 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
 {
     public WorkspaceId Id { get; private set; } = id;
 
+    /// <summary>Gives the Client, shown or waiting in a Group, its window's new title.</summary>
+    public void Retitle(WindowId window, string title)
+    {
+        Layout.Retitle(window, title);
+        if (_waiting.TryGetValue(window, out var waiting))
+            _waiting[window] = waiting with { Client = waiting.Client with { Title = title } };
+    }
+
     /// <summary>Takes a new id, with every Client and waiting Group member, as <c>changeworkspaceid</c> asks.</summary>
     public void Readdress(WorkspaceId id)
     {

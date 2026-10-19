@@ -22,6 +22,7 @@ internal static partial class WindowRuleParser
 
         string? classPattern = null;
         string? titlePattern = null;
+        string? initialTitlePattern = null;
         string? exePattern = null;
         string? aumidPattern = null;
         List<RuleMatch>? dynamic = null;
@@ -46,19 +47,19 @@ internal static partial class WindowRuleParser
                     continue;
                 }
 
-                if (!TryParseMatch(part, ref classPattern, ref titlePattern, ref exePattern, ref aumidPattern, out error))
+                if (!TryParseMatch(part, ref classPattern, ref titlePattern, ref initialTitlePattern, ref exePattern, ref aumidPattern, out error))
                     return false;
             }
 
             // The pinned release never applies a rule that has nothing to match on.
-            if (classPattern is null && titlePattern is null && exePattern is null && aumidPattern is null && dynamic is null)
+            if (classPattern is null && titlePattern is null && initialTitlePattern is null && exePattern is null && aumidPattern is null && dynamic is null)
             {
                 error = "Malformed window rule.";
                 return false;
             }
         }
 
-        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement, TextOr(effect, group, out var ruleText), props, dynamic, ruleText);
+        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement, TextOr(effect, group, out var ruleText), props, dynamic, ruleText, initialTitlePattern);
         return true;
     }
 
@@ -597,6 +598,7 @@ internal static partial class WindowRuleParser
         string text,
         ref string? classPattern,
         ref string? titlePattern,
+        ref string? initialTitlePattern,
         ref string? exePattern,
         ref string? aumidPattern,
         out string error)
@@ -630,9 +632,11 @@ internal static partial class WindowRuleParser
                 classPattern = value;
                 break;
             case "title":
+                titlePattern = value;
+                break;
             case "initialTitle":
             case "initial_title":
-                titlePattern = value;
+                initialTitlePattern = value;
                 break;
             case "exe":
                 exePattern = value;
@@ -652,6 +656,7 @@ internal static partial class WindowRuleParser
     private static bool Matches(WindowRule rule, WindowTraits traits) =>
         Matches(rule.ClassPattern, traits.Class)
         && Matches(rule.TitlePattern, traits.Title)
+        && Matches(rule.InitialTitlePattern, traits.InitialTitle ?? traits.Title)
         && Matches(rule.ExePattern, traits.Exe)
         && Matches(rule.AumidPattern, traits.Aumid);
 

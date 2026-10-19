@@ -190,6 +190,20 @@ public class LuaEventTests
     }
 
     [Fact]
+    public void ANewTitleRunsTheWindowTitleHandler()
+    {
+        var (runtime, _) = Start("""
+            seen = ""
+            hl.on("window.title", function(w) seen = tostring(w) .. " " .. w.title end)
+            """);
+        using var _ = runtime;
+
+        runtime.Deliver([new ClientRetitled(Term, "new", true)]);
+
+        Assert.Equal("HL.Window(0x1a) term", Repl(runtime, "seen"));
+    }
+
+    [Fact]
     public void WinlandsEventsAreThePinnedReleasesEvents()
     {
         var (runtime, _) = Start("""

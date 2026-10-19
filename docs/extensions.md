@@ -24,7 +24,7 @@ After that the config is edited from an elevated editor. A file the user creates
 
 `lualayout = lua:NAME` is the config line `hl.layout.register` makes, which lets `general:layout` and a workspace rule select that custom layout. Written in `winland.conf`, it names a layout no Lua arranges, which tiles as an even grid. `layoutplace LAYOUT GENERATION [failed | WINDOW X Y W H ...]` on the pipe is how the Lua answers the core's request to lay a custom layout out (ADR 0013): the boxes it placed, or that it failed and the grid is used. An answer to a request a newer one replaced changes nothing.
 
-`exe` is a `windowrulev2` match on the executable file name, including its extension. It uses the same regular expressions as `class` and `title`. `initialClass` and `initial_class` match the class, and `initialTitle` and `initial_title` match the title, because a rule is applied once when the window appears.
+`exe` is a `windowrulev2` match on the executable file name, including its extension. It uses the same regular expressions as `class` and `title`. `initialClass` and `initial_class` match the class, which is read once, when the window appears. `initialTitle` and `initial_title` match the title the window had then, and `title` matches the title it has now.
 
 `aumid` is a `windowrulev2` match on a packaged app's AppUserModelID. It uses the same regular expressions as `class`, `title` and `exe`. For a Store app hosted in a frame, `class` and `exe` are the hosted app's window class and executable file name, and `aumid` is that app's AppUserModelID.
 
