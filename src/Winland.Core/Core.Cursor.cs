@@ -32,6 +32,13 @@ public sealed partial class Core
         if (workspaceChanged || monitorChanged || specialToggled)
             RememberLeaving(before);
 
+        // A Monitor told to show a Workspace by setworkspace or setspecialworkspace leaves the cursor alone, as in the
+        // pinned release.
+        var hold = _holdCursor;
+        _holdCursor = false;
+        if (hold)
+            monitorChanged = workspaceChanged = specialToggled = false;
+
         var warp = TakeRequestedWarp() ?? SwitchWarp(before, outcome);
         // A change that lands on another Monitor follows cursor:warp_on_monitor_change, or warp_on_change_workspace when
         // that is -1, and one on the same Monitor follows warp_on_change_workspace, as in the pinned release.

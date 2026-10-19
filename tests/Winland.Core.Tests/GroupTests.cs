@@ -492,6 +492,128 @@ public class GroupTests
         Assert.Null(grouped.State.Workspaces.Single(workspace => workspace.Id == new WorkspaceId("1")).DisplayName);
     }
 
+    [Fact]
+    public void GroupAddPutsAWindowAtTheIndexAndShowsIt()
+    {
+        var core = Opened(auto: false, First, Second, Third);
+        core.Execute("dispatch focuswindow address:0x1");
+        core.Execute("dispatch togglegroup");
+
+        var appended = core.Execute("groupadd address:0x1 address:0x2");
+        var first = core.Execute("groupadd address:0x1 address:0x3 1");
+
+        Assert.Equal("ok", appended.Text);
+        Assert.Equal([First, Second], Assert.Single(appended.Effect.State.Groups));
+        Assert.Equal("ok", first.Text);
+        Assert.Equal([Third, First, Second], Assert.Single(first.Effect.State.Groups));
+        Assert.DoesNotContain(first.Effect.State.Hidden, client => client.Window == Third);
+        Assert.Contains(first.Effect.State.Hidden, client => client.Window == First);
+        Assert.Contains(first.Effect.State.Hidden, client => client.Window == Second);
+        Assert.Contains(Second, first.Effect.Hide);
+        // The Group is the only tile left, and the hidden members take its frame.
+        Assert.Equal(Area, ClientOf(first.Effect, Third).Bounds);
+        Assert.Equal(Area, ClientOf(first.Effect, First).Bounds);
+    }
+
+    [Fact]
+    public void GroupAddBringsTheMembersOfAnotherGroupInOrder()
+    {
+        var core = Opened(auto: false, First, Second, Third);
+        core.Execute("dispatch focuswindow address:0x1");
+        core.Execute("dispatch togglegroup");
+        core.Execute("dispatch focuswindow address:0x2");
+        core.Execute("dispatch togglegroup");
+        core.Execute("groupadd address:0x2 address:0x3");
+
+        var merged = core.Execute("groupadd address:0x1 address:0x2 1");
+
+        Assert.Equal("ok", merged.Text);
+        Assert.Equal([Second, Third, First], Assert.Single(merged.Effect.State.Groups));
+        Assert.DoesNotContain(merged.Effect.State.Hidden, client => client.Window == Third);
+    }
+
+    [Fact]
+    public void GroupAddRefusesAnIndexOutOfRangeAndALockedOrDeniedGroup()
+    {
+        var core = Opened(auto: false, First, Second);
+        core.Execute("dispatch focuswindow address:0x1");
+        core.Execute("dispatch togglegroup");
+
+        Assert.Equal("error: index out of range", core.Execute("groupadd address:0x1 address:0x2 3").Text);
+        Assert.Equal("error: index out of range", core.Execute("groupadd address:0x1 address:0x2 0").Text);
+        Assert.Equal("error: window not in a group", core.Execute("groupadd address:0x2 address:0x1").Text);
+
+        core.Execute("dispatch lockactivegroup lock");
+        Assert.Equal("error: window cannot be added to group", core.Execute("groupadd address:0x1 address:0x2").Text);
+
+        core.Execute("dispatch lockactivegroup unlock");
+        core.Execute("dispatch denywindowfromgroup on");
+        var denied = core.Execute("groupadd address:0x1 address:0x2");
+
+        Assert.Equal("error: target group is denied", denied.Text);
+        Assert.Equal([First], Assert.Single(denied.Effect.State.Groups));
+    }
+
+    [Fact]
+    public void GroupAddEndsTheWindowsFullscreenAndGivesItTheGroups()
+    {
+        var core = Opened(auto: false, First, Second, Third);
+        core.Execute("dispatch focuswindow address:0x1");
+        core.Execute("dispatch togglegroup");
+        core.Execute("dispatch focuswindow address:0x2");
+        core.Execute("dispatch fullscreen");
+
+        var added = core.Execute("groupadd address:0x1 address:0x2").Effect;
+
+        Assert.Equal(FullscreenMode.None, ClientOf(added, Second).Fullscreen);
+        Assert.Equal(FullscreenMode.None, ClientOf(added, First).Fullscreen);
+
+        core.Execute("dispatch focuswindow address:0x2");
+        core.Execute("dispatch fullscreen");
+        var taken = core.Execute("groupadd address:0x1 address:0x3").Effect;
+
+        Assert.Equal(FullscreenMode.Fullscreen, ClientOf(taken, Third).Fullscreen);
+        Assert.Equal(FullscreenMode.None, ClientOf(taken, Second).Fullscreen);
+        Assert.Equal(Third, taken.Focus);
+    }
+
+    [Fact]
+    public void GroupAddMovesAWindowFromAnotherWorkspaceToTheGroups()
+    {
+        var core = Opened(auto: false, First);
+        core.Execute("dispatch togglegroup");
+        core.Execute("dispatch workspace 2");
+        core.Handle(Appear(Second, "two"));
+
+        var added = core.Execute("groupadd address:0x1 address:0x2").Effect;
+
+        Assert.Equal(new WorkspaceId("1"), ClientOf(added, Second).Workspace);
+        Assert.Equal([First, Second], Assert.Single(added.State.Groups));
+        Assert.Contains(added.State.Hidden, client => client.Window == Second);
+        Assert.Equal(new WorkspaceId("2"), added.State.ActiveWorkspace);
+        Assert.Null(added.Focus);
+    }
+
+    [Fact]
+    public void GroupRemoveReturnsAMemberToTheLayoutAndKeepsTheFocus()
+    {
+        var core = Opened(auto: false, First, Second, Third);
+        core.Execute("dispatch focuswindow address:0x1");
+        core.Execute("dispatch togglegroup");
+        core.Execute("groupadd address:0x1 address:0x2");
+        core.Execute("dispatch focuswindow address:0x3");
+
+        var removed = core.Execute("groupremove address:0x1");
+
+        Assert.Equal("ok", removed.Text);
+        Assert.Equal([Second], Assert.Single(removed.Effect.State.Groups));
+        Assert.DoesNotContain(removed.Effect.State.Hidden, client => client.Window == First);
+        Assert.Contains(First, removed.Effect.Show);
+        Assert.Null(removed.Effect.Focus);
+        Assert.Equal("0x3", JsonDocument.Parse(core.Execute("j/activewindow").Text).RootElement.GetProperty("address").GetString());
+        Assert.Equal("error: window not in a group", core.Execute("groupremove address:0x3").Text);
+    }
+
     private static Core Grouped(string config = "")
     {
         var core = Opened(auto: true, config, First);
