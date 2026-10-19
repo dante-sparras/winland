@@ -49,6 +49,7 @@ internal sealed class MotionPlayer : IDisposable
     private readonly ConcurrentDictionary<WindowId, Lock> _windows = new();
     private readonly Dictionary<WindowId, long> _stamps = [];
     private readonly Dictionary<WindowId, Closing> _closing = [];
+    private readonly Dictionary<WindowId, double> _graces = [];
     private readonly AutoResetEvent _wake = new(false);
     private readonly bool _threaded;
     private Thread? _thread;
@@ -88,6 +89,10 @@ internal sealed class MotionPlayer : IDisposable
             var now = _clock();
             Touch(motion.Window);
             _closing.Remove(motion.Window);
+            if (motion.End == MotionEnd.Close && motion.CloseGraceMilliseconds is int grace)
+                _graces[motion.Window] = grace;
+            else
+                _graces.Remove(motion.Window);
             _animator.Start(motion, now);
             first = _animator.Peek(motion.Window, now);
         }
@@ -302,7 +307,10 @@ internal sealed class MotionPlayer : IDisposable
                     return;
 
                 lock (_gate)
-                    _closing[frame.Window] = new Closing(_clock() + CloseGrace.TotalMilliseconds, frame.Rest, frame.RestAlpha, Stamp(frame.Window));
+                {
+                    var grace = _graces.Remove(frame.Window, out var own) ? own : CloseGrace.TotalMilliseconds;
+                    _closing[frame.Window] = new Closing(_clock() + grace, frame.Rest, frame.RestAlpha, Stamp(frame.Window));
+                }
                 return;
             default:
                 if (frame.Bounds is Rectangle bounds)

@@ -57,6 +57,8 @@ public sealed record TrackpadGesture(
     /// <summary>An action that runs once the fingers lift: a dispatcher, or close, float or fullscreen far enough.</summary>
     public bool IsOnRelease => Action is DispatcherAction or CloseAction or FloatAction or FullscreenAction;
 
+    public bool IsClose => Action == CloseAction;
+
     public bool IsHonored => IsWorkspace || IsSpecial || IsOnRelease || IsScrollMove || IsFunction;
 
     /// <summary>

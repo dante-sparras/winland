@@ -62,6 +62,12 @@ public sealed record Motion(WindowId Window, Rectangle To)
     public MotionEnd End { get; init; }
 
     /// <summary>
+    /// For a motion that closes the window, how long it may stay open before it is put back, in milliseconds.
+    /// Null is the adapter's own wait.
+    /// </summary>
+    public int? CloseGraceMilliseconds { get; init; }
+
+    /// <summary>
     /// The Layout rectangle. It equals <see cref="To"/> unless the motion hides or closes the window, which then
     /// lands here after <see cref="End"/>.
     /// </summary>

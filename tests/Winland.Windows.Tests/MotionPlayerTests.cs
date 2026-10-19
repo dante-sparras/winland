@@ -73,6 +73,32 @@ public class MotionPlayerTests
     }
 
     [Fact]
+    public void ACloseMotionWaitsItsOwnGraceBeforeTheWindowReturns()
+    {
+        var target = new RecordingTarget { Open = true };
+        var clock = new Clock();
+        using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+        player.Begin(new Motion(Window, new Rectangle(47, 47, 5, 5))
+        {
+            From = Start,
+            Move = Linear,
+            End = MotionEnd.Close,
+            Rest = Start,
+            CloseGraceMilliseconds = 200,
+        });
+
+        clock.Now = 100;
+        Assert.True(player.Tick());
+        clock.Now = 299;
+        Assert.True(player.Tick());
+        Assert.DoesNotContain("place 0", target.Calls);
+        clock.Now = 300;
+        Assert.False(player.Tick());
+
+        Assert.Equal("place 0", target.Calls[^2]);
+    }
+
+    [Fact]
     public void AHungWindowSkipsTheFramesInBetween()
     {
         var target = new RecordingTarget { Frozen = true };
