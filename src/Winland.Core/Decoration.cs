@@ -103,6 +103,12 @@ public sealed record DecorationOptions
     /// <summary><c>decoration:shadow:scale</c>, from 0.05 to 2. The shadow is drawn at no more than 1.</summary>
     public float ShadowScale { get; init; } = 1;
 
+    /// <summary>
+    /// <c>decoration:border_part_of_window</c>: whether the shadow's box includes the border. False grows the shadow from the
+    /// window alone, so the border is drawn over it.
+    /// </summary>
+    public bool BorderPartOfWindow { get; init; } = true;
+
     /// <summary><c>decoration:glow:enabled</c>: draw a glow inside each Client's edge.</summary>
     public bool Glow { get; init; }
 
@@ -155,6 +161,7 @@ public sealed record DecorationOptions
         ["decoration:shadow:color_inactive"] = (options, value) => BorderGradient.TryParse(value, out var color) ? options with { ShadowColorInactive = color, ShadowDrawn = true } : options,
         ["decoration:shadow:offset"] = (options, value) => TryParseOffset(value, out var offset) ? options with { ShadowOffset = offset, ShadowDrawn = true } : options,
         ["decoration:shadow:scale"] = (options, value) => TryParseScale(value, out var scale) ? options with { ShadowScale = scale, ShadowDrawn = true } : options,
+        ["decoration:border_part_of_window"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var part) ? options with { BorderPartOfWindow = part } : options,
         ["decoration:glow:enabled"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { Glow = enabled } : options,
         ["decoration:glow:range"] = (options, value) => TryParseWhole(value, 0, 100, out var range) ? options with { GlowRange = range } : options,
         ["decoration:glow:render_power"] = (options, value) => TryParseWhole(value, 1, 4, out var power) ? options with { GlowPower = power } : options,

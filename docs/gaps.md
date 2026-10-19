@@ -50,7 +50,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | decoration:blur:vibrancy | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | decoration:blur:vibrancy_darkness | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | decoration:blur:xray | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:border_part_of_window | Whether the border counts as part of the window is not configurable. |
 | device | Per-device input is not honored. Honored input settings apply to the whole system. |
 | dont_inhibit | Applications cannot inhibit binds, so this flag has nothing to bypass. |
 | drops | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
@@ -140,7 +139,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
 | gap | - | cursor:zoom_disable_aa |
 | gap | - | decoration:blur:brightness, decoration:blur:contrast, decoration:blur:ignore_opacity, decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:noise, decoration:blur:passes, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:size, decoration:blur:special, decoration:blur:vibrancy, decoration:blur:vibrancy_darkness, decoration:blur:xray |
-| gap | - | decoration:border_part_of_window, group:groupbar:blur, wobble |
+| gap | - | group:groupbar:blur, wobble |
 | gap | - | device |
 | gap | - | dont_inhibit |
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
@@ -165,7 +164,7 @@ Input Windows already has: `device`, so an honored input setting can name one de
 
 Monitors and the process locale: `bitdepth` and `locale` (`general:locale`).
 
-Drawing on windows Winland already owns: `group:groupbar:blur` on the bar Winland draws; `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`; `decoration:border_part_of_window`; and the animation nodes `animation:fadeDim` and `animation:monitorAdded`.
+Drawing on windows Winland already owns: `group:groupbar:blur` on the bar Winland draws; `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`; and the animation nodes `animation:fadeDim` and `animation:monitorAdded`.
 
 Logging and the error bar: `debug:disable_logs`, `debug:disable_time`, `debug:enable_stdout_logs`, `debug:colored_stdout_logs`, `debug:suppress_errors`, `debug:error_limit` and `debug:error_position`.
 
