@@ -20,7 +20,7 @@ public sealed class LuaSession : IDisposable
 /// function, a timer and an eval are queued here and run in turn, and their dispatches go through
 /// <see cref="ILuaWorld.Command"/> as a <c>winlandctl</c> command would. A reload hands it the new config's Lua.
 /// </summary>
-public sealed class LuaRuntime : IDisposable
+public sealed class LuaRuntime : IDisposable, ILayoutScripts
 {
     /// <summary>How long an eval waits for the Lua thread before it gives up.</summary>
     public static readonly TimeSpan EvalWait = TimeSpan.FromSeconds(2);
@@ -62,6 +62,96 @@ public sealed class LuaRuntime : IDisposable
         _session?.Dispose();
         _session = session?.Run;
         _session?.Start(_world, new Timers(this, _generation));
+
+        // The new config's layouts lay out again the Workspaces the old one's did, or that waited for it.
+        _layoutsDone.Clear();
+        long[] layouts;
+        lock (_layoutGate)
+            layouts = [.. _layoutsLatest.Keys];
+
+        foreach (var layout in layouts)
+            Lay(layout, message: null);
+    }
+
+    // The latest request of each Layout a script arranges. The core adds them from its own thread.
+    private readonly Lock _layoutGate = new();
+    private readonly Dictionary<long, LayoutRequest> _layoutsLatest = [];
+
+    // The generation each Layout was last laid out for, on the Lua thread.
+    private readonly Dictionary<long, long> _layoutsDone = [];
+
+    /// <summary>
+    /// The core asks for a Workspace's custom layout. It only queues the request, since the core calls it inside its
+    /// lock: the layout's Lua runs on the Lua thread, for the latest request of its Layout, and its boxes go back as
+    /// <c>layoutplace</c> through <see cref="ILuaWorld.Command"/>. A layout message always runs, and the layout is laid
+    /// out again after it.
+    /// </summary>
+    public void Arrange(LayoutRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        lock (_layoutGate)
+        {
+            if (request.Targets.Count == 0)
+                _layoutsLatest.Remove(request.Layout);
+            else
+                _layoutsLatest[request.Layout] = request with { Message = null };
+        }
+
+        var message = request.Message is null ? null : request;
+        Post(() => Lay(request.Layout, message));
+    }
+
+    private void Lay(long layout, LayoutRequest? message)
+    {
+        if (_session is not LuaRun session)
+            return;
+
+        if (message is not null && !session.LayoutMessage(message))
+            return;
+
+        LayoutRequest? latest;
+        lock (_layoutGate)
+            _ = _layoutsLatest.TryGetValue(layout, out latest);
+
+        if (latest is null)
+        {
+            _layoutsDone.Remove(layout);
+            return;
+        }
+
+        if (message is null && _layoutsDone.TryGetValue(layout, out var done) && done == latest.Generation)
+            return;
+
+        _layoutsDone[layout] = latest.Generation;
+        if (session.Arrange(latest) is string answer)
+            _ = _world.Command(answer);
+    }
+
+    /// <summary>
+    /// Waits until the Lua thread has run what was queued before, and what that queued in turn, so what a custom layout
+    /// answers is applied. False when it is still busy after <paramref name="timeout"/>. On the Lua thread it returns
+    /// at once.
+    /// </summary>
+    public bool Settle(TimeSpan timeout)
+    {
+        if (Thread.CurrentThread == _thread)
+            return true;
+
+        var deadline = DateTime.UtcNow + timeout;
+        while (true)
+        {
+            var left = deadline - DateTime.UtcNow;
+            if (left <= TimeSpan.Zero)
+                return false;
+
+            var idle = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Post(() => idle.TrySetResult(_work.Count == 0));
+            if (!idle.Task.Wait(left))
+                return false;
+
+            if (idle.Task.Result)
+                return true;
+        }
     }
 
     /// <summary>The keys of a bind that calls a Lua function were pressed. <paramref name="arguments"/> is the function's id.</summary>

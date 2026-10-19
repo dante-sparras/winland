@@ -291,6 +291,7 @@ internal sealed partial class LuaRun : IDisposable
         Function("dispatch", DispatchNow);
         Function("timer", Timer);
         RegisterRules();
+        RegisterLayouts();
         foreach (var name in Pending)
             Function(name, state => NotYet(name));
 

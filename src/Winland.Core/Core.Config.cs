@@ -106,8 +106,8 @@ public sealed partial class Core
 
     private void MatchLayout(LiveWorkspace desk)
     {
-        var created = LayoutFactory.Create(_config, RuleFor(desk)?.Layout);
-        if (created.GetType() == desk.Layout.GetType())
+        var created = LayoutFactory.Create(_config, RuleFor(desk)?.Layout, LayoutScripts);
+        if (created.GetType() == desk.Layout.GetType() && LayoutFactory.NameOf(created) == LayoutFactory.NameOf(desk.Layout))
         {
             desk.Layout.Apply(_master);
             desk.Layout.Configure(_scrolling);

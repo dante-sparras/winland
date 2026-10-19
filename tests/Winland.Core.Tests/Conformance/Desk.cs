@@ -106,6 +106,7 @@ internal sealed class Desk : IDisposable
             var runtime = new LuaRuntime(new LuaWorld(this));
             _lua = runtime;
             runtime.Listen(Core);
+            Core.LayoutScripts = runtime;
             Core.ReadConfig = () => new ConfigRead(ReadLua(text, lua, files));
             Core.AfterReload = _ => runtime.Adopt(TakeLua());
             Handle(new Configure(ReadLua(text, lua, files)));
@@ -276,19 +277,31 @@ internal sealed class Desk : IDisposable
     /// </summary>
     internal Outcome Handle(Input input)
     {
+        Outcome outcome;
         lock (_gate)
         {
-            var outcome = Core.Handle(input);
+            outcome = Core.Handle(input);
             Follow(outcome);
-            return outcome;
         }
+
+        Settle();
+        return outcome;
     }
 
     /// <summary>
     /// Sends one pipe line, such as <c>dispatch focuswindow class:a</c> or <c>keyword general:gaps_in 0</c>. With a
     /// Lua config, the lines the Lua answers go to it.
     /// </summary>
-    internal string Send(string line) => _lua?.Answer(line, Execute) ?? Execute(line);
+    internal string Send(string line)
+    {
+        var reply = _lua?.Answer(line, Execute) ?? Execute(line);
+        Settle();
+        return reply;
+    }
+
+    // With a Lua config, waits for what the Lua does in answer, such as a custom layout placing the windows, as the
+    // reference's layouts place them before its reply.
+    private void Settle() => _lua?.Settle(LuaRuntime.EvalWait);
 
     private string Execute(string line)
     {

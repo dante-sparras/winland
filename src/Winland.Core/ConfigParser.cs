@@ -208,6 +208,15 @@ public static partial class ConfigParser
                 return;
             }
 
+            if (lhs == LayoutFactory.ScriptKeyword)
+            {
+                if (LayoutFactory.IsScript(rhs))
+                    _settings.Add(new Setting(lhs, rhs));
+                else
+                    Warn(lineNumber, $"A script's layout is named lua:NAME, not '{rhs}'.");
+                return;
+            }
+
             if (lhs == "env")
             {
                 _settings.Add(new Setting(lhs, rhs));

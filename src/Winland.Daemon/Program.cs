@@ -176,6 +176,7 @@ static int Run(string? path)
     core.Plugins = plugins;
     core.Noticed += outcome => plugins.Deliver(outcome.Events);
     lua.Listen(core);
+    core.LayoutScripts = lua;
     core.ReadConfig = () => ReadForReload(configPath, plugins);
     ConfigWatcher? watcher = null;
     core.AfterReload = document =>

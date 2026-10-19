@@ -85,6 +85,7 @@ public sealed partial class Core
         GroupRemoveRequest remove => GroupRemove(remove.Arguments),
         SetWorkspaceRequest show => SetWorkspaceOn(show.Arguments),
         SetSpecialWorkspaceRequest special => SetSpecialOn(special.Arguments),
+        LayoutPlaceRequest place => PlaceScripted(place.Arguments),
         _ => throw new InvalidOperationException("No handler for this command."),
     };
 

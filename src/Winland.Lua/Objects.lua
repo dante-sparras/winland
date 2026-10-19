@@ -1287,6 +1287,184 @@ function hl.get_loaded_plugins()
     return plugins
 end
 
+-- Custom layouts: the ctx and the targets a registered layout's recalculate and layout_msg get. A target places itself
+-- with :place(box) or :set_box(box), which note the box for Winland to apply once the callback returns.
+
+local LayoutTarget = { __name = "HL.LayoutTarget", __newindex = readOnly }
+
+-- The type an argument check names, as the pinned release names it: a number reads as a string there too.
+local function kindName(value)
+    local kind = type(value)
+    if kind == "string" or kind == "number" then
+        return "string"
+    elseif kind == "boolean" then
+        return "bool"
+    elseif kind == "nil" or kind == "function" or kind == "table" then
+        return kind
+    end
+    return "?"
+end
+
+local function numberIn(value)
+    if type(value) == "number" then
+        return value
+    end
+    if type(value) == "string" then
+        return tonumber(value)
+    end
+    return nil
+end
+
+-- A box table { x, y, w, h }, copied with no negative size, or nil when it is not one.
+local function layoutBox(value)
+    if type(value) ~= "table" then
+        return nil
+    end
+    local x, y, w, h = numberIn(value.x), numberIn(value.y), numberIn(value.w), numberIn(value.h)
+    if not (x and y and w and h) then
+        return nil
+    end
+    return { x = x, y = y, w = math.max(0, w), h = math.max(0, h) }
+end
+
+local function boxCopy(box)
+    return { x = box.x, y = box.y, w = box.w, h = box.h }
+end
+
+local function placeTarget(self, box)
+    local held = getmetatable(self) == LayoutTarget and keys[self]
+    if not held then
+        error("bad argument #1 to 'place' (HL.LayoutTarget expected)", 2)
+    end
+    local placed = layoutBox(box)
+    if not placed then
+        note("HL.LayoutTarget: place expects a box table { x, y, w, h }", 2)
+        return
+    end
+    held.box = placed
+    held.placed[held.index] = boxCopy(placed)
+end
+
+LayoutTarget.__index = function(self, key)
+    if type(key) ~= "string" then
+        note("HL.LayoutTarget.__index: bad argument 2: expected string, got " .. kindName(key), 2)
+        return nil
+    end
+    local held = keys[self]
+    if key == "index" then
+        return held.index
+    elseif key == "window" then
+        return held.address and window(held.address) or nil
+    elseif key == "box" then
+        return boxCopy(held.box)
+    elseif key == "place" or key == "set_box" then
+        return placeTarget
+    end
+    return nil
+end
+
+LayoutTarget.__tostring = function(self)
+    return "HL.LayoutTarget(" .. keys[self].index .. ")"
+end
+
+local function integerArgument(value, label, position)
+    if math.type(value) ~= "integer" then
+        note(label .. ": bad argument " .. position .. ": expected integer, got " .. kindName(value), 3)
+        return nil
+    end
+    return value
+end
+
+local function areaOf(ctx)
+    return layoutBox(type(ctx) == "table" and ctx.area or nil) or { x = 0, y = 0, w = 0, h = 0 }
+end
+
+local layoutMethods = {}
+
+function layoutMethods.grid_cell(ctx, i, cols, rows)
+    local area = areaOf(ctx)
+    i = integerArgument(i, "grid_cell", 2)
+    if not i then return end
+    cols = integerArgument(cols, "grid_cell", 3)
+    if not cols then return end
+    local index, width = math.max(1, i), math.max(1, cols)
+    local height
+    if type(rows) == "number" then
+        height = math.max(1, math.tointeger(rows) or math.floor(rows))
+    else
+        local count = math.max(1, type(ctx.targets) == "table" and #ctx.targets or 0)
+        height = math.max(1, math.ceil(count / width))
+    end
+    local row, col = (index - 1) // width, (index - 1) % width
+    return layoutBox({ x = area.x + area.w * col / width, y = area.y + area.h * row / height, w = area.w / width, h = area.h / height })
+end
+
+function layoutMethods.column(ctx, i, n)
+    local area = areaOf(ctx)
+    i = integerArgument(i, "column", 2)
+    if not i then return end
+    n = integerArgument(n, "column", 3)
+    if not n then return end
+    local index, count = math.max(1, i), math.max(1, n)
+    return layoutBox({ x = area.x + area.w * (index - 1) / count, y = area.y, w = area.w / count, h = area.h })
+end
+
+function layoutMethods.row(ctx, i, n)
+    local area = areaOf(ctx)
+    i = integerArgument(i, "row", 2)
+    if not i then return end
+    n = integerArgument(n, "row", 3)
+    if not n then return end
+    local index, count = math.max(1, i), math.max(1, n)
+    return layoutBox({ x = area.x, y = area.y + area.h * (index - 1) / count, w = area.w, h = area.h / count })
+end
+
+function layoutMethods.split(_, box, side, ratio)
+    local area = layoutBox(box)
+    if not area then
+        note("ctx:split expects a box table as first argument", 2)
+        return
+    end
+    if type(side) ~= "string" and type(side) ~= "number" then
+        note("split: bad argument 1: expected string, got " .. kindName(side), 2)
+        return
+    end
+    side = tostring(side)
+    local share = numberIn(ratio)
+    if not share then
+        note("split: bad argument 4: expected number, got " .. kindName(ratio), 2)
+        return
+    end
+    share = math.max(0.0, math.min(1.0, share))
+    if side == "left" then
+        return layoutBox({ x = area.x, y = area.y, w = area.w * share, h = area.h })
+    elseif side == "right" then
+        return layoutBox({ x = area.x + area.w * (1.0 - share), y = area.y, w = area.w * share, h = area.h })
+    elseif side == "top" or side == "up" then
+        return layoutBox({ x = area.x, y = area.y, w = area.w, h = area.h * share })
+    elseif side == "bottom" or side == "down" then
+        return layoutBox({ x = area.x, y = area.y + area.h * (1.0 - share), w = area.w, h = area.h * share })
+    end
+    note("ctx:split side must be left, right, top, or bottom", 2)
+end
+
+-- The ctx of one callback: the tiling area, the targets in the layout's order, and the helpers. The second result
+-- holds the box each target placed, by its index.
+local function layoutContext(area, entries)
+    local placed = {}
+    local targets = {}
+    for i, entry in ipairs(entries) do
+        local made = userdata(LayoutTarget)
+        keys[made] = { index = i, address = entry.address, box = entry.box, placed = placed }
+        targets[i] = made
+    end
+    local ctx = { area = area, targets = targets }
+    for name, method in pairs(layoutMethods) do
+        ctx[name] = method
+    end
+    return ctx, placed
+end
+
 return {
     window = window,
     workspace = workspace,
@@ -1295,4 +1473,5 @@ return {
     selector = selector,
     keybind = keybind,
     timer = timer,
+    layoutContext = layoutContext,
 }

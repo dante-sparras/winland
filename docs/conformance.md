@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-212 of 215 ported cases pass.
+214 of 217 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -194,8 +194,8 @@ A case passes when every check in it passes, as in the reference harness. A case
 | layout | posPreserve | passes | |
 | layout | focusMRUAfterClose | passes | |
 | layout | focusPreservedLayoutChange | passes | |
-| layout_custom | layoutCustomGrid | not ported | A custom layout is registered with hl.layout.register, which Winland's Lua config does not have. |
-| layout_custom | layoutCustomColumns | not ported | A custom layout is registered with hl.layout.register, which Winland's Lua config does not have. |
+| layout_custom | layoutCustomGrid | passes | |
+| layout_custom | layoutCustomColumns | passes | |
 | drag | dragTiledCentered | passes | |
 | drag | dragTiledProportional | passes | |
 | drag | dragFullscreenCentered | passes | |
