@@ -137,10 +137,56 @@ internal sealed class Desk : IDisposable
     // config it came with is in use, as the daemon's does.
     private ConfigDocument ReadLua(string text, string lua, IReadOnlyDictionary<string, string>? files)
     {
-        var load = LuaConfig.Load(lua, Path.Combine(LuaFolder, "winland.lua"), new LuaFiles(files ?? new Dictionary<string, string>()));
+        var load = LuaConfig.Load(lua + "\n" + TestPlugin, Path.Combine(LuaFolder, "winland.lua"), new LuaFiles(files ?? new Dictionary<string, string>()));
         _pending?.Dispose();
         _pending = load.Session;
         return ConfigParser.Parse(text + "\n" + load.Translation.Text);
+    }
+
+    // The Lua calls of the reference's test plugin that a case uses. Each sends the desk a command of its own, which
+    // its Lua world answers, since Winland's Lua has no plugin calls. It follows the config, so its line numbers stay.
+    private const string TestPlugin = $$"""
+        hl.plugin = hl.plugin or {}
+        hl.plugin.test = hl.plugin.test or {}
+        hl.plugin.test.gesture = function(direction, fingers)
+            hl.dispatch({ __winland_dispatcher = "{{TestCommand}} gesture " .. tostring(direction) .. " " .. tostring(fingers), __winland_command = "true" })
+        end
+        """;
+
+    // The verb of the test plugin's commands.
+    private const string TestCommand = "desk-test-plugin";
+
+    /// <summary>
+    /// Swipes the touchpad as the reference's test plugin does: a begin, one update 300 pixels along
+    /// <paramref name="direction"/> (up, down, left, anything else right), and an end.
+    /// </summary>
+    internal IReadOnlyList<Outcome> Swipe(string direction, int fingers)
+    {
+        var (x, y) = direction switch
+        {
+            "down" => (0, 300),
+            "up" => (0, -300),
+            "left" => (-300, 0),
+            _ => (300, 0),
+        };
+
+        return [Handle(new SwipeBegan(fingers)), Handle(new SwipeUpdated(fingers, x, y)), Handle(new SwipeEnded())];
+    }
+
+    // A command of the test plugin, or null for a pipe command.
+    private string? TestPluginCommand(string command)
+    {
+        var words = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length == 0 || words[0] != TestCommand)
+            return null;
+
+        if (words is [_, "gesture", var direction, var count] && int.TryParse(count, System.Globalization.CultureInfo.InvariantCulture, out var fingers))
+        {
+            _ = Swipe(direction, fingers);
+            return "ok";
+        }
+
+        return "error: unknown test plugin command";
     }
 
     private LuaSession? TakeLua()
@@ -416,7 +462,7 @@ internal sealed class Desk : IDisposable
     // What the running Lua reaches: the desk's pipe, as the daemon's window host is, and its log.
     private sealed class LuaWorld(Desk desk) : ILuaWorld
     {
-        public string Command(string command) => desk.Execute(command);
+        public string Command(string command) => desk.TestPluginCommand(command) ?? desk.Execute(command);
 
         public void Log(string message)
         {

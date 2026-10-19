@@ -50,7 +50,8 @@ public class TouchpadSwipeTests
         swipe.Report(1, [new(0, false, 10, 10)]);
         var fresh = swipe.Report(3, Fingers((3, 10, 10), (4, 20, 10), (5, 30, 10)));
 
-        Assert.Equal([new SwipeEnded()], lifted);
+        Assert.True(Assert.IsType<SwipeEnded>(Assert.Single(lifted)).TimeMs > 0);
+        Assert.Equal([new SwipeEnded()], Untimed(lifted));
         Assert.Empty(again);
         Assert.Equal([new SwipeBegan(3)], fresh);
     }
@@ -63,8 +64,12 @@ public class TouchpadSwipeTests
 
         var more = swipe.Report(4, Fingers((0, 10, 10), (1, 20, 10), (2, 30, 10), (3, 40, 10)));
 
-        Assert.Equal([new SwipeEnded(Cancelled: true), new SwipeBegan(4)], more);
+        Assert.Equal([new SwipeEnded(Cancelled: true), new SwipeBegan(4)], Untimed(more));
     }
+
+    // The inputs with the time of an end left out, which the clock sets.
+    private static Input[] Untimed(IEnumerable<Input> inputs) =>
+        [.. inputs.Select(input => input is SwipeEnded ended ? ended with { TimeMs = 0 } : input)];
 
     private static TouchContact[] Fingers(params (int Id, double X, double Y)[] fingers) =>
         [.. fingers.Select(finger => new TouchContact(finger.Id, true, finger.X, finger.Y))];

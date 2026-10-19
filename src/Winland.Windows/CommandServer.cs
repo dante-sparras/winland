@@ -385,6 +385,9 @@ public sealed class CommandServer : IDisposable
 
     private void OnNoticed(Outcome outcome)
     {
+        if (outcome.Events.Count == 0)
+            return;
+
         Subscriber[] subscribers;
         lock (_subscribersGate)
         {

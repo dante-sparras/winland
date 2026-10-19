@@ -85,7 +85,7 @@ public static partial class ConfigParser
 
             var action = index < parts.Count ? parts[index] : "";
             var takesArgument = action is TrackpadGesture.SpecialAction or TrackpadGesture.DispatcherAction
-                or TrackpadGesture.FloatAction or TrackpadGesture.FullscreenAction;
+                or TrackpadGesture.FloatAction or TrackpadGesture.FullscreenAction or TrackpadGesture.FunctionAction;
             var argument = takesArgument && index + 1 < parts.Count ? parts[index + 1].Trim() : "";
 
             // A dispatcher gesture takes the dispatcher and then its arguments, which may hold commas of their own.

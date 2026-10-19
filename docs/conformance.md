@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-211 of 214 ported cases pass.
+212 of 215 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -16,6 +16,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 - Each test is named after its case, with the first letter of each part between underscores capitalized and the underscores dropped, so `groups_disable_when_only` is `GroupsDisableWhenOnly`. It sends the same commands in the same order. The reference config and dispatchers are Lua calls, and a test sends the line-based form: `hl.dsp.focus({ window = 'class:a' })` is `focuswindow class:a`, `hl.dsp.layout('togglesplit')` is `layoutmsg togglesplit`, and `hl.config({ dwindle = { force_split = 2 } })` is `keyword dwindle:force_split 2`. `layout_aware = false` in a fullscreen dispatcher is a last word `default`.
 - A case that runs Lua through `eval` or `repl` runs with a Lua config, which `Desk.WithLua` starts. Its `eval` and `repl` calls stay Lua, and its dispatches are sent as the reference sends them, which the Lua runs.
 - An option the case sets before its first window opens goes into the starting config. The reference sets it over the socket only because its compositor is already running. An option the case changes later goes through `keyword`.
+- The test plugin's `hl.plugin.test.gesture` is in the Lua of `Desk.WithLua`, and swipes the core as the plugin does. Its pinch calls have no core input, so a case leaves them out.
 - The input devices are the ones the reference's test plugin plugs in when it loads: a mouse, `test-mouse-1`, and two keyboards, `test-keyboard-1` and `test-keyboard-2`, named as the reference names them.
 - Opening kitty with a class is a window that appears with that class on the focused monitor, with a process of its own. Killing it is the window closing.
 - `Desk` answers the core as the Windows adapter does: a window the core focuses reports focus back, and the pointer goes where the core warps it.
@@ -269,7 +270,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | exec | processSpawning | passes | |
 | gestures | pinchDeltaScalePropagation | not ported | It checks a gesture the test plugin registers through the C++ plugin interface, which has no core form. |
 | gestures | defaultSpecialWorkspaceGesture | passes | |
-| gestures | live_gesture_callbacks | not ported | Its gesture actions are Lua functions, which make no gesture yet, and it swipes from Lua through the test plugin's hl.plugin.test.gesture. |
+| gestures | live_gesture_callbacks | passes | |
 | gestures | gestures | passes | |
 | keybinds | keybinds | differs | Per-device binds are not honored. |
 | keybinds | orderedSubChordDeferral | passes | |

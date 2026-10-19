@@ -71,13 +71,13 @@ internal sealed class TouchpadSwipe
             }
             else if (down.Count > _fingers)
             {
-                inputs.Add(new SwipeEnded(Cancelled: true));
+                inputs.Add(new SwipeEnded(Cancelled: true) { TimeMs = Environment.TickCount64 });
                 _fingers = down.Count;
                 inputs.Add(new SwipeBegan(_fingers));
             }
             else
             {
-                inputs.Add(new SwipeEnded());
+                inputs.Add(new SwipeEnded { TimeMs = Environment.TickCount64 });
                 _fingers = 0;
                 _waitForLift = down.Count > 0;
             }

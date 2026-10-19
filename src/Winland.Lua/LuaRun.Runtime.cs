@@ -32,6 +32,9 @@ internal sealed partial class LuaRun
     private int _arm;
     private int _nextFunction;
 
+    // When the call running now runs out of time, and its label, or null when no call runs.
+    private (long Until, string Label)? _limit;
+
     // The Lua function a bind calls, kept in the registry under an id the bind line names.
     private int KeepFunction(int index)
     {
@@ -49,7 +52,7 @@ internal sealed partial class LuaRun
         _timers = timers;
         _phase = Phase.Running;
         foreach (var command in _queued)
-            Report(world.Command(command), command);
+            Report(Command(command), command);
 
         _queued.Clear();
         foreach (var id in _pendingTimers)
@@ -96,13 +99,27 @@ internal sealed partial class LuaRun
     }
 
     // Runs the function below its arguments on top of the stack. An error is logged, or reported by an eval. What the
-    // queries read before is forgotten, since Winland may have changed since.
+    // queries read before is forgotten, since Winland may have changed since. A call made inside another, such as a
+    // gesture callback of a swipe the running Lua made, has its own limit, and the outer call gets back what was left
+    // of its own.
     private bool Guarded(double limit, string label, int results = 0, int arguments = 0)
     {
         Forget();
+        var outer = _limit;
+        _limit = (System.Diagnostics.Stopwatch.GetTimestamp() + (long)(limit * System.Diagnostics.Stopwatch.Frequency), label);
         Arm(limit, label);
         var status = _lua.PCall(arguments, results, 0);
-        Arm(0, "");
+        _limit = outer;
+        if (outer is { } previous)
+        {
+            var left = (double)(previous.Until - System.Diagnostics.Stopwatch.GetTimestamp()) / System.Diagnostics.Stopwatch.Frequency;
+            Arm(Math.Max(left, 0.001), previous.Label);
+        }
+        else
+        {
+            Arm(0, "");
+        }
+
         if (status == LuaStatus.OK)
             return true;
 
@@ -263,7 +280,7 @@ internal sealed partial class LuaRun
             return Result(true, null);
         }
 
-        var reply = _world.Command(command);
+        var reply = Command(command);
         Forget();
         return reply == "ok" ? Result(true, null) : Result(false, "hl.dispatch: " + reply);
     }
@@ -426,7 +443,7 @@ internal sealed partial class LuaRun
             return;
 
         var command = $"keyword {line[..equals]} {line[(equals + 3)..]}";
-        Report(_world.Command(command), command);
+        Report(Command(command), command);
         Forget();
     }
 

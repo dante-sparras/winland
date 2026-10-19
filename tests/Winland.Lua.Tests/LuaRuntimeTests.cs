@@ -248,6 +248,59 @@ public class LuaRuntimeTests
     }
 
     [Fact]
+    public void AGestureHandsItsFunctionsEachPhaseOfTheSwipe()
+    {
+        using var runtime = new LuaRuntime(new World());
+        var load = LuaConfig.Load("""
+            seen = {}
+            hl.gesture({ fingers = 3, direction = "horizontal", action = {
+                start = function(e) seen[#seen + 1] = table.concat({ e.phase, e.type, e.direction, e.fingers, e.delta.x, e.delta.y, e.time_ms }, ":") end,
+                update = function(e) seen[#seen + 1] = table.concat({ e.phase, e.direction, e.delta.x }, ":") end,
+                finish = function(e) seen[#seen + 1] = table.concat({ e.phase, e.direction, tostring(e.cancelled), tostring(e.fingers), tostring(e.delta) }, ":") end,
+            } })
+            hl.gesture({ fingers = 4, direction = "up", action = function(...) seen[#seen + 1] = "legacy:" .. select("#", ...) end })
+            """, ConfigPath, _ => null);
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse(load.Translation.Text)));
+        runtime.Listen(core);
+        runtime.Adopt(load.Session);
+
+        core.Handle(new SwipeBegan(3));
+        core.Handle(new SwipeUpdated(3, -3, 0) { TimeMs = 5 });
+        core.Handle(new SwipeUpdated(3, -4, 1) { TimeMs = 7 });
+        core.Handle(new SwipeUpdated(3, -10, 0) { TimeMs = 9 });
+        core.Handle(new SwipeEnded(Cancelled: true) { TimeMs = 11 });
+        core.Handle(new SwipeBegan(4));
+        core.Handle(new SwipeUpdated(4, 0, -10));
+        core.Handle(new SwipeEnded());
+
+        // The update that picks the gesture starts it and is its first update. The end has the configured direction.
+        Assert.Equal(
+            "start:swipe:LEFT:3:-4.0:1.0:7,update:LEFT:-4.0,update:LEFT:-10.0,end:HORIZONTAL:true:nil:nil,legacy:0",
+            runtime.Eval("table.concat(seen, ',')", repl: true));
+    }
+
+    [Fact]
+    public void AGestureFunctionThatRunsTooLongIsStopped()
+    {
+        var world = new World();
+        using var runtime = new LuaRuntime(world);
+        var load = LuaConfig.Load("""
+            hl.gesture({ fingers = 3, direction = "left", action = { start = function() while true do end end } })
+            """, ConfigPath, _ => null);
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse(load.Translation.Text)));
+        runtime.Listen(core);
+        runtime.Adopt(load.Session);
+
+        core.Handle(new SwipeBegan(3));
+        core.Handle(new SwipeUpdated(3, -10, 0));
+        Settle(runtime);
+
+        Assert.Contains(world.Logged, line => line.StartsWith("lua: gesture start callback:", StringComparison.Ordinal) && line.Contains("0.05", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void TheParserTakesTheFunctionDispatcher()
     {
         _ = Dispatchers.TryBind(LuaConfig.FunctionDispatcher, _ => new DispatcherResult(null, null), out _);
