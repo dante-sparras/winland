@@ -140,7 +140,7 @@ public class CommandServerTests
         server.Start();
         using var idle = Connect(name);
         Send(idle, "events");
-        Assert.Equal("[]", CommandClient.Transact("clients", name));
+        Assert.Equal("[]", CommandClient.Transact("j/clients", name));
 
         var finished = Task.Run(() =>
         {
@@ -163,7 +163,7 @@ public class CommandServerTests
         server.Start();
         var idle = Connect(name);
         Send(idle, "events");
-        Assert.Equal("[]", CommandClient.Transact("clients", name));
+        Assert.Equal("[]", CommandClient.Transact("j/clients", name));
         idle.Dispose();
 
         using var listener = new Listener(name);
@@ -189,7 +189,7 @@ public class CommandServerTests
             Thread.Sleep(100);
         }
 
-        Assert.Equal("[]", CommandClient.Transact("clients", name, timeoutMs: 5000));
+        Assert.Equal("[]", CommandClient.Transact("j/clients", name, timeoutMs: 5000));
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public class CommandServerTests
         server.Start();
         using var silent = Connect(name);
 
-        Assert.Equal("[]", CommandClient.Transact("clients", name));
+        Assert.Equal("[]", CommandClient.Transact("j/clients", name));
         Assert.Equal("ok", CommandClient.Transact("dispatch workspace 1", name));
     }
 

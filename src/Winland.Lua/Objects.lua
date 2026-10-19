@@ -587,7 +587,7 @@ end
 
 local function timer(id) return object(Timer, id) end
 
--- Devices: what hl.get_devices returns, read from Winland's devices reply, which has one keyboard and one mouse.
+-- Devices: what hl.get_devices returns, read from Winland's devices reply.
 
 local function devices()
     local reply = fetch("j/devices")

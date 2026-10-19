@@ -6,7 +6,7 @@ Honored behavior is in [behavior.md](behavior.md) and Gaps are in [gaps.md](gaps
 
 ## Score
 
-207 of 214 ported cases pass.
+211 of 214 ported cases pass.
 
 A case passes when every check in it passes, as in the reference harness. A case that differs in one check differs as a whole.
 
@@ -16,6 +16,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 - Each test is named after its case, with the first letter of each part between underscores capitalized and the underscores dropped, so `groups_disable_when_only` is `GroupsDisableWhenOnly`. It sends the same commands in the same order. The reference config and dispatchers are Lua calls, and a test sends the line-based form: `hl.dsp.focus({ window = 'class:a' })` is `focuswindow class:a`, `hl.dsp.layout('togglesplit')` is `layoutmsg togglesplit`, and `hl.config({ dwindle = { force_split = 2 } })` is `keyword dwindle:force_split 2`. `layout_aware = false` in a fullscreen dispatcher is a last word `default`.
 - A case that runs Lua through `eval` or `repl` runs with a Lua config, which `Desk.WithLua` starts. Its `eval` and `repl` calls stay Lua, and its dispatches are sent as the reference sends them, which the Lua runs.
 - An option the case sets before its first window opens goes into the starting config. The reference sets it over the socket only because its compositor is already running. An option the case changes later goes through `keyword`.
+- The input devices are the ones the reference's test plugin plugs in when it loads: a mouse, `test-mouse-1`, and two keyboards, `test-keyboard-1` and `test-keyboard-2`, named as the reference names them.
 - Opening kitty with a class is a window that appears with that class on the focused monitor, with a process of its own. Killing it is the window closing.
 - `Desk` answers the core as the Windows adapter does: a window the core focuses reports focus back, and the pointer goes where the core warps it.
 - `at` and `size` are the frame Winland places the window at, inside its border. That is what the reference replies report. Winland's own `clients` and `activewindow` replies report the Layout slot instead.
@@ -215,7 +216,7 @@ A case passes when every check in it passes, as in the reference harness. A case
 | hyprctl | hyprctlBindsJson | passes | |
 | hyprctl | hyprctlWorkspaceJson | passes | |
 | hyprctl | hyprctlREPL | passes | |
-| hyprctl | hyprctlBatch | differs | A batch splits at every ;, as a backslash escapes nothing there, so \; does not keep a ; in its command. With no active window, activewindow replies {} where the pinned release replies Invalid. |
+| hyprctl | hyprctlBatch | passes | |
 | misc | misc | passes | |
 | misc | processesThatDieEarlyAreReaped | not ported | It checks that the OS reaps a process the config starts, which a core test cannot see. |
 | state | state | passes | |
@@ -237,13 +238,13 @@ A case passes when every check in it passes, as in the reference harness. A case
 | layer | ruleConfinementRuntimeToggle | not ported | It changes a named window rule through Lua and reads the seat's focus through the test plugin. |
 | layer | layerVisibilityOnFs | not ported | It opens a layer shell surface and reads its alpha from the layers reply. |
 | layer | windowRefocusRestoresKeyboardFocusAfterSurfaceFocusCleared | not ported | It clears and checks the seat's keyboard focus through the test plugin. |
-| lua_config | luaRequire | differs | require takes a module name only. A path, such as ./lua-require/relative.lua or an absolute one, and a wildcard path are not read. |
+| lua_config | luaRequire | passes | |
 | lua_config | luaSpecialWorkspaceDeactivationEventNil | passes | |
 | lua_config | luaDefaultSpecialWorkspaceName | passes | |
 | lua_config | luaEventConfigUnload | differs | os.execute is not in Winland's Lua (ADR 0007), so the handler cannot write the file the case reads. |
 | lua_config | luaReloadConfig | passes | |
-| lua_config | luaDevicesEnumerationAndHyprctlParity | differs | Winland reports one keyboard and one mouse of its own, named keyboard and mouse, where the case looks for the test plugin's test-mouse and two test-keyboard devices. |
-| lua_config | luaDevicesRetainedKeyboardTracksLayoutChanges | differs | Winland reports one keyboard and one mouse of its own, named keyboard and mouse, where the case looks for the test plugin's test-mouse and two test-keyboard devices. |
+| lua_config | luaDevicesEnumerationAndHyprctlParity | passes | |
+| lua_config | luaDevicesRetainedKeyboardTracksLayoutChanges | passes | |
 | xwayland_selection | xwaylandSelectionSourceGuard | not ported | It checks X11 selections through the test plugin. |
 | clients/child-window | childWindow | passes | |
 | clients/fullscreen-with-monitor | fullscreenWithExplicitMonitor | not ported | An application that asks to be fullscreen is not observed, so the core has no input for the request. |

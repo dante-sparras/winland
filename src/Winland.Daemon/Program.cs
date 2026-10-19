@@ -363,7 +363,7 @@ static ConfigDocument ReadConfig(string path)
     if (!isLua)
         LuaHosting.Clear();
 
-    var lua = isLua ? LuaHosting.Load(text, full, source.Read) : null;
+    var lua = isLua ? LuaHosting.Load(text, full, source) : null;
 
     // [elevated] runs with Winland's administrator token, so only a config that only
     // administrators can write, sources included, may use it (ADR 0007).

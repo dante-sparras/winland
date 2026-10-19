@@ -19,11 +19,11 @@ public sealed partial class Core
         var reply = request switch
         {
             DispatchRequest dispatch => DispatchReply(dispatch),
-            ClientsRequest clients => Describe(state => CommandProtocol.FormatClients(state, clients.All)),
+            ClientsRequest clients => Describe(state => Empty(CommandProtocol.FormatClients(state, clients.All), "[]", clients, "no open windows")),
             WorkspacesRequest => Describe(CommandProtocol.FormatWorkspaces),
             WorkspaceRulesRequest => new CommandReply(WorkspaceRules.Format(_workspaceRules), View([])),
             MonitorsRequest monitors => Describe(state => CommandProtocol.FormatMonitors(state, monitors.All)),
-            ActiveWindowRequest => Describe(state => CommandProtocol.FormatActiveWindow(state, ActiveWindow())),
+            ActiveWindowRequest active => Describe(state => Empty(CommandProtocol.FormatActiveWindow(state, ActiveWindow()), "{}", active, "Invalid")),
             ActiveWorkspaceRequest => Describe(CommandProtocol.FormatActiveWorkspace),
             EventsRequest => new CommandReply("", View([])) { Stream = true },
             ReloadRequest => ReloadCommand(),
@@ -42,6 +42,11 @@ public sealed partial class Core
         var effect = Execute(dispatch.Name, dispatch.Arguments, dispatch.AllowsElevation);
         return new CommandReply(effect.Error ?? effect.Notice ?? "ok", effect);
     }
+
+    // The pinned release's text reply for a query that finds nothing, such as "no open windows"; with j/ it stays the
+    // empty JSON.
+    private static string Empty(string reply, string empty, CommandRequest request, string text) =>
+        reply == empty && !request.Flags.HasFlag(CommandFlags.Json) ? text : reply;
 
     private CommandReply Describe(Func<State, string> format)
     {
@@ -73,7 +78,7 @@ public sealed partial class Core
         SetPropRequest prop => WriteProp(prop),
         SetErrorRequest error => SetError(error),
         SwitchLayoutRequest layout => SwitchLayout(layout),
-        DevicesRequest devices => Devices(devices),
+        DevicesRequest devices => DevicesReply(devices),
         BatchRequest batch => RunBatch(batch.Payload),
         ResolveWorkspaceRequest resolve => ResolveWorkspace(resolve.Arguments, resolve.Flags.HasFlag(CommandFlags.Json)),
         GroupAddRequest add => GroupAdd(add.Arguments),

@@ -138,27 +138,24 @@ public static class ExtraCommands
     public static IReadOnlyList<string> SplitBatch(string payload)
     {
         ArgumentNullException.ThrowIfNull(payload);
+
+        // As the pinned release splits a batch: at every ;, with \; for a ; and \\ for a \ in a command. A backslash
+        // before anything else stays, and each command is trimmed, an empty one too.
         var commands = new List<string>();
-        var bracket = 0;
-        var start = 0;
+        var command = new StringBuilder();
         for (var i = 0; i <= payload.Length; i++)
         {
-            var ch = i < payload.Length ? payload[i] : ';';
-            if (ch == '[')
-                bracket++;
-            else if (ch == ']' && bracket > 0)
-                bracket--;
-            else if (ch == ';' && bracket == 0)
+            if (i == payload.Length || payload[i] == ';')
             {
-                if (start < i)
-                {
-                    var command = payload[start..i].Trim();
-                    if (command.Length > 0)
-                        commands.Add(command);
-                }
-
-                start = i + 1;
+                commands.Add(command.ToString().Trim());
+                command.Clear();
+                continue;
             }
+
+            if (payload[i] == '\\' && i + 1 < payload.Length && payload[i + 1] is '\\' or ';')
+                i++;
+
+            command.Append(payload[i]);
         }
 
         return commands;

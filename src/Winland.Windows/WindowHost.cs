@@ -50,6 +50,7 @@ public sealed class WindowHost : IDisposable
         _input = new InputThread(StartHooks, ServiceHooks, StopHooks);
         _touchpad = new TouchpadInput(_keys.PostInput);
         _core.SessionLock = _phase;
+        _core.Devices ??= new RawInputDevices();
         _commands = new CommandServer(core, pipeName);
     }
 

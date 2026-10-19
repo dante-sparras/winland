@@ -222,21 +222,24 @@ public class ExtraCommandTests
     }
 
     [Fact]
-    public void BatchJoinsRepliesAndKeepsSemicolonsInsideBrackets()
+    public void BatchJoinsRepliesAndKeepsEscapedSemicolons()
     {
         var core = new Core();
         var joined = core.Execute("[[BATCH]]layouts;locked").Text;
         Assert.Equal("[\"dwindle\",\"master\",\"scrolling\",\"monocle\"]\n\n\n{\"locked\":false}", joined);
 
-        var bracketed = core.Execute("[[BATCH]]keyword bind SUPER, Q, exec, [float; tile] notepad;layouts").Text;
-        Assert.Equal("ok\n\n\n[\"dwindle\",\"master\",\"scrolling\",\"monocle\"]", bracketed);
-        Assert.Contains("exec", core.Execute("binds").Text, StringComparison.Ordinal);
+        var escaped = core.Execute(@"[[BATCH]]keyword bind SUPER, Q, exec, [float\; tile] notepad;layouts").Text;
+        Assert.Equal("ok\n\n\n[\"dwindle\",\"master\",\"scrolling\",\"monocle\"]", escaped);
+        Assert.Contains("[float; tile] notepad", core.Execute("binds").Text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void AnUnmatchedClosingBracketDoesNotSwallowTheRestOfTheBatch()
+    public void ABatchSplitsAtEverySemicolonAsThePinnedReleaseDoes()
     {
-        Assert.Equal(["dispatch exec a]", "layouts", "locked"], ExtraCommands.SplitBatch("dispatch exec a];layouts;locked"));
+        Assert.Equal(["dispatch exec [float", "tile] a", "layouts"], ExtraCommands.SplitBatch("dispatch exec [float; tile] a;layouts"));
+        Assert.Equal([@"a\b;c", @"d\.e", ""], ExtraCommands.SplitBatch(@" a\\b\;c ; d\.e ;"));
+        Assert.Equal([@"x\"], ExtraCommands.SplitBatch(@"x\"));
+        Assert.Equal([""], ExtraCommands.SplitBatch(""));
     }
 
     [Fact]
@@ -296,6 +299,9 @@ public class ExtraCommandTests
 
         Assert.True(ControlInvocation.TryCreate(["-j", "--batch", "layouts ; locked"], out line, out events));
         Assert.Equal("[[BATCH]]j/layouts ;j/locked", line);
+
+        Assert.True(ControlInvocation.TryCreate(["-j", "--batch", @"repl a\; b; eval c\\; clients"], out line, out events));
+        Assert.Equal(@"[[BATCH]]j/repl a\; b;j/eval c\\;j/clients", line);
 
         Assert.True(ControlInvocation.TryCreate(["-a", "clients"], out line, out events));
         Assert.Equal("a/clients", line);
@@ -392,7 +398,8 @@ public class ExtraCommandTests
             new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024)),
         ]));
 
-        var effect = core.Execute(@"[[BATCH]]dispatch dpms off \\.\DISPLAY1 ; dispatch dpms on \\.\DISPLAY2").Effect;
+        // In a batch a backslash is written \\, as in the pinned release.
+        var effect = core.Execute(@"[[BATCH]]dispatch dpms off \\\\.\\DISPLAY1 ; dispatch dpms on \\\\.\\DISPLAY2").Effect;
 
         Assert.Equal(
             [

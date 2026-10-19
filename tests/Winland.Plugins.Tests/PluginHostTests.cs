@@ -125,7 +125,7 @@ public class PluginHostTests
 
         var disabled = core.Execute("dispatch boom");
         Assert.Contains("disabled", disabled.Text, StringComparison.Ordinal);
-        using var clients = JsonDocument.Parse(core.Execute("clients").Text);
+        using var clients = JsonDocument.Parse(core.Execute("j/clients").Text);
         Assert.Equal(JsonValueKind.Array, clients.RootElement.ValueKind);
 
         var listed = JsonDocument.Parse(core.Execute("plugin list").Text).RootElement;
@@ -205,7 +205,7 @@ public class PluginHostTests
 
         Assert.Contains("time budget", text, StringComparison.Ordinal);
         Assert.Contains(fixture.Log.Lines, line => line.Contains("abandoned", StringComparison.Ordinal));
-        using var clients = JsonDocument.Parse(core.Execute("clients").Text);
+        using var clients = JsonDocument.Parse(core.Execute("j/clients").Text);
         Assert.Equal(JsonValueKind.Array, clients.RootElement.ValueKind);
     }
 

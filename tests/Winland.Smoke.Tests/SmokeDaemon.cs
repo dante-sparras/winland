@@ -99,7 +99,7 @@ internal sealed class SmokeDaemon : IDisposable
         throw new TimeoutException($"winland did not accept commands. {last} {Logs()}");
     }
 
-    public string Clients() => Run("clients");
+    public string Clients() => Run("j/clients");
 
     public string Workspaces() => Run("workspaces");
 

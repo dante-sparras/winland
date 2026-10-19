@@ -13,9 +13,9 @@ static class LuaHosting
     private static LuaSession? _latest;
 
     /// <summary>Runs a Lua config and keeps its Lua for <see cref="Take"/>. A Lua that was never taken is let go.</summary>
-    public static LuaTranslation Load(string code, string path, Func<string, string?> read)
+    public static LuaTranslation Load(string code, string path, IConfigSource source)
     {
-        var load = LuaConfig.Load(code, path, read);
+        var load = LuaConfig.Load(code, path, source);
         LuaSession? previous;
         lock (Gate)
         {

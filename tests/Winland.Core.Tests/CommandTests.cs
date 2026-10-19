@@ -135,10 +135,12 @@ public class CommandTests
     [Fact]
     public void ClientsReplyIsEmptyUntilAWindowIsAdopted()
     {
-        var clients = Json(new Core().Execute("clients").Text);
+        var core = new Core();
+        var clients = Json(core.Execute("j/clients").Text);
 
         Assert.Equal(JsonValueKind.Array, clients.ValueKind);
         Assert.Equal(0, clients.GetArrayLength());
+        Assert.Equal("no open windows", core.Execute("clients").Text);
     }
 
     [Fact]
@@ -267,10 +269,12 @@ public class CommandTests
     [Fact]
     public void ActiveWindowIsEmptyUntilAClientExists()
     {
-        var active = Json(new Core().Execute("activewindow").Text);
+        var core = new Core();
+        var active = Json(core.Execute("j/activewindow").Text);
 
         Assert.Equal(JsonValueKind.Object, active.ValueKind);
         Assert.Empty(active.EnumerateObject());
+        Assert.Equal("Invalid", core.Execute("activewindow").Text);
     }
 
     [Fact]

@@ -26,12 +26,12 @@ public sealed record ActiveLayoutChanged(string Keyboard, string Layout) : Strea
 
 public sealed partial class Core
 {
-    /// <summary>
-    /// Windows puts every keyboard through one layout, so Winland reports one keyboard and one mouse in their place.
-    /// </summary>
-    public const string KeyboardName = "keyboard";
-
-    private const string MouseName = "mouse";
+    // The devices reported when nothing reads the system's: one keyboard and one mouse.
+    private static readonly InputDevice[] StandIns =
+    [
+        new(InputDeviceKind.Pointer, 1, "mouse"),
+        new(InputDeviceKind.Keyboard, 2, "keyboard"),
+    ];
 
     private int _layoutIndex;
 
@@ -78,8 +78,22 @@ public sealed partial class Core
         var words = request.Arguments.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var keyboard = words.Length > 0 ? words[0] : "";
         var command = words.Length > 1 ? words[1] : "";
-        if (keyboard is not ("all" or "main" or "active" or "current") && !keyboard.Equals(KeyboardName, StringComparison.Ordinal))
+
+        // Windows puts every keyboard through one layout, so a switch changes it for all of them. The event names the
+        // keyboards the request named, as the pinned release's does.
+        var keyboards = NamedDevices().Where(device => device.Device.Kind == InputDeviceKind.Keyboard).Select(device => device.Name).ToList();
+        string[] named;
+        if (keyboard == "all")
+            named = [.. keyboards];
+        else if (keyboard is "main" or "active" or "current")
+            named = keyboards.Count == 0 ? [] : [keyboards[0]];
+        else if (keyboards.Contains(InputDeviceNames.Internal(keyboard)))
+            named = [InputDeviceNames.Internal(keyboard)];
+        else
             return new CommandReply("device not found", View([]));
+
+        if (named.Length == 0 && keyboard != "all")
+            return new CommandReply("no device", View([]));
 
         var count = Layouts().Count;
         int next;
@@ -102,62 +116,74 @@ public sealed partial class Core
 
         _layoutIndex = next;
         if (count > 0)
-            (_extraEvents ??= []).Add(new ActiveLayoutChanged(KeyboardName, Layouts()[next].Description));
+        {
+            foreach (var name in named)
+                (_extraEvents ??= []).Add(new ActiveLayoutChanged(name, Layouts()[next].Description));
+        }
 
         return new CommandReply("ok", View([]));
     }
 
-    private CommandReply Devices(DevicesRequest request)
+    // The devices plugged in with the names the replies give them, or the stand-ins when nothing reads them.
+    private IReadOnlyList<(InputDevice Device, string Name)> NamedDevices()
+    {
+        IReadOnlyList<InputDevice> devices = Devices?.Read() ?? StandIns;
+        var names = InputDeviceNames.Assign(devices);
+        return [.. devices.Select((device, i) => (device, names[i]))];
+    }
+
+    private CommandReply DevicesReply(DevicesRequest request)
     {
         var layouts = Layouts();
         var index = layouts.Count == 0 ? 0 : Math.Clamp(_layoutIndex, 0, layouts.Count - 1);
         var keymap = layouts.Count == 0 ? "" : layouts[index].Description;
         var layout = _input.KbLayout ?? "us";
         var variant = _input.KbVariant ?? "";
+        var devices = NamedDevices();
+        var mice = devices.Where(device => device.Device.Kind == InputDeviceKind.Pointer).ToList();
+        var keyboards = devices.Where(device => device.Device.Kind == InputDeviceKind.Keyboard).ToList();
+        var culture = CultureInfo.InvariantCulture;
         var text = new StringBuilder();
         if (request.Flags.HasFlag(CommandFlags.Json))
         {
-            text.Append(CultureInfo.InvariantCulture, $$"""
-                {
-                "mice": [
-                    {
-                        "address": "0x1",
-                        "name": "{{MouseName}}",
-                        "defaultSpeed": 0.00000,
-                        "scrollFactor": -1.00
-                    }
-                ],
-                "keyboards": [
-                    {
-                        "address": "0x2",
-                        "name": "{{KeyboardName}}",
-                        "rules": "",
-                        "model": "",
-                        "layout": "{{Escape(layout)}}",
-                        "variant": "{{Escape(variant)}}",
-                        "options": "",
-                        "active_layout_index": {{index}},
-                        "active_keymap": "{{Escape(keymap)}}",
-                        "capsLock": false,
-                        "numLock": false,
-                        "main": true
-                    }
-                ],
-                "tablets": [
-                ],
-                "touch": [
-                ],
-                "switches": [
-                ]
-                }
-                """);
+            // Every keyboard reports the one layout Windows puts them all through, and the first is the main one.
+            text.Append("{\n\"mice\": [\n");
+            for (var i = 0; i < mice.Count; i++)
+            {
+                var (device, name) = mice[i];
+                text.Append(i == 0 ? "" : ",");
+                text.Append(culture, $"    {{\n        \"address\": \"0x{device.Address:x}\",\n        \"name\": \"{Escape(name)}\",\n");
+                text.Append("        \"defaultSpeed\": 0.00000,\n        \"scrollFactor\": -1.00\n    }");
+            }
+
+            text.Append("\n],\n\"keyboards\": [\n");
+            for (var i = 0; i < keyboards.Count; i++)
+            {
+                var (device, name) = keyboards[i];
+                text.Append(i == 0 ? "" : ",");
+                text.Append(culture, $"    {{\n        \"address\": \"0x{device.Address:x}\",\n        \"name\": \"{Escape(name)}\",\n");
+                text.Append(culture, $"        \"rules\": \"\",\n        \"model\": \"\",\n        \"layout\": \"{Escape(layout)}\",\n        \"variant\": \"{Escape(variant)}\",\n");
+                text.Append(culture, $"        \"options\": \"\",\n        \"active_layout_index\": {index},\n        \"active_keymap\": \"{Escape(keymap)}\",\n");
+                text.Append(culture, $"        \"capsLock\": false,\n        \"numLock\": false,\n        \"main\": {(i == 0 ? "true" : "false")}\n    }}");
+            }
+
+            text.Append("\n],\n\"tablets\": [\n\n],\n\"touch\": [\n\n],\n\"switches\": [\n\n]\n}\n");
             return new CommandReply(text.ToString(), View([]));
         }
 
-        text.Append(CultureInfo.InvariantCulture, $"mice:\n\tMouse at 1:\n\t\t{MouseName}\n\t\t\tdefault speed: 0.00000\n\t\t\tscroll factor: -1.00\n");
-        text.Append(CultureInfo.InvariantCulture, $"\n\nKeyboards:\n\tKeyboard at 2:\n\t\t{KeyboardName}\n");
-        text.Append(CultureInfo.InvariantCulture, $"\t\t\trules: r \"\", m \"\", l \"{layout}\", v \"{variant}\", o \"\"\n");
-        text.Append(CultureInfo.InvariantCulture, $"\t\t\tactive layout index: {index}\n\t\t\tactive keymap: {keymap}\n\t\t\tcapsLock: no\n\t\t\tnumLock: no\n\t\t\tmain: yes\n");
+        text.Append("mice:\n");
+        foreach (var (device, name) in mice)
+            text.Append(culture, $"\tMouse at {device.Address:x}:\n\t\t{name}\n\t\t\tdefault speed: 0.00000\n\t\t\tscroll factor: -1.00\n");
+
+        text.Append("\n\nKeyboards:\n");
+        for (var i = 0; i < keyboards.Count; i++)
+        {
+            var (device, name) = keyboards[i];
+            text.Append(culture, $"\tKeyboard at {device.Address:x}:\n\t\t{name}\n");
+            text.Append(culture, $"\t\t\trules: r \"\", m \"\", l \"{layout}\", v \"{variant}\", o \"\"\n");
+            text.Append(culture, $"\t\t\tactive layout index: {index}\n\t\t\tactive keymap: {keymap}\n\t\t\tcapsLock: no\n\t\t\tnumLock: no\n\t\t\tmain: {(i == 0 ? "yes" : "no")}\n");
+        }
+
         text.Append("\n\nTablets:\n\n\nTouch:\n\n\nSwitches:\n");
         return new CommandReply(text.ToString(), View([]));
     }

@@ -344,10 +344,10 @@ public class WorkspacesConformance
             desk.Keyword("input:follow_mouse", followMouse.ToString(CultureInfo.InvariantCulture));
 
             var before = desk.Send("activewindow");
-            Assert.NotEqual("{}", before);
+            Assert.NotEqual("Invalid", before);
 
             desk.Ok("workspace", "2");
-            Assert.Equal("{}", desk.Send("activewindow"));
+            Assert.Equal("Invalid", desk.Send("activewindow"));
 
             desk.Ok("workspace", "previous");
             Assert.Equal(before, desk.Send("activewindow"));

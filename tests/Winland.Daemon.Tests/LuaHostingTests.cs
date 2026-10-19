@@ -19,8 +19,8 @@ public class LuaHostingTests
     {
         using var runtime = new LuaRuntime(new World());
         var path = Path.Combine(Path.GetTempPath(), "winland-hosting", "winland.lua");
-        LuaHosting.Load("value = 5\n", path, _ => null);
-        LuaHosting.Load("value = 6\n", path, _ => null);
+        LuaHosting.Load("value = 5\n", path, new FileConfigSource(Path.GetTempPath()));
+        LuaHosting.Load("value = 6\n", path, new FileConfigSource(Path.GetTempPath()));
         runtime.Adopt(LuaHosting.Take());
         Assert.Null(LuaHosting.Take());
 
@@ -31,7 +31,7 @@ public class LuaHostingTests
     public void AConfigThatIsNotLuaLetsTheLuaGo()
     {
         var path = Path.Combine(Path.GetTempPath(), "winland-hosting", "winland.lua");
-        LuaHosting.Load("value = 6\n", path, _ => null);
+        LuaHosting.Load("value = 6\n", path, new FileConfigSource(Path.GetTempPath()));
         LuaHosting.Clear();
 
         Assert.Null(LuaHosting.Take());

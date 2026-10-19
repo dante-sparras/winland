@@ -156,6 +156,97 @@ public class LuaConfigTests
     }
 
     [Fact]
+    public void RequireReadsAPathThroughTheReader()
+    {
+        var outside = Path.GetFullPath(Path.Combine(Folder, "..", "shared", "colors.lua"));
+        var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [Path.Combine(Folder, "parts", "gaps.lua")] = "return 'gaps'",
+            [Path.Combine(Folder, "parts", "rules", "init.lua")] = "return 'rules'",
+            [outside] = "return 'colors'",
+        };
+        var source = new Files(files);
+
+        var translation = LuaConfig.Translate("""
+            local results = {
+                require("./parts/gaps.lua"), require(".\\parts\\gaps"), require("./parts/rules"),
+                require("../shared/colors"), (require([[OUTSIDE]])),
+            }
+            hl.config({ general = { gaps_in = #table.concat(results, ":") } })
+            assert(not pcall(require, "./parts/missing"))
+            """.Replace("OUTSIDE", outside, StringComparison.Ordinal), ConfigPath, source);
+
+        Assert.Empty(translation.Warnings);
+        Assert.Equal([$"general:gaps_in = {"gaps:gaps:rules:colors:colors".Length}"], Lines(translation));
+        Assert.Contains(outside, source.Read, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(outside, translation.Sources, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void RequireWithAWildcardListsThroughTheReaderAndGivesEachResultInOrder()
+    {
+        var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [Path.Combine(Folder, "parts", "b.lua")] = "return 'b'",
+            [Path.Combine(Folder, "parts", "a.lua")] = "return 'a'",
+            [Path.Combine(Folder, "parts", "c.lua")] = "hl.config({ general = { gaps_in = 3 } })",
+            [Path.Combine(Folder, "parts", "d.lua")] = "local broken = nil\nbroken.call()",
+        };
+        var source = new Files(files);
+
+        var translation = LuaConfig.Translate("""
+            local parts = require("./parts/*.lua")
+            assert(parts == require("./parts/*.lua"))
+            assert(parts[1] == "a" and parts[2] == "b" and parts[3] == true and type(parts[4]) == "table" and #parts == 4)
+            local ok, problem = pcall(require, "./nothing/*")
+            assert(not ok and problem:find("module './nothing/*' not found: wildcard found no match", 1, true))
+            hl.config({ general = { gaps_out = 7 } })
+            """, ConfigPath, source);
+
+        Assert.Equal(["general:gaps_in = 3", "general:gaps_out = 7"], Lines(translation));
+        var warning = Assert.Single(translation.Warnings);
+        Assert.Equal((2, Path.Combine(Folder, "parts", "d.lua")), (warning.Line, warning.Source));
+        Assert.Equal([Path.Combine(Folder, "parts", "*.lua"), Path.Combine(Folder, "nothing", "*")], source.Matched);
+    }
+
+    [Fact]
+    public void ARequiredFileThatFailsWarnsWhereAndTheConfigRunsOn()
+    {
+        var broken = Path.Combine(Folder, "broken.lua");
+        string? Read(string path) => path == broken ? "hl.config({ general = { gaps_in = 1 } })\nlocal x = nil\nx.call()\n" : null;
+
+        var translation = Run("""
+            local result = require("broken")
+            assert(type(result) == "table" and next(result) == nil and require("broken") == result)
+            hl.config({ general = { gaps_out = 2 } })
+            """, Read);
+
+        Assert.Equal(["general:gaps_in = 1", "general:gaps_out = 2"], Lines(translation));
+        var warning = Assert.Single(translation.Warnings);
+        Assert.Equal((3, broken), (warning.Line, warning.Source));
+    }
+
+    // Files by full path, which record what was read and listed.
+    private sealed class Files(Dictionary<string, string> files) : IConfigSource
+    {
+        public List<string> Read { get; } = [];
+
+        public List<string> Matched { get; } = [];
+
+        string? IConfigSource.Read(string path)
+        {
+            Read.Add(path);
+            return files.GetValueOrDefault(path);
+        }
+
+        public IReadOnlyList<string> Match(string pattern)
+        {
+            Matched.Add(pattern);
+            return [.. files.Keys.Where(file => SourcePath.Matches(pattern, file)).Order(StringComparer.OrdinalIgnoreCase).Reverse()];
+        }
+    }
+
+    [Fact]
     public void AnErrorStopsTheConfigWhereItIsAndSaysWhere()
     {
         var translation = Run("""

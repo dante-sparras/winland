@@ -68,7 +68,7 @@ public static class SourcePath
         return path[start..index];
     }
 
-    private static string ExpandTilde(string path)
+    public static string ExpandTilde(string path)
     {
         if (path.Length == 0 || path[0] != '~')
             return path;
