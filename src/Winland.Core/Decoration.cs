@@ -27,6 +27,9 @@ public readonly record struct Decoration(
     public bool Blur { get; init; }
 
     public bool Shadow { get; init; } = true;
+
+    /// <summary>The border Winland draws outside the window, or null for none.</summary>
+    public BorderRing? Ring { get; init; }
 }
 
 /// <summary>One opacity fraction from a window rule. <see cref="Overridden"/> replaces the configured fraction; otherwise the two multiply.</summary>
@@ -51,6 +54,11 @@ public sealed record DecorationOptions
     public BorderColor ActiveBorder { get; init; }
 
     public BorderColor InactiveBorder { get; init; }
+
+    /// <summary>Every color of <c>general:col.active_border</c> and its angle. Null for the one color of <see cref="ActiveBorder"/>.</summary>
+    public BorderGradient? ActiveBorderGradient { get; init; }
+
+    public BorderGradient? InactiveBorderGradient { get; init; }
 
     /// <summary>The corner radius in logical pixels. 0 draws square corners.</summary>
     public int Rounding { get; init; }
@@ -82,8 +90,12 @@ public sealed record DecorationOptions
     // Adding an entry here applies that keyword and stops the config warning.
     private static readonly Dictionary<string, Func<DecorationOptions, string, DecorationOptions>> Appliers = new(StringComparer.Ordinal)
     {
-        ["general:col.active_border"] = (options, value) => BorderColor.TryParse(value, out var active, out _) ? options with { ActiveBorder = active } : options,
-        ["general:col.inactive_border"] = (options, value) => BorderColor.TryParse(value, out var inactive, out _) ? options with { InactiveBorder = inactive } : options,
+        ["general:col.active_border"] = (options, value) => BorderColor.TryParse(value, out var active, out _) && BorderGradient.TryParse(value, out var activeGradient)
+            ? options with { ActiveBorder = active, ActiveBorderGradient = activeGradient }
+            : options,
+        ["general:col.inactive_border"] = (options, value) => BorderColor.TryParse(value, out var inactive, out _) && BorderGradient.TryParse(value, out var inactiveGradient)
+            ? options with { InactiveBorder = inactive, InactiveBorderGradient = inactiveGradient }
+            : options,
         ["decoration:rounding"] = (options, value) => TryParseRounding(value, out var rounding) ? options with { Rounding = rounding } : options,
         ["decoration:rounding_power"] = (options, value) => TryParsePower(value, out var power) ? options with { RoundingPower = power } : options,
         ["decoration:blur:enabled"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { Blur = enabled } : options,

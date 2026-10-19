@@ -8,7 +8,7 @@ public static class ConfigGaps
     [
         new("acrylic", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("allow_tearing", "Tearing is a compositor feature with no Windows meaning."),
-        new("animation:borderangle", "Gradient borders are not honored, so the border angle does not animate."),
+        new("animation:borderangle", "A gradient border keeps its angle and does not turn."),
         new("animation:fadeDim", "Dimming is part of a window's alpha, so fadeSwitch animates it."),
         new("animation:fadeDpms", "Turning a monitor off does not fade."),
         new("animation:fadeGlow", "Glow is not honored, so it does not fade."),
@@ -73,7 +73,6 @@ public static class ConfigGaps
         new("gestures:workspace_swipe_touch", "Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces."),
         new("gestures:workspace_swipe_touch_invert", "Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces."),
         new("glass", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
-        new("gradient", "Gradient borders are not honored."),
         new("glow", "Inner glow is not honored."),
         new("group:groupbar:blur", "Groupbar blur is not honored."),
         new("group:groupbar:priority", "The tab bar is the only decoration drawn over a tile, so it has no order."),

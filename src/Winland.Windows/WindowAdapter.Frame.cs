@@ -202,6 +202,7 @@ public sealed partial class WindowAdapter
         GroupBarHost.Stop();
         ErrorBarHost.Stop();
         DimHost.Stop();
+        BorderHost.Stop();
         NotificationHost.Stop();
         EndStandIns();
         StandInHost.Stop();
@@ -234,9 +235,11 @@ public sealed partial class WindowAdapter
         var hwnd = new HWND((nint)window.Value);
         lock (Motions.For(window))
         {
+            // Winland draws the border itself, outside the window, so DWM draws none.
             var held = Motions.Paint(window, decoration.Alpha, decoration.Border);
-            if (decoration.Borderless || !held.Border)
-                SetAttribute(hwnd, BorderColorAttribute, decoration.Borderless ? NoneBorderColor : ColorRef(decoration.Border));
+            SetAttribute(hwnd, BorderColorAttribute, NoneBorderColor);
+            if (!held.Border)
+                BorderHost.Tint(window, null);
             var corners = decoration.Corners switch
             {
                 CornerPreference.Round => RoundCorners,

@@ -95,6 +95,20 @@ public sealed partial class Core
         return moved;
     }
 
+    // Every color of the border, at its angle: a setprop gradient, the configured gradient, or a Group's one color.
+    private BorderGradient BorderGradientOf(WindowId window, bool active)
+    {
+        if (OwnProp(window, active ? "active_border_color" : "inactive_border_color") is BorderGradient { Colors.Count: > 0 } set)
+            return set;
+
+        var color = BorderOf(window, active, honorProps: false);
+        if (WorkspaceContaining(window)?.GroupOf(window) is not null || RulesOf(window).HasFlag(GroupRuleFlags.Deny))
+            return BorderGradient.Of(color);
+
+        var gradient = active ? _decoration.ActiveBorderGradient : _decoration.InactiveBorderGradient;
+        return gradient is { Colors.Count: > 0 } ? gradient : BorderGradient.Of(color);
+    }
+
     private BorderColor BorderOf(WindowId window, bool active, bool honorProps = true)
     {
         // A border color setprop set is drawn by its first color. One with no colors falls back to the config's.

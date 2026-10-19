@@ -19,6 +19,7 @@ public sealed partial class Core
             outcome = outcome with { ZOrder = [.. outcome.ZOrder, .. restack] };
 
         var active = ActiveWindow();
+        var hidden = new HashSet<WindowId>(outcome.State.Hidden.Select(client => client.Window));
         var decorations = new List<Decoration>(outcome.State.Clients.Count);
         foreach (var client in outcome.State.Clients)
         {
@@ -47,6 +48,7 @@ public sealed partial class Core
                 Region = shape.Region,
                 Blur = _decoration.Blur,
                 Shadow = _decoration.Shadow,
+                Ring = borderless || hidden.Contains(client.Window) ? null : RingFor(client, client.Window == active, shape, alpha),
             });
         }
 
@@ -467,6 +469,28 @@ public sealed partial class Core
         }
 
         return windows.ToArray();
+    }
+
+    // The border the pinned release draws outside a Client: its own border size, its colors, and corners that follow the
+    // window's. A minimized Client, and one with decorate 0, has none.
+    private BorderRing? RingFor(Client client, bool active, CornerChoice shape, byte alpha)
+    {
+        if (client.Minimized || OwnProp(client.Window, "decorate") is false || FindWorkspace(client.Workspace) is not LiveWorkspace desk)
+            return null;
+
+        var thickness = desk.Options.BorderFor(client.Id);
+        if (thickness <= 0)
+            return null;
+
+        var scale = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Effective.Scale : 1;
+        var (radius, power) = shape switch
+        {
+            { Region: CornerRegion region } => (region.Radius, region.Power),
+            { Preference: CornerPreference.Round } => ((int)Math.Round(CornerShape.Round * scale), 2f),
+            { Preference: CornerPreference.RoundSmall } => ((int)Math.Round(CornerShape.RoundSmall * scale), 2f),
+            _ => (0, 2f),
+        };
+        return new BorderRing(BorderGradientOf(client.Window, active), thickness, radius, power, alpha);
     }
 
     private CornerChoice CornersFor(Client client)
