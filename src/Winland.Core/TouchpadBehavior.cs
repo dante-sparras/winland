@@ -3,7 +3,7 @@ namespace Winland;
 /// <summary>
 /// The touchpad options Windows has no setting for, which Winland carries out itself: <c>scroll_factor</c> on the wheel
 /// turns the touchpad makes, <c>flip_x</c> and <c>flip_y</c> on the cursor moves it makes, three- or four-finger drag,
-/// and a two-finger tap that is a middle click (<c>tap_button_map = lmr</c>).
+/// a two-finger tap that is a middle click (<c>tap_button_map = lmr</c>), and tap and drag with a lock (<c>drag_lock</c>).
 /// </summary>
 /// <param name="ScrollFactor"><c>input:touchpad:scroll_factor</c>, 0 to 100.</param>
 /// <param name="WheelFactor">The <c>input:scroll_factor</c> Windows' wheel lines already apply, or null when it is unset.</param>
@@ -11,7 +11,8 @@ namespace Winland;
 /// <param name="FlipY"><c>input:touchpad:flip_y</c>.</param>
 /// <param name="DragFingers">How many fingers drag, 3 or 4, or 0 when <c>drag_3fg</c> is off.</param>
 /// <param name="MiddleTap">Whether a two-finger tap is a middle click.</param>
-public sealed record TouchpadBehavior(double ScrollFactor, double? WheelFactor, bool FlipX, bool FlipY, int DragFingers, bool MiddleTap)
+/// <param name="DragLock">The tap and drag lock Winland carries out: 0 for none, 1 releases after a timeout, 2 at the next tap.</param>
+public sealed record TouchpadBehavior(double ScrollFactor, double? WheelFactor, bool FlipX, bool FlipY, int DragFingers, bool MiddleTap, int DragLock = 0)
 {
     public static TouchpadBehavior Default { get; } = new(1, null, false, false, 0, false);
 
