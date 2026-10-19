@@ -49,6 +49,9 @@ public sealed partial class Core
 
     public ISessionLock? SessionLock { get; set; }
 
+    /// <summary>The keyboards and pointers <c>devices</c> reports. Without it there is one of each, named <c>keyboard</c> and <c>mouse</c>.</summary>
+    public IInputDevices? Devices { get; set; }
+
     public Action<ConfigDocument>? AfterReload { get; set; }
 
     public Core(ConfigDocument? config = null)

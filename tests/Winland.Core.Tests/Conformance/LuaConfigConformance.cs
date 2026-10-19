@@ -88,7 +88,7 @@ public class LuaConfigConformance
         Assert.Equal("nil", desk.Send($"repl return {variable}"));
     }
 
-    [Fact(Skip = Devices)]
+    [Fact]
     public void LuaDevicesEnumerationAndHyprctlParity()
     {
         using var desk = Desk.WithLua("");
@@ -143,7 +143,7 @@ public class LuaConfigConformance
         Assert.DoesNotContain("assertion failed", readOnly, StringComparison.Ordinal);
     }
 
-    [Fact(Skip = Devices)]
+    [Fact]
     public void LuaDevicesRetainedKeyboardTracksLayoutChanges()
     {
         using var desk = Desk.WithLua("");
@@ -200,9 +200,6 @@ public class LuaConfigConformance
         desk.Send("eval _G.hyprtester_lua_keyboard = nil");
         desk.Send("reload");
     }
-
-    private const string Devices =
-        "Winland reports one keyboard and one mouse of its own, named keyboard and mouse, where the case looks for the test plugin's test-mouse and two test-keyboard devices.";
 
     private static void Ok(Desk desk, string line) => Assert.Equal("ok", desk.Send(line));
 

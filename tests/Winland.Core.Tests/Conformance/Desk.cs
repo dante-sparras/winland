@@ -93,7 +93,7 @@ internal sealed class Desk : IDisposable
     private Desk(string extra, string? lua, IReadOnlyDictionary<string, string>? files)
     {
         var text = Config + "\n" + extra;
-        Core = new Core { Cursor = new PointerReader(this) };
+        Core = new Core { Cursor = new PointerReader(this), Devices = new TestDevices() };
         if (lua is null)
         {
             Core.ReadConfig = () => new ConfigRead(ConfigParser.Parse(text));
@@ -384,6 +384,21 @@ internal sealed class Desk : IDisposable
     private sealed class PointerReader(Desk desk) : ICursorPosition
     {
         public Point Read() => desk.Pointer;
+    }
+
+    // The devices the reference's test plugin plugs in when it loads: a mouse and two keyboards. Each is named
+    // test-mouse or test-keyboard before it is plugged in, so the compositor numbers them all, as it numbers a name
+    // another device has.
+    private sealed class TestDevices : IInputDevices
+    {
+        private static readonly InputDevice[] Plugged =
+        [
+            new(InputDeviceKind.Pointer, 0x5e5e1000, "test-mouse-1"),
+            new(InputDeviceKind.Keyboard, 0x5e5e2000, "test-keyboard-1"),
+            new(InputDeviceKind.Keyboard, 0x5e5e3000, "test-keyboard-2"),
+        ];
+
+        public IReadOnlyList<InputDevice> Read() => Plugged;
     }
 
     // The files a Lua config can require, by their path from LuaFolder, read and listed as the daemon's reader does.

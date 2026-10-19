@@ -78,7 +78,7 @@ public sealed partial class Core
         SetPropRequest prop => WriteProp(prop),
         SetErrorRequest error => SetError(error),
         SwitchLayoutRequest layout => SwitchLayout(layout),
-        DevicesRequest devices => Devices(devices),
+        DevicesRequest devices => DevicesReply(devices),
         BatchRequest batch => RunBatch(batch.Payload),
         ResolveWorkspaceRequest resolve => ResolveWorkspace(resolve.Arguments, resolve.Flags.HasFlag(CommandFlags.Json)),
         GroupAddRequest add => GroupAdd(add.Arguments),

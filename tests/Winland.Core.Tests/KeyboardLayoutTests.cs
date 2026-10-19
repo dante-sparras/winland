@@ -71,6 +71,63 @@ public class KeyboardLayoutTests
         Assert.Contains("active layout index: 1", core.Execute("devices").Text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void DeviceNamesAreThePinnedReleasesInternalNames()
+    {
+        Assert.Equal("logitech-usb-receiver", InputDeviceNames.Internal("Logitech USB Receiver"));
+        Assert.Equal("a-b-c-d", InputDeviceNames.Internal("A,B\nC D"));
+        Assert.Equal(
+            ["hid-keyboard-device", "hid-keyboard-device-1", "unknown-device", "hid-keyboard-device-2", "unknown-device-1"],
+            InputDeviceNames.Assign(
+            [
+                new(InputDeviceKind.Keyboard, 1, "HID Keyboard Device"),
+                new(InputDeviceKind.Keyboard, 2, "HID Keyboard Device"),
+                new(InputDeviceKind.Pointer, 3, ""),
+                new(InputDeviceKind.Pointer, 4, "hid keyboard device"),
+                new(InputDeviceKind.Pointer, 5, ""),
+            ]));
+    }
+
+    [Fact]
+    public void DevicesReportTheDevicesPluggedIn()
+    {
+        var core = new Core(ConfigParser.Parse("input:kb_layout = us,se\n"))
+        {
+            Devices = new Plugged(
+                new(InputDeviceKind.Keyboard, 0x20, "Contoso Keyboard"),
+                new(InputDeviceKind.Pointer, 0x30, "Contoso Mouse"),
+                new(InputDeviceKind.Keyboard, 0x40, "Contoso Keyboard")),
+        };
+
+        using var devices = JsonDocument.Parse(core.Execute("j/devices").Text);
+        var keyboards = devices.RootElement.GetProperty("keyboards").EnumerateArray().ToArray();
+        Assert.Equal(["contoso-keyboard", "contoso-keyboard-1"], keyboards.Select(keyboard => keyboard.GetProperty("name").GetString()));
+        Assert.Equal(["0x20", "0x40"], keyboards.Select(keyboard => keyboard.GetProperty("address").GetString()));
+        Assert.Equal([true, false], keyboards.Select(keyboard => keyboard.GetProperty("main").GetBoolean()));
+        Assert.All(keyboards, keyboard => Assert.Equal("us,se", keyboard.GetProperty("layout").GetString()));
+        var mouse = Assert.Single(devices.RootElement.GetProperty("mice").EnumerateArray().ToArray());
+        Assert.Equal(("contoso-mouse", "0x30"), (mouse.GetProperty("name").GetString(), mouse.GetProperty("address").GetString()));
+
+        var text = core.Execute("devices").Text;
+        Assert.Contains("\tMouse at 30:\n\t\tcontoso-mouse\n", text, StringComparison.Ordinal);
+        Assert.Contains("\tKeyboard at 40:\n\t\tcontoso-keyboard-1\n", text, StringComparison.Ordinal);
+
+        var switched = core.Execute("switchxkblayout Contoso-Keyboard-1 1");
+        Assert.Equal("ok", switched.Text);
+        Assert.Equal(1, Index(core));
+        Assert.Equal(["activelayout>>contoso-keyboard-1,Swedish"], CommandProtocol.FormatStream(switched.Effect.Events, switched.Effect.State));
+        var all = core.Execute("switchxkblayout all 0");
+        Assert.Equal(
+            ["activelayout>>contoso-keyboard,English (US)", "activelayout>>contoso-keyboard-1,English (US)"],
+            CommandProtocol.FormatStream(all.Effect.Events, all.Effect.State));
+        Assert.Equal("device not found", core.Execute("switchxkblayout keyboard 0").Text);
+    }
+
+    private sealed class Plugged(params InputDevice[] devices) : IInputDevices
+    {
+        public IReadOnlyList<InputDevice> Read() => devices;
+    }
+
     private static int Index(Core core)
     {
         using var devices = JsonDocument.Parse(core.Execute("j/devices").Text);
