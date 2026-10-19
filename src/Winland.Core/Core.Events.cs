@@ -40,6 +40,12 @@ public sealed partial class Core
             _noted = null;
         }
 
+        if (_modalRules is { Count: > 0 } modal)
+        {
+            _modalRules = null;
+            AddModalRules(events, modal, outcome.State);
+        }
+
         return events.Count == 0 ? outcome : outcome with { Events = events };
     }
 
@@ -68,6 +74,9 @@ public sealed partial class Core
         AddWorkspaceEvents(events, before, after);
         var previous = ByWindow(before);
         var next = ByWindow(after);
+        var hiddenBefore = HiddenWindows(before);
+        var hiddenAfter = HiddenWindows(after);
+        var rulesRead = new HashSet<WindowId>();
         foreach (var pair in previous)
         {
             if (!next.ContainsKey(pair.Key))
@@ -81,6 +90,9 @@ public sealed partial class Core
                 events.Add(new ClientOpened(pair.Key, pair.Value.Workspace, pair.Value.Class, pair.Value.Title));
                 if (pair.Value.Fullscreen != FullscreenMode.None)
                     events.Add(new FullscreenChanged(true, pair.Key));
+                // A window that has just mapped has its rules read, unless the workspace it mapped on is hidden.
+                if (RulesAreRead(after, pair.Value))
+                    TellRules(events, rulesRead, pair.Key);
                 continue;
             }
 
@@ -101,6 +113,9 @@ public sealed partial class Core
 
             if (prior.Fullscreen != pair.Value.Fullscreen)
                 events.Add(new FullscreenChanged(pair.Value.Fullscreen != FullscreenMode.None, pair.Key));
+
+            if (RulesAreRead(after, pair.Value) && RulesChanged(prior, pair.Value, before, after, hiddenBefore, hiddenAfter))
+                TellRules(events, rulesRead, pair.Key);
         }
 
         if (after.ActiveMonitor != before.ActiveMonitor)
@@ -114,7 +129,14 @@ public sealed partial class Core
             events.Add(new WorkspaceActivated(after.ActiveWorkspace));
 
         if (activeAfter != activeBefore)
+        {
+            // Focus is a rule match. The window that lost it and the window that gained it are both read again.
+            if (activeBefore is WindowId lost && next.TryGetValue(lost, out var loser) && RulesAreRead(after, loser))
+                TellRules(events, rulesRead, lost);
+            if (activeAfter is WindowId gained && next.TryGetValue(gained, out var winner) && RulesAreRead(after, winner))
+                TellRules(events, rulesRead, gained);
             events.Add(new FocusChanged(activeAfter));
+        }
 
         AddSpecialEvents(events, before, after);
         AddMonitorEvents(events, before, after);
@@ -211,6 +233,150 @@ public sealed partial class Core
             events.Add(new MonitorAdded(screen.Monitor.Name));
             events.Add(new MonitorAddedV2(screen.Id.Value, screen.Monitor.Name, screen.Monitor.Description));
         }
+    }
+
+    // A hidden workspace is not read, as the pinned release skips a hidden window. A member waiting in a group is
+    // still on the shown workspace, so it is read. A pinned Client stays shown on every workspace of its monitor.
+    private static bool RulesAreRead(State state, Client client)
+    {
+        if (client.Pinned)
+            return true;
+
+        if (client.Workspace == state.ActiveWorkspace || client.Workspace == state.SpecialWorkspace)
+            return true;
+
+        foreach (var screen in state.Screens)
+        {
+            if (client.Workspace == screen.ActiveWorkspace || client.Workspace == screen.SpecialWorkspace)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static void TellRules(List<StreamEvent> events, HashSet<WindowId> told, WindowId window)
+    {
+        if (told.Add(window))
+            events.Add(new ClientRulesUpdated(window));
+    }
+
+    private static void AddModalRules(List<StreamEvent> events, List<WindowId> modal, State state)
+    {
+        var told = new HashSet<WindowId>();
+        foreach (var streamEvent in events)
+        {
+            if (streamEvent is ClientRulesUpdated updated)
+                told.Add(updated.Window);
+        }
+
+        var clients = ByWindow(state);
+        foreach (var window in modal)
+        {
+            if (clients.TryGetValue(window, out var client) && RulesAreRead(state, client))
+                TellRules(events, told, window);
+        }
+    }
+
+    private static bool RulesChanged(Client prior, Client next, State before, State after, HashSet<WindowId> hiddenBefore, HashSet<WindowId> hiddenAfter)
+    {
+        if (prior.Class != next.Class
+            || prior.Title != next.Title
+            || prior.Floating != next.Floating
+            || prior.Fullscreen != next.Fullscreen
+            || prior.FullscreenClient != next.FullscreenClient
+            || prior.Workspace != next.Workspace
+            || prior.Pinned != next.Pinned
+            || prior.Content != next.Content
+            || !SameTags(prior.Tags, next.Tags))
+            return true;
+
+        var membersBefore = MembersOf(before, prior.Window);
+        var membersAfter = MembersOf(after, next.Window);
+        if (!SameMembers(membersBefore, membersAfter))
+            return true;
+
+        if (membersAfter is null)
+            return false;
+
+        var shownBefore = ShownMember(membersBefore, hiddenBefore);
+        var shownAfter = ShownMember(membersAfter, hiddenAfter);
+        return shownBefore != shownAfter && next.Window == shownAfter;
+    }
+
+    private static bool SameTags(IReadOnlyList<string>? left, IReadOnlyList<string>? right)
+    {
+        var leftCount = left?.Count ?? 0;
+        var rightCount = right?.Count ?? 0;
+        if (leftCount != rightCount)
+            return false;
+
+        for (var i = 0; i < leftCount; i++)
+        {
+            if (!string.Equals(left![i], right![i], StringComparison.Ordinal))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static IReadOnlyList<WindowId>? MembersOf(State state, WindowId window)
+    {
+        foreach (var group in state.Groups)
+        {
+            foreach (var member in group)
+            {
+                if (member == window)
+                    return group;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool SameMembers(IReadOnlyList<WindowId>? left, IReadOnlyList<WindowId>? right)
+    {
+        if (left is null || right is null)
+            return left is null && right is null;
+
+        if (left.Count != right.Count)
+            return false;
+
+        for (var i = 0; i < left.Count; i++)
+        {
+            if (left[i] != right[i])
+                return false;
+        }
+
+        return true;
+    }
+
+    private static HashSet<WindowId> HiddenWindows(State state)
+    {
+        var hidden = new HashSet<WindowId>(state.Hidden.Count);
+        foreach (var client in state.Hidden)
+            hidden.Add(client.Window);
+        return hidden;
+    }
+
+    // The shown member is the one group member that is not hidden. None, when the whole workspace is hidden.
+    private static WindowId? ShownMember(IReadOnlyList<WindowId>? members, HashSet<WindowId> hidden)
+    {
+        if (members is null)
+            return null;
+
+        WindowId? shown = null;
+        foreach (var member in members)
+        {
+            if (hidden.Contains(member))
+                continue;
+
+            if (shown is not null)
+                return null;
+
+            shown = member;
+        }
+
+        return shown;
     }
 
     private static Dictionary<WindowId, Client> ByWindow(State state)

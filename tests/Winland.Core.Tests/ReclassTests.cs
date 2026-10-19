@@ -18,8 +18,9 @@ public class ReclassTests
         var outcome = core.Handle(new WindowClassChanged(new WindowId(0x2a), "new"));
 
         Assert.Equal("new", Assert.Single(outcome.State.Clients, client => client.Window == new WindowId(0x2a)).Class);
-        var reclassed = Assert.IsType<ClientReclassed>(Assert.Single(outcome.Events));
+        var reclassed = Assert.Single(outcome.Events.OfType<ClientReclassed>());
         Assert.Equal(new WindowId(0x2a), reclassed.Window);
+        Assert.Equal(new WindowId(0x2a), Assert.Single(outcome.Events.OfType<ClientRulesUpdated>()).Window);
         Assert.Equal("new", reclassed.Class);
         Assert.False(reclassed.Active);
         Assert.Empty(CommandProtocol.FormatStream(outcome.Events, outcome.State));

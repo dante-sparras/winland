@@ -18,6 +18,9 @@ public sealed record ClientRetitled(WindowId Window, string Title, bool Active) 
 /// <summary>A Client's window changed its class. <paramref name="Active"/> when it is the focused Client.</summary>
 public sealed record ClientReclassed(WindowId Window, string Class, bool Active) : StreamEvent;
 
+/// <summary>A Client's rules were read again. The config hears this as <c>window.update_rules</c>.</summary>
+public sealed record ClientRulesUpdated(WindowId Window) : StreamEvent;
+
 public sealed record FloatingChanged(WindowId Window, bool Floating) : StreamEvent;
 
 public sealed record ClientMinimized(WindowId Window, bool Minimized) : StreamEvent;
