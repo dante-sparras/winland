@@ -345,9 +345,15 @@ static ConfigDocument ReadConfig(string path)
     var text = source.Read(full)
         ?? throw new InvalidOperationException($"Could not read config '{full}'.");
 
+    // A Lua config runs first and gives the lines its hl calls make (ADR 0013).
+    var lua = full.EndsWith(".lua", StringComparison.OrdinalIgnoreCase) ? Winland.Lua.LuaConfig.Translate(text, full, source.Read) : null;
+
     // [elevated] runs with Winland's administrator token, so only a config that only
     // administrators can write, sources included, may use it (ADR 0007).
-    var document = ConfigParser.Parse(text, source, KeyboardLayout.Active(), full);
+    var document = ConfigParser.Parse(lua?.Text ?? text, source, KeyboardLayout.Active(), full);
+    if (lua is not null)
+        document = lua.Remap(document);
+
     return ConfigElevation.Decide(document, source.Trust.Refusal);
 }
 

@@ -1,0 +1,15 @@
+# The config is the line-based syntax or Lua, and Lua becomes lines
+
+Winland reads `winland.lua` when it exists and `winland.conf` otherwise, from `%APPDATA%\winland`. `--config` takes either, by its extension.
+
+The pinned release, Hyprland v0.56, reads only Lua (`hl.config`, `hl.bind`, `hl.monitor`, `hl.window_rule`), and its manual shows only that form. Most existing Hyprland configs and dotfiles use the line-based syntax (`bind = SUPER, Q, killactive`), so Winland keeps reading it and reads Lua as well.
+
+A Lua config runs once each time the config loads, and each `hl` call becomes the line the line-based syntax has for it: `hl.config({ general = { gaps_in = 5 } })` is `general:gaps_in = 5`. The parser and the core then read those lines as they read `winland.conf`, so both forms honor the same options and give the same warnings, which point at the Lua line that made them. Lua names an option with `.` for `:` and `_` for `-`, so a `col` part joins the next with a `.` again and the three names with a `-` get it back.
+
+The runtime is Lua 5.4 from KeraLua, the C Lua that NLua ships as a native library. The pinned release uses Lua 5.5, which no .NET package offers; a config rarely uses what 5.5 adds, chiefly the `global` keyword. A Lua written in C# would be Lua 5.2, and building 5.5 from C would put a C compiler in the build and the release.
+
+Winland runs elevated (ADR 0004) and a config is usually a file the user can write, so the Lua runs without what reaches the system: no `io`, no `debug`, no `os` beyond the clock, date and environment, no C modules and no binary chunks. `require` reads Lua files from the config's folder, through the same reader as the line-based config, so a required file counts toward the config's trust (ADR 0007) and a change to it reloads the config. A config that runs for more than five seconds of processor time is stopped. Commands run through `hl.exec_cmd`, which Winland launches de-elevated as it does `exec`.
+
+The manual's `hyprland.start` and `hyprland.shutdown` events are `winland.start` and `winland.shutdown`, as `hyprland.conf` is `winland.conf` (ADR 0002). Their handlers run while the config loads, so an `hl.exec_cmd` in them is `exec-once` and `exec-shutdown`. Handlers for the other events do not run yet.
+
+The `hl` calls are built in phases. A call not built yet warns once that it is not honored yet and returns nothing, and the config runs on. A feature that exists only in the Lua form, and needs Lua to run while Winland runs, waits on those phases and is a Gap until then. The source under `docs/agents/hyprland/src/` decides which options exist and what their defaults are.
