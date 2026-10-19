@@ -31,8 +31,13 @@ public sealed partial class Core
         }
 
         if (!_animations.Enabled || ReducedMotion?.Invoke() == true)
+        {
+            _swipeLanding = null;
             return outcome;
+        }
 
+        // A live swipe's motions are already planned, and win over anything planned here for their windows.
+        var own = outcome.Motions;
         var plan = new MotionPlan(this, before, after, outcome, released);
         plan.Workspaces(outcome.Hide, entering: false);
         plan.Workspaces(outcome.Show, entering: true);
@@ -49,7 +54,18 @@ public sealed partial class Core
         }
 
         plan.Switches(previous, _painted);
-        return plan.Count == 0 ? outcome : outcome with { Motions = plan.Finish(_painted) };
+        if (plan.Count == 0)
+        {
+            _swipeLanding = null;
+            return outcome;
+        }
+
+        var planned = FromSwipe(plan.Finish(_painted));
+        if (own.Count == 0)
+            return outcome with { Motions = planned };
+
+        var mine = new HashSet<WindowId>(own.Select(motion => motion.Window));
+        return outcome with { Motions = [.. own, .. planned.Where(motion => !mine.Contains(motion.Window))] };
     }
 
     // A dwindle tile resized by resizeactive or resizewindowpixel, and the tiles that make room for it, move at once
