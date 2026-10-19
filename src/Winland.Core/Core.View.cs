@@ -37,6 +37,7 @@ public sealed partial class Core
                 new OpacityInput(
                     client.Window == active,
                     Fullscreen: borderless,
+                    ShadowedByModal: ShadowedByModal(client.Window),
                     SpecialOpen: special is not null,
                     OnSpecial: special == client.Workspace),
                 choice.Rule,

@@ -251,7 +251,7 @@ public sealed partial class Core
     }
 
     private bool HasNoFocus(WindowId window) =>
-        SetBool(window, "no_focus") ?? (_focusRules.TryGetValue(window, out var rule) && rule.NoFocus);
+        BlockedByModal(window) || (SetBool(window, "no_focus") ?? (_focusRules.TryGetValue(window, out var rule) && rule.NoFocus));
 
     private bool HeldByStay(WindowId incoming)
     {

@@ -18,6 +18,14 @@ public sealed partial class Core
         if (WorkspaceContaining(id) is not LiveWorkspace desk)
             return Rejected(name, "error: no such window", allowsElevation);
 
+        // A window shadowed by a modal refuses the focus, though its Workspace is still shown, as in the pinned release.
+        if (BlockedByModal(id))
+        {
+            return IsShown(desk.Id)
+                ? View([], dispatcher: name, allowsElevation: allowsElevation)
+                : SwitchTo(desk.Id, null, consumed: false, dispatcher: name, allowsElevation: allowsElevation);
+        }
+
         if (_pinned.Contains(id) && Find(id) is { Floating: true })
             return FocusPinned(desk, id, name, allowsElevation);
 

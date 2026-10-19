@@ -134,7 +134,6 @@ public static class ConfigGaps
         new("misc:session_lock_blur", "The lock screen belongs to Windows."),
         new("misc:session_lock_xray", "The lock screen belongs to Windows."),
         new("misc:splash_font_family", "There is no splash text."),
-        new("modal_parent_blocking", "Modal parent blocking is not honored."),
         new("motion_blur", "Motion blur is not honored."),
         new("opengl", "GPU rendering options have no Windows meaning."),
         new("permission", "Permission rules have no Windows meaning."),

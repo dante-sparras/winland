@@ -20,6 +20,9 @@ public sealed partial class WindowAdapter : IDisposable
 
     // The windows Winland hid, so an application hiding its own window can be told from it.
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> Concealed = new();
+
+    // The windows the core was last told are disabled.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> Disabled = new();
     private static Action<Outcome>? Applied;
     private static Core? Session;
 
@@ -346,6 +349,7 @@ public sealed partial class WindowAdapter : IDisposable
                     return;
                 case PInvoke.EVENT_OBJECT_DESTROY:
                     Concealed.TryRemove(window, out _);
+                    Disabled.TryRemove(window, out _);
                     Settling.TryRemove(window, out _);
                     Quick.Forget(window);
                     AbandonDrag(window);
@@ -386,6 +390,12 @@ public sealed partial class WindowAdapter : IDisposable
                     return;
                 case PInvoke.EVENT_SYSTEM_MOVESIZESTART:
                     BeginMove(hwnd, window);
+                    return;
+                case PInvoke.EVENT_OBJECT_STATECHANGE:
+                    // Windows disables the owner of a modal dialog while it is open.
+                    if (_core.Manages(window))
+                        NoteEnabled(hwnd, window);
+
                     return;
                 case PInvoke.EVENT_SYSTEM_MOVESIZEEND:
                     EndMove(window);
@@ -449,6 +459,26 @@ public sealed partial class WindowAdapter : IDisposable
         }
     }
 
+    // A window's state changes often, as it gains focus or is pressed, so only a change of enabled reaches the core.
+    private void NoteEnabled(HWND hwnd, WindowId window)
+    {
+        var disabled = !PInvoke.IsWindowEnabled(hwnd);
+        if (disabled ? !Disabled.TryAdd(window, 0) : !Disabled.TryRemove(window, out _))
+            return;
+
+        Apply(_core.Handle(new WindowEnabledChanged(window, !disabled)));
+    }
+
+    private static bool Note(WindowId window, bool disabled)
+    {
+        if (disabled)
+            Disabled[window] = 0;
+        else
+            Disabled.TryRemove(window, out _);
+
+        return disabled;
+    }
+
     private bool TryDescribe(HWND hwnd, WindowId window, out WindowAppeared appeared)
     {
         appeared = null!;
@@ -477,6 +507,7 @@ public sealed partial class WindowAdapter : IDisposable
         {
             Pointer = pointer,
             Owner = ownerWindow.IsNull ? null : new WindowId(((IntPtr)ownerWindow).ToInt64()),
+            Disabled = Note(window, !PInvoke.IsWindowEnabled(hwnd)),
             Bounds = bounds,
             ProcessId = processId,
             AncestorProcessIds = ancestors,

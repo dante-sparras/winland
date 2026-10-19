@@ -6,6 +6,9 @@ public sealed record SessionOptions
 {
     public bool FocusOnActivate { get; init; }
 
+    /// <summary><c>general:modal_parent_blocking</c>: a window shadowed by a modal takes no focus.</summary>
+    public bool ModalParentBlocking { get; init; } = true;
+
     public bool CloseSpecialOnEmpty { get; init; } = true;
 
     public bool HideSpecialOnWorkspaceChange { get; init; }
@@ -64,6 +67,7 @@ public sealed record SessionOptions
     // Adding an entry here applies that keyword and stops the config warning.
     private static readonly Dictionary<string, Func<SessionOptions, string, SessionOptions>> Appliers = new(StringComparer.Ordinal)
     {
+        ["general:modal_parent_blocking"] = (options, value) => TryParseBool(value, out var blocking) ? options with { ModalParentBlocking = blocking } : options,
         ["misc:focus_on_activate"] = (options, value) => TryParseBool(value, out var focus) ? options with { FocusOnActivate = focus } : options,
         ["misc:close_special_on_empty"] = (options, value) => TryParseBool(value, out var close) ? options with { CloseSpecialOnEmpty = close } : options,
         ["binds:hide_special_on_workspace_change"] = (options, value) => TryParseBool(value, out var hide) ? options with { HideSpecialOnWorkspaceChange = hide } : options,

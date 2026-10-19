@@ -82,7 +82,8 @@ internal readonly record struct RuleSubject(
     bool Grouped,
     Func<string, bool> OnWorkspace,
     Func<string, bool> Tagged,
-    int Content = 0);
+    int Content = 0,
+    bool Modal = false);
 
 /// <summary>
 /// The argument of a <c>move</c>, <c>size</c>, <c>monitor</c> or <c>no_close_for</c> rule.

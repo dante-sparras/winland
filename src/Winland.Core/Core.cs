@@ -239,6 +239,7 @@ public sealed partial class Core
             WindowFlashed flashed => Flash(flashed.Window),
             WindowFocused focused => Consider(focused),
             WindowClosed closed => Close(closed.Window),
+            WindowEnabledChanged changed => ChangeEnabled(changed),
             WindowLimitsChanged limits => ChangeLimits(limits),
             WindowMinimized minimized => Minimize(minimized.Window),
             WindowRestored restored => Restore(restored),

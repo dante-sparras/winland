@@ -59,6 +59,7 @@ internal static class OptionCatalog
         "misc:disable_autoreload",
         "misc:size_limits_tiled",
         "misc:focus_on_activate",
+        "general:modal_parent_blocking",
         "misc:close_special_on_empty",
         "binds:hide_special_on_workspace_change",
         "input:special_fallthrough",
@@ -316,6 +317,10 @@ internal static class OptionCatalog
             case "misc:focus_on_activate":
                 kind = "bool";
                 token = Bool(session.FocusOnActivate);
+                return true;
+            case "general:modal_parent_blocking":
+                kind = "bool";
+                token = Bool(session.ModalParentBlocking);
                 return true;
             case "misc:close_special_on_empty":
                 kind = "bool";
