@@ -22,6 +22,9 @@ public sealed record LayoutOptions
 
     public EdgeInsets GapsOut { get; init; } = EdgeInsets.Zero;
 
+    /// <summary><c>general:gaps_workspaces</c>: the gap between Workspaces as one slides in, added to its travel.</summary>
+    public int GapsWorkspaces { get; init; }
+
     public int BorderSize { get; init; }
 
     /// <summary>
@@ -117,6 +120,7 @@ public sealed record LayoutOptions
     {
         ["general:gaps_in"] = (options, value) => TryParseGaps(value, out var gaps) ? options with { GapsIn = gaps } : options,
         ["general:gaps_out"] = (options, value) => TryParseGaps(value, out var gaps) ? options with { GapsOut = gaps } : options,
+        ["general:gaps_workspaces"] = (options, value) => TryParseInt(value, out var between) ? options with { GapsWorkspaces = Clamp(between, 0, 100) } : options,
         ["general:border_size"] = (options, value) => TryParseInt(value, out var border) ? options with { BorderSize = Clamp(border, 0, 20) } : options,
         ["general:resize_on_border"] = (options, value) => TryParseBool(value, out var resize) ? options with { ResizeOnBorder = resize } : options,
         ["general:extend_border_grab_area"] = (options, value) => TryParseInt(value, out var extend) ? options with { ExtendBorderGrabArea = Clamp(extend, 0, 100) } : options,
@@ -334,6 +338,7 @@ public sealed record LayoutOptions
         {
             GapsIn = Scale(GapsIn, scale),
             GapsOut = Scale(GapsOut, scale),
+            GapsWorkspaces = Scale(GapsWorkspaces, scale),
             FloatGaps = Scale(FloatGaps, scale),
             BorderSize = Scale(BorderSize, scale),
             BorderScale = scale,
