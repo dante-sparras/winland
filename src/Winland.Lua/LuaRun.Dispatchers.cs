@@ -440,7 +440,8 @@ internal sealed partial class LuaRun
         return value;
     }
 
-    // A string, number or boolean field as config text, a whole number without a fraction, or null for any other value.
+    // A string, number or boolean field as config text, a whole number without a fraction, a window, workspace or
+    // monitor object as the selector that names it, or null for any other value.
     private string? Text(int table, string field)
     {
         string? value = _lua.GetField(table, field) switch
@@ -448,6 +449,7 @@ internal sealed partial class LuaRun
             LuaType.String => _lua.ToString(-1, false),
             LuaType.Number => NumberText(-1),
             LuaType.Boolean => _lua.ToBoolean(-1) ? "true" : "false",
+            LuaType.UserData => SelectorOf(-1),
             _ => null,
         };
         _lua.Pop(1);

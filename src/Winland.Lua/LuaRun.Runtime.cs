@@ -73,11 +73,13 @@ internal sealed partial class LuaRun
         Guarded(limit, label);
     }
 
-    // Runs the function on top of the stack with no arguments. An error is logged, or reported by an eval.
-    private bool Guarded(double limit, string label, int results = 0)
+    // Runs the function below its arguments on top of the stack. An error is logged, or reported by an eval. What the
+    // queries read before is forgotten, since Winland may have changed since.
+    private bool Guarded(double limit, string label, int results = 0, int arguments = 0)
     {
+        Forget();
         Arm(limit, label);
-        var status = _lua.PCall(0, results, 0);
+        var status = _lua.PCall(arguments, results, 0);
         Arm(0, "");
         if (status == LuaStatus.OK)
             return true;
@@ -212,6 +214,7 @@ internal sealed partial class LuaRun
         }
 
         var reply = _world.Command(command);
+        Forget();
         return reply == "ok" ? Result(true, null) : Result(false, "hl.dispatch: " + reply);
     }
 
@@ -299,6 +302,7 @@ internal sealed partial class LuaRun
 
         var command = $"keyword {line[..equals]} {line[(equals + 3)..]}";
         Report(_world.Command(command), command);
+        Forget();
     }
 
     private void Report(string reply, string command)

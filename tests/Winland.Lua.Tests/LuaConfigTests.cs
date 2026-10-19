@@ -92,30 +92,33 @@ public class LuaConfigTests
     }
 
     [Fact]
-    public void EventsThatDoNotRunYetAndUnknownOnesWarn()
+    public void KnownEventsTakeAHandlerAndUnknownOnesWarn()
     {
         var translation = Run("""
-            hl.on("window.open", function() end)
-            hl.on("nosuch.event", function() end)
+            local subscription = hl.on("window.open", function() end)
+            assert(type(subscription) == "userdata" and subscription:is_active())
+            assert(hl.on("nosuch.event", function() end) == nil)
             """);
 
-        Assert.Equal(2, translation.Warnings.Count);
-        Assert.Equal(1, translation.Warnings[0].Line);
-        Assert.Contains("do not run yet", translation.Warnings[0].Message, StringComparison.Ordinal);
-        Assert.StartsWith("hl.on: unknown event \"nosuch.event\"", translation.Warnings[1].Message, StringComparison.Ordinal);
+        var warning = Assert.Single(translation.Warnings);
+        Assert.Equal(3, warning.Line);
+        Assert.StartsWith("hl.on: unknown event \"nosuch.event\"", warning.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void CallsOfLaterPhasesWarnOnceAndTheConfigRunsOn()
+    public void BeforeWinlandRunsTheQueriesFindNothingAndCallsNotTakenOnWarnOnce()
     {
         var translation = Run("""
-            hl.get_windows()
-            hl.get_windows()
+            assert(next(hl.get_windows()) == nil and next(hl.get_monitors()) == nil)
+            assert(hl.get_active_window() == nil and hl.get_config("general.gaps_in") == nil)
+            assert(hl.get_current_submap() == "" and type(hl.version()) == "string")
+            hl.is_key_down("a")
+            hl.is_key_down("a")
             hl.config({ general = { gaps_in = 3 } })
             """);
 
         var warning = Assert.Single(translation.Warnings);
-        Assert.Equal(new ConfigWarning(1, "hl.get_windows is not honored yet"), warning);
+        Assert.Equal(new ConfigWarning(4, "hl.is_key_down is not honored yet"), warning);
         Assert.Equal(["general:gaps_in = 3"], Lines(translation));
     }
 

@@ -44,4 +44,22 @@ public class LuaHostingTests
         lock (world.Commands)
             Assert.Equal(["dispatch workspace 2"], world.Commands);
     }
+
+    [Fact]
+    public void TheLuaHearsTheEventsTheCoreNotices()
+    {
+        using var runtime = new LuaRuntime(new World());
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse("submap = resize\nbind = , H, killactive\nsubmap = reset\n")));
+        LuaHosting.Listen(core, runtime);
+
+        var path = Path.Combine(Path.GetTempPath(), "winland-hosting", "winland.lua");
+        LuaHosting.Load("seen = {}\nhl.on('keybinds.submap', function(name) seen[#seen + 1] = '[' .. name .. ']' end)\n", path, _ => null);
+        runtime.Adopt(LuaHosting.Take());
+
+        Assert.Equal("ok", core.Execute("dispatch submap resize").Text);
+        Assert.Equal("ok", core.Execute("dispatch submap reset").Text);
+
+        Assert.Equal("[resize][]", runtime.Eval("table.concat(seen)", repl: true));
+    }
 }
