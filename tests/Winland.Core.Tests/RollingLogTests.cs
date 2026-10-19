@@ -3,6 +3,7 @@ using Winland;
 
 namespace Winland.Tests;
 
+// The log is one for the process. Only this class writes it, and its tests run one at a time.
 public class RollingLogTests
 {
     [Fact]
@@ -27,6 +28,16 @@ public class RollingLogTests
     {
         Assert.Equal("a \"b\"\n", ExtraCommands.FormatRollingLog("a \"b\"\n", json: false));
         Assert.Equal("[\n\"log\":\"a \\u0022b\\u0022\\n\"]", ExtraCommands.FormatRollingLog("a \"b\"\n", json: true));
+    }
+
+    [Fact]
+    public void RollinglogAnswersWithTheLog()
+    {
+        RollingLog.Clear();
+        RollingLog.Append("first\n");
+
+        Assert.Equal("first\n", new Core().Execute("rollinglog").Text);
+        RollingLog.Clear();
     }
 
     [Fact]
