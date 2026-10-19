@@ -490,7 +490,12 @@ public sealed partial class Core
             { Preference: CornerPreference.RoundSmall } => ((int)Math.Round(CornerShape.RoundSmall * scale), 2f),
             _ => (0, 2f),
         };
-        return new BorderRing(BorderGradientOf(client.Window, active), thickness, radius, power, alpha);
+        return new BorderRing(BorderGradientOf(client.Window, active), thickness, radius, power, alpha)
+        {
+            Focused = active,
+            Spin = _animations.TimingOf("borderangle"),
+            SpinLoops = _animations.StyleOf("borderangle") == "loop",
+        };
     }
 
     private CornerChoice CornersFor(Client client)

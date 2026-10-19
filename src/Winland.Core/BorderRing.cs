@@ -7,8 +7,23 @@ namespace Winland;
 /// </summary>
 public sealed record BorderRing(BorderGradient Gradient, int Thickness, int Radius, float Power, byte Alpha)
 {
+    /// <summary>Whether the Client is focused, which starts a turn of the gradient.</summary>
+    public bool Focused { get; init; }
+
+    /// <summary>How one full turn of the gradient goes, from <c>animation:borderangle</c>, or null when it does not turn.</summary>
+    public Timing? Spin { get; init; }
+
+    /// <summary>The <c>loop</c> style: the gradient keeps turning.</summary>
+    public bool SpinLoops { get; init; }
+
+    /// <summary>Whether the gradient turns: it has a turn to make and more than one color to show it.</summary>
+    public bool Spins => Spin is { Milliseconds: > 0 } && Gradient.Colors.Count > 1;
+
     public bool Equals(BorderRing? other) =>
         other is not null
+        && Focused == other.Focused
+        && Spin == other.Spin
+        && SpinLoops == other.SpinLoops
         && Thickness == other.Thickness
         && Radius == other.Radius
         && Power == other.Power
@@ -36,14 +51,14 @@ public static class BorderPainter
     /// <paramref name="piece"/> covers into <paramref name="pixels"/>, row by row, as premultiplied BGRA. Pixels off the
     /// ring are left clear.
     /// </summary>
-    public static void Paint(Span<uint> pixels, BorderRing ring, int boxWidth, int boxHeight, Rectangle piece)
+    public static void Paint(Span<uint> pixels, BorderRing ring, int boxWidth, int boxHeight, Rectangle piece, double turnDegrees = 0)
     {
         ArgumentNullException.ThrowIfNull(ring);
         if (piece.Width <= 0 || piece.Height <= 0 || pixels.Length < piece.Width * piece.Height)
             return;
 
         var colors = Ramp(ring.Gradient);
-        var angle = ring.Gradient.AngleDegrees * Math.PI / 180;
+        var angle = (ring.Gradient.AngleDegrees + turnDegrees) * Math.PI / 180;
         for (var row = 0; row < piece.Height; row++)
         {
             for (var column = 0; column < piece.Width; column++)
@@ -63,6 +78,13 @@ public static class BorderPainter
             }
         }
     }
+
+    /// <summary>
+    /// How far a turning gradient has turned, in degrees, <paramref name="elapsed"/> milliseconds into a turn, as the pinned
+    /// release adds its <c>borderangle</c> progress times a full turn.
+    /// </summary>
+    public static double Turn(Timing spin, double elapsed) =>
+        spin.Milliseconds <= 0 ? 0 : spin.Curve.Ease(Math.Clamp(elapsed / spin.Milliseconds, 0, 1)) * 360;
 
     /// <summary>How much of the pixel at <paramref name="x"/>, <paramref name="y"/> of the ring box the ring covers, from 0 to 1.</summary>
     public static double Coverage(int x, int y, int boxWidth, int boxHeight, BorderRing ring)

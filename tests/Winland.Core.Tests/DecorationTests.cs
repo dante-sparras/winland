@@ -71,9 +71,9 @@ public class DecorationTests
         Assert.Equal(new BorderColor(0x04, 0x01, 0x02, 0x03), options.ActiveBorder);
         Assert.Equal(new BorderColor(0x80, 0xAA, 0xBB, 0xCC), options.InactiveBorder);
         Assert.Equal(3, options.Rounding);
-        Assert.Equal(
-            new ConfigWarning(2, "Gradient borders are not honored."),
-            Assert.Single(document.Warnings));
+        Assert.Empty(document.Warnings);
+        Assert.Equal(45, options.ActiveBorderGradient?.AngleDegrees);
+        Assert.Equal(2, options.ActiveBorderGradient?.Colors.Count);
     }
 
     [Fact]
