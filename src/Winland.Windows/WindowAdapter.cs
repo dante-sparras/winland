@@ -335,13 +335,14 @@ public sealed partial class WindowAdapter : IDisposable
         {
             var window = new WindowId(((IntPtr)hwnd).ToInt64());
 
-            // A Client's border and shadow follow its window wherever it goes, and hide with it.
+            // A Client's border, shadow and glow follow its window wherever it goes, and hide with it.
             if (@event is PInvoke.EVENT_OBJECT_LOCATIONCHANGE or PInvoke.EVENT_OBJECT_SHOW or PInvoke.EVENT_OBJECT_HIDE
                 or PInvoke.EVENT_OBJECT_CLOAKED or PInvoke.EVENT_OBJECT_UNCLOAKED or PInvoke.EVENT_SYSTEM_MINIMIZESTART
                 or PInvoke.EVENT_SYSTEM_MINIMIZEEND or PInvoke.EVENT_SYSTEM_FOREGROUND)
             {
                 BorderHost.Follow(window);
                 ShadowHost.Follow(window);
+                GlowHost.Follow(window);
             }
 
             switch (@event)
@@ -729,6 +730,7 @@ public sealed partial class WindowAdapter : IDisposable
 
         var rings = new Dictionary<WindowId, BorderRing>();
         var shadows = new Dictionary<WindowId, DropShadow>();
+        var glows = new Dictionary<WindowId, InnerGlow>();
         lock (PaintGate)
         {
             if (!Releasing)
@@ -752,6 +754,8 @@ public sealed partial class WindowAdapter : IDisposable
                         rings[window] = ring;
                     if (decoration.DrawnShadow is DropShadow shadow)
                         shadows[window] = shadow;
+                    if (decoration.Glow is InnerGlow glow)
+                        glows[window] = glow;
                 }
             }
         }
@@ -762,6 +766,7 @@ public sealed partial class WindowAdapter : IDisposable
             {
                 BorderHost.Update(rings);
                 ShadowHost.Update(shadows);
+                GlowHost.Update(glows);
             }
 
             GroupBarHost.Update(outcome.GroupBars);

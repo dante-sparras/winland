@@ -13,14 +13,12 @@ This table has one row per keyword. A test checks it against the keywords the co
 | acrylic | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | allow_tearing | Tearing is a compositor feature with no Windows meaning. |
 | animation:fadeDim | Dimming is part of a window's alpha, so fadeSwitch animates it. |
-| animation:fadeGlow | Glow is not honored, so it does not fade. |
 | animation:fadeLayers | Layer shell surfaces have no Windows meaning. |
 | animation:fadeLayersIn | Layer shell surfaces have no Windows meaning. |
 | animation:fadeLayersOut | Layer shell surfaces have no Windows meaning. |
 | animation:fadePopups | Wayland popups have no Windows meaning. |
 | animation:fadePopupsIn | Wayland popups have no Windows meaning. |
 | animation:fadePopupsOut | Wayland popups have no Windows meaning. |
-| animation:glowangle | Glow is not honored, so its angle does not animate. |
 | animation:layers | Layer shell surfaces have no Windows meaning. |
 | animation:layersIn | Layer shell surfaces have no Windows meaning. |
 | animation:layersOut | Layer shell surfaces have no Windows meaning. |
@@ -62,7 +60,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | gestures:workspace_swipe_touch | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | gestures:workspace_swipe_touch_invert | Touchscreen input is not honored, so a touchscreen edge swipe does not switch workspaces. |
 | glass | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| glow | Inner glow is not honored. |
 | group:groupbar:blur | Groupbar blur is not honored. |
 | haze | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | heat_shimmer | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
@@ -138,7 +135,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | --- | --- | --- |
 | gap | - | acrylic, aurora, decoration:blur:variant, drops, fluid_jar, glass, haze, heat_shimmer, ripple, water |
 | non-goal | - | allow_tearing, debug, opengl, quirks, render, screen_shader |
-| gap | - | animation:fadeDim, animation:fadeGlow, animation:glowangle, animation:monitorAdded |
+| gap | - | animation:fadeDim, animation:monitorAdded |
 | non-goal | - | animation:fadeLayers, animation:fadeLayersIn, animation:fadeLayersOut, animation:fadePopups, animation:fadePopupsIn, animation:fadePopupsOut, animation:layers, animation:layersIn, animation:layersOut |
 | non-goal | - | binds:disable_keybind_grabbing |
 | gap | - | bitdepth, vrr |
@@ -151,7 +148,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
 | non-goal | - | experimental, input-capture |
 | gap | - | gestures:workspace_swipe_touch, gestures:workspace_swipe_touch_invert |
-| gap | - | glow, motion_blur |
+| gap | - | motion_blur |
 | gap | - | input:emulate_discrete_scroll, input:off_window_axis_events, input:scroll_points |
 | non-goal | - | input:kb_file, input:kb_model, input:kb_rules |
 | gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:enabled, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
@@ -171,7 +168,7 @@ Input Windows already has: `device`, so an honored input setting can name one de
 
 Monitors and the process locale: `bitdepth` and `locale` (`general:locale`).
 
-Drawing and gestures on windows Winland already owns: `gestures:workspace_swipe_touch` and `gestures:workspace_swipe_touch_invert`; `group:groupbar:blur` on the bar Winland draws; `glow`, which is `decoration:glow:enabled`, `decoration:glow:range`, `decoration:glow:render_power`, `decoration:glow:color` and `decoration:glow:color_inactive`; `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`; `decoration:border_part_of_window`; and the animation nodes `animation:fadeDim`, `animation:fadeGlow`, `animation:glowangle` and `animation:monitorAdded`.
+Drawing and gestures on windows Winland already owns: `gestures:workspace_swipe_touch` and `gestures:workspace_swipe_touch_invert`; `group:groupbar:blur` on the bar Winland draws; `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`; `decoration:border_part_of_window`; and the animation nodes `animation:fadeDim` and `animation:monitorAdded`.
 
 Logging and the error bar: `debug:disable_logs`, `debug:disable_time`, `debug:enable_stdout_logs`, `debug:colored_stdout_logs`, `debug:suppress_errors`, `debug:error_limit` and `debug:error_position`.
 
@@ -204,7 +201,7 @@ Bind flag `p` warns and is ignored. The bind itself still runs. Applications can
 
 The modifiers `CAPS`, `MOD2`, `MOD3` and `MOD5` are not honored. A modifier list that names one warns `Modifier '<name>' is not honored.` and the bind, gesture or `sendshortcut` is skipped. Winland tracks Shift, Ctrl, Alt and the Windows key as held modifiers, and has no held state for the lock and level modifiers.
 
-Blur is DWM's acrylic backdrop, so it shows only where DWM draws that backdrop: the title bar and any area a window leaves for it. What a window paints itself is not blurred, and a translucent Client does not blur what is behind its content. The blur `size`, `passes` and color options have no DWM equivalent. `glow` and `motion_blur` are not drawn. A corner radius DWM does not draw is cut as a window region, and that edge is not antialiased. The drawn shadow surrounds the window and its border but not a Group's bar, and a `sharp` shadow is not drawn under the window, so a translucent Client does not show it through. The `no_blur`, `rounding` and `rounding_power` window rule effects are not honored. The backdrop, shadow and DWM corner preference are not undone after a crash. A corner region Winland cut is removed on the next start.
+Blur is DWM's acrylic backdrop, so it shows only where DWM draws that backdrop: the title bar and any area a window leaves for it. What a window paints itself is not blurred, and a translucent Client does not blur what is behind its content. The blur `size`, `passes` and color options have no DWM equivalent. `motion_blur` is not drawn. A corner radius DWM does not draw is cut as a window region, and that edge is not antialiased. The drawn shadow surrounds the window and its border but not a Group's bar, and a `sharp` shadow is not drawn under the window, so a translucent Client does not show it through. The `no_blur`, `rounding` and `rounding_power` window rule effects are not honored. The backdrop, shadow and DWM corner preference are not undone after a crash. A corner region Winland cut is removed on the next start.
 
 Per-device `device` options are not honored. The other input keys stay Gaps.
 
@@ -268,7 +265,7 @@ Every command the pinned release's control socket answers is recognized. The one
 
 `clients` and `activewindow` reply in JSON with or without `j/`, where the pinned release replies in text without it. With no window they reply its text, `no open windows` and `Invalid`.
 
-`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_anim`, `no_blur`, `no_dim`, `no_glow`, `no_wobble`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `xray`, `render_unfocused`, `no_follow_mouse`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `scroll_mouse` and `scroll_touchpad`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
+`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_anim`, `no_blur`, `no_dim`, `no_wobble`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `xray`, `render_unfocused`, `no_follow_mouse`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `scroll_mouse` and `scroll_touchpad`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
 
 `changeworkspaceid` refuses a number above 2147483647. The pinned release takes numbers up to 4294967295, but a Workspace number here is a signed 32-bit integer. It is a gap.
 
