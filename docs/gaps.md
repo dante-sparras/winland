@@ -164,7 +164,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 
 ## Possible
 
-These are the uncovered keywords and behaviors Windows can honor. A gap keyword in the tables above is in this list when Windows has the thing it names.
+None remain. Every uncovered keyword and behavior above is a non-goal or a Windows limit, each with its reason; a gap keyword that Windows could honor would be listed here.
 
 ## Notes
 
