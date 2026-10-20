@@ -34,7 +34,8 @@ public sealed partial class Core
                 if (!clients.TryGetValue(group.Shown, out var shown)
                     || shown.Minimized
                     || shown.Fullscreen == FullscreenMode.Fullscreen
-                    || !showing.Contains(group.Shown))
+                    || !showing.Contains(group.Shown)
+                    || (OwnProp(group.Shown, "decorate") as bool? ?? RuleFor(desk)?.Decorate) == false)
                     continue;
 
                 var reserved = scaled.ReservedFor(group.Count);
