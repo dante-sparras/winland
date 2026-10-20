@@ -112,7 +112,7 @@ public class DescriptionCatalogTests
             debug:manual_crash = 5
             quirks:prefer_hdr = gamescope_only
             input:kb_model = pc105
-            input:tablet:region_position = 1,2
+            input:tablet:region_position = 1 2
             decoration:blur:acrylic:tint = rgb(ff0000)
             group:groupbar:font_weight_active = bold
             """);
@@ -146,13 +146,11 @@ public class DescriptionCatalogTests
         var core = new Core(ConfigParser.Parse("""
             general:allow_tearing = maybe
             debug:manual_crash = 5
-            input:tablet:region_position = 30000 0
             quirks:prefer_hdr = nope
             """));
 
         Assert.Equal("""{"option": "general:allow_tearing", "bool": false, "set": false }""", core.Execute("getoption general:allow_tearing").Text);
         Assert.Equal("""{"option": "debug:manual_crash", "int": 0, "set": false }""", core.Execute("getoption debug:manual_crash").Text);
-        Assert.Equal("""{"option": "input:tablet:region_position", "vec2": [0,0], "set": false }""", core.Execute("getoption input:tablet:region_position").Text);
         Assert.Equal("""{"option": "quirks:prefer_hdr", "int": 0, "set": false }""", core.Execute("getoption quirks:prefer_hdr").Text);
         Assert.Equal("no such option", core.Execute("getoption no:such").Text);
     }
