@@ -210,6 +210,7 @@ public sealed partial class WindowAdapter
         NotificationHost.Stop();
         EndStandIns();
         StandInHost.Stop();
+        Gpu.Shutdown();
         PutBackFrames();
     }
 
@@ -227,6 +228,7 @@ public sealed partial class WindowAdapter
             ResetDecoration(window);
 
         Borderless.ReleaseAll();
+        MotionFx.ForgetAll();
         Effects.ResetAll();
         Opacity.ResetAll();
     }
@@ -252,6 +254,7 @@ public sealed partial class WindowAdapter
             };
             SetAttribute(hwnd, CornerAttribute, corners);
             Effects.Apply(window, decoration);
+            MotionFx.Set(window, decoration.Motion);
             if (!held.Alpha)
                 Opacity.Apply(window, decoration.Alpha);
         }

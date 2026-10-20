@@ -96,7 +96,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | misc:session_lock_blur | The lock screen belongs to Windows. |
 | misc:session_lock_xray | The lock screen belongs to Windows. |
 | misc:splash_font_family | There is no splash text. |
-| motion_blur | Motion blur is not honored. |
 | opengl | GPU rendering options have no Windows meaning. |
 | permission | Permission rules have no Windows meaning. |
 | quirks | Display buffer quirks have no Windows meaning. |
@@ -105,7 +104,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | screen_shader | Screen shaders have no Windows meaning. |
 | vrr | Windows has no switch for a display's adaptive sync, since each game turns VRR on for itself. The Variable refresh rate graphics setting only lets DirectX 11 fullscreen games without VRR of their own use it, and Dynamic refresh rate has no documented interface. |
 | water | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
-| wobble | DWM cannot deform a window, so wobble is not honored. |
 | xwayland | X11 compatibility has no Windows meaning. A window rule that matches on xwayland is not honored. |
 
 ## Kind and issue
@@ -123,12 +121,10 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
 | gap | - | cursor:zoom_disable_aa |
 | gap | - | decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:special |
-| gap | - | wobble |
 | gap | - | device |
 | gap | - | dont_inhibit |
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
 | non-goal | - | experimental, input-capture |
-| gap | - | motion_blur |
 | non-goal | - | input:kb_file, input:kb_model, input:kb_rules |
 | gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:enabled, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
 | gap | - | input:tablettool:eraser_button_mode, input:tablettool:eraser_button_override, input:tablettool:pressure_range_max, input:tablettool:pressure_range_min |
@@ -146,7 +142,7 @@ Input Windows already has: `device`, so an honored input setting can name one de
 
 Monitors and the process locale: `bitdepth` and `locale` (`general:locale`).
 
-Drawing on windows Winland already owns: `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`. The blur of the windows behind a Client, which the blur options tune without `decoration:blur:xray`, also belongs here: Winland would capture those windows itself.
+Drawing on windows Winland already owns: the blur of the windows behind a Client, which the blur options tune without `decoration:blur:xray`. Winland would capture those windows itself.
 
 Logging and the error bar: `debug:disable_logs`, `debug:disable_time`, `debug:enable_stdout_logs`, `debug:colored_stdout_logs`, `debug:suppress_errors`, `debug:error_limit` and `debug:error_position`.
 
@@ -167,7 +163,7 @@ An `animation:NAME` row is a node of the animation tree. An `animation` line tha
 - An `animation` window rule is not honored.
 - Hyprland scales a growing window's last frame into each animated rectangle. Winland shows it unscaled from its top left and cut to the rectangle, the way a shrinking window shows, and the see-through areas of a window with a system backdrop look flatter while it grows.
 
-A row named by one part of a keyword covers every keyword with that part. `decoration:wobble:enabled` is the `wobble` gap, and `decoration:blur:glass:size` is the `glass` gap.
+A row named by one part of a keyword covers every keyword with that part. `decoration:blur:glass:size` is the `glass` gap.
 
 Two `misc` options turn off the reference compositor's logo and its check for its GUI utilities. Both are non-goals: Winland draws no logo and has no GUI utilities. Their names contain the name that [ADR 0002](adr/0002-hyprland-compatibility-without-its-name.md) keeps out of the code, so neither has a row above or an entry in the gap list in code. Each warns like any keyword Winland does not read.
 
@@ -179,7 +175,15 @@ Bind flag `p` warns and is ignored. The bind itself still runs. Applications can
 
 The modifiers `CAPS`, `MOD2`, `MOD3` and `MOD5` are not honored. A modifier list that names one warns `Modifier '<name>' is not honored.` and the bind, gesture or `sendshortcut` is skipped. Winland tracks Shift, Ctrl, Alt and the Windows key as held modifiers, and has no held state for the lock and level modifiers.
 
-Blur is DWM's acrylic backdrop, so it shows only where DWM draws that backdrop: the title bar and any area a window leaves for it. What a window paints itself is not blurred, and a translucent Client does not blur what is behind its content. The exception is `decoration:blur:xray`: then a Client Winland makes translucent shows the blurred wallpaper under it, drawn by Winland with the blur `size`, `passes`, `noise`, `contrast`, `brightness`, `vibrancy`, `vibrancy_darkness` and `ignore_opacity` options (see [behavior.md](behavior.md#decoration)). Without `xray` those options have no DWM equivalent and change nothing, and with it the blur never includes a window, so a floating Client does not blur the windows behind it. A window that is translucent by its own program rather than by Winland has no backdrop of Winland's. The per-window `xray` property and the `xray` window rule are kept and change nothing. `motion_blur` is not drawn. A corner radius DWM does not draw is cut as a window region, and that edge is not antialiased. The drawn shadow surrounds the window and its border but not a Group's bar, and a `sharp` shadow is not drawn under the window, so a translucent Client does not show it through. The `no_blur`, `rounding` and `rounding_power` window rule effects are not honored. The backdrop, shadow and DWM corner preference are not undone after a crash. A corner region Winland cut is removed on the next start.
+Blur is DWM's acrylic backdrop, so it shows only where DWM draws that backdrop: the title bar and any area a window leaves for it. What a window paints itself is not blurred, and a translucent Client does not blur what is behind its content. The exception is `decoration:blur:xray`: then a Client Winland makes translucent shows the blurred wallpaper under it, drawn by Winland with the blur `size`, `passes`, `noise`, `contrast`, `brightness`, `vibrancy`, `vibrancy_darkness` and `ignore_opacity` options (see [behavior.md](behavior.md#decoration)). Without `xray` those options have no DWM equivalent and change nothing, and with it the blur never includes a window, so a floating Client does not blur the windows behind it. A window that is translucent by its own program rather than by Winland has no backdrop of Winland's. The per-window `xray` property and the `xray` window rule are kept and change nothing. A corner radius DWM does not draw is cut as a window region, and that edge is not antialiased. The drawn shadow surrounds the window and its border but not a Group's bar, and a `sharp` shadow is not drawn under the window, so a translucent Client does not show it through. The `no_blur`, `rounding` and `rounding_power` window rule effects are not honored. The backdrop, shadow and DWM corner preference are not undone after a crash. A corner region Winland cut is removed on the next start.
+
+Wobble and motion blur are drawn from a capture of the window, as [behavior.md](behavior.md#wobble-and-motion-blur) describes. These parts are Gaps:
+
+- The window's border, shadow and glow follow its rectangle and do not wobble or blur with it. The pinned release draws them into the window's buffer and deforms them with it.
+- A window Windows will not capture, such as one that excludes itself from capture, and a machine with no hardware graphics adapter, show the window without the effects.
+- A window its program made layered cannot be made transparent for a stand-in. It is moved on every frame, without the effects.
+- A Windows build that does not let a program capture a window without the capture border shows the window without the effects.
+- A stand-in with effects starts after Windows delivers the window's first captured frame, about 20 ms for each window, so a motion that starts many windows at once starts late.
 
 Per-device `device` options are not honored. The other input keys stay Gaps.
 
@@ -243,7 +247,7 @@ Every command the pinned release's control socket answers is recognized. The one
 
 `clients` and `activewindow` reply in JSON with or without `j/`, where the pinned release replies in text without it. With no window they reply its text, `no open windows` and `Invalid`.
 
-`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_anim`, `no_blur`, `no_dim`, `no_wobble`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `xray`, `render_unfocused`, `no_follow_mouse`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `scroll_mouse` and `scroll_touchpad`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
+`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_anim`, `no_blur`, `no_dim`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `xray`, `render_unfocused`, `no_follow_mouse`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `scroll_mouse` and `scroll_touchpad`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
 
 `changeworkspaceid` refuses a number above 2147483647. The pinned release takes numbers up to 4294967295, but a Workspace number here is a signed 32-bit integer. It is a gap.
 

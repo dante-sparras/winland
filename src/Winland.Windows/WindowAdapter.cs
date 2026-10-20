@@ -675,6 +675,16 @@ public sealed partial class WindowAdapter : IDisposable
         foreach (var client in outcome.State.Clients)
             windows[client.Id] = client.Window;
 
+        // The motions this outcome starts are drawn with the effects its decorations give, a new window's too.
+        if (!Releasing)
+        {
+            foreach (var decoration in outcome.Decorations)
+            {
+                if (windows.TryGetValue(decoration.Client, out var decorated))
+                    MotionFx.Set(decorated, decoration.Motion);
+            }
+        }
+
         // Once the exit cleanup began, nothing starts a motion that would change alpha or the border again.
         // The frame, effects and alpha refuse changes themselves once they were put back.
         var motions = Releasing ? [] : MotionsOf(outcome);
@@ -740,6 +750,7 @@ public sealed partial class WindowAdapter : IDisposable
                 foreach (var window in outcome.ResetDecorations)
                 {
                     DropMotion(window);
+                    MotionFx.Forget(window);
                     Borderless.Release(window);
                     ResetDecoration(window);
                     Painted.Remove(window);

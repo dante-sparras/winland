@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -30,7 +30,7 @@
 
   <Target Name="WriteFocusThiefPath" AfterTargets="Build">
     <PropertyGroup>
-      <_Thief>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\Winland.FocusThief\bin\$(Configuration)\net10.0-windows10.0.17763.0\Winland.FocusThief.exe'))</_Thief>
+      <_Thief>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\Winland.FocusThief\bin\$(Configuration)\net10.0-windows10.0.22621.0\Winland.FocusThief.exe'))</_Thief>
     </PropertyGroup>
     <WriteLinesToFile File="$(TargetDir)focus-thief.path" Lines="$(_Thief)" Overwrite="true" Encoding="UTF-8" />
   </Target>

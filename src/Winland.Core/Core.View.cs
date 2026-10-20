@@ -62,6 +62,7 @@ public sealed partial class Core
                 Ring = borderless || hidden.Contains(client.Window) ? null : RingFor(client, client.Window == active, shape, alpha),
                 DrawnShadow = borderless || noShadow || hidden.Contains(client.Window) ? null : ShadowFor(client, client.Window == active, shape, alpha),
                 Glow = borderless || hidden.Contains(client.Window) ? null : GlowFor(client, client.Window == active, shape, alpha),
+                Motion = _decoration.EffectsFor(OwnProp(client.Window, "no_wobble") is true, borderless),
             });
         }
 

@@ -9,6 +9,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Winland.Core.Tests" />
     <InternalsVisibleTo Include="Winland.Windows" />
+    <InternalsVisibleTo Include="Winland.Windows.Tests" />
   </ItemGroup>
 
 </Project>
