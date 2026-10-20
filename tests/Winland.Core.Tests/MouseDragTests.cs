@@ -390,6 +390,70 @@ public class MouseDragTests
         Assert.Empty(document.Binds);
     }
 
+    [Fact]
+    public void ATileDroppedOnAnotherMonitorJoinsTheWorkspaceItShows()
+    {
+        var core = TwoMonitors();
+        Appear(core, 1);
+        Appear(core, 2);
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(1400, 500) });
+        core.Handle(new PointerMoved(new Point(2400, 500)));
+
+        var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(2400, 500) });
+
+        var moved = Client(dropped, 2);
+        Assert.False(moved.Floating);
+        Assert.NotEqual(Client(dropped, 1).Workspace, moved.Workspace);
+        Assert.Equal(new Rectangle(1920, 0, 1920, 1080), moved.Bounds);
+        Assert.Equal(new Rectangle(0, 0, 1920, 1080), Client(dropped, 1).Bounds);
+        Assert.Contains(dropped.Events, item => item is ClientMoved changed && changed.Window == new WindowId(2));
+    }
+
+    [Fact]
+    public void AFloatingWindowDroppedOnAnotherMonitorKeepsItsRectangleThere()
+    {
+        var core = TwoMonitors();
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(700, 400) });
+        core.Handle(new PointerMoved(new Point(2700, 400)));
+
+        var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(2700, 400) });
+
+        var moved = Client(dropped, 1);
+        Assert.True(moved.Floating);
+        Assert.Equal(new Rectangle(2640, 340, 640, 400), moved.Bounds);
+        Assert.NotEqual(WorkspaceId.Initial, moved.Workspace);
+    }
+
+    [Fact]
+    public void AWindowDroppedOnItsOwnMonitorStaysOnItsWorkspace()
+    {
+        var core = TwoMonitors();
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(700, 400) });
+        core.Handle(new PointerMoved(new Point(900, 400)));
+
+        var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(900, 400) });
+
+        Assert.Equal(WorkspaceId.Initial, Client(dropped, 1).Workspace);
+    }
+
+    private static Core TwoMonitors()
+    {
+        var core = Flat("bindm = SUPER, mouse:272, movewindow\n");
+        core.Handle(new MonitorsChanged(
+        [
+            new Monitor(@"\\.\DISPLAY1", "Left", 0, 0, 1920, 1080, 1, true, Wide),
+            new Monitor(@"\\.\DISPLAY2", "Right", 1920, 0, 1920, 1080, 1, true, new Rectangle(1920, 0, 1920, 1080)),
+        ]));
+        return core;
+    }
+
     // Dwindle with 1 on the left, 2 at the top right, and 3 and 4 side by side at the bottom right.
     private static Core FourTiles(string options)
     {

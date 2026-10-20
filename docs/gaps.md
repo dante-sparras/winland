@@ -215,7 +215,7 @@ Mouse drag has these Gaps. Each is a gap with no open issue:
 
 - A `bindm` press with no Client under the pointer is still consumed. The mouse hook decides from the binds alone, before it can look for a Client, so the press does not reach the desktop.
 - The `mouse` dispatcher bound to a keyboard key warns and is skipped. A drag needs a mouse button to start and end it.
-- A Client dragged onto another Monitor stays on its own Workspace, and a lifted tile drops back into that Workspace's Layout.
+- A Client dragged onto another Monitor joins the Workspace that Monitor shows when it is dropped, not as soon as its middle crosses, so `movewindow` is told once, at the drop, and not each time the middle crosses a Monitor during the drag.
 - In the monocle Layout a drag does not move or resize the Client.
 - The pointer shape does not change while a Client is dragged or resized.
 
