@@ -202,7 +202,7 @@ public class VrrTests
         using var document = JsonDocument.Parse(core.Execute("descriptions").Text);
         var option = document.RootElement.EnumerateArray().Single(item => item.GetProperty("name").GetString() == "misc:vrr");
 
-        Assert.Equal("Controls the VRR (Adaptive Sync) of your monitors.", option.GetProperty("description").GetString());
+        Assert.Equal("controls the VRR (Adaptive Sync) of your monitors", option.GetProperty("description").GetString());
         Assert.Equal(0, option.GetProperty("default").GetInt32());
     }
 

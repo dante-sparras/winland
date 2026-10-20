@@ -534,7 +534,7 @@ With no window, `clients` replies `no open windows` and `activewindow` replies `
 
 `animations` lists every node of the animation tree, with whether a line set it, its curve, whether it is on, its speed and its style, and then every curve with its two control points, in the pinned release's text and JSON forms. The nodes follow the tree, and the curves come newest first.
 
-`descriptions` answers a JSON array with, for each option `getoption` answers, its `name`, its `description`, its `default` and its `current` value, each written as JSON, as in the pinned release. The description is the pinned release's, with the window manager's name changed to Winland.
+`descriptions` answers a JSON array of every option the pinned release has, in that order. Each object has `name`, `description`, `default` and `current`, written as the pinned release writes that type, and an integer also has `min`, `max` and `map`, a float or a css gap also `min` and `max`. The description is the pinned release's, with the window manager's name changed to Winland. `current` is the value Winland uses when it reads the option, and otherwise the value set in the config, or the default. `getoption` answers every one of those options. An option Winland does not read is the pinned release's JSON for its type, and `set` is true when the config set a value it accepts.
 
 ## Virtual desktops
 

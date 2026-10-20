@@ -33,6 +33,7 @@ public static partial class ConfigParser
         };
 
         private readonly List<Setting> _settings = [];
+        private readonly List<Setting> _recorded = [];
         private readonly List<BindDirective> _binds = [];
         private readonly List<TrackpadGesture> _gestures = [];
         private readonly List<ConfigWarning> _warnings = [];
@@ -73,6 +74,7 @@ public static partial class ConfigParser
                 Gestures = [.. _gestures],
                 DeviceTags = [.. _deviceTags],
                 DevicePointers = [.. _pointers.Select(pair => new DevicePointer(pair.Key, pair.Value.Sensitivity, pair.Value.ScrollFactor, pair.Value.Rotation))],
+                Recorded = _recorded.Count == 0 ? Array.Empty<Setting>() : [.. _recorded],
             };
         }
 
@@ -277,6 +279,8 @@ public static partial class ConfigParser
             if (ConfigGaps.IsGap(keyword) || !HonoredKeywords.Contains(keyword))
             {
                 Warn(lineNumber, $"Unsupported keyword '{keyword}'.");
+                if (OptionCatalog.Contains(keyword))
+                    _recorded.Add(new Setting(keyword, rhs));
                 return;
             }
 

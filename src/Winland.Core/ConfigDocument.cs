@@ -36,6 +36,12 @@ public sealed record ConfigDocument(
     public IReadOnlyList<DevicePointer> DevicePointers { get; init; } = [];
 
     /// <summary>
+    /// Options the pinned release has and this config set, which Winland did not apply. A later line for the same
+    /// option replaces the earlier one. <c>descriptions</c> and <c>getoption</c> still report the value.
+    /// </summary>
+    public IReadOnlyList<Setting> Recorded { get; init; } = Array.Empty<Setting>();
+
+    /// <summary>
     /// True only when the daemon found the config and every sourced file writable by
     /// administrators alone. Otherwise <c>[elevated]</c> launches run de-elevated (ADR 0007).
     /// </summary>
