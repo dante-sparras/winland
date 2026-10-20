@@ -87,10 +87,18 @@ public sealed partial class Core
             // The drag starts where the pointer crossed the threshold, so the Client does not jump.
             gesture.PickedUp = true;
             var lifted = PickUp(gesture.Window, gesture, pointer);
-            return View([.. lifted, .. layout.Drag(gesture.Window, gesture.Step(PointerDragPhase.Move, pointer))], consumed: true, dispatcher: gesture.Dispatcher) with { Live = true };
+            var dragged = layout.Drag(gesture.Window, gesture.Step(PointerDragPhase.Move, pointer));
+            if (FollowDraggedMonitor(gesture) is { } carried)
+                return carried with { Placements = [.. lifted, .. carried.Placements], Live = true };
+
+            return View([.. lifted, .. dragged], consumed: true, dispatcher: gesture.Dispatcher) with { Live = true };
         }
 
-        return View(layout.Drag(gesture.Window, gesture.Step(PointerDragPhase.Move, pointer)), consumed: true, dispatcher: gesture.Dispatcher) with { Live = true };
+        var moved = layout.Drag(gesture.Window, gesture.Step(PointerDragPhase.Move, pointer));
+        if (FollowDraggedMonitor(gesture) is { } crossed)
+            return crossed with { Live = true };
+
+        return View(moved, consumed: true, dispatcher: gesture.Dispatcher) with { Live = true };
     }
 
     private Outcome EndGesture(Point pointer)
@@ -105,10 +113,13 @@ public sealed partial class Core
         IReadOnlyList<Placement> ended = gesture.PickedUp
             ? LayoutWorkspace(gesture.Window).Layout.Drag(gesture.Window, gesture.Step(PointerDragPhase.End, pointer))
             : [];
+        // A window that already joined another Workspace during the drag is focused there when it is dropped, as a drop
+        // onto that Monitor did. A resize leaves the focused Monitor where it was.
+        var followed = gesture.MovedWorkspace && !gesture.Resize && FocusDragged(gesture.Window);
         if (drop is { } into)
             return JoinDragged(gesture.Window, into, gesture.Dispatcher);
 
-        return View(ended, consumed: true, dispatcher: gesture.Dispatcher);
+        return View(ended, consumed: true, dispatcher: gesture.Dispatcher, focus: followed ? gesture.Window : null);
     }
 
     private readonly record struct DropTarget(LiveWorkspace Desk, WindowGroup Group, int? Index);
@@ -146,11 +157,16 @@ public sealed partial class Core
         return null;
     }
 
-    // A window dragged onto another Monitor goes to the Workspace that Monitor shows, its special workspace when one is
-    // open, as the pinned release gives a floating drag target the workspace under its middle. A lifted tile is dropped
-    // into that Workspace's Layout at the pointer, and a floating window keeps its rectangle. Null when the window's
-    // middle is still on its own Workspace's Monitor.
-    private Outcome? DropOnMonitor(Gesture gesture, Point pointer)
+    // While a floating window is dragged, the pinned release gives it the Workspace the Monitor under its middle shows,
+    // the special one when that is open, on each move. A lifted tile stays floating so the drag can continue, and drops
+    // into that Layout when the button is released. Null when the middle is already on the window's own Workspace.
+    private Outcome? FollowDraggedMonitor(Gesture gesture) => MoveWithMonitor(gesture, settle: false, pointer: default);
+
+    // A release whose window was not moved during the drag still joins the Workspace under its middle, and a lifted tile
+    // is dropped there. A move that already crossed does not come through here.
+    private Outcome? DropOnMonitor(Gesture gesture, Point pointer) => MoveWithMonitor(gesture, settle: true, pointer);
+
+    private Outcome? MoveWithMonitor(Gesture gesture, bool settle, Point pointer)
     {
         var window = gesture.Window;
         var source = LayoutWorkspace(window);
@@ -159,17 +175,34 @@ public sealed partial class Core
 
         var middle = new Point(box.X + (box.Width / 2), box.Y + (box.Height / 2));
         if (MonitorAt(middle) is not { } screen || (screen.Special ?? screen.Active) is not WorkspaceId shown
-            || FindWorkspace(shown) is not LiveWorkspace target || target.Id == source.Id || !source.Take(window, out var taken))
+            || FindWorkspace(shown) is not LiveWorkspace target || target.Id == source.Id)
         {
             return null;
         }
 
-        var tiled = gesture.WasTiled;
-        target.Receive(window, taken with { Floating = !tiled, Bounds = box }, WorkArea(target, _area), pointer: tiled ? pointer : null);
+        // Take forgets the drag. Hand it to the Workspace the window is joining first, so the grab offset survives.
+        if (!settle)
+            HandDrag(source.Layout, target.Layout);
+
+        if (!source.Take(window, out var taken))
+        {
+            if (!settle)
+                HandDrag(target.Layout, source.Layout);
+
+            return null;
+        }
+
+        var tileBack = settle && gesture.WasTiled;
+        var monitor = MonitorById(target.Monitor) is { Effective.Enabled: true } destination ? destination.Bounds : default;
+        target.Receive(window, taken with { Floating = !tileBack, Bounds = box }, WorkArea(target, _area), monitor, pointer: tileBack ? pointer : null);
         CarryGroup(source, target, window);
+        gesture.MovedWorkspace = true;
         target.Focus = window;
-        NoteFocus(window);
-        target.Layout.NoteFocus(window);
+        if (settle)
+        {
+            NoteFocus(window);
+            target.Layout.NoteFocus(window);
+        }
 
         var placements = new List<Placement>();
         if (IsShown(source.Id))
@@ -177,7 +210,30 @@ public sealed partial class Core
         if (IsShown(target.Id))
             placements.AddRange(target.Layout.Visible());
 
-        return View(placements, consumed: true, dispatcher: gesture.Dispatcher, focus: window);
+        return View(placements, consumed: true, dispatcher: gesture.Dispatcher, focus: settle ? window : null);
+    }
+
+    // The monitor focus follows at the drop, not while the pointer is still dragging. True when this window is on a
+    // Workspace other than the one the focused Monitor was showing.
+    private bool FocusDragged(WindowId window)
+    {
+        if (WorkspaceContaining(window) is not LiveWorkspace target)
+            return false;
+
+        var focused = FocusedId();
+        if (target.Monitor == focused && target.Id == ActiveOn(focused) && SpecialOn(focused) != target.Id)
+            return false;
+
+        target.Focus = window;
+        NoteFocus(window);
+        target.Layout.NoteFocus(window);
+        return true;
+    }
+
+    private static void HandDrag(Layout from, Layout to)
+    {
+        if (from is IDragOwner source && to is IDragOwner target)
+            source.Drag.HandTo(target.Drag);
     }
 
     // The pointer shape while a drag holds a window, as the pinned release overrides it: grabbing for a move, and for a
@@ -415,6 +471,9 @@ public sealed partial class Core
         public bool PickedUp { get; set; }
 
         public bool CenterOnLift { get; init; } = true;
+
+        /// <summary>The window joined another Workspace while this drag held it.</summary>
+        public bool MovedWorkspace { get; set; }
 
         /// <summary>The pointer shape while the drag holds the window.</summary>
         public string Cursor { get; init; } = "grabbing";

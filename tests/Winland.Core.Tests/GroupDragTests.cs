@@ -112,6 +112,42 @@ public class GroupDragTests
         Assert.DoesNotContain(pressed.Events, item => item is ClientOutOfGroup);
     }
 
+    [Fact]
+    public void ATileDraggedOntoAGroupOnAnotherMonitorJoinsItThere()
+    {
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse(
+            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\ngroup:auto_group = false\n"
+            + "bindm = SUPER, mouse:272, movewindow\n")));
+        var right = new Rectangle(1920, 0, 1920, 1080);
+        core.Handle(new MonitorsChanged(
+        [
+            new Monitor(@"\\.\DISPLAY1", "Left", 0, 0, 1920, 1080, 1, true, Wide),
+            new Monitor(@"\\.\DISPLAY2", "Right", 1920, 0, 1920, 1080, 1, true, right),
+        ]));
+        core.Handle(new WindowAppeared(new WindowId(1), Wide));
+        core.Handle(new WindowAppeared(new WindowId(2), right));
+        core.Handle(new Dispatch("focuswindow", "address:0x2"));
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(new KeyPressed("Super_L"));
+        var onto = Middle(Tile(core, 2));
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = Middle(Tile(core, 1)) });
+
+        var moved = core.Handle(new PointerMoved(onto));
+        var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = onto });
+
+        Assert.Equal(new WorkspaceId("2"), Client(moved, 1).Workspace);
+        Assert.True(Client(moved, 1).Floating);
+        Assert.Equal(new MonitorId(0), moved.State.ActiveMonitor);
+        Assert.Equal([new WindowId(2)], Assert.Single(moved.State.Groups));
+        Assert.Equal(["movewindow>>1,2", "movewindowv2>>1,2,2"], MoveLines(moved));
+        Assert.Equal([new WindowId(2), new WindowId(1)], Assert.Single(dropped.State.Groups));
+        Assert.Equal(new WindowId(1), dropped.Focus);
+        Assert.Equal(new MonitorId(1), dropped.State.ActiveMonitor);
+        Assert.False(Client(dropped, 1).Floating);
+        Assert.Empty(MoveLines(dropped));
+    }
+
     private static Core Grouped(string extra)
     {
         var core = new Core();
@@ -137,6 +173,13 @@ public class GroupDragTests
 
     private static Rectangle Tile(Core core, long window) =>
         Assert.Single(core.Handle(new Dispatch("no_op")).State.Clients, client => client.Window == new WindowId(window)).Bounds;
+
+    private static Client Client(Outcome outcome, long window) =>
+        Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
+
+    private static IReadOnlyList<string> MoveLines(Outcome outcome) =>
+        [.. CommandProtocol.FormatStream(outcome.Events, outcome.State).Where(line =>
+            line.StartsWith("movewindow>>", StringComparison.Ordinal) || line.StartsWith("movewindowv2>>", StringComparison.Ordinal))];
 
     private static Point Middle(Rectangle box) => new(box.X + (box.Width / 2), box.Y + (box.Height / 2));
 }

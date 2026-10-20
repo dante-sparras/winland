@@ -146,7 +146,7 @@ Drawing on windows Winland already owns: the blur of the windows behind a Client
 
 Events and calls that have a Windows source: a bind's `device` and `auto_consuming`; `force_idle`; and a window selector on `window.move` and `window.cycle_next`.
 
-Behavior the Notes describe, which Windows can do: a dragged Client joining another Monitor's Workspace as its middle crosses, not at the drop; swallowing a parent in a Group the way the pinned release does, which leaves the child unplaced; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
+Behavior the Notes describe, which Windows can do: swallowing a parent in a Group the way the pinned release does, which leaves the child unplaced; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
 
 Commands and the plugin manager: the window property `no_vrr`.
 
@@ -204,10 +204,6 @@ A pinned Client on a Monitor that is unplugged or disabled stays shown on the Mo
 When a Monitor goes away or comes back and its Workspaces hide the focused Client, Winland focuses the Client the focused Monitor shows: the one focused last on that Workspace, or else its last shown Client. The pinned release moves only the Monitor focus and leaves the keyboard focus on the hidden window until the pointer or a dispatcher moves it. On Windows that would keep the foreground on a window out of sight.
 
 A window rule that matches on `xwayland` is a Gap: the rule is skipped and the config warns. Other effects and match fields are skipped with a warning until a later change honors them.
-
-Mouse drag has these Gaps. Each is a gap with no open issue:
-
-- A Client dragged onto another Monitor joins the Workspace that Monitor shows when it is dropped, not as soon as its middle crosses, so `movewindow` is told once, at the drop, and not each time the middle crosses a Monitor during the drag.
 
 ## Lua config
 

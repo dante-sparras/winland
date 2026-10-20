@@ -1,6 +1,6 @@
 namespace Winland;
 
-internal sealed partial class MasterLayout : IMouseDragHost
+internal sealed partial class MasterLayout : IMouseDragHost, IDragOwner
 {
     private static readonly (string Word, Side Side)[] Directions =
     [
@@ -19,6 +19,8 @@ internal sealed partial class MasterLayout : IMouseDragHost
     ];
 
     private readonly MouseDrag _drag = new();
+
+    MouseDrag IDragOwner.Drag => _drag;
 
     public WindowId? MoveFocus(WindowId active, string arguments)
     {

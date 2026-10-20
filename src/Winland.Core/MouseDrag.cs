@@ -1,5 +1,11 @@
 namespace Winland;
 
+/// <summary>A Layout that runs a <see cref="MouseDrag"/>, so a drag can move with a window onto another Workspace.</summary>
+internal interface IDragOwner
+{
+    MouseDrag Drag { get; }
+}
+
 /// <summary>The steps of a <see cref="MouseDrag"/> that depend on how a Layout keeps its tiles.</summary>
 internal interface IMouseDragHost
 {
@@ -59,6 +65,20 @@ internal sealed class MouseDrag
 
         _grab = null;
         return true;
+    }
+
+    /// <summary>
+    /// Ends the drag here and begins it on <paramref name="next"/>, keeping the grab offset, so the window keeps
+    /// following the pointer after it joins another Workspace's Layout.
+    /// </summary>
+    public void HandTo(MouseDrag next)
+    {
+        ArgumentNullException.ThrowIfNull(next);
+        if (ReferenceEquals(this, next) || _grab is not { } grab)
+            return;
+
+        _grab = null;
+        next._grab = grab;
     }
 
     private IReadOnlyList<Placement> Begin(IMouseDragHost host, ClientId id, PointerDrag drag)
