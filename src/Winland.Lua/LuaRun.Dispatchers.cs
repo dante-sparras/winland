@@ -11,6 +11,7 @@ internal sealed partial class LuaRun
     private const string DispatcherField = "__winland_dispatcher";
     private const string ArgumentsField = "__winland_arguments";
     private const string UnhonoredField = "__winland_unhonored";
+    private const string SettledField = "__winland_settled";
     private const string NameField = "__winland_name";
     private const string CommandField = "__winland_command";
 
@@ -25,7 +26,7 @@ internal sealed partial class LuaRun
 
     // Command is a pipe command rather than a dispatcher, such as reload, which hl.dispatch sends as it is and a bind
     // runs through a Lua function.
-    private readonly record struct Dispatch(string Dispatcher, string Arguments, string? Unhonored = null, bool Command = false);
+    private readonly record struct Dispatch(string Dispatcher, string Arguments, string? Unhonored = null, bool Command = false, bool Settled = false);
 
     // A config mistake in a constructor's arguments: the constructor warns with it and returns nothing.
     private sealed class DispatchArgumentException(string message) : Exception(message);
@@ -94,7 +95,7 @@ internal sealed partial class LuaRun
         Constructor(null, "event", label => new Dispatch("event", Argument()));
         Constructor(null, "global", label => NotHonored(label));
         Constructor(null, "force_renderer_reload", label => new Dispatch("forcerendererreload", ""), 0);
-        Constructor(null, "force_idle", label => NotHonored(label));
+        Constructor(null, "force_idle", _ => SettledLimit(ForceIdleLimit));
         Constructor(null, "release_input_capture", label => NotHonored(label), 0);
         Constructor(null, "focus", Focus);
         Constructor(null, "no_op", label => new Dispatch("no_op", ""), 0);
@@ -128,6 +129,12 @@ internal sealed partial class LuaRun
             {
                 _lua.PushString(unhonored);
                 _lua.SetField(-2, UnhonoredField);
+                if (dispatch.Settled)
+                {
+                    _lua.PushBoolean(true);
+                    _lua.SetField(-2, SettledField);
+                }
+
                 return 1;
             }
 
@@ -169,7 +176,7 @@ internal sealed partial class LuaRun
             return null;
 
         if (Text(index, UnhonoredField) is string unhonored)
-            return new Dispatch("", "", unhonored);
+            return new Dispatch("", "", unhonored, Settled: Bool(index, SettledField) == true);
 
         return Text(index, DispatcherField) is string dispatcher
             ? new Dispatch(dispatcher, Text(index, ArgumentsField) ?? "", Command: Text(index, CommandField) == "true")
@@ -177,6 +184,19 @@ internal sealed partial class LuaRun
     }
 
     private static Dispatch NotHonored(string what) => new("", "", what);
+
+    // A limit that will not be honored later. The warning is the message itself.
+    private static Dispatch SettledLimit(string message) => new("", "", message, Settled: true);
+
+    // The warning a bind or hl.dispatch gives for a dispatcher that makes no line.
+    private static string UnhonoredWarning(string unhonored, bool settled) =>
+        settled ? unhonored : unhonored + " is not honored yet";
+
+    // force_idle would advance idle notifications clients registered with the compositor. Winland has no such
+    // listeners, and Windows does not let a program set how long the user has been idle. The cursor hide timer is
+    // not one of those notifications.
+    private const string ForceIdleLimit =
+        "hl.dsp.force_idle has no Windows meaning. Windows does not let a program set how long the user has been idle, and Winland reports idle to no listener";
 
     // A dispatcher that acts on the active window takes another one after a comma, which the Lua form names.
     private string WithWindow(string argument) => WithSelector(argument, Window());

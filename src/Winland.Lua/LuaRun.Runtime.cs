@@ -315,7 +315,7 @@ internal sealed partial class LuaRun
             return Result(false, "hl.dispatch: expected a dispatcher (e.g. hl.dsp.window.close()) or a lua function");
 
         if (dispatch.Unhonored is string unhonored)
-            return Result(false, $"hl.dispatch: {unhonored} is not honored yet");
+            return Result(false, "hl.dispatch: " + UnhonoredWarning(unhonored, dispatch.Settled));
 
         var command = dispatch.Command ? dispatch.Dispatcher : ("dispatch " + dispatch.Dispatcher + " " + dispatch.Arguments).TrimEnd();
         if (_world is null)

@@ -155,6 +155,18 @@ public class AnimationConfigTests
     }
 
     [Fact]
+    public void AMonitorAddedAnimationIsSkipped()
+    {
+        const string Reason = "A monitor that is added zooms its picture and fades its wallpaper in. Windows draws that picture and that wallpaper, so neither can be animated.";
+        var document = ConfigParser.Parse("animation = monitorAdded, 1, 3, default\n");
+
+        Assert.Equal(new ConfigWarning(1, Reason), Assert.Single(document.Warnings));
+
+        var text = new Core(document).Execute("animations").Text;
+        Assert.Contains("name: monitorAdded\n\t\toverridden: 0\n", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AStyleThatWarnsIsStillKept()
     {
         var options = AnimationOptions.From(ConfigParser.Parse("animation = global, 1, 4, default, slide"));

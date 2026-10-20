@@ -23,6 +23,14 @@ public class ZoomCameraTests
     }
 
     [Fact]
+    public void ZoomDisableAaTurnsSmoothingOff()
+    {
+        Assert.True(CursorOptions.From(ConfigParser.Parse("cursor:zoom_disable_aa = true\n")).Behavior().Zoom.DisableAntialiasing);
+        Assert.False(CursorOptions.From(ConfigParser.Parse("")).Behavior().Zoom.DisableAntialiasing);
+        Assert.Empty(ConfigParser.Parse("cursor:zoom_disable_aa = true\n").Warnings);
+    }
+
+    [Fact]
     public void InvisibleIsHonored()
     {
         Assert.True(CursorOptions.From(ConfigParser.Parse("cursor:invisible = true\n")).Behavior().Invisible);

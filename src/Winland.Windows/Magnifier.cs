@@ -27,6 +27,7 @@ internal static class Magnifier
     private static bool _stopping;
     private static bool _started;
     private static (float Factor, int X, int Y) _shown = (1, 0, 0);
+    private static bool _smoothing = true;
 
     /// <summary>Takes the zoom settings of the latest outcome.</summary>
     internal static void Configure(CursorZoom zoom)
@@ -180,7 +181,16 @@ internal static class Magnifier
                 (int)Math.Round(view.Y - (monitor.Y / view.Factor)));
         }
 
-        if (wanted == _shown || !Started())
+        if (!Started())
+            return;
+
+        // cursor:zoom_disable_aa: the system magnifier's bitmap smoothing, which Windows' own Magnifier turns with
+        // "Smooth edges of images and text". The export is not in the Windows SDK headers.
+        var smoothing = !_zoom.DisableAntialiasing;
+        if (smoothing != _smoothing && SetSmoothing(smoothing))
+            _smoothing = smoothing;
+
+        if (wanted == _shown)
             return;
 
         if (PInvoke.MagSetFullscreenTransform(wanted.Factor, wanted.X, wanted.Y))
@@ -196,6 +206,22 @@ internal static class Magnifier
         if (PInvoke.MagShowSystemCursor(!hidden))
             _cursorShownHidden = hidden;
     }
+
+    private static bool SetSmoothing(bool smoothing)
+    {
+        try
+        {
+            return MagSetFullscreenUseBitmapSmoothing(smoothing);
+        }
+        catch (EntryPointNotFoundException)
+        {
+            return true;
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("Magnification.dll")]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool MagSetFullscreenUseBitmapSmoothing([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)] bool useSmoothing);
 
     private static bool Started()
     {

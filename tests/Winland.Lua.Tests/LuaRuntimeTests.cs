@@ -159,6 +159,19 @@ public class LuaRuntimeTests
     }
 
     [Fact]
+    public void ForceIdleHasNoWindowsMeaning()
+    {
+        var (runtime, _, _) = Start("");
+        using var _runtime = runtime;
+
+        var reply = runtime.Eval("hl.dispatch(hl.dsp.force_idle(5))", repl: false);
+
+        Assert.Equal(
+            "error: line 1: hl.dispatch: hl.dsp.force_idle has no Windows meaning. Windows does not let a program set how long the user has been idle, and Winland reports idle to no listener",
+            reply);
+    }
+
+    [Fact]
     public void AFailedDispatchIsAnErrorOfTheEval()
     {
         var (runtime, world, _) = Start("");

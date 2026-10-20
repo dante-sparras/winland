@@ -167,6 +167,8 @@ public class LuaRulesTests
         var translation = Run("""
             local overlay = hl.layer_rule({ name = "no-anim-overlay", match = { namespace = "^my-overlay$" }, no_anim = true })
             overlay:set_enabled(false)
+            overlay:is_enabled()
+            hl.layer_rule({ name = "no-anim-overlay", match = { namespace = "^other$" }, blur = true })
             hl.permission("/usr/bin/grim", "screencopy", "allow")
             hl.permission({ binary = "/usr/bin/grim", type = "screencopy", mode = "allow" })
             hl.permission("/usr/bin/grim")
@@ -181,7 +183,9 @@ public class LuaRulesTests
             Lines(translation));
         Assert.Equal(
             [
-                "hl.layer_rule: the rule's set_enabled method is not honored yet",
+                "hl.layer_rule: the rule's set_enabled method has no Windows meaning. Windows has no layer surfaces",
+                "hl.layer_rule: the rule's is_enabled method has no Windows meaning. Windows has no layer surfaces",
+                "hl.layer_rule: layer surfaces have no Windows meaning, so naming \"no-anim-overlay\" again changes nothing",
                 "hl.permission: expected binary, type, mode",
                 "Unsupported keyword 'layerrule'.",
                 "Unsupported keyword 'permission'.",

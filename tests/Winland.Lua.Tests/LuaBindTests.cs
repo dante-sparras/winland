@@ -317,7 +317,7 @@ public class LuaBindTests
     [Theory]
     [InlineData("hl.dsp.window.signal({ signal = 9 })", "hl.dsp.window.signal is not honored yet")]
     [InlineData("hl.dsp.global('app:action')", "hl.dsp.global is not honored yet")]
-    [InlineData("hl.dsp.force_idle(5)", "hl.dsp.force_idle is not honored yet")]
+    [InlineData("hl.dsp.force_idle(5)", "hl.dsp.force_idle has no Windows meaning. Windows does not let a program set how long the user has been idle, and Winland reports idle to no listener")]
     [InlineData("hl.dsp.release_input_capture()", "hl.dsp.release_input_capture is not honored yet")]
     [InlineData("hl.dsp.window.swap({ next = true })", "hl.dsp.window.swap with next or prev is not honored yet")]
     [InlineData("hl.dsp.window.pseudo({ action = 'enable' })", "hl.dsp.window.pseudo with an action other than toggle is not honored yet")]

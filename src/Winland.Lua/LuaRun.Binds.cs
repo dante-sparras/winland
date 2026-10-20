@@ -68,7 +68,7 @@ internal sealed partial class LuaRun
 
         if (dispatch.Unhonored is string unhonored)
         {
-            WarnOnce(unhonored + " is not honored yet");
+            WarnOnce(UnhonoredWarning(unhonored, dispatch.Settled));
             return 0;
         }
 

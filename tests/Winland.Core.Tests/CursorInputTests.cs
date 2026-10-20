@@ -65,10 +65,10 @@ public class CursorInputTests
     [Fact]
     public void UnhonoredCursorKeyStillWarns()
     {
-        var document = ConfigParser.Parse("cursor:zoom_disable_aa = true\n");
+        var document = ConfigParser.Parse("cursor:min_refresh_rate = 30\n");
 
         Assert.Empty(document.Settings);
-        Assert.Equal(new ConfigWarning(1, "Unsupported keyword 'cursor:zoom_disable_aa'."), Assert.Single(document.Warnings));
+        Assert.Equal(new ConfigWarning(1, "Unsupported keyword 'cursor:min_refresh_rate'."), Assert.Single(document.Warnings));
     }
 
     [Fact]

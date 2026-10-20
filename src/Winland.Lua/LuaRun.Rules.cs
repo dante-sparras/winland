@@ -73,7 +73,7 @@ internal sealed partial class LuaRun
         Function("warn", "a rule object", state =>
         {
             if (_lua.IsString(1) && _lua.IsString(2))
-                WarnOnce($"{_lua.ToString(1, false)}: the rule's {_lua.ToString(2, false)} method is not honored yet", 2);
+                WarnOnce($"{_lua.ToString(1, false)}: the rule's {_lua.ToString(2, false)} method has no Windows meaning. Windows has no layer surfaces", 2);
             return 0;
         });
         _lua.SetGlobal("__winland_handle_warn");
@@ -160,7 +160,8 @@ internal sealed partial class LuaRun
     }
 
     // hl.layer_rule({ name, enabled, match = { key = value }, effect = value, ... }): one layerrule line for each effect.
-    // A name already used warns and changes nothing. The object it returns only warns.
+    // Layer surfaces have no Windows meaning, so a name already used warns and changes nothing, and the object it
+    // returns only warns.
     private int AddRule(string label, string keyword)
     {
         if (!_lua.IsTable(1))
@@ -172,7 +173,7 @@ internal sealed partial class LuaRun
         var name = StringField(1, "name") ?? "";
         if (name.Length > 0 && !_ruleNames.Add(label + "\n" + name))
         {
-            Warn($"{label}: changing the rule \"{name}\" again is not honored yet");
+            Warn($"{label}: layer surfaces have no Windows meaning, so naming \"{name}\" again changes nothing");
             return PushHandle(label);
         }
 
