@@ -478,6 +478,40 @@ public class AnimationTests
     }
 
     [Fact]
+    public void TheTileThatMakesRoomForALiftedTileAnimatesWhileTheLiftedOneFollowsThePointer()
+    {
+        var core = Load("bindm = SUPER, mouse:272, movewindow");
+        Appear(core, 1);
+        Appear(core, 2);
+        HoldSuper(core);
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(1400, 500) });
+
+        var lifted = core.Handle(new PointerMoved(new Point(1450, 520)));
+
+        Assert.True(lifted.Live);
+        var grown = Assert.Single(lifted.Motions, motion => motion.Move is not null);
+        Assert.Equal(new WindowId(1), grown.Window);
+        Assert.Equal(Left, grown.From);
+        Assert.Equal(Area, grown.To);
+        Assert.DoesNotContain(core.Handle(new PointerMoved(new Point(1500, 540))).Motions, motion => motion.Move is not null);
+    }
+
+    [Fact]
+    public void AMouseResizeOfATileMovesItsNeighborAtOnce()
+    {
+        var core = Load("bindm = SUPER, mouse:273, resizewindow");
+        Appear(core, 1);
+        Appear(core, 2);
+        HoldSuper(core);
+        core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(1000, 500) });
+
+        var resized = core.Handle(new PointerMoved(new Point(1100, 500)));
+
+        Assert.NotEmpty(resized.Placements);
+        Assert.DoesNotContain(resized.Motions, motion => motion.Move is not null);
+    }
+
+    [Fact]
     public void AnInterruptedSwitchLandsOnTheFinalRectangles()
     {
         var core = Load("""

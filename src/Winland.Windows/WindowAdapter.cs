@@ -708,7 +708,8 @@ public sealed partial class WindowAdapter : IDisposable
 
             var fills = borderless.Contains(window);
             Borderless.Apply(window, fills);
-            if (outcome.Live)
+            // A step of a drag moves the dragged window at once, and a window the drag moves out of its way animates.
+            if (outcome.Live && !motions.ContainsKey(window))
                 PlaceLive(window, placement.Bounds, fills, motions);
             else
                 PlaceMoving(window, placement.Bounds, fills, motions);
