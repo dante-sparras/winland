@@ -304,6 +304,21 @@ public class LuaEventTests
     }
 
     [Fact]
+    public void AKeyRunsTheKeyboardKeyHandlerWithItsCodeTimeAndState()
+    {
+        var (runtime, _) = Start("""
+            seen = {}
+            hl.on("input.keyboard.key", function(code, time, state) seen[#seen + 1] = code .. " " .. time .. " " .. state end)
+            """);
+        using var _ = runtime;
+
+        runtime.Key(38, 1000, pressed: true);
+        runtime.Key(38, 1090, pressed: false);
+
+        Assert.Equal("38 1000 1,38 1090 0", Repl(runtime, "table.concat(seen, ',')"));
+    }
+
+    [Fact]
     public void AReloadRefreshesThePropsAfterItIsRead()
     {
         var (runtime, _) = Start("""

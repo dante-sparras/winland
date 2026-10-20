@@ -177,6 +177,13 @@ public sealed class LuaRuntime : IDisposable, ILayoutScripts
         Post(() => _session?.Deliver(events, cause));
     }
 
+    /// <summary>Hands a key the user pressed or let go to the <c>input.keyboard.key</c> handlers. It only queues it.</summary>
+    public void Key(int code, uint time, bool pressed)
+    {
+        if (Running)
+            Post(() => _session?.Key(code, time, pressed));
+    }
+
     /// <summary>
     /// Hands the phases of a swipe that a <c>luafunction</c> gesture took to the gesture's Lua functions. Like
     /// <see cref="Deliver"/> it only queues them. A swipe the running Lua's own command made runs them as soon as that

@@ -200,6 +200,13 @@ internal sealed partial class LuaRun
         }
     }
 
+    /// <summary>A key the user pressed or let go: its XKB keycode, the time in milliseconds and 1 pressed or 0 released.</summary>
+    public void Key(int code, uint time, bool pressed)
+    {
+        if (_phase == Phase.Running)
+            Notify("input.keyboard.key", [new NumberEventArgument(code), new NumberEventArgument(time), new NumberEventArgument(pressed ? 1 : 0)], null);
+    }
+
     /// <summary>
     /// The config's Lua is about to be let go, for a reload or because Winland exits: its <c>config.unload</c>
     /// handlers run, as in the pinned release.
