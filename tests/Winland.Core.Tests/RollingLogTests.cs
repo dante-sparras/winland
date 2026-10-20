@@ -47,4 +47,41 @@ public class RollingLogTests
 
         Assert.Equal(Encoding.UTF8.WebName, writer.Encoding.WebName);
     }
+
+    [Fact]
+    public void TheLogIsCopiedWithTheTimeToAFileAndStandardOutput()
+    {
+        RollingLog.Clear();
+        var file = new StringWriter();
+        var standardOutput = new StringWriter();
+        using var writer = new RollingLogWriter(new StringWriter(), () => new DateTime(2026, 1, 1, 13, 4, 5, 6));
+
+        writer.Copy(new DebugOptions { DisableLogs = false, DisableTime = false, EnableStdoutLogs = true, ColoredStdoutLogs = false }, () => file, standardOutput);
+        writer.Write("one ");
+        writer.WriteLine("line");
+        writer.Write("two\nthree\n");
+
+        var expected = "[13:04:05.006] one line" + Environment.NewLine + "[13:04:05.006] two\n[13:04:05.006] three\n";
+        Assert.Equal(expected, file.ToString());
+        Assert.Equal(expected, standardOutput.ToString());
+
+        writer.Copy(DebugOptions.Documented, () => throw new InvalidOperationException("not wanted"), standardOutput);
+        writer.WriteLine("quiet");
+        Assert.DoesNotContain("quiet", standardOutput.ToString(), StringComparison.Ordinal);
+        RollingLog.Clear();
+    }
+
+    [Fact]
+    public void AColoredStandardOutputDimsTheTime()
+    {
+        RollingLog.Clear();
+        var standardOutput = new StringWriter();
+        using var writer = new RollingLogWriter(new StringWriter(new StringBuilder()), () => new DateTime(2026, 1, 1, 1, 2, 3));
+
+        writer.Copy(new DebugOptions { DisableLogs = false, DisableTime = false, EnableStdoutLogs = true }, () => null, standardOutput);
+        writer.Write("hi\n");
+
+        Assert.Equal("\u001b[90m[01:02:03.000] \u001b[0mhi\n", standardOutput.ToString());
+        RollingLog.Clear();
+    }
 }
