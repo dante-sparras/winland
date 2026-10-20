@@ -319,7 +319,19 @@ public sealed partial class Core
         floating = false;
         side = BorderSide.None;
         var options = ActiveOptions();
-        var reach = BorderPointer.Reach(options);
+        return TryRingTarget(pointer, options, BorderPointer.Reach(options), out window, out bounds, out floating, out side);
+    }
+
+    /// <summary>
+    /// The window whose ring of <c>reach</c> pixels around its tile holds the pointer, with the tile, and the side the
+    /// pointer is on. The pointer inside a window's tile is that window's own, so it has no ring.
+    /// </summary>
+    private bool TryRingTarget(Point pointer, LayoutOptions options, int reach, out WindowId window, out Rectangle bounds, out bool floating, out BorderSide side)
+    {
+        window = default;
+        bounds = default;
+        floating = false;
+        side = BorderSide.None;
         if (reach <= 0)
             return false;
 

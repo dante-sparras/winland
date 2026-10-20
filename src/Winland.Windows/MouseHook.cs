@@ -139,7 +139,7 @@ public sealed class MouseHook : IDisposable
             }
 
             if (TryWheel(message, info.mouseData, out var key))
-                return OnWheel(key, position) || ScaleWheel(message, info.mouseData, source, info.time)? new LRESULT(1) : Next(code, wParam, lParam);
+                return OnWheel(key, position) || OffWindowWheel(message, info.mouseData, position, source, info.time) || ScaleWheel(message, info.mouseData, source, info.time) ? new LRESULT(1) : Next(code, wParam, lParam);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -436,6 +436,39 @@ public sealed class MouseHook : IDisposable
         var notches = _discreteWheel.Emulate(delta, horizontal, factor, time);
         if (notches != 0)
             InputInjector.Post(Mouse(horizontal ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL : MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, notches));
+        return true;
+    }
+
+    // input:off_window_axis_events: a wheel turn over the ring around a window, not inside it. 0 drops it. 1, the default, and 2
+    // post it to the window as a wheel message at the nearest point inside the window, as Windows apps cannot take the
+    // reference's coordinates outside their window. 3 moves the cursor there first and sends the turn again, so Windows
+    // delivers it as it would any turn there. The lookup never waits on the core: a busy core leaves the turn to Windows.
+    // True when the turn was taken.
+    private bool OffWindowWheel(uint message, uint mouseData, Point position, PointerSource source, uint time)
+    {
+        var mode = _core.OffWindowAxisMode;
+        if (_core.OffWindowTarget(position) is not OffWindowScroll target)
+            return false;
+
+        if (mode == 0)
+            return true;
+
+        var delta = (short)(mouseData >> 16);
+        if (mode is 1 or 2)
+        {
+            var keys = ((PInvoke.GetAsyncKeyState((int)VIRTUAL_KEY.VK_SHIFT) & 0x8000) != 0 ? 0x4u : 0u)
+                | ((PInvoke.GetAsyncKeyState((int)VIRTUAL_KEY.VK_CONTROL) & 0x8000) != 0 ? 0x8u : 0u);
+            var wParam = (nuint)(((uint)(ushort)delta << 16) | keys);
+            var lParam = (nint)(int)(((uint)(ushort)target.Inside.Y << 16) | (ushort)target.Inside.X);
+            _ = PInvoke.PostMessage(new HWND((nint)target.Window.Value), message, new WPARAM(wParam), new LPARAM(lParam));
+            return true;
+        }
+
+        _ = PInvoke.SetCursorPos(target.Inside.X, target.Inside.Y);
+        if (ScaleWheel(message, mouseData, source, time))
+            return true;
+
+        InputInjector.Post(Mouse(message == HorizontalWheel ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL : MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, delta));
 
         return true;
     }
