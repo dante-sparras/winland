@@ -80,7 +80,9 @@ public class NotificationTests
         Assert.Equal(pixels, NotificationFrames.FontPixels(fontSize, width, scale));
 
     [Fact]
-    public void APauseHoldsTheTimeAlreadySpent()
+    // As in the pinned release, a pause reads its elapsed time after the lock is taken, so it holds 0 and a resume
+    // starts the timeout again.
+    public void APauseHoldsZeroAndAResumeStartsTheTimeoutAgain()
     {
         var (core, advance) = Clocked();
         core.Execute(Note("create", ("text", "hi"), ("timeout", 5000), ("icon", 6), ("color", 0), ("font", 13)));
@@ -89,16 +91,16 @@ public class NotificationTests
         Assert.Equal("true", core.Execute(Note("pause", ("id", 1))).Text);
         advance(3000);
         var paused = View(core.Execute(Note("query", ("id", 1))).Text);
-        Assert.Equal(2000, paused.GetProperty("elapsed").GetInt64());
+        Assert.Equal(0, paused.GetProperty("elapsed").GetInt64());
         Assert.Equal(5000, paused.GetProperty("since").GetInt64());
         Assert.True(paused.GetProperty("paused").GetBoolean());
 
         advance(10000);
-        Assert.Equal(2000, View(core.Execute(Note("query", ("id", 1))).Text).GetProperty("elapsed").GetInt64());
+        Assert.Equal(0, View(core.Execute(Note("query", ("id", 1))).Text).GetProperty("elapsed").GetInt64());
         Assert.Equal("true", core.Execute(Note("resume", ("id", 1))).Text);
         advance(1000);
         var resumed = View(core.Execute(Note("query", ("id", 1))).Text);
-        Assert.Equal(3000, resumed.GetProperty("elapsed").GetInt64());
+        Assert.Equal(1000, resumed.GetProperty("elapsed").GetInt64());
         Assert.False(resumed.GetProperty("paused").GetBoolean());
     }
 
@@ -111,18 +113,18 @@ public class NotificationTests
         core.Execute(Note("pause", ("id", 1)));
         core.Execute(Note("pause", ("id", 1)));
         advance(4000);
-        Assert.Equal(1500, View(core.Execute(Note("query", ("id", 1))).Text).GetProperty("elapsed").GetInt64());
+        Assert.Equal(0, View(core.Execute(Note("query", ("id", 1))).Text).GetProperty("elapsed").GetInt64());
 
         core.Execute(Note("resume", ("id", 1)));
         advance(1000);
-        Assert.Equal(1500, View(core.Execute(Note("query", ("id", 1))).Text).GetProperty("elapsed").GetInt64());
+        Assert.Equal(0, View(core.Execute(Note("query", ("id", 1))).Text).GetProperty("elapsed").GetInt64());
         Assert.True(View(core.Execute(Note("query", ("id", 1))).Text).GetProperty("paused").GetBoolean());
 
         core.Execute(Note("resume", ("id", 1)));
         core.Execute(Note("resume", ("id", 1)));
         advance(500);
         var resumed = View(core.Execute(Note("query", ("id", 1))).Text);
-        Assert.Equal(2000, resumed.GetProperty("elapsed").GetInt64());
+        Assert.Equal(500, resumed.GetProperty("elapsed").GetInt64());
         Assert.False(resumed.GetProperty("paused").GetBoolean());
     }
 
@@ -135,9 +137,10 @@ public class NotificationTests
         core.Execute(Note("pause", ("id", 1)));
         Assert.Equal("true", core.Execute(Note("timeout", ("id", 1), ("timeout", 100))).Text);
         var held = View(core.Execute(Note("query", ("id", 1))).Text);
-        Assert.Equal(2000, held.GetProperty("elapsed").GetInt64());
+        Assert.Equal(0, held.GetProperty("elapsed").GetInt64());
         Assert.Equal(100, held.GetProperty("timeout").GetDouble());
         core.Execute(Note("resume", ("id", 1)));
+        advance(101);
         Assert.Equal("null", core.Execute(Note("query", ("id", 1))).Text);
 
         core.Execute(Note("create", ("text", "again"), ("timeout", 5000), ("icon", 6), ("color", 0), ("font", 13)));

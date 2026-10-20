@@ -103,11 +103,12 @@ public class LuaNotificationTests
         Assert.Equal("2000", runtime.Eval("return n:get_elapsed()", repl: true));
         Assert.Equal("ok", runtime.Eval("n:pause()", repl: false));
         now += 3 * Stopwatch.Frequency;
-        Assert.Equal("2000\t5000\ttrue", runtime.Eval("return n:get_elapsed(), n:get_elapsed_since_creation(), n:is_paused()", repl: true));
+        // As in the pinned release, a pause holds 0 and a resume starts the timeout again.
+        Assert.Equal("0\t5000\ttrue", runtime.Eval("return n:get_elapsed(), n:get_elapsed_since_creation(), n:is_paused()", repl: true));
         Assert.Equal("ok", runtime.Eval("n:pause() n:resume()", repl: false));
         Assert.Equal("false", runtime.Eval("return n:is_paused()", repl: true));
         now += Stopwatch.Frequency;
-        Assert.Equal("3000", runtime.Eval("return n:get_elapsed()", repl: true));
+        Assert.Equal("1000", runtime.Eval("return n:get_elapsed()", repl: true));
 
         Assert.Equal("true\ttrue", runtime.Eval("""
             other = hl.notification.get()[1]

@@ -567,13 +567,14 @@ public sealed class NotificationBook
             Locks,
             gone);
 
-        // The elapsed is read before the lock count rises. Reading it after would see the frozen value, which starts at 0.
+        // As in the pinned release, the lock count rises before the elapsed time is read, so the read sees the frozen
+        // value: 0 for a first pause, and what the last pause kept after that. A resume then starts the timeout again
+        // from that value.
         public void Pause(Func<long> clock)
         {
-            if (Locks == 0)
-                LastPauseElapsed = ElapsedMs(clock);
-
             Locks++;
+            if (Locks == 1)
+                LastPauseElapsed = ElapsedMs(clock);
         }
 
         public void Resume(Func<long> clock)
