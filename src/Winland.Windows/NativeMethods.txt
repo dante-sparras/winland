@@ -189,3 +189,4 @@ SetSystemCursor
 CopyIcon
 LoadCursor
 SYSTEM_CURSOR_ID
+GdiFlush
