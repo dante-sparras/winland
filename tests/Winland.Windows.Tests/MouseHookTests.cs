@@ -95,6 +95,15 @@ public class MouseHookTests
         Assert.False(MouseHook.TryDrag(new BindDecision(false, ""), out _, out _));
     }
 
+    [Fact]
+    public void APressIsOnlyADragWhenEveryDispatcherDrags()
+    {
+        Assert.True(MouseHook.OnlyDrag(new BindDecision(true, "movewindow")));
+        Assert.True(MouseHook.OnlyDrag(new BindDecision(true, "movewindow") { Dispatches = [new("movewindow", ""), new("", "")] }));
+        Assert.False(MouseHook.OnlyDrag(new BindDecision(true, "movewindow") { Dispatches = [new("movewindow", ""), new("killactive", "")] }));
+        Assert.False(MouseHook.OnlyDrag(new BindDecision(true, "killactive")));
+    }
+
     // A button bound to several dispatchers drags with the first that drags.
     [Fact]
     public void TheFirstDragAmongSeveralDispatchersIsTheDrag()

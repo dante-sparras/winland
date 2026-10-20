@@ -84,7 +84,7 @@ public class BindChordTests
         Appear(core, 1);
 
         var super = Press(core, "Super_L");
-        var button = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(4, 5) });
+        var button = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(500, 400) });
 
         Assert.Equal("exec", super.Dispatcher);
         Assert.Equal("menu", super.Launch?.CommandLine);
@@ -339,7 +339,7 @@ public class BindChordTests
         var core = Load("bindm = , mouse:272,\nbindm = , mouse:272, movewindow\n");
         Appear(core, 1);
 
-        var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(8, 9) });
+        var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(500, 400) });
 
         Assert.True(pressed.Consumed);
         Assert.Equal("movewindow", pressed.Dispatcher);

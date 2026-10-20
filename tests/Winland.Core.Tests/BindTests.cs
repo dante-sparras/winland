@@ -295,7 +295,7 @@ public class BindTests
         Appear(core, 1);
         Press(core, "Super_L");
 
-        var button = core.Handle(new PointerButtonPressed("mouse:272"));
+        var button = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(500, 400) });
         AssertRan(button, "movewindow", null);
         Assert.Contains(button.State.Clients, client => client.Window == new WindowId(1));
 

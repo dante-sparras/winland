@@ -35,6 +35,9 @@ public sealed partial class Core
         }
 
         NoteBorderCursor(pressed.Position);
+        if (_gesture is null && TryDragHit(match, out _) && OnlyDrag(match))
+            return RunBind(match) with { Consumed = false };
+
         return RunBind(match);
     }
 
