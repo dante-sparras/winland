@@ -137,7 +137,9 @@ internal readonly record struct WindowDecision(
     IReadOnlyDictionary<string, object>? Props = null,
     int Content = 0,
     ExpressionPair? MinSizeExpression = null,
-    ExpressionPair? MaxSizeExpression = null);
+    ExpressionPair? MaxSizeExpression = null,
+    // A fullscreen_state rule matched. While it matches, the window-rule layer of sync_fullscreen is false.
+    bool StatedFullscreen = false);
 
 /// <summary>
 /// What the min_size, max_size and no_max_size window rules ask of a Client. A floating Client keeps the rule's sizes in

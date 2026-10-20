@@ -335,6 +335,16 @@ internal static partial class WindowRuleParser
 
         var sizes = new SizeRule(ruleMin, ruleMax, suppressMax);
         var limits = sizes.Floating(traits.MinSize, traits.MaxSize);
+        // A fullscreen or maximize rule names the internal mode, and the client mode copies it. sync_fullscreen false
+        // leaves the client mode at none. A fullscreen_state rule names both modes and is left as parsed.
+        var requested = RequestedFullscreen(fullscreen, maximize, fullscreenState);
+        if (fullscreenState is null
+            && requested is FullscreenRule open
+            && props is not null
+            && props.TryGetValue("sync_fullscreen", out var sync)
+            && sync is false)
+            requested = open with { Client = FullscreenMode.None };
+
         return new WindowDecision(
             adopt ?? Adopts(traits),
             floating ?? traits.Dialog,
@@ -347,7 +357,7 @@ internal static partial class WindowRuleParser
             scrollingWidth,
             opacity,
             opaque ?? false,
-            RequestedFullscreen(fullscreen, maximize, fullscreenState),
+            requested,
             pin ?? false,
             idle ?? IdleInhibitMode.None,
             placement,
@@ -356,7 +366,8 @@ internal static partial class WindowRuleParser
             props,
             content,
             minExpression,
-            maxExpression);
+            maxExpression,
+            fullscreenState is not null);
     }
 
     private static bool TryParseEffect(

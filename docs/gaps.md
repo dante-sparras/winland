@@ -215,7 +215,25 @@ Every command the pinned release's control socket answers is recognized. The one
 
 `descriptions` lists only the options Winland reads.
 
-`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `allows_input`, `nearest_neighbor`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `render_unfocused`, `no_screen_share` and `no_auto_hdr`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
+`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). `sync_fullscreen` is honored there. These are kept and reported and change nothing. Each is a Windows limit: the pinned release does it inside the compositor, and Windows has no supported way to do it to a window Winland does not own.
+
+`allows_input` forces an X11 window to take input when that window asks not to be focused, an override-redirect window that does not want focus or a menu or dropdown. Winland does not adopt tool windows or tooltips, and no adopted window has a matching focus request. There is no Windows focus rule that does this for another process's window.
+
+`nearest_neighbor` is the filter the compositor uses when it scales the window. Winland does not scale another application's pixels, and Windows exposes no per-window scaling filter.
+
+`no_shortcuts_inhibit` refuses one window's request to inhibit compositor shortcuts. Windows has no such request. Winland reads keys in a low-level hook before the focused window sees them, and an application cannot turn binds off.
+
+`force_rgbx` makes the compositor ignore the window's own per-pixel alpha and keep the colors. That is separate from Winland's opacity. Windows composites the window, and no call makes another process's per-pixel alpha opaque without replacing it with one alpha for the whole window.
+
+`immediate` presents the window without waiting for the next frame, and only when tearing is allowed, the window is fullscreen, and it is the only thing on screen. Tearing is a compositor feature with no Windows meaning, and another process cannot set how an application presents its frames.
+
+`render_unfocused` keeps telling the window to draw while it is not visible. Each application on Windows draws itself. There is no frame callback to send.
+
+`no_screen_share` draws that window and its popups as black rectangles in a screen-share image while the window stays visible on the desktop. The documented display-affinity calls, `WDA_EXCLUDEFROMCAPTURE` and `WDA_MONITOR`, apply only to a window the calling process owns. Another process, elevated or not, is refused. There is no supported call that excludes a window Winland does not own from capture.
+
+`no_auto_hdr` keeps the monitor's configured color mode when a fullscreen window's surface is HDR. The pinned release otherwise switches the monitor to HDR for that surface. Winland changes a display's color only from a monitor rule's `cm`, and it cannot read another window's color space, so it never switches the monitor for one window. The property has no switch to refuse. Windows Auto HDR is a different per-program tone map for SDR games, not that monitor switch.
+
+A border color property is drawn with all its colors and its angle.
 
 ## Plugins
 
