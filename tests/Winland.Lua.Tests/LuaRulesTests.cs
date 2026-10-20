@@ -410,9 +410,9 @@ public class LuaRulesTests
             [
                 "hl.device: unknown field 'wheel'",
                 "hl.device: 'name' field is required and must be a string",
-                "Unsupported keyword 'device:tap-to-click'.",
             ],
             Messages(Parse(translation)));
+        Assert.Contains(new Setting("input:touchpad:tap-to-click", "false"), Parse(translation).Settings);
         Assert.Equal(new DevicePointer("epic-mouse-v1", -0.5, null, null), Assert.Single(Parse(translation).DevicePointers));
     }
 
@@ -500,7 +500,6 @@ public class LuaRulesTests
                 "hl.device: field 'sensitivity': a value with a comma is not honored yet",
                 "hl.permission: field 'type': a value with a comma is not honored yet",
                 "hl.permission: field 'mode': a value with a comma is not honored yet",
-                "Unsupported keyword 'device:kb_layout'.",
                 "Unsupported keyword 'device:region_position'.",
                 "Unsupported keyword 'permission'.",
             ],

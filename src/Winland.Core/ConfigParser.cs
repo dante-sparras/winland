@@ -265,10 +265,10 @@ public static partial class ConfigParser
                 return;
             }
 
-            if (TryDevice(lhs, rhs))
+            if (TryDevice(lhs, rhs, out var global))
                 return;
 
-            var keyword = KeyedName.TryInline(lhs, out var inline) ? inline : Qualify(lhs);
+            var keyword = global ?? (KeyedName.TryInline(lhs, out var inline) ? inline : Qualify(lhs));
             if (PluginKeywords.TryApply(keyword, rhs, out var pluginWarnings))
             {
                 _settings.Add(new Setting(keyword, rhs));
@@ -408,10 +408,15 @@ public static partial class ConfigParser
         }
 
         // device[name]:field, or a field inside a device[name] block. tags, sensitivity, scroll_factor and rotation
-        // are kept. Any other field falls through and warns as that per-device option.
-        private bool TryDevice(string lhs, string rhs)
+        // are kept. A field Windows applies to every device is returned as its input option in global, and then
+        // reads as that line. Any other field falls through and warns as that per-device option.
+        private bool TryDevice(string lhs, string rhs, out string? global)
         {
+            global = null;
             if (!TryDeviceField(lhs, out var name, out var field) || name.Length == 0)
+                return false;
+
+            if (DeviceGlobals.TryGetValue(field, out global))
                 return false;
 
             if (field == "tags")
@@ -435,6 +440,35 @@ public static partial class ConfigParser
             StorePointer(name, field, rhs);
             return true;
         }
+
+        // Per-device options that Windows has one setting for. A device block's value sets it for every device.
+        private static readonly Dictionary<string, string> DeviceGlobals = new(StringComparer.Ordinal)
+        {
+            ["accel_profile"] = "input:accel_profile",
+            ["kb_layout"] = "input:kb_layout",
+            ["kb_options"] = "input:kb_options",
+            ["kb_variant"] = "input:kb_variant",
+            ["left_handed"] = "input:left_handed",
+            ["natural_scroll"] = "input:natural_scroll",
+            ["numlock_by_default"] = "input:numlock_by_default",
+            ["repeat_delay"] = "input:repeat_delay",
+            ["repeat_rate"] = "input:repeat_rate",
+            ["resolve_binds_by_sym"] = "input:resolve_binds_by_sym",
+            ["scroll_button"] = "input:scroll_button",
+            ["scroll_button_lock"] = "input:scroll_button_lock",
+            ["scroll_method"] = "input:scroll_method",
+            ["scroll_points"] = "input:scroll_points",
+            ["clickfinger_behavior"] = "input:touchpad:clickfinger_behavior",
+            ["disable_while_typing"] = "input:touchpad:disable_while_typing",
+            ["drag_3fg"] = "input:touchpad:drag_3fg",
+            ["drag_lock"] = "input:touchpad:drag_lock",
+            ["flip_x"] = "input:touchpad:flip_x",
+            ["flip_y"] = "input:touchpad:flip_y",
+            ["middle_button_emulation"] = "input:touchpad:middle_button_emulation",
+            ["tap-and-drag"] = "input:touchpad:tap-and-drag",
+            ["tap-to-click"] = "input:touchpad:tap-to-click",
+            ["tap_button_map"] = "input:touchpad:tap_button_map",
+        };
 
         private bool TryDeviceField(string lhs, out string name, out string field)
         {

@@ -37,43 +37,19 @@ This table has one row per keyword. A test checks it against the keywords the co
 | decoration:blur:popups_ignorealpha | A menu is not a Client, so there is no popup blur for this threshold to change. |
 | decoration:blur:variant | Winland always runs the dual Kawase blur, which is the default variant. Another variant is a separate provider and is not run. |
 | device:absolute_region_position | Tablets are not honored. |
-| device:accel_profile | Windows has one pointer acceleration curve. Raw motion is in the device's own units, and taking over pointer movement to apply another curve is not reliable. |
 | device:active_area_position | Tablets are not honored. |
 | device:active_area_size | Tablets are not honored. |
-| device:clickfinger_behavior | Precision touchpad settings apply to every touchpad, and the mouse hook does not name the pad. |
-| device:disable_while_typing | Precision touchpad settings apply to every touchpad, and the mouse hook does not name the pad. |
-| device:drag_3fg | Precision touchpad settings apply to every touchpad, and the mouse hook does not name the pad. |
-| device:drag_lock | Precision touchpad settings apply to every touchpad, and the mouse hook does not name the pad. |
 | device:enabled | Disabling a device node needs administrator rights. |
-| device:flip_x | Precision touchpad settings apply to every touchpad, and the mouse hook does not name the pad. |
-| device:flip_y | Precision touchpad settings apply to every touchpad, and the mouse hook does not name the pad. |
 | device:kb_file | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
-| device:kb_layout | Windows binds a keyboard layout to the foreground window, not to one keyboard. |
 | device:kb_model | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
-| device:kb_options | The keyboard hook applies the option before the keyboard is known. |
 | device:kb_rules | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
-| device:kb_variant | Windows binds a keyboard layout to the foreground window, not to one keyboard. |
 | device:keybinds | Windows names the keyboard only after the key is delivered, and swallowing the key produces no raw input. |
-| device:left_handed | SwapMouseButton swaps the buttons of every mouse, and the click is delivered before raw input names the mouse. |
-| device:middle_button_emulation | Precision touchpad settings apply to every touchpad, and the mouse hook does not name the pad. |
-| device:natural_scroll | natural_scroll only reverses the bind's key. The wheel is matched before the device is known, and a swallowed wheel produces no raw input. |
-| device:numlock_by_default | Windows has one Num Lock state. |
 | device:output | Windows cannot map touch to one display per device, and tablets are not honored. |
 | device:region_position | Tablets are not honored. |
 | device:region_size | Tablets are not honored. |
 | device:relative_input | Tablets are not honored. |
 | device:release_pressed_on_close | Virtual keyboards are not honored. |
-| device:repeat_delay | Windows has one key repeat, and a repeat is not a raw packet from one keyboard. |
-| device:repeat_rate | Windows has one key repeat, and a repeat is not a raw packet from one keyboard. |
-| device:resolve_binds_by_sym | Binds that consume the key cannot tell which keyboard sent it. |
-| device:scroll_button | Button scrolling is decided in the mouse hook before the device is known. |
-| device:scroll_button_lock | Button scrolling is decided in the mouse hook before the device is known. |
-| device:scroll_method | Button scrolling is decided in the mouse hook before the device is known. |
-| device:scroll_points | One scroll curve is applied in the mouse hook before the device is known. |
 | device:share_states | Virtual keyboards are not honored. |
-| device:tap-and-drag | Precision touchpad settings apply to every touchpad, and the mouse hook does not name the pad. |
-| device:tap-to-click | Precision touchpad settings apply to every touchpad, and the mouse hook does not name the pad. |
-| device:tap_button_map | Precision touchpad settings apply to every touchpad, and the mouse hook does not name the pad. |
 | device:transform | Windows cannot map touch to one display per device, and tablets are not honored. |
 | dont_inhibit | Applications cannot inhibit binds, so this flag has nothing to bypass. |
 | drops | Winland runs the dual Kawase blur, the default variant. This is a separate blur provider, with its own finish and often its own animation, and that pipeline does not run it. |
@@ -140,18 +116,11 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
 | gap | - | decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:popups, decoration:blur:popups_ignorealpha |
 | gap | - | device:absolute_region_position, device:active_area_position, device:active_area_size, device:region_position, device:region_size, device:relative_input |
-| gap | - | device:accel_profile |
-| gap | - | device:clickfinger_behavior, device:disable_while_typing, device:drag_3fg, device:drag_lock, device:flip_x, device:flip_y, device:middle_button_emulation, device:tap-and-drag, device:tap-to-click, device:tap_button_map |
 | gap | - | device:enabled |
 | non-goal | - | device:kb_file, device:kb_model, device:kb_rules |
-| gap | - | device:kb_layout, device:kb_options, device:kb_variant, device:keybinds, device:resolve_binds_by_sym |
-| gap | - | device:left_handed |
-| gap | - | device:natural_scroll |
-| gap | - | device:numlock_by_default |
+| gap | - | device:keybinds |
 | gap | - | device:output, device:transform |
 | gap | - | device:release_pressed_on_close, device:share_states |
-| gap | - | device:repeat_delay, device:repeat_rate |
-| gap | - | device:scroll_button, device:scroll_button_lock, device:scroll_method, device:scroll_points |
 | non-goal | - | dont_inhibit |
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
 | non-goal | - | experimental, input-capture |
@@ -196,7 +165,7 @@ Wobble and motion blur are drawn from a capture of the window, as [behavior.md](
 - A Windows build that does not let a program capture a window without the capture border shows the window without the effects.
 - A stand-in with effects starts after Windows delivers the window's first captured frame, about 20 ms for each window, so a motion that starts many windows at once starts late.
 
-`device[name]:sensitivity`, `device[name]:scroll_factor` and `device[name]:rotation` are honored, as [behavior.md](behavior.md) describes. `device:tags` is kept for binds. The other `device` fields are the rows above: each one cannot be applied to one device on Windows. The keyboard of a key is known only after the key is delivered. Swallowing the key produces no raw input, so a bind cannot both name a device and consume the key. A consuming device bind, including one that lists a tag, is not registered, and the config warns once. Honoring it would need a kernel filter driver. A non-consuming device bind runs when the raw packet arrives on the input thread: the packet names the keyboard. A press runs from that packet. A repeat runs from the hook once the keyboard is known, and repeats that arrived before the packet, at most eight, run with it. A release uses the keyboard of the press. If the key is already up when the packet arrives, the press and the release both run from that packet. The packet for the key going up does not run the bind again. An unknown keyboard matches no device bind, including an exclusive one. A pointer button and a wheel turn have no device, so a device bind on them does not run. A key something else swallows has no packet, so its device bind does not run. A key `kb_options` moves is sent on as the key it becomes, and the raw packet names the original key, which was swallowed, so a device bind does not see it. A chord runs from the packet if the keys were held together when the triggering key went down. `auto_consuming` does not depend on the device: it swallows the key and injects the trigger key after the dispatcher returns. The injection is only the trigger key, a dispatcher that reports no error consumes the key even when it changes nothing, and an auto-consuming release bind cannot swallow the key because Windows must see the release of a press it saw. The other input keys stay Gaps.
+`device[name]:sensitivity`, `device[name]:scroll_factor` and `device[name]:rotation` are honored, as [behavior.md](behavior.md) describes. `device:tags` is kept for binds. A field Windows has one setting for, such as `left_handed` or `repeat_rate`, sets it for every device, as [extensions.md](extensions.md) describes. The other `device` fields are the rows above: each one cannot be applied to one device on Windows. The keyboard of a key is known only after the key is delivered. Swallowing the key produces no raw input, so a bind cannot both name a device and consume the key. A consuming device bind, including one that lists a tag, is not registered, and the config warns once. Honoring it would need a kernel filter driver. A non-consuming device bind runs when the raw packet arrives on the input thread: the packet names the keyboard. A press runs from that packet. A repeat runs from the hook once the keyboard is known, and repeats that arrived before the packet, at most eight, run with it. A release uses the keyboard of the press. If the key is already up when the packet arrives, the press and the release both run from that packet. The packet for the key going up does not run the bind again. An unknown keyboard matches no device bind, including an exclusive one. A pointer button and a wheel turn have no device, so a device bind on them does not run. A key something else swallows has no packet, so its device bind does not run. A key `kb_options` moves is sent on as the key it becomes, and the raw packet names the original key, which was swallowed, so a device bind does not see it. A chord runs from the packet if the keys were held together when the triggering key went down. `auto_consuming` does not depend on the device: it swallows the key and injects the trigger key after the dispatcher returns. The injection is only the trigger key, a dispatcher that reports no error consumes the key even when it changes nothing, and an auto-consuming release bind cannot swallow the key because Windows must see the release of a press it saw. The other input keys stay Gaps.
 
 `pass`, `sendshortcut` and `sendkeystate` to a window that is not focused bring that window to the foreground, send the key, and give the foreground back 30 ms later. Windows gives keys only to the foreground window. Each change of focus is reported. A mouse button goes to the window under the pointer, not to the named window.
 
