@@ -76,6 +76,19 @@ public class TouchpadFingerTests
     }
 
     [Fact]
+    public void AWindowsOwnFactorsReplaceTheConfiguredOnes()
+    {
+        var pad = TouchpadBehavior.Default with { ScrollFactor = 3, WheelFactor = 2 };
+
+        Assert.Equal(0.25, pad.WheelScale(true, new ScrollOverride(null, 0.5)));
+        Assert.Equal(1.5, pad.WheelScale(true, new ScrollOverride(4, null)));
+        Assert.Equal(2, pad.WheelScale(false, new ScrollOverride(4, 0.5)));
+        Assert.Equal(1, pad.WheelScale(false, new ScrollOverride(null, 0.5)));
+        Assert.Equal(0, pad.WheelScale(false, new ScrollOverride(0, null)));
+        Assert.Equal(0.5, (pad with { ScrollFactor = 0 }).WheelScale(false, new ScrollOverride(4, 1)));
+    }
+
+    [Fact]
     public void ATouchpadScrollFactorOfZeroStopsEveryWheel()
     {
         var stopped = TouchpadBehavior.Default with { ScrollFactor = 0 };

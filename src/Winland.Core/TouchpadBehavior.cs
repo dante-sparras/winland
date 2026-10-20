@@ -25,15 +25,28 @@ public sealed record TouchpadBehavior(double ScrollFactor, double? WheelFactor, 
     /// Windows' wheel lines already apply to it. Another wheel's is 1, except that a touchpad <c>scroll_factor</c> of 0
     /// stops every wheel, as the pinned release takes every axis event as the touchpad's then.
     /// </summary>
-    public double WheelScale(bool touchpad)
+    public double WheelScale(bool touchpad) => WheelScale(touchpad, default);
+
+    /// <summary>
+    /// <see cref="WheelScale(bool)"/> over a window that sets its own factors: its <c>scroll_touchpad</c> replaces
+    /// <c>scroll_factor</c> for a turn taken as the touchpad's, and its <c>scroll_mouse</c> replaces
+    /// <c>input:scroll_factor</c> for another, each less the factor Windows' wheel lines already apply.
+    /// </summary>
+    public double WheelScale(bool touchpad, ScrollOverride window)
     {
-        if (ScrollFactor <= 0)
+        if (touchpad || ScrollFactor <= 0)
+            return Beyond(window.Touchpad ?? ScrollFactor);
+
+        return window.Mouse is double mouse ? Beyond(mouse) : 1;
+    }
+
+    // A factor as a multiple of what Windows' wheel lines already apply.
+    private double Beyond(double factor)
+    {
+        if (factor <= 0)
             return 0;
 
-        if (!touchpad)
-            return 1;
-
-        return WheelFactor is double lines && lines > 0 ? ScrollFactor / lines : ScrollFactor;
+        return WheelFactor is double lines && lines > 0 ? factor / lines : factor;
     }
 
     /// <summary>A touchpad's cursor move, turned around on the axes <c>flip_x</c> and <c>flip_y</c> name.</summary>
