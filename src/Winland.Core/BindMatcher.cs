@@ -31,6 +31,15 @@ public readonly record struct BindDecision(bool Consumed, string? Dispatcher, st
     /// opens Start or a menu bar. The release itself always reaches the OS.
     /// </summary>
     public bool Mask { get; init; }
+
+    /// <summary>
+    /// The key was swallowed because every bind that consumes it is auto-consuming. The hook replays the key when
+    /// every such dispatcher fails, as the pinned release passes the event when the dispatcher does not succeed.
+    /// </summary>
+    public bool PassesOnFailure { get; init; }
+
+    /// <summary>Keys this decision caught, which a failed auto-consuming bind lets go so their releases reach the window.</summary>
+    public IReadOnlyList<string> ReleaseOnFailure { get; init; } = [];
 }
 
 /// <summary>Matches a key or pointer button against a bind table. Takes no lock.</summary>
@@ -72,10 +81,12 @@ public static class BindMatcher
         ArgumentNullException.ThrowIfNull(table);
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(input);
+        session.EventDevice = null;
+        session.EventTags = null;
         return input switch
         {
-            KeyPressed pressed => Shadow(table, session, OnPress(table, session, pressed.Key, pressed.ScanCode, mouse: false), pressed.Key),
-            KeyReleased released => Shadow(table, session, OnRelease(table, session, released.Key, released.ScanCode, mouse: false), excluded: null),
+            KeyPressed pressed => Shadow(table, session, OnPress(table, session, pressed.Key, pressed.ScanCode, mouse: false, pressed.Device, pressed.DeviceTags), pressed.Key),
+            KeyReleased released => Shadow(table, session, OnRelease(table, session, released.Key, released.ScanCode, mouse: false, released.Device, released.DeviceTags), excluded: null),
             PointerButtonPressed button => Shadow(table, session, OnButton(table, session, button.Button, button.Position, up: false), button.Button),
             PointerButtonReleased button => Shadow(table, session, OnButton(table, session, button.Button, button.Position, up: true), excluded: null),
             PointerMoved moved => OnMoved(session, moved.Position),
@@ -99,6 +110,7 @@ public static class BindMatcher
             {
                 session.PressedUnder.Remove(key);
                 session.ScanCodes.Remove(key);
+                session.Devices.Remove(key);
             }
         }
 
@@ -136,8 +148,8 @@ public static class BindMatcher
     {
         session.Pointer = position;
         return up
-            ? OnRelease(table, session, button, scanCode: 0, mouse: true)
-            : OnPress(table, session, button, scanCode: 0, mouse: true);
+            ? OnRelease(table, session, button, scanCode: 0, mouse: true, device: null, tags: null)
+            : OnPress(table, session, button, scanCode: 0, mouse: true, device: null, tags: null);
     }
 
     private static BindDecision OnMoved(BindSession session, Point position)
@@ -146,7 +158,7 @@ public static class BindMatcher
         return Passed();
     }
 
-    private static BindDecision OnPress(BindTable table, BindSession session, string key, int scanCode, bool mouse)
+    private static BindDecision OnPress(BindTable table, BindSession session, string key, int scanCode, bool mouse, string? device, IReadOnlyList<string>? tags)
     {
         if (key.Length == 0)
             return Passed();
@@ -156,6 +168,7 @@ public static class BindMatcher
         if (!mouse && ModifierKeys.TryGetValue(key, out var modifier))
             session.Held |= modifier;
 
+        ApplyDevice(table, session, key, device, tags, remember: !repeat && !mouse);
         if (repeat)
             return OnRepeat(table, session, key, scanCode, mouse);
 
@@ -199,28 +212,39 @@ public static class BindMatcher
         }
 
         // A long press has not fired yet, so it does not consume the chord on the way down. A bind held back for a
-        // longer chord, and a chord this key started, do.
-        var consumed = Consumes(immediate) || Consumes(deferred) || heldBack > 0 || claims;
+        // longer chord, and a chord this key started, do. An auto-consuming bind does not, until it is invoked: the
+        // pinned release claims a partial match only when it is not auto-consuming, and a deferred press always claims.
+        var now = Classify(immediate);
+        var later = Classify(deferred);
+        var hard = now.Hard || later.Hard || heldBack > 0 || claims;
+        var consumed = hard || now.Conditional;
+        List<string>? release = null;
         var trigger = new BindTrigger(key, scanCode, Pressed: true);
         if (consumed)
-            Catch(session, key, mouse);
+        {
+            if (!hard && CanFail(immediate))
+                release = [];
+            Catch(session, key, mouse, release);
+        }
         else
+        {
             passed.Add(key);
+        }
 
         if (longPress.Count == 0)
         {
             session.LongPressKey = null;
-            return MaskHeld(session, Ran(immediate, consumed, trigger)) with { DisarmLongPress = true };
+            return WithFailure(MaskHeld(session, Ran(immediate, consumed, trigger)) with { DisarmLongPress = true }, release);
         }
 
         session.LongPressKey = key;
         session.LongPressCode = scanCode;
         session.LongPressMouse = mouse;
-        return MaskHeld(session, Ran(immediate, consumed, trigger)) with
+        return WithFailure(MaskHeld(session, Ran(immediate, consumed, trigger)) with
         {
             ArmLongPressMs = table.LongPressDelay,
             DisarmLongPress = true,
-        };
+        }, release);
     }
 
     private static BindDecision OnRepeat(BindTable table, BindSession session, string key, int scanCode, bool mouse)
@@ -236,20 +260,27 @@ public static class BindMatcher
         if (repeating.Count == 0)
             return caught.Contains(key) ? Caught() : Passed();
 
-        if (Consumes(repeating))
-            Catch(session, key, mouse);
+        var claim = Classify(repeating);
+        var hard = claim.Hard || caught.Contains(key);
+        var consumed = hard || claim.Conditional;
+        List<string>? release = null;
+        if (consumed && !hard && CanFail(repeating))
+            release = [];
+        if (consumed)
+            Catch(session, key, mouse, release);
 
         // A key already caught stays swallowed. A non-consuming repeat does not catch a key on its own.
         var trigger = new BindTrigger(key, scanCode, Pressed: true);
-        return MaskHeld(session, Ran(repeating, Consumes(repeating) || caught.Contains(key), trigger));
+        return WithFailure(MaskHeld(session, Ran(repeating, consumed, trigger)), release);
     }
 
-    private static BindDecision OnRelease(BindTable table, BindSession session, string key, int scanCode, bool mouse)
+    private static BindDecision OnRelease(BindTable table, BindSession session, string key, int scanCode, bool mouse, string? device, IReadOnlyList<string>? tags)
     {
         var down = mouse ? session.DownButtons : session.DownKeys;
         if (key.Length == 0 || !down.Remove(key))
             return Passed();
 
+        ApplyDevice(table, session, key, device, tags, remember: false);
         if (!mouse)
             ReleaseModifier(session, key);
 
@@ -268,16 +299,25 @@ public static class BindMatcher
         fire.AddRange(Collect(table, session, key, scanCode, mouse, releasing: true, submap, anchor));
         session.PressedUnder.Remove(key);
         session.ScanCodes.Remove(key);
+        session.Devices.Remove(key);
         if (!mouse)
             session.Lift(key);
 
         session.LongPressKey = null;
 
-        // The OS saw this press, so it must see the release, or it keeps the key down.
+        // The OS saw this press, so it must see the release, or it keeps the key down. An auto-consuming release bind
+        // therefore cannot swallow the release: its press was not claimed, so Windows already has the press.
+        var claim = Classify(fire);
+        var hard = claim.Hard || caught;
+        var consumed = fire.Count > 0 ? hard || claim.Conditional : caught;
+        List<string>? release = null;
+        if (fire.Count > 0 && consumed && !hard && CanFail(fire))
+            release = [];
         var trigger = new BindTrigger(key, scanCode, Pressed: false);
-        var decision = fire.Count > 0 ? Ran(fire, Consumes(fire) || caught, trigger) : caught ? Caught() : Passed();
+        var decision = fire.Count > 0 ? Ran(fire, consumed, trigger) : caught ? Caught() : Passed();
+        decision = WithFailure(decision, release);
         if (passed)
-            decision = decision with { Consumed = false };
+            decision = decision with { Consumed = false, PassesOnFailure = false, ReleaseOnFailure = [] };
 
         // A release bind on a Super or Alt the OS saw, such as "bindr = SUPER, Super_L", sends a mask
         // before the release passes, so the release does not also open Start or a menu.
@@ -353,7 +393,11 @@ public static class BindMatcher
         if (pressing.Count == 0)
             return CancelLongPress(session, Passed());
 
-        return MaskHeld(session, Ran(pressing, Consumes(pressing), trigger: null)) with { DisarmLongPress = true };
+        var claim = Classify(pressing);
+        List<string>? release = null;
+        if (!claim.Hard && claim.Conditional && CanFail(pressing))
+            release = [];
+        return WithFailure(MaskHeld(session, Ran(pressing, claim.Hard || claim.Conditional, trigger: null)) with { DisarmLongPress = true }, release);
     }
 
     private static BindDecision OnLongPress(BindTable table, BindSession session)
@@ -361,6 +405,7 @@ public static class BindMatcher
         if (session.LongPressKey is not string key)
             return Passed();
 
+        ApplyDevice(table, session, key, device: null, tags: null, remember: false);
         var mouse = session.LongPressMouse;
         session.LongPressKey = null;
         var down = mouse ? session.DownButtons : session.DownKeys;
@@ -377,8 +422,12 @@ public static class BindMatcher
         if (longPress.Count == 0)
             return new BindDecision(false, null) { DisarmLongPress = true };
 
+        var claim = Classify(longPress);
+        List<string>? release = null;
+        if (!claim.Hard && claim.Conditional && CanFail(longPress))
+            release = [];
         var trigger = new BindTrigger(key, session.LongPressCode, Pressed: true);
-        return MaskHeld(session, Ran(longPress, Consumes(longPress), trigger)) with { DisarmLongPress = true };
+        return WithFailure(MaskHeld(session, Ran(longPress, claim.Hard || claim.Conditional, trigger)) with { DisarmLongPress = true }, release);
     }
 
     // The anchor is where the released key went down. Only a release reads it.
@@ -444,6 +493,8 @@ public static class BindMatcher
             return false;
         if (!anyKey && !KeyMatches(bind, key, scanCode))
             return false;
+        if (!MatchesDevice(bind, session))
+            return false;
         if (session.Inhibited && !bind.Flags.HasFlag(BindFlag.Locked))
             return false;
         if (!releasing && bind.Flags.HasFlag(BindFlag.Release) && bind.Flags.HasFlag(BindFlag.LongPress))
@@ -503,25 +554,52 @@ public static class BindMatcher
         return (dx * dx) + (dy * dy) > limit;
     }
 
-    private static bool Consumes(List<Bind> binds)
+    private readonly record struct Claim(bool Hard, bool Conditional);
+
+    // A non-consuming bind never consumes. An auto-consuming bind consumes only when its dispatcher succeeds, so the
+    // press is swallowed now and given back on failure. Any other bind consumes outright.
+    private static Claim Classify(List<Bind> binds)
+    {
+        var hard = false;
+        var conditional = false;
+        foreach (var bind in binds)
+        {
+            if (bind.Flags.HasFlag(BindFlag.NonConsuming))
+                continue;
+            if (bind.Flags.HasFlag(BindFlag.AutoConsuming))
+                conditional = true;
+            else
+                hard = true;
+        }
+
+        return new Claim(hard, conditional);
+    }
+
+    private static bool CanFail(List<Bind> binds)
     {
         foreach (var bind in binds)
         {
-            if (!bind.Flags.HasFlag(BindFlag.NonConsuming))
+            if (bind.Dispatcher.Length > 0 && bind.Flags.HasFlag(BindFlag.AutoConsuming) && !bind.Flags.HasFlag(BindFlag.NonConsuming))
                 return true;
         }
 
         return false;
     }
 
-    private static void Catch(BindSession session, string key, bool mouse)
+    private static void Catch(BindSession session, string key, bool mouse, List<string>? added)
     {
-        (mouse ? session.CaughtButtons : session.CaughtKeys).Add(key);
+        NoteCaught(mouse ? session.CaughtButtons : session.CaughtKeys, key, added);
         foreach (var held in session.DownKeys)
         {
             if (ModifierKeys.ContainsKey(held))
-                session.CaughtKeys.Add(held);
+                NoteCaught(session.CaughtKeys, held, added);
         }
+    }
+
+    private static void NoteCaught(HashSet<string> caught, string key, List<string>? added)
+    {
+        if (caught.Add(key) && added is not null)
+            added.Add(key);
     }
 
     private static void ReleaseModifier(BindSession session, string key)
@@ -676,7 +754,7 @@ public static class BindMatcher
                 Suppress(table, session, bind);
         }
 
-        var claims = partial.Exists(bind => !bind.Flags.HasFlag(BindFlag.NonConsuming) && !bind.Flags.HasFlag(BindFlag.Release));
+        var claims = partial.Exists(bind => !bind.Flags.HasFlag(BindFlag.NonConsuming) && !bind.Flags.HasFlag(BindFlag.Release) && !bind.Flags.HasFlag(BindFlag.AutoConsuming));
         if (full.Count == 0 && partial.Count == 0)
         {
             foreach (var bind in table.Active(session.Submap))
@@ -816,6 +894,68 @@ public static class BindMatcher
         session.LongPressKey = null;
         return decision with { DisarmLongPress = true };
     }
+
+    // No device on the bind matches only when the bind is not inclusive. A device matches when its name or one of its
+    // tags is listed: inclusive binds match only then, and exclusive binds match only otherwise, as the pinned release.
+    // An event with no device fails an inclusive bind and matches an exclusive one.
+    private static bool MatchesDevice(Bind bind, BindSession session)
+    {
+        if (bind.Devices is null)
+            return !bind.Flags.HasFlag(BindFlag.DeviceInclusive);
+
+        var name = session.EventDevice;
+        if (name is null)
+            return !bind.Flags.HasFlag(BindFlag.DeviceInclusive);
+
+        var listed = ListedDevice(bind.Devices, name);
+        if (!listed && session.EventTags is { } tags)
+        {
+            foreach (var tag in tags)
+            {
+                if (ListedDevice(bind.Devices, tag))
+                {
+                    listed = true;
+                    break;
+                }
+            }
+        }
+
+        return bind.Flags.HasFlag(BindFlag.DeviceInclusive) ? listed : !listed;
+    }
+
+    private static bool ListedDevice(IReadOnlyList<string> devices, string name)
+    {
+        foreach (var device in devices)
+        {
+            if (device.Equals(name, StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
+    }
+
+    // The device of this edge, or the one the key went down on when this edge has none. Tags left unset are the
+    // config's tags for that device name.
+    private static void ApplyDevice(BindTable table, BindSession session, string key, string? device, IReadOnlyList<string>? tags, bool remember)
+    {
+        if (device is null && session.Devices.TryGetValue(key, out var remembered))
+        {
+            device = remembered.Device;
+            tags = remembered.Tags;
+        }
+        else if (device is not null && tags is null)
+        {
+            tags = table.TagsFor(device);
+        }
+
+        session.EventDevice = device;
+        session.EventTags = tags;
+        if (remember)
+            session.Devices[key] = (device, tags);
+    }
+
+    private static BindDecision WithFailure(BindDecision decision, List<string>? release) =>
+        release is null ? decision : decision with { PassesOnFailure = true, ReleaseOnFailure = release };
 
     private static BindDecision Passed() => new(false, null);
 

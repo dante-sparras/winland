@@ -68,6 +68,14 @@ public sealed class KeyboardHook : IDisposable
     // The callback must return before any dispatcher work, so it only posts here. Moves that pile
     // up while the worker is busy collapse into the newest, so they never delay a key bind.
     private readonly InputQueue<Queued> _queued = new(Replaces);
+    private readonly KeyDeviceSource _devices;
+    private readonly Queue<(SwallowedKey Key, IReadOnlyList<string> Release)> _replays = new();
+    private readonly Lock _replayGate = new();
+
+    // Set on the bind worker while a luafunction dispatch runs, so that dispatch notes the Lua result instead of
+    // the dispatcher's own, which returns before the function does.
+    [ThreadStatic]
+    private static BindConsumption? _luaConsumption;
 
     private readonly object _timerGate = new();
     private HHOOK _hook;
@@ -88,6 +96,8 @@ public sealed class KeyboardHook : IDisposable
     internal const uint SweepMessage = 0x8000 + 25;
     internal const uint WatchMessage = 0x8000 + 26;
     internal const uint ReconcileMessage = 0x8000 + 27;
+    internal const uint ReplayMessage = 0x8000 + 28;
+    internal const uint DeviceRefreshMessage = 0x8000 + 29;
     internal const uint InputLanguageMessage = 0x0051;
 
     internal BindSession Session => _session;
@@ -104,6 +114,7 @@ public sealed class KeyboardHook : IDisposable
         _core = core;
         _session = session;
         _callback = OnKeyboard;
+        _devices = new KeyDeviceSource(() => Post(DeviceRefreshMessage));
     }
 
     public void Start()
@@ -133,6 +144,7 @@ public sealed class KeyboardHook : IDisposable
         _startedAt = Environment.TickCount64;
         ArmSweep();
         _watchTimer = new Timer(_ => Post(WatchMessage), null, WatchPeriodMs, WatchPeriodMs);
+        _devices.Start(_core.Devices);
 
         try
         {
@@ -178,6 +190,7 @@ public sealed class KeyboardHook : IDisposable
         DisarmSweep();
         DisarmLongPress();
         StopWorker();
+        _devices.Dispose();
     }
 
     /// <summary>Handles a thread message this hook posted. Call on the thread that started it.</summary>
@@ -195,6 +208,14 @@ public sealed class KeyboardHook : IDisposable
             case ReconcileMessage:
                 if (!_disposed)
                     Reconcile();
+                return true;
+            case ReplayMessage:
+                if (!_disposed)
+                    ReplayPending();
+                return true;
+            case DeviceRefreshMessage:
+                if (!_disposed)
+                    _devices.Refresh();
                 return true;
             default:
                 return false;
@@ -259,6 +280,13 @@ public sealed class KeyboardHook : IDisposable
                 return Next(code, wParam, lParam);
 
             var up = info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_UP);
+            var vk = (int)info.vkCode;
+            var extended = info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_EXTENDED);
+            var scan = info.scanCode > int.MaxValue ? 0 : (int)info.scanCode;
+
+            // The packet of this key, if one has arrived. Taken even when the key is remapped, so it is not paired
+            // with a later press of the same key.
+            var device = _devices.Match(vk, scan, up, info.time);
 
             // kb_options: a key an option moves goes on as the key it moves to, and a grp: combination switches layouts.
             if (info.dwExtraInfo != RemapTag && Remap(info, up))
@@ -279,8 +307,6 @@ public sealed class KeyboardHook : IDisposable
             if (!up && !info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_INJECTED))
                 InputClock.NoteClickOrKey(info.time);
 
-            var vk = (int)info.vkCode;
-
             // Escape gives up a click to kill, and goes no further.
             if (vk == EscapeKey && !up && _core.ClickKillArmed)
             {
@@ -291,13 +317,11 @@ public sealed class KeyboardHook : IDisposable
             if (KeyNames.PassesThrough(vk))
                 return Next(code, wParam, lParam);
 
-            var extended = info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_EXTENDED);
-            var scan = info.scanCode > int.MaxValue ? 0 : (int)info.scanCode;
             var name = KeyNames.Name(vk, scan, extended, ActiveLayout(), TrackedModifiers());
             var xkb = KeyNames.XkbCode(vk, scan, extended);
             Input input = up
-                ? new KeyReleased(name) { ScanCode = xkb }
-                : new KeyPressed(name) { ScanCode = xkb };
+                ? new KeyReleased(name) { ScanCode = xkb, Device = device }
+                : new KeyPressed(name) { ScanCode = xkb, Device = device };
             if (!up)
                 SessionEffects.NoteKey();
             _session.Inhibit(_inhibited != 0);
@@ -330,7 +354,15 @@ public sealed class KeyboardHook : IDisposable
                 return new LRESULT(1);
             }
 
-            Enqueue(decision);
+            // A key drag is swallowed for the drag and is not given back. A mouse or wheel decision has no replay.
+            SwallowedKey? replay = null;
+            if (decision.PassesOnFailure && vk is >= 0 and <= ushort.MaxValue)
+            {
+                var replayScan = scan is >= 0 and <= ushort.MaxValue ? (ushort)scan : (ushort)0;
+                replay = new SwallowedKey((ushort)vk, replayScan, extended, name, !up);
+            }
+
+            Enqueue(decision, replay);
             if (draggedByKey)
                 return new LRESULT(1);
 
@@ -558,10 +590,10 @@ public sealed class KeyboardHook : IDisposable
             Console.Error.WriteLine($"Input was not sent ({Marshal.GetLastPInvokeError()}).");
     }
 
-    internal static INPUT Key(ushort vk, bool up, ushort scan = 0)
+    internal static INPUT Key(ushort vk, bool up, ushort scan = 0, bool extended = false)
     {
         var flags = up ? KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP : 0;
-        if (vk is 0x5B or 0x5C or 0xA3 or 0xA5 or 0x90)
+        if (extended || vk is 0x5B or 0x5C or 0xA3 or 0xA5 or 0x90)
             flags |= KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY;
 
         return new INPUT
@@ -708,6 +740,7 @@ public sealed class KeyboardHook : IDisposable
 
     private void Perform(Queued queued)
     {
+        var noted = false;
         try
         {
             if (queued.Kind == QueuedKind.Inhibit)
@@ -738,12 +771,51 @@ public sealed class KeyboardHook : IDisposable
                 return;
             }
 
-            Apply(_core.Handle(new Dispatch(queued.Dispatcher, queued.Arguments) { Trigger = queued.Trigger }));
+            if (queued.Lua)
+                _luaConsumption = queued.Consumption;
+
+            var outcome = _core.Handle(new Dispatch(queued.Dispatcher, queued.Arguments) { Trigger = queued.Trigger });
+            Apply(outcome);
+            noted = NoteConsumption(queued, outcome.Error is null);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
             Console.Error.WriteLine(exception.Message);
+            if (!noted)
+                NoteConsumption(queued, false);
         }
+    }
+
+    // A built-in dispatcher notes its own result. A Lua function notes later, from the result it returns, unless the
+    // dispatcher did not take that note, in which case this one stands.
+    private static bool NoteConsumption(Queued queued, bool succeeded)
+    {
+        if (queued.Consumption is not { } note)
+            return true;
+
+        if (queued.Lua && _luaConsumption is null)
+            return true;
+
+        _luaConsumption = null;
+        note.Note(succeeded);
+        return true;
+    }
+
+    /// <summary>
+    /// The auto-consuming Lua dispatch running on this thread, if the bind worker is inside one. The dispatcher
+    /// takes it and notes the function's result. True when there was one.
+    /// </summary>
+    public static bool TakeLuaConsumption(out Action<bool> note)
+    {
+        if (_luaConsumption is not { } pending)
+        {
+            note = static _ => { };
+            return false;
+        }
+
+        _luaConsumption = null;
+        note = pending.Note;
+        return true;
     }
 
     private void StopWorker()
@@ -767,23 +839,85 @@ public sealed class KeyboardHook : IDisposable
             ArmLongPress(delay);
     }
 
-    internal void Enqueue(BindDecision decision)
+    internal void Enqueue(BindDecision decision, SwallowedKey? replay = null)
     {
+        BindConsumption? batch = null;
+        if (decision.PassesOnFailure && replay is SwallowedKey key)
+            batch = new BindConsumption(() => PostReplay(key, decision.ReleaseOnFailure));
+
         if (decision.Dispatches.Count > 0)
         {
             foreach (var dispatch in decision.Dispatches)
-            {
-                if (dispatch.Dispatcher.Length == 0)
-                    continue;
-
-                PostDispatch(dispatch.Dispatcher, dispatch.Arguments, decision.Trigger);
-            }
+                PostConsumed(dispatch.Dispatcher, dispatch.Arguments, decision.Trigger, batch);
 
             return;
         }
 
         if (!string.IsNullOrEmpty(decision.Dispatcher))
-            PostDispatch(decision.Dispatcher, decision.Arguments, decision.Trigger);
+            PostConsumed(decision.Dispatcher, decision.Arguments, decision.Trigger, batch);
+    }
+
+    private void PostConsumed(string dispatcher, string arguments, BindTrigger? trigger, BindConsumption? batch)
+    {
+        if (dispatcher.Length == 0)
+            return;
+
+        batch?.Expect();
+        _queued.Post(new Queued(
+            QueuedKind.Dispatch,
+            dispatcher,
+            arguments,
+            false,
+            Trigger: trigger,
+            Consumption: batch,
+            Lua: batch is not null && dispatcher == TrackpadGesture.FunctionAction));
+    }
+
+    private void PostReplay(SwallowedKey key, IReadOnlyList<string> release)
+    {
+        lock (_replayGate)
+            _replays.Enqueue((key, release));
+
+        Post(ReplayMessage);
+    }
+
+    // On the hook thread. Keys caught for the failed bind are let go, then the key is injected from the injector's
+    // thread so this hook is not re-entered while it decides.
+    private void ReplayPending()
+    {
+        while (true)
+        {
+            (SwallowedKey Key, IReadOnlyList<string> Release) next;
+            lock (_replayGate)
+            {
+                if (_replays.Count == 0)
+                    return;
+
+                next = _replays.Dequeue();
+            }
+
+            _session.CaughtKeys.Remove(next.Key.Name);
+            foreach (var name in next.Release)
+                _session.CaughtKeys.Remove(name);
+
+            InputInjector.Post(ReplayInputs(next.Key, IsDown((int)next.Key.VirtualKey)));
+        }
+    }
+
+    /// <summary>
+    /// The input that gives a swallowed key back. A press the user still holds is a press. One they have already
+    /// released is a press and a release together. A release edge is the release.
+    /// </summary>
+    internal static INPUT[] ReplayInputs(SwallowedKey key, bool stillDown)
+    {
+        if (!key.Pressed)
+            return [Key(key.VirtualKey, up: true, key.Scan, key.Extended)];
+
+        var down = Key(key.VirtualKey, up: false, key.Scan, key.Extended);
+        if (stillDown)
+            return [down];
+
+        return [down, Key(key.VirtualKey, up: true, key.Scan, key.Extended)];
     }
 
     /// <summary>The drag a mouse bind started, from a mouse button or a key, which pointer moves carry on.</summary>
@@ -850,5 +984,7 @@ public sealed class KeyboardHook : IDisposable
         long TimeMs = 0,
         bool HasTime = false,
         Input? Event = null,
-        BindTrigger? Trigger = null);
+        BindTrigger? Trigger = null,
+        BindConsumption? Consumption = null,
+        bool Lua = false);
 }

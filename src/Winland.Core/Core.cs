@@ -98,7 +98,7 @@ public sealed partial class Core
         // binds:pass_mouse_when_bound: a button that runs a bind is not swallowed, as in the pinned release, so the window
         // under the pointer gets its press and release. A wheel notch is not a button and stays swallowed.
         if (_passMouseWhenBound && decision.Consumed && input is PointerButtonPressed or PointerButtonReleased)
-            decision = decision with { Consumed = false };
+            decision = decision with { Consumed = false, PassesOnFailure = false, ReleaseOnFailure = [] };
 
         return decision;
     }

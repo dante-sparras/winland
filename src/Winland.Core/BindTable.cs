@@ -6,7 +6,7 @@ namespace Winland;
 /// <summary>One consistent bind table. Published as a whole on config load and reload.</summary>
 public sealed class BindTable
 {
-    public static BindTable Empty { get; } = new([], dragThreshold: 0, scrollDelay: 300, longPressDelay: 600);
+    public static BindTable Empty { get; } = new([], dragThreshold: 0, scrollDelay: 300, longPressDelay: 600, deviceTags: null);
 
     private static readonly Bind[] NoBinds = [];
 
@@ -14,8 +14,9 @@ public sealed class BindTable
     private readonly Dictionary<string, Bind[]> _active;
     private readonly HashSet<string> _submaps;
     private readonly Bind[] _universal;
+    private readonly Dictionary<string, string[]> _deviceTags;
 
-    private BindTable(Bind[] entries, int dragThreshold, int scrollDelay, int longPressDelay)
+    private BindTable(Bind[] entries, int dragThreshold, int scrollDelay, int longPressDelay, Dictionary<string, string[]>? deviceTags)
     {
         LongPressDelay = longPressDelay;
         _entries = Array.AsReadOnly(entries);
@@ -47,7 +48,12 @@ public sealed class BindTable
         }
 
         _active = active;
+        _deviceTags = deviceTags ?? new Dictionary<string, string[]>(StringComparer.Ordinal);
     }
+
+    /// <summary>Tags of a device named as <c>devices</c> reports it, or null when the config names none.</summary>
+    internal IReadOnlyList<string>? TagsFor(string? name) =>
+        name is not null && _deviceTags.TryGetValue(name, out var tags) ? tags : null;
 
     public IReadOnlyList<Bind> Entries => _entries;
 
@@ -83,7 +89,7 @@ public sealed class BindTable
             }
         }
 
-        return new BindTable([.. binds], ReadThreshold(config), ReadScrollDelay(config), ReadRepeatDelay(config));
+        return new BindTable([.. binds], ReadThreshold(config), ReadScrollDelay(config), ReadRepeatDelay(config), ReadDeviceTags(config));
     }
 
     private static int ReadThreshold(ConfigDocument config)
@@ -120,5 +126,14 @@ public sealed class BindTable
         }
 
         return delay;
+    }
+
+    private static Dictionary<string, string[]> ReadDeviceTags(ConfigDocument config)
+    {
+        var tags = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        foreach (var entry in config.DeviceTags)
+            tags[entry.Device] = [.. entry.Tags];
+
+        return tags;
     }
 }

@@ -301,7 +301,7 @@ public static class ExtraCommands
             bind.Flags.HasFlag(BindFlag.Repeat),
             bind.Flags.HasFlag(BindFlag.LongPress),
             bind.Flags.HasFlag(BindFlag.NonConsuming),
-            false,
+            bind.Flags.HasFlag(BindFlag.AutoConsuming),
             bind.Description is not null,
             ModMask(bind.Modifiers),
             bind.Submap ?? "",

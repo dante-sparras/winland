@@ -26,6 +26,9 @@ public sealed record ConfigDocument(
 
     public IReadOnlyList<TrackpadGesture> Gestures { get; init; } = [];
 
+    /// <summary><c>device[name]:tags</c>, in config order. A later line for the same device replaces the earlier one.</summary>
+    public IReadOnlyList<DeviceTag> DeviceTags { get; init; } = [];
+
     /// <summary>
     /// True only when the daemon found the config and every sourced file writable by
     /// administrators alone. Otherwise <c>[elevated]</c> launches run de-elevated (ADR 0007).
@@ -45,7 +48,11 @@ public sealed record Bind(
     BindFlag Flags,
     string? Description,
     string? Submap,
-    string? SubmapReset = null) : BindDirective;
+    string? SubmapReset = null,
+    IReadOnlyList<string>? Devices = null) : BindDirective;
+
+/// <summary>Tags named for one device. A bind's device list matches a tag as it matches the device's name.</summary>
+public sealed record DeviceTag(string Device, IReadOnlyList<string> Tags);
 
 public sealed record Unbind(Modifier Modifiers, string Key) : BindDirective;
 
@@ -90,4 +97,10 @@ public enum BindFlag
     Click = 1 << 10,
     Drag = 1 << 11,
     SubmapUniversal = 1 << 12,
+
+    /// <summary>Swallow the key only when the dispatcher succeeds, as the pinned release's auto-consuming flag.</summary>
+    AutoConsuming = 1 << 13,
+
+    /// <summary>The bind matches only the devices it names. Without it, the bind matches every device but those.</summary>
+    DeviceInclusive = 1 << 14,
 }

@@ -145,7 +145,17 @@ static int Run(string? path, RollingLogWriter log)
     // A Lua config keeps running: its binds' functions, timers and evals run on the runtime's thread (ADR 0013).
     var luaWorld = new LuaWorld();
     using var lua = new LuaRuntime(luaWorld);
-    if (!Dispatchers.TryBind(LuaConfig.FunctionDispatcher, arguments => { lua.Call(arguments); return new DispatcherResult(null, null); }, out var luaError))
+    if (!Dispatchers.TryBind(LuaConfig.FunctionDispatcher, arguments =>
+        {
+            // The dispatcher's own result is success before the function runs. An auto-consuming bind waits for the
+            // function: it keeps the key when the function succeeds and does not ask to pass it.
+            if (KeyboardHook.TakeLuaConsumption(out var note))
+                lua.Call(arguments, result => note(result.Success && !result.PassEvent));
+            else
+                lua.Call(arguments);
+
+            return new DispatcherResult(null, null);
+        }, out var luaError))
         Console.Error.WriteLine(luaError);
 
     CommandServer.Intercept = line => lua.Answer(line, luaWorld.Command);

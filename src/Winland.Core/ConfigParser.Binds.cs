@@ -8,14 +8,14 @@ public static partial class ConfigParser
     {
         private void HandleBind(string lhs, string rhs, int lineNumber)
         {
-            if (!TryParseFlags(lhs["bind".Length..], out var flags, out var hasDescription, out var flagError))
+            if (!TryParseFlags(lhs["bind".Length..], out var flags, out var hasDescription, out var hasDevice, out var flagError))
             {
                 Warn(lineNumber, flagError);
                 return;
             }
 
             var mouse = flags.HasFlag(BindFlag.Mouse);
-            var minimum = hasDescription ? 4 : 3;
+            var minimum = 3 + (hasDescription ? 1 : 0) + (hasDevice ? 1 : 0);
             var parts = mouse ? SplitArgs(rhs, null) : SplitArgs(rhs, minimum + 1);
             if (parts.Count < minimum)
             {
@@ -48,6 +48,21 @@ public static partial class ConfigParser
             {
                 description = LineText.Unescape(parts[2]);
                 index = 3;
+            }
+
+            IReadOnlyList<string>? devices = null;
+            if (hasDevice)
+            {
+                if (!DeviceField.TryRead(parts[index], out var inclusive, out var names))
+                {
+                    Warn(lineNumber, "Bind device is invalid.");
+                    return;
+                }
+
+                if (inclusive)
+                    flags |= BindFlag.DeviceInclusive;
+                devices = names;
+                index++;
             }
 
             var dispatcher = parts[index];
@@ -94,7 +109,7 @@ public static partial class ConfigParser
                 flags &= ~BindFlag.DontInhibit;
             }
 
-            _binds.Add(new Bind(modifiers, key, dispatcher, arguments, flags, description, _submap, _submapReset));
+            _binds.Add(new Bind(modifiers, key, dispatcher, arguments, flags, description, _submap, _submapReset, devices));
         }
 
         private static (string Dispatcher, string Arguments) SplitAction(string action)
@@ -127,10 +142,11 @@ public static partial class ConfigParser
             _binds.Add(new Unbind(modifiers, KeyNames.Resolve(parts[1], layout)));
         }
 
-        private static bool TryParseFlags(string flags, out BindFlag parsed, out bool hasDescription, out string error)
+        private static bool TryParseFlags(string flags, out BindFlag parsed, out bool hasDescription, out bool hasDevice, out string error)
         {
             parsed = BindFlag.None;
             hasDescription = false;
+            hasDevice = false;
             foreach (var flag in flags)
             {
                 switch (flag)
@@ -176,6 +192,12 @@ public static partial class ConfigParser
                         break;
                     case 'u':
                         parsed |= BindFlag.SubmapUniversal;
+                        break;
+                    case 'a':
+                        parsed |= BindFlag.AutoConsuming;
+                        break;
+                    case 'k':
+                        hasDevice = true;
                         break;
                     default:
                         error = $"Invalid bind flag '{flag}'.";

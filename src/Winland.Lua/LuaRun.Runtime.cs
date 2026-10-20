@@ -76,6 +76,38 @@ internal sealed partial class LuaRun
     /// <summary>Calls the function a bind names.</summary>
     public void Call(int id) => Call(id, BindLimit, "keybind callback");
 
+    /// <summary>
+    /// Calls the function a bind names and reads its result, as the pinned release does: a table's <c>ok</c> false or a
+    /// raised error fails, a missing <c>ok</c> succeeds, and <c>pass_event</c> asks the key to be passed on.
+    /// </summary>
+    public LuaBindResult CallBind(int id)
+    {
+        if (!_functions.TryGetValue(id, out var reference))
+            return new LuaBindResult(false, false);
+
+        _lua.RawGetInteger(LuaRegistry.Index, reference);
+        if (!Guarded(BindLimit, "keybind callback", results: 1))
+            return new LuaBindResult(false, false);
+
+        var result = ReadBindResult();
+        _lua.Pop(1);
+        return result;
+    }
+
+    private LuaBindResult ReadBindResult()
+    {
+        if (!_lua.IsTable(-1))
+            return new LuaBindResult(true, false);
+
+        _lua.GetField(-1, "pass_event");
+        var pass = _lua.ToBoolean(-1);
+        _lua.Pop(1);
+        _lua.GetField(-1, "ok");
+        var success = !_lua.IsBoolean(-1) || _lua.ToBoolean(-1);
+        _lua.Pop(1);
+        return new LuaBindResult(success, pass);
+    }
+
     /// <summary>Calls a timer's function. A one-shot timer is gone once it fires.</summary>
     public void Tick(int id)
     {
