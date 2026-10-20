@@ -302,8 +302,14 @@ public sealed partial class Core
 
     private void NoteBorderCursor(Point pointer)
     {
+        if (_gesture is not null)
+        {
+            _resizeCursor = _gesture.Cursor;
+            return;
+        }
+
         var options = ActiveOptions();
-        if (_gesture is not null || !options.ResizeOnBorder || !options.HoverIconOnBorder)
+        if (!options.ResizeOnBorder || !options.HoverIconOnBorder)
         {
             _resizeCursor = null;
             return;

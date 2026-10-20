@@ -507,6 +507,36 @@ public class MouseDragTests
         Assert.DoesNotContain(core.Handle(new PointerMoved(new Point(1700, 900))).Placements, placement => placement.Bounds != Wide);
     }
 
+    [Fact]
+    public void AMoveShowsTheGrabbingPointerUntilItIsDropped()
+    {
+        var core = Flat("bindm = SUPER, mouse:272, movewindow\n");
+        Appear(core, 1);
+        Press(core, "Super_L");
+
+        var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(700, 400) });
+        var moved = core.Handle(new PointerMoved(new Point(750, 430)));
+        var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(750, 430) });
+
+        Assert.Equal("grabbing", pressed.ResizeCursor);
+        Assert.Equal("grabbing", moved.ResizeCursor);
+        Assert.Null(dropped.ResizeCursor);
+    }
+
+    [Theory]
+    [InlineData(100, 100, "top_left_corner")]
+    [InlineData(1800, 100, "top_right_corner")]
+    [InlineData(1800, 1000, "bottom_right_corner")]
+    [InlineData(100, 1000, "bottom_left_corner")]
+    public void AResizeShowsTheCornerItGrabbed(int x, int y, string cursor)
+    {
+        var core = Flat("bindm = SUPER, mouse:273, resizewindow\n");
+        Appear(core, 1);
+        Press(core, "Super_L");
+
+        Assert.Equal(cursor, core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(x, y) }).ResizeCursor);
+    }
+
     // Dwindle with 1 on the left, 2 at the top right, and 3 and 4 side by side at the bottom right.
     private static Core FourTiles(string options)
     {

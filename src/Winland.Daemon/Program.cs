@@ -196,6 +196,10 @@ static int Run(string? path, RollingLogWriter log)
     logFile = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(store.File)) ?? ".", "winland.log");
     CopyLog(log, core.Debug, logFile);
     var prior = store.Read();
+
+    // A recovery file is left by a run that did not exit cleanly, which may have left a drag's pointer shape behind.
+    if (prior is not null)
+        SessionEffects.RestoreCursors();
     SessionEffects.InstallSystem();
     if (prior?.Input is InputOriginals saved)
         SessionEffects.RestoreSaved(saved);

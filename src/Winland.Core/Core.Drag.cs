@@ -33,16 +33,19 @@ public sealed partial class Core
     private IReadOnlyList<Placement> BeginGesture(WindowId window, BindDispatch drag, string button, Point pointer)
     {
         NoteFocus(window);
-        var layout = LayoutWorkspace(window).Layout;
+        var desk = LayoutWorkspace(window);
+        var layout = desk.Layout;
         layout.NoteFocus(window);
         _gesture = new Gesture(window, button, IsResize(drag.Dispatcher), drag.Dispatcher, pointer)
         {
+            Cursor = DragCursor(desk, window, IsResize(drag.Dispatcher), pointer),
             WasTiled = LayoutWorkspace(window).ClientOf(window) is { Floating: false },
             KeepRatio = IsResize(drag.Dispatcher) && KeepsRatio(window, drag.Arguments),
             PickedUp = _binds.DragThreshold <= 0,
             CenterOnLift = _dragCenterWindow,
         };
 
+        NoteBorderCursor(pointer);
         return _gesture.PickedUp ? PickUp(window, _gesture, pointer) : [];
     }
 
@@ -138,6 +141,19 @@ public sealed partial class Core
             placements.AddRange(target.Layout.Visible());
 
         return View(placements, consumed: true, dispatcher: gesture.Dispatcher, focus: window);
+    }
+
+    // The pointer shape while a drag holds a window, as the pinned release overrides it: grabbing for a move, and for a
+    // resize the corner that is grabbed, which general:resize_corner forces on a floating window.
+    private string DragCursor(LiveWorkspace desk, WindowId window, bool resize, Point pointer)
+    {
+        if (!resize)
+            return "grabbing";
+
+        var bounds = desk.Layout.TryBounds(window, out var found) ? found : default;
+        var floating = desk.ClientOf(window) is { Floating: true };
+        var (left, top) = BorderPointer.GrabbedCorner(ActiveOptions().ResizeCorner, floating, pointer, bounds);
+        return BorderPointer.Cursor(BorderPointer.GrabbedSide(left, top))!;
     }
 
     // group:drag_into_group, as the pinned release ends a window drag. A window dropped on a Group's tab bar joins that
@@ -362,6 +378,9 @@ public sealed partial class Core
         public bool PickedUp { get; set; }
 
         public bool CenterOnLift { get; init; } = true;
+
+        /// <summary>The pointer shape while the drag holds the window.</summary>
+        public string Cursor { get; init; } = "grabbing";
 
         public PointerDrag Step(PointerDragPhase phase, Point pointer) => new(Resize, phase, pointer, KeepRatio, CenterOnLift);
     }

@@ -185,3 +185,7 @@ D3D11_RASTERIZER_DESC
 D3D11_BOX
 D3D_FEATURE_LEVEL
 GetWindowDisplayAffinity
+SetSystemCursor
+CopyIcon
+LoadCursor
+SYSTEM_CURSOR_ID
