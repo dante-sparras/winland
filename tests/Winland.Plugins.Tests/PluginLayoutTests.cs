@@ -214,7 +214,7 @@ public class PluginLayoutTests
             probe
             Layout 'probe' is already registered.
             """;
-        Assert.Equal(reasons, core.Execute("dispatch reasons").Text);
+        Assert.Equal(reasons.ReplaceLineEndings("\n"), core.Execute("dispatch reasons").Text.ReplaceLineEndings("\n"));
         Assert.Equal("[\"dwindle\",\"master\",\"scrolling\",\"monocle\",\"probe\"]", core.Execute("layouts").Text);
 
         var approvals = Path.Combine(reserved.Directory, "approved.json");
