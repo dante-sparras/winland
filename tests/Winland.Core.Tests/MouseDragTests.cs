@@ -415,7 +415,14 @@ public class MouseDragTests
         Appear(core, 2);
         Press(core, "Super_L");
         core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(1400, 500) });
-        core.Handle(new PointerMoved(new Point(2400, 500)));
+        var crossed = core.Handle(new PointerMoved(new Point(2400, 500)));
+
+        var crossing = Client(crossed, 2);
+        Assert.True(crossing.Floating);
+        Assert.Equal(new WorkspaceId("2"), crossing.Workspace);
+        Assert.Equal(new MonitorId(0), crossed.State.ActiveMonitor);
+        Assert.Contains(crossed.Events, item => item is ClientMoved changed && changed.Window == new WindowId(2));
+        Assert.Equal(["movewindow>>2,2", "movewindowv2>>2,2,2"], MoveLines(crossed));
 
         var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(2400, 500) });
 
@@ -424,7 +431,7 @@ public class MouseDragTests
         Assert.NotEqual(Client(dropped, 1).Workspace, moved.Workspace);
         Assert.Equal(new Rectangle(1920, 0, 1920, 1080), moved.Bounds);
         Assert.Equal(new Rectangle(0, 0, 1920, 1080), Client(dropped, 1).Bounds);
-        Assert.Contains(dropped.Events, item => item is ClientMoved changed && changed.Window == new WindowId(2));
+        Assert.DoesNotContain(dropped.Events, item => item is ClientMoved);
     }
 
     [Fact]
@@ -435,7 +442,9 @@ public class MouseDragTests
         core.Handle(new Dispatch("togglefloating"));
         Press(core, "Super_L");
         core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(700, 400) });
-        core.Handle(new PointerMoved(new Point(2700, 400)));
+        var crossed = core.Handle(new PointerMoved(new Point(2700, 400)));
+        Assert.Equal(new WorkspaceId("2"), Client(crossed, 1).Workspace);
+        Assert.Equal(new MonitorId(0), crossed.State.ActiveMonitor);
 
         var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(2700, 400) });
 
@@ -443,6 +452,199 @@ public class MouseDragTests
         Assert.True(moved.Floating);
         Assert.Equal(new Rectangle(2640, 340, 640, 400), moved.Bounds);
         Assert.NotEqual(WorkspaceId.Initial, moved.Workspace);
+        Assert.Equal(new MonitorId(1), dropped.State.ActiveMonitor);
+        Assert.Empty(MoveLines(dropped));
+    }
+
+    [Fact]
+    public void AFloatingDragJoinsTheWorkspaceUnderItsMiddleAndKeepsTheGrab()
+    {
+        var core = TwoMonitors();
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(700, 400) });
+
+        // The pointer is still on the left Monitor. The float's middle is 260 pixels to its right, and still on the left.
+        var held = core.Handle(new PointerMoved(new Point(1600, 400)));
+        Assert.Equal(WorkspaceId.Initial, Client(held, 1).Workspace);
+        Assert.Equal(new Rectangle(1540, 340, 640, 400), BoundsOf(held, 1));
+        Assert.Empty(MoveLines(held));
+
+        var crossed = core.Handle(new PointerMoved(new Point(1700, 400)));
+        Assert.Equal(new WorkspaceId("2"), Client(crossed, 1).Workspace);
+        Assert.True(Client(crossed, 1).Floating);
+        Assert.Equal(new Rectangle(1640, 340, 640, 400), BoundsOf(crossed, 1));
+        Assert.Equal(new MonitorId(0), crossed.State.ActiveMonitor);
+        Assert.Equal(["movewindow>>1,2", "movewindowv2>>1,2,2"], MoveLines(crossed));
+
+        var followed = core.Handle(new PointerMoved(new Point(1800, 400)));
+        Assert.Equal(new WorkspaceId("2"), Client(followed, 1).Workspace);
+        Assert.Equal(new Rectangle(1740, 340, 640, 400), BoundsOf(followed, 1));
+        Assert.Empty(MoveLines(followed));
+    }
+
+    [Fact]
+    public void AFloatingDragInMasterKeepsFollowingAfterItCrosses()
+    {
+        var core = TwoMonitors("general:layout = master\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(700, 400) });
+        var crossed = core.Handle(new PointerMoved(new Point(2700, 400)));
+
+        var followed = core.Handle(new PointerMoved(new Point(2800, 400)));
+
+        Assert.Equal(new WorkspaceId("2"), Client(crossed, 1).Workspace);
+        Assert.Equal(["movewindow>>1,2", "movewindowv2>>1,2,2"], MoveLines(crossed));
+        Assert.Equal(new Rectangle(2740, 340, 640, 400), BoundsOf(followed, 1));
+        Assert.Equal(new WorkspaceId("2"), Client(followed, 1).Workspace);
+        Assert.Empty(MoveLines(followed));
+    }
+
+    [Fact]
+    public void AFloatingDragCrossesBackOntoTheMonitorItLeft()
+    {
+        var core = TwoMonitors();
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(700, 400) });
+        core.Handle(new PointerMoved(new Point(2700, 400)));
+
+        var back = core.Handle(new PointerMoved(new Point(100, 400)));
+
+        Assert.Equal(WorkspaceId.Initial, Client(back, 1).Workspace);
+        Assert.Equal(new Rectangle(40, 340, 640, 400), BoundsOf(back, 1));
+        Assert.Equal(["movewindow>>1,1", "movewindowv2>>1,1,1"], MoveLines(back));
+
+        var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(100, 400) });
+        Assert.Equal(WorkspaceId.Initial, Client(dropped, 1).Workspace);
+        Assert.True(Client(dropped, 1).Floating);
+        Assert.Equal(new MonitorId(0), dropped.State.ActiveMonitor);
+        Assert.Empty(MoveLines(dropped));
+    }
+
+    [Fact]
+    public void ALiftedTileDropsIntoTheLayoutItJoinedAtThePointer()
+    {
+        var core = TwoMonitors();
+        Appear(core, 1);
+        var right = new Rectangle(1920, 0, 1920, 1080);
+        core.Handle(new WindowAppeared(new WindowId(2), right));
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(960, 540) });
+
+        var crossed = core.Handle(new PointerMoved(new Point(3360, 540)));
+        Assert.True(Client(crossed, 1).Floating);
+        Assert.Equal(new WorkspaceId("2"), Client(crossed, 1).Workspace);
+        Assert.Equal(["movewindow>>1,2", "movewindowv2>>1,2,2"], MoveLines(crossed));
+        Assert.Contains(Lines(crossed), line => line == "changefloatingmode>>1,1");
+
+        // The grab is the middle of the 1920-wide tile, so the next move still tracks the pointer.
+        var followed = core.Handle(new PointerMoved(new Point(3400, 540)));
+        Assert.True(Client(followed, 1).Floating);
+        Assert.Equal(new Rectangle(2440, 0, 1920, 1080), BoundsOf(followed, 1));
+        Assert.Empty(MoveLines(followed));
+
+        var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(3360, 540) });
+        Assert.False(Client(dropped, 1).Floating);
+        Assert.False(Client(dropped, 2).Floating);
+        Assert.Equal(new WorkspaceId("2"), Client(dropped, 1).Workspace);
+        Assert.Equal(new WorkspaceId("2"), Client(dropped, 2).Workspace);
+        Assert.Equal(new Rectangle(2880, 0, 960, 1080), BoundsOf(dropped, 1));
+        Assert.Equal(new Rectangle(1920, 0, 960, 1080), BoundsOf(dropped, 2));
+    }
+
+    [Fact]
+    public void AFloatingResizeJoinsTheWorkspaceUnderItsMiddleAndKeepsResizing()
+    {
+        var core = TwoMonitors("bindm = SUPER, mouse:273, resizewindow\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        core.Handle(new Dispatch("movewindowpixel", "exact 1500 300,address:0x1"));
+        Press(core, "Super_L");
+        // The bottom right corner lies on the other Monitor, which does not own the window, so the press is on the
+        // bottom right and still on this Monitor. Growing the right edge by 200 puts the middle on the other one.
+        core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(1900, 690) });
+
+        var crossed = core.Handle(new PointerMoved(new Point(2100, 690)));
+        Assert.Equal(new Rectangle(1500, 300, 840, 400), BoundsOf(crossed, 1));
+        Assert.Equal(new WorkspaceId("2"), Client(crossed, 1).Workspace);
+        Assert.Equal(new MonitorId(0), crossed.State.ActiveMonitor);
+        Assert.Equal(["movewindow>>1,2", "movewindowv2>>1,2,2"], MoveLines(crossed));
+
+        var grown = core.Handle(new PointerMoved(new Point(2200, 690)));
+        Assert.Equal(new Rectangle(1500, 300, 940, 400), BoundsOf(grown, 1));
+        Assert.Equal(new WorkspaceId("2"), Client(grown, 1).Workspace);
+        Assert.Empty(MoveLines(grown));
+
+        var dropped = core.Handle(new PointerButtonReleased("mouse:273") { Position = new Point(2200, 690) });
+        Assert.Equal(new WorkspaceId("2"), Client(dropped, 1).Workspace);
+        Assert.True(Client(dropped, 1).Floating);
+        Assert.Equal(new MonitorId(0), dropped.State.ActiveMonitor);
+    }
+
+    [Fact]
+    public void ATiledResizeDoesNotJoinAnotherMonitor()
+    {
+        var core = TwoMonitors("bindm = SUPER, mouse:273, resizewindow\n");
+        Appear(core, 1);
+        Appear(core, 2);
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(960, 540) });
+
+        var resized = core.Handle(new PointerMoved(new Point(1200, 540)));
+
+        Assert.Equal(WorkspaceId.Initial, Client(resized, 1).Workspace);
+        Assert.Equal(WorkspaceId.Initial, Client(resized, 2).Workspace);
+        Assert.False(Client(resized, 1).Floating);
+        Assert.Empty(MoveLines(resized));
+    }
+
+    [Fact]
+    public void ADragJoinsTheSpecialWorkspaceTheOtherMonitorShows()
+    {
+        var core = TwoMonitors();
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        core.Handle(new Dispatch("workspace", "2"));
+        core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(700, 400) });
+
+        var crossed = core.Handle(new PointerMoved(new Point(2700, 400)));
+
+        Assert.Equal(new WorkspaceId("special:scratch"), Client(crossed, 1).Workspace);
+        Assert.True(Client(crossed, 1).Floating);
+        Assert.Equal(new Rectangle(2640, 340, 640, 400), BoundsOf(crossed, 1));
+        Assert.Equal(new WorkspaceId("special:scratch"), Screen(crossed, 1).SpecialWorkspace);
+        Assert.Equal(["movewindow>>1,special:scratch", "movewindowv2>>1,-98,special:scratch"], MoveLines(crossed));
+        Assert.Equal(new MonitorId(0), crossed.State.ActiveMonitor);
+    }
+
+    [Fact]
+    public void ADragJoinsTheSpecialWorkspaceItsOwnMonitorOpens()
+    {
+        var core = Flat("bindm = SUPER, mouse:272, movewindow\n");
+        core.Handle(new MonitorsChanged(
+        [
+            new Monitor(@"\\.\DISPLAY1", "Left", 0, 0, 1920, 1080, 1, true, Wide),
+        ]));
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(700, 400) });
+        core.Handle(new PointerMoved(new Point(750, 430)));
+        core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
+
+        var joined = core.Handle(new PointerMoved(new Point(760, 440)));
+
+        Assert.Equal(new WorkspaceId("special:scratch"), Client(joined, 1).Workspace);
+        Assert.True(Client(joined, 1).Floating);
+        Assert.Equal(new Rectangle(700, 380, 640, 400), BoundsOf(joined, 1));
+        Assert.Equal(["movewindow>>1,special:scratch", "movewindowv2>>1,-98,special:scratch"], MoveLines(joined));
     }
 
     [Fact]
@@ -460,9 +662,9 @@ public class MouseDragTests
         Assert.Equal(WorkspaceId.Initial, Client(dropped, 1).Workspace);
     }
 
-    private static Core TwoMonitors()
+    private static Core TwoMonitors(string extra = "")
     {
-        var core = Flat("bindm = SUPER, mouse:272, movewindow\n");
+        var core = Flat(extra + "bindm = SUPER, mouse:272, movewindow\n");
         core.Handle(new MonitorsChanged(
         [
             new Monitor(@"\\.\DISPLAY1", "Left", 0, 0, 1920, 1080, 1, true, Wide),
@@ -604,4 +806,13 @@ public class MouseDragTests
         var placement = Assert.Single(outcome.Placements, candidate => candidate.Client == client.Id);
         return placement.Bounds;
     }
+
+    private static MonitorSnapshot Screen(Outcome outcome, int id) =>
+        Assert.Single(outcome.State.Screens, screen => screen.Id == new MonitorId(id));
+
+    private static IReadOnlyList<string> Lines(Outcome outcome) =>
+        CommandProtocol.FormatStream(outcome.Events, outcome.State);
+
+    private static IReadOnlyList<string> MoveLines(Outcome outcome) =>
+        [.. Lines(outcome).Where(line => line.StartsWith("movewindow>>", StringComparison.Ordinal) || line.StartsWith("movewindowv2>>", StringComparison.Ordinal))];
 }

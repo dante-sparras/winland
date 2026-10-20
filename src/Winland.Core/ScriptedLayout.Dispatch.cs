@@ -5,9 +5,11 @@ namespace Winland;
 // What the dispatchers do in a script's Layout, as the pinned release's Lua layouts do: focus moves to the tile beside
 // by geometry, movewindow and swapwindow exchange places in the order the script reads, and layoutmsg goes to the
 // script's layout_msg. A floating Client moves, resizes and is dragged as in every Layout.
-internal sealed partial class ScriptedLayout : IMouseDragHost
+internal sealed partial class ScriptedLayout : IMouseDragHost, IDragOwner
 {
     private readonly MouseDrag _drag = new();
+
+    MouseDrag IDragOwner.Drag => _drag;
     private Func<WindowId, int>? _recency;
 
     public void RankFocus(Func<WindowId, int>? recency) => _recency = recency;

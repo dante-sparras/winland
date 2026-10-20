@@ -1,8 +1,10 @@
 namespace Winland;
 
-internal sealed partial class ScrollingLayout : IMouseDragHost
+internal sealed partial class ScrollingLayout : IMouseDragHost, IDragOwner
 {
     private readonly MouseDrag _drag = new();
+
+    MouseDrag IDragOwner.Drag => _drag;
 
     FloatingClients IMouseDragHost.Floating => _floating;
 
