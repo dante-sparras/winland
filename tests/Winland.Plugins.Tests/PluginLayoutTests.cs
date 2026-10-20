@@ -234,7 +234,7 @@ public class PluginLayoutTests
             .ToArray();
         Assert.Contains("rows", names);
         Assert.DoesNotContain("again", names);
-        Assert.Equal(reasons, core.Execute("dispatch reasons").Text);
+        Assert.Equal(reasons.ReplaceLineEndings("\n"), core.Execute("dispatch reasons").Text.ReplaceLineEndings("\n"));
     }
 
     private static Core Open(Fixture fixture, string config)
