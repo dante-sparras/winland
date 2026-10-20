@@ -104,6 +104,7 @@ public sealed partial class Core
             return IsShown(move.Desk.Id) ? View(placements) : View([]);
 
         TakeFocus(move.Desk, target);
+        Because(FocusReason.FollowMouse);
         if (_swipe.MoveSnapCursor && move.Desk.ClientOf(target) is Client client)
             _requestedWarp = CursorWarp.Place(1, _cursor.NoWarps, persistent: false, client.Bounds, null);
 

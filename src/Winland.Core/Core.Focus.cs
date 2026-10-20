@@ -23,6 +23,9 @@ public sealed partial class Core
     private WindowId? _beforeUnmanaged;
     private List<StreamEvent>? _extraEvents;
 
+    // A reason a handler sets when the dispatcher name is not why the focus moved, such as the pointer.
+    private FocusReason _focusReason;
+
     private readonly record struct FocusRule(bool NoInitialFocus, bool NoFocus, bool StayFocused);
 
     private Outcome Consider(WindowFocused focused)
@@ -158,6 +161,8 @@ public sealed partial class Core
         _focusHistory.Remove(window);
         _focusHistory.Insert(0, window);
     }
+
+    private void Because(FocusReason reason) => _focusReason = reason;
 
     private void TakeFocus(LiveWorkspace desk, WindowId? window)
     {

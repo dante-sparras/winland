@@ -119,8 +119,7 @@ internal sealed partial class LuaRun
                 yield return ("window.kill", [new WindowEventArgument(killed.Window)]);
                 break;
             case FocusChanged focused:
-                // Winland does not know why the focus moved: the reason is 0, unknown.
-                yield return ("window.active", [new WindowEventArgument(focused.Window), new NumberEventArgument(0)]);
+                yield return ("window.active", [new WindowEventArgument(focused.Window), new NumberEventArgument((long)focused.Reason)]);
                 break;
             case ClientUrgent urgent:
                 yield return ("window.urgent", [new WindowEventArgument(urgent.Window)]);

@@ -190,6 +190,20 @@ public class LuaEventTests
     }
 
     [Fact]
+    public void WindowActiveGetsTheFocusReason()
+    {
+        var (runtime, _) = Start("""
+            seen = ""
+            hl.on("window.active", function(w, reason) seen = tostring(w) .. " " .. reason end)
+            """);
+        using var _ = runtime;
+
+        runtime.Deliver([new FocusChanged(Editor) { Reason = FocusReason.FocusWindow }]);
+
+        Assert.Equal("HL.Window(0x3c) 4", Repl(runtime, "seen"));
+    }
+
+    [Fact]
     public void ANewTitleRunsTheWindowTitleHandler()
     {
         var (runtime, _) = Start("""

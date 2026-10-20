@@ -174,10 +174,12 @@ public sealed partial class Core
             return null;
 
         NoteFocus(next);
-        if (_active == next)
-            desk.Layout.NotePointerFocus(next);
+        if (_active != next)
+            return null;
 
-        return _active == next ? next : null;
+        desk.Layout.NotePointerFocus(next);
+        Because(FocusReason.FollowMouse);
+        return next;
     }
 
     private double Advance(Point position, long now)
