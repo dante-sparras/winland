@@ -44,11 +44,14 @@ public sealed partial class Core
         foreach (var closing in outcome.Closes)
             plan.Close(closing);
 
-        if (_gesture is null && _border is null && _nativeSize is null && !InstantResize(outcome, before))
+        // A window the pointer drags follows it at once, and the windows its Layout moves to make room for it, when it
+        // is lifted out or dropped, animate as in the pinned release. A mouse resize moves every window at once.
+        if (_gesture is not { Resize: true } && _border is null && _nativeSize is null && !InstantResize(outcome, before))
         {
+            var held = _gesture?.Window;
             foreach (var placement in outcome.Placements)
             {
-                if (windows.TryGetValue(placement.Client, out var client))
+                if (windows.TryGetValue(placement.Client, out var client) && client.Window != held)
                     plan.Place(client, placement.Bounds);
             }
         }
