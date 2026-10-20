@@ -343,6 +343,7 @@ public sealed partial class WindowAdapter : IDisposable
                 BorderHost.Follow(window);
                 ShadowHost.Follow(window);
                 GlowHost.Follow(window);
+                XrayHost.Follow(window);
             }
 
             switch (@event)
@@ -731,6 +732,7 @@ public sealed partial class WindowAdapter : IDisposable
         var rings = new Dictionary<WindowId, BorderRing>();
         var shadows = new Dictionary<WindowId, DropShadow>();
         var glows = new Dictionary<WindowId, InnerGlow>();
+        var xrays = new Dictionary<WindowId, XrayBackdrop>();
         lock (PaintGate)
         {
             if (!Releasing)
@@ -756,6 +758,8 @@ public sealed partial class WindowAdapter : IDisposable
                         shadows[window] = shadow;
                     if (decoration.Glow is InnerGlow glow)
                         glows[window] = glow;
+                    if (decoration.Xray is XrayBackdrop xray)
+                        xrays[window] = xray;
                 }
             }
         }
@@ -767,6 +771,7 @@ public sealed partial class WindowAdapter : IDisposable
                 BorderHost.Update(rings);
                 ShadowHost.Update(shadows);
                 GlowHost.Update(glows);
+                XrayHost.Update(xrays);
             }
 
             GroupBarHost.Update(outcome.GroupBars);

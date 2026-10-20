@@ -32,6 +32,9 @@ public readonly record struct Decoration(
 
     public bool Blur { get; init; }
 
+    /// <summary>The blurred wallpaper Winland draws under the window, or null for none. A Client with one has no <see cref="Blur"/>.</summary>
+    public XrayBackdrop? Xray { get; init; }
+
     public bool Shadow { get; init; } = true;
 
     /// <summary>The border Winland draws outside the window, or null for none.</summary>
@@ -79,6 +82,15 @@ public sealed record DecorationOptions
     public float RoundingPower { get; init; } = 2;
 
     public bool Blur { get; init; } = true;
+
+    /// <summary><c>decoration:blur:xray</c>: a translucent Client shows the blurred wallpaper alone, drawn by Winland, not DWM's backdrop.</summary>
+    public bool Xray { get; init; }
+
+    /// <summary><c>decoration:blur:ignore_opacity</c>: the blurred wallpaper does not take the window's opacity.</summary>
+    public bool IgnoreOpacity { get; init; } = true;
+
+    /// <summary>The blur options <c>decoration:blur:size</c> through <c>vibrancy_darkness</c> that the blurred wallpaper reads.</summary>
+    public BlurTuning BlurTuning { get; init; } = BlurTuning.Documented;
 
     public bool Shadow { get; init; } = true;
 
@@ -159,6 +171,15 @@ public sealed record DecorationOptions
         ["decoration:rounding"] = (options, value) => TryParseRounding(value, out var rounding) ? options with { Rounding = rounding } : options,
         ["decoration:rounding_power"] = (options, value) => TryParsePower(value, out var power) ? options with { RoundingPower = power } : options,
         ["decoration:blur:enabled"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { Blur = enabled } : options,
+        ["decoration:blur:xray"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { Xray = enabled } : options,
+        ["decoration:blur:ignore_opacity"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { IgnoreOpacity = enabled } : options,
+        ["decoration:blur:size"] = (options, value) => TryParseWhole(value, 0, 100, out var size) ? options with { BlurTuning = options.BlurTuning with { Size = size } } : options,
+        ["decoration:blur:passes"] = (options, value) => TryParseWhole(value, 0, 10, out var passes) ? options with { BlurTuning = options.BlurTuning with { Passes = passes } } : options,
+        ["decoration:blur:noise"] = (options, value) => TryParseRange(value, 0f, 1f, out var noise) ? options with { BlurTuning = options.BlurTuning with { Noise = noise } } : options,
+        ["decoration:blur:contrast"] = (options, value) => TryParseRange(value, 0f, 2f, out var contrast) ? options with { BlurTuning = options.BlurTuning with { Contrast = contrast } } : options,
+        ["decoration:blur:brightness"] = (options, value) => TryParseRange(value, 0f, 2f, out var brightness) ? options with { BlurTuning = options.BlurTuning with { Brightness = brightness } } : options,
+        ["decoration:blur:vibrancy"] = (options, value) => TryParseRange(value, 0f, 1f, out var vibrancy) ? options with { BlurTuning = options.BlurTuning with { Vibrancy = vibrancy } } : options,
+        ["decoration:blur:vibrancy_darkness"] = (options, value) => TryParseRange(value, 0f, 1f, out var darkness) ? options with { BlurTuning = options.BlurTuning with { VibrancyDarkness = darkness } } : options,
         ["decoration:shadow:enabled"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { Shadow = enabled } : options,
         ["decoration:shadow:range"] = (options, value) => TryParseWhole(value, 0, 100, out var range) ? options with { ShadowRange = range, ShadowDrawn = true } : options,
         ["decoration:shadow:render_power"] = (options, value) => TryParseWhole(value, 1, 4, out var power) ? options with { ShadowPower = power, ShadowDrawn = true } : options,
@@ -238,6 +259,16 @@ public sealed record DecorationOptions
             return false;
 
         scale = Math.Clamp(parsed, 0.05f, 2f);
+        return true;
+    }
+
+    private static bool TryParseRange(string text, float min, float max, out float value)
+    {
+        value = 0;
+        if (!float.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) || !float.IsFinite(parsed))
+            return false;
+
+        value = Math.Clamp(parsed, min, max);
         return true;
     }
 

@@ -45,6 +45,7 @@ public sealed partial class Core
             var alpha = parts.Alpha;
             var shape = borderless ? CornerChoice.Square : corners;
             var noShadow = NoShadow(client);
+            var xray = hidden.Contains(client.Window) ? null : XrayFor(client, shape, alpha);
             decorations.Add(new Decoration(
                 client.Id,
                 border,
@@ -55,7 +56,8 @@ public sealed partial class Core
                 Region = shape.Region,
                 Opacity = parts.Opacity,
                 Keep = parts.Keep,
-                Blur = _decoration.Blur,
+                Blur = _decoration.Blur && xray is null,
+                Xray = xray,
                 Shadow = _decoration.Shadow && !_decoration.ShadowDrawn && !noShadow,
                 Ring = borderless || hidden.Contains(client.Window) ? null : RingFor(client, client.Window == active, shape, alpha),
                 DrawnShadow = borderless || noShadow || hidden.Contains(client.Window) ? null : ShadowFor(client, client.Window == active, shape, alpha),
@@ -537,6 +539,18 @@ public sealed partial class Core
             SpinLoops = _animations.StyleOf("shadowangle") == "loop",
             Fade = _animations.TimingOf("fadeShadow"),
         };
+    }
+
+    // The blurred wallpaper under a translucent Client when decoration:blur:xray is on. A Client that is fully opaque, or
+    // minimized, has none, and DWM's own backdrop is given up for the ones that have it so the two do not stack.
+    private XrayBackdrop? XrayFor(Client client, CornerChoice shape, byte alpha)
+    {
+        if (!_decoration.Blur || !_decoration.Xray || alpha is 0 or 255 || client.Minimized || FindWorkspace(client.Workspace) is not LiveWorkspace desk)
+            return null;
+
+        var scale = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Effective.Scale : 1;
+        var (radius, power) = CornerRadius(shape, scale);
+        return new XrayBackdrop(_decoration.BlurTuning, radius, power, _decoration.IgnoreOpacity ? (byte)255 : alpha);
     }
 
     // The glow the pinned release draws inside a Client's edge when decoration:glow:enabled is set, its corners a pixel

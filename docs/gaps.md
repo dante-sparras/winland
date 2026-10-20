@@ -10,7 +10,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 
 | keyword | reason |
 | --- | --- |
-| acrylic | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| acrylic | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
 | allow_tearing | Tearing is a compositor feature with no Windows meaning. |
 | animation:fadeLayers | Layer shell surfaces have no Windows meaning. |
 | animation:fadeLayersIn | Layer shell surfaces have no Windows meaning. |
@@ -22,7 +22,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 | animation:layersIn | Layer shell surfaces have no Windows meaning. |
 | animation:layersOut | Layer shell surfaces have no Windows meaning. |
 | animation:monitorAdded | A monitor that is added does not animate. Its picture zooms and its wallpaper fades in, and Winland can draw a window's picture but not the wallpaper Windows draws. |
-| aurora | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| aurora | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
 | binds:disable_keybind_grabbing | Applications cannot ask Windows to turn binds off, so there is nothing to refuse. |
 | bitdepth | Changing a monitor's bit depth is not honored. |
 | cursor:enable_hyprcursor | The cursor theme format has no Windows meaning. |
@@ -33,31 +33,22 @@ This table has one row per keyword. A test checks it against the keywords the co
 | cursor:use_cpu_buffer | Hardware cursor buffers have no Windows meaning. |
 | cursor:zoom_disable_aa | The system magnifier offers plain or edge-smoothed scaling, not unfiltered pixels. |
 | debug | Compositor debug options have no Windows meaning. |
-| decoration:blur:brightness | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:contrast | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:ignore_opacity | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:input_methods | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:input_methods_ignorealpha | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:new_optimizations | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:noise | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:passes | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:popups | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:popups_ignorealpha | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:size | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:special | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:variant | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:vibrancy | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:vibrancy_darkness | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:xray | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:input_methods | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:input_methods_ignorealpha | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:new_optimizations | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:popups | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:popups_ignorealpha | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:special | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:variant | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
 | device | Per-device input is not honored. Honored input settings apply to the whole system. |
 | dont_inhibit | Applications cannot inhibit binds, so this flag has nothing to bypass. |
-| drops | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| drops | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
 | ecosystem | Ecosystem tools have no Windows meaning. |
 | experimental | Experimental Wayland protocol options have no Windows meaning. |
-| fluid_jar | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| glass | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| haze | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
-| heat_shimmer | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| fluid_jar | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| glass | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| haze | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| heat_shimmer | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
 | input-capture | The input capture portal has no Windows meaning. |
 | input:kb_file | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | input:kb_model | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
@@ -110,10 +101,10 @@ This table has one row per keyword. A test checks it against the keywords the co
 | permission | Permission rules have no Windows meaning. |
 | quirks | Display buffer quirks have no Windows meaning. |
 | render | GPU rendering options have no Windows meaning. |
-| ripple | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| ripple | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
 | screen_shader | Screen shaders have no Windows meaning. |
 | vrr | Windows has no switch for a display's adaptive sync, since each game turns VRR on for itself. The Variable refresh rate graphics setting only lets DirectX 11 fullscreen games without VRR of their own use it, and Dynamic refresh rate has no documented interface. |
-| water | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
+| water | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
 | wobble | DWM cannot deform a window, so wobble is not honored. |
 | xwayland | X11 compatibility has no Windows meaning. A window rule that matches on xwayland is not honored. |
 
@@ -131,7 +122,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | bitdepth, vrr |
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
 | gap | - | cursor:zoom_disable_aa |
-| gap | - | decoration:blur:brightness, decoration:blur:contrast, decoration:blur:ignore_opacity, decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:noise, decoration:blur:passes, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:size, decoration:blur:special, decoration:blur:vibrancy, decoration:blur:vibrancy_darkness, decoration:blur:xray |
+| gap | - | decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:special |
 | gap | - | wobble |
 | gap | - | device |
 | gap | - | dont_inhibit |
@@ -155,7 +146,7 @@ Input Windows already has: `device`, so an honored input setting can name one de
 
 Monitors and the process locale: `bitdepth` and `locale` (`general:locale`).
 
-Drawing on windows Winland already owns: `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`.
+Drawing on windows Winland already owns: `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`. The blur of the windows behind a Client, which the blur options tune without `decoration:blur:xray`, also belongs here: Winland would capture those windows itself.
 
 Logging and the error bar: `debug:disable_logs`, `debug:disable_time`, `debug:enable_stdout_logs`, `debug:colored_stdout_logs`, `debug:suppress_errors`, `debug:error_limit` and `debug:error_position`.
 
@@ -188,7 +179,7 @@ Bind flag `p` warns and is ignored. The bind itself still runs. Applications can
 
 The modifiers `CAPS`, `MOD2`, `MOD3` and `MOD5` are not honored. A modifier list that names one warns `Modifier '<name>' is not honored.` and the bind, gesture or `sendshortcut` is skipped. Winland tracks Shift, Ctrl, Alt and the Windows key as held modifiers, and has no held state for the lock and level modifiers.
 
-Blur is DWM's acrylic backdrop, so it shows only where DWM draws that backdrop: the title bar and any area a window leaves for it. What a window paints itself is not blurred, and a translucent Client does not blur what is behind its content. The blur `size`, `passes` and color options have no DWM equivalent. `motion_blur` is not drawn. A corner radius DWM does not draw is cut as a window region, and that edge is not antialiased. The drawn shadow surrounds the window and its border but not a Group's bar, and a `sharp` shadow is not drawn under the window, so a translucent Client does not show it through. The `no_blur`, `rounding` and `rounding_power` window rule effects are not honored. The backdrop, shadow and DWM corner preference are not undone after a crash. A corner region Winland cut is removed on the next start.
+Blur is DWM's acrylic backdrop, so it shows only where DWM draws that backdrop: the title bar and any area a window leaves for it. What a window paints itself is not blurred, and a translucent Client does not blur what is behind its content. The exception is `decoration:blur:xray`: then a Client Winland makes translucent shows the blurred wallpaper under it, drawn by Winland with the blur `size`, `passes`, `noise`, `contrast`, `brightness`, `vibrancy`, `vibrancy_darkness` and `ignore_opacity` options (see [behavior.md](behavior.md#decoration)). Without `xray` those options have no DWM equivalent and change nothing, and with it the blur never includes a window, so a floating Client does not blur the windows behind it. A window that is translucent by its own program rather than by Winland has no backdrop of Winland's. The per-window `xray` property and the `xray` window rule are kept and change nothing. `motion_blur` is not drawn. A corner radius DWM does not draw is cut as a window region, and that edge is not antialiased. The drawn shadow surrounds the window and its border but not a Group's bar, and a `sharp` shadow is not drawn under the window, so a translucent Client does not show it through. The `no_blur`, `rounding` and `rounding_power` window rule effects are not honored. The backdrop, shadow and DWM corner preference are not undone after a crash. A corner region Winland cut is removed on the next start.
 
 Per-device `device` options are not honored. The other input keys stay Gaps.
 

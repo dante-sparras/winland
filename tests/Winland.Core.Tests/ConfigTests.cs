@@ -154,13 +154,13 @@ public class ConfigTests
     [Fact]
     public void NestedGapKeywordWarnsAndSiblingSettingsRemain()
     {
-        var text = "decoration {\n    rounding = 10\n    blur {\n        passes = 3\n    }\n}\n";
+        var text = "decoration {\n    rounding = 10\n    blur {\n        special = true\n    }\n}\n";
 
         var document = ConfigParser.Parse(text);
 
         Assert.Equal(new Setting("decoration:rounding", "10"), Assert.Single(document.Settings));
         Assert.Equal(
-            new ConfigWarning(4, "Unsupported keyword 'decoration:blur:passes'."),
+            new ConfigWarning(4, "Unsupported keyword 'decoration:blur:special'."),
             Assert.Single(document.Warnings));
     }
 
