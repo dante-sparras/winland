@@ -16,6 +16,7 @@ internal static class GroupBarHost
     private const string ClassName = "WinlandGroupBar";
     private const int ClassAlreadyExists = 1410;
     private const uint SyncMessage = 0x8000 + 0x47;
+    private const uint StackMessage = 0x8000 + 0x48;
     private const uint QuitMessage = 0x0012;
     private const uint TimerMessage = 0x0113;
     private const uint MouseActivateMessage = 0x0021;
@@ -31,6 +32,9 @@ internal static class GroupBarHost
     private static readonly Lock Gate = new();
     private static readonly Dictionary<WindowId, Bar> Bars = [];
     private static readonly Dictionary<HWND, Bar> ByHandle = [];
+
+    // The shown windows that have a bar, read by any thread so a z-order change of another window costs one lookup.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> WithBars = new();
     private static IReadOnlyList<GroupBar> _pending = [];
     private static bool _posted;
     private static uint _thread;
@@ -46,6 +50,15 @@ internal static class GroupBarHost
     internal static void Update(IReadOnlyList<GroupBar> bars)
     {
         ArgumentNullException.ThrowIfNull(bars);
+        foreach (var shown in WithBars.Keys)
+        {
+            if (!bars.Any(bar => bar.Shown == shown))
+                WithBars.TryRemove(shown, out _);
+        }
+
+        foreach (var bar in bars)
+            WithBars[bar.Shown] = 0;
+
         uint thread;
         lock (Gate)
         {
@@ -64,6 +77,40 @@ internal static class GroupBarHost
         }
 
         _ = PInvoke.PostThreadMessage(thread, SyncMessage, default, default);
+    }
+
+    /// <summary>
+    /// The window was raised or shown, so the bar of the Group it shows goes just above it again, as the pinned release
+    /// draws the bar with its window.
+    /// </summary>
+    internal static void Follow(WindowId window)
+    {
+        if (!WithBars.ContainsKey(window))
+            return;
+
+        uint thread;
+        lock (Gate)
+            thread = _thread;
+
+        if (thread != 0)
+            _ = PInvoke.PostThreadMessage(thread, StackMessage, new WPARAM((nuint)window.Value), default);
+    }
+
+    /// <summary>
+    /// Some window changed its place in the z-order. Windows says which parent's children moved, not which window, so every
+    /// bar goes just above its shown window again.
+    /// </summary>
+    internal static void Restack()
+    {
+        if (WithBars.IsEmpty)
+            return;
+
+        uint thread;
+        lock (Gate)
+            thread = _thread;
+
+        if (thread != 0)
+            _ = PInvoke.PostThreadMessage(thread, StackMessage, default, default);
     }
 
     /// <summary>Removes every bar and ends the bar thread.</summary>
@@ -131,6 +178,21 @@ internal static class GroupBarHost
                 if (message.hwnd.IsNull && message.message == SyncMessage)
                 {
                     Sync();
+                    continue;
+                }
+
+                if (message.hwnd.IsNull && message.message == StackMessage)
+                {
+                    if ((nuint)message.wParam == 0)
+                    {
+                        foreach (var each in Bars.Values)
+                            each.Stack();
+                    }
+                    else if (Bars.TryGetValue(new WindowId((long)(nuint)message.wParam), out var raised))
+                    {
+                        raised.Stack();
+                    }
+
                     continue;
                 }
 
