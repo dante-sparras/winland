@@ -99,6 +99,11 @@ internal sealed class MotionPlayer : IDisposable
             first = _animator.Peek(motion.Window, now);
         }
 
+        // A motion that no longer moves the window, such as a fade that replaced a move to another rectangle, leaves
+        // the window where the caller puts it, so whatever the moving frames did to it is undone now.
+        if (first?.Bounds is null)
+            _target.Release(motion.Window);
+
         if (first is not null)
             Show(first);
 
@@ -317,6 +322,8 @@ internal sealed class MotionPlayer : IDisposable
             default:
                 if (frame.Bounds is Rectangle bounds)
                     _target.Place(frame.Window, bounds);
+                else
+                    _target.Release(frame.Window);
                 if (frame.Alpha is byte alpha)
                     _target.Alpha(frame.Window, alpha);
                 return;
