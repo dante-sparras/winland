@@ -224,13 +224,7 @@ internal sealed partial class LuaRun
                     continue;
                 }
 
-                if (value.Contains(',', StringComparison.Ordinal))
-                {
-                    Warn($"{label}: a match with a comma is not honored yet ('{key}')");
-                    return null;
-                }
-
-                matches.Add(key + ":" + value);
+                matches.Add(key + ":" + LineText.Escape(value));
             }
 
             return matches;
@@ -269,13 +263,7 @@ internal sealed partial class LuaRun
                 return null;
             }
 
-            if (value.Contains(',', StringComparison.Ordinal))
-            {
-                Warn($"{label}: field '{key}': a value with a comma is not honored yet");
-                return null;
-            }
-
-            return value.Length == 0 ? key : key + " " + value;
+            return value.Length == 0 ? key : key + " " + LineText.Escape(value);
         }
         finally
         {

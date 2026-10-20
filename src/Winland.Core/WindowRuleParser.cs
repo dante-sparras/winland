@@ -17,7 +17,7 @@ internal static partial class WindowRuleParser
             return false;
         }
 
-        if (!TryParseEffect(value[..comma].Trim(), out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out var placement, out var group, out var props, out error))
+        if (!TryParseEffect(LineText.Unescape(value[..comma].Trim()), out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out var placement, out var group, out var props, out error))
             return false;
 
         string? classPattern = null;
@@ -40,8 +40,9 @@ internal static partial class WindowRuleParser
         }
         else
         {
-            foreach (var part in value[(comma + 1)..].Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            foreach (var split in value[(comma + 1)..].Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
             {
+                var part = LineText.Unescape(split);
                 if (TryParseDynamicMatch(part, out var match))
                 {
                     (dynamic ??= []).Add(match);

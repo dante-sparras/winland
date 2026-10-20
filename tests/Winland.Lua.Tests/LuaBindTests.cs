@@ -141,14 +141,28 @@ public class LuaBindTests
             hl.bind("SUPER + C", hl.dsp.exit(), { description = "a, b" })
             """);
 
-        Assert.Equal(["bind = SUPER, A, exit", "bind = SUPER, C, exit"], Lines(translation));
+        Assert.Equal(["bind = SUPER, A, exit", "bindd = SUPER, C, a b, exit"], Lines(translation));
         Assert.Equal(
             [
                 new ConfigWarning(1, "hl.bind: auto_consuming is not honored yet"),
                 new ConfigWarning(2, "hl.bind: binds for a device are not honored yet"),
-                new ConfigWarning(3, "hl.bind: a description with a comma is not honored yet"),
             ],
             translation.Warnings);
+    }
+
+    [Fact]
+    public void ACommaInADescriptionOrARuleReachesTheParsedConfig()
+    {
+        var translation = Run("""
+            hl.bind("SUPER + C", hl.dsp.exit(), { description = "a, b" })
+            hl.window_rule({ match = { class = "^(a|b,c)$" }, float = true })
+            """);
+
+        var document = ConfigParser.Parse(translation.Text);
+
+        Assert.Empty(document.Warnings);
+        Assert.Equal("a, b", Assert.IsType<Bind>(Assert.Single(document.Binds)).Description);
+        Assert.Contains("^(a|b,c)$", Assert.Single(document.WindowRules).ClassPattern, StringComparison.Ordinal);
     }
 
     [Theory]

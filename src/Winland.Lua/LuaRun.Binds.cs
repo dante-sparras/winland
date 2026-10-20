@@ -96,19 +96,13 @@ internal sealed partial class LuaRun
         if (keys.Chord)
             flags.Append('s');
 
-        if (description is not null && description.Contains(',', StringComparison.Ordinal))
-        {
-            Warn("hl.bind: a description with a comma is not honored yet");
-            description = null;
-        }
-
         if (description is not null)
             flags.Append('d');
 
         var mouse = flags.ToString().Contains('m', StringComparison.Ordinal);
         var line = new StringBuilder("bind").Append(flags).Append(" = ").Append(keys.Modifiers).Append(", ").Append(keys.Key);
         if (description is not null)
-            line.Append(", ").Append(Escape(description));
+            line.Append(", ").Append(Escape(LineText.Escape(description)));
 
         // window.drag() and window.resize() are the mouse dispatcher, which a mouse bind runs as its action.
         if (mouse)
