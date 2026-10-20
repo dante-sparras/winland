@@ -149,6 +149,7 @@ static int Run(string? path, RollingLogWriter log)
         Console.Error.WriteLine(luaError);
 
     CommandServer.Intercept = line => lua.Answer(line, luaWorld.Command);
+    KeyboardHook.KeySeen += lua.Key;
 
     var configPath = path ?? ConfigPaths.Default(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
     ConfigDocument current;

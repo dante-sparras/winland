@@ -29,6 +29,8 @@ internal sealed partial class LuaRun
 
     private readonly Dictionary<int, int> _functions = [];
     private readonly List<string> _queued = [];
+    private bool _refreshScheduled;
+    private bool _refreshing;
     private readonly List<int> _pendingTimers = [];
     private readonly List<string> _prints = [];
     private readonly List<string> _issues = [];
@@ -125,6 +127,9 @@ internal sealed partial class LuaRun
         {
             Arm(0, "");
         }
+
+        if (outer is null)
+            RunScheduledRefresh(scheduled: true);
 
         if (status == LuaStatus.OK)
             return true;

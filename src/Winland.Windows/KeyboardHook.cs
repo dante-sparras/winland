@@ -53,6 +53,12 @@ public sealed class KeyboardHook : IDisposable
     // Only the hook thread writes it; the Lua config's hl.is_key_down reads it.
     private static readonly long[] _down = new long[4];
 
+    /// <summary>
+    /// Each key the user presses or lets go, with its XKB keycode, the time Windows stamped on it in milliseconds and
+    /// whether it went down. A key Windows repeats while it is held is not raised again. Raised on the hook thread.
+    /// </summary>
+    public static event Action<int, uint, bool>? KeySeen;
+
     // Modifiers a relay pressed and left down on purpose (sendkeystate down). Not stale.
     private static int _relayed;
 
@@ -258,7 +264,13 @@ public sealed class KeyboardHook : IDisposable
             if (info.dwExtraInfo != RemapTag && Remap(info, up))
                 return new LRESULT(1);
 
+            var repeated = !up && IsDown((int)info.vkCode);
             NoteHeld(info.vkCode, up);
+            if (!repeated && KeySeen is { } seen)
+            {
+                var scanned = info.scanCode > int.MaxValue ? 0 : (int)info.scanCode;
+                seen(KeyNames.XkbCode((int)info.vkCode, scanned, info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_EXTENDED)), info.time, !up);
+            }
 
             // misc:key_press_enables_dpms: any key turns the displays back on after dpms turned them off.
             if (_core.KeyWakesDisplays)
