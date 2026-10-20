@@ -54,6 +54,9 @@ public sealed partial class Core
     /// <summary>The <c>input:scroll_points</c> curve the mouse hook carries out, or null. It reads it with no lock.</summary>
     public ScrollCurve? ScrollCurve { get; private set; }
 
+    /// <summary><c>input:emulate_discrete_scroll</c>, which the mouse hook reads with no lock.</summary>
+    public int DiscreteScrollMode => _input.EmulateDiscreteScroll;
+
     /// <summary>The <c>kb_options</c> the keyboard hook carries out. It reads them with no lock.</summary>
     public KeyboardOptions KeyOptions { get; private set; } = KeyboardOptions.None;
 

@@ -61,7 +61,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | haze | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | heat_shimmer | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | input-capture | The input capture portal has no Windows meaning. |
-| input:emulate_discrete_scroll | High resolution scroll emulation is not honored. |
 | input:kb_file | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | input:kb_model | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | input:kb_rules | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
@@ -143,7 +142,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
 | non-goal | - | experimental, input-capture |
 | gap | - | motion_blur |
-| gap | - | input:emulate_discrete_scroll, input:off_window_axis_events |
+| gap | - | input:off_window_axis_events |
 | non-goal | - | input:kb_file, input:kb_model, input:kb_rules |
 | gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:enabled, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
 | gap | - | input:tablettool:eraser_button_mode, input:tablettool:eraser_button_override, input:tablettool:pressure_range_max, input:tablettool:pressure_range_min |
@@ -158,7 +157,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 
 These are the uncovered keywords and behaviors Windows can honor. A gap keyword in the tables above is in this list when Windows has the thing it names. The seven logging and error-bar options are the part of the `debug` non-goal that can be honored, and `misc:name_vk_after_proc` is grouped with the virtual-keyboard gaps.
 
-Input Windows already has: `device`, so an honored input setting can name one device; `input:tablet:enabled`, `input:tablet:left_handed`, `input:tablet:output`, `input:tablet:transform`, `input:tablet:region_position`, `input:tablet:region_size`, `input:tablet:absolute_region_position`, `input:tablet:relative_input`, `input:tablet:active_area_position` and `input:tablet:active_area_size`; `input:tablettool:eraser_button_mode`, `input:tablettool:eraser_button_override`, `input:tablettool:pressure_range_min` and `input:tablettool:pressure_range_max`; `input:virtualkeyboard:share_states`, `input:virtualkeyboard:release_pressed_on_close` and `misc:name_vk_after_proc`; `input:emulate_discrete_scroll` and `input:off_window_axis_events`.
+Input Windows already has: `device`, so an honored input setting can name one device; `input:tablet:enabled`, `input:tablet:left_handed`, `input:tablet:output`, `input:tablet:transform`, `input:tablet:region_position`, `input:tablet:region_size`, `input:tablet:absolute_region_position`, `input:tablet:relative_input`, `input:tablet:active_area_position` and `input:tablet:active_area_size`; `input:tablettool:eraser_button_mode`, `input:tablettool:eraser_button_override`, `input:tablettool:pressure_range_min` and `input:tablettool:pressure_range_max`; `input:virtualkeyboard:share_states`, `input:virtualkeyboard:release_pressed_on_close` and `misc:name_vk_after_proc`; `input:off_window_axis_events`.
 
 Monitors and the process locale: `bitdepth` and `locale` (`general:locale`).
 

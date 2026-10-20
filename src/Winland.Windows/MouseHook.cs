@@ -33,6 +33,7 @@ public sealed class MouseHook : IDisposable
     private readonly PointerRotation _rotation = new();
     private readonly TouchpadPointer _touchpadWheel = new();
     private readonly ScrollAccelerator _curveWheel = new();
+    private readonly DiscreteScroll _discreteWheel = new();
     private readonly HashSet<string> _killed = new(StringComparer.Ordinal);
     private bool _disposed;
 
@@ -326,7 +327,7 @@ public sealed class MouseHook : IDisposable
         var touchpad = TouchpadFingers.Scrolls(Environment.TickCount64, delta);
         var scale = _core.Touchpad.WheelScale(touchpad);
         if (scale == 1)
-            return !touchpad && _core.ScrollCurve is ScrollCurve curve && CurveWheel(curve, message, delta, time);
+            return !touchpad && (DiscreteWheel(message, delta, time) || (_core.ScrollCurve is ScrollCurve curve && CurveWheel(curve, message, delta, time)));
 
         var horizontal = message == HorizontalWheel;
         var scaled = _touchpadWheel.Scale(delta, scale, horizontal);
@@ -343,6 +344,22 @@ public sealed class MouseHook : IDisposable
         var accelerated = _curveWheel.Accelerate(curve, delta, horizontal, time);
         if (accelerated != 0)
             InputInjector.Post(Mouse(horizontal ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL : MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, accelerated));
+
+        return true;
+    }
+
+    // input:emulate_discrete_scroll: a wheel turn that is part of a notch (or any turn, for force_all) is taken, and the
+    // whole notches it adds up to are sent in its place. True when the turn was taken. A turn it takes skips scroll_points.
+    private bool DiscreteWheel(uint message, int delta, uint time)
+    {
+        if (!DiscreteScroll.Emulates(_core.DiscreteScrollMode, delta))
+            return false;
+
+        var horizontal = message == HorizontalWheel;
+        var factor = _core.Touchpad.WheelFactor ?? 1;
+        var notches = _discreteWheel.Emulate(delta, horizontal, factor, time);
+        if (notches != 0)
+            InputInjector.Post(Mouse(horizontal ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL : MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, notches));
 
         return true;
     }
