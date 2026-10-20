@@ -242,6 +242,52 @@ public class GeometryDispatcherTests
         Assert.Null(outcome.Warp);
     }
 
+    [Fact]
+    public void AWindowAfterACommaIsActedOnInPlaceOfTheActiveOne()
+    {
+        var core = TwoFloats();
+        core.Handle(new Dispatch("movewindowpixel", "exact 0 0,address:0x1"));
+
+        var centered = core.Handle(new Dispatch("centerwindow", ",address:0x1"));
+        Assert.Equal(Centered, BoundsOf(centered, 1));
+
+        var warped = core.Handle(new Dispatch("movecursortocorner", "3,address:0x1"));
+        Assert.Equal(new WarpTo(new Point(860, 465)), warped.Warp);
+        Assert.Null(warped.Focus);
+
+        var full = core.Handle(new Dispatch("fullscreen", "0,address:0x1"));
+        Assert.Equal(FullscreenMode.Fullscreen, Assert.Single(full.State.Clients, client => client.Window == new WindowId(1)).Fullscreen);
+        Assert.Equal(FullscreenMode.None, Assert.Single(full.State.Clients, client => client.Window == new WindowId(2)).Fullscreen);
+    }
+
+    [Fact]
+    public void AWindowThatMatchesNothingIsAnError()
+    {
+        var core = TwoFloats();
+
+        var outcome = core.Handle(new Dispatch("centerwindow", ",address:0x9"));
+
+        Assert.Equal("error: window not found", outcome.Error);
+        Assert.Empty(outcome.Placements);
+    }
+
+    [Fact]
+    public void ABindPassesTheWindowAfterTheComma()
+    {
+        var core = new Core();
+        core.Handle(new ConfigLoaded(ConfigParser.Parse("""
+            windowrulev2 = float, class:^(box)$
+            bind = SUPER, Z, togglegroup, ,address:0x1
+            """)));
+        core.Handle(Box(1));
+        core.Handle(Box(2));
+
+        core.Handle(new KeyPressed("Super_L"));
+        core.Handle(new KeyPressed("Z"));
+
+        Assert.Contains("\"grouped\":[\"0x1\"]", core.Execute("j/clients").Text, StringComparison.Ordinal);
+    }
+
     private static Core OneFloat()
     {
         var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\n"));

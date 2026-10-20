@@ -1,7 +1,41 @@
+using static Winland.OrdinalText;
+
 namespace Winland;
 
 public sealed partial class Core
 {
+    // The dispatchers that act on the active window and, after a comma, take another one, as their Lua forms do.
+    private static readonly string[] WindowTakers =
+        [
+            "movecursortocorner", "togglegroup", "changegroupactive", "centerwindow", "fullscreen", "fullscreenstate",
+            "swapwindow", "lockactivegroup", "moveintogroup", "moveintoorcreategroup",
+        ];
+
+    // The window a dispatcher given a window acts on in place of the active one, while it runs.
+    private WindowId? _actingOn;
+
+    private static bool ActsOnAWindow(string name) => WindowTakers.Any(taker => Is(name, taker));
+
+    private Outcome ExecuteOn(string name, string arguments, string selector, bool allowsElevation)
+    {
+        if (selector.Length == 0)
+            return Execute(name, arguments, allowsElevation);
+
+        if (WindowSelector.Find(selector, ActiveWindow(), EveryClient()) is not WindowId target)
+            return Rejected(name, "error: window not found", allowsElevation);
+
+        var outer = _actingOn;
+        _actingOn = target;
+        try
+        {
+            return Execute(name, arguments, allowsElevation);
+        }
+        finally
+        {
+            _actingOn = outer;
+        }
+    }
+
     private static IReadOnlyList<WindowRule> JoinRules(IReadOnlyList<WindowRule> rules, IReadOnlyList<WindowRule> followed)
     {
         if (followed.Count == 0)
@@ -19,6 +53,9 @@ public sealed partial class Core
 
     private WindowId? ActiveWindow()
     {
+        if (_actingOn is WindowId acting)
+            return Find(acting) is null ? null : acting;
+
         if (_active is not WindowId active)
             return null;
 
