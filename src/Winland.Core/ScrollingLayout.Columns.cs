@@ -157,17 +157,32 @@ internal sealed partial class ScrollingLayout
                 y += gaps.Top;
                 width = Math.Max(1, width - gaps.Left - gaps.Right);
                 height = Math.Max(1, height - gaps.Top - gaps.Bottom);
-                var border = _layoutOptions.BorderFor(cell.Id);
-                x += border;
-                y += border;
-                width = Math.Max(0, width - (border * 2.0));
-                height = Math.Max(0, height - (border * 2.0));
-                var box = _layoutOptions.KeepAspect(Pixels(x, y, width, height), _area, TiledCount());
+                var box = CellBox(cell.Id, x, y, width, height);
                 cell.Logical = box;
                 cell.Box = box;
                 cursor += span;
             }
         }
+    }
+
+    // A tile that is not pseudo keeps its border inside the aspect padding. A pseudo tile is centered in the gapped
+    // tile first, then loses its border, as the pinned release does.
+    private Rectangle CellBox(ClientId id, double x, double y, double width, double height)
+    {
+        if (!_pseudo.IsOn(id))
+        {
+            var border = _layoutOptions.BorderFor(id);
+            x += border;
+            y += border;
+            width = Math.Max(0, width - (border * 2.0));
+            height = Math.Max(0, height - (border * 2.0));
+            return _layoutOptions.KeepAspect(Pixels(x, y, width, height), _area, TiledCount());
+        }
+
+        var gapped = Pixels(x, y, width, height);
+        var framed = _layoutOptions.KeepAspect(gapped, _area, TiledCount());
+        _natural.TryGetValue(id, out var natural);
+        return _pseudo.Frame(id, framed, natural, _layoutOptions.BorderFor(id));
     }
 
     private int TiledCount()

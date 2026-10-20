@@ -16,6 +16,7 @@ internal sealed partial class ScriptedLayout : Layout
     private readonly List<ClientId> _order = [];
     private readonly FloatingClients _floating = new();
     private readonly Dictionary<ClientId, Rectangle> _natural = [];
+    private readonly PseudoTiles _pseudo = new();
     private readonly Dictionary<ClientId, SizeLimits> _limits = [];
 
     // The boxes the script placed, before gaps and border, in the tiling area they were placed in.
@@ -143,6 +144,7 @@ internal sealed partial class ScriptedLayout : Layout
         var tiled = DropTiled(id);
         _floating.Forget(id);
         _natural.Remove(id);
+        _pseudo.Forget(id);
         _limits.Remove(id);
         _clients.RemoveAt(index);
         if (!tiled)
@@ -225,6 +227,7 @@ internal sealed partial class ScriptedLayout : Layout
         SlotHandover.Move(_order, from, to);
         SlotHandover.Move(_boxes, from, to);
         _floating.Hand(from, to);
+        _pseudo.Hand(from, to);
         _natural.Remove(from);
         _natural[to] = incoming.Bounds;
         _limits.Remove(from);
@@ -439,8 +442,8 @@ internal sealed partial class ScriptedLayout : Layout
         var right = box.X + box.Width == area.X + area.Width ? 0 : gaps.Right;
         var bottom = box.Y + box.Height == area.Y + area.Height ? 0 : gaps.Bottom;
         var presented = _options.KeepAspect(Shrink(box, left, top, right, bottom), _area, _order.Count);
-        var border = _options.BorderFor(id);
-        presented = Shrink(presented, border, border, border, border);
+        _natural.TryGetValue(id, out var natural);
+        presented = _pseudo.Frame(id, presented, natural, _options.BorderFor(id));
         return _limits.TryGetValue(id, out var limits) ? limits.ForTiles.Raise(presented, area) : presented;
     }
 

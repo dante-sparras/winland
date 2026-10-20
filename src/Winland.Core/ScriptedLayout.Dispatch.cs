@@ -24,8 +24,12 @@ internal sealed partial class ScriptedLayout : IMouseDragHost
 
     public IReadOnlyList<Placement> TogglePseudo(WindowId window)
     {
-        _ = window;
-        return [];
+        var id = new ClientId(window.Value);
+        if (IndexOf(id) < 0)
+            return [];
+
+        _pseudo.Toggle(id);
+        return Placed();
     }
 
     public WindowId? MoveFocus(WindowId active, string arguments)

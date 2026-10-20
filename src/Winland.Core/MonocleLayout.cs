@@ -12,6 +12,7 @@ internal sealed partial class MonocleLayout : Layout
     private readonly List<ClientId> _tiled = [];
     private readonly FloatingClients _floating = new();
     private readonly Dictionary<ClientId, Rectangle> _natural = [];
+    private readonly PseudoTiles _pseudo = new();
     private readonly Dictionary<ClientId, SizeLimits> _limits = [];
     private LayoutOptions _options = LayoutOptions.Unconfigured;
     private Rectangle _area;
@@ -119,6 +120,7 @@ internal sealed partial class MonocleLayout : Layout
         _ = _drag.Forget(id);
         _floating.Forget(id);
         _natural.Remove(id);
+        _pseudo.Forget(id);
         _limits.Remove(id);
         _clients.RemoveAt(index);
         return tiled ? Placed() : [];
@@ -245,8 +247,12 @@ internal sealed partial class MonocleLayout : Layout
 
     public IReadOnlyList<Placement> TogglePseudo(WindowId window)
     {
-        _ = window;
-        return [];
+        var id = new ClientId(window.Value);
+        if (IndexOf(id) < 0)
+            return [];
+
+        _pseudo.Toggle(id);
+        return Visible();
     }
 
     public WindowId? MoveFocus(WindowId active, string arguments)
@@ -429,20 +435,16 @@ internal sealed partial class MonocleLayout : Layout
         var height = Math.Max(0, _area.Height - gaps.Top - gaps.Bottom);
         var box = _options.KeepAspect(new Rectangle(_area.X + gaps.Left, _area.Y + gaps.Top, width, height), _area, _tiled.Count);
         var border = client is ClientId id ? _options.BorderFor(id) : _options.BorderSize;
-        return Shrink(box, border, border, border, border);
+        Rectangle natural = default;
+        if (client is ClientId known)
+            _natural.TryGetValue(known, out natural);
+        return _pseudo.Frame(client, box, natural, border);
     }
 
     public IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds)
     {
         var id = new ClientId(window.Value);
         return _floating.Place(id, bounds, _options.FloatingOnScreen(_area)) ? Visible() : [];
-    }
-
-    private static Rectangle Shrink(Rectangle box, int left, int top, int right, int bottom)
-    {
-        var width = Math.Max(0, box.Width - left - right);
-        var height = Math.Max(0, box.Height - top - bottom);
-        return new Rectangle(box.X + left, box.Y + top, width, height);
     }
 
     private int IndexOf(ClientId id) => _clients.FindIndex(client => client.Id == id);
