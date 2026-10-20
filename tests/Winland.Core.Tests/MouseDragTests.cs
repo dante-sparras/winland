@@ -454,6 +454,41 @@ public class MouseDragTests
         return core;
     }
 
+    [Fact]
+    public void InMonocleAFloatingClientFollowsThePointer()
+    {
+        var core = Flat("general:layout = monocle\nbindm = SUPER, mouse:272, movewindow\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(700, 400) });
+
+        var moved = core.Handle(new PointerMoved(new Point(750, 430)));
+
+        Assert.Equal(new Rectangle(690, 370, 640, 400), BoundsOf(moved, 1));
+    }
+
+    [Fact]
+    public void InMonocleALiftedTileLeavesTheStackAndComesBackShown()
+    {
+        var core = Flat("general:layout = monocle\nbindm = SUPER, mouse:272, movewindow\nbindm = SUPER, mouse:273, resizewindow\n");
+        Appear(core, 1);
+        Appear(core, 2);
+        Press(core, "Super_L");
+        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(960, 540) });
+
+        var lifted = core.Handle(new PointerMoved(new Point(1000, 560)));
+
+        Assert.True(Client(lifted, 2).Floating);
+        Assert.Equal(Wide, BoundsOf(lifted, 1));
+        var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(1000, 560) });
+        Assert.False(Client(dropped, 2).Floating);
+        Assert.Equal(Wide, BoundsOf(dropped, 2));
+
+        core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(1900, 1000) });
+        Assert.DoesNotContain(core.Handle(new PointerMoved(new Point(1700, 900))).Placements, placement => placement.Bounds != Wide);
+    }
+
     // Dwindle with 1 on the left, 2 at the top right, and 3 and 4 side by side at the bottom right.
     private static Core FourTiles(string options)
     {
