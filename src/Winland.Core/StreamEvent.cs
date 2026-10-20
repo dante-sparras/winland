@@ -6,7 +6,40 @@ public sealed record ClientOpened(WindowId Window, WorkspaceId Workspace, string
 
 public sealed record ClientClosed(WindowId Window) : StreamEvent;
 
-public sealed record FocusChanged(WindowId? Window) : StreamEvent;
+/// <summary>
+/// Why the focus moved, as a bit set, as in the pinned release. A handler can test a bit.
+/// <see cref="Unknown"/> is a focus with no equivalent.
+/// </summary>
+public enum FocusReason : uint
+{
+    Unknown = 0,
+    FollowMouse = 1 << 0,
+    Keybind = 1 << 1,
+    FocusWindow = 1 << 2,
+    MoveIntoGroup = 1 << 3,
+    Click = 1 << 4,
+    ClickDown = (1 << 5) | Click,
+    ClickUp = (1 << 6) | Click,
+    DesktopState = 1 << 7,
+    SwitchSoft = 1 << 8,
+    SwitchHard = 1 << 9,
+    GroupCurrent = 1 << 10,
+    Workspace = 1 << 11,
+    ToggleSpecial = 1 << 12,
+    UnmapTiled = 1 << 13,
+    UnmapFloating = 1 << 14,
+    UnmapGrouped = 1 << 15,
+    NewWindow = 1 << 16,
+    Ghosts = 1 << 17,
+    Other = 1 << 18,
+}
+
+/// <summary>The focused window changed. <paramref name="Window"/> is null when nothing is focused.</summary>
+public sealed record FocusChanged(WindowId? Window) : StreamEvent
+{
+    /// <summary>Why the focus moved. <see cref="FocusReason.Unknown"/> when the caller does not say.</summary>
+    public FocusReason Reason { get; init; }
+}
 
 public sealed record ClientUrgent(WindowId Window) : StreamEvent;
 
