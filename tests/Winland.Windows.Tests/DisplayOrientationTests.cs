@@ -116,6 +116,7 @@ public class DisplayOrientationTests
             nameof(Outcome.DisplayMirrors), // SessionEffects
             nameof(Outcome.Warp), // SessionEffects
             nameof(Outcome.InputSettings), // SessionEffects
+            nameof(Outcome.Vrr), // SessionEffects
             nameof(Outcome.KeyboardLayout), // SessionEffects
             nameof(Outcome.Cursor), // SessionEffects
             nameof(Outcome.ResizeCursor), // not applied: behavior.md says the system pointer is not changed

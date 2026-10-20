@@ -31,7 +31,11 @@ public class WindowStateTests
             new RecoveredClient(new WindowId(9), new WorkspaceId("4"), MonitorId.Primary, true, "gone", "", 0),
         ]));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
-        core.Handle(new WindowAppeared(new WindowId(2), Area) { Traits = WindowTraits.Normal with { Class = "stick" } });
+        core.Handle(new WindowAppeared(new WindowId(2), Area)
+        {
+            Executable = @"C:\apps\stick.exe",
+            Traits = WindowTraits.Normal with { Class = "stick" },
+        });
         core.Handle(new WindowAppeared(new WindowId(3), Area) { Traits = WindowTraits.Normal with { Class = "quiet" } });
         core.Handle(new WindowAppeared(new WindowId(4), Area) { ProcessId = 100, Traits = WindowTraits.Normal with { Class = "kitty" } });
         core.Handle(new WindowAppeared(new WindowId(5), Area)

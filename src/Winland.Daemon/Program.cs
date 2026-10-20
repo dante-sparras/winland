@@ -204,6 +204,8 @@ static int Run(string? path, RollingLogWriter log)
     SessionEffects.InstallSystem();
     if (prior?.Input is InputOriginals saved)
         SessionEffects.RestoreSaved(saved);
+    if (prior?.Vrr is VrrOriginals vrr)
+        SessionEffects.RestoreSaved(vrr);
     if (prior?.Mirrors is { Count: > 0 } mirrored)
         SessionEffects.RestoreSaved(mirrored);
     using var host = new WindowHost(core, snapshot => Persist(store, snapshot), PipeName());
@@ -283,7 +285,7 @@ static string? ConfigDirectory(string path)
 static void Persist(RecoveryStore store, RecoverySnapshot snapshot)
 {
     // A Client that closed since the snapshot was taken is left out. The rest are still recorded.
-    store.Save(WindowIdentity.Annotate(snapshot with { Input = SessionEffects.Originals, Mirrors = SessionEffects.MirrorOriginals }));
+    store.Save(WindowIdentity.Annotate(snapshot with { Input = SessionEffects.Originals, Mirrors = SessionEffects.MirrorOriginals, Vrr = SessionEffects.OriginalVrr }));
 }
 
 static void Stop(WindowHost host, RecoveryStore store)

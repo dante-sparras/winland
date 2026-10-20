@@ -98,7 +98,6 @@ public static class ConfigGaps
         new("render", "GPU rendering options have no Windows meaning."),
         new("ripple", "Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned."),
         new("screen_shader", "Screen shaders have no Windows meaning."),
-        new("vrr", "Windows has no switch for a display's adaptive sync, since each game turns VRR on for itself. The Variable refresh rate graphics setting only lets DirectX 11 fullscreen games without VRR of their own use it, and Dynamic refresh rate has no documented interface."),
         new("water", "Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned."),
         new("xwayland", "X11 compatibility has no Windows meaning. A window rule that matches on xwayland is not honored."),
     ];

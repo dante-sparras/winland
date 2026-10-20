@@ -38,6 +38,9 @@ public sealed record WindowAppeared(WindowId Window, Rectangle WorkArea) : Event
     /// ignores the maximize request that follows, as the pinned release does.
     /// </summary>
     public bool ShownMaximized { get; init; }
+
+    /// <summary>The full path of the window's program, or empty when it could not be read. The traits' exe is only the file name.</summary>
+    public string Executable { get; init; } = "";
 }
 
 public sealed record WindowClosed(WindowId Window) : Event;

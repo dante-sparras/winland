@@ -59,6 +59,7 @@ internal static partial class OptionCatalog
         "misc:disable_autoreload",
         "misc:size_limits_tiled",
         "misc:focus_on_activate",
+        "misc:vrr",
         "general:modal_parent_blocking",
         "misc:close_special_on_empty",
         "binds:hide_special_on_workspace_change",
@@ -317,6 +318,10 @@ internal static partial class OptionCatalog
             case "misc:focus_on_activate":
                 kind = "bool";
                 token = Bool(session.FocusOnActivate);
+                return true;
+            case "misc:vrr":
+                kind = "int";
+                token = (session.Vrr ?? 0).ToString(CultureInfo.InvariantCulture);
                 return true;
             case "general:modal_parent_blocking":
                 kind = "bool";

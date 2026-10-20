@@ -151,6 +151,9 @@ public sealed record Outcome(
 
     public InputSettingsRequest? InputSettings { get; init; }
 
+    /// <summary>Variable refresh rate for the account's graphics settings. Null when this outcome does not say.</summary>
+    public VrrRequest? Vrr { get; init; }
+
     public CursorBehavior? Cursor { get; init; }
 
     /// <summary>The border cursor while the pointer is over a resize grab. Null when it is not.</summary>

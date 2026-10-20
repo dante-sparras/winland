@@ -82,7 +82,7 @@ public sealed partial class Core
 
         // Bars are added here, once per finished Outcome, so every placement passes below them exactly once.
         var bars = GroupBars(outcome.State);
-        return Animate(
+        outcome = Animate(
             outcome with
             {
                 Placements = WithHiddenMembers(BelowBars(outcome.Placements, outcome.State, bars)),
@@ -92,6 +92,7 @@ public sealed partial class Core
                 ResetDecorations = reset,
             },
             before);
+        return outcome with { Vrr = VrrNow(outcome.State) };
     }
 
     // A hidden Group member takes the frame of the shown member whenever that one is placed, as in the pinned

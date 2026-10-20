@@ -68,6 +68,7 @@ public sealed partial class Core
             KeyboardLayout = LayoutRequest(),
             Cursor = WithGestureZoom(WithZoomTiming(_cursor.Behavior())),
             ResizeCursor = _resizeCursor,
+            Vrr = VrrNow(outcome.State),
         };
     }
 
