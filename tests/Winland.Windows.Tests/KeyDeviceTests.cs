@@ -6,89 +6,246 @@ namespace Winland.Windows.Tests;
 public class KeyDeviceTests
 {
     [Fact]
-    public void APacketWithinTheSlackMatchesAndAnOlderOneIsDropped()
+    public void TheOldestWaitingPressTakesThePacketAndAReleasePacketDoesNot()
     {
-        var correlator = new KeyDeviceCorrelator();
-        correlator.Offer(new KeyDeviceCorrelator.Packet(1, 0x51, 16, false, 1000));
-        correlator.Offer(new KeyDeviceCorrelator.Packet(2, 0x51, 16, false, 1000 - KeyDeviceCorrelator.SlackMs - 1));
+        var waiting = new DeferredKeys();
+        Assert.True(waiting.Hold(Edge(0x51, "Q", scan: 16), 1000));
+        Assert.True(waiting.Hold(Edge(0x51, "Q", scan: 16), 1000));
+        Assert.True(waiting.Hold(Edge(0x52, "W", scan: 17), 1000));
 
-        Assert.True(correlator.Take(0x51, 16, false, 1000, out var device));
-        Assert.Equal(1, device);
-        Assert.Equal(0, correlator.Count);
+        Assert.False(waiting.Offer(0x51, 16, up: true, out _));
+        Assert.True(waiting.IsWaiting(0x51));
+
+        Assert.True(waiting.Offer(0x51, 16, up: false, out var first));
+        Assert.Equal("Q", first.Key.Name);
+        Assert.True(waiting.Offer(0x51, 16, up: false, out var second));
+        Assert.Equal("Q", second.Key.Name);
+        Assert.False(waiting.IsWaiting(0x51));
+        Assert.True(waiting.Offer(0x52, 0, up: false, out var other));
+        Assert.Equal("W", other.Key.Name);
     }
 
     [Fact]
-    public void ANewerPacketIsKeptAndTheOldestMatchIsTaken()
+    public void ADifferentScanStaysAndAReleaseRidesThePressPacket()
     {
-        var correlator = new KeyDeviceCorrelator();
-        correlator.Offer(new KeyDeviceCorrelator.Packet(1, 0x51, 16, false, 1000));
-        correlator.Offer(new KeyDeviceCorrelator.Packet(2, 0x51, 16, false, 1010));
-        correlator.Offer(new KeyDeviceCorrelator.Packet(3, 0x52, 17, false, 1000));
+        var waiting = new DeferredKeys();
+        Assert.True(waiting.Hold(Edge(0x51, "Q", scan: 16), 1000));
+        Assert.False(waiting.Offer(0x51, 99, up: false, out _));
+        Assert.True(waiting.AttachRelease(Edge(0x51, "Q", scan: 16, up: true)));
 
-        Assert.True(correlator.Take(0x51, 16, false, 1005, out var device));
-        Assert.Equal(1, device);
-        Assert.True(correlator.Take(0x51, 16, false, 1010, out device));
-        Assert.Equal(2, device);
-        Assert.True(correlator.Take(0x52, 17, false, 1000, out device));
-        Assert.Equal(3, device);
+        Assert.True(waiting.Offer(0x51, 16, up: false, out var pending));
+        Assert.True(pending.HasRelease);
+        Assert.True(pending.Release.Up);
+        Assert.False(waiting.Offer(0x51, 16, up: false, out _));
     }
 
     [Fact]
-    public void TheSlackIsInclusiveAndADifferentScanStays()
+    public void TheWaitExpiresOldestFirstAndALatePacketIsIgnored()
     {
-        var correlator = new KeyDeviceCorrelator();
-        correlator.Offer(new KeyDeviceCorrelator.Packet(1, 0x51, 16, false, 1000 - KeyDeviceCorrelator.SlackMs));
-        correlator.Offer(new KeyDeviceCorrelator.Packet(2, 0x51, 16, false, 2000 + KeyDeviceCorrelator.SlackMs));
-        correlator.Offer(new KeyDeviceCorrelator.Packet(3, 0x51, 16, false, 3000 + KeyDeviceCorrelator.SlackMs + 1));
-        correlator.Offer(new KeyDeviceCorrelator.Packet(4, 0x51, 99, false, 4000));
+        var waiting = new DeferredKeys();
+        Assert.True(waiting.Hold(Edge(0x51, "Q"), 1000));
+        Assert.True(waiting.Hold(Edge(0x52, "W"), 1010));
+        Assert.True(waiting.TryNextDue(out var due));
+        Assert.Equal(1000 + DeferredKeys.WaitMs, due);
 
-        Assert.True(correlator.Take(0x51, 16, false, 1000, out var device));
-        Assert.Equal(1, device);
-        Assert.True(correlator.Take(0x51, 16, false, 2000, out device));
-        Assert.Equal(2, device);
-        Assert.False(correlator.Take(0x51, 16, false, 3000, out _));
-        Assert.False(correlator.Take(0x51, 17, false, 4000, out _));
-        Assert.True(correlator.Take(0x51, 0, false, 4000, out device));
-        Assert.Equal(4, device);
+        Assert.False(waiting.Expire(1000 + DeferredKeys.WaitMs - 1, out _));
+        Assert.True(waiting.Expire(1000 + DeferredKeys.WaitMs, out var first));
+        Assert.Equal("Q", first.Key.Name);
+        Assert.False(waiting.Offer(0x51, 16, up: false, out _));
+        Assert.True(waiting.Expire(1010 + DeferredKeys.WaitMs, out var second));
+        Assert.Equal("W", second.Key.Name);
     }
 
     [Fact]
-    public void AReleaseDoesNotMatchAPress()
+    public void RepeatsAreCappedAndAFullQueueRefusesTheNextPress()
     {
-        var correlator = new KeyDeviceCorrelator();
-        correlator.Offer(new KeyDeviceCorrelator.Packet(1, 0x51, 16, true, 1000));
+        var waiting = new DeferredKeys();
+        Assert.True(waiting.Hold(Edge(0x51, "Q"), 1000));
+        for (var i = 0; i < 10; i++)
+            Assert.True(waiting.NoteRepeat(0x51));
 
-        Assert.False(correlator.Take(0x51, 16, false, 1000, out _));
-        Assert.Equal(1, correlator.Count);
+        Assert.True(waiting.Offer(0x51, 16, up: false, out var pending));
+        Assert.Equal(8, pending.Repeats);
+
+        for (var i = 0; i < DeferredKeys.Capacity; i++)
+            Assert.True(waiting.Hold(Edge(0x41 + i, ((char)('A' + i)).ToString()), 1000));
+
+        Assert.False(waiting.Hold(Edge(0x5A, "Z"), 1000));
     }
 
     [Fact]
-    public void TimeWrapsAcrossTheClock()
+    public void APacketAfterTheHookRunsTheDeviceBind()
     {
-        var correlator = new KeyDeviceCorrelator();
-        correlator.Offer(new KeyDeviceCorrelator.Packet(7, 0x51, 16, false, 10));
-        Assert.True(correlator.Take(0x51, 16, false, uint.MaxValue - 5, out var device));
-        Assert.Equal(7, device);
+        using var hook = Hook("bindk = , Q, +board, killactive");
+        var tracked = hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false);
 
-        correlator.Offer(new KeyDeviceCorrelator.Packet(8, 0x51, 16, false, uint.MaxValue - 5));
-        Assert.True(correlator.Take(0x51, 16, false, 10, out device));
-        Assert.Equal(8, device);
-
-        correlator.Offer(new KeyDeviceCorrelator.Packet(9, 0x51, 16, false, uint.MaxValue - 100));
-        Assert.False(correlator.Take(0x51, 16, false, 100, out _));
-        Assert.Equal(0, correlator.Count);
+        Assert.True(tracked.Waiting);
+        Assert.False(tracked.Passes);
+        Assert.True(hook.Complete(0x51, 16, up: false, "board", out var outcome));
+        Assert.True(outcome.Decision.Consumed);
+        Assert.Equal("killactive", outcome.Decision.Dispatcher);
+        Assert.False(outcome.Replayed);
+        Assert.False(hook.IsWaiting(0x51));
     }
 
     [Fact]
-    public void TheQueueDropsTheOldestPastItsCap()
+    public void AWrongDeviceReplaysTheKey()
     {
-        var correlator = new KeyDeviceCorrelator();
-        for (var i = 0; i < 33; i++)
-            correlator.Offer(new KeyDeviceCorrelator.Packet(i, 1, 1, false, (uint)i));
+        using var hook = Hook("bindk = , Q, +board, killactive");
+        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
 
-        Assert.Equal(32, correlator.Count);
-        Assert.True(correlator.Take(1, 1, false, 1, out var device));
-        Assert.Equal(1, device);
+        Assert.True(hook.Complete(0x51, 16, up: false, "other", out var outcome));
+        Assert.False(outcome.Decision.Consumed);
+        Assert.True(outcome.Replayed);
+    }
+
+    [Fact]
+    public void NoPacketReplaysAnInclusiveBindAndFiresAnExclusiveOne()
+    {
+        using var inclusive = Hook("bindk = , Q, +board, killactive");
+        Assert.True(inclusive.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
+        Assert.False(inclusive.ExpireOne(1000 + DeferredKeys.WaitMs - 1, out _));
+        Assert.True(inclusive.ExpireOne(1000 + DeferredKeys.WaitMs, out var missed));
+        Assert.False(missed.Decision.Consumed);
+        Assert.True(missed.Replayed);
+
+        using var exclusive = Hook("bindk = , Q, -board, killactive");
+        Assert.True(exclusive.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
+        Assert.True(exclusive.ExpireOne(1000 + DeferredKeys.WaitMs, out var matched));
+        Assert.Equal("killactive", matched.Decision.Dispatcher);
+        Assert.True(matched.Decision.Consumed);
+        Assert.False(matched.Replayed);
+    }
+
+    [Fact]
+    public void AnUnnamedPacketEndsTheWaitWithNoDevice()
+    {
+        using var hook = Hook("bindk = , Q, +board, killactive");
+        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
+
+        Assert.True(hook.DeliverPacket(0x51, 16, up: false, handle: 5, out var outcome));
+        Assert.False(outcome.Decision.Consumed);
+        Assert.True(outcome.Replayed);
+        Assert.False(hook.IsWaiting(0x51));
+    }
+
+    [Fact]
+    public void AKeyNoDeviceBindCouldMatchIsDecidedImmediately()
+    {
+        using var hook = Hook("bindk = , Q, +board, killactive\nbind = , W, killactive\n");
+
+        var plain = hook.DeliverTracked(Edge(0x45, "E"), 1000, repeated: false);
+        Assert.False(plain.Waiting);
+        Assert.True(plain.Passes);
+        Assert.False(hook.IsWaiting(0x45));
+
+        var other = hook.DeliverTracked(Edge(0x57, "W"), 1000, repeated: false);
+        Assert.False(other.Waiting);
+        Assert.False(other.Passes);
+        Assert.Equal("killactive", other.Decision.Dispatcher);
+        Assert.False(hook.IsWaiting(0x57));
+
+        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
+    }
+
+    [Fact]
+    public void NoDeviceBindKeepsTheSynchronousPath()
+    {
+        using var hook = Hook("bind = , Q, killactive");
+        var tracked = hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false);
+
+        Assert.False(tracked.Waiting);
+        Assert.False(tracked.Passes);
+        Assert.Equal("killactive", tracked.Decision.Dispatcher);
+        Assert.False(hook.IsWaiting(0x51));
+    }
+
+    [Fact]
+    public void TheWrongModifiersDoNotWait()
+    {
+        using var hook = Hook("bindk = SUPER, Q, +board, killactive");
+        var tracked = hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false);
+
+        Assert.False(tracked.Waiting);
+        Assert.True(tracked.Passes);
+    }
+
+    [Fact]
+    public void AReleaseWaitingWithThePressUsesTheSameDevice()
+    {
+        using var hook = Hook("bindrk = , Q, +board, killactive");
+        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
+
+        var release = hook.DeliverTracked(Edge(0x51, "Q", up: true), 1020, repeated: false);
+        Assert.True(release.Waiting);
+        Assert.True(hook.IsWaiting(0x51));
+
+        Assert.True(hook.Complete(0x51, 16, up: false, "board", out var outcome));
+        Assert.True(outcome.Decision.Consumed);
+        Assert.Null(outcome.Decision.Dispatcher);
+        Assert.Equal("killactive", outcome.Release?.Dispatcher);
+        Assert.False(outcome.Replayed);
+        Assert.False(outcome.ReleaseReplayed);
+        Assert.False(hook.IsWaiting(0x51));
+    }
+
+    [Fact]
+    public void AReleaseAfterThePressWasDecidedDoesNotWaitAgain()
+    {
+        using var hook = Hook("bindrk = , Q, +board, killactive");
+        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
+        Assert.True(hook.Complete(0x51, 16, up: false, "board", out var press));
+        Assert.True(press.Decision.Consumed);
+        Assert.Null(press.Decision.Dispatcher);
+
+        var release = hook.DeliverTracked(Edge(0x51, "Q", up: true), 1080, repeated: false);
+        Assert.False(release.Waiting);
+        Assert.False(release.Passes);
+        Assert.Equal("killactive", release.Decision.Dispatcher);
+    }
+
+    [Fact]
+    public void ASwallowedPressAndReleaseAreReplayedTogetherWhenNothingConsumesThem()
+    {
+        using var hook = Hook("bindk = , Q, +board, killactive");
+        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
+        Assert.True(hook.DeliverTracked(Edge(0x51, "Q", up: true), 1010, repeated: false).Waiting);
+
+        Assert.True(hook.ExpireOne(1000 + DeferredKeys.WaitMs, out var outcome));
+        Assert.False(outcome.Decision.Consumed);
+        Assert.True(outcome.Replayed);
+        Assert.True(outcome.ReleaseReplayed);
+        Assert.False(outcome.Release?.Consumed);
+    }
+
+    [Fact]
+    public void RepeatsDuringTheWaitAreDecidedWithThePress()
+    {
+        using var hook = Hook("bindek = , Q, +board, killactive");
+        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
+        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1030, repeated: true).Waiting);
+
+        Assert.True(hook.Complete(0x51, 16, up: false, "board", out var outcome));
+        Assert.Equal(1, outcome.Repeats);
+        Assert.Equal("killactive", outcome.Decision.Dispatcher);
+        Assert.False(hook.IsWaiting(0x51));
+    }
+
+    [Fact]
+    public void AFullWaitDecidesTheNextKeyWithNoDevice()
+    {
+        var lines = new System.Text.StringBuilder();
+        for (var i = 0; i < DeferredKeys.Capacity + 1; i++)
+            lines.Append("bindk = , ").Append((char)('A' + i)).Append(", +board, killactive\n");
+
+        using var hook = Hook(lines.ToString());
+        for (var i = 0; i < DeferredKeys.Capacity; i++)
+            Assert.True(hook.DeliverTracked(Edge(0x41 + i, ((char)('A' + i)).ToString(), scan: 1), 1000, repeated: false).Waiting);
+
+        var overflow = hook.DeliverTracked(Edge(0x41 + DeferredKeys.Capacity, "I", scan: 1), 1000, repeated: false);
+        Assert.False(overflow.Waiting);
+        Assert.True(overflow.Passes);
+        Assert.False(hook.IsWaiting(0x41 + DeferredKeys.Capacity));
     }
 
     [Fact]
@@ -114,11 +271,11 @@ public class KeyDeviceTests
     [Fact]
     public void InjectedAndDevicelessPacketsAreNotKeys()
     {
-        Assert.False(KeyDeviceSource.TryKey(0x51, 16, 0, KeyboardHook.InjectedTag, 5, 1, out _));
-        Assert.False(KeyDeviceSource.TryKey(0x51, 16, 0, 0, 0, 1, out _));
+        Assert.False(KeyDeviceSource.TryKey(0x51, 16, 0, KeyboardHook.InjectedTag, 5, out _));
+        Assert.False(KeyDeviceSource.TryKey(0x51, 16, 0, 0, 0, out _));
 
-        Assert.True(KeyDeviceSource.TryKey(0x51, 16, 1, 0, 5, 9, out var packet));
-        Assert.Equal(new KeyDeviceCorrelator.Packet(5, 0x51, 16, true, 9), packet);
+        Assert.True(KeyDeviceSource.TryKey(0x51, 16, 1, 0, 5, out var packet));
+        Assert.Equal(new KeyDeviceSource.RawKey(5, 0x51, 16, true), packet);
     }
 
     [Fact]
@@ -169,6 +326,16 @@ public class KeyDeviceTests
         batch.Note(true);
         batch.Note(false);
         Assert.Equal(0, replays);
+    }
+
+    private static DeferredKeys.Edge Edge(int vk, string name, int scan = 16, bool up = false) =>
+        new(vk, scan, false, up, name, 0);
+
+    private static KeyboardHook Hook(string text)
+    {
+        var core = new Core();
+        core.Handle(new ConfigLoaded(ConfigParser.Parse(text)));
+        return new KeyboardHook(core, new BindSession());
     }
 
     private static string Name(DeviceNameCache cache, long address)

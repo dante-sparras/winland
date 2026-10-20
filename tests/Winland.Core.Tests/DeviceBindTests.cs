@@ -168,6 +168,104 @@ public class DeviceBindTests
         Assert.Equal(["laptop"], tag.Tags);
     }
 
+    [Fact]
+    public void ADeviceBindWaitsOnlyForItsKeyAndModifiers()
+    {
+        var core = Load("bindk = SUPER, Q, +board, killactive\nbind = , W, killactive\n");
+        var table = core.Binds;
+        var session = new BindSession();
+
+        Assert.True(table.HasDeviceBind);
+        Assert.False(BindMatcher.AwaitsDevice(table, session, "Q", 0, releasing: false));
+        Assert.False(BindMatcher.AwaitsDevice(table, session, "W", 0, releasing: false));
+
+        session.Held = Modifier.Super;
+        Assert.True(BindMatcher.AwaitsDevice(table, session, "Q", 0, releasing: false));
+        Assert.False(BindMatcher.AwaitsDevice(table, session, "q", 0, releasing: true));
+        Assert.False(BindMatcher.AwaitsDevice(table, session, "W", 0, releasing: false));
+    }
+
+    [Fact]
+    public void AReleaseBindWaitsOnThePressAndTheRelease()
+    {
+        var table = Load("bindrk = , Q, +board, killactive").Binds;
+        var session = new BindSession();
+
+        Assert.True(BindMatcher.AwaitsDevice(table, session, "Q", 0, releasing: false));
+        Assert.True(BindMatcher.AwaitsDevice(table, session, "Q", 0, releasing: true));
+        Assert.False(BindMatcher.AwaitsDevice(table, session, "W", 0, releasing: false));
+    }
+
+    [Fact]
+    public void NoDeviceBindDoesNotWait()
+    {
+        var table = Load("bind = , Q, killactive").Binds;
+
+        Assert.False(table.HasDeviceBind);
+        Assert.False(BindTable.Empty.HasDeviceBind);
+        Assert.False(BindMatcher.AwaitsDevice(table, new BindSession(), "Q", 0, releasing: false));
+    }
+
+    [Fact]
+    public void AMouseDeviceBindDoesNotWaitForAKey()
+    {
+        var table = Load("bindk = , mouse:272, +board, killactive").Binds;
+
+        Assert.True(table.HasDeviceBind);
+        Assert.False(BindMatcher.AwaitsDevice(table, new BindSession(), "Q", 0, releasing: false));
+        Assert.False(BindMatcher.AwaitsDevice(table, new BindSession(), "mouse:272", 0, releasing: false));
+    }
+
+    [Fact]
+    public void AChordWaitsForEitherOfItsKeys()
+    {
+        var table = Load("bindsk = , A&B, +board, killactive").Binds;
+        var session = new BindSession();
+
+        Assert.True(BindMatcher.AwaitsDevice(table, session, "A", 0, releasing: false));
+        Assert.True(BindMatcher.AwaitsDevice(table, session, "b", 0, releasing: false));
+        Assert.False(BindMatcher.AwaitsDevice(table, session, "C", 0, releasing: false));
+    }
+
+    [Fact]
+    public void ASubmapBindWaitsOnlyOnThatSubmap()
+    {
+        var table = Load("bindk = , Q, +board, killactive\nsubmap = resize\nbindk = , W, +board, killactive\n").Binds;
+        var session = new BindSession();
+
+        Assert.True(BindMatcher.AwaitsDevice(table, session, "Q", 0, releasing: false));
+        Assert.False(BindMatcher.AwaitsDevice(table, session, "W", 0, releasing: false));
+
+        session.Submap = "resize";
+        Assert.False(BindMatcher.AwaitsDevice(table, session, "Q", 0, releasing: false));
+        Assert.True(BindMatcher.AwaitsDevice(table, session, "W", 0, releasing: false));
+    }
+
+    [Fact]
+    public void AnExclusiveBindAndACodeBindWait()
+    {
+        var exclusive = Load("bindk = , Q, -board, killactive").Binds;
+        Assert.True(BindMatcher.AwaitsDevice(exclusive, new BindSession(), "Q", 0, releasing: false));
+
+        var code = Load("bindk = , code:24, +board, killactive").Binds;
+        var session = new BindSession();
+        Assert.True(BindMatcher.AwaitsDevice(code, session, "other", 24, releasing: false));
+        Assert.False(BindMatcher.AwaitsDevice(code, session, "other", 25, releasing: false));
+        Assert.False(BindMatcher.AwaitsDevice(code, session, "other", 0, releasing: false));
+    }
+
+    [Fact]
+    public void AnInhibitedSessionWaitsOnlyForALockedBind()
+    {
+        var open = Load("bindk = , Q, +board, killactive").Binds;
+        var locked = Load("bindlk = , Q, +board, killactive").Binds;
+        var session = new BindSession();
+        session.Inhibit(true);
+
+        Assert.False(BindMatcher.AwaitsDevice(open, session, "Q", 0, releasing: false));
+        Assert.True(BindMatcher.AwaitsDevice(locked, session, "Q", 0, releasing: false));
+    }
+
     private static Core Load(string text)
     {
         var core = new Core();

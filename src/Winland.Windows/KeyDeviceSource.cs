@@ -9,12 +9,10 @@ using Windows.Win32.UI.WindowsAndMessaging;
 namespace Winland.Windows;
 
 /// <summary>
-/// Names the keyboard a key came from. The low-level hook does not say, so a message-only window on the input
-/// thread registers for keyboard raw input and each packet is offered here. The hook drains the same buffer at the
-/// start of a key, and whichever of the two sees a packet first keeps it. A packet is stamped with
-/// <c>GetMessageTime</c>, the clock the hook's event already carries. Names are read when a keyboard arrives or
-/// leaves, and when a handle is not in the cache, never while the hook is deciding. A handle that is still unknown
-/// leaves that key with no device.
+/// Names the keyboard a key came from. The low-level hook does not say, and Windows posts that key's raw input only
+/// after the hook returns, so a message-only window on the input thread takes keyboard raw input and reports each
+/// packet once the hook has returned. Names are read when a keyboard arrives or leaves, and when a handle is not in
+/// the cache, never while the hook is deciding. A handle that is still unknown leaves that key with no device.
 /// </summary>
 internal sealed class KeyDeviceSource : IDisposable
 {
@@ -33,7 +31,7 @@ internal sealed class KeyDeviceSource : IDisposable
     private static KeyDeviceSource? Active;
 
     private readonly Action _requestRefresh;
-    private readonly KeyDeviceCorrelator _pending = new();
+    private readonly Action<int, int, bool, long> _onKey;
     private readonly DeviceNameCache _names = new();
     private IInputDevices? _devices;
     private HWND _hwnd;
@@ -42,10 +40,14 @@ internal sealed class KeyDeviceSource : IDisposable
     private bool _open;
     private bool _disposed;
 
-    internal KeyDeviceSource(Action requestRefresh)
+    internal readonly record struct RawKey(long Device, int VirtualKey, int Scan, bool Up);
+
+    internal KeyDeviceSource(Action requestRefresh, Action<int, int, bool, long> onKey)
     {
         ArgumentNullException.ThrowIfNull(requestRefresh);
+        ArgumentNullException.ThrowIfNull(onKey);
         _requestRefresh = requestRefresh;
+        _onKey = onKey;
     }
 
     /// <summary>Starts listening on the calling thread. A refused registration only logs, and the hook then has no devices.</summary>
@@ -95,25 +97,8 @@ internal sealed class KeyDeviceSource : IDisposable
         }
     }
 
-    /// <summary>
-    /// The <c>devices</c> name of the keyboard that sent this key, or null when no packet is close enough or the
-    /// handle is not one the last read listed.
-    /// </summary>
-    internal string? Match(int virtualKey, int scan, bool up, uint time)
-    {
-        if (!_open)
-            return null;
-
-        Drain(time);
-        if (!_pending.Take(virtualKey, scan, up, time, out var device))
-            return null;
-
-        if (_names.TryName(device, out var name))
-            return name;
-
-        AskRefresh();
-        return null;
-    }
+    /// <summary>The <c>devices</c> name of this keyboard, when the last read listed it.</summary>
+    internal bool TryName(long device, out string name) => _names.TryName(device, out name);
 
     /// <summary>Reads the device list again. Runs off the hook, on the input thread.</summary>
     internal void Refresh()
@@ -133,18 +118,18 @@ internal sealed class KeyDeviceSource : IDisposable
         }
     }
 
-    /// <summary>A raw keyboard packet. An injected key and a packet with no device are not offered.</summary>
-    internal static bool TryKey(int virtualKey, int scan, ushort flags, nuint extra, long device, uint time, out KeyDeviceCorrelator.Packet packet)
+    /// <summary>A raw keyboard packet. An injected key and a packet with no device are not reported.</summary>
+    internal static bool TryKey(int virtualKey, int scan, ushort flags, nuint extra, long device, out RawKey key)
     {
-        packet = default;
+        key = default;
         if (extra == KeyboardHook.InjectedTag || device == 0)
             return false;
 
-        packet = new KeyDeviceCorrelator.Packet(device, virtualKey, scan, (flags & BreakFlag) != 0, time);
+        key = new RawKey(device, virtualKey, scan, (flags & BreakFlag) != 0);
         return true;
     }
 
-    private void AskRefresh()
+    internal void AskRefresh()
     {
         if (Interlocked.Exchange(ref _refreshPosted, 1) == 0)
             _requestRefresh();
@@ -187,7 +172,7 @@ internal sealed class KeyDeviceSource : IDisposable
                 if (PInvoke.GetRawInputData(handle, RAW_INPUT_DATA_COMMAND_FLAGS.RID_INPUT, data, &size, header) != size)
                     return;
 
-                Offer((RAWINPUT*)data, unchecked((uint)PInvoke.GetMessageTime()));
+                Report((RAWINPUT*)data);
             }
         }
         finally
@@ -196,65 +181,17 @@ internal sealed class KeyDeviceSource : IDisposable
         }
     }
 
-    // Packets the window has not been given yet. Stamped with the hook event's time, which is the message time.
-    private unsafe void Drain(uint time)
-    {
-        uint size = 0;
-        var header = (uint)sizeof(RAWINPUTHEADER);
-        _ = PInvoke.GetRawInputBuffer(null, &size, header);
-        if (size < header || size > LargestBuffer)
-            return;
-
-        var rented = ArrayPool<byte>.Shared.Rent((int)size);
-        try
-        {
-            fixed (byte* data = rented)
-            {
-                var bytes = size;
-                var count = PInvoke.GetRawInputBuffer((RAWINPUT*)data, &bytes, header);
-                if (count == 0 || count == uint.MaxValue)
-                    return;
-
-                var raw = (RAWINPUT*)data;
-                var end = data + Math.Min(bytes, size);
-                for (var i = 0u; i < count; i++)
-                {
-                    if ((byte*)raw < data || (byte*)raw + sizeof(RAWINPUTHEADER) > end)
-                        break;
-
-                    Offer(raw, time);
-                    var next = Next(raw);
-                    if (next <= raw)
-                        break;
-
-                    raw = next;
-                }
-            }
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(rented);
-        }
-    }
-
-    private unsafe void Offer(RAWINPUT* raw, uint time)
+    private unsafe void Report(RAWINPUT* raw)
     {
         if ((uint)raw->header.dwType != KeyboardType)
             return;
 
         var key = raw->data.keyboard;
         var device = (long)raw->header.hDevice.Value;
-        if (!TryKey(key.VKey, key.MakeCode, (ushort)key.Flags, (nuint)key.ExtraInformation, device, time, out var packet))
+        if (!TryKey(key.VKey, key.MakeCode, (ushort)key.Flags, (nuint)key.ExtraInformation, device, out var packet))
             return;
 
-        _pending.Offer(packet);
-    }
-
-    private static unsafe RAWINPUT* Next(RAWINPUT* current)
-    {
-        var address = (nuint)current + current->header.dwSize;
-        var align = (nuint)sizeof(nuint) - 1;
-        return (RAWINPUT*)((address + align) & ~align);
+        _onKey(packet.VirtualKey, packet.Scan, packet.Up, packet.Device);
     }
 
     private static unsafe void Listen(HWND hwnd)

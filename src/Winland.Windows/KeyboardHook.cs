@@ -69,7 +69,12 @@ public sealed class KeyboardHook : IDisposable
     // up while the worker is busy collapse into the newest, so they never delay a key bind.
     private readonly InputQueue<Queued> _queued = new(Replaces);
     private readonly KeyDeviceSource _devices;
-    private readonly Queue<(SwallowedKey Key, IReadOnlyList<string> Release)> _replays = new();
+    private readonly DeferredKeys _waiting = new();
+
+    // A press this hook swallowed and then injected, still held. Its physical repeats are swallowed: Windows repeats
+    // the injected press, and passing the hardware repeats as well would deliver the key twice.
+    private readonly bool[] _givenBack = new bool[256];
+    private readonly Queue<(SwallowedKey Key, IReadOnlyList<string> Release, bool? StillDown)> _replays = new();
     private readonly Lock _replayGate = new();
 
     // Set on the bind worker while a luafunction dispatch runs, so that dispatch notes the Lua result instead of
@@ -83,6 +88,7 @@ public sealed class KeyboardHook : IDisposable
     private Timer? _longPressTimer;
     private Timer? _sweepTimer;
     private Timer? _watchTimer;
+    private Timer? _deviceWaitTimer;
     private int _lastSeen;
     private long _startedAt;
     private uint _hookThread;
@@ -98,7 +104,10 @@ public sealed class KeyboardHook : IDisposable
     internal const uint ReconcileMessage = 0x8000 + 27;
     internal const uint ReplayMessage = 0x8000 + 28;
     internal const uint DeviceRefreshMessage = 0x8000 + 29;
+    internal const uint DeviceWaitMessage = 0x8000 + 30;
     internal const uint InputLanguageMessage = 0x0051;
+
+    private static readonly string[] NoNames = [];
 
     internal BindSession Session => _session;
 
@@ -114,7 +123,7 @@ public sealed class KeyboardHook : IDisposable
         _core = core;
         _session = session;
         _callback = OnKeyboard;
-        _devices = new KeyDeviceSource(() => Post(DeviceRefreshMessage));
+        _devices = new KeyDeviceSource(() => Post(DeviceRefreshMessage), (vk, scan, up, handle) => DeliverPacket(vk, scan, up, handle, out _));
     }
 
     public void Start()
@@ -189,6 +198,16 @@ public sealed class KeyboardHook : IDisposable
 
         DisarmSweep();
         DisarmLongPress();
+        DisarmDeviceWait();
+
+        // The message loop has exited, so a posted replay would never be pumped. Inject what was swallowed directly.
+        if (_hookThread != 0 && _hookThread == PInvoke.GetCurrentThreadId())
+        {
+            ReleaseDeferred();
+            DisarmLongPress();
+            ReplayPending();
+        }
+
         StopWorker();
         _devices.Dispose();
     }
@@ -216,6 +235,10 @@ public sealed class KeyboardHook : IDisposable
             case DeviceRefreshMessage:
                 if (!_disposed)
                     _devices.Refresh();
+                return true;
+            case DeviceWaitMessage:
+                if (!_disposed)
+                    ExpireDue();
                 return true;
             default:
                 return false;
@@ -284,11 +307,8 @@ public sealed class KeyboardHook : IDisposable
             var extended = info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_EXTENDED);
             var scan = info.scanCode > int.MaxValue ? 0 : (int)info.scanCode;
 
-            // The packet of this key, if one has arrived. Taken even when the key is remapped, so it is not paired
-            // with a later press of the same key.
-            var device = _devices.Match(vk, scan, up, info.time);
-
             // kb_options: a key an option moves goes on as the key it moves to, and a grp: combination switches layouts.
+            // Done before a device wait. The raw packet names the original key, so the key sent on has no device.
             if (info.dwExtraInfo != RemapTag && Remap(info, up))
                 return new LRESULT(1);
 
@@ -319,58 +339,11 @@ public sealed class KeyboardHook : IDisposable
 
             var name = KeyNames.Name(vk, scan, extended, ActiveLayout(), TrackedModifiers());
             var xkb = KeyNames.XkbCode(vk, scan, extended);
-            Input input = up
-                ? new KeyReleased(name) { ScanCode = xkb, Device = device }
-                : new KeyPressed(name) { ScanCode = xkb, Device = device };
             if (!up)
                 SessionEffects.NoteKey();
-            _session.Inhibit(_inhibited != 0);
 
-            // The mouse dispatcher bound to a key drags while the key is held: its repeats are swallowed, and its release
-            // drops the window.
-            var draggedByKey = Drag.Current is MouseDrag.Active held && held.Button.Equals(name, StringComparison.OrdinalIgnoreCase);
-            if (draggedByKey && !up)
-                return new LRESULT(1);
-            if (draggedByKey && Drag.Release(name) is MouseDrag.Active dropped)
-                PostGesture(dropped.Dispatcher, dropped.Arguments, CursorPoint(), PointerDragPhase.End, name);
-
-            var decision = _core.Decide(input, _session);
-            NoteTiming(decision);
-            // With no window under the pointer a key whose bind only drags goes on to the focused window, as the pinned
-            // release lets the event through.
-            var keyDrag = up ? null : KeyDrag(decision);
-            if (keyDrag is not null && Drag.Current is null && MouseHook.OnlyDrag(decision) && !_core.HasDragTarget(CursorPoint()))
-                return Next(code, wParam, lParam);
-
-            if (keyDrag is BindDispatch drag && Drag.Begin(name, drag.Dispatcher, drag.Arguments))
-            {
-                PostGesture(drag.Dispatcher, drag.Arguments, CursorPoint(), PointerDragPhase.Begin, name);
-                foreach (var dispatch in decision.Dispatches)
-                {
-                    if (dispatch.Dispatcher.Length > 0 && !dispatch.Drag)
-                        PostDispatch(dispatch.Dispatcher, dispatch.Arguments, decision.Trigger);
-                }
-
-                return new LRESULT(1);
-            }
-
-            // A key drag is swallowed for the drag and is not given back. A mouse or wheel decision has no replay.
-            SwallowedKey? replay = null;
-            if (decision.PassesOnFailure && vk is >= 0 and <= ushort.MaxValue)
-            {
-                var replayScan = scan is >= 0 and <= ushort.MaxValue ? (ushort)scan : (ushort)0;
-                replay = new SwallowedKey((ushort)vk, replayScan, extended, name, !up);
-            }
-
-            Enqueue(decision, replay);
-            if (draggedByKey)
-                return new LRESULT(1);
-
-            // Sent now, while Super or Alt is still down, so it lands before their release.
-            if (decision.Mask)
-                Mask();
-
-            if (decision.Consumed)
+            var edge = new DeferredKeys.Edge(vk, scan, extended, up, name, xkb);
+            if (!DeliverTracked(edge, Environment.TickCount64, repeated).Passes)
                 return new LRESULT(1);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
@@ -378,6 +351,257 @@ public sealed class KeyboardHook : IDisposable
         }
 
         return Next(code, wParam, lParam);
+    }
+
+    /// <summary>What deciding one deferred press did, including a release that was waiting with it.</summary>
+    internal readonly record struct DeferredOutcome(
+        BindDecision Decision,
+        bool Replayed,
+        BindDecision? Release,
+        bool ReleaseReplayed,
+        int Repeats);
+
+    /// <summary>How the hook treated one edge. Waiting is a press swallowed until its raw packet or the timeout.</summary>
+    internal readonly record struct TrackedResult(bool Passes, bool Waiting, BindDecision Decision);
+
+    /// <summary>
+    /// The hook's decision for one key edge. A press a device bind could match is swallowed and not decided yet.
+    /// Anything else is decided now, with no device: a release uses the device its press remembered.
+    /// </summary>
+    internal TrackedResult DeliverTracked(DeferredKeys.Edge edge, long now, bool repeated)
+    {
+        _session.Inhibit(_inhibited != 0);
+        var vk = edge.VirtualKey;
+        if ((uint)vk <= 255 && _waiting.IsWaiting(vk))
+        {
+            if (!edge.Up)
+                _waiting.NoteRepeat(vk);
+            else
+                _waiting.AttachRelease(edge);
+
+            return new TrackedResult(false, true, default);
+        }
+
+        if (repeated || edge.Up)
+        {
+            if (edge.Up && (uint)vk <= 255)
+                _givenBack[vk] = false;
+
+            var applied = ApplyKey(edge, device: null, forceSwallow: false);
+            var passes = applied.ReachesWindows && !(repeated && (uint)vk <= 255 && _givenBack[vk]);
+            return new TrackedResult(passes, false, applied.Decision);
+        }
+
+        if ((uint)vk <= 255)
+            _givenBack[vk] = false;
+
+        if (WouldDefer(edge) && _waiting.Hold(edge, now))
+        {
+            ArmDeviceWait();
+            return new TrackedResult(false, true, default);
+        }
+
+        var sync = ApplyKey(edge, device: null, forceSwallow: false);
+        return new TrackedResult(sync.ReachesWindows, false, sync.Decision);
+    }
+
+    internal bool IsWaiting(int virtualKey) => _waiting.IsWaiting(virtualKey);
+
+    /// <summary>The raw packet for a waiting key. An unnamed keyboard completes the wait with no device.</summary>
+    internal bool DeliverPacket(int virtualKey, int scan, bool up, long handle, out DeferredOutcome outcome)
+    {
+        outcome = default;
+        try
+        {
+            if (_disposed)
+                return false;
+
+            string? device = null;
+            if (_devices.TryName(handle, out var named))
+                device = named;
+            else
+                _devices.AskRefresh();
+
+            return Complete(virtualKey, scan, up, device, out outcome);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            Console.Error.WriteLine(exception.Message);
+            return false;
+        }
+    }
+
+    /// <summary>A waiting press whose packet named this device, and a release or repeats that arrived with it.</summary>
+    internal bool Complete(int virtualKey, int scan, bool up, string? device, out DeferredOutcome outcome)
+    {
+        if (!_waiting.Offer(virtualKey, scan, up, out var pending))
+        {
+            outcome = default;
+            return false;
+        }
+
+        outcome = FinishCore(pending, device);
+        ArmDeviceWait();
+        return true;
+    }
+
+    /// <summary>The oldest wait that has ended, decided with no device. False when nothing is due.</summary>
+    internal bool ExpireOne(long now, out DeferredOutcome outcome)
+    {
+        if (!_waiting.Expire(now, out var pending))
+        {
+            outcome = default;
+            return false;
+        }
+
+        outcome = FinishCore(pending, device: null);
+        ArmDeviceWait();
+        return true;
+    }
+
+    private bool WouldDefer(DeferredKeys.Edge edge) =>
+        (uint)edge.VirtualKey <= 255
+        && _core.Binds.HasDeviceBind
+        && BindMatcher.AwaitsDevice(_core.Binds, _session, edge.Name, edge.Xkb, releasing: false);
+
+    private DeferredOutcome FinishCore(DeferredKeys.Pending pending, string? device)
+    {
+        _session.Inhibit(_inhibited != 0);
+        var press = ApplyKey(pending.Key, device, forceSwallow: false);
+        for (var i = 0; i < pending.Repeats; i++)
+            ApplyKey(pending.Key, device, forceSwallow: true);
+
+        AppliedKey? release = null;
+        if (pending.HasRelease)
+            release = ApplyKey(pending.Release, device, forceSwallow: !press.ReachesWindows);
+
+        var releaseReaches = release is { } done && done.ReachesWindows;
+        var replayed = false;
+        if (press.ReachesWindows)
+        {
+            // The press was swallowed in the hook. Give it back. A release swallowed with it is part of that
+            // injection: a click when the release also reaches the window, and only the press when the release was
+            // consumed. With no release yet, the injection follows whether the key is still held.
+            bool? stillDown = pending.HasRelease ? !releaseReaches : null;
+            PostReplay(ReplayKey(pending.Key), NoNames, stillDown);
+            replayed = true;
+        }
+
+        var vk = pending.Key.VirtualKey;
+        if ((uint)vk <= 255)
+            _givenBack[vk] = replayed && !releaseReaches;
+
+        return new DeferredOutcome(press.Decision, replayed, release?.Decision, replayed && releaseReaches, pending.Repeats);
+    }
+
+    private readonly record struct AppliedKey(bool ReachesWindows, BindDecision Decision);
+
+    // The tail of the hook, shared by a key decided immediately and one decided when its packet arrives.
+    private AppliedKey ApplyKey(DeferredKeys.Edge edge, string? device, bool forceSwallow)
+    {
+        Input input = edge.Up
+            ? new KeyReleased(edge.Name) { ScanCode = edge.Xkb, Device = device }
+            : new KeyPressed(edge.Name) { ScanCode = edge.Xkb, Device = device };
+        _session.Inhibit(_inhibited != 0);
+
+        // The mouse dispatcher bound to a key drags while the key is held: its repeats are swallowed, and its release
+        // drops the window.
+        var draggedByKey = Drag.Current is MouseDrag.Active held && held.Button.Equals(edge.Name, StringComparison.OrdinalIgnoreCase);
+        if (draggedByKey && !edge.Up)
+            return new AppliedKey(false, new BindDecision(true, null));
+        if (draggedByKey && Drag.Release(edge.Name) is MouseDrag.Active dropped)
+            PostGesture(dropped.Dispatcher, dropped.Arguments, CursorPoint(), PointerDragPhase.End, edge.Name);
+
+        var decision = _core.Decide(input, _session);
+        NoteTiming(decision);
+
+        // With no window under the pointer a key whose bind only drags goes on to the focused window, as the pinned
+        // release lets the event through.
+        var keyDrag = edge.Up ? null : KeyDrag(decision);
+        if (keyDrag is not null && Drag.Current is null && MouseHook.OnlyDrag(decision) && !_core.HasDragTarget(CursorPoint()))
+            return new AppliedKey(!forceSwallow, decision);
+
+        if (keyDrag is BindDispatch drag && Drag.Begin(edge.Name, drag.Dispatcher, drag.Arguments))
+        {
+            PostGesture(drag.Dispatcher, drag.Arguments, CursorPoint(), PointerDragPhase.Begin, edge.Name);
+            foreach (var dispatch in decision.Dispatches)
+            {
+                if (dispatch.Dispatcher.Length > 0 && !dispatch.Drag)
+                    PostDispatch(dispatch.Dispatcher, dispatch.Arguments, decision.Trigger);
+            }
+
+            return new AppliedKey(false, decision);
+        }
+
+        // A key drag is swallowed for the drag and is not given back. A repeat swallowed during the wait is not
+        // given back on its own: the press injection is the one Windows repeats.
+        SwallowedKey? replay = null;
+        if (!forceSwallow && decision.PassesOnFailure && edge.VirtualKey is >= 0 and <= ushort.MaxValue)
+        {
+            var scan = edge.Scan is >= 0 and <= ushort.MaxValue ? (ushort)edge.Scan : (ushort)0;
+            replay = new SwallowedKey((ushort)edge.VirtualKey, scan, edge.Extended, edge.Name, !edge.Up);
+        }
+
+        Enqueue(decision, replay);
+        if (draggedByKey)
+            return new AppliedKey(false, decision);
+
+        // Sent now, while Super or Alt is still down, so it lands before their release.
+        if (decision.Mask)
+            Mask();
+
+        return new AppliedKey(!forceSwallow && !decision.Consumed, decision);
+    }
+
+    private static SwallowedKey ReplayKey(DeferredKeys.Edge edge)
+    {
+        var scan = edge.Scan is >= 0 and <= ushort.MaxValue ? (ushort)edge.Scan : (ushort)0;
+        var vk = edge.VirtualKey is >= 0 and <= ushort.MaxValue ? (ushort)edge.VirtualKey : (ushort)0;
+        return new SwallowedKey(vk, scan, edge.Extended, edge.Name, Pressed: true);
+    }
+
+    private void OnDeviceWaitDue(object? _) => Post(DeviceWaitMessage);
+
+    private void ExpireDue()
+    {
+        var now = Environment.TickCount64;
+        while (_waiting.Expire(now, out var pending))
+            FinishCore(pending, device: null);
+
+        ArmDeviceWait();
+    }
+
+    private void ReleaseDeferred()
+    {
+        while (_waiting.Expire(long.MaxValue, out var pending))
+            FinishCore(pending, device: null);
+    }
+
+    private void ArmDeviceWait()
+    {
+        // Tests decide waits themselves. A live timer would inject a key when it elapsed.
+        if (_disposed || _hookThread == 0 || !_waiting.TryNextDue(out var due))
+        {
+            DisarmDeviceWait();
+            return;
+        }
+
+        var delay = due - Environment.TickCount64;
+        var ms = delay < 1 ? 1 : delay > DeferredKeys.WaitMs ? DeferredKeys.WaitMs : (int)delay;
+        lock (_timerGate)
+        {
+            _deviceWaitTimer?.Dispose();
+            _deviceWaitTimer = new Timer(OnDeviceWaitDue, null, ms, Timeout.Infinite);
+        }
+    }
+
+    private void DisarmDeviceWait()
+    {
+        lock (_timerGate)
+        {
+            _deviceWaitTimer?.Dispose();
+            _deviceWaitTimer = null;
+        }
     }
 
     private void OnSession(object? sender, Microsoft.Win32.SessionSwitchEventArgs e)
@@ -873,10 +1097,10 @@ public sealed class KeyboardHook : IDisposable
             Lua: batch is not null && dispatcher == TrackpadGesture.FunctionAction));
     }
 
-    private void PostReplay(SwallowedKey key, IReadOnlyList<string> release)
+    private void PostReplay(SwallowedKey key, IReadOnlyList<string> release, bool? stillDown = null)
     {
         lock (_replayGate)
-            _replays.Enqueue((key, release));
+            _replays.Enqueue((key, release, stillDown));
 
         Post(ReplayMessage);
     }
@@ -887,7 +1111,7 @@ public sealed class KeyboardHook : IDisposable
     {
         while (true)
         {
-            (SwallowedKey Key, IReadOnlyList<string> Release) next;
+            (SwallowedKey Key, IReadOnlyList<string> Release, bool? StillDown) next;
             lock (_replayGate)
             {
                 if (_replays.Count == 0)
@@ -900,7 +1124,8 @@ public sealed class KeyboardHook : IDisposable
             foreach (var name in next.Release)
                 _session.CaughtKeys.Remove(name);
 
-            InputInjector.Post(ReplayInputs(next.Key, IsDown((int)next.Key.VirtualKey)));
+            var stillDown = next.StillDown ?? IsDown((int)next.Key.VirtualKey);
+            InputInjector.Post(ReplayInputs(next.Key, stillDown));
         }
     }
 

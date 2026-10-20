@@ -15,6 +15,7 @@ public sealed class BindTable
     private readonly HashSet<string> _submaps;
     private readonly Bind[] _universal;
     private readonly Dictionary<string, string[]> _deviceTags;
+    private readonly bool _hasDeviceBind;
 
     private BindTable(Bind[] entries, int dragThreshold, int scrollDelay, int longPressDelay, Dictionary<string, string[]>? deviceTags)
     {
@@ -24,13 +25,18 @@ public sealed class BindTable
         ScrollDelay = scrollDelay;
         _submaps = new HashSet<string>(StringComparer.Ordinal);
         var universal = new List<Bind>();
+        var hasDevice = false;
         foreach (var bind in entries)
         {
+            if (bind.Devices is not null)
+                hasDevice = true;
             if (bind.Submap is string name && name.Length > 0)
                 _submaps.Add(name);
             if (bind.Flags.HasFlag(BindFlag.SubmapUniversal))
                 universal.Add(bind);
         }
+
+        _hasDeviceBind = hasDevice;
 
         _universal = universal.ToArray();
         var names = new HashSet<string>(_submaps, StringComparer.Ordinal) { "" };
@@ -56,6 +62,9 @@ public sealed class BindTable
         name is not null && _deviceTags.TryGetValue(name, out var tags) ? tags : null;
 
     public IReadOnlyList<Bind> Entries => _entries;
+
+    /// <summary>True when any bind names a device. The hook reads this before it looks at a key.</summary>
+    internal bool HasDeviceBind => _hasDeviceBind;
 
     internal bool HasSubmap(string name) => name.Length > 0 && _submaps.Contains(name);
 

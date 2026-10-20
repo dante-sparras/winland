@@ -118,15 +118,14 @@ SystemParametersInfo
 INPUT
 RegisterRawInputDevices
 GetRawInputData
-GetRawInputBuffer
 GetRawInputDeviceInfo
-GetMessageTime
 HidP_GetCaps
 HidP_GetValueCaps
 HidP_GetUsageValue
 HidP_GetUsages
 GetPointerDevices
 GetPointerDeviceRects
+RAWINPUT
 RAWINPUTHEADER
 RAWHID
 HWND_MESSAGE

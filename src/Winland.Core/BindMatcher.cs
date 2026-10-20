@@ -889,6 +889,86 @@ public static class BindMatcher
         return scanCode > 0 && bound.Equals($"code:{scanCode}", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// True when a device-scoped bind could match this key and these modifiers, whatever keyboard it came from.
+    /// The hook waits for that key's raw packet only then. A press waits for a release bind too: the packet that
+    /// names the keyboard arrives with the press, and the release uses the device the key went down on.
+    /// </summary>
+    internal static bool AwaitsDevice(BindTable table, BindSession session, string key, int scanCode, bool releasing)
+    {
+        ArgumentNullException.ThrowIfNull(table);
+        ArgumentNullException.ThrowIfNull(session);
+        foreach (var bind in table.Active(session.Submap))
+        {
+            if (bind.Devices is null || IsMouseBind(bind))
+                continue;
+            if (session.Inhibited && !bind.Flags.HasFlag(BindFlag.Locked))
+                continue;
+            if (!bind.Flags.HasFlag(BindFlag.IgnoreModifiers) && !ModifiersMatch(bind, session, key, mouse: false, releasing))
+                continue;
+            if (releasing && !bind.Flags.HasFlag(BindFlag.Release) && !SendsBothEdges(bind))
+                continue;
+            if (CouldMatchKey(bind, key, scanCode))
+                return true;
+        }
+
+        return false;
+    }
+
+    // Any key of a chord can be consumed when its device matches, so each part can make the hook wait.
+    private static bool CouldMatchKey(Bind bind, string key, int scanCode)
+    {
+        if (IsCatchAll(bind))
+            return true;
+        if (!bind.Flags.HasFlag(BindFlag.MultiKey))
+            return SameKey(bind.Key, key, scanCode);
+
+        var rest = bind.Key.AsSpan();
+        while (true)
+        {
+            var cut = rest.IndexOf('&');
+            var part = (cut < 0 ? rest : rest[..cut]).Trim();
+            if (SameKey(part, key, scanCode))
+                return true;
+            if (cut < 0)
+                return false;
+
+            rest = rest[(cut + 1)..];
+        }
+    }
+
+    // The same comparison as <see cref="KeyEquals"/> without building the code: string.
+    private static bool SameKey(ReadOnlySpan<char> bound, string key, int scanCode)
+    {
+        if (bound.IsEmpty)
+            return false;
+        if (bound.Equals(key, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return scanCode > 0 && CodeKey(bound, scanCode);
+    }
+
+    private static bool CodeKey(ReadOnlySpan<char> bound, int scanCode)
+    {
+        if (bound.Length is < 6 or > 15 || !bound.StartsWith("code:", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var digits = bound[5..];
+        if (digits.IsEmpty || digits[0] == '0')
+            return false;
+
+        var value = 0;
+        foreach (var digit in digits)
+        {
+            if (digit is < '0' or > '9' || value > (int.MaxValue - 9) / 10)
+                return false;
+
+            value = value * 10 + (digit - '0');
+        }
+
+        return value == scanCode;
+    }
+
     private static BindDecision CancelLongPress(BindSession session, BindDecision decision)
     {
         session.LongPressKey = null;
