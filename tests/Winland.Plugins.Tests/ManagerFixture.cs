@@ -161,6 +161,10 @@ internal sealed class ManagerFixture : IDisposable
             Calls.Add("load " + path);
             return !FailLoad && Loaded.Add(Path.GetFileNameWithoutExtension(path));
         }
+
+        public bool NotRunning { get; set; }
+
+        IReadOnlyList<string>? IRunningPlugins.Loaded() => NotRunning ? null : [.. Loaded];
     }
 
     internal sealed class RecordingProtector : IPluginDirectoryProtector

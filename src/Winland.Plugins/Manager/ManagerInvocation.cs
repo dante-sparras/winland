@@ -13,6 +13,10 @@ public abstract record ManagerCommand
 
     public sealed record Remove(string Identifier) : ManagerCommand;
 
+    public sealed record Enable(string Identifier, bool Enabled) : ManagerCommand;
+
+    public sealed record Reload(bool Force) : ManagerCommand;
+
     public sealed record List : ManagerCommand;
 
     public sealed record Apply(ApplyRequest Request) : ManagerCommand;
@@ -51,9 +55,22 @@ public static class ManagerInvocation
                 return new ManagerCommand.Invalid("usage: winlandctl plugin update [--force]");
             case "remove":
                 if (rest.Length != 1)
-                    return new ManagerCommand.Invalid("usage: winlandctl plugin remove <git-url|name>");
+                    return new ManagerCommand.Invalid("usage: winlandctl plugin remove <git-url|name|author/name>");
 
                 return new ManagerCommand.Remove(rest[0]);
+            case "enable" or "disable":
+                if (rest.Length != 1)
+                    return new ManagerCommand.Invalid($"usage: winlandctl plugin {verb} <name|author/name>");
+
+                return new ManagerCommand.Enable(rest[0], verb == "enable");
+            case "reload":
+                if (rest.Length == 0)
+                    return new ManagerCommand.Reload(false);
+
+                if (rest.Length == 1 && rest[0] is "--force" or "-f")
+                    return new ManagerCommand.Reload(true);
+
+                return new ManagerCommand.Invalid("usage: winlandctl plugin reload [--force]");
             case "list" when rest.Length == 1 && rest[0] == "--installed":
                 return new ManagerCommand.List();
             case ApplyRequest.Verb:

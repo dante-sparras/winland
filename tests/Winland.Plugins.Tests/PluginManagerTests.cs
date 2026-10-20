@@ -41,7 +41,8 @@ public class PluginManagerTests
         var arguments = Assert.Single(fixture.Elevator.Calls);
         Assert.DoesNotContain(arguments, argument => argument.StartsWith(fixture.Paths.Staging, StringComparison.OrdinalIgnoreCase) && !argument.EndsWith(".dll", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain("--report", arguments);
-        Assert.Empty(Directory.GetFiles(fixture.Paths.Staging));
+        // The only file there is the one the manager itself keeps, which records which plugins are enabled.
+        Assert.Equal([Path.Combine(fixture.Paths.Staging, ManagerState.FileName)], Directory.GetFiles(fixture.Paths.Staging));
         Assert.Contains("Installed plugin 'sample'", fixture.Output.ToString(), StringComparison.Ordinal);
     }
 
@@ -299,6 +300,96 @@ public class PluginManagerTests
     }
 
     [Fact]
+    public void AnInstalledPluginStartsDisabledAndEnablingLoadsIt()
+    {
+        using var fixture = ManagerFixture.Create();
+        Assert.Equal(0, fixture.Manager.Install(ManagerFixture.Url, null));
+        Assert.Empty(fixture.Running.Calls);
+
+        Assert.Equal(0, fixture.Manager.Enable("sample", enabled: true));
+        Assert.Equal(["load " + Path.Combine(fixture.Paths.PluginDirectory, "sample.dll")], fixture.Running.Calls);
+        Assert.Contains("sample", fixture.Running.Loaded);
+
+        Assert.Equal(0, fixture.Manager.Enable("sample", enabled: false));
+        Assert.Empty(fixture.Running.Loaded);
+    }
+
+    [Fact]
+    public void EnableTakesTheAuthorFromTheUrl()
+    {
+        using var fixture = ManagerFixture.Create();
+        Assert.Equal(0, fixture.Manager.Install(ManagerFixture.Url, null));
+
+        Assert.Equal(1, fixture.Manager.Enable("someone/sample", enabled: true));
+        Assert.Contains("Couldn't enable plugin (missing?)", fixture.Error.ToString(), StringComparison.Ordinal);
+        Assert.Equal(1, fixture.Manager.Enable("missing", enabled: true));
+
+        Assert.Equal(0, fixture.Manager.Enable("example.com/sample", enabled: true));
+        Assert.Contains("sample", fixture.Running.Loaded);
+    }
+
+    [Fact]
+    public void ReloadUnloadsWhatIsNotEnabledAndLoadsWhatIs()
+    {
+        using var fixture = ManagerFixture.Create();
+        Assert.Equal(0, fixture.Manager.Install(ManagerFixture.Url, null));
+        fixture.Running.NotRunning = true;
+        Assert.Equal(1, fixture.Manager.Enable("sample", enabled: true));
+        Assert.Contains("Winland is not running", fixture.Error.ToString(), StringComparison.Ordinal);
+        fixture.Running.NotRunning = false;
+        fixture.Running.Loaded.Add("manual");
+
+        Assert.Equal(0, fixture.Manager.Reload(force: false));
+        Assert.Equal(["unload manual", "load " + Path.Combine(fixture.Paths.PluginDirectory, "sample.dll")], fixture.Running.Calls);
+
+        fixture.Running.Calls.Clear();
+        Assert.Equal(0, fixture.Manager.Reload(force: false));
+        Assert.Empty(fixture.Running.Calls);
+
+        Assert.Equal(0, fixture.Manager.Reload(force: true));
+        Assert.Equal(["unload sample", "load " + Path.Combine(fixture.Paths.PluginDirectory, "sample.dll")], fixture.Running.Calls);
+    }
+
+    [Fact]
+    public void AnUpdateKeepsWhichPluginsAreEnabled()
+    {
+        using var fixture = ManagerFixture.Create();
+        Assert.Equal(0, fixture.Manager.Install(ManagerFixture.Url, null));
+        Assert.Equal(0, fixture.Manager.Enable("sample", enabled: true));
+        fixture.Commit = new string('b', 40);
+
+        Assert.Equal(0, fixture.Manager.Update(force: false));
+        fixture.Output.GetStringBuilder().Clear();
+        Assert.Equal(0, fixture.Manager.List());
+
+        Assert.Contains("  sample  enabled  ", fixture.Output.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RemoveTakesTheAuthorAndTheRepositoryName()
+    {
+        using var fixture = ManagerFixture.Create();
+        fixture.ManifestText = "[repository]\nname = \"pack\"\n\n" + ManagerFixture.Manifest;
+        Assert.Equal(0, fixture.Manager.Install(ManagerFixture.Url, null));
+
+        Assert.Equal(1, fixture.Manager.Remove("someone/pack"));
+        Assert.Equal(0, fixture.Manager.Remove("example.com/pack"));
+
+        Assert.Empty(InstalledPlugins.Read(fixture.Paths.Approvals));
+        Assert.Empty(ManagerState.Read(Path.Combine(fixture.Paths.Staging, ManagerState.FileName)));
+    }
+
+    [Theory]
+    [InlineData("https://github.com/someone/my-plugins", "someone", "my-plugins")]
+    [InlineData("https://github.com/someone/my-plugins.git/", "someone", "my-plugins.git")]
+    [InlineData("plugins", "", "plugins")]
+    public void TheAuthorAndNameAreReadFromTheUrl(string url, string author, string name)
+    {
+        Assert.Equal(author, ManagerState.AuthorOf(url));
+        Assert.Equal(name, ManagerState.NameOf(url));
+    }
+
+    [Fact]
     public void ListWithNothingInstalledSaysSo()
     {
         using var fixture = ManagerFixture.Create();
@@ -329,6 +420,12 @@ public class PluginManagerTests
     [InlineData(new[] { "plugin", "update", "--force" }, "Update")]
     [InlineData(new[] { "plugin", "remove", "sample" }, "Remove")]
     [InlineData(new[] { "plugin", "list", "--installed" }, "List")]
+    [InlineData(new[] { "plugin", "enable", "sample" }, "Enable")]
+    [InlineData(new[] { "plugin", "disable", "someone/sample" }, "Enable")]
+    [InlineData(new[] { "plugin", "reload" }, "Reload")]
+    [InlineData(new[] { "plugin", "reload", "--force" }, "Reload")]
+    [InlineData(new[] { "plugin", "enable" }, "Invalid")]
+    [InlineData(new[] { "plugin", "reload", "now" }, "Invalid")]
     [InlineData(new[] { "plugin", "install" }, "Invalid")]
     [InlineData(new[] { "plugin", "update", "now" }, "Invalid")]
     [InlineData(new[] { "plugin", "apply" }, "Invalid")]

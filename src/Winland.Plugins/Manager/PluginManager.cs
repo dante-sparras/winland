@@ -46,11 +46,10 @@ public sealed class PluginManager(
         if (!Apply([built.Repository], []))
             return 1;
 
+        // As in the pinned plugin manager, a new plugin starts disabled.
+        Remember(built.Repository);
         foreach (var plugin in built.Repository.Plugins)
-        {
-            var path = Target(plugin.Name);
-            output.WriteLine($"Load it with 'winlandctl plugin load {path}', or add 'plugin = {path}' to the config.");
-        }
+            output.WriteLine($"Enable it with 'winlandctl plugin enable {plugin.Name}', or add 'plugin = {Target(plugin.Name)}' to the config.");
 
         return 0;
     }
@@ -97,6 +96,9 @@ public sealed class PluginManager(
         if (!Apply(staged, []))
             return 1;
 
+        foreach (var repository in staged)
+            Remember(repository);
+
         // A plugin the manifest no longer lists was removed with its file and approval, so a
         // copy still loaded in Winland is unloaded too.
         foreach (var repository in staged)
@@ -135,8 +137,9 @@ public sealed class PluginManager(
         if (!ValidArgument(identifier, "repository or plugin") || !TryReadInstalled(out var installed))
             return 1;
 
-        var named = installed.FirstOrDefault(entry => SameUrl(entry.Repository, identifier))
-            ?? installed.FirstOrDefault(entry => PluginNames.Same(entry.Name, identifier));
+        var named = Identify(identifier, Repositories(installed)) is ManagedRepository repository
+            ? installed.FirstOrDefault(entry => SameUrl(entry.Repository, repository.Url))
+            : installed.FirstOrDefault(entry => PluginNames.Same(entry.Name, identifier));
         if (named is null)
         {
             error.WriteLine($"No installed repository or plugin is named '{identifier}'.");
@@ -161,7 +164,54 @@ public sealed class PluginManager(
         }
 
         _staging.Clean(url);
+        Forget(url);
         return 0;
+    }
+
+    /// <summary>
+    /// Enables or disables an installed plugin, named alone or as <c>author/name</c>, then loads and
+    /// unloads plugins in the running Winland as <see cref="Reload"/> does.
+    /// </summary>
+    public int Enable(string identifier, bool enabled)
+    {
+        var verb = enabled ? "enable" : "disable";
+        if (!ValidArgument(identifier, "plugin") || !TryReadInstalled(out var installed))
+            return 1;
+
+        var repositories = Repositories(installed).ToList();
+        var slash = identifier.IndexOf('/', StringComparison.Ordinal);
+        var author = slash < 0 ? null : identifier[..slash];
+        var name = slash < 0 ? identifier : identifier[(slash + 1)..];
+        var index = repositories.FindIndex(repository => (author is null || repository.Author == author)
+            && repository.Enabled.Keys.Any(plugin => PluginNames.Same(plugin, name)));
+        if (identifier.Contains(':', StringComparison.Ordinal) || index < 0)
+        {
+            error.WriteLine($"Couldn't {verb} plugin (missing?)");
+            return 1;
+        }
+
+        var found = repositories[index];
+        var key = found.Enabled.Keys.First(plugin => PluginNames.Same(plugin, name));
+        var flags = new Dictionary<string, bool>(found.Enabled, StringComparer.OrdinalIgnoreCase) { [key] = enabled };
+        repositories[index] = found with { Enabled = flags };
+        if (!TryWriteState(repositories))
+            return 1;
+
+        output.WriteLine(enabled ? $"Enabled {key}" : $"Disabled {key}");
+        return EnsureLoadState(installed, repositories, force: false);
+    }
+
+    /// <summary>
+    /// Unloads every plugin loaded in the running Winland that is not enabled, and loads every enabled one that is
+    /// not loaded, as the pinned plugin manager's <c>reload</c> does. With <paramref name="force"/> every loaded
+    /// plugin is unloaded and every enabled one loaded again.
+    /// </summary>
+    public int Reload(bool force)
+    {
+        if (!TryReadInstalled(out var installed))
+            return 1;
+
+        return EnsureLoadState(installed, Repositories(installed), force);
     }
 
     public int List()
@@ -175,6 +225,7 @@ public sealed class PluginManager(
             return 0;
         }
 
+        var repositories = Repositories(installed);
         foreach (var repository in installed.GroupBy(entry => entry.Repository, StringComparer.OrdinalIgnoreCase))
         {
             if (repository.Key is null)
@@ -182,12 +233,144 @@ public sealed class PluginManager(
             else
                 output.WriteLine($"Repository {repository.Key} (commit {repository.First().Commit ?? "unknown"})");
 
+            var managed = repository.Key is null ? null : repositories.FirstOrDefault(entry => SameUrl(entry.Url, repository.Key));
             foreach (var plugin in repository)
-                output.WriteLine($"  {plugin.Name}  {plugin.File ?? "-"}  sha256 {plugin.Sha256}");
+            {
+                var enabled = managed is null ? "" : managed.Enabled.GetValueOrDefault(plugin.Name) ? "  enabled" : "  disabled";
+                output.WriteLine($"  {plugin.Name}{enabled}  {plugin.File ?? "-"}  sha256 {plugin.Sha256}");
+            }
         }
 
         return 0;
     }
+
+    private int EnsureLoadState(IReadOnlyList<InstalledPlugin> installed, IReadOnlyList<ManagedRepository> repositories, bool force)
+    {
+        var loaded = running.Loaded();
+        if (loaded is null)
+        {
+            error.WriteLine("Winland is not running, so no plugin was loaded or unloaded.");
+            return 1;
+        }
+
+        bool Enabled(string name) =>
+            repositories.Any(repository => repository.Enabled.Any(pair => pair.Value && PluginNames.Same(pair.Key, name)));
+
+        // As in the pinned plugin manager, a loaded plugin that is not enabled is unloaded, whatever loaded it.
+        var failed = false;
+        foreach (var name in loaded)
+        {
+            if (!force && Enabled(name))
+                continue;
+
+            if (running.Unload(name))
+            {
+                output.WriteLine($"Unloaded {name}");
+                continue;
+            }
+
+            error.WriteLine($"Could not unload {name}.");
+            failed = true;
+        }
+
+        foreach (var plugin in installed.Where(entry => entry.Repository is not null && Enabled(entry.Name)))
+        {
+            if (!force && loaded.Any(name => PluginNames.Same(name, plugin.Name)))
+                continue;
+
+            if (running.Load(Target(plugin.Name)))
+            {
+                output.WriteLine($"Loaded {plugin.Name}");
+                continue;
+            }
+
+            error.WriteLine($"Could not load {plugin.Name}.");
+            failed = true;
+        }
+
+        return failed ? 1 : 0;
+    }
+
+    // Each installed repository with its name, its author and which of its plugins are enabled. A repository
+    // installed before the state was kept is named after its URL and has every plugin disabled.
+    private IReadOnlyList<ManagedRepository> Repositories(IReadOnlyList<InstalledPlugin> installed)
+    {
+        var known = ReadState();
+        return installed
+            .Where(entry => entry.Repository is not null)
+            .GroupBy(entry => entry.Repository!, StringComparer.OrdinalIgnoreCase)
+            .Select(group =>
+            {
+                var state = known.FirstOrDefault(entry => SameUrl(entry.Url, group.Key));
+                var enabled = group.ToDictionary(
+                    entry => entry.Name,
+                    entry => state?.Enabled.GetValueOrDefault(entry.Name) ?? false,
+                    StringComparer.OrdinalIgnoreCase);
+                return new ManagedRepository(group.Key, state?.Name ?? ManagerState.NameOf(group.Key), ManagerState.AuthorOf(group.Key), enabled);
+            })
+            .ToArray();
+    }
+
+    // A URL, an author/name or a repository name, as the pinned plugin manager reads a repository.
+    private static ManagedRepository? Identify(string identifier, IReadOnlyList<ManagedRepository> repositories)
+    {
+        if (identifier.Contains(':', StringComparison.Ordinal))
+            return repositories.FirstOrDefault(repository => SameUrl(repository.Url, identifier));
+
+        var slash = identifier.IndexOf('/', StringComparison.Ordinal);
+        if (slash >= 0)
+        {
+            var author = identifier[..slash];
+            var name = identifier[(slash + 1)..];
+            return repositories.FirstOrDefault(repository => repository.Author == author && repository.Name == name);
+        }
+
+        return repositories.FirstOrDefault(repository => repository.Name == identifier);
+    }
+
+    private void Remember(StagedRepository staged)
+    {
+        var known = ReadState();
+        var before = known.FirstOrDefault(entry => SameUrl(entry.Url, staged.Url));
+        var enabled = staged.Plugins.ToDictionary(
+            plugin => plugin.Name,
+            plugin => before?.Enabled.GetValueOrDefault(plugin.Name) ?? false,
+            StringComparer.OrdinalIgnoreCase);
+        var name = staged.Name ?? ManagerState.NameOf(staged.Url);
+        TryWriteState([.. known.Where(entry => !SameUrl(entry.Url, staged.Url)), new ManagedRepository(staged.Url, name, ManagerState.AuthorOf(staged.Url), enabled)]);
+    }
+
+    private void Forget(string url) =>
+        TryWriteState(ReadState().Where(entry => !SameUrl(entry.Url, url)).ToArray());
+
+    private IReadOnlyList<ManagedRepository> ReadState()
+    {
+        try
+        {
+            return ManagerState.Read(StatePath);
+        }
+        catch (InvalidDataException exception)
+        {
+            error.WriteLine(exception.Message);
+            return [];
+        }
+    }
+
+    private bool TryWriteState(IReadOnlyList<ManagedRepository> repositories)
+    {
+        try
+        {
+            ManagerState.Write(StatePath, repositories);
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            error.WriteLine($"Could not write the plugin state '{StatePath}': {exception.Message}");
+            return false;
+        }
+    }
+
+    private string StatePath => Path.Combine(paths.Staging, ManagerState.FileName);
 
     private bool Apply(IReadOnlyList<StagedRepository> install, IReadOnlyList<string> remove)
     {

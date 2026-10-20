@@ -120,7 +120,10 @@ public sealed class PluginStaging(PluginManagerPaths paths, IProcessRunner runne
             plugins.Add(new StagedPlugin(plugin.Name, PluginHash.OfFile(assembly), assembly));
         }
 
-        return new StageOutcome.Built(new StagedRepository(url, commit, plugins));
+        return new StageOutcome.Built(new StagedRepository(url, commit, plugins)
+        {
+            Name = string.IsNullOrWhiteSpace(manifest.RepositoryName) ? null : manifest.RepositoryName,
+        });
     }
 
     public void Clean(string url)

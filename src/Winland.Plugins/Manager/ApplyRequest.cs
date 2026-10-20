@@ -4,7 +4,11 @@ namespace Winland.Plugins.Manager;
 public sealed record StagedPlugin(string Name, string Sha256, string Source);
 
 /// <summary>A repository at one commit and the plugins built from it.</summary>
-public sealed record StagedRepository(string Url, string Commit, IReadOnlyList<StagedPlugin> Plugins);
+public sealed record StagedRepository(string Url, string Commit, IReadOnlyList<StagedPlugin> Plugins)
+{
+    /// <summary>The manifest's repository name. The elevated step does not need it, so it is not passed on.</summary>
+    public string? Name { get; init; }
+}
 
 /// <summary>
 /// What the elevated step does: install or replace repositories and remove others.

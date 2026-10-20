@@ -39,7 +39,10 @@ public static class ControlInvocation
                winlandctl plugin unload <name>
                winlandctl plugin install <git-url> [revision]
                winlandctl plugin update [--force]
-               winlandctl plugin remove <git-url|name>
+               winlandctl plugin remove <git-url|name|author/name>
+               winlandctl plugin enable <name|author/name>
+               winlandctl plugin disable <name|author/name>
+               winlandctl plugin reload [--force]
                winlandctl plugin list --installed
                winlandctl [-j] [-r] [-a] --batch <commands>
 
