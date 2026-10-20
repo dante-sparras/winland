@@ -283,9 +283,32 @@ public sealed class KeyboardHook : IDisposable
             if (!up)
                 SessionEffects.NoteKey();
             _session.Inhibit(_inhibited != 0);
+
+            // The mouse dispatcher bound to a key drags while the key is held: its repeats are swallowed, and its release
+            // drops the window.
+            var draggedByKey = Drag.Current is MouseDrag.Active held && held.Button.Equals(name, StringComparison.OrdinalIgnoreCase);
+            if (draggedByKey && !up)
+                return new LRESULT(1);
+            if (draggedByKey && Drag.Release(name) is MouseDrag.Active dropped)
+                PostGesture(dropped.Dispatcher, dropped.Arguments, CursorPoint(), PointerDragPhase.End, name);
+
             var decision = _core.Decide(input, _session);
             NoteTiming(decision);
+            if (!up && KeyDrag(decision) is BindDispatch drag && Drag.Begin(name, drag.Dispatcher, drag.Arguments))
+            {
+                PostGesture(drag.Dispatcher, drag.Arguments, CursorPoint(), PointerDragPhase.Begin, name);
+                foreach (var dispatch in decision.Dispatches)
+                {
+                    if (dispatch.Dispatcher.Length > 0 && !dispatch.Drag)
+                        PostDispatch(dispatch.Dispatcher, dispatch.Arguments, decision.Trigger);
+                }
+
+                return new LRESULT(1);
+            }
+
             Enqueue(decision);
+            if (draggedByKey)
+                return new LRESULT(1);
 
             // Sent now, while Super or Alt is still down, so it lands before their release.
             if (decision.Mask)
@@ -519,6 +542,20 @@ public sealed class KeyboardHook : IDisposable
 
     private static bool Down(int vk) => (PInvoke.GetAsyncKeyState(vk) & 0x8000) != 0;
 
+    private Point CursorPoint() => PInvoke.GetCursorPos(out var point) ? new Point(point.X, point.Y) : _session.Pointer;
+
+    // The drag of a mouse dispatcher a key's bind ran, if any.
+    private static BindDispatch? KeyDrag(BindDecision decision)
+    {
+        foreach (var dispatch in decision.Dispatches)
+        {
+            if (dispatch.Drag && MouseHook.IsDrag(dispatch.Dispatcher, dispatch.Arguments))
+                return dispatch;
+        }
+
+        return null;
+    }
+
     private bool IsDown(string key)
     {
         if (key.StartsWith("mouse:", StringComparison.Ordinal))
@@ -708,6 +745,9 @@ public sealed class KeyboardHook : IDisposable
         if (!string.IsNullOrEmpty(decision.Dispatcher))
             PostDispatch(decision.Dispatcher, decision.Arguments, decision.Trigger);
     }
+
+    /// <summary>The drag a mouse bind started, from a mouse button or a key, which pointer moves carry on.</summary>
+    internal MouseDrag Drag { get; } = new();
 
     internal void PostDispatch(string dispatcher, string arguments, BindTrigger? trigger = null) =>
         _queued.Post(new Queued(QueuedKind.Dispatch, dispatcher, arguments, false, Trigger: trigger));

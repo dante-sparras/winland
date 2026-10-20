@@ -8,8 +8,40 @@ public sealed partial class Core
     private BorderDrag? _border;
     private string? _resizeCursor;
 
-    private Outcome RunKey(Input input) =>
-        RunBind(BindMatcher.Decide(_binds, _keyState, input));
+    private Outcome RunKey(Input input)
+    {
+        var match = BindMatcher.Decide(_binds, _keyState, input);
+
+        // The mouse dispatcher bound to a key drags the window under the pointer while the key is held, as in the pinned
+        // release, and the key's release drops it.
+        if (input is KeyPressed pressed && _gesture is null && KeyDrag(match) is { } drag && DragTarget(_pointer) is WindowId window)
+        {
+            var begun = BeginGesture(window, drag, pressed.Key, _pointer!.Value);
+            var ran = RunBind(match) with { Focus = window };
+            return begun.Count == 0 ? ran : ran with { Placements = begun };
+        }
+
+        if (input is KeyReleased released && _gesture is not null && _gesture.Button.Equals(released.Key, StringComparison.OrdinalIgnoreCase))
+        {
+            var ended = EndGesture(_pointer ?? _gesture.Origin);
+            NoteBorderCursor(_pointer ?? _gesture.Origin);
+            var after = RunBind(match);
+            return Merge(ended, after) with { Consumed = true, Dispatcher = after.Dispatcher };
+        }
+
+        return RunBind(match);
+    }
+
+    private static BindDispatch? KeyDrag(BindDecision match)
+    {
+        foreach (var dispatch in DispatchesOf(match))
+        {
+            if (dispatch.Drag && IsDragDispatcher(dispatch))
+                return dispatch;
+        }
+
+        return null;
+    }
 
     private Outcome PressPointer(PointerButtonPressed pressed)
     {

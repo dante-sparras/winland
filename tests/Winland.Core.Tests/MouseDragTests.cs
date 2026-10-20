@@ -379,7 +379,6 @@ public class MouseDragTests
     }
 
     [Theory]
-    [InlineData("bind = SUPER, Z, mouse, movewindow", "The mouse dispatcher needs a mouse button.")]
     [InlineData("bind = SUPER, mouse:272, mouse, killactive", "The mouse dispatcher takes movewindow or resizewindow.")]
     [InlineData("bindr = SUPER, mouse:272, mouse, movewindow", "Bind flags conflict.")]
     public void TheMouseDispatcherRejectsWhatCannotDrag(string line, string warning)
@@ -535,6 +534,26 @@ public class MouseDragTests
         Press(core, "Super_L");
 
         Assert.Equal(cursor, core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(x, y) }).ResizeCursor);
+    }
+
+    [Fact]
+    public void TheMouseDispatcherOnAKeyDragsWhileTheKeyIsHeld()
+    {
+        var core = Flat("bind = SUPER, Z, mouse, movewindow\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        core.Handle(new PointerMoved(new Point(700, 400)));
+        Press(core, "Super_L");
+
+        var pressed = core.Handle(new KeyPressed("z"));
+        var moved = core.Handle(new PointerMoved(new Point(750, 430)));
+        var released = core.Handle(new KeyReleased("z"));
+        var after = core.Handle(new PointerMoved(new Point(900, 600)));
+
+        Assert.True(pressed.Consumed);
+        Assert.Equal(new Rectangle(690, 370, 640, 400), BoundsOf(moved, 1));
+        Assert.Null(released.ResizeCursor);
+        Assert.DoesNotContain(after.Placements, placement => placement.Client == new ClientId(1));
     }
 
     // Dwindle with 1 on the left, 2 at the top right, and 3 and 4 side by side at the bottom right.
