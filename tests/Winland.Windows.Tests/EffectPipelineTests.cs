@@ -10,10 +10,68 @@ namespace Winland.Tests;
 /// The wobble and motion blur pipeline against a real window: Windows.Graphics.Capture of a veiled window, the Direct3D passes, and
 /// the pixels they read back. A machine with no hardware adapter or no capture support skips these by returning early.
 /// </summary>
+/// <summary>
+/// A desktop test that needs the machine to capture a window and draw it. It skips, with the reason, where it cannot: a runner with no
+/// desktop session, no hardware adapter, or no capture frames, as a headless CI runner has. The product falls back to thumbnails there.
+/// </summary>
+public sealed class CaptureFactAttribute : DesktopFactAttribute
+{
+    private static readonly Lazy<string?> Unavailable = new(EffectPipelineTests.WhyCaptureIsUnavailable);
+
+    public CaptureFactAttribute()
+    {
+        if (Skip is null)
+            Skip = Unavailable.Value;
+    }
+}
+
 [Collection(DesktopCollection.Name)]
 [Trait("Category", DesktopCollection.Name)]
 public class EffectPipelineTests
 {
+    /// <summary>Why a window cannot be captured and drawn here, or null when it can. A real window is captured to find out.</summary>
+    internal static string? WhyCaptureIsUnavailable()
+    {
+        try
+        {
+            if (!global::Windows.Graphics.Capture.GraphicsCaptureSession.IsSupported())
+                return "Windows.Graphics.Capture is not supported on this machine.";
+
+            var gpu = Gpu.Acquire();
+            if (gpu is null)
+                return "There is no hardware graphics adapter to draw the effects with.";
+
+            using var window = new PaintedWindow(Width, Height);
+            WindowCapture? capture;
+            lock (gpu.Gate)
+                capture = WindowCapture.TryStart(gpu, window.Handle);
+
+            if (capture is null)
+                return "Windows would not start capturing a window.";
+
+            using (capture)
+            {
+                var deadline = Stopwatch.GetTimestamp() + 3 * Stopwatch.Frequency;
+                while (Stopwatch.GetTimestamp() < deadline)
+                {
+                    lock (gpu.Gate)
+                    {
+                        if (capture.Refresh() && capture.Picture is not null)
+                            return null;
+                    }
+
+                    Thread.Sleep(10);
+                }
+            }
+
+            return "Windows gave no captured frame of a window within three seconds, as on a headless runner.";
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            return $"Capture could not be tried: {exception.Message}";
+        }
+    }
+
     private const int Width = 300;
     private const int Height = 200;
 
@@ -23,7 +81,7 @@ public class EffectPipelineTests
     private static readonly byte[] Blue = [255, 0, 0, 255];
     private static readonly byte[] White = [255, 255, 255, 255];
 
-    [DesktopFact]
+    [CaptureFact]
     public void AVeiledWindowIsCapturedAndDrawnWithItsOwnPixels()
     {
         using var gpuScope = Scope();
@@ -47,7 +105,7 @@ public class EffectPipelineTests
         Assert.Equal(White, frame.Pixel((Width + 40) * 3 / 4, (Height + 20) * 3 / 4));
     }
 
-    [DesktopFact]
+    [CaptureFact]
     public void AWobblingWindowIsDrawnLargerThanItsRestAndKeepsItsPixels()
     {
         using var gpuScope = Scope();
@@ -68,7 +126,7 @@ public class EffectPipelineTests
         Assert.Equal(White, frame.Pixel(540 - frame.Canvas.X + Width * 3 / 4, 400 - frame.Canvas.Y + Height * 3 / 4));
     }
 
-    [DesktopFact]
+    [CaptureFact]
     public void MotionBlurSmearsAMovingWindowAndLeavesTheRestOpaque()
     {
         using var gpuScope = Scope();
@@ -91,7 +149,7 @@ public class EffectPipelineTests
         Assert.Equal(Red, frame.Pixel(100, Height / 4));
     }
 
-    [DesktopFact]
+    [CaptureFact]
     public void ALayerShowsAFrameOnTheScreen()
     {
         using var gpuScope = Scope();
@@ -124,7 +182,7 @@ public class EffectPipelineTests
         }
     }
 
-    [DesktopFact]
+    [CaptureFact]
     public void AMotionWithEffectsIsStoodInForAndTheWobbleLingersUntilItIsAtRest()
     {
         using var gpuScope = Scope();

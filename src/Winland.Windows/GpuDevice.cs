@@ -320,12 +320,6 @@ internal sealed unsafe class GpuDevice : IDisposable
         lock (Gate)
         {
             _disposed = true;
-            if (_context != 0)
-            {
-                ((delegate* unmanaged[Stdcall]<nint, void>)GpuCom.Table(_context)[109])(_context);
-                ((delegate* unmanaged[Stdcall]<nint, void>)GpuCom.Table(_context)[110])(_context);
-            }
-
             GpuCom.Release(ref _vertices);
             GpuCom.Release(ref _constants);
             GpuCom.Release(ref _rasterizer);
