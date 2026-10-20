@@ -98,6 +98,8 @@ internal sealed partial class LuaRun
         switch (streamEvent)
         {
             case ClientOpened opened:
+                // The pinned release raises open_early as the window maps, before its rules; Winland raises both after.
+                yield return ("window.open_early", [new WindowEventArgument(opened.Window)]);
                 yield return ("window.open", [new WindowEventArgument(opened.Window)]);
                 break;
             case ClientClosed closed:
@@ -162,11 +164,39 @@ internal sealed partial class LuaRun
                 yield return ("workspace.move_to_monitor", [new WorkspaceEventArgument(movedWorkspace.Workspace), new MonitorEventArgument(movedWorkspace.Monitor)]);
                 break;
             case ConfigReloaded:
+                // A reload refreshes every prop once it has read the config, as the pinned release schedules it.
                 yield return ("config.reloaded", []);
+                yield return ("config.props_refreshed", [new BooleanEventArgument(true)]);
                 break;
             case SubmapChanged submap:
                 yield return ("keybinds.submap", [new TextEventArgument(submap.Name)]);
                 break;
+        }
+    }
+
+    // hl.config and the other calls that change the config while Winland runs schedule one prop refresh, which runs
+    // when the outermost Lua call returns, as the pinned release runs it at the end of the current event, or at once
+    // through hl.exec_scheduled_prop_refresh_immediately. Its handlers learn which.
+    private void ScheduleRefresh()
+    {
+        if (!_refreshing)
+            _refreshScheduled = true;
+    }
+
+    private void RunScheduledRefresh(bool scheduled)
+    {
+        if (!_refreshScheduled)
+            return;
+
+        _refreshScheduled = false;
+        _refreshing = true;
+        try
+        {
+            Notify("config.props_refreshed", [new BooleanEventArgument(scheduled)], null);
+        }
+        finally
+        {
+            _refreshing = false;
         }
     }
 

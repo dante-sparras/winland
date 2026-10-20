@@ -290,7 +290,11 @@ internal sealed partial class LuaRun : IDisposable
         Function("is_key_down", IsKeyDown);
         RegisterRules();
         RegisterLayouts();
-        Function("exec_scheduled_prop_refresh_immediately", state => 0);
+        Function("exec_scheduled_prop_refresh_immediately", state =>
+        {
+            RunScheduledRefresh(scheduled: false);
+            return 0;
+        });
         Function("clear_crashed_lockscreen", state => 0);
         _lua.NewTable();
         Function("load", "hl.plugin.load", PluginLoad);
@@ -778,9 +782,14 @@ internal sealed partial class LuaRun : IDisposable
     private void Emit(string line)
     {
         if (_phase == Phase.Running)
+        {
             Send(line);
+            ScheduleRefresh();
+        }
         else
+        {
             _lines.Add((line, Caller()));
+        }
     }
 
     // A warning at the Lua code level calls up the stack: 1 is the code that called the callback.

@@ -280,6 +280,7 @@ public class LuaEventTests
 
         Assert.Equal(
             string.Join('\n',
+                "window.open_early HL.Window(0x1a)",
                 "window.open HL.Window(0x1a)",
                 "window.close HL.Window(expired)",
                 "window.destroy HL.Window(expired)",
@@ -300,6 +301,50 @@ public class LuaEventTests
                 "workspace.removed HL.Workspace(expired)",
                 "workspace.move_to_monitor HL.Workspace(web:web) HL.Monitor(1:HDMI-A-1)"),
             Repl(runtime, "table.concat(seen, '\\n')"));
+    }
+
+    [Fact]
+    public void AReloadRefreshesThePropsAfterItIsRead()
+    {
+        var (runtime, _) = Start("""
+            seen = {}
+            hl.on("config.reloaded", function() seen[#seen + 1] = "reloaded" end)
+            hl.on("config.props_refreshed", function(scheduled) seen[#seen + 1] = "refreshed " .. tostring(scheduled) end)
+            """);
+        using var _ = runtime;
+
+        runtime.Deliver([new ConfigReloaded()]);
+
+        Assert.Equal("reloaded,refreshed true", Repl(runtime, "table.concat(seen, ',')"));
+    }
+
+    [Fact]
+    public void AChangeFromLuaRefreshesThePropsOnceWhenTheCallReturns()
+    {
+        var (runtime, world) = Start("""
+            seen = {}
+            hl.on("config.props_refreshed", function(scheduled)
+                seen[#seen + 1] = "refreshed " .. tostring(scheduled)
+                hl.config({ general = { gaps_out = 1 } })
+            end)
+            function change(now)
+                hl.config({ general = { gaps_in = 1 } })
+                hl.config({ general = { gaps_in = 2 } })
+                seen[#seen + 1] = "changed"
+                if now then
+                    hl.exec_scheduled_prop_refresh_immediately()
+                    seen[#seen + 1] = "after"
+                end
+            end
+            """);
+        using var _ = runtime;
+
+        Check(runtime, "change(false)");
+        Assert.Equal("changed,refreshed true", Repl(runtime, "table.concat(seen, ',')"));
+
+        Check(runtime, "seen = {} change(true)");
+        Assert.Equal("changed,refreshed false,after", Repl(runtime, "table.concat(seen, ',')"));
+        Assert.Contains("keyword general:gaps_in 2", world.Commands);
     }
 
     [Fact]
