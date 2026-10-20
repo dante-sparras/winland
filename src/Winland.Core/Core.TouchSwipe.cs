@@ -12,6 +12,10 @@ public sealed partial class Core
     // workspaces style. The Monitor is the one the touch screen is mapped to, or the focused one when that is not known.
     private Outcome TouchDown(TouchDown down)
     {
+        if (!_digitizer.Touch.Enabled)
+            return CancelTouch();
+
+        down = PlaceTouch(down);
         var finger = (down.Device, down.Id);
         if (_touchSwipe is not null || _heldTouches.Count > 0 || _workspaceSwipe is not null)
         {
@@ -47,6 +51,10 @@ public sealed partial class Core
 
     private Outcome TouchMove(TouchMoved moved)
     {
+        if (!_digitizer.Touch.Enabled)
+            return CancelTouch();
+
+        moved = PlaceTouch(moved);
         if (_touchSwipe is not { } touch || touch.Finger != (moved.Device, moved.Id) || !ReferenceEquals(_workspaceSwipe, touch.Swipe))
             return View([]);
 
@@ -79,6 +87,42 @@ public sealed partial class Core
         _workspaceSwipe = null;
         _swipeInitialDirection = 0;
         return ReturnSwipe(touch.Swipe);
+    }
+
+    // input:touchdevice:enabled false drops a new finger and puts a swipe that is already going back.
+    private Outcome CancelTouch()
+    {
+        if (_touchSwipe is { } touch)
+            return TouchUp(new TouchUp(touch.Finger.Device, touch.Finger.Id, Cancelled: true));
+
+        _heldTouches.Clear();
+        return View([]);
+    }
+
+    private TouchDown PlaceTouch(TouchDown down)
+    {
+        var (x, y, display) = MapTouch(down.X, down.Y, down.Display);
+        return down with { X = x, Y = y, Display = display };
+    }
+
+    private TouchMoved PlaceTouch(TouchMoved moved)
+    {
+        var (x, y, display) = MapTouch(moved.X, moved.Y, moved.Display);
+        return moved with { X = x, Y = y, Display = display };
+    }
+
+    // Transform turns the finger after Windows. An output replaces the display Windows mapped the screen to.
+    private (double X, double Y, Rectangle? Display) MapTouch(double x, double y, Rectangle? display)
+    {
+        (x, y) = DigitizerMap.Calibrate(x, y, _digitizer.Touch.Transform, false);
+        if (double.IsFinite(x))
+            x = Math.Clamp(x, 0, 1);
+        if (double.IsFinite(y))
+            y = Math.Clamp(y, 0, 1);
+
+        if (DigitizerMap.TouchTarget(_digitizer.Touch, DigitizerMonitors(out var focused), focused) is Rectangle area)
+            display = area;
+        return (x, y, display);
     }
 
     private MonitorId TouchMonitor(Rectangle? display)

@@ -80,6 +80,8 @@ $lanes = @(
             'KeyboardHook.cs'
             # Raw input registration and HID report parsing. TouchpadSwipe holds the gesture logic.
             'TouchpadInput.cs'
+            # The pointer-device query. It needs a live pen or touch screen; the mapping it feeds is in Winland.Core.
+            'PointerDigitizer.cs'
             # The window effects' drawing: a Direct3D 11 device and its shaders, Windows.Graphics.Capture of a window, and the
             # layered window that shows the result. Only the Desktop tests reach them. The mesh, spring, blur and timing they
             # draw are in Winland.Core, and EffectTrack there is tested.

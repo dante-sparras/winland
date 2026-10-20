@@ -37,6 +37,7 @@ public sealed class MouseHook : IDisposable
     private readonly DiscreteScroll _discreteWheel = new();
     private readonly HashSet<string> _killed = new(StringComparer.Ordinal);
     private readonly MiddleButtonEmulation _middle = new();
+    private readonly DigitizerCursor _digitizer = new();
     private readonly Timer _middleTimer;
     private readonly PointerCorrection _correction = new();
     private readonly PointerDeviceSource _pointerSource;
@@ -134,6 +135,11 @@ public sealed class MouseHook : IDisposable
             var position = new Point(info.pt.X, info.pt.Y);
             var message = (uint)wParam.Value;
             var source = PointerSources.Of(info.flags, (ulong)info.dwExtraInfo);
+            if (source == PointerSource.Mouse)
+                _digitizer.Note(position.X, position.Y);
+            if (source is PointerSource.Pen or PointerSource.Touch
+                && PlaceDigitizer(code, wParam, lParam, message, info.mouseData, position, info.time, source) is LRESULT placed)
+                return placed;
             if (source == PointerSource.Mouse && EmulateMiddle(message))
                 return new LRESULT(1);
 
@@ -261,12 +267,57 @@ public sealed class MouseHook : IDisposable
         };
     }
 
-    private static INPUT Emulated(MOUSE_EVENT_FLAGS flags)
+    private static INPUT Emulated(MOUSE_EVENT_FLAGS flags, int data = 0)
     {
         var input = new INPUT { type = INPUT_TYPE.INPUT_MOUSE };
         input.Anonymous.mi.dwFlags = flags;
+        input.Anonymous.mi.mouseData = unchecked((uint)data);
         input.Anonymous.mi.dwExtraInfo = KeyboardHook.EmulationTag;
         return input;
+    }
+
+    // input:tablet and input:touchdevice. Windows has already mapped the pen or the finger. Winland moves the cursor
+    // it made from that. A program that reads the pointer messages still sees Windows' mapping. Null leaves the event.
+    private LRESULT? PlaceDigitizer(int code, WPARAM wParam, LPARAM lParam, uint message, uint mouseData, Point position, uint time, PointerSource source)
+    {
+        var pen = source == PointerSource.Pen;
+        var kind = pen ? DigitizerKind.Pen : DigitizerKind.Touch;
+        var sample = PointerDigitizer.At(pen, position.X, position.Y);
+        var space = _core.Digitizer;
+        if (message == MoveMessage)
+        {
+            var placed = _digitizer.Move(kind, space, sample, position.X, position.Y);
+            if (!placed.Take)
+                return null;
+
+            _ = PInvoke.SetCursorPos(placed.X, placed.Y);
+            if (!placed.Report)
+                return new LRESULT(1);
+
+            var landed = PInvoke.GetCursorPos(out var at) ? new Point(at.X, at.Y) : new Point(placed.X, placed.Y);
+            _ = OnMove(code, wParam, lParam, landed, time, source);
+            return new LRESULT(1);
+        }
+
+        if (!TryButton(message, mouseData, out var button, out var up))
+            return null;
+
+        var click = _digitizer.Button(kind, space, sample, position.X, position.Y);
+        if (!click.Take)
+            return null;
+        if (!click.Report)
+            return new LRESULT(1);
+
+        if (!up)
+        {
+            SessionEffects.NoteTouch(pen);
+            InputClock.NoteClickOrKey(time, ClickedWindow(new System.Drawing.Point(click.X, click.Y)));
+        }
+
+        _ = PInvoke.SetCursorPos(click.X, click.Y);
+        if (Buttons(button) is var (press, release, data))
+            InputInjector.Post(Emulated(up ? release : press, data));
+        return new LRESULT(1);
     }
 
     private static (MOUSE_EVENT_FLAGS Press, MOUSE_EVENT_FLAGS Release, int Data)? Buttons(string button) => button switch
