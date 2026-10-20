@@ -9,7 +9,7 @@ using Winland.Plugins.Manager;
 
 namespace Winland;
 
-/// <summary>Runs <c>winlandctl plugin install|update|remove|list --installed</c> and the elevated <c>plugin apply</c>.</summary>
+/// <summary>Runs <c>winlandctl plugin install|update|remove|enable|disable|reload|list --installed</c> and the elevated <c>plugin apply</c>.</summary>
 static class PluginManagerCli
 {
     public static int Run(ManagerCommand command, string? pipe)
@@ -41,6 +41,8 @@ static class PluginManagerCli
             ManagerCommand.Install install => manager.Install(install.Url, install.Revision),
             ManagerCommand.Update update => manager.Update(update.Force),
             ManagerCommand.Remove remove => manager.Remove(remove.Identifier),
+            ManagerCommand.Enable enable => manager.Enable(enable.Identifier, enable.Enabled),
+            ManagerCommand.Reload reload => manager.Reload(reload.Force),
             ManagerCommand.List => manager.List(),
             _ => 2,
         };
@@ -179,6 +181,27 @@ static class PluginManagerCli
         public bool Unload(string name) => Send("plugin unload " + name);
 
         public bool Load(string path) => Send("plugin load " + path);
+
+        public IReadOnlyList<string>? Loaded()
+        {
+            try
+            {
+                using var document = System.Text.Json.JsonDocument.Parse(CommandClient.Transact("plugin list", pipe));
+                return document.RootElement.EnumerateArray()
+                    .Select(plugin => plugin.GetProperty("name").GetString())
+                    .OfType<string>()
+                    .ToArray();
+            }
+            catch (Exception exception) when (exception is InvalidOperationException
+                or IOException
+                or UnauthorizedAccessException
+                or TimeoutException
+                or System.Text.Json.JsonException
+                or KeyNotFoundException)
+            {
+                return null;
+            }
+        }
 
         private bool Send(string line)
         {

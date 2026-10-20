@@ -148,7 +148,7 @@ Events and calls that have a Windows source: `window.open_early`, `config.props_
 
 Behavior the Notes describe, which Windows can do: the mouse-drag gaps; dragging a tab out of the bar; swallowing a parent in a Group the way the pinned release does, which leaves the child unplaced; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
 
-Commands and the plugin manager: the window property `no_vrr`; plugin `enable`, `disable` and `reload`; `remove` taking `author/name`; a manifest's shell `build` steps and `output`; and the `--notify`, `--verbose` and `--no-shallow` flags, and the custom source URL flag.
+Commands and the plugin manager: the window property `no_vrr`; a manifest's shell `build` steps and `output`; and the `--notify`, `--verbose` and `--no-shallow` flags, and the custom source URL flag.
 
 ## Notes
 
@@ -232,12 +232,9 @@ Every command the pinned release's control socket answers is recognized. The one
 
 `plugin` loads an in-process plugin assembly and is honored, so it is not a Gap. A plugin may register dispatchers, config keywords and event handlers. Registering a Layout is refused until a later change.
 
-`winlandctl plugin install`, `update`, `remove` and `list --installed` are the plugin manager's `add`, `update`, `remove` and `list`. See [plugins.md](plugins.md). These parts of the plugin manager are Gaps:
+`winlandctl plugin install`, `update`, `remove`, `enable`, `disable`, `reload` and `list --installed` are the plugin manager's `add`, `update`, `remove`, `enable`, `disable`, `reload` and `list`. See [plugins.md](plugins.md). These parts of the plugin manager are Gaps:
 
-- `enable` and `disable` are not honored. An installed plugin loads when a `plugin` line names it, or through `winlandctl plugin load`.
-- `reload` is not honored. `winlandctl reload` reads the `plugin` lines again.
 - `purge-cache` is not honored. There are no headers to cache, and `remove` deletes a repository's staging folder.
-- `remove` takes a repository URL or a plugin name, not `author/name`.
 - A manifest's shell `build` steps and `output` are not honored. Winland runs `dotnet publish` on the plugin's `project`.
 - Commit pins and the per-plugin minimum compositor version are not honored. The exact plugin API version replaces them, and header and ABI checks with it.
 - `--notify`, `--verbose`, `--no-shallow`, `--no-nix` and the custom source URL flag are not honored.

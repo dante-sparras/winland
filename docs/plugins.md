@@ -93,11 +93,14 @@ Every call into a plugin — the constructor, `Name` and `ApiVersion` when it lo
 ```
 winlandctl plugin install <git-url> [revision]
 winlandctl plugin update [--force]
-winlandctl plugin remove <git-url|name>
+winlandctl plugin remove <git-url|name|author/name>
+winlandctl plugin enable <name|author/name>
+winlandctl plugin disable <name|author/name>
+winlandctl plugin reload [--force]
 winlandctl plugin list --installed
 ```
 
-These commands do not use the pipe. They need `git` and the .NET SDK on `PATH`.
+`install`, `update` and `remove` do not use the pipe except to unload and reload plugins in the running Winland. They need `git` and the .NET SDK on `PATH`.
 
 `install` clones the repository into the staging folder and checks out `revision` when one is given. It reads `winland-plugin.toml` at the repository root, builds each plugin with `dotnet publish` as the current user, and prints the repository, the commit hash and the SHA-256 of each built assembly. Then Windows asks for one UAC confirmation. On approval, an elevated `winlandctl plugin apply` copies each assembly to `<plugin directory>\<name>.dll`, hashes the copy, and writes its approval only when that hash equals the one printed. One mismatch installs nothing. The elevated step creates the default plugin directory when it is missing, and every time makes `Administrators` the owner of it and of `%ProgramData%\Winland` above it and gives both an access list that only `SYSTEM` and `Administrators` can write, because a non-administrator may have created either folder first. It sets that through a handle to the folder itself, so a junction swapped in meanwhile is refused instead of followed. It refuses a plugin directory that is, or is inside, a junction or another reparse point. It never creates or protects a plugin directory set by `WINLAND_PLUGIN_DIR` or `WINLAND_PLUGIN_APPROVALS`: an administrator must have set that one up, with its approvals file, and it must pass the same check as the host. `install` refuses a repository that is already installed, and a plugin name that is already approved from another repository or by hand.
 
@@ -105,9 +108,13 @@ These commands do not use the pipe. They need `git` and the .NET SDK on `PATH`.
 
 `update` clones each installed repository again. A repository whose commit has not changed is skipped unless `--force` is given. The rest are rebuilt and approved together, through one confirmation. A plugin that is loaded in the running Winland is unloaded and loaded again from the new file. When it does not load again, `update` says so and exits with code 1. A plugin the manifest no longer lists is removed, and unloaded from the running Winland.
 
-`remove` takes a repository URL or the name of one of its plugins, and removes every plugin from that repository: the files, the approvals, and the plugins loaded in the running Winland. A plugin approved by hand is not removed this way.
+`remove` takes a repository URL, `author/name` or a repository's name, as the pinned plugin manager does, or the name of one of its plugins, and removes every plugin from that repository: the files, the approvals, and the plugins loaded in the running Winland. A plugin approved by hand is not removed this way.
 
-`list --installed` prints each repository with its commit and plugins, then the plugins approved by hand. `plugin list` without `--installed` still lists the plugins loaded in the running Winland.
+`enable` and `disable` take a plugin's name, or `author/name` with the repository's author. As in the pinned plugin manager, the author is the part of the URL before the repository's last path segment, and a repository's name is the manifest's `name`, or else the URL's last path segment. A plugin `install` adds starts disabled, and `update` keeps whether each plugin is enabled. After the change they do what `reload` does.
+
+`reload` asks the running Winland which plugins are loaded. It unloads each one that is not enabled, whatever loaded it, a `plugin` line too, and loads each enabled one that is not loaded. With `--force` it unloads every loaded plugin and loads every enabled one again. Put `exec-once = winlandctl plugin reload` in the config to load the enabled plugins at startup, as with the pinned plugin manager's `reload`. The manager keeps which plugins are enabled in `state.json` in the staging folder. That file decides only what `reload` loads: a plugin still loads only when the approvals file lists its hash.
+
+`list --installed` prints each repository with its commit and plugins, whether each is enabled, then the plugins approved by hand. `plugin list` without `--installed` still lists the plugins loaded in the running Winland.
 
 The staging folder is `%LOCALAPPDATA%\Winland\plugin-staging`. `WINLAND_PLUGIN_STAGING` overrides it. The plugin directory and the approvals file come from the same defaults and variables the host uses.
 

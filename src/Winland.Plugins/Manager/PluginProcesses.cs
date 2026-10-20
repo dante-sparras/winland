@@ -35,6 +35,9 @@ public interface IRunningPlugins
     bool Unload(string name);
 
     bool Load(string path);
+
+    /// <summary>The names of the plugins loaded in the running Winland, or null when it cannot be asked.</summary>
+    IReadOnlyList<string>? Loaded();
 }
 
 public sealed class SystemProcessRunner : IProcessRunner
