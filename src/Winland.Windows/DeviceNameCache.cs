@@ -3,22 +3,23 @@ using Winland;
 namespace Winland.Windows;
 
 /// <summary>
-/// The name each keyboard handle has in the <c>devices</c> reply. The reply and this cache both run
+/// The name each device handle has in the <c>devices</c> reply. The reply and this cache both run
 /// <see cref="InputDeviceNames.Assign"/> on one read of the same device list, so a duplicated name gets the same
-/// suffix in both. The map is replaced whole, and the hook reads it without waiting on the refresh.
+/// suffix in both. The map keeps one kind, keyboards unless a caller asks for pointers, and the hook reads it
+/// without waiting on the refresh.
 /// </summary>
 internal sealed class DeviceNameCache
 {
     private volatile Dictionary<long, string> _names = new();
 
-    internal void Replace(IReadOnlyList<InputDevice> devices)
+    internal void Replace(IReadOnlyList<InputDevice> devices, InputDeviceKind kind = InputDeviceKind.Keyboard)
     {
         ArgumentNullException.ThrowIfNull(devices);
         var assigned = InputDeviceNames.Assign(devices);
         var map = new Dictionary<long, string>(devices.Count);
         for (var i = 0; i < devices.Count; i++)
         {
-            if (devices[i].Kind == InputDeviceKind.Keyboard)
+            if (devices[i].Kind == kind)
                 map[devices[i].Address] = assigned[i];
         }
 

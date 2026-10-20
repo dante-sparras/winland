@@ -4,6 +4,8 @@ public sealed partial class Core
 {
     private CursorOptions _cursor = CursorOptions.Documented;
     private volatile InputOptions _input = InputOptions.Documented;
+    private volatile PointerDevices _pointers = PointerDevices.Empty;
+    private int _pointerGeneration;
     private Point? _pointer;
     private readonly Dictionary<WindowId, Point> _cursorOnWindow = [];
     private bool _defaultMonitorDone;
@@ -22,7 +24,18 @@ public sealed partial class Core
         ScrollCurve = _input.ScrollCurve;
         ForgetGestureZoom();
         KeyOptions = KeyboardOptions.Parse(_input.KbOptions);
+        _pointers = PointerDevices.From(document, _input);
+        Interlocked.Increment(ref _pointerGeneration);
     }
+
+    /// <summary>The per-device pointer overrides. The mouse hook reads them with no lock.</summary>
+    public PointerDevices Pointers => _pointers;
+
+    /// <summary>Bumps each time <see cref="Pointers"/> is replaced, so the hook can start or stop listening.</summary>
+    public int PointerGeneration => Volatile.Read(ref _pointerGeneration);
+
+    /// <summary>The pointer speed <c>input:sensitivity</c> maps to, when that key is set. The hook reads it with no lock.</summary>
+    public int? ConfiguredPointerSpeed => _input.Sensitivity is double sensitivity ? InputMapping.MouseSpeed(sensitivity) : null;
 
     private Outcome FinishCursor(Captured before, Outcome outcome, Input? input)
     {
