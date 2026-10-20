@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>How long one animation runs and how it eases.</summary>
-public readonly record struct Timing(Bezier Curve, double Milliseconds);
+public readonly record struct Timing(Easing Curve, double Milliseconds);
 
 /// <summary>The values one node of the animation tree resolves to, after inheritance.</summary>
 public sealed record AnimationLeaf(bool Enabled, double Speed, string Curve, string Style);
@@ -49,6 +49,9 @@ public sealed class AnimationOptions
                 case AnimationBook.BezierKeyword:
                     _ = book.AddBezier(setting.Value);
                     break;
+                case AnimationBook.SpringKeyword:
+                    _ = book.AddSpring(setting.Value);
+                    break;
                 case AnimationBook.AnimationKeyword:
                     _ = book.SetAnimation(setting.Value);
                     break;
@@ -77,8 +80,8 @@ public sealed class AnimationOptions
         if (!leaf.Enabled || !_book.TryCurve(leaf.Curve, out var curve))
             return null;
 
-        // Speed is in deciseconds.
-        return new Timing(curve, leaf.Speed * 100);
+        // Speed is in deciseconds. A spring runs until it settles, whatever the speed, as in the pinned release.
+        return curve is SpringCurve spring ? new Timing(spring, spring.Milliseconds) : new Timing(curve, leaf.Speed * 100);
     }
 
     /// <summary>The style of <paramref name="node"/>, lower case. Empty when none is set.</summary>

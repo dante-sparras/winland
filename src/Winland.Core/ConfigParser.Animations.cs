@@ -12,6 +12,7 @@ public static partial class ConfigParser
             var keyword = Qualify(lhs) switch
             {
                 "bezier" or "animations:bezier" => AnimationBook.BezierKeyword,
+                "spring" => AnimationBook.SpringKeyword,
                 "animation" or "animations:animation" => AnimationBook.AnimationKeyword,
                 _ => null,
             };
@@ -20,7 +21,12 @@ public static partial class ConfigParser
                 return false;
 
             _settings.Add(new Setting(keyword, rhs));
-            var warning = keyword == AnimationBook.BezierKeyword ? _animations.AddBezier(rhs) : _animations.SetAnimation(rhs);
+            var warning = keyword switch
+            {
+                AnimationBook.BezierKeyword => _animations.AddBezier(rhs),
+                AnimationBook.SpringKeyword => _animations.AddSpring(rhs),
+                _ => _animations.SetAnimation(rhs),
+            };
             if (warning is not null)
                 Warn(lineNumber, warning);
 

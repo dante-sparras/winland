@@ -238,16 +238,15 @@ public class LuaRulesTests
         Assert.Equal(
             [
                 "bezier = easeOutQuint, 0.23, 1, 0.32, 1",
+                "spring = easy, 238.1191, 24.21279333, 1",
                 "animation = windowsIn, 1, 4.1, easeOutQuint, popin 87%",
                 "animation = border, 0",
                 "animation = fade, 1, 3, default",
+                "animation = windows, 1, 4.79, spring:easy",
             ],
             Lines(translation));
-        Assert.Equal(
-            ["hl.curve(\"easy\"): spring curves are not honored yet", "hl.animation(\"windows\"): spring curves are not honored yet"],
-            translation.Warnings.Select(warning => warning.Message));
-        Assert.Equal([2, 6], translation.Warnings.Select(warning => warning.Line));
-        Assert.Equal(translation.Warnings, Parse(translation).Warnings);
+        Assert.Empty(translation.Warnings);
+        Assert.Empty(Parse(translation).Warnings);
     }
 
     [Fact]
@@ -292,11 +291,10 @@ public class LuaRulesTests
 
         Assert.Equal(
             [
-                "hl.curve(\"new\"): spring curves are not honored yet",
-                "hl.curve(\"old\"): spring curves are not honored yet",
                 "hl.curve(\"none\"): damping expects a number",
             ],
             translation.Warnings.Select(warning => warning.Message));
+        Assert.Equal(["spring = new, 238, 24, 1", "spring = old, 238, 24, 1"], Lines(translation));
     }
 
     [Fact]
@@ -570,19 +568,16 @@ public class LuaRulesTests
         Assert.Contains("workspace = f[1], gapsin:0 0 0 0, gapsout:0 0 0 0", lines);
         Assert.Contains("windowrulev2 = rounding 0, float:false, workspace:w[tv1]", lines);
 
-        // What remains is what Winland does not honor: spring curves, the blur and shadow options DWM has no equal
+        // What remains is what Winland does not honor: the blur and shadow options DWM has no equal
         // for, tearing, the wallpaper, the XKB files, layer shell animations, per-device input, the suppress_event
         // effect, XWayland, and the methods of a rule object. The Lua run's own warnings come first. hl.config lines
         // come in Lua's table order, so the parser's warnings are compared sorted.
         var messages = Messages(document);
         Assert.Equal(
             [
-                "hl.curve(\"easy\"): spring curves are not honored yet",
-                "hl.animation(\"windows\"): spring curves are not honored yet",
-                "hl.animation(\"windowsIn\"): spring curves are not honored yet",
                 "hl.window_rule: the rule's set_enabled method is not honored yet",
             ],
-            messages[..4]);
+            messages[..1]);
         Assert.Equal(
             [
                 "Layer shell surfaces have no Windows meaning.",
@@ -601,7 +596,7 @@ public class LuaRulesTests
                 "Unsupported window rule 'suppress_event'.",
                 "Window rules that match on xwayland are not honored.",
             ],
-            messages[4..].Order(StringComparer.Ordinal));
+            messages[1..].Order(StringComparer.Ordinal));
 
         Assert.Equal(new EdgeInsets(0, 0, 0, 0), Assert.Single(document.WorkspaceRules, rule => rule.WorkspaceString == "f[1]").GapsOut);
         Assert.Contains(document.WindowRules, rule => rule.Effect == WindowRuleEffect.Move && rule.ClassPattern == "run");
