@@ -312,7 +312,37 @@ public sealed partial class Core
             Environment = current?.Environment ?? EnvironmentAssignment.None,
             Gestures = [.. current?.Gestures ?? [], .. incoming.Gestures],
             ElevationTrusted = current?.ElevationTrusted ?? false,
+            Recorded = MergeRecorded(current?.Recorded, incoming.Recorded),
         };
+    }
+
+    private static IReadOnlyList<Setting> MergeRecorded(IReadOnlyList<Setting>? current, IReadOnlyList<Setting> incoming)
+    {
+        if (current is null || current.Count == 0)
+            return incoming.Count == 0 ? Array.Empty<Setting>() : incoming;
+
+        if (incoming.Count == 0)
+            return current;
+
+        var recorded = new List<Setting>(current.Count + incoming.Count);
+        foreach (var setting in current)
+        {
+            var replaced = false;
+            foreach (var update in incoming)
+            {
+                if (update.Keyword == setting.Keyword)
+                {
+                    replaced = true;
+                    break;
+                }
+            }
+
+            if (!replaced)
+                recorded.Add(setting);
+        }
+
+        recorded.AddRange(incoming);
+        return recorded;
     }
 
     private static bool WindowRuleControl(ConfigDocument incoming)

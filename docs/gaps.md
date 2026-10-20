@@ -239,7 +239,7 @@ The objects the `hl.get_*` queries return differ where Winland's replies have le
 
 Every command the pinned release's control socket answers is recognized. The ones below differ.
 
-`descriptions` lists only the options Winland reads.
+`descriptions` lists every option the pinned release has, in its order, with that option's default. For an option Winland does not read, `current` is the value the config set, or the default.
 
 `getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). `sync_fullscreen` is honored there. These are kept and reported and change nothing. Each is a Windows limit: the pinned release does it inside the compositor, and Windows has no supported way to do it to a window Winland does not own.
 
