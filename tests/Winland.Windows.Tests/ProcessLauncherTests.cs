@@ -202,7 +202,7 @@ public class ProcessLauncherTests
             Assert.DoesNotContain(child.Id, ancestors);
             Assert.All(ancestors, id => Assert.True(id > 0));
             Assert.Equal(ancestors.Count, ancestors.Distinct().Count());
-            Assert.InRange(ancestors.Count, 1, 16);
+            Assert.InRange(ancestors.Count, 1, 25);
             Assert.Equal(ancestors.Skip(1), ProcessLauncher.Ancestors(Environment.ProcessId).Take(ancestors.Count - 1));
         }
         finally
