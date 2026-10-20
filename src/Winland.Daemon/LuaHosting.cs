@@ -50,4 +50,6 @@ sealed class LuaWorld : ILuaWorld
     public string Command(string command) => Host is WindowHost host ? host.Command(command) : "error: winland is not running yet";
 
     public void Log(string message) => Console.Error.WriteLine(message);
+
+    public bool? IsKeyDown(string key, int code) => Winland.Windows.KeyState.IsDown(key, code);
 }
