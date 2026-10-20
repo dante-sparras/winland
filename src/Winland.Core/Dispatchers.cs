@@ -59,6 +59,7 @@ public static class Dispatchers
             "sendshortcut",
             "sendkeystate",
             "focusurgentorlast",
+            "focuscurrentorlast",
             "toggleswallow",
             "fullscreen",
             "fullscreenstate",

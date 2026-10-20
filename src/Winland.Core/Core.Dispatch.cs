@@ -234,6 +234,8 @@ public sealed partial class Core
             return SendShortcut(arguments, allowsElevation);
         else if (Is(name, "sendkeystate"))
             return SendKeyState(arguments, allowsElevation);
+        else if (Is(name, "focuscurrentorlast"))
+            return FocusCurrentOrLast(allowsElevation);
         else if (Is(name, "focusurgentorlast"))
             return FocusUrgentOrLast(allowsElevation);
         else if (Is(name, "toggleswallow"))

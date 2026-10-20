@@ -32,6 +32,17 @@ public sealed partial class Core
         return FocusClient(target, name, allowsElevation);
     }
 
+    // focuscurrentorlast focuses the Client focused before the newest one in the focus history, as the pinned release does.
+    private Outcome FocusCurrentOrLast(bool allowsElevation)
+    {
+        const string name = "focuscurrentorlast";
+        var live = _focusHistory.Where(window => Find(window) is not null).ToList();
+        if (live.Count <= 1)
+            return Rejected(name, "error: History too short", allowsElevation);
+
+        return FocusClient(live[1], name, allowsElevation);
+    }
+
     private WindowId? UrgentClient()
     {
         foreach (var client in EveryClient())

@@ -451,7 +451,7 @@ internal sealed partial class LuaRun
             return new Dispatch("focusurgentorlast", "");
 
         if (Bool("last") == true)
-            return NotHonored(label + " with last");
+            return new Dispatch("focuscurrentorlast", "");
 
         throw Mistake("unrecognized arguments. Expected one of: direction, monitor, window, urgent_or_last, last");
     }
