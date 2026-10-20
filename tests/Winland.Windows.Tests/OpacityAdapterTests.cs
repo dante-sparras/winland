@@ -71,6 +71,25 @@ public class OpacityAdapterTests
     }
 
     [Fact]
+    public void AWindowThatRefusedTheVeilIsKnownToRefuseIt()
+    {
+        var styles = new FakeStyles();
+        var window = new WindowId(42);
+        var other = new WindowId(43);
+        styles.ExStyle[window] = OpacityAdapter.LayeredStyle;
+        styles.Alpha[window] = 200;
+        var adapter = new OpacityAdapter(styles);
+        Assert.False(adapter.Refuses(window));
+
+        Assert.False(adapter.Veil(window));
+
+        Assert.True(adapter.Refuses(window));
+        Assert.False(adapter.Refuses(other));
+        adapter.Reset(window);
+        Assert.False(adapter.Refuses(window));
+    }
+
+    [Fact]
     public void AWindowThatCannotBeLayeredIsNotTriedAgain()
     {
         var styles = new FakeStyles { FailAlpha = true };

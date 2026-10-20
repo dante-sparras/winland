@@ -45,6 +45,9 @@ public readonly record struct Decoration(
 
     /// <summary>The glow Winland draws inside the window's edge, or null for none.</summary>
     public InnerGlow? Glow { get; init; }
+
+    /// <summary>The wobble and motion blur the window's motions are drawn with, or null for none.</summary>
+    public MotionEffects? Motion { get; init; }
 }
 
 /// <summary>One opacity fraction from a window rule. <see cref="Overridden"/> replaces the configured fraction; otherwise the two multiply.</summary>
@@ -159,6 +162,31 @@ public sealed record DecorationOptions
     /// <summary><c>decoration:dim_around</c>: how much a window with the dim_around property dims what lies under it.</summary>
     public float DimAround { get; init; } = 0.4f;
 
+    /// <summary><c>decoration:motion_blur:enabled</c>: smear a window that moves or resizes.</summary>
+    public bool MotionBlur { get; init; }
+
+    /// <summary><c>decoration:motion_blur:samples</c>, from 1 to 64: how many pictures a blur averages. 1 draws no blur.</summary>
+    public int MotionBlurSamples { get; init; } = 7;
+
+    /// <summary><c>decoration:wobble:enabled</c>: let a window that moves or resizes wobble.</summary>
+    public bool Wobble { get; init; }
+
+    /// <summary>The spring and mesh of the wobble, from the <c>decoration:wobble</c> keywords.</summary>
+    public WobbleSettings WobbleSpring { get; init; } = WobbleSettings.Documented;
+
+    /// <summary>
+    /// The effects a window's motions are drawn with, or null for none. A fullscreen window has none, and a window
+    /// with <c>no_wobble</c> does not wobble.
+    /// </summary>
+    internal MotionEffects? EffectsFor(bool noWobble, bool fullscreen)
+    {
+        if (fullscreen)
+            return null;
+
+        var effects = new MotionEffects(Wobble && !noWobble ? WobbleSpring : null, MotionBlur && MotionBlurSamples > 1 ? MotionBlurSamples : 0);
+        return effects.Any ? effects : null;
+    }
+
     // Adding an entry here applies that keyword and stops the config warning.
     private static readonly Dictionary<string, Func<DecorationOptions, string, DecorationOptions>> Appliers = new(StringComparer.Ordinal)
     {
@@ -202,6 +230,16 @@ public sealed record DecorationOptions
         ["decoration:dim_modal"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { DimModal = enabled } : options,
         ["decoration:dim_special"] = (options, value) => TryParseUnit(value, out var strength) ? options with { DimSpecial = strength } : options,
         ["decoration:dim_around"] = (options, value) => TryParseUnit(value, out var strength) ? options with { DimAround = strength } : options,
+        ["decoration:motion_blur:enabled"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { MotionBlur = enabled } : options,
+        ["decoration:motion_blur:samples"] = (options, value) => TryParseWhole(value, 1, 64, out var samples) ? options with { MotionBlurSamples = samples } : options,
+        ["decoration:wobble:enabled"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { Wobble = enabled } : options,
+        ["decoration:wobble:mesh"] = (options, value) => TryParseWhole(value, 2, 32, out var mesh) ? options with { WobbleSpring = options.WobbleSpring with { Mesh = mesh } } : options,
+        ["decoration:wobble:stiffness"] = (options, value) => TryParseDoubleRange(value, 0.0001, 1000, out var stiffness) ? options with { WobbleSpring = options.WobbleSpring with { Stiffness = stiffness } } : options,
+        ["decoration:wobble:damping"] = (options, value) => TryParseDoubleRange(value, 0, 1000, out var damping) ? options with { WobbleSpring = options.WobbleSpring with { Damping = damping } } : options,
+        ["decoration:wobble:mass"] = (options, value) => TryParseDoubleRange(value, 0.0001, 1000, out var mass) ? options with { WobbleSpring = options.WobbleSpring with { Mass = mass } } : options,
+        ["decoration:wobble:intensity"] = (options, value) => TryParseDoubleRange(value, 0, 2, out var intensity) ? options with { WobbleSpring = options.WobbleSpring with { Intensity = intensity } } : options,
+        ["decoration:wobble:value_epsilon"] = (options, value) => TryParseDoubleRange(value, 0, 100, out var epsilon) ? options with { WobbleSpring = options.WobbleSpring with { ValueEpsilon = epsilon } } : options,
+        ["decoration:wobble:velocity_epsilon"] = (options, value) => TryParseDoubleRange(value, 0, 1000, out var epsilon) ? options with { WobbleSpring = options.WobbleSpring with { VelocityEpsilon = epsilon } } : options,
     };
 
     internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);
@@ -266,6 +304,16 @@ public sealed record DecorationOptions
     {
         value = 0;
         if (!float.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) || !float.IsFinite(parsed))
+            return false;
+
+        value = Math.Clamp(parsed, min, max);
+        return true;
+    }
+
+    private static bool TryParseDoubleRange(string text, double min, double max, out double value)
+    {
+        value = 0;
+        if (!double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) || !double.IsFinite(parsed))
             return false;
 
         value = Math.Clamp(parsed, min, max);

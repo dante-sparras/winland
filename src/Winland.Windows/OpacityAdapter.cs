@@ -69,6 +69,13 @@ internal sealed class OpacityAdapter
         }
     }
 
+    /// <summary>Whether the window was found to be one that cannot be made transparent, so <see cref="Veil"/> would fail.</summary>
+    internal bool Refuses(WindowId window)
+    {
+        lock (_gate)
+            return _failed.Contains(window) || _leftAlone.Contains(window);
+    }
+
     /// <summary>The alpha the window was last given, which a veiled window shows once it is unveiled.</summary>
     internal byte Wanted(WindowId window)
     {

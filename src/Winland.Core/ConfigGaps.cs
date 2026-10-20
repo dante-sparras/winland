@@ -92,7 +92,6 @@ public static class ConfigGaps
         new("misc:session_lock_blur", "The lock screen belongs to Windows."),
         new("misc:session_lock_xray", "The lock screen belongs to Windows."),
         new("misc:splash_font_family", "There is no splash text."),
-        new("motion_blur", "Motion blur is not honored."),
         new("opengl", "GPU rendering options have no Windows meaning."),
         new("permission", "Permission rules have no Windows meaning."),
         new("quirks", "Display buffer quirks have no Windows meaning."),
@@ -101,7 +100,6 @@ public static class ConfigGaps
         new("screen_shader", "Screen shaders have no Windows meaning."),
         new("vrr", "Windows has no switch for a display's adaptive sync, since each game turns VRR on for itself. The Variable refresh rate graphics setting only lets DirectX 11 fullscreen games without VRR of their own use it, and Dynamic refresh rate has no documented interface."),
         new("water", "Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned."),
-        new("wobble", "DWM cannot deform a window, so wobble is not honored."),
         new("xwayland", "X11 compatibility has no Windows meaning. A window rule that matches on xwayland is not honored."),
     ];
 

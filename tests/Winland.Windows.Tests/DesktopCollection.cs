@@ -18,7 +18,7 @@ public sealed class DesktopCollection
 /// and restores them when they are minimized. The test skips while the daemon's pipe exists,
 /// and runs where no daemon is running, as in CI.
 /// </summary>
-public sealed class DesktopFactAttribute : FactAttribute
+public class DesktopFactAttribute : FactAttribute
 {
     public DesktopFactAttribute()
     {
