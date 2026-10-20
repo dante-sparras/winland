@@ -371,7 +371,8 @@ public class SwallowTests
     }
 
     [Fact]
-    public void AChildThatSwallowsAStandaloneTerminalStillJoinsTheFocusedGroup()
+    // In the pinned release a swallow and group:auto_group are alternatives: a child that swallowed is not auto-grouped.
+    public void AChildThatSwallowsAStandaloneTerminalDoesNotJoinTheFocusedGroup()
     {
         var core = WithTerminal(Swallowing);
         core.Handle(Unrelated(3));
@@ -379,7 +380,7 @@ public class SwallowTests
 
         var opened = core.Handle(Child(2, parentProcess: 100));
 
-        Assert.Equal([new WindowId(3), new WindowId(2)], Assert.Single(opened.State.Groups));
+        Assert.Equal([new WindowId(3)], Assert.Single(opened.State.Groups));
         Assert.Contains(new WindowId(1), opened.Hide);
         Assert.Equal(new WindowId(1), Client(opened, 2).Swallowing);
     }

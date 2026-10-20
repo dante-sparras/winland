@@ -193,8 +193,8 @@ public sealed partial class Core
         else
             placements = OpenUnderFullscreen(desk, appeared.Window, placements);
 
-        // A window joins the Group focused when it opened even when it swallows its parent, as in the pinned
-        // release. Only a window that took its parent's place in a Group stays out of the focused one.
+        // A window that swallows its parent does not join the Group focused when it opened: in the pinned release a
+        // swallow and group:auto_group are alternatives, and only a window that swallowed nothing is auto-grouped.
         var focused = restored is null ? ActiveWindow() : null;
         var openedOn = desk;
         if (swallowee is not null)
@@ -211,8 +211,8 @@ public sealed partial class Core
             placements = landed.Layout.Visible();
         }
 
-        var slotted = _swallows.TryGetValue(appeared.Window, out var swallow) && swallow.Slot;
-        if (GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, slotted ? null : focused))
+        var swallowed = _swallows.ContainsKey(appeared.Window);
+        if (GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, swallowed ? null : focused))
             placements = desk.Layout.Visible();
 
         NotePlaced(appeared.Window, desk, decision, restored is not null);
