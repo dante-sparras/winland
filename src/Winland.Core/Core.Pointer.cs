@@ -260,7 +260,10 @@ public sealed partial class Core
             }
         }
 
-        return targets;
+        // Floating windows are tried from the top of the stacking order down, as the pinned release finds the topmost.
+        var tiles = targets.Where(target => !target.Floating);
+        var floats = targets.Where(target => target.Floating).OrderBy(target => _stacking.IndexOf(target.Window));
+        return [.. tiles, .. floats];
     }
 
     private LiveMonitor? MonitorAt(Point point)

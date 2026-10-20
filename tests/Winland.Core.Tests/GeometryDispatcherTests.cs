@@ -139,6 +139,30 @@ public class GeometryDispatcherTests
     }
 
     [Fact]
+    public void LoweringTheWindowUnderThePointerFocusesTheOneNowUnderIt()
+    {
+        var core = TwoFloats();
+        core.Handle(new PointerMoved(new Point(960, 540)));
+
+        var lowered = core.Handle(new Dispatch("alterzorder", "bottom"));
+
+        Assert.Equal([new ZOrderRequest(new WindowId(2), false)], lowered.ZOrder);
+        Assert.Equal(new WindowId(1), lowered.Focus);
+        Assert.Equal("alterzorder", lowered.Dispatcher);
+    }
+
+    [Fact]
+    public void WithFollowMouseOffTheFocusStaysAfterAZOrderChange()
+    {
+        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\ninput:follow_mouse = 0\n"));
+        core.Handle(Box(1));
+        core.Handle(Box(2));
+        core.Handle(new PointerMoved(new Point(960, 540)));
+
+        Assert.Null(core.Handle(new Dispatch("alterzorder", "bottom")).Focus);
+    }
+
+    [Fact]
     public void AlterZOrderWithoutAWindowUsesTheActiveFloat()
     {
         var core = TwoFloats();
