@@ -34,6 +34,15 @@ internal sealed partial class LuaRun
         "release_pressed_on_close", "tags",
     ];
 
+    // Device fields stored as text, including a vec2 written as text. A device line is not split at commas, so a comma
+    // in one is written as itself.
+    private static readonly HashSet<string> DeviceText = new(StringComparer.Ordinal)
+    {
+        "accel_profile", "kb_file", "kb_layout", "kb_variant", "kb_options", "kb_rules", "kb_model", "tap_button_map",
+        "scroll_method", "scroll_points", "output", "tags", "region_position", "region_size", "active_area_position",
+        "active_area_size",
+    };
+
     // The fields of hl.workspace_rule and the workspace rule field each one is. A field whose value is negated is "!".
     private static readonly (string Field, string Rule)[] WorkspaceFields =
     [
@@ -122,6 +131,8 @@ internal sealed partial class LuaRun
             return 0;
         }
 
+        output = LineText.Escape(output);
+
         foreach (var key in Keys(1))
         {
             if (key != "output" && !MonitorFields.Contains(key) && !MonitorOptions.Contains(key) && !MonitorLuminance.Contains(key))
@@ -140,7 +151,7 @@ internal sealed partial class LuaRun
             .Append(", ").Append(Part(1, "scale", Label) ?? "auto");
         foreach (var option in MonitorOptions)
         {
-            if (Part(1, option, Label) is string value)
+            if (Part(1, option, Label, option is "mirror" or "icc") is string value)
                 line.Append(", ").Append(option).Append(", ").Append(value);
         }
 
@@ -290,7 +301,7 @@ internal sealed partial class LuaRun
             var table = _lua.AbsIndex(-1);
             foreach (var key in Keys(table))
             {
-                if (Part(table, key, label) is string value)
+                if (Part(table, key, label, commas: true) is string value)
                     parts.Add($"layoutopt:{key}:{value}");
             }
 
@@ -313,6 +324,7 @@ internal sealed partial class LuaRun
         }
 
         var name = _lua.ToString(1, false);
+        var written = LineText.Escape(name);
         if (!_lua.IsTable(2))
         {
             Warn("hl.curve: second argument must be a table, e.g. { type = \"bezier\", points = { {0, 0}, {1, 1} } }");
@@ -327,7 +339,7 @@ internal sealed partial class LuaRun
                 return 0;
             case "bezier":
                 if (BezierPoints(label) is string points)
-                    EmitLine($"bezier = {name}, {points}", "hl.curve");
+                    EmitLine($"bezier = {written}, {points}", "hl.curve");
                 return 0;
             case "spring":
                 var numbers = new List<string>(3);
@@ -358,7 +370,7 @@ internal sealed partial class LuaRun
                     numbers.Add(text);
                 }
 
-                if (EmitLine($"spring = {name}, {string.Join(", ", numbers)}", "hl.curve"))
+                if (EmitLine($"spring = {written}, {string.Join(", ", numbers)}", "hl.curve"))
                     _springs.Add(name);
                 return 0;
             case var other:
@@ -444,6 +456,12 @@ internal sealed partial class LuaRun
         }
 
         var label = $"hl.animation(\"{leaf}\")";
+        if (leaf.Contains(','))
+        {
+            Warn($"{label}: field 'leaf': a value with a comma is not honored yet");
+            return 0;
+        }
+
         if (Bool(1, "enabled") == false)
         {
             EmitLine($"animation = {leaf}, 0", "hl.animation");
@@ -475,7 +493,7 @@ internal sealed partial class LuaRun
                 return 0;
             }
 
-            curve = bezier;
+            curve = LineText.Escape(bezier);
         }
         else if (Present(1, "spring"))
         {
@@ -486,7 +504,7 @@ internal sealed partial class LuaRun
                 return 0;
             }
 
-            curve = "spring:" + spring;
+            curve = "spring:" + LineText.Escape(spring);
         }
         else
         {
@@ -494,7 +512,7 @@ internal sealed partial class LuaRun
             return 0;
         }
 
-        var style = Present(1, "style") ? Part(1, "style", "hl.animation") : null;
+        var style = Present(1, "style") ? Part(1, "style", "hl.animation", commas: true) : null;
         EmitLine(
             string.IsNullOrEmpty(style) ? $"animation = {leaf}, 1, {speed}, {curve}" : $"animation = {leaf}, 1, {speed}, {curve}, {style}",
             "hl.animation");
@@ -551,7 +569,7 @@ internal sealed partial class LuaRun
             {
                 "workspace" or "resize" or "move" or "close" or "unset" => [action],
                 "scroll_move" => ["scrollMove"],
-                "special" => Given(Part(1, "workspace_name", Label)).Prepend("special"),
+                "special" => Given(Part(1, "workspace_name", Label, commas: true)).Prepend("special"),
                 "float" or "fullscreen" => Given(Part(1, "mode", Label)).Prepend(action),
                 "cursor_zoom" or "cursorZoom" => Given(Part(1, "zoom_level", Label), Part(1, "mode", Label)).Prepend("cursorZoom"),
                 _ => null,
@@ -566,7 +584,7 @@ internal sealed partial class LuaRun
 
         var line = new StringBuilder(Bool(1, "disable_inhibit") == true ? "gesturep" : "gesture")
             .Append(" = ").Append(fingers).Append(", ").Append(direction);
-        if (Part(1, "mods", Label) is string mods)
+        if (Part(1, "mods", Label, commas: true) is string mods)
             line.Append(", mod:").Append(mods);
         if (Number(1, "scale") is string scale)
         {
@@ -621,7 +639,7 @@ internal sealed partial class LuaRun
                 continue;
             }
 
-            if (Part(1, key, Label) is string value)
+            if (Part(1, key, Label, DeviceText.Contains(key), escape: false) is string value)
             {
                 var option = key switch
                 {
@@ -671,7 +689,19 @@ internal sealed partial class LuaRun
             return 0;
         }
 
-        EmitLine($"permission = {binary}, {type}, {mode}", "hl.permission");
+        if (type.Contains(',', StringComparison.Ordinal))
+        {
+            Warn("hl.permission: field 'type': a value with a comma is not honored yet");
+            return 0;
+        }
+
+        if (mode.Contains(',', StringComparison.Ordinal))
+        {
+            Warn("hl.permission: field 'mode': a value with a comma is not honored yet");
+            return 0;
+        }
+
+        EmitLine($"permission = {LineText.Escape(binary)}, {type}, {mode}", "hl.permission");
         return 0;
     }
 
@@ -715,8 +745,9 @@ internal sealed partial class LuaRun
     }
 
     // The config text of a field for a line whose values are split at commas, or null when it is absent or cannot be
-    // written there, which warns.
-    private string? Part(int table, string field, string label)
+    // written there, which warns. commas keeps a comma the pinned release's Lua takes: escape writes the private-use
+    // character when the line splits at commas, and leaves the comma when the line does not.
+    private string? Part(int table, string field, string label, bool commas = false, bool escape = true)
     {
         _lua.GetField(table, field);
         try
@@ -731,13 +762,16 @@ internal sealed partial class LuaRun
                 return null;
             }
 
-            if (value.Contains(',', StringComparison.Ordinal))
+            if (!value.Contains(',', StringComparison.Ordinal))
+                return value;
+
+            if (!commas)
             {
                 Warn($"{label}: field '{field}': a value with a comma is not honored yet");
                 return null;
             }
 
-            return value;
+            return escape ? LineText.Escape(value) : value;
         }
         finally
         {

@@ -523,11 +523,11 @@ internal static class MonitorRules
             if (value[i] != ',')
                 continue;
 
-            parts.Add(value[start..i].Trim());
+            parts.Add(LineText.Unescape(value[start..i].Trim()));
             start = i + 1;
         }
 
-        parts.Add(value[start..].Trim());
+        parts.Add(LineText.Unescape(value[start..].Trim()));
         return parts;
     }
 

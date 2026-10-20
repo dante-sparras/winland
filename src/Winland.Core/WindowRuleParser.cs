@@ -206,6 +206,7 @@ internal static partial class WindowRuleParser
     internal static bool TryParseBare(string text, out WindowRule? rule, out string error)
     {
         rule = null;
+        text = LineText.Unescape(text);
         if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out var placement, out var group, out var props, out error))
             return false;
 

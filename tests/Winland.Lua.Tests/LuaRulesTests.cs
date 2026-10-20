@@ -414,6 +414,128 @@ public class LuaRulesTests
             Messages(Parse(translation)));
     }
 
+    [Fact]
+    public void ACommaInARuleMonitorGestureCurveOrEnvReachesTheParsedConfig()
+    {
+        var translation = Run("""
+            hl.workspace_rule({
+                workspace = "name:a, b",
+                monitor = "desc:Dell, Inc",
+                default_name = "Work, personal",
+                on_created_empty = "notify-send hi, there",
+                layout = "dwindle",
+                animation = "slide, left",
+                layout_opts = { note = "yes, no" },
+            })
+            hl.monitor({ output = "desc:Dell, Inc", mirror = "Dell, Inc", icc = "C:/color, profile.icc", reserved = 4 })
+            hl.monitor({ output = "desc:Dell, Inc", disabled = true })
+            hl.gesture({ fingers = 4, direction = "up", action = "special", workspace_name = "magic, extra", mods = "SUPER, SHIFT" })
+            hl.curve("ease, out", { type = "bezier", points = { {0, 0}, {1, 1} } })
+            hl.animation({ leaf = "windows", speed = 4, bezier = "ease, out", style = "slide, left" })
+            hl.curve("soft, spring", { type = "spring", mass = 1, stiffness = 2, damping = 3 })
+            hl.animation({ leaf = "windowsIn", speed = 4, spring = "soft, spring", style = "popin" })
+            hl.env("A,B", "hello, world")
+            hl.exec_cmd("notify-send hi, there", { tag = "work, personal" })
+            """);
+
+        Assert.Empty(translation.Warnings);
+        Assert.Contains($"layoutopt:note:yes{LineText.Comma} no", translation.Text, StringComparison.Ordinal);
+        var document = Parse(translation);
+        Assert.Equal(["Monitor color management other than its cm preset is not honored."], Messages(document));
+
+        var workspace = Assert.Single(document.WorkspaceRules);
+        Assert.Equal("name:a, b", workspace.WorkspaceString);
+        Assert.Equal("a, b", workspace.WorkspaceName);
+        Assert.Equal("desc:Dell, Inc", workspace.Monitor);
+        Assert.Equal("Work, personal", workspace.DefaultName);
+        Assert.Equal("[workspace a, b] notify-send hi, there", workspace.OnCreatedEmpty);
+        Assert.Equal("dwindle", workspace.Layout);
+        Assert.Equal("slide, left", workspace.Animation);
+        Assert.Empty(workspace.LayoutOpts);
+
+        var monitors = MonitorRules.From(document);
+        Assert.Equal(3, monitors.Count);
+        Assert.All(monitors, rule => Assert.Equal("desc:Dell, Inc", rule.Selector));
+        Assert.Equal("Dell, Inc", monitors[0].Mirror);
+
+        Assert.Equal(
+            new TrackpadGesture(4, GestureDirection.Up, Modifier.Super | Modifier.Shift, 1, TrackpadGesture.SpecialAction, Argument: "magic, extra"),
+            Assert.Single(document.Gestures));
+
+        var motion = AnimationOptions.From(document);
+        Assert.Equal("ease, out", motion.Leaf("windows").Curve);
+        Assert.Equal("slide, left", motion.Leaf("windows").Style);
+        Assert.Equal("spring:soft, spring", motion.Leaf("windowsIn").Curve);
+
+        Assert.Equal(new EnvironmentAssignment("A,B", "hello, world"), Assert.Single(document.Environment));
+
+        var launch = Assert.Single(new Core().StartupLaunches(document));
+        Assert.Equal("notify-send hi, there", launch.CommandLine);
+        var tag = Assert.Single(launch.Rules);
+        Assert.Equal(WindowRuleEffect.Tag, tag.Effect);
+        Assert.Equal("work, personal", tag.Text);
+    }
+
+    [Fact]
+    public void ACommaInADeviceOrPermissionIsWrittenAndStillWarnsAsThatKeyword()
+    {
+        var translation = Run("""
+            hl.device({ name = "board", kb_layout = "us,se", region_position = "1, 2", sensitivity = "1,2" })
+            hl.permission("app, helper", "screencopy", "allow")
+            hl.permission("grim", "screen,copy", "allow")
+            hl.permission("grim", "screencopy", "al,low")
+            """);
+
+        Assert.Equal(
+            [
+                "device[board]:kb_layout = us,se",
+                "device[board]:region_position = 1, 2",
+                $"permission = app{LineText.Comma} helper, screencopy, allow",
+            ],
+            Lines(translation));
+        Assert.Equal(
+            [
+                "hl.device: field 'sensitivity': a value with a comma is not honored yet",
+                "hl.permission: field 'type': a value with a comma is not honored yet",
+                "hl.permission: field 'mode': a value with a comma is not honored yet",
+                "Unsupported keyword 'device:kb_layout'.",
+                "Unsupported keyword 'device:region_position'.",
+                "Unsupported keyword 'permission'.",
+            ],
+            Messages(Parse(translation)));
+    }
+
+    [Fact]
+    public void AMeaninglessCommaStillWarnsAndIsLeftOut()
+    {
+        var translation = Run("""
+            hl.monitor({ output = "DP-1", mode = "a,b" })
+            hl.workspace_rule({ workspace = "1", border_size = "2,0" })
+            hl.gesture({ fingers = 3, direction = "up", action = "float", mode = "float,tile" })
+            hl.gesture({ fingers = 4, direction = "down", action = "cursor_zoom", zoom_level = "1,5", mode = "live" })
+            hl.animation({ leaf = "win,dows", speed = 1, bezier = "default" })
+            """);
+
+        Assert.Equal(
+            [
+                "monitor = DP-1, preferred, auto, auto",
+                "workspace = 1, ruleid:1, ruleon:1",
+                "gesture = 3, up, float",
+                "gesture = 4, down, cursorZoom",
+            ],
+            Lines(translation));
+        Assert.Equal(
+            [
+                "hl.monitor: field 'mode': a value with a comma is not honored yet",
+                "hl.workspace_rule: field 'border_size': a value with a comma is not honored yet",
+                "hl.gesture: field 'mode': a value with a comma is not honored yet",
+                "hl.gesture: field 'zoom_level': a value with a comma is not honored yet",
+                "hl.animation(\"win,dows\"): field 'leaf': a value with a comma is not honored yet",
+            ],
+            Messages(Parse(translation)));
+        Assert.Null(Assert.Single(Parse(translation).WorkspaceRules).BorderSize);
+    }
+
     // The example config of the pinned release, without its comments, with its own name taken out of the run window's
     // class, and without the misc option named after it, which ADR 0002 keeps out of the code. Its commented-out calls
     // are at the end.

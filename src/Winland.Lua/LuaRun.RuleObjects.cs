@@ -93,6 +93,8 @@ internal sealed partial class LuaRun
             return 0;
         }
 
+        workspace = LineText.Escape(workspace);
+
         foreach (var key in Keys(1))
         {
             if (key is not ("workspace" or "enabled" or "layout_opts") && !WorkspaceFields.Any(field => field.Field == key))
@@ -321,7 +323,7 @@ internal sealed partial class LuaRun
             }
             else
             {
-                value = Part(1, field, label);
+                value = Part(1, field, label, field is "monitor" or "on_created_empty" or "default_name" or "layout" or "animation");
             }
 
             if (value is not null)

@@ -20,7 +20,7 @@ After that the config is edited from an elevated editor. A file the user creates
 
 `cleartags [WINDOW]` takes every tag off the window, or the focused one, and its rules are matched again, so a tag a rule gives comes back. The pinned release clears tags only from its Lua `hl.dsp.window.clear_tags`, which writes this dispatcher.
 
-In a `bindd` description and in a `windowrulev2` effect or match, the private-use character U+E000 reads as a comma once the line is split at its commas. `winland.lua` writes it for a comma in those values, which the pinned release's Lua takes and its line form cannot hold.
+In a `bindd` description, a `windowrulev2` effect or match, a `workspace` rule's selector and text fields, a `monitor` name, mirror or icc path, a `gesture`'s workspace name or mods, a `bezier` or `spring` name, an `animation` style or curve, an `env` name or value, and an exec rule's effect, the private-use character U+E000 reads as a comma once the line is split at its commas. `winland.lua` writes it for a comma in those values, which the pinned release's Lua takes and its line form cannot hold. A `permission` binary is written the same way, and that keyword is still unsupported, so the comma is not applied. A device line is not split, so a comma in its text is written as itself.
 
 `luafunction <id>` is also Winland's gesture action for an `hl.gesture` whose action is a Lua function or a table of them: `gesture = 3, left, luafunction, 1`. The core reports each phase of a swipe that takes the gesture, and the config's Lua runs the functions kept under that number, as [behavior.md](behavior.md) describes. In `winland.conf`, with no Lua config, it does nothing.
 

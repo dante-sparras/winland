@@ -25,6 +25,9 @@ public static partial class ConfigParser
             }
 
             var parts = SplitArgs(rhs, null);
+            for (var i = 0; i < parts.Count; i++)
+                parts[i] = LineText.Unescape(parts[i]);
+
             if (!int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var fingers) || fingers is <= 1 or >= 10)
             {
                 Warn(lineNumber, $"Invalid value {parts[0]} for finger count.");
