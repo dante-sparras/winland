@@ -41,6 +41,7 @@ internal static class HonoredKeywords
         Add(table, SessionOptions.Keywords);
         Add(table, CursorOptions.Keywords);
         Add(table, InputOptions.Keywords);
+        Add(table, DigitizerOptions.Keywords);
         Add(table, GestureOptions.Keywords);
         Add(table, AnimationOptions.Keywords);
         Add(table, GroupOptions.Keywords);

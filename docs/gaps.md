@@ -89,25 +89,12 @@ This table has one row per keyword. A test checks it against the keywords the co
 | input:kb_file | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | input:kb_model | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | input:kb_rules | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
-| input:tablet:absolute_region_position | Tablets are not honored. |
-| input:tablet:active_area_position | Tablets are not honored. |
-| input:tablet:active_area_size | Tablets are not honored. |
-| input:tablet:enabled | Tablets are not honored. |
-| input:tablet:left_handed | Tablets are not honored. |
-| input:tablet:output | Tablets are not honored. |
-| input:tablet:region_position | Tablets are not honored. |
-| input:tablet:region_size | Tablets are not honored. |
-| input:tablet:relative_input | Tablets are not honored. |
-| input:tablet:transform | Tablets are not honored. |
-| input:tablettool:eraser_button_mode | Tablet tools are not honored. |
-| input:tablettool:eraser_button_override | Tablet tools are not honored. |
-| input:tablettool:pressure_range_max | Tablet tools are not honored. |
-| input:tablettool:pressure_range_min | Tablet tools are not honored. |
-| input:touchdevice:enabled | Windows turns a touch screen off only by disabling its device, which needs administrator rights. |
-| input:touchdevice:output | Windows maps a touch screen to a display in its Tablet PC settings, which Winland cannot set. The touch screen swipe reads the display Windows maps it to. |
-| input:touchdevice:transform | Windows turns touch input with its display's orientation and has no setting to turn it apart from that. |
-| input:virtualkeyboard:release_pressed_on_close | Virtual keyboards are not honored. |
-| input:virtualkeyboard:share_states | Virtual keyboards are not honored. |
+| input:tablettool:eraser_button_mode | The eraser is a flag on the pen's pointer messages, not a mouse button the hook can retarget. Windows has no setting that turns it into a button, and changing it for every program needs UIAccess, which an unsigned build does not have. |
+| input:tablettool:eraser_button_override | The eraser is a flag on the pen's pointer messages, not a mouse button the hook can retarget. Windows has no setting that turns it into a button, and changing it for every program needs UIAccess, which an unsigned build does not have. |
+| input:tablettool:pressure_range_max | Windows gives pen pressure to the program under the pen on its pointer messages. A mouse hook sees the pen as a mouse, with no pressure, and there is no setting that sets a pressure range. Changing the pressure every program sees needs UIAccess, which an unsigned build does not have. |
+| input:tablettool:pressure_range_min | Windows gives pen pressure to the program under the pen on its pointer messages. A mouse hook sees the pen as a mouse, with no pressure, and there is no setting that sets a pressure range. Changing the pressure every program sees needs UIAccess, which an unsigned build does not have. |
+| input:virtualkeyboard:release_pressed_on_close | A virtual keyboard is a Wayland client that can release the keys it still holds when it closes. Windows has no such client, and an on-screen keyboard does not leave keys for another program to release. |
+| input:virtualkeyboard:share_states | A virtual keyboard is a Wayland client. Windows has none: an on-screen keyboard sends keys into the one system keyboard state, which is already shared, and there is no separate state to leave unshared. |
 | layerrule | Layer shell rules have no Windows meaning. |
 | layerrulev2 | Layer shell rules have no Windows meaning. |
 | locale | general:locale only selects the language of the program's own translated messages. Winland's messages are English and have no other language, and the option does not change how numbers or dates are written. |
@@ -126,7 +113,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 | misc:layers_hog_keyboard_focus | Layer shell surfaces have no Windows meaning. |
 | misc:lockdead_screen_delay | The lock screen belongs to Windows. |
 | misc:middle_click_paste | The primary selection has no Windows meaning. |
-| misc:name_vk_after_proc | Virtual keyboards are not honored. |
+| misc:name_vk_after_proc | A virtual keyboard is a Wayland client named after the process that creates it. Windows has no such device. An on-screen keyboard is not a separate device in the device list. |
 | misc:render_unfocused_fps | Each application renders itself, so its frame rate has no Windows meaning. |
 | misc:screencopy_force_8b | Screen copy buffers have no Windows meaning. |
 | misc:session_lock_blur | The lock screen belongs to Windows. |
@@ -171,19 +158,15 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |
 | non-goal | - | experimental, input-capture |
 | non-goal | - | input:kb_file, input:kb_model, input:kb_rules |
-| gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:enabled, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
 | gap | - | input:tablettool:eraser_button_mode, input:tablettool:eraser_button_override, input:tablettool:pressure_range_max, input:tablettool:pressure_range_min |
-| gap | - | input:touchdevice:enabled, input:touchdevice:output, input:touchdevice:transform |
-| gap | - | input:virtualkeyboard:release_pressed_on_close, input:virtualkeyboard:share_states, misc:name_vk_after_proc |
+| non-goal | - | input:virtualkeyboard:release_pressed_on_close, input:virtualkeyboard:share_states, misc:name_vk_after_proc |
 | non-goal | - | locale |
 | non-goal | - | misc:allow_session_lock_restore, misc:anr_missed_pings, misc:background_color, misc:bell_sound, misc:col.splash, misc:disable_scale_notification, misc:disable_splash_rendering, misc:disable_watchdog_warning, misc:disable_xdg_env_checks, misc:enable_anr_dialog, misc:force_default_wallpaper, misc:layers_hog_keyboard_focus, misc:lockdead_screen_delay, misc:middle_click_paste, misc:render_unfocused_fps, misc:screencopy_force_8b, misc:session_lock_blur, misc:session_lock_xray, misc:splash_font_family |
 | non-goal | - | misc:always_follow_on_dnd |
 
 ## Possible
 
-These are the uncovered keywords and behaviors Windows can honor. A gap keyword in the tables above is in this list when Windows has the thing it names. `misc:name_vk_after_proc` is grouped with the virtual-keyboard gaps.
-
-Input Windows already has: `input:tablet:enabled`, `input:tablet:left_handed`, `input:tablet:output`, `input:tablet:transform`, `input:tablet:region_position`, `input:tablet:region_size`, `input:tablet:absolute_region_position`, `input:tablet:relative_input`, `input:tablet:active_area_position` and `input:tablet:active_area_size`; `input:tablettool:eraser_button_mode`, `input:tablettool:eraser_button_override`, `input:tablettool:pressure_range_min` and `input:tablettool:pressure_range_max`; `input:virtualkeyboard:share_states`, `input:virtualkeyboard:release_pressed_on_close` and `misc:name_vk_after_proc`.
+These are the uncovered keywords and behaviors Windows can honor. A gap keyword in the tables above is in this list when Windows has the thing it names.
 
 Drawing on windows Winland already owns: the blur of the windows behind a Client, which the blur options tune without `decoration:blur:xray`. Winland would capture those windows itself.
 

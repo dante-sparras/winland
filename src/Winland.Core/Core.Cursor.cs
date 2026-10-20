@@ -6,6 +6,11 @@ public sealed partial class Core
     private volatile InputOptions _input = InputOptions.Documented;
     private volatile PointerDevices _pointers = PointerDevices.Empty;
     private int _pointerGeneration;
+    private DigitizerOptions _digitizer = DigitizerOptions.Documented;
+    private volatile DigitizerSpace _digitizerSpace = DigitizerSpace.Empty;
+
+    /// <summary>The pen and touch mapping the mouse hook reads, with no lock.</summary>
+    public DigitizerSpace Digitizer => _digitizerSpace;
     private Point? _pointer;
     private readonly Dictionary<WindowId, Point> _cursorOnWindow = [];
     private bool _defaultMonitorDone;
@@ -20,6 +25,7 @@ public sealed partial class Core
     {
         _cursor = CursorOptions.From(document);
         _input = InputOptions.From(document);
+        _digitizer = DigitizerOptions.From(document);
         Touchpad = _input.Touchpad;
         ScrollCurve = _input.ScrollCurve;
         ForgetGestureZoom();
