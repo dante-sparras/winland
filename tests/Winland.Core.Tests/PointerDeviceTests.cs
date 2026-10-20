@@ -18,7 +18,7 @@ public class PointerDeviceTests
             device[other]:rotation = 400
             device[other]:sensitivity = no
             device:sensitivity = 1
-            device[pad]:accel_profile = flat
+            device[pad]:enabled = false
             device[pad]:force_no_accel = true
             """);
 
@@ -35,13 +35,44 @@ public class PointerDeviceTests
             [
                 new ConfigWarning(6, "Unsupported keyword 'device:gaps_in'."),
                 new ConfigWarning(10, "Unsupported keyword 'device:sensitivity'."),
-                new ConfigWarning(11, "Unsupported keyword 'device:accel_profile'."),
+                new ConfigWarning(11, "Unsupported keyword 'device:enabled'."),
                 new ConfigWarning(12, "Unsupported keyword 'device:force_no_accel'."),
             ],
             document.Warnings);
-        Assert.True(ConfigWarnings.IsGapNotice("Unsupported keyword 'device:accel_profile'."));
+        Assert.True(ConfigWarnings.IsGapNotice("Unsupported keyword 'device:enabled'."));
         Assert.False(ConfigWarnings.IsGapNotice("Unsupported keyword 'device:sensitivity'."));
         Assert.False(ConfigWarnings.IsGapNotice("Unsupported keyword 'device:force_no_accel'."));
+    }
+
+    [Fact]
+    public void AFieldWindowsHasOneSettingForSetsItForEveryDevice()
+    {
+        var document = ConfigParser.Parse("""
+            input:left_handed = false
+            device[mouse]:left_handed = true
+            device[board] {
+                repeat_rate = 40
+                kb_layout = us,se
+            }
+            device[pad]:tap-to-click = false
+            input:repeat_rate = 30
+            """);
+
+        Assert.Empty(document.Warnings);
+        Assert.Empty(document.DevicePointers);
+        Assert.Equal(
+            [
+                new Setting("input:left_handed", "false"),
+                new Setting("input:left_handed", "true"),
+                new Setting("input:repeat_rate", "40"),
+                new Setting("input:kb_layout", "us,se"),
+                new Setting("input:touchpad:tap-to-click", "false"),
+                new Setting("input:repeat_rate", "30"),
+            ],
+            document.Settings);
+        var input = InputOptions.From(document);
+        Assert.True(input.LeftHanded);
+        Assert.Equal(30, input.RepeatRate);
     }
 
     [Fact]
