@@ -15,6 +15,9 @@ public sealed partial class Core
     // Whether the last pass found a rule that reads state.
     private bool _matchedState;
 
+    // A named rule was turned off or on, or replaced. The next pass matches every window even when no rule reads state.
+    private bool _forceRuleMatch;
+
     private IReadOnlyList<string> TagsOf(WindowId window) =>
         _ruleTags.TryGetValue(window, out var tags) || _staticTags.TryGetValue(window, out tags) ? [.. tags] : [];
 
@@ -36,9 +39,11 @@ public sealed partial class Core
     {
         tagsChanged = false;
         var placements = new List<Placement>();
+        var forced = _forceRuleMatch;
+        _forceRuleMatch = false;
         // Once no rule reads state, one more pass puts back what the rules give a window when it opens.
         var reads = ReadsState(_rules) || FollowedReadState();
-        if (!reads && !_matchedState)
+        if (!reads && !_matchedState && !forced)
             return placements;
 
         _matchedState = reads;
@@ -71,6 +76,17 @@ public sealed partial class Core
                 RememberIdle(client.Window, decision);
                 if (_focusRules.TryGetValue(client.Window, out var focus))
                     _focusRules[client.Window] = focus with { NoFocus = decision.NoFocus, StayFocused = decision.StayFocused };
+                if (forced && _sizes.TryGetValue(client.Window, out var keptSizes))
+                {
+                    var sizes = ResolvedSizes(desk, client, decision);
+                    if (sizes != keptSizes.Rule)
+                    {
+                        RememberSizes(client.Window, sizes, keptSizes.OwnMin, keptSizes.OwnMax);
+                        if (IsShown(desk.Id))
+                            placements.AddRange(ApplyLimits(client.Window, desk));
+                    }
+                }
+
                 changed |= !Equals(border, RulePropOf(client.Window, "border_size"));
             }
 
@@ -192,5 +208,24 @@ public sealed partial class Core
         }
 
         return false;
+    }
+
+    // A min_size or max_size written as an expression is read again from the window as it is now. A later number still wins.
+    private SizeRule ResolvedSizes(LiveWorkspace desk, Client client, WindowDecision decision)
+    {
+        if (decision.MinSizeExpression is null && decision.MaxSizeExpression is null)
+            return decision.Sizes;
+
+        var variables = ExpressionVariables(client, desk);
+        Size? Read(ExpressionPair? expression) =>
+            expression is { } pair && pair.TryEvaluate(variables, out var width, out var height) && width >= 1 && height >= 1
+                ? new Size(Pixels(width), Pixels(height))
+                : null;
+
+        return decision.Sizes with
+        {
+            Min = decision.Sizes.Min ?? Read(decision.MinSizeExpression),
+            Max = decision.Sizes.Max ?? Read(decision.MaxSizeExpression),
+        };
     }
 }

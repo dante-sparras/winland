@@ -368,7 +368,13 @@ public static partial class ConfigParser
             if (!WindowRuleParser.TryParse(keyword, value, out var rule, out var error) || rule is null)
                 Warn(lineNumber, error);
             else
-                _windowRules.Add(rule);
+            {
+                // Applied here so a later line in this file changes the rule it names. A keyword is one line and has
+                // no earlier rule, so the edit is kept for the rules already stored.
+                WindowRuleParser.Integrate(_windowRules, rule);
+                if (rule.Edit != WindowRuleEdit.None)
+                    _windowRules.Add(rule);
+            }
         }
 
         private void Warn(int line, string message)

@@ -50,7 +50,7 @@ internal sealed partial class LuaRun
     private void RegisterRules()
     {
         Function("monitor", AddMonitor);
-        Function("window_rule", state => AddRule("hl.window_rule", "windowrulev2"));
+        Function("window_rule", AddWindowRule);
         Function("layer_rule", state => AddRule("hl.layer_rule", "layerrule"));
         Function("workspace_rule", AddWorkspaceRule);
         Function("curve", AddCurve);
@@ -154,8 +154,8 @@ internal sealed partial class LuaRun
         return 0;
     }
 
-    // hl.window_rule({ name, enabled, match = { key = value }, effect = value, ... }) and hl.layer_rule: one rule line for
-    // each effect, "windowrulev2 = effect [value], key:value, ...". Returns the rule object.
+    // hl.layer_rule({ name, enabled, match = { key = value }, effect = value, ... }): one layerrule line for each effect.
+    // A name already used warns and changes nothing. The object it returns only warns.
     private int AddRule(string label, string keyword)
     {
         if (!_lua.IsTable(1))
@@ -269,62 +269,6 @@ internal sealed partial class LuaRun
         {
             _lua.Pop(1);
         }
-    }
-
-    // hl.workspace_rule({ workspace, enabled, ... }): "workspace = WS, field:value, ...". Returns the rule object.
-    private int AddWorkspaceRule(IntPtr state)
-    {
-        const string Label = "hl.workspace_rule";
-        if (!_lua.IsTable(1))
-        {
-            Warn("hl.workspace_rule: argument must be a table");
-            return 0;
-        }
-
-        if (StringField(1, "workspace") is not string workspace)
-        {
-            Warn("hl.workspace_rule: 'workspace' field is required and must be a string");
-            return 0;
-        }
-
-        foreach (var key in Keys(1))
-        {
-            if (key is not ("workspace" or "enabled" or "layout_opts") && !WorkspaceFields.Any(field => field.Field == key))
-                Warn($"hl.workspace_rule: unknown field '{key}'");
-        }
-
-        if (Bool(1, "enabled") == false)
-            return PushHandle(Label);
-
-        var parts = new List<string>();
-        foreach (var (field, rule) in WorkspaceFields)
-        {
-            if (!Present(1, field))
-                continue;
-
-            string? value;
-            if (rule[0] == '!')
-            {
-                value = Bool(1, field) is bool flag ? (!flag ? "true" : "false") : null;
-                if (value is null)
-                    Warn($"hl.workspace_rule: field '{field}': value must be a bool");
-            }
-            else if (field.EndsWith("gaps", StringComparison.Ordinal) || field.StartsWith("gaps_", StringComparison.Ordinal))
-            {
-                value = CssGap(1, field, Label) is { } gaps ? $"{gaps.Top} {gaps.Right} {gaps.Bottom} {gaps.Left}" : null;
-            }
-            else
-            {
-                value = Part(1, field, Label);
-            }
-
-            if (value is not null)
-                parts.Add(rule.TrimStart('!') + ":" + value);
-        }
-
-        parts.AddRange(LayoutOpts(Label));
-        EmitLine(parts.Count == 0 ? $"workspace = {workspace}" : $"workspace = {workspace}, {string.Join(", ", parts)}", Label);
-        return PushHandle(Label);
     }
 
     // The "layoutopt:key:value" parts of a workspace rule's layout_opts table.

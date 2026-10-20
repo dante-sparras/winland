@@ -11,6 +11,10 @@ internal static partial class WindowRuleParser
     {
         rule = null;
         var comma = value.IndexOf(',');
+        var head = LineText.Unescape((comma < 0 ? value : value[..comma]).Trim());
+        if (keyword == "windowrulev2" && (head == "drop" || head.StartsWith("ruleon:", StringComparison.Ordinal)))
+            return TryParseControl(value, out rule, out error);
+
         if (comma <= 0 || comma == value.Length - 1)
         {
             error = "Malformed window rule.";
@@ -27,6 +31,10 @@ internal static partial class WindowRuleParser
         string? exePattern = null;
         string? aumidPattern = null;
         List<RuleMatch>? dynamic = null;
+        var ruleId = 0;
+        var active = true;
+        var sawId = false;
+        var sawOn = false;
         if (keyword == "windowrule")
         {
             var pattern = value[(comma + 1)..].Trim();
@@ -43,6 +51,14 @@ internal static partial class WindowRuleParser
             foreach (var split in value[(comma + 1)..].Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
             {
                 var part = LineText.Unescape(split);
+                if (part.StartsWith("ruleid:", StringComparison.Ordinal) || part.StartsWith("ruleon:", StringComparison.Ordinal))
+                {
+                    if (!TryParseIdentity(part, ref ruleId, ref active, ref sawId, ref sawOn, out error))
+                        return false;
+
+                    continue;
+                }
+
                 if (TryParseDynamicMatch(part, out var match))
                 {
                     (dynamic ??= []).Add(match);
@@ -61,8 +77,130 @@ internal static partial class WindowRuleParser
             }
         }
 
-        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement, TextOr(effect, group, out var ruleText), props, dynamic, ruleText, initialTitlePattern, initialClassPattern);
+        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement, TextOr(effect, group, out var ruleText), props, dynamic, ruleText, initialTitlePattern, initialClassPattern, ruleId, active);
         return true;
+    }
+
+    // "windowrulev2 = drop, ruleid:N" removes that rule. "windowrulev2 = ruleon:0, ruleid:N" turns it off or on.
+    private static bool TryParseControl(string value, out WindowRule? rule, out string error)
+    {
+        rule = null;
+        var drop = false;
+        var sawOn = false;
+        var on = true;
+        var sawId = false;
+        var id = 0;
+        foreach (var split in value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            var part = LineText.Unescape(split);
+            if (part == "drop")
+            {
+                if (drop || sawOn)
+                {
+                    error = "Malformed window rule.";
+                    return false;
+                }
+
+                drop = true;
+                continue;
+            }
+
+            if (part.StartsWith("ruleon:", StringComparison.Ordinal))
+            {
+                if (drop || sawOn || !TryParseEnabled(part["ruleon:".Length..], out on))
+                {
+                    error = "Malformed window rule.";
+                    return false;
+                }
+
+                sawOn = true;
+                continue;
+            }
+
+            if (part.StartsWith("ruleid:", StringComparison.Ordinal))
+            {
+                if (sawId || !TryParseRuleId(part, out id))
+                {
+                    error = "Malformed window rule.";
+                    return false;
+                }
+
+                sawId = true;
+                continue;
+            }
+
+            error = "Malformed window rule.";
+            return false;
+        }
+
+        if (!sawId || drop == sawOn)
+        {
+            error = "Malformed window rule.";
+            return false;
+        }
+
+        rule = new WindowRule(WindowRuleEffect.Float, null, null, null, null, RuleId: id, Active: on, Edit: drop ? WindowRuleEdit.Drop : WindowRuleEdit.Enable);
+        error = "";
+        return true;
+    }
+
+    // ruleid and ruleon ride after the matches. A ruleid below 1, or the same field twice, is not a rule.
+    private static bool TryParseIdentity(string part, ref int ruleId, ref bool active, ref bool sawId, ref bool sawOn, out string error)
+    {
+        error = "";
+        if (part.StartsWith("ruleid:", StringComparison.Ordinal))
+        {
+            if (sawId || !TryParseRuleId(part, out ruleId))
+            {
+                error = "Malformed window rule.";
+                return false;
+            }
+
+            sawId = true;
+            return true;
+        }
+
+        if (sawOn || !TryParseEnabled(part["ruleon:".Length..], out active))
+        {
+            error = "Malformed window rule.";
+            return false;
+        }
+
+        sawOn = true;
+        return true;
+    }
+
+    private static bool TryParseRuleId(string part, out int id) =>
+        int.TryParse(part["ruleid:".Length..], NumberStyles.Integer, CultureInfo.InvariantCulture, out id) && id >= 1;
+
+    // A drop removes every stored effect of that id. An enable line sets whether they are in force. Anything else is added.
+    internal static void Integrate(List<WindowRule> rules, WindowRule rule)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        ArgumentNullException.ThrowIfNull(rule);
+        if (rule.Edit == WindowRuleEdit.Drop)
+        {
+            if (rule.RuleId != 0)
+                rules.RemoveAll(existing => existing.RuleId == rule.RuleId);
+
+            return;
+        }
+
+        if (rule.Edit == WindowRuleEdit.Enable)
+        {
+            if (rule.RuleId == 0)
+                return;
+
+            for (var i = 0; i < rules.Count; i++)
+            {
+                if (rules[i].RuleId == rule.RuleId)
+                    rules[i] = rules[i] with { Active = rule.Active };
+            }
+
+            return;
+        }
+
+        rules.Add(rule);
     }
 
     internal static bool TryParseBare(string text, out WindowRule? rule, out string error)
@@ -109,7 +247,7 @@ internal static partial class WindowRuleParser
         var content = 0;
         foreach (var rule in rules)
         {
-            if (!Matches(rule, traits) || !MatchesState(rule, subject))
+            if (!rule.Active || rule.Edit != WindowRuleEdit.None || !Matches(rule, traits) || !MatchesState(rule, subject))
                 continue;
 
             if (rule.Effect == WindowRuleEffect.Prop && rule.Props is not null)

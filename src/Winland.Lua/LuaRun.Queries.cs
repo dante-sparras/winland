@@ -47,6 +47,8 @@ internal sealed partial class LuaRun
         Function("bindremove", "hl", BindRemove);
         Function("timerinfo", "hl", TimerInfo);
         Function("timerset", "hl", TimerSet);
+        Function("ruleinfo", "hl", RuleInfo);
+        Function("ruleset", "hl", RuleSet);
         Function("running", "hl", state =>
         {
             _lua.PushBoolean(_world is not null);
@@ -63,6 +65,8 @@ internal sealed partial class LuaRun
         _selectorOf = Field("selector");
         _makeKeybind = Field("keybind");
         _makeTimer = Field("timer");
+        _makeWindowRule = Field("windowRule");
+        _makeWorkspaceRule = Field("workspaceRule");
         _makeLayoutContext = Field("layoutContext");
         _lua.Pop(1);
 

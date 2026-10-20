@@ -90,25 +90,28 @@ public class LuaRulesTests
             hl.window_rule({ match = { title = "Notes" }, float = false })
             """);
 
-        Assert.Equal(["hl.window_rule: the rule's set_enabled method is not honored yet"], translation.Warnings.Select(warning => warning.Message));
-        Assert.Equal(13, translation.Warnings[0].Line);
+        Assert.Empty(translation.Warnings);
         Assert.Equal(
             [
-                "windowrulev2 = border_color rgba(33ccffee) 0xFF00FF99 45deg, class:^(run)$, float:false, fullscreen_state_client:2, workspace:w[tv1]",
-                "windowrulev2 = border_size 0, class:^(run)$, float:false, fullscreen_state_client:2, workspace:w[tv1]",
-                "windowrulev2 = float, class:^(run)$, float:false, fullscreen_state_client:2, workspace:w[tv1]",
-                "windowrulev2 = move 20 monitor_h-120, class:^(run)$, float:false, fullscreen_state_client:2, workspace:w[tv1]",
-                "windowrulev2 = no_focus false, class:^(run)$, float:false, fullscreen_state_client:2, workspace:w[tv1]",
-                "windowrulev2 = opacity 0.8, class:^(run)$, float:false, fullscreen_state_client:2, workspace:w[tv1]",
-                "windowrulev2 = float, class:^(run)$, float:false, fullscreen_state_client:2, workspace:w[tv1]",
-                "windowrulev2 = tile, title:Notes",
+                "windowrulev2 = border_color rgba(33ccffee) 0xFF00FF99 45deg, class:^(run)$, float:false, fullscreen_state_client:2, workspace:w[tv1], ruleid:1, ruleon:0",
+                "windowrulev2 = border_size 0, class:^(run)$, float:false, fullscreen_state_client:2, workspace:w[tv1], ruleid:1, ruleon:0",
+                "windowrulev2 = float, class:^(run)$, float:false, fullscreen_state_client:2, workspace:w[tv1], ruleid:1, ruleon:0",
+                "windowrulev2 = move 20 monitor_h-120, class:^(run)$, float:false, fullscreen_state_client:2, workspace:w[tv1], ruleid:1, ruleon:0",
+                "windowrulev2 = no_focus false, class:^(run)$, float:false, fullscreen_state_client:2, workspace:w[tv1], ruleid:1, ruleon:0",
+                "windowrulev2 = opacity 0.8, class:^(run)$, float:false, fullscreen_state_client:2, workspace:w[tv1], ruleid:1, ruleon:0",
+                "windowrulev2 = float, class:^(run)$, float:false, fullscreen_state_client:2, workspace:w[tv1], ruleid:1, ruleon:0",
+                "windowrulev2 = tile, title:Notes, ruleid:2, ruleon:1",
             ],
             Lines(translation));
 
         var document = Parse(translation);
-        Assert.Single(document.Warnings);
+        Assert.Empty(document.Warnings);
         Assert.Equal(8, document.WindowRules.Count);
         Assert.Equal(WindowRuleEffect.Tile, document.WindowRules[^1].Effect);
+        Assert.All(document.WindowRules.Take(document.WindowRules.Count - 1), rule => Assert.False(rule.Active));
+        Assert.True(document.WindowRules[^1].Active);
+        Assert.Equal(1, document.WindowRules[0].RuleId);
+        Assert.Equal(2, document.WindowRules[^1].RuleId);
     }
 
     [Fact]
@@ -143,16 +146,17 @@ public class LuaRulesTests
 
         Assert.Equal(
             [
-                "windowrulev2 = float, class:a{13}",
-                "windowrulev2 = workspace 1 silent, class:kitty",
-                "windowrulev2 = float, class:kitty",
-                "windowrulev2 = pseudo, class:kitty, xdg_tag:x",
+                "windowrulev2 = float, class:a{13}, ruleid:1, ruleon:1",
+                "windowrulev2 = workspace 1 silent, class:kitty, ruleid:2, ruleon:1",
+                "windowrulev2 = float, class:kitty, ruleid:4, ruleon:0",
+                "windowrulev2 = float, class:foot, ruleid:5, ruleon:1",
+                "windowrulev2 = float, class:foot, ruleid:5, ruleon:1",
+                "windowrulev2 = pseudo, class:kitty, xdg_tag:x, ruleid:6, ruleon:1",
             ],
             Lines(translation));
         Assert.Equal(
             [
                 "hl.window_rule: a rule with nothing to match on is never applied",
-                "hl.window_rule: changing the rule \"twice\" again is not honored yet",
                 "hl.window_rule: argument must be a table",
                 "Unsupported window rule 'pseudo'.",
             ],
@@ -205,15 +209,17 @@ public class LuaRulesTests
 
         Assert.Equal(
             [
-                "workspace = w[tv1], gapsin:0 0 0 0, gapsout:0 0 0 0",
-                "workspace = 3, monitor:DP-1, default:true, persistent:true, gapsin:5 10 0 0, bordersize:4, border:false, rounding:true, decorate:false, defaultName:web, layout:dwindle, layoutopt:force_split:2",
-                "workspace = special:term, on-created-empty:wt",
-                "workspace = 5, shadow:false",
+                "workspace = w[tv1], gapsin:0 0 0 0, gapsout:0 0 0 0, ruleid:1, ruleon:1",
+                "workspace = 3, monitor:DP-1, default:true, persistent:true, gapsin:5 10 0 0, bordersize:4, border:false, rounding:true, decorate:false, defaultName:web, layout:dwindle, layoutopt:force_split:2, ruleid:2, ruleon:1",
+                "workspace = special:term, on-created-empty:wt, ruleid:3, ruleon:1",
+                "workspace = 4, persistent:true, ruleid:4, ruleon:0",
+                "workspace = 5, shadow:false, ruleid:5, ruleon:1",
             ],
             Lines(translation));
 
         var document = Parse(translation);
         Assert.Equal(["hl.workspace_rule: unknown field 'gapsin'"], Messages(document));
+        Assert.False(Assert.Single(document.WorkspaceRules, rule => rule.WorkspaceString == "4").Active);
         Assert.False(Assert.Single(document.WorkspaceRules, rule => rule.WorkspaceString == "5").Shadow);
         var third = Assert.Single(document.WorkspaceRules, rule => rule.WorkspaceString == "3");
         Assert.Equal("DP-1", third.Monitor);
@@ -564,20 +570,14 @@ public class LuaRulesTests
         Assert.Contains("animation = windowsOut, 1, 1.49, linear, popin 87%", lines);
         Assert.Contains("gesture = 3, horizontal, workspace", lines);
         Assert.Contains("device[epic-mouse-v1]:sensitivity = -0.5", lines);
-        Assert.Contains("windowrulev2 = move 20 monitor_h-120, class:run", lines);
-        Assert.Contains("workspace = f[1], gapsin:0 0 0 0, gapsout:0 0 0 0", lines);
-        Assert.Contains("windowrulev2 = rounding 0, float:false, workspace:w[tv1]", lines);
+        Assert.Contains("windowrulev2 = move 20 monitor_h-120, class:run, ruleid:3, ruleon:1", lines);
+        Assert.Contains("workspace = f[1], gapsin:0 0 0 0, gapsout:0 0 0 0, ruleid:2, ruleon:1", lines);
+        Assert.Contains("windowrulev2 = rounding 0, float:false, workspace:w[tv1], ruleid:4, ruleon:1", lines);
 
         // What remains is what Winland does not honor: the blur and shadow options DWM has no equal
         // for, tearing, the wallpaper, the XKB files, layer shell animations, per-device input, the suppress_event
-        // effect, XWayland, and the methods of a rule object. The Lua run's own warnings come first. hl.config lines
-        // come in Lua's table order, so the parser's warnings are compared sorted.
+        // effect and XWayland. hl.config lines come in Lua's table order, so the warnings are compared sorted.
         var messages = Messages(document);
-        Assert.Equal(
-            [
-                "hl.window_rule: the rule's set_enabled method is not honored yet",
-            ],
-            messages[..1]);
         Assert.Equal(
             [
                 "Layer shell surfaces have no Windows meaning.",
@@ -596,7 +596,7 @@ public class LuaRulesTests
                 "Unsupported window rule 'suppress_event'.",
                 "Window rules that match on xwayland are not honored.",
             ],
-            messages[1..].Order(StringComparer.Ordinal));
+            messages.Order(StringComparer.Ordinal));
 
         Assert.Equal(new EdgeInsets(0, 0, 0, 0), Assert.Single(document.WorkspaceRules, rule => rule.WorkspaceString == "f[1]").GapsOut);
         Assert.Contains(document.WindowRules, rule => rule.Effect == WindowRuleEffect.Move && rule.ClassPattern == "run");
