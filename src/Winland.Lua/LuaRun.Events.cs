@@ -139,10 +139,11 @@ internal sealed partial class LuaRun
                 break;
             case MonitorAddedV2 added:
                 yield return ("monitor.added", [new MonitorEventArgument(added.Name)]);
-                yield return ("monitor.layout_changed", []);
                 break;
             case MonitorRemovedV2 removed:
                 yield return ("monitor.removed", [new MonitorEventArgument(removed.Name)]);
+                break;
+            case MonitorLayoutChanged:
                 yield return ("monitor.layout_changed", []);
                 break;
             case MonitorFocused focusedMonitor:

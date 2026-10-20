@@ -208,6 +208,33 @@ public sealed partial class Core
 
     private static void AddMonitorEvents(List<StreamEvent> events, State before, State after)
     {
+        var count = events.Count;
+        AddPlugEvents(events, before, after);
+        if (events.Count > count || Arranged(before, after))
+            events.Add(new MonitorLayoutChanged());
+    }
+
+    // Whether a monitor kept from before has another mode, position, scale, orientation or mirror, which the pinned
+    // release lays the monitors out again for. Its work area is not its layout.
+    private static bool Arranged(State before, State after)
+    {
+        foreach (var screen in after.Screens)
+        {
+            foreach (var old in before.Screens)
+            {
+                if (!old.Monitor.Name.Equals(screen.Monitor.Name, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (old.Monitor with { WorkArea = default } != screen.Monitor with { WorkArea = default })
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void AddPlugEvents(List<StreamEvent> events, State before, State after)
+    {
         var nextNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var screen in after.Screens)
             nextNames.Add(screen.Monitor.Name);
