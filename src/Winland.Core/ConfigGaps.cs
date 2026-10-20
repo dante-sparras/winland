@@ -81,7 +81,6 @@ public static class ConfigGaps
         new("input:touchdevice:enabled", "Windows turns a touch screen off only by disabling its device, which needs administrator rights."),
         new("input:touchdevice:output", "Windows maps a touch screen to a display in its Tablet PC settings, which Winland cannot set. The touch screen swipe reads the display Windows maps it to."),
         new("input:touchdevice:transform", "Windows turns touch input with its display's orientation and has no setting to turn it apart from that."),
-        new("input:touchpad:drag_lock", "Windows' tap and drag has no lock, and its release reaches the mouse hook like any other, so Winland cannot hold it."),
         new("input:touchpad:middle_button_emulation", "A button press reaches the mouse hook without its device, so a touchpad's buttons cannot be told from a mouse's, and Windows has no such touchpad setting."),
         new("input:virtualkeyboard:release_pressed_on_close", "Virtual keyboards are not honored."),
         new("input:virtualkeyboard:share_states", "Virtual keyboards are not honored."),

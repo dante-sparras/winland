@@ -54,6 +54,9 @@ internal sealed class TouchpadInput : IDisposable
     private readonly TouchpadSwipe _swipe = new();
     private readonly TouchpadDrag _drag = new();
     private readonly TouchpadTap _tap = new();
+    private readonly TouchpadTapDrag _tapDrag = new();
+    private readonly Timer _tapDragExpiry;
+    private MOUSE_EVENT_FLAGS _tapDragUp;
     private readonly Lock _dragGate = new();
     private readonly Timer _dragExpiry;
     private double _cursorX;
@@ -71,6 +74,7 @@ internal sealed class TouchpadInput : IDisposable
         _touchWanted = touchWanted ?? (() => false);
         _swipe.Framed = OnFrame;
         _dragExpiry = new Timer(_ => ExpireDrag());
+        _tapDragExpiry = new Timer(_ => ExpireTapDrag());
     }
 
     /// <summary>Starts listening. A machine without a touchpad, or a refused registration, only logs.</summary>
@@ -110,8 +114,12 @@ internal sealed class TouchpadInput : IDisposable
 
         _pads.Dispose();
         _dragExpiry.Dispose();
+        _tapDragExpiry.Dispose();
         lock (_dragGate)
         {
+            if (_tapDrag.Holding)
+                CarryTapDrag(_tapDrag.Frame(0, new Dictionary<int, (double X, double Y)>(), Environment.TickCount64));
+
             // A drag held when Winland stops lets its button go, or it would stay down.
             if (_drag.Holding)
                 Carry(new TouchpadDragStep(false, 0, 0, Release: true), TouchpadBehavior.Default);
@@ -261,6 +269,10 @@ internal sealed class TouchpadInput : IDisposable
             Carry(step, options);
             if (_drag.ReleaseAt is long at)
                 _ = _dragExpiry.Change(Math.Max(0, at - now), Timeout.Infinite);
+
+            CarryTapDrag(_tapDrag.Frame(options.DragLock, down, now));
+            if (_tapDrag.ReleaseAt is long lockAt)
+                _ = _tapDragExpiry.Change(Math.Max(0, lockAt - now), Timeout.Infinite);
         }
 
         if (_tap.Frame(down, now) && options.MiddleTap)
@@ -278,6 +290,33 @@ internal sealed class TouchpadInput : IDisposable
         {
             Console.Error.WriteLine(exception.Message);
         }
+    }
+
+    private void ExpireTapDrag()
+    {
+        try
+        {
+            lock (_dragGate)
+                CarryTapDrag(_tapDrag.Expire(Environment.TickCount64));
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            Console.Error.WriteLine(exception.Message);
+        }
+    }
+
+    // Tap and drag with a lock only holds the primary button. Windows moves the cursor with the finger itself.
+    private void CarryTapDrag(TouchpadDragStep step)
+    {
+        if (step.Press)
+        {
+            var swapped = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_SWAPBUTTON) != 0;
+            _tapDragUp = swapped ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTUP : MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTUP;
+            InputInjector.Post(Mouse(swapped ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTDOWN : MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTDOWN));
+        }
+
+        if (step.Release)
+            InputInjector.Post(Mouse(_tapDragUp == 0 ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTUP : _tapDragUp));
     }
 
     // The drag presses the primary button, which is the right one when the buttons are swapped, and moves the cursor
