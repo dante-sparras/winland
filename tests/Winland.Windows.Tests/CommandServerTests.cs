@@ -73,7 +73,7 @@ public class CommandServerTests
         using var server = new CommandServer(core, name);
         server.Start();
 
-        var clients = JsonDocument.Parse(CommandClient.Transact("clients", name)).RootElement;
+        var clients = JsonDocument.Parse(CommandClient.Transact("j/clients", name)).RootElement;
         var client = Assert.Single(clients.EnumerateArray());
         Assert.Equal("0x2a", client.GetProperty("address").GetString());
         Assert.Equal("ok", CommandClient.Transact("dispatch exec", name));

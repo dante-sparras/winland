@@ -276,12 +276,12 @@ public class ExtraCommandTests
         core.Execute("dispatch workspace 2");
         core.Handle(new WindowAppeared(new WindowId(3), area));
 
-        var shown = Json(core.Execute("clients").Text).EnumerateArray().ToArray();
+        var shown = Json(core.Execute("j/clients").Text).EnumerateArray().ToArray();
         Assert.Equal(2, shown.Length);
         Assert.Equal("0x1", shown[0].GetProperty("address").GetString());
         Assert.Equal("0x3", shown[1].GetProperty("address").GetString());
 
-        var all = Json(core.Execute("a/clients").Text).EnumerateArray().ToArray();
+        var all = Json(core.Execute("ja/clients").Text).EnumerateArray().ToArray();
         Assert.Equal(3, all.Length);
         Assert.Equal("0x2", all[1].GetProperty("address").GetString());
         Assert.True(all[1].GetProperty("hidden").GetBoolean());

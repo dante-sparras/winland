@@ -62,7 +62,7 @@ public class WindowPropsTests
         core.Execute("dispatch movefocus l");
 
         Assert.Equal("true", core.Execute("getprop address:0x1 no_focus").Text);
-        Assert.Contains("\"address\":\"0x2\"", core.Execute("activewindow").Text, StringComparison.Ordinal);
+        Assert.Contains("\"address\":\"0x2\"", core.Execute("j/activewindow").Text, StringComparison.Ordinal);
     }
 
     [Fact]

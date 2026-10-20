@@ -19,12 +19,20 @@ public sealed partial class Core
         var reply = request switch
         {
             DispatchRequest dispatch => DispatchReply(dispatch),
-            ClientsRequest clients => Describe(state => Empty(CommandProtocol.FormatClients(state, clients.All), "[]", clients, "no open windows")),
-            WorkspacesRequest => Describe(CommandProtocol.FormatWorkspaces),
+            ClientsRequest clients => Describe(state => Json(clients)
+                ? CommandProtocol.FormatClients(state, clients.All)
+                : Text(CommandProtocol.FormatClientsText(state, clients.All), "no open windows")),
+            WorkspacesRequest workspaces => Describe(state => Json(workspaces) ? CommandProtocol.FormatWorkspaces(state) : CommandProtocol.FormatWorkspacesText(state)),
             WorkspaceRulesRequest => new CommandReply(WorkspaceRules.Format(_workspaceRules), View([])),
-            MonitorsRequest monitors => Describe(state => CommandProtocol.FormatMonitors(state, monitors.All)),
-            ActiveWindowRequest active => Describe(state => Empty(CommandProtocol.FormatActiveWindow(state, ActiveWindow()), "{}", active, "Invalid")),
-            ActiveWorkspaceRequest => Describe(CommandProtocol.FormatActiveWorkspace),
+            MonitorsRequest monitors => Describe(state => Json(monitors)
+                ? CommandProtocol.FormatMonitors(state, monitors.All)
+                : CommandProtocol.FormatMonitorsText(state, monitors.All)),
+            ActiveWindowRequest active => Describe(state => Json(active)
+                ? CommandProtocol.FormatActiveWindow(state, ActiveWindow())
+                : Text(CommandProtocol.FormatActiveWindowText(state, ActiveWindow()), "Invalid")),
+            ActiveWorkspaceRequest activeWorkspace => Describe(state => Json(activeWorkspace)
+                ? CommandProtocol.FormatActiveWorkspace(state)
+                : CommandProtocol.FormatActiveWorkspaceText(state)),
             EventsRequest => new CommandReply("", View([])) { Stream = true },
             ReloadRequest => ReloadCommand(),
             PluginRequest plugin => PluginCommand(plugin),
@@ -45,6 +53,11 @@ public sealed partial class Core
 
     // The pinned release's text reply for a query that finds nothing, such as "no open windows"; with j/ it stays the
     // empty JSON.
+    // The pinned release answers in JSON with j/ and in text without it.
+    private static bool Json(CommandRequest request) => request.Flags.HasFlag(CommandFlags.Json);
+
+    private static string Text(string reply, string empty) => reply.Length == 0 ? empty : reply;
+
     private static string Empty(string reply, string empty, CommandRequest request, string text) =>
         reply == empty && !request.Flags.HasFlag(CommandFlags.Json) ? text : reply;
 

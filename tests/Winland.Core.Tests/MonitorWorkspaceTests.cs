@@ -28,7 +28,7 @@ public class MonitorWorkspaceTests
         Assert.DoesNotContain(second.State.Hidden, client => client.Window == new WindowId(1));
         Assert.DoesNotContain(second.State.Hidden, client => client.Window == new WindowId(2));
 
-        var monitors = Json(core.Execute("monitors").Text).EnumerateArray().ToArray();
+        var monitors = Json(core.Execute("j/monitors").Text).EnumerateArray().ToArray();
         Assert.Equal(2, monitors.Length);
         Assert.Equal(0, monitors[0].GetProperty("id").GetInt32());
         Assert.Equal(@"\\.\DISPLAY1", monitors[0].GetProperty("name").GetString());
@@ -54,7 +54,7 @@ public class MonitorWorkspaceTests
         Assert.Equal(2, monitors[1].GetProperty("activeWorkspace").GetProperty("id").GetInt32());
         Assert.Equal("2", monitors[1].GetProperty("activeWorkspace").GetProperty("name").GetString());
 
-        var workspaces = Json(core.Execute("workspaces").Text)
+        var workspaces = Json(core.Execute("j/workspaces").Text)
             .EnumerateArray()
             .ToDictionary(item => item.GetProperty("name").GetString()!);
         Assert.Equal(0, workspaces["1"].GetProperty("monitorID").GetInt32());
@@ -64,7 +64,7 @@ public class MonitorWorkspaceTests
         Assert.Equal(@"\\.\DISPLAY2", workspaces["2"].GetProperty("monitor").GetString());
         Assert.Equal(1, workspaces["2"].GetProperty("windows").GetInt32());
 
-        var clients = Json(core.Execute("clients").Text).EnumerateArray().ToArray();
+        var clients = Json(core.Execute("j/clients").Text).EnumerateArray().ToArray();
         Assert.False(clients[0].GetProperty("hidden").GetBoolean());
         Assert.False(clients[1].GetProperty("hidden").GetBoolean());
         Assert.Equal(1, clients[0].GetProperty("workspace").GetProperty("id").GetInt32());
@@ -94,7 +94,7 @@ public class MonitorWorkspaceTests
         Assert.Contains(new WindowId(2), outcome.Hide);
         Assert.Contains(outcome.State.Hidden, client => client.Window == new WindowId(2));
 
-        var workspaces = Json(core.Execute("workspaces").Text)
+        var workspaces = Json(core.Execute("j/workspaces").Text)
             .EnumerateArray()
             .ToDictionary(item => item.GetProperty("name").GetString()!);
         Assert.Equal(@"\\.\DISPLAY1", workspaces["1"].GetProperty("monitor").GetString());
@@ -103,7 +103,7 @@ public class MonitorWorkspaceTests
         Assert.Equal(1, workspaces["1"].GetProperty("windows").GetInt32());
         Assert.Equal(1, workspaces["2"].GetProperty("windows").GetInt32());
 
-        var monitor = Assert.Single(Json(core.Execute("monitors").Text).EnumerateArray());
+        var monitor = Assert.Single(Json(core.Execute("j/monitors").Text).EnumerateArray());
         Assert.Equal(@"\\.\DISPLAY1", monitor.GetProperty("name").GetString());
         Assert.True(monitor.GetProperty("focused").GetBoolean());
         Assert.Equal("1", monitor.GetProperty("activeWorkspace").GetProperty("name").GetString());
@@ -183,7 +183,7 @@ public class MonitorWorkspaceTests
 
         Assert.Contains(gone.State.Hidden, client => client.Window == new WindowId(2));
         Assert.Equal(new WindowId(1), gone.Focus);
-        Assert.Equal("0x1", Json(core.Execute("activewindow").Text).GetProperty("address").GetString());
+        Assert.Equal("0x1", Json(core.Execute("j/activewindow").Text).GetProperty("address").GetString());
     }
 
     [Fact]
@@ -206,7 +206,7 @@ public class MonitorWorkspaceTests
 
         Assert.Contains(back.State.Hidden, client => client.Window == new WindowId(5));
         Assert.Equal(new WindowId(1), back.Focus);
-        Assert.Equal("0x1", Json(core.Execute("activewindow").Text).GetProperty("address").GetString());
+        Assert.Equal("0x1", Json(core.Execute("j/activewindow").Text).GetProperty("address").GetString());
     }
 
     [Fact]
@@ -318,7 +318,7 @@ public class MonitorWorkspaceTests
             ],
             Lines(outcome));
 
-        var monitors = Json(core.Execute("monitors").Text).EnumerateArray().ToArray();
+        var monitors = Json(core.Execute("j/monitors").Text).EnumerateArray().ToArray();
         Assert.False(monitors[0].GetProperty("focused").GetBoolean());
         Assert.Equal("1", monitors[0].GetProperty("activeWorkspace").GetProperty("name").GetString());
         Assert.True(monitors[1].GetProperty("focused").GetBoolean());
@@ -373,7 +373,7 @@ public class MonitorWorkspaceTests
             ],
             Lines(outcome));
 
-        var monitors = Json(core.Execute("monitors").Text).EnumerateArray().ToArray();
+        var monitors = Json(core.Execute("j/monitors").Text).EnumerateArray().ToArray();
         Assert.True(monitors[0].GetProperty("focused").GetBoolean());
         Assert.Equal("2", monitors[0].GetProperty("activeWorkspace").GetProperty("name").GetString());
         Assert.False(monitors[1].GetProperty("focused").GetBoolean());
@@ -468,7 +468,7 @@ public class MonitorWorkspaceTests
             ["movewindow>>1,2", "movewindowv2>>1,2,2", "activewindow>>,", "activewindowv2>>"],
             Lines(outcome));
 
-        var monitors = Json(core.Execute("monitors").Text).EnumerateArray().ToArray();
+        var monitors = Json(core.Execute("j/monitors").Text).EnumerateArray().ToArray();
         Assert.True(monitors[0].GetProperty("focused").GetBoolean());
         Assert.Equal("1", monitors[0].GetProperty("activeWorkspace").GetProperty("name").GetString());
         Assert.False(monitors[1].GetProperty("focused").GetBoolean());

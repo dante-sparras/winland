@@ -155,7 +155,7 @@ public class CommandTests
             Bounds = new Rectangle(4, 5, 6, 7),
         });
 
-        var clients = Json(core.Execute("Clients").Text);
+        var clients = Json(core.Execute("j/Clients").Text);
 
         Assert.Equal(2, clients.GetArrayLength());
         AssertClient(clients[0], "0x2a", floating: false, hidden: false, workspaceId: 1, workspaceName: "1");
@@ -169,7 +169,7 @@ public class CommandTests
         core.Handle(new WindowAppeared(new WindowId(7), new Rectangle(0, 0, 100, 100)));
         core.Handle(new WindowMinimized(new WindowId(7)));
 
-        var client = Assert.Single(Json(core.Execute("a/clients").Text).EnumerateArray());
+        var client = Assert.Single(Json(core.Execute("ja/clients").Text).EnumerateArray());
 
         Assert.True(client.GetProperty("hidden").GetBoolean());
         Assert.False(client.GetProperty("mapped").GetBoolean());
@@ -184,7 +184,7 @@ public class CommandTests
             Traits = WindowTraits.Normal with { Class = "kitty" },
         });
 
-        var client = Assert.Single(Json(core.Execute("clients").Text).EnumerateArray());
+        var client = Assert.Single(Json(core.Execute("j/clients").Text).EnumerateArray());
         var workspace = client.GetProperty("workspace");
 
         Assert.Equal(2, workspace.GetProperty("id").GetInt32());
@@ -194,7 +194,7 @@ public class CommandTests
     [Fact]
     public void WorkspacesReplyStartsWithTheDefaultWorkspace()
     {
-        var workspace = Assert.Single(Json(new Core().Execute("workspaces").Text).EnumerateArray());
+        var workspace = Assert.Single(Json(new Core().Execute("j/workspaces").Text).EnumerateArray());
 
         Assert.Equal(1, workspace.GetProperty("id").GetInt32());
         Assert.Equal("1", workspace.GetProperty("name").GetString());
@@ -212,7 +212,7 @@ public class CommandTests
             Traits = WindowTraits.Normal with { Class = "kitty" },
         });
 
-        var workspaces = Json(core.Execute("workspaces").Text);
+        var workspaces = Json(core.Execute("j/workspaces").Text);
         var byName = workspaces.EnumerateArray().ToDictionary(item => item.GetProperty("name").GetString()!);
 
         Assert.Equal(1, byName["1"].GetProperty("id").GetInt32());
@@ -239,7 +239,7 @@ public class CommandTests
             Traits = WindowTraits.Normal with { Class = "alpha" },
         });
 
-        var byName = Json(core.Execute("workspaces").Text)
+        var byName = Json(core.Execute("j/workspaces").Text)
             .EnumerateArray()
             .ToDictionary(item => item.GetProperty("name").GetString()!);
 
@@ -256,7 +256,7 @@ public class CommandTests
             Traits = WindowTraits.Normal with { Class = "kitty" },
         });
 
-        var monitor = Assert.Single(Json(core.Execute("monitors").Text).EnumerateArray());
+        var monitor = Assert.Single(Json(core.Execute("j/monitors").Text).EnumerateArray());
         var active = monitor.GetProperty("activeWorkspace");
 
         Assert.Equal(0, monitor.GetProperty("id").GetInt32());
@@ -285,13 +285,13 @@ public class CommandTests
         core.Handle(new WindowAppeared(new WindowId(1), area));
         core.Handle(new WindowAppeared(new WindowId(2), area));
 
-        var active = Json(core.Execute("activewindow").Text);
+        var active = Json(core.Execute("j/activewindow").Text);
 
         Assert.Equal("0x2", active.GetProperty("address").GetString());
 
         core.Handle(new WindowClosed(new WindowId(2)));
 
-        active = Json(core.Execute("activewindow").Text);
+        active = Json(core.Execute("j/activewindow").Text);
         Assert.Equal("0x1", active.GetProperty("address").GetString());
     }
 
@@ -326,7 +326,7 @@ public class CommandTests
         core.Execute("dispatch workspace 2");
         core.Handle(new WindowAppeared(new WindowId(3), area));
 
-        var byName = Json(core.Execute("workspaces").Text)
+        var byName = Json(core.Execute("j/workspaces").Text)
             .EnumerateArray()
             .ToDictionary(item => item.GetProperty("name").GetString()!);
 
@@ -335,17 +335,17 @@ public class CommandTests
         Assert.Equal(2, byName["2"].GetProperty("id").GetInt32());
         Assert.Equal(1, byName["2"].GetProperty("windows").GetInt32());
 
-        var clients = Json(core.Execute("clients").Text).EnumerateArray().ToArray();
+        var clients = Json(core.Execute("j/clients").Text).EnumerateArray().ToArray();
         AssertClient(clients[0], "0x1", floating: false, hidden: true, workspaceId: 1, workspaceName: "1");
         AssertClient(clients[1], "0x2", floating: false, hidden: true, workspaceId: 1, workspaceName: "1");
         AssertClient(clients[2], "0x3", floating: false, hidden: false, workspaceId: 2, workspaceName: "2");
 
-        var monitor = Assert.Single(Json(core.Execute("monitors").Text).EnumerateArray());
+        var monitor = Assert.Single(Json(core.Execute("j/monitors").Text).EnumerateArray());
         var activeWorkspace = monitor.GetProperty("activeWorkspace");
         Assert.Equal(2, activeWorkspace.GetProperty("id").GetInt32());
         Assert.Equal("2", activeWorkspace.GetProperty("name").GetString());
 
-        var active = Json(core.Execute("activewindow").Text);
+        var active = Json(core.Execute("j/activewindow").Text);
         Assert.Equal("0x3", active.GetProperty("address").GetString());
         Assert.False(active.GetProperty("hidden").GetBoolean());
         Assert.Equal(2, active.GetProperty("workspace").GetProperty("id").GetInt32());
@@ -422,8 +422,8 @@ public class CommandTests
                         else
                             core.Handle(new Dispatch("workspace", workspace.ToString(CultureInfo.InvariantCulture)));
 
-                        _ = core.Execute("workspaces");
-                        _ = core.Execute("clients");
+                        _ = core.Execute("j/workspaces");
+                        _ = core.Execute("j/clients");
                     }
                     catch (Exception exception) when (exception is not OutOfMemoryException)
                     {
@@ -439,13 +439,13 @@ public class CommandTests
             thread.Join();
 
         Assert.Equal(0, failures);
-        var active = Assert.Single(Json(core.Execute("monitors").Text).EnumerateArray())
+        var active = Assert.Single(Json(core.Execute("j/monitors").Text).EnumerateArray())
             .GetProperty("activeWorkspace")
             .GetProperty("id")
             .GetInt32();
         Assert.InRange(active, 1, 3);
         Assert.Contains(
-            Json(core.Execute("workspaces").Text).EnumerateArray(),
+            Json(core.Execute("j/workspaces").Text).EnumerateArray(),
             workspace => workspace.GetProperty("id").GetInt32() == active);
     }
 

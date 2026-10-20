@@ -128,12 +128,12 @@ public class SpecialWorkspaceTests
             Lines(closed));
         Assert.Null(closed.State.SpecialWorkspace);
 
-        var monitors = Json(core.Execute("monitors").Text);
+        var monitors = Json(core.Execute("j/monitors").Text);
         Assert.False(monitors[0].GetProperty("specialWorkspace").TryGetProperty("id", out _));
         Assert.Equal("", monitors[0].GetProperty("specialWorkspace").GetProperty("name").GetString());
 
         core.Handle(new Dispatch("togglespecialworkspace", ""));
-        var open = Json(core.Execute("monitors").Text);
+        var open = Json(core.Execute("j/monitors").Text);
         Assert.False(open[0].GetProperty("specialWorkspace").TryGetProperty("id", out _));
         Assert.Equal("special", open[0].GetProperty("specialWorkspace").GetProperty("type").GetString());
         Assert.Equal("special:special", open[0].GetProperty("specialWorkspace").GetProperty("name").GetString());

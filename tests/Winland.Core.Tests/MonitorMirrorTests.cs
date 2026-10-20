@@ -38,8 +38,8 @@ public class MonitorMirrorTests
             """));
         var outcome = core.Handle(new MonitorsChanged([Display(Left, "Dell", 0, 0, 1920, 1080), Display(Right, "Samsung", 1920, 0, 1920, 1080)]));
 
-        var shown = Json(core.Execute("monitors").Text).EnumerateArray().ToArray();
-        var all = Json(core.Execute("monitors all").Text).EnumerateArray().ToArray();
+        var shown = Json(core.Execute("j/monitors").Text).EnumerateArray().ToArray();
+        var all = Json(core.Execute("j/monitors all").Text).EnumerateArray().ToArray();
 
         Assert.Equal(Left, Assert.Single(shown).GetProperty("name").GetString());
         var source = Assert.Single(all, entry => entry.GetProperty("name").GetString() == Left);
