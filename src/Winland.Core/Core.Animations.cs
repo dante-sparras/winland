@@ -98,6 +98,10 @@ public sealed partial class Core
     private string WindowStyleOf(WindowId window, string node) =>
         OwnProp(window, "animation") is string { Length: > 0 } own ? own : _animations.StyleOf(node);
 
+    // A Workspace's own animation style, from the animation: field of the workspace rule that matches it, or null.
+    private string? WorkspaceStyleOf(WorkspaceId workspace) =>
+        FindWorkspace(workspace) is LiveWorkspace desk ? RuleFor(desk)?.Animation : null;
+
     private Rectangle MonitorRectangle(WorkspaceId workspace)
     {
         if (FindWorkspace(workspace) is LiveWorkspace desk)
@@ -168,7 +172,7 @@ public sealed partial class Core
                 if (entering == wasShown)
                     continue;
 
-                if (!TrySwitch(client.Workspace, entering, out var leaf, out var left))
+                if (!TrySwitch(client.Workspace, entering, out var leaf, out var left, out var styled))
                     continue;
 
                 var timing = Options.TimingOf(leaf);
@@ -177,7 +181,8 @@ public sealed partial class Core
 
                 var monitor = _core.MonitorRectangle(client.Workspace);
                 var between = _core.FindWorkspace(client.Workspace)?.Options.GapsWorkspaces ?? 0;
-                var shift = MotionStyles.Workspace(Options.StyleOf(leaf), entering, left, client.Workspace.IsSpecial, monitor, between);
+                var style = _core.WorkspaceStyleOf(styled) ?? Options.StyleOf(leaf);
+                var shift = MotionStyles.Workspace(style, entering, left, client.Workspace.IsSpecial, monitor, between);
                 var rest = _placed.TryGetValue(window, out var placed) ? placed : client.Bounds;
                 var away = rest with { X = rest.X + shift.Dx, Y = rest.Y + shift.Dy };
                 var moves = shift.Dx != 0 || shift.Dy != 0;
@@ -317,16 +322,23 @@ public sealed partial class Core
             return _is.TryGetValue(window, out var client) ? client.Bounds : default;
         }
 
-        private bool TrySwitch(WorkspaceId workspace, bool entering, out string leaf, out bool left)
+        // The Workspace whose rule style the motion plays, as in the pinned release: the one switched to, for both the
+        // Workspace leaving and the one entering, and for a special workspace that hides, the special workspace that
+        // replaces it on its Monitor, or itself.
+        private bool TrySwitch(WorkspaceId workspace, bool entering, out string leaf, out bool left, out WorkspaceId styled)
         {
             leaf = "";
             left = entering;
+            styled = workspace;
             if (workspace.IsSpecial)
             {
                 var wasShown = SpecialShown(_before, workspace);
                 var isShown = SpecialShown(_after, workspace);
                 if (entering ? wasShown || !isShown : !wasShown || isShown)
                     return false;
+
+                if (!entering && Replacing(workspace) is WorkspaceId replacing)
+                    styled = replacing;
 
                 leaf = entering ? "specialWorkspaceIn" : "specialWorkspaceOut";
                 return true;
@@ -357,7 +369,18 @@ public sealed partial class Core
 
             leaf = entering ? "workspacesIn" : "workspacesOut";
             left = Wraps(newer, older) ^ (Compare(newer, older) > 0);
+            styled = newer;
             return true;
+        }
+
+        // The special workspace shown in place of one that hides, on the same Monitor, or null.
+        private WorkspaceId? Replacing(WorkspaceId special)
+        {
+            if (_before.Screens.Count == 0 || _after.Screens.Count == 0)
+                return _after.SpecialWorkspace;
+
+            var screen = _before.Screens.FirstOrDefault(candidate => candidate.SpecialWorkspace == special);
+            return screen is null ? null : _after.Screens.FirstOrDefault(candidate => candidate.Id == screen.Id)?.SpecialWorkspace;
         }
 
         private static bool SpecialShown(State state, WorkspaceId workspace)

@@ -40,8 +40,9 @@ public class WorkspaceRuleTests
             workspace = 1, monitor:DP-1, shadow:1, animation:pop, float_gaps:4, layout:master, banana:1, layoutopt:precise_mouse_move:1, layoutopt:smart_resizing:true, layoutopt:force_split:left
             """);
 
-        Assert.Equal([new ConfigWarning(1, "Workspace rule animation styles are not honored.")], document.Warnings);
+        Assert.Empty(document.Warnings);
         var rule = Assert.Single(document.WorkspaceRules);
+        Assert.Equal("pop", rule.Animation);
         Assert.Equal("DP-1", rule.Monitor);
         Assert.True(rule.Shadow);
         Assert.Equal("left", Assert.Contains("force_split", rule.LayoutOpts));

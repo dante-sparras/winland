@@ -733,7 +733,7 @@ public class ConfigTests
         var document = ConfigParser.Parse("workspace = 1, monitor:DP-1, default:true, animation:pop\ngeneral:gaps_in = 2\n");
 
         Assert.DoesNotContain(document.Warnings, warning => warning.Message.Contains("'workspace'", StringComparison.Ordinal));
-        Assert.Equal(new ConfigWarning(1, "Workspace rule animation styles are not honored."), Assert.Single(document.Warnings));
+        Assert.Empty(document.Warnings);
         Assert.Contains(document.Settings, setting => setting.Keyword == "workspace");
         Assert.Equal(new Setting("general:gaps_in", "2"), document.Settings[^1]);
         var rule = Assert.Single(document.WorkspaceRules);

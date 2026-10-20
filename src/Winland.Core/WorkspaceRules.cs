@@ -39,6 +39,9 @@ public sealed record WorkspaceRule
     /// <summary>False turns the shadow off for the Clients on this Workspace, as <c>no_shadow</c> does.</summary>
     public bool? Shadow { get; init; }
 
+    /// <summary>The style this Workspace is switched to and from with, in place of the workspaces node's.</summary>
+    public string? Animation { get; init; }
+
     public string? DefaultName { get; init; }
 
     public string? OnCreatedEmpty { get; init; }
@@ -71,6 +74,7 @@ public sealed record WorkspaceRule
             Rounding = other.Rounding ?? Rounding,
             Decorate = other.Decorate ?? Decorate,
             Shadow = other.Shadow ?? Shadow,
+            Animation = other.Animation ?? Animation,
             DefaultName = other.DefaultName ?? DefaultName,
             OnCreatedEmpty = other.OnCreatedEmpty ?? OnCreatedEmpty,
             Layout = other.Layout ?? Layout,
@@ -338,9 +342,10 @@ internal static partial class WorkspaceRules
         if (Take(field, "shadow:", out var shadow))
             return TryFlag(rule, shadow, warnings, static (current, value) => current with { Shadow = value }, out updated, out failed);
 
-        if (Take(field, "animation:", out _))
+        if (Take(field, "animation:", out var animation))
         {
-            warnings.Add("Workspace rule animation styles are not honored.");
+            if (animation.Trim() is { Length: > 0 } style)
+                updated = rule with { Animation = style };
             return true;
         }
 
