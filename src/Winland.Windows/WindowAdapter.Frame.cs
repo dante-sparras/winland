@@ -208,6 +208,7 @@ public sealed partial class WindowAdapter
         GlowHost.Stop();
         EffectLayers.Clear();
         XrayHost.Stop();
+        BehindHost.Stop();
         NotificationHost.Stop();
         EndStandIns();
         StandInHost.Stop();

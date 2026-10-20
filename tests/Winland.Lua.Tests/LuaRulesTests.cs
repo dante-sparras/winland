@@ -698,9 +698,9 @@ public class LuaRulesTests
         Assert.Contains("workspace = f[1], gapsin:0 0 0 0, gapsout:0 0 0 0, ruleid:2, ruleon:1", lines);
         Assert.Contains("windowrulev2 = rounding 0, float:false, workspace:w[tv1], ruleid:4, ruleon:1", lines);
 
-        // What remains is what Winland does not honor: the blur and shadow options DWM has no equal
-        // for, tearing, the wallpaper, the XKB files, layer shell animations, the suppress_event
-        // effect and XWayland. hl.config lines come in Lua's table order, so the warnings are compared sorted.
+        // What remains is what Winland does not honor: popup and input-method blur, tearing, the wallpaper,
+        // the XKB files, layer shell animations, the suppress_event effect and XWayland.
+        // hl.config lines come in Lua's table order, so the warnings are compared sorted.
         var messages = Messages(document);
         Assert.Equal(
             [
@@ -711,7 +711,6 @@ public class LuaRulesTests
                 "Layer shell surfaces have no Windows meaning.",
                 "Unsupported keyword 'decoration:blur:input_methods'.",
                 "Unsupported keyword 'decoration:blur:popups'.",
-                "Unsupported keyword 'decoration:blur:special'.",
                 "Unsupported keyword 'general:allow_tearing'.",
                 "Unsupported keyword 'input:kb_model'.",
                 "Unsupported keyword 'input:kb_rules'.",

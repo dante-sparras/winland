@@ -179,7 +179,7 @@ internal sealed unsafe class GpuDevice : IDisposable
         return ((delegate* unmanaged[Stdcall]<nint, int>)GpuCom.Table(_device)[39])(_device) < 0;
     }
 
-    internal GpuTexture? Create(int width, int height, GpuUse use)
+    internal GpuTexture? Create(int width, int height, GpuUse use, int format = BgraFormat)
     {
         if (width <= 0 || height <= 0 || _device == 0)
             return null;
@@ -190,7 +190,7 @@ internal sealed unsafe class GpuDevice : IDisposable
             Height = (uint)height,
             MipLevels = 1,
             ArraySize = 1,
-            Format = (DXGI_FORMAT)BgraFormat,
+            Format = (DXGI_FORMAT)format,
             SampleDesc = new DXGI_SAMPLE_DESC { Count = 1, Quality = 0 },
             Usage = use == GpuUse.Readback ? D3D11_USAGE.D3D11_USAGE_STAGING : D3D11_USAGE.D3D11_USAGE_DEFAULT,
             BindFlags = use switch
@@ -263,7 +263,7 @@ internal sealed unsafe class GpuDevice : IDisposable
     /// the triangles cover the window and its decorations: the decorations are laid over the picture, which fills the part of
     /// the box the constants name.
     /// </summary>
-    internal bool Draw(GpuTexture target, int width, int height, GpuTexture source, ReadOnlySpan<float> constants, ReadOnlySpan<MeshVertex> vertices, bool blur, GpuTexture? decor = null)
+    internal bool Draw(GpuTexture target, int width, int height, GpuTexture source, ReadOnlySpan<float> constants, ReadOnlySpan<MeshVertex> vertices, bool blur, GpuTexture? decor = null, bool clear = true)
     {
         if (_disposed || vertices.Length == 0 || vertices.Length > Vertices || constants.Length * sizeof(float) != ConstantBytes)
             return false;
@@ -287,9 +287,12 @@ internal sealed unsafe class GpuDevice : IDisposable
         fixed (float* values = constants)
             ((delegate* unmanaged[Stdcall]<nint, nint, uint, void*, void*, uint, uint, void>)table[48])(_context, _constants, 0, null, values, 0, 0);
 
-        var clear = stackalloc float[4] { 0, 0, 0, 0 };
         var targetView = target.TargetView;
-        ((delegate* unmanaged[Stdcall]<nint, nint, float*, void>)table[50])(_context, targetView, clear);
+        if (clear)
+        {
+            var clearColor = stackalloc float[4];
+            ((delegate* unmanaged[Stdcall]<nint, nint, float*, void>)table[50])(_context, targetView, clearColor);
+        }
         ((delegate* unmanaged[Stdcall]<nint, uint, nint*, nint, void>)table[33])(_context, 1, &targetView, 0);
         var viewport = new D3D11_VIEWPORT { TopLeftX = 0, TopLeftY = 0, Width = width, Height = height, MinDepth = 0, MaxDepth = 1 };
         ((delegate* unmanaged[Stdcall]<nint, uint, D3D11_VIEWPORT*, void>)table[44])(_context, 1, &viewport);
@@ -323,6 +326,61 @@ internal sealed unsafe class GpuDevice : IDisposable
         ((delegate* unmanaged[Stdcall]<nint, uint, uint, nint*, void>)table[8])(_context, 0, 1, &none);
         if (decor is not null)
             ((delegate* unmanaged[Stdcall]<nint, uint, uint, nint*, void>)table[8])(_context, 1, 1, &none);
+        return true;
+    }
+
+    /// <summary>Clears <paramref name="target"/> to transparent black.</summary>
+    internal void ClearTarget(GpuTexture target)
+    {
+        if (_disposed || _context == 0 || target.TargetView == 0)
+            return;
+
+        var clearColor = stackalloc float[4];
+        var view = target.TargetView;
+        ((delegate* unmanaged[Stdcall]<nint, nint, float*, void>)GpuCom.Table(_context)[50])(_context, view, clearColor);
+    }
+
+    /// <summary>
+    /// Draws a triangle that covers <paramref name="target"/>, <paramref name="width"/> by <paramref name="height"/>, with
+    /// <paramref name="pixelShader"/> reading <paramref name="source"/>. The vertex shader takes no vertices. The caller holds
+    /// <see cref="Gate"/>.
+    /// </summary>
+    internal bool DrawFullscreen(GpuTexture target, int width, int height, GpuTexture source, ReadOnlySpan<float> constants, nint vertexShader, nint pixelShader, bool clear)
+    {
+        if (_disposed || vertexShader == 0 || pixelShader == 0 || constants.Length * sizeof(float) != ConstantBytes || target.TargetView == 0 || source.ShaderView == 0)
+            return false;
+
+        var table = GpuCom.Table(_context);
+        fixed (float* values = constants)
+            ((delegate* unmanaged[Stdcall]<nint, nint, uint, void*, void*, uint, uint, void>)table[48])(_context, _constants, 0, null, values, 0, 0);
+
+        var targetView = target.TargetView;
+        if (clear)
+        {
+            var clearColor = stackalloc float[4];
+            ((delegate* unmanaged[Stdcall]<nint, nint, float*, void>)table[50])(_context, targetView, clearColor);
+        }
+
+        ((delegate* unmanaged[Stdcall]<nint, uint, nint*, nint, void>)table[33])(_context, 1, &targetView, 0);
+        var viewport = new D3D11_VIEWPORT { TopLeftX = 0, TopLeftY = 0, Width = width, Height = height, MinDepth = 0, MaxDepth = 1 };
+        ((delegate* unmanaged[Stdcall]<nint, uint, D3D11_VIEWPORT*, void>)table[44])(_context, 1, &viewport);
+        ((delegate* unmanaged[Stdcall]<nint, nint, void>)table[43])(_context, _rasterizer);
+        ((delegate* unmanaged[Stdcall]<nint, nint, void>)table[17])(_context, 0);
+        ((delegate* unmanaged[Stdcall]<nint, uint, void>)table[24])(_context, 4);
+        var constantBuffer = _constants;
+        ((delegate* unmanaged[Stdcall]<nint, uint, uint, nint*, void>)table[7])(_context, 0, 1, &constantBuffer);
+        ((delegate* unmanaged[Stdcall]<nint, uint, uint, nint*, void>)table[16])(_context, 0, 1, &constantBuffer);
+        ((delegate* unmanaged[Stdcall]<nint, nint, void*, uint, void>)table[11])(_context, vertexShader, null, 0);
+        ((delegate* unmanaged[Stdcall]<nint, nint, void*, uint, void>)table[9])(_context, pixelShader, null, 0);
+        var sampler = _sampler;
+        ((delegate* unmanaged[Stdcall]<nint, uint, uint, nint*, void>)table[10])(_context, 0, 1, &sampler);
+        var view = source.ShaderView;
+        ((delegate* unmanaged[Stdcall]<nint, uint, uint, nint*, void>)table[8])(_context, 0, 1, &view);
+        ((delegate* unmanaged[Stdcall]<nint, uint, uint, void>)table[13])(_context, 3, 0);
+
+        nint none = 0;
+        ((delegate* unmanaged[Stdcall]<nint, uint, nint*, nint, void>)table[33])(_context, 1, &none, 0);
+        ((delegate* unmanaged[Stdcall]<nint, uint, uint, nint*, void>)table[8])(_context, 0, 1, &none);
         return true;
     }
 
@@ -408,10 +466,10 @@ internal sealed unsafe class GpuDevice : IDisposable
             return false;
 
         WinRtDevice = winrt;
-        var vertexCode = Compile("vs", "vs_4_0");
-        var meshCode = Compile("psMesh", "ps_4_0");
-        var blurCode = Compile("psBlur", "ps_4_0");
-        var decorCode = Compile("psDecor", "ps_4_0");
+        var vertexCode = CompileSource(Shaders, "vs", "vs_4_0");
+        var meshCode = CompileSource(Shaders, "psMesh", "ps_4_0");
+        var blurCode = CompileSource(Shaders, "psBlur", "ps_4_0");
+        var decorCode = CompileSource(Shaders, "psDecor", "ps_4_0");
         if (vertexCode.Length == 0 || meshCode.Length == 0 || blurCode.Length == 0 || decorCode.Length == 0)
             return false;
 
@@ -424,18 +482,18 @@ internal sealed unsafe class GpuDevice : IDisposable
         return MakeLayout(vertexCode) && MakeStates() && MakeBuffers();
     }
 
-    private static byte[] Compile(string entry, string target)
+    internal static byte[] CompileSource(string source, string entry, string target)
     {
-        var source = Encoding.ASCII.GetBytes(Shaders);
+        var bytes = Encoding.ASCII.GetBytes(source);
         var entryName = Encoding.ASCII.GetBytes(entry + "\0");
         var targetName = Encoding.ASCII.GetBytes(target + "\0");
         nint code;
         nint errors;
         int result;
-        fixed (byte* text = source)
+        fixed (byte* text = bytes)
         fixed (byte* entryPointer = entryName)
         fixed (byte* targetPointer = targetName)
-            result = D3DCompile(text, (nuint)source.Length, null, null, null, entryPointer, targetPointer, 1u << 15, 0, out code, out errors);
+            result = D3DCompile(text, (nuint)bytes.Length, null, null, null, entryPointer, targetPointer, 1u << 15, 0, out code, out errors);
 
         try
         {
@@ -446,9 +504,9 @@ internal sealed unsafe class GpuDevice : IDisposable
                 return [];
             }
 
-            var bytes = new byte[BlobSize(code)];
-            Marshal.Copy(BlobPointer(code), bytes, 0, bytes.Length);
-            return bytes;
+            var compiled = new byte[BlobSize(code)];
+            Marshal.Copy(BlobPointer(code), compiled, 0, compiled.Length);
+            return compiled;
         }
         finally
         {
@@ -460,6 +518,8 @@ internal sealed unsafe class GpuDevice : IDisposable
     private static nint BlobPointer(nint blob) => ((delegate* unmanaged[Stdcall]<nint, nint>)GpuCom.Table(blob)[3])(blob);
 
     private static int BlobSize(nint blob) => (int)((delegate* unmanaged[Stdcall]<nint, nuint>)GpuCom.Table(blob)[4])(blob);
+
+    internal bool CreateShader(int slot, byte[] code, out nint shader) => MakeShader(slot, code, out shader);
 
     private bool MakeShader(int slot, byte[] code, out nint shader)
     {

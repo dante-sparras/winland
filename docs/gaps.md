@@ -10,7 +10,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 
 | keyword | reason |
 | --- | --- |
-| acrylic | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| acrylic | Winland runs the dual Kawase blur, the default variant. This is a separate blur provider, with its own finish and often its own animation, and that pipeline does not run it. |
 | allow_tearing | Tearing is a compositor feature with no Windows meaning. |
 | animation:fadeLayers | Layer shell surfaces have no Windows meaning. |
 | animation:fadeLayersIn | Layer shell surfaces have no Windows meaning. |
@@ -22,7 +22,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 | animation:layersIn | Layer shell surfaces have no Windows meaning. |
 | animation:layersOut | Layer shell surfaces have no Windows meaning. |
 | animation:monitorAdded | A monitor that is added zooms its picture and fades its wallpaper in. Windows draws that picture and that wallpaper, so neither can be animated. |
-| aurora | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| aurora | Winland runs the dual Kawase blur, the default variant. This is a separate blur provider, with its own finish and often its own animation, and that pipeline does not run it. |
 | binds:disable_keybind_grabbing | Applications cannot ask Windows to turn binds off, so there is nothing to refuse. |
 | cursor:enable_hyprcursor | The cursor theme format has no Windows meaning. |
 | cursor:min_refresh_rate | Cursor refresh rate has no Windows meaning. |
@@ -31,13 +31,11 @@ This table has one row per keyword. A test checks it against the keywords the co
 | cursor:sync_gsettings_theme | Syncing the cursor theme with the desktop has no Windows meaning. |
 | cursor:use_cpu_buffer | Hardware cursor buffers have no Windows meaning. |
 | debug | Compositor debug options have no Windows meaning. The log and error bar options are honored. |
-| decoration:blur:input_methods | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:input_methods_ignorealpha | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:new_optimizations | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:popups | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:popups_ignorealpha | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:special | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
-| decoration:blur:variant | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| decoration:blur:input_methods | An input method window belongs to Windows and is not a Client, so there is no window to put a blur layer under. |
+| decoration:blur:input_methods_ignorealpha | An input method window belongs to Windows and is not a Client, so there is no input-method blur for this threshold to change. |
+| decoration:blur:popups | A menu is not a Client, so there is no window to put a blur layer under. |
+| decoration:blur:popups_ignorealpha | A menu is not a Client, so there is no popup blur for this threshold to change. |
+| decoration:blur:variant | Winland always runs the dual Kawase blur, which is the default variant. Another variant is a separate provider and is not run. |
 | device:absolute_region_position | Tablets are not honored. |
 | device:accel_profile | Windows has one pointer acceleration curve. Raw motion is in the device's own units, and taking over pointer movement to apply another curve is not reliable. |
 | device:active_area_position | Tablets are not honored. |
@@ -78,13 +76,13 @@ This table has one row per keyword. A test checks it against the keywords the co
 | device:tap_button_map | Precision touchpad settings apply to every touchpad, and the mouse hook does not name the pad. |
 | device:transform | Windows cannot map touch to one display per device, and tablets are not honored. |
 | dont_inhibit | Applications cannot inhibit binds, so this flag has nothing to bypass. |
-| drops | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| drops | Winland runs the dual Kawase blur, the default variant. This is a separate blur provider, with its own finish and often its own animation, and that pipeline does not run it. |
 | ecosystem | Ecosystem tools have no Windows meaning. |
 | experimental | Experimental Wayland protocol options have no Windows meaning. |
-| fluid_jar | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
-| glass | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
-| haze | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
-| heat_shimmer | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| fluid_jar | Winland runs the dual Kawase blur, the default variant. This is a separate blur provider, with its own finish and often its own animation, and that pipeline does not run it. |
+| glass | Winland runs the dual Kawase blur, the default variant. This is a separate blur provider, with its own finish and often its own animation, and that pipeline does not run it. |
+| haze | Winland runs the dual Kawase blur, the default variant. This is a separate blur provider, with its own finish and often its own animation, and that pipeline does not run it. |
+| heat_shimmer | Winland runs the dual Kawase blur, the default variant. This is a separate blur provider, with its own finish and often its own animation, and that pipeline does not run it. |
 | input-capture | The input capture portal has no Windows meaning. |
 | input:kb_file | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | input:kb_model | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
@@ -123,9 +121,9 @@ This table has one row per keyword. A test checks it against the keywords the co
 | permission | Permission rules have no Windows meaning. |
 | quirks | Display buffer quirks have no Windows meaning. |
 | render | GPU rendering options have no Windows meaning. |
-| ripple | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| ripple | Winland runs the dual Kawase blur, the default variant. This is a separate blur provider, with its own finish and often its own animation, and that pipeline does not run it. |
 | screen_shader | Screen shaders have no Windows meaning. |
-| water | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
+| water | Winland runs the dual Kawase blur, the default variant. This is a separate blur provider, with its own finish and often its own animation, and that pipeline does not run it. |
 | xwayland | X11 compatibility has no Windows meaning. A window rule that matches on xwayland is not honored. |
 
 ## Kind and issue
@@ -140,7 +138,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | non-goal | - | animation:fadeLayers, animation:fadeLayersIn, animation:fadeLayersOut, animation:fadePopups, animation:fadePopupsIn, animation:fadePopupsOut, animation:layers, animation:layersIn, animation:layersOut |
 | non-goal | - | binds:disable_keybind_grabbing |
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
-| gap | - | decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:special |
+| gap | - | decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:popups, decoration:blur:popups_ignorealpha |
 | gap | - | device:absolute_region_position, device:active_area_position, device:active_area_size, device:region_position, device:region_size, device:relative_input |
 | gap | - | device:accel_profile |
 | gap | - | device:clickfinger_behavior, device:disable_while_typing, device:drag_3fg, device:drag_lock, device:flip_x, device:flip_y, device:middle_button_emulation, device:tap-and-drag, device:tap-to-click, device:tap_button_map |
@@ -166,9 +164,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 
 ## Possible
 
-These are the uncovered keywords and behaviors Windows can honor. A gap keyword in the tables above is in this list when Windows has the thing it names.
-
-Drawing on windows Winland already owns: the blur of the windows behind a Client, which the blur options tune without `decoration:blur:xray`. Winland would capture those windows itself.
+None remain. Every uncovered keyword and behavior above is a non-goal or a Windows limit, each with its reason; a gap keyword that Windows could honor would be listed here.
 
 ## Notes
 
@@ -190,7 +186,7 @@ A touchpad swipe cannot be consumed. Windows reads the same fingers, so its own 
 
 Bind flag `p` warns and is ignored. The bind itself still runs. Applications cannot inhibit binds, so there is nothing for that flag to bypass.
 
-Blur is DWM's acrylic backdrop, so it shows only where DWM draws that backdrop: the title bar and any area a window leaves for it. What a window paints itself is not blurred, and a translucent Client does not blur what is behind its content. The exception is `decoration:blur:xray`: then a Client Winland makes translucent shows the blurred wallpaper under it, drawn by Winland with the blur `size`, `passes`, `noise`, `contrast`, `brightness`, `vibrancy`, `vibrancy_darkness` and `ignore_opacity` options (see [behavior.md](behavior.md#decoration)). Without `xray` those options have no DWM equivalent and change nothing, and with it the blur never includes a window, so a floating Client does not blur the windows behind it. A window that is translucent by its own program rather than by Winland has no backdrop of Winland's. A corner radius DWM does not draw is cut as a window region, and that edge is not antialiased. The drawn shadow surrounds the window and its border but not a Group's bar, and a `sharp` shadow is not drawn under the window, so a translucent Client does not show it through. The backdrop, shadow and DWM corner preference are not undone after a crash. A corner region Winland cut is removed on the next start.
+An opaque Client keeps DWM's acrylic backdrop, which shows only where DWM draws it: the title bar and any area a window leaves for it. A Client Winland makes translucent gets a drawn blur instead: the blurred wallpaper when `decoration:blur:xray` or `decoration:blur:new_optimizations` says so, and otherwise the windows behind it (see [behavior.md](behavior.md#decoration)). A window that is translucent by its own program rather than by Winland has no backdrop of Winland's. The named blur variants, popup blur and input-method blur stay gaps. The blur of the windows behind needs a hardware graphics adapter. It is Winland's Clients and the wallpaper, not an unrelated top-level window. A window that excludes itself from capture is missing from that picture, and a captured pixel that is itself translucent replaces what is behind it. When the wallpaper cannot be read, that blur has only the captured windows. A corner radius DWM does not draw is cut as a window region, and that edge is not antialiased. The drawn shadow surrounds the window and its border but not a Group's bar, and a `sharp` shadow is not drawn under the window, so a translucent Client does not show it through. The backdrop, shadow and DWM corner preference are not undone after a crash. A corner region Winland cut is removed on the next start.
 
 Wobble and motion blur are drawn from a capture of the window, as [behavior.md](behavior.md#wobble-and-motion-blur) describes. These parts are Gaps:
 

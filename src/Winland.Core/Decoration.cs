@@ -35,6 +35,9 @@ public readonly record struct Decoration(
     /// <summary>The blurred wallpaper Winland draws under the window, or null for none. A Client with one has no <see cref="Blur"/>.</summary>
     public XrayBackdrop? Xray { get; init; }
 
+    /// <summary>The blur of the windows behind this Client, or null for none. A Client with one has no <see cref="Blur"/>.</summary>
+    public BehindBlur? Behind { get; init; }
+
     public bool Shadow { get; init; } = true;
 
     /// <summary>The border Winland draws outside the window, or null for none.</summary>
@@ -89,10 +92,19 @@ public sealed record DecorationOptions
     /// <summary><c>decoration:blur:xray</c>: a translucent Client shows the blurred wallpaper alone, drawn by Winland, not DWM's backdrop.</summary>
     public bool Xray { get; init; }
 
-    /// <summary><c>decoration:blur:ignore_opacity</c>: the blurred wallpaper does not take the window's opacity.</summary>
+    /// <summary>
+    /// <c>decoration:blur:new_optimizations</c>: a tiled Client on an ordinary workspace uses the shared wallpaper blur. A floating
+    /// Client, and a Client on the open special workspace, blur the windows behind them.
+    /// </summary>
+    public bool NewOptimizations { get; init; } = true;
+
+    /// <summary><c>decoration:blur:special</c>: a monitor whose special workspace is open draws one blur behind that workspace.</summary>
+    public bool BlurSpecial { get; init; }
+
+    /// <summary><c>decoration:blur:ignore_opacity</c>: a drawn blur does not take the window's opacity.</summary>
     public bool IgnoreOpacity { get; init; } = true;
 
-    /// <summary>The blur options <c>decoration:blur:size</c> through <c>vibrancy_darkness</c> that the blurred wallpaper reads.</summary>
+    /// <summary>The blur options <c>decoration:blur:size</c> through <c>vibrancy_darkness</c> that a drawn blur reads.</summary>
     public BlurTuning BlurTuning { get; init; } = BlurTuning.Documented;
 
     public bool Shadow { get; init; } = true;
@@ -200,6 +212,8 @@ public sealed record DecorationOptions
         ["decoration:rounding_power"] = (options, value) => TryParsePower(value, out var power) ? options with { RoundingPower = power } : options,
         ["decoration:blur:enabled"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { Blur = enabled } : options,
         ["decoration:blur:xray"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { Xray = enabled } : options,
+        ["decoration:blur:new_optimizations"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { NewOptimizations = enabled } : options,
+        ["decoration:blur:special"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { BlurSpecial = enabled } : options,
         ["decoration:blur:ignore_opacity"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { IgnoreOpacity = enabled } : options,
         ["decoration:blur:size"] = (options, value) => TryParseWhole(value, 0, 100, out var size) ? options with { BlurTuning = options.BlurTuning with { Size = size } } : options,
         ["decoration:blur:passes"] = (options, value) => TryParseWhole(value, 0, 10, out var passes) ? options with { BlurTuning = options.BlurTuning with { Passes = passes } } : options,

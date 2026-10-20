@@ -356,6 +356,7 @@ public sealed partial class WindowAdapter : IDisposable
                 ShadowHost.Follow(window);
                 GlowHost.Follow(window);
                 XrayHost.Follow(window);
+                BehindHost.Follow(window);
             }
 
             // A Group's shown member raised or shown takes its tab bar up with it.
@@ -761,6 +762,7 @@ public sealed partial class WindowAdapter : IDisposable
         var shadows = new Dictionary<WindowId, DropShadow>();
         var glows = new Dictionary<WindowId, InnerGlow>();
         var xrays = new Dictionary<WindowId, XrayBackdrop>();
+        var behinds = new Dictionary<WindowId, BehindBlur>();
         lock (PaintGate)
         {
             if (!Releasing)
@@ -789,19 +791,22 @@ public sealed partial class WindowAdapter : IDisposable
                         glows[window] = glow;
                     if (decoration.Xray is XrayBackdrop xray)
                         xrays[window] = xray;
+                    if (decoration.Behind is BehindBlur behind)
+                        behinds[window] = behind;
                 }
             }
         }
 
         if (!Releasing && current)
         {
-            if (outcome.Decorations.Count > 0 || outcome.ResetDecorations.Count > 0)
+            if (outcome.Decorations.Count > 0 || outcome.ResetDecorations.Count > 0 || outcome.SpecialBlurs.Count > 0)
             {
                 BorderHost.Update(rings);
                 ShadowHost.Update(shadows);
                 GlowHost.Update(glows);
                 EffectLayers.Update(rings, shadows, glows);
                 XrayHost.Update(xrays);
+                BehindHost.Update(behinds, outcome.SpecialBlurs);
             }
 
             GroupBarHost.Update(outcome.GroupBars);

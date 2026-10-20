@@ -37,5 +37,6 @@ internal static class StandFrames
         ShadowHost.Follow(window);
         GlowHost.Follow(window);
         XrayHost.Follow(window);
+        BehindHost.Follow(window);
     }
 }
