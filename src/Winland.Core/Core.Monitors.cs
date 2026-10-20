@@ -220,9 +220,9 @@ public sealed partial class Core
             return MoveActiveOnto(chosen, silent, name, allowsElevation);
         }
 
-        var desk = FocusedWorkspace();
-        var covered = desk.Covered();
         var active = ActiveWindow();
+        var desk = active is WindowId owned && WorkspaceContaining(owned) is LiveWorkspace own ? own : FocusedWorkspace();
+        var covered = desk.Covered();
         if (active is WindowId shown && Find(shown) is { Fullscreen: not FullscreenMode.None })
             return Rejected(name, "error: can't move fullscreen window", allowsElevation);
 
@@ -232,6 +232,9 @@ public sealed partial class Core
             return Present(desk, covered, stayed, dispatcher: name, allowsElevation: allowsElevation);
         }
 
+        // A direction onto the neighbouring Monitor follows only for the focused window. Another window is assigned
+        // there and the focus stays, as the pinned release does.
+        var stay = !DirectionFollows();
         if (_monitorFallback
             && MonitorHolding(desk) is LiveMonitor origin
             && desk.Layout.TryBounds(window, out var box))
@@ -242,8 +245,13 @@ public sealed partial class Core
             var focal = MonitorSelector.Focal(Ideal(desk, window, box), direction);
             var hit = MonitorSelector.At(Targets(), focal);
             if (hit is MonitorTarget other && other.Id != origin.Id && MonitorOf(other) is LiveMonitor across)
-                return MoveActiveOnto(across, silent: false, name, allowsElevation, focal);
+                return MoveActiveOnto(across, stay, name, allowsElevation, focal);
         }
+
+        // In master, swapping another window with the focused one leaves the focus on the tile the focused window held.
+        Rectangle? held = null;
+        if (MasterSlotFollows(desk) && _active is WindowId focused && desk.Layout.TryBounds(focused, out var slot))
+            held = slot;
 
         var placements = desk.Layout.MoveWindow(window, arguments);
         if (_monitorFallback
@@ -253,9 +261,41 @@ public sealed partial class Core
             && TargetOf(home) is MonitorTarget from
             && MonitorSelector.InDirection(Targets(), from, direction) is MonitorTarget neighbor
             && MonitorOf(neighbor) is LiveMonitor next)
-            return MoveActiveOnto(next, silent: false, name, allowsElevation);
+            return MoveActiveOnto(next, stay, name, allowsElevation);
 
-        return Present(desk, covered, placements, dispatcher: name, allowsElevation: allowsElevation);
+        var laid = Present(desk, covered, placements, dispatcher: name, allowsElevation: allowsElevation);
+        if (held is Rectangle old && WindowIn(desk, placements, old) == window)
+            return Merge(laid, FocusClient(window, name, allowsElevation));
+
+        return laid;
+    }
+
+    // A named window is followed when it is the focused one, or when the dispatcher names no window.
+    private bool DirectionFollows() => _actingOn is not WindowId acting || _active == acting;
+
+    private bool MasterSlotFollows(LiveWorkspace desk) =>
+        _actingOn is WindowId acting
+        && _active is WindowId focused
+        && acting != focused
+        && LayoutFactory.NameOf(desk.Layout) == "master"
+        && WorkspaceContaining(focused) is LiveWorkspace home
+        && home.Id == desk.Id;
+
+    private static WindowId? WindowIn(LiveWorkspace desk, IReadOnlyList<Placement> placements, Rectangle slot)
+    {
+        foreach (var placement in placements)
+        {
+            if (placement.Bounds != slot)
+                continue;
+
+            foreach (var client in desk.Layout.Clients)
+            {
+                if (client.Id == placement.Client)
+                    return client.Window;
+            }
+        }
+
+        return null;
     }
 
     private Outcome FocusMonitorDispatch(string arguments, bool allowsElevation)
