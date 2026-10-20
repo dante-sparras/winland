@@ -148,7 +148,7 @@ Events and calls that have a Windows source: `window.open_early`, `config.props_
 
 Behavior the Notes describe, which Windows can do: the mouse-drag gaps; dragging a tab out of the bar; swallowing the way the pinned release does; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
 
-Commands and the plugin manager: `descriptions` carrying each option's description; the window property `no_vrr`; plugin `enable`, `disable` and `reload`; `remove` taking `author/name`; a manifest's shell `build` steps and `output`; and the `--notify`, `--verbose` and `--no-shallow` flags, and the custom source URL flag.
+Commands and the plugin manager: the window property `no_vrr`; plugin `enable`, `disable` and `reload`; `remove` taking `author/name`; a manifest's shell `build` steps and `output`; and the `--notify`, `--verbose` and `--no-shallow` flags, and the custom source URL flag.
 
 ## Notes
 
@@ -224,7 +224,7 @@ The objects the `hl.get_*` queries return differ where Winland's replies have le
 
 Every command the pinned release's control socket answers is recognized. The ones below differ.
 
-`descriptions` lists only the options Winland reads, and their `description` is empty: the pinned release's descriptions are not carried.
+`descriptions` lists only the options Winland reads.
 
 `getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `allows_input`, `nearest_neighbor`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `render_unfocused`, `no_screen_share`, `no_vrr` and `no_auto_hdr`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
 
