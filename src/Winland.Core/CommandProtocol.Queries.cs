@@ -193,15 +193,16 @@ public static partial class CommandProtocol
             "0",
             null,
             !monitor.Enabled && monitor.MirrorOf.Length == 0,
-            "",
+            DisplayColors.Format(monitor.BitsPerChannel),
             mirrorOf,
             Modes(monitor),
-            monitor.ColorPreset,
-            0,
-            0,
-            0,
-            0,
-            false);
+            monitor.ColorPreset.Length == 0 ? DisplayColors.StandardPreset : monitor.ColorPreset,
+            monitor.SdrBrightness,
+            monitor.SdrSaturation,
+            monitor.SdrMinLuminance,
+            monitor.SdrMaxLuminance,
+            false,
+            new HardwareDetailsJson("windows", monitor.HdrCapable, monitor.Chroma, monitor.WideCapable, false));
 
     private static int[] Reserved(Monitor monitor)
     {
@@ -580,5 +581,13 @@ public static partial class CommandProtocol
         [property: JsonPropertyName("sdrSaturation")] double SdrSaturation,
         [property: JsonPropertyName("sdrMinLuminance")] double SdrMinLuminance,
         [property: JsonPropertyName("sdrMaxLuminance")] int SdrMaxLuminance,
-        [property: JsonPropertyName("hardwareCursorsInUse")] bool HardwareCursorsInUse);
+        [property: JsonPropertyName("hardwareCursorsInUse")] bool HardwareCursorsInUse,
+        [property: JsonPropertyName("hardwareDetails")] HardwareDetailsJson HardwareDetails);
+
+    private sealed record HardwareDetailsJson(
+        [property: JsonPropertyName("backend")] string Backend,
+        [property: JsonPropertyName("hdr")] bool Hdr,
+        [property: JsonPropertyName("chroma")] bool Chroma,
+        [property: JsonPropertyName("bt2020")] bool Bt2020,
+        [property: JsonPropertyName("vrrCapable")] bool VrrCapable);
 }

@@ -39,6 +39,8 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
 
     /// <summary>Graphics preferences Winland changed, to put back when it starts again after it did not stop cleanly.</summary>
     public VrrOriginals? Vrr { get; init; }
+    /// <summary>The color switches Winland changed, to put back when it starts again after it did not stop cleanly.</summary>
+    public IReadOnlyList<DisplayColorOriginal>? Colors { get; init; }
 
     private static readonly JsonSerializerOptions Json = new()
     {
@@ -70,7 +72,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 client.Region);
         }
 
-        return JsonSerializer.Serialize(new FileBody(rows, InputBody.From(Input), MirrorBody.From(Mirrors), VrrBody.From(Vrr)), Json);
+        return JsonSerializer.Serialize(new FileBody(rows, InputBody.From(Input), MirrorBody.From(Mirrors), VrrBody.From(Vrr), ColorBody.From(Colors)), Json);
     }
 
     public static bool TryParse(string? json, out RecoverySnapshot snapshot)
@@ -116,6 +118,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 Input = body.Input?.ToOriginals(),
                 Mirrors = MirrorBody.ToOriginals(body.Mirrors),
                 Vrr = body.Vrr?.ToOriginals(),
+                Colors = ColorBody.ToOriginals(body.Colors),
             };
             return true;
         }
@@ -132,7 +135,47 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
         [property: JsonPropertyName("clients")] ClientBody?[]? Clients,
         [property: JsonPropertyName("input")] InputBody? Input,
         [property: JsonPropertyName("mirrors")] MirrorBody?[]? Mirrors = null,
-        [property: JsonPropertyName("vrr")] VrrBody? Vrr = null);
+        [property: JsonPropertyName("vrr")] VrrBody? Vrr = null,
+        [property: JsonPropertyName("colors")] ColorBody?[]? Colors = null);
+
+    private sealed record ColorBody(
+        [property: JsonPropertyName("device")] string? Device,
+        [property: JsonPropertyName("hdr")] bool Hdr,
+        [property: JsonPropertyName("wide")] bool Wide,
+        [property: JsonPropertyName("split")] bool Split)
+    {
+        public static ColorBody[]? From(IReadOnlyList<DisplayColorOriginal>? colors)
+        {
+            if (colors is not { Count: > 0 })
+                return null;
+
+            var rows = new ColorBody[colors.Count];
+            for (var i = 0; i < colors.Count; i++)
+            {
+                var color = colors[i];
+                rows[i] = new ColorBody(color.Device, color.Hdr, color.Wide, color.Split);
+            }
+
+            return rows;
+        }
+
+        public static IReadOnlyList<DisplayColorOriginal>? ToOriginals(ColorBody?[]? rows)
+        {
+            if (rows is null)
+                return null;
+
+            var colors = new List<DisplayColorOriginal>(rows.Length);
+            foreach (var row in rows)
+            {
+                if (row is null || string.IsNullOrEmpty(row.Device))
+                    continue;
+
+                colors.Add(new DisplayColorOriginal(row.Device, row.Hdr, row.Wide, row.Split));
+            }
+
+            return colors.Count == 0 ? null : colors;
+        }
+    }
 
     private sealed record MirrorBody(
         [property: JsonPropertyName("device")] string? Device,

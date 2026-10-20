@@ -76,6 +76,12 @@ ChangeDisplaySettingsEx
 QueryDisplayConfig
 GetDisplayConfigBufferSizes
 DisplayConfigGetDeviceInfo
+CreateDXGIFactory1
+IDXGIFactory1
+IDXGIAdapter1
+IDXGIOutput
+IDXGIOutput6
+DXGI_OUTPUT_DESC1
 GetDpiForMonitor
 SetProcessDpiAwarenessContext
 EnumChildWindows

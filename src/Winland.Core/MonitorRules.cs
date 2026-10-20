@@ -38,7 +38,17 @@ internal readonly record struct MonitorRule(
     string? Mode = null,
     double? Scale = null,
     string? ColorPreset = null,
-    string? Mirror = null);
+    string? Mirror = null,
+    bool? TenBit = null,
+    double? SdrBrightness = null,
+    double? SdrSaturation = null,
+    double? SdrMinLuminance = null,
+    int? SdrMaxLuminance = null,
+    int? WideOverride = null,
+    int? HdrOverride = null,
+    float? MinLuminance = null,
+    int? MaxLuminance = null,
+    int? MaxAvgLuminance = null);
 
 internal readonly record struct MonitorArrangement(
     Monitor[] Monitors,
@@ -128,11 +138,35 @@ internal static class MonitorRules
                 found.Add("Invalid scale.");
         }
 
-        DisplayOrientation? orientation = null;
-        string? preset = null;
-        string? mirror = null;
-        ReadOptions(parts, found, ref orientation, ref preset, ref mirror);
-        rule = new MonitorRule(selector, MonitorRuleKind.Full, true, x, y, auto, 0, 0, 0, 0, false, orientation, mode, scale, preset, mirror);
+        var options = new ParsedOptions();
+        ReadOptions(parts, found, ref options);
+        rule = new MonitorRule(
+            selector,
+            MonitorRuleKind.Full,
+            true,
+            x,
+            y,
+            auto,
+            0,
+            0,
+            0,
+            0,
+            false,
+            options.Orientation,
+            mode,
+            scale,
+            options.Preset,
+            options.Mirror,
+            options.TenBit,
+            options.SdrBrightness,
+            options.SdrSaturation,
+            options.SdrMinLuminance,
+            options.SdrMaxLuminance,
+            options.WideOverride,
+            options.HdrOverride,
+            options.MinLuminance,
+            options.MaxLuminance,
+            options.MaxAvgLuminance);
         return true;
     }
 
@@ -192,8 +226,16 @@ internal static class MonitorRules
             if (rule?.Mode is string mode)
                 modes.Add(new DisplayModeRequest(monitor.Name, mode));
 
-            if (rule?.ColorPreset is string preset && preset != DisplayColors.Auto)
-                colors.Add(new DisplayColorRequest(monitor.Name, preset));
+            // auto, and a rule that names no preset, leave the switches alone unless the rule asks for 10-bit color.
+            if (rule is MonitorRule chosenRule && (chosenRule.ColorPreset is string preset && preset != DisplayColors.Auto || chosenRule.TenBit == true))
+            {
+                colors.Add(new DisplayColorRequest(
+                    monitor.Name,
+                    chosenRule.ColorPreset ?? DisplayColors.Auto,
+                    chosenRule.TenBit == true,
+                    chosenRule.WideOverride ?? 0,
+                    chosenRule.HdrOverride ?? 0));
+            }
 
             // A scale Windows already shows asks for nothing, so the display change a new scale causes does not loop.
             if (rule?.Scale is double scale && DisplaySettings.NearestPercent(scale) != DisplaySettings.NearestPercent(monitor.Scale <= 0 ? 1 : monitor.Scale))
@@ -318,6 +360,16 @@ internal static class MonitorRules
             Scale = next.Scale ?? prior.Scale,
             ColorPreset = next.ColorPreset ?? prior.ColorPreset,
             Mirror = next.Mirror ?? prior.Mirror,
+            TenBit = next.TenBit ?? prior.TenBit,
+            SdrBrightness = next.SdrBrightness ?? prior.SdrBrightness,
+            SdrSaturation = next.SdrSaturation ?? prior.SdrSaturation,
+            SdrMinLuminance = next.SdrMinLuminance ?? prior.SdrMinLuminance,
+            SdrMaxLuminance = next.SdrMaxLuminance ?? prior.SdrMaxLuminance,
+            WideOverride = next.WideOverride ?? prior.WideOverride,
+            HdrOverride = next.HdrOverride ?? prior.HdrOverride,
+            MinLuminance = next.MinLuminance ?? prior.MinLuminance,
+            MaxLuminance = next.MaxLuminance ?? prior.MaxLuminance,
+            MaxAvgLuminance = next.MaxAvgLuminance ?? prior.MaxAvgLuminance,
         },
     };
 
@@ -373,7 +425,7 @@ internal static class MonitorRules
         return true;
     }
 
-    private static void ReadOptions(List<string> parts, List<string> warnings, ref DisplayOrientation? orientation, ref string? preset, ref string? mirror)
+    private static void ReadOptions(List<string> parts, List<string> warnings, ref ParsedOptions options)
     {
         for (var i = 4; i < parts.Count; i++)
         {
@@ -389,22 +441,67 @@ internal static class MonitorRules
 
             var option = parts[++i];
             if (IsTransform(key))
-                orientation = ParseTransform(option, warnings) ?? orientation;
+                options.Orientation = ParseTransform(option, warnings) ?? options.Orientation;
             else if (key.Equals("mirror", StringComparison.OrdinalIgnoreCase))
-                mirror = option;
+                options.Mirror = option;
             else if (key.Equals("bitdepth", StringComparison.OrdinalIgnoreCase))
-                warnings.Add("Changing a monitor's bit depth is not honored.");
+                options.TenBit = option == "10";
             else if (key.Equals("vrr", StringComparison.OrdinalIgnoreCase))
                 warnings.Add("Variable refresh rate is not honored.");
             else if (key.Equals("cm", StringComparison.OrdinalIgnoreCase) && DisplayColors.IsPreset(option))
-                preset = option.ToLowerInvariant();
+                options.Preset = option.ToLowerInvariant();
             else if (key.Equals("cm", StringComparison.OrdinalIgnoreCase))
                 warnings.Add("Invalid color management preset.");
+            else if (key.Equals("sdrbrightness", StringComparison.OrdinalIgnoreCase))
+                options.SdrBrightness = ParseFloat(option, "Invalid SDR brightness.", warnings) ?? options.SdrBrightness;
+            else if (key.Equals("sdrsaturation", StringComparison.OrdinalIgnoreCase))
+                options.SdrSaturation = ParseFloat(option, "Invalid SDR saturation.", warnings) ?? options.SdrSaturation;
+            else if (key.Equals("sdr_min_luminance", StringComparison.OrdinalIgnoreCase))
+                options.SdrMinLuminance = ParseFloat(option, "Invalid SDR minimum luminance.", warnings) ?? options.SdrMinLuminance;
+            else if (key.Equals("sdr_max_luminance", StringComparison.OrdinalIgnoreCase))
+                options.SdrMaxLuminance = ParseInt(option, "Invalid SDR maximum luminance.", warnings) ?? options.SdrMaxLuminance;
+            else if (key.Equals("supports_wide_color", StringComparison.OrdinalIgnoreCase))
+                options.WideOverride = ParseSupport(option, "Invalid wide color support.", warnings) ?? options.WideOverride;
+            else if (key.Equals("supports_hdr", StringComparison.OrdinalIgnoreCase))
+                options.HdrOverride = ParseSupport(option, "Invalid HDR support.", warnings) ?? options.HdrOverride;
+            else if (key.Equals("min_luminance", StringComparison.OrdinalIgnoreCase))
+                options.MinLuminance = ParseFloat(option, "Invalid minimum luminance.", warnings) is double min ? (float)min : options.MinLuminance;
+            else if (key.Equals("max_luminance", StringComparison.OrdinalIgnoreCase))
+                options.MaxLuminance = ParseInt(option, "Invalid maximum luminance.", warnings) ?? options.MaxLuminance;
+            else if (key.Equals("max_avg_luminance", StringComparison.OrdinalIgnoreCase))
+                options.MaxAvgLuminance = ParseInt(option, "Invalid maximum average luminance.", warnings) ?? options.MaxAvgLuminance;
             else if (IsColor(key))
                 warnings.Add("Monitor color management other than its cm preset is not honored.");
             else
                 warnings.Add("Malformed monitor rule.");
         }
+    }
+
+    private static double? ParseFloat(string text, string warning, List<string> warnings)
+    {
+        if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value))
+            return value;
+
+        warnings.Add(warning);
+        return null;
+    }
+
+    private static int? ParseInt(string text, string warning, List<string> warnings)
+    {
+        if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
+            return value;
+
+        warnings.Add(warning);
+        return null;
+    }
+
+    private static int? ParseSupport(string text, string warning, List<string> warnings)
+    {
+        if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) && value is >= -1 and <= 1)
+            return value;
+
+        warnings.Add(warning);
+        return null;
     }
 
     private static DisplayOrientation? ParseTransform(string text, List<string> warnings)
@@ -429,12 +526,34 @@ internal static class MonitorRules
         if (rule is null)
             return reported;
 
+        var chosen = rule.Value;
+        var reading = new DisplayColorReading(
+            reported.HdrCapable,
+            reported.WideCapable,
+            reported.HdrActive,
+            reported.WideActive,
+            reported.AdvancedCapable,
+            reported.SeparateColor,
+            reported.BitsPerChannel,
+            reported.MinLuminance,
+            reported.MaxLuminance,
+            reported.MaxAvgLuminance,
+            reported.Chroma);
+        var support = DisplayColors.Effective(reading, chosen.WideOverride ?? 0, chosen.HdrOverride ?? 0);
         return reported with
         {
-            Enabled = rule.Value.Enabled,
-            WorkArea = Inset(reported.WorkArea, rule.Value, reported.Scale),
-            Orientation = rule.Value.Orientation,
-            ColorPreset = rule.Value.ColorPreset ?? "",
+            Enabled = chosen.Enabled,
+            WorkArea = Inset(reported.WorkArea, chosen, reported.Scale),
+            Orientation = chosen.Orientation,
+            ColorPreset = chosen.ColorPreset ?? "",
+            BitsPerChannel = DisplayColors.ReportedBits(reported.BitsPerChannel, chosen.ColorPreset, chosen.TenBit == true, support),
+            SdrBrightness = chosen.SdrBrightness ?? reported.SdrBrightness,
+            SdrSaturation = chosen.SdrSaturation ?? reported.SdrSaturation,
+            SdrMinLuminance = chosen.SdrMinLuminance ?? reported.SdrMinLuminance,
+            SdrMaxLuminance = chosen.SdrMaxLuminance ?? reported.SdrMaxLuminance,
+            MinLuminance = chosen.MinLuminance is float min && min >= 0 ? min : reported.MinLuminance,
+            MaxLuminance = chosen.MaxLuminance is int max && max >= 0 ? max : reported.MaxLuminance,
+            MaxAvgLuminance = chosen.MaxAvgLuminance is int average && average >= 0 ? average : reported.MaxAvgLuminance,
         };
     }
 
@@ -623,9 +742,24 @@ internal static class MonitorRules
 
     private static bool IsColor(string text) =>
         text.Equals("icc", StringComparison.OrdinalIgnoreCase)
-        || text.Equals("sdrbrightness", StringComparison.OrdinalIgnoreCase)
-        || text.Equals("sdrsaturation", StringComparison.OrdinalIgnoreCase)
         || text.Equals("sdr_eotf", StringComparison.OrdinalIgnoreCase);
+
+    private struct ParsedOptions
+    {
+        public DisplayOrientation? Orientation;
+        public string? Preset;
+        public string? Mirror;
+        public bool? TenBit;
+        public double? SdrBrightness;
+        public double? SdrSaturation;
+        public double? SdrMinLuminance;
+        public int? SdrMaxLuminance;
+        public int? WideOverride;
+        public int? HdrOverride;
+        public float? MinLuminance;
+        public int? MaxLuminance;
+        public int? MaxAvgLuminance;
+    }
 
     private static bool LeavesMode(string text) =>
         text.Length == 0 || text.StartsWith("pref", StringComparison.OrdinalIgnoreCase);

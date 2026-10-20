@@ -1,9 +1,10 @@
 namespace Winland.Windows;
 
 /// <summary>
-/// Applies cursor, input, relayed key, idle, display mirror and variable refresh requests from an outcome. Until
-/// <see cref="InstallSystem"/> the cursor and the system input are stand-ins, no key is sent, no idle state is set,
-/// no display is mirrored and no graphics preference is written, so tests that apply an outcome do not change the machine.
+/// Applies cursor, input, relayed key, idle, display mirror, display color and variable refresh requests from an
+/// outcome. Until <see cref="InstallSystem"/> the cursor and the system input are stand-ins, no key is sent, no idle
+/// state is set, no display is mirrored or recolored and no graphics preference is written, so tests that apply an
+/// outcome do not change the machine.
 /// </summary>
 public static class SessionEffects
 {
@@ -20,6 +21,7 @@ public static class SessionEffects
     private static IdleKeeper? _idle;
     private static DisplayMirrorSession? _mirrors;
     private static GpuPreferenceSession? _vrr;
+    private static DisplayColorSession? _colors;
     private static int _installed;
 
     public static InputOriginals? Originals => _session?.Originals;
@@ -29,6 +31,9 @@ public static class SessionEffects
 
     /// <summary>The displays Winland made mirror another, to put back.</summary>
     public static IReadOnlyList<DisplayMirrorOriginal> MirrorOriginals => _mirrors?.Originals ?? [];
+
+    /// <summary>The color switches Winland changed, to put back.</summary>
+    public static IReadOnlyList<DisplayColorOriginal> ColorOriginals => _colors?.Originals ?? [];
 
     /// <summary>The first layout <c>kb_layout</c> names, once loaded, or 0.</summary>
     public static nint FirstLayout => _layouts?.First ?? 0;
@@ -46,6 +51,7 @@ public static class SessionEffects
         _idle = new IdleKeeper();
         _mirrors = new DisplayMirrorSession(new Win32DisplayTopology());
         _vrr = new GpuPreferenceSession(new RegistryGpuPreferences());
+        _colors = new DisplayColorSession(new Win32DisplayColorControl());
     }
 
     public static void Apply(Outcome outcome)
@@ -94,8 +100,13 @@ public static class SessionEffects
 
         Relay(outcome);
         _idle?.Set(IdleInhibit.Wanted(outcome.State));
+        // A layout outcome carries the mirrors, including none. Color is applied with it, and an empty list puts back
+        // a switch an earlier layout turned. Any other outcome leaves the displays alone.
         if (outcome.DisplayMirrors is { } mirrors)
+        {
             _mirrors?.Apply(mirrors);
+            _colors?.Apply(outcome.DisplayColors);
+        }
     }
 
     /// <summary>
@@ -156,6 +167,7 @@ public static class SessionEffects
         _session?.Restore();
         _vrr?.Restore();
         _mirrors?.Restore();
+        _colors?.Restore();
         _layouts?.Restore();
         Magnifier.Stop();
         CursorShape.Reset();
@@ -173,6 +185,9 @@ public static class SessionEffects
 
     /// <summary>Puts back the mirrors a run that did not stop cleanly left.</summary>
     public static void RestoreSaved(IReadOnlyList<DisplayMirrorOriginal> mirrors) => _mirrors?.RestoreSaved(mirrors);
+
+    /// <summary>Puts back the color switches a run that did not stop cleanly left.</summary>
+    public static void RestoreSaved(IReadOnlyList<DisplayColorOriginal> colors) => _colors?.RestoreSaved(colors);
 
     private sealed class NullCursor : ICursorSurface
     {

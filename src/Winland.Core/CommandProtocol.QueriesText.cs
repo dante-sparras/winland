@@ -120,7 +120,9 @@ public static partial class CommandProtocol
             .Append(CultureInfo.InvariantCulture, $"\tsdrBrightness: {monitor.SdrBrightness}\n\tsdrSaturation: {monitor.SdrSaturation}\n")
             .Append(CultureInfo.InvariantCulture, $"\tsdrMinLuminance: {monitor.SdrMinLuminance}\n\tsdrMaxLuminance: {monitor.SdrMaxLuminance}\n")
             .Append(CultureInfo.InvariantCulture, $"\thardwareCursorsInUse: {Word(monitor.HardwareCursorsInUse)}\n")
-            .Append("\thardwareDetails:\n\t\tbackend: windows\n\t\thdr: no\n\t\tchroma: no\n\t\tbt2020: no\n\t\tvrrCapable: no\n\n");
+            .Append(CultureInfo.InvariantCulture, $"\thardwareDetails:\n\t\tbackend: {monitor.HardwareDetails.Backend}\n\t\thdr: {YesNo(monitor.HardwareDetails.Hdr)}\n")
+            .Append(CultureInfo.InvariantCulture, $"\t\tchroma: {YesNo(monitor.HardwareDetails.Chroma)}\n\t\tbt2020: {YesNo(monitor.HardwareDetails.Bt2020)}\n")
+            .Append(CultureInfo.InvariantCulture, $"\t\tvrrCapable: {YesNo(monitor.HardwareDetails.VrrCapable)}\n\n");
     }
 
     // An address without its 0x, as the pinned release's text writes a pointer.

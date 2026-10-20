@@ -61,6 +61,24 @@ public static class MonitorAdapter
             From(info.monitorInfo.rcWork),
             Make: panel.Make ?? "",
             RefreshRate: panel.RefreshRate);
+        if (Win32DisplayColorControl.TryDescribe(name, out var color))
+        {
+            described = described with
+            {
+                BitsPerChannel = color.BitsPerChannel,
+                HdrCapable = color.HdrSupported,
+                WideCapable = color.WideSupported,
+                AdvancedCapable = color.AdvancedSupported,
+                SeparateColor = color.Split,
+                Chroma = color.Chroma,
+                HdrActive = color.HdrOn,
+                WideActive = color.WideOn,
+                MinLuminance = color.MinLuminance,
+                MaxLuminance = color.MaxLuminance,
+                MaxAvgLuminance = color.MaxAvgLuminance,
+            };
+        }
+
         return true;
     }
 
