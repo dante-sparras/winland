@@ -17,7 +17,7 @@ public static class ConfigGaps
         new("animation:layers", "Layer shell surfaces have no Windows meaning."),
         new("animation:layersIn", "Layer shell surfaces have no Windows meaning."),
         new("animation:layersOut", "Layer shell surfaces have no Windows meaning."),
-        new("animation:monitorAdded", "A monitor that is added does not animate."),
+        new("animation:monitorAdded", "A monitor that is added does not animate. Its picture zooms and its wallpaper fades in, and Winland can draw a window's picture but not the wallpaper Windows draws."),
         new("aurora", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("binds:disable_keybind_grabbing", "Applications cannot ask Windows to turn binds off, so there is nothing to refuse."),
         new("bitdepth", "Changing a monitor's bit depth is not honored."),

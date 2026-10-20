@@ -304,6 +304,8 @@ internal sealed class GradientLayerHost<T>(
         private T? _layer;
         private T? _painted;
         private GradientMotion _paintedMotion = GradientMotion.Still;
+        private byte _alpha = 255;
+        private byte _paintedAlpha = 255;
         private Rectangle _box;
         private bool _shown;
         private double? _turnStart;
@@ -387,7 +389,15 @@ internal sealed class GradientLayerHost<T>(
         public void Place()
         {
             var target = new HWND((nint)window.Value);
-            if (_layer is not T layer || !Visible(target) || !TryFrame(target, out var frame) || host.Place(frame, layer) is not LayerLayout layout)
+            var frame = default(Rectangle);
+
+            // A window with a stand-in is drawn in the stand-in's rectangle. A layer above stacks on the stand-in,
+            // and a layer below stays under the window.
+            var standing = StandFrames.TryGet(window, out var shown, out var overlay);
+            if (standing)
+                frame = shown;
+            _alpha = MotionAlpha.Of(window);
+            if (_alpha == 0 || _layer is not T layer || !Visible(target) || !(standing ? frame.Width > 0 && frame.Height > 0 : TryFrame(target, out frame)) || host.Place(frame, layer) is not LayerLayout layout)
             {
                 Hide();
                 return;
@@ -395,13 +405,14 @@ internal sealed class GradientLayerHost<T>(
 
             var box = layout.Box;
             var motion = Motion;
-            if (box.Width != _box.Width || box.Height != _box.Height || !layer.Equals(_painted) || !_shown || motion != _paintedMotion)
+            if (box.Width != _box.Width || box.Height != _box.Height || !layer.Equals(_painted) || !_shown || motion != _paintedMotion || _alpha != _paintedAlpha)
             {
                 for (var i = 0; i < _pieces.Length; i++)
                     Paint(i, box, layout, i < layout.Pieces.Count ? layout.Pieces[i] : default, layer, motion);
 
                 _painted = layer;
                 _paintedMotion = motion;
+                _paintedAlpha = _alpha;
             }
             else if (box != _box)
             {
@@ -411,7 +422,7 @@ internal sealed class GradientLayerHost<T>(
 
             _box = box;
             _shown = true;
-            Stack(target);
+            Stack(standing && !host.Below ? overlay : target);
         }
 
         public void Dispose()
@@ -476,7 +487,7 @@ internal sealed class GradientLayerHost<T>(
                 var size = new SIZE(piece.Width, piece.Height);
                 var origin = new System.Drawing.Point(0, 0);
                 var position = new System.Drawing.Point(box.X + piece.X, box.Y + piece.Y);
-                var blend = new BLENDFUNCTION { BlendOp = 0, SourceConstantAlpha = 255, AlphaFormat = 1 };
+                var blend = new BLENDFUNCTION { BlendOp = 0, SourceConstantAlpha = _alpha, AlphaFormat = 1 };
                 _ = PInvoke.UpdateLayeredWindow(hwnd, screen, &position, &size, memory, &origin, new COLORREF(0), &blend, UPDATE_LAYERED_WINDOW_FLAGS.ULW_ALPHA);
                 _ = PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
                 _ = PInvoke.SelectObject(memory, old);

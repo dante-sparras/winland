@@ -21,7 +21,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 | animation:layers | Layer shell surfaces have no Windows meaning. |
 | animation:layersIn | Layer shell surfaces have no Windows meaning. |
 | animation:layersOut | Layer shell surfaces have no Windows meaning. |
-| animation:monitorAdded | A monitor that is added does not animate. |
+| animation:monitorAdded | A monitor that is added does not animate. Its picture zooms and its wallpaper fades in, and Winland can draw a window's picture but not the wallpaper Windows draws. |
 | aurora | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | binds:disable_keybind_grabbing | Applications cannot ask Windows to turn binds off, so there is nothing to refuse. |
 | bitdepth | Changing a monitor's bit depth is not honored. |
@@ -155,7 +155,7 @@ Input Windows already has: `device`, so an honored input setting can name one de
 
 Monitors and the process locale: `bitdepth` and `locale` (`general:locale`).
 
-Drawing on windows Winland already owns: `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`; and the animation node `animation:monitorAdded`.
+Drawing on windows Winland already owns: `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`.
 
 Logging and the error bar: `debug:disable_logs`, `debug:disable_time`, `debug:enable_stdout_logs`, `debug:colored_stdout_logs`, `debug:suppress_errors`, `debug:error_limit` and `debug:error_position`.
 

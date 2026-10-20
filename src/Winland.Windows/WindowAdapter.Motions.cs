@@ -117,9 +117,9 @@ public sealed partial class WindowAdapter
         public bool Hung(WindowId window) => PInvoke.IsHungAppWindow(new HWND((nint)window.Value));
 
         // An in-between frame does not wait for the window, so one that repaints slowly holds up no other.
-        public void Move(WindowId window, Rectangle bounds, Rectangle goal)
+        public void Move(WindowId window, Rectangle bounds, Rectangle content)
         {
-            if (!StandFor(window, bounds, goal))
+            if (!StandFor(window, bounds, content))
                 QuickPlace(window, bounds, borderless: false);
         }
 
@@ -141,6 +141,9 @@ public sealed partial class WindowAdapter
         {
             Opacity.Apply(window, alpha);
             StandInAlpha(window, alpha);
+
+            // The decorations fade with the window while its motion runs, and are opaque again once it has ended.
+            MotionAlpha.Set(window, Motions.Running(window) ? alpha : null);
         }
 
         public void Border(WindowId window, BorderColor color)
@@ -158,11 +161,17 @@ public sealed partial class WindowAdapter
             EndStandIn(window, null);
         }
 
-        public void Release(WindowId window) => EndStandIn(window, null);
+        public void Release(WindowId window)
+        {
+            EndStandIn(window, null);
+            MotionAlpha.Set(window, null);
+        }
 
         public void Close(WindowId window)
         {
-            EndStandIn(window, null);
+            // The window stays veiled while it closes, so it does not show for a frame on its Layout rectangle. A
+            // window that stays open is placed again, which ends its stand-in, and one that goes is dropped.
+            HideStandIn(window);
             _ = PInvoke.PostMessage(new HWND((nint)window.Value), CloseMessage, default, default);
         }
 
