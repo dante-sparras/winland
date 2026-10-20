@@ -148,7 +148,7 @@ Logging and the error bar: `debug:disable_logs`, `debug:disable_time`, `debug:en
 
 Events and calls that have a Windows source: `window.open_early`, `config.props_refreshed` and `input.keyboard.key`; `hl.notification`, `hl.load` and `hl.is_key_down`; the methods `hl.window_rule` and `hl.workspace_rule` return; a spring `hl.curve`; `pseudo` on a custom layout; `workspace.active` for each monitor; `monitor.layout_changed` when a mode changes or a reload changes the rules; a real focus reason on `window.active`; a bind's `device` and `auto_consuming`; a description that holds a comma; `HL.Group:add` leaving the focus where it was; `window.clear_tags`; `force_idle`; `focus` with `last = true`; and a window selector on `cursor.move_to_corner`, the group toggles, `window.fullscreen` and `window.center`.
 
-Behavior the Notes describe, which Windows can do: the modifiers `CAPS`, `MOD2`, `MOD3` and `MOD5`; animating a Client through fullscreen mode 2; animating a window while it is dragged; a workspace rule's `animation:` style; an `animation` window rule; tracking a window's owner; the mouse-drag gaps; dragging a tab out of the bar; reading `focusurgentorlast` from the newest end of the history; swallowing the way the pinned release does; `general:resize_on_border` on the monitor under the pointer; `movetoworkspace` of a pinned Client onto a special workspace still showing that workspace; `alterzorder` and `bringactivetotop` refocusing the window under the pointer; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
+Behavior the Notes describe, which Windows can do: the modifiers `CAPS`, `MOD2`, `MOD3` and `MOD5`; animating a Client through fullscreen mode 2; animating a window while it is dragged; a workspace rule's `animation:` style; tracking a window's owner; the mouse-drag gaps; dragging a tab out of the bar; reading `focusurgentorlast` from the newest end of the history; swallowing the way the pinned release does; `general:resize_on_border` on the monitor under the pointer; `movetoworkspace` of a pinned Client onto a special workspace still showing that workspace; `alterzorder` and `bringactivetotop` refocusing the window under the pointer; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
 
 Commands and the plugin manager: `descriptions` carrying each option's description; `clients` and `activewindow` in the text form; `changeworkspaceid` taking a number up to 4294967295; the window property `no_vrr`; plugin `enable`, `disable` and `reload`; `remove` taking `author/name`; a manifest's shell `build` steps and `output`; and the `--notify`, `--verbose` and `--no-shallow` flags, and the custom source URL flag.
 
@@ -160,8 +160,6 @@ An `animation:NAME` row is a node of the animation tree. An `animation` line tha
 - A Client entering or leaving fullscreen mode 2 moves at once.
 - Dragging a window with the pointer moves it at once. The windows that make room for it animate when it is dropped.
 - A workspace rule's `animation:` style is not honored, and warns.
-- An `animation` window rule is not honored.
-- Hyprland scales a growing window's last frame into each animated rectangle. Winland shows it unscaled from its top left and cut to the rectangle, the way a shrinking window shows, and the see-through areas of a window with a system backdrop look flatter while it grows.
 
 A row named by one part of a keyword covers every keyword with that part. `decoration:blur:glass:size` is the `glass` gap.
 
@@ -247,7 +245,7 @@ Every command the pinned release's control socket answers is recognized. The one
 
 `clients` and `activewindow` reply in JSON with or without `j/`, where the pinned release replies in text without it. With no window they reply its text, `no open windows` and `Invalid`.
 
-`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `render_unfocused`, `no_screen_share`, `no_vrr` and `no_auto_hdr`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
+`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `allows_input`, `decorate`, `nearest_neighbor`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `render_unfocused`, `no_screen_share`, `no_vrr` and `no_auto_hdr`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
 
 `changeworkspaceid` refuses a number above 2147483647. The pinned release takes numbers up to 4294967295, but a Workspace number here is a signed 32-bit integer. It is a gap.
 
