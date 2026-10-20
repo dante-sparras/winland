@@ -146,7 +146,7 @@ Drawing on windows Winland already owns: the blur of the windows behind a Client
 
 Events and calls that have a Windows source: `window.open_early`, `config.props_refreshed` and `input.keyboard.key`; `hl.notification`, `hl.load` and `hl.is_key_down`; the methods `hl.window_rule` and `hl.workspace_rule` return; `pseudo` on a custom layout; `workspace.active` for each monitor; `monitor.layout_changed` when a mode changes or a reload changes the rules; a real focus reason on `window.active`; a bind's `device` and `auto_consuming`; a description that holds a comma; `HL.Group:add` leaving the focus where it was; `window.clear_tags`; `force_idle`; `focus` with `last = true`; and a window selector on `cursor.move_to_corner`, the group toggles, `window.fullscreen` and `window.center`.
 
-Behavior the Notes describe, which Windows can do: tracking a window's owner; the mouse-drag gaps; dragging a tab out of the bar; swallowing the way the pinned release does; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
+Behavior the Notes describe, which Windows can do: the mouse-drag gaps; dragging a tab out of the bar; swallowing the way the pinned release does; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
 
 Commands and the plugin manager: `descriptions` carrying each option's description; the window property `no_vrr`; plugin `enable`, `disable` and `reload`; `remove` taking `author/name`; a manifest's shell `build` steps and `output`; and the `--notify`, `--verbose` and `--no-shallow` flags, and the custom source URL flag.
 
@@ -191,7 +191,7 @@ An application that asks for attention without flashing or taking the foreground
 
 Swallowing reads the process tree up to 16 levels. The reference reads 25. A parent shown in a Group hands the child its place in the Group, and a Group that denies new windows, or that the child may not join, keeps its parent. The pinned release has no Group slot: it takes the parent's whole Group out of the Layout while the parent is swallowed, a child that joined that Group by `group:auto_group` included, and puts the Group back when the child closes, so the child and the other members are left unplaced until then. A parent that is a hidden Group member, or whose Group is on another Workspace than the child, is not swallowed. `toggleswallow` on a child that holds its parent's place in a Group shows the parent as its own tile, where the pinned release puts the parent's Group back in the Layout.
 
-A new floating window that has an owner opens centered in the floating work area, not over its owner. Owners are not tracked yet. A window that asks for a position does not keep it: every new floating Client opens centered unless `move` places it.
+A window that asks for a position does not keep it: every new floating Client opens centered, or over its owner, unless `move` places it, as the pinned release treats a native window.
 
 A `move` or `size` expression honors arithmetic, parentheses, the constants `_pi` and `_e`, and one-argument functions. Multi-argument functions such as `min` and `max`, comparison, logical and conditional operators, and the other built-in names are not honored: the rule warns and is skipped. A comma ends the effect in a window rule line, so a multi-argument function could not be written there anyway.
 

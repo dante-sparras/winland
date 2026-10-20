@@ -65,6 +65,21 @@ public class ModalTests
         Assert.False(Assert.Single(free.State.Clients, client => client.Window == new WindowId(3)).Floating);
     }
 
+    [Fact]
+    public void AFloatingWindowWithAnOwnerOpensOverTheMiddleOfItsOwner()
+    {
+        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(float)$\n"));
+        var traits = WindowTraits.Normal with { Class = "float" };
+        core.Handle(new WindowAppeared(Owner, Area) { Traits = traits, Bounds = new Rectangle(0, 0, 400, 300) });
+        core.Handle(new Dispatch("movewindowpixel", "exact 100 100,address:0x1"));
+
+        var dialog = core.Handle(new WindowAppeared(Dialog, Area) { Owner = Owner, Traits = traits, Bounds = new Rectangle(0, 0, 200, 100) });
+        var lone = core.Handle(new WindowAppeared(new WindowId(3), Area) { Traits = traits, Bounds = new Rectangle(0, 0, 200, 100) });
+
+        Assert.Equal(new Rectangle(200, 200, 200, 100), Assert.Single(dialog.State.Clients, client => client.Window == Dialog).Bounds);
+        Assert.Equal(new Rectangle(860, 490, 200, 100), Assert.Single(lone.State.Clients, client => client.Window == new WindowId(3)).Bounds);
+    }
+
     private static byte AlphaOf(Outcome outcome, WindowId window)
     {
         var client = Assert.Single(outcome.State.Clients, candidate => candidate.Window == window);
