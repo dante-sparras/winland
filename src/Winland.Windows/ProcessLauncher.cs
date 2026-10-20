@@ -206,7 +206,8 @@ public static class ProcessLauncher
         var chain = new List<int>();
         var seen = new HashSet<int> { processId };
         var current = processId;
-        for (var i = 0; i < 16; i++)
+        // 25 levels, as the pinned release reads the process tree when it looks for a window to swallow.
+        for (var i = 0; i < 25; i++)
         {
             var parent = ParentOf(current);
             if (parent <= 0 || !seen.Add(parent))
