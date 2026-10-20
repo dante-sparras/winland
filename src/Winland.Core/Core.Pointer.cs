@@ -364,6 +364,16 @@ public sealed partial class Core
             : null;
     }
 
+    // The Workspace the pointer is over: the special workspace open on the Monitor under it, else that Monitor's, else
+    // the focused one when no Monitor is under it.
+    private LiveWorkspace PointerWorkspace(Point pointer)
+    {
+        if (MonitorAt(pointer) is { } screen && (screen.Special ?? screen.Active) is WorkspaceId shown && FindWorkspace(shown) is LiveWorkspace desk)
+            return desk;
+
+        return CurrentWorkspace();
+    }
+
     private bool TryBorderTarget(Point pointer, out WindowId window, out Rectangle bounds, out bool floating, out BorderSide side)
     {
         window = default;
@@ -387,19 +397,26 @@ public sealed partial class Core
         if (reach <= 0)
             return false;
 
-        // The pointer meets the special workspace open on the Monitor before the Workspace under it,
-        // and a maximized or fullscreen Client takes no border resize and hides the tiles behind it.
-        var desk = CurrentWorkspace();
+        // The pointer meets the special workspace open on the Monitor under it before that Monitor's Workspace, as the
+        // pinned release looks on the Monitor under the pointer. A maximized or fullscreen Client takes no border resize
+        // and hides the tiles behind it, but a floating window allowed over it keeps its ring.
+        var desk = PointerWorkspace(pointer);
         var showing = desk.Showing();
-        if (CoveringClient(desk, showing) is not null)
-            return false;
-
+        var covering = CoveringClient(desk, showing);
         var clients = new List<Client>(desk.Layout.Clients.Count);
         foreach (var client in desk.Layout.Clients)
         {
-            if (!client.Minimized && showing.Contains(client.Window))
-                clients.Add(client);
+            if (client.Minimized || !showing.Contains(client.Window))
+                continue;
+
+            if (covering is not null && (!client.Floating || client.Window == covering.Window || !AllowedOverFullscreen(desk, client)))
+                continue;
+
+            clients.Add(client);
         }
+
+        // The floating windows are tried from the top of the stacking order down.
+        clients = [.. clients.Where(client => !client.Floating), .. clients.Where(client => client.Floating).OrderBy(client => _stacking.IndexOf(client.Window))];
 
         // Floating windows lie above the tiles, so a floating ring over a tile is still that window's grab.
         if (TryRing(desk, clients, pointer, reach, options, floatingOnly: true, out var inside, out window, out bounds, out side))
