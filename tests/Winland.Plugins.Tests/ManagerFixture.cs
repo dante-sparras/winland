@@ -99,6 +99,20 @@ internal sealed class ManagerFixture : IDisposable
             if (fileName == PluginStaging.Git && arguments.Contains("rev-parse"))
                 return new ProcessResult(0, fixture.Commit + "\n");
 
+            // A build step that names "make <path>" makes that file, as a shell build would.
+            if (fileName == PluginStaging.Shell)
+            {
+                var made = arguments[0].Split(" && make ") is [_, var path] ? path : null;
+                if (made is not null && !FailBuild)
+                {
+                    var target = Path.Combine(workingDirectory, made);
+                    Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                    File.Copy(SampleDll(), target, overwrite: true);
+                }
+
+                return new ProcessResult(made is null ? 1 : 0, "step ran");
+            }
+
             if (fileName == PluginStaging.Dotnet && arguments[0] == "publish")
             {
                 if (FailBuild)

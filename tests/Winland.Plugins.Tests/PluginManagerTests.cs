@@ -390,6 +390,59 @@ public class PluginManagerTests
     }
 
     [Fact]
+    public void BuildStepsRunInTheShellAndTheirOutputIsInstalled()
+    {
+        using var fixture = ManagerFixture.Create();
+        fixture.ManifestText = "[sample]\napi_version = 1\nbuild = [\"echo first\", \"make bin/SamplePlugin.dll\"]\noutput = \"bin/SamplePlugin.dll\"\n";
+
+        Assert.Equal(0, fixture.Manager.Install(ManagerFixture.Url, null));
+
+        var steps = fixture.Runner.Commands.Where(command => command.StartsWith(PluginStaging.Shell, StringComparison.Ordinal)).ToArray();
+        Assert.Equal(2, steps.Length);
+        Assert.All(steps, step => Assert.Contains($"set \"{PluginManagerPaths.ApiProperty}={fixture.Paths.ApiAssembly}\" && ", step, StringComparison.Ordinal));
+        Assert.DoesNotContain(fixture.Runner.Commands, command => command.StartsWith("dotnet publish", StringComparison.Ordinal));
+        Assert.True(File.Exists(Path.Combine(fixture.Paths.PluginDirectory, "sample.dll")));
+    }
+
+    [Fact]
+    public void BuildStepsThatMakeNoOutputFailAndShowWhatTheySaid()
+    {
+        using var fixture = ManagerFixture.Create();
+        fixture.ManifestText = "[sample]\napi_version = 1\nbuild = [\"echo nothing\"]\noutput = \"bin/SamplePlugin.dll\"\n";
+
+        Assert.Equal(1, fixture.Manager.Install(ManagerFixture.Url, null));
+
+        Assert.Contains("did not make 'bin/SamplePlugin.dll'", fixture.Error.ToString(), StringComparison.Ordinal);
+        Assert.Contains(" -> echo nothing", fixture.Error.ToString(), StringComparison.Ordinal);
+        Assert.Equal(0, fixture.Elevator.Prompts);
+    }
+
+    [Fact]
+    public void TheShellRunsAStepAsWritten()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        var folder = Path.Combine(Path.GetTempPath(), "winland-shell-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var result = new SystemProcessRunner().Run(
+                PluginStaging.Shell,
+                ["set \"KEY=C:\\a b\\x.dll\" && call echo %KEY% && echo made> \"a b.txt\""],
+                folder);
+
+            Assert.Equal(0, result.ExitCode);
+            Assert.Contains("C:\\a b\\x.dll", result.Output, StringComparison.Ordinal);
+            Assert.True(File.Exists(Path.Combine(folder, "a b.txt")));
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void ListWithNothingInstalledSaysSo()
     {
         using var fixture = ManagerFixture.Create();

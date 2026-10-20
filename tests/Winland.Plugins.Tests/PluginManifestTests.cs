@@ -55,7 +55,7 @@ public class PluginManifestTests
     [InlineData("[repository]\nname = \"x\"\n", "lists no plugins")]
     [InlineData("[p]\nproject = \"P.csproj\"\n", "has no api_version")]
     [InlineData("[p]\napi_version = \"1\"\nproject = \"P.csproj\"\n", "not an integer")]
-    [InlineData("[p]\napi_version = 1\n", "has no project")]
+    [InlineData("[p]\napi_version = 1\n", "has no project and no build")]
     [InlineData("[p]\napi_version = 1\nproject = \"../P.csproj\"\n", "inside the repository")]
     [InlineData("[p]\napi_version = 1\nproject = \"C:/P.csproj\"\n", "inside the repository")]
     [InlineData("[p]\napi_version = 1\nproject = \"P.fsproj\"\n", "inside the repository")]
@@ -69,11 +69,27 @@ public class PluginManifestTests
     [InlineData("[[p]]\n", "must be [name]")]
     [InlineData("[p.q]\n", "not a bare key")]
     [InlineData("[p]\nproject = \"P.csproj\" extra\n", "Unexpected text")]
+    [InlineData("[p]\napi_version = 1\nbuild = [\"make\"]\n", "has build steps and no output")]
+    [InlineData("[p]\napi_version = 1\nbuild = []\noutput = \"p.dll\"\n", "not a list of commands")]
+    [InlineData("[p]\napi_version = 1\nbuild = \"make\"\noutput = \"p.dll\"\n", "not a list of commands")]
+    [InlineData("[p]\napi_version = 1\nbuild = [\"make\"]\noutput = \"../p.dll\"\n", "inside the repository")]
+    [InlineData("[p]\napi_version = 1\nbuild = [\"make\"]\noutput = \"p.so\"\n", "inside the repository")]
     public void InvalidManifestIsRefused(string text, string reason)
     {
         var exception = Assert.Throws<ManifestException>(() => PluginManifest.Parse(text));
 
         Assert.Contains(reason, exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildStepsAndOutputReplaceTheProject()
+    {
+        var manifest = PluginManifest.Parse("[p]\napi_version = 1\nbuild = [\"dotnet build P.csproj\", \"copy x y\"]\noutput = \"bin/P.dll\"\n");
+
+        var plugin = Assert.Single(manifest.Plugins);
+        Assert.Equal(["dotnet build P.csproj", "copy x y"], plugin.Build);
+        Assert.Equal("bin/P.dll", plugin.Output);
+        Assert.Equal("P.dll", plugin.Assembly);
     }
 
     [Fact]
