@@ -318,7 +318,7 @@ internal sealed class AnimationBook
     {
         var parts = value.Split(',');
         for (var i = 0; i < parts.Length; i++)
-            parts[i] = parts[i].Trim();
+            parts[i] = LineText.Unescape(parts[i].Trim());
         return parts;
     }
 

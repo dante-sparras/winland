@@ -30,8 +30,8 @@ internal static class EnvironmentParser
     {
         assignment = null;
         var comma = value.IndexOf(',');
-        var name = (comma < 0 ? value : value[..comma]).Trim();
-        var assigned = comma < 0 ? "" : value[(comma + 1)..].Trim();
+        var name = LineText.Unescape((comma < 0 ? value : value[..comma]).Trim());
+        var assigned = LineText.Unescape(comma < 0 ? "" : value[(comma + 1)..].Trim());
         if (name.Length == 0)
         {
             error = "Environment variable name is empty.";

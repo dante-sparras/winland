@@ -524,7 +524,7 @@ internal sealed partial class LuaRun : IDisposable
             return 0;
         }
 
-        Emit($"env = {name},{_lua.ToString(2, false)}");
+        Emit($"env = {LineText.Escape(name)},{LineText.Escape(_lua.ToString(2, false))}");
         return 0;
     }
 
@@ -571,7 +571,7 @@ internal sealed partial class LuaRun : IDisposable
                     }
                     else if (Value(-1, effect) is string value)
                     {
-                        effects.Add(effect + " " + value);
+                        effects.Add(effect + " " + LineText.Escape(value));
                     }
                 }
 

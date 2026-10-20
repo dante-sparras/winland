@@ -139,7 +139,7 @@ internal static partial class WorkspaceRules
         ArgumentNullException.ThrowIfNull(value);
         ArgumentNullException.ThrowIfNull(warnings);
         var comma = value.IndexOf(',');
-        var ident = (comma < 0 ? value : value[..comma]).Trim();
+        var ident = LineText.Unescape((comma < 0 ? value : value[..comma]).Trim());
         if (ident.Length == 0)
         {
             warnings.Add("Malformed workspace rule.");
@@ -157,7 +157,7 @@ internal static partial class WorkspaceRules
         var fatal = false;
         foreach (var piece in value[(comma + 1)..].Split(','))
         {
-            var field = piece.Trim();
+            var field = LineText.Unescape(piece.Trim());
             if (field.Length == 0)
                 continue;
 
