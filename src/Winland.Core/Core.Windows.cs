@@ -193,13 +193,26 @@ public sealed partial class Core
         else
             placements = OpenUnderFullscreen(desk, appeared.Window, placements);
 
-        // A window joins the Group focused when it opened even when it swallows its parent, as in the pinned
-        // release. Only a window that took its parent's place in a Group stays out of the focused one.
+        // A window that swallows its parent does not join the Group focused when it opened: in the pinned release a
+        // swallow and group:auto_group are alternatives, and only a window that swallowed nothing is auto-grouped.
         var focused = restored is null ? ActiveWindow() : null;
+        var openedOn = desk;
         if (swallowee is not null)
             placements = SwallowParent(appeared.Window, swallowee, desk, placements, decision.Group);
-        var slotted = _swallows.TryGetValue(appeared.Window, out var swallow) && swallow.Slot;
-        if (GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, slotted ? null : focused))
+
+        // A Group on another Workspace has taken the child there. The open follows that Workspace.
+        var swallowedAcross = false;
+        if (WorkspaceContaining(appeared.Window) is LiveWorkspace landed && landed != openedOn)
+        {
+            swallowedAcross = true;
+            desk = landed;
+            target = landed.Id;
+            covered = landed.Covered();
+            placements = landed.Layout.Visible();
+        }
+
+        var swallowed = _swallows.ContainsKey(appeared.Window);
+        if (GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, swallowed ? null : focused))
             placements = desk.Layout.Visible();
 
         NotePlaced(appeared.Window, desk, decision, restored is not null);
@@ -220,7 +233,9 @@ public sealed partial class Core
         if (restore == appeared.Window)
             restore = null;
 
-        if (restored is null && rule.Id is not null && !rule.Silent && !IsShown(target) && !_awaitingMapFocus.Contains(appeared.Window))
+        // A swallow that moved the child onto a hidden Workspace follows it, as focusing the new window does
+        // after replaceMember. A silent workspace rule still does not.
+        if (restored is null && (rule.Id is not null || swallowedAcross) && !rule.Silent && !IsShown(target) && !_awaitingMapFocus.Contains(appeared.Window))
         {
             if (MonitorById(desk.Monitor) is { } owner)
                 Focus(owner.Id);

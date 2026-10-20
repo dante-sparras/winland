@@ -162,9 +162,10 @@ public sealed partial class Core
         return HasSwallower(chosen.Window) ? null : chosen;
     }
 
-    // Takes the parent out of its Layout and hides it. Returns the placements of the child's
-    // Workspace after the parent left it. A parent in a Group hands its place in the Group to the
-    // child instead, as the pinned release does, unless the child may not join that Group.
+    // Takes the parent out of its Layout and hides it. Returns the placements of the Workspace the
+    // child ended on. A shown parent in a Group hands its place in the Group to the child, and the
+    // Group stays in the Layout, as the pinned release's replaceMember does. A Group that denies the
+    // child keeps its parent. A Group on another Workspace takes the child onto that Workspace.
     private IReadOnlyList<Placement> SwallowParent(WindowId child, Client parent, LiveWorkspace desk, IReadOnlyList<Placement> placements, GroupRuleFlags rules = GroupRuleFlags.None)
     {
         if (WorkspaceContaining(parent.Window) is not LiveWorkspace home || home.ClientOf(parent.Window) is not Client record)
@@ -184,12 +185,12 @@ public sealed partial class Core
         return placements;
     }
 
-    // Only a shown member on the child's own Workspace is swallowed into its Group. The child must be
-    // in no Group, and the Group must let it in.
+    // Only a shown member is swallowed into its Group. The child must be in no Group, and the Group
+    // must let it in. A Group on another Workspace takes the child there, as replaceMember moves the
+    // new window onto the Group's Workspace. A hidden member is not swallowed.
     private bool SwallowIntoGroup(WindowId child, Client parent, LiveWorkspace home, WindowGroup group, LiveWorkspace desk, GroupRuleFlags rules)
     {
-        if (home != desk
-            || group.Shown != parent.Window
+        if (group.Shown != parent.Window
             || group.Denied
             || !CanJoin(rules, group)
             || desk.GroupOf(child) is not null
@@ -210,6 +211,9 @@ public sealed partial class Core
 
         _swallows[child] = new Swallow(parent, Hidden: true, Slot: true);
         HideParent(parent.Window, home);
+        if (home != desk)
+            DropIfEmpty(desk.Id);
+
         return true;
     }
 
