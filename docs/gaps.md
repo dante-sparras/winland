@@ -148,7 +148,7 @@ Events and calls that have a Windows source: `window.open_early`, `config.props_
 
 Behavior the Notes describe, which Windows can do: the mouse-drag gaps; dragging a tab out of the bar; swallowing a parent in a Group the way the pinned release does, which leaves the child unplaced; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
 
-Commands and the plugin manager: the window property `no_vrr`; a manifest's shell `build` steps and `output`; and the `--notify`, `--verbose` and `--no-shallow` flags, and the custom source URL flag.
+Commands and the plugin manager: the window property `no_vrr`; and the `--notify`, `--verbose` and `--no-shallow` flags, and the custom source URL flag.
 
 ## Notes
 
@@ -235,6 +235,5 @@ Every command the pinned release's control socket answers is recognized. The one
 `winlandctl plugin install`, `update`, `remove`, `enable`, `disable`, `reload` and `list --installed` are the plugin manager's `add`, `update`, `remove`, `enable`, `disable`, `reload` and `list`. See [plugins.md](plugins.md). These parts of the plugin manager are Gaps:
 
 - `purge-cache` is not honored. There are no headers to cache, and `remove` deletes a repository's staging folder.
-- A manifest's shell `build` steps and `output` are not honored. Winland runs `dotnet publish` on the plugin's `project`.
 - Commit pins and the per-plugin minimum compositor version are not honored. The exact plugin API version replaces them, and header and ABI checks with it.
 - `--notify`, `--verbose`, `--no-shallow`, `--no-nix` and the custom source URL flag are not honored.

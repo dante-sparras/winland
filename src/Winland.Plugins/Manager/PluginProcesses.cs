@@ -55,8 +55,16 @@ public sealed class SystemProcessRunner : IProcessRunner
             RedirectStandardError = true,
             CreateNoWindow = true,
         };
-        foreach (var argument in arguments)
-            start.ArgumentList.Add(argument);
+        // cmd.exe reads its own command line, not argv, so a build step goes to it as written.
+        if (fileName == PluginStaging.Shell && arguments.Count == 1)
+        {
+            start.Arguments = "/d /s /c \"" + arguments[0] + "\"";
+        }
+        else
+        {
+            foreach (var argument in arguments)
+                start.ArgumentList.Add(argument);
+        }
 
         // A build must never wait on a prompt the user cannot see.
         start.Environment["GIT_TERMINAL_PROMPT"] = "0";

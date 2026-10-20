@@ -41,6 +41,9 @@ public sealed class PluginStaging(PluginManagerPaths paths, IProcessRunner runne
 
     public const string Dotnet = "dotnet";
 
+    /// <summary>The shell a manifest's build steps run in. The runner passes the step to it as one command line.</summary>
+    public const string Shell = "cmd.exe";
+
     public string FolderOf(string url) => Path.Combine(paths.Staging, RepositoryId(url));
 
     public StageOutcome Stage(string url, string? revision, string? installedCommit, bool force, TextWriter progress)
@@ -104,6 +107,16 @@ public sealed class PluginStaging(PluginManagerPaths paths, IProcessRunner runne
         foreach (var plugin in manifest.Plugins)
         {
             progress.WriteLine($"Building {plugin.Name}");
+            if (plugin.Build.Count > 0)
+            {
+                var made = RunSteps(plugin, source, out var log);
+                if (made is null)
+                    return Fail($"Plugin '{plugin.Name}' failed to build: its build steps did not make '{plugin.Output}'.", log);
+
+                plugins.Add(new StagedPlugin(plugin.Name, PluginHash.OfFile(made), made));
+                continue;
+            }
+
             var target = Path.Combine(output, plugin.Name);
             var project = Path.GetFullPath(Path.Combine(source, plugin.Project));
             if (!PluginNames.IsInside(source, project) || !File.Exists(project))
@@ -165,6 +178,23 @@ public sealed class PluginStaging(PluginManagerPaths paths, IProcessRunner runne
             File.SetAttributes(file, FileAttributes.Normal);
 
         Directory.Delete(folder, recursive: true);
+    }
+
+    // Runs each build step in the shell at the repository root, as the pinned plugin manager does, with the API
+    // assembly's path in the environment. As there, a step's exit code is not checked: the build worked when the
+    // output exists. Returns its full path, or null.
+    private string? RunSteps(ManifestPlugin plugin, string source, out string log)
+    {
+        var all = new StringBuilder();
+        foreach (var step in plugin.Build)
+        {
+            var result = runner.Run(Shell, [$"set \"{PluginManagerPaths.ApiProperty}={paths.ApiAssembly}\" && {step}"], source);
+            all.Append(" -> ").AppendLine(step).AppendLine(result.Output.TrimEnd());
+        }
+
+        log = all.ToString();
+        var made = Path.GetFullPath(Path.Combine(source, plugin.Output!));
+        return PluginNames.IsInside(source, made) && File.Exists(made) ? made : null;
     }
 
     private static StageOutcome.Failed Fail(string message, string? output = null)

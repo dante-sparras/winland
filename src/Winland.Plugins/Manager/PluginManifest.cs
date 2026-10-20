@@ -9,7 +9,14 @@ public sealed record ManifestPlugin(
     string Project,
     string Assembly,
     string Description,
-    IReadOnlyList<string> Authors);
+    IReadOnlyList<string> Authors)
+{
+    /// <summary>The shell commands that build the plugin, run in order at the repository root. Empty when <see cref="Project"/> is published.</summary>
+    public IReadOnlyList<string> Build { get; init; } = [];
+
+    /// <summary>The file the build steps make, relative to the repository root.</summary>
+    public string? Output { get; init; }
+}
 
 /// <summary>
 /// The <c>winland-plugin.toml</c> manifest at the root of a plugin repository.
@@ -67,8 +74,27 @@ public sealed record PluginManifest(string RepositoryName, IReadOnlyList<string>
         if (version is not long number || number is < int.MinValue or > int.MaxValue)
             throw new ManifestException($"Plugin '{name}' has an api_version that is not an integer.");
 
+        // As in the pinned manifest, build is a list of shell commands run at the repository root and output the file they make.
+        if (table.Values.TryGetValue("build", out var steps))
+        {
+            if (steps is not List<string> build || build.Count == 0 || build.Any(string.IsNullOrWhiteSpace))
+                throw new ManifestException($"Plugin '{name}' has a build that is not a list of commands.");
+
+            var output = Text(table, "output")
+                ?? throw new ManifestException($"Plugin '{name}' has build steps and no output.");
+            if (!IsInsideRepository(output) || !output.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                throw new ManifestException($"Plugin '{name}' has output '{output}'. It must be a relative path to a .dll inside the repository.");
+
+            var file = output.Replace('\\', '/').Split('/')[^1];
+            return new ManifestPlugin(name, (int)number, "", file, Text(table, "description") ?? "", AuthorsOf(table))
+            {
+                Build = build,
+                Output = output,
+            };
+        }
+
         var project = Text(table, "project")
-            ?? throw new ManifestException($"Plugin '{name}' has no project.");
+            ?? throw new ManifestException($"Plugin '{name}' has no project and no build.");
         if (!IsInsideRepository(project) || !project.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
             throw new ManifestException($"Plugin '{name}' has project '{project}'. It must be a relative path to a .csproj inside the repository.");
 
