@@ -11,11 +11,8 @@ internal sealed partial class LuaRun
 {
     // The monitor fields a monitor line takes as an option after its scale, in the order they are written.
     private static readonly string[] MonitorOptions =
-        ["transform", "mirror", "bitdepth", "cm", "sdr_eotf", "sdrbrightness", "sdrsaturation", "vrr", "icc"];
-
-    // The monitor fields that describe a monitor's HDR range, which no monitor line option here takes.
-    private static readonly string[] MonitorLuminance =
     [
+        "transform", "mirror", "bitdepth", "cm", "sdr_eotf", "sdrbrightness", "sdrsaturation", "vrr", "icc",
         "supports_wide_color", "supports_hdr", "sdr_min_luminance", "sdr_max_luminance", "min_luminance", "max_luminance",
         "max_avg_luminance",
     ];
@@ -135,7 +132,7 @@ internal sealed partial class LuaRun
 
         foreach (var key in Keys(1))
         {
-            if (key != "output" && !MonitorFields.Contains(key) && !MonitorOptions.Contains(key) && !MonitorLuminance.Contains(key))
+            if (key != "output" && !MonitorFields.Contains(key) && !MonitorOptions.Contains(key))
                 Warn($"hl.monitor: unknown field '{key}'");
         }
 
@@ -154,9 +151,6 @@ internal sealed partial class LuaRun
             if (Part(1, option, Label, option is "mirror" or "icc") is string value)
                 line.Append(", ").Append(option).Append(", ").Append(value);
         }
-
-        if (MonitorLuminance.FirstOrDefault(field => Present(1, field)) is string luminance)
-            Warn($"hl.monitor: '{luminance}': monitor HDR ranges are not honored");
 
         EmitLine(line.ToString(), Label);
         if ((CssGap(1, "reserved", Label) ?? CssGap(1, "reserved_area", Label)) is { } reserved)

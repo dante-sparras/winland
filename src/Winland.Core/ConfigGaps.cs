@@ -20,7 +20,6 @@ public static class ConfigGaps
         new("animation:monitorAdded", "A monitor that is added does not animate. Its picture zooms and its wallpaper fades in, and Winland can draw a window's picture but not the wallpaper Windows draws."),
         new("aurora", "Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned."),
         new("binds:disable_keybind_grabbing", "Applications cannot ask Windows to turn binds off, so there is nothing to refuse."),
-        new("bitdepth", "Changing a monitor's bit depth is not honored."),
         new("cursor:enable_hyprcursor", "The cursor theme format has no Windows meaning."),
         new("cursor:min_refresh_rate", "Cursor refresh rate has no Windows meaning."),
         new("cursor:no_break_fs_vrr", "Pausing frames while the cursor moves has no Windows meaning."),

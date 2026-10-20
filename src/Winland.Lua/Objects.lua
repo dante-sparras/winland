@@ -461,8 +461,20 @@ local monitorFields = {
     end,
     mode = function(m) return { width = m.width, height = m.height, refresh_rate = float(m.refreshRate) } end,
     enabled = function(m) return not m.disabled end,
-    -- Windows reports none of these, and Winland runs on no other backend.
-    hardware_details = function() return { backend = "windows", hdr = false, chroma = false, bt2020 = false, vrr_capable = false } end,
+    -- From the monitors reply. A reply that leaves the object out reports none of them.
+    hardware_details = function(m)
+        local details = m.hardwareDetails
+        if type(details) ~= "table" then
+            return { backend = "windows", hdr = false, chroma = false, bt2020 = false, vrr_capable = false }
+        end
+        return {
+            backend = details.backend or "windows",
+            hdr = details.hdr == true,
+            chroma = details.chroma == true,
+            bt2020 = details.bt2020 == true,
+            vrr_capable = details.vrrCapable == true,
+        }
+    end,
 }
 
 -- set_workspace and set_special_workspace, set further down.

@@ -208,6 +208,8 @@ static int Run(string? path, RollingLogWriter log)
         SessionEffects.RestoreSaved(vrr);
     if (prior?.Mirrors is { Count: > 0 } mirrored)
         SessionEffects.RestoreSaved(mirrored);
+    if (prior?.Colors is { Count: > 0 } colors)
+        SessionEffects.RestoreSaved(colors);
     using var host = new WindowHost(core, snapshot => Persist(store, snapshot), PipeName());
     luaWorld.Host = host;
     lua.Adopt(LuaHosting.Take());
@@ -285,7 +287,13 @@ static string? ConfigDirectory(string path)
 static void Persist(RecoveryStore store, RecoverySnapshot snapshot)
 {
     // A Client that closed since the snapshot was taken is left out. The rest are still recorded.
-    store.Save(WindowIdentity.Annotate(snapshot with { Input = SessionEffects.Originals, Mirrors = SessionEffects.MirrorOriginals, Vrr = SessionEffects.OriginalVrr }));
+    store.Save(WindowIdentity.Annotate(snapshot with
+    {
+        Input = SessionEffects.Originals,
+        Mirrors = SessionEffects.MirrorOriginals,
+        Vrr = SessionEffects.OriginalVrr,
+        Colors = SessionEffects.ColorOriginals,
+    }));
 }
 
 static void Stop(WindowHost host, RecoveryStore store)

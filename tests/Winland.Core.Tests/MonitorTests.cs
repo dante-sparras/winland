@@ -466,7 +466,6 @@ public class MonitorTests
 
         Assert.Equal(
             [
-                new ConfigWarning(1, "Changing a monitor's bit depth is not honored."),
                 new ConfigWarning(1, "Variable refresh rate is not honored."),
                 new ConfigWarning(1, "Flipped monitor transforms are not honored."),
             ],

@@ -73,7 +73,8 @@ public class LuaEventTests
            "focused":false,"dpmsStatus":true,"vrr":true,"solitary":"0","solitaryBlockedBy":null,"activelyTearing":false,
            "tearingBlockedBy":null,"directScanoutTo":"0","directScanoutBlockedBy":null,"disabled":false,"currentFormat":"",
            "mirrorOf":"none","availableModes":[],"colorManagementPreset":"srgb","sdrBrightness":0,"sdrSaturation":0,
-           "sdrMinLuminance":0,"sdrMaxLuminance":0,"hardwareCursorsInUse":false}
+           "sdrMinLuminance":0,"sdrMaxLuminance":0,"hardwareCursorsInUse":false,
+           "hardwareDetails":{"backend":"windows","hdr":true,"chroma":true,"bt2020":false,"vrrCapable":false}}
         ]
         """;
 
@@ -581,10 +582,12 @@ public class LuaEventTests
             assert(m.transform == 0 and m.dpms_status and m.vrr_active == false and m.is_mirror == false and #m.mirrors == 0)
             assert(m.available_modes[1].width == 1920 and m.available_modes[1].refresh_rate == 60.0)
             assert(m.focused and m.cm == "srgb" and m.reserved.bottom == 48 and m.reserved.top == 0)
+            assert(m.hardware_details.backend == "windows" and m.hardware_details.hdr == false and m.hardware_details.vrr_capable == false)
             local h = hl.get_monitor(1)
             assert(h.name == "HDMI-A-1" and h.active_special_workspace == nil and h.vrr_active and h.scale == 1.25)
             assert(hl.get_monitor("desc:LG") == h and tostring(h) == "HL.Monitor(1:HDMI-A-1)" and h ~= m)
-            assert(h.mode.width == 2560 and h.mode.refresh_rate == 143.998 and h.enabled and h.hardware_details.hdr == false)
+            assert(h.mode.width == 2560 and h.mode.refresh_rate == 143.998 and h.enabled and h.hardware_details.hdr)
+            assert(h.hardware_details.chroma and h.hardware_details.bt2020 == false and h.hardware_details.backend == "windows")
             assert(#hl.get_monitors() == 2)
             """);
         Assert.Equal("error: HLMonitor.set_workspace: expected a workspace object or selector", runtime.Eval("hl.get_monitor(1):set_workspace({ workspace = 1 })", repl: false));

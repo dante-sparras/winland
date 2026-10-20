@@ -55,16 +55,14 @@ public class LuaRulesTests
         Assert.Equal(
             [
                 "monitor = DP-1, preferred, auto, auto, mirror, DP-2, bitdepth, 10, vrr, 1",
-                "monitor = DP-2, preferred, auto, auto",
+                "monitor = DP-2, preferred, auto, auto, supports_hdr, 1",
             ],
             Lines(translation));
         Assert.Equal(
             [
                 "hl.monitor: unknown field 'refresh'",
-                "hl.monitor: 'supports_hdr': monitor HDR ranges are not honored",
                 "hl.monitor: 'output' field is required and must be a string",
                 "hl.monitor: argument must be a table",
-                "Changing a monitor's bit depth is not honored.",
                 "Variable refresh rate is not honored.",
             ],
             Messages(Parse(translation)));

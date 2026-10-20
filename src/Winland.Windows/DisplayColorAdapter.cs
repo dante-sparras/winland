@@ -1,17 +1,19 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Devices.Display;
 using Windows.Win32.Foundation;
+using Windows.Win32.Graphics.Dxgi;
 
 namespace Winland.Windows;
 
 /// <summary>
-/// Shows a display in the color mode its monitor rule's <c>cm</c> preset names, by turning Windows' HDR and wide color
-/// switches. A display that shows that mode already is left alone, so the display change a switch causes does not loop.
-/// Like the HDR switch in Settings, the change is kept by Windows.
+/// Reads and turns Windows' HDR and wide color switches. The bits per channel have no switch of their own: advanced
+/// color is what raises them above 8. The SDR white level Windows publishes cannot be set. Nothing here runs until
+/// the session is installed, so a test does not change a display.
 /// </summary>
 // Stryker disable once all : changes the real displays; what to turn is decided and tested in DisplayColors.
-internal static class DisplayColorAdapter
+internal sealed class Win32DisplayColorControl : IDisplayColorControl
 {
     private const int GetAdvancedColorInfo = 9;
     private const int SetAdvancedColorState = 10;
@@ -19,31 +21,41 @@ internal static class DisplayColorAdapter
     private const int SetHdrState = 16;
     private const int SetWideColorState = 17;
 
-    public static bool TryApplyToSystem(DisplayColorRequest request)
+    public bool TryRead(string device, out DisplayColorReading reading) => TryDescribe(device, out reading);
+
+    public bool TrySet(string device, DisplayColorChange change)
     {
-        if (request.Device.Length == 0 || !MonitorAdapter.TryTarget(request.Device, out var adapter, out var target))
+        if (device.Length == 0 || !MonitorAdapter.TryTarget(device, out var adapter, out var target))
             return false;
 
-        // Windows 11 24H2 has a switch each for HDR and wide color; before it there is one switch, for HDR.
-        var split = TryRead2(adapter, target, out var display);
-        if (!split && !TryRead(adapter, target, out display))
+        if (!TryRead2(adapter, target, out var display) && !TryRead1(adapter, target, out display))
             return false;
-
-        var plan = DisplayColors.Plan(request.Mode, display);
-        if (plan.Unsupported is string missing)
-            Console.Error.WriteLine($"The display {request.Device} cannot show {missing}, which cm {request.Preset} asks for.");
 
         var applied = true;
-        if (plan.Hdr is bool hdr)
-            applied &= Set(adapter, target, split ? SetHdrState : SetAdvancedColorState, hdr);
+        if (change.Hdr is bool hdr)
+            applied &= Set(adapter, target, display.Split ? SetHdrState : SetAdvancedColorState, hdr);
 
-        if (plan.Wide is bool wide && split)
-            applied &= Set(adapter, target, SetWideColorState, wide);
+        if (change.Wide is bool wide)
+            applied &= display.Split && Set(adapter, target, SetWideColorState, wide);
 
         return applied;
     }
 
-    private static unsafe bool TryRead2(LUID adapter, uint target, out DisplayColorSupport display)
+    internal static bool TryDescribe(string device, out DisplayColorReading reading)
+    {
+        reading = default;
+        if (device.Length == 0 || !MonitorAdapter.TryTarget(device, out var adapter, out var target))
+            return false;
+
+        var split = TryRead2(adapter, target, out reading);
+        if (!split && !TryRead1(adapter, target, out reading))
+            return false;
+
+        ApplyPanel(device, ref reading);
+        return true;
+    }
+
+    private static unsafe bool TryRead2(LUID adapter, uint target, out DisplayColorReading reading)
     {
         var info = new ColorInfo2();
         info.Header.type = (DISPLAYCONFIG_DEVICE_INFO_TYPE)GetAdvancedColorInfo2;
@@ -52,16 +64,23 @@ internal static class DisplayColorAdapter
         info.Header.id = target;
         if (PInvoke.DisplayConfigGetDeviceInfo(ref Unsafe.As<ColorInfo2, DISPLAYCONFIG_DEVICE_INFO_HEADER>(ref info)) != 0)
         {
-            display = default;
+            reading = default;
             return false;
         }
 
-        // Bit 4 is HDR supported, 5 HDR on, 6 wide color supported, 7 wide color on.
-        display = new DisplayColorSupport(Bit(info.Value, 4), Bit(info.Value, 6), Bit(info.Value, 5), Bit(info.Value, 7));
+        // Bit 0 is advanced color supported, 4 HDR supported, 5 HDR on, 6 wide color supported, 7 wide color on.
+        reading = new DisplayColorReading(
+            Bit(info.Value, 4),
+            Bit(info.Value, 6),
+            Bit(info.Value, 5),
+            Bit(info.Value, 7),
+            Bit(info.Value, 0),
+            true,
+            Bits(info.BitsPerColorChannel));
         return true;
     }
 
-    private static unsafe bool TryRead(LUID adapter, uint target, out DisplayColorSupport display)
+    private static unsafe bool TryRead1(LUID adapter, uint target, out DisplayColorReading reading)
     {
         var info = new ColorInfo();
         info.Header.type = (DISPLAYCONFIG_DEVICE_INFO_TYPE)GetAdvancedColorInfo;
@@ -70,12 +89,13 @@ internal static class DisplayColorAdapter
         info.Header.id = target;
         if (PInvoke.DisplayConfigGetDeviceInfo(ref Unsafe.As<ColorInfo, DISPLAYCONFIG_DEVICE_INFO_HEADER>(ref info)) != 0)
         {
-            display = default;
+            reading = default;
             return false;
         }
 
         // Bit 0 is advanced color supported, 1 on. It is HDR; wide color has no switch of its own here.
-        display = new DisplayColorSupport(Bit(info.Value, 0), false, Bit(info.Value, 1), false);
+        var supported = Bit(info.Value, 0);
+        reading = new DisplayColorReading(supported, false, Bit(info.Value, 1), false, supported, false, Bits(info.BitsPerColorChannel));
         return true;
     }
 
@@ -90,7 +110,114 @@ internal static class DisplayColorAdapter
         return PInvoke.DisplayConfigSetDeviceInfo(in Unsafe.As<ColorState, DISPLAYCONFIG_DEVICE_INFO_HEADER>(ref state)) == 0;
     }
 
+    // Mastering luminance and color primaries. A failure leaves the luminance unknown and chroma unset.
+    private static void ApplyPanel(string device, ref DisplayColorReading reading)
+    {
+        if (!TryPanel(device, out var min, out var max, out var average, out var chroma))
+            return;
+
+        reading = reading with
+        {
+            MinLuminance = min,
+            MaxLuminance = max,
+            MaxAvgLuminance = average,
+            Chroma = chroma,
+        };
+    }
+
+    private static bool TryPanel(string device, out float min, out float max, out float average, out bool chroma)
+    {
+        min = -1;
+        max = -1;
+        average = -1;
+        chroma = false;
+        IDXGIFactory1? factory = null;
+        try
+        {
+            if (PInvoke.CreateDXGIFactory1(out factory).Failed || factory is null)
+                return false;
+
+            for (uint adapterIndex = 0; ; adapterIndex++)
+            {
+                IDXGIAdapter1? adapter = null;
+                try
+                {
+                    if (factory.EnumAdapters1(adapterIndex, out adapter).Failed || adapter is null)
+                        break;
+
+                    for (uint outputIndex = 0; ; outputIndex++)
+                    {
+                        IDXGIOutput? output = null;
+                        try
+                        {
+                            if (adapter.EnumOutputs(outputIndex, out output).Failed || output is null)
+                                break;
+
+                            if (output is not IDXGIOutput6 detailed)
+                                continue;
+
+                            var described = detailed.GetDesc1();
+                            if (!device.Equals(PanelName(described.DeviceName), StringComparison.OrdinalIgnoreCase))
+                                continue;
+
+                            min = described.MinLuminance;
+                            max = described.MaxLuminance;
+                            average = described.MaxFullFrameLuminance;
+                            chroma = Primary(described.RedPrimary)
+                                || Primary(described.GreenPrimary)
+                                || Primary(described.BluePrimary)
+                                || Primary(described.WhitePoint);
+                            return true;
+                        }
+                        finally
+                        {
+                            Release(output);
+                        }
+                    }
+                }
+                finally
+                {
+                    Release(adapter);
+                }
+            }
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            return false;
+        }
+        finally
+        {
+            Release(factory);
+        }
+
+        return false;
+    }
+
+    private static void Release(object? com)
+    {
+        if (com is null)
+            return;
+
+        try
+        {
+            _ = Marshal.ReleaseComObject(com);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+        }
+    }
+
+    private static string PanelName(__char_32 name) => name.ToString().Trim();
+
+    private static bool Primary(__float_2 primary)
+    {
+        var values = primary.AsReadOnlySpan();
+        return values[0] != 0 || values[1] != 0;
+    }
+
     private static bool Bit(uint value, int bit) => (value & (1u << bit)) != 0;
+
+    private static int Bits(uint value) => value > int.MaxValue ? int.MaxValue : (int)value;
 
 #pragma warning disable CS0649 // Windows fills these in.
     private struct ColorInfo
