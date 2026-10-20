@@ -99,10 +99,18 @@ public sealed partial class Core
 
         Stack(chosen, top: mode == "top");
         SetOverFullscreen(chosen, mode == "top");
-        return View([], dispatcher: name, allowsElevation: allowsElevation) with
+        var stacked = View([], dispatcher: name, allowsElevation: allowsElevation) with
         {
             ZOrder = [new ZOrderRequest(chosen, mode == "top")],
         };
+        if (_pointer is not Point at)
+            return stacked;
+
+        // The pinned release simulates a pointer move after it raises or lowers a window, a pixel off so it counts as a
+        // move, so with input:follow_mouse the window now under the pointer takes the focus.
+        _pointer = at with { X = at.X - 1, Y = at.Y - 1 };
+        var moved = MovePointer(new PointerMoved(at));
+        return Merge(stacked, moved) with { Dispatcher = name, AllowsElevation = allowsElevation };
     }
 
     // movecursor X Y: puts the cursor at a point on the desktop and handles it as a pointer move, so focus follows it as

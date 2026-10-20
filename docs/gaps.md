@@ -146,7 +146,7 @@ Drawing on windows Winland already owns: the blur of the windows behind a Client
 
 Events and calls that have a Windows source: `window.open_early`, `config.props_refreshed` and `input.keyboard.key`; `hl.notification`, `hl.load` and `hl.is_key_down`; the methods `hl.window_rule` and `hl.workspace_rule` return; `pseudo` on a custom layout; `workspace.active` for each monitor; `monitor.layout_changed` when a mode changes or a reload changes the rules; a real focus reason on `window.active`; a bind's `device` and `auto_consuming`; a description that holds a comma; `HL.Group:add` leaving the focus where it was; `window.clear_tags`; `force_idle`; `focus` with `last = true`; and a window selector on `cursor.move_to_corner`, the group toggles, `window.fullscreen` and `window.center`.
 
-Behavior the Notes describe, which Windows can do: tracking a window's owner; the mouse-drag gaps; dragging a tab out of the bar; swallowing the way the pinned release does; `alterzorder` and `bringactivetotop` refocusing the window under the pointer; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
+Behavior the Notes describe, which Windows can do: tracking a window's owner; the mouse-drag gaps; dragging a tab out of the bar; swallowing the way the pinned release does; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
 
 Commands and the plugin manager: `descriptions` carrying each option's description; `changeworkspaceid` taking a number up to 4294967295; the window property `no_vrr`; plugin `enable`, `disable` and `reload`; `remove` taking `author/name`; a manifest's shell `build` steps and `output`; and the `--notify`, `--verbose` and `--no-shallow` flags, and the custom source URL flag.
 
@@ -204,8 +204,6 @@ A pinned Client on a Monitor that is unplugged or disabled stays shown on the Mo
 When a Monitor goes away or comes back and its Workspaces hide the focused Client, Winland focuses the Client the focused Monitor shows: the one focused last on that Workspace, or else its last shown Client. The pinned release moves only the Monitor focus and leaves the keyboard focus on the hidden window until the pointer or a dispatcher moves it. On Windows that would keep the foreground on a window out of sight.
 
 `movetoworkspace` of a pinned Client to a special workspace changes nothing. The pinned release leaves the Client where it is too, but still shows that special workspace, empty.
-
-`alterzorder` and `bringactivetotop` do not refocus the window under the pointer. With `input:follow_mouse`, focus follows the pointer again on its next move.
 
 A window rule that matches on `xwayland` is a Gap: the rule is skipped and the config warns. Other effects and match fields are skipped with a warning until a later change honors them.
 
