@@ -385,6 +385,77 @@ public class SwallowTests
     }
 
     [Fact]
+    public void AHiddenGroupMemberIsNotSwallowed()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(Unrelated(3));
+
+        var opened = core.Handle(Child(2, parentProcess: 100));
+
+        Assert.Null(Client(opened, 2).Swallowing);
+        Assert.Contains(new WindowId(1), Assert.Single(opened.State.Groups));
+        Assert.DoesNotContain(new WindowId(1), opened.Hide);
+    }
+
+    [Fact]
+    public void ALockedGroupKeepsItsTerminalAndPlacesTheChildOnItsOwn()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(Unrelated(3));
+        core.Handle(new Dispatch("changegroupactive", "b"));
+        core.Handle(new Dispatch("lockactivegroup", "lock"));
+
+        var opened = core.Handle(Child(2, parentProcess: 100));
+
+        Assert.Null(Client(opened, 2).Swallowing);
+        Assert.Equal([new WindowId(1), new WindowId(3)], Assert.Single(opened.State.Groups));
+        Assert.DoesNotContain(new WindowId(1), opened.Hide);
+        _ = Placement(opened, Client(opened, 2).Id);
+    }
+
+    [Fact]
+    public void AChildJoinsAGroupedTerminalOnAnotherWorkspaceAndIsPlacedInItsTile()
+    {
+        var core = WithTerminal(Swallowing);
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(Unrelated(3));
+        core.Handle(new Dispatch("changegroupactive", "b"));
+        core.Handle(new Dispatch("movetoworkspacesilent", "2"));
+
+        var opened = core.Handle(Child(2, parentProcess: 100));
+
+        Assert.Equal([new WindowId(2), new WindowId(3)], Assert.Single(opened.State.Groups));
+        Assert.Contains(new WindowId(1), opened.Hide);
+        Assert.Equal(new WindowId(1), Client(opened, 2).Swallowing);
+        Assert.Equal(new WorkspaceId("2"), Client(opened, 2).Workspace);
+        Assert.Equal(new WorkspaceId("2"), Client(opened, 3).Workspace);
+        Assert.Equal(new WorkspaceId("2"), opened.State.ActiveWorkspace);
+        _ = Placement(opened, Client(opened, 2).Id);
+        Assert.DoesNotContain(opened.Placements, placement => placement.Client == new ClientId(1));
+    }
+
+    [Fact]
+    public void ASilentWorkspaceRuleDoesNotKeepAChildFromItsParentsGroup()
+    {
+        var core = WithTerminal(Swallowing + "windowrulev2 = workspace 2 silent, class:^(mpv)$\n");
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(Unrelated(3));
+        core.Handle(new Dispatch("changegroupactive", "b"));
+
+        var opened = core.Handle(Child(2, parentProcess: 100));
+
+        Assert.Equal([new WindowId(2), new WindowId(3)], Assert.Single(opened.State.Groups));
+        Assert.Contains(new WindowId(1), opened.Hide);
+        Assert.Equal(new WindowId(1), Client(opened, 2).Swallowing);
+        Assert.Equal(WorkspaceId.Initial, Client(opened, 2).Workspace);
+        Assert.Equal(WorkspaceId.Initial, opened.State.ActiveWorkspace);
+        Assert.DoesNotContain(opened.State.Workspaces, workspace => workspace.Id == new WorkspaceId("2"));
+        _ = Placement(opened, Client(opened, 2).Id);
+    }
+
+    [Fact]
     public void AChildDoesNotSwallowATerminalInADeniedGroup()
     {
         var core = WithTerminal(Swallowing + "group:auto_group = false\n");

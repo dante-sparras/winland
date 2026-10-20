@@ -143,8 +143,6 @@ Drawing on windows Winland already owns: the blur of the windows behind a Client
 
 Events and calls that have a Windows source: `force_idle`.
 
-Behavior the Notes describe, which Windows can do: swallowing a parent in a Group the way the pinned release does, which leaves the child unplaced.
-
 ## Notes
 
 `bitdepth, 10` turns wide color on, which composes the desktop above 8 bits. Windows has no switch for the bits of the link itself, so the output can stay at 8 bits, as the driver chooses, and a display without a wide color switch gets nothing. `bitdepth, 10` with `cm srgb` cannot be 10-bit: `srgb` turns HDR and wide color off. `sdrbrightness`, `sdrsaturation`, `sdr_min_luminance` and `sdr_max_luminance` are reported and do not change the picture. The SDR white level Windows publishes cannot be set, and Winland does not tonemap. `min_luminance`, `max_luminance` and `max_avg_luminance` replace the mastering luminance Winland stores for the display. Windows has no call that sets it, and the monitors reply does not carry those three.
@@ -187,8 +185,6 @@ Per-device `device` options are not honored, except `device:tags`, which a non-c
 An application that asks for attention without flashing or taking the foreground is not urgent. `misc:focus_on_activate` set to true does not report the application as urgent before it takes focus.
 
 `inhibitingIdle` reports only the `idle_inhibit` rule. An application that keeps the system awake by itself does so without Winland, and is not reported.
-
-Swallowing reads the process tree up to 25 levels, as the reference does. A parent shown in a Group hands the child its place in the Group, and a Group that denies new windows, or that the child may not join, keeps its parent. The pinned release has no Group slot: it takes the parent's whole Group out of the Layout while the parent is swallowed, a child that joined that Group by `group:auto_group` included, and puts the Group back when the child closes, so the child and the other members are left unplaced until then. A parent that is a hidden Group member, or whose Group is on another Workspace than the child, is not swallowed. `toggleswallow` on a child that holds its parent's place in a Group shows the parent as its own tile, where the pinned release puts the parent's Group back in the Layout.
 
 A window that asks for a position does not keep it: every new floating Client opens centered, or over its owner, unless `move` places it, as the pinned release treats a native window.
 
