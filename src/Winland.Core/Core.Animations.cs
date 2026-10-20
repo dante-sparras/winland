@@ -233,18 +233,25 @@ public sealed partial class Core
         public void Place(Client client, Rectangle bounds)
         {
             var window = client.Window;
-            if (_motions.ContainsKey(window) || _isHidden.Contains(window) || client.Fullscreen == FullscreenMode.Fullscreen)
+            if (_motions.ContainsKey(window) || _isHidden.Contains(window))
                 return;
 
             if (!_was.TryGetValue(window, out var prior))
             {
-                Open(client, bounds);
+                if (client.Fullscreen != FullscreenMode.Fullscreen)
+                    Open(client, bounds);
                 return;
             }
 
+            // A Client going into or out of fullscreen mode 2 moves between its rectangle and the monitor's, as in the
+            // pinned release. One that stays fullscreen is put in place at once.
+            var fullscreen = client.Fullscreen == FullscreenMode.Fullscreen;
+            if (fullscreen && prior.Fullscreen == FullscreenMode.Fullscreen)
+                return;
+
             // A window the system just moved starts from where it was dropped, not from the tile it was lifted out of.
             var from = _released is { } dropped && dropped.Window == window ? dropped.Bounds : prior.Bounds;
-            if (_wasHidden.Contains(window) || from == bounds || prior.Fullscreen == FullscreenMode.Fullscreen)
+            if (_wasHidden.Contains(window) || from == bounds)
                 return;
 
             if (Options.TimingOf("windowsMove") is Timing move)

@@ -138,7 +138,7 @@ public sealed partial class WindowAdapter
         public void Move(WindowId window, Rectangle bounds, Rectangle content)
         {
             if (!StandFor(window, bounds, content))
-                QuickPlace(window, bounds, borderless: false);
+                QuickPlace(window, bounds, Borderless.Owns(window));
         }
 
         public void Place(WindowId window, Rectangle bounds)
@@ -146,7 +146,8 @@ public sealed partial class WindowAdapter
             Interlocked.Increment(ref Applying);
             try
             {
-                WindowAdapter.Place(window, bounds);
+                // A fullscreen window has no frame, so it is placed by its outer rectangle, as every placement of it is.
+                PlaceFrame(window, bounds, Borderless.Owns(window));
                 SettleStandIn(window, bounds);
             }
             finally
