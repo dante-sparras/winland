@@ -143,14 +143,14 @@ public class LuaRulesTests
 
         Assert.Equal(
             [
+                "windowrulev2 = float, class:a{13}",
+                "windowrulev2 = workspace 1 silent, class:kitty",
                 "windowrulev2 = float, class:kitty",
                 "windowrulev2 = pseudo, class:kitty, xdg_tag:x",
             ],
             Lines(translation));
         Assert.Equal(
             [
-                "hl.window_rule: a match with a comma is not honored yet ('class')",
-                "hl.window_rule: field 'workspace': a value with a comma is not honored yet",
                 "hl.window_rule: a rule with nothing to match on is never applied",
                 "hl.window_rule: changing the rule \"twice\" again is not honored yet",
                 "hl.window_rule: argument must be a table",
