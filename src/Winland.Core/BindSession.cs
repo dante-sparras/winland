@@ -33,6 +33,17 @@ public sealed class BindSession
     internal readonly Dictionary<string, Modifier> PressedUnder = new(StringComparer.OrdinalIgnoreCase);
     // The scan code each held key went down with.
     internal readonly Dictionary<string, int> ScanCodes = new(StringComparer.OrdinalIgnoreCase);
+
+    // The device each held key went down on, so a release or a repeat still matches when that edge has no device.
+    internal readonly Dictionary<string, (string? Device, IReadOnlyList<string>? Tags)> Devices = new(StringComparer.OrdinalIgnoreCase);
+
+    // The device of the event being matched. The hook thread sets it for the call and reads it with no lock.
+    internal string? EventDevice;
+    internal IReadOnlyList<string>? EventTags;
+
+    // When set, a device bind matched from a raw packet uses this modifier mask instead of the keys held now.
+    // The packet arrives after the hook returned, so the mask is the one from the press.
+    internal Modifier? DeviceMatchMask;
     internal Modifier Held;
     internal bool Inhibited;
     internal Point Pointer;

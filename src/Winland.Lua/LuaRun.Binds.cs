@@ -23,6 +23,7 @@ internal sealed partial class LuaRun
     [
         ("locked", 'l'), ("release", 'r'), ("repeating", 'e'), ("long_press", 'o'), ("mouse", 'm'), ("non_consuming", 'n'),
         ("transparent", 't'), ("ignore_mods", 'i'), ("dont_inhibit", 'p'), ("click", 'c'), ("drag", 'g'), ("submap_universal", 'u'),
+        ("auto_consuming", 'a'),
     ];
 
     private readonly Stack<(string Name, string Reset)> _submaps = new();
@@ -73,22 +74,22 @@ internal sealed partial class LuaRun
 
         var flags = new StringBuilder();
         string? description = null;
+        string? deviceField = null;
+        var deviceNames = new List<string>();
+        var deviceInclusive = false;
         if (_lua.IsTable(3))
         {
-            if (Present(3, "device"))
-            {
-                WarnOnce("hl.bind: binds for a device are not honored yet");
-                return 0;
-            }
-
             foreach (var (option, flag) in BindFlags)
             {
                 if (Truthy(3, option))
                     flags.Append(flag);
             }
 
-            if (Truthy(3, "auto_consuming"))
-                WarnOnce("hl.bind: auto_consuming is not honored yet");
+            if (ReadDevice(3, out deviceInclusive, out deviceNames))
+            {
+                flags.Append('k');
+                deviceField = DeviceField.Write(deviceInclusive, deviceNames);
+            }
 
             description = Text(3, "description") ?? Text(3, "desc");
         }
@@ -103,6 +104,8 @@ internal sealed partial class LuaRun
         var line = new StringBuilder("bind").Append(flags).Append(" = ").Append(keys.Modifiers).Append(", ").Append(keys.Key);
         if (description is not null)
             line.Append(", ").Append(Escape(LineText.Escape(description)));
+        if (deviceField is not null)
+            line.Append(", ").Append(Escape(deviceField));
 
         // window.drag() and window.resize() are the mouse dispatcher, which a mouse bind runs as its action.
         if (mouse)
@@ -115,6 +118,14 @@ internal sealed partial class LuaRun
             line.Append(", ").Append(dispatch.Dispatcher);
             if (dispatch.Arguments.Length > 0)
                 line.Append(", ").Append(Escape(dispatch.Arguments));
+        }
+
+        // Windows names the keyboard only after the key is delivered, so a device bind that would swallow the key
+        // cannot run. The line is not emitted, and the config warns once.
+        if (deviceField is not null && !flags.ToString().Contains('n', StringComparison.Ordinal))
+        {
+            WarnOnce(ConfigParser.ConsumingDeviceBind);
+            return 0;
         }
 
         var text = line.ToString();
@@ -133,6 +144,9 @@ internal sealed partial class LuaRun
             Key = keys.Key,
             Flags = flags.ToString(),
             Description = description,
+            AutoConsuming = flags.ToString().Contains('a', StringComparison.Ordinal),
+            DeviceInclusive = deviceInclusive,
+            Devices = deviceNames,
         };
         _binds[record.Id] = record;
         _lua.RawGetInteger(LuaRegistry.Index, _makeKeybind);
@@ -171,6 +185,12 @@ internal sealed partial class LuaRun
         public string Flags { get; init; } = "";
 
         public string? Description { get; init; }
+
+        public bool AutoConsuming { get; init; }
+
+        public bool DeviceInclusive { get; init; }
+
+        public IReadOnlyList<string> Devices { get; init; } = [];
     }
 
     private readonly Dictionary<int, BindRecord> _binds = [];
@@ -243,10 +263,15 @@ internal sealed partial class LuaRun
         foreach (var (option, flag) in BindFlags)
             SetField(option, bind.Flags.Contains(flag, StringComparison.Ordinal));
 
-        SetField("auto_consuming", false);
-        SetField("device_inclusive", false);
+        SetField("device_inclusive", bind.DeviceInclusive);
         SetField("allow_input_capture", false);
         _lua.NewTable();
+        for (var i = 0; i < bind.Devices.Count; i++)
+        {
+            _lua.PushString(bind.Devices[i]);
+            _lua.RawSetInteger(-2, i + 1);
+        }
+
         _lua.SetField(-2, "devices");
         return 1;
 
@@ -454,6 +479,43 @@ internal sealed partial class LuaRun
     {
         if (_warnedPending.Add(message))
             Warn(message, level);
+    }
+
+    // A device table limits the bind. inclusive left out is true, as in the pinned release, and a value that is not a
+    // string is skipped. A device that is not a table is ignored. False when the option names no device.
+    private bool ReadDevice(int table, out bool inclusive, out List<string> names)
+    {
+        inclusive = false;
+        names = [];
+        if (_lua.GetField(table, "device") != LuaType.Table)
+        {
+            _lua.Pop(1);
+            return false;
+        }
+
+        _lua.GetField(-1, "inclusive");
+        inclusive = _lua.IsNil(-1) || _lua.ToBoolean(-1);
+        _lua.Pop(1);
+        if (_lua.GetField(-1, "list") == LuaType.Table)
+        {
+            for (var index = 1; ; index++)
+            {
+                _lua.RawGetInteger(-1, index);
+                if (_lua.IsNil(-1))
+                {
+                    _lua.Pop(1);
+                    break;
+                }
+
+                if (_lua.IsString(-1))
+                    names.Add(_lua.ToString(-1));
+                _lua.Pop(1);
+            }
+        }
+
+        _lua.Pop(1);
+        _lua.Pop(1);
+        return true;
     }
 
     private bool Present(int table, string field)

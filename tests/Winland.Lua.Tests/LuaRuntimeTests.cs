@@ -320,6 +320,73 @@ public class LuaRuntimeTests
     }
 
     [Fact]
+    public void ABindFunctionReportsFailureAndPassEvent()
+    {
+        var (runtime, _, _) = Start("""
+            hl.bind("SUPER + X", function()
+                return { ok = false, pass_event = true }
+            end)
+            """);
+        using var _runtime = runtime;
+
+        LuaBindResult? got = null;
+        runtime.Call("1", result => got = result);
+        Settle(runtime);
+
+        Assert.Equal(new LuaBindResult(false, true), got);
+    }
+
+    [Fact]
+    public void ABindFunctionThatReturnsAValueSucceeds()
+    {
+        var (runtime, _, _) = Start("""
+            hl.bind("SUPER + X", function()
+                return 1
+            end)
+            """);
+        using var _runtime = runtime;
+
+        LuaBindResult? got = null;
+        runtime.Call("1", result => got = result);
+        Settle(runtime);
+
+        Assert.Equal(new LuaBindResult(true, false), got);
+    }
+
+    [Fact]
+    public void ABindFunctionThatRaisesFails()
+    {
+        var (runtime, _, _) = Start("""
+            hl.bind("SUPER + X", function()
+                error("nope")
+            end)
+            """);
+        using var _runtime = runtime;
+
+        LuaBindResult? got = null;
+        runtime.Call("1", result => got = result);
+        Settle(runtime);
+
+        Assert.Equal(new LuaBindResult(false, false), got);
+    }
+
+    [Fact]
+    public void AMissingBindFunctionFails()
+    {
+        var (runtime, _, _) = Start("");
+        using var _runtime = runtime;
+
+        LuaBindResult? bad = null;
+        runtime.Call("nope", result => bad = result);
+        Assert.Equal(new LuaBindResult(false, false), bad);
+
+        LuaBindResult? missing = null;
+        runtime.Call("99", result => missing = result);
+        Settle(runtime);
+        Assert.Equal(new LuaBindResult(false, false), missing);
+    }
+
+    [Fact]
     public void TheParserTakesTheFunctionDispatcher()
     {
         _ = Dispatchers.TryBind(LuaConfig.FunctionDispatcher, _ => new DispatcherResult(null, null), out _);

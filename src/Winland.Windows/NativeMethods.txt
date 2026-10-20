@@ -125,6 +125,7 @@ HidP_GetUsageValue
 HidP_GetUsages
 GetPointerDevices
 GetPointerDeviceRects
+RAWINPUT
 RAWINPUTHEADER
 RAWHID
 HWND_MESSAGE

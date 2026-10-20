@@ -133,21 +133,42 @@ public class LuaBindTests
     }
 
     [Fact]
-    public void OptionsWithoutALineFormWarn()
+    public void ADeviceAndAutoConsumingBecomeFlags()
     {
         var translation = Run("""
             hl.bind("SUPER + A", hl.dsp.exit(), { auto_consuming = true })
             hl.bind("SUPER + B", hl.dsp.exit(), { device = { list = { "my-keyboard" } } })
-            hl.bind("SUPER + C", hl.dsp.exit(), { description = "a, b" })
+            hl.bind("SUPER + C", hl.dsp.exit(), { device = { inclusive = false, list = { "other" } } })
+            hl.bind("SUPER + D", hl.dsp.exit(), { device = "nope" })
+            hl.bind("SUPER + E", hl.dsp.exit(), { non_consuming = true, auto_consuming = true, description = "leave", device = { list = { "a,b", 1, "hash#name" } } })
+            hl.bind("SUPER + F", hl.dsp.exit(), { non_consuming = true, device = {} })
+            hl.bind("SUPER + H", hl.dsp.exit(), { non_consuming = true, device = { inclusive = false } })
+            local b = hl.bind("SUPER + G", hl.dsp.exit(), { non_consuming = true, auto_consuming = true, device = { inclusive = false, list = { "one", "two" } } })
+            assert(b.non_consuming and b.auto_consuming and not b.device_inclusive and not b.allow_input_capture)
+            assert(b.devices[1] == "one" and b.devices[2] == "two" and #b.devices == 2)
             """);
 
-        Assert.Equal(["bind = SUPER, A, exit", "bindd = SUPER, C, a b, exit"], Lines(translation));
+        var separator = "\uE001";
         Assert.Equal(
             [
-                new ConfigWarning(1, "hl.bind: auto_consuming is not honored yet"),
-                new ConfigWarning(2, "hl.bind: binds for a device are not honored yet"),
+                "binda = SUPER, A, exit",
+                "bind = SUPER, D, exit",
+                $"bindnakd = SUPER, E, leave, +a{LineText.Comma}b{separator}hash##name, exit",
+                "bindnk = SUPER, F, +, exit",
+                "bindnk = SUPER, H, -, exit",
+                $"bindnak = SUPER, G, -one{separator}two, exit",
             ],
-            translation.Warnings);
+            Lines(translation));
+        Assert.Equal(new ConfigWarning(2, ConfigParser.ConsumingDeviceBind), Assert.Single(translation.Warnings));
+
+        var binds = ConfigParser.Parse(translation.Text).Binds.OfType<Bind>().ToList();
+        Assert.Equal(["a,b", "hash#name"], binds[2].Devices);
+        Assert.Equal(BindFlag.NonConsuming | BindFlag.AutoConsuming | BindFlag.DeviceInclusive, binds[2].Flags);
+        Assert.Equal("leave", binds[2].Description);
+        Assert.Equal(["one", "two"], binds[5].Devices);
+        Assert.False(binds[5].Flags.HasFlag(BindFlag.DeviceInclusive));
+        Assert.True(binds[5].Flags.HasFlag(BindFlag.NonConsuming));
+        Assert.True(binds[5].Flags.HasFlag(BindFlag.AutoConsuming));
     }
 
     [Fact]

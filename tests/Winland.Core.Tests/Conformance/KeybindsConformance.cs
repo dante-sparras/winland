@@ -82,7 +82,7 @@ public class KeybindsConformance
     private const string ShortChord = "touch /tmp/hyprtester-keybinds-short-chord.txt";
     private const string LongChord = "touch /tmp/hyprtester-keybinds-long-chord.txt";
 
-    [Fact(Skip = "Per-device binds are not honored.")]
+    [Fact(Skip = "A consuming device bind is not honored. Windows names the keyboard only after the key is delivered.")]
     public void Keybinds()
     {
         var desk = new Desk(ConfigBinds);

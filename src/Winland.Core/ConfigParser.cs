@@ -2,6 +2,12 @@ namespace Winland;
 
 public static partial class ConfigParser
 {
+    /// <summary>
+    /// A device bind that would consume the key. Windows names the keyboard only after the key is delivered, and
+    /// swallowing it produces no raw packet, so the bind is not registered. One warning per config.
+    /// </summary>
+    internal const string ConsumingDeviceBind = "A bind that names a device cannot consume the key. Windows names the keyboard only after the key is delivered, so the bind is not registered. Mark it non-consuming (flag n) to run it without consuming the key.";
+
     /// <param name="path">The full path of the config file <paramref name="text"/> was read from, when there is one.
     /// A <c>source</c> line that leads back to it is then skipped, and a relative source is compared against its folder.</param>
     public static ConfigDocument Parse(string text, IConfigSource? source = null, KeyLayout? layout = null, string? path = null)
@@ -31,6 +37,7 @@ public static partial class ConfigParser
         private readonly List<WindowRule> _windowRules = [];
         private readonly List<WorkspaceRule> _workspaceRules = [];
         private readonly List<EnvironmentAssignment> _environment = [];
+        private readonly List<DeviceTag> _deviceTags = [];
         private readonly List<string> _sources = [];
         private readonly Dictionary<string, string> _variables = new(StringComparer.Ordinal);
         private readonly List<OpenCategory> _categories = [];
@@ -41,6 +48,7 @@ public static partial class ConfigParser
         private string? _submap;
         private string? _submapReset;
         private bool _suppressWarnings;
+        private bool _warnedConsumingDevice;
 
         public ConfigDocument ParseRoot(string text, string? path)
         {
@@ -60,6 +68,7 @@ public static partial class ConfigParser
                 Sources = [.. _sources],
                 Environment = _environment.Count == 0 ? EnvironmentAssignment.None : [.. _environment],
                 Gestures = [.. _gestures],
+                DeviceTags = [.. _deviceTags],
             };
         }
 
@@ -250,6 +259,9 @@ public static partial class ConfigParser
                 return;
             }
 
+            if (TryDeviceTags(lhs, rhs))
+                return;
+
             var keyword = KeyedName.TryInline(lhs, out var inline) ? inline : Qualify(lhs);
             if (PluginKeywords.TryApply(keyword, rhs, out var pluginWarnings))
             {
@@ -385,6 +397,39 @@ public static partial class ConfigParser
                 return;
 
             _warnings.Add(new ConfigWarning(line, message, _source));
+        }
+
+        // device[name]:tags, or tags inside a device[name] block. Other device fields stay the per-device gap.
+        private bool TryDeviceTags(string lhs, string rhs)
+        {
+            string? name = null;
+            if (lhs.StartsWith("device[", StringComparison.Ordinal))
+            {
+                const string Tail = "]:tags";
+                if (lhs.EndsWith(Tail, StringComparison.Ordinal) && lhs.Length > "device[".Length + Tail.Length)
+                    name = lhs["device[".Length..^Tail.Length];
+            }
+            else if (lhs == "tags" && _categories.Count > 0)
+            {
+                var category = _categories[^1];
+                if (category.Name == "device" && category.Key is string key && key.Length > 0)
+                    name = key;
+            }
+
+            if (name is null || name.Length == 0)
+                return false;
+
+            var tags = new List<string>();
+            foreach (var part in rhs.Split(','))
+            {
+                var tag = part.Trim();
+                if (tag.Length > 0)
+                    tags.Add(tag);
+            }
+
+            _deviceTags.RemoveAll(existing => existing.Device == name);
+            _deviceTags.Add(new DeviceTag(name, tags));
+            return true;
         }
 
         private static bool IsLaunchKeyword(string keyword) =>

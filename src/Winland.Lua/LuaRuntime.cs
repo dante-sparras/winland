@@ -5,6 +5,9 @@ namespace Winland.Lua;
 /// <summary>A loaded Lua config: the lines it made, and its Lua, which a <see cref="LuaRuntime"/> keeps running.</summary>
 public sealed record LuaLoad(LuaTranslation Translation, LuaSession Session);
 
+/// <summary>What a bind's Lua function returned. <see cref="Success"/> is false for <c>{ ok = false }</c> or a raised error.</summary>
+public readonly record struct LuaBindResult(bool Success, bool PassEvent);
+
 /// <summary>The Lua of a loaded config. The runtime that adopts it disposes it; otherwise dispose it.</summary>
 public sealed class LuaSession : IDisposable
 {
@@ -155,10 +158,24 @@ public sealed class LuaRuntime : IDisposable, ILayoutScripts
     }
 
     /// <summary>The keys of a bind that calls a Lua function were pressed. <paramref name="arguments"/> is the function's id.</summary>
-    public void Call(string arguments)
+    public void Call(string arguments, Action<LuaBindResult>? finished = null)
     {
-        if (int.TryParse(arguments.Trim(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var id))
+        void Finish(LuaBindResult result) => finished?.Invoke(result);
+
+        if (!int.TryParse(arguments.Trim(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var id))
+        {
+            Finish(new LuaBindResult(false, false));
+            return;
+        }
+
+        if (finished is null)
+        {
             Post(() => _session?.Call(id));
+            return;
+        }
+
+        if (!Post(() => Finish(_session?.CallBind(id) ?? new LuaBindResult(false, false))))
+            Finish(new LuaBindResult(false, false));
     }
 
     /// <summary>
@@ -293,14 +310,16 @@ public sealed class LuaRuntime : IDisposable, ILayoutScripts
         _ = _thread.Join(TimeSpan.FromSeconds(2));
     }
 
-    private void Post(Action work)
+    private bool Post(Action work)
     {
         try
         {
             _work.Add(work);
+            return true;
         }
         catch (InvalidOperationException)
         {
+            return false;
         }
     }
 

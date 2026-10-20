@@ -124,11 +124,23 @@ public sealed record WindowFocused(WindowId Window, FocusCause Cause = FocusCaus
 public sealed record KeyPressed(string Key) : Event
 {
     public int ScanCode { get; init; }
+
+    /// <summary>The device name <c>devices</c> reports, when the key could be attributed. Null when it could not.</summary>
+    public string? Device { get; init; }
+
+    /// <summary>Tags of <see cref="Device"/>. Null asks the bind table for the tags of that name.</summary>
+    public IReadOnlyList<string>? DeviceTags { get; init; }
 }
 
 public sealed record KeyReleased(string Key) : Event
 {
     public int ScanCode { get; init; }
+
+    /// <summary>The device name <c>devices</c> reports, when the key could be attributed. Null when it could not.</summary>
+    public string? Device { get; init; }
+
+    /// <summary>Tags of <see cref="Device"/>. Null asks the bind table for the tags of that name.</summary>
+    public IReadOnlyList<string>? DeviceTags { get; init; }
 }
 
 public sealed record PointerButtonPressed(string Button) : Event

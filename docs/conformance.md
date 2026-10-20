@@ -266,13 +266,13 @@ A case passes when every check in it passes, as in the reference harness. A case
 | clients/xdg-initial-maximize | xdgMaximizeBeforeMapIsIgnored | passes | |
 | clients/xdg-interactive | xdgInteractive | passes | |
 | misc/plugin | plugin | passes | |
-| misc/plugin | pluginVkb | not ported | Windows merges every keyboard into one key state and does not tell Winland which device a key came from. |
+| misc/plugin | pluginVkb | not ported | Windows merges every keyboard into one key state and has no in-process virtual keyboard. |
 | exec | processSpawning | passes | |
 | gestures | pinchDeltaScalePropagation | not ported | It checks a gesture the test plugin registers through the C++ plugin interface, which has no core form. |
 | gestures | defaultSpecialWorkspaceGesture | passes | |
 | gestures | live_gesture_callbacks | passes | |
 | gestures | gestures | passes | |
-| keybinds | keybinds | differs | Per-device binds are not honored. |
+| keybinds | keybinds | differs | A consuming device bind is not honored. Windows names the keyboard only after the key is delivered. |
 | keybinds | orderedSubChordDeferral | passes | |
 | keybinds | modifierReleaseBindShadowing | passes | |
 | keybinds | luaDispatcherStrings | passes | |
