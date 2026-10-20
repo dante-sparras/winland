@@ -783,6 +783,7 @@ public sealed partial class WindowAdapter : IDisposable
                 BorderHost.Update(rings);
                 ShadowHost.Update(shadows);
                 GlowHost.Update(glows);
+                EffectLayers.Update(rings, shadows, glows);
                 XrayHost.Update(xrays);
             }
 

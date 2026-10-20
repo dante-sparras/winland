@@ -321,21 +321,6 @@ internal static class BorderHost
             null,
             null);
 
-    // The four pieces of a ring box: the top and bottom strips hold the corners, and the sides fill between them.
-    internal static Rectangle[] Pieces(int boxWidth, int boxHeight, BorderRing ring)
-    {
-        var corner = (int)Math.Ceiling(Math.Max(ring.OuterRadius, ring.Thickness + ring.Radius));
-        corner = Math.Clamp(corner, ring.Thickness, Math.Max(ring.Thickness, boxHeight / 2));
-        var side = Math.Max(0, boxHeight - (2 * corner));
-        return
-        [
-            new Rectangle(0, 0, boxWidth, corner),
-            new Rectangle(0, boxHeight - corner, boxWidth, corner),
-            new Rectangle(0, corner, ring.Thickness, side),
-            new Rectangle(boxWidth - ring.Thickness, corner, ring.Thickness, side),
-        ];
-    }
-
     private sealed class Entry(WindowId window) : IDisposable
     {
         private readonly HWND[] _pieces = new HWND[4];
@@ -404,7 +389,7 @@ internal static class BorderHost
             var thickness = Ring.Thickness;
             var box = new Rectangle(frame.X - thickness, frame.Y - thickness, frame.Width + (2 * thickness), frame.Height + (2 * thickness));
             var drawn = Drawn;
-            var pieces = Pieces(box.Width, box.Height, drawn);
+            var pieces = BorderPainter.Pieces(box.Width, box.Height, drawn);
             if (box.Width != _box.Width || box.Height != _box.Height || !drawn.Equals(_painted) || !_shown || _turn != _paintedTurn || _alpha != _paintedAlpha)
             {
                 for (var i = 0; i < pieces.Length; i++)

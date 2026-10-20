@@ -19,6 +19,13 @@ internal sealed unsafe class EffectStand : IDisposable
     private readonly EffectTrack _track;
     private EffectBox _rest;
     private StandInMapping _mapping;
+    private (BorderRing? Ring, DropShadow? Shadow, InnerGlow? Glow) _layers;
+    private DecorationCanvas? _canvas;
+    private Size _canvasSize;
+    private bool _canvasStale = true;
+    private bool _canvasUploaded;
+    private GpuTexture? _decor;
+    private Rectangle _inner;
     private byte _alpha = 255;
     private bool _disposed;
 
@@ -108,6 +115,29 @@ internal sealed unsafe class EffectStand : IDisposable
         }
     }
 
+    /// <summary>Whether the frames draw the window's border, shadow and glow, so their own windows hide while they show.</summary>
+    internal bool Decorated
+    {
+        get
+        {
+            lock (_gate)
+                return _canvas is not null && _canvasUploaded;
+        }
+    }
+
+    /// <summary>The window's border, shadow and glow now, which the frames bend and smear with the window.</summary>
+    internal void Decorate(BorderRing? ring, DropShadow? shadow, InnerGlow? glow)
+    {
+        lock (_gate)
+        {
+            if (ReferenceEquals(_layers.Ring, ring) && ReferenceEquals(_layers.Shadow, shadow) && ReferenceEquals(_layers.Glow, glow))
+                return;
+
+            _layers = (ring, shadow, glow);
+            _canvasStale = true;
+        }
+    }
+
     /// <summary>The effects the window has now, which a reload may have changed.</summary>
     internal void Use(MotionEffects effects)
     {
@@ -127,9 +157,7 @@ internal sealed unsafe class EffectStand : IDisposable
             if (_disposed)
                 return false;
 
-            var destination = mapping.Destination;
-            _rest = new EffectBox(bounds.X + destination.X, bounds.Y + destination.Y, destination.Width, destination.Height);
-            _mapping = mapping;
+            Place(bounds, mapping);
             _alpha = alpha;
             var now = Now();
             _track.Step(_rest, now, grab);
@@ -149,9 +177,7 @@ internal sealed unsafe class EffectStand : IDisposable
             if (_disposed)
                 return false;
 
-            var destination = mapping.Destination;
-            _rest = new EffectBox(bounds.X + destination.X, bounds.Y + destination.Y, destination.Width, destination.Height);
-            _mapping = mapping;
+            Place(bounds, mapping);
             var now = Now();
             _track.Step(_rest, now);
             _track.EndBlur();
@@ -171,9 +197,7 @@ internal sealed unsafe class EffectStand : IDisposable
             if (_disposed)
                 return false;
 
-            var destination = mapping.Destination;
-            _rest = new EffectBox(bounds.X + destination.X, bounds.Y + destination.Y, destination.Width, destination.Height);
-            _mapping = mapping;
+            Place(bounds, mapping);
             var now = Now();
             var moving = _track.Tick(now);
             return Draw(now, above) && moving;
@@ -212,6 +236,8 @@ internal sealed unsafe class EffectStand : IDisposable
             {
                 _renderer.Dispose();
                 _capture.Dispose();
+                _decor?.Dispose();
+                _decor = null;
             }
 
             _layer.Dispose();
@@ -219,6 +245,56 @@ internal sealed unsafe class EffectStand : IDisposable
     }
 
     private static double Now() => Stopwatch.GetTimestamp() * 1000.0 / Stopwatch.Frequency;
+
+    // Where the frame goes for a window shown in bounds: the window's picture where the mapping puts it, and with decorations the
+    // box that holds them too, which the mesh then covers. The caller holds the stand's gate.
+    private void Place(Rectangle bounds, StandInMapping mapping)
+    {
+        _mapping = mapping;
+        var destination = mapping.Destination;
+        if (_canvasStale || _canvasSize != new Size(bounds.Width, bounds.Height))
+        {
+            _canvas = DecorationCanvas.Paint(bounds.Width, bounds.Height, _layers.Ring, _layers.Shadow, _layers.Glow);
+            _canvasSize = new Size(bounds.Width, bounds.Height);
+            _canvasStale = false;
+            _canvasUploaded = false;
+        }
+
+        if (_canvas is not { } canvas)
+        {
+            _rest = new EffectBox(bounds.X + destination.X, bounds.Y + destination.Y, destination.Width, destination.Height);
+            return;
+        }
+
+        var box = canvas.Box;
+        _rest = new EffectBox(bounds.X + box.X, bounds.Y + box.Y, box.Width, box.Height);
+        _inner = new Rectangle(destination.X - box.X, destination.Y - box.Y, destination.Width, destination.Height);
+    }
+
+    // The decorations in a texture of the device's, written again when they changed. Null when there are none or they could not
+    // be written. The caller holds the device's gate.
+    private EffectDecor? Decor()
+    {
+        if (_canvas is not { } canvas)
+            return null;
+
+        var box = canvas.Box;
+        if (!_canvasUploaded)
+        {
+            if (_decor is null || _decor.Width < box.Width || _decor.Height < box.Height)
+            {
+                _decor?.Dispose();
+                _decor = _gpu.Create(Math.Max(box.Width, _decor?.Width ?? 0), Math.Max(box.Height, _decor?.Height ?? 0), GpuUse.Source);
+            }
+
+            if (_decor is null || !_gpu.Upload(_decor, canvas.Pixels, box.Width, box.Height))
+                return null;
+
+            _canvasUploaded = true;
+        }
+
+        return new EffectDecor(_decor!, box.Width, box.Height, _inner);
+    }
 
     // The caller holds the stand's gate.
     private bool Draw(double now, HWND above)
@@ -228,13 +304,19 @@ internal sealed unsafe class EffectStand : IDisposable
             if (_gpu.Lost() || !_capture.Refresh() || _capture.Picture is not { } picture)
                 return false;
 
+            // The frame's box holds the decorations, so it is not drawn without them.
+            var decor = Decor();
+            if (_canvas is not null && decor is null)
+                return false;
+
             return _renderer.Render(
                 picture,
                 _mapping.Source,
                 _track,
                 _rest,
                 now,
-                (rows, pitch, canvas) => _layer.Present(rows, pitch, canvas.Width, canvas.Height, new System.Drawing.Point(canvas.X, canvas.Y), _alpha, above));
+                (rows, pitch, canvas) => _layer.Present(rows, pitch, canvas.Width, canvas.Height, new System.Drawing.Point(canvas.X, canvas.Y), _alpha, above),
+                decor);
         }
     }
 }

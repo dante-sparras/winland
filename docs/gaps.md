@@ -174,7 +174,7 @@ Blur is DWM's acrylic backdrop, so it shows only where DWM draws that backdrop: 
 
 Wobble and motion blur are drawn from a capture of the window, as [behavior.md](behavior.md#wobble-and-motion-blur) describes. These parts are Gaps:
 
-- The window's border, shadow and glow follow its rectangle and do not wobble or blur with it. The pinned release draws them into the window's buffer and deforms them with it.
+- The border, shadow and glow drawn into the effect's frames hold still: a gradient does not turn with `borderangle`, `shadowangle` or `glowangle`, and a border color that `border` animates shows its new color at once, until the stand-in ends.
 - A window Windows will not capture, such as one that excludes itself from capture, and a machine with no hardware graphics adapter, show the window without the effects.
 - A window its program made layered cannot be made transparent for a stand-in. It is moved on every frame, without the effects.
 - A Windows build that does not let a program capture a window without the capture border shows the window without the effects.
