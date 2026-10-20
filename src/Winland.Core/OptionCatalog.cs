@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Winland;
 
-internal static class OptionCatalog
+internal static partial class OptionCatalog
 {
     private static readonly ConfigDocument Empty = new([], [], []);
 
@@ -76,7 +76,7 @@ internal static class OptionCatalog
 
     /// <summary>
     /// Each option with its default and its current value, written as JSON, as the pinned release answers
-    /// <c>descriptions</c>. Only the options Winland reads are listed, and their descriptions are empty.
+    /// <c>descriptions</c>, with its description. Only the options Winland reads are listed.
     /// </summary>
     public static string Descriptions(ConfigDocument? config)
     {
@@ -86,7 +86,7 @@ internal static class OptionCatalog
             if (!TryValue(name, Empty, out _, out var fallback) || !TryValue(name, config ?? Empty, out _, out var current))
                 continue;
 
-            entries.Add("{\"name\":" + JsonSerializer.Serialize(name) + ",\"description\":\"\",\"default\":" + fallback + ",\"current\":" + current + "}");
+            entries.Add("{\"name\":" + JsonSerializer.Serialize(name) + ",\"description\":" + JsonSerializer.Serialize(DescriptionOf.GetValueOrDefault(name, "")) + ",\"default\":" + fallback + ",\"current\":" + current + "}");
         }
 
         return "[" + string.Join(',', entries) + "]";
