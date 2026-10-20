@@ -20,7 +20,7 @@ public sealed partial class Core
             return;
 
         var rest = PlacedBounds(client, desk, slot);
-        var gone = MotionStyles.Window(_animations.StyleOf("windowsOut"), rest, MonitorRectangle(client.Workspace));
+        var gone = MotionStyles.Window(WindowStyleOf(window, "windowsOut"), rest, MonitorRectangle(client.Workspace));
         _closeSwipe = new CloseSwipe(window, rest, gone);
     }
 

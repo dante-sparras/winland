@@ -93,6 +93,11 @@ public sealed partial class Core
         return false;
     }
 
+    // A window's own animation style, from setprop or a window rule, replaces the windowsIn or windowsOut style it opens
+    // or closes with, as in the pinned release. Its curve and speed stay the node's.
+    private string WindowStyleOf(WindowId window, string node) =>
+        OwnProp(window, "animation") is string { Length: > 0 } own ? own : _animations.StyleOf(node);
+
     private Rectangle MonitorRectangle(WorkspaceId workspace)
     {
         if (FindWorkspace(workspace) is LiveWorkspace desk)
@@ -208,7 +213,7 @@ public sealed partial class Core
                 return;
 
             var rest = client.Bounds;
-            var to = move is null ? rest : MotionStyles.Window(Options.StyleOf("windowsOut"), rest, _core.MonitorRectangle(client.Workspace));
+            var to = move is null ? rest : MotionStyles.Window(_core.WindowStyleOf(window, "windowsOut"), rest, _core.MonitorRectangle(client.Workspace));
             _motions[window] = new Motion(window, to)
             {
                 From = rest,
@@ -293,7 +298,7 @@ public sealed partial class Core
             if (move is null && fade is null)
                 return;
 
-            var from = MotionStyles.Window(Options.StyleOf("windowsIn"), bounds, _core.MonitorRectangle(client.Workspace));
+            var from = MotionStyles.Window(_core.WindowStyleOf(client.Window, "windowsIn"), bounds, _core.MonitorRectangle(client.Workspace));
             _motions[client.Window] = new Motion(client.Window, bounds)
             {
                 From = move is null ? null : from,
