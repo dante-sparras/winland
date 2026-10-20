@@ -7,7 +7,7 @@ internal sealed partial class DwindleLayout : Layout
     private readonly Dictionary<ClientId, Suspension> _suspended = [];
     private readonly FloatingClients _floating = new();
     private readonly Dictionary<ClientId, Rectangle> _natural = [];
-    private readonly HashSet<ClientId> _pseudo = [];
+    private readonly PseudoTiles _pseudo = new();
     private LayoutOptions _options = LayoutOptions.Unconfigured;
     private PendingSplit _preselect;
     private Node? _root;
@@ -107,8 +107,7 @@ internal sealed partial class DwindleLayout : Layout
         if (!_clients.Exists(client => client.Id == id))
             return [];
 
-        if (!_pseudo.Add(id))
-            _pseudo.Remove(id);
+        _pseudo.Toggle(id);
 
         return Placements();
     }
@@ -178,7 +177,7 @@ internal sealed partial class DwindleLayout : Layout
     public IReadOnlyList<Placement> Remove(WindowId window)
     {
         var id = new ClientId(window.Value);
-        _pseudo.Remove(id);
+        _pseudo.Forget(id);
         _natural.Remove(id);
         _limits.Remove(id);
         _drag.Forget(id);
@@ -357,20 +356,9 @@ internal sealed partial class DwindleLayout : Layout
         var right = box.X + box.Width == area.X + area.Width ? 0 : gaps.Right;
         var bottom = box.Y + box.Height == area.Y + area.Height ? 0 : gaps.Bottom;
         var presented = _options.KeepAspect(Shrink(box, left, top, right, bottom), _area, _nodes.Count);
-        if (_pseudo.Contains(id))
-            presented = Center(presented, PseudoSize(id));
-
-        var border = _options.BorderFor(id);
-        presented = Shrink(presented, border, border, border, border);
+        _natural.TryGetValue(id, out var natural);
+        presented = _pseudo.Frame(id, presented, natural, _options.BorderFor(id));
         return _limits.TryGetValue(id, out var limits) ? limits.ForTiles.Raise(presented, area) : presented;
-    }
-
-    private (int Width, int Height) PseudoSize(ClientId id)
-    {
-        if (_natural.TryGetValue(id, out var bounds) && bounds.Width > 0 && bounds.Height > 0)
-            return (bounds.Width, bounds.Height);
-
-        return (1280, 720);
     }
 
     private Rectangle TilingArea()
@@ -417,31 +405,6 @@ internal sealed partial class DwindleLayout : Layout
         var width = Math.Max(0, box.Width - left - right);
         var height = Math.Max(0, box.Height - top - bottom);
         return new Rectangle(box.X + left, box.Y + top, width, height);
-    }
-
-    private static Rectangle Center(Rectangle tile, (int Width, int Height) size)
-    {
-        var width = (double)size.Width;
-        var height = (double)size.Height;
-        if (width > tile.Width || height > tile.Height)
-        {
-            var scale = 1.0;
-            if (width > tile.Width)
-                scale = tile.Width / width;
-            if (height * scale > tile.Height)
-                scale = tile.Height / height;
-
-            width = Math.Round(width * scale, MidpointRounding.AwayFromZero);
-            height = Math.Round(height * scale, MidpointRounding.AwayFromZero);
-        }
-
-        var placedWidth = Math.Max(0, (int)width);
-        var placedHeight = Math.Max(0, (int)height);
-        return new Rectangle(
-            tile.X + ((tile.Width - placedWidth) / 2),
-            tile.Y + ((tile.Height - placedHeight) / 2),
-            placedWidth,
-            placedHeight);
     }
 
     private static bool Covers(Rectangle box, Point point) =>

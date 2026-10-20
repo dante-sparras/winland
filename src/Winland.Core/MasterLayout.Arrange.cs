@@ -230,7 +230,10 @@ internal sealed partial class MasterLayout
         var bottom = box.Y + box.Height == area.Y + area.Height ? 0 : gaps.Bottom;
         var presented = _layout.KeepAspect(Shrink(box, left, top, right, bottom), _area, _tiles.Count);
         var border = client is ClientId id ? _layout.BorderFor(id) : _layout.BorderSize;
-        return Shrink(presented, border, border, border, border);
+        Rectangle natural = default;
+        if (client is ClientId known)
+            _natural.TryGetValue(known, out natural);
+        return _pseudo.Frame(client, presented, natural, border);
     }
 
     private Rectangle TilingArea()

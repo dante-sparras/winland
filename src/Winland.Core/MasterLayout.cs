@@ -6,6 +6,7 @@ internal sealed partial class MasterLayout : Layout
     private readonly List<Tile> _tiles = [];
     private readonly FloatingClients _floating = new();
     private readonly Dictionary<ClientId, Rectangle> _natural = [];
+    private readonly PseudoTiles _pseudo = new();
     private readonly Dictionary<ClientId, SizeLimits> _limits = [];
     private readonly Dictionary<ClientId, Suspended> _suspended = [];
     private LayoutOptions _layout = LayoutOptions.Unconfigured;
@@ -132,6 +133,7 @@ internal sealed partial class MasterLayout : Layout
     {
         var id = Id(window);
         _natural.Remove(id);
+        _pseudo.Forget(id);
         _limits.Remove(id);
         _drag.Forget(id);
 
@@ -308,8 +310,12 @@ internal sealed partial class MasterLayout : Layout
 
     public IReadOnlyList<Placement> TogglePseudo(WindowId window)
     {
-        _ = window;
-        return [];
+        var id = Id(window);
+        if (FindClient(id) < 0)
+            return [];
+
+        _pseudo.Toggle(id);
+        return Placed();
     }
 
     public WindowId? FocusAfterClose()

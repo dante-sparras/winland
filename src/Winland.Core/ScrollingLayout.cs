@@ -17,6 +17,7 @@ internal sealed partial class ScrollingLayout : Layout
     private readonly Dictionary<ClientId, Suspension> _suspended = [];
     private readonly FloatingClients _floating = new();
     private readonly Dictionary<ClientId, Rectangle> _natural = [];
+    private readonly PseudoTiles _pseudo = new();
     private readonly Dictionary<ClientId, SizeLimits> _limits = [];
     private readonly Dictionary<WindowId, double> _widths = [];
     private readonly List<Column> _columns = [];
@@ -148,6 +149,7 @@ internal sealed partial class ScrollingLayout : Layout
     {
         var id = new ClientId(window.Value);
         _natural.Remove(id);
+        _pseudo.Forget(id);
         _limits.Remove(id);
         _widths.Remove(window);
         _restoreWidths.Remove(id);
@@ -295,8 +297,13 @@ internal sealed partial class ScrollingLayout : Layout
 
     public IReadOnlyList<Placement> TogglePseudo(WindowId window)
     {
-        _ = window;
-        return [];
+        var id = new ClientId(window.Value);
+        if (!_clients.Exists(client => client.Id == id))
+            return [];
+
+        _pseudo.Toggle(id);
+        Recalculate();
+        return Placements();
     }
 
     public void NoteFocus(WindowId window) => Follow(window, pointer: false);

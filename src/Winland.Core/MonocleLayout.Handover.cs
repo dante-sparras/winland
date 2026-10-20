@@ -21,6 +21,7 @@ internal sealed partial class MonocleLayout
         _clients[index] = SlotHandover.Rename(client, next, incoming);
         SlotHandover.Move(_tiled, from, to);
         _floating.Hand(from, to);
+        _pseudo.Hand(from, to);
         _natural.Remove(from);
         _natural[to] = incoming.Bounds;
         _limits.Remove(from);
