@@ -148,6 +148,22 @@ public sealed partial class Core
         return View([], dispatcher: name, allowsElevation: allowsElevation);
     }
 
+    /// <summary>
+    /// <c>cleartags [window]</c> takes every tag off the window, or the focused one, as the pinned release's clear_tags
+    /// does. The rules are matched again, so a tag a rule gives comes back.
+    /// </summary>
+    private Outcome ClearTags(string arguments, bool allowsElevation)
+    {
+        const string name = "cleartags";
+        if (Select(arguments.Trim(), emptyMeansActive: true) is WindowId window)
+        {
+            _staticTags.Remove(window);
+            _ruleTags.Remove(window);
+        }
+
+        return View([], dispatcher: name, allowsElevation: allowsElevation);
+    }
+
     // initialTitle matches the title a window had when it appeared, including an empty one, so a later title does not stand in for it.
     private static WindowTraits WithInitialTitle(WindowTraits traits) =>
         traits.InitialTitle is null ? traits with { InitialTitle = traits.Title } : traits;

@@ -226,6 +226,23 @@ public class WindowPropsTests
         Assert.Contains("\"mine\"", core.Execute("j/clients").Text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ClearTagsTakesTheTagsOffAndTheRulesGiveTheirsBack()
+    {
+        var core = new Core(ConfigParser.Parse("windowrulev2 = tag +ruled, class:.*\n"));
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        core.Execute("dispatch tagwindow +mine");
+        core.Execute("dispatch tagwindow +other address:0x1");
+        Assert.Contains("\"mine\"", core.Execute("j/clients").Text, StringComparison.Ordinal);
+
+        Assert.Equal("ok", core.Execute("dispatch cleartags address:0x1").Text);
+
+        var clients = core.Execute("j/clients").Text;
+        Assert.DoesNotContain("mine", clients, StringComparison.Ordinal);
+        Assert.DoesNotContain("other", clients, StringComparison.Ordinal);
+        Assert.Contains("\"ruled*\"", clients, StringComparison.Ordinal);
+    }
+
     private static WindowId? Find(Core core, string selector) =>
         core.Execute($"dispatch focuswindow {selector}").Text == "ok" ? new WindowId(1) : null;
 

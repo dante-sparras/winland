@@ -62,7 +62,7 @@ internal sealed partial class LuaRun
         Constructor("window", "center", label => new Dispatch("centerwindow", WithWindow("")));
         Constructor("window", "cycle_next", WindowCycleNext);
         Constructor("window", "tag", label => new Dispatch("tagwindow", Join(Required("tag"), Window() ?? "")));
-        Constructor("window", "clear_tags", label => NotHonored(label));
+        Constructor("window", "clear_tags", label => new Dispatch("cleartags", Window() ?? ""));
         Constructor("window", "toggle_swallow", label => new Dispatch("toggleswallow", ""), 0);
         Constructor("window", "pin", label => new Dispatch("pin", Join(Action() switch { Toggle.Enable => "enable", Toggle.Disable => "disable", _ => "" }, Window() ?? "")));
         Constructor("window", "bring_to_top", label => new Dispatch("bringactivetotop", ""), 0);
