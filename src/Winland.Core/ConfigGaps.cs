@@ -26,7 +26,6 @@ public static class ConfigGaps
         new("cursor:no_hardware_cursors", "Hardware cursors have no Windows meaning."),
         new("cursor:sync_gsettings_theme", "Syncing the cursor theme with the desktop has no Windows meaning."),
         new("cursor:use_cpu_buffer", "Hardware cursor buffers have no Windows meaning."),
-        new("cursor:zoom_disable_aa", "The zoom is the system magnifier, which has no nearest-neighbor mode."),
         new("debug", "Compositor debug options have no Windows meaning. The log and error bar options are honored."),
         new("decoration:blur:input_methods", "Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned."),
         new("decoration:blur:input_methods_ignorealpha", "Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned."),

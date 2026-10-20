@@ -30,7 +30,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | cursor:no_hardware_cursors | Hardware cursors have no Windows meaning. |
 | cursor:sync_gsettings_theme | Syncing the cursor theme with the desktop has no Windows meaning. |
 | cursor:use_cpu_buffer | Hardware cursor buffers have no Windows meaning. |
-| cursor:zoom_disable_aa | The zoom is the system magnifier, which has no nearest-neighbor mode. |
 | debug | Compositor debug options have no Windows meaning. The log and error bar options are honored. |
 | decoration:blur:input_methods | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
 | decoration:blur:input_methods_ignorealpha | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
@@ -116,7 +115,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | non-goal | - | animation:fadeLayers, animation:fadeLayersIn, animation:fadeLayersOut, animation:fadePopups, animation:fadePopupsIn, animation:fadePopupsOut, animation:layers, animation:layersIn, animation:layersOut |
 | non-goal | - | binds:disable_keybind_grabbing |
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
-| non-goal | - | cursor:zoom_disable_aa |
 | gap | - | decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:special |
 | gap | - | device |
 | non-goal | - | dont_inhibit |

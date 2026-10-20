@@ -33,6 +33,9 @@ public sealed record CursorZoom(double Factor, bool Rigid, bool DetachedCamera)
 
     /// <summary>How a change of factor animates, from <c>animation:zoomFactor</c>, or null when it changes at once.</summary>
     public Timing? Animation { get; init; }
+
+    /// <summary><c>cursor:zoom_disable_aa</c>: the zoomed picture is scaled without smoothing.</summary>
+    public bool DisableAntialiasing { get; init; }
 }
 
 /// <summary>A cursor zoom factor easing from one value to another.</summary>
@@ -84,6 +87,8 @@ public sealed record CursorOptions
 
     public bool ZoomDetachedCamera { get; init; } = true;
 
+    public bool ZoomDisableAntialiasing { get; init; }
+
     public int HotspotPadding { get; init; }
 
     public static CursorOptions Documented { get; } = new();
@@ -92,7 +97,7 @@ public sealed record CursorOptions
 
     public CursorBehavior Behavior() => new(HideOnKeyPress, InactiveTimeoutSeconds)
     {
-        Zoom = new CursorZoom(ZoomFactor, ZoomRigid, ZoomDetachedCamera),
+        Zoom = new CursorZoom(ZoomFactor, ZoomRigid, ZoomDetachedCamera) { DisableAntialiasing = ZoomDisableAntialiasing },
         Invisible = Invisible,
         WarpBackAfterNonMouseInput = WarpBackAfterNonMouseInput,
         HideOnTouch = HideOnTouch,
@@ -131,6 +136,7 @@ public sealed record CursorOptions
         ["cursor:default_monitor"] = (options, value) => options with { DefaultMonitor = value.Trim() },
         ["cursor:zoom_factor"] = (options, value) => TryZoom(value, out var factor) ? options with { ZoomFactor = factor } : options,
         ["cursor:zoom_rigid"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var rigid) ? options with { ZoomRigid = rigid } : options,
+        ["cursor:zoom_disable_aa"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var sharp) ? options with { ZoomDisableAntialiasing = sharp } : options,
         ["cursor:hotspot_padding"] = (options, value) => int.TryParse(value.Trim(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var padding) ? options with { HotspotPadding = Math.Clamp(padding, 0, 20) } : options,
         ["cursor:zoom_detached_camera"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var detached) ? options with { ZoomDetachedCamera = detached } : options,
     };
