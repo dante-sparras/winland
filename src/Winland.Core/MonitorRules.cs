@@ -546,7 +546,8 @@ internal static class MonitorRules
             WorkArea = Inset(reported.WorkArea, chosen, reported.Scale),
             Orientation = chosen.Orientation,
             ColorPreset = chosen.ColorPreset ?? "",
-            BitsPerChannel = DisplayColors.ReportedBits(reported.BitsPerChannel, chosen.ColorPreset, chosen.TenBit == true, support),
+            // The depth Windows reports for the link. Turning HDR or wide color on does not always raise it.
+            BitsPerChannel = reported.BitsPerChannel,
             SdrBrightness = chosen.SdrBrightness ?? reported.SdrBrightness,
             SdrSaturation = chosen.SdrSaturation ?? reported.SdrSaturation,
             SdrMinLuminance = chosen.SdrMinLuminance ?? reported.SdrMinLuminance,

@@ -64,8 +64,9 @@ public class DisplayColorTests
         var joined = new DisplayColorReading(true, false, false, false, true, false, 8);
 
         Assert.Equal(new DisplayColorGoal(null, true, null), DisplayColors.Intend(new(@"\\.\DISPLAY1", "auto", TenBit: true), split));
-        Assert.Equal(new DisplayColorGoal(true, null, null), DisplayColors.Intend(new(@"\\.\DISPLAY1", "", TenBit: true), joined));
-        Assert.Equal(new DisplayColorGoal(null, null, "10-bit color"), DisplayColors.Intend(new(@"\\.\DISPLAY1", "auto", TenBit: true), joined with { HdrSupported = false }));
+        // Without a wide color switch, 10-bit does not fall back to HDR, which would change the whole picture.
+        Assert.Equal(new DisplayColorGoal(null, null, "10-bit color"), DisplayColors.Intend(new(@"\\.\DISPLAY1", "", TenBit: true), joined));
+        Assert.Equal(new DisplayColorGoal(null, null, "10-bit color"), DisplayColors.Intend(new(@"\\.\DISPLAY1", "auto", TenBit: true), split with { WideSupported = false }));
         Assert.Equal(new DisplayColorGoal(false, false, "10-bit color"), DisplayColors.Intend(new(@"\\.\DISPLAY1", "srgb", TenBit: true), split));
         Assert.Equal(new DisplayColorGoal(false, false, null), DisplayColors.Intend(new(@"\\.\DISPLAY1", "hdredid"), joined with { HdrSupported = false }));
         Assert.Equal(new DisplayColorGoal(false, null, "wide color"), DisplayColors.Intend(new(@"\\.\DISPLAY1", "wide"), joined));
@@ -79,13 +80,8 @@ public class DisplayColorTests
     }
 
     [Fact]
-    public void TheReplyNamesTheDepthTheRuleCanShow()
+    public void TheReplyNamesTheDepthWindowsReports()
     {
-        var wide = new DisplayColorSupport(true, true, false, false);
-        Assert.Equal(10, DisplayColors.ReportedBits(8, "wide", false, wide));
-        Assert.Equal(8, DisplayColors.ReportedBits(10, "srgb", true, wide));
-        Assert.Equal(0, DisplayColors.ReportedBits(0, "srgb", false, wide));
-        Assert.Equal(8, DisplayColors.ReportedBits(8, null, false, wide));
         Assert.Equal("XRGB2101010", DisplayColors.Format(10));
         Assert.Equal("XRGB8888", DisplayColors.Format(8));
         Assert.Equal("", DisplayColors.Format(0));
@@ -128,7 +124,8 @@ public class DisplayColorTests
         Assert.Equal(3, shown.X);
         Assert.Equal(4, shown.Y);
         Assert.Equal("wide", shown.ColorPreset);
-        Assert.Equal(10, shown.BitsPerChannel);
+        // The depth is the one Windows reports, 8 here, which turning wide color on does not always raise.
+        Assert.Equal(8, shown.BitsPerChannel);
         Assert.Equal(1.2, shown.SdrBrightness);
         Assert.Equal(0.98, shown.SdrSaturation);
         Assert.Equal(0.4, shown.SdrMinLuminance);
@@ -142,7 +139,7 @@ public class DisplayColorTests
         using var monitors = JsonDocument.Parse(core.Execute("j/monitors").Text);
         var json = Assert.Single(monitors.RootElement.EnumerateArray(), monitor => monitor.GetProperty("name").GetString() == @"\\.\DISPLAY1");
         Assert.Equal("wide", json.GetProperty("colorManagementPreset").GetString());
-        Assert.Equal("XRGB2101010", json.GetProperty("currentFormat").GetString());
+        Assert.Equal("XRGB8888", json.GetProperty("currentFormat").GetString());
         Assert.Equal(1.2, json.GetProperty("sdrBrightness").GetDouble());
         Assert.True(json.GetProperty("hardwareDetails").GetProperty("hdr").GetBoolean());
         Assert.True(json.GetProperty("hardwareDetails").GetProperty("bt2020").GetBoolean());

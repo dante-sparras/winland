@@ -141,15 +141,13 @@ public static class DisplayColors
             return new DisplayColorGoal(false, true, null);
         }
 
-        // auto, or no preset. Only 10-bit asks for a switch, and wide color keeps the picture out of HDR.
+        // auto, or no preset. Only 10-bit asks for a switch: wide color, which composes the desktop above 8 bits
+        // without changing the picture. HDR would change the whole picture, which a bit depth does not ask for.
         if (!request.TenBit)
             return new DisplayColorGoal(null, null, null);
 
         if (display.Split && support.WideSupported)
             return new DisplayColorGoal(null, true, null);
-
-        if (support.HdrSupported)
-            return new DisplayColorGoal(true, null, null);
 
         return new DisplayColorGoal(null, null, "10-bit color");
     }
@@ -167,24 +165,6 @@ public static class DisplayColors
             return $"The display {device} cannot show {missing}.";
 
         return $"The display {device} cannot show {missing}, which cm {request.Preset} asks for.";
-    }
-
-    /// <summary>
-    /// The bit depth the monitors reply should name. <c>srgb</c> stays at 8 bits when a depth is known: Windows only
-    /// raises the depth by turning HDR or wide color on, which <c>srgb</c> turns off. An unknown depth stays unknown.
-    /// </summary>
-    public static int ReportedBits(int bits, string? preset, bool tenBit, DisplayColorSupport support)
-    {
-        var name = preset?.ToLowerInvariant() ?? "";
-        if (name == StandardPreset)
-            return bits > 0 ? 8 : 0;
-
-        var hdrPreset = name is "hdr" or "hdredid";
-        var widePreset = name is "wide" or "edid" or "dcip3" or "dp3" or "adobe";
-        var high = (hdrPreset && support.HdrSupported)
-            || (widePreset && support.WideSupported)
-            || (tenBit && (support.HdrSupported || support.WideSupported));
-        return high ? Math.Max(bits, 10) : bits;
     }
 
     /// <summary>The monitors reply's <c>currentFormat</c> for a bit depth. Empty when the depth is not known.</summary>

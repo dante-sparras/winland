@@ -147,7 +147,7 @@ Behavior the Notes describe, which Windows can do: swallowing a parent in a Grou
 
 ## Notes
 
-`bitdepth` turns advanced color, which is what raises a display above 8 bits per channel. Windows has no switch for the bits themselves, so `bitdepth, 10` with `cm srgb` cannot be 10-bit: `srgb` turns HDR and wide color off. `sdrbrightness`, `sdrsaturation`, `sdr_min_luminance` and `sdr_max_luminance` are reported and do not change the picture. The SDR white level Windows publishes cannot be set, and Winland does not tonemap. `min_luminance`, `max_luminance` and `max_avg_luminance` replace the mastering luminance Winland stores for the display. Windows has no call that sets it, and the monitors reply does not carry those three.
+`bitdepth, 10` turns wide color on, which composes the desktop above 8 bits. Windows has no switch for the bits of the link itself, so the output can stay at 8 bits, as the driver chooses, and a display without a wide color switch gets nothing. `bitdepth, 10` with `cm srgb` cannot be 10-bit: `srgb` turns HDR and wide color off. `sdrbrightness`, `sdrsaturation`, `sdr_min_luminance` and `sdr_max_luminance` are reported and do not change the picture. The SDR white level Windows publishes cannot be set, and Winland does not tonemap. `min_luminance`, `max_luminance` and `max_avg_luminance` replace the mastering luminance Winland stores for the display. Windows has no call that sets it, and the monitors reply does not carry those three.
 
 An `animation:NAME` row is a node of the animation tree. An `animation` line that names it warns with that reason and is skipped. The other nodes are honored; see [behavior.md](behavior.md#animations). These parts of the honored nodes are Gaps:
 

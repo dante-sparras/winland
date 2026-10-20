@@ -136,7 +136,7 @@ public class DisplayColorSessionTests
     }
 
     [Fact]
-    public void BeforeTheSwitchesSplitTenBitTurnsHdr()
+    public void BeforeTheSwitchesSplitTenBitTurnsNothing()
     {
         var colors = new FakeColor();
         colors.Readings[Device] = new DisplayColorReading(true, false, false, false, true, false, 8);
@@ -144,8 +144,9 @@ public class DisplayColorSessionTests
 
         session.Apply([new DisplayColorRequest(Device, "auto", TenBit: true)]);
 
-        Assert.Equal([new DisplayColorChange(true, null)], colors.Sets);
-        Assert.Equal(new DisplayColorOriginal(Device, false, false, false), Assert.Single(session.Originals));
+        // Without a wide color switch, 10-bit does not fall back to HDR, which would change the whole picture.
+        Assert.Empty(colors.Sets);
+        Assert.Empty(session.Originals);
     }
 
     [Fact]
