@@ -163,6 +163,35 @@ public class AnimationTests
     }
 
     [Fact]
+    public void AClientGoingIntoFullscreenMovesFromItsTileToTheMonitor()
+    {
+        var core = Load("");
+        Appear(core, 1);
+        Appear(core, 2);
+
+        var into = core.Handle(new Dispatch("fullscreen", "0"));
+        var grown = Assert.Single(into.Motions, motion => motion.Window == new WindowId(2));
+        Assert.Equal(Right, grown.From);
+        Assert.Equal(Area, grown.To);
+        Assert.Equal(Default, grown.Move);
+    }
+
+    [Fact]
+    public void AClientLeavingFullscreenMovesBackToItsTile()
+    {
+        var core = Load("");
+        Appear(core, 1);
+        Appear(core, 2);
+        core.Handle(new Dispatch("fullscreen", "0"));
+
+        var back = core.Handle(new Dispatch("fullscreen", "0"));
+
+        var shrunk = Assert.Single(back.Motions, motion => motion.Window == new WindowId(2));
+        Assert.Equal(Area, shrunk.From);
+        Assert.Equal(Right, shrunk.To);
+    }
+
+    [Fact]
     public void ASwitchBackSlidesInFromTheLeftAndKeepsTheLayoutRectangles()
     {
         var core = Load("""
