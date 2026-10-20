@@ -127,6 +127,7 @@ public sealed partial class Core
                 _extraEvents = null;
                 _noted = null;
                 _modalRules = null;
+                _activated = null;
             }
         }
     }
@@ -138,9 +139,20 @@ public sealed partial class Core
         lock (_gate)
         {
             var before = Capture();
-            var outcome = Ordered(Decorate(WithEvents(Execute(name, arguments, allowsElevation), before, input: null), before.State));
-            Emit(outcome);
-            return outcome;
+            try
+            {
+                var outcome = Ordered(Decorate(WithEvents(Execute(name, arguments, allowsElevation), before, input: null), before.State));
+                Emit(outcome);
+                return outcome;
+            }
+            finally
+            {
+                _configEvents = null;
+                _extraEvents = null;
+                _noted = null;
+                _modalRules = null;
+                _activated = null;
+            }
         }
     }
 
@@ -209,6 +221,7 @@ public sealed partial class Core
                 _extraEvents = null;
                 _noted = null;
                 _modalRules = null;
+                _activated = null;
             }
         }
     }

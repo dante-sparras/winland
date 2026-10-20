@@ -501,7 +501,7 @@ public class EventTests
     }
 
     [Fact]
-    public void FocusingAWorkspaceOnAnotherMonitorEmitsTheMonitorThenTheDesk()
+    public void FocusingAWorkspaceOnAnotherMonitorEmitsTheMonitor()
     {
         var core = new Core();
         var left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, Area);
@@ -522,8 +522,6 @@ public class EventTests
             [
                 @"focusedmon>>\\.\DISPLAY2,2",
                 @"focusedmonv2>>\\.\DISPLAY2,2",
-                "workspace>>2",
-                "workspacev2>>2,2",
                 "activewindow>>right,two",
                 "activewindowv2>>2",
             ],
@@ -552,8 +550,6 @@ public class EventTests
             [
                 @"focusedmon>>\\.\DISPLAY2,beta",
                 @"focusedmonv2>>\\.\DISPLAY2,-1",
-                "workspace>>beta",
-                "workspacev2>>-1,beta",
                 "activewindow>>right,two",
                 "activewindowv2>>2",
             ],

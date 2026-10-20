@@ -330,6 +330,10 @@ public sealed partial class Core
 
         WindowId? focus = null;
         var focused = left.Focused ? left : right.Focused ? right : null;
+        // A swap reports only the Workspace the focused Monitor shows afterwards.
+        if (focused?.Active is WorkspaceId swapped)
+            NoteWorkspaceActive(swapped);
+
         if (focused is LiveMonitor screen && screen.Active is WorkspaceId active && FindWorkspace(active) is LiveWorkspace shown)
         {
             var next = Accept(shown.Remembered());

@@ -17,12 +17,11 @@ public class MonitorDispatchTests
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
         Assert.Equal(new WorkspaceId("1"), Client(outcome, 1).Workspace);
         Assert.Equal(new WorkspaceId("2"), Client(outcome, 2).Workspace);
+        // The Monitor already shows this Workspace, so the focus change is not a workspace event.
         Assert.Equal(
             [
                 @"focusedmon>>\\.\DISPLAY2,2",
                 @"focusedmonv2>>\\.\DISPLAY2,2",
-                "workspace>>2",
-                "workspacev2>>2,2",
                 "activewindow>>,",
                 "activewindowv2>>2",
             ],
@@ -64,8 +63,6 @@ public class MonitorDispatchTests
                 "movewindowv2>>1,2,2",
                 @"focusedmon>>\\.\DISPLAY2,2",
                 @"focusedmonv2>>\\.\DISPLAY2,2",
-                "workspace>>2",
-                "workspacev2>>2,2",
             ],
             Lines(outcome));
     }
@@ -159,8 +156,6 @@ public class MonitorDispatchTests
             [
                 @"focusedmon>>\\.\DISPLAY2,2",
                 @"focusedmonv2>>\\.\DISPLAY2,2",
-                "workspace>>2",
-                "workspacev2>>2,2",
                 "activewindow>>,",
                 "activewindowv2>>2",
             ],
@@ -320,6 +315,31 @@ public class MonitorDispatchTests
         Assert.Null(same.Error);
         Assert.Equal(new WorkspaceId("2"), same.State.ActiveWorkspace);
         Assert.Empty(same.Events);
+    }
+
+    [Fact]
+    public void SwapActiveWorkspacesOfTwoUnfocusedMonitorsReportsNoWorkspace()
+    {
+        var core = new Core();
+        var left = Display(@"\\.\DISPLAY1", "Dell", new Rectangle(0, 0, 800, 600));
+        var middle = Display(@"\\.\DISPLAY2", "Samsung", new Rectangle(800, 0, 800, 600));
+        var right = Display(@"\\.\DISPLAY3", "LG", new Rectangle(1600, 0, 800, 600));
+        core.Handle(new MonitorsChanged([left, middle, right]));
+
+        var outcome = core.Handle(new Dispatch("swapactiveworkspaces", @"\\.\DISPLAY2 \\.\DISPLAY3"));
+
+        Assert.Equal(new MonitorId(0), outcome.State.ActiveMonitor);
+        Assert.Equal(new WorkspaceId("1"), outcome.State.ActiveWorkspace);
+        Assert.Equal(new WorkspaceId("3"), Assert.Single(outcome.State.Screens, screen => screen.Monitor.Name == middle.Name).ActiveWorkspace);
+        Assert.Equal(new WorkspaceId("2"), Assert.Single(outcome.State.Screens, screen => screen.Monitor.Name == right.Name).ActiveWorkspace);
+        Assert.Equal(
+            [
+                @"moveworkspace>>2,\\.\DISPLAY3",
+                @"moveworkspacev2>>2,2,\\.\DISPLAY3",
+                @"moveworkspace>>3,\\.\DISPLAY2",
+                @"moveworkspacev2>>3,3,\\.\DISPLAY2",
+            ],
+            Lines(outcome));
     }
 
     [Fact]

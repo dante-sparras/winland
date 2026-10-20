@@ -9,6 +9,14 @@ public sealed partial class Core
     // Workspaces changeworkspaceid gave a new id during this input, oldest first.
     private List<(WorkspaceId From, WorkspaceId To)>? _readdressed;
 
+    // Workspaces reported as active for this input, oldest first. A report is a Monitor's shown Workspace
+    // changing while the focus may follow, and the Workspace a swap leaves on the focused Monitor. Moving the
+    // focus onto a Monitor that already shows its Workspace is not a report, and neither is a change on a
+    // Monitor that is not focused, nor a Monitor coming or going.
+    private List<WorkspaceId>? _activated;
+
+    private void NoteWorkspaceActive(WorkspaceId workspace) => (_activated ??= []).Add(workspace);
+
     private Outcome WithEvents(Outcome outcome, Captured before, Input? input)
     {
         // A Workspace that only changed its id is the same Workspace, so it is compared under its new id and emits
@@ -21,7 +29,14 @@ public sealed partial class Core
         }
 
         outcome = FinishCursor(before, outcome, input);
-        var events = Diff(before.State, outcome.State, before.Active, ActiveWindow());
+        List<WorkspaceId>? activated = null;
+        if (_activated is { Count: > 0 })
+        {
+            activated = _activated;
+            _activated = null;
+        }
+
+        var events = Diff(before.State, outcome.State, before.Active, ActiveWindow(), activated);
         if (_configEvents is not null)
         {
             events.AddRange(_configEvents);
@@ -68,7 +83,7 @@ public sealed partial class Core
         };
     }
 
-    private static List<StreamEvent> Diff(State before, State after, WindowId? activeBefore, WindowId? activeAfter)
+    private static List<StreamEvent> Diff(State before, State after, WindowId? activeBefore, WindowId? activeAfter, IReadOnlyList<WorkspaceId>? activated)
     {
         var events = new List<StreamEvent>();
         AddWorkspaceEvents(events, before, after);
@@ -125,8 +140,11 @@ public sealed partial class Core
                 events.Add(new MonitorFocused(name, WorkspaceOn(after, after.ActiveMonitor)));
         }
 
-        if (after.ActiveWorkspace != before.ActiveWorkspace)
-            events.Add(new WorkspaceActivated(after.ActiveWorkspace));
+        if (activated is not null)
+        {
+            foreach (var workspace in activated)
+                events.Add(new WorkspaceActivated(workspace));
+        }
 
         if (activeAfter != activeBefore)
         {

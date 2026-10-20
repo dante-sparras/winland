@@ -184,6 +184,9 @@ public class MonitorWorkspaceTests
         Assert.Contains(gone.State.Hidden, client => client.Window == new WindowId(2));
         Assert.Equal(new WindowId(1), gone.Focus);
         Assert.Equal("0x1", Json(core.Execute("j/activewindow").Text).GetProperty("address").GetString());
+        Assert.DoesNotContain(
+            Lines(gone),
+            line => line.StartsWith("workspace>>", StringComparison.Ordinal) || line.StartsWith("workspacev2>>", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -311,8 +314,6 @@ public class MonitorWorkspaceTests
             [
                 @"focusedmon>>\\.\DISPLAY2,2",
                 @"focusedmonv2>>\\.\DISPLAY2,2",
-                "workspace>>2",
-                "workspacev2>>2,2",
                 "activewindow>>,",
                 "activewindowv2>>2",
             ],
@@ -424,8 +425,6 @@ public class MonitorWorkspaceTests
                 "movewindowv2>>1,2,2",
                 @"focusedmon>>\\.\DISPLAY2,2",
                 @"focusedmonv2>>\\.\DISPLAY2,2",
-                "workspace>>2",
-                "workspacev2>>2,2",
             ],
             Lines(outcome));
 
@@ -505,6 +504,9 @@ public class MonitorWorkspaceTests
         Assert.Contains(new WindowId(2), outcome.Hide);
         Assert.Contains(outcome.State.Hidden, client => client.Window == new WindowId(2));
         Assert.DoesNotContain(Lines(outcome), line => line.StartsWith("focusedmon", StringComparison.Ordinal) || line.StartsWith("activewindow", StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            Lines(outcome),
+            line => line.StartsWith("workspace>>", StringComparison.Ordinal) || line.StartsWith("workspacev2>>", StringComparison.Ordinal));
         Assert.Equal("1", Json(core.Execute("j/activewindow").Text).GetProperty("workspace").GetProperty("name").GetString());
     }
 
@@ -529,6 +531,48 @@ public class MonitorWorkspaceTests
         Assert.NotEqual(new WorkspaceId("2"), Assert.Single(outcome.State.Screens, screen => screen.Id == new MonitorId(1)).ActiveWorkspace);
         Assert.Equal(left.WorkArea, BoundsOf(outcome, 2));
         Assert.Contains(new WindowId(1), outcome.Hide);
+        Assert.Equal(
+            [
+                "createworkspace>>3",
+                "createworkspacev2>>3,3",
+                @"moveworkspace>>2,\\.\DISPLAY1",
+                @"moveworkspacev2>>2,2,\\.\DISPLAY1",
+                "workspace>>2",
+                "workspacev2>>2,2",
+                "activewindow>>,",
+                "activewindowv2>>2",
+            ],
+            Lines(outcome));
+    }
+
+    [Fact]
+    public void SetWorkspaceOnAnUnfocusedMonitorReportsTheWorkspaceTheFocusedMonitorShowsNext()
+    {
+        var core = new Core();
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
+        core.Handle(new Dispatch("focuswindow", "address:0x1"));
+
+        var outcome = core.Execute(@"setworkspace \\.\DISPLAY2 1").Effect;
+
+        Assert.Equal(new MonitorId(0), outcome.State.ActiveMonitor);
+        Assert.Equal(new WorkspaceId("3"), outcome.State.ActiveWorkspace);
+        Assert.Equal(new WorkspaceId("1"), Assert.Single(outcome.State.Screens, screen => screen.Id == new MonitorId(1)).ActiveWorkspace);
+        Assert.Equal(
+            [
+                "createworkspace>>3",
+                "createworkspacev2>>3,3",
+                @"moveworkspace>>1,\\.\DISPLAY2",
+                @"moveworkspacev2>>1,1,\\.\DISPLAY2",
+                "workspace>>3",
+                "workspacev2>>3,3",
+                "activewindow>>,",
+                "activewindowv2>>",
+            ],
+            Lines(outcome));
     }
 
     [Fact]
