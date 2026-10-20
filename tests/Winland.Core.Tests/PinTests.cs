@@ -210,8 +210,22 @@ public class PinTests
         Assert.True(ClientOf(reply.Effect, new WindowId(2)).Pinned);
     }
 
+    [Fact]
+    public void APinnedClientIsNotMovedButTheSpecialWorkspaceStillOpens()
+    {
+        var core = Floating();
+        core.Execute("dispatch pin");
+
+        var opened = core.Execute("dispatch movetoworkspace special:scratch");
+
+        var client = ClientOf(opened.Effect, Window);
+        Assert.True(client.Pinned);
+        Assert.Equal(new WorkspaceId("1"), client.Workspace);
+        Assert.Equal(new WorkspaceId("special:scratch"), opened.Effect.State.SpecialWorkspace);
+        Assert.Equal(Window, opened.Effect.Focus);
+    }
+
     [Theory]
-    [InlineData("movetoworkspace")]
     [InlineData("movetoworkspacesilent")]
     public void APinnedClientIsNotMovedOntoASpecialWorkspace(string dispatcher)
     {

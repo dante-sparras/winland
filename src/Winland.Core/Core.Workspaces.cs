@@ -29,9 +29,20 @@ public sealed partial class Core
 
         var target = Alias(resolved);
 
-        // A pinned Client is never moved onto a special workspace, as in the pinned release.
+        // A pinned Client is never moved onto a special workspace, as in the pinned release, which still opens that special
+        // workspace on a move that is not silent and keeps the Client focused.
         var source = WorkspaceContaining(id);
-        if (source is null || source.Id == target || (target.IsSpecial && _pinned.Contains(id)))
+        if (source is not null && target.IsSpecial && _pinned.Contains(id))
+        {
+            if (silent)
+                return View([], consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
+
+            var opened = OpenSpecial(target, null, dispatcher, allowsElevation);
+            TakeFocus(source, id);
+            return opened with { Focus = id, Consumed = consumed };
+        }
+
+        if (source is null || source.Id == target)
             return View([], consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
 
         var sourceCovered = source.Covered();
