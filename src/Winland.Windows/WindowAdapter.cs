@@ -319,6 +319,13 @@ public sealed partial class WindowAdapter : IDisposable
         uint idEventThread,
         uint dwmsEventTime)
     {
+        // A reorder names the parent whose children moved, so it is not a window event. Every tab bar is stacked again.
+        if (@event == PInvoke.EVENT_OBJECT_REORDER)
+        {
+            GroupBarHost.Restack();
+            return;
+        }
+
         if (idObject != 0 || idChild != 0 || hwnd.IsNull)
             return;
 
@@ -350,6 +357,10 @@ public sealed partial class WindowAdapter : IDisposable
                 GlowHost.Follow(window);
                 XrayHost.Follow(window);
             }
+
+            // A Group's shown member raised or shown takes its tab bar up with it.
+            if (@event is PInvoke.EVENT_SYSTEM_FOREGROUND or PInvoke.EVENT_OBJECT_SHOW)
+                GroupBarHost.Follow(window);
 
             switch (@event)
             {

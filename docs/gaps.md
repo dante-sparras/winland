@@ -215,8 +215,6 @@ Mouse drag has these Gaps. Each is a gap with no open issue:
 
 - A Client dragged onto another Monitor joins the Workspace that Monitor shows when it is dropped, not as soon as its middle crosses, so `movewindow` is told once, at the drop, and not each time the middle crosses a Monitor during the drag.
 
-The bar is a separate window. It is put just above the shown member in the z-order each time the core reports a change, not each time another window is raised.
-
 ## Lua config
 
 A `winland.lua` keeps running while Winland runs (ADR 0013), but these are gaps: `hl.notification`, and the methods of the rule objects `hl.window_rule`, `hl.layer_rule` and `hl.workspace_rule` return, which warn once. The `hl` calls not built yet warn once and do nothing: `hl.load` and `hl.is_key_down`. A custom layout from `hl.layout.register` runs on the Lua thread after the change it answers, where the pinned release runs it inside that change (ADR 0013), so for a moment after a window opens every window takes a cell of an even grid, and after one closes or moves the others keep their boxes, until its boxes arrive. For the same reason a `layoutmsg` its `layout_msg` rejects, with false or a message, replies `ok` and the rejection goes to the log, as an error in its callbacks does, where the pinned release replies with it and shows the first error in the error bar. `pseudo` does not change a custom layout's tiles. `require` looks a module name up in the config's folder only, where the pinned release goes on to Lua's own search path, because Winland's Lua reads no file the config's reader does not (ADR 0013).
