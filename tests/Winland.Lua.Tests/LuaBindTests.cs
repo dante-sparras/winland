@@ -233,6 +233,7 @@ public class LuaBindTests
     [InlineData("hl.dsp.window.cycle_next()", "bind = SUPER, X, cyclenext")]
     [InlineData("hl.dsp.window.cycle_next({ next = false, tiled = true })", "bind = SUPER, X, cyclenext, prev tiled")]
     [InlineData("hl.dsp.window.tag({ tag = '+work' })", "bind = SUPER, X, tagwindow, +work")]
+    [InlineData("hl.dsp.window.clear_tags({ window = 'class:a' })", "bind = SUPER, X, cleartags, class:a")]
     [InlineData("hl.dsp.window.toggle_swallow()", "bind = SUPER, X, toggleswallow")]
     [InlineData("hl.dsp.window.pin()", "bind = SUPER, X, pin")]
     [InlineData("hl.dsp.window.pin({ action = 'on', window = 'class:a' })", "bind = SUPER, X, pin, enable class:a")]
@@ -274,7 +275,6 @@ public class LuaBindTests
 
     [Theory]
     [InlineData("hl.dsp.window.signal({ signal = 9 })", "hl.dsp.window.signal is not honored yet")]
-    [InlineData("hl.dsp.window.clear_tags()", "hl.dsp.window.clear_tags is not honored yet")]
     [InlineData("hl.dsp.global('app:action')", "hl.dsp.global is not honored yet")]
     [InlineData("hl.dsp.force_idle(5)", "hl.dsp.force_idle is not honored yet")]
     [InlineData("hl.dsp.release_input_capture()", "hl.dsp.release_input_capture is not honored yet")]

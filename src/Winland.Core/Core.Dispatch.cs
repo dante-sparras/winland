@@ -170,6 +170,9 @@ public sealed partial class Core
         if (Is(name, "tagwindow"))
             return TagWindow(arguments, allowsElevation);
 
+        if (Is(name, "cleartags"))
+            return ClearTags(arguments, allowsElevation);
+
         if (Is(name, "cyclenext"))
             return CycleNext(arguments, allowsElevation);
 

@@ -38,6 +38,7 @@ public static class Dispatchers
             "setprop",
             "cyclenext",
             "tagwindow",
+            "cleartags",
             "togglespecialworkspace",
             "layoutmsg",
             "layout",
