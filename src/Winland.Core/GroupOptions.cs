@@ -104,6 +104,7 @@ public sealed record GroupOptions
         ["group:groupbar:col.inactive"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { Inactive = c[0], InactiveGradient = new BarGradient(c) }) : o,
         ["group:groupbar:col.locked_active"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { LockedActive = c[0], LockedActiveGradient = new BarGradient(c) }) : o,
         ["group:groupbar:col.locked_inactive"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { LockedInactive = c[0], LockedInactiveGradient = new BarGradient(c) }) : o,
+        ["group:groupbar:blur"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { Blur = b }) : o,
         ["group:groupbar:stacked"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { Stacked = b }) : o,
         ["group:groupbar:gradients"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { Gradients = b }) : o,
         ["group:groupbar:rounding"] = (o, v) => TryInt(v, 0, 40, out var i) ? o.WithBar(o.Bar with { Rounding = i }) : o,
@@ -247,6 +248,9 @@ public sealed record GroupBarStyle
     public BarGradient? LockedActiveGradient { get; init; }
 
     public BarGradient? LockedInactiveGradient { get; init; }
+
+    /// <summary><c>blur</c>: the bar shows a blurred backdrop, behind the colors it draws.</summary>
+    public bool Blur { get; init; }
 
     /// <summary><c>stacked</c>: the tabs are rows, one above the other, instead of side by side.</summary>
     public bool Stacked { get; init; }
