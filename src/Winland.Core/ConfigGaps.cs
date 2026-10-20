@@ -35,7 +35,7 @@ public static class ConfigGaps
         new("decoration:blur:popups_ignorealpha", "Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned."),
         new("decoration:blur:special", "Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned."),
         new("decoration:blur:variant", "Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned."),
-        new("device", "Per-device input is not honored, except device:tags, which a bind's device list matches. Honored input settings apply to the whole system."),
+        new("device", "Per-device input is not honored, except device:tags, which a non-consuming bind's device list matches. Honored input settings apply to the whole system."),
         new("dont_inhibit", "Applications cannot inhibit binds, so this flag has nothing to bypass."),
         new("drops", "Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned."),
         new("ecosystem", "Ecosystem tools have no Windows meaning."),

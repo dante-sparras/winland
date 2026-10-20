@@ -5,68 +5,241 @@ namespace Winland.Tests;
 public class DeviceBindTests
 {
     [Fact]
-    public void AnInclusiveBindMatchesOnlyTheNamedDevice()
+    public void AnInclusiveBindMatchesOnlyTheNamedDeviceAndDoesNotConsume()
     {
-        var core = Load("bindk = , Q, +board, killactive");
+        var core = Load("bindnk = , Q, +board, killactive");
 
         var hit = Press(core, "Q", "board");
-        Assert.True(hit.Consumed);
+        Assert.False(hit.Consumed);
         Assert.Equal("killactive", hit.Dispatcher);
 
-        Assert.False(Press(core, "Q", "other").Consumed);
-        Assert.False(Press(core, "Q").Consumed);
-        Assert.False(Press(core, "Q", "Board").Consumed);
+        Assert.Null(Press(core, "Q", "other").Dispatcher);
+        Assert.Null(Press(core, "Q").Dispatcher);
+        Assert.Null(Press(core, "Q", "Board").Dispatcher);
     }
 
     [Fact]
-    public void AnExclusiveBindMatchesEveryDeviceButTheNamedOne()
+    public void AnExclusiveBindMatchesEveryNamedDeviceButTheNamedOne()
     {
-        var core = Load("bindk = , Q, -board, killactive");
+        var core = Load("bindnk = , Q, -board, killactive");
 
-        Assert.False(Press(core, "Q", "board").Consumed);
-        Assert.Equal("killactive", Press(core, "Q", "other").Dispatcher);
-        Assert.Equal("killactive", Press(core, "Q").Dispatcher);
+        Assert.Null(Press(core, "Q", "board").Dispatcher);
+        Assert.Null(Press(core, "Q").Dispatcher);
+        var other = Press(core, "Q", "other");
+        Assert.False(other.Consumed);
+        Assert.Equal("killactive", other.Dispatcher);
     }
 
     [Fact]
-    public void AnEmptyDeviceListMatchesNothingWhenInclusiveAndEverythingWhenExclusive()
+    public void AnEmptyDeviceListMatchesNothingWhenInclusiveAndOnlyANamedDeviceWhenExclusive()
     {
-        var inclusive = Load("bindk = , Q, +, killactive");
-        Assert.False(Press(inclusive, "Q", "board").Consumed);
-        Assert.False(Press(inclusive, "Q").Consumed);
+        var inclusive = Load("bindnk = , Q, +, killactive");
+        Assert.Null(Press(inclusive, "Q", "board").Dispatcher);
+        Assert.Null(Press(inclusive, "Q").Dispatcher);
 
-        var exclusive = Load("bindk = , Q, -, killactive");
-        Assert.Equal("killactive", Press(exclusive, "Q").Dispatcher);
+        var exclusive = Load("bindnk = , Q, -, killactive");
+        Assert.Null(Press(exclusive, "Q").Dispatcher);
         Assert.Equal("killactive", Press(exclusive, "Q", "board").Dispatcher);
     }
 
     [Fact]
-    public void ATagMatchesAsTheDeviceNameDoes()
+    public void ATagMatchesAsTheDeviceNameDoesAndAnEmptyTagListDoesNotFallThrough()
     {
-        var core = Load("device[board]:tags = laptop, desk\nbindk = , Q, +laptop, killactive\n");
+        var core = Load("device[board]:tags = laptop, desk\nbindnk = , Q, +laptop, killactive\n");
 
         Assert.Equal("killactive", Press(core, "Q", "board").Dispatcher);
-        Assert.False(Press(core, "Q", "board", []).Consumed);
+        Assert.Null(Press(core, "Q", "board", []).Dispatcher);
         Assert.Equal("killactive", Press(core, "Q", "elsewhere", ["laptop"]).Dispatcher);
-        Assert.False(Press(core, "Q", "Board").Consumed);
+        Assert.Null(Press(core, "Q", "Board").Dispatcher);
     }
 
     [Fact]
     public void AReleaseUsesTheDeviceTheKeyWentDownOn()
     {
-        var core = Load("bindrk = , Q, +board, killactive");
+        var core = Load("bindrnk = , Q, +board, killactive");
         var session = new BindSession();
 
         var press = Decide(core, session, new KeyPressed("Q") { Device = "board" });
-        Assert.True(press.Consumed);
+        Assert.False(press.Consumed);
         Assert.Null(press.Dispatcher);
 
         var release = Decide(core, session, new KeyReleased("Q"));
+        Assert.False(release.Consumed);
         Assert.Equal("killactive", release.Dispatcher);
 
         var other = new BindSession();
         Decide(core, other, new KeyPressed("Q") { Device = "other" });
         Assert.Null(Decide(core, other, new KeyReleased("Q")).Dispatcher);
+    }
+
+    [Fact]
+    public void APacketAfterThePressFiresTheDeviceBind()
+    {
+        var core = Load("bindnk = , Q, +board, killactive");
+        var session = new BindSession();
+
+        var press = Decide(core, session, new KeyPressed("Q"));
+        Assert.False(press.Consumed);
+        Assert.Null(press.Dispatcher);
+
+        var packet = Device(core, session, "Q", "board");
+        Assert.False(packet.Consumed);
+        Assert.Equal("killactive", packet.Dispatcher);
+        Assert.Null(Device(core, session, "Q", "other").Dispatcher);
+        Assert.Null(Device(core, session, "Q", null).Dispatcher);
+    }
+
+    [Fact]
+    public void AnEmptyDeviceDoesNotUseTheKeyboardThePressRemembered()
+    {
+        var core = Load("bindnk = , Q, +board, killactive\nbindrnk = , Q, +board, exit\n");
+        var session = new BindSession();
+
+        Assert.Equal("killactive", Decide(core, session, new KeyPressed("Q") { Device = "board" }).Dispatcher);
+        Assert.Null(Device(core, session, "Q", null, remember: false).Dispatcher);
+        Assert.Equal("exit", Decide(core, session, new KeyReleased("Q")).Dispatcher);
+    }
+
+    [Fact]
+    public void ARepeatFiresOnlyARepeatingDeviceBind()
+    {
+        var core = Load("bindenk = , Q, +board, killactive\nbindnk = , W, +board, exit\n");
+        var session = new BindSession();
+        Decide(core, session, new KeyPressed("Q"));
+        Decide(core, session, new KeyPressed("W"));
+
+        Assert.Equal("killactive", Device(core, session, "Q", "board", repeat: true).Dispatcher);
+        Assert.Null(Device(core, session, "W", "board", repeat: true).Dispatcher);
+    }
+
+    [Fact]
+    public void ThePressMaskIsTheOneFromThePress()
+    {
+        var core = Load("bindnk = SUPER, Q, +board, killactive");
+        var session = new BindSession();
+        Decide(core, session, new KeyPressed("Super_L"));
+        Decide(core, session, new KeyPressed("Q"));
+        Decide(core, session, new KeyReleased("Super_L"));
+
+        Assert.Null(Device(core, session, "Q", "board").Dispatcher);
+        Assert.Equal("killactive", Device(core, session, "Q", "board", pressedUnder: Modifier.Super).Dispatcher);
+    }
+
+    [Fact]
+    public void AFastTapChordUsesTheKeysHeldAtThePress()
+    {
+        var core = Load("bindsnk = , A&B, +board, killactive");
+        var session = new BindSession();
+        Decide(core, session, new KeyPressed("A"));
+        Decide(core, session, new KeyPressed("B"));
+        Decide(core, session, new KeyReleased("B"));
+        Decide(core, session, new KeyReleased("A"));
+
+        var fired = Device(core, session, "B", "board", remember: false, order: [("A", 0), ("B", 0)]);
+        Assert.Equal("killactive", fired.Dispatcher);
+        Assert.False(fired.Consumed);
+    }
+
+    [Fact]
+    public void AFastTapReleaseChordIsArmedFromThePacket()
+    {
+        var core = Load("bindrsnk = , A&B, +board, killactive");
+        var session = new BindSession();
+        Decide(core, session, new KeyPressed("A"));
+        Decide(core, session, new KeyPressed("B"));
+        Decide(core, session, new KeyReleased("B"));
+        Decide(core, session, new KeyReleased("A"));
+        (string Key, int ScanCode)[] order = [("A", 0), ("B", 0)];
+
+        Assert.Null(Device(core, session, "B", "board", remember: false, order: order).Dispatcher);
+        var release = Device(core, session, "B", "board", up: true, remember: false, order: order);
+        Assert.Equal("killactive", release.Dispatcher);
+        Assert.True(release.DisarmLongPress);
+    }
+
+    [Fact]
+    public void ADeviceBindRunsInTheSubmapItWasPressedOn()
+    {
+        var core = Load("bindnk = , Q, +board, killactive\nsubmap = resize\nbindnk = , W, +board, exit\n");
+        var session = new BindSession();
+        Decide(core, session, new KeyPressed("W"));
+
+        Assert.Null(Device(core, session, "W", "board").Dispatcher);
+        Assert.Equal("exit", Device(core, session, "W", "board", submap: "resize").Dispatcher);
+    }
+
+    [Fact]
+    public void ACodeBindMatchesTheScanCode()
+    {
+        var core = Load("bindnk = , code:24, +board, killactive");
+        var session = new BindSession();
+
+        Assert.Equal("killactive", Device(core, session, "other", "board", scanCode: 24).Dispatcher);
+        Assert.Null(Device(core, session, "other", "board", scanCode: 25).Dispatcher);
+        Assert.Null(Device(core, session, "other", "board", scanCode: 0).Dispatcher);
+    }
+
+    [Fact]
+    public void AnInhibitedSessionRunsOnlyALockedDeviceBind()
+    {
+        var open = Load("bindnk = , Q, +board, killactive");
+        var locked = Load("bindlnk = , Q, +board, killactive");
+        var session = new BindSession();
+        session.Inhibit(true);
+        Decide(open, session, new KeyPressed("Q"));
+
+        Assert.Null(Device(open, session, "Q", "board").Dispatcher);
+        Assert.Equal("killactive", Device(locked, session, "Q", "board").Dispatcher);
+    }
+
+    [Fact]
+    public void ALongPressArmsWhenThePacketNamesTheKeyboard()
+    {
+        var core = Load("bindonk = , Q, +board, killactive");
+        var session = new BindSession();
+        var press = Decide(core, session, new KeyPressed("Q"));
+        Assert.Null(press.ArmLongPressMs);
+        Assert.Null(session.LongPressKey);
+
+        var packet = Device(core, session, "Q", "board");
+        Assert.Equal(core.Binds.LongPressDelay, packet.ArmLongPressMs);
+        Assert.False(packet.DisarmLongPress);
+        Assert.Equal("Q", session.LongPressKey);
+
+        Assert.Equal("killactive", Decide(core, session, new LongPressElapsed()).Dispatcher);
+    }
+
+    [Fact]
+    public void APacketDoesNotRearmALongPressTheHookAlreadyArmed()
+    {
+        var core = Load("bindo = , Q, exit\nbindonk = , Q, +board, killactive\n");
+        var session = new BindSession();
+        var press = Decide(core, session, new KeyPressed("Q"));
+        Assert.Equal(core.Binds.LongPressDelay, press.ArmLongPressMs);
+
+        var packet = Device(core, session, "Q", "board");
+        Assert.Null(packet.ArmLongPressMs);
+        Assert.Equal("Q", session.LongPressKey);
+
+        var elapsed = Decide(core, session, new LongPressElapsed());
+        Assert.Equal(["exit", "killactive"], elapsed.Dispatches.Select(dispatch => dispatch.Dispatcher));
+    }
+
+    [Fact]
+    public void AHeldKeyShadowsTheDeviceReleaseBind()
+    {
+        var core = Load("bindrnk = ALT, Alt_L, +board, killactive\nbind = ALT, P, exit\n");
+        var alone = new BindSession();
+        Decide(core, alone, new KeyPressed("Alt_L"));
+        Device(core, alone, "Alt_L", "board");
+        Assert.Equal("killactive", Decide(core, alone, new KeyReleased("Alt_L")).Dispatcher);
+
+        var session = new BindSession();
+        Decide(core, session, new KeyPressed("Alt_L"));
+        Device(core, session, "Alt_L", "board");
+        Assert.Equal("exit", Decide(core, session, new KeyPressed("P")).Dispatcher);
+        Decide(core, session, new KeyReleased("P"));
+        Assert.Null(Decide(core, session, new KeyReleased("Alt_L")).Dispatcher);
     }
 
     [Fact]
@@ -129,13 +302,41 @@ public class DeviceBindTests
     }
 
     [Fact]
-    public void AnInclusiveBindMissesAPointerAndAnExclusiveOneMatchesIt()
+    public void AConsumingDeviceBindWarnsOnceAndIsNotRegistered()
     {
-        Assert.False(PressButton(Load("bindk = , mouse:272, +board, killactive")).Consumed);
+        var document = ConfigParser.Parse(
+            "bindk = , Q, +board, killactive\n" +
+            "bindk = , W, +other, exit\n" +
+            "bindnk = , E, +board, killactive\n");
 
-        var exclusive = PressButton(Load("bindk = , mouse:272, -board, killactive"));
-        Assert.Equal("killactive", exclusive.Dispatcher);
-        Assert.True(exclusive.Consumed);
+        Assert.Equal([new ConfigWarning(1, ConfigParser.ConsumingDeviceBind)], document.Warnings);
+        var bind = Assert.Single(document.Binds.OfType<Bind>());
+        Assert.Equal("E", bind.Key);
+        Assert.True(bind.Flags.HasFlag(BindFlag.NonConsuming));
+
+        var core = new Core();
+        core.Handle(new ConfigLoaded(document));
+        Assert.True(core.Binds.HasDeviceBind);
+        Assert.Equal("killactive", Press(core, "E", "board").Dispatcher);
+        Assert.Null(Press(core, "Q", "board").Dispatcher);
+        Assert.Null(Press(core, "W", "other").Dispatcher);
+    }
+
+    [Fact]
+    public void AMouseDeviceBindIsRegisteredOnlyWhenItDoesNotConsumeAndNeverRuns()
+    {
+        var document = ConfigParser.Parse("bindk = , mouse:272, +board, killactive\nbindnk = , mouse:272, +board, exit\n");
+        Assert.Equal([new ConfigWarning(1, ConfigParser.ConsumingDeviceBind)], document.Warnings);
+        var bind = Assert.Single(document.Binds.OfType<Bind>());
+        Assert.Equal("mouse:272", bind.Key);
+        Assert.Equal(["board"], bind.Devices);
+
+        var core = new Core();
+        core.Handle(new ConfigLoaded(document));
+        Assert.True(core.Binds.HasDeviceBind);
+        var press = Decide(core, new BindSession(), new PointerButtonPressed("mouse:272") { Position = new Point(1, 1) });
+        Assert.False(press.Consumed);
+        Assert.Null(press.Dispatcher);
     }
 
     [Fact]
@@ -143,8 +344,9 @@ public class DeviceBindTests
     {
         var comma = LineText.Comma;
         var document = ConfigParser.Parse(
-            $"bindakd = SUPER, Q, leave, +a{comma}b\uE001hash##name, exit\n" +
+            $"bindnakd = SUPER, Q, leave, +a{comma}b\uE001hash##name, exit\n" +
             "bindk = , Q, board, killactive\n" +
+            "bindk = , W, +board, killactive\n" +
             "bindmk = , mouse:272, +pad, killactive\n" +
             "device[board]:tags = one, , two\n" +
             "device[board] {\n    tags = laptop\n}\n" +
@@ -153,117 +355,17 @@ public class DeviceBindTests
         Assert.Equal(
             [
                 new ConfigWarning(2, "Bind device is invalid."),
-                new ConfigWarning(8, "Unsupported keyword 'device:sensitivity'."),
+                new ConfigWarning(3, ConfigParser.ConsumingDeviceBind),
+                new ConfigWarning(9, "Unsupported keyword 'device:sensitivity'."),
             ],
             document.Warnings);
-        var binds = document.Binds.OfType<Bind>().ToList();
-        Assert.Equal(2, binds.Count);
-        Assert.Equal(["a,b", "hash#name"], binds[0].Devices);
-        Assert.Equal(BindFlag.AutoConsuming | BindFlag.DeviceInclusive, binds[0].Flags);
-        Assert.Equal("leave", binds[0].Description);
-        Assert.Equal(["pad"], binds[1].Devices);
-        Assert.Equal(BindFlag.Mouse | BindFlag.DeviceInclusive, binds[1].Flags);
+        var bind = Assert.Single(document.Binds.OfType<Bind>());
+        Assert.Equal(["a,b", "hash#name"], bind.Devices);
+        Assert.Equal(BindFlag.NonConsuming | BindFlag.AutoConsuming | BindFlag.DeviceInclusive, bind.Flags);
+        Assert.Equal("leave", bind.Description);
         var tag = Assert.Single(document.DeviceTags);
         Assert.Equal("board", tag.Device);
         Assert.Equal(["laptop"], tag.Tags);
-    }
-
-    [Fact]
-    public void ADeviceBindWaitsOnlyForItsKeyAndModifiers()
-    {
-        var core = Load("bindk = SUPER, Q, +board, killactive\nbind = , W, killactive\n");
-        var table = core.Binds;
-        var session = new BindSession();
-
-        Assert.True(table.HasDeviceBind);
-        Assert.False(BindMatcher.AwaitsDevice(table, session, "Q", 0, releasing: false));
-        Assert.False(BindMatcher.AwaitsDevice(table, session, "W", 0, releasing: false));
-
-        session.Held = Modifier.Super;
-        Assert.True(BindMatcher.AwaitsDevice(table, session, "Q", 0, releasing: false));
-        Assert.False(BindMatcher.AwaitsDevice(table, session, "q", 0, releasing: true));
-        Assert.False(BindMatcher.AwaitsDevice(table, session, "W", 0, releasing: false));
-    }
-
-    [Fact]
-    public void AReleaseBindWaitsOnThePressAndTheRelease()
-    {
-        var table = Load("bindrk = , Q, +board, killactive").Binds;
-        var session = new BindSession();
-
-        Assert.True(BindMatcher.AwaitsDevice(table, session, "Q", 0, releasing: false));
-        Assert.True(BindMatcher.AwaitsDevice(table, session, "Q", 0, releasing: true));
-        Assert.False(BindMatcher.AwaitsDevice(table, session, "W", 0, releasing: false));
-    }
-
-    [Fact]
-    public void NoDeviceBindDoesNotWait()
-    {
-        var table = Load("bind = , Q, killactive").Binds;
-
-        Assert.False(table.HasDeviceBind);
-        Assert.False(BindTable.Empty.HasDeviceBind);
-        Assert.False(BindMatcher.AwaitsDevice(table, new BindSession(), "Q", 0, releasing: false));
-    }
-
-    [Fact]
-    public void AMouseDeviceBindDoesNotWaitForAKey()
-    {
-        var table = Load("bindk = , mouse:272, +board, killactive").Binds;
-
-        Assert.True(table.HasDeviceBind);
-        Assert.False(BindMatcher.AwaitsDevice(table, new BindSession(), "Q", 0, releasing: false));
-        Assert.False(BindMatcher.AwaitsDevice(table, new BindSession(), "mouse:272", 0, releasing: false));
-    }
-
-    [Fact]
-    public void AChordWaitsForEitherOfItsKeys()
-    {
-        var table = Load("bindsk = , A&B, +board, killactive").Binds;
-        var session = new BindSession();
-
-        Assert.True(BindMatcher.AwaitsDevice(table, session, "A", 0, releasing: false));
-        Assert.True(BindMatcher.AwaitsDevice(table, session, "b", 0, releasing: false));
-        Assert.False(BindMatcher.AwaitsDevice(table, session, "C", 0, releasing: false));
-    }
-
-    [Fact]
-    public void ASubmapBindWaitsOnlyOnThatSubmap()
-    {
-        var table = Load("bindk = , Q, +board, killactive\nsubmap = resize\nbindk = , W, +board, killactive\n").Binds;
-        var session = new BindSession();
-
-        Assert.True(BindMatcher.AwaitsDevice(table, session, "Q", 0, releasing: false));
-        Assert.False(BindMatcher.AwaitsDevice(table, session, "W", 0, releasing: false));
-
-        session.Submap = "resize";
-        Assert.False(BindMatcher.AwaitsDevice(table, session, "Q", 0, releasing: false));
-        Assert.True(BindMatcher.AwaitsDevice(table, session, "W", 0, releasing: false));
-    }
-
-    [Fact]
-    public void AnExclusiveBindAndACodeBindWait()
-    {
-        var exclusive = Load("bindk = , Q, -board, killactive").Binds;
-        Assert.True(BindMatcher.AwaitsDevice(exclusive, new BindSession(), "Q", 0, releasing: false));
-
-        var code = Load("bindk = , code:24, +board, killactive").Binds;
-        var session = new BindSession();
-        Assert.True(BindMatcher.AwaitsDevice(code, session, "other", 24, releasing: false));
-        Assert.False(BindMatcher.AwaitsDevice(code, session, "other", 25, releasing: false));
-        Assert.False(BindMatcher.AwaitsDevice(code, session, "other", 0, releasing: false));
-    }
-
-    [Fact]
-    public void AnInhibitedSessionWaitsOnlyForALockedBind()
-    {
-        var open = Load("bindk = , Q, +board, killactive").Binds;
-        var locked = Load("bindlk = , Q, +board, killactive").Binds;
-        var session = new BindSession();
-        session.Inhibit(true);
-
-        Assert.False(BindMatcher.AwaitsDevice(open, session, "Q", 0, releasing: false));
-        Assert.True(BindMatcher.AwaitsDevice(locked, session, "Q", 0, releasing: false));
     }
 
     private static Core Load(string text)
@@ -276,8 +378,30 @@ public class DeviceBindTests
     private static BindDecision Press(Core core, string key, string? device = null, IReadOnlyList<string>? tags = null) =>
         Decide(core, new BindSession(), new KeyPressed(key) { Device = device, DeviceTags = tags });
 
-    private static BindDecision PressButton(Core core) =>
-        Decide(core, new BindSession(), new PointerButtonPressed("mouse:272") { Position = new Point(1, 1) });
-
     private static BindDecision Decide(Core core, BindSession session, Input input) => core.Decide(input, session);
+
+    private static BindDecision Device(
+        Core core,
+        BindSession session,
+        string key,
+        string? device,
+        bool up = false,
+        bool repeat = false,
+        bool remember = true,
+        int scanCode = 0,
+        Modifier? pressedUnder = null,
+        string? submap = null,
+        (string Key, int ScanCode)[]? order = null) =>
+        BindMatcher.DispatchDevice(
+            core.Binds,
+            session,
+            key,
+            scanCode,
+            up,
+            repeat,
+            device,
+            remember,
+            submap: submap,
+            pressedUnder: pressedUnder,
+            order: order);
 }

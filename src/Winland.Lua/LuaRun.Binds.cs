@@ -120,6 +120,14 @@ internal sealed partial class LuaRun
                 line.Append(", ").Append(Escape(dispatch.Arguments));
         }
 
+        // Windows names the keyboard only after the key is delivered, so a device bind that would swallow the key
+        // cannot run. The line is not emitted, and the config warns once.
+        if (deviceField is not null && !flags.ToString().Contains('n', StringComparison.Ordinal))
+        {
+            WarnOnce(ConfigParser.ConsumingDeviceBind);
+            return 0;
+        }
+
         var text = line.ToString();
         var at = _lines.Count;
         if (!EmitLine(text, "hl.bind"))

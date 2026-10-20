@@ -2,6 +2,12 @@ namespace Winland;
 
 public static partial class ConfigParser
 {
+    /// <summary>
+    /// A device bind that would consume the key. Windows names the keyboard only after the key is delivered, and
+    /// swallowing it produces no raw packet, so the bind is not registered. One warning per config.
+    /// </summary>
+    internal const string ConsumingDeviceBind = "A bind that names a device cannot consume the key. Windows names the keyboard only after the key is delivered, so the bind is not registered. Mark it non-consuming (flag n) to run it without consuming the key.";
+
     /// <param name="path">The full path of the config file <paramref name="text"/> was read from, when there is one.
     /// A <c>source</c> line that leads back to it is then skipped, and a relative source is compared against its folder.</param>
     public static ConfigDocument Parse(string text, IConfigSource? source = null, KeyLayout? layout = null, string? path = null)
@@ -42,6 +48,7 @@ public static partial class ConfigParser
         private string? _submap;
         private string? _submapReset;
         private bool _suppressWarnings;
+        private bool _warnedConsumingDevice;
 
         public ConfigDocument ParseRoot(string text, string? path)
         {

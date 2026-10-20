@@ -109,6 +109,19 @@ public static partial class ConfigParser
                 flags &= ~BindFlag.DontInhibit;
             }
 
+            // A name in the device list may be a keyboard or a device:tags tag. Either way the bind would have to
+            // swallow the key before Windows names the keyboard, which it cannot.
+            if (devices is not null && !flags.HasFlag(BindFlag.NonConsuming))
+            {
+                if (!_warnedConsumingDevice)
+                {
+                    Warn(lineNumber, ConsumingDeviceBind);
+                    _warnedConsumingDevice = true;
+                }
+
+                return;
+            }
+
             _binds.Add(new Bind(modifiers, key, dispatcher, arguments, flags, description, _submap, _submapReset, devices));
         }
 

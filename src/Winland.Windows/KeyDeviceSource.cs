@@ -135,6 +135,8 @@ internal sealed class KeyDeviceSource : IDisposable
             _requestRefresh();
     }
 
+    internal bool RefreshPending => Volatile.Read(ref _refreshPosted) != 0;
+
     private static LRESULT OnWindow(HWND hwnd, uint message, WPARAM wParam, LPARAM lParam)
     {
         var active = Active;

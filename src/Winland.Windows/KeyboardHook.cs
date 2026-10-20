@@ -36,6 +36,14 @@ public sealed class KeyboardHook : IDisposable
     // Input this much newer than the last the hook saw means the hook may have missed a key.
     private const int CurrentSlackMs = 100;
 
+    // Presses the hook let through while a non-consuming device bind might still match them. The raw packet arrives
+    // after the hook returns, on this thread, and pairs with the oldest of these. An older press is dropped once eight
+    // are waiting. The key already reached the window, so dropping it does not swallow it.
+    internal const int PassedCapacity = 8;
+
+    // Repeats that arrive before the packet that names the keyboard. Later repeats are the hook's.
+    internal const int DeviceRepeatCap = 8;
+
     private static readonly (string Name, ushort Vk)[] Modifiers =
     [
         ("Super_L", 0x5B), ("Super_R", 0x5C),
@@ -69,7 +77,8 @@ public sealed class KeyboardHook : IDisposable
     // up while the worker is busy collapse into the newest, so they never delay a key bind.
     private readonly InputQueue<Queued> _queued = new(Replaces);
     private readonly KeyDeviceSource _devices;
-    private readonly DeferredKeys _waiting = new();
+    private readonly PassedPress[] _passed = new PassedPress[PassedCapacity];
+    private int _passedSeq;
 
     // A press this hook swallowed and then injected, still held. Its physical repeats are swallowed: Windows repeats
     // the injected press, and passing the hardware repeats as well would deliver the key twice.
@@ -88,7 +97,6 @@ public sealed class KeyboardHook : IDisposable
     private Timer? _longPressTimer;
     private Timer? _sweepTimer;
     private Timer? _watchTimer;
-    private Timer? _deviceWaitTimer;
     private int _lastSeen;
     private long _startedAt;
     private uint _hookThread;
@@ -104,10 +112,7 @@ public sealed class KeyboardHook : IDisposable
     internal const uint ReconcileMessage = 0x8000 + 27;
     internal const uint ReplayMessage = 0x8000 + 28;
     internal const uint DeviceRefreshMessage = 0x8000 + 29;
-    internal const uint DeviceWaitMessage = 0x8000 + 30;
     internal const uint InputLanguageMessage = 0x0051;
-
-    private static readonly string[] NoNames = [];
 
     internal BindSession Session => _session;
 
@@ -198,12 +203,10 @@ public sealed class KeyboardHook : IDisposable
 
         DisarmSweep();
         DisarmLongPress();
-        DisarmDeviceWait();
 
         // The message loop has exited, so a posted replay would never be pumped. Inject what was swallowed directly.
         if (_hookThread != 0 && _hookThread == PInvoke.GetCurrentThreadId())
         {
-            ReleaseDeferred();
             DisarmLongPress();
             ReplayPending();
         }
@@ -235,10 +238,6 @@ public sealed class KeyboardHook : IDisposable
             case DeviceRefreshMessage:
                 if (!_disposed)
                     _devices.Refresh();
-                return true;
-            case DeviceWaitMessage:
-                if (!_disposed)
-                    ExpireDue();
                 return true;
             default:
                 return false;
@@ -308,7 +307,7 @@ public sealed class KeyboardHook : IDisposable
             var scan = info.scanCode > int.MaxValue ? 0 : (int)info.scanCode;
 
             // kb_options: a key an option moves goes on as the key it moves to, and a grp: combination switches layouts.
-            // Done before a device wait. The raw packet names the original key, so the key sent on has no device.
+            // The raw packet names the original key, which this swallows, so a device bind does not see it.
             if (info.dwExtraInfo != RemapTag && Remap(info, up))
                 return new LRESULT(1);
 
@@ -342,8 +341,8 @@ public sealed class KeyboardHook : IDisposable
             if (!up)
                 SessionEffects.NoteKey();
 
-            var edge = new DeferredKeys.Edge(vk, scan, extended, up, name, xkb);
-            if (!DeliverTracked(edge, Environment.TickCount64, repeated).Passes)
+            var edge = new KeyEdge(vk, scan, extended, up, name, xkb);
+            if (!DeliverTracked(edge, repeated).Passes)
                 return new LRESULT(1);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
@@ -353,64 +352,46 @@ public sealed class KeyboardHook : IDisposable
         return Next(code, wParam, lParam);
     }
 
-    /// <summary>What deciding one deferred press did, including a release that was waiting with it.</summary>
-    internal readonly record struct DeferredOutcome(
-        BindDecision Decision,
-        bool Replayed,
-        BindDecision? Release,
-        bool ReleaseReplayed,
-        int Repeats);
+    /// <summary>One key edge from the low-level hook. <see cref="Xkb"/> is the code a bind matches.</summary>
+    internal readonly record struct KeyEdge(int VirtualKey, int Scan, bool Extended, bool Up, string Name, int Xkb);
 
-    /// <summary>How the hook treated one edge. Waiting is a press swallowed until its raw packet or the timeout.</summary>
-    internal readonly record struct TrackedResult(bool Passes, bool Waiting, BindDecision Decision);
+    /// <summary>How the hook treated one edge. The decision is synchronous. A device bind waits for the raw packet.</summary>
+    internal readonly record struct TrackedResult(bool Passes, BindDecision Decision);
 
-    /// <summary>
-    /// The hook's decision for one key edge. A press a device bind could match is swallowed and not decided yet.
-    /// Anything else is decided now, with no device: a release uses the device its press remembered.
-    /// </summary>
-    internal TrackedResult DeliverTracked(DeferredKeys.Edge edge, long now, bool repeated)
+    /// <summary>What one raw packet did for the press it paired with, including repeats and a release already seen.</summary>
+    internal readonly record struct DeviceDelivery(bool Handled, BindDecision Decision, int Repeats, BindDecision? Repeated, BindDecision? Release);
+
+    /// <summary>The hook's decision for one key edge. Every key is decided now. A device bind runs later, from its packet.</summary>
+    internal TrackedResult DeliverTracked(KeyEdge edge, bool repeated)
     {
         _session.Inhibit(_inhibited != 0);
         var vk = edge.VirtualKey;
-        if ((uint)vk <= 255 && _waiting.IsWaiting(vk))
-        {
-            if (!edge.Up)
-                _waiting.NoteRepeat(vk);
-            else
-                _waiting.AttachRelease(edge);
-
-            return new TrackedResult(false, true, default);
-        }
-
-        if (repeated || edge.Up)
-        {
-            if (edge.Up && (uint)vk <= 255)
-                _givenBack[vk] = false;
-
-            var applied = ApplyKey(edge, device: null, forceSwallow: false);
-            var passes = applied.ReachesWindows && !(repeated && (uint)vk <= 255 && _givenBack[vk]);
-            return new TrackedResult(passes, false, applied.Decision);
-        }
-
-        if ((uint)vk <= 255)
+        if ((uint)vk <= 255 && (edge.Up || !repeated))
             _givenBack[vk] = false;
 
-        if (WouldDefer(edge) && _waiting.Hold(edge, now))
+        var applied = ApplyKey(edge);
+        var passes = applied.ReachesWindows && !(repeated && (uint)vk <= 255 && _givenBack[vk]);
+        if (_core.Binds.HasDeviceBind && (uint)vk <= 255)
         {
-            ArmDeviceWait();
-            return new TrackedResult(false, true, default);
+            if (edge.Up)
+                NoteDeviceRelease(vk);
+            else if (!repeated && passes)
+                TrackPassed(edge);
+            else if (repeated)
+            {
+                var open = NewestOpen(vk);
+                if (open >= 0 && !_passed[open].PressFired)
+                    NoteDeviceRepeat(open);
+            }
         }
 
-        var sync = ApplyKey(edge, device: null, forceSwallow: false);
-        return new TrackedResult(sync.ReachesWindows, false, sync.Decision);
+        return new TrackedResult(passes, applied.Decision);
     }
 
-    internal bool IsWaiting(int virtualKey) => _waiting.IsWaiting(virtualKey);
-
-    /// <summary>The raw packet for a waiting key. An unnamed keyboard completes the wait with no device.</summary>
-    internal bool DeliverPacket(int virtualKey, int scan, bool up, long handle, out DeferredOutcome outcome)
+    /// <summary>The raw packet for a key the hook already passed. An unnamed keyboard matches no device bind.</summary>
+    internal bool DeliverPacket(int virtualKey, int scan, bool up, long handle, out DeviceDelivery delivery)
     {
-        outcome = default;
+        delivery = default;
         try
         {
             if (_disposed)
@@ -422,7 +403,7 @@ public sealed class KeyboardHook : IDisposable
             else
                 _devices.AskRefresh();
 
-            return Complete(virtualKey, scan, up, device, out outcome);
+            return DeliverDevice(virtualKey, scan, up, device, out delivery);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -431,77 +412,99 @@ public sealed class KeyboardHook : IDisposable
         }
     }
 
-    /// <summary>A waiting press whose packet named this device, and a release or repeats that arrived with it.</summary>
-    internal bool Complete(int virtualKey, int scan, bool up, string? device, out DeferredOutcome outcome)
+    /// <summary>
+    /// Pairs a key-down packet with the oldest press of that key the hook has passed and not yet named. A key-up
+    /// packet does nothing: the hook sees the release first. An empty device still closes the press, and matches nothing.
+    /// </summary>
+    internal bool DeliverDevice(int virtualKey, int scan, bool up, string? device, out DeviceDelivery delivery)
     {
-        if (!_waiting.Offer(virtualKey, scan, up, out var pending))
-        {
-            outcome = default;
+        delivery = default;
+        if (up || (uint)virtualKey > 255)
             return false;
+
+        var index = OldestUnfired(virtualKey, scan);
+        if (index < 0)
+            return false;
+
+        ref var slot = ref _passed[index];
+        var named = !string.IsNullOrEmpty(device);
+        var press = RunDevice(slot, device, up: false, repeat: false, remember: named && !slot.ReleaseSeen);
+        BindDecision? repeated = null;
+        var repeats = slot.Repeats;
+        for (var i = 0; i < repeats; i++)
+            repeated = RunDevice(slot, device, up: false, repeat: true, remember: false);
+
+        slot.PressFired = true;
+        slot.Repeats = 0;
+        BindDecision? release = null;
+        if (slot.ReleaseSeen)
+        {
+            release = RunDevice(slot, device, up: true, repeat: false, remember: false);
+            slot.Live = false;
         }
 
-        outcome = FinishCore(pending, device);
-        ArmDeviceWait();
+        delivery = new DeviceDelivery(true, press, repeats, repeated, release);
         return true;
     }
 
-    /// <summary>The oldest wait that has ended, decided with no device. False when nothing is due.</summary>
-    internal bool ExpireOne(long now, out DeferredOutcome outcome)
+    internal bool DeviceRefreshPending => _devices.RefreshPending;
+
+    private BindDecision RunDevice(in PassedPress slot, string? device, bool up, bool repeat, bool remember)
     {
-        if (!_waiting.Expire(now, out var pending))
+        var decision = BindMatcher.DispatchDevice(
+            _core.Binds,
+            _session,
+            slot.Name,
+            slot.Xkb,
+            up,
+            repeat,
+            device,
+            remember,
+            submap: slot.Submap,
+            pressedUnder: slot.PressedUnder,
+            anchor: slot.Anchor,
+            order: slot.Order);
+        if (!up && !repeat && BeginKeyDrag(slot.Name, decision))
         {
-            outcome = default;
-            return false;
+            NoteTiming(decision);
+            return decision;
         }
 
-        outcome = FinishCore(pending, device: null);
-        ArmDeviceWait();
-        return true;
+        Enqueue(decision);
+        NoteTiming(decision);
+        return decision;
     }
 
-    private bool WouldDefer(DeferredKeys.Edge edge) =>
-        (uint)edge.VirtualKey <= 255
-        && _core.Binds.HasDeviceBind
-        && BindMatcher.AwaitsDevice(_core.Binds, _session, edge.Name, edge.Xkb, releasing: false);
-
-    private DeferredOutcome FinishCore(DeferredKeys.Pending pending, string? device)
+    // A mouse dispatcher bound to the key. The key already reached the window. With nothing under the pointer and no
+    // other dispatcher, there is no drag to start.
+    private bool BeginKeyDrag(string name, BindDecision decision)
     {
-        _session.Inhibit(_inhibited != 0);
-        var press = ApplyKey(pending.Key, device, forceSwallow: false);
-        for (var i = 0; i < pending.Repeats; i++)
-            ApplyKey(pending.Key, device, forceSwallow: true);
+        if (KeyDrag(decision) is not BindDispatch drag)
+            return false;
+        if (Drag.Current is null && MouseHook.OnlyDrag(decision) && !_core.HasDragTarget(CursorPoint()))
+            return true;
 
-        AppliedKey? release = null;
-        if (pending.HasRelease)
-            release = ApplyKey(pending.Release, device, forceSwallow: !press.ReachesWindows);
+        if (!Drag.Begin(name, drag.Dispatcher, drag.Arguments))
+            return false;
 
-        var releaseReaches = release is { } done && done.ReachesWindows;
-        var replayed = false;
-        if (press.ReachesWindows)
+        PostGesture(drag.Dispatcher, drag.Arguments, CursorPoint(), PointerDragPhase.Begin, name);
+        foreach (var dispatch in decision.Dispatches)
         {
-            // The press was swallowed in the hook. Give it back. A release swallowed with it is part of that
-            // injection: a click when the release also reaches the window, and only the press when the release was
-            // consumed. With no release yet, the injection follows whether the key is still held.
-            bool? stillDown = pending.HasRelease ? !releaseReaches : null;
-            PostReplay(ReplayKey(pending.Key), NoNames, stillDown);
-            replayed = true;
+            if (dispatch.Dispatcher.Length > 0 && !dispatch.Drag)
+                PostDispatch(dispatch.Dispatcher, dispatch.Arguments, decision.Trigger);
         }
 
-        var vk = pending.Key.VirtualKey;
-        if ((uint)vk <= 255)
-            _givenBack[vk] = replayed && !releaseReaches;
-
-        return new DeferredOutcome(press.Decision, replayed, release?.Decision, replayed && releaseReaches, pending.Repeats);
+        return true;
     }
 
     private readonly record struct AppliedKey(bool ReachesWindows, BindDecision Decision);
 
-    // The tail of the hook, shared by a key decided immediately and one decided when its packet arrives.
-    private AppliedKey ApplyKey(DeferredKeys.Edge edge, string? device, bool forceSwallow)
+    // Decides the edge with no keyboard. A release uses the keyboard its press packet remembered.
+    private AppliedKey ApplyKey(KeyEdge edge)
     {
         Input input = edge.Up
-            ? new KeyReleased(edge.Name) { ScanCode = edge.Xkb, Device = device }
-            : new KeyPressed(edge.Name) { ScanCode = edge.Xkb, Device = device };
+            ? new KeyReleased(edge.Name) { ScanCode = edge.Xkb }
+            : new KeyPressed(edge.Name) { ScanCode = edge.Xkb };
         _session.Inhibit(_inhibited != 0);
 
         // The mouse dispatcher bound to a key drags while the key is held: its repeats are swallowed, and its release
@@ -519,7 +522,7 @@ public sealed class KeyboardHook : IDisposable
         // release lets the event through.
         var keyDrag = edge.Up ? null : KeyDrag(decision);
         if (keyDrag is not null && Drag.Current is null && MouseHook.OnlyDrag(decision) && !_core.HasDragTarget(CursorPoint()))
-            return new AppliedKey(!forceSwallow, decision);
+            return new AppliedKey(true, decision);
 
         if (keyDrag is BindDispatch drag && Drag.Begin(edge.Name, drag.Dispatcher, drag.Arguments))
         {
@@ -533,10 +536,9 @@ public sealed class KeyboardHook : IDisposable
             return new AppliedKey(false, decision);
         }
 
-        // A key drag is swallowed for the drag and is not given back. A repeat swallowed during the wait is not
-        // given back on its own: the press injection is the one Windows repeats.
+        // A key drag is swallowed for the drag and is not given back.
         SwallowedKey? replay = null;
-        if (!forceSwallow && decision.PassesOnFailure && edge.VirtualKey is >= 0 and <= ushort.MaxValue)
+        if (decision.PassesOnFailure && edge.VirtualKey is >= 0 and <= ushort.MaxValue)
         {
             var scan = edge.Scan is >= 0 and <= ushort.MaxValue ? (ushort)edge.Scan : (ushort)0;
             replay = new SwallowedKey((ushort)edge.VirtualKey, scan, edge.Extended, edge.Name, !edge.Up);
@@ -550,58 +552,134 @@ public sealed class KeyboardHook : IDisposable
         if (decision.Mask)
             Mask();
 
-        return new AppliedKey(!forceSwallow && !decision.Consumed, decision);
+        return new AppliedKey(!decision.Consumed, decision);
     }
 
-    private static SwallowedKey ReplayKey(DeferredKeys.Edge edge)
+    // A press the hook passed. The packet that names its keyboard is posted after the hook returns, and a later edge
+    // can run before that packet is pumped, so several presses stay here in order.
+    private struct PassedPress
     {
-        var scan = edge.Scan is >= 0 and <= ushort.MaxValue ? (ushort)edge.Scan : (ushort)0;
-        var vk = edge.VirtualKey is >= 0 and <= ushort.MaxValue ? (ushort)edge.VirtualKey : (ushort)0;
-        return new SwallowedKey(vk, scan, edge.Extended, edge.Name, Pressed: true);
+        public bool Live;
+        public int Seq;
+        public int VirtualKey;
+        public bool PressFired;
+        public bool ReleaseSeen;
+        public byte Repeats;
+        public int Scan;
+        public int Xkb;
+        public string Name;
+        public Modifier PressedUnder;
+        public Point Anchor;
+        public string Submap;
+        public (string Key, int ScanCode)[] Order;
     }
 
-    private void OnDeviceWaitDue(object? _) => Post(DeviceWaitMessage);
-
-    private void ExpireDue()
+    private void TrackPassed(KeyEdge edge)
     {
-        var now = Environment.TickCount64;
-        while (_waiting.Expire(now, out var pending))
-            FinishCore(pending, device: null);
-
-        ArmDeviceWait();
-    }
-
-    private void ReleaseDeferred()
-    {
-        while (_waiting.Expire(long.MaxValue, out var pending))
-            FinishCore(pending, device: null);
-    }
-
-    private void ArmDeviceWait()
-    {
-        // Tests decide waits themselves. A live timer would inject a key when it elapsed.
-        if (_disposed || _hookThread == 0 || !_waiting.TryNextDue(out var due))
+        var slot = FreeSlot();
+        _session.PressedUnder.TryGetValue(edge.Name, out var under);
+        _passed[slot] = new PassedPress
         {
-            DisarmDeviceWait();
+            Live = true,
+            Seq = ++_passedSeq,
+            VirtualKey = edge.VirtualKey,
+            Scan = edge.Scan,
+            Xkb = edge.Xkb,
+            Name = edge.Name,
+            PressedUnder = under,
+            Anchor = _session.Pointer,
+            Submap = _session.Remembered(edge.Name, mouse: false),
+            Order = _session.Order.ToArray(),
+        };
+    }
+
+    private int FreeSlot()
+    {
+        var free = -1;
+        var oldest = 0;
+        var oldestSeq = int.MaxValue;
+        for (var i = 0; i < _passed.Length; i++)
+        {
+            if (!_passed[i].Live)
+            {
+                free = i;
+                break;
+            }
+
+            if (_passed[i].Seq < oldestSeq)
+            {
+                oldestSeq = _passed[i].Seq;
+                oldest = i;
+            }
+        }
+
+        return free >= 0 ? free : oldest;
+    }
+
+    private int NewestOpen(int virtualKey)
+    {
+        var found = -1;
+        var seq = int.MinValue;
+        for (var i = 0; i < _passed.Length; i++)
+        {
+            ref var slot = ref _passed[i];
+            if (!slot.Live || slot.ReleaseSeen || slot.VirtualKey != virtualKey || slot.Seq < seq)
+                continue;
+
+            seq = slot.Seq;
+            found = i;
+        }
+
+        return found;
+    }
+
+    // The oldest press of this key that no packet has named. A scan that does not match that oldest press waits,
+    // rather than pairing with a newer one.
+    private int OldestUnfired(int virtualKey, int scan)
+    {
+        var found = -1;
+        var seq = int.MaxValue;
+        for (var i = 0; i < _passed.Length; i++)
+        {
+            ref var slot = ref _passed[i];
+            if (!slot.Live || slot.PressFired || slot.VirtualKey != virtualKey || slot.Seq >= seq)
+                continue;
+
+            seq = slot.Seq;
+            found = i;
+        }
+
+        if (found < 0 || !ScansMatch(_passed[found].Scan, scan))
+            return -1;
+
+        return found;
+    }
+
+    private static bool ScansMatch(int waiting, int packet) => waiting == 0 || packet == 0 || waiting == packet;
+
+    private void NoteDeviceRelease(int virtualKey)
+    {
+        var open = NewestOpen(virtualKey);
+        if (open < 0)
+            return;
+
+        ref var slot = ref _passed[open];
+        if (slot.PressFired)
+        {
+            slot.Live = false;
             return;
         }
 
-        var delay = due - Environment.TickCount64;
-        var ms = delay < 1 ? 1 : delay > DeferredKeys.WaitMs ? DeferredKeys.WaitMs : (int)delay;
-        lock (_timerGate)
-        {
-            _deviceWaitTimer?.Dispose();
-            _deviceWaitTimer = new Timer(OnDeviceWaitDue, null, ms, Timeout.Infinite);
-        }
+        slot.ReleaseSeen = true;
     }
 
-    private void DisarmDeviceWait()
+    private void NoteDeviceRepeat(int open)
     {
-        lock (_timerGate)
-        {
-            _deviceWaitTimer?.Dispose();
-            _deviceWaitTimer = null;
-        }
+        ref var slot = ref _passed[open];
+        if (slot.PressFired || slot.Repeats >= DeviceRepeatCap)
+            return;
+
+        slot.Repeats++;
     }
 
     private void OnSession(object? sender, Microsoft.Win32.SessionSwitchEventArgs e)
@@ -1125,6 +1203,9 @@ public sealed class KeyboardHook : IDisposable
                 _session.CaughtKeys.Remove(name);
 
             var stillDown = next.StillDown ?? IsDown((int)next.Key.VirtualKey);
+            if (next.Key.Pressed && stillDown && next.Key.VirtualKey <= 255)
+                _givenBack[next.Key.VirtualKey] = true;
+
             InputInjector.Post(ReplayInputs(next.Key, stillDown));
         }
     }

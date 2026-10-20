@@ -6,246 +6,212 @@ namespace Winland.Windows.Tests;
 public class KeyDeviceTests
 {
     [Fact]
-    public void TheOldestWaitingPressTakesThePacketAndAReleasePacketDoesNot()
+    public void APassedKeyRunsItsDeviceBindWhenThePacketNamesTheKeyboard()
     {
-        var waiting = new DeferredKeys();
-        Assert.True(waiting.Hold(Edge(0x51, "Q", scan: 16), 1000));
-        Assert.True(waiting.Hold(Edge(0x51, "Q", scan: 16), 1000));
-        Assert.True(waiting.Hold(Edge(0x52, "W", scan: 17), 1000));
+        using var hook = Hook("bindnk = , Q, +board, killactive");
+        var tracked = hook.DeliverTracked(Edge(0x51, "Q"), repeated: false);
 
-        Assert.False(waiting.Offer(0x51, 16, up: true, out _));
-        Assert.True(waiting.IsWaiting(0x51));
+        Assert.True(tracked.Passes);
+        Assert.Null(tracked.Decision.Dispatcher);
+        Assert.False(tracked.Decision.Consumed);
 
-        Assert.True(waiting.Offer(0x51, 16, up: false, out var first));
-        Assert.Equal("Q", first.Key.Name);
-        Assert.True(waiting.Offer(0x51, 16, up: false, out var second));
-        Assert.Equal("Q", second.Key.Name);
-        Assert.False(waiting.IsWaiting(0x51));
-        Assert.True(waiting.Offer(0x52, 0, up: false, out var other));
-        Assert.Equal("W", other.Key.Name);
+        Assert.True(hook.DeliverDevice(0x51, 16, up: false, "board", out var delivery));
+        Assert.False(delivery.Decision.Consumed);
+        Assert.Equal("killactive", delivery.Decision.Dispatcher);
+        Assert.False(hook.DeliverDevice(0x51, 16, up: false, "board", out _));
     }
 
     [Fact]
-    public void ADifferentScanStaysAndAReleaseRidesThePressPacket()
+    public void AWrongOrUnnamedDeviceHandlesThePressAndRunsNothing()
     {
-        var waiting = new DeferredKeys();
-        Assert.True(waiting.Hold(Edge(0x51, "Q", scan: 16), 1000));
-        Assert.False(waiting.Offer(0x51, 99, up: false, out _));
-        Assert.True(waiting.AttachRelease(Edge(0x51, "Q", scan: 16, up: true)));
+        using var hook = Hook("bindnk = , Q, +board, killactive");
+        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), repeated: false).Passes);
 
-        Assert.True(waiting.Offer(0x51, 16, up: false, out var pending));
-        Assert.True(pending.HasRelease);
-        Assert.True(pending.Release.Up);
-        Assert.False(waiting.Offer(0x51, 16, up: false, out _));
+        Assert.True(hook.DeliverDevice(0x51, 16, up: false, "other", out var wrong));
+        Assert.Null(wrong.Decision.Dispatcher);
+
+        using var unnamed = Hook("bindnk = , Q, +board, killactive");
+        Assert.True(unnamed.DeliverTracked(Edge(0x51, "Q"), repeated: false).Passes);
+        Assert.True(unnamed.DeliverPacket(0x51, 16, up: false, handle: 5, out var missing));
+        Assert.Null(missing.Decision.Dispatcher);
+        Assert.True(unnamed.DeviceRefreshPending);
     }
 
     [Fact]
-    public void TheWaitExpiresOldestFirstAndALatePacketIsIgnored()
+    public void AKeyWithNoDeviceBindIsDecidedImmediately()
     {
-        var waiting = new DeferredKeys();
-        Assert.True(waiting.Hold(Edge(0x51, "Q"), 1000));
-        Assert.True(waiting.Hold(Edge(0x52, "W"), 1010));
-        Assert.True(waiting.TryNextDue(out var due));
-        Assert.Equal(1000 + DeferredKeys.WaitMs, due);
+        using var hook = Hook("bindnk = , Q, +board, killactive\nbind = , W, killactive\n");
 
-        Assert.False(waiting.Expire(1000 + DeferredKeys.WaitMs - 1, out _));
-        Assert.True(waiting.Expire(1000 + DeferredKeys.WaitMs, out var first));
-        Assert.Equal("Q", first.Key.Name);
-        Assert.False(waiting.Offer(0x51, 16, up: false, out _));
-        Assert.True(waiting.Expire(1010 + DeferredKeys.WaitMs, out var second));
-        Assert.Equal("W", second.Key.Name);
-    }
+        var queued = hook.DeliverTracked(Edge(0x51, "Q"), repeated: false);
+        Assert.True(queued.Passes);
+        Assert.Null(queued.Decision.Dispatcher);
+        Assert.True(hook.DeliverDevice(0x51, 16, up: false, "board", out var delivery));
+        Assert.Equal("killactive", delivery.Decision.Dispatcher);
 
-    [Fact]
-    public void RepeatsAreCappedAndAFullQueueRefusesTheNextPress()
-    {
-        var waiting = new DeferredKeys();
-        Assert.True(waiting.Hold(Edge(0x51, "Q"), 1000));
-        for (var i = 0; i < 10; i++)
-            Assert.True(waiting.NoteRepeat(0x51));
-
-        Assert.True(waiting.Offer(0x51, 16, up: false, out var pending));
-        Assert.Equal(8, pending.Repeats);
-
-        for (var i = 0; i < DeferredKeys.Capacity; i++)
-            Assert.True(waiting.Hold(Edge(0x41 + i, ((char)('A' + i)).ToString()), 1000));
-
-        Assert.False(waiting.Hold(Edge(0x5A, "Z"), 1000));
-    }
-
-    [Fact]
-    public void APacketAfterTheHookRunsTheDeviceBind()
-    {
-        using var hook = Hook("bindk = , Q, +board, killactive");
-        var tracked = hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false);
-
-        Assert.True(tracked.Waiting);
-        Assert.False(tracked.Passes);
-        Assert.True(hook.Complete(0x51, 16, up: false, "board", out var outcome));
-        Assert.True(outcome.Decision.Consumed);
-        Assert.Equal("killactive", outcome.Decision.Dispatcher);
-        Assert.False(outcome.Replayed);
-        Assert.False(hook.IsWaiting(0x51));
-    }
-
-    [Fact]
-    public void AWrongDeviceReplaysTheKey()
-    {
-        using var hook = Hook("bindk = , Q, +board, killactive");
-        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
-
-        Assert.True(hook.Complete(0x51, 16, up: false, "other", out var outcome));
-        Assert.False(outcome.Decision.Consumed);
-        Assert.True(outcome.Replayed);
-    }
-
-    [Fact]
-    public void NoPacketReplaysAnInclusiveBindAndFiresAnExclusiveOne()
-    {
-        using var inclusive = Hook("bindk = , Q, +board, killactive");
-        Assert.True(inclusive.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
-        Assert.False(inclusive.ExpireOne(1000 + DeferredKeys.WaitMs - 1, out _));
-        Assert.True(inclusive.ExpireOne(1000 + DeferredKeys.WaitMs, out var missed));
-        Assert.False(missed.Decision.Consumed);
-        Assert.True(missed.Replayed);
-
-        using var exclusive = Hook("bindk = , Q, -board, killactive");
-        Assert.True(exclusive.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
-        Assert.True(exclusive.ExpireOne(1000 + DeferredKeys.WaitMs, out var matched));
-        Assert.Equal("killactive", matched.Decision.Dispatcher);
-        Assert.True(matched.Decision.Consumed);
-        Assert.False(matched.Replayed);
-    }
-
-    [Fact]
-    public void AnUnnamedPacketEndsTheWaitWithNoDevice()
-    {
-        using var hook = Hook("bindk = , Q, +board, killactive");
-        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
-
-        Assert.True(hook.DeliverPacket(0x51, 16, up: false, handle: 5, out var outcome));
-        Assert.False(outcome.Decision.Consumed);
-        Assert.True(outcome.Replayed);
-        Assert.False(hook.IsWaiting(0x51));
-    }
-
-    [Fact]
-    public void AKeyNoDeviceBindCouldMatchIsDecidedImmediately()
-    {
-        using var hook = Hook("bindk = , Q, +board, killactive\nbind = , W, killactive\n");
-
-        var plain = hook.DeliverTracked(Edge(0x45, "E"), 1000, repeated: false);
-        Assert.False(plain.Waiting);
+        var plain = hook.DeliverTracked(Edge(0x45, "E"), repeated: false);
         Assert.True(plain.Passes);
-        Assert.False(hook.IsWaiting(0x45));
+        Assert.Null(plain.Decision.Dispatcher);
 
-        var other = hook.DeliverTracked(Edge(0x57, "W"), 1000, repeated: false);
-        Assert.False(other.Waiting);
+        var other = hook.DeliverTracked(Edge(0x57, "W"), repeated: false);
         Assert.False(other.Passes);
         Assert.Equal("killactive", other.Decision.Dispatcher);
-        Assert.False(hook.IsWaiting(0x57));
-
-        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
     }
 
     [Fact]
     public void NoDeviceBindKeepsTheSynchronousPath()
     {
         using var hook = Hook("bind = , Q, killactive");
-        var tracked = hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false);
+        var tracked = hook.DeliverTracked(Edge(0x51, "Q"), repeated: false);
 
-        Assert.False(tracked.Waiting);
         Assert.False(tracked.Passes);
         Assert.Equal("killactive", tracked.Decision.Dispatcher);
-        Assert.False(hook.IsWaiting(0x51));
+        Assert.False(hook.DeliverDevice(0x51, 16, up: false, "board", out _));
     }
 
     [Fact]
-    public void TheWrongModifiersDoNotWait()
+    public void AnAutoConsumingPressIsSwallowedForReplay()
     {
-        using var hook = Hook("bindk = SUPER, Q, +board, killactive");
-        var tracked = hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false);
+        using var hook = Hook("binda = , Q, killactive");
+        var tracked = hook.DeliverTracked(Edge(0x51, "Q"), repeated: false);
 
-        Assert.False(tracked.Waiting);
-        Assert.True(tracked.Passes);
+        Assert.False(tracked.Passes);
+        Assert.True(tracked.Decision.Consumed);
+        Assert.True(tracked.Decision.PassesOnFailure);
+        Assert.Equal("killactive", tracked.Decision.Dispatcher);
+        Assert.False(hook.DeliverDevice(0x51, 16, up: false, "board", out _));
     }
 
     [Fact]
-    public void AReleaseWaitingWithThePressUsesTheSameDevice()
-    {
-        using var hook = Hook("bindrk = , Q, +board, killactive");
-        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
-
-        var release = hook.DeliverTracked(Edge(0x51, "Q", up: true), 1020, repeated: false);
-        Assert.True(release.Waiting);
-        Assert.True(hook.IsWaiting(0x51));
-
-        Assert.True(hook.Complete(0x51, 16, up: false, "board", out var outcome));
-        Assert.True(outcome.Decision.Consumed);
-        Assert.Null(outcome.Decision.Dispatcher);
-        Assert.Equal("killactive", outcome.Release?.Dispatcher);
-        Assert.False(outcome.Replayed);
-        Assert.False(outcome.ReleaseReplayed);
-        Assert.False(hook.IsWaiting(0x51));
-    }
-
-    [Fact]
-    public void AReleaseAfterThePressWasDecidedDoesNotWaitAgain()
-    {
-        using var hook = Hook("bindrk = , Q, +board, killactive");
-        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
-        Assert.True(hook.Complete(0x51, 16, up: false, "board", out var press));
-        Assert.True(press.Decision.Consumed);
-        Assert.Null(press.Decision.Dispatcher);
-
-        var release = hook.DeliverTracked(Edge(0x51, "Q", up: true), 1080, repeated: false);
-        Assert.False(release.Waiting);
-        Assert.False(release.Passes);
-        Assert.Equal("killactive", release.Decision.Dispatcher);
-    }
-
-    [Fact]
-    public void ASwallowedPressAndReleaseAreReplayedTogetherWhenNothingConsumesThem()
+    public void AConsumingDeviceBindIsNotRegisteredSoTheKeyPasses()
     {
         using var hook = Hook("bindk = , Q, +board, killactive");
-        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
-        Assert.True(hook.DeliverTracked(Edge(0x51, "Q", up: true), 1010, repeated: false).Waiting);
+        var tracked = hook.DeliverTracked(Edge(0x51, "Q"), repeated: false);
 
-        Assert.True(hook.ExpireOne(1000 + DeferredKeys.WaitMs, out var outcome));
-        Assert.False(outcome.Decision.Consumed);
-        Assert.True(outcome.Replayed);
-        Assert.True(outcome.ReleaseReplayed);
-        Assert.False(outcome.Release?.Consumed);
+        Assert.True(tracked.Passes);
+        Assert.Null(tracked.Decision.Dispatcher);
+        Assert.False(hook.DeliverDevice(0x51, 16, up: false, "board", out _));
     }
 
     [Fact]
-    public void RepeatsDuringTheWaitAreDecidedWithThePress()
+    public void AReleaseAfterThePacketUsesThePressKeyboard()
     {
-        using var hook = Hook("bindek = , Q, +board, killactive");
-        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1000, repeated: false).Waiting);
-        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), 1030, repeated: true).Waiting);
+        using var hook = Hook("bindnk = , Q, +board, killactive\nbindrnk = , Q, +board, exit\n");
+        Assert.True(hook.DeliverTracked(Edge(0x51, "Q"), repeated: false).Passes);
+        Assert.True(hook.DeliverDevice(0x51, 16, up: false, "board", out var press));
+        Assert.Equal("killactive", press.Decision.Dispatcher);
 
-        Assert.True(hook.Complete(0x51, 16, up: false, "board", out var outcome));
-        Assert.Equal(1, outcome.Repeats);
-        Assert.Equal("killactive", outcome.Decision.Dispatcher);
-        Assert.False(hook.IsWaiting(0x51));
+        var release = hook.DeliverTracked(Edge(0x51, "Q", up: true), repeated: false);
+        Assert.True(release.Passes);
+        Assert.Equal("exit", release.Decision.Dispatcher);
+        Assert.False(hook.DeliverDevice(0x51, 16, up: true, "board", out _));
     }
 
     [Fact]
-    public void AFullWaitDecidesTheNextKeyWithNoDevice()
+    public void AFastTapRunsThePressAndTheReleaseFromTheDownPacket()
+    {
+        using var hook = Hook("bindnk = , Q, +board, killactive\nbindrnk = , Q, +board, exit\n");
+        Assert.Null(hook.DeliverTracked(Edge(0x51, "Q"), repeated: false).Decision.Dispatcher);
+        Assert.Null(hook.DeliverTracked(Edge(0x51, "Q", up: true), repeated: false).Decision.Dispatcher);
+
+        Assert.True(hook.DeliverDevice(0x51, 16, up: false, "board", out var delivery));
+        Assert.Equal("killactive", delivery.Decision.Dispatcher);
+        Assert.Equal("exit", delivery.Release?.Dispatcher);
+        Assert.False(hook.DeliverDevice(0x51, 16, up: true, "board", out _));
+    }
+
+    [Fact]
+    public void ASecondTapPairsWithTheNextPacket()
+    {
+        using var hook = Hook("bindnk = , Q, +board, killactive\nbindrnk = , Q, +board, exit\n");
+        hook.DeliverTracked(Edge(0x51, "Q"), repeated: false);
+        hook.DeliverTracked(Edge(0x51, "Q", up: true), repeated: false);
+        hook.DeliverTracked(Edge(0x51, "Q"), repeated: false);
+
+        Assert.True(hook.DeliverDevice(0x51, 16, up: false, "board", out var first));
+        Assert.Equal("killactive", first.Decision.Dispatcher);
+        Assert.Equal("exit", first.Release?.Dispatcher);
+
+        Assert.True(hook.DeliverDevice(0x51, 16, up: false, "board", out var second));
+        Assert.Equal("killactive", second.Decision.Dispatcher);
+        Assert.Null(second.Release);
+    }
+
+    [Fact]
+    public void RepeatsBeforeThePacketAreFlushedWithItAndLaterRepeatsAreTheHooks()
+    {
+        using var early = Hook("bindenk = , Q, +board, killactive");
+        early.DeliverTracked(Edge(0x51, "Q"), repeated: false);
+        Assert.Null(early.DeliverTracked(Edge(0x51, "Q"), repeated: true).Decision.Dispatcher);
+        Assert.True(early.DeliverDevice(0x51, 16, up: false, "board", out var flushed));
+        Assert.Equal(1, flushed.Repeats);
+        Assert.Equal("killactive", flushed.Decision.Dispatcher);
+        Assert.Equal("killactive", flushed.Repeated?.Dispatcher);
+
+        using var late = Hook("bindenk = , Q, +board, killactive");
+        late.DeliverTracked(Edge(0x51, "Q"), repeated: false);
+        Assert.True(late.DeliverDevice(0x51, 16, up: false, "board", out var press));
+        Assert.Equal("killactive", press.Decision.Dispatcher);
+        Assert.Equal(0, press.Repeats);
+
+        var repeat = late.DeliverTracked(Edge(0x51, "Q"), repeated: true);
+        Assert.Equal("killactive", repeat.Decision.Dispatcher);
+        Assert.False(late.DeliverDevice(0x51, 16, up: false, "board", out _));
+    }
+
+    [Fact]
+    public void RepeatsBeforeThePacketStopAtEight()
+    {
+        using var hook = Hook("bindenk = , Q, +board, killactive");
+        hook.DeliverTracked(Edge(0x51, "Q"), repeated: false);
+        for (var i = 0; i < KeyboardHook.DeviceRepeatCap + 2; i++)
+            hook.DeliverTracked(Edge(0x51, "Q"), repeated: true);
+
+        Assert.True(hook.DeliverDevice(0x51, 16, up: false, "board", out var delivery));
+        Assert.Equal(KeyboardHook.DeviceRepeatCap, delivery.Repeats);
+    }
+
+    [Fact]
+    public void AFullQueueDropsTheOldestPassedPressAndStillPassesTheKey()
     {
         var lines = new System.Text.StringBuilder();
-        for (var i = 0; i < DeferredKeys.Capacity + 1; i++)
-            lines.Append("bindk = , ").Append((char)('A' + i)).Append(", +board, killactive\n");
+        for (var i = 0; i < KeyboardHook.PassedCapacity + 1; i++)
+            lines.Append("bindnk = , ").Append((char)('A' + i)).Append(", +board, killactive\n");
 
         using var hook = Hook(lines.ToString());
-        for (var i = 0; i < DeferredKeys.Capacity; i++)
-            Assert.True(hook.DeliverTracked(Edge(0x41 + i, ((char)('A' + i)).ToString(), scan: 1), 1000, repeated: false).Waiting);
+        for (var i = 0; i < KeyboardHook.PassedCapacity + 1; i++)
+        {
+            var tracked = hook.DeliverTracked(Edge(0x41 + i, ((char)('A' + i)).ToString(), scan: 1), repeated: false);
+            Assert.True(tracked.Passes);
+        }
 
-        var overflow = hook.DeliverTracked(Edge(0x41 + DeferredKeys.Capacity, "I", scan: 1), 1000, repeated: false);
-        Assert.False(overflow.Waiting);
-        Assert.True(overflow.Passes);
-        Assert.False(hook.IsWaiting(0x41 + DeferredKeys.Capacity));
+        Assert.False(hook.DeliverDevice(0x41, 1, up: false, "board", out _));
+        Assert.True(hook.DeliverDevice(0x41 + KeyboardHook.PassedCapacity, 1, up: false, "board", out var kept));
+        Assert.Equal("killactive", kept.Decision.Dispatcher);
+    }
+
+    [Fact]
+    public void AMismatchedScanDoesNotTakeANewerPress()
+    {
+        using var hook = Hook("bindnk = , Q, +board, killactive");
+        hook.DeliverTracked(Edge(0x51, "Q", scan: 16), repeated: false);
+        hook.DeliverTracked(Edge(0x51, "Q", scan: 17), repeated: false);
+
+        Assert.False(hook.DeliverDevice(0x51, 17, up: false, "board", out _));
+        Assert.True(hook.DeliverDevice(0x51, 16, up: false, "board", out var first));
+        Assert.Equal("killactive", first.Decision.Dispatcher);
+        Assert.True(hook.DeliverDevice(0x51, 17, up: false, "board", out var second));
+        Assert.Equal("killactive", second.Decision.Dispatcher);
+    }
+
+    [Fact]
+    public void ATagOnTheNamedKeyboardRunsTheBind()
+    {
+        using var hook = Hook("device[board]:tags = laptop\nbindnk = , Q, +laptop, killactive\n");
+        hook.DeliverTracked(Edge(0x51, "Q"), repeated: false);
+
+        Assert.True(hook.DeliverDevice(0x51, 16, up: false, "board", out var delivery));
+        Assert.Equal("killactive", delivery.Decision.Dispatcher);
+        Assert.False(delivery.Decision.Consumed);
     }
 
     [Fact]
@@ -328,7 +294,7 @@ public class KeyDeviceTests
         Assert.Equal(0, replays);
     }
 
-    private static DeferredKeys.Edge Edge(int vk, string name, int scan = 16, bool up = false) =>
+    private static KeyboardHook.KeyEdge Edge(int vk, string name, int scan = 16, bool up = false) =>
         new(vk, scan, false, up, name, 0);
 
     private static KeyboardHook Hook(string text)
