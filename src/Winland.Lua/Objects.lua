@@ -8,6 +8,8 @@ local fetch, userdata, note, matches, history, unsubscribe, optionName, running,
     native.fetch, native.userdata, native.note, native.matches, native.history, native.unsubscribe, native.option, native.running, native.run
 local bindInfo, bindEnable, bindRemove, timerInfo, timerSet, ruleInfo, ruleSet =
     native.bindinfo, native.bindenable, native.bindremove, native.timerinfo, native.timerset, native.ruleinfo, native.ruleset
+local makeNotification, notificationHold, notificationRelease, notificationOp, notificationColor =
+    native.makeNotification, native.notificationHold, native.notificationRelease, native.notification, native.notificationColor
 
 local keys = setmetatable({}, { __mode = "k" })
 
@@ -1505,6 +1507,283 @@ function layoutMethods.split(_, box, side, ratio)
     end
     note("ctx:split side must be left, right, top, or bottom", 2)
 end
+
+-- Notifications: what hl.notification returns. A pause this object holds is released when it is collected.
+local Notification = { __name = "HL.Notification" }
+Notification.__newindex = readOnly
+
+local icons = {
+    warning = 0, warn = 0, info = 1, hint = 2, error = 3, err = 3,
+    confused = 4, question = 4, ok = 5, none = 6,
+}
+
+local function fieldNum(options, name)
+    local value = options[name]
+    if type(value) == "number" then
+        return value
+    end
+    if type(value) == "string" then
+        return tonumber(value)
+    end
+    return nil
+end
+
+local function parseIcon(value)
+    local number = type(value) == "number" and value or (type(value) == "string" and tonumber(value) or nil)
+    if number ~= nil then
+        local raw = number < 0 and math.ceil(number) or math.floor(number)
+        if raw >= 0 and raw <= 6 then
+            return raw
+        end
+        return nil
+    end
+    if type(value) == "string" then
+        return icons[string.lower(value)]
+    end
+    return nil
+end
+
+local function notification(id)
+    if type(id) ~= "number" then
+        return nil
+    end
+    return makeNotification(id, Notification)
+end
+
+local function query(self)
+    return notificationOp("query", self)
+end
+
+local notificationMethods
+notificationMethods = {
+    pause = function(self)
+        if query(self) == nil or notificationHold(self) then
+            return
+        end
+        notificationHold(self, true)
+        notificationOp("pause", self)
+    end,
+    resume = function(self)
+        if query(self) == nil or not notificationHold(self) then
+            return
+        end
+        notificationHold(self, false)
+        notificationOp("resume", self)
+    end,
+    set_paused = function(self, paused)
+        if type(paused) ~= "boolean" then
+            note("HL.Notification:set_paused: expected a boolean", 2)
+            return
+        end
+        if paused then
+            notificationMethods.pause(self)
+        else
+            notificationMethods.resume(self)
+        end
+    end,
+    is_paused = function(self)
+        local found = query(self)
+        if found == nil then
+            return nil
+        end
+        return found.paused
+    end,
+    set_text = function(self, text)
+        if type(text) == "number" then
+            text = tostring(text)
+        elseif type(text) ~= "string" then
+            note("HL.Notification:set_text: expected a string", 2)
+            return
+        end
+        if query(self) == nil then
+            return
+        end
+        notificationOp("text", self, text)
+    end,
+    set_timeout = function(self, timeout)
+        local number = type(timeout) == "number" and timeout or (type(timeout) == "string" and tonumber(timeout) or nil)
+        if number == nil or number < 0 then
+            note("HL.Notification:set_timeout: timeout must be >= 0", 2)
+            return
+        end
+        if query(self) == nil then
+            return
+        end
+        notificationOp("timeout", self, number)
+    end,
+    set_color = function(self, color)
+        local parsed = notificationColor(color)
+        if parsed == nil then
+            note("HL.Notification:set_color: expected a color string or number", 2)
+            return
+        end
+        if query(self) == nil then
+            return
+        end
+        notificationOp("color", self, parsed)
+    end,
+    set_icon = function(self, icon)
+        local parsed = parseIcon(icon)
+        if parsed == nil then
+            note("HL.Notification:set_icon: expected an icon name or number", 2)
+            return
+        end
+        if query(self) == nil then
+            return
+        end
+        notificationOp("icon", self, parsed)
+    end,
+    set_font_size = function(self, fontSize)
+        local number = type(fontSize) == "number" and fontSize or (type(fontSize) == "string" and tonumber(fontSize) or nil)
+        if number == nil or number <= 0 then
+            note("HL.Notification:set_font_size: font size must be > 0", 2)
+            return
+        end
+        if query(self) == nil then
+            return
+        end
+        notificationOp("font", self, number)
+    end,
+    dismiss = function(self)
+        if query(self) == nil then
+            return
+        end
+        notificationOp("dismiss", self)
+    end,
+    get_text = function(self)
+        local found = query(self)
+        return found and found.text or nil
+    end,
+    get_timeout = function(self)
+        local found = query(self)
+        return found and found.timeout or nil
+    end,
+    get_color = function(self)
+        local found = query(self)
+        return found and found.color or nil
+    end,
+    get_icon = function(self)
+        local found = query(self)
+        return found and found.icon or nil
+    end,
+    get_font_size = function(self)
+        local found = query(self)
+        return found and found.font or nil
+    end,
+    get_elapsed = function(self)
+        local found = query(self)
+        return found and found.elapsed or nil
+    end,
+    get_elapsed_since_creation = function(self)
+        local found = query(self)
+        return found and found.since or nil
+    end,
+    is_alive = function(self)
+        return query(self) ~= nil
+    end,
+}
+
+Notification.__index = function(_, key)
+    return notificationMethods[key]
+end
+
+Notification.__tostring = function(self)
+    local found = query(self)
+    if found == nil then
+        return "HL.Notification(expired)"
+    end
+    return string.format("HL.Notification(0x%x)", found.id)
+end
+
+Notification.__eq = function(a, b)
+    local left = query(a)
+    local right = query(b)
+    if left == nil and right == nil then
+        return true
+    end
+    if left == nil or right == nil then
+        return false
+    end
+    return left.id == right.id
+end
+
+Notification.__gc = notificationRelease
+
+local function createNotification(options)
+    if type(options) ~= "table" then
+        note("hl.notification.create: expected a table { text, duration, icon?, color?, font_size? }", 2)
+        return nil
+    end
+    local text = options.text
+    if type(text) == "number" then
+        text = tostring(text)
+    elseif type(text) ~= "string" then
+        note("hl.notification.create: 'text' is required", 2)
+        text = ""
+    end
+    local duration = fieldNum(options, "duration")
+    if duration == nil then
+        duration = fieldNum(options, "timeout")
+    end
+    if duration == nil then
+        duration = fieldNum(options, "time")
+    end
+    if duration == nil then
+        note("hl.notification.create: 'duration' (or 'timeout' / 'time') is required", 2)
+        return nil
+    end
+    if duration < 0 then
+        note("hl.notification.create: duration must be >= 0", 2)
+        return nil
+    end
+    local icon = 6
+    if options.icon ~= nil then
+        icon = parseIcon(options.icon)
+        if icon == nil then
+            note("hl.notification.create: invalid 'icon' (expected icon name or number)", 2)
+            return nil
+        end
+    end
+    local color = 0
+    if options.color ~= nil then
+        color = notificationColor(options.color)
+        if color == nil then
+            note("hl.notification.create: invalid 'color' (expected color string or number)", 2)
+            return nil
+        end
+    end
+    local font = 13
+    local parsedFont = fieldNum(options, "font_size")
+    if parsedFont ~= nil then
+        if parsedFont <= 0 then
+            note("hl.notification.create: 'font_size' must be > 0", 2)
+            return nil
+        end
+        font = parsedFont
+    end
+    local reply = notificationOp("create", text, duration, icon, color, font)
+    if type(reply) ~= "table" or type(reply.id) ~= "number" then
+        return nil
+    end
+    return notification(reply.id)
+end
+
+local function getNotifications()
+    local list = notificationOp("get")
+    local found = {}
+    if type(list) ~= "table" then
+        return found
+    end
+    for _, entry in ipairs(list) do
+        found[#found + 1] = notification(entry.id)
+    end
+    return found
+end
+
+hl.notification = {
+    create = createNotification,
+    get = getNotifications,
+}
 
 -- The ctx of one callback: the tiling area, the targets in the layout's order, and the helpers. The second result
 -- holds the box each target placed, by its index.

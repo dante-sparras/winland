@@ -86,6 +86,7 @@ public sealed partial class Core
         RollingLogRequest log => new CommandReply(ExtraCommands.FormatRollingLog(RollingLog.Read(), log.Flags.HasFlag(CommandFlags.Json)), View([])),
         NotifyRequest notify => Notify(notify),
         DismissNotifyRequest dismiss => DismissNotify(dismiss),
+        NotificationRequest notification => Notification(notification),
         KeywordRequest keyword => ApplyKeyword(keyword),
         GetPropRequest prop => ReadProp(prop),
         SetPropRequest prop => WriteProp(prop),

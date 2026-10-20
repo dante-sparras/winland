@@ -137,6 +137,12 @@ public static class ExtraCommands
             return true;
         }
 
+        if (Is(verb, "notification"))
+        {
+            parse = Parsed(new NotificationRequest(rest), flags);
+            return true;
+        }
+
         parse = new CommandRejected("error: unknown request");
         return false;
     }
@@ -449,6 +455,8 @@ public sealed record KeywordRequest(string Name, string Value) : CommandRequest;
 public sealed record NotifyRequest(string Arguments) : CommandRequest;
 
 public sealed record DismissNotifyRequest(string Arguments) : CommandRequest;
+
+public sealed record NotificationRequest(string Arguments) : CommandRequest;
 
 /// <summary><c>seterror COLOR MESSAGE</c>, or <c>seterror disable</c>.</summary>
 public sealed record SetErrorRequest(string Arguments) : CommandRequest;

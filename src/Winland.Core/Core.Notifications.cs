@@ -2,8 +2,8 @@ using System.Globalization;
 
 namespace Winland;
 
-/// <summary>One notification <c>notify</c> asked for: its message, color, lifetime in milliseconds, icon and font size.</summary>
-public sealed record Notification(string Text, BorderColor Color, double TimeMs, int Icon, double FontSize);
+/// <summary>One notification <c>notify</c> asked for: its message, color, lifetime in milliseconds, icon, font size and id.</summary>
+public sealed record Notification(string Text, BorderColor Color, double TimeMs, int Icon, double FontSize, long Id);
 
 /// <summary>A change to the notifications on screen.</summary>
 public abstract record NotificationAction;
@@ -12,10 +12,125 @@ public abstract record NotificationAction;
 /// A notification to show at the top right of the work area of the Monitor focused when it was asked for, in the font
 /// <c>misc:font_family</c> names.
 /// </summary>
-public sealed record NotificationAdded(Notification Notification, Rectangle Monitor, Rectangle WorkArea, double Scale, string Font) : NotificationAction;
+public sealed record NotificationAdded(
+    Notification Notification,
+    Rectangle Monitor,
+    Rectangle WorkArea,
+    double Scale,
+    string Font,
+    double ElapsedMs = 0,
+    double SinceCreationMs = 0,
+    bool Paused = false) : NotificationAction;
 
-/// <summary>Takes away the oldest <paramref name="Amount"/> notifications, or every one when it is -1.</summary>
+/// <summary>Takes away the oldest <paramref name="Amount"/> notifications, or every one when it is negative.</summary>
 public sealed record NotificationsDismissed(int Amount) : NotificationAction;
+
+/// <summary>Takes away the notification with this id.</summary>
+public sealed record NotificationDismissed(long Id) : NotificationAction;
+
+/// <summary>Replaces the text, color, lifetime, icon, font and pause of the notification with this id.</summary>
+public sealed record NotificationChanged(
+    long Id,
+    string Text,
+    BorderColor Color,
+    double TimeMs,
+    int Icon,
+    double FontSize,
+    bool Paused,
+    double ElapsedMs) : NotificationAction;
+
+/// <summary>One notification on screen, timed from the moment it was shown so a pause can hold its progress.</summary>
+public sealed class NotificationCard
+{
+    public NotificationCard(NotificationAdded added, double now)
+    {
+        Notification = added.Notification;
+        Monitor = added.Monitor;
+        WorkArea = added.WorkArea;
+        Scale = added.Scale;
+        Font = added.Font;
+        CreatedAt = now - added.SinceCreationMs;
+        ElapsedAt = now - added.ElapsedMs;
+        Frozen = added.ElapsedMs;
+        Paused = added.Paused;
+    }
+
+    public Notification Notification { get; private set; }
+
+    public Rectangle Monitor { get; }
+
+    public Rectangle WorkArea { get; }
+
+    public double Scale { get; }
+
+    public string Font { get; }
+
+    public bool Paused { get; private set; }
+
+    private double CreatedAt { get; }
+
+    private double ElapsedAt;
+
+    private double Frozen;
+
+    public double Since(double now) => now - CreatedAt;
+
+    public double Elapsed(double now) => Paused ? Frozen : now - ElapsedAt;
+
+    public bool Gone(double now)
+    {
+        var life = Notification.TimeMs;
+        return !Paused && !double.IsNaN(life) && Elapsed(now) > Math.Truncate(life);
+    }
+
+    public void Change(NotificationChanged changed, double now)
+    {
+        Notification = Notification with
+        {
+            Text = changed.Text,
+            Color = changed.Color,
+            TimeMs = changed.TimeMs,
+            Icon = changed.Icon,
+            FontSize = changed.FontSize,
+        };
+        Paused = changed.Paused;
+        Frozen = changed.ElapsedMs;
+        ElapsedAt = now - changed.ElapsedMs;
+    }
+}
+
+/// <summary>Applies notification changes to the cards on screen, and drops the ones whose time has run out.</summary>
+public static class NotificationCards
+{
+    public static void Apply(List<NotificationCard> cards, NotificationAction action, double now)
+    {
+        ArgumentNullException.ThrowIfNull(cards);
+        switch (action)
+        {
+            case NotificationAdded added:
+                cards.Add(new NotificationCard(added, now));
+                break;
+            case NotificationsDismissed dismissed:
+                var count = dismissed.Amount < 0 ? cards.Count : Math.Min(Math.Max(dismissed.Amount, 0), cards.Count);
+                if (count > 0)
+                    cards.RemoveRange(0, count);
+
+                break;
+            case NotificationDismissed one:
+                cards.RemoveAll(card => card.Notification.Id == one.Id);
+                break;
+            case NotificationChanged changed:
+                cards.Find(card => card.Notification.Id == changed.Id)?.Change(changed, now);
+                break;
+        }
+    }
+
+    public static void Expire(List<NotificationCard> cards, double now)
+    {
+        ArgumentNullException.ThrowIfNull(cards);
+        cards.RemoveAll(card => card.Gone(now));
+    }
+}
 
 /// <summary>The sizes, icons and slide of the pinned release's notifications.</summary>
 public static class NotificationFrames
@@ -77,6 +192,10 @@ public static class NotificationFrames
 
 public sealed partial class Core
 {
+    private readonly NotificationBook _notes = new();
+
+    internal void UseNotificationClock(Func<long> now) => _notes.UseClock(now);
+
     // notify ICON TIME_MS COLOR [fontsize:SIZE] MESSAGE, with the pinned release's replies.
     private CommandReply Notify(NotifyRequest request)
     {
@@ -114,16 +233,8 @@ public sealed partial class Core
         if (words.Length <= message)
             return new CommandReply("not enough args", View([]));
 
-        var notification = new Notification(string.Join(' ', words[message..]), color, Math.Max(time, 1), icon, fontSize);
-        var screen = FocusedMonitor();
-        var monitor = screen?.Effective;
-        var added = new NotificationAdded(
-            notification,
-            monitor is null ? new Rectangle(0, 0, 1920, 1080) : new Rectangle(monitor.X, monitor.Y, monitor.Width, monitor.Height),
-            monitor?.WorkArea ?? new Rectangle(0, 0, 1920, 1080),
-            monitor?.Scale ?? 1,
-            FontNames.Windows(_session.FontFamily));
-        return new CommandReply("ok", View([]) with { Notifications = [added] });
+        var actions = _notes.Notify(string.Join(' ', words[message..]), color, Math.Max(time, 1), icon, fontSize, Spot());
+        return new CommandReply("ok", View([]) with { Notifications = actions });
     }
 
     // dismissnotify [AMOUNT]: the oldest AMOUNT notifications, or all of them.
@@ -138,6 +249,27 @@ public sealed partial class Core
                 return new CommandReply("invalid arg 1", View([]));
         }
 
-        return new CommandReply("ok", View([]) with { Notifications = [new NotificationsDismissed(amount)] });
+        return new CommandReply("ok", View([]) with { Notifications = _notes.DismissOldest(amount) });
+    }
+
+    // notification {json}: one notification, or the list of them, for hl.notification.
+    private CommandReply Notification(NotificationRequest request)
+    {
+        var (text, actions) = _notes.Execute(request.Arguments, Spot());
+        return new CommandReply(text, View([]) with { Notifications = actions });
+    }
+
+    private NotificationSpot Spot()
+    {
+        var font = FontNames.Windows(_session.FontFamily);
+        var monitor = FocusedMonitor()?.Effective;
+        if (monitor is null)
+            return NotificationSpot.Fallback with { Font = font };
+
+        return new NotificationSpot(
+            new Rectangle(monitor.X, monitor.Y, monitor.Width, monitor.Height),
+            monitor.WorkArea,
+            monitor.Scale,
+            font);
     }
 }
