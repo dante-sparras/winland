@@ -239,7 +239,7 @@ public sealed partial class WindowAdapter
         lock (Motions.For(window))
         {
             // Winland draws the border itself, outside the window, so DWM draws none.
-            var held = Motions.Paint(window, decoration.Alpha, decoration.Border);
+            var held = Motions.Paint(window, decoration.Alpha, decoration.Border, decoration.Opacity, decoration.Keep);
             SetAttribute(hwnd, BorderColorAttribute, NoneBorderColor);
             if (!held.Border)
                 BorderHost.Tint(window, null);

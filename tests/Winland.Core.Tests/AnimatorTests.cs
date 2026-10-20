@@ -209,6 +209,61 @@ public class AnimatorTests
     }
 
     [Fact]
+    public void TheDimAndTheOpacityEaseOnTheirOwnTimings()
+    {
+        var animator = new Animator();
+        var slow = new Timing(Bezier.Linear, 200);
+        animator.Start(
+            new Motion(Window, new Rectangle(0, 0, 10, 10))
+            {
+                AlphaFrom = 200,
+                OpacityTo = 100,
+                Alpha = Linear,
+                DimFrom = 255,
+                DimTo = 127,
+                Dim = slow,
+                AlphaTo = 50,
+            },
+            now: 0);
+
+        // The opacity is halfway, 150, and the dim a quarter of the way, 223: 150 * 223 / 255 is 131.
+        var halfway = Assert.Single(animator.Step(50));
+        Assert.Equal((byte)131, halfway.Alpha);
+
+        // The opacity has landed on 100 and the dim is at 191, halfway: 100 * 191 / 255 is 75.
+        var later = Assert.Single(animator.Step(100));
+        Assert.Equal((byte)75, later.Alpha);
+
+        var landed = Assert.Single(animator.Step(200));
+        Assert.True(landed.Done);
+        Assert.Equal((byte)50, landed.Alpha);
+        Assert.Equal((byte)50, landed.RestAlpha);
+    }
+
+    [Fact]
+    public void ADimWithNoTimingAppliesAtOnceWhileTheOpacityEases()
+    {
+        var animator = new Animator();
+        animator.Start(
+            new Motion(Window, new Rectangle(0, 0, 10, 10)) { AlphaFrom = 200, OpacityTo = 100, Alpha = Linear, DimTo = 128, AlphaTo = 50 },
+            now: 0);
+
+        Assert.Equal((byte)(150 * 128 / 255.0 + 0.5), Assert.Single(animator.Step(50)).Alpha);
+    }
+
+    [Fact]
+    public void ADimChangeMovesTowardANewerDim()
+    {
+        var animator = new Animator();
+        animator.Start(new Motion(Window, new Rectangle(0, 0, 10, 10)) { DimFrom = 255, DimTo = 100, Dim = Linear, AlphaTo = 100 }, now: 0);
+        Assert.True(animator.Paint(Window, 255, default, now: 50, opacity: 255, keep: 255).Alpha);
+
+        // The dim turned back to none halfway: it eases to 255 from where it was, 178.
+        Assert.Equal((byte)216, Assert.Single(animator.Step(100)).Alpha);
+        Assert.Equal((byte)255, Assert.Single(animator.Step(150)).Alpha);
+    }
+
+    [Fact]
     public void ABorderChangeLandsOnItsColor()
     {
         var animator = new Animator();

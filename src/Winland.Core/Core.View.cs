@@ -32,7 +32,7 @@ public sealed partial class Core
             var corners = CornersFor(client);
             var choice = PropOpacity(client.Window, OpacityOf(client.Window));
             var special = FindWorkspace(client.Workspace) is LiveWorkspace home ? SpecialOn(home.Monitor) : null;
-            var alpha = DecorationAlpha.Compute(
+            var parts = DecorationAlpha.Parts(
                 _decoration,
                 new OpacityInput(
                     client.Window == active,
@@ -42,6 +42,7 @@ public sealed partial class Core
                     OnSpecial: special == client.Workspace),
                 choice.Rule,
                 choice.Opaque);
+            var alpha = parts.Alpha;
             var shape = borderless ? CornerChoice.Square : corners;
             var noShadow = NoShadow(client);
             decorations.Add(new Decoration(
@@ -52,6 +53,8 @@ public sealed partial class Core
                 borderless)
             {
                 Region = shape.Region,
+                Opacity = parts.Opacity,
+                Keep = parts.Keep,
                 Blur = _decoration.Blur,
                 Shadow = _decoration.Shadow && !_decoration.ShadowDrawn && !noShadow,
                 Ring = borderless || hidden.Contains(client.Window) ? null : RingFor(client, client.Window == active, shape, alpha),

@@ -8,7 +8,6 @@ public static class ConfigGaps
     [
         new("acrylic", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("allow_tearing", "Tearing is a compositor feature with no Windows meaning."),
-        new("animation:fadeDim", "Dimming is part of a window's alpha, so fadeSwitch animates it."),
         new("animation:fadeLayers", "Layer shell surfaces have no Windows meaning."),
         new("animation:fadeLayersIn", "Layer shell surfaces have no Windows meaning."),
         new("animation:fadeLayersOut", "Layer shell surfaces have no Windows meaning."),

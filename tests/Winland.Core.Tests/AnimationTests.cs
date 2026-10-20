@@ -321,6 +321,56 @@ public class AnimationTests
     }
 
     [Fact]
+    public void FocusMovesTheDimOnTheFadeDimNodeAndTheOpacityOnFadeSwitch()
+    {
+        var core = Load("""
+            decoration:inactive_opacity = 0.8
+            decoration:dim_inactive = true
+            decoration:dim_strength = 0.5
+            animation = fadeSwitch, 1, 2, linear
+            animation = fadeDim, 1, 6, linear
+            """);
+        Appear(core, 1);
+        Appear(core, 2);
+
+        var outcome = core.Handle(new Dispatch("movefocus", "l"));
+
+        var focused = Assert.Single(outcome.Motions, motion => motion.Window == new WindowId(1));
+        Assert.Equal(new Timing(Bezier.Linear, 200), focused.Alpha);
+        Assert.Equal(new Timing(Bezier.Linear, 600), focused.Dim);
+        Assert.Equal((byte)255, focused.DimTo);
+        Assert.Equal((byte)128, focused.DimFrom);
+        Assert.Equal((byte)255, focused.OpacityTo);
+        Assert.Equal((byte)204, focused.AlphaFrom);
+    }
+
+    [Fact]
+    public void FadeDimFallsBackToFadeAndFadeSwitchLeavesTheDimAlone()
+    {
+        var inherited = Load("""
+            decoration:dim_inactive = true
+            animation = fade, 1, 4, linear
+            """);
+        Appear(inherited, 1);
+        Appear(inherited, 2);
+        var both = Assert.Single(inherited.Handle(new Dispatch("movefocus", "l")).Motions, motion => motion.Window == new WindowId(1));
+        Assert.Equal(new Timing(Bezier.Linear, 400), both.Dim);
+        Assert.Null(both.Alpha);
+
+        var off = Load("""
+            decoration:dim_inactive = true
+            animation = fadeSwitch, 1, 2, linear
+            animation = fadeDim, 0
+            """);
+        Appear(off, 1);
+        Appear(off, 2);
+        var none = Assert.Single(off.Handle(new Dispatch("movefocus", "l")).Motions, motion => motion.Window == new WindowId(1));
+        Assert.Null(none.Dim);
+        Assert.Null(none.Alpha);
+        Assert.Equal((byte)255, none.AlphaTo);
+    }
+
+    [Fact]
     public void ADraggedWindowMovesAtOnce()
     {
         var core = Load("bindm = SUPER, mouse:272, movewindow");

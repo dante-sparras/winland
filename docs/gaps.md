@@ -12,7 +12,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | --- | --- |
 | acrylic | Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned. |
 | allow_tearing | Tearing is a compositor feature with no Windows meaning. |
-| animation:fadeDim | Dimming is part of a window's alpha, so fadeSwitch animates it. |
 | animation:fadeLayers | Layer shell surfaces have no Windows meaning. |
 | animation:fadeLayersIn | Layer shell surfaces have no Windows meaning. |
 | animation:fadeLayersOut | Layer shell surfaces have no Windows meaning. |
@@ -128,7 +127,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | --- | --- | --- |
 | gap | - | acrylic, aurora, decoration:blur:variant, drops, fluid_jar, glass, haze, heat_shimmer, ripple, water |
 | non-goal | - | allow_tearing, debug, opengl, quirks, render, screen_shader |
-| gap | - | animation:fadeDim, animation:monitorAdded |
+| gap | - | animation:monitorAdded |
 | non-goal | - | animation:fadeLayers, animation:fadeLayersIn, animation:fadeLayersOut, animation:fadePopups, animation:fadePopupsIn, animation:fadePopupsOut, animation:layers, animation:layersIn, animation:layersOut |
 | non-goal | - | binds:disable_keybind_grabbing |
 | gap | - | bitdepth, vrr |
@@ -159,7 +158,7 @@ Input Windows already has: `device`, so an honored input setting can name one de
 
 Monitors and the process locale: `bitdepth` and `locale` (`general:locale`).
 
-Drawing on windows Winland already owns: `group:groupbar:blur` on the bar Winland draws; `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`; and the animation nodes `animation:fadeDim` and `animation:monitorAdded`.
+Drawing on windows Winland already owns: `group:groupbar:blur` on the bar Winland draws; `motion_blur`, which is `decoration:motion_blur:enabled` and `decoration:motion_blur:samples`; and the animation node `animation:monitorAdded`.
 
 Logging and the error bar: `debug:disable_logs`, `debug:disable_time`, `debug:enable_stdout_logs`, `debug:colored_stdout_logs`, `debug:suppress_errors`, `debug:error_limit` and `debug:error_position`.
 
