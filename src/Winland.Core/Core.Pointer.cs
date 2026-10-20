@@ -16,12 +16,15 @@ public sealed partial class Core
         var match = BindMatcher.Decide(_binds, _keyState, pressed);
 
         // A drag already running keeps the pointer. A second drag button does not start another one.
-        if (_gesture is null && TryDragHit(match, out var drag) && DragTarget(pressed.Position) is WindowId window)
+        if (_gesture is null && TryDragHit(match, out var drag) && (TabUnder(drag, pressed.Position) ?? DragTarget(pressed.Position)) is WindowId target)
         {
             _border = null;
-            var begun = BeginGesture(window, drag, pressed.Button, pressed.Position);
+            var tabbed = TakeTabOut(drag, pressed.Position, out var window);
+            window ??= target;
+            var begun = BeginGesture(window.Value, drag, pressed.Button, pressed.Position);
             var ran = RunBind(match) with { Focus = window };
-            return begun.Count == 0 ? ran : ran with { Placements = begun };
+            ran = tabbed is null ? ran : Merge(tabbed, ran);
+            return begun.Count == 0 ? ran : ran with { Placements = Union(ran.Placements, begun, ran.State) };
         }
 
         if (!match.Consumed && TryBorderTarget(pressed.Position, out var hit, out var bounds, out var floating, out _))

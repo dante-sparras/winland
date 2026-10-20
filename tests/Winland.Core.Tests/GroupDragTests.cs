@@ -79,6 +79,39 @@ public class GroupDragTests
     }
 
     // Window 1 is a Group of one on the left, window 2 a tile on the right.
+    [Fact]
+    public void AMoveStartedOnATabTakesThatMemberOutAndDragsItAlone()
+    {
+        var core = Grouped("group:drag_into_group = 0\n");
+        core.Handle(new Dispatch("focuswindow", "address:0x2"));
+        core.Handle(new Dispatch("moveintogroup", "l"));
+        var bar = Assert.Single(core.Handle(new Dispatch("no_op")).GroupBars);
+        var tab = new Point(bar.Bounds.X + bar.TabWidth + bar.Style.GapsIn + 5, bar.Bounds.Y + (bar.Bounds.Height / 2));
+        core.Handle(new KeyPressed("Super_L"));
+
+        var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = tab });
+        core.Handle(new PointerMoved(new Point(1800, 900)));
+        var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(1800, 900) });
+
+        Assert.Equal([new WindowId(1)], Assert.Single(pressed.State.Groups));
+        Assert.Contains(pressed.Events, item => item is ClientOutOfGroup left && left.Window == new WindowId(2));
+        Assert.Equal([new WindowId(1)], Assert.Single(dropped.State.Groups));
+        Assert.False(Assert.Single(dropped.State.Clients, client => client.Window == new WindowId(2)).Floating);
+    }
+
+    [Fact]
+    public void AMoveStartedOnTheTabOfAGroupOfOneDragsTheWholeGroup()
+    {
+        var core = Grouped("");
+        var bar = Assert.Single(core.Handle(new Dispatch("no_op")).GroupBars);
+        core.Handle(new KeyPressed("Super_L"));
+
+        var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(bar.Bounds.X + 5, bar.Bounds.Y + (bar.Bounds.Height / 2)) });
+
+        Assert.Equal([new WindowId(1)], Assert.Single(pressed.State.Groups));
+        Assert.DoesNotContain(pressed.Events, item => item is ClientOutOfGroup);
+    }
+
     private static Core Grouped(string extra)
     {
         var core = new Core();
