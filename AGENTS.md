@@ -1,37 +1,44 @@
-# Project instructions
+# Winland
 
-Run `pwsh scripts/dev.ps1` after cloning, before reading Hyprland. It clones Hyprland into `docs/agents/hyprland/` and fetches its wiki into `site/` there. It also points git at the tracked hooks in `scripts/hooks` (the pre-push lint hook and the post-merge cleanup).
+Winland is a Windows 11 window manager that matches the features and behavior of a pinned Hyprland release wherever Windows allows. It is not packaged as MSIX.
 
-Issues are GitHub Issues on `dante-sparras/winland`, labelled with the roles in `docs/agents/triage-labels.md`. An issue labelled `ready-for-agent` is specified well enough for an agent to fix without asking. See `docs/agents/issue-tracker.md`.
+## Setup
 
-# Conventions
+Run `pwsh scripts/dev.ps1` once after cloning. It clones the pinned release (<https://github.com/hyprwm/Hyprland>, commit `e2d94f5`, after v0.56.2; ADR 0008) into `docs/agents/hyprland/`, fetches its wiki into `docs/agents/hyprland/site/`, and points git at the hooks in `scripts/hooks`. Read the reference behavior there.
 
-- Branch names, commit messages, pull-request approval, evidence, and how a pull request lands are in `CONTRIBUTING.md`. Open a pull request only when the maintainer asks.
-- C# on .NET 10. Nullable reference types and implicit usings are on. Warnings are errors.
-- Commands: `pwsh -NoProfile -File scripts/check.ps1` lints and builds. `dotnet test` the test project that covers the change. CI runs `scripts/test.ps1`. `scripts/mutate.ps1` is the release lane.
-- Update a document when this change makes it false, and edit it in place. When to leave a document alone is in `CONTRIBUTING.md`.
-- The committed version is `0.0.0`. Releases are cut with `scripts/release.ps1`. See `docs/releasing.md`.
-- Triage labels are the five default roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), each label string equal to its role name.
-- The Hyprland checkout and its wiki are gitignored.
-- The word "hyprland" never appears in code, identifiers, file names or user-visible strings (ADR 0002).
-- Every Gap is recorded in `docs/gaps.md`, Winland extensions in `docs/extensions.md`, and honored behavior in `docs/behavior.md`.
+## Domain
+
+- `CONTEXT.md` is the glossary and `docs/adr/` holds decisions. See `docs/agents/domain.md`.
+- Code, identifiers, file names and user-visible strings call the reference "the pinned release". The word "hyprland" never appears in them (ADR 0002).
+
+## Workflow
+
+- `CONTRIBUTING.md` covers branch names, commit messages, evidence, documentation, and how a pull request lands. Open a pull request only when the maintainer asks.
+- Issues are GitHub Issues on `dante-sparras/winland`. An issue labelled `ready-for-agent` is specified well enough to fix without asking. See `docs/agents/issue-tracker.md` and `docs/agents/triage-labels.md`.
+- `pwsh -NoProfile -File scripts/check.ps1` lints and builds. Run `dotnet test` on the test project that covers the change. CI runs `scripts/test.ps1`, and `scripts/mutate.ps1` is the release lane.
+- The committed version is `0.0.0`. Releases are cut with `scripts/release.ps1`; see `docs/releasing.md`.
+
+## Records
+
+Each record has one home, and tests hold them in step:
+
+- A Gap is a row in `docs/gaps.md` and an entry in `src/Winland.Core/ConfigGaps.cs`. A test checks that they agree.
+- A Winland extension is in `docs/extensions.md`, and honored behavior is in `docs/behavior.md`.
 - A change that makes a skipped conformance case pass removes its Skip and updates its row and the score in `docs/conformance.md`. A test checks that they agree.
 
-# Running a build on this computer
+## Running a build on this computer
 
-`pwsh -NoProfile -File scripts/run.ps1` publishes this checkout, asks the running winland to exit, which puts every window back, and starts the new build in its place. It takes about ten seconds. Use it instead of `dotnet run`, `Stop-Process` or a hand-built `winlandctl` call.
+`pwsh -NoProfile -File scripts/run.ps1` publishes this checkout, asks the running winland to exit (which puts every window back), and starts the new build in its place in about ten seconds. Use it for every start and stop, in place of `dotnet run`, `Stop-Process` or a hand-built `winlandctl` call.
 
-- It starts the build without administrator rights, so no UAC prompt appears and nobody has to click. That build cannot place the windows of elevated programs. `-Elevated` starts it elevated, as the logon task does, and waits for one UAC approval, which an agent cannot give.
-- A build that fails to publish leaves the running winland alone. Each build goes in its own folder under `%LOCALAPPDATA%\winland-dev`, so a running one never locks the next. Its output is in `winland.out.log` and `winland.err.log` there.
-- `-Stop` stops winland and starts nothing. `-Config <file>` reads that file, `.conf` or `.lua`, instead of `%APPDATA%\winland\winland.lua` or, without it, `winland.conf`.
-- Never stop winland by force. It hides the taskbar while it runs and puts it back only when it exits cleanly. After a forced stop, run the script and then `-Stop`: the start puts the taskbar back.
-- A running winland takes over every window on the desktop, the ones the user is working in too. Start it only when the user asked to see a change, and stop it when you are done. To try a build without touching their windows, pass a config that ignores every window (`windowrulev2 = ignore, class:.*`) and then tiles only your own test windows, and set `WINLAND_PIPE` and `WINLAND_STATE` to names of your own first. With `WINLAND_PIPE` set the script replaces only the copies it started.
-- Piping the script's output is safe. The shell starts winland, so it holds none of the script's handles.
+- A running winland takes over every window on the desktop, including the user's. Start it only when the user asked to see a change, and stop it when you are done.
+- To test without touching the user's windows, set `WINLAND_PIPE` and `WINLAND_STATE` to names of your own, then pass `-Config` a file that ignores every window (`windowrulev2 = ignore, class:.*`) and tiles only your test windows. With `WINLAND_PIPE` set, the script replaces only the copies it started. Rule patterns match the whole string, so `^foo` matches only `foo`.
+- `-Stop` stops winland cleanly, which puts the taskbar back. A forced stop leaves the taskbar hidden; recover by running the script and then `-Stop`.
+- `-Config <file>` reads that `.conf` or `.lua` file in place of `%APPDATA%\winland\winland.lua` or, without it, `winland.conf`.
+- The build starts without administrator rights, so it cannot place the windows of elevated programs. `-Elevated` waits for a UAC approval, which an agent cannot give.
+- Each build goes in its own folder under `%LOCALAPPDATA%\winland-dev`, with its output in `winland.out.log` and `winland.err.log`. A build that fails to publish leaves the running winland alone. Piping the script's output is safe.
 
-# Architecture
+## Notes
 
-Winland is the Windows 11 window manager that matches Hyprland's features and behavior. It is not packaged as MSIX.
+I like ambitious ideas, simple systems, and software that feels obvious. Do not preserve complexity just because it already exists. Do not introduce machinery because it looks architecturally impressive. Understand the real constraint, then fight for the smallest model that makes the correct behavior unsurprising.
 
-- Domain docs are single-context: `CONTEXT.md` is the glossary and `docs/adr/` holds decisions. See `docs/agents/domain.md`.
-- Hyprland repo: `docs/agents/hyprland/` (<https://github.com/hyprwm/Hyprland>, commit `e2d94f5`, after v0.56.2; ADR 0008).
-- Hyprland docs: `docs/agents/hyprland/site/`.
+Channel both "measure twice, cut once" and "yagni". Fight scope creep. Try to honor the dev's intent in both a minimal and realistic fashion.
