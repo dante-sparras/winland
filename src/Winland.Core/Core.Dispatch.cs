@@ -105,6 +105,9 @@ public sealed partial class Core
         ArgumentNullException.ThrowIfNull(name);
         arguments ??= "";
 
+        if (ActsOnAWindow(name) && arguments.IndexOf(',', StringComparison.Ordinal) is var comma and >= 0)
+            return ExecuteOn(name, arguments[..comma], arguments[(comma + 1)..].Trim(), allowsElevation);
+
         if (Is(name, "togglespecialworkspace"))
             return ToggleSpecial(arguments, allowsElevation);
 

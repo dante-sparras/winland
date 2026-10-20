@@ -40,9 +40,9 @@ internal sealed partial class LuaRun
         _lua.SetField(-2, "cursor");
 
         _lua.NewTable();
-        Constructor("group", "toggle", label => NoWindow(label) ?? new Dispatch("togglegroup", ""));
-        Constructor("group", "next", label => NoWindow(label) ?? new Dispatch("changegroupactive", "f"));
-        Constructor("group", "prev", label => NoWindow(label) ?? new Dispatch("changegroupactive", "b"));
+        Constructor("group", "toggle", label => new Dispatch("togglegroup", WithWindow("")));
+        Constructor("group", "next", label => new Dispatch("changegroupactive", WithWindow("f")));
+        Constructor("group", "prev", label => new Dispatch("changegroupactive", WithWindow("b")));
         Constructor("group", "active", GroupActive);
         Constructor("group", "move_window", label => new Dispatch("movegroupwindow", Bool("forward") == false ? "b" : ""));
         Constructor("group", "lock", GroupLock);
@@ -59,7 +59,7 @@ internal sealed partial class LuaRun
         Constructor("window", "pseudo", label => Action() == Toggle.Toggle ? new Dispatch("pseudo", Window() ?? "") : NotHonored(label + " with an action other than toggle"));
         Constructor("window", "move", WindowMove);
         Constructor("window", "swap", WindowSwap);
-        Constructor("window", "center", label => NoWindow(label) ?? new Dispatch("centerwindow", ""));
+        Constructor("window", "center", label => new Dispatch("centerwindow", WithWindow("")));
         Constructor("window", "cycle_next", WindowCycleNext);
         Constructor("window", "tag", label => new Dispatch("tagwindow", Join(Required("tag"), Window() ?? "")));
         Constructor("window", "clear_tags", label => NotHonored(label));
@@ -179,18 +179,21 @@ internal sealed partial class LuaRun
     private static Dispatch NotHonored(string what) => new("", "", what);
 
     // The line dispatcher acts on the focused window only, so a constructor given another window is not honored.
+    // A dispatcher that acts on the active window takes another one after a comma, which the Lua form names.
+    private string WithWindow(string argument) => WithSelector(argument, Window());
+
     private Dispatch? NoWindow(string label) => Window() is null ? null : NotHonored(label + " with a window");
 
     private static string WithSelector(string argument, string? window) => window is null ? argument : argument + "," + window;
 
     private Dispatch CursorMoveToCorner(string label) =>
-        NoWindow(label) ?? new Dispatch("movecursortocorner", Required("corner"));
+        new Dispatch("movecursortocorner", WithWindow(Required("corner")));
 
     private Dispatch CursorMove(string label) =>
         new("movecursor", $"{Required("x")} {Required("y")}");
 
     private Dispatch GroupActive(string label) =>
-        NoWindow(label) ?? new Dispatch("changegroupactive", Required("index"));
+        new Dispatch("changegroupactive", WithWindow(Required("index")));
 
     // No argument toggles the lock of the focused window's group. { all = true } locks every group, as lockgroups does.
     private Dispatch GroupLock(string label)
@@ -201,7 +204,7 @@ internal sealed partial class LuaRun
         if (Bool("all") == true)
             return new Dispatch("lockgroups", LockWord(Action()));
 
-        return NoWindow(label) ?? new Dispatch("lockactivegroup", LockWord(Action()));
+        return new Dispatch("lockactivegroup", WithWindow(LockWord(Action())));
     }
 
     // The pinned release keeps lock_active as group.lock without all, and notes that it is deprecated.
@@ -262,7 +265,7 @@ internal sealed partial class LuaRun
             layoutAware = Bool("layout_aware") ?? true;
         }
 
-        return NoWindow(label) ?? new Dispatch("fullscreen", Words(mode, action, layoutAware ? "" : "default"));
+        return new Dispatch("fullscreen", WithWindow(Words(mode, action, layoutAware ? "" : "default")));
     }
 
     // { internal, client, action = "set", layout_aware, window }: "fullscreenstate INTERNAL CLIENT ACTION [default] [WINDOW]".
@@ -309,13 +312,13 @@ internal sealed partial class LuaRun
         if (Text(1, "into_group") is string into)
         {
             var letter = Direction(into) ?? throw Mistake($"invalid into_group direction \"{into}\"");
-            return NoWindow(label) ?? new Dispatch("moveintogroup", letter);
+            return new Dispatch("moveintogroup", WithWindow(letter));
         }
 
         if (Text(1, "into_or_create_group") is string create)
         {
             var letter = Direction(create) ?? throw Mistake($"invalid into_or_create_group direction \"{create}\"");
-            return NoWindow(label) ?? new Dispatch("moveintoorcreategroup", letter);
+            return new Dispatch("moveintoorcreategroup", WithWindow(letter));
         }
 
         if (Bool("out_of_group") is bool outOfGroup)
@@ -339,11 +342,11 @@ internal sealed partial class LuaRun
         if (Text(1, "direction") is string direction)
         {
             var letter = Direction(direction) ?? throw Mistake($"invalid direction \"{direction}\" (expected left/right/up/down)");
-            return NoWindow(label) ?? new Dispatch("swapwindow", letter);
+            return new Dispatch("swapwindow", WithWindow(letter));
         }
 
         if ((Text(1, "target") ?? Text(1, "with") ?? Text(1, "other")) is string target)
-            return NoWindow(label) ?? new Dispatch("swapwindow", target);
+            return new Dispatch("swapwindow", WithWindow(target));
 
         if (Bool("next") == true || Bool("prev") == true)
             return NotHonored(label + " with next or prev");
