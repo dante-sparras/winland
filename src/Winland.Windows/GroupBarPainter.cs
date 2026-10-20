@@ -8,14 +8,15 @@ namespace Winland.Windows;
 /// <summary>
 /// Renders one Group's tab bar into a 32-bit bitmap and hands it to a layered window.
 /// The strip is almost transparent (alpha 1) so it still takes clicks. Indicators keep their alpha.
-/// GDI drops the alpha of the pixels it draws text on, so those pixels are given the title color's alpha afterwards.
+/// GDI knows no alpha, so the titles are drawn white on black into a mask with grayscale antialiasing, and each title's
+/// color is laid over the bar as much as the mask covers each pixel.
 /// </summary>
 internal static class GroupBarPainter
 {
     private const string DefaultFont = "Segoe UI";
 
-    // NONANTIALIASED_QUALITY: antialiased text would blend with the black of the transparent strip.
-    private const FONT_QUALITY Quality = FONT_QUALITY.NONANTIALIASED_QUALITY;
+    // Grayscale antialiasing, not ClearType, so the mask's channels are one coverage.
+    private const FONT_QUALITY Quality = FONT_QUALITY.ANTIALIASED_QUALITY;
 
     /// <summary>The live title of each tab, or the title the core knows when the window has none.</summary>
     internal static string[] Titles(GroupBar bar)
@@ -100,7 +101,29 @@ internal static class GroupBarPainter
 
     private static unsafe void DrawTitles(HDC memory, Span<uint> pixels, int width, int height, GroupBar bar, IReadOnlyList<string> titles)
     {
-        _ = PInvoke.SetBkMode(memory, BACKGROUND_MODE.TRANSPARENT);
+        // The titles go white on black into a mask of their own, so their antialiased edges are coverage, not a blend with
+        // whatever the strip holds.
+        var info = new BITMAPINFO();
+        info.bmiHeader.biSize = (uint)sizeof(BITMAPINFOHEADER);
+        info.bmiHeader.biWidth = width;
+        info.bmiHeader.biHeight = -height;
+        info.bmiHeader.biPlanes = 1;
+        info.bmiHeader.biBitCount = 32;
+        info.bmiHeader.biCompression = 0;
+        var maskDc = PInvoke.CreateCompatibleDC(memory);
+        void* maskBits;
+        var maskBitmap = PInvoke.CreateDIBSection(maskDc, &info, DIB_USAGE.DIB_RGB_COLORS, &maskBits, HANDLE.Null, 0);
+        if (maskBitmap.IsNull || maskBits is null)
+        {
+            _ = PInvoke.DeleteDC(maskDc);
+            return;
+        }
+
+        var oldMask = PInvoke.SelectObject(maskDc, maskBitmap);
+        var mask = new Span<uint>(maskBits, width * height);
+        mask.Clear();
+        _ = PInvoke.SetBkMode(maskDc, BACKGROUND_MODE.TRANSPARENT);
+        _ = PInvoke.SetTextColor(maskDc, new COLORREF(0x00FFFFFF));
         var family = bar.Style.FontFamily.Length == 0 ? DefaultFont : bar.Style.FontFamily;
         for (var i = 0; i < bar.Tabs.Count && i < titles.Count; i++)
         {
@@ -113,14 +136,12 @@ internal static class GroupBarPainter
 
             var weight = tab.Focused ? bar.Style.FontWeightActive : bar.Style.FontWeightInactive;
             using var font = GdiFonts.Create(bar.Style.FontSize, weight, Quality, family);
-            var previous = PInvoke.SelectObject(memory, font);
-            var color = bar.Style.TitleColor(tab.Focused, bar.Locked);
-            _ = PInvoke.SetTextColor(memory, new COLORREF((uint)(color.R | (color.G << 8) | (color.B << 16))));
+            var previous = PInvoke.SelectObject(maskDc, font);
             var text = titles[i];
             fixed (char* chars = text)
             {
                 _ = PInvoke.DrawText(
-                    memory,
+                    maskDc,
                     chars,
                     text.Length,
                     &box,
@@ -128,9 +149,14 @@ internal static class GroupBarPainter
                         | DRAW_TEXT_FORMAT.DT_END_ELLIPSIS | DRAW_TEXT_FORMAT.DT_NOPREFIX);
             }
 
-            _ = PInvoke.SelectObject(memory, previous);
-            ApplyTextAlpha(pixels, width, height, row with { Y = row.Y + bar.Style.TextOffset }, color.A);
+            _ = PInvoke.SelectObject(maskDc, previous);
+            _ = PInvoke.GdiFlush();
+            ComposeText(pixels, mask, width, height, row with { Y = row.Y + bar.Style.TextOffset }, bar.Style.TitleColor(tab.Focused, bar.Locked));
         }
+
+        _ = PInvoke.SelectObject(maskDc, oldMask);
+        _ = PInvoke.DeleteObject(maskBitmap);
+        _ = PInvoke.DeleteDC(maskDc);
     }
 
     // Premultiplied BGRA of a color over the part of a pixel a shape covers. A pixel keeps an alpha of at least 1, so the
@@ -158,25 +184,9 @@ internal static class GroupBarPainter
         }
     }
 
-    // Gives the pixels GDI drew text on the title color's alpha, premultiplied. Unantialiased text holds
-    // the exact color, so one alpha fits every such pixel. The result keeps an alpha of at least 1.
-    internal static void ApplyTextAlpha(Span<uint> pixels, int width, int height, Rectangle box, byte alpha) =>
-        ForEach(pixels, width, height, box, (ref uint value) =>
-        {
-            if ((value & 0xFF000000) != 0)
-                return;
-
-            uint a = alpha;
-            var pixel = (a << 24)
-                | ((((value >> 16) & 0xFF) * a / 255) << 16)
-                | ((((value >> 8) & 0xFF) * a / 255) << 8)
-                | ((value & 0xFF) * a / 255);
-            value = pixel == 0 ? 0x01000000 : pixel;
-        });
-
-    private delegate void PixelAction(ref uint value);
-
-    private static void ForEach(Span<uint> pixels, int width, int height, Rectangle box, PixelAction action)
+    // Lays a title's color over the bar as much as the mask covers each pixel: the mask's white is full coverage, and its
+    // grays are the antialiased edges. The result is premultiplied and keeps an alpha of at least 1.
+    internal static void ComposeText(Span<uint> pixels, ReadOnlySpan<uint> mask, int width, int height, Rectangle box, BorderColor color)
     {
         var left = Math.Max(0, box.X);
         var top = Math.Max(0, box.Y);
@@ -185,7 +195,25 @@ internal static class GroupBarPainter
         for (var y = top; y < bottom; y++)
         {
             for (var x = left; x < right; x++)
-                action(ref pixels[(y * width) + x]);
+            {
+                var index = (y * width) + x;
+                var cover = Math.Max((mask[index] >> 16) & 0xFF, Math.Max((mask[index] >> 8) & 0xFF, mask[index] & 0xFF));
+                if (cover == 0)
+                    continue;
+
+                var a = (uint)color.A * cover / 255;
+                var over = (a << 24) | ((color.R * a / 255) << 16) | ((color.G * a / 255) << 8) | (color.B * a / 255);
+                var blended = Blend(over, pixels[index]);
+                pixels[index] = (blended >> 24) == 0 ? 0x01000000 : blended;
+            }
         }
+    }
+
+    // Premultiplied "over".
+    private static uint Blend(uint top, uint under)
+    {
+        var keep = 255 - (top >> 24);
+        uint Channel(int shift) => Math.Min(255u, ((top >> shift) & 0xFF) + ((((under >> shift) & 0xFF) * keep) + 127) / 255);
+        return (Channel(24) << 24) | (Channel(16) << 16) | (Channel(8) << 8) | Channel(0);
     }
 }

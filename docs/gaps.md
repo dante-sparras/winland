@@ -215,7 +215,7 @@ Mouse drag has these Gaps. Each is a gap with no open issue:
 
 - A Client dragged onto another Monitor joins the Workspace that Monitor shows when it is dropped, not as soon as its middle crosses, so `movewindow` is told once, at the drop, and not each time the middle crosses a Monitor during the drag.
 
-Titles in a tab bar are drawn without antialiasing, because antialiased text would blend with the transparent strip. The wheel over the bar focuses the next member instead of only showing it. The bar is a separate window. It is put just above the shown member in the z-order each time the core reports a change, not each time another window is raised.
+The wheel over the bar focuses the next member instead of only showing it. The bar is a separate window. It is put just above the shown member in the z-order each time the core reports a change, not each time another window is raised.
 
 ## Lua config
 
