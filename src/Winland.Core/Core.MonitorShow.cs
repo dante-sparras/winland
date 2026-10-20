@@ -24,6 +24,10 @@ public sealed partial class Core
         if (target.IsSpecial)
             return new CommandReply("ok", View([]));
 
+        // The Workspace this Monitor shows is reported only when the focus may follow, so a Monitor that is not
+        // focused reports nothing for itself. Taking the Workspace the focused Monitor shows reports the one it
+        // shows next.
+        var focusedBefore = ActiveOn(FocusedId());
         var before = ShowingNow();
         var focused = screen.Id == FocusedId();
         var desk = WorkspaceFor(target, screen.Id);
@@ -61,6 +65,10 @@ public sealed partial class Core
         }
 
         SyncActive();
+        var focusedNow = ActiveOn(FocusedId());
+        if (focusedNow != focusedBefore)
+            NoteWorkspaceActive(focusedNow);
+
         var (show, hide) = VisibilityDelta(before);
         return new CommandReply("ok", View(ShownPlacements(), show, Combine(hide, hidden), focus: focus));
 

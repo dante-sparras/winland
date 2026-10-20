@@ -242,6 +242,7 @@ public sealed partial class Core
         if (MonitorById(monitor) is { } owner)
             owner.Active = target;
 
+        NoteWorkspaceActive(target);
         Remember(target, monitor);
         var destination = WorkspaceFor(target, monitor);
         CarryPinned(sourceId, destination);
