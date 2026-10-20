@@ -380,7 +380,7 @@ public class EventTests
         Assert.Equal(
             ["openwindow>>2a,1,kitty,term", "activewindow>>kitty,term", "activewindowv2>>2a"],
             Lines(outcome));
-        using var active = System.Text.Json.JsonDocument.Parse(core.Execute("activewindow").Text);
+        using var active = System.Text.Json.JsonDocument.Parse(core.Execute("j/activewindow").Text);
         Assert.Equal("0x2a", active.RootElement.GetProperty("address").GetString());
     }
 

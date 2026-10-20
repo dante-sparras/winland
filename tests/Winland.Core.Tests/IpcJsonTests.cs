@@ -20,8 +20,8 @@ public class IpcJsonTests
             {"address":"0x2a","mapped":true,"hidden":false,"visible":true,"acceptsInput":true,"at":[0,0],"size":[800,600],"workspace":{"address":"1","id":1,"type":"normal","name":"1"},"floating":false,"monitor":0,"class":"kitty","title":"term","initialClass":"kitty","initialTitle":"term","pid":4242,"xwayland":false,"pinned":false,"pinFullscreened":false,"fullscreen":0,"fullscreenClient":0,"fullscreenHandler":"default","allowedOverFullscreen":true,"grouped":[],"tags":[],"swallowing":"0x0","focusHistoryID":0,"inhibitingIdle":false,"xdgTag":"","xdgDescription":"","contentType":"none","tearingHint":false,"stableId":"2a"}
             """;
 
-        Assert.Equal("[" + Client + "]", core.Execute("clients").Text);
-        Assert.Equal(Client, core.Execute("activewindow").Text);
+        Assert.Equal("[" + Client + "]", core.Execute("j/clients").Text);
+        Assert.Equal(Client, core.Execute("j/activewindow").Text);
         Assert.Equal(4242, core.Recovery().Clients[0].ProcessId);
     }
 
@@ -38,7 +38,7 @@ public class IpcJsonTests
         });
         core.Execute("dispatch workspace 2");
 
-        var clients = Json(core.Execute("clients").Text).EnumerateArray().ToArray();
+        var clients = Json(core.Execute("j/clients").Text).EnumerateArray().ToArray();
 
         Assert.Equal("0x1", clients[0].GetProperty("address").GetString());
         Assert.True(clients[0].GetProperty("hidden").GetBoolean());
@@ -80,8 +80,8 @@ public class IpcJsonTests
             {"address":"1","id":1,"type":"normal","name":"1","monitor":"","monitorID":0,"windows":1,"hasfullscreen":false,"lastwindow":"0x2a","lastwindowtitle":"term","ispersistent":false,"tiledLayout":"dwindle"}
             """;
 
-        Assert.Equal("[" + Workspace + "]", core.Execute("workspaces").Text);
-        Assert.Equal(Workspace, core.Execute("activeworkspace").Text);
+        Assert.Equal("[" + Workspace + "]", core.Execute("j/workspaces").Text);
+        Assert.Equal(Workspace, core.Execute("j/activeworkspace").Text);
     }
 
     [Theory]
@@ -94,16 +94,16 @@ public class IpcJsonTests
         var core = new Core(ConfigParser.Parse("general:layout = " + layout));
         core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 800, 600)));
 
-        var workspace = Assert.Single(Json(core.Execute("workspaces").Text).EnumerateArray());
+        var workspace = Assert.Single(Json(core.Execute("j/workspaces").Text).EnumerateArray());
 
         Assert.Equal(layout, workspace.GetProperty("tiledLayout").GetString());
-        Assert.Equal(layout, Json(core.Execute("activeworkspace").Text).GetProperty("tiledLayout").GetString());
+        Assert.Equal(layout, Json(core.Execute("j/activeworkspace").Text).GetProperty("tiledLayout").GetString());
     }
 
     [Fact]
     public void ActiveWorkspaceRejectsTrailingArguments()
     {
-        Assert.Equal("error: unknown request", new Core().Execute("activeworkspace extra").Text);
+        Assert.Equal("error: unknown request", new Core().Execute("j/activeworkspace extra").Text);
     }
 
     [Fact]
@@ -133,8 +133,8 @@ public class IpcJsonTests
             {"id":0,"name":"Dell","description":"Dell U2720Q","make":"DEL","model":"U2720Q","serial":"ABC123","width":1920,"height":1080,"physicalWidth":597,"physicalHeight":336,"refreshRate":60,"x":0,"y":0,"activeWorkspace":{"address":"1","id":1,"type":"normal","name":"1"},"specialWorkspace":{"address":"","type":"","name":""},"reserved":[0,0,0,40],"scale":1,"transform":0,"focused":true,"dpmsStatus":true,"vrr":false,"solitary":"0","solitaryBlockedBy":null,"activelyTearing":false,"tearingBlockedBy":null,"directScanoutTo":"0","directScanoutBlockedBy":null,"disabled":false,"currentFormat":"","mirrorOf":"none","availableModes":["1920x1080@60.00Hz"],"colorManagementPreset":"","sdrBrightness":0,"sdrSaturation":0,"sdrMinLuminance":0,"sdrMaxLuminance":0,"hardwareCursorsInUse":false}
             """;
 
-        Assert.Equal("[" + Monitor + "]", core.Execute("monitors").Text);
-        Assert.Equal("[" + Monitor + "]", core.Execute("monitors all").Text);
+        Assert.Equal("[" + Monitor + "]", core.Execute("j/monitors").Text);
+        Assert.Equal("[" + Monitor + "]", core.Execute("j/monitors all").Text);
     }
 
     [Fact]
@@ -147,8 +147,8 @@ public class IpcJsonTests
         core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
         core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
 
-        var monitors = Json(core.Execute("monitors").Text).EnumerateArray().ToArray();
-        var clients = Json(core.Execute("clients").Text).EnumerateArray().ToArray();
+        var monitors = Json(core.Execute("j/monitors").Text).EnumerateArray().ToArray();
+        var clients = Json(core.Execute("j/clients").Text).EnumerateArray().ToArray();
 
         Assert.Equal(monitors[0].GetProperty("id").GetInt32(), clients[0].GetProperty("monitor").GetInt32());
         Assert.Equal(monitors[1].GetProperty("id").GetInt32(), clients[1].GetProperty("monitor").GetInt32());
@@ -168,8 +168,8 @@ public class IpcJsonTests
         var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024));
         core.Handle(new MonitorsChanged([left, right]));
 
-        var shown = Json(core.Execute("monitors").Text).EnumerateArray().ToArray();
-        var all = Json(core.Execute("monitors all").Text).EnumerateArray().ToArray();
+        var shown = Json(core.Execute("j/monitors").Text).EnumerateArray().ToArray();
+        var all = Json(core.Execute("j/monitors all").Text).EnumerateArray().ToArray();
 
         var enabled = Assert.Single(shown);
         Assert.Equal(@"\\.\DISPLAY1", enabled.GetProperty("name").GetString());
@@ -196,7 +196,7 @@ public class IpcJsonTests
             {"id":0,"name":"","description":"","make":"","model":"","serial":"","width":0,"height":0,"physicalWidth":0,"physicalHeight":0,"refreshRate":0,"x":0,"y":0,"activeWorkspace":{"address":"1","id":1,"type":"normal","name":"1"},"specialWorkspace":{"address":"","type":"","name":""},"reserved":[0,0,0,0],"scale":1,"transform":0,"focused":true,"dpmsStatus":true,"vrr":false,"solitary":"0","solitaryBlockedBy":null,"activelyTearing":false,"tearingBlockedBy":null,"directScanoutTo":"0","directScanoutBlockedBy":null,"disabled":false,"currentFormat":"","mirrorOf":"none","availableModes":[],"colorManagementPreset":"","sdrBrightness":0,"sdrSaturation":0,"sdrMinLuminance":0,"sdrMaxLuminance":0,"hardwareCursorsInUse":false}
             """;
 
-        Assert.Equal("[" + Monitor + "]", new Core().Execute("monitors").Text);
+        Assert.Equal("[" + Monitor + "]", new Core().Execute("j/monitors").Text);
     }
 
     private static JsonElement Json(string text)

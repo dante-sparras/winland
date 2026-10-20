@@ -101,9 +101,9 @@ internal sealed class SmokeDaemon : IDisposable
 
     public string Clients() => Run("j/clients");
 
-    public string Workspaces() => Run("workspaces");
+    public string Workspaces() => Run("j/workspaces");
 
-    public string Monitors() => Run("monitors");
+    public string Monitors() => Run("j/monitors");
 
     public string Dispatch(string arguments) => Run("dispatch " + arguments);
 

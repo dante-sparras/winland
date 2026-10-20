@@ -167,7 +167,7 @@ public class PinTests
             Lines(switched));
         Assert.Contains(switched.Effect.Hide, window => window == new WindowId(2));
         Assert.DoesNotContain(switched.Effect.Hide, window => window == Window);
-        Assert.Contains("\"pinned\":true", core.Execute("clients").Text, StringComparison.Ordinal);
+        Assert.Contains("\"pinned\":true", core.Execute("j/clients").Text, StringComparison.Ordinal);
     }
 
     [Fact]

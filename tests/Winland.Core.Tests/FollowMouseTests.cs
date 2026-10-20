@@ -384,7 +384,7 @@ public class FollowMouseTests
 
     private static string Address(Core core)
     {
-        var text = core.Execute("activewindow").Text;
+        var text = core.Execute("j/activewindow").Text;
         var at = text.IndexOf("\"address\":", StringComparison.Ordinal);
         Assert.True(at >= 0, text);
         return text[at..(at + "\"address\":\"0x0\"".Length)];

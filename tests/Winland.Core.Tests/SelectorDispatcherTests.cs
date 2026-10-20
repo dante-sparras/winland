@@ -68,7 +68,7 @@ public class SelectorDispatcherTests
         var core = new Core();
         Appear(core, 1, "keep", "a");
         Appear(core, 42, "go", "b", processId: 7);
-        var clients = Json(core.Execute("clients").Text).EnumerateArray().ToArray();
+        var clients = Json(core.Execute("j/clients").Text).EnumerateArray().ToArray();
         var address = clients.Single(client => client.GetProperty("class").GetString() == "go").GetProperty("address").GetString();
 
         var outcome = core.Handle(new Dispatch("closewindow", "address:" + address));

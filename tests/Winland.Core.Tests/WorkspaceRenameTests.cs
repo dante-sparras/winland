@@ -110,7 +110,7 @@ public class WorkspaceRenameTests
 
     private static JsonElement Active(Core core)
     {
-        using var document = JsonDocument.Parse(core.Execute("activeworkspace").Text);
+        using var document = JsonDocument.Parse(core.Execute("j/activeworkspace").Text);
         return document.RootElement.Clone();
     }
 

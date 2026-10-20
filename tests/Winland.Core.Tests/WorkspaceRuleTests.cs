@@ -447,7 +447,7 @@ public class WorkspaceRuleTests
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         var connected = core.Handle(new MonitorsChanged([left, right]));
 
-        var monitors = Json(core.Execute("monitors").Text).EnumerateArray().ToArray();
+        var monitors = Json(core.Execute("j/monitors").Text).EnumerateArray().ToArray();
         Assert.Equal("1", monitors[0].GetProperty("activeWorkspace").GetProperty("name").GetString());
         Assert.Equal("4", monitors[1].GetProperty("activeWorkspace").GetProperty("name").GetString());
         Assert.Equal(new WorkspaceId("1"), connected.State.ActiveWorkspace);
@@ -461,7 +461,7 @@ public class WorkspaceRuleTests
             workspace = 9, persistent:true
             """));
 
-        var listed = Json(core.Execute("workspaces").Text)
+        var listed = Json(core.Execute("j/workspaces").Text)
             .EnumerateArray()
             .ToDictionary(item => item.GetProperty("id").GetInt32());
         Assert.False(listed[1].GetProperty("ispersistent").GetBoolean());
@@ -482,7 +482,7 @@ public class WorkspaceRuleTests
             workspace = r[1-2], persistent:true
             """));
 
-        Assert.DoesNotContain(Json(core.Execute("workspaces").Text).EnumerateArray(), item => item.GetProperty("id").GetInt32() == 2);
+        Assert.DoesNotContain(Json(core.Execute("j/workspaces").Text).EnumerateArray(), item => item.GetProperty("id").GetInt32() == 2);
         core.Handle(new Dispatch("workspace", "2"));
         var home = core.Handle(new Dispatch("workspace", "1"));
         Assert.Contains(home.State.Workspaces, workspace => workspace.Id == new WorkspaceId("2") && workspace.Persistent);
@@ -499,7 +499,7 @@ public class WorkspaceRuleTests
             workspace = 1, defaultName:code
             """));
 
-        var listed = Assert.Single(Json(core.Execute("workspaces").Text).EnumerateArray());
+        var listed = Assert.Single(Json(core.Execute("j/workspaces").Text).EnumerateArray());
         Assert.Equal(1, listed.GetProperty("id").GetInt32());
         Assert.Equal("code", listed.GetProperty("name").GetString());
 

@@ -229,13 +229,13 @@ public class FullscreenTests
         Appear(core, 1);
         core.Handle(new Dispatch("fullscreenstate", "1 0"));
 
-        using var clients = JsonDocument.Parse(core.Execute("clients").Text);
+        using var clients = JsonDocument.Parse(core.Execute("j/clients").Text);
         var client = clients.RootElement[0];
         Assert.Equal(1, client.GetProperty("fullscreen").GetInt32());
         Assert.Equal(0, client.GetProperty("fullscreenClient").GetInt32());
         Assert.Equal("default", client.GetProperty("fullscreenHandler").GetString());
 
-        using var workspaces = JsonDocument.Parse(core.Execute("workspaces").Text);
+        using var workspaces = JsonDocument.Parse(core.Execute("j/workspaces").Text);
         Assert.True(workspaces.RootElement[0].GetProperty("hasfullscreen").GetBoolean());
     }
 
@@ -469,7 +469,7 @@ public class FullscreenTests
         Assert.Equal((MonitorBounds.Width, MonitorBounds.Height), (held.Bounds.Width, held.Bounds.Height));
         Assert.NotEqual(MonitorBounds.X, held.Bounds.X);
 
-        using var clients = JsonDocument.Parse(core.Execute("clients").Text);
+        using var clients = JsonDocument.Parse(core.Execute("j/clients").Text);
         Assert.All(clients.RootElement.EnumerateArray(), client => Assert.Equal("scrolling", client.GetProperty("fullscreenHandler").GetString()));
     }
 
@@ -483,7 +483,7 @@ public class FullscreenTests
 
         Assert.Equal(MonitorBounds, BoundsOf(entered, 2));
         Assert.False(ClientOf(entered, 2).LayoutFullscreen);
-        using var active = JsonDocument.Parse(core.Execute("activewindow").Text);
+        using var active = JsonDocument.Parse(core.Execute("j/activewindow").Text);
         Assert.Equal("default", active.RootElement.GetProperty("fullscreenHandler").GetString());
     }
 
@@ -501,7 +501,7 @@ public class FullscreenTests
         Assert.Contains(new ZOrderRequest(new WindowId(1), Top: false), covered.ZOrder);
         Assert.False(ClientOf(covered, 1).AllowedOverFullscreen);
         Assert.True(ClientOf(covered, 1).BelowFullscreen);
-        using (var clients = JsonDocument.Parse(core.Execute("clients").Text))
+        using (var clients = JsonDocument.Parse(core.Execute("j/clients").Text))
         {
             var floating = clients.RootElement.EnumerateArray().Single(client => client.GetProperty("address").GetString() == "0x1");
             Assert.False(floating.GetProperty("acceptsInput").GetBoolean());
