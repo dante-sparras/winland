@@ -500,7 +500,6 @@ public class LuaRulesTests
                 "hl.device: field 'sensitivity': a value with a comma is not honored yet",
                 "hl.permission: field 'type': a value with a comma is not honored yet",
                 "hl.permission: field 'mode': a value with a comma is not honored yet",
-                "Unsupported keyword 'device:region_position'.",
                 "Unsupported keyword 'permission'.",
             ],
             Messages(Parse(translation)));
