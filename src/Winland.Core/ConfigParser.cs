@@ -417,7 +417,12 @@ public static partial class ConfigParser
                 return false;
 
             if (DeviceGlobals.TryGetValue(field, out global))
+            {
+                // A block does not say whether it names a pen or a touch screen, so output and transform set both.
+                if (field is "output" or "transform")
+                    _settings.Add(new Setting("input:touchdevice:" + field, rhs));
                 return false;
+            }
 
             if (field == "tags")
             {
@@ -468,6 +473,14 @@ public static partial class ConfigParser
             ["tap-and-drag"] = "input:touchpad:tap-and-drag",
             ["tap-to-click"] = "input:touchpad:tap-to-click",
             ["tap_button_map"] = "input:touchpad:tap_button_map",
+            ["absolute_region_position"] = "input:tablet:absolute_region_position",
+            ["active_area_position"] = "input:tablet:active_area_position",
+            ["active_area_size"] = "input:tablet:active_area_size",
+            ["region_position"] = "input:tablet:region_position",
+            ["region_size"] = "input:tablet:region_size",
+            ["relative_input"] = "input:tablet:relative_input",
+            ["output"] = "input:tablet:output",
+            ["transform"] = "input:tablet:transform",
         };
 
         private bool TryDeviceField(string lhs, out string name, out string field)

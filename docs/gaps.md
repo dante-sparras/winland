@@ -36,21 +36,13 @@ This table has one row per keyword. A test checks it against the keywords the co
 | decoration:blur:popups | A menu is not a Client, so there is no window to put a blur layer under. |
 | decoration:blur:popups_ignorealpha | A menu is not a Client, so there is no popup blur for this threshold to change. |
 | decoration:blur:variant | Winland always runs the dual Kawase blur, which is the default variant. Another variant is a separate provider and is not run. |
-| device:absolute_region_position | Tablets are not honored. |
-| device:active_area_position | Tablets are not honored. |
-| device:active_area_size | Tablets are not honored. |
 | device:enabled | Disabling a device node needs administrator rights. |
 | device:kb_file | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | device:kb_model | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | device:kb_rules | XKB rules, models and keymap files have no Windows meaning. Layouts are chosen by kb_layout and kb_variant. |
 | device:keybinds | Windows names the keyboard only after the key is delivered, and swallowing the key produces no raw input. |
-| device:output | Windows cannot map touch to one display per device, and tablets are not honored. |
-| device:region_position | Tablets are not honored. |
-| device:region_size | Tablets are not honored. |
-| device:relative_input | Tablets are not honored. |
 | device:release_pressed_on_close | Virtual keyboards are not honored. |
 | device:share_states | Virtual keyboards are not honored. |
-| device:transform | Windows cannot map touch to one display per device, and tablets are not honored. |
 | dont_inhibit | Applications cannot inhibit binds, so this flag has nothing to bypass. |
 | drops | Winland runs the dual Kawase blur, the default variant. This is a separate blur provider, with its own finish and often its own animation, and that pipeline does not run it. |
 | ecosystem | Ecosystem tools have no Windows meaning. |
@@ -115,11 +107,9 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | non-goal | - | binds:disable_keybind_grabbing |
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
 | gap | - | decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:popups, decoration:blur:popups_ignorealpha |
-| gap | - | device:absolute_region_position, device:active_area_position, device:active_area_size, device:region_position, device:region_size, device:relative_input |
 | gap | - | device:enabled |
 | non-goal | - | device:kb_file, device:kb_model, device:kb_rules |
 | gap | - | device:keybinds |
-| gap | - | device:output, device:transform |
 | gap | - | device:release_pressed_on_close, device:share_states |
 | non-goal | - | dont_inhibit |
 | non-goal | - | ecosystem, layerrule, layerrulev2, permission, xwayland |

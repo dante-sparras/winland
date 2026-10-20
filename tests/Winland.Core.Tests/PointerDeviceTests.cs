@@ -76,6 +76,31 @@ public class PointerDeviceTests
     }
 
     [Fact]
+    public void ATabletFieldSetsItForEveryPenAndOutputSetsTouchToo()
+    {
+        var document = ConfigParser.Parse("""
+            device[wacom] {
+                region_size = 100 50
+                relative_input = true
+                output = DP-1
+                transform = 1
+            }
+            """);
+
+        Assert.Empty(document.Warnings);
+        Assert.Equal(
+            [
+                new Setting("input:tablet:region_size", "100 50"),
+                new Setting("input:tablet:relative_input", "true"),
+                new Setting("input:touchdevice:output", "DP-1"),
+                new Setting("input:tablet:output", "DP-1"),
+                new Setting("input:touchdevice:transform", "1"),
+                new Setting("input:tablet:transform", "1"),
+            ],
+            document.Settings);
+    }
+
+    [Fact]
     public void ALaterLineReplacesOneFieldAndABadValueIsIgnored()
     {
         var document = ConfigParser.Parse("""
