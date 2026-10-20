@@ -6,8 +6,8 @@
 local hl, native, version = ...
 local fetch, userdata, note, matches, history, unsubscribe, optionName, running, run =
     native.fetch, native.userdata, native.note, native.matches, native.history, native.unsubscribe, native.option, native.running, native.run
-local bindInfo, bindEnable, bindRemove, timerInfo, timerSet =
-    native.bindinfo, native.bindenable, native.bindremove, native.timerinfo, native.timerset
+local bindInfo, bindEnable, bindRemove, timerInfo, timerSet, ruleInfo, ruleSet =
+    native.bindinfo, native.bindenable, native.bindremove, native.timerinfo, native.timerset, native.ruleinfo, native.ruleset
 
 local keys = setmetatable({}, { __mode = "k" })
 
@@ -18,6 +18,8 @@ local Group = { __name = "HL.Group" }
 local Subscription = { __name = "HL.EventSubscription" }
 local Keybind = { __name = "HL.Keybind" }
 local Timer = { __name = "HL.Timer" }
+local WindowRule = { __name = "HL.WindowRule" }
+local WorkspaceRule = { __name = "HL.WorkspaceRule" }
 local Device = { __name = "HL.Device" }
 
 local function readOnly()
@@ -28,7 +30,7 @@ local function same(a, b)
     return getmetatable(a) == getmetatable(b) and keys[a] == keys[b]
 end
 
-for _, kind in ipairs({ Window, Workspace, Monitor, Group, Subscription, Keybind, Timer, Device }) do
+for _, kind in ipairs({ Window, Workspace, Monitor, Group, Subscription, Keybind, Timer, WindowRule, WorkspaceRule, Device }) do
     kind.__newindex = readOnly
     kind.__eq = same
 end
@@ -594,6 +596,54 @@ Timer.__tostring = function(self)
 end
 
 local function timer(id) return object(Timer, id) end
+
+-- Window and workspace rules: what hl.window_rule and hl.workspace_rule return. A layer rule has no such object.
+
+local function ruleMethods(kind, label)
+    return {
+        set_enabled = function(self, enabled)
+            if type(enabled) ~= "boolean" then
+                note(label .. ":set_enabled: expected a boolean", 2)
+                return
+            end
+            ruleSet(kind, keys[self], enabled)
+        end,
+        is_enabled = function(self)
+            return ruleInfo(kind, keys[self])
+        end,
+    }
+end
+
+local function ruleToString(kind, label, self)
+    if ruleInfo(kind, keys[self]) == nil then
+        return label .. "(expired)"
+    end
+    return string.format(label .. "(0x%x)", keys[self])
+end
+
+local windowRuleMethods = ruleMethods("window", "HL.WindowRule")
+
+WindowRule.__index = function(_, key)
+    return windowRuleMethods[key]
+end
+
+WindowRule.__tostring = function(self)
+    return ruleToString("window", "HL.WindowRule", self)
+end
+
+local function windowRule(id) return object(WindowRule, id) end
+
+local workspaceRuleMethods = ruleMethods("workspace", "HL.WorkspaceRule")
+
+WorkspaceRule.__index = function(_, key)
+    return workspaceRuleMethods[key]
+end
+
+WorkspaceRule.__tostring = function(self)
+    return ruleToString("workspace", "HL.WorkspaceRule", self)
+end
+
+local function workspaceRule(id) return object(WorkspaceRule, id) end
 
 -- Devices: what hl.get_devices returns, read from Winland's devices reply.
 
@@ -1481,5 +1531,7 @@ return {
     selector = selector,
     keybind = keybind,
     timer = timer,
+    windowRule = windowRule,
+    workspaceRule = workspaceRule,
     layoutContext = layoutContext,
 }

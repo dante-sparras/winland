@@ -31,6 +31,17 @@ public enum WindowRuleEffect
     Content,
 }
 
+/// <summary>
+/// A <c>windowrulev2</c> line that names a rule instead of adding one. <see cref="WindowRule.Enabled"/> is the effect's
+/// own flag, such as <c>no_focus false</c>. <see cref="WindowRule.Active"/> is whether the rule is in force.
+/// </summary>
+public enum WindowRuleEdit
+{
+    None,
+    Enable,
+    Drop,
+}
+
 public sealed record WindowRule(
     WindowRuleEffect Effect,
     string? Workspace,
@@ -50,7 +61,10 @@ public sealed record WindowRule(
     IReadOnlyList<RuleMatch>? Dynamic = null,
     string? Text = null,
     string? InitialTitlePattern = null,
-    string? InitialClassPattern = null);
+    string? InitialClassPattern = null,
+    int RuleId = 0,
+    bool Active = true,
+    WindowRuleEdit Edit = WindowRuleEdit.None);
 
 /// <summary>What a window rule matches on that can change while the window lives.</summary>
 public enum RuleMatchKind

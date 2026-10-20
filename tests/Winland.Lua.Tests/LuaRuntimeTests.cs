@@ -330,4 +330,63 @@ public class LuaRuntimeTests
         Assert.Empty(document.Warnings);
         Assert.Single(document.Binds);
     }
+
+    [Fact]
+    public void AWindowRuleObjectAddsToTheNamedRuleAndCanBeTurnedOff()
+    {
+        var (runtime, world, translation) = Start("""
+            a = hl.window_rule({ name = "kitty", match = { class = "kitty" }, float = true, opacity = 0.5 })
+            b = hl.window_rule({ name = "kitty", match = { class = "foot" }, tile = true })
+            c = hl.window_rule({ match = { class = "other" }, float = true })
+            """);
+        using var _ = runtime;
+
+        Assert.Equal(
+            [
+                "windowrulev2 = float, class:foot, ruleid:1, ruleon:1",
+                "windowrulev2 = opacity 0.5, class:foot, ruleid:1, ruleon:1",
+                "windowrulev2 = tile, class:foot, ruleid:1, ruleon:1",
+                "windowrulev2 = float, class:other, ruleid:2, ruleon:1",
+            ],
+            translation.Text.Split('\n', StringSplitOptions.RemoveEmptyEntries));
+        Assert.Equal("true\tfalse\ttrue\tHL.WindowRule(0x1)\tnil", runtime.Eval("return a == b, a == c, a:is_enabled(), tostring(a), a.no_such", repl: true));
+        Assert.Contains("HL.WindowRule:set_enabled: expected a boolean", runtime.Eval("a:set_enabled(1)", repl: false), StringComparison.Ordinal);
+        Assert.Equal("true", runtime.Eval("a:is_enabled()", repl: true));
+        Assert.Equal("false", runtime.Eval("a:set_enabled(false) return a:is_enabled()", repl: true));
+        Assert.Contains("keyword windowrulev2 ruleon:0, ruleid:1", world.Commands);
+
+        Assert.Equal("true", runtime.Eval("d = hl.window_rule({ name = \"kitty\", match = { title = \"Notes\" }, opacity = 0.2 }) return d == a", repl: true));
+        Assert.Equal(
+            [
+                "keyword windowrulev2 drop, ruleid:1",
+                "keyword windowrulev2 float, class:foot, title:Notes, ruleid:1, ruleon:1",
+                "keyword windowrulev2 opacity 0.5, class:foot, title:Notes, ruleid:1, ruleon:1",
+                "keyword windowrulev2 tile, class:foot, title:Notes, ruleid:1, ruleon:1",
+                "keyword windowrulev2 opacity 0.2, class:foot, title:Notes, ruleid:1, ruleon:1",
+            ],
+            world.Commands.ToArray()[^5..]);
+    }
+
+    [Fact]
+    public void AWorkspaceRuleObjectMergesIntoTheEnabledRuleAndCanBeTurnedOff()
+    {
+        var (runtime, world, translation) = Start("""
+            a = hl.workspace_rule({ workspace = "1", gaps_out = 5, persistent = true })
+            b = hl.workspace_rule({ workspace = "1", enabled = false, gaps_in = 3 })
+            """);
+        using var _ = runtime;
+
+        Assert.Equal(
+            ["workspace = 1, persistent:true, gapsout:5 5 5 5, gapsin:3 3 3 3, ruleid:1, ruleon:1"],
+            translation.Text.Split('\n', StringSplitOptions.RemoveEmptyEntries));
+        Assert.Equal("true\ttrue\tHL.WorkspaceRule(0x1)", runtime.Eval("return a == b, a:is_enabled(), tostring(a)", repl: true));
+        Assert.Contains("HL.WorkspaceRule:set_enabled: expected a boolean", runtime.Eval("a:set_enabled(1)", repl: false), StringComparison.Ordinal);
+        Assert.Equal("false", runtime.Eval("a:set_enabled(false) return a:is_enabled()", repl: true));
+        Assert.Equal(
+            ["keyword workspace 1, persistent:true, gapsout:5 5 5 5, gapsin:3 3 3 3, ruleid:1, ruleon:0"],
+            world.Commands.ToArray());
+
+        Assert.Equal("false\ttrue\tHL.WorkspaceRule(0x2)", runtime.Eval("d = hl.workspace_rule({ workspace = \"1\", border_size = 2 }) return d == a, d:is_enabled(), tostring(d)", repl: true));
+        Assert.Equal("keyword workspace 1, bordersize:2, ruleid:2, ruleon:1", Assert.Single(world.Commands.ToArray()[^1..]));
+    }
 }

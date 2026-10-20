@@ -218,9 +218,40 @@ public sealed partial class Core
         }
 
         var kept = _configErrors;
+        var namedWindows = NamesAWindowRule(parsed);
+        var namedWorkspaces = NamesAWorkspaceRule(parsed);
         var outcome = Apply(MergeLive(_config, parsed));
         _configErrors = kept;
+
+        // A named rule is one the Lua object can turn off. That re-reads the windows and workspaces already there.
+        if (namedWorkspaces)
+            outcome = RestampWorkspaces(outcome);
+        if (namedWindows || namedWorkspaces)
+            _forceRuleMatch = true;
+
         return new CommandReply("ok", outcome);
+    }
+
+    private static bool NamesAWindowRule(ConfigDocument document)
+    {
+        foreach (var rule in document.WindowRules)
+        {
+            if (rule.RuleId != 0 || rule.Edit != WindowRuleEdit.None)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool NamesAWorkspaceRule(ConfigDocument document)
+    {
+        foreach (var rule in document.WorkspaceRules)
+        {
+            if (rule.RuleId != 0)
+                return true;
+        }
+
+        return false;
     }
 
     // A line that launches a program, loads code or a file, or sets the environment takes effect only when the
@@ -252,8 +283,15 @@ public sealed partial class Core
             }
         }
 
+        var control = WindowRuleControl(incoming);
         foreach (var setting in incoming.Settings)
+        {
+            // A drop or ruleon line changes a rule already stored. It is not another window rule.
+            if (control && setting.Keyword == "windowrulev2")
+                continue;
+
             settings.Add(setting);
+        }
 
         var binds = new List<BindDirective>();
         if (current is not null)
@@ -267,13 +305,52 @@ public sealed partial class Core
 
         return new ConfigDocument(settings, binds, [])
         {
-            WindowRules = [.. current?.WindowRules ?? [], .. incoming.WindowRules],
+            WindowRules = IntegrateWindowRules(current?.WindowRules, incoming.WindowRules),
             WorkspaceRules = MergeWorkspaceRules(current?.WorkspaceRules ?? WorkspaceRule.None, incoming.WorkspaceRules),
             Sources = current?.Sources ?? [],
             Environment = current?.Environment ?? EnvironmentAssignment.None,
             Gestures = [.. current?.Gestures ?? [], .. incoming.Gestures],
             ElevationTrusted = current?.ElevationTrusted ?? false,
         };
+    }
+
+    private static bool WindowRuleControl(ConfigDocument incoming)
+    {
+        if (incoming.WindowRules.Count == 0)
+            return false;
+
+        foreach (var rule in incoming.WindowRules)
+        {
+            if (rule.Edit == WindowRuleEdit.None)
+                return false;
+        }
+
+        return true;
+    }
+
+    private static List<WindowRule> IntegrateWindowRules(IReadOnlyList<WindowRule>? current, IReadOnlyList<WindowRule> incoming)
+    {
+        var rules = WithoutEdits(current);
+        foreach (var rule in incoming)
+            WindowRuleParser.Integrate(rules, rule);
+
+        return rules;
+    }
+
+    // A drop or ruleon line is how a named rule is changed. It is not itself a rule that matches a window.
+    private static List<WindowRule> WithoutEdits(IReadOnlyList<WindowRule>? rules)
+    {
+        var live = new List<WindowRule>();
+        if (rules is null)
+            return live;
+
+        foreach (var rule in rules)
+        {
+            if (rule.Edit == WindowRuleEdit.None)
+                live.Add(rule);
+        }
+
+        return live;
     }
 
     // A rule for a Workspace that already has one merges into it, as a second line in the config does.

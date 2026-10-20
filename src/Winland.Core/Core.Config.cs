@@ -52,7 +52,7 @@ public sealed partial class Core
         _config = document;
         _workspaceRules = document.WorkspaceRules;
         NoteConfigErrors(document);
-        _rules = document.WindowRules;
+        _rules = WithoutEdits(document.WindowRules);
         var tiledBefore = _session.SizeLimitsTiled;
         _session = SessionOptions.From(document);
         _debug = DebugOptions.From(document);

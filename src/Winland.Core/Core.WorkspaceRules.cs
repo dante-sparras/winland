@@ -62,7 +62,7 @@ public sealed partial class Core
     {
         foreach (var rule in _workspaceRules)
         {
-            if (rule.Persistent != true || !WorkspaceRules.TryConcrete(rule.WorkspaceString, out var id) || FindWorkspace(id) is not null)
+            if (!rule.Active || rule.Persistent != true || !WorkspaceRules.TryConcrete(rule.WorkspaceString, out var id) || FindWorkspace(id) is not null)
                 continue;
 
             // A Workspace bound to a Monitor that is not there yet waits for it, as in the pinned release.
@@ -89,6 +89,20 @@ public sealed partial class Core
             if (previous is not null && previous.Active == desk.Id)
                 previous.Active = null;
         }
+    }
+
+    // A named workspace rule changed. The workspaces already there take its gaps, border and layout options now.
+    private Outcome RestampWorkspaces(Outcome current)
+    {
+        var placements = new List<Placement>();
+        foreach (var desk in _workspaces)
+        {
+            Stamp(desk);
+            if (IsShown(desk.Id))
+                placements.AddRange(desk.Layout.Apply(desk.Options));
+        }
+
+        return current with { Placements = placements, State = Snapshot() };
     }
 
     private void Stamp(LiveWorkspace desk)
