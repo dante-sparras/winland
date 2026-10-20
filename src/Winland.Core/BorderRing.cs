@@ -46,6 +46,22 @@ public static class BorderPainter
 {
     private const int Steps = 256;
 
+    /// <summary>The four pieces of a ring box: the top and bottom strips hold the corners, and the sides fill between them.</summary>
+    public static Rectangle[] Pieces(int boxWidth, int boxHeight, BorderRing ring)
+    {
+        ArgumentNullException.ThrowIfNull(ring);
+        var corner = (int)Math.Ceiling(Math.Max(ring.OuterRadius, ring.Thickness + ring.Radius));
+        corner = Math.Clamp(corner, ring.Thickness, Math.Max(ring.Thickness, boxHeight / 2));
+        var side = Math.Max(0, boxHeight - (2 * corner));
+        return
+        [
+            new Rectangle(0, 0, boxWidth, corner),
+            new Rectangle(0, boxHeight - corner, boxWidth, corner),
+            new Rectangle(0, corner, ring.Thickness, side),
+            new Rectangle(boxWidth - ring.Thickness, corner, ring.Thickness, side),
+        ];
+    }
+
     /// <summary>
     /// Paints the part of a <paramref name="boxWidth"/> by <paramref name="boxHeight"/> ring box that
     /// <paramref name="piece"/> covers into <paramref name="pixels"/>, row by row, as premultiplied BGRA. Pixels off the

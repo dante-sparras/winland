@@ -1,6 +1,12 @@
 namespace Winland.Windows;
 
 /// <summary>
+/// A window's decorations for a frame: <see cref="Texture"/> holds them in its top left, <see cref="Width"/> by
+/// <see cref="Height"/> pixels, and <see cref="Inner"/> is where the window's picture goes in those pixels.
+/// </summary>
+internal readonly record struct EffectDecor(GpuTexture Texture, int Width, int Height, Rectangle Inner);
+
+/// <summary>
 /// Draws a captured window for one frame of its effects: the picture laid over the wobbling mesh, then averaged over the boxes of
 /// the motion blur. The result is premultiplied pixels of the frame's canvas, which <see cref="GpuDevice.ReadRows"/> receives.
 /// </summary>
@@ -12,7 +18,7 @@ internal sealed unsafe class EffectRenderer : IDisposable
 
     private readonly GpuDevice _gpu;
     private readonly List<MeshVertex> _triangles = [];
-    private readonly float[] _constants = new float[12];
+    private readonly float[] _constants = new float[16];
     private GpuTexture? _scene;
     private GpuTexture? _output;
     private GpuTexture? _staging;
@@ -28,9 +34,10 @@ internal sealed unsafe class EffectRenderer : IDisposable
 
     /// <summary>
     /// Draws <paramref name="source"/>, a part of <paramref name="picture"/> in its pixels, in <paramref name="rest"/> on the screen,
-    /// and gives the pixels of the frame to <paramref name="sink"/>. The caller holds the device's gate.
+    /// and gives the pixels of the frame to <paramref name="sink"/>. With <paramref name="decor"/>, <paramref name="rest"/> holds the
+    /// window and its decorations, and the picture fills the decorations' inner rectangle. The caller holds the device's gate.
     /// </summary>
-    internal bool Render(GpuTexture picture, Rectangle source, EffectTrack track, EffectBox rest, double now, FrameSink sink)
+    internal bool Render(GpuTexture picture, Rectangle source, EffectTrack track, EffectBox rest, double now, FrameSink sink, EffectDecor? decor = null)
     {
         var frame = track.Frame(rest, now);
         var canvas = frame.Canvas.Enclosing();
@@ -50,15 +57,37 @@ internal sealed unsafe class EffectRenderer : IDisposable
         _constants.AsSpan().Clear();
         _constants[0] = width;
         _constants[1] = height;
-        _constants[4] = (float)source.Width / picture.Width;
-        _constants[5] = (float)source.Height / picture.Height;
-        _constants[6] = (float)source.X / picture.Width;
-        _constants[7] = (float)source.Y / picture.Height;
+        var (scaleX, scaleY) = ((float)source.Width / picture.Width, (float)source.Height / picture.Height);
+        var (offsetX, offsetY) = ((float)source.X / picture.Width, (float)source.Y / picture.Height);
+        if (decor is { } around)
+        {
+            // The mesh's places run over the decorations' pixels, and the picture is looked up inside their inner rectangle.
+            float textureWidth = around.Texture.Width;
+            float textureHeight = around.Texture.Height;
+            _constants[4] = around.Width / textureWidth;
+            _constants[5] = around.Height / textureHeight;
+            _constants[8] = around.Inner.X / textureWidth;
+            _constants[9] = around.Inner.Y / textureHeight;
+            _constants[10] = around.Inner.Width / textureWidth;
+            _constants[11] = around.Inner.Height / textureHeight;
+            _constants[12] = scaleX;
+            _constants[13] = scaleY;
+            _constants[14] = offsetX;
+            _constants[15] = offsetY;
+        }
+        else
+        {
+            _constants[4] = scaleX;
+            _constants[5] = scaleY;
+            _constants[6] = offsetX;
+            _constants[7] = offsetY;
+        }
 
+        var decorTexture = decor?.Texture;
         var drawn = _output!;
         if (blur)
         {
-            if (!_gpu.Draw(_scene!, width, height, picture, _constants, vertices, blur: false))
+            if (!_gpu.Draw(_scene!, width, height, picture, _constants, vertices, blur: false, decorTexture))
                 return false;
 
             var settled = frame.Blur!.Value;
@@ -77,7 +106,7 @@ internal sealed unsafe class EffectRenderer : IDisposable
             if (!_gpu.Draw(_output!, width, height, _scene!, _constants, _vertices.AsSpan(0, 6), blur: true))
                 return false;
         }
-        else if (!_gpu.Draw(_output!, width, height, picture, _constants, vertices, blur: false))
+        else if (!_gpu.Draw(_output!, width, height, picture, _constants, vertices, blur: false, decorTexture))
         {
             return false;
         }

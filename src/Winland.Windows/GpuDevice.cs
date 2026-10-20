@@ -75,7 +75,7 @@ internal enum GpuUse
 internal sealed unsafe class GpuDevice : IDisposable
 {
     private const string Shaders = """
-        cbuffer C : register(b0) { float4 a; float4 b; float4 c; };
+        cbuffer C : register(b0) { float4 a; float4 b; float4 c; float4 d; };
         struct VI { float2 p : POSITION; float2 uv : TEXCOORD0; };
         struct VO { float4 p : SV_POSITION; float2 uv : TEXCOORD0; };
         VO vs(VI i)
@@ -88,6 +88,16 @@ internal sealed unsafe class GpuDevice : IDisposable
         Texture2D tex : register(t0);
         SamplerState lin : register(s0);
         float4 psMesh(VO i) : SV_Target { return tex.SampleLevel(lin, i.uv, 0); }
+        Texture2D decor : register(t1);
+        float4 psDecor(VO i) : SV_Target
+        {
+            float4 over = decor.SampleLevel(lin, i.uv, 0);
+            float2 q = (i.uv - c.xy) / c.zw;
+            float4 under = 0;
+            if (q.x >= 0 && q.y >= 0 && q.x <= 1 && q.y <= 1)
+                under = tex.SampleLevel(lin, q * d.xy + d.zw, 0);
+            return over + under * (1 - over.a);
+        }
         float4 psBlur(VO i) : SV_Target
         {
             uint w, h;
@@ -115,13 +125,14 @@ internal sealed unsafe class GpuDevice : IDisposable
 
     private const int BgraFormat = 87;
     private const int Vertices = 8192;
-    private const int ConstantBytes = 48;
+    private const int ConstantBytes = 64;
 
     private nint _device;
     private nint _context;
     private nint _vertexShader;
     private nint _meshShader;
     private nint _blurShader;
+    private nint _decorShader;
     private nint _layout;
     private nint _sampler;
     private nint _rasterizer;
@@ -227,11 +238,32 @@ internal sealed unsafe class GpuDevice : IDisposable
     }
 
     /// <summary>
+    /// Writes <paramref name="pixels"/>, rows of <paramref name="width"/> premultiplied BGRA pixels, into the top left of a
+    /// <see cref="GpuUse.Source"/> texture.
+    /// </summary>
+    internal bool Upload(GpuTexture destination, ReadOnlySpan<uint> pixels, int width, int height)
+    {
+        if (_disposed || _context == 0 || width <= 0 || height <= 0 || width > destination.Width || height > destination.Height || pixels.Length < width * height)
+            return false;
+
+        var box = new D3D11_BOX { left = 0, top = 0, front = 0, right = (uint)width, bottom = (uint)height, back = 1 };
+        fixed (uint* data = pixels)
+        {
+            ((delegate* unmanaged[Stdcall]<nint, nint, uint, D3D11_BOX*, void*, uint, uint, void>)GpuCom.Table(_context)[48])(
+                _context, destination.Texture, 0, &box, data, (uint)(width * 4), 0);
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Clears <paramref name="target"/> and draws triangles into the top left of it, <paramref name="width"/> by
     /// <paramref name="height"/> pixels. The vertices are positions in those pixels and places in the picture from 0 to 1.
-    /// <paramref name="blur"/> chooses the pass that averages the boxes the constants describe.
+    /// <paramref name="blur"/> chooses the pass that averages the boxes the constants describe. With <paramref name="decor"/>
+    /// the triangles cover the window and its decorations: the decorations are laid over the picture, which fills the part of
+    /// the box the constants name.
     /// </summary>
-    internal bool Draw(GpuTexture target, int width, int height, GpuTexture source, ReadOnlySpan<float> constants, ReadOnlySpan<MeshVertex> vertices, bool blur)
+    internal bool Draw(GpuTexture target, int width, int height, GpuTexture source, ReadOnlySpan<float> constants, ReadOnlySpan<MeshVertex> vertices, bool blur, GpuTexture? decor = null)
     {
         if (_disposed || vertices.Length == 0 || vertices.Length > Vertices || constants.Length * sizeof(float) != ConstantBytes)
             return false;
@@ -272,17 +304,25 @@ internal sealed unsafe class GpuDevice : IDisposable
         ((delegate* unmanaged[Stdcall]<nint, uint, uint, nint*, void>)table[7])(_context, 0, 1, &constantBuffer);
         ((delegate* unmanaged[Stdcall]<nint, uint, uint, nint*, void>)table[16])(_context, 0, 1, &constantBuffer);
         ((delegate* unmanaged[Stdcall]<nint, nint, void*, uint, void>)table[11])(_context, _vertexShader, null, 0);
-        ((delegate* unmanaged[Stdcall]<nint, nint, void*, uint, void>)table[9])(_context, blur ? _blurShader : _meshShader, null, 0);
+        ((delegate* unmanaged[Stdcall]<nint, nint, void*, uint, void>)table[9])(_context, blur ? _blurShader : decor is not null ? _decorShader : _meshShader, null, 0);
         var sampler = _sampler;
         ((delegate* unmanaged[Stdcall]<nint, uint, uint, nint*, void>)table[10])(_context, 0, 1, &sampler);
         var view = source.ShaderView;
         ((delegate* unmanaged[Stdcall]<nint, uint, uint, nint*, void>)table[8])(_context, 0, 1, &view);
+        if (decor is not null)
+        {
+            var decorView = decor.ShaderView;
+            ((delegate* unmanaged[Stdcall]<nint, uint, uint, nint*, void>)table[8])(_context, 1, 1, &decorView);
+        }
+
         ((delegate* unmanaged[Stdcall]<nint, uint, uint, void>)table[13])(_context, (uint)vertices.Length, 0);
 
         // The target is read by the next pass, so it is taken off the pipeline.
         nint none = 0;
         ((delegate* unmanaged[Stdcall]<nint, uint, nint*, nint, void>)table[33])(_context, 1, &none, 0);
         ((delegate* unmanaged[Stdcall]<nint, uint, uint, nint*, void>)table[8])(_context, 0, 1, &none);
+        if (decor is not null)
+            ((delegate* unmanaged[Stdcall]<nint, uint, uint, nint*, void>)table[8])(_context, 1, 1, &none);
         return true;
     }
 
@@ -326,6 +366,7 @@ internal sealed unsafe class GpuDevice : IDisposable
             GpuCom.Release(ref _sampler);
             GpuCom.Release(ref _layout);
             GpuCom.Release(ref _blurShader);
+            GpuCom.Release(ref _decorShader);
             GpuCom.Release(ref _meshShader);
             GpuCom.Release(ref _vertexShader);
             var dxgi = Dxgi;
@@ -370,11 +411,15 @@ internal sealed unsafe class GpuDevice : IDisposable
         var vertexCode = Compile("vs", "vs_4_0");
         var meshCode = Compile("psMesh", "ps_4_0");
         var blurCode = Compile("psBlur", "ps_4_0");
-        if (vertexCode.Length == 0 || meshCode.Length == 0 || blurCode.Length == 0)
+        var decorCode = Compile("psDecor", "ps_4_0");
+        if (vertexCode.Length == 0 || meshCode.Length == 0 || blurCode.Length == 0 || decorCode.Length == 0)
             return false;
 
-        if (!MakeShader(12, vertexCode, out _vertexShader) || !MakeShader(15, meshCode, out _meshShader) || !MakeShader(15, blurCode, out _blurShader))
+        if (!MakeShader(12, vertexCode, out _vertexShader) || !MakeShader(15, meshCode, out _meshShader) || !MakeShader(15, blurCode, out _blurShader)
+            || !MakeShader(15, decorCode, out _decorShader))
+        {
             return false;
+        }
 
         return MakeLayout(vertexCode) && MakeStates() && MakeBuffers();
     }

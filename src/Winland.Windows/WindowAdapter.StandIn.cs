@@ -282,15 +282,27 @@ public sealed partial class WindowAdapter
         var painted = effect.Painted;
         var map = StandInMap.For(bounds, new Size(standIn.Content.Width, standIn.Content.Height), standIn.SourceInsets, painted.Width > 0 ? painted : null);
         var above = PInvoke.GetWindow(standIn.Window, GET_WINDOW_CMD.GW_HWNDPREV);
+        Decorate(effect, standIn.Id);
         if (!effect.Show(bounds, map, Opacity.Wanted(standIn.Id), above, grab))
             return false;
 
         standIn.Bounds = bounds;
-
-        // The decorations follow the rectangle of the frame, not the mesh that wobbles round it.
-        StandFrames.Set(standIn.Id, bounds, standIn.Overlay);
-        StandFrames.Follow(standIn.Id);
+        FrameDecorations(standIn, effect, bounds);
         return true;
+    }
+
+    private static void Decorate(EffectStand effect, WindowId window)
+    {
+        var (ring, shadow, glow) = EffectLayers.Of(window);
+        effect.Decorate(ring, shadow, glow);
+    }
+
+    // The frames draw the window's border, shadow and glow, bent and smeared with it, so their own windows hide. When they
+    // could not, those follow the rectangle of the frame instead.
+    private static void FrameDecorations(StandIn standIn, EffectStand effect, Rectangle bounds)
+    {
+        StandFrames.Set(standIn.Id, effect.Decorated ? default : bounds, standIn.Overlay);
+        StandFrames.Follow(standIn.Id);
     }
 
     // Swaps the effects for a thumbnail of the window, on a window of Winland's own.
@@ -446,6 +458,7 @@ public sealed partial class WindowAdapter
 
         var map = StandInMap.For(bounds, new Size(bounds.Width, bounds.Height), standIn.SourceInsets, effect.Painted.Width > 0 ? effect.Painted : null);
         var above = PInvoke.GetWindow(standIn.Window, GET_WINDOW_CMD.GW_HWNDPREV);
+        Decorate(effect, window);
         if (!effect.Settle(bounds, map, above) || !effect.Wobbling)
         {
             EndStandIn(window, null);
@@ -455,10 +468,7 @@ public sealed partial class WindowAdapter
         standIn.Bounds = bounds;
         standIn.Content = bounds;
         standIn.Lingering = true;
-
-        // The decorations rest where the window does while its mesh springs.
-        StandFrames.Set(window, bounds, standIn.Overlay);
-        StandFrames.Follow(window);
+        FrameDecorations(standIn, effect, bounds);
         EffectPump.Add(standIn, () => Linger(standIn));
     }
 
@@ -478,6 +488,7 @@ public sealed partial class WindowAdapter
                 var bounds = standIn.Bounds;
                 var map = StandInMap.For(bounds, new Size(bounds.Width, bounds.Height), standIn.SourceInsets, effect.Painted.Width > 0 ? effect.Painted : null);
                 var above = PInvoke.GetWindow(standIn.Window, GET_WINDOW_CMD.GW_HWNDPREV);
+                Decorate(effect, standIn.Id);
                 if (effect.Spring(bounds, map, above))
                     return true;
             }
