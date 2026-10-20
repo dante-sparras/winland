@@ -21,6 +21,12 @@ public sealed record ClientReclassed(WindowId Window, string Class, bool Active)
 /// <summary>A Client's rules were read again. The config hears this as <c>window.update_rules</c>.</summary>
 public sealed record ClientRulesUpdated(WindowId Window) : StreamEvent;
 
+/// <summary>
+/// The monitors were laid out again: one came or went, one's mode, position, scale, orientation or mirror changed, or a
+/// reload applied the monitor rules. The config hears this as <c>monitor.layout_changed</c>.
+/// </summary>
+public sealed record MonitorLayoutChanged : StreamEvent;
+
 public sealed record FloatingChanged(WindowId Window, bool Floating) : StreamEvent;
 
 public sealed record ClientMinimized(WindowId Window, bool Minimized) : StreamEvent;

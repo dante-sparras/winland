@@ -102,6 +102,9 @@ public sealed partial class Core
             events.Add(new ConfigWarned(warning.Line, warning.Message, warning.Source));
 
         events.Add(new ConfigReloaded());
+
+        // A reload applies the monitor rules again, and the pinned release lays the monitors out after it.
+        events.Add(new MonitorLayoutChanged());
         _configEvents = events;
         return outcome;
     }
