@@ -457,7 +457,7 @@ public sealed partial class Core
     private IReadOnlyList<WorkspaceId> Listed(MonitorId? only)
     {
         var named = new List<WorkspaceId>();
-        var numbered = new List<(int Number, WorkspaceId Id)>();
+        var numbered = new List<(long Number, WorkspaceId Id)>();
         foreach (var desk in _workspaces)
         {
             if (desk.Id.IsSpecial)
@@ -480,13 +480,13 @@ public sealed partial class Core
         return named;
     }
 
-    private bool OwnedByOtherMonitor(int number, MonitorId monitor)
+    private bool OwnedByOtherMonitor(long number, MonitorId monitor)
     {
         var desk = FindWorkspace(WorkspaceId.FromNumber(number));
         return desk is not null && desk.Monitor != monitor;
     }
 
-    private bool NumberIsEmpty(int number) =>
+    private bool NumberIsEmpty(long number) =>
         FindWorkspace(WorkspaceId.FromNumber(number)) is not LiveWorkspace desk || desk.Layout.Clients.Count == 0;
 
     private void DropIfEmpty(WorkspaceId id)
@@ -505,7 +505,7 @@ public sealed partial class Core
 
     private WorkspaceId NextFree(MonitorId monitor)
     {
-        for (var number = 1; number < int.MaxValue; number++)
+        for (var number = 1L; number < WorkspaceId.MaxNumber; number++)
         {
             var id = WorkspaceId.FromNumber(number);
             if (FindWorkspace(id) is not null || BoundElsewhere(id, monitor))

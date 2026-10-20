@@ -11,10 +11,14 @@ public readonly record struct WorkspaceId(string Name)
 
     public bool IsSpecial => Name.StartsWith("special:", StringComparison.Ordinal);
 
-    public bool TryGetNumber(out int number)
+    /// <summary>The highest Workspace number, as the pinned release keeps a number in 32 unsigned bits.</summary>
+    public const long MaxNumber = uint.MaxValue;
+
+    public bool TryGetNumber(out long number)
     {
-        if (int.TryParse(Name, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out number)
+        if (long.TryParse(Name, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out number)
             && number > 0
+            && number <= MaxNumber
             && number.ToString(System.Globalization.CultureInfo.InvariantCulture) == Name)
             return true;
 
@@ -22,9 +26,10 @@ public readonly record struct WorkspaceId(string Name)
         return false;
     }
 
-    public static WorkspaceId FromNumber(int number)
+    public static WorkspaceId FromNumber(long number)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(number);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(number, MaxNumber);
         return new(number.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 }

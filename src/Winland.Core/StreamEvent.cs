@@ -33,12 +33,12 @@ public sealed record WorkspaceActivated(WorkspaceId Workspace) : StreamEvent;
 public sealed record WorkspaceCreated(WorkspaceId Workspace) : StreamEvent;
 
 /// <summary><paramref name="Id"/> and <paramref name="Name"/> are the id and name the workspace had before it was removed.</summary>
-public sealed record WorkspaceDestroyed(WorkspaceId Workspace, int Id, string Name) : StreamEvent;
+public sealed record WorkspaceDestroyed(WorkspaceId Workspace, long Id, string Name) : StreamEvent;
 
 public sealed record WorkspaceMoved(WorkspaceId Workspace, string Monitor) : StreamEvent;
 
 /// <summary><c>changeworkspaceid</c> gave the workspace numbered <paramref name="From"/> the number <paramref name="To"/>.</summary>
-public sealed record WorkspaceIdChanged(int From, int To) : StreamEvent;
+public sealed record WorkspaceIdChanged(long From, long To) : StreamEvent;
 
 /// <summary><paramref name="Name"/> is the name <c>renameworkspace</c> gave the workspace.</summary>
 public sealed record WorkspaceRenamed(WorkspaceId Workspace, string Name) : StreamEvent;

@@ -47,8 +47,9 @@ public sealed partial class Core
         const string dispatcher = "changeworkspaceid";
         var parts = arguments.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length != 2
-            || !int.TryParse(parts[1], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var number)
-            || number <= 0)
+            || !long.TryParse(parts[1], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var number)
+            || number <= 0
+            || number > WorkspaceId.MaxNumber)
         {
             return View([], dispatcher: dispatcher, allowsElevation: allowsElevation) with { Error = "error: invalid workspace id" };
         }

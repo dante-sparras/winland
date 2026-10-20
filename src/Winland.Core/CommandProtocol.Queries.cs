@@ -226,7 +226,7 @@ public static partial class CommandProtocol
         return [FormattableString.Invariant($"{monitor.Width}x{monitor.Height}@{monitor.RefreshRate:0.00}Hz")];
     }
 
-    internal static int WorkspaceNumber(State state, WorkspaceId id)
+    internal static long WorkspaceNumber(State state, WorkspaceId id)
     {
         ArgumentNullException.ThrowIfNull(state);
         var indexed = Index(state);
@@ -384,7 +384,7 @@ public static partial class CommandProtocol
         }
 
         // Numbered Workspaces in order, then the named ones and the special ones by the order they had as ids.
-        var keys = new int[counts.Count];
+        var keys = new long[counts.Count];
         for (var i = 0; i < counts.Count; i++)
             keys[i] = byWorkspace[ids[i]].Order;
         var entries = counts.ToArray();
@@ -521,17 +521,17 @@ public static partial class CommandProtocol
     // display name. Order sorts the list and is not written.
     private sealed record WorkspaceJson(
         [property: JsonPropertyName("address")] string Address,
-        [property: JsonPropertyName("id"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Id,
+        [property: JsonPropertyName("id"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? Id,
         [property: JsonPropertyName("type")] string Type,
         [property: JsonPropertyName("name")] string Name)
     {
         [JsonIgnore]
-        public int Order { get; init; }
+        public long Order { get; init; }
     }
 
     private sealed record WorkspaceEntryJson(
         [property: JsonPropertyName("address")] string Address,
-        [property: JsonPropertyName("id"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Id,
+        [property: JsonPropertyName("id"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? Id,
         [property: JsonPropertyName("type")] string Type,
         [property: JsonPropertyName("name")] string Name,
         [property: JsonPropertyName("monitor")] string Monitor,

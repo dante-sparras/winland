@@ -413,8 +413,8 @@ public sealed partial class Core
             if (!Options.Wraparound || !first.TryGetNumber(out var a) || !second.TryGetNumber(out var b))
                 return false;
 
-            var lowest = int.MaxValue;
-            var highest = int.MinValue;
+            var lowest = long.MaxValue;
+            var highest = long.MinValue;
             foreach (var workspace in _before.Workspaces.Concat(_after.Workspaces))
             {
                 if (!workspace.Id.TryGetNumber(out var number))
