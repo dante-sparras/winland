@@ -23,7 +23,24 @@ public sealed partial class Core
 
     private void RememberRuleProps(WindowId window, WindowDecision decision)
     {
-        if (decision.Props is { Count: > 0 } props)
+        var props = decision.Props;
+        // The pinned release turns sync_fullscreen off at the window-rule layer when a fullscreen_state rule maps the
+        // window. Rule props are rebuilt whenever the window's state changes, so the same false is put back while
+        // that rule still matches. setprop is a higher layer and is left alone.
+        if (decision.StatedFullscreen)
+        {
+            var ruled = new Dictionary<string, object>(props?.Count ?? 0, StringComparer.Ordinal);
+            if (props is not null)
+            {
+                foreach (var (key, value) in props)
+                    ruled[key] = value;
+            }
+
+            ruled["sync_fullscreen"] = false;
+            props = ruled;
+        }
+
+        if (props is { Count: > 0 })
             _ruleProps[window] = props;
         else
             _ruleProps.Remove(window);

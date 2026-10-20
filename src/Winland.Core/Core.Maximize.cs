@@ -38,7 +38,9 @@ public sealed partial class Core
         }
 
         var next = client.Fullscreen == FullscreenMode.Maximized ? FullscreenMode.None : FullscreenMode.Maximized;
-        return CommitFullscreen(window, next, next, dispatcher: null, allowsElevation: false, Synced(client));
+        var synced = SyncsFullscreen(window, desk);
+        var clientMode = synced ? next : client.FullscreenClient;
+        return CommitFullscreen(window, next, clientMode, dispatcher: null, allowsElevation: false, synced);
     }
 
     // A window that left the system's maximized state may restore a size of its own afterwards. It is put back

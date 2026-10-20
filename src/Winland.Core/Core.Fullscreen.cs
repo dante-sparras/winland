@@ -26,7 +26,10 @@ public sealed partial class Core
         if (!FullscreenCommands.Changed(client.Fullscreen, parsed.Mode, parsed.Action, out var next))
             return View([], dispatcher: name, allowsElevation: allowsElevation);
 
-        return CommitFullscreen(window, next, next, name, allowsElevation, Synced(client), parsed.LayoutAware);
+        // sync_fullscreen, default true, copies the internal mode onto the client mode. False leaves the client mode.
+        var synced = SyncsFullscreen(window, desk);
+        var clientMode = synced ? next : client.FullscreenClient;
+        return CommitFullscreen(window, next, clientMode, name, allowsElevation, synced, parsed.LayoutAware);
     }
 
     private Outcome FullscreenState(string arguments, bool allowsElevation)
@@ -52,7 +55,7 @@ public sealed partial class Core
 
         var target = FullscreenCommands.ResolveState(arguments, client.Fullscreen, client.FullscreenClient);
         if (target.Internal == client.Fullscreen && target.Client == client.FullscreenClient)
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return HoldSync(window, View([], dispatcher: name, allowsElevation: allowsElevation));
 
         var clientMode = target.Client;
         if (FullscreenCommands.StateClientGiven(arguments))
@@ -63,11 +66,43 @@ public sealed partial class Core
                 clientMode = FullscreenMode.Maximized;
         }
 
-        return CommitFullscreen(window, target.Internal, clientMode, name, allowsElevation, synced: false, FullscreenCommands.StateLayoutAware(arguments));
+        return HoldSync(window, CommitFullscreen(window, target.Internal, clientMode, name, allowsElevation, synced: false, FullscreenCommands.StateLayoutAware(arguments)));
     }
 
-    // A request sets the client mode along with the internal one unless fullscreenstate last set them apart.
-    private static bool Synced(Client client) => client.Fullscreen == client.FullscreenClient;
+    // sync_fullscreen is true unless a rule or setprop says otherwise. The default is true.
+    private bool SyncsFullscreen(WindowId window, LiveWorkspace desk) =>
+        PropValue(window, desk, "sync_fullscreen", PropKind.Bool) is true;
+
+    // fullscreenstate sets sync_fullscreen as setprop would, from the modes it left. The pinned release writes that
+    // after the modes are applied, including when a pin forced the internal mode off, and true when the modes are equal.
+    private Outcome HoldSync(WindowId window, Outcome outcome)
+    {
+        if (outcome.Error is not null || FindClient(outcome, window) is not Client client)
+            return outcome;
+
+        if (!_setProps.TryGetValue(window, out var props))
+            _setProps[window] = props = new Dictionary<string, object>(StringComparer.Ordinal);
+
+        props["sync_fullscreen"] = client.Fullscreen == client.FullscreenClient;
+        return outcome;
+    }
+
+    private static Client? FindClient(Outcome outcome, WindowId window)
+    {
+        foreach (var candidate in outcome.State.Clients)
+        {
+            if (candidate.Window == window)
+                return candidate;
+        }
+
+        foreach (var candidate in outcome.State.Hidden)
+        {
+            if (candidate.Window == window)
+                return candidate;
+        }
+
+        return null;
+    }
 
     private Outcome CommitFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, string? dispatcher, bool allowsElevation, bool synced, bool layoutAware = true)
     {
