@@ -343,6 +343,8 @@ internal static class BorderHost
         private BorderRing? _painted;
         private double _paintedTurn;
         private bool _shown;
+        private byte _alpha = 255;
+        private byte _paintedAlpha = 255;
         private double? _turnStart;
         private double _turn;
 
@@ -386,7 +388,14 @@ internal static class BorderHost
         public void Place()
         {
             var target = new HWND((nint)window.Value);
-            if (!Visible(target) || !TryFrame(target, out var frame) || Ring.Thickness <= 0)
+            var frame = default(Rectangle);
+
+            // A window with a stand-in is drawn in the stand-in's rectangle, and the border stacks on the stand-in.
+            var standing = StandFrames.TryGet(window, out var shown, out var overlay);
+            if (standing)
+                frame = shown;
+            _alpha = MotionAlpha.Of(window);
+            if (_alpha == 0 || !Visible(target) || !(standing ? frame.Width > 0 && frame.Height > 0 : TryFrame(target, out frame)) || Ring.Thickness <= 0)
             {
                 Hide();
                 return;
@@ -396,13 +405,14 @@ internal static class BorderHost
             var box = new Rectangle(frame.X - thickness, frame.Y - thickness, frame.Width + (2 * thickness), frame.Height + (2 * thickness));
             var drawn = Drawn;
             var pieces = Pieces(box.Width, box.Height, drawn);
-            if (box.Width != _box.Width || box.Height != _box.Height || !drawn.Equals(_painted) || !_shown || _turn != _paintedTurn)
+            if (box.Width != _box.Width || box.Height != _box.Height || !drawn.Equals(_painted) || !_shown || _turn != _paintedTurn || _alpha != _paintedAlpha)
             {
                 for (var i = 0; i < pieces.Length; i++)
                     Paint(i, box, pieces[i], drawn);
 
                 _painted = drawn;
                 _paintedTurn = _turn;
+                _paintedAlpha = _alpha;
             }
             else if (box != _box)
             {
@@ -412,7 +422,7 @@ internal static class BorderHost
 
             _box = box;
             _shown = true;
-            Stack(target);
+            Stack(standing ? overlay : target);
         }
 
         public void Dispose()
@@ -477,7 +487,7 @@ internal static class BorderHost
                 var size = new SIZE(piece.Width, piece.Height);
                 var origin = new System.Drawing.Point(0, 0);
                 var position = new System.Drawing.Point(box.X + piece.X, box.Y + piece.Y);
-                var blend = new BLENDFUNCTION { BlendOp = 0, SourceConstantAlpha = 255, AlphaFormat = 1 };
+                var blend = new BLENDFUNCTION { BlendOp = 0, SourceConstantAlpha = _alpha, AlphaFormat = 1 };
                 _ = PInvoke.UpdateLayeredWindow(hwnd, screen, &position, &size, memory, &origin, new COLORREF(0), &blend, UPDATE_LAYERED_WINDOW_FLAGS.ULW_ALPHA);
                 _ = PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
                 _ = PInvoke.SelectObject(memory, old);

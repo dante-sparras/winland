@@ -10,6 +10,13 @@ public sealed record Frame(WindowId Window, long Generation)
     /// <summary>Where <see cref="Bounds"/> is heading. Null when the geometry is not animating.</summary>
     public Rectangle? Goal { get; init; }
 
+    /// <summary>
+    /// The Layout rectangle the window rests on. Its size is the size the window keeps for the whole motion, which
+    /// is not the size of <see cref="Bounds"/> while the motion grows, shrinks or squeezes the window. Null when the
+    /// geometry is not animating.
+    /// </summary>
+    public Rectangle? Content { get; init; }
+
     public byte? Alpha { get; init; }
 
     public BorderColor? Border { get; init; }
@@ -267,7 +274,7 @@ public sealed class Animator
         if (entry.Border is Track color)
             border = final || color.Finished(now) ? entry.BorderGoal : OkLab.To(color.Value(now));
 
-        return new Frame(window, entry.Generation) { Bounds = bounds, Goal = goal, Alpha = alpha, Border = border };
+        return new Frame(window, entry.Generation) { Bounds = bounds, Goal = goal, Content = goal is null ? null : entry.Rest, Alpha = alpha, Border = border };
     }
 
     private static bool Running(Track? track, double now) => track is not null && !track.Finished(now);

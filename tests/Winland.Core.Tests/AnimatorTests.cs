@@ -27,6 +27,18 @@ public class AnimatorTests
     }
 
     [Fact]
+    public void AFrameCarriesTheRectangleTheWindowRestsOn()
+    {
+        var animator = new Animator();
+        var rest = new Rectangle(0, 0, 100, 100);
+        animator.Start(new Motion(Window, new Rectangle(50, 50, 0, 0)) { From = rest, Move = Linear, End = MotionEnd.Close, Rest = rest }, now: 0);
+
+        var frame = Assert.Single(animator.Step(50));
+
+        Assert.Equal(rest, frame.Content);
+    }
+
+    [Fact]
     public void AFrameCarriesTheGoalOfItsMoveAndAFadeAloneHasNone()
     {
         var animator = new Animator();
