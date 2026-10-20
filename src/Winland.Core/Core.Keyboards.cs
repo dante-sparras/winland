@@ -51,6 +51,9 @@ public sealed partial class Core
     /// <summary>The touchpad options Winland carries out, which the mouse hook and the touchpad reader read with no lock.</summary>
     public TouchpadBehavior Touchpad { get; private set; } = TouchpadBehavior.Default;
 
+    /// <summary>The <c>input:scroll_points</c> curve the mouse hook carries out, or null. It reads it with no lock.</summary>
+    public ScrollCurve? ScrollCurve { get; private set; }
+
     /// <summary>The <c>kb_options</c> the keyboard hook carries out. It reads them with no lock.</summary>
     public KeyboardOptions KeyOptions { get; private set; } = KeyboardOptions.None;
 

@@ -272,7 +272,7 @@ public static partial class ConfigParser
                 foreach (var option in KeyboardOptions.Parse(rhs).Unknown)
                     Warn(lineNumber, $"XKB option '{option}' is not honored.");
             }
-            else if (keyword == "input:accel_profile" && rhs.Equals("custom", StringComparison.OrdinalIgnoreCase))
+            else if (keyword == "input:accel_profile" && rhs.TrimStart().StartsWith("custom", StringComparison.OrdinalIgnoreCase))
                 Warn(lineNumber, "Custom acceleration profiles are not honored.");
         }
 
