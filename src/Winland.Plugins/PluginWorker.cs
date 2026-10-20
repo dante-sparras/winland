@@ -52,6 +52,26 @@ internal sealed class PluginWorker : IDisposable
         return item.Error is null;
     }
 
+    /// <summary>
+    /// Queues <paramref name="action"/> and returns without waiting. The caller times the wait, so time spent queued
+    /// counts and the pool is not charged for it. Null when the worker has been disposed.
+    /// </summary>
+    public WorkItem? Post(Action action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        var item = new WorkItem(action);
+        try
+        {
+            _queue.Add(item);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+
+        return item;
+    }
+
     /// <summary>Ends the thread once the calls already queued are done. A call that hangs keeps it.</summary>
     public void Dispose() => _queue.CompleteAdding();
 
@@ -61,7 +81,7 @@ internal sealed class PluginWorker : IDisposable
             item.Execute();
     }
 
-    private sealed class WorkItem(Action action)
+    internal sealed class WorkItem(Action action)
     {
         private int _state;
 

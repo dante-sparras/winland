@@ -263,7 +263,7 @@ A border color property is drawn with all its colors and its angle.
 
 ## Plugins
 
-`plugin` loads an in-process plugin assembly and is honored, so it is not a Gap. A plugin may register dispatchers, config keywords and event handlers. Registering a Layout is refused until a later change.
+`plugin` loads an in-process plugin assembly and is honored, so it is not a Gap. A plugin may register dispatchers, config keywords, event handlers and a tiled layout. A plugin layout is asked for boxes on the plugin's thread after the change, like a Lua layout, so until the boxes arrive every tile takes a cell of an even grid. Unloading the plugin returns those workspaces to dwindle. A layout that fails, or that the host abandons, uses that grid.
 
 `winlandctl plugin install`, `update`, `remove`, `enable`, `disable`, `reload` and `list --installed` are the plugin manager's `add`, `update`, `remove`, `enable`, `disable`, `reload` and `list`. See [plugins.md](plugins.md). These parts of the plugin manager are Gaps:
 

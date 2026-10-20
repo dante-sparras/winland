@@ -6,5 +6,5 @@ namespace Winland.PluginApi;
 /// </summary>
 public static class PluginApiVersion
 {
-    public const int Current = 1;
+    public const int Current = 2;
 }

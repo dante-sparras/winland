@@ -19,6 +19,15 @@ public interface ILayoutScripts
 }
 
 /// <summary>
+/// A layout arranger that keeps one algorithm per workspace. <see cref="Retire"/> runs when that workspace stops using
+/// the layout, so a later request for the same id is a new one. A Lua arranger does not implement this.
+/// </summary>
+public interface ILayoutSession
+{
+    void Retire(long layout);
+}
+
+/// <summary>
 /// What a script Layout is to arrange: the Layout it is for, the request's generation, the registered name, the tiling
 /// area and the tiled Clients in the Layout's order, each with the box it has now. <see cref="Message"/> is a
 /// <c>layoutmsg</c> for the script, when the request carries one.

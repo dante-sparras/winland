@@ -11,7 +11,7 @@ internal sealed class ManagerFixture : IDisposable
 {
     public const string Url = "https://example.com/plugins.git";
 
-    public const string Manifest = "[sample]\napi_version = 1\nproject = \"Sample/Sample.csproj\"\nassembly = \"SamplePlugin.dll\"\n";
+    public const string Manifest = "[sample]\napi_version = 2\nproject = \"Sample/Sample.csproj\"\nassembly = \"SamplePlugin.dll\"\n";
 
     private ManagerFixture(string root)
     {
