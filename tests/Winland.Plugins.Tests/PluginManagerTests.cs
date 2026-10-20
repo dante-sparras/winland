@@ -507,6 +507,61 @@ public class PluginManagerTests
         Assert.Equal(new ManagerCommand.Install("u", "r"), ManagerInvocation.Parse(["plugin", "install", "u", "r"]));
     }
 
+    [Fact]
+    public void FlagsAreReadAnywhereAfterPlugin()
+    {
+        Assert.Equal(new ManagerCommand.Reload(true) { Notify = true }, ManagerInvocation.Parse(["plugin", "-n", "reload", "--force"]));
+        Assert.Equal(new ManagerCommand.Install("u", null) { Verbose = true }, ManagerInvocation.Parse(["plugin", "install", "--verbose", "u"]));
+        Assert.Equal(new ManagerCommand.Update(false), ManagerInvocation.Parse(["plugin", "update", "-s", "--no-nix", "--hl-url", "https://x"]));
+        Assert.Equal(new ManagerCommand.Invalid("Unrecognized option --bogus"), ManagerInvocation.Parse(["plugin", "update", "--bogus"]));
+        Assert.Equal(new ManagerCommand.Invalid("Missing argument for --hl-url"), ManagerInvocation.Parse(["plugin", "update", "--hl-url"]));
+        Assert.Null(ManagerInvocation.Parse(["plugin", "-n", "list"]));
+    }
+
+    [Fact]
+    public void VerbosePrintsEachCommandAndWhatItPrinted()
+    {
+        using var fixture = ManagerFixture.Create();
+        var manager = new PluginManager(fixture.Paths, fixture.Runner, fixture.Elevator, fixture.Running, fixture.Output, fixture.Error, verbose: true);
+
+        Assert.Equal(0, manager.Install(ManagerFixture.Url, null));
+
+        Assert.Contains($" -> git clone", fixture.Output.ToString(), StringComparison.Ordinal);
+        Assert.Contains($" -> dotnet publish", fixture.Output.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain(" -> ", Quiet(fixture), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReloadNotifiesAFailureAlwaysAndASuccessWhenAsked()
+    {
+        using var fixture = ManagerFixture.Create();
+        Assert.Equal(0, fixture.Manager.Install(ManagerFixture.Url, null));
+        Assert.Equal(0, fixture.Manager.Enable("sample", enabled: true));
+        fixture.Running.Loaded.Clear();
+
+        Assert.Equal(0, fixture.Manager.Reload(force: false));
+        Assert.Empty(fixture.Running.Notifications);
+
+        fixture.Running.Loaded.Clear();
+        var notifying = new PluginManager(fixture.Paths, fixture.Runner, fixture.Elevator, fixture.Running, fixture.Output, fixture.Error, notify: true);
+        Assert.Equal(0, notifying.Reload(force: false));
+        Assert.Equal(["5 4000 [winlandctl] Loaded plugins"], fixture.Running.Notifications);
+
+        fixture.Running.Notifications.Clear();
+        fixture.Running.Loaded.Clear();
+        fixture.Running.FailLoad = true;
+        Assert.Equal(1, fixture.Manager.Reload(force: false));
+        Assert.Equal(["3 10000 [winlandctl] Failed to load plugins"], fixture.Running.Notifications);
+    }
+
+    private static string Quiet(ManagerFixture fixture)
+    {
+        using var quiet = ManagerFixture.Create();
+        quiet.Commit = fixture.Commit;
+        Assert.Equal(0, quiet.Manager.Install(ManagerFixture.Url, null));
+        return quiet.Output.ToString();
+    }
+
     private sealed class ListLog : IPluginLog
     {
         public void Write(string message)

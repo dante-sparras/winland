@@ -1,8 +1,10 @@
 namespace Winland.Plugins.Manager;
 
 /// <summary>
-/// <c>winlandctl plugin install|update|remove|list --installed</c>. It clones and builds as the
-/// current user, shows what it built, and hands the copy and the approval to one elevated step.
+/// <c>winlandctl plugin install|update|remove|enable|disable|reload|list --installed</c>. It clones and builds as the
+/// current user, shows what it built, and hands the copy and the approval to one elevated step. With
+/// <paramref name="verbose"/> it prints each command it runs and what that printed; with <paramref name="notify"/>
+/// <c>reload</c> shows a notification in the running Winland when the plugins load.
 /// </summary>
 public sealed class PluginManager(
     PluginManagerPaths paths,
@@ -10,9 +12,11 @@ public sealed class PluginManager(
     IElevator elevator,
     IRunningPlugins running,
     TextWriter output,
-    TextWriter error)
+    TextWriter error,
+    bool verbose = false,
+    bool notify = false)
 {
-    private readonly PluginStaging _staging = new(paths, runner);
+    private readonly PluginStaging _staging = new(paths, verbose ? new EchoingRunner(runner, output) : runner);
 
     public int Install(string url, string? revision)
     {
@@ -211,7 +215,14 @@ public sealed class PluginManager(
         if (!TryReadInstalled(out var installed))
             return 1;
 
-        return EnsureLoadState(installed, Repositories(installed), force);
+        // As in the pinned plugin manager, a failure is always shown and a success only with --notify.
+        var result = EnsureLoadState(installed, Repositories(installed), force);
+        if (result != 0)
+            running.Notify(NotifyError, 10000, "[winlandctl] Failed to load plugins");
+        else if (notify)
+            running.Notify(NotifyOk, 4000, "[winlandctl] Loaded plugins");
+
+        return result;
     }
 
     public int List()
@@ -370,6 +381,11 @@ public sealed class PluginManager(
         }
     }
 
+    // The notification icons the pinned release numbers 3, an error, and 5, done.
+    private const int NotifyError = 3;
+
+    private const int NotifyOk = 5;
+
     private string StatePath => Path.Combine(paths.Staging, ManagerState.FileName);
 
     private bool Apply(IReadOnlyList<StagedRepository> install, IReadOnlyList<string> remove)
@@ -453,4 +469,18 @@ public sealed class PluginManager(
 
     private static bool SameUrl(string? left, string right) =>
         left is not null && left.Equals(right, StringComparison.OrdinalIgnoreCase);
+
+    // Prints each command the staging runs and what it printed, as the pinned plugin manager's --verbose does.
+    private sealed class EchoingRunner(IProcessRunner inner, TextWriter output) : IProcessRunner
+    {
+        public ProcessResult Run(string fileName, IReadOnlyList<string> arguments, string workingDirectory)
+        {
+            output.WriteLine($" -> {fileName} {string.Join(' ', arguments)}");
+            var result = inner.Run(fileName, arguments, workingDirectory);
+            if (result.Output.Length > 0)
+                output.WriteLine(result.Output.TrimEnd());
+
+            return result;
+        }
+    }
 }

@@ -148,7 +148,7 @@ Events and calls that have a Windows source: `window.open_early`, `config.props_
 
 Behavior the Notes describe, which Windows can do: the mouse-drag gaps; dragging a tab out of the bar; swallowing a parent in a Group the way the pinned release does, which leaves the child unplaced; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
 
-Commands and the plugin manager: the window property `no_vrr`; and the `--notify`, `--verbose` and `--no-shallow` flags, and the custom source URL flag.
+Commands and the plugin manager: the window property `no_vrr`.
 
 ## Notes
 
@@ -236,4 +236,4 @@ Every command the pinned release's control socket answers is recognized. The one
 
 - `purge-cache` is not honored. There are no headers to cache, and `remove` deletes a repository's staging folder.
 - Commit pins and the per-plugin minimum compositor version are not honored. The exact plugin API version replaces them, and header and ABI checks with it.
-- `--notify`, `--verbose`, `--no-shallow`, `--no-nix` and the custom source URL flag are not honored.
+- `--no-shallow`, `--no-nix` and `--hl-url` are taken and do nothing. They change how the pinned plugin manager fetches and builds the compositor's headers, and Winland has no headers to fetch.
