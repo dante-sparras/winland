@@ -4,7 +4,7 @@ namespace Winland;
 /// A cubic Bézier easing curve from (0, 0) to (1, 1) through two control points.
 /// <see cref="Ease"/> takes the fraction of time passed and gives the fraction of the way travelled.
 /// </summary>
-public sealed record Bezier(double X1, double Y1, double X2, double Y2)
+public sealed record Bezier(double X1, double Y1, double X2, double Y2) : Easing
 {
     /// <summary>The curve named <c>default</c>, which every leaf uses unless the config names another.</summary>
     public static Bezier Default { get; } = new(0, 0.75, 0.15, 1);
@@ -16,7 +16,7 @@ public sealed record Bezier(double X1, double Y1, double X2, double Y2)
     /// The progress at time <paramref name="x"/>, from 0 to 1. A control point above 1 or below 0
     /// overshoots, so the result can leave that range before it lands on 1.
     /// </summary>
-    public double Ease(double x)
+    public override double Ease(double x)
     {
         if (double.IsNaN(x) || x <= 0)
             return 0;

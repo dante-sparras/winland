@@ -9,6 +9,10 @@ namespace Winland;
 internal sealed class AnimationBook
 {
     internal const string BezierKeyword = "bezier";
+    internal const string SpringKeyword = "spring";
+
+    // An animation names a spring curve with this before the spring's name, as the pinned release does.
+    internal const string SpringPrefix = "spring:";
     internal const string AnimationKeyword = "animation";
     internal const string GapPrefix = "animation:";
 
@@ -64,6 +68,8 @@ internal sealed class AnimationBook
         ["default"] = Winland.Bezier.Default,
         ["linear"] = Winland.Bezier.Linear,
     };
+
+    private readonly Dictionary<string, SpringCurve> _springs = new(StringComparer.Ordinal);
 
     // The nodes an animation line set, and the curves in the order they were added.
     private readonly HashSet<string> _overridden = new(StringComparer.Ordinal);
@@ -123,7 +129,23 @@ internal sealed class AnimationBook
         return System.Text.Json.JsonSerializer.Serialize(new object[] { tree.ToArray(), points.ToArray() });
     }
 
-    internal bool TryCurve(string name, out Bezier curve) => _curves.TryGetValue(name, out curve!);
+    internal bool TryCurve(string name, out Easing curve)
+    {
+        if (_curves.TryGetValue(name, out var bezier))
+        {
+            curve = bezier;
+            return true;
+        }
+
+        if (name.StartsWith(SpringPrefix, StringComparison.Ordinal) && _springs.TryGetValue(name[SpringPrefix.Length..], out var spring))
+        {
+            curve = spring;
+            return true;
+        }
+
+        curve = Winland.Bezier.Default;
+        return false;
+    }
 
     internal AnimationLeaf Effective(string node)
     {
@@ -164,6 +186,36 @@ internal sealed class AnimationBook
         return null;
     }
 
+    /// <summary>
+    /// Reads <c>NAME, STIFFNESS, DAMPING, MASS</c>, the line form of a spring <c>hl.curve</c>. Each number must be above
+    /// 0.5, as the pinned release requires. Returns the warning, or null when the spring is kept.
+    /// </summary>
+    internal string? AddSpring(string value)
+    {
+        var args = Split(value);
+        var name = Arg(args, 0);
+        if (name.Length == 0)
+            return "Spring needs a name.";
+
+        var numbers = new double[3];
+        string[] fields = ["stiffness", "damping", "mass"];
+        for (var i = 0; i < 3; i++)
+        {
+            var text = Arg(args, i + 1);
+            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out numbers[i]) || !double.IsFinite(numbers[i]))
+                return $"Spring {fields[i]} '{text}' is not a number.";
+
+            if (numbers[i] <= 0.5)
+                return $"Spring {fields[i]} must be above 0.5.";
+        }
+
+        if (Arg(args, 4).Length > 0)
+            return "Spring has too many arguments.";
+
+        _springs[name] = new SpringCurve(numbers[0], numbers[1], numbers[2]);
+        return null;
+    }
+
     /// <summary>Reads <c>NAME, ONOFF, SPEED, CURVE[, STYLE]</c>. Returns the warning, or null when the line is kept.</summary>
     internal string? SetAnimation(string value)
     {
@@ -187,7 +239,7 @@ internal sealed class AnimationBook
             return $"Animation speed '{speedText}' is not valid.";
 
         var curve = Arg(args, 3);
-        if (!_curves.ContainsKey(curve))
+        if (!TryCurve(curve, out _))
             return $"Curve '{curve}' does not exist.";
 
         // The style is kept even when it is not valid, and only warns.

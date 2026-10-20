@@ -370,8 +370,8 @@ internal sealed partial class LuaRun
         }
     }
 
-    // hl.curve(name, { type = "bezier", points = { { x0, y0 }, { x1, y1 } } }) is "bezier = name, x0, y0, x1, y1". A
-    // spring curve warns, since no line form has one.
+    // hl.curve(name, { type = "bezier", points = { { x0, y0 }, { x1, y1 } } }) is "bezier = name, x0, y0, x1, y1", and
+    // hl.curve(name, { type = "spring", stiffness, damping, mass }) is "spring = name, stiffness, damping, mass".
     private int AddCurve(IntPtr state)
     {
         if (!_lua.IsStringOrNumber(1))
@@ -398,6 +398,7 @@ internal sealed partial class LuaRun
                     EmitLine($"bezier = {name}, {points}", "hl.curve");
                 return 0;
             case "spring":
+                var numbers = new List<string>(3);
                 foreach (var field in (string[])["stiffness", "damping", "mass"])
                 {
                     // damping was spelled dampening before, and the pinned release still reads that spelling.
@@ -408,6 +409,7 @@ internal sealed partial class LuaRun
                     }
 
                     var number = _lua.IsNumber(-1) ? _lua.ToNumber(-1) : (double?)null;
+                    var text = _lua.IsNumber(-1) ? NumberText(-1) : "";
                     _lua.Pop(1);
                     if (number is not double value)
                     {
@@ -420,10 +422,12 @@ internal sealed partial class LuaRun
                         Warn($"{label}: {field} expects a number >= 0.5");
                         return 0;
                     }
+
+                    numbers.Add(text);
                 }
 
-                _springs.Add(name);
-                Warn($"{label}: spring curves are not honored yet");
+                if (EmitLine($"spring = {name}, {string.Join(", ", numbers)}", "hl.curve"))
+                    _springs.Add(name);
                 return 0;
             case var other:
                 Warn($"{label}: unknown curve type \"{other}\", expected \"bezier\" or \"spring\"");
@@ -491,8 +495,8 @@ internal sealed partial class LuaRun
         }
     }
 
-    // hl.animation({ leaf, enabled, speed, bezier | spring, style }) is "animation = leaf, 1, speed, bezier[, style]", or
-    // "animation = leaf, 0" when it is not enabled. A spring warns, since no line form has one.
+    // hl.animation({ leaf, enabled, speed, bezier | spring, style }) is "animation = leaf, 1, speed, curve[, style]", where
+    // a spring's curve is "spring:name" as in the pinned release, or "animation = leaf, 0" when it is not enabled.
     private int AddAnimation(IntPtr state)
     {
         if (!_lua.IsTable(1))
@@ -544,10 +548,13 @@ internal sealed partial class LuaRun
         else if (Present(1, "spring"))
         {
             var spring = StringField(1, "spring") ?? "";
-            Warn(_springs.Contains(spring)
-                ? $"{label}: spring curves are not honored yet"
-                : $"{label}: no such spring \"{spring}\"");
-            return 0;
+            if (!_springs.Contains(spring))
+            {
+                Warn($"{label}: no such spring \"{spring}\"");
+                return 0;
+            }
+
+            curve = "spring:" + spring;
         }
         else
         {
