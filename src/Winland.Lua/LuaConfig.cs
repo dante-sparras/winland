@@ -122,9 +122,6 @@ public static class LuaConfig
 // callback never raises a Lua error: it notes a warning and returns, because an error would unwind past managed frames.
 internal sealed partial class LuaRun : IDisposable
 {
-    // Calls Winland does not take on yet. Each warns once and does nothing.
-    private static readonly string[] Pending = ["load", "is_key_down"];
-
     // The events hl.on knows, named as the pinned release names them with Winland's own name for its start and shutdown.
     private static readonly string[] Events =
     [
@@ -290,10 +287,14 @@ internal sealed partial class LuaRun : IDisposable
         Function("define_submap", DefineSubmap);
         Function("dispatch", DispatchNow);
         Function("timer", Timer);
+        Function("is_key_down", IsKeyDown);
         RegisterRules();
         RegisterLayouts();
-        foreach (var name in Pending)
-            Function(name, state => NotYet(name));
+        Function("exec_scheduled_prop_refresh_immediately", state => 0);
+        Function("clear_crashed_lockscreen", state => 0);
+        _lua.NewTable();
+        Function("load", "hl.plugin.load", PluginLoad);
+        _lua.SetField(-2, "plugin");
 
         RegisterDispatchers();
 
@@ -636,12 +637,59 @@ internal sealed partial class LuaRun : IDisposable
         return 1;
     }
 
-    private int NotYet(string name)
+    // hl.plugin.load(path) loads a plugin as a plugin line does.
+    private int PluginLoad(IntPtr state)
     {
-        if (_warnedPending.Add(name))
-            Warn($"hl.{name} is not honored yet");
+        if (!_lua.IsString(1))
+        {
+            Warn("hl.plugin.load: first argument (path) must be a string");
+            return 0;
+        }
 
+        var path = _lua.ToString(1, false);
+        if (path.Length == 0)
+        {
+            Warn("hl.plugin.load: path must not be empty");
+            return 0;
+        }
+
+        Emit("plugin = " + path);
         return 0;
+    }
+
+    // hl.is_key_down(key): whether the user holds a key, named as a keysym, such as "a" or "Super_L", or by its XKB
+    // keycode. While the config is first read there is no keyboard to ask, and every key is up.
+    private int IsKeyDown(IntPtr state)
+    {
+        bool? down;
+        if (_lua.IsInteger(1))
+        {
+            var code = _lua.ToInteger(1);
+            down = code is < 8 or > int.MaxValue ? null : _world is null ? false : _world.IsKeyDown("", (int)code);
+            if (down is null)
+            {
+                Warn($"hl.is_key_down: invalid keycode {code.ToString(CultureInfo.InvariantCulture)}");
+                return 0;
+            }
+        }
+        else if (_lua.IsString(1))
+        {
+            var key = _lua.ToString(1, false);
+            down = _world is null ? false : _world.IsKeyDown(key, 0);
+            if (down is null)
+            {
+                Warn(key == "Enter" ? "Unknown keysym: \"Enter\", did you mean \"Return\"?" : $"Unknown keysym: \"{key}\"");
+                return 0;
+            }
+        }
+        else
+        {
+            Warn("hl.is_key_down: bad argument 1: expected integer or string");
+            return 0;
+        }
+
+        _lua.PushBoolean(down.Value);
+        return 1;
     }
 
     // require("a.b") reads a/b.lua, or a/b/init.lua, from the config's folder. A path, one that starts with ./, ../,

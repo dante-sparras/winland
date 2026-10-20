@@ -49,6 +49,10 @@ public sealed class KeyboardHook : IDisposable
     // with it count too. Only the hook thread writes it; the key relay reads it on the bind worker.
     private static int _held;
 
+    // Every key the user physically holds, one bit per virtual key, as the hook saw them, a key a bind swallows too.
+    // Only the hook thread writes it; the Lua config's hl.is_key_down reads it.
+    private static readonly long[] _down = new long[4];
+
     // Modifiers a relay pressed and left down on purpose (sendkeystate down). Not stale.
     private static int _relayed;
 
@@ -161,6 +165,8 @@ public sealed class KeyboardHook : IDisposable
 
             // Nothing updates it once the hook is gone, so the relay must not trust it.
             Volatile.Write(ref _held, 0);
+            for (var i = 0; i < _down.Length; i++)
+                Volatile.Write(ref _down[i], 0);
         }
 
         DisarmSweep();
@@ -424,8 +430,24 @@ public sealed class KeyboardHook : IDisposable
             Interlocked.And(ref _relayed, ~bit);
     }
 
+    /// <summary>Whether the user holds the key with this virtual key code, as the running hook saw it.</summary>
+    public static bool IsDown(int virtualKey)
+    {
+        if (virtualKey is < 0 or > 255)
+            return false;
+
+        return (Volatile.Read(ref _down[virtualKey >> 6]) & (1L << (virtualKey & 63))) != 0;
+    }
+
     private static void NoteHeld(uint vk, bool up)
     {
+        if (vk <= 255)
+        {
+            var word = Volatile.Read(ref _down[vk >> 6]);
+            var mask = 1L << (int)(vk & 63);
+            Volatile.Write(ref _down[vk >> 6], up ? word & ~mask : word | mask);
+        }
+
         var bit = ModifierBit((int)vk);
         if (bit == 0)
             return;

@@ -106,20 +106,45 @@ public class LuaConfigTests
     }
 
     [Fact]
-    public void BeforeWinlandRunsTheQueriesFindNothingAndCallsNotTakenOnWarnOnce()
+    public void BeforeWinlandRunsTheQueriesFindNothingAndNoKeyIsDown()
     {
         var translation = Run("""
             assert(next(hl.get_windows()) == nil and next(hl.get_monitors()) == nil)
             assert(hl.get_active_window() == nil and hl.get_config("general.gaps_in") == nil)
             assert(hl.get_current_submap() == "" and type(hl.version()) == "string")
-            hl.is_key_down("a")
-            hl.is_key_down("a")
+            assert(hl.is_key_down("a") == false and hl.is_key_down(38) == false)
+            hl.exec_scheduled_prop_refresh_immediately()
+            hl.clear_crashed_lockscreen()
             hl.config({ general = { gaps_in = 3 } })
             """);
 
-        var warning = Assert.Single(translation.Warnings);
-        Assert.Equal(new ConfigWarning(4, "hl.is_key_down is not honored yet"), warning);
+        Assert.Empty(translation.Warnings);
         Assert.Equal(["general:gaps_in = 3"], Lines(translation));
+    }
+
+    [Fact]
+    public void IsKeyDownRefusesWhatIsNotAKey()
+    {
+        var translation = Run("""
+            hl.is_key_down(3)
+            hl.is_key_down({})
+            """);
+
+        Assert.Equal(
+            [new ConfigWarning(1, "hl.is_key_down: invalid keycode 3"), new ConfigWarning(2, "hl.is_key_down: bad argument 1: expected integer or string")],
+            translation.Warnings);
+    }
+
+    [Fact]
+    public void PluginLoadWritesAPluginLine()
+    {
+        var translation = Run("""
+            hl.plugin.load("plugins/echo.dll")
+            hl.plugin.load("")
+            """);
+
+        Assert.Equal(["plugin = plugins/echo.dll"], Lines(translation));
+        Assert.Equal(new ConfigWarning(2, "hl.plugin.load: path must not be empty"), Assert.Single(translation.Warnings));
     }
 
     [Fact]

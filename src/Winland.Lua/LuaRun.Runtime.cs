@@ -9,6 +9,12 @@ public interface ILuaWorld
     string Command(string command);
 
     void Log(string message);
+
+    /// <summary>
+    /// Whether the user holds a key, named as a config names it or, with an empty name, by its XKB keycode. Null when
+    /// it names no key.
+    /// </summary>
+    bool? IsKeyDown(string key, int code) => false;
 }
 
 // The config's Lua keeps running after it loads: binds that call a function, timers, hl.dispatch and winlandctl eval

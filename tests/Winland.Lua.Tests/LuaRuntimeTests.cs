@@ -23,6 +23,11 @@ public class LuaRuntimeTests
         }
 
         public void Log(string message) => Logged.Enqueue(message);
+
+        public HashSet<string> Held { get; } = [];
+
+        public bool? IsKeyDown(string key, int code) =>
+            key.Length == 0 ? Held.Contains("code:" + code) : key == "nosuch" ? null : Held.Contains(key);
     }
 
     private static (LuaRuntime Runtime, World World, LuaTranslation Translation) Start(string code)
@@ -54,6 +59,20 @@ public class LuaRuntimeTests
 
         Assert.Equal(["dispatch killactive"], world.Commands);
         Assert.Empty(world.Logged);
+    }
+
+    [Fact]
+    public void IsKeyDownAsksWinlandOnceItRuns()
+    {
+        var (runtime, world, _) = Start("");
+        using var _runtime = runtime;
+        world.Held.Add("Super_L");
+        world.Held.Add("code:38");
+
+        Assert.Equal("true", runtime.Eval("hl.is_key_down('Super_L')", repl: true));
+        Assert.Equal("false", runtime.Eval("hl.is_key_down('a')", repl: true));
+        Assert.Equal("true", runtime.Eval("hl.is_key_down(38)", repl: true));
+        Assert.Equal("error: line 1: Unknown keysym: \"nosuch\"", runtime.Eval("hl.is_key_down('nosuch')", repl: true));
     }
 
     [Fact]
