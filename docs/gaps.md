@@ -219,7 +219,7 @@ Mouse drag has these Gaps. Each is a gap with no open issue:
 - In the monocle Layout a drag does not move or resize the Client.
 - The pointer shape does not change while a Client is dragged or resized.
 
-Dragging a tab out of a tab bar is a Gap: a press on a tab focuses that member, and a drag from it moves nothing. Titles are drawn without antialiasing, because antialiased text would blend with the transparent strip. The wheel over the bar focuses the next member instead of only showing it. The bar is a separate window. It is put just above the shown member in the z-order each time the core reports a change, not each time another window is raised.
+Titles in a tab bar are drawn without antialiasing, because antialiased text would blend with the transparent strip. The wheel over the bar focuses the next member instead of only showing it. The bar is a separate window. It is put just above the shown member in the z-order each time the core reports a change, not each time another window is raised.
 
 ## Lua config
 

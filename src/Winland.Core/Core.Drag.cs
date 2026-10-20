@@ -16,11 +16,15 @@ public sealed partial class Core
         {
             case PointerDragPhase.Begin:
                 // A drag already running keeps the pointer. A second drag button does not start another one.
-                if (_gesture is not null || DragTarget(gesture.Position) is not WindowId window)
+                var dispatch = new BindDispatch(gesture.Dispatcher, gesture.Arguments);
+                if (_gesture is not null || (TabUnder(dispatch, gesture.Position) ?? DragTarget(gesture.Position)) is not WindowId target)
                     return View([], consumed: true, dispatcher: gesture.Dispatcher);
 
-                var begun = BeginGesture(window, new BindDispatch(gesture.Dispatcher, gesture.Arguments), gesture.Button, gesture.Position);
-                return View(begun, consumed: true, dispatcher: gesture.Dispatcher, focus: window);
+                var tabbed = TakeTabOut(dispatch, gesture.Position, out var window);
+                window ??= target;
+                var begun = BeginGesture(window.Value, dispatch, gesture.Button, gesture.Position);
+                var view = View(begun, consumed: true, dispatcher: gesture.Dispatcher, focus: window);
+                return tabbed is null ? view : Merge(tabbed, view);
             case PointerDragPhase.Move when _gesture is not null:
                 return MoveGesture(gesture.Position);
             case PointerDragPhase.End when _gesture is not null && _gesture.Button.Equals(gesture.Button, StringComparison.OrdinalIgnoreCase):
@@ -105,6 +109,39 @@ public sealed partial class Core
     }
 
     private readonly record struct DropTarget(LiveWorkspace Desk, WindowGroup Group, int? Index);
+
+    // A move that starts on a tab of a Group's bar takes that member out of the Group and drags it alone, as the pinned
+    // release begins a window drag on its group bar. A Group of one, a press between tabs and a resize drag the window
+    // under the pointer as before. Returns how the member left the Group, or null.
+    private Outcome? TakeTabOut(BindDispatch drag, Point pointer, out WindowId? member)
+    {
+        member = TabUnder(drag, pointer);
+        if (member is not WindowId window || WorkspaceContaining(window) is not LiveWorkspace desk || desk.GroupOf(window) is not WindowGroup group)
+        {
+            member = null;
+            return null;
+        }
+
+        return OutOfGroup(desk, group, window, direction: null, drag.Dispatcher, allowsElevation: false);
+    }
+
+    // The member whose tab a move drag starts on, in a Group of more than one, or null.
+    private WindowId? TabUnder(BindDispatch drag, Point pointer)
+    {
+        if (IsResize(drag.Dispatcher))
+            return null;
+
+        foreach (var bar in GroupBars(Snapshot()))
+        {
+            if (!Inside(bar.Bounds, pointer))
+                continue;
+
+            var index = bar.TabAt(pointer.X - bar.Bounds.X, pointer.Y - bar.Bounds.Y);
+            return index < 0 || bar.Tabs.Count < 2 ? null : bar.Tabs[index].Window;
+        }
+
+        return null;
+    }
 
     // A window dragged onto another Monitor goes to the Workspace that Monitor shows, its special workspace when one is
     // open, as the pinned release gives a floating drag target the workspace under its middle. A lifted tile is dropped
