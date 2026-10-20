@@ -108,8 +108,11 @@ public sealed partial class Core
         _ = there.Show(group, position);
     }
 
-    // The focus after the focused window left for the Group or was hidden in it. On a Workspace that shows, the Group's
-    // shown member takes it, on its Monitor. Otherwise the Workspace the window left keeps the focus, as a silent move does.
+    // The focus after the focused window left for the Group or was hidden in it. The pinned release clears the keyboard
+    // focus when that window is a hidden member, because hiding it blocks its input. A hidden member is hidden with
+    // SW_HIDE, which activates another window, and putting the foreground back on it would send keystrokes to a window
+    // that is not visible, so on a Workspace that shows the shown member takes the focus, on its Monitor. Otherwise the
+    // Workspace the window left keeps the focus, as a silent move does.
     private WindowId? FocusAfterGroupAdd(LiveWorkspace there, WindowGroup group, HashSet<WorkspaceId> sources)
     {
         if (IsShown(there.Id))
