@@ -58,6 +58,23 @@ public class FollowMouseTests
     }
 
     [Fact]
+    public void MovingOntoAWindowWithNoFollowMouseLeavesTheFocus()
+    {
+        var (core, laid) = Tiled();
+        core.Execute("setprop address:0x1 no_follow_mouse 1");
+
+        Move(core, Center(laid, 2), 1_000);
+        var followed = Move(core, Center(laid, 1), 1_100);
+
+        Assert.Null(followed.Focus);
+        Assert.DoesNotContain(followed.Events, item => item is FocusChanged);
+
+        core.Execute("setprop address:0x1 no_follow_mouse 0");
+        Move(core, Center(laid, 2), 1_200);
+        Assert.Equal(new WindowId(1), Move(core, Center(laid, 1), 1_300).Focus);
+    }
+
+    [Fact]
     public void DisabledFollowLeavesTheFocusedClient()
     {
         var (core, laid) = Tiled("input:follow_mouse = disabled\n");

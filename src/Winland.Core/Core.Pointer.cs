@@ -116,6 +116,11 @@ public sealed partial class Core
         if (decision.RememberMouse)
             _lastMouse = decision.LastMouse;
 
+        // A window with no_follow_mouse is still remembered as the one under the pointer, but moving onto it does not
+        // focus it, as in the pinned release. A refocus, after a window closes or moves, still does.
+        if (decision.Focus is WindowId found && OwnProp(found, "no_follow_mouse") is true)
+            return null;
+
         return TakePointerFocus(decision.Focus);
     }
 
