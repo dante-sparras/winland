@@ -82,7 +82,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | input:touchdevice:enabled | Windows turns a touch screen off only by disabling its device, which needs administrator rights. |
 | input:touchdevice:output | Windows maps a touch screen to a display in its Tablet PC settings, which Winland cannot set. The touch screen swipe reads the display Windows maps it to. |
 | input:touchdevice:transform | Windows turns touch input with its display's orientation and has no setting to turn it apart from that. |
-| input:touchpad:middle_button_emulation | A button press reaches the mouse hook without its device, so a touchpad's buttons cannot be told from a mouse's, and Windows has no such touchpad setting. |
 | input:virtualkeyboard:release_pressed_on_close | Virtual keyboards are not honored. |
 | input:virtualkeyboard:share_states | Virtual keyboards are not honored. |
 | layerrule | Layer shell rules have no Windows meaning. |
@@ -147,7 +146,6 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | input:tablet:absolute_region_position, input:tablet:active_area_position, input:tablet:active_area_size, input:tablet:enabled, input:tablet:left_handed, input:tablet:output, input:tablet:region_position, input:tablet:region_size, input:tablet:relative_input, input:tablet:transform |
 | gap | - | input:tablettool:eraser_button_mode, input:tablettool:eraser_button_override, input:tablettool:pressure_range_max, input:tablettool:pressure_range_min |
 | gap | - | input:touchdevice:enabled, input:touchdevice:output, input:touchdevice:transform |
-| gap | - | input:touchpad:middle_button_emulation |
 | gap | - | input:virtualkeyboard:release_pressed_on_close, input:virtualkeyboard:share_states, misc:name_vk_after_proc |
 | gap | - | locale |
 | non-goal | - | misc:allow_session_lock_restore, misc:anr_missed_pings, misc:background_color, misc:bell_sound, misc:col.splash, misc:disable_scale_notification, misc:disable_splash_rendering, misc:disable_watchdog_warning, misc:disable_xdg_env_checks, misc:enable_anr_dialog, misc:force_default_wallpaper, misc:layers_hog_keyboard_focus, misc:lockdead_screen_delay, misc:middle_click_paste, misc:render_unfocused_fps, misc:screencopy_force_8b, misc:session_lock_blur, misc:session_lock_xray, misc:splash_font_family |

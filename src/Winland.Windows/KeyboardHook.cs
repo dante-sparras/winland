@@ -16,6 +16,10 @@ public sealed class KeyboardHook : IDisposable
     // A key kb_options moved, sent again as its new key. Unlike InjectedTag, the hook handles it as typed.
     internal const nuint RemapTag = 0x574C4E52;
 
+    // A button press the mouse hook held back and sent again, or the middle button it made from the left and right
+    // together. Unlike InjectedTag, the hook handles it as clicked, and does not hold it again.
+    internal const nuint EmulationTag = 0x574C4E45;
+
     // The keys kb_options took that are held now. Used on the hook thread only.
     private readonly HashSet<int> _taken = [];
 
