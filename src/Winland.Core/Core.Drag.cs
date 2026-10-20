@@ -92,6 +92,9 @@ public sealed partial class Core
         _gesture = null;
         // The Group under the pointer is found while the dragged window is still lifted, as in the pinned release.
         var drop = gesture.PickedUp && !gesture.Resize ? GroupDrop(gesture.Window, gesture.WasTiled, pointer) : null;
+        if (drop is null && gesture.PickedUp && !gesture.Resize && DropOnMonitor(gesture, pointer) is { } carried)
+            return carried;
+
         IReadOnlyList<Placement> ended = gesture.PickedUp
             ? LayoutWorkspace(gesture.Window).Layout.Drag(gesture.Window, gesture.Step(PointerDragPhase.End, pointer))
             : [];
@@ -102,6 +105,40 @@ public sealed partial class Core
     }
 
     private readonly record struct DropTarget(LiveWorkspace Desk, WindowGroup Group, int? Index);
+
+    // A window dragged onto another Monitor goes to the Workspace that Monitor shows, its special workspace when one is
+    // open, as the pinned release gives a floating drag target the workspace under its middle. A lifted tile is dropped
+    // into that Workspace's Layout at the pointer, and a floating window keeps its rectangle. Null when the window's
+    // middle is still on its own Workspace's Monitor.
+    private Outcome? DropOnMonitor(Gesture gesture, Point pointer)
+    {
+        var window = gesture.Window;
+        var source = LayoutWorkspace(window);
+        if (source.ClientOf(window) is not { Floating: true } || !source.Layout.TryBounds(window, out var box))
+            return null;
+
+        var middle = new Point(box.X + (box.Width / 2), box.Y + (box.Height / 2));
+        if (MonitorAt(middle) is not { } screen || (screen.Special ?? screen.Active) is not WorkspaceId shown
+            || FindWorkspace(shown) is not LiveWorkspace target || target.Id == source.Id || !source.Take(window, out var taken))
+        {
+            return null;
+        }
+
+        var tiled = gesture.WasTiled;
+        target.Receive(window, taken with { Floating = !tiled, Bounds = box }, WorkArea(target, _area), pointer: tiled ? pointer : null);
+        CarryGroup(source, target, window);
+        target.Focus = window;
+        NoteFocus(window);
+        target.Layout.NoteFocus(window);
+
+        var placements = new List<Placement>();
+        if (IsShown(source.Id))
+            placements.AddRange(source.Layout.Visible());
+        if (IsShown(target.Id))
+            placements.AddRange(target.Layout.Visible());
+
+        return View(placements, consumed: true, dispatcher: gesture.Dispatcher, focus: window);
+    }
 
     // group:drag_into_group, as the pinned release ends a window drag. A window dropped on a Group's tab bar joins that
     // Group at the tab under the pointer, and one dropped on a member joins after the current member. A dragged Group
