@@ -28,8 +28,6 @@ public sealed class MouseHook : IDisposable
     private readonly KeyboardHook _keys;
     private readonly HOOKPROC _callback;
     private HHOOK _hook;
-    private readonly MouseDrag _drag = new();
-
     // Buttons whose press a drag bind let through, with no window to drag, so their release goes through too.
     private readonly HashSet<string> _passed = new(StringComparer.OrdinalIgnoreCase);
     private readonly ButtonScroller _scroller = new();
@@ -85,7 +83,7 @@ public sealed class MouseHook : IDisposable
 
         // A drag whose release was missed is over. The core is told, or the window would
         // keep following the cursor with no button held.
-        if (_drag.Abandon() is MouseDrag.Active drag)
+        if (_keys.Drag.Abandon() is MouseDrag.Active drag)
         {
             var position = PInvoke.GetCursorPos(out var point) ? new Point(point.X, point.Y) : _keys.Session.Pointer;
             _keys.PostGesture(drag.Dispatcher, drag.Arguments, position, PointerDragPhase.End, drag.Button);
@@ -323,7 +321,7 @@ public sealed class MouseHook : IDisposable
 
         _ = _core.Decide(new PointerMoved(position), _keys.Session);
         SessionEffects.NoteMove(position, source);
-        if (_drag.Current is MouseDrag.Active drag)
+        if (_keys.Drag.Current is MouseDrag.Active drag)
             _keys.PostGesture(drag.Dispatcher, drag.Arguments, position, PointerDragPhase.Move, drag.Button);
         else
             _keys.PostMove(position, time);
@@ -347,7 +345,7 @@ public sealed class MouseHook : IDisposable
         if (up)
         {
             var passed = _passed.Remove(button);
-            if (_drag.Release(button) is MouseDrag.Active drag)
+            if (_keys.Drag.Release(button) is MouseDrag.Active drag)
                 _keys.PostGesture(drag.Dispatcher, drag.Arguments, position, PointerDragPhase.End, button);
 
             var released = _core.Decide(new PointerButtonReleased(button) { Position = position }, _keys.Session);
@@ -365,14 +363,14 @@ public sealed class MouseHook : IDisposable
         {
             // With no window under the pointer the press goes on to whatever is there, as the pinned release lets it
             // through, when the drag is all the bind does.
-            if (_drag.Current is null && OnlyDrag(decision) && !_core.HasDragTarget(position))
+            if (_keys.Drag.Current is null && OnlyDrag(decision) && !_core.HasDragTarget(position))
             {
                 _passed.Add(button);
                 return false;
             }
 
             // A second drag button pressed during a drag starts nothing, so the held drag still ends on its own release.
-            if (_drag.Begin(button, dispatcher, arguments))
+            if (_keys.Drag.Begin(button, dispatcher, arguments))
                 _keys.PostGesture(dispatcher, arguments, position, PointerDragPhase.Begin, button);
 
             foreach (var dispatch in decision.Dispatches)

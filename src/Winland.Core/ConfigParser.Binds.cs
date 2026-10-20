@@ -59,13 +59,7 @@ public static partial class ConfigParser
             }
             else if (Is(dispatcher, "mouse"))
             {
-                // The mouse dispatcher is the bindm action in an ordinary bind.
-                if (!key.StartsWith("mouse:", StringComparison.OrdinalIgnoreCase))
-                {
-                    Warn(lineNumber, "The mouse dispatcher needs a mouse button.");
-                    return;
-                }
-
+                // The mouse dispatcher is the bindm action in an ordinary bind. On a key it drags while the key is held.
                 (dispatcher, arguments) = SplitAction(arguments.Trim());
                 if (!Is(dispatcher, "movewindow") && !Is(dispatcher, "resizewindow"))
                 {

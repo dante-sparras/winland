@@ -4,6 +4,12 @@ public readonly record struct BindDispatch(string Dispatcher, string Arguments)
 {
     /// <summary>Submap to enter after this dispatcher when the dispatcher left the map unchanged.</summary>
     public string? SubmapReset { get; init; }
+
+    /// <summary>
+    /// A mouse bind's drag, from <c>bindm</c> or the <c>mouse</c> dispatcher: it moves or resizes the window under the
+    /// pointer until the button or key that started it comes up.
+    /// </summary>
+    public bool Drag { get; init; }
 }
 
 public readonly record struct BindDecision(bool Consumed, string? Dispatcher, string Arguments = "")
@@ -446,8 +452,9 @@ public static class BindMatcher
         return true;
     }
 
+    // A mouse button's bind. A drag bound to a key, through the mouse dispatcher, is the key's.
     private static bool IsMouseBind(Bind bind) =>
-        bind.Flags.HasFlag(BindFlag.Mouse) || bind.Key.StartsWith("mouse:", StringComparison.OrdinalIgnoreCase);
+        bind.Key.StartsWith("mouse:", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsCatchAll(Bind bind) =>
         bind.Key.Equals("catchall", StringComparison.Ordinal);
@@ -833,7 +840,11 @@ public static class BindMatcher
             if (bind.Dispatcher.Length == 0)
                 continue;
 
-            dispatches[index++] = new BindDispatch(bind.Dispatcher, bind.Arguments) { SubmapReset = bind.SubmapReset };
+            dispatches[index++] = new BindDispatch(bind.Dispatcher, bind.Arguments)
+            {
+                SubmapReset = bind.SubmapReset,
+                Drag = bind.Flags.HasFlag(BindFlag.Mouse),
+            };
         }
 
         return new BindDecision(consumed, dispatches[0].Dispatcher, dispatches[0].Arguments)
