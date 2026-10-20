@@ -643,6 +643,31 @@ public class GroupTests
         Assert.Equal("error: window not in a group", core.Execute("groupremove address:0x3").Text);
     }
 
+    [Fact]
+    public void TheWheelOverTheBarShowsTheNextMemberAndMovesTheFocusOnlyFromIt()
+    {
+        var focused = Grouped();
+
+        var followed = focused.Handle(new GroupBarScrolled(Second, Forward: true));
+
+        Assert.Equal(First, Assert.Single(followed.GroupBars).Shown);
+        Assert.Equal(First, followed.Focus);
+
+        var core = Opened(auto: false, First, Second, Third);
+        core.Execute("dispatch focuswindow address:0x1");
+        core.Execute("dispatch togglegroup");
+        core.Execute("dispatch focuswindow address:0x2");
+        core.Execute("dispatch moveintogroup l");
+        core.Execute("dispatch focuswindow address:0x3");
+
+        var shown = core.Handle(new GroupBarScrolled(Second, Forward: false));
+
+        Assert.Equal(First, Assert.Single(shown.GroupBars).Shown);
+        Assert.Null(shown.Focus);
+        Assert.Equal("0x3", core.Execute("j/activewindow").Text.Split("\"address\":\"")[1][..3]);
+        Assert.Empty(core.Handle(new GroupBarScrolled(Third, Forward: true)).Placements);
+    }
+
     private static Core Grouped(string config = "")
     {
         var core = Opened(auto: true, config, First);

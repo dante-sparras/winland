@@ -81,6 +81,11 @@ public sealed partial class WindowAdapter : IDisposable
             if (Session is Core session)
                 Apply(session.Dispatch(name, arguments, allowsElevation: false));
         };
+        GroupBarHost.Scroll = (shown, forward) =>
+        {
+            if (Session is Core session)
+                Apply(session.Handle(new GroupBarScrolled(shown, forward)));
+        };
         _callback = OnEvent;
         _changed = changed;
         if (changed is null)

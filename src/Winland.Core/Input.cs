@@ -97,6 +97,9 @@ public sealed record Preselect(string Direction) : Command;
 
 public sealed record Pseudo(WindowId Window) : Command;
 
+/// <summary>The wheel turned over the tab bar of the Group <paramref name="Shown"/> shows, towards its next member or back.</summary>
+public sealed record GroupBarScrolled(WindowId Shown, bool Forward) : Command;
+
 public enum FocusCause
 {
     /// <summary>Winland moved the foreground itself.</summary>
