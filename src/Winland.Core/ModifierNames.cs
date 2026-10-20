@@ -17,11 +17,11 @@ internal static class ModifierNames
         ("LOGO", Modifier.Super),
         ("MOD4", Modifier.Super),
         ("META", Modifier.Super),
+        ("CAPS", Modifier.Caps),
+        ("MOD2", Modifier.Mod2),
+        ("MOD3", Modifier.Mod3),
+        ("MOD5", Modifier.Mod5),
     ];
-
-    // Lock and level modifiers the pinned release also reads. Windows has no held
-    // state for them that a bind could test, so a list naming one is refused.
-    private static readonly string[] Unhonored = ["CAPS", "MOD2", "MOD3", "MOD5"];
 
     internal static bool TryParse(string text, out Modifier modifiers, out string error)
     {
@@ -30,15 +30,6 @@ internal static class ModifierNames
         var upper = text.Trim().ToUpperInvariant();
         if (upper.Length == 0)
             return true;
-
-        foreach (var name in Unhonored)
-        {
-            if (upper.Contains(name, StringComparison.Ordinal))
-            {
-                error = $"Modifier '{name}' is not honored.";
-                return false;
-            }
-        }
 
         foreach (var (name, modifier) in Names)
         {

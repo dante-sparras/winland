@@ -591,16 +591,39 @@ public class ConfigTests
     }
 
     [Theory]
-    [InlineData("CAPS", "CAPS")]
-    [InlineData("SUPER_MOD5", "MOD5")]
-    [InlineData("MOD2", "MOD2")]
-    [InlineData("MOD3", "MOD3")]
-    public void AModifierWindowsCannotHoldWarns(string name, string modifier)
+    [InlineData("CAPS", Modifier.Caps, 2)]
+    [InlineData("SUPER_MOD5", Modifier.Super | Modifier.Mod5, 64 | 128)]
+    [InlineData("MOD2", Modifier.Mod2, 16)]
+    [InlineData("MOD3 SHIFT", Modifier.Mod3 | Modifier.Shift, 32 | 1)]
+    public void TheLockAndLevelModifiersAreRead(string name, Modifier modifiers, int mask)
     {
         var document = ConfigParser.Parse($"bind = {name}, Q, killactive\n");
 
-        Assert.Empty(document.Binds);
-        Assert.Equal(new ConfigWarning(1, $"Modifier '{modifier}' is not honored."), Assert.Single(document.Warnings));
+        Assert.Empty(document.Warnings);
+        Assert.Equal(modifiers, Assert.IsType<Bind>(Assert.Single(document.Binds)).Modifiers);
+        Assert.Equal(mask, ExtraCommands.ModMask(modifiers));
+    }
+
+    [Fact]
+    public void ABindOnCapsFiresWhileCapsLockIsHeldAndAnotherDoesNot()
+    {
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse("bind = CAPS, Q, exec, held\nbind = SUPER, Q, exec, super\nbind = , Num_Lock, exec, lock\n")));
+
+        core.Handle(new KeyPressed("Caps_Lock"));
+        var held = core.Handle(new KeyPressed("q"));
+        core.Handle(new KeyReleased("q"));
+        core.Handle(new KeyReleased("Caps_Lock"));
+        core.Handle(new KeyPressed("Super_L"));
+        core.Handle(new KeyPressed("Caps_Lock"));
+        var both = core.Handle(new KeyPressed("q"));
+
+        Assert.Equal(["held"], held.Launches.Select(launch => launch.CommandLine));
+        Assert.Empty(both.Launches);
+        core.Handle(new KeyReleased("q"));
+        core.Handle(new KeyReleased("Caps_Lock"));
+        core.Handle(new KeyReleased("Super_L"));
+        Assert.Equal(["lock"], core.Handle(new KeyPressed("Num_Lock")).Launches.Select(launch => launch.CommandLine));
     }
 
     [Fact]
