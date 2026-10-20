@@ -519,7 +519,7 @@ public class LuaRulesTests
         Assert.Equal(
             [
                 "monitor = DP-1, preferred, auto, auto",
-                "workspace = 1",
+                "workspace = 1, ruleid:1, ruleon:1",
                 "gesture = 3, up, float",
                 "gesture = 4, down, cursorZoom",
             ],
