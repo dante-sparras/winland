@@ -146,7 +146,7 @@ Drawing on windows Winland already owns: the blur of the windows behind a Client
 
 Events and calls that have a Windows source: `window.open_early`, `config.props_refreshed` and `input.keyboard.key`; `hl.notification`, `hl.load` and `hl.is_key_down`; the methods `hl.window_rule` and `hl.workspace_rule` return; `pseudo` on a custom layout; `workspace.active` for each monitor; `monitor.layout_changed` when a mode changes or a reload changes the rules; a real focus reason on `window.active`; a bind's `device` and `auto_consuming`; a description that holds a comma; `HL.Group:add` leaving the focus where it was; `window.clear_tags`; `force_idle`; `focus` with `last = true`; and a window selector on `cursor.move_to_corner`, the group toggles, `window.fullscreen` and `window.center`.
 
-Behavior the Notes describe, which Windows can do: tracking a window's owner; the mouse-drag gaps; dragging a tab out of the bar; reading `focusurgentorlast` from the newest end of the history; swallowing the way the pinned release does; `general:resize_on_border` on the monitor under the pointer; `movetoworkspace` of a pinned Client onto a special workspace still showing that workspace; `alterzorder` and `bringactivetotop` refocusing the window under the pointer; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
+Behavior the Notes describe, which Windows can do: tracking a window's owner; the mouse-drag gaps; dragging a tab out of the bar; swallowing the way the pinned release does; `general:resize_on_border` on the monitor under the pointer; `movetoworkspace` of a pinned Client onto a special workspace still showing that workspace; `alterzorder` and `bringactivetotop` refocusing the window under the pointer; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
 
 Commands and the plugin manager: `descriptions` carrying each option's description; `clients` and `activewindow` in the text form; `changeworkspaceid` taking a number up to 4294967295; the window property `no_vrr`; plugin `enable`, `disable` and `reload`; `remove` taking `author/name`; a manifest's shell `build` steps and `output`; and the `--notify`, `--verbose` and `--no-shallow` flags, and the custom source URL flag.
 
@@ -183,7 +183,7 @@ Per-device `device` options are not honored. The other input keys stay Gaps.
 
 `pass` from the pipe has no key to send and answers `pass: no key to pass`. The reference passes the last key pressed, and Winland sees only the keys of its binds.
 
-`focusurgentorlast` with no urgent Client focuses the Client focused before the current one. The reference reads its focus history from the oldest end there.
+`focusurgentorlast` reads the same history as the pinned release except for a window that opened and was never focused: the pinned release puts it at the oldest end when it opens, and Winland leaves it out until it is focused.
 
 An application that asks for attention without flashing or taking the foreground is not urgent. `misc:focus_on_activate` set to true does not report the application as urgent before it takes focus.
 
