@@ -10,8 +10,8 @@ internal static class WorkspaceAddress
         Func<WorkspaceId?> PreviousOnMonitor,
         IReadOnlyList<WorkspaceId> OnMonitor,
         IReadOnlyList<WorkspaceId> Open,
-        Func<int, bool> NumberIsEmpty,
-        Func<int, bool> NumberIsOnOtherMonitor);
+        Func<long, bool> NumberIsEmpty,
+        Func<long, bool> NumberIsOnOtherMonitor);
 
     internal readonly record struct Rule(WorkspaceId? Id, bool Silent);
 
@@ -68,7 +68,7 @@ internal static class WorkspaceAddress
 
         if (text == "next")
         {
-            if (!context.Active.TryGetNumber(out var current) || current == int.MaxValue)
+            if (!context.Active.TryGetNumber(out var current) || current == WorkspaceId.MaxNumber)
                 return false;
 
             id = WorkspaceId.FromNumber(current + 1);
@@ -91,7 +91,7 @@ internal static class WorkspaceAddress
         }
 
         if (IsDigits(text))
-            return IsNumber(text) && TryNumber(int.Parse(text, CultureInfo.InvariantCulture), out id);
+            return IsNumber(text) && TryNumber(long.Parse(text, CultureInfo.InvariantCulture), out id);
 
         id = new WorkspaceId(text);
         return true;
@@ -123,11 +123,11 @@ internal static class WorkspaceAddress
         var suffix = text[5..];
         var onMonitor = suffix.Contains('m', StringComparison.Ordinal);
         var next = suffix.Contains('n', StringComparison.Ordinal);
-        var start = 0;
+        var start = 0L;
         if (next && context.Active.TryGetNumber(out var current))
             start = current;
 
-        for (var number = start + 1; number < int.MaxValue; number++)
+        for (var number = start + 1; number < WorkspaceId.MaxNumber; number++)
         {
             if (onMonitor && context.NumberIsOnOtherMonitor(number))
                 continue;
@@ -178,10 +178,10 @@ internal static class WorkspaceAddress
         }
 
         remains -= named.Count;
-        var number = 0;
+        var number = 0L;
         while (remains >= 0)
         {
-            if (number == int.MaxValue)
+            if (number == WorkspaceId.MaxNumber)
                 return false;
 
             number++;
@@ -216,7 +216,7 @@ internal static class WorkspaceAddress
         }
 
         var predictedLong = Math.Max(0L, (long)activeNumber + offset);
-        if (predictedLong > int.MaxValue)
+        if (predictedLong > WorkspaceId.MaxNumber)
             return false;
 
         var predicted = (int)predictedLong;
@@ -228,8 +228,8 @@ internal static class WorkspaceAddress
 
     private static bool Walk(
         Context context,
-        int predicted,
-        int remaining,
+        long predicted,
+        long remaining,
         bool positive,
         List<WorkspaceId> named,
         out WorkspaceId id)
@@ -253,7 +253,7 @@ internal static class WorkspaceAddress
             {
                 if (named.Count > 0)
                 {
-                    id = named[Math.Clamp(named.Count - remaining, 0, named.Count - 1)];
+                    id = named[(int)Math.Clamp(named.Count - remaining, 0, named.Count - 1)];
                     return true;
                 }
 
@@ -266,7 +266,7 @@ internal static class WorkspaceAddress
         if (positive)
         {
             var current = final;
-            while (remaining > 0 && current < int.MaxValue - 1)
+            while (remaining > 0 && current < WorkspaceId.MaxNumber - 1)
             {
                 current++;
                 if (!context.NumberIsOnOtherMonitor(current))
@@ -279,18 +279,18 @@ internal static class WorkspaceAddress
         return TryNumber(final, out id);
     }
 
-    private static int CountTaken(Context context, int begin, int end)
+    private static long CountTaken(Context context, long begin, long end)
     {
         if (end < begin)
             return 0;
 
-        var count = 0;
-        for (var number = Math.Max(begin, 1); number <= end; number++)
+        var count = 0L;
+        for (var number = Math.Max(begin, 1L); number <= end; number++)
         {
             if (context.NumberIsOnOtherMonitor(number))
                 count++;
 
-            if (number == int.MaxValue)
+            if (number == WorkspaceId.MaxNumber)
                 break;
         }
 
@@ -368,18 +368,18 @@ internal static class WorkspaceAddress
         if (number < 1)
             number = 1;
 
-        if (number > int.MaxValue)
+        if (number > WorkspaceId.MaxNumber)
         {
             id = default;
             return false;
         }
 
-        id = WorkspaceId.FromNumber((int)number);
+        id = WorkspaceId.FromNumber(number);
         return true;
     }
 
     private static bool IsNumber(string text) =>
-        int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var number) && number > 0;
+        long.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var number) && number > 0;
 
     private static bool IsSignedNumber(string text) => IsDigits(text.StartsWith('-') ? text[1..] : text);
 

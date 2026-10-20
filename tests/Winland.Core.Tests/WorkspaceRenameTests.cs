@@ -94,8 +94,25 @@ public class WorkspaceRenameTests
         Assert.Equal("5", Active(core).GetProperty("address").GetString());
     }
 
+    [Fact]
+    public void AnIdTakesTheWholeUnsigned32BitRange()
+    {
+        var core = new Core();
+        core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
+
+        var reply = core.Execute("dispatch changeworkspaceid 1 4294967295");
+
+        Assert.Equal("ok", reply.Text);
+        Assert.Equal(["changeworkspaceid>>1,4294967295"], CommandProtocol.FormatStream(reply.Effect.Events, reply.Effect.State));
+        Assert.Equal(4294967295L, Active(core).GetProperty("id").GetInt64());
+        Assert.Equal("ok", core.Execute("dispatch workspace 3000000000").Text);
+        Assert.Equal("ok", core.Execute("dispatch workspace 4294967295").Text);
+        Assert.Equal("4294967295", ActiveName(core));
+    }
+
     [Theory]
     [InlineData("1 0")]
+    [InlineData("1 4294967296")]
     [InlineData("1 2 3")]
     [InlineData("name:mail 4")]
     public void AnIdChangeTheReferenceRefusesIsAnError(string arguments)
