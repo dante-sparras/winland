@@ -40,6 +40,11 @@ public static class BindMatcher
         ["Control_R"] = Modifier.Ctrl,
         ["Shift_L"] = Modifier.Shift,
         ["Shift_R"] = Modifier.Shift,
+
+        // The lock and level keys, while they are held, as the pinned release reads the depressed modifiers.
+        ["Caps_Lock"] = Modifier.Caps,
+        ["Num_Lock"] = Modifier.Mod2,
+        ["ISO_Level3_Shift"] = Modifier.Mod5,
     };
 
     // Settings under binds: that are read. Add a keyword here when it is applied.

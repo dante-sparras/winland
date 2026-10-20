@@ -261,8 +261,16 @@ public static class ExtraCommands
             mask |= 1 << 2;
         if (modifiers.HasFlag(Modifier.Alt))
             mask |= 1 << 3;
+        if (modifiers.HasFlag(Modifier.Caps))
+            mask |= 1 << 1;
+        if (modifiers.HasFlag(Modifier.Mod2))
+            mask |= 1 << 4;
+        if (modifiers.HasFlag(Modifier.Mod3))
+            mask |= 1 << 5;
         if (modifiers.HasFlag(Modifier.Super))
             mask |= 1 << 6;
+        if (modifiers.HasFlag(Modifier.Mod5))
+            mask |= 1 << 7;
 
         return mask;
     }
