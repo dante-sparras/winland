@@ -302,18 +302,7 @@ internal sealed partial class LuaRun : IDisposable
 
         RegisterDispatchers();
 
-        // hl.notification holds the notifications a later phase takes on.
         _lua.SetGlobal("hl");
-        if (_lua.DoString("""
-            local function stub()
-                return setmetatable({}, { __index = function() return stub() end, __call = function() return nil end })
-            end
-            hl.notification = stub()
-            """))
-        {
-            throw new InvalidOperationException(_lua.ToString(-1));
-        }
-
         RegisterObjects();
         RegisterHandle();
         Keep(Print);

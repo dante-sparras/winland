@@ -27,7 +27,7 @@ internal static class NotificationHost
     private static readonly WNDPROC Proc = OnWindow;
     private static readonly Lock Gate = new();
     private static readonly List<NotificationAction> Pending = [];
-    private static readonly List<Shown> Notifications = [];
+    private static readonly List<NotificationCard> Notifications = [];
     private static readonly Stopwatch Clock = Stopwatch.StartNew();
     private static bool _posted;
     private static uint _thread;
@@ -157,12 +157,7 @@ internal static class NotificationHost
 
         var now = Clock.Elapsed.TotalMilliseconds;
         foreach (var action in actions)
-        {
-            if (action is NotificationAdded added)
-                Notifications.Add(new Shown(added, now));
-            else if (action is NotificationsDismissed dismissed)
-                Notifications.RemoveRange(0, dismissed.Amount < 0 ? Notifications.Count : Math.Min(dismissed.Amount, Notifications.Count));
-        }
+            NotificationCards.Apply(Notifications, action, now);
 
         if (Notifications.Count > 0 && _timer == 0)
             _timer = PInvoke.SetTimer(HWND.Null, 0, FrameMilliseconds, null);
@@ -173,7 +168,7 @@ internal static class NotificationHost
     private static void Frame()
     {
         var now = Clock.Elapsed.TotalMilliseconds;
-        Notifications.RemoveAll(shown => now - shown.Created > shown.Added.Notification.TimeMs);
+        NotificationCards.Expire(Notifications, now);
         if (Notifications.Count == 0)
         {
             if (_timer != 0)
@@ -195,19 +190,19 @@ internal static class NotificationHost
 
     private static unsafe void Paint(HWND hwnd, double now)
     {
-        var place = Notifications[^1].Added;
+        var place = Notifications[^1];
         var screen = PInvoke.GetDC(HWND.Null);
         var memory = PInvoke.CreateCompatibleDC(screen);
         try
         {
             // Every card is measured first, so the window fits the widest and the whole stack.
-            var cards = new List<Card>(Notifications.Count);
+            var measured = new List<Card>(Notifications.Count);
             var height = NotificationFrames.OffsetY;
             var widest = 0;
             foreach (var shown in Notifications)
             {
-                var card = Measure(memory, shown.Added);
-                cards.Add(card);
+                var card = Measure(memory, shown);
+                measured.Add(card);
                 height += card.Height + NotificationFrames.GapY;
                 widest = Math.Max(widest, card.Width);
             }
@@ -229,22 +224,23 @@ internal static class NotificationHost
             var pixels = new Span<uint>(bits, width * height);
             pixels.Clear();
             var top = NotificationFrames.OffsetY;
-            for (var i = 0; i < cards.Count; i++)
+            for (var i = 0; i < measured.Count; i++)
             {
                 var shown = Notifications[i];
-                var card = cards[i];
-                var life = shown.Added.Notification.TimeMs;
-                var elapsed = now - shown.Created;
-                var (strip, slide) = NotificationFrames.Slide(elapsed, elapsed, life);
+                var card = measured[i];
+                var life = shown.Notification.TimeMs;
+                var since = shown.Since(now);
+                var elapsed = shown.Elapsed(now);
+                var (strip, slide) = NotificationFrames.Slide(since, elapsed, life);
                 var stripWidth = (int)Math.Round((card.Width + NotificationFrames.LeftBar) * strip);
                 var cardWidth = (int)Math.Round(card.Width * slide);
                 var cardX = width - cardWidth;
-                var color = shown.Added.Notification.Color;
+                var color = shown.Notification.Color;
                 Fill(pixels, width, height, new Rectangle(width - stripWidth, top, stripWidth, card.Height), color);
                 Fill(pixels, width, height, new Rectangle(cardX, top, cardWidth, card.Height), new BorderColor(0xFF, 0, 0, 0));
                 Write(memory, card, cardX, top);
                 Opaque(pixels, width, height, new Rectangle(cardX, top, cardWidth, card.Height));
-                var progress = (int)Math.Round(Math.Clamp(elapsed / life, 0, 1) * Math.Max(0, card.Width - 6));
+                var progress = (int)Math.Round(Math.Clamp(life <= 0 ? 1 : elapsed / life, 0, 1) * Math.Max(0, card.Width - 6));
                 Fill(pixels, width, height, new Rectangle(cardX + 3, top + card.Height - 4, progress, 2), color);
                 top += card.Height + NotificationFrames.GapY;
             }
@@ -273,18 +269,18 @@ internal static class NotificationHost
     }
 
     // The text and the icon of one card, measured in its font, and the card's size around them.
-    private static Card Measure(HDC memory, NotificationAdded added)
+    private static Card Measure(HDC memory, NotificationCard shown)
     {
-        var notification = added.Notification;
-        var fontPixels = NotificationFrames.FontPixels(notification.FontSize, added.Monitor.Width, added.Scale);
+        var notification = shown.Notification;
+        var fontPixels = NotificationFrames.FontPixels(notification.FontSize, shown.Monitor.Width, shown.Scale);
         var iconText = NotificationFrames.IconText(notification.Icon);
         var iconPixels = Math.Max(8, (int)Math.Round(fontPixels * NotificationFrames.IconScale));
-        var text = Extent(memory, notification.Text, fontPixels, added.Font);
-        var icon = iconText.Length == 0 ? new SIZE(0, 0) : Extent(memory, iconText, iconPixels, added.Font);
+        var text = Extent(memory, notification.Text, fontPixels, shown.Font);
+        var icon = iconText.Length == 0 ? new SIZE(0, 0) : Extent(memory, iconText, iconPixels, shown.Font);
         var iconPad = iconText.Length == 0 ? 0 : NotificationFrames.IconPad;
         var width = text.cx + NotificationFrames.PadX + icon.cx + (2 * iconPad);
         var height = Math.Max(text.cy, icon.cy) + NotificationFrames.PadY;
-        return new Card(notification.Text, iconText, added.Font, fontPixels, iconPixels, text, icon, iconPad, width, height);
+        return new Card(notification.Text, iconText, shown.Font, fontPixels, iconPixels, text, icon, iconPad, width, height);
     }
 
     private static unsafe SIZE Extent(HDC memory, string text, int pixels, string family)
@@ -396,8 +392,6 @@ internal static class NotificationHost
             null,
             null,
             null);
-
-    private sealed record Shown(NotificationAdded Added, double Created);
 
     private readonly record struct Card(
         string Text,
