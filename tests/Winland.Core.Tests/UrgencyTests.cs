@@ -110,6 +110,27 @@ public class UrgencyTests
     }
 
     [Fact]
+    public void FocusCurrentOrLastGoesBackToTheClientFocusedBefore()
+    {
+        var core = ThreeClients();
+        core.Handle(new WindowFocused(new WindowId(1), FocusCause.User));
+        core.Handle(new WindowFocused(new WindowId(2), FocusCause.User));
+
+        Assert.Equal(new WindowId(1), core.Handle(new Dispatch("focuscurrentorlast")).Focus);
+        core.Handle(new WindowFocused(new WindowId(1), FocusCause.User));
+        Assert.Equal(new WindowId(2), core.Handle(new Dispatch("focuscurrentorlast")).Focus);
+    }
+
+    [Fact]
+    public void FocusCurrentOrLastWithAShortHistoryIsAnError()
+    {
+        var core = new Core();
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+
+        Assert.Equal("error: History too short", core.Handle(new Dispatch("focuscurrentorlast")).Error);
+    }
+
+    [Fact]
     public void FocusUrgentOrLastWithNothingToFocusIsAnError()
     {
         var core = new Core();

@@ -266,6 +266,7 @@ public class LuaBindTests
     [InlineData("hl.dsp.focus({ monitor = 'DP-1' })", "bind = SUPER, X, focusmonitor, DP-1")]
     [InlineData("hl.dsp.focus({ workspace = 3, on_current_monitor = true })", "bind = SUPER, X, focusworkspaceoncurrentmonitor, 3")]
     [InlineData("hl.dsp.focus({ window = 'class:a' })", "bind = SUPER, X, focuswindow, class:a")]
+    [InlineData("hl.dsp.focus({ last = true })", "bind = SUPER, X, focuscurrentorlast")]
     [InlineData("hl.dsp.focus({ urgent_or_last = true })", "bind = SUPER, X, focusurgentorlast")]
     [InlineData("hl.dsp.no_op()", "bind = SUPER, X, no_op")]
     public void EachDispatcherIsItsLineDispatcher(string dispatcher, string line) =>
@@ -277,7 +278,6 @@ public class LuaBindTests
     [InlineData("hl.dsp.global('app:action')", "hl.dsp.global is not honored yet")]
     [InlineData("hl.dsp.force_idle(5)", "hl.dsp.force_idle is not honored yet")]
     [InlineData("hl.dsp.release_input_capture()", "hl.dsp.release_input_capture is not honored yet")]
-    [InlineData("hl.dsp.focus({ last = true })", "hl.dsp.focus with last is not honored yet")]
     [InlineData("hl.dsp.window.swap({ next = true })", "hl.dsp.window.swap with next or prev is not honored yet")]
     [InlineData("hl.dsp.window.move({ direction = 'left', window = 'class:a' })", "hl.dsp.window.move with a window is not honored yet")]
     [InlineData("hl.dsp.window.pseudo({ action = 'enable' })", "hl.dsp.window.pseudo with an action other than toggle is not honored yet")]
