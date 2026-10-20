@@ -34,6 +34,20 @@ public class GroupTests
     }
 
     [Fact]
+    public void AGroupWhoseShownMemberIsNotDecoratedHasNoBarAndKeepsItsTile()
+    {
+        var core = Opened(auto: true, First);
+        var tile = ClientOf(core.Execute("dispatch no_op").Effect, First).Bounds;
+        core.Execute("dispatch togglegroup");
+
+        var plain = core.Execute("setprop address:0x1 decorate 0").Effect;
+
+        Assert.Empty(plain.GroupBars);
+        Assert.Equal(tile, ClientOf(plain, First).Bounds);
+        Assert.Single(core.Execute("setprop address:0x1 decorate 1").Effect.GroupBars);
+    }
+
+    [Fact]
     public void AGroupIsOneTileWithSeveralClients()
     {
         var core = Opened(auto: true, First);

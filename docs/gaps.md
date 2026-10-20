@@ -242,7 +242,7 @@ Every command the pinned release's control socket answers is recognized. The one
 
 `clients` and `activewindow` reply in JSON with or without `j/`, where the pinned release replies in text without it. With no window they reply its text, `no open windows` and `Invalid`.
 
-`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `allows_input`, `decorate`, `nearest_neighbor`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `render_unfocused`, `no_screen_share`, `no_vrr` and `no_auto_hdr`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
+`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `allows_input`, `nearest_neighbor`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `render_unfocused`, `no_screen_share`, `no_vrr` and `no_auto_hdr`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
 
 `changeworkspaceid` refuses a number above 2147483647. The pinned release takes numbers up to 4294967295, but a Workspace number here is a signed 32-bit integer. It is a gap.
 
