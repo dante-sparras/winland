@@ -67,7 +67,7 @@ public class PluginHostTests
         var reply = core.Execute("plugin load " + fixture.AssemblyPath);
 
         Assert.Contains("API version", reply.Text, StringComparison.Ordinal);
-        Assert.Contains("Winland accepts 1", reply.Text, StringComparison.Ordinal);
+        Assert.Contains("Winland accepts 2", reply.Text, StringComparison.Ordinal);
         Assert.Equal("[]", core.Execute("plugin list").Text);
     }
 
@@ -131,7 +131,7 @@ public class PluginHostTests
         var listed = JsonDocument.Parse(core.Execute("plugin list").Text).RootElement;
         var plugin = Assert.Single(listed.EnumerateArray());
         Assert.Equal("faulty", plugin.GetProperty("name").GetString());
-        Assert.Equal(1, plugin.GetProperty("version").GetInt32());
+        Assert.Equal(2, plugin.GetProperty("version").GetInt32());
         Assert.Equal("disabled", plugin.GetProperty("state").GetString());
         Assert.Equal(3, plugin.GetProperty("failures").GetInt32());
         Assert.Contains(fixture.Log.Lines, line => line.Contains("disabled after 3", StringComparison.Ordinal));
@@ -306,7 +306,7 @@ public class PluginHostTests
         var listed = JsonDocument.Parse(core.Execute("plugin list").Text).RootElement;
         var plugin = Assert.Single(listed.EnumerateArray());
         Assert.Equal("sample", plugin.GetProperty("name").GetString());
-        Assert.Equal(1, plugin.GetProperty("version").GetInt32());
+        Assert.Equal(2, plugin.GetProperty("version").GetInt32());
         Assert.Equal("loaded", plugin.GetProperty("state").GetString());
         Assert.Equal(0, plugin.GetProperty("failures").GetInt32());
 

@@ -1,14 +1,14 @@
 # Plugins
 
-A plugin is a .NET assembly loaded into Winland. It can register dispatchers, config keywords and event handlers. Layouts from plugins are reserved and refused. The assembly is loaded in a collectible context, one per plugin, and dropped on unload.
+A plugin is a .NET assembly loaded into Winland. It can register dispatchers, config keywords, event handlers and a tiled layout. The assembly is loaded in a collectible context, one per plugin, and dropped on unload.
 
 The contract is the `Winland.PluginApi` project. A plugin references that project and exposes one public class with a parameterless constructor that implements `IPlugin`.
 
 ## API version
 
-`PluginApiVersion.Current` is `1`. The host compares it exactly with `IPlugin.ApiVersion`. Any other value refuses the load:
+`PluginApiVersion.Current` is `2`. The host compares it exactly with `IPlugin.ApiVersion`. Any other value refuses the load:
 
-`Plugin 'example' declares API version 2; Winland accepts 1.`
+`Plugin 'example' declares API version 1; Winland accepts 2.`
 
 ## What a plugin implements
 
@@ -32,7 +32,7 @@ public interface IPluginHost
     void RegisterDispatcher(string name, PluginDispatcher handler);
     void RegisterKeyword(string name, PluginKeywordHandler handler);
     void Subscribe(PluginEventHandler handler);
-    LayoutRegistration RegisterLayout(string name);
+    LayoutRegistration RegisterLayout(string name, Func<PluginLayout> create);
 }
 ```
 
@@ -42,7 +42,9 @@ public interface IPluginHost
 
 `Subscribe` receives stream events as `PluginEvent` values (`WindowOpened`, `WindowClosed`, `WindowFocused`, and the other records in the API).
 
-`RegisterLayout` always returns `Supported: false` and the reason `Plugin layouts are not supported.`
+`RegisterLayout` registers a tiled layout under that name. `create` makes one `PluginLayout` for each workspace that selects it. `general:layout` and a workspace rule select it by that name, the same way they select a built-in layout or `lua:NAME`. An empty name, a name that starts with `lua:`, a built-in name (`dwindle`, `master`, `scrolling`, `monocle` and `default`, ignoring case) and a name that is already registered are refused: `Supported` is false and `Reason` says why.
+
+The host calls the layout on the plugin's own worker. `WindowAdded` and `WindowRemoved` report the windows that joined or left since the previous call. `Recalculate` returns a box for each window, in that order. Null asks Winland to use an even grid. `LayoutMessage` takes a `layoutmsg`. Null accepts it. A string rejects it and is logged, and Winland lays the windows out again either way. Until those boxes arrive, and when the call throws, returns a box that is not finite, returns null or runs past the budget, every tile takes a cell of that grid. The name stays selected, so a later success places the windows again. Unload drops the layout, and each workspace that was using it returns to dwindle.
 
 ## Approval
 
@@ -70,7 +72,7 @@ The config keyword is `plugin`, the same spelling as the pinned line-based confi
 plugin = C:\ProgramData\Winland\plugins\sample.dll
 ```
 
-A path that is not rooted is relative to the config file's directory. Lines are read at startup and again on reload. After a plugin registers keywords, the config is read once more so those keywords apply.
+A path that is not rooted is relative to the config file's directory. Lines are read at startup and again on reload. After a plugin registers keywords, or registers or drops a layout, the config is read once more so those keywords and layout names apply.
 
 `winlandctl` speaks to the pipe:
 
@@ -84,7 +86,7 @@ winlandctl plugin unload <name>
 
 ## Faults
 
-Every call into a plugin — the constructor, `Name` and `ApiVersion` when it loads, initialize, shutdown, a dispatcher, a keyword and an event — is wrapped. A constructor or getter that throws or runs past the budget refuses the load and says why. An exception is caught, logged and counted. Each plugin has one thread of its own that runs its calls in order. A call that runs longer than its budget is abandoned on that thread, logged and counted. A call queued behind one that hangs waits its own budget and fails too, so a plugin that stays hung is soon disabled. The budget defaults to 250 ms and applies to dispatcher and event calls; the host uses that same budget for the other calls. Three consecutive failures disable the plugin. Further calls do not enter it. A successful call resets the consecutive count. Unload still runs `Shutdown`, unregisters the plugin's dispatchers, keywords and event handlers, and unloads the collectible context.
+Every call into a plugin — the constructor, `Name` and `ApiVersion` when it loads, initialize, shutdown, a dispatcher, a keyword, an event and a layout call — is wrapped. A constructor or getter that throws or runs past the budget refuses the load and says why. An exception is caught, logged and counted. Each plugin has one thread of its own that runs its calls in order. A call that runs longer than its budget is abandoned on that thread, logged and counted. A call queued behind one that hangs waits its own budget and fails too, so a plugin that stays hung is soon disabled. The budget defaults to 250 ms and applies to dispatcher, event and layout calls; the host uses that same budget for the other calls. Three consecutive failures disable the plugin. Further calls do not enter it, and a layout it registered then uses the grid. A successful call resets the consecutive count. Unload still runs `Shutdown`, unregisters the plugin's dispatchers, keywords, event handlers and layouts, and unloads the collectible context.
 
 ## Plugin manager
 
@@ -131,7 +133,7 @@ authors = ["someone"]
 
 [echo]
 description = "Registers the echo dispatcher."
-api_version = 1
+api_version = 2
 project = "Echo/Echo.csproj"
 assembly = "Echo.dll"
 ```

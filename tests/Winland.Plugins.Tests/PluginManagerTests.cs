@@ -84,14 +84,14 @@ public class PluginManagerTests
     public void IncompatibleApiVersionIsRefusedBeforeBuilding()
     {
         using var fixture = ManagerFixture.Create();
-        fixture.ManifestText = ManagerFixture.Manifest + "[future]\napi_version = 2\nproject = \"Sample/Sample.csproj\"\n";
+        fixture.ManifestText = ManagerFixture.Manifest + "[future]\napi_version = 3\nproject = \"Sample/Sample.csproj\"\n";
 
         var code = fixture.Manager.Install(ManagerFixture.Url, null);
 
         Assert.Equal(1, code);
         Assert.DoesNotContain(fixture.Runner.Commands, command => command.StartsWith("dotnet", StringComparison.Ordinal));
         Assert.Equal(0, fixture.Elevator.Prompts);
-        Assert.Contains("Plugin 'future' declares API version 2; Winland accepts 1.", fixture.Error.ToString(), StringComparison.Ordinal);
+        Assert.Contains("Plugin 'future' declares API version 3; Winland accepts 2.", fixture.Error.ToString(), StringComparison.Ordinal);
         Assert.Contains("Nothing was built.", fixture.Error.ToString(), StringComparison.Ordinal);
     }
 
@@ -201,7 +201,7 @@ public class PluginManagerTests
     public void UpdateUnloadsAPluginTheManifestNoLongerLists()
     {
         using var fixture = ManagerFixture.Create();
-        fixture.ManifestText = ManagerFixture.Manifest + "[extra]\napi_version = 1\nproject = \"Sample/Sample.csproj\"\nassembly = \"SamplePlugin.dll\"\n";
+        fixture.ManifestText = ManagerFixture.Manifest + "[extra]\napi_version = 2\nproject = \"Sample/Sample.csproj\"\nassembly = \"SamplePlugin.dll\"\n";
         Assert.Equal(0, fixture.Manager.Install(ManagerFixture.Url, null));
         fixture.Running.Loaded.Add("extra");
         fixture.ManifestText = ManagerFixture.Manifest;
@@ -393,7 +393,7 @@ public class PluginManagerTests
     public void BuildStepsRunInTheShellAndTheirOutputIsInstalled()
     {
         using var fixture = ManagerFixture.Create();
-        fixture.ManifestText = "[sample]\napi_version = 1\nbuild = [\"echo first\", \"make bin/SamplePlugin.dll\"]\noutput = \"bin/SamplePlugin.dll\"\n";
+        fixture.ManifestText = "[sample]\napi_version = 2\nbuild = [\"echo first\", \"make bin/SamplePlugin.dll\"]\noutput = \"bin/SamplePlugin.dll\"\n";
 
         Assert.Equal(0, fixture.Manager.Install(ManagerFixture.Url, null));
 
@@ -408,7 +408,7 @@ public class PluginManagerTests
     public void BuildStepsThatMakeNoOutputFailAndShowWhatTheySaid()
     {
         using var fixture = ManagerFixture.Create();
-        fixture.ManifestText = "[sample]\napi_version = 1\nbuild = [\"echo nothing\"]\noutput = \"bin/SamplePlugin.dll\"\n";
+        fixture.ManifestText = "[sample]\napi_version = 2\nbuild = [\"echo nothing\"]\noutput = \"bin/SamplePlugin.dll\"\n";
 
         Assert.Equal(1, fixture.Manager.Install(ManagerFixture.Url, null));
 

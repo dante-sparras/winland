@@ -1,6 +1,6 @@
 # Plugins are in-process .NET assemblies, approved by hash
 
-A plugin is a .NET assembly loaded into Winland. It can register Dispatchers, config keywords and event handlers. It loads at startup from the config, and loads and unloads at runtime through `winlandctl plugin`, using a collectible `AssemblyLoadContext`. Layouts from plugins are reserved: the host refuses a plugin that tries to register a Layout, for now.
+A plugin is a .NET assembly loaded into Winland. It can register Dispatchers, config keywords and event handlers. It loads at startup from the config, and loads and unloads at runtime through `winlandctl plugin`, using a collectible `AssemblyLoadContext`. A plugin can also register a tiled layout algorithm.
 
 .NET has no in-process sandbox, so a loaded plugin has the full rights of an elevated Winland. The security is in what may load, and in containing faults:
 

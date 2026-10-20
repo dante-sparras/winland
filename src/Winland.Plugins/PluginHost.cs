@@ -8,7 +8,7 @@ using Winland.PluginApi;
 
 namespace Winland.Plugins;
 
-public sealed class PluginHost : IPluginRuntime, IDisposable
+public sealed partial class PluginHost : IPluginRuntime, IDisposable
 {
     public const int FailureLimit = 3;
 
@@ -38,6 +38,7 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
             throw new ArgumentOutOfRangeException(nameof(options), "The plugin call budget must be positive.");
 
         _budget = budget;
+        _layouts = new LayoutBridge(this);
         if (!string.IsNullOrWhiteSpace(options?.Directory))
         {
             _directory = options.Directory;
@@ -66,6 +67,7 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
     {
         ArgumentNullException.ThrowIfNull(document);
         var before = PluginKeywords.Count;
+        var layoutsBefore = PluginLayouts.Names();
         var warnings = new List<string>();
         var desired = new List<string>();
         foreach (var setting in document.Settings)
@@ -116,7 +118,10 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
             }
         }
 
-        return new PluginSync(PluginKeywords.Count > before, warnings);
+        return new PluginSync(PluginKeywords.Count > before, warnings)
+        {
+            LayoutsChanged = !SameNames(layoutsBefore, PluginLayouts.Names()),
+        };
     }
 
     public ConfigDocument Incorporate(ConfigDocument document, Func<ConfigDocument> reread, string? baseDirectory = null)
@@ -124,7 +129,7 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(reread);
         var sync = Sync(document, baseDirectory);
-        if (!sync.RegisteredKeywords)
+        if (!sync.RegisteredKeywords && !sync.LayoutsChanged)
             return WithWarnings(document, sync.Warnings);
 
         var again = reread();
@@ -707,6 +712,8 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
         private readonly Lock _gate = new();
         private readonly List<string> _dispatchers = [];
         private readonly List<string> _keywords = [];
+        private readonly List<string> _layouts = [];
+        private readonly Dictionary<string, Func<PluginLayout>> _factories = [];
         private readonly List<PluginEventHandler> _handlers = [];
         private int _open = 1;
 
@@ -770,14 +777,51 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
             }
         }
 
-        public LayoutRegistration RegisterLayout(string name)
+        public LayoutRegistration RegisterLayout(string name, Func<PluginLayout> create)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(name);
-            return new LayoutRegistration(false, "Plugin layouts are not supported.");
+            ArgumentNullException.ThrowIfNull(create);
+            if (string.IsNullOrWhiteSpace(name))
+                return new LayoutRegistration(false, "The layout name is empty.");
+
+            lock (_gate)
+            {
+                if (_open == 0)
+                    return new LayoutRegistration(false, "The plugin is unloaded.");
+
+                if (_factories.ContainsKey(name))
+                    return new LayoutRegistration(false, $"Layout '{name}' is already registered.");
+
+                _factories.Add(name, create);
+                _layouts.Add(name);
+            }
+
+            if (PluginLayouts.Register(name, _host._layouts, out var reason))
+                return new LayoutRegistration(true, "");
+
+            lock (_gate)
+            {
+                _factories.Remove(name);
+                _layouts.Remove(name);
+            }
+
+            return new LayoutRegistration(false, reason);
+        }
+
+        public bool OwnsLayout(string name)
+        {
+            lock (_gate)
+                return _factories.ContainsKey(name);
+        }
+
+        public bool TryFactory(string name, out Func<PluginLayout> create)
+        {
+            lock (_gate)
+                return _factories.TryGetValue(name, out create!);
         }
 
         public void Close()
         {
+            string[] layouts;
             lock (_gate)
             {
                 _open = 0;
@@ -790,6 +834,15 @@ public sealed class PluginHost : IPluginRuntime, IDisposable
 
                 _keywords.Clear();
                 _handlers.Clear();
+                layouts = [.. _layouts];
+                _layouts.Clear();
+                _factories.Clear();
+            }
+
+            foreach (var name in layouts)
+            {
+                PluginLayouts.Unregister(name);
+                _host._layouts.Forget(name);
             }
         }
     }

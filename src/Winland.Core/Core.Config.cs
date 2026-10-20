@@ -120,6 +120,10 @@ public sealed partial class Core
             return;
         }
 
+        // The workspace stopped using this algorithm. Drop it before the clients move, and do not call into the plugin.
+        if (desk.Layout is ScriptedLayout previous)
+            previous.Retire();
+
         RankFocus(created);
         if (desk.Layout.Clients.Count == 0)
         {

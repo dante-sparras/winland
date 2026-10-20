@@ -222,6 +222,7 @@ static int Run(string? path, RollingLogWriter log)
         SessionEffects.RestoreSaved(colors);
     using var host = new WindowHost(core, snapshot => Persist(store, snapshot), PipeName());
     luaWorld.Host = host;
+    plugins.Command = host.Command;
     lua.Adopt(LuaHosting.Take());
     // Log off and shut down clean up from WM_ENDSESSION, on the loop thread. Closing the console calls in from
     // a thread of its own, so the cleanup is handed to the loop thread there too.

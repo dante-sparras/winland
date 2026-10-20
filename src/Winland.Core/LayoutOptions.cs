@@ -113,8 +113,9 @@ public sealed record LayoutOptions
         "scrolling",
     };
 
-    // A lua:NAME is honored too: hl.layout.register names it, before or after the line that selects it.
-    internal static bool HonorsLayout(string value) => LayoutNames.Contains(value) || LayoutFactory.IsScript(value);
+    // A lua:NAME is honored too, and so is a layout a loaded plugin registered. The config is read again once it has.
+    internal static bool HonorsLayout(string value) =>
+        LayoutNames.Contains(value) || LayoutFactory.IsScript(value) || PluginLayouts.Contains(value);
 
     // Adding an entry here applies that keyword and stops the config warning.
     private static readonly Dictionary<string, Func<LayoutOptions, string, LayoutOptions>> Appliers = new(StringComparer.Ordinal)

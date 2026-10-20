@@ -220,7 +220,21 @@ public static class ExtraCommands
         return (json ? JsonSerializer.Serialize(name, Relaxed) : name) + "\n";
     }
 
-    public static string FormatLayouts() => JsonSerializer.Serialize(LayoutFactory.Names);
+    public static string FormatLayouts()
+    {
+        var plugins = PluginLayouts.Names();
+        if (plugins.Count == 0)
+            return JsonSerializer.Serialize(LayoutFactory.Names);
+
+        var names = new string[LayoutFactory.Names.Count + plugins.Count];
+        for (var i = 0; i < LayoutFactory.Names.Count; i++)
+            names[i] = LayoutFactory.Names[i];
+
+        for (var i = 0; i < plugins.Count; i++)
+            names[LayoutFactory.Names.Count + i] = plugins[i];
+
+        return JsonSerializer.Serialize(names);
+    }
 
     public static string FormatErrors(IReadOnlyList<string> errors)
     {

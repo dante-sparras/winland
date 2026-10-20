@@ -45,6 +45,13 @@ internal sealed partial class ScriptedLayout : Layout
     /// <summary>The number that names this Layout in its requests and in <c>layoutplace</c>.</summary>
     public long Id { get; }
 
+    /// <summary>The workspace stopped using this layout. Drops the arranger's algorithm and does not call it.</summary>
+    internal void Retire()
+    {
+        if (_scripts is ILayoutSession session)
+            session.Retire(Id);
+    }
+
     public IReadOnlyList<Client> Clients => _clients;
 
     public string? LayoutMessageError { get; private set; }
