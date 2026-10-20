@@ -32,7 +32,7 @@ This table has one row per keyword. A test checks it against the keywords the co
 | cursor:sync_gsettings_theme | Syncing the cursor theme with the desktop has no Windows meaning. |
 | cursor:use_cpu_buffer | Hardware cursor buffers have no Windows meaning. |
 | cursor:zoom_disable_aa | The system magnifier offers plain or edge-smoothed scaling, not unfiltered pixels. |
-| debug | Compositor debug options have no Windows meaning. |
+| debug | Compositor debug options have no Windows meaning. The log and error bar options are honored. |
 | decoration:blur:input_methods | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
 | decoration:blur:input_methods_ignorealpha | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
 | decoration:blur:new_optimizations | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
@@ -136,15 +136,13 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 
 ## Possible
 
-These are the uncovered keywords and behaviors Windows can honor. A gap keyword in the tables above is in this list when Windows has the thing it names. The seven logging and error-bar options are the part of the `debug` non-goal that can be honored, and `misc:name_vk_after_proc` is grouped with the virtual-keyboard gaps.
+These are the uncovered keywords and behaviors Windows can honor. A gap keyword in the tables above is in this list when Windows has the thing it names. `misc:name_vk_after_proc` is grouped with the virtual-keyboard gaps.
 
 Input Windows already has: `device`, so an honored input setting can name one device; `input:tablet:enabled`, `input:tablet:left_handed`, `input:tablet:output`, `input:tablet:transform`, `input:tablet:region_position`, `input:tablet:region_size`, `input:tablet:absolute_region_position`, `input:tablet:relative_input`, `input:tablet:active_area_position` and `input:tablet:active_area_size`; `input:tablettool:eraser_button_mode`, `input:tablettool:eraser_button_override`, `input:tablettool:pressure_range_min` and `input:tablettool:pressure_range_max`; `input:virtualkeyboard:share_states`, `input:virtualkeyboard:release_pressed_on_close` and `misc:name_vk_after_proc`.
 
 Monitors and the process locale: `bitdepth` and `locale` (`general:locale`).
 
 Drawing on windows Winland already owns: the blur of the windows behind a Client, which the blur options tune without `decoration:blur:xray`. Winland would capture those windows itself.
-
-Logging and the error bar: `debug:disable_logs`, `debug:disable_time`, `debug:enable_stdout_logs`, `debug:colored_stdout_logs`, `debug:suppress_errors`, `debug:error_limit` and `debug:error_position`.
 
 Events and calls that have a Windows source: `window.open_early`, `config.props_refreshed` and `input.keyboard.key`; `hl.notification`, `hl.load` and `hl.is_key_down`; the methods `hl.window_rule` and `hl.workspace_rule` return; `pseudo` on a custom layout; `workspace.active` for each monitor; `monitor.layout_changed` when a mode changes or a reload changes the rules; a real focus reason on `window.active`; a bind's `device` and `auto_consuming`; a description that holds a comma; `HL.Group:add` leaving the focus where it was; `window.clear_tags`; `force_idle`; `focus` with `last = true`; and a window selector on `cursor.move_to_corner`, the group toggles, `window.fullscreen` and `window.center`.
 

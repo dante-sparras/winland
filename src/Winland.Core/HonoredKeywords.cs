@@ -44,6 +44,7 @@ internal static class HonoredKeywords
         Add(table, GestureOptions.Keywords);
         Add(table, AnimationOptions.Keywords);
         Add(table, GroupOptions.Keywords);
+        Add(table, DebugOptions.Keywords);
         Add(table, Inert);
         return table;
     }

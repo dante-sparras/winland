@@ -28,7 +28,7 @@ public static class ConfigGaps
         new("cursor:sync_gsettings_theme", "Syncing the cursor theme with the desktop has no Windows meaning."),
         new("cursor:use_cpu_buffer", "Hardware cursor buffers have no Windows meaning."),
         new("cursor:zoom_disable_aa", "The system magnifier offers plain or edge-smoothed scaling, not unfiltered pixels."),
-        new("debug", "Compositor debug options have no Windows meaning."),
+        new("debug", "Compositor debug options have no Windows meaning. The log and error bar options are honored."),
         new("decoration:blur:input_methods", "Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned."),
         new("decoration:blur:input_methods_ignorealpha", "Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned."),
         new("decoration:blur:new_optimizations", "Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned."),
@@ -116,8 +116,16 @@ public static class ConfigGaps
         return null;
     }
 
+    /// <summary>Whether <paramref name="message"/> is the reason one of the Gaps gives.</summary>
+    internal static bool IsReason(string message) => Reasons.Contains(message);
+
+    private static readonly HashSet<string> Reasons = new(All.Select(gap => gap.Reason), StringComparer.Ordinal);
+
     internal static bool IsGap(string keyword)
     {
+        if (DebugOptions.Keywords.Contains(keyword))
+            return false;
+
         if (Keywords.Contains(keyword))
             return true;
 

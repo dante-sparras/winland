@@ -19,6 +19,9 @@ sealed class RecoveryStore
     private readonly Func<SafeFileHandle, string?>? _refuseFolder;
     private readonly Lock _gate = new();
     private bool _armed;
+
+    /// <summary>The recovery file.</summary>
+    public string File => _path;
     private bool _closed;
     private bool _reported;
     private string? _written;

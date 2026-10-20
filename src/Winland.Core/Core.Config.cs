@@ -55,6 +55,8 @@ public sealed partial class Core
         _rules = document.WindowRules;
         var tiledBefore = _session.SizeLimitsTiled;
         _session = SessionOptions.From(document);
+        _debug = DebugOptions.From(document);
+        ShowConfigErrors(document);
         _environment = document.Environment;
         InstallBinds(document);
         _options = LayoutOptions.From(document);
