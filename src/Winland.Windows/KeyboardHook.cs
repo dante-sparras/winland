@@ -294,7 +294,13 @@ public sealed class KeyboardHook : IDisposable
 
             var decision = _core.Decide(input, _session);
             NoteTiming(decision);
-            if (!up && KeyDrag(decision) is BindDispatch drag && Drag.Begin(name, drag.Dispatcher, drag.Arguments))
+            // With no window under the pointer a key whose bind only drags goes on to the focused window, as the pinned
+            // release lets the event through.
+            var keyDrag = up ? null : KeyDrag(decision);
+            if (keyDrag is not null && Drag.Current is null && MouseHook.OnlyDrag(decision) && !_core.HasDragTarget(CursorPoint()))
+                return Next(code, wParam, lParam);
+
+            if (keyDrag is BindDispatch drag && Drag.Begin(name, drag.Dispatcher, drag.Arguments))
             {
                 PostGesture(drag.Dispatcher, drag.Arguments, CursorPoint(), PointerDragPhase.Begin, name);
                 foreach (var dispatch in decision.Dispatches)

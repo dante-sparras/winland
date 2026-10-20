@@ -537,6 +537,18 @@ public class MouseDragTests
     }
 
     [Fact]
+    public void TheMouseDispatcherOnAKeyLetsTheKeyThroughWithNoWindowUnderThePointer()
+    {
+        var core = Flat("bind = SUPER, Z, mouse, movewindow\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        core.Handle(new PointerMoved(new Point(10, 10)));
+        Press(core, "Super_L");
+
+        Assert.False(core.Handle(new KeyPressed("z")).Consumed);
+    }
+
+    [Fact]
     public void TheMouseDispatcherOnAKeyDragsWhileTheKeyIsHeld()
     {
         var core = Flat("bind = SUPER, Z, mouse, movewindow\n");

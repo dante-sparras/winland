@@ -21,6 +21,9 @@ public sealed partial class Core
             return begun.Count == 0 ? ran : ran with { Placements = begun };
         }
 
+        if (input is KeyPressed && _gesture is null && KeyDrag(match) is not null && OnlyDrag(match))
+            return RunBind(match) with { Consumed = false };
+
         if (input is KeyReleased released && _gesture is not null && _gesture.Button.Equals(released.Key, StringComparison.OrdinalIgnoreCase))
         {
             var ended = EndGesture(_pointer ?? _gesture.Origin);
