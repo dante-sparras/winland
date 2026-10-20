@@ -43,6 +43,44 @@ public class MotionPlayerTests
     }
 
     [Fact]
+    public void AFadeThatReplacesAMoveToAnotherRectangleReleasesTheWindow()
+    {
+        var target = new RecordingTarget();
+        var clock = new Clock();
+        using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+        player.Begin(new Motion(Window, Goal) { From = Start, Move = Linear });
+        clock.Now = 50;
+        player.Tick();
+        Assert.Empty(target.Released);
+
+        player.Begin(new Motion(Window, new Rectangle(300, 0, 100, 100)) { AlphaTo = 200, Alpha = Linear });
+
+        Assert.Equal([Window], target.Released);
+        clock.Now = 150;
+        Assert.False(player.Tick());
+        Assert.Equal([Window, Window], target.Released);
+    }
+
+    [Fact]
+    public void AFadeOnTheSameRectangleKeepsTheMoveRunning()
+    {
+        var target = new RecordingTarget();
+        var clock = new Clock();
+        using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+        player.Begin(new Motion(Window, Goal) { From = Start, Move = Linear });
+        clock.Now = 50;
+        player.Tick();
+
+        player.Begin(new Motion(Window, Goal) { AlphaTo = 200, Alpha = Linear });
+
+        Assert.Empty(target.Released);
+        clock.Now = 150;
+        Assert.False(player.Tick());
+        Assert.Contains("place 100", target.Calls);
+        Assert.Empty(target.Released);
+    }
+
+    [Fact]
     public void ALeavingWindowIsHiddenAndPutBackOnItsLayoutRectangle()
     {
         var target = new RecordingTarget();
