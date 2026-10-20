@@ -9,6 +9,7 @@ public sealed partial class Core
         [
             "movecursortocorner", "togglegroup", "changegroupactive", "centerwindow", "fullscreen", "fullscreenstate",
             "swapwindow", "lockactivegroup", "moveintogroup", "moveintoorcreategroup",
+            "movewindow", "movewindoworgroup", "cyclenext",
         ];
 
     // The window a dispatcher given a window acts on in place of the active one, while it runs.

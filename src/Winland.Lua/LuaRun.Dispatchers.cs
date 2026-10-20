@@ -178,11 +178,8 @@ internal sealed partial class LuaRun
 
     private static Dispatch NotHonored(string what) => new("", "", what);
 
-    // The line dispatcher acts on the focused window only, so a constructor given another window is not honored.
     // A dispatcher that acts on the active window takes another one after a comma, which the Lua form names.
     private string WithWindow(string argument) => WithSelector(argument, Window());
-
-    private Dispatch? NoWindow(string label) => Window() is null ? null : NotHonored(label + " with a window");
 
     private static string WithSelector(string argument, string? window) => window is null ? argument : argument + "," + window;
 
@@ -296,7 +293,7 @@ internal sealed partial class LuaRun
         if (Text(1, "direction") is string direction)
         {
             var letter = Direction(direction) ?? throw Mistake($"invalid direction \"{direction}\" (expected left/right/up/down)");
-            return NoWindow(label) ?? new Dispatch(Bool("group_aware") == true ? "movewindoworgroup" : "movewindow", letter);
+            return new Dispatch(Bool("group_aware") == true ? "movewindoworgroup" : "movewindow", WithWindow(letter));
         }
 
         if (Number(1, "x") is string x && Number(1, "y") is string y)
@@ -307,7 +304,7 @@ internal sealed partial class LuaRun
             return new Dispatch(silent ? "movetoworkspacesilent" : "movetoworkspace", WithSelector(workspace, Window()));
 
         if (Text(1, "monitor") is string monitor)
-            return NoWindow(label) ?? new Dispatch("movewindow", silent ? $"mon:{monitor} silent" : $"mon:{monitor}");
+            return new Dispatch("movewindow", WithWindow(silent ? $"mon:{monitor} silent" : $"mon:{monitor}"));
 
         if (Text(1, "into_group") is string into)
         {
@@ -367,7 +364,7 @@ internal sealed partial class LuaRun
                 words.Add("floating");
         }
 
-        return NoWindow(label) ?? new Dispatch("cyclenext", string.Join(' ', words));
+        return new Dispatch("cyclenext", WithWindow(string.Join(' ', words)));
     }
 
     // No argument, or { keep_aspect_ratio }, is the mouse resize. { x, y, relative?, window? } resizes to or by a size.

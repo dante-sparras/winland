@@ -4,9 +4,10 @@ public sealed partial class Core
 {
     /// <summary>
     /// <c>cyclenext [prev] [tiled] [floating]</c> focuses the next window on the focused window's Workspace, as the
-    /// pinned release's window cycle does. <c>prev</c> goes the other way. <c>tiled</c> or <c>floating</c> alone
-    /// takes only that kind of window, and both or neither take either. With <c>tiled</c> from a tile in master or
-    /// monocle, the Layout's own <c>cyclenext</c> or <c>cycleprev</c> runs instead.
+    /// pinned release's window cycle does. A window selector after a comma names the window, and the cycle runs on
+    /// that window's Workspace, then focuses the window it lands on. <c>prev</c> goes the other way. <c>tiled</c> or
+    /// <c>floating</c> alone takes only that kind of window, and both or neither take either. With <c>tiled</c> from a
+    /// tile in master or monocle, that Workspace's <c>cyclenext</c> or <c>cycleprev</c> runs instead.
     /// </summary>
     private Outcome CycleNext(string arguments, bool allowsElevation)
     {
@@ -40,11 +41,57 @@ public sealed partial class Core
         }
 
         if (tiled && desk.ClientOf(current) is { Floating: false } && LayoutFactory.NameOf(desk.Layout) is "master" or "monocle")
-            return Execute("layoutmsg", previous ? "cycleprev" : "cyclenext", allowsElevation);
+        {
+            // On the Workspace already on screen this is the layout message, which reads the window the dispatcher names.
+            // Another Workspace runs that message on its own Layout, then the window it names takes the focus.
+            if (desk.Id == CurrentWorkspace().Id)
+                return Execute("layoutmsg", previous ? "cycleprev" : "cyclenext", allowsElevation);
+
+            return CycleLayout(desk, current, previous, name, allowsElevation);
+        }
 
         bool? only = tiled != floating ? floating : null;
         return CycleFrom(desk, current, previous, only) is WindowId next
             ? FocusClient(next, name, allowsElevation)
             : View([], dispatcher: name, allowsElevation: allowsElevation);
+    }
+
+    private Outcome CycleLayout(LiveWorkspace desk, WindowId current, bool previous, string name, bool allowsElevation)
+    {
+        var covered = desk.Covered();
+        var placements = desk.Layout.LayoutMessage(current, previous ? "cycleprev" : "cyclenext");
+        if (desk.Layout.LayoutMessageError is string layoutError)
+            return View(placements, dispatcher: name, allowsElevation: allowsElevation) with { Error = layoutError };
+
+        var focus = desk.Layout.LayoutMessageFocus ?? RevealedTile(desk, covered, placements);
+        if (focus is null || HasNoFocus(focus.Value))
+        {
+            return IsShown(desk.Id)
+                ? Present(desk, covered, placements, dispatcher: name, allowsElevation: allowsElevation)
+                : View([], dispatcher: name, allowsElevation: allowsElevation);
+        }
+
+        if (!IsShown(desk.Id))
+            return FocusClient(focus.Value, name, allowsElevation);
+
+        var laid = Present(desk, covered, placements, dispatcher: name, allowsElevation: allowsElevation);
+        return Merge(laid, FocusClient(focus.Value, name, allowsElevation));
+    }
+
+    // Monocle does not name a window to focus. The tile it just uncovered was covered before the cycle.
+    private static WindowId? RevealedTile(LiveWorkspace desk, HashSet<WindowId> covered, IReadOnlyList<Placement> placements)
+    {
+        foreach (var placement in placements)
+        {
+            foreach (var client in desk.Layout.Clients)
+            {
+                if (client.Id != placement.Client || client.Floating || client.Minimized || !covered.Contains(client.Window))
+                    continue;
+
+                return client.Window;
+            }
+        }
+
+        return null;
     }
 }
