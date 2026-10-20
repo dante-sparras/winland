@@ -228,6 +228,7 @@ public sealed partial class Core
             WheelTurned wheel => RunKey(NaturalScroll.Apply(_input, wheel)),
             LongPressElapsed => RunKey(input),
             PointerGesture gesture => ApplyGesture(gesture),
+            GroupBarScrolled scrolled => ScrollGroupBar(scrolled),
             WindowMaximizeRequested requested => MaximizeRequest(requested.Window),
             WindowDrifted drifted => PutBack(drifted),
             WindowSizeStarted sizing => BeginNativeSize(sizing),

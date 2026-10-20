@@ -96,6 +96,20 @@ public sealed partial class Core
         return ShowMember(desk, group, index, name, allowsElevation);
     }
 
+    // The wheel over a Group's tab bar shows the next or previous member, with group:groupbar:scrolling, and moves the focus
+    // only from a shown member that had it, as the pinned release's moveCurrent does.
+    private Outcome ScrollGroupBar(GroupBarScrolled scrolled)
+    {
+        if (!_groupOptions.Bar.Scrolling || WorkspaceContaining(scrolled.Shown) is not LiveWorkspace desk
+            || desk.GroupOf(scrolled.Shown) is not WindowGroup group || group.Count < 2)
+        {
+            return View([]);
+        }
+
+        var index = scrolled.Forward ? (group.Current + 1) % group.Count : (group.Current + group.Count - 1) % group.Count;
+        return ShowMember(desk, group, index, "changegroupactive", allowsElevation: false);
+    }
+
     private Outcome ShowMember(LiveWorkspace desk, WindowGroup group, int index, string name, bool allowsElevation)
     {
         var covered = desk.Covered();

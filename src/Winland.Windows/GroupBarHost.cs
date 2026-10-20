@@ -39,6 +39,9 @@ internal static class GroupBarHost
     /// <summary>Runs a dispatcher for a click. The window adapter sets it.</summary>
     internal static Action<string, string>? Dispatch { get; set; }
 
+    /// <summary>Tells the core the wheel turned over a bar: the Group's shown window, and whether towards the next member.</summary>
+    internal static Action<WindowId, bool>? Scroll { get; set; }
+
     /// <summary>Replaces every bar with <paramref name="bars"/>. Starts the bar thread the first time a bar is needed.</summary>
     internal static void Update(IReadOnlyList<GroupBar> bars)
     {
@@ -238,10 +241,15 @@ internal static class GroupBarHost
                 return default;
             case WheelMessage when bar.Spec.Style.Scrolling:
                 var delta = (short)(((nuint)wParam >> 16) & 0xFFFF);
-                var index = IndexOf(bar.Spec, bar.Spec.Shown);
-                var count = bar.Spec.Tabs.Count;
-                if (index >= 0 && count > 1)
-                    Run("focuswindow", bar.Spec.Tabs[(index + (delta < 0 ? 1 : count - 1)) % count].Window);
+                try
+                {
+                    Scroll?.Invoke(bar.Spec.Shown, delta < 0);
+                }
+                catch (Exception exception) when (exception is not OutOfMemoryException)
+                {
+                    Console.Error.WriteLine(exception.Message);
+                }
+
                 return default;
         }
 
