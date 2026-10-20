@@ -379,6 +379,38 @@ public class BorderResizeTests
         Assert.NotEqual("resizewindow", pressed.Dispatcher);
     }
 
+    [Fact]
+    public void TheRingIsLookedForOnTheMonitorUnderThePointer()
+    {
+        var core = CoreWith("general:resize_on_border = true\ngeneral:extend_border_grab_area = 30\n");
+        core.Handle(new MonitorsChanged(
+        [
+            new Monitor(@"\\.\DISPLAY1", "Left", 0, 0, 1920, 1080, 1, true, Wide),
+            new Monitor(@"\\.\DISPLAY2", "Right", 1920, 0, 1920, 1080, 1, true, new Rectangle(1920, 0, 1920, 1080)),
+        ]));
+        Float(core, 1);
+        core.Handle(new Dispatch("focusmonitor", "1"));
+
+        Assert.Equal("right_side", core.Handle(new PointerMoved(new Point(1305, 540))).ResizeCursor);
+    }
+
+    [Fact]
+    public void AFloatingWindowAllowedOverAFullscreenOneKeepsItsRing()
+    {
+        var core = CoreWith("general:resize_on_border = true\ngeneral:extend_border_grab_area = 30\nwindowrulev2 = float, class:^(box)$\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("fullscreen", "0"));
+        core.Handle(new WindowAppeared(new WindowId(2), Wide)
+        {
+            Traits = WindowTraits.Normal with { Class = "box" },
+            Bounds = new Rectangle(0, 0, 640, 400),
+        });
+
+        var box = Client(core.Handle(new Dispatch("no_op")), 2).Bounds;
+
+        Assert.Equal("right_side", core.Handle(new PointerMoved(new Point(box.X + box.Width + 10, box.Y + (box.Height / 2)))).ResizeCursor);
+    }
+
     private static Point Gap(Outcome laid)
     {
         var left = Client(laid, 1).Bounds;
