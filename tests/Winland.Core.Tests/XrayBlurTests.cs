@@ -433,17 +433,20 @@ public class XrayBlurTests
 
         Assert.True(decoration.Blur);
         Assert.Null(decoration.Xray);
+        Assert.Null(decoration.Behind);
     }
 
     [Fact]
-    public void WithoutXrayOrWithBlurOffThereIsNoBackdropLayer()
+    public void WithoutXrayATiledClientStillGetsTheSharedWallpaperBlur()
     {
         var plain = For(Desk("decoration:active_opacity = 0.8\n").Handle(Appeared(1)), 1);
         var off = For(Desk("decoration:blur:xray = true\ndecoration:blur:enabled = false\ndecoration:active_opacity = 0.8\n").Handle(Appeared(1)), 1);
 
-        Assert.Null(plain.Xray);
-        Assert.True(plain.Blur);
+        Assert.NotNull(plain.Xray);
+        Assert.Null(plain.Behind);
+        Assert.False(plain.Blur);
         Assert.Null(off.Xray);
+        Assert.Null(off.Behind);
         Assert.False(off.Blur);
     }
 
@@ -453,6 +456,8 @@ public class XrayBlurTests
         var clear = For(Desk("decoration:blur:xray = true\ndecoration:active_opacity = 0\n").Handle(Appeared(1)), 1);
 
         Assert.Null(clear.Xray);
+        Assert.Null(clear.Behind);
+        Assert.True(clear.Blur);
     }
 
     private static Core Desk(string config)

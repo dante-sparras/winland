@@ -14,11 +14,12 @@ public class EffectPropTests
         core.Execute("setprop address:0x1 xray 1");
         Assert.NotNull(Single(core).Xray);
 
-        var on = Desk("decoration:blur:xray = true\ndecoration:active_opacity = 0.8\n", 1);
+        var on = Desk("decoration:blur:xray = true\ndecoration:blur:new_optimizations = false\ndecoration:active_opacity = 0.8\n", 1);
         on.Execute("setprop address:0x1 xray 0");
         var decoration = Single(on);
         Assert.Null(decoration.Xray);
-        Assert.True(decoration.Blur);
+        Assert.NotNull(decoration.Behind);
+        Assert.False(decoration.Blur);
     }
 
     [Fact]
@@ -28,7 +29,10 @@ public class EffectPropTests
 
         core.Execute("setprop address:0x1 xray 1");
 
-        Assert.Null(Single(core).Xray);
+        var decoration = Single(core);
+        Assert.False(decoration.Blur);
+        Assert.Null(decoration.Xray);
+        Assert.Null(decoration.Behind);
     }
 
     [Fact]
@@ -41,6 +45,7 @@ public class EffectPropTests
         var decoration = Single(core);
         Assert.False(decoration.Blur);
         Assert.Null(decoration.Xray);
+        Assert.Null(decoration.Behind);
     }
 
     [Fact]

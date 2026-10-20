@@ -27,7 +27,7 @@ public class BlurShadowRoundingTests
             decoration {
                 blur {
                     enabled = false
-                    special = true
+                    popups = true
                 }
                 shadow {
                     enabled = false
@@ -41,7 +41,7 @@ public class BlurShadowRoundingTests
 
         var off = For(core.Handle(Appeared(2)), 1);
 
-        Assert.Equal([new ConfigWarning(4, "Unsupported keyword 'decoration:blur:special'.")], document.Warnings);
+        Assert.Equal([new ConfigWarning(4, "Unsupported keyword 'decoration:blur:popups'.")], document.Warnings);
         Assert.False(off.Blur);
         Assert.False(off.Shadow);
         Assert.Null(off.DrawnShadow);

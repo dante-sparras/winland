@@ -40,6 +40,9 @@ internal sealed unsafe class WindowCapture : IDisposable
     /// <summary>The newest picture of the window, or null before the first frame has arrived.</summary>
     internal GpuTexture? Picture => _picture;
 
+    /// <summary>How many frames have been copied into <see cref="Picture"/>. It grows when a new frame replaces the picture.</summary>
+    internal int Generation { get; private set; }
+
     /// <summary>The size of that picture in pixels.</summary>
     internal Size Size => _picture is { } picture ? new Size(picture.Width, picture.Height) : default;
 
@@ -200,6 +203,7 @@ internal sealed unsafe class WindowCapture : IDisposable
                         return false;
 
                     _gpu.CopyIn(texture, _picture, size.Width, size.Height);
+                    Generation++;
                     return true;
                 }
                 finally

@@ -104,6 +104,9 @@ public sealed record Outcome(
 
     public IReadOnlyList<Decoration> Decorations { get; init; } = [];
 
+    /// <summary>One blur per monitor whose special workspace is open, when <c>decoration:blur:special</c> is on.</summary>
+    public IReadOnlyList<SpecialBlur> SpecialBlurs { get; init; } = [];
+
     /// <summary>How the windows in this outcome animate to their placements, shows, hides and closes.</summary>
     public IReadOnlyList<Motion> Motions { get; init; } = [];
 

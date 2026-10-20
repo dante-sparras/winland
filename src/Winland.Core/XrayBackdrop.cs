@@ -1,8 +1,9 @@
 namespace Winland;
 
 /// <summary>
-/// The blurred wallpaper Winland draws under one translucent Client when <c>decoration:blur:xray</c> is on, as the pinned
-/// release draws its precomputed blur under a window: the wallpaper alone, with no window in it. <see cref="Rounding"/>
+/// The blurred wallpaper Winland draws under one translucent Client when <c>decoration:blur:xray</c> is on, and when a tiled
+/// Client on an ordinary workspace uses the shared blur (<c>decoration:blur:new_optimizations</c>, which defaults to on). It is
+/// the picture the pinned release prepares before any window: the wallpaper alone, with no window in it. <see cref="Rounding"/>
 /// and <see cref="RoundingPower"/> are the window's corners in pixels. <see cref="Alpha"/> is how opaque the picture is: 255
 /// when <c>decoration:blur:ignore_opacity</c> is on, the window's own alpha when it is off.
 /// </summary>

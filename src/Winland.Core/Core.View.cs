@@ -48,7 +48,9 @@ public sealed partial class Core
             var noShadow = NoShadow(client);
             var noBlur = OwnProp(client.Window, "no_blur") is true;
             var still = OwnProp(client.Window, "no_anim") is true;
-            var xray = noBlur || hidden.Contains(client.Window) ? null : XrayFor(client, shape, alpha);
+            var (xray, behind) = noBlur || hidden.Contains(client.Window)
+                ? (null, null)
+                : BackdropFor(client, shape, alpha, outcome.State, outcome.Placements, hidden);
             decorations.Add(new Decoration(
                 client.Id,
                 border,
@@ -59,8 +61,9 @@ public sealed partial class Core
                 Region = shape.Region,
                 Opacity = parts.Opacity,
                 Keep = parts.Keep,
-                Blur = _decoration.Blur && !noBlur && xray is null,
+                Blur = _decoration.Blur && !noBlur && xray is null && behind is null,
                 Xray = xray,
+                Behind = behind,
                 Shadow = _decoration.Shadow && !_decoration.ShadowDrawn && !noShadow,
                 Ring = borderless || hidden.Contains(client.Window) ? null : Still(RingFor(client, client.Window == active, shape, alpha), still),
                 DrawnShadow = borderless || noShadow || hidden.Contains(client.Window) ? null : Still(ShadowFor(client, client.Window == active, shape, alpha), still),
@@ -88,6 +91,7 @@ public sealed partial class Core
                 Placements = WithHiddenMembers(BelowBars(outcome.Placements, outcome.State, bars)),
                 GroupBars = bars,
                 Decorations = decorations,
+                SpecialBlurs = SpecialLayers(outcome.State, outcome.Placements, hidden),
                 Dims = DimsAround(outcome.State, decorations),
                 ResetDecorations = reset,
             },
@@ -607,17 +611,143 @@ public sealed partial class Core
         };
     }
 
-    // The blurred wallpaper under a translucent Client when decoration:blur:xray is on, or its own xray property is. A
-    // Client that is fully opaque, or minimized, has none, and DWM's own backdrop is given up for the ones that have it
-    // so the two do not stack.
-    private XrayBackdrop? XrayFor(Client client, CornerChoice shape, byte alpha)
+    // The drawn blur under a translucent Client. An xray property, the xray option, or the shared blur of a tiled Client on
+    // an ordinary workspace is the wallpaper. Anything else blurs the Clients behind the window. A fully opaque Client, a
+    // fully clear one, and a minimized one keep DWM's backdrop instead, and a Client with a drawn blur gives that up so the
+    // two do not stack. An xray property of off chooses the windows behind even when the xray option is on.
+    private (XrayBackdrop? Xray, BehindBlur? Behind) BackdropFor(
+        Client client,
+        CornerChoice shape,
+        byte alpha,
+        State state,
+        IReadOnlyList<Placement> placements,
+        HashSet<WindowId> hidden)
     {
-        if (!_decoration.Blur || !(OwnProp(client.Window, "xray") as bool? ?? _decoration.Xray) || alpha is 0 or 255 || client.Minimized || FindWorkspace(client.Workspace) is not LiveWorkspace desk)
-            return null;
+        if (!_decoration.Blur || alpha is 0 or 255 || client.Minimized || FindWorkspace(client.Workspace) is not LiveWorkspace desk)
+            return (null, null);
 
         var scale = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Effective.Scale : 1;
         var (radius, power) = CornerRadius(shape, scale);
-        return new XrayBackdrop(_decoration.BlurTuning, radius, power, _decoration.IgnoreOpacity ? (byte)255 : alpha);
+        var layerAlpha = _decoration.IgnoreOpacity ? (byte)255 : alpha;
+        if (WallpaperBlur(client, desk))
+            return (new XrayBackdrop(_decoration.BlurTuning, radius, power, layerAlpha), null);
+
+        return (null, new BehindBlur(_decoration.BlurTuning, radius, power, layerAlpha, LiveSources(state, placements, hidden, client)));
+    }
+
+    private bool WallpaperBlur(Client client, LiveWorkspace desk)
+    {
+        if (OwnProp(client.Window, "xray") is bool chosen)
+            return chosen;
+
+        if (_decoration.Xray)
+            return true;
+
+        return _decoration.NewOptimizations && !client.Floating && SpecialOn(desk.Monitor) != client.Workspace;
+    }
+
+    private IReadOnlyList<WindowId> LiveSources(State state, IReadOnlyList<Placement> placements, HashSet<WindowId> hidden, Client client)
+    {
+        var visible = new List<BehindCandidate>();
+        foreach (var other in state.Clients)
+        {
+            if (other.Window == client.Window || other.Minimized || hidden.Contains(other.Window))
+                continue;
+
+            visible.Add(new BehindCandidate(other.Window, ShownBounds(other, placements)));
+        }
+
+        return BehindBlurPlan.Sources(state.Stacking, visible, ShownBounds(client, placements));
+    }
+
+    // One blur for each monitor whose special workspace is open: the Clients on that monitor that are not on the special
+    // workspace, behind the lowest special Client.
+    private List<SpecialBlur> SpecialLayers(State state, IReadOnlyList<Placement> placements, HashSet<WindowId> hidden)
+    {
+        var layers = new List<SpecialBlur>();
+        if (!_decoration.Blur || !_decoration.BlurSpecial)
+            return layers;
+
+        foreach (var screen in state.Screens)
+        {
+            if (screen.SpecialWorkspace is not WorkspaceId special)
+                continue;
+
+            var area = new Rectangle(screen.Monitor.X, screen.Monitor.Y, screen.Monitor.Width, screen.Monitor.Height);
+            if (area.Width <= 0 || area.Height <= 0)
+                continue;
+
+            var visible = new List<BehindCandidate>();
+            foreach (var client in state.Clients)
+            {
+                if (client.Minimized || hidden.Contains(client.Window) || client.Workspace == special)
+                    continue;
+
+                if (FindWorkspace(client.Workspace) is not LiveWorkspace desk || desk.Monitor != screen.Id)
+                    continue;
+
+                visible.Add(new BehindCandidate(client.Window, ShownBounds(client, placements)));
+            }
+
+            WindowId? anchor = null;
+            var seen = new HashSet<WindowId>();
+            foreach (var window in state.Stacking)
+            {
+                if (!seen.Add(window) || !OnSpecial(state, window, special, screen.Id, hidden))
+                    continue;
+
+                anchor = window;
+                break;
+            }
+
+            if (anchor is null)
+            {
+                foreach (var client in state.Clients)
+                {
+                    if (seen.Contains(client.Window) || !OnSpecial(state, client.Window, special, screen.Id, hidden))
+                        continue;
+
+                    anchor = client.Window;
+                    break;
+                }
+            }
+
+            layers.Add(new SpecialBlur(
+                screen.Id,
+                area,
+                anchor,
+                new BehindBlur(_decoration.BlurTuning, 0, 2f, 255, BehindBlurPlan.Sources(state.Stacking, visible, area))));
+        }
+
+        return layers;
+    }
+
+    private bool OnSpecial(State state, WindowId window, WorkspaceId special, MonitorId monitor, HashSet<WindowId> hidden)
+    {
+        foreach (var client in state.Clients)
+        {
+            if (client.Window != window)
+                continue;
+
+            return client.Workspace == special
+                && !client.Minimized
+                && !hidden.Contains(window)
+                && FindWorkspace(client.Workspace) is LiveWorkspace desk
+                && desk.Monitor == monitor;
+        }
+
+        return false;
+    }
+
+    private static Rectangle ShownBounds(Client client, IReadOnlyList<Placement> placements)
+    {
+        foreach (var placement in placements)
+        {
+            if (placement.Client == client.Id)
+                return placement.Bounds;
+        }
+
+        return client.Bounds;
     }
 
     // The glow the pinned release draws inside a Client's edge when decoration:glow:enabled is set, its corners a pixel

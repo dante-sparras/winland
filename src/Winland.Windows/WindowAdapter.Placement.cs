@@ -28,6 +28,7 @@ public sealed partial class WindowAdapter
             ShadowHost.Follow(request.Window);
             GlowHost.Follow(request.Window);
             XrayHost.Follow(request.Window);
+            BehindHost.Follow(request.Window);
         }
     }
 
