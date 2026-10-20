@@ -43,16 +43,19 @@ public sealed partial class Core
         return null;
     }
 
-    // The Client focused before the current one, or the last one focused when none is.
+    // The Client the pinned release takes from its focus history, which it reads from the oldest end: with a Client
+    // focused the second oldest, and with none the oldest. That is the one focused before the current one only while
+    // two Clients have been focused.
     private WindowId? LastClient()
     {
-        var current = ActiveWindow();
-        foreach (var window in _focusHistory)
+        var oldestFirst = new List<WindowId>(_focusHistory.Count);
+        for (var i = _focusHistory.Count - 1; i >= 0; i--)
         {
-            if (window != current && Find(window) is not null)
-                return window;
+            if (Find(_focusHistory[i]) is not null)
+                oldestFirst.Add(_focusHistory[i]);
         }
 
-        return null;
+        var index = ActiveWindow() is null ? 0 : 1;
+        return index < oldestFirst.Count ? oldestFirst[index] : null;
     }
 }
