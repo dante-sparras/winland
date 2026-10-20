@@ -101,6 +101,30 @@ public class OffWindowAxisTests
         Assert.Null(core.OffWindowTarget(new Point(1294, 500)));
     }
 
+    [Fact]
+    public void TheScrollOverrideIsTheWindowsUnderThePointerOrInItsRing()
+    {
+        var core = CoreWith("general:border_size = 4\n");
+        Float(core, 1);
+        Assert.Equal(default, core.ScrollOverrideAt(new Point(900, 500)));
+
+        core.Execute("setprop address:0x1 scroll_mouse 2.5");
+        core.Execute("setprop address:0x1 scroll_touchpad 0.5");
+
+        Assert.Equal(new ScrollOverride(2.5, 0.5), core.ScrollOverrideAt(new Point(900, 500)));
+        Assert.Equal(new ScrollOverride(2.5, 0.5), core.ScrollOverrideAt(new Point(1282, 500)));
+        Assert.Equal(default, core.ScrollOverrideAt(new Point(10, 10)));
+    }
+
+    [Fact]
+    public void AScrollRuleIsTheWindowsOverride()
+    {
+        var core = CoreWith("windowrulev2 = scroll_mouse 3, class:.*\n");
+        Float(core, 1);
+
+        Assert.Equal(new ScrollOverride(3, null), core.ScrollOverrideAt(new Point(900, 500)));
+    }
+
     private static Core CoreWith(string config)
     {
         var core = new Core();

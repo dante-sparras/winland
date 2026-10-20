@@ -139,7 +139,7 @@ public sealed class MouseHook : IDisposable
             }
 
             if (TryWheel(message, info.mouseData, out var key))
-                return OnWheel(key, position) || OffWindowWheel(message, info.mouseData, position, source, info.time) || ScaleWheel(message, info.mouseData, source, info.time) ? new LRESULT(1) : Next(code, wParam, lParam);
+                return OnWheel(key, position) || OffWindowWheel(message, info.mouseData, position, source, info.time) || ScaleWheel(message, info.mouseData, position, source, info.time) ? new LRESULT(1) : Next(code, wParam, lParam);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -393,15 +393,16 @@ public sealed class MouseHook : IDisposable
         return decision.Consumed;
     }
 
-    // input:touchpad:scroll_factor: the touchpad's wheel turn is taken and sent again multiplied. True when it was taken.
-    private bool ScaleWheel(uint message, uint mouseData, PointerSource source, uint time)
+    // input:touchpad:scroll_factor, and a window's scroll_mouse and scroll_touchpad: the wheel turn is taken and sent
+    // again multiplied. True when it was taken.
+    private bool ScaleWheel(uint message, uint mouseData, Point position, PointerSource source, uint time)
     {
         if (source != PointerSource.Mouse)
             return false;
 
         var delta = (short)(mouseData >> 16);
         var touchpad = TouchpadFingers.Scrolls(Environment.TickCount64, delta);
-        var scale = _core.Touchpad.WheelScale(touchpad);
+        var scale = _core.Touchpad.WheelScale(touchpad, _core.ScrollOverrideAt(position));
         if (scale == 1)
             return !touchpad && (DiscreteWheel(message, delta, time) || (_core.ScrollCurve is ScrollCurve curve && CurveWheel(curve, message, delta, time)));
 
@@ -465,7 +466,7 @@ public sealed class MouseHook : IDisposable
         }
 
         _ = PInvoke.SetCursorPos(target.Inside.X, target.Inside.Y);
-        if (ScaleWheel(message, mouseData, source, time))
+        if (ScaleWheel(message, mouseData, target.Inside, source, time))
             return true;
 
         InputInjector.Post(Mouse(message == HorizontalWheel ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL : MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, delta));

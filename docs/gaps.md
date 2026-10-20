@@ -150,7 +150,7 @@ Events and calls that have a Windows source: `window.open_early`, `config.props_
 
 Behavior the Notes describe, which Windows can do: the modifiers `CAPS`, `MOD2`, `MOD3` and `MOD5`; animating a Client through fullscreen mode 2; animating a window while it is dragged; a workspace rule's `animation:` style; an `animation` window rule; tracking a window's owner; the mouse-drag gaps; dragging a tab out of the bar; reading `focusurgentorlast` from the newest end of the history; swallowing the way the pinned release does; `general:resize_on_border` on the monitor under the pointer; `movetoworkspace` of a pinned Client onto a special workspace still showing that workspace; `alterzorder` and `bringactivetotop` refocusing the window under the pointer; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
 
-Commands and the plugin manager: `descriptions` carrying each option's description; `clients` and `activewindow` in the text form; `changeworkspaceid` taking a number up to 4294967295; the window properties `no_vrr`, `scroll_mouse` and `scroll_touchpad`; plugin `enable`, `disable` and `reload`; `remove` taking `author/name`; a manifest's shell `build` steps and `output`; and the `--notify`, `--verbose` and `--no-shallow` flags, and the custom source URL flag.
+Commands and the plugin manager: `descriptions` carrying each option's description; `clients` and `activewindow` in the text form; `changeworkspaceid` taking a number up to 4294967295; the window property `no_vrr`; plugin `enable`, `disable` and `reload`; `remove` taking `author/name`; a manifest's shell `build` steps and `output`; and the `--notify`, `--verbose` and `--no-shallow` flags, and the custom source URL flag.
 
 ## Notes
 
@@ -247,7 +247,7 @@ Every command the pinned release's control socket answers is recognized. The one
 
 `clients` and `activewindow` reply in JSON with or without `j/`, where the pinned release replies in text without it. With no window they reply its text, `no open windows` and `Invalid`.
 
-`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `render_unfocused`, `no_screen_share`, `no_vrr`, `no_auto_hdr`, `scroll_mouse` and `scroll_touchpad`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
+`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `animation`, `allows_input`, `decorate`, `nearest_neighbor`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `render_unfocused`, `no_screen_share`, `no_vrr` and `no_auto_hdr`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
 
 `changeworkspaceid` refuses a number above 2147483647. The pinned release takes numbers up to 4294967295, but a Workspace number here is a signed 32-bit integer. It is a gap.
 

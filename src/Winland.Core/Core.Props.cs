@@ -79,7 +79,7 @@ public sealed partial class Core
         "rounding" => (long)_decoration.Rounding,
         "rounding_power" => _decoration.RoundingPower,
         "scroll_mouse" => (float)(_input.ScrollFactor ?? 1),
-        "scroll_touchpad" => 1f,
+        "scroll_touchpad" => (float)_input.TouchpadScrollFactor,
         _ when kind == PropKind.Bool => false,
         _ => throw new ArgumentOutOfRangeException(nameof(key), key, "No default for this property."),
     };
