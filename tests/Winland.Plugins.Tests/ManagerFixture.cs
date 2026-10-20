@@ -179,6 +179,11 @@ internal sealed class ManagerFixture : IDisposable
         public bool NotRunning { get; set; }
 
         IReadOnlyList<string>? IRunningPlugins.Loaded() => NotRunning ? null : [.. Loaded];
+
+        public List<string> Notifications { get; } = [];
+
+        public void Notify(int icon, int milliseconds, string message) =>
+            Notifications.Add($"{icon} {milliseconds} {message}");
     }
 
     internal sealed class RecordingProtector : IPluginDirectoryProtector

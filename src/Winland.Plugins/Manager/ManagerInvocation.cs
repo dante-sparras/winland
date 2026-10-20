@@ -7,6 +7,12 @@ public abstract record ManagerCommand
     {
     }
 
+    /// <summary>Whether to show a notification in the running Winland when plugins load, as <c>--notify</c> asks.</summary>
+    public bool Notify { get; init; }
+
+    /// <summary>Whether to print each command the manager runs and what it printed, as <c>--verbose</c> asks.</summary>
+    public bool Verbose { get; init; }
+
     public sealed record Install(string Url, string? Revision) : ManagerCommand;
 
     public sealed record Update(bool Force) : ManagerCommand;
@@ -36,41 +42,105 @@ public static class ManagerInvocation
         if (args.Count < 2 || !args[0].Equals("plugin", StringComparison.OrdinalIgnoreCase))
             return null;
 
-        var verb = args[1].ToLowerInvariant();
-        var rest = args.Skip(2).ToArray();
+        // The verb is the first word that is not a flag, so a flag may come before it too.
+        var at = 1;
+        while (at < args.Count && args[at].StartsWith('-'))
+            at += args[at] == "--hl-url" ? 2 : 1;
+
+        if (at >= args.Count)
+            return at == 1 ? null : new ManagerCommand.Invalid("usage: winlandctl plugin <command> [flags]");
+
+        var verb = args[at].ToLowerInvariant();
+        if (verb is not ("install" or "update" or "remove" or "enable" or "disable" or "reload"))
+            return at == 1 ? Other(verb, args.Skip(2).ToArray()) : null;
+
+        // As in the pinned plugin manager, a flag may come anywhere after the verb.
+        var rest = new List<string>();
+        var flags = new Flags();
+        for (var i = 1; i < args.Count; i++)
+        {
+            if (i == at)
+                continue;
+
+            var arg = args[i];
+            switch (arg)
+            {
+                case "--force" or "-f":
+                    flags.Force = true;
+                    break;
+                case "--notify" or "-n":
+                    flags.Notify = true;
+                    break;
+                case "--verbose" or "-v":
+                    flags.Verbose = true;
+                    break;
+                case "--no-shallow" or "-s" or "--no-nix":
+                    break;
+                case "--hl-url":
+                    if (++i >= args.Count)
+                        return new ManagerCommand.Invalid("Missing argument for --hl-url");
+
+                    break;
+                default:
+                    if (arg.StartsWith('-'))
+                        return new ManagerCommand.Invalid($"Unrecognized option {arg}");
+
+                    rest.Add(arg);
+                    break;
+            }
+        }
+
+        ManagerCommand command;
         switch (verb)
         {
             case "install":
-                if (rest.Length is < 1 or > 2)
+                if (rest.Count is < 1 or > 2)
                     return new ManagerCommand.Invalid("usage: winlandctl plugin install <git-url> [revision]");
 
-                return new ManagerCommand.Install(rest[0], rest.Length == 2 ? rest[1] : null);
+                command = new ManagerCommand.Install(rest[0], rest.Count == 2 ? rest[1] : null);
+                break;
             case "update":
-                if (rest.Length == 0)
-                    return new ManagerCommand.Update(false);
+                if (rest.Count != 0)
+                    return new ManagerCommand.Invalid("usage: winlandctl plugin update [--force]");
 
-                if (rest.Length == 1 && rest[0] is "--force" or "-f")
-                    return new ManagerCommand.Update(true);
-
-                return new ManagerCommand.Invalid("usage: winlandctl plugin update [--force]");
+                command = new ManagerCommand.Update(flags.Force);
+                break;
             case "remove":
-                if (rest.Length != 1)
+                if (rest.Count != 1)
                     return new ManagerCommand.Invalid("usage: winlandctl plugin remove <git-url|name|author/name>");
 
-                return new ManagerCommand.Remove(rest[0]);
+                command = new ManagerCommand.Remove(rest[0]);
+                break;
             case "enable" or "disable":
-                if (rest.Length != 1)
+                if (rest.Count != 1)
                     return new ManagerCommand.Invalid($"usage: winlandctl plugin {verb} <name|author/name>");
 
-                return new ManagerCommand.Enable(rest[0], verb == "enable");
-            case "reload":
-                if (rest.Length == 0)
-                    return new ManagerCommand.Reload(false);
+                command = new ManagerCommand.Enable(rest[0], verb == "enable");
+                break;
+            default:
+                if (rest.Count != 0)
+                    return new ManagerCommand.Invalid("usage: winlandctl plugin reload [--force]");
 
-                if (rest.Length == 1 && rest[0] is "--force" or "-f")
-                    return new ManagerCommand.Reload(true);
+                command = new ManagerCommand.Reload(flags.Force);
+                break;
+        }
 
-                return new ManagerCommand.Invalid("usage: winlandctl plugin reload [--force]");
+        return command with { Notify = flags.Notify, Verbose = flags.Verbose };
+    }
+
+    private sealed class Flags
+    {
+        public bool Force { get; set; }
+
+        public bool Notify { get; set; }
+
+        public bool Verbose { get; set; }
+    }
+
+    private static ManagerCommand? Other(string verb, string[] rest)
+    {
+        switch (verb)
+        {
             case "list" when rest.Length == 1 && rest[0] == "--installed":
                 return new ManagerCommand.List();
             case ApplyRequest.Verb:

@@ -38,6 +38,9 @@ public interface IRunningPlugins
 
     /// <summary>The names of the plugins loaded in the running Winland, or null when it cannot be asked.</summary>
     IReadOnlyList<string>? Loaded();
+
+    /// <summary>Shows a notification in the running Winland, as the <c>notify</c> command does.</summary>
+    void Notify(int icon, int milliseconds, string message);
 }
 
 public sealed class SystemProcessRunner : IProcessRunner

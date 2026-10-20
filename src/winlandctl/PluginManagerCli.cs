@@ -35,7 +35,9 @@ static class PluginManagerCli
             new WindowsElevator(),
             new PipePlugins(pipe),
             Console.Out,
-            Console.Error);
+            Console.Error,
+            command.Verbose,
+            command.Notify);
         return command switch
         {
             ManagerCommand.Install install => manager.Install(install.Url, install.Revision),
@@ -181,6 +183,9 @@ static class PluginManagerCli
         public bool Unload(string name) => Send("plugin unload " + name);
 
         public bool Load(string path) => Send("plugin load " + path);
+
+        public void Notify(int icon, int milliseconds, string message) =>
+            Send(FormattableString.Invariant($"notify {icon} {milliseconds} 0 {message}"));
 
         public IReadOnlyList<string>? Loaded()
         {
