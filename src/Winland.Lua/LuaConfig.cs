@@ -123,6 +123,8 @@ public static class LuaConfig
 internal sealed partial class LuaRun : IDisposable
 {
     // The events hl.on knows, named as the pinned release names them with Winland's own name for its start and shutdown.
+    // window.bell, screenshare.state, layer.opened and layer.closed are accepted and never raised. Windows does not
+    // report a window ringing the bell or a screenshare starting, and it has no layer surfaces.
     private static readonly string[] Events =
     [
         "window.open", "window.open_early", "window.close", "window.destroy", "window.kill", "window.active",
