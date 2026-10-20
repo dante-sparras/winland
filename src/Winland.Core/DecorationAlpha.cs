@@ -1,12 +1,16 @@
 namespace Winland;
 
-/// <summary>Which opacity and dim apply to one Client. Fullscreen wins over active and inactive.</summary>
+/// <summary>
+/// Which opacity and dim apply to one Client. Fullscreen wins over active and inactive. <see cref="NoDim"/> is the
+/// window's <c>no_dim</c>, which drops the inactive dim and keeps the others.
+/// </summary>
 public readonly record struct OpacityInput(
     bool Active,
     bool Fullscreen = false,
     bool ShadowedByModal = false,
     bool SpecialOpen = false,
-    bool OnSpecial = false);
+    bool OnSpecial = false,
+    bool NoDim = false);
 
 /// <summary>A window's alpha, and the opacity and the dim it is made of, each from 0 to 255.</summary>
 public readonly record struct AlphaParts(byte Alpha, byte Opacity, byte Keep);
@@ -42,7 +46,7 @@ public static class DecorationAlpha
         var opacity = opaque ? 1f : factor.Apply(configured);
 
         var dim = 0f;
-        if (!input.Active && options.DimInactive)
+        if (!input.Active && options.DimInactive && !input.NoDim)
             dim = options.DimStrength;
         if (input.ShadowedByModal && options.DimModal)
             dim += (1f - dim) / 2f;

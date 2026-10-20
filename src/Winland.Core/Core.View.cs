@@ -39,13 +39,16 @@ public sealed partial class Core
                     Fullscreen: borderless,
                     ShadowedByModal: ShadowedByModal(client.Window),
                     SpecialOpen: special is not null,
-                    OnSpecial: special == client.Workspace),
+                    OnSpecial: special == client.Workspace,
+                    NoDim: OwnProp(client.Window, "no_dim") is true),
                 choice.Rule,
                 choice.Opaque);
             var alpha = parts.Alpha;
             var shape = borderless ? CornerChoice.Square : corners;
             var noShadow = NoShadow(client);
-            var xray = hidden.Contains(client.Window) ? null : XrayFor(client, shape, alpha);
+            var noBlur = OwnProp(client.Window, "no_blur") is true;
+            var still = OwnProp(client.Window, "no_anim") is true;
+            var xray = noBlur || hidden.Contains(client.Window) ? null : XrayFor(client, shape, alpha);
             decorations.Add(new Decoration(
                 client.Id,
                 border,
@@ -56,13 +59,13 @@ public sealed partial class Core
                 Region = shape.Region,
                 Opacity = parts.Opacity,
                 Keep = parts.Keep,
-                Blur = _decoration.Blur && xray is null,
+                Blur = _decoration.Blur && !noBlur && xray is null,
                 Xray = xray,
                 Shadow = _decoration.Shadow && !_decoration.ShadowDrawn && !noShadow,
-                Ring = borderless || hidden.Contains(client.Window) ? null : RingFor(client, client.Window == active, shape, alpha),
-                DrawnShadow = borderless || noShadow || hidden.Contains(client.Window) ? null : ShadowFor(client, client.Window == active, shape, alpha),
-                Glow = borderless || hidden.Contains(client.Window) ? null : GlowFor(client, client.Window == active, shape, alpha),
-                Motion = _decoration.EffectsFor(OwnProp(client.Window, "no_wobble") is true, borderless),
+                Ring = borderless || hidden.Contains(client.Window) ? null : Still(RingFor(client, client.Window == active, shape, alpha), still),
+                DrawnShadow = borderless || noShadow || hidden.Contains(client.Window) ? null : Still(ShadowFor(client, client.Window == active, shape, alpha), still),
+                Glow = borderless || hidden.Contains(client.Window) ? null : Still(GlowFor(client, client.Window == active, shape, alpha), still),
+                Motion = still ? null : _decoration.EffectsFor(OwnProp(client.Window, "no_wobble") is true, borderless),
             });
         }
 
@@ -542,11 +545,12 @@ public sealed partial class Core
         };
     }
 
-    // The blurred wallpaper under a translucent Client when decoration:blur:xray is on. A Client that is fully opaque, or
-    // minimized, has none, and DWM's own backdrop is given up for the ones that have it so the two do not stack.
+    // The blurred wallpaper under a translucent Client when decoration:blur:xray is on, or its own xray property is. A
+    // Client that is fully opaque, or minimized, has none, and DWM's own backdrop is given up for the ones that have it
+    // so the two do not stack.
     private XrayBackdrop? XrayFor(Client client, CornerChoice shape, byte alpha)
     {
-        if (!_decoration.Blur || !_decoration.Xray || alpha is 0 or 255 || client.Minimized || FindWorkspace(client.Workspace) is not LiveWorkspace desk)
+        if (!_decoration.Blur || !(OwnProp(client.Window, "xray") as bool? ?? _decoration.Xray) || alpha is 0 or 255 || client.Minimized || FindWorkspace(client.Workspace) is not LiveWorkspace desk)
             return null;
 
         var scale = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Effective.Scale : 1;
@@ -580,6 +584,15 @@ public sealed partial class Core
             Fade = _animations.TimingOf("fadeGlow"),
         };
     }
+
+    // A window with no_anim draws its border, shadow and glow at rest: their angles do not turn and they do not fade,
+    // as the pinned release warps every animated value of such a window.
+    private static BorderRing? Still(BorderRing? ring, bool still) => still && ring is not null ? ring with { Spin = null } : ring;
+
+    private static DropShadow? Still(DropShadow? shadow, bool still) =>
+        still && shadow is not null ? shadow with { Spin = null, Fade = null } : shadow;
+
+    private static InnerGlow? Still(InnerGlow? glow, bool still) => still && glow is not null ? glow with { Spin = null, Fade = null } : glow;
 
     // no_shadow from setprop, a window rule or the workspace rule's shadow:0.
     private bool NoShadow(Client client) =>

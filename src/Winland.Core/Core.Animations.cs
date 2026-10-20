@@ -60,7 +60,8 @@ public sealed partial class Core
             return outcome;
         }
 
-        var planned = FromSwipe(plan.Finish(_painted));
+        // A window with no_anim moves, fades and changes border color at once, as the pinned release warps it.
+        var planned = FromSwipe(plan.Finish(_painted)).Where(motion => OwnProp(motion.Window, "no_anim") is not true).ToList();
         if (own.Count == 0)
             return outcome with { Motions = planned };
 
