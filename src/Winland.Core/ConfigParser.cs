@@ -274,6 +274,8 @@ public static partial class ConfigParser
             }
             else if (keyword == "input:accel_profile" && rhs.TrimStart().StartsWith("custom", StringComparison.OrdinalIgnoreCase))
                 Warn(lineNumber, "Custom acceleration profiles are not honored.");
+            else if (keyword == "misc:vrr" && SessionOptions.VrrWarning(rhs) is string vrr)
+                Warn(lineNumber, vrr);
         }
 
         private void ParseBrace(int lineNumber, string line)

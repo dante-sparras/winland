@@ -102,7 +102,6 @@ This table has one row per keyword. A test checks it against the keywords the co
 | render | GPU rendering options have no Windows meaning. |
 | ripple | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
 | screen_shader | Screen shaders have no Windows meaning. |
-| vrr | Windows has no switch for a display's adaptive sync, since each game turns VRR on for itself. The Variable refresh rate graphics setting only lets DirectX 11 fullscreen games without VRR of their own use it, and Dynamic refresh rate has no documented interface. |
 | water | Only decoration:blur:enabled and, with decoration:blur:xray, the blur tuning options are honored. The DWM backdrop cannot be tuned. |
 | xwayland | X11 compatibility has no Windows meaning. A window rule that matches on xwayland is not honored. |
 
@@ -117,7 +116,7 @@ Each keyword above is a `gap` or a `non-goal`. A non-goal has no Windows meaning
 | gap | - | animation:monitorAdded |
 | non-goal | - | animation:fadeLayers, animation:fadeLayersIn, animation:fadeLayersOut, animation:fadePopups, animation:fadePopupsIn, animation:fadePopupsOut, animation:layers, animation:layersIn, animation:layersOut |
 | non-goal | - | binds:disable_keybind_grabbing |
-| gap | - | bitdepth, vrr |
+| gap | - | bitdepth |
 | non-goal | - | cursor:enable_hyprcursor, cursor:min_refresh_rate, cursor:no_break_fs_vrr, cursor:no_hardware_cursors, cursor:sync_gsettings_theme, cursor:use_cpu_buffer |
 | gap | - | cursor:zoom_disable_aa |
 | gap | - | decoration:blur:input_methods, decoration:blur:input_methods_ignorealpha, decoration:blur:new_optimizations, decoration:blur:popups, decoration:blur:popups_ignorealpha, decoration:blur:special |
@@ -148,8 +147,6 @@ Events and calls that have a Windows source: a bind's `device` and `auto_consumi
 
 Behavior the Notes describe, which Windows can do: swallowing a parent in a Group the way the pinned release does, which leaves the child unplaced; and the monitor fields `supports_wide_color`, `supports_hdr`, `sdr_min_luminance`, `sdr_max_luminance`, `min_luminance`, `max_luminance` and `max_avg_luminance`.
 
-Commands and the plugin manager: the window property `no_vrr`.
-
 ## Notes
 
 An `animation:NAME` row is a node of the animation tree. An `animation` line that names it warns with that reason and is skipped. The other nodes are honored; see [behavior.md](behavior.md#animations). These parts of the honored nodes are Gaps:
@@ -157,6 +154,8 @@ An `animation:NAME` row is a node of the animation tree. An `animation` line tha
 - A window that closes by itself is gone before it can be drawn again, so `windowsOut` and `fadeOut` play only when Winland closes the window, with `killactive` or `closewindow`.
 
 A row named by one part of a keyword covers every keyword with that part. `decoration:blur:glass:size` is the `glass` gap.
+
+`no_vrr` and `misc:vrr` of 0 or 1 (`off` or `on`) write the account's graphics setting while Winland runs, described in [behavior.md](behavior.md#window-properties). A monitor rule's `vrr` still warns and is not honored: Windows has no switch for one display's adaptive sync. `misc:vrr` of 2 or 3 (`fullscreen`, `fullscreen_game`) warns and changes nothing, because those modes follow a fullscreen window and, for 3, a content type Windows does not report. The setting takes effect when the program next creates its swap chain, usually the next time it starts.
 
 Two `misc` options turn off the reference compositor's logo and its check for its GUI utilities. Both are non-goals: Winland draws no logo and has no GUI utilities. Their names contain the name that [ADR 0002](adr/0002-hyprland-compatibility-without-its-name.md) keeps out of the code, so neither has a row above or an entry in the gap list in code. Each warns like any keyword Winland does not read.
 
@@ -220,7 +219,7 @@ Every command the pinned release's control socket answers is recognized. The one
 
 `descriptions` lists only the options Winland reads.
 
-`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `allows_input`, `nearest_neighbor`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `render_unfocused`, `no_screen_share`, `no_vrr` and `no_auto_hdr`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
+`getprop` reads and `setprop` sets every window property the pinned release has, described in [behavior.md](behavior.md#window-properties). These are kept and reported but change nothing: `allows_input`, `nearest_neighbor`, `no_shortcuts_inhibit`, `force_rgbx`, `sync_fullscreen`, `immediate`, `render_unfocused`, `no_screen_share` and `no_auto_hdr`. Each waits on the feature it would change, most of them Gaps above. A border color property is drawn with all its colors and its angle.
 
 ## Plugins
 

@@ -535,6 +535,7 @@ public sealed partial class WindowAdapter : IDisposable
             Bounds = bounds,
             ProcessId = processId,
             AncestorProcessIds = ancestors,
+            Executable = PackagedIdentity.ImagePath(identity.ProcessId),
             Traits = new WindowTraits(
                 Visible: PInvoke.IsWindowVisible(hwnd) && !identity.UnresolvedFrame,
                 Titled: title.Length > 0,

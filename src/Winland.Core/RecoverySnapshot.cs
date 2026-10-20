@@ -37,6 +37,9 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
     /// <summary>The displays Winland made mirror another, to put back when it starts again after it did not stop cleanly.</summary>
     public IReadOnlyList<DisplayMirrorOriginal>? Mirrors { get; init; }
 
+    /// <summary>Graphics preferences Winland changed, to put back when it starts again after it did not stop cleanly.</summary>
+    public VrrOriginals? Vrr { get; init; }
+
     private static readonly JsonSerializerOptions Json = new()
     {
         PropertyNamingPolicy = null,
@@ -67,7 +70,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 client.Region);
         }
 
-        return JsonSerializer.Serialize(new FileBody(rows, InputBody.From(Input), MirrorBody.From(Mirrors)), Json);
+        return JsonSerializer.Serialize(new FileBody(rows, InputBody.From(Input), MirrorBody.From(Mirrors), VrrBody.From(Vrr)), Json);
     }
 
     public static bool TryParse(string? json, out RecoverySnapshot snapshot)
@@ -108,7 +111,12 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 });
             }
 
-            snapshot = new RecoverySnapshot(clients) { Input = body.Input?.ToOriginals(), Mirrors = MirrorBody.ToOriginals(body.Mirrors) };
+            snapshot = new RecoverySnapshot(clients)
+            {
+                Input = body.Input?.ToOriginals(),
+                Mirrors = MirrorBody.ToOriginals(body.Mirrors),
+                Vrr = body.Vrr?.ToOriginals(),
+            };
             return true;
         }
         catch (JsonException)
@@ -123,7 +131,8 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
     private sealed record FileBody(
         [property: JsonPropertyName("clients")] ClientBody?[]? Clients,
         [property: JsonPropertyName("input")] InputBody? Input,
-        [property: JsonPropertyName("mirrors")] MirrorBody?[]? Mirrors = null);
+        [property: JsonPropertyName("mirrors")] MirrorBody?[]? Mirrors = null,
+        [property: JsonPropertyName("vrr")] VrrBody? Vrr = null);
 
     private sealed record MirrorBody(
         [property: JsonPropertyName("device")] string? Device,
@@ -180,6 +189,52 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
             return mirrors.Count == 0 ? null : mirrors;
         }
     }
+
+    private sealed record VrrBody(
+        [property: JsonPropertyName("global")] bool Global,
+        [property: JsonPropertyName("globalValue")] string? GlobalValue,
+        [property: JsonPropertyName("executables")] VrrExecutableBody?[]? Executables)
+    {
+        public static VrrBody? From(VrrOriginals? originals)
+        {
+            if (originals is not { Any: true } saved)
+                return null;
+
+            VrrExecutableBody[]? rows = null;
+            if (saved.Executables.Count > 0)
+            {
+                rows = new VrrExecutableBody[saved.Executables.Count];
+                for (var i = 0; i < saved.Executables.Count; i++)
+                {
+                    var row = saved.Executables[i];
+                    rows[i] = new VrrExecutableBody(row.Executable, row.Value);
+                }
+            }
+
+            return new VrrBody(saved.Global, saved.GlobalValue, rows);
+        }
+
+        public VrrOriginals ToOriginals()
+        {
+            var rows = new List<VrrExecutableOriginal>();
+            if (Executables is not null)
+            {
+                foreach (var row in Executables)
+                {
+                    if (row is null || string.IsNullOrEmpty(row.Executable))
+                        continue;
+
+                    rows.Add(new VrrExecutableOriginal(row.Executable, row.Value));
+                }
+            }
+
+            return new VrrOriginals { Global = Global, GlobalValue = GlobalValue, Executables = rows };
+        }
+    }
+
+    private sealed record VrrExecutableBody(
+        [property: JsonPropertyName("executable")] string? Executable,
+        [property: JsonPropertyName("value")] string? Value);
 
     private sealed record SourceModeBody(
         [property: JsonPropertyName("width")] uint Width,

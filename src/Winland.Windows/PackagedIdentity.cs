@@ -186,6 +186,13 @@ internal static class PackagedIdentity
 
     internal static string ExeFile(uint processId)
     {
+        var path = ImagePath(processId);
+        return path.Length == 0 ? "" : Path.GetFileName(path);
+    }
+
+    /// <summary>The program's full path, or empty when it cannot be read. <see cref="ExeFile"/> is that path's file name.</summary>
+    internal static string ImagePath(uint processId)
+    {
         if (processId == 0)
             return "";
 
@@ -201,15 +208,14 @@ internal static class PackagedIdentity
                 && size > 0
                 && size <= buffer.Length)
             {
-                return Path.GetFileName(new string(buffer[..(int)size]));
+                return new string(buffer[..(int)size]);
             }
         }
 
         try
         {
             using var managed = Process.GetProcessById((int)processId);
-            var path = managed.MainModule?.FileName;
-            return string.IsNullOrEmpty(path) ? "" : Path.GetFileName(path);
+            return managed.MainModule?.FileName ?? "";
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {

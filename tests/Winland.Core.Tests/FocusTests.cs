@@ -217,10 +217,10 @@ public class FocusTests
     [Fact]
     public void FocusOnActivateIsHonoredInABlock()
     {
-        var document = ConfigParser.Parse("misc {\n    focus_on_activate = true\n    vrr = 1\n}\n");
+        var document = ConfigParser.Parse("misc {\n    focus_on_activate = true\n    middle_click_paste = true\n}\n");
 
         Assert.Equal(new Setting("misc:focus_on_activate", "true"), Assert.Single(document.Settings));
-        Assert.Equal(new ConfigWarning(3, "Unsupported keyword 'misc:vrr'."), Assert.Single(document.Warnings));
+        Assert.Equal(new ConfigWarning(3, "Unsupported keyword 'misc:middle_click_paste'."), Assert.Single(document.Warnings));
     }
 
     [Fact]

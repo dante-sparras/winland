@@ -54,6 +54,7 @@ internal static partial class OptionCatalog
         ["misc:disable_autoreload"] = "If true, the config will not reload automatically on save.",
         ["misc:size_limits_tiled"] = "whether to apply minsize and maxsize rules to tiled windows",
         ["misc:focus_on_activate"] = "Whether Winland should focus an app that requests to be focused.",
+        ["misc:vrr"] = "Controls the VRR (Adaptive Sync) of your monitors.",
         ["general:modal_parent_blocking"] = "if true, parent windows of modals will not be interactive.",
         ["misc:close_special_on_empty"] = "close the special workspace if the last window is removed",
         ["binds:hide_special_on_workspace_change"] = "If enabled, changing the active workspace will hide the special workspace on the monitor.",
