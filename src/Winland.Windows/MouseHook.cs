@@ -29,6 +29,9 @@ public sealed class MouseHook : IDisposable
     private readonly HOOKPROC _callback;
     private HHOOK _hook;
     private readonly MouseDrag _drag = new();
+
+    // Buttons whose press a drag bind let through, with no window to drag, so their release goes through too.
+    private readonly HashSet<string> _passed = new(StringComparer.OrdinalIgnoreCase);
     private readonly ButtonScroller _scroller = new();
     private readonly PointerRotation _rotation = new();
     private readonly TouchpadPointer _touchpadWheel = new();
@@ -343,13 +346,14 @@ public sealed class MouseHook : IDisposable
 
         if (up)
         {
+            var passed = _passed.Remove(button);
             if (_drag.Release(button) is MouseDrag.Active drag)
                 _keys.PostGesture(drag.Dispatcher, drag.Arguments, position, PointerDragPhase.End, button);
 
             var released = _core.Decide(new PointerButtonReleased(button) { Position = position }, _keys.Session);
             _keys.NoteTiming(released);
             _keys.Enqueue(released);
-            return released.Consumed;
+            return !passed && released.Consumed;
         }
 
         var decision = _core.Decide(new PointerButtonPressed(button) { Position = position }, _keys.Session);
@@ -359,6 +363,14 @@ public sealed class MouseHook : IDisposable
         _keys.NoteTiming(decision);
         if (TryDrag(decision, out var dispatcher, out var arguments))
         {
+            // With no window under the pointer the press goes on to whatever is there, as the pinned release lets it
+            // through, when the drag is all the bind does.
+            if (_drag.Current is null && OnlyDrag(decision) && !_core.HasDragTarget(position))
+            {
+                _passed.Add(button);
+                return false;
+            }
+
             // A second drag button pressed during a drag starts nothing, so the held drag still ends on its own release.
             if (_drag.Begin(button, dispatcher, arguments))
                 _keys.PostGesture(dispatcher, arguments, position, PointerDragPhase.Begin, button);
@@ -500,6 +512,20 @@ public sealed class MouseHook : IDisposable
         }
 
         return false;
+    }
+
+    internal static bool OnlyDrag(BindDecision decision)
+    {
+        if (decision.Dispatches.Count == 0)
+            return !string.IsNullOrEmpty(decision.Dispatcher) && IsDrag(decision.Dispatcher, decision.Arguments);
+
+        foreach (var dispatch in decision.Dispatches)
+        {
+            if (dispatch.Dispatcher.Length > 0 && !IsDrag(dispatch.Dispatcher, dispatch.Arguments))
+                return false;
+        }
+
+        return true;
     }
 
     internal static bool IsDrag(string dispatcher, string arguments) =>

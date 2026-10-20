@@ -239,6 +239,29 @@ public sealed partial class Core
         return null;
     }
 
+    /// <summary>
+    /// Whether a mouse bind's drag pressed at <paramref name="pointer"/> would take a window. The mouse hook asks before
+    /// it keeps the press, since the pinned release lets the press through when no window is there. It never waits:
+    /// with the core busy it answers true, and the press is kept.
+    /// </summary>
+    public bool HasDragTarget(Point pointer)
+    {
+        if (!_gate.TryEnter())
+            return true;
+
+        try
+        {
+            return DragTarget(pointer) is not null;
+        }
+        finally
+        {
+            _gate.Exit();
+        }
+    }
+
+    // A press whose only action is a drag, which with no window under the pointer the pinned release lets through.
+    private static bool OnlyDrag(BindDecision match) => DispatchesOf(match).All(dispatch => dispatch.Dispatcher.Length == 0 || IsDragDispatcher(dispatch));
+
     private static bool Inside(Rectangle box, Point point) =>
         point.X >= box.X && point.X < box.X + box.Width && point.Y >= box.Y && point.Y < box.Y + box.Height;
 

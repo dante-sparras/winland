@@ -391,6 +391,24 @@ public class MouseDragTests
     }
 
     [Fact]
+    public void ADragPressWithNoWindowUnderThePointerGoesThrough()
+    {
+        var core = Flat("bindm = SUPER, mouse:272, movewindow\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        Press(core, "Super_L");
+
+        var empty = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(10, 10) });
+        core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(10, 10) });
+        var held = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(700, 400) });
+
+        Assert.False(empty.Consumed);
+        Assert.False(core.HasDragTarget(new Point(10, 10)));
+        Assert.True(held.Consumed);
+        Assert.True(core.HasDragTarget(new Point(700, 400)));
+    }
+
+    [Fact]
     public void ATileDroppedOnAnotherMonitorJoinsTheWorkspaceItShows()
     {
         var core = TwoMonitors();
