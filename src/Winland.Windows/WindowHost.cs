@@ -106,6 +106,18 @@ public sealed class WindowHost : IDisposable
 
     private bool ServiceHooks(uint message)
     {
+        if (message == MouseHook.SyncMessage)
+        {
+            _mouse.SyncPointer();
+            return true;
+        }
+
+        if (message == MouseHook.PointerRefreshMessage)
+        {
+            _mouse.RefreshPointers();
+            return true;
+        }
+
         if (message != KeyboardHook.WatchMessage)
             return _keys.Service(message);
 

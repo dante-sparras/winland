@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Winland;
 
 public static partial class ConfigParser
@@ -38,6 +40,7 @@ public static partial class ConfigParser
         private readonly List<WorkspaceRule> _workspaceRules = [];
         private readonly List<EnvironmentAssignment> _environment = [];
         private readonly List<DeviceTag> _deviceTags = [];
+        private readonly Dictionary<string, PointerDraft> _pointers = new(StringComparer.Ordinal);
         private readonly List<string> _sources = [];
         private readonly Dictionary<string, string> _variables = new(StringComparer.Ordinal);
         private readonly List<OpenCategory> _categories = [];
@@ -69,6 +72,7 @@ public static partial class ConfigParser
                 Environment = _environment.Count == 0 ? EnvironmentAssignment.None : [.. _environment],
                 Gestures = [.. _gestures],
                 DeviceTags = [.. _deviceTags],
+                DevicePointers = [.. _pointers.Select(pair => new DevicePointer(pair.Key, pair.Value.Sensitivity, pair.Value.ScrollFactor, pair.Value.Rotation))],
             };
         }
 
@@ -259,7 +263,7 @@ public static partial class ConfigParser
                 return;
             }
 
-            if (TryDeviceTags(lhs, rhs))
+            if (TryDevice(lhs, rhs))
                 return;
 
             var keyword = KeyedName.TryInline(lhs, out var inline) ? inline : Qualify(lhs);
@@ -399,37 +403,126 @@ public static partial class ConfigParser
             _warnings.Add(new ConfigWarning(line, message, _source));
         }
 
-        // device[name]:tags, or tags inside a device[name] block. Other device fields stay the per-device gap.
-        private bool TryDeviceTags(string lhs, string rhs)
+        // device[name]:field, or a field inside a device[name] block. tags, sensitivity, scroll_factor and rotation
+        // are kept. Any other field falls through and warns as that per-device option.
+        private bool TryDevice(string lhs, string rhs)
         {
-            string? name = null;
-            if (lhs.StartsWith("device[", StringComparison.Ordinal))
-            {
-                const string Tail = "]:tags";
-                if (lhs.EndsWith(Tail, StringComparison.Ordinal) && lhs.Length > "device[".Length + Tail.Length)
-                    name = lhs["device[".Length..^Tail.Length];
-            }
-            else if (lhs == "tags" && _categories.Count > 0)
-            {
-                var category = _categories[^1];
-                if (category.Name == "device" && category.Key is string key && key.Length > 0)
-                    name = key;
-            }
-
-            if (name is null || name.Length == 0)
+            if (!TryDeviceField(lhs, out var name, out var field) || name.Length == 0)
                 return false;
 
-            var tags = new List<string>();
-            foreach (var part in rhs.Split(','))
+            if (field == "tags")
             {
-                var tag = part.Trim();
-                if (tag.Length > 0)
-                    tags.Add(tag);
+                var tags = new List<string>();
+                foreach (var part in rhs.Split(','))
+                {
+                    var tag = part.Trim();
+                    if (tag.Length > 0)
+                        tags.Add(tag);
+                }
+
+                _deviceTags.RemoveAll(existing => existing.Device == name);
+                _deviceTags.Add(new DeviceTag(name, tags));
+                return true;
             }
 
-            _deviceTags.RemoveAll(existing => existing.Device == name);
-            _deviceTags.Add(new DeviceTag(name, tags));
+            if (field is not ("sensitivity" or "scroll_factor" or "rotation"))
+                return false;
+
+            StorePointer(name, field, rhs);
             return true;
+        }
+
+        private bool TryDeviceField(string lhs, out string name, out string field)
+        {
+            name = "";
+            field = "";
+            if (lhs.StartsWith("device[", StringComparison.Ordinal))
+            {
+                var marker = lhs.IndexOf("]:", StringComparison.Ordinal);
+                if (marker < "device[".Length || marker + 2 >= lhs.Length)
+                    return false;
+
+                name = lhs["device[".Length..marker];
+                field = lhs[(marker + 2)..];
+                return field.Length > 0;
+            }
+
+            if (_categories.Count == 0)
+                return false;
+
+            var category = _categories[^1];
+            if (category.Name != "device" || category.Key is not string key)
+                return false;
+
+            name = key;
+            field = lhs;
+            return field.Length > 0;
+        }
+
+        // A value outside the range is clamped, as the global key is. One that is not a number is left unset.
+        private void StorePointer(string name, string field, string rhs)
+        {
+            var key = InputDeviceNames.Internal(name);
+            if (key.Length == 0)
+                return;
+
+            double? sensitivity = null;
+            double? scroll = null;
+            int? rotation = null;
+            switch (field)
+            {
+                case "sensitivity" when TryDeviceFloat(rhs, -1, 1, out var parsedSensitivity):
+                    sensitivity = parsedSensitivity;
+                    break;
+                case "scroll_factor" when TryDeviceFloat(rhs, 0, 100, out var parsedScroll):
+                    scroll = parsedScroll;
+                    break;
+                case "rotation" when TryDeviceInt(rhs, 0, 359, out var parsedRotation):
+                    rotation = parsedRotation;
+                    break;
+                default:
+                    return;
+            }
+
+            if (!_pointers.TryGetValue(key, out var draft))
+            {
+                draft = new PointerDraft();
+                _pointers.Add(key, draft);
+            }
+
+            if (sensitivity is not null)
+                draft.Sensitivity = sensitivity;
+            if (scroll is not null)
+                draft.ScrollFactor = scroll;
+            if (rotation is not null)
+                draft.Rotation = rotation;
+        }
+
+        private static bool TryDeviceInt(string text, int min, int max, out int value)
+        {
+            if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value))
+                return false;
+
+            value = Math.Clamp(value, min, max);
+            return true;
+        }
+
+        private static bool TryDeviceFloat(string text, double min, double max, out double value)
+        {
+            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) || !double.IsFinite(value))
+                return false;
+
+            value = Math.Clamp(value, min, max);
+            return true;
+        }
+
+        private sealed class PointerDraft
+        {
+            public double? Sensitivity { get; set; }
+
+            public double? ScrollFactor { get; set; }
+
+            public int? Rotation { get; set; }
         }
 
         private static bool IsLaunchKeyword(string keyword) =>

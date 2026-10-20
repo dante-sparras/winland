@@ -410,10 +410,10 @@ public class LuaRulesTests
             [
                 "hl.device: unknown field 'wheel'",
                 "hl.device: 'name' field is required and must be a string",
-                "Unsupported keyword 'device:sensitivity'.",
                 "Unsupported keyword 'device:tap-to-click'.",
             ],
             Messages(Parse(translation)));
+        Assert.Equal(new DevicePointer("epic-mouse-v1", -0.5, null, null), Assert.Single(Parse(translation).DevicePointers));
     }
 
     [Fact]
@@ -699,7 +699,7 @@ public class LuaRulesTests
         Assert.Contains("windowrulev2 = rounding 0, float:false, workspace:w[tv1], ruleid:4, ruleon:1", lines);
 
         // What remains is what Winland does not honor: the blur and shadow options DWM has no equal
-        // for, tearing, the wallpaper, the XKB files, layer shell animations, per-device input, the suppress_event
+        // for, tearing, the wallpaper, the XKB files, layer shell animations, the suppress_event
         // effect and XWayland. hl.config lines come in Lua's table order, so the warnings are compared sorted.
         var messages = Messages(document);
         Assert.Equal(
@@ -712,7 +712,6 @@ public class LuaRulesTests
                 "Unsupported keyword 'decoration:blur:input_methods'.",
                 "Unsupported keyword 'decoration:blur:popups'.",
                 "Unsupported keyword 'decoration:blur:special'.",
-                "Unsupported keyword 'device:sensitivity'.",
                 "Unsupported keyword 'general:allow_tearing'.",
                 "Unsupported keyword 'input:kb_model'.",
                 "Unsupported keyword 'input:kb_rules'.",
@@ -722,6 +721,7 @@ public class LuaRulesTests
             ],
             messages.Order(StringComparer.Ordinal));
 
+        Assert.Equal(new DevicePointer("epic-mouse-v1", -0.5, null, null), Assert.Single(document.DevicePointers));
         Assert.Equal(new EdgeInsets(0, 0, 0, 0), Assert.Single(document.WorkspaceRules, rule => rule.WorkspaceString == "f[1]").GapsOut);
         Assert.Contains(document.WindowRules, rule => rule.Effect == WindowRuleEffect.Move && rule.ClassPattern == "run");
         Assert.Single(document.Gestures);
