@@ -116,6 +116,7 @@ internal sealed partial class MonocleLayout : Layout
             return [];
 
         var tiled = DropTiled(id);
+        _ = _drag.Forget(id);
         _floating.Forget(id);
         _natural.Remove(id);
         _limits.Remove(id);
@@ -370,13 +371,6 @@ internal sealed partial class MonocleLayout : Layout
         }
 
         LayoutMessageError = "error: bad layoutmsg '" + tokens[0] + "'";
-        return [];
-    }
-
-    public IReadOnlyList<Placement> Drag(WindowId window, PointerDrag drag)
-    {
-        _ = window;
-        _ = drag;
         return [];
     }
 
