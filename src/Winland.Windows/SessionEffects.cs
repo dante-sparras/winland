@@ -60,6 +60,8 @@ public static class SessionEffects
         if (monitors.Count > 0)
             _monitors = [.. monitors];
 
+        CursorShape.Show(outcome.ResizeCursor);
+
         if (outcome.Cursor is CursorBehavior behavior)
         {
             _padding = (int)Math.Round(behavior.HotspotPadding * scale);
@@ -138,12 +140,16 @@ public static class SessionEffects
     /// <summary>The mouse moves the cursor. Returns where it goes instead, with <c>cursor:warp_back_after_non_mouse_input</c>.</summary>
     public static Point? MouseMoved(Point from, Point to) => Back.Mouse(from, to);
 
+    /// <summary>Loads the user's own cursors again, after a run that may have left a drag's pointer shape behind.</summary>
+    public static void RestoreCursors() => CursorShape.Restore();
+
     public static void Restore()
     {
         _session?.Restore();
         _mirrors?.Restore();
         _layouts?.Restore();
         Magnifier.Stop();
+        CursorShape.Reset();
         Idle.Reveal();
         _timer?.Dispose();
         _timer = null;
