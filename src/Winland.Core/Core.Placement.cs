@@ -82,6 +82,15 @@ public sealed partial class Core
         {
             placed = new Rectangle(monitor.X + Pixels(x), monitor.Y + Pixels(y), width, height);
         }
+        else if (decision.Floating && OwnerBounds(appeared) is Rectangle owner)
+        {
+            // A window with an owner opens over the middle of its owner, as the pinned release opens one with a parent.
+            placed = new Rectangle(
+                owner.X + ((owner.Width - width) / 2),
+                owner.Y + ((owner.Height - height) / 2),
+                width,
+                height);
+        }
         else
         {
             var floating = desk.Options.FloatingWorkArea(area);
@@ -95,6 +104,13 @@ public sealed partial class Core
         // misc:new_float_force_onscreen keeps a Client that opens floating on screen, a moved one too.
         return decision.Floating ? desk.Options.NewFloatingOnScreen(area).Keep(placed) : placed;
     }
+
+    // Where the Client that owns a new window is now, or null when it has no owner that is a Client.
+    private Rectangle? OwnerBounds(WindowAppeared appeared) =>
+        appeared.Owner is WindowId owner && owner != appeared.Window && WorkspaceContaining(owner) is LiveWorkspace home
+            && home.Layout.TryBounds(owner, out var bounds)
+            ? bounds
+            : null;
 
     // persistent_size, as in the pinned release: a floating window that closes leaves its size behind for its initial
     // class and title, and a window of that class and title that opens floating with the rule takes it back.
