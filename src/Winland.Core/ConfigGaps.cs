@@ -46,7 +46,6 @@ public static class ConfigGaps
         new("decoration:blur:vibrancy", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("decoration:blur:vibrancy_darkness", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
         new("decoration:blur:xray", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),
-        new("decoration:border_part_of_window", "Whether the border counts as part of the window is not configurable."),
         new("device", "Per-device input is not honored. Honored input settings apply to the whole system."),
         new("dont_inhibit", "Applications cannot inhibit binds, so this flag has nothing to bypass."),
         new("drops", "Only decoration:blur:enabled is honored. The DWM backdrop cannot be tuned."),

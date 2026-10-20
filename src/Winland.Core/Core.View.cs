@@ -517,10 +517,11 @@ public sealed partial class Core
         var scale = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Effective.Scale : 1;
         var (radius, power) = CornerRadius(shape, scale);
         var thickness = Math.Max(0, desk.Options.BorderFor(client.Id));
-        var outer = radius <= 0 ? 0 : radius + thickness - (thickness * (Math.Sqrt(2) - 1) * Math.Max(2.0 - power, 0));
+        var reach = _decoration.BorderPartOfWindow ? thickness : 0;
+        var outer = radius <= 0 ? 0 : radius + reach - (reach * (Math.Sqrt(2) - 1) * Math.Max(2.0 - power, 0));
         return new DropShadow(gradient, (int)Math.Round(_decoration.ShadowRange * scale), _decoration.ShadowPower, alpha)
         {
-            Border = thickness,
+            Border = reach,
             Rounding = (int)outer,
             RoundingPower = power,
             WindowRounding = radius,

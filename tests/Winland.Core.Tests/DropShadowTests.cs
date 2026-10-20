@@ -233,6 +233,26 @@ public class DropShadowTests
     }
 
     [Fact]
+    public void WithoutBorderPartOfWindowTheShadowGrowsFromTheWindowAlone()
+    {
+        var core = Started("""
+            general:border_size = 2
+            decoration:rounding = 10
+            decoration:shadow:range = 10
+            decoration:border_part_of_window = false
+            """);
+
+        var shadow = Assert.Single(core.Handle(new WindowAppeared(new WindowId(1), Area)).Decorations).DrawnShadow;
+
+        Assert.NotNull(shadow);
+        Assert.Equal(0, shadow.Border);
+        Assert.Equal(10, shadow.Rounding);
+        Assert.Equal(10, shadow.WindowRounding);
+        Assert.True(DecorationOptions.From(ConfigParser.Parse("")).BorderPartOfWindow);
+        Assert.False(DecorationOptions.From(ConfigParser.Parse("decoration:border_part_of_window = 0")).ShadowDrawn);
+    }
+
+    [Fact]
     public void TheRangeAndOffsetFollowTheMonitorsScale()
     {
         var core = new Core();
