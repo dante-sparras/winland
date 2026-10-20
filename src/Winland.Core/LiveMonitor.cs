@@ -17,8 +17,11 @@ internal sealed class LiveMonitor(MonitorId id, Monitor reported, Monitor effect
     /// <summary>The Monitor as the monitor rules arrange it.</summary>
     public Monitor Arranged { get; set; } = effective;
 
-    /// <summary>The pixels the error bar keeps at the top of this Monitor's work area.</summary>
+    /// <summary>The pixels the error bar keeps at the top, or with <see cref="BarAtBottom"/> the bottom, of this Monitor's work area.</summary>
     public int BarReserve { get; set; }
+
+    /// <summary>Whether the error bar sits at the bottom of the Monitor, <c>debug:error_position</c> 1.</summary>
+    public bool BarAtBottom { get; set; }
 
     /// <summary>The Monitor as Winland uses it: arranged, less the error bar.</summary>
     public Monitor Effective => BarReserve <= 0
@@ -27,7 +30,7 @@ internal sealed class LiveMonitor(MonitorId id, Monitor reported, Monitor effect
         {
             WorkArea = Arranged.WorkArea with
             {
-                Y = Arranged.WorkArea.Y + Math.Min(BarReserve, Arranged.WorkArea.Height),
+                Y = BarAtBottom ? Arranged.WorkArea.Y : Arranged.WorkArea.Y + Math.Min(BarReserve, Arranged.WorkArea.Height),
                 Height = Math.Max(0, Arranged.WorkArea.Height - BarReserve),
             },
         };

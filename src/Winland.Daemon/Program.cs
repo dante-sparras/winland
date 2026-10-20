@@ -5,8 +5,9 @@ using Winland.Lua;
 using Winland.Plugins;
 using Winland.Windows;
 
-// rollinglog answers with the tail of what Winland writes here.
-Console.SetError(new RollingLogWriter(Console.Error));
+// rollinglog answers with the tail of what Winland writes here, and the debug options copy it to a file and stdout.
+var log = new RollingLogWriter(Console.Error);
+Console.SetError(log);
 
 if (IsInstall(args))
     return RunInstall(args);
@@ -32,10 +33,10 @@ switch (ManualStartElevation.Decide(
 }
 
 if (args.Length == 0)
-    return Guard(() => Run(null));
+    return Guard(() => Run(null, log));
 
 if (args.Length == 2 && IsVerb(args[0], "--config"))
-    return Guard(() => Run(args[1]));
+    return Guard(() => Run(args[1], log));
 
 return Usage();
 
@@ -132,7 +133,7 @@ static void LaunchConfigured(Core core, IEnumerable<Launch> launches)
     }
 }
 
-static int Run(string? path)
+static int Run(string? path, RollingLogWriter log)
 {
     using var instance = InstanceLock.TryTake(InstanceLock.NameFor(PipeName() ?? CommandProtocol.PipeName));
     if (instance is null)
@@ -179,9 +180,11 @@ static int Run(string? path)
     core.LayoutScripts = lua;
     core.ReadConfig = () => ReadForReload(configPath, plugins);
     ConfigWatcher? watcher = null;
+    string? logFile = null;
     core.AfterReload = document =>
     {
         current = document;
+        CopyLog(log, core.Debug, logFile);
         watcher?.Watch(ConfigPaths.Watched(configPath, document.Sources));
         // exec-once ran at process start. A reload launches only the commands that repeat.
         LaunchConfigured(core, core.ReloadLaunches(document));
@@ -190,6 +193,8 @@ static int Run(string? path)
 
     core.Handle(new Configure(current));
     var store = StateStore();
+    logFile = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(store.File)) ?? ".", "winland.log");
+    CopyLog(log, core.Debug, logFile);
     var prior = store.Read();
     SessionEffects.InstallSystem();
     if (prior?.Input is InputOriginals saved)
@@ -386,4 +391,34 @@ static int Usage()
     Console.Error.WriteLine("WINLAND_NO_ELEVATE=1 or --no-elevate starts without elevation. It exists for tests.");
     Console.Error.WriteLine("Elevated features then do not work.");
     return 2;
+}
+
+// debug:disable_logs false copies the log to winland.log beside the state file, which is written again at each start,
+// and debug:enable_stdout_logs to standard output. An elevated Winland writes no file: a folder the user can change could
+// send a write by name somewhere only administrators may write.
+static void CopyLog(RollingLogWriter log, DebugOptions options, string? file)
+{
+    log.Copy(options, OpenLog, Console.Out);
+
+    TextWriter? OpenLog()
+    {
+        if (file is null)
+            return null;
+
+        if (Elevation.IsElevated())
+        {
+            Console.Error.WriteLine("debug:disable_logs is false, but an elevated Winland writes no log file.");
+            return null;
+        }
+
+        try
+        {
+            return new StreamWriter(new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete)) { AutoFlush = true };
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"Could not open the log file '{file}': {exception.Message}");
+            return null;
+        }
+    }
 }
