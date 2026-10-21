@@ -80,6 +80,32 @@ public class ManualStartElevationTests
     }
 
     [Fact]
+    public void APerUserInstallNeverRelaunchesThroughUac()
+    {
+        var choice = ManualStartElevation.Decide(
+            isElevated: false,
+            optOutVariable: null,
+            arguments: [],
+            userInstall: true);
+
+        var run = Assert.IsType<ElevationChoice.Continue>(choice);
+        Assert.Empty(run.Arguments);
+    }
+
+    [Fact]
+    public void ThePerUserFlagIsNotPassedOnToTheDaemon()
+    {
+        var choice = ManualStartElevation.Decide(
+            isElevated: false,
+            optOutVariable: null,
+            arguments: ["--no-elevate"],
+            userInstall: true);
+
+        var run = Assert.IsType<ElevationChoice.Continue>(choice);
+        Assert.Empty(run.Arguments);
+    }
+
+    [Fact]
     public void OtherOptOutValuesStillRelaunch()
     {
         var choice = ManualStartElevation.Decide(

@@ -10,12 +10,17 @@ public static class ManualStartElevation
 
     public const string OptOutArgument = "--no-elevate";
 
-    public static ElevationChoice Decide(bool isElevated, string? optOutVariable, IReadOnlyList<string> arguments)
+    public static ElevationChoice Decide(
+        bool isElevated,
+        string? optOutVariable,
+        IReadOnlyList<string> arguments,
+        bool userInstall = false)
     {
         ArgumentNullException.ThrowIfNull(arguments);
 
         var kept = arguments.Where(argument => !IsLoopArgument(argument) && !IsOptOutArgument(argument)).ToArray();
-        if (isElevated || IsOptOut(optOutVariable) || arguments.Any(IsOptOutArgument))
+        // A per-user install never relaunches through UAC, including a start that did not pass --no-elevate.
+        if (isElevated || IsOptOut(optOutVariable) || arguments.Any(IsOptOutArgument) || userInstall)
             return new ElevationChoice.Continue(kept);
 
         // The elevated process is started with the loop argument. If that process
