@@ -441,8 +441,8 @@ internal static class UserState
 {
     public static string Path() =>
         System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Winland",
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".winland",
             "state.json");
 
     public static DateTime? Stamp()

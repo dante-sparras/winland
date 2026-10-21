@@ -83,11 +83,11 @@ Tip: turn off **Snap windows** (Settings › System › Multitasking) so Windows
 
 ## Important files
 
-`%APPDATA%\winland\winland.conf` is your config. Every hotkey above is in it, and you can change them there. Winland writes it the first time it starts, with comments, and reloads it whenever you save. Right-click the tray icon to open it.
+`%USERPROFILE%\.winland\winland.conf` is your config. Every hotkey above is in it, and you can change them there. Winland writes it the first time it starts, with comments, and reloads it whenever you save. Right-click the tray icon to open it.
 
 ## Uninstall
 
-Remove Winland from Settings › Apps, or run `winland uninstall`. Your config is kept, and `winland uninstall --purge` removes it too.
+Remove Winland from Settings › Apps, or run `winland uninstall`. The `%USERPROFILE%\.winland` folder is kept, and `winland uninstall --purge` removes it.
 
 ## Credits
 

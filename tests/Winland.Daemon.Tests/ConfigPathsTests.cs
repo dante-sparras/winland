@@ -5,23 +5,23 @@ namespace Winland.Daemon.Tests;
 public class ConfigPathsTests
 {
     [Fact]
-    public void TheDefaultConfigIsInAWinlandFolderUnderApplicationData()
+    public void TheDefaultConfigIsWinlandConfInTheDotWinlandFolder()
     {
-        var path = ConfigPaths.Default(@"C:\Users\me\AppData\Roaming");
+        var path = ConfigPaths.Default(@"C:\Users\me");
 
-        Assert.Equal(@"C:\Users\me\AppData\Roaming\winland\winland.conf", path);
+        Assert.Equal(@"C:\Users\me\.winland\winland.conf", path);
     }
 
     [Fact]
     public void ALuaFileBesideTheConfigIsNotRead()
     {
         var data = Path.Combine(Path.GetTempPath(), "winland-config-paths-" + Guid.NewGuid().ToString("N"));
-        var lua = Path.Combine(data, "winland", "winland.lua");
+        var lua = Path.Combine(data, ".winland", "winland.lua");
         Directory.CreateDirectory(Path.GetDirectoryName(lua)!);
         try
         {
             File.WriteAllText(lua, "hl.config({})\n");
-            Assert.Equal(Path.Combine(data, "winland", "winland.conf"), ConfigPaths.Default(data));
+            Assert.Equal(Path.Combine(data, ".winland", "winland.conf"), ConfigPaths.Default(data));
         }
         finally
         {

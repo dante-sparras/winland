@@ -21,4 +21,22 @@ public class InstallLocationChoiceTests
             @"C:\Users\me\AppData\Local\Programs\Winland"));
         Assert.False(InstallLocations.IsPerUserInstall(null, @"C:\Users\me\AppData\Local\Programs\Winland"));
     }
+
+    [Fact]
+    public void ConfigAndStateShareTheDotWinlandFolder()
+    {
+        var profile = @"C:\Users\me";
+
+        Assert.Equal(@"C:\Users\me\.winland", InstallLocations.Config(profile));
+        Assert.Equal(InstallLocations.Config(profile), InstallLocations.State(profile));
+    }
+
+    [Fact]
+    public void TheInstalledProgramFoldersStayWhereTheyAre()
+    {
+        Assert.Equal(@"C:\Program Files\Winland", InstallLocations.Machine(@"C:\Program Files"));
+        Assert.Equal(
+            @"C:\Users\me\AppData\Local\Programs\Winland",
+            InstallLocations.User(@"C:\Users\me\AppData\Local"));
+    }
 }
