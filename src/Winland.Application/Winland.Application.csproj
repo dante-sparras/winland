@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Depends only on Winland.Domain. Ports/ holds the interfaces the outer layers implement. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Winland.Domain\Winland.Domain.csproj" />
+    <Using Include="Winland.Domain" />
+    <Using Include="Winland.Domain.Monitor" Alias="Monitor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Winland.Application.Tests" />
+  </ItemGroup>
+
+</Project>

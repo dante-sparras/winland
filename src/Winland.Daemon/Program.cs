@@ -1,9 +1,7 @@
 using System.Net.Http;
 using System.Security.Principal;
-using Winland.Core;
 using Winland.Daemon;
 using Winland.Install;
-using Winland.Windows;
 
 // The debug options copy what Winland writes here to a file and to stdout.
 var log = new RollingLogWriter(Console.Error);

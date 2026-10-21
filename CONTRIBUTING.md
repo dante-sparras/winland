@@ -144,7 +144,7 @@ A test project that fails runs once more on the same build, locally and in CI. I
 | Mutation | Mutation testing, one job per mutation run, then a score gate (see [Mutation testing](#mutation-testing)). It is the slow lane, and its jobs run beside the others. | Only when CI is dispatched by hand with **Release run** turned on. A release does not run it. |
 
 - Test and Mutation pass until a unit test project exists.
-- The unit tests that open real windows are in one xunit collection (`DesktopCollection` in `tests/Winland.Windows.Tests`) that runs alone, one test at a time. The ones a running Winland would disturb skip while its pipe `\\.\pipe\winland` exists, so run them with the daemon stopped. CI has no daemon and runs them.
+- The unit tests that open real windows are in one xunit collection (`DesktopCollection` in `tests/Winland.Infrastructure.Tests`) that runs alone, one test at a time. The ones a running Winland would disturb skip while its pipe `\\.\pipe\winland` exists, so run them with the daemon stopped. CI has no daemon and runs them.
 - A release runs Test, and a failure fails the release. A failure in any mutation job, or in the gate, fails Mutation.
 - The check job has a 60-minute timeout, and each mutation job has its own 60.
 - Smoke tests (`*.Smoke.Tests.csproj`) run only when someone dispatches the `Smoke tests` workflow by hand (`.github/workflows/smoke.yml`). A release run does not execute them, and they are not a required check. `scripts/smoke.ps1` runs them locally. It sets `WINLAND_SMOKE=1`, without which every smoke test skips itself, and it fails when every test in a smoke project was skipped, for example on a host with no desktop.
