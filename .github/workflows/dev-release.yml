@@ -1,0 +1,204 @@
+# After CI passes on a push to main, publish one rolling prerelease on the tag dev.
+# releases/latest stays the newest stable release, because this release is a prerelease.
+# The dev tag is not covered by the tag ruleset, so GITHUB_TOKEN may force-move it.
+# A tag pushed by GITHUB_TOKEN does not start another workflow.
+# This workflow is not a pull-request entry point. ci.yml is unchanged.
+
+name: Dev Release
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dev-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish the dev build
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      RELEASE_COMMIT: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      # Two pushes can finish CI out of order. The rolling release stays on the newer commit.
+      - name: Keep the newest dev build
+        id: keep
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $sha = $env:RELEASE_COMMIT
+          if ($sha -notmatch '^[0-9a-f]{40}$') { throw "Bad commit '$sha'." }
+          git fetch origin main
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git merge-base --is-ancestor $sha origin/main
+          if ($LASTEXITCODE -ne 0) { throw "$sha is not on origin/main." }
+          $publish = 'true'
+          $meta = gh api "repos/$($env:REPO)/git/ref/tags/dev" 2>$null
+          if ($LASTEXITCODE -eq 0 -and $meta) {
+            $parsed = $meta | ConvertFrom-Json
+            $tagSha = [string]$parsed.object.sha
+            if ($parsed.object.type -eq 'tag') {
+              $tagSha = (gh api "repos/$($env:REPO)/git/tags/$tagSha" --jq .object.sha).Trim()
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+            if ($tagSha -ne $sha) {
+              git merge-base --is-ancestor $sha $tagSha 2>$null
+              if ($LASTEXITCODE -eq 0) {
+                Write-Output "Dev is already at $tagSha, which contains $sha. Leaving the newer build in place."
+                $publish = 'false'
+              }
+            }
+          }
+          "publish=$publish" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        if: steps.keep.outputs.publish == 'true'
+        with:
+          global-json-file: global.json
+
+      - name: Publish, zip, and checksum
+        if: steps.keep.outputs.publish == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $sha = $env:RELEASE_COMMIT
+          if ($sha -notmatch '^[0-9a-f]{40}$') { throw "Bad commit '$sha'." }
+          $head = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($head -ne $sha) { throw "Checked out $head, expected $sha." }
+
+          function Get-StableVersion([string]$Tag) {
+            if ($Tag -cmatch '^v(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})$') {
+              return $Matches[1] + '.' + $Matches[2] + '.' + $Matches[3]
+            }
+            return $null
+          }
+          function Compare-StableVersion([string]$Left, [string]$Right) {
+            $a = $Left.Split('.')
+            $b = $Right.Split('.')
+            for ($i = 0; $i -lt 3; $i++) {
+              $difference = [int]$a[$i] - [int]$b[$i]
+              if ($difference -ne 0) { return [Math]::Sign($difference) }
+            }
+            return 0
+          }
+
+          $listed = gh release list --repo $env:REPO --limit 1000 --exclude-drafts --exclude-pre-releases --json tagName
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $newest = $null
+          foreach ($row in @($listed | ConvertFrom-Json)) {
+            if (-not $row) { continue }
+            $version = Get-StableVersion $row.tagName
+            if ($version -and ((-not $newest) -or (Compare-StableVersion $version $newest) -gt 0)) {
+              $newest = $version
+            }
+          }
+          if ($newest) {
+            git fetch origin "refs/tags/v${newest}:refs/tags/v${newest}"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $countText = git rev-list --count "v${newest}..$sha"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $base = $newest
+          } else {
+            $countText = git rev-list --count $sha
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $base = '0.0.0'
+          }
+          $count = [int]$countText.Trim()
+          $nuget = "$base-dev.$count"
+          $display = "$nuget+$($sha.Substring(0, 7))"
+          if ($nuget -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-dev\.(0|[1-9][0-9]*)$') {
+            throw "Bad version '$nuget'."
+          }
+          Write-Output "Dev version $display at $sha."
+
+          # -p:Version omits +metadata. The SDK appends +<SourceRevisionId> for BuildStamp's commit.
+          # version.json records the full dev version, including the short sha, and the full commit.
+          $daemon = Join-Path $env:RUNNER_TEMP 'pub-daemon'
+          $ctl = Join-Path $env:RUNNER_TEMP 'pub-ctl'
+          $stage = Join-Path $env:RUNNER_TEMP 'stage'
+          dotnet publish (Join-Path $env:GITHUB_WORKSPACE 'src\Winland.Daemon\Winland.Daemon.csproj') -c Release -r win-x64 --self-contained true "-p:Version=$nuget" "-p:SourceRevisionId=$sha" -p:ContinuousIntegrationBuild=true -o $daemon
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet publish (Join-Path $env:GITHUB_WORKSPACE 'src\winlandctl\winlandctl.csproj') -c Release -r win-x64 --self-contained true "-p:Version=$nuget" "-p:SourceRevisionId=$sha" -p:ContinuousIntegrationBuild=true -o $ctl
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force -Path (Join-Path $stage 'winland'), (Join-Path $stage 'winlandctl') | Out-Null
+          Copy-Item (Join-Path $daemon '*') (Join-Path $stage 'winland') -Recurse
+          Copy-Item (Join-Path $ctl '*') (Join-Path $stage 'winlandctl') -Recurse
+          $date = [DateTimeOffset]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssK')
+          $json = '{"commit":"' + $sha + '","date":"' + $date + '","version":"' + $display + '"}' + "`n"
+          $jsonPath = Join-Path $env:RUNNER_TEMP 'version.json'
+          [System.IO.File]::WriteAllText($jsonPath, $json)
+          Copy-Item $jsonPath (Join-Path $stage 'version.json')
+          $zip = Join-Path $env:RUNNER_TEMP 'Winland-win-x64.zip'
+          & tar -a -c -f $zip -C $stage .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $dist = Join-Path $env:RUNNER_TEMP 'dist'
+          New-Item -ItemType Directory -Force -Path $dist | Out-Null
+          Copy-Item $zip (Join-Path $dist 'Winland-win-x64.zip')
+          Copy-Item $jsonPath (Join-Path $dist 'version.json')
+          $sums = foreach ($name in @('Winland-win-x64.zip', 'version.json')) {
+            $hash = (Get-FileHash -Algorithm SHA256 (Join-Path $dist $name)).Hash.ToLowerInvariant()
+            "$hash  $name"
+          }
+          [System.IO.File]::WriteAllText((Join-Path $dist 'SHA256SUMS'), (($sums -join "`n") + "`n"))
+
+      - name: Publish the dev prerelease
+        if: steps.keep.outputs.publish == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $sha = $env:RELEASE_COMMIT
+          $repo = $env:REPO
+          $dist = Join-Path $env:RUNNER_TEMP 'dist'
+          $published = Get-Content -Raw (Join-Path $dist 'version.json') | ConvertFrom-Json
+          if ($published.commit -ne $sha) { throw "version.json names $($published.commit), not $sha." }
+          $display = [string]$published.version
+          $title = "Dev $display"
+          $notes = Join-Path $env:RUNNER_TEMP 'dev-notes.txt'
+          [System.IO.File]::WriteAllText($notes, "Dev build $display`n`nCommit $sha`n")
+          $zip = Join-Path $dist 'Winland-win-x64.zip'
+          $versionFile = Join-Path $dist 'version.json'
+          $sums = Join-Path $dist 'SHA256SUMS'
+
+          $payload = Join-Path $env:RUNNER_TEMP 'dev-tag.json'
+          [System.IO.File]::WriteAllText($payload, '{"sha":"' + $sha + '","force":true}')
+          gh api --method PATCH "repos/$repo/git/refs/tags/dev" --input $payload 2>$null | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            gh api "repos/$repo/git/ref/tags/dev" --jq .object.sha 2>$null | Out-Null
+            if ($LASTEXITCODE -eq 0) { throw "The dev tag exists and could not be moved." }
+            [System.IO.File]::WriteAllText($payload, '{"ref":"refs/tags/dev","sha":"' + $sha + '"}')
+            gh api --method POST "repos/$repo/git/refs" --input $payload | Out-Null
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+          gh release view dev --repo $repo --json tagName 2>$null | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create dev --repo $repo --target $sha --prerelease --latest=false --title $title --notes-file $notes $zip $versionFile $sums
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            exit 0
+          }
+
+          gh release edit dev --repo $repo --target $sha --prerelease --latest=false --title $title --notes-file $notes
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release upload dev $zip $versionFile $sums --repo $repo --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -103,6 +103,7 @@ Everything Winland keeps for you is in `%USERPROFILE%\.winland`.
 | `winland install` | Install for this PC, running as administrator. Asks for one approval |
 | `winland install --user` | Install for you only, without administrator rights |
 | `winland update` | Update to the newest release |
+| `winland update --channel <stable|dev>` | Follow the stable or dev channel and remember the choice |
 | `winland uninstall` | Remove Winland, turn back on any Windows setting the installer turned off, and keep the `.winland` folder |
 | `winland uninstall --purge` | Remove Winland and the `.winland` folder |
 | `winland tweaks --off` | Turn off Windows Snap, and remember how it was |

@@ -16,10 +16,11 @@ public abstract record InstallCommand
     public sealed record Remove(bool Purge) : InstallCommand;
 
     /// <summary>
-    /// Replace the install this process was started from with the newest published release.
+    /// Replace the install this process was started from with the release of one channel.
+    /// A null <see cref="Channel"/> means the saved channel, or stable when none is saved.
     /// A machine install asks for one approval when a replace will happen. A per-user install does not.
     /// </summary>
-    public sealed record Update : InstallCommand;
+    public sealed record Update(UpdateChannel? Channel = null) : InstallCommand;
 
     /// <summary>
     /// Turn off Snap windows, and the precision touchpad swipes when <paramref name="Touchpad"/> is true.
@@ -40,7 +41,10 @@ public abstract record InstallCommand
             if (args.Count == 1)
                 return new Update();
 
-            throw new ArgumentException("usage: winland update");
+            if (args.Count == 3 && Is(args[1], "--channel"))
+                return new Update(ParseChannel(args[2]));
+
+            throw new ArgumentException("usage: winland update [--channel <stable|dev>]");
         }
 
         if (Is(args[0], "tweaks"))
@@ -96,6 +100,17 @@ public abstract record InstallCommand
         Tweaks => false,
         _ => false,
     };
+
+    private static UpdateChannel ParseChannel(string value)
+    {
+        if (value.Equals("stable", StringComparison.OrdinalIgnoreCase))
+            return UpdateChannel.Stable;
+
+        if (value.Equals("dev", StringComparison.OrdinalIgnoreCase))
+            return UpdateChannel.Dev;
+
+        throw new ArgumentException("usage: winland update [--channel <stable|dev>]");
+    }
 
     private static bool Is(string value, string verb) =>
         value.Equals(verb, StringComparison.OrdinalIgnoreCase);
