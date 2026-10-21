@@ -24,6 +24,9 @@ public class GestureTests
     [InlineData("gesture = 10, horizontal, workspace", "Invalid value 10 for finger count.")]
     [InlineData("gesture = 3, sideways, workspace", "Invalid direction: sideways.")]
     [InlineData("gesture = 3, horizontal, teleport", "Invalid gesture: teleport.")]
+    [InlineData("gesture = 3, pinch, workspace", "Invalid direction: pinch.")]
+    [InlineData("gesture = 3, pinchin, workspace", "Invalid direction: pinchin.")]
+    [InlineData("gesture = 3, pinchout, workspace", "Invalid direction: pinchout.")]
     [InlineData("gesture = 3, horizontal, scale: fast, workspace", "Invalid delta scale: fast.")]
     [InlineData("gestureq = 3, horizontal, workspace", "Invalid gesture flag 'q'.")]
     [InlineData("gesture = 3, horizontal, unset", "Can't remove a non-existent gesture.")]
@@ -45,11 +48,60 @@ public class GestureTests
         Assert.Equal(new ConfigWarning(1, warning), Assert.Single(document.Warnings));
     }
 
+    [Theory]
+    [InlineData("close")]
+    [InlineData("special")]
+    [InlineData("dispatcher")]
+    [InlineData("float")]
+    [InlineData("fullscreen")]
+    [InlineData("move")]
+    [InlineData("resize")]
+    [InlineData("cursorZoom")]
+    [InlineData("scrollMove")]
+    [InlineData("")]
+    public void OtherGestureActionsWarnAndAreSkipped(string action)
+    {
+        var document = ConfigParser.Parse($"gesture = 3, up, {action}\n");
+
+        Assert.Empty(document.Gestures);
+        Assert.Equal(new ConfigWarning(1, $"Invalid gesture: {action}."), Assert.Single(document.Warnings));
+    }
+
+    [Theory]
+    [InlineData("gestures:close_max_timeout = 1000")]
+    [InlineData("gestures:workspace_swipe_touch = true")]
+    [InlineData("gestures:workspace_swipe_touch_invert = true")]
+    [InlineData("gestures:scrolling:move_snap_to_grid = true")]
+    [InlineData("gestures:scrolling:move_snap_cursor = true")]
+    public void OptionsForRemovedGesturesWarnAndAreSkipped(string line)
+    {
+        var document = ConfigParser.Parse(line + "\n");
+
+        Assert.Equal(GestureOptions.Documented, GestureOptions.From(document));
+        Assert.Contains("Unsupported keyword", Assert.Single(document.Warnings).Message);
+    }
+
+    [Fact]
+    public void ASkippedGestureDoesNotShadow()
+    {
+        var document = ConfigParser.Parse("""
+            gesture = 3, swipe, close
+            gesture = 3, left, workspace
+            """);
+
+        Assert.Equal(
+            new TrackpadGesture(3, GestureDirection.Left, Modifier.None, 1, "workspace"),
+            Assert.Single(document.Gestures));
+        Assert.Equal(
+            [new ConfigWarning(1, "Invalid gesture: close.")],
+            document.Warnings);
+    }
+
     [Fact]
     public void ShadowedGestureWarnsAndUnsetRemovesTheMatch()
     {
         var document = ConfigParser.Parse("""
-            gesture = 3, swipe, close
+            gesture = 3, swipe, workspace
             gesture = 3, left, workspace
             gesture = 3, swipe, unset
             gesture = 3, left, workspace
@@ -293,82 +345,6 @@ public class GestureTests
         var ended = Swipe(core, 3, Steps(20, -10, 0));
 
         Assert.Equal(WorkspaceId.Initial, ended.State.ActiveWorkspace);
-    }
-
-    [Fact]
-    public void SpecialGestureKeepsItsWorkspaceNameAndUnsetIgnoresIt()
-    {
-        var document = ConfigParser.Parse("""
-            gesture = 3, up, special, scratch
-            gesture = 4, up, special
-            gesture = 4, up, unset
-            """);
-
-        Assert.Empty(document.Warnings);
-        Assert.Equal(
-            new TrackpadGesture(3, GestureDirection.Up, Modifier.None, 1, "special", Argument: "scratch"),
-            Assert.Single(document.Gestures));
-    }
-
-    [Theory]
-    [InlineData(150, true)]
-    [InlineData(45, true)]
-    [InlineData(44, false)]
-    public void SpecialSwipeShowsItsWorkspaceOnceItCoversThirtyPercent(double distance, bool shown)
-    {
-        var core = Twin("gesture = 3, up, special, scratch\n");
-        var scratch = new WorkspaceId("special:scratch");
-
-        var opened = Swipe(core, 3, [(0, -distance)]);
-        Assert.Equal(shown ? scratch : null, opened.State.SpecialWorkspace);
-
-        // A second swipe the same length closes what the first one opened.
-        if (shown)
-            Assert.Null(Swipe(core, 3, [(0, -distance)]).State.SpecialWorkspace);
-    }
-
-    [Fact]
-    public void LockedSessionDoesNotSwipeTheSpecialWorkspace()
-    {
-        var core = Twin("gesture = 3, up, special\n");
-        core.Handle(new InputInhibited(true));
-
-        Assert.Null(Swipe(core, 3, [(0, -150)]).State.SpecialWorkspace);
-    }
-
-    [Theory]
-    [InlineData(-30, false)]
-    [InlineData(-60, true)]
-    public void TheCloseGestureClosesTheFocusedWindowOnceItWentFarEnough(int along, bool closes)
-    {
-        var core = Twin("gesture = 3, left, close\n");
-
-        var ended = Swipe(core, 3, [(along, 0)]);
-
-        Assert.Equal(closes, ended.Close is not null);
-    }
-
-    [Fact]
-    public void ADispatcherGestureRunsItsDispatcherWhenTheFingersLift()
-    {
-        var core = Twin("gesture = 3, left, dispatcher, workspace, 2\n");
-
-        var moved = Swipe(core, 3, [(-10, 0)]);
-
-        Assert.Equal(new WorkspaceId("2"), moved.State.ActiveWorkspace);
-    }
-
-    [Theory]
-    [InlineData("float", true)]
-    [InlineData("tile", false)]
-    [InlineData("", true)]
-    public void TheFloatGestureFloatsOrTilesTheFocusedWindow(string mode, bool floating)
-    {
-        var core = Twin($"gesture = 3, right, float, {mode}\n");
-
-        var ended = Swipe(core, 3, [(80, 0)]);
-
-        Assert.Equal(floating, Assert.Single(ended.State.Clients, client => client.Window == new WindowId(1)).Floating);
     }
 
     [Fact]

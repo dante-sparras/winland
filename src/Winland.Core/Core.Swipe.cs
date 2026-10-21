@@ -15,12 +15,6 @@ public sealed partial class Core
     private WorkspaceSwipe? _workspaceSwipe;
     private int _swipeInitialDirection;
 
-    // How far the fingers have gone, along their direction, since a gesture that acts on release was picked.
-    private double _releaseDistance;
-
-    /// <summary><c>gestures:workspace_swipe_touch</c>, which the touch screen reader reads with no lock.</summary>
-    public bool TouchSwipe => _swipe.Touch;
-
     private void ReadGestures(ConfigDocument document)
     {
         _gestures = document.Gestures;
@@ -32,7 +26,6 @@ public sealed partial class Core
         if (_activeGesture is not null)
             return View([]);
 
-        _pinching = false;
         _gestureFindFailed = false;
         _swipeTotalX = 0;
         _swipeTotalY = 0;
@@ -49,88 +42,36 @@ public sealed partial class Core
         if (_activeGesture is null && Math.Abs(_swipeTotalX) < SwipePickDistance && Math.Abs(_swipeTotalY) < SwipePickDistance)
             return View([]);
 
-        Outcome? begun = null;
-        if (_activeGesture is null && !PickGesture(updated.Fingers, out begun))
+        if (_activeGesture is null && !PickGesture(updated.Fingers))
         {
             _gestureFindFailed = true;
             return View([]);
         }
 
-        return UpdateActive(updated, begun);
+        return UpdateActive(updated);
     }
 
-    // One step of the gesture a swipe or pinch picked. The update that picked it is its first step.
-    private Outcome UpdateActive(SwipeUpdated updated, Outcome? begun)
+    // One step of the workspace swipe a swipe picked. The update that picked it is its first step.
+    private Outcome UpdateActive(SwipeUpdated updated)
     {
-        if (_activeGesture is { IsScrollMove: true } scrollMove)
-        {
-            var stepped = StepScrollMove(scrollMove, updated);
-            return begun is null ? stepped : Merge(begun, stepped);
-        }
-
-        if (_activeGesture is { IsMove: true } or { IsResize: true })
-        {
-            var stepped = StepWindowGesture(_activeGesture.Scale * updated.DeltaX, _activeGesture.Scale * updated.DeltaY);
-            return begun is null ? stepped : Merge(begun, stepped);
-        }
-
-        if (_activeGesture is { IsClose: true } closing)
-        {
-            var preview = StepCloseSwipe(closing.Scale * Travel(updated.DeltaX, updated.DeltaY));
-            return begun is null ? preview : Merge(begun, preview);
-        }
-
-        if (_activeGesture is { IsOnRelease: true } onRelease)
-        {
-            _releaseDistance += onRelease.Scale * Travel(updated.DeltaX, updated.DeltaY);
-            return begun ?? View([]);
-        }
-
-        if (_activeGesture is { IsSpecial: true } special)
-        {
-            StepSpecialSwipe(special.Scale * Travel(updated.DeltaX, updated.DeltaY));
-            return begun ?? View([]);
-        }
-
         if (_activeGesture is not { IsWorkspace: true } gesture || _workspaceSwipe is not { } swipe)
             return View([]);
 
-        var along = gesture.Scale * Travel(updated.DeltaX, updated.DeltaY);
+        var along = gesture.Scale * TrackpadGesture.Along(_gestureDirection, updated.DeltaX, updated.DeltaY);
         return StepWorkspaceSwipe(swipe, swipe.Delta + (_swipe.Invert ? -along : along));
     }
 
-    private Outcome EndSwipe(bool cancelled)
+    private Outcome EndSwipe()
     {
         // An update after the fingers lift belongs to no swipe until the next one begins.
         _gestureFindFailed = true;
-        if (_activeGesture is not { } gesture)
-            return View([]);
-
+        var gesture = _activeGesture;
         _activeGesture = null;
-        if (gesture.IsScrollMove)
-            return EndScrollMove(cancelled);
-
-        if (gesture.IsClose)
-            return EndCloseSwipe();
-
-        if (gesture.IsMove || gesture.IsResize)
-            return EndWindowGesture();
-
-        if (gesture.IsOnRelease)
-            return ReleaseGesture(gesture, _releaseDistance);
-
-        if (gesture.IsSpecial)
-            return EndSpecialSwipe();
-
-        return _workspaceSwipe is { } swipe ? FinishWorkspaceSwipe(swipe) : View([]);
+        return gesture is { IsWorkspace: true } && _workspaceSwipe is { } swipe ? FinishWorkspaceSwipe(swipe) : View([]);
     }
 
-    private bool PickGesture(int fingers, out Outcome? begun)
+    private bool PickGesture(int fingers)
     {
-        begun = null;
-        if (_pinching)
-            return false;
-
         var axis = Math.Abs(_swipeTotalX) > Math.Abs(_swipeTotalY) ? GestureDirection.Horizontal : GestureDirection.Vertical;
         var direction = axis == GestureDirection.Horizontal
             ? _swipeTotalX < 0 ? GestureDirection.Left : GestureDirection.Right
@@ -144,58 +85,19 @@ public sealed partial class Core
             if (gesture.Fingers != fingers || gesture.Modifiers != held)
                 continue;
 
-            begun = Activate(gesture, direction);
+            Activate(gesture);
             return true;
         }
 
         return false;
     }
 
-    // Starts the gesture a swipe or pinch picked. A workspace swipe reads distance along its configured direction, as
-    // Winland's direction sensitive gestures do, and every other gesture along the one the fingers took.
-    private Outcome? Activate(TrackpadGesture gesture, GestureDirection direction)
+    // A workspace swipe reads distance along its configured direction.
+    private void Activate(TrackpadGesture gesture)
     {
         _activeGesture = gesture;
-        _releaseDistance = 0;
-        _gestureDirection = gesture.IsWorkspace ? gesture.Direction : direction;
-        if (gesture.IsWorkspace)
-            StartWorkspaceSwipe();
-        else if (gesture.IsSpecial)
-            return BeginSpecialSwipe(gesture);
-        else if (gesture.IsScrollMove)
-            BeginScrollMove();
-        else if (gesture.IsClose)
-            BeginCloseSwipe();
-        else if (gesture.IsMove || gesture.IsResize)
-            return BeginWindowGesture(gesture);
-
-        return null;
-    }
-
-    // The dispatcher, close, float and fullscreen gestures act once the fingers lift, as Winland ends them:
-    // a dispatcher always runs, and close, float and fullscreen act on the focused window when the fingers went far
-    // enough along their direction. float takes float, tile or toggle, and fullscreen takes fullscreen or maximize.
-    private Outcome ReleaseGesture(TrackpadGesture gesture, double distance)
-    {
-        if (distance < gesture.ReleaseDistance)
-            return View([]);
-
-        switch (gesture.Action)
-        {
-            case TrackpadGesture.DispatcherAction:
-                return gesture.Argument.Length == 0 ? View([]) : ExecuteTriggered(gesture.Argument, gesture.DispatchArguments, trigger: null);
-            case TrackpadGesture.CloseAction:
-                return ActiveWindow() is null ? View([]) : ExecuteTriggered("killactive", "", trigger: null);
-            case TrackpadGesture.FloatAction:
-                var mode = gesture.Argument.ToLowerInvariant();
-                var floating = mode.StartsWith("float", StringComparison.Ordinal) ? "setfloating"
-                    : mode.StartsWith("tile", StringComparison.Ordinal) ? "settiled"
-                    : "togglefloating";
-                return ExecuteTriggered(floating, "", trigger: null);
-            default:
-                var maximize = gesture.Argument.StartsWith("maximize", StringComparison.OrdinalIgnoreCase);
-                return ExecuteTriggered("fullscreen", maximize ? "1" : "0", trigger: null);
-        }
+        _gestureDirection = gesture.Direction;
+        StartWorkspaceSwipe();
     }
 
     private void StartWorkspaceSwipe()

@@ -6,10 +6,6 @@ public static partial class ConfigParser
 {
     private sealed partial class Parser
     {
-        private static readonly HashSet<string> UnhonoredGestureActions = new(StringComparer.Ordinal)
-        {
-        };
-
         private void HandleGesture(string lhs, string rhs, int lineNumber)
         {
             var disableInhibit = false;
@@ -81,18 +77,10 @@ public static partial class ConfigParser
             }
 
             var action = index < parts.Count ? parts[index] : "";
-            var takesArgument = action is TrackpadGesture.SpecialAction or TrackpadGesture.DispatcherAction
-                or TrackpadGesture.FloatAction or TrackpadGesture.FullscreenAction;
-            var argument = takesArgument && index + 1 < parts.Count ? parts[index + 1].Trim() : "";
-
-            // A dispatcher gesture takes the dispatcher and then its arguments, which may hold commas of their own.
-            var dispatchArguments = action == TrackpadGesture.DispatcherAction && index + 2 < parts.Count
-                ? string.Join(",", parts.Skip(index + 2))
-                : "";
-            var gesture = new TrackpadGesture(fingers, direction, modifiers, scale, action, disableInhibit, argument, dispatchArguments);
+            var gesture = new TrackpadGesture(fingers, direction, modifiers, scale, action, disableInhibit);
             if (action == "unset")
             {
-                var removed = _gestures.FindIndex(old => old with { Action = "unset", Argument = "", DispatchArguments = "" } == gesture);
+                var removed = _gestures.FindIndex(old => old with { Action = "unset" } == gesture);
                 if (removed < 0)
                     Warn(lineNumber, "Can't remove a non-existent gesture.");
                 else
@@ -100,7 +88,7 @@ public static partial class ConfigParser
                 return;
             }
 
-            if (!gesture.IsHonored && !UnhonoredGestureActions.Contains(action))
+            if (action != TrackpadGesture.WorkspaceAction)
             {
                 Warn(lineNumber, $"Invalid gesture: {action}.");
                 return;
@@ -115,15 +103,8 @@ public static partial class ConfigParser
             _gestures.Add(gesture);
             if (disableInhibit)
                 Warn(lineNumber, "Gesture flag 'p' is not honored.");
-            if (!gesture.IsHonored)
-                Warn(lineNumber, $"Gesture action '{action}' is not honored.");
         }
 
-        private static string Name(GestureDirection direction) => direction switch
-        {
-            GestureDirection.PinchIn => "PINCH_IN",
-            GestureDirection.PinchOut => "PINCH_OUT",
-            _ => direction.ToString().ToUpperInvariant(),
-        };
+        private static string Name(GestureDirection direction) => direction.ToString().ToUpperInvariant();
     }
 }
