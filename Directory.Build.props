@@ -5,6 +5,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!-- A new SDK feature band must not add analyzer warnings on its own. Raise this deliberately. -->
     <AnalysisLevel>10.0</AnalysisLevel>
+    <!-- The rules Microsoft recommends. .editorconfig turns off the few that do not fit, with the reason. -->
+    <AnalysisMode>Recommended</AnalysisMode>
     <!-- The IDE style rules .editorconfig raises to warning are checked in the build too. -->
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>

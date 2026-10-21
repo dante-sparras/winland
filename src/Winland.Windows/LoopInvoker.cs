@@ -82,7 +82,7 @@ internal sealed class LoopInvoker
 
     private sealed class Once(Action action)
     {
-        private readonly ManualResetEventSlim _done = new();
+        private readonly TaskCompletionSource _done = new();
         private int _claimed;
         private Exception? _error;
 
@@ -102,13 +102,13 @@ internal sealed class LoopInvoker
             }
             finally
             {
-                _done.Set();
+                _done.TrySetResult();
             }
 
             return true;
         }
 
-        internal bool Wait(TimeSpan wait) => _done.Wait(wait);
+        internal bool Wait(TimeSpan wait) => _done.Task.Wait(wait);
 
         internal void Rethrow()
         {

@@ -131,7 +131,7 @@ public sealed partial class Core
             return ConfigLaunches(config, LaunchParser.LaunchMoment.Reload, LaunchWorkspace());
     }
 
-    public IReadOnlyList<Launch> ShutdownLaunches(ConfigDocument config) =>
+    public static IReadOnlyList<Launch> ShutdownLaunches(ConfigDocument config) =>
         ConfigLaunches(config, LaunchParser.LaunchMoment.Shutdown);
 
     internal Func<long>? FollowClock { get; set; }

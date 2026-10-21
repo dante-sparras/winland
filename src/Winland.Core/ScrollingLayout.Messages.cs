@@ -215,7 +215,7 @@ internal sealed partial class ScrollingLayout
         return id;
     }
 
-    private Cell? BestNeighbor(Cell current, Column? target)
+    private static Cell? BestNeighbor(Cell current, Column? target)
     {
         if (target is null || target.Cells.Count == 0)
             return null;

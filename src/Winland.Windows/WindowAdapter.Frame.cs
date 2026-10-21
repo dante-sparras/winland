@@ -76,7 +76,7 @@ public sealed partial class WindowAdapter
     {
         lock (FrameGate)
         {
-            if (Frames.TryGetValue(window, out var cached) && cached.Insets.AppliesAt(cached.Dpi, dpi))
+            if (Frames.TryGetValue(window, out var cached) && FrameInsets.AppliesAt(cached.Dpi, dpi))
                 return cached.Insets;
         }
 
@@ -195,7 +195,7 @@ public sealed partial class WindowAdapter
 
     private readonly record struct CachedFrame(int Dpi, FrameInsets Insets);
 
-    internal void ResetDecorations() => ClearDecorations();
+    internal static void ResetDecorations() => ClearDecorations();
 
     private static void ClearDecorations()
     {

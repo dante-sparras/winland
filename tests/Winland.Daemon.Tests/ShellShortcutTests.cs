@@ -1,6 +1,6 @@
 namespace Winland.Daemon.Tests;
 
-public class ShellShortcutTests : IDisposable
+public sealed class ShellShortcutTests : IDisposable
 {
     private readonly string link = Path.Combine(Path.GetTempPath(), "winland-shortcut-" + Guid.NewGuid().ToString("N") + ".lnk");
 

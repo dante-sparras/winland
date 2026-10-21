@@ -63,7 +63,7 @@ internal sealed partial class DwindleLayout
         }
     }
 
-    private void AssignSmart(Node parent, Node opening, Node node, Point point)
+    private static void AssignSmart(Node parent, Node opening, Node node, Point point)
     {
         var centerX = parent.Box.X + (parent.Box.Width / 2.0);
         var centerY = parent.Box.Y + (parent.Box.Height / 2.0);
@@ -197,7 +197,7 @@ internal sealed partial class DwindleLayout
 
     private Node? LeafContaining(Point point) => _root is null ? null : FindLeaf(_root, point);
 
-    private Node? FindLeaf(Node node, Point point)
+    private static Node? FindLeaf(Node node, Point point)
     {
         if (node.Id is not null)
             return Covers(node.Box, point) ? node : null;

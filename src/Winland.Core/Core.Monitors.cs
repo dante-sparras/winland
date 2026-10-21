@@ -503,7 +503,7 @@ public sealed partial class Core
         return new MonitorTarget(screen.Id, monitor.Name, monitor.Description, monitor.X, monitor.Y, monitor.Width, monitor.Height);
     }
 
-    private MonitorTarget? TargetOf(LiveMonitor? screen) =>
+    private static MonitorTarget? TargetOf(LiveMonitor? screen) =>
         screen is { Effective.Enabled: true } enabled ? Target(enabled) : null;
 
     private LiveMonitor? MonitorOf(MonitorTarget? target)

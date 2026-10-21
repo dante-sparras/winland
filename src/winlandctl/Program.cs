@@ -39,7 +39,7 @@ static int FollowEvents()
         {
             Console.WriteLine(line);
             Console.Out.Flush();
-        }, cancel.Token, PipeName());
+        }, PipeName(), cancel: cancel.Token);
         return 0;
     }
     catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)

@@ -213,7 +213,7 @@ public sealed class WindowHost : IDisposable
             Console.CancelKeyPress += onCancel;
             try
             {
-                _windows.Pump(message =>
+                WindowAdapter.Pump(message =>
                 {
                     if (message.message == LoopInvoker.Message)
                     {
@@ -252,7 +252,7 @@ public sealed class WindowHost : IDisposable
 
     private void OnFlash(WindowId window) => WindowAdapter.Apply(_core.Handle(new WindowFlashed(window)));
 
-    public void ResetDecorations() => _windows.ResetDecorations();
+    public static void ResetDecorations() => WindowAdapter.ResetDecorations();
 
     public void RestoreTaskbar()
     {
@@ -315,7 +315,7 @@ public sealed class WindowHost : IDisposable
         }
     }
 
-    private SessionSignal WaitForShell()
+    private static SessionSignal WaitForShell()
     {
         if (ShellBars.Present())
         {

@@ -66,7 +66,7 @@ public class LimitProbeTests
             AssertClose(smallVisible, centered, "small");
             Assert.True(smallVisible.Width < area.Width / 2, $"The small window filled a tile: {smallVisible.Width}");
 
-            probe.SetMinimum(probe.Wide, 1850, 200);
+            LimitProbe.SetMinimum(probe.Wide, 1850, 200);
             var grown = Read(probe.Wide);
             Assert.True(grown.Min!.Value.Width > wideLimits.Min.Value.Width);
             var updated = core.Handle(new WindowLimitsChanged(new WindowId(wideId), grown.Min, grown.Max));
@@ -146,7 +146,7 @@ public class LimitProbeTests
                 throw new InvalidOperationException("The probe windows did not open.", _error);
         }
 
-        public void SetMinimum(IntPtr hwnd, int width, int height)
+        public static void SetMinimum(IntPtr hwnd, int width, int height)
         {
             lock (Gate)
             {

@@ -334,7 +334,7 @@ static int Run(string? path, RollingLogWriter log)
     {
         Stop(host, store);
         AppDomain.CurrentDomain.UnhandledException -= onCrash;
-        LaunchConfigured(core, core.ShutdownLaunches(current));
+        LaunchConfigured(core, Core.ShutdownLaunches(current));
 
         Console.WriteLine("Winland stopped.");
     }
@@ -368,7 +368,7 @@ static void Persist(RecoveryStore store, RecoverySnapshot snapshot)
 static void Stop(WindowHost host, RecoveryStore store)
 {
     host.RevealHidden();
-    host.ResetDecorations();
+    WindowHost.ResetDecorations();
     host.RestoreTaskbar();
     SessionEffects.Restore();
     store.Delete();

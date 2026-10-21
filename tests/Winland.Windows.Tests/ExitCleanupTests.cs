@@ -29,7 +29,7 @@ public class ExitCleanupTests
             WindowAdapter.Apply(core.Handle(new Dispatch("fullscreen", "2")));
             Assert.NotEqual(original, GetWindowLong(probe.Anchor, StyleIndex));
 
-            adapter.ResetDecorations();
+            WindowAdapter.ResetDecorations();
 
             Assert.Equal(original, GetWindowLong(probe.Anchor, StyleIndex));
         }
@@ -60,7 +60,7 @@ public class ExitCleanupTests
             Assert.Equal(original, GetWindowLong(probe.Anchor, StyleIndex));
 
             adapter.RevealHidden();
-            adapter.ResetDecorations();
+            WindowAdapter.ResetDecorations();
             WindowAdapter.Apply(core.Handle(new Dispatch("fullscreen", "2")));
 
             Assert.Equal(original, GetWindowLong(probe.Anchor, StyleIndex));

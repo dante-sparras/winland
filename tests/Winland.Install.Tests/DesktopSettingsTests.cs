@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Winland.Install;
 
@@ -205,7 +206,7 @@ public class DesktopSettingsTests
             }
             set
             {
-                Log.Add("set four " + (value?.ToString() ?? ""));
+                Log.Add("set four " + (value?.ToString(CultureInfo.InvariantCulture) ?? ""));
                 Four = value;
             }
         }

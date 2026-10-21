@@ -2,7 +2,7 @@ using Winland.Install;
 
 namespace Winland.Install.Tests;
 
-public class FileSettingsTextTests : IDisposable
+public sealed class FileSettingsTextTests : IDisposable
 {
     private readonly string directory = Path.Combine(Path.GetTempPath(), "winland-settings-" + Guid.NewGuid().ToString("N"));
 

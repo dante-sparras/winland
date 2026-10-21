@@ -101,3 +101,11 @@ csharp_style_namespace_declarations = file_scoped:warning
 csharp_using_directive_placement = outside_namespace:warning
 # Modifiers in the usual order.
 dotnet_diagnostic.IDE0036.severity = warning
+
+# Recommended analyzer rules that do not fit, from AnalysisMode in Directory.Build.props.
+# CA1859: a Layout returns IReadOnlyList<Placement> whatever builds it, so every Layout reads the same.
+dotnet_diagnostic.CA1859.severity = none
+# CA1711, CA1716, CA1720: names such as Next, Flags, Single and Command are domain words here.
+dotnet_diagnostic.CA1711.severity = none
+dotnet_diagnostic.CA1716.severity = none
+dotnet_diagnostic.CA1720.severity = none
