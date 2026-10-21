@@ -60,7 +60,7 @@ The default config switches Workspace when you swipe three fingers sideways on a
 
 Win is the Windows key. Alt+Tab, Win+L, Win+E, Win+Space, and Win+Shift+S stay with Windows: switching windows, locking the screen, File Explorer, the input language, and the snipping tool.
 
-A Group is a set of Clients that share one place in a Layout and show one at a time. A Special workspace is a named Workspace that belongs to no Monitor. It opens over the focused Monitor's Workspace. The default binds use one named `scratchpad`. grave is the backtick key, left of 1 on a US keyboard.
+A Group is a set of Clients that share one place in a Layout and show one at a time. A Special workspace is a named Workspace that belongs to no Monitor. It opens over the focused Monitor's Workspace. The default binds use one named `scratchpad`. grave is the backtick key (`` ` ``), left of 1 on a US keyboard.
 
 | | Keys | What it does |
 | --- | --- | --- |
@@ -79,7 +79,7 @@ A Group is a set of Clients that share one place in a Layout and show one at a t
 | Workspaces | Win+1 through Win+9, Win+0 | Workspaces 1 to 10 of this Monitor. The 0 key is Workspace 10 |
 | Move and follow | Win+Shift+1 through Win+Shift+0 | Move the focused Client to that Workspace and follow it |
 | Move and stay | Win+Shift+Alt+1 through Win+Shift+Alt+0 | Move the focused Client there and stay on this Workspace |
-| Scratchpad | Win+S, grave | Show or hide the Special workspace named scratchpad |
+| Scratchpad | Win+S, Win+grave | Show or hide the Special workspace named scratchpad |
 | To the scratchpad | Win+Alt+S, Win+Shift+grave | Move the focused Client onto that Special workspace and stay here |
 | Next Workspace | Win+Tab, Win+Shift+Tab | The next and previous Workspace on this Monitor |
 | Previous Workspace | Win+Ctrl+Tab | The Workspace this Monitor showed before this one |
