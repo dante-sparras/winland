@@ -121,17 +121,7 @@ A rule block on `exec`, `exec-once`, `execr`, `execr-once`, `exec-shutdown`, or 
 
 A console program started by `execr` gets a console window of its own. One started through `exec` shares cmd's console, which has no window, the way a program started by `sh -c` has no terminal, so a background tool stays out of sight and its redirections and pipes work. To see a console program, start it with `execr` or inside a terminal, for example `exec = wt pwsh`.
 
-`[elevated]` at the start of an `exec`, `exec-once`, `execr`, `execr-once`, or `exec-shutdown` command, or of an `exec` or `execr` dispatcher argument, launches that program with administrator rights. The same word inside a rule block does too, alone or with other rules. Without it the launch is de-elevated. A command received on the pipe never launches elevated, even when it starts with `[elevated]` or names it in the block, and `keyword` on the pipe refuses a bind that asks for it.
-
-`[elevated]`, in an exec line, a bind or a workspace rule's `on-created-empty`, is honored only when the config file and every file it sources are writable by administrators alone: each is owned by `SYSTEM`, `Administrators` or `TrustedInstaller`, and no other principal may write it. Otherwise every launch runs de-elevated, and one config warning says which file a non-administrator can write. The default config, `%APPDATA%\winland\winland.conf`, is in a folder any program the user runs can write, so it is not trusted until protected. From an elevated shell, make Administrators the owner of the folder and of the files in it, and give the user read access only:
-
-```
-icacls "%APPDATA%\winland" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F "%USERNAME%":(OI)(CI)RX
-icacls "%APPDATA%\winland\*" /reset /T
-icacls "%APPDATA%\winland" /setowner *S-1-5-32-544 /T
-```
-
-After that the config is edited from an elevated editor. A file the user creates or replaces there again is owned by the user, and the config is untrusted until it is protected again.
+Every program Winland starts runs as the normal user. An elevated Winland drops its administrator rights for the launch, so `exec`, `exec-once`, `execr`, `execr-once`, `exec-shutdown`, a bind's `exec` or `execr`, a workspace rule's `on-created-empty`, and a command on the pipe all start the program de-elevated. A program that needs administrator rights asks for them itself.
 
 `misc:initial_workspace_tracking` defaults to 1. A program `exec`, `execr`, a config `exec` line or a workspace rule's `on-created-empty` starts opens its window on the Workspace it was started on, without switching to it. That is the special workspace the focused Monitor shows, or its Workspace, and for `on-created-empty` the new Workspace. `exec-once` and `exec-shutdown` start programs without it. Every process the program starts holds the same Workspace. With 1 the first window that opens uses it up, and it lapses after `misc:initial_workspace_token_timeout` seconds, 10 by default. With 2 every window of those processes opens where the first one is now, until the first one closes. 0 turns it off. A window rule's `workspace` wins over it, and a window that comes back after a restart keeps its own Workspace.
 

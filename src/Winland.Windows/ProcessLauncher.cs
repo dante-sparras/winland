@@ -25,7 +25,7 @@ public static class ProcessLauncher
     public static int Launch(Launch launch)
     {
         ArgumentNullException.ThrowIfNull(launch);
-        if (launch.Elevated || !IsElevated())
+        if (!IsElevated())
             return Start(launch, token: null);
 
         return StartLimited(launch);

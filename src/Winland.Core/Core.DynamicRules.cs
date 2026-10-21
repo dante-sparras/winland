@@ -144,7 +144,7 @@ public sealed partial class Core
     }
 
     /// <summary><c>tagwindow tag [window]</c> applies a static tag to the window, or the focused one.</summary>
-    private Outcome TagWindow(string arguments, bool allowsElevation)
+    private Outcome TagWindow(string arguments)
     {
         const string name = "tagwindow";
         var text = arguments.Trim();
@@ -152,7 +152,7 @@ public sealed partial class Core
         var tag = space < 0 ? text : text[..space];
         var selector = space < 0 ? "" : text[(space + 1)..].Trim();
         if (tag.Length == 0 || Select(selector, emptyMeansActive: true) is not WindowId window)
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return View([], dispatcher: name);
 
         if (!_staticTags.TryGetValue(window, out var tags))
             _staticTags[window] = tags = new SortedSet<string>(StringComparer.Ordinal);
@@ -161,14 +161,14 @@ public sealed partial class Core
         if (WindowTags.Apply(tags, tag, dynamic: false))
             _ruleTags.Remove(window);
 
-        return View([], dispatcher: name, allowsElevation: allowsElevation);
+        return View([], dispatcher: name);
     }
 
     /// <summary>
     /// <c>cleartags [window]</c> takes every tag off the window, or the focused one, as Winland's clear_tags
     /// does. The rules are matched again, so a tag a rule gives comes back.
     /// </summary>
-    private Outcome ClearTags(string arguments, bool allowsElevation)
+    private Outcome ClearTags(string arguments)
     {
         const string name = "cleartags";
         if (Select(arguments.Trim(), emptyMeansActive: true) is WindowId window)
@@ -177,7 +177,7 @@ public sealed partial class Core
             _ruleTags.Remove(window);
         }
 
-        return View([], dispatcher: name, allowsElevation: allowsElevation);
+        return View([], dispatcher: name);
     }
 
     // initialTitle matches the title a window had when it appeared, including an empty one, so a later title does not stand in for it.

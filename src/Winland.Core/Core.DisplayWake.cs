@@ -18,7 +18,7 @@ public sealed partial class Core
         if (input is not (PointerMoved or SwipeBegan) || !_session.MouseMoveEnablesDpms || Volatile.Read(ref _displaysOn))
             return outcome;
 
-        var woken = Dpms("on", allowsElevation: false);
+        var woken = Dpms("on");
         return outcome with { DisplayPower = [.. outcome.DisplayPower, .. woken.DisplayPower] };
     }
 }

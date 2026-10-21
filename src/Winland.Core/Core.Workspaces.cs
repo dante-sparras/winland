@@ -18,14 +18,13 @@ public sealed partial class Core
         bool silent,
         bool consumed,
         string dispatcher,
-        bool allowsElevation = false,
         WindowId? chosen = null,
         bool windowChosen = false,
         Point? focal = null)
     {
         var window = windowChosen ? chosen : ActiveWindow();
         if (window is not WindowId id || !WorkspaceAddress.TryResolve(argument, Context(), out var resolved))
-            return View([], consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
+            return View([], consumed: consumed, dispatcher: dispatcher);
 
         var target = Alias(resolved);
 
@@ -35,20 +34,20 @@ public sealed partial class Core
         if (source is not null && target.IsSpecial && _pinned.Contains(id))
         {
             if (silent)
-                return View([], consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
+                return View([], consumed: consumed, dispatcher: dispatcher);
 
-            var opened = OpenSpecial(target, null, dispatcher, allowsElevation);
+            var opened = OpenSpecial(target, null, dispatcher);
             TakeFocus(source, id);
             return opened with { Focus = id, Consumed = consumed };
         }
 
         if (source is null || source.Id == target)
-            return View([], consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
+            return View([], consumed: consumed, dispatcher: dispatcher);
 
         var sourceCovered = source.Covered();
         var wasHidden = !IsShown(source.Id) || sourceCovered.Contains(id);
         if (!source.Take(id, out var taken))
-            return View([], consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
+            return View([], consumed: consumed, dispatcher: dispatcher);
 
         var destination = WorkspaceFor(target, FocusedId());
         var elsewhere = target.IsSpecial ? null : ShownElsewhere(target);
@@ -65,17 +64,17 @@ public sealed partial class Core
         Restamp(destination, []);
 
         if (target.IsSpecial)
-            return FinishSpecialMove(source, destination, id, silent, consumed, dispatcher, allowsElevation, sourceCovered, destinationCovered);
+            return FinishSpecialMove(source, destination, id, silent, consumed, dispatcher, sourceCovered, destinationCovered);
 
         if (!silent && source.Id.IsSpecial && SpecialOn(source.Monitor) == source.Id)
         {
             var concealed = ConcealSpecial(source.Monitor);
-            return FollowMove(SwitchTo(target, id, consumed, dispatcher, allowsElevation), id, concealed, destination);
+            return FollowMove(SwitchTo(target, id, consumed, dispatcher), id, concealed, destination);
         }
 
         if (!silent && elsewhere is { } owner)
         {
-            var followed = FocusShown(owner, target, id, consumed, dispatcher, allowsElevation);
+            var followed = FocusShown(owner, target, id, consumed, dispatcher);
             var show = new List<WindowId>();
             var conceal = new List<WindowId>();
             if (IsShown(source.Id))
@@ -100,7 +99,7 @@ public sealed partial class Core
             // Switching to the Workspace already shown here changes nothing on screen, so the reflow
             // and the arriving window are added to what the switch returns.
             var here = ActiveOn(FocusedId()) == target;
-            var followedSwitch = SwitchTo(target, id, consumed, dispatcher, allowsElevation);
+            var followedSwitch = SwitchTo(target, id, consumed, dispatcher);
             if (here)
             {
                 var show = new List<WindowId>(followedSwitch.Show);
@@ -160,7 +159,7 @@ public sealed partial class Core
         if (IsShown(destination.Id))
             placements.AddRange(destination.Layout.Visible());
 
-        return View(placements, revealed, hidden, consumed, dispatcher, allowsElevation: allowsElevation);
+        return View(placements, revealed, hidden, consumed, dispatcher);
 
         // The moved window was not in the destination's covered set, so Collect alone never shows it. When
         // it was hidden where it was, it is shown here unless the destination's Layout covers it.
@@ -191,16 +190,16 @@ public sealed partial class Core
         };
     }
 
-    private Outcome SwitchTo(WorkspaceId target, WindowId? focus, bool consumed, string? dispatcher, bool allowsElevation = false, bool pull = false)
+    private Outcome SwitchTo(WorkspaceId target, WindowId? focus, bool consumed, string? dispatcher, bool pull = false)
     {
         if (target.IsSpecial)
-            return OpenSpecial(target, focus, dispatcher, allowsElevation);
+            return OpenSpecial(target, focus, dispatcher);
 
         var bound = BoundMonitor(target);
         if (!pull && bound is null && ShownElsewhere(target) is { } elsewhere)
         {
             var away = SpecialHiddenBy(elsewhere.Id, focus);
-            var followed = FocusShown(elsewhere, target, focus, consumed, dispatcher, allowsElevation);
+            var followed = FocusShown(elsewhere, target, focus, consumed, dispatcher);
             return away.Length == 0 ? followed : followed with { Hide = Combine(followed.Hide, away) };
         }
 
@@ -230,7 +229,7 @@ public sealed partial class Core
                 FocusedWorkspace().Focus = requested;
             }
 
-            return View([], hide: concealed, consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
+            return View([], hide: concealed, consumed: consumed, dispatcher: dispatcher);
         }
 
         var keep = _active is WindowId current
@@ -264,8 +263,7 @@ public sealed partial class Core
             VisibleIds(target),
             Combine(hide, concealed),
             consumed,
-            dispatcher,
-            allowsElevation: allowsElevation);
+            dispatcher);
     }
 
     private LiveMonitor? ShownElsewhere(WorkspaceId target)
@@ -281,7 +279,7 @@ public sealed partial class Core
         return owner;
     }
 
-    private Outcome FocusShown(LiveMonitor owner, WorkspaceId target, WindowId? focus, bool consumed, string? dispatcher, bool allowsElevation)
+    private Outcome FocusShown(LiveMonitor owner, WorkspaceId target, WindowId? focus, bool consumed, string? dispatcher)
     {
         Focus(owner.Id);
         var destination = FindWorkspace(target);
@@ -295,7 +293,7 @@ public sealed partial class Core
         if (destination is not null)
             destination.Focus = next;
 
-        return View([], focus: next, consumed: consumed, dispatcher: dispatcher, allowsElevation: allowsElevation);
+        return View([], focus: next, consumed: consumed, dispatcher: dispatcher);
     }
 
     private void BringTo(LiveMonitor screen, LiveWorkspace desk)

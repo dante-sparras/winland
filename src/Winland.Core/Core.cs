@@ -135,7 +135,7 @@ public sealed partial class Core
         }
     }
 
-    public Outcome Dispatch(string name, string arguments, bool allowsElevation)
+    public Outcome Dispatch(string name, string arguments)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(arguments);
@@ -144,7 +144,7 @@ public sealed partial class Core
             var before = Capture();
             try
             {
-                var outcome = Ordered(Decorate(WithEvents(Execute(name, arguments, allowsElevation), before, input: null), before.State));
+                var outcome = Ordered(Decorate(WithEvents(Execute(name, arguments), before, input: null), before.State));
                 Emit(outcome);
                 return outcome;
             }
@@ -291,8 +291,6 @@ public sealed partial class Core
         _keyState.Inhibit(inhibited.Inhibited);
         return View([]);
     }
-
-    private bool ElevationTrusted => _config?.ElevationTrusted == true;
 
     private static IReadOnlyList<Launch> ConfigLaunches(ConfigDocument config, LaunchParser.LaunchMoment moment, WorkspaceId? initialWorkspace = null)
     {

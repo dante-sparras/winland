@@ -68,7 +68,7 @@ public class ApplyOrderTests
     {
         var order = new ApplyOrder();
         order.Admit(Decided(2) with { Show = [First] });
-        var launch = new Launch("app", null, false);
+        var launch = new Launch("app", null);
 
         var admitted = order.Admit(Decided(1) with { Close = First, Launch = launch, Kill = new KillRequest(7) });
 

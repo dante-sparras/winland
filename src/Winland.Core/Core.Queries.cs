@@ -46,7 +46,7 @@ public sealed partial class Core
 
     private CommandReply DispatchReply(DispatchRequest dispatch)
     {
-        var effect = Execute(dispatch.Name, dispatch.Arguments, dispatch.AllowsElevation);
+        var effect = Execute(dispatch.Name, dispatch.Arguments);
         return new CommandReply(effect.Error ?? effect.Notice ?? "ok", effect);
     }
 
@@ -112,7 +112,6 @@ public sealed partial class Core
                 Focus = current.Focus ?? laid.Focus,
                 Launches = [.. current.Launches, .. laid.Launches],
                 Dispatcher = current.Dispatcher,
-                AllowsElevation = current.AllowsElevation,
                 Consumed = current.Consumed,
                 Kills = [.. current.Kills, .. laid.Kills],
                 Exit = current.Exit || laid.Exit,
@@ -140,8 +139,7 @@ public sealed partial class Core
             current.Consumed,
             current.Dispatcher,
             current.Close,
-            current.Focus,
-            current.AllowsElevation);
+            current.Focus);
         return shown with
         {
             Closes = current.Closes,
@@ -207,13 +205,6 @@ public sealed partial class Core
         {
             if (!LiveKeyword(setting.Keyword))
                 return new CommandReply($"error: keyword '{setting.Keyword}' is not applied live", View([]));
-        }
-
-        // The pipe never launches elevated, so it may not add a bind that would.
-        foreach (var directive in parsed.Binds)
-        {
-            if (directive is Bind bind && LaunchParser.IsExec(bind.Dispatcher) && ConfigElevation.Elevated(bind.Arguments))
-                return new CommandReply("error: a bind added over the pipe cannot launch elevated", View([]));
         }
 
         var kept = _configErrors;
@@ -309,7 +300,6 @@ public sealed partial class Core
             Sources = current?.Sources ?? [],
             Environment = current?.Environment ?? EnvironmentAssignment.None,
             Gestures = [.. current?.Gestures ?? [], .. incoming.Gestures],
-            ElevationTrusted = current?.ElevationTrusted ?? false,
         };
     }
 

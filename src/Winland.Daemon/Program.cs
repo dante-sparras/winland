@@ -386,13 +386,11 @@ static ConfigDocument ReadConfig(string path)
 
     var lua = isLua ? LuaHosting.Load(text, full, source) : null;
 
-    // [elevated] runs with Winland's administrator token, so only a config that only
-    // administrators can write, sources included, may use it (ADR 0007).
     var document = ConfigParser.Parse(lua?.Text ?? text, source, KeyboardLayout.Active(), full);
     if (lua is not null)
         document = lua.Remap(document);
 
-    return ConfigElevation.Decide(document, source.Trust.Refusal);
+    return document;
 }
 
 static int Usage()

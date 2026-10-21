@@ -48,15 +48,15 @@ public sealed partial class Core
 
     private LiveWorkspace LayoutWorkspace(WindowId window) => WorkspaceContaining(window) ?? CurrentWorkspace();
 
-    private Outcome ToggleSpecial(string arguments, bool allowsElevation)
+    private Outcome ToggleSpecial(string arguments)
     {
         const string name = "togglespecialworkspace";
         var target = SpecialName(arguments);
         var monitor = FocusedId();
         if (SpecialOn(monitor) == target)
-            return CloseSpecial(monitor, name, allowsElevation);
+            return CloseSpecial(monitor, name);
 
-        return OpenSpecial(target, null, name, allowsElevation);
+        return OpenSpecial(target, null, name);
     }
 
     private static WorkspaceId SpecialName(string arguments)
@@ -103,7 +103,7 @@ public sealed partial class Core
     private static bool Holds(Rectangle bounds, Point point) =>
         point.X >= bounds.X && point.X <= bounds.X + bounds.Width && point.Y >= bounds.Y && point.Y <= bounds.Y + bounds.Height;
 
-    private Outcome OpenSpecial(WorkspaceId target, WindowId? focus, string? dispatcher, bool allowsElevation)
+    private Outcome OpenSpecial(WorkspaceId target, WindowId? focus, string? dispatcher)
     {
         var monitor = FocusedId();
         if (SpecialOn(monitor) == target)
@@ -113,10 +113,10 @@ public sealed partial class Core
                 _active = requested;
                 if (FindWorkspace(target) is { } open)
                     open.Focus = requested;
-                return View([], focus: requested, dispatcher: dispatcher, allowsElevation: allowsElevation);
+                return View([], focus: requested, dispatcher: dispatcher);
             }
 
-            return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
+            return View([], dispatcher: dispatcher);
         }
 
         var show = new List<WindowId>();
@@ -153,10 +153,10 @@ public sealed partial class Core
 
         _active = next;
         desk.Focus = next;
-        return View(desk.Layout.Visible(), show, hide, dispatcher: dispatcher, focus: next, allowsElevation: allowsElevation);
+        return View(desk.Layout.Visible(), show, hide, dispatcher: dispatcher, focus: next);
     }
 
-    private Outcome CloseSpecial(MonitorId monitor, string? dispatcher, bool allowsElevation)
+    private Outcome CloseSpecial(MonitorId monitor, string? dispatcher)
     {
         var hidden = ConcealSpecial(monitor);
         var normal = FocusedWorkspace();
@@ -164,8 +164,7 @@ public sealed partial class Core
             normal.Layout.Visible(),
             hide: hidden,
             focus: _active,
-            dispatcher: dispatcher,
-            allowsElevation: allowsElevation);
+            dispatcher: dispatcher);
     }
 
     private WindowId[] SpecialHiddenBy(MonitorId monitor, WindowId? focus)
@@ -206,13 +205,12 @@ public sealed partial class Core
         bool silent,
         bool consumed,
         string dispatcher,
-        bool allowsElevation,
         HashSet<WindowId> sourceCovered,
         HashSet<WindowId> destinationCovered)
     {
         if (!silent)
         {
-            var opened = OpenSpecial(destination.Id, window, dispatcher, allowsElevation);
+            var opened = OpenSpecial(destination.Id, window, dispatcher);
             if (source.Id.IsSpecial && source.Layout.Clients.Count == 0)
                 DropIfEmpty(source.Id);
 
@@ -270,7 +268,7 @@ public sealed partial class Core
         if (IsShown(destination.Id))
             placed.AddRange(destination.Layout.Visible());
 
-        return View(placed, revealed, hidden, consumed, dispatcher, allowsElevation: allowsElevation);
+        return View(placed, revealed, hidden, consumed, dispatcher);
     }
 
     private void RehomeSpecials(LiveMonitor? home, List<LiveMonitor> enabled)

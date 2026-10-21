@@ -100,16 +100,16 @@ public sealed partial class Core
         return index < 0 ? 0 : _focusHistory.Count - index;
     }
 
-    private Outcome MoveFocusDirection(string arguments, bool allowsElevation)
+    private Outcome MoveFocusDirection(string arguments)
     {
         const string name = "movefocus";
         var desk = FocusedWorkspace();
         var covered = desk.Covered();
         var active = ActiveWindow();
         if (!MonitorSelector.TryDirection(FirstToken(arguments), out var direction))
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return View([], dispatcher: name);
 
-        if (active is WindowId grouped && CycleGroupFirst(desk, grouped, arguments, name, allowsElevation) is Outcome cycled)
+        if (active is WindowId grouped && CycleGroupFirst(desk, grouped, arguments, name) is Outcome cycled)
             return cycled;
 
         if (active is WindowId fullscreen
@@ -118,8 +118,8 @@ public sealed partial class Core
         {
             var previous = direction is MonitorDirection.Left or MonitorDirection.Up;
             return CycleFrom(desk, fullscreen, previous) is WindowId next
-                ? FocusClient(next, name, allowsElevation)
-                : View([], dispatcher: name, allowsElevation: allowsElevation);
+                ? FocusClient(next, name)
+                : View([], dispatcher: name);
         }
 
         // A Workspace with a fullscreen or maximized Client offers no window in a direction, as in the pinned
@@ -131,34 +131,34 @@ public sealed partial class Core
             if (focus is WindowId chosen)
             {
                 if (HasNoFocus(chosen))
-                    return View([], dispatcher: name, allowsElevation: allowsElevation);
+                    return View([], dispatcher: name);
 
                 _active = chosen;
                 desk.Focus = chosen;
                 desk.Layout.NoteFocus(chosen);
-                return Present(desk, covered, [], dispatcher: name, focus: chosen, allowsElevation: allowsElevation);
+                return Present(desk, covered, [], dispatcher: name, focus: chosen);
             }
         }
 
         if (!_monitorFallback || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from)
-            return NothingToFocus(name, direction, allowsElevation);
+            return NothingToFocus(name, direction);
 
         if (MonitorSelector.InDirection(Targets(), from, direction) is not MonitorTarget neighbor
             || MonitorOf(neighbor) is not LiveMonitor destination)
-            return NothingToFocus(name, direction, allowsElevation);
+            return NothingToFocus(name, direction);
 
         WindowId? adjacent = null;
         if (active is WindowId fromWindow && desk.Layout.TryBounds(fromWindow, out var box))
             adjacent = AdjacentOn(destination, Ideal(desk, fromWindow, box), direction);
 
-        return FocusOnto(destination, name, allowsElevation, adjacent);
+        return FocusOnto(destination, name, adjacent);
     }
 
     // general:no_focus_fallback makes a movefocus that finds nothing answer an error.
-    private Outcome NothingToFocus(string name, MonitorDirection direction, bool allowsElevation) =>
+    private Outcome NothingToFocus(string name, MonitorDirection direction) =>
         _session.NoFocusFallback
-            ? Rejected(name, "error: Nothing to focus to in direction " + direction.ToString().ToLowerInvariant(), allowsElevation)
-            : View([], dispatcher: name, allowsElevation: allowsElevation);
+            ? Rejected(name, "error: Nothing to focus to in direction " + direction.ToString().ToLowerInvariant())
+            : View([], dispatcher: name);
 
     private bool HasFullscreen(LiveWorkspace desk)
     {
@@ -209,27 +209,27 @@ public sealed partial class Core
         return null;
     }
 
-    private Outcome MoveWindowDirection(string arguments, bool allowsElevation)
+    private Outcome MoveWindowDirection(string arguments)
     {
         const string name = "movewindow";
         if (TryMonitorArgument(arguments, out var monitorText, out var silent))
         {
             if (MonitorOf(MonitorSelector.Resolve(monitorText, Targets(), TargetOf(FocusedMonitor()))) is not LiveMonitor chosen)
-                return Rejected(name, "error: monitor not found", allowsElevation);
+                return Rejected(name, "error: monitor not found");
 
-            return MoveActiveOnto(chosen, silent, name, allowsElevation);
+            return MoveActiveOnto(chosen, silent, name);
         }
 
         var active = ActiveWindow();
         var desk = active is WindowId owned && WorkspaceContaining(owned) is LiveWorkspace own ? own : FocusedWorkspace();
         var covered = desk.Covered();
         if (active is WindowId shown && Find(shown) is { Fullscreen: not FullscreenMode.None })
-            return Rejected(name, "error: can't move fullscreen window", allowsElevation);
+            return Rejected(name, "error: can't move fullscreen window");
 
         if (active is not WindowId window || !MonitorSelector.TryDirection(FirstToken(arguments), out var direction))
         {
             IReadOnlyList<Placement> stayed = active is WindowId id ? desk.Layout.MoveWindow(id, arguments) : [];
-            return Present(desk, covered, stayed, dispatcher: name, allowsElevation: allowsElevation);
+            return Present(desk, covered, stayed, dispatcher: name);
         }
 
         // A direction onto the neighbouring Monitor follows only for the focused window. Another window is assigned
@@ -245,7 +245,7 @@ public sealed partial class Core
             var focal = MonitorSelector.Focal(Ideal(desk, window, box), direction);
             var hit = MonitorSelector.At(Targets(), focal);
             if (hit is MonitorTarget other && other.Id != origin.Id && MonitorOf(other) is LiveMonitor across)
-                return MoveActiveOnto(across, stay, name, allowsElevation, focal);
+                return MoveActiveOnto(across, stay, name, focal);
         }
 
         // In master, swapping another window with the focused one leaves the focus on the tile the focused window held.
@@ -261,11 +261,11 @@ public sealed partial class Core
             && TargetOf(home) is MonitorTarget from
             && MonitorSelector.InDirection(Targets(), from, direction) is MonitorTarget neighbor
             && MonitorOf(neighbor) is LiveMonitor next)
-            return MoveActiveOnto(next, stay, name, allowsElevation);
+            return MoveActiveOnto(next, stay, name);
 
-        var laid = Present(desk, covered, placements, dispatcher: name, allowsElevation: allowsElevation);
+        var laid = Present(desk, covered, placements, dispatcher: name);
         if (held is Rectangle old && WindowIn(desk, placements, old) == window)
-            return Merge(laid, FocusClient(window, name, allowsElevation));
+            return Merge(laid, FocusClient(window, name));
 
         return laid;
     }
@@ -298,59 +298,59 @@ public sealed partial class Core
         return null;
     }
 
-    private Outcome FocusMonitorDispatch(string arguments, bool allowsElevation)
+    private Outcome FocusMonitorDispatch(string arguments)
     {
         const string name = "focusmonitor";
         if (MonitorOf(MonitorSelector.Resolve(arguments, Targets(), TargetOf(FocusedMonitor()))) is not LiveMonitor screen)
-            return Rejected(name, "error: monitor not found", allowsElevation);
+            return Rejected(name, "error: monitor not found");
 
-        return FocusOnto(screen, name, allowsElevation, preferred: null);
+        return FocusOnto(screen, name, preferred: null);
     }
 
-    private Outcome MoveCurrentWorkspace(string arguments, bool allowsElevation)
+    private Outcome MoveCurrentWorkspace(string arguments)
     {
         const string name = "movecurrentworkspacetomonitor";
         if (MonitorOf(MonitorSelector.Resolve(arguments, Targets(), TargetOf(FocusedMonitor()))) is not LiveMonitor destination)
-            return Rejected(name, "error: monitor not found", allowsElevation);
+            return Rejected(name, "error: monitor not found");
 
         if (FindWorkspace(ActiveId()) is not LiveWorkspace desk)
-            return Rejected(name, "error: invalid workspace", allowsElevation);
+            return Rejected(name, "error: invalid workspace");
 
-        return MoveWorkspaceTo(desk, destination, name, allowsElevation);
+        return MoveWorkspaceTo(desk, destination, name);
     }
 
-    private Outcome MoveWorkspace(string arguments, bool allowsElevation)
+    private Outcome MoveWorkspace(string arguments)
     {
         const string name = "moveworkspacetomonitor";
         if (!SplitPair(arguments, out var workspaceText, out var monitorText))
-            return Rejected(name, "error: expected workspace and monitor", allowsElevation);
+            return Rejected(name, "error: expected workspace and monitor");
 
         if (!WorkspaceAddress.TryResolve(workspaceText, Context(), out var id))
-            return Rejected(name, "error: invalid workspace", allowsElevation);
+            return Rejected(name, "error: invalid workspace");
 
         if (FindWorkspace(id) is not LiveWorkspace desk)
-            return Rejected(name, "error: workspace not found", allowsElevation);
+            return Rejected(name, "error: workspace not found");
 
         if (MonitorOf(MonitorSelector.Resolve(monitorText, Targets(), TargetOf(FocusedMonitor()))) is not LiveMonitor destination)
-            return Rejected(name, "error: monitor not found", allowsElevation);
+            return Rejected(name, "error: monitor not found");
 
-        return MoveWorkspaceTo(desk, destination, name, allowsElevation);
+        return MoveWorkspaceTo(desk, destination, name);
     }
 
-    private Outcome SwapActiveWorkspaces(string arguments, bool allowsElevation)
+    private Outcome SwapActiveWorkspaces(string arguments)
     {
         const string name = "swapactiveworkspaces";
         if (!SplitPair(arguments, out var first, out var second))
-            return Rejected(name, "error: monitor not found", allowsElevation);
+            return Rejected(name, "error: monitor not found");
 
         var targets = Targets();
         var current = TargetOf(FocusedMonitor());
         if (MonitorOf(MonitorSelector.Resolve(first, targets, current)) is not LiveMonitor left
             || MonitorOf(MonitorSelector.Resolve(second, targets, current)) is not LiveMonitor right)
-            return Rejected(name, "error: monitor not found", allowsElevation);
+            return Rejected(name, "error: monitor not found");
 
         if (left.Id == right.Id)
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return View([], dispatcher: name);
 
         var before = ShowingNow();
         var deskLeft = WorkspaceFor(left.Active ?? NextFree(left.Id), left.Id);
@@ -387,13 +387,13 @@ public sealed partial class Core
 
         SyncActive();
         var (show, hide) = VisibilityDelta(before);
-        return View(ShownPlacements(), show, hide, dispatcher: name, focus: focus, allowsElevation: allowsElevation);
+        return View(ShownPlacements(), show, hide, dispatcher: name, focus: focus);
     }
 
-    private Outcome MoveWorkspaceTo(LiveWorkspace desk, LiveMonitor destination, string dispatcher, bool allowsElevation)
+    private Outcome MoveWorkspaceTo(LiveWorkspace desk, LiveMonitor destination, string dispatcher)
     {
         if (desk.Monitor == destination.Id)
-            return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
+            return View([], dispatcher: dispatcher);
 
         var before = ShowingNow();
         var origin = MonitorById(desk.Monitor);
@@ -424,21 +424,21 @@ public sealed partial class Core
 
         SyncActive();
         var (show, hide) = VisibilityDelta(before);
-        return View(ShownPlacements(), show, hide, dispatcher: dispatcher, focus: focus, allowsElevation: allowsElevation);
+        return View(ShownPlacements(), show, hide, dispatcher: dispatcher, focus: focus);
     }
 
-    private Outcome MoveActiveOnto(LiveMonitor screen, bool silent, string dispatcher, bool allowsElevation, Point? focal = null)
+    private Outcome MoveActiveOnto(LiveMonitor screen, bool silent, string dispatcher, Point? focal = null)
     {
         if (screen.Active is not WorkspaceId target)
-            return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
+            return View([], dispatcher: dispatcher);
 
-        return MoveTo(target.Name, silent, consumed: false, dispatcher, allowsElevation, focal: focal);
+        return MoveTo(target.Name, silent, consumed: false, dispatcher, focal: focal);
     }
 
-    private Outcome FocusOnto(LiveMonitor screen, string dispatcher, bool allowsElevation, WindowId? preferred)
+    private Outcome FocusOnto(LiveMonitor screen, string dispatcher, WindowId? preferred)
     {
         if (screen.Focused && preferred is null)
-            return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
+            return View([], dispatcher: dispatcher);
 
         // A monitor with a special workspace open gives the focus to that workspace's window.
         var desk = SpecialOn(screen.Id) is WorkspaceId special && FindWorkspace(special) is LiveWorkspace open
@@ -459,7 +459,7 @@ public sealed partial class Core
                 desk.Layout.NoteFocus(noted);
         }
 
-        return View([], focus: next, dispatcher: dispatcher, allowsElevation: allowsElevation);
+        return View([], focus: next, dispatcher: dispatcher);
     }
 
     private void Plug(LiveMonitor origin, LiveWorkspace leaving)

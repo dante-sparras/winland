@@ -7,29 +7,27 @@ namespace Winland.Tests;
 public class CommandTests
 {
     [Fact]
-    public void PipeDispatchParsesTheNameAndArgumentsAndDoesNotAllowElevation()
+    public void PipeDispatchParsesTheNameAndArguments()
     {
         var parsed = Assert.IsType<CommandParsed>(CommandProtocol.Parse("dispatch exec notepad --title hi"));
         var dispatch = Assert.IsType<DispatchRequest>(parsed.Request);
 
         Assert.Equal("exec", dispatch.Name);
         Assert.Equal("notepad --title hi", dispatch.Arguments);
-        Assert.False(dispatch.AllowsElevation);
     }
 
     [Fact]
-    public void PipeDispatchKeepsInternalSpacingAndStillDoesNotAllowElevation()
+    public void PipeDispatchKeepsInternalSpacing()
     {
         var parsed = Assert.IsType<CommandParsed>(CommandProtocol.Parse("dispatch   exec   foo  bar"));
         var dispatch = Assert.IsType<DispatchRequest>(parsed.Request);
 
         Assert.Equal("exec", dispatch.Name);
         Assert.Equal("foo  bar", dispatch.Arguments);
-        Assert.False(dispatch.AllowsElevation);
     }
 
     [Fact]
-    public void ExecOverThePipeIsMarkedNonElevating()
+    public void ExecOverThePipeRunsTheCommand()
     {
         var core = new Core();
 
@@ -37,36 +35,20 @@ public class CommandTests
 
         Assert.Equal("ok", reply.Text);
         Assert.Equal("exec", reply.Effect.Dispatcher);
-        Assert.False(reply.Effect.AllowsElevation);
         Assert.Null(reply.Effect.Close);
         Assert.Empty(reply.Effect.Placements);
     }
 
     [Fact]
-    public void DispatchEntryPointHonorsTheElevationFlag()
+    public void BoundExecRuns()
     {
         var core = new Core();
-
-        var denied = core.Dispatch("exec", "notepad", allowsElevation: false);
-        var allowed = core.Dispatch("exec", "notepad", allowsElevation: true);
-
-        Assert.False(denied.AllowsElevation);
-        Assert.True(allowed.AllowsElevation);
-        Assert.Equal("exec", denied.Dispatcher);
-        Assert.Equal("exec", allowed.Dispatcher);
-    }
-
-    [Fact]
-    public void BoundDispatchAllowsElevation()
-    {
-        var core = new Core();
-        core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, E, exec, notepad") with { ElevationTrusted = true }));
+        core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, E, exec, notepad")));
         core.Handle(new KeyPressed("Super_L"));
 
         var outcome = core.Handle(new KeyPressed("E"));
 
         Assert.Equal("exec", outcome.Dispatcher);
-        Assert.True(outcome.AllowsElevation);
         Assert.Null(outcome.Close);
     }
 
@@ -82,7 +64,6 @@ public class CommandTests
 
         Assert.Equal("ok", reply.Text);
         Assert.Equal(new WindowId(2), reply.Effect.Close);
-        Assert.False(reply.Effect.AllowsElevation);
         Assert.Equal(2, reply.Effect.State.Clients.Count);
         Assert.Contains(reply.Effect.State.Clients, client => client.Window == new WindowId(2));
     }
@@ -296,7 +277,7 @@ public class CommandTests
     }
 
     [Fact]
-    public void DispatchWorkspaceOverThePipeSwitchesAndDoesNotAllowElevation()
+    public void DispatchWorkspaceOverThePipeSwitches()
     {
         var core = new Core();
         var area = new Rectangle(0, 0, 800, 600);
@@ -310,7 +291,6 @@ public class CommandTests
 
         Assert.Equal("ok", reply.Text);
         Assert.Equal("workspace", reply.Effect.Dispatcher);
-        Assert.False(reply.Effect.AllowsElevation);
         Assert.Equal(new WorkspaceId("2"), reply.Effect.State.ActiveWorkspace);
         Assert.Equal([new WindowId(1), new WindowId(2)], reply.Effect.Hide);
         Assert.Empty(reply.Effect.Show);
@@ -363,20 +343,17 @@ public class CommandTests
 
         Assert.Equal("ok", focus.Text);
         Assert.Equal("movefocus", focus.Effect.Dispatcher);
-        Assert.False(focus.Effect.AllowsElevation);
         Assert.Equal(new WindowId(1), focus.Effect.Focus);
 
         var floating = core.Execute("dispatch togglefloating");
 
         Assert.Equal("togglefloating", floating.Effect.Dispatcher);
-        Assert.False(floating.Effect.AllowsElevation);
         Assert.True(Client(floating.Effect, 1).Floating);
         Assert.False(Client(floating.Effect, 2).Floating);
 
         var moved = core.Execute("dispatch movetoworkspace 3");
 
         Assert.Equal("movetoworkspace", moved.Effect.Dispatcher);
-        Assert.False(moved.Effect.AllowsElevation);
         Assert.Equal(new WorkspaceId("3"), moved.Effect.State.ActiveWorkspace);
         Assert.Equal(new WorkspaceId("3"), Client(moved.Effect, 1).Workspace);
         Assert.Equal(new WorkspaceId("1"), Client(moved.Effect, 2).Workspace);
@@ -384,17 +361,16 @@ public class CommandTests
     }
 
     [Fact]
-    public void BoundWorkspaceAllowsElevation()
+    public void BoundWorkspaceSwitches()
     {
         var core = new Core();
-        core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, 2, workspace, 2") with { ElevationTrusted = true }));
+        core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, 2, workspace, 2")));
         core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 100, 100)));
         core.Handle(new KeyPressed("Super_L"));
 
         var outcome = core.Handle(new KeyPressed("2"));
 
         Assert.Equal("workspace", outcome.Dispatcher);
-        Assert.True(outcome.AllowsElevation);
         Assert.True(outcome.Consumed);
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
         Assert.Equal([new WindowId(1)], outcome.Hide);

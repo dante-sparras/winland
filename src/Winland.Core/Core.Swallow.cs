@@ -324,14 +324,14 @@ public sealed partial class Core
         return hidden;
     }
 
-    private Outcome ToggleSwallow(bool allowsElevation)
+    private Outcome ToggleSwallow()
     {
         const string name = "toggleswallow";
         if (ActiveWindow() is not WindowId active
             || SwallowerOf(active) is not WindowId child
             || !_swallows.TryGetValue(child, out var swallow)
             || (WorkspaceContaining(child) ?? WorkspaceContaining(swallow.Parent.Window)) is not LiveWorkspace desk)
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return View([], dispatcher: name);
 
         var covered = desk.Covered();
         IReadOnlyList<Placement> placements;
@@ -359,8 +359,8 @@ public sealed partial class Core
         }
 
         return IsShown(desk.Id)
-            ? Present(desk, covered, placements, dispatcher: name, focus: focus, allowsElevation: allowsElevation)
-            : View([], dispatcher: name, allowsElevation: allowsElevation);
+            ? Present(desk, covered, placements, dispatcher: name, focus: focus)
+            : View([], dispatcher: name);
     }
 
     // toggleswallow in a Group slot, as Winland's toggleGroupSlot: the hidden one of the parent and the child

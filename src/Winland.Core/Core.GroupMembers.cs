@@ -102,12 +102,12 @@ public sealed partial class Core
     }
 
     /// <summary>Shows a hidden member before it is focused. Null when the window is not hidden in a Group.</summary>
-    private Outcome? RaiseMember(LiveWorkspace desk, WindowId window, string name, bool allowsElevation)
+    private Outcome? RaiseMember(LiveWorkspace desk, WindowId window, string name)
     {
         if (!desk.IsWaiting(window) || desk.GroupOf(window) is not WindowGroup group)
             return null;
 
-        return ShowMember(desk, group, group.Members.IndexOf(window), name, allowsElevation);
+        return ShowMember(desk, group, group.Members.IndexOf(window), name);
     }
 
     /// <summary>Moves the Group of a shown member that just moved from <paramref name="source"/> to <paramref name="destination"/>.</summary>

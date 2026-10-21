@@ -96,7 +96,6 @@ public class DisplayOrientationTests
             nameof(Outcome.Show), // WindowAdapter.ApplyCore
             nameof(Outcome.Hide), // WindowAdapter.ApplyCore
             nameof(Outcome.ShowMinimized), // WindowAdapter.ApplyCore
-            nameof(Outcome.AllowsElevation), // the core's launch decision
             nameof(Outcome.Launches), // WindowAdapter.ApplyCore
             nameof(Outcome.Launch), // shorthand for Launches
             nameof(Outcome.Events), // Core.Noticed, the event stream
