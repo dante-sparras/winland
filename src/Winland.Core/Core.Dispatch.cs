@@ -204,6 +204,10 @@ public sealed partial class Core
             return FocusWindow(arguments);
         else if (Is(name, "closewindow"))
             return CloseWindow(arguments);
+        else if (Is(name, "closeall"))
+            return CloseAll();
+        else if (Is(name, "cyclelayout"))
+            return CycleWorkspaceLayout(arguments);
         else if (Is(name, "killwindow"))
             return KillWindow(arguments);
         else if (Is(name, "swapwindow"))
