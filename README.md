@@ -4,10 +4,21 @@ A keyboard-driven tiling window manager for Windows 11.
 
 ## Install
 
-1. Download `Winland-win-x64.zip` from [Releases](https://github.com/dante-sparras/winland/releases) and unzip it.
-2. Run `winland\winland.exe install` and approve the prompt.
+Open PowerShell and run:
 
-Winland is now running and starts with Windows. The build is unsigned, so if SmartScreen stops it, choose **More info** › **Run anyway**.
+```powershell
+irm https://raw.githubusercontent.com/dante-sparras/winland/main/scripts/install.ps1 | iex
+```
+
+It asks whether Winland should run as administrator and whether to turn off Windows Snap, then installs Winland and starts it. Winland starts with Windows from then on.
+
+To install by hand, download `Winland-win-x64.zip` from [Releases](https://github.com/dante-sparras/winland/releases), unzip it and run `winland\winland.exe install`.
+
+## Update
+
+```powershell
+winland update
+```
 
 ## Hotkeys
 
@@ -79,15 +90,13 @@ Winland is now running and starts with Windows. The build is unsigned, so if Sma
 
 Alt+Tab, Win+L, Win+E, Win+Space and Win+Shift+S still do what Windows does.
 
-Tip: turn off **Snap windows** (Settings › System › Multitasking) so Windows doesn't fight Winland over the Win+Arrow keys.
-
 ## Important files
 
 `%USERPROFILE%\.winland\winland.conf` is your config. Every hotkey above is in it, and you can change them there. Winland writes it the first time it starts, with comments, and reloads it whenever you save. Right-click the tray icon to open it.
 
 ## Uninstall
 
-Remove Winland from Settings › Apps, or run `winland uninstall`. The `%USERPROFILE%\.winland` folder is kept, and `winland uninstall --purge` removes it.
+Remove Winland from Settings › Apps, or run `winland uninstall`. The `%USERPROFILE%\.winland` folder is kept, and `winland uninstall --purge` removes it. Uninstalling also turns back on any Windows setting the installer turned off.
 
 ## Credits
 
