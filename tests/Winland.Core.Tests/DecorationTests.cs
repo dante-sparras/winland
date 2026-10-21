@@ -42,8 +42,9 @@ public class DecorationTests
 
         Assert.Equal(DecorationOptions.Documented, options);
         Assert.Equal(new BorderColor(0xFF, 0xFF, 0xFF, 0xFF), options.ActiveBorder);
-        Assert.Equal(new BorderColor(0xFF, 0x44, 0x44, 0x44), options.InactiveBorder);
-        Assert.Equal(0, options.Rounding);
+        Assert.Equal(new BorderColor(0xFF, 0x40, 0x40, 0x40), options.InactiveBorder);
+        Assert.False(options.ActiveBorderSet);
+        Assert.Equal(8, options.Rounding);
         Assert.Equal(2f, options.RoundingPower);
         Assert.True(options.Blur);
         Assert.Equal(1f, options.ActiveOpacity);

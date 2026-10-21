@@ -207,3 +207,4 @@ CreateIconIndirect
 DestroyIcon
 CreateBitmap
 ChangeWindowMessageFilterEx
+DwmGetColorizationColor

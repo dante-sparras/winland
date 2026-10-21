@@ -7,10 +7,10 @@ internal static partial class OptionCatalog
 {
     private static readonly ConfigDocument Empty = new([], [], []);
 
-    private static bool TryValue(string name, ConfigDocument document, out string kind, out string token)
+    private static bool TryValue(string name, ConfigDocument document, BorderColor? accent, out string kind, out string token)
     {
         var layout = LayoutOptions.From(document);
-        var decoration = DecorationOptions.From(document);
+        var decoration = DecorationOptions.From(document).WithAccent(accent);
         var scrolling = ScrollingOptions.From(document);
         var session = SessionOptions.From(document);
         var input = InputOptions.From(document);

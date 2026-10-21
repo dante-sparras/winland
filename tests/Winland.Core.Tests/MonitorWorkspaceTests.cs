@@ -308,7 +308,7 @@ public class MonitorWorkspaceTests
         Assert.Empty(outcome.Show);
         Assert.Empty(outcome.Hide);
         Assert.Empty(outcome.State.Hidden);
-        Assert.Equal(new BorderColor(0xFF, 0x44, 0x44, 0x44), Border(outcome, 1).Border);
+        Assert.Equal(new BorderColor(0xFF, 0x40, 0x40, 0x40), Border(outcome, 1).Border);
         Assert.Equal(new BorderColor(0xFF, 0xFF, 0xFF, 0xFF), Border(outcome, 2).Border);
         Assert.Equal(
             [
@@ -359,7 +359,7 @@ public class MonitorWorkspaceTests
         Assert.Contains(outcome.State.Hidden, client => client.Window == new WindowId(1) && client.Workspace == new WorkspaceId("1"));
         Assert.DoesNotContain(outcome.State.Hidden, client => client.Window == new WindowId(2));
         Assert.Equal(new MonitorId(1), Workspace(outcome, "3").Monitor);
-        Assert.Equal(new BorderColor(0xFF, 0x44, 0x44, 0x44), Border(outcome, 1).Border);
+        Assert.Equal(new BorderColor(0xFF, 0x40, 0x40, 0x40), Border(outcome, 1).Border);
         Assert.Equal(new BorderColor(0xFF, 0xFF, 0xFF, 0xFF), Border(outcome, 2).Border);
         Assert.Equal(
             [
@@ -418,7 +418,7 @@ public class MonitorWorkspaceTests
         Assert.Empty(outcome.Hide);
         Assert.Empty(outcome.State.Hidden);
         Assert.Equal(new BorderColor(0xFF, 0xFF, 0xFF, 0xFF), Border(outcome, 1).Border);
-        Assert.Equal(new BorderColor(0xFF, 0x44, 0x44, 0x44), Border(outcome, 2).Border);
+        Assert.Equal(new BorderColor(0xFF, 0x40, 0x40, 0x40), Border(outcome, 2).Border);
         Assert.Equal(
             [
                 "movewindow>>1,2",
@@ -461,8 +461,8 @@ public class MonitorWorkspaceTests
         Assert.Empty(outcome.Show);
         Assert.Empty(outcome.Hide);
         Assert.Empty(outcome.State.Hidden);
-        Assert.Equal(new BorderColor(0xFF, 0x44, 0x44, 0x44), Border(outcome, 1).Border);
-        Assert.Equal(new BorderColor(0xFF, 0x44, 0x44, 0x44), Border(outcome, 2).Border);
+        Assert.Equal(new BorderColor(0xFF, 0x40, 0x40, 0x40), Border(outcome, 1).Border);
+        Assert.Equal(new BorderColor(0xFF, 0x40, 0x40, 0x40), Border(outcome, 2).Border);
         Assert.Equal(
             ["movewindow>>1,2", "movewindowv2>>1,2,2", "activewindow>>,", "activewindowv2>>"],
             Lines(outcome));

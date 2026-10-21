@@ -156,11 +156,11 @@ internal static partial class OptionCatalog
     private static CatalogOption Weight(string name, string description, long value = 400) =>
         new(name, description, CatalogKind.Weight) { Integer = value };
 
-    public static string Describe(string name, ConfigDocument? config)
+    public static string Describe(string name, ConfigDocument? config, BorderColor? accent = null)
     {
         ArgumentNullException.ThrowIfNull(name);
         var document = config ?? Empty;
-        if (TryValue(name, document, out var kind, out var token))
+        if (TryValue(name, document, accent, out var kind, out var token))
             return Honored(name, kind, token, InSettings(document, name));
 
         if (!ByName.TryGetValue(name, out var spec))

@@ -381,9 +381,9 @@ public class ConfigSyntaxTests
         var decoration = DecorationOptions.From(document);
 
         Assert.Empty(document.Warnings);
-        Assert.Equal(EdgeInsets.Uniform(5), layout.GapsIn);
-        Assert.Equal(EdgeInsets.Uniform(20), layout.GapsOut);
-        Assert.Equal(1, layout.BorderSize);
+        Assert.Equal(EdgeInsets.Uniform(4), layout.GapsIn);
+        Assert.Equal(EdgeInsets.Uniform(8), layout.GapsOut);
+        Assert.Equal(2, layout.BorderSize);
         Assert.Equal(0, layout.ForceSplit);
         Assert.False(layout.PreserveSplit);
         Assert.False(layout.SmartSplit);
@@ -393,8 +393,8 @@ public class ConfigSyntaxTests
         Assert.Equal(1, layout.DefaultSplitRatio);
         Assert.Equal(0, layout.SplitBias);
         Assert.Equal(new BorderColor(0xFF, 0xFF, 0xFF, 0xFF), decoration.ActiveBorder);
-        Assert.Equal(new BorderColor(0xFF, 0x44, 0x44, 0x44), decoration.InactiveBorder);
-        Assert.Equal(0, decoration.Rounding);
+        Assert.Equal(new BorderColor(0xFF, 0x40, 0x40, 0x40), decoration.InactiveBorder);
+        Assert.Equal(8, decoration.Rounding);
         Assert.Equal(2f, decoration.RoundingPower);
         Assert.True(decoration.Blur);
     }

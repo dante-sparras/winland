@@ -4,12 +4,12 @@ internal static partial class OptionCatalog
 {
     private static readonly CatalogOption[] Table =
     [
-        Int("general:border_size", "size of the border around windows", 1, min: 0, max: 20),
-        Css("general:gaps_in", "gaps between windows", 5),
-        Css("general:gaps_out", "gaps between windows and monitor edges", 20),
+        Int("general:border_size", "size of the border around windows", 2, min: 0, max: 20),
+        Css("general:gaps_in", "gaps between windows", 4),
+        Css("general:gaps_out", "gaps between windows and monitor edges", 8),
         Css("general:float_gaps", "gaps between windows and monitor edges for floating windows", 0),
         Int("general:gaps_workspaces", "gaps between workspaces. Stacks with gaps_out.", 0, min: 0, max: 100),
-        Color("general:col.inactive_border", "border color for inactive windows", 0xff444444),
+        Color("general:col.inactive_border", "border color for inactive windows", 0xff404040),
         Color("general:col.active_border", "border color for the active window", 0xffffffff),
         Color("general:col.nogroup_border", "inactive border color for window that cannot be added to a group", 0xffffaaff),
         Color("general:col.nogroup_border_active", "active border color for window that cannot be added to a group", 0xffff00ff),
@@ -27,7 +27,7 @@ internal static partial class OptionCatalog
         Bool("general:modal_parent_blocking", "if true, parent windows of modals will not be interactive.", true),
         Bool("general:hide_taskbar", "hide the taskbar and set it to auto-hide, so windows tile into the space it reserved", false),
         Bool("general:tray_icon", "show the focused workspace's number in the notification area", true),
-        Int("decoration:rounding", "rounded corners' radius (in layout px)", 0, min: 0, max: 100),
+        Int("decoration:rounding", "rounded corners' radius (in layout px)", 8, min: 0, max: 100),
         Float("decoration:rounding_power", "rounding power of corners (2 is a circle)", 2f, min: 1f, max: 10f),
         Float("decoration:active_opacity", "opacity of active windows.", 1f, min: 0f, max: 1f),
         Float("decoration:inactive_opacity", "opacity of inactive windows.", 1f, min: 0f, max: 1f),
