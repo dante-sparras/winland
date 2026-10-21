@@ -4,10 +4,13 @@ A keyboard-driven tiling window manager for Windows 11.
 
 ## Install
 
-1. Download `Winland-win-x64.zip` from [Releases](https://github.com/dante-sparras/winland/releases) and unzip it.
-2. Run `winland\winland.exe install` and approve the prompt.
+Open PowerShell and run:
 
-Winland is now running and starts with Windows. The build is unsigned, so if SmartScreen stops it, choose **More info** › **Run anyway**.
+```powershell
+irm https://raw.githubusercontent.com/dante-sparras/winland/main/scripts/install.ps1 | iex
+```
+
+To install by hand, download `Winland-win-x64.zip` from [Releases](https://github.com/dante-sparras/winland/releases), unzip it and run `winland\winland.exe install`.
 
 ## Hotkeys
 
@@ -77,17 +80,67 @@ Winland is now running and starts with Windows. The build is unsigned, so if Sma
 | Win+C / Win+V / Win+X / Win+A | Copy / paste / cut / select all |
 | Win+Ctrl+V | Clipboard history |
 
-Alt+Tab, Win+L, Win+E, Win+Space and Win+Shift+S still do what Windows does.
-
-Tip: turn off **Snap windows** (Settings › System › Multitasking) so Windows doesn't fight Winland over the Win+Arrow keys.
-
 ## Important files
 
-`%USERPROFILE%\.winland\winland.conf` is your config. Every hotkey above is in it, and you can change them there. Winland writes it the first time it starts, with comments, and reloads it whenever you save. Right-click the tray icon to open it.
+Everything Winland keeps for you is in `%USERPROFILE%\.winland`.
 
-## Uninstall
+| File | What it is |
+| --- | --- |
+| `winland.conf` | Your config, with every hotkey above. Winland writes it the first time it starts, with comments, and reloads it whenever you save. Right-click the tray icon to open it |
+| `winland.log` | What Winland did and any errors. Right-click the tray icon to open it |
+| `state.json` | The windows Winland hid and the workspace of each, so a crash brings them back |
+| `windows-settings.json` | The Windows settings the installer turned off, so uninstall can turn them back on |
+| `taskbar.marker` | Only there while `general:hide_taskbar` hides the taskbar, so a crash still brings it back |
 
-Remove Winland from Settings › Apps, or run `winland uninstall`. The `%USERPROFILE%\.winland` folder is kept, and `winland uninstall --purge` removes it.
+## CLI
+
+### winland
+
+| Command | Does |
+| --- | --- |
+| `winland` | Start Winland |
+| `winland --config <file>` | Start Winland with that `.conf` file in place of your config |
+| `winland install` | Install for this PC, running as administrator. Asks for one approval |
+| `winland install --user` | Install for you only, without administrator rights |
+| `winland update` | Update to the newest release |
+| `winland uninstall` | Remove Winland, turn back on any Windows setting the installer turned off, and keep the `.winland` folder |
+| `winland uninstall --purge` | Remove Winland and the `.winland` folder |
+| `winland tweaks --off` | Turn off Windows Snap, and remember how it was |
+| `winland tweaks --off --touchpad` | Also turn off the three- and four-finger touchpad swipes |
+
+### winlandctl
+
+`winlandctl` talks to the running Winland.
+
+| Command | Does |
+| --- | --- |
+| `winlandctl dispatch <name> [args]` | Run a Dispatcher, such as `winlandctl dispatch workspace 2` |
+| `winlandctl reload` | Read the config again |
+| `winlandctl keyword <name> <value>` | Change one option until the next reload |
+| `winlandctl getoption <name>` | Show an option's value |
+| `winlandctl clients` | List the windows Winland manages |
+| `winlandctl activewindow` | Show the focused window |
+| `winlandctl workspaces` | List the workspaces |
+| `winlandctl activeworkspace` | Show the focused workspace |
+| `winlandctl workspacerules` | List the workspace rules |
+| `winlandctl monitors [all]` | List the monitors. `all` includes disabled ones |
+| `winlandctl layouts` | List the layouts |
+| `winlandctl binds` | List the hotkeys |
+| `winlandctl configerrors` | List the config's warnings |
+| `winlandctl getprop <window> <property>` | Show a window property |
+| `winlandctl setprop <window> <property> <value>` | Set a window property |
+| `winlandctl cursorpos` | Show the pointer position |
+| `winlandctl locked` | Show whether the PC is locked |
+| `winlandctl kill` | Click a window to end its program. Escape cancels |
+| `winlandctl version` | Show the version |
+| `winlandctl events` | Print every event as it happens, one per line |
+| `winlandctl --batch "<command>; <command>"` | Run several commands in one go |
+
+| Flag | Does |
+| --- | --- |
+| `-j` | Answer in JSON |
+| `-r` | Lay the windows out again after the command |
+| `-a` | With `clients`, include every window |
 
 ## Credits
 
