@@ -2,10 +2,10 @@ namespace Winland;
 
 /// <summary>
 /// A Layout a config's script arranges, such as one <c>hl.layout.register</c> makes, named <c>lua:NAME</c>. It keeps the
-/// tiled Clients in order, appending each new one as the pinned release does, and asks <see cref="ILayoutScripts"/> for
+/// tiled Clients in order, appending each new one as Winland does, and asks <see cref="ILayoutScripts"/> for
 /// their boxes whenever the order or the tiling area changes. The answer comes later, through <c>layoutplace</c>, since
 /// the script never runs inside the core's lock (ADR 0013). Until it comes the Clients keep the boxes they had, and when
-/// one has none yet, or the script failed, every tile takes a cell of an even grid, as the pinned release falls back.
+/// one has none yet, or the script failed, every tile takes a cell of an even grid, as Winland falls back.
 /// </summary>
 internal sealed partial class ScriptedLayout : Layout
 {

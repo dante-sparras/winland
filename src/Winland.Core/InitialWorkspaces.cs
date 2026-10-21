@@ -2,7 +2,7 @@ namespace Winland;
 
 /// <summary>
 /// <c>misc:initial_workspace_tracking</c>: the Workspace each program Winland starts was started on, so its window opens
-/// there, as the pinned release's initial workspace token does. A token is held by the started process and every process
+/// there, as Winland's initial workspace token does. A token is held by the started process and every process
 /// it starts. With tracking 1 the first window that opens uses the token up. With 2 every window of the process tree
 /// opens where the first one is now, until that first window closes.
 /// </summary>
@@ -86,7 +86,7 @@ internal sealed class InitialWorkspaces
         return null;
     }
 
-    /// <summary>A persistent token goes when the first window that used it closes, as in the pinned release.</summary>
+    /// <summary>A persistent token goes when the first window that used it closes.</summary>
     internal void Closed(WindowId window) =>
         _tokens.RemoveAll(token => token.Owner == window);
 

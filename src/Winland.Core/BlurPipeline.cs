@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// The blur options the pinned release's dual Kawase blur reads: <c>decoration:blur:size</c>, <c>passes</c>, <c>noise</c>,
+/// The blur options Winland's dual Kawase blur reads: <c>decoration:blur:size</c>, <c>passes</c>, <c>noise</c>,
 /// <c>contrast</c>, <c>brightness</c>, <c>vibrancy</c> and <c>vibrancy_darkness</c>. The defaults are the release's.
 /// </summary>
 public sealed record BlurTuning
@@ -26,7 +26,7 @@ public sealed record BlurTuning
 }
 
 /// <summary>
-/// The pinned release's blur on the CPU, for a picture that does not change often: the contrast and brightness
+/// Winland's blur on the CPU, for a picture that does not change often: the contrast and brightness
 /// preparation (<c>blurprepare</c>), the dual Kawase down passes (<c>blur1</c>, with vibrancy) and up passes
 /// (<c>blur2</c>), and the noise and brightness finish (<c>blurFinish</c>). The picture is opaque 0xAARRGGBB pixels. The
 /// intermediate pictures are 8 bits a channel in the release's framebuffers, so the prepared picture is rounded to 8 bits.

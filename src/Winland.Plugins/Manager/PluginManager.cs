@@ -381,7 +381,7 @@ public sealed class PluginManager(
         }
     }
 
-    // The notification icons the pinned release numbers 3, an error, and 5, done.
+    // The notification icons Winland numbers 3, an error, and 5, done.
     private const int NotifyError = 3;
 
     private const int NotifyOk = 5;

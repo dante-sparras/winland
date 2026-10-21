@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// The glow Winland draws inside one Client's edge, as the pinned release draws it, in screen pixels: strongest at the
+/// The glow Winland draws inside one Client's edge, as Winland draws it, in screen pixels: strongest at the
 /// window's edge and falling to nothing <see cref="Range"/> pixels in at <see cref="Power"/>, inside corners of
 /// <see cref="Rounding"/> pixels. <see cref="Alpha"/> is the window's opacity.
 /// </summary>
@@ -107,7 +107,7 @@ public static class GlowPainter
 
     /// <summary>
     /// How much of the glow's color shows at <paramref name="px"/>, <paramref name="py"/> in the window, from 0 to 1, as the
-    /// pinned release's inner glow shader works it out: nothing outside the rounded window, and otherwise
+    /// inner glow shader works it out: nothing outside the rounded window, and otherwise
     /// <c>(1 - distance / range) ^ render_power</c> of a distance to the edges smoothed round the corners.
     /// </summary>
     public static double Strength(double px, double py, int boxWidth, int boxHeight, InnerGlow glow)

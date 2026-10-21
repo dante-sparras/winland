@@ -1,7 +1,7 @@
 namespace Winland.Windows;
 
 /// <summary>
-/// The pinned release's dual Kawase blur on the shared Direct3D device: prepare, down passes with vibrancy, up passes, and
+/// Winland's dual Kawase blur on the shared Direct3D device: prepare, down passes with vibrancy, up passes, and
 /// the noise finish. The intermediate pictures are 32-bit floats so they follow <see cref="BlurPipeline"/>. The caller holds
 /// the device gate, except <see cref="GpuPictureBlur"/>, which takes it.
 /// </summary>

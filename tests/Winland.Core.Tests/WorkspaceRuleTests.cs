@@ -223,7 +223,7 @@ public class WorkspaceRuleTests
         Assert.DoesNotContain(third.State.Workspaces, workspace => workspace.Id == new WorkspaceId("2") && workspace.Persistent);
     }
 
-    // As the pinned release's source reads it: f[1] has a maximized Client and f[0] a fullscreen
+    // As Winland's source reads it: f[1] has a maximized Client and f[0] a fullscreen
     // one, whatever the client mode. f[2] tests nothing there, so it matches every Workspace.
     [Theory]
     [InlineData("1", "fullscreen", "1", true)]

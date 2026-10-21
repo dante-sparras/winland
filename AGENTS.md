@@ -1,15 +1,15 @@
 # Winland
 
-Winland is a Windows 11 window manager that matches the features and behavior of a pinned Hyprland release wherever Windows allows. It is not packaged as MSIX.
+Winland is a tiling window manager for Windows 11. It manages windows on top of Explorer and DWM. It is not packaged as MSIX.
 
 ## Setup
 
-Run `pwsh scripts/dev.ps1` once after cloning. It clones the pinned release (<https://github.com/hyprwm/Hyprland>, commit `e2d94f5`, after v0.56.2; ADR 0008) into `docs/agents/hyprland/`, fetches its wiki into `docs/agents/hyprland/site/`, and points git at the hooks in `scripts/hooks`. Read the reference behavior there.
+Run `pwsh scripts/dev.ps1` once after cloning. It points git at the hooks in `scripts/hooks`.
 
 ## Domain
 
 - `CONTEXT.md` is the glossary and `docs/adr/` holds decisions. See `docs/agents/domain.md`.
-- Code, identifiers, file names and user-visible strings call the reference "the pinned release". The word "hyprland" never appears in them (ADR 0002).
+- Option and Dispatcher names are Winland's, documented in `docs/behavior.md` (ADR 0002).
 
 ## Workflow
 
@@ -20,11 +20,7 @@ Run `pwsh scripts/dev.ps1` once after cloning. It clones the pinned release (<ht
 
 ## Records
 
-Each record has one home, and tests hold them in step:
-
-- A Gap is a row in `docs/gaps.md` and an entry in `src/Winland.Core/ConfigGaps.cs`. A test checks that they agree.
-- A Winland extension is in `docs/extensions.md`, and honored behavior is in `docs/behavior.md`.
-- A change that makes a skipped conformance case pass removes its Skip and updates its row and the score in `docs/conformance.md`. A test checks that they agree.
+How Winland behaves is in `docs/behavior.md`. An unknown keyword warns and is skipped.
 
 ## Running a build on this computer
 

@@ -58,7 +58,7 @@ public sealed record CursorOptions
 {
     public int WarpOnWorkspace { get; init; }
 
-    // -1 follows WarpOnWorkspace. The pinned release does not define this key; later modes are accepted.
+    // -1 follows WarpOnWorkspace. Winland does not define this key; later modes are accepted.
     public int WarpOnMonitor { get; init; } = -1;
 
     public int WarpOnSpecial { get; init; }

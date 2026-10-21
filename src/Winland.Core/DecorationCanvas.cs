@@ -2,7 +2,7 @@ namespace Winland;
 
 /// <summary>
 /// A window's shadow, border and glow painted into one picture, so that a window drawn with wobble or motion blur bends and
-/// smears them with it, as the pinned release draws a window's decorations with the window. <see cref="Box"/> is where the
+/// smears them with it, as Winland draws a window's decorations with the window. <see cref="Box"/> is where the
 /// picture goes, from the window's top left corner, and <see cref="Pixels"/> are its rows of premultiplied BGRA.
 /// </summary>
 public sealed class DecorationCanvas

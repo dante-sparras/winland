@@ -23,7 +23,7 @@ internal static class LayoutFactory
     public static Layout Create(ConfigDocument? config) => Create(config, null, null);
 
     /// <summary>
-    /// Creates the Layout for a Workspace whose rule may name one, as the pinned release picks it: the rule's
+    /// Creates the Layout for a Workspace whose rule may name one, as Winland picks it: the rule's
     /// <c>layout</c>, or else <c>general:layout</c>. A name that is no Layout uses dwindle. A name a plugin registered
     /// is a <see cref="ScriptedLayout"/> that plugin arranges. A <c>lua:NAME</c> the config registered is one that
     /// <paramref name="scripts"/> arranges.
@@ -63,7 +63,7 @@ internal static class LayoutFactory
     /// Resolves a <c>general:layout</c> value. <c>dwindle</c>, <c>master</c>, <c>monocle</c>,
     /// <c>scrolling</c>, and a missing name select a Layout and return no warning. A missing name
     /// selects dwindle. A <c>lua:NAME</c> also selects dwindle without a warning here, as a name no script registered does
-    /// in the pinned release, and so does a layout a plugin registered. Any other value keeps the dwindle Layout and
+    /// in Winland, and so does a layout a plugin registered. Any other value keeps the dwindle Layout and
     /// returns a warning.
     /// </summary>
     public static LayoutFallback Fallback(string? name)

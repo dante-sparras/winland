@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace Winland.Tests.Conformance;
 
-/// <summary>The pinned release's color management case. The test is named after its case, and sends the same commands.</summary>
+/// <summary>Winland's color management case. The test is named after its case, and sends the same commands.</summary>
 [Trait("Category", "Conformance")]
 public class ColorsConformance
 {

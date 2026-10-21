@@ -50,7 +50,7 @@ public sealed record TouchSettings
 
     /// <summary>
     /// <c>input:touchdevice:output</c>. Empty, <c>[[EMPTY]]</c> and <c>[[Auto]]</c> keep the display Windows maps the touch screen to.
-    /// <c>[[Auto]]</c> is the pinned release's unfinished autodetect, which on Windows is that display.
+    /// <c>[[Auto]]</c> is Winland's unfinished autodetect, which on Windows is that display.
     /// </summary>
     public string Output { get; init; } = "";
 }
@@ -92,7 +92,7 @@ public sealed record DigitizerOptions
         return options;
     }
 
-    // 0 to 6, as the pinned release clamps a transform. A value that is not an integer leaves the previous one.
+    // 0 to 6, as Winland clamps a transform. A value that is not an integer leaves the previous one.
     private static bool TryTransform(string text, out int transform)
     {
         if (!int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out transform))

@@ -23,7 +23,7 @@ public sealed record TouchpadBehavior(double ScrollFactor, double? WheelFactor, 
     /// <summary>
     /// What a wheel turn is multiplied by. A touchpad's is <c>scroll_factor</c>, less the <c>input:scroll_factor</c>
     /// Windows' wheel lines already apply to it. Another wheel's is 1, except that a touchpad <c>scroll_factor</c> of 0
-    /// stops every wheel, as the pinned release takes every axis event as the touchpad's then.
+    /// stops every wheel, as Winland takes every axis event as the touchpad's then.
     /// </summary>
     public double WheelScale(bool touchpad) => WheelScale(touchpad, default);
 

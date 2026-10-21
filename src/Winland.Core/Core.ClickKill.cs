@@ -19,7 +19,7 @@ public sealed partial class Core
         return new CommandReply("ok", View([]));
     }
 
-    // The next click ends the program of the Client under it, as the pinned release's kill mode does, and Escape gives up.
+    // The next click ends the program of the Client under it, as Winland's kill mode does, and Escape gives up.
     // Either way the mode ends.
     private Outcome ChooseKill(ClickKillChosen chosen)
     {

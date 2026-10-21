@@ -34,7 +34,7 @@ public readonly record struct BindDecision(bool Consumed, string? Dispatcher, st
 
     /// <summary>
     /// The key was swallowed because every bind that consumes it is auto-consuming. The hook replays the key when
-    /// every such dispatcher fails, as the pinned release passes the event when the dispatcher does not succeed.
+    /// every such dispatcher fails, as Winland passes the event when the dispatcher does not succeed.
     /// </summary>
     public bool PassesOnFailure { get; init; }
 
@@ -56,7 +56,7 @@ public static class BindMatcher
         ["Shift_L"] = Modifier.Shift,
         ["Shift_R"] = Modifier.Shift,
 
-        // The lock and level keys, while they are held, as the pinned release reads the depressed modifiers.
+        // The lock and level keys, while they are held, as Winland reads the depressed modifiers.
         ["Caps_Lock"] = Modifier.Caps,
         ["Num_Lock"] = Modifier.Mod2,
         ["ISO_Level3_Shift"] = Modifier.Mod5,
@@ -214,7 +214,7 @@ public static class BindMatcher
 
         // A long press has not fired yet, so it does not consume the chord on the way down. A bind held back for a
         // longer chord, and a chord this key started, do. An auto-consuming bind does not, until it is invoked: the
-        // pinned release claims a partial match only when it is not auto-consuming, and a deferred press always claims.
+        // Winland claims a partial match only when it is not auto-consuming, and a deferred press always claims.
         var now = Classify(immediate);
         var later = Classify(deferred);
         var hard = now.Hard || later.Hard || heldBack > 0 || claims;
@@ -328,7 +328,7 @@ public static class BindMatcher
         return decision with { DisarmLongPress = true };
     }
 
-    // As the pinned release does after a caught press, which skips the key just pressed, and after every release: a
+    // As Winland does after a caught press, which skips the key just pressed, and after every release: a
     // release bind on one key that a held key fully matches is shadowed, so it does not run when that key is released.
     // With "bindr = ALT, Alt_L" and "bind = ALT, P", Alt+P does not also run the release bind.
     private static BindDecision Shadow(BindTable table, BindSession session, BindDecision decision, string? excluded)
@@ -642,7 +642,7 @@ public static class BindMatcher
         session.Held &= ~modifier;
     }
 
-    // On release the pinned release compares the modifiers the key went down under, with the released key's own
+    // On release Winland compares the modifiers the key went down under, with the released key's own
     // modifier added, so "bindr = SUPER, Super_L" runs when Super is let go and "bindr = , Super_L" does not, and
     // "bindr = SUPER, K" runs when Super is let go before K.
     private static bool ModifiersMatch(Bind bind, BindSession session, string key, bool mouse, bool releasing)
@@ -708,7 +708,7 @@ public static class BindMatcher
 
     private readonly record struct ChordMatches(List<Bind> Immediate, int HeldBack, bool Claims);
 
-    // A key press as the pinned release resolves it. A bind on several keys matches the held keys in the order they went
+    // A key press as Winland resolves it. A bind on several keys matches the held keys in the order they went
     // down: full once its last key completes them, partial while the press extends a prefix of it. A single key is full
     // when pressed and partial while it is held under another key. A full bind that a longer partial chord could still
     // extend waits for its key's release, and one a longer full chord covers does not run. A partial chord consumes the

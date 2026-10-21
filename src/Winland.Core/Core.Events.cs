@@ -294,7 +294,7 @@ public sealed partial class Core
         }
     }
 
-    // A hidden workspace is not read, as the pinned release skips a hidden window. A member waiting in a group is
+    // A hidden workspace is not read, as Winland skips a hidden window. A member waiting in a group is
     // still on the shown workspace, so it is read. A pinned Client stays shown on every workspace of its monitor.
     private static bool RulesAreRead(State state, Client client)
     {
@@ -447,7 +447,7 @@ public sealed partial class Core
         return map;
     }
 
-    // The reason of the focus this input left, as the pinned release reports the last reason for that window.
+    // The reason of the focus this input left, as Winland reports the last reason for that window.
     private FocusReason ReasonFor(Input? input, Outcome outcome, Captured before, WindowId? after)
     {
         if (input is WindowFocused focused)

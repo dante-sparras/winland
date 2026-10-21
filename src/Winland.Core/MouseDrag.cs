@@ -135,7 +135,7 @@ internal sealed class MouseDrag
     }
 
     // Where a lifted tile is held along one axis: its middle, or the point where the drag began in the tile, at the same
-    // fraction of the lifted size, as the pinned release maps the grab point.
+    // fraction of the lifted size, as Winland maps the grab point.
     private static int Hotspot(bool center, int offset, int tileSize, int liftedSize)
     {
         if (center || tileSize <= 0)

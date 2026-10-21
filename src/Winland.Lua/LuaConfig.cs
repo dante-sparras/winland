@@ -50,7 +50,7 @@ public sealed record LuaTranslation(
 /// </summary>
 public static class LuaConfig
 {
-    /// <summary>How long a config may run as it loads before it is stopped, in seconds of processor time, as in the pinned release.</summary>
+    /// <summary>How long a config may run as it loads before it is stopped, in seconds of processor time.</summary>
     public const double Budget = 1.5;
 
     /// <summary>The dispatcher a bind that calls a Lua function names, with the function's id. It is Winland's own.</summary>
@@ -122,7 +122,7 @@ public static class LuaConfig
 // callback never raises a Lua error: it notes a warning and returns, because an error would unwind past managed frames.
 internal sealed partial class LuaRun : IDisposable
 {
-    // The events hl.on knows, named as the pinned release names them with Winland's own name for its start and shutdown.
+    // The events hl.on knows, named as Winland names them with Winland's own name for its start and shutdown.
     // window.bell, screenshare.state, layer.opened and layer.closed are accepted and never raised. Windows does not
     // report a window ringing the bell or a screenshare starting, and it has no layer surfaces.
     private static readonly string[] Events =
@@ -406,7 +406,7 @@ internal sealed partial class LuaRun : IDisposable
         return false;
     }
 
-    // The option a Lua path names. The pinned release names an option in Lua by its name with ':' as '.' and '-' as
+    // The option a Lua path names. Winland names an option in Lua by its name with ':' as '.' and '-' as
     // '_', so a "col" part joins the next with a '.' again, and the three names with a '-' get it back.
     internal static string OptionName(string path)
     {
@@ -688,7 +688,7 @@ internal sealed partial class LuaRun : IDisposable
     }
 
     // require("a.b") reads a/b.lua, or a/b/init.lua, from the config's folder. A path, one that starts with ./, ../,
-    // ~/, / or a drive, reads that file, or the file with .lua added, or its init.lua, as the pinned release does.
+    // ~/, / or a drive, reads that file, or the file with .lua added, or its init.lua.
     private int RequireModule(IntPtr state)
     {
         var name = _lua.IsString(1) ? _lua.ToString(1, false) : "";
@@ -745,7 +745,7 @@ internal sealed partial class LuaRun : IDisposable
         return 1;
     }
 
-    // A file a wildcard matched failed as it ran: the config warns where it failed and runs on, as in the pinned release.
+    // A file a wildcard matched failed as it ran: the config warns where it failed and runs on.
     private int RequireFailed(IntPtr state)
     {
         var problem = _lua.ToString(1, false);
@@ -757,7 +757,7 @@ internal sealed partial class LuaRun : IDisposable
         return 0;
     }
 
-    // A name require reads as a path rather than a module name: the pinned release's /, ./, ../ and ~/, and the same
+    // A name require reads as a path rather than a module name: Winland's /, ./, ../ and ~/, and the same
     // with a backslash, and a drive.
     internal static bool IsPath(string name) =>
         name.StartsWith('/') || name.StartsWith('\\')

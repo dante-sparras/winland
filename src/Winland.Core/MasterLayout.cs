@@ -117,7 +117,7 @@ internal sealed partial class MasterLayout : Layout
         _focused = window;
         if (!tiled)
         {
-            // It would have been sized for the tile it was given, so it floats at that size, as in the pinned release.
+            // It would have been sized for the tile it was given, so it floats at that size.
             if (predicted is Rectangle size)
                 placed = FloatedLimits.Centered(new SizeLimits(minSize, maxSize), size, _area);
 

@@ -166,7 +166,7 @@ internal sealed partial class ScrollingLayout
     }
 
     // A tile that is not pseudo keeps its border inside the aspect padding. A pseudo tile is centered in the gapped
-    // tile first, then loses its border, as the pinned release does.
+    // tile first, then loses its border.
     private Rectangle CellBox(ClientId id, double x, double y, double width, double height)
     {
         if (!_pseudo.IsOn(id))

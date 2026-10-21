@@ -53,7 +53,7 @@ public sealed partial class Core
         return _gesture.PickedUp ? PickUp(window, _gesture, pointer) : [];
     }
 
-    // A Client picked up while fullscreen or maximized leaves that mode first, as in the pinned release. A floating one
+    // A Client picked up while fullscreen or maximized leaves that mode first. A floating one
     // is then put under the pointer: by its middle with binds:drag_center_window, and otherwise at the same fraction
     // of the window as where the fullscreen surface was grabbed. The drag starts from there.
     private IReadOnlyList<Placement> PickUp(WindowId window, Gesture gesture, Point pointer)
@@ -105,7 +105,7 @@ public sealed partial class Core
     {
         var gesture = _gesture!;
         _gesture = null;
-        // The Group under the pointer is found while the dragged window is still lifted, as in the pinned release.
+        // The Group under the pointer is found while the dragged window is still lifted.
         var drop = gesture.PickedUp && !gesture.Resize ? GroupDrop(gesture.Window, gesture.WasTiled, pointer) : null;
         if (drop is null && gesture.PickedUp && !gesture.Resize && DropOnMonitor(gesture, pointer) is { } carried)
             return carried;
@@ -157,7 +157,7 @@ public sealed partial class Core
         return null;
     }
 
-    // While a floating window is dragged, the pinned release gives it the Workspace the Monitor under its middle shows,
+    // While a floating window is dragged, Winland gives it the Workspace the Monitor under its middle shows,
     // the special one when that is open, on each move. A lifted tile stays floating so the drag can continue, and drops
     // into that Layout when the button is released. Null when the middle is already on the window's own Workspace.
     private Outcome? FollowDraggedMonitor(Gesture gesture) => MoveWithMonitor(gesture, settle: false, pointer: default);
@@ -236,7 +236,7 @@ public sealed partial class Core
             source.Drag.HandTo(target.Drag);
     }
 
-    // The pointer shape while a drag holds a window, as the pinned release overrides it: grabbing for a move, and for a
+    // The pointer shape while a drag holds a window, as Winland overrides it: grabbing for a move, and for a
     // resize the corner that is grabbed, which general:resize_corner forces on a floating window.
     private string DragCursor(LiveWorkspace desk, WindowId window, bool resize, Point pointer)
     {
@@ -249,7 +249,7 @@ public sealed partial class Core
         return BorderPointer.Cursor(BorderPointer.GrabbedSide(left, top))!;
     }
 
-    // group:drag_into_group, as the pinned release ends a window drag. A window dropped on a Group's tab bar joins that
+    // group:drag_into_group, as Winland ends a window drag. A window dropped on a Group's tab bar joins that
     // Group at the tab under the pointer, and one dropped on a member joins after the current member. A dragged Group
     // brings every member. A floating window does not join a tiled Group, except on its tab bar with
     // group:merge_floated_into_tiled_on_groupbar.
@@ -287,7 +287,7 @@ public sealed partial class Core
         return new DropTarget(home, group, null);
     }
 
-    // The pinned release's canBeGroupedInto for a drag: no lock on either Group or on all Groups, no rule that denies
+    // Winland's canBeGroupedInto for a drag: no lock on either Group or on all Groups, no rule that denies
     // the window, and a dragged Group only with group:merge_groups_on_drag.
     private bool CanDragInto(LiveWorkspace from, WindowId dragged, WindowGroup target)
     {
@@ -350,7 +350,7 @@ public sealed partial class Core
 
     /// <summary>
     /// Whether a mouse bind's drag pressed at <paramref name="pointer"/> would take a window. The mouse hook asks before
-    /// it keeps the press, since the pinned release lets the press through when no window is there. It never waits:
+    /// it keeps the press, since Winland lets the press through when no window is there. It never waits:
     /// with the core busy it answers true, and the press is kept.
     /// </summary>
     public bool HasDragTarget(Point pointer)
@@ -368,13 +368,13 @@ public sealed partial class Core
         }
     }
 
-    // A press whose only action is a drag, which with no window under the pointer the pinned release lets through.
+    // A press whose only action is a drag, which with no window under the pointer Winland lets through.
     private static bool OnlyDrag(BindDecision match) => DispatchesOf(match).All(dispatch => dispatch.Dispatcher.Length == 0 || IsDragDispatcher(dispatch));
 
     private static bool Inside(Rectangle box, Point point) =>
         point.X >= box.X && point.X < box.X + box.Width && point.Y >= box.Y && point.Y < box.Y + box.Height;
 
-    // A window that closes ends any drag that holds it, as the pinned release ends its drag target on unmap.
+    // A window that closes ends any drag that holds it, as Winland ends its drag target on unmap.
     private void ForgetDrag(WindowId window)
     {
         if (_nativeMove == window)
@@ -397,7 +397,7 @@ public sealed partial class Core
     }
 
     // resizewindow 1 keeps the aspect ratio and 2 never keeps it. Without either, the window's keep_aspect_ratio rule or
-    // property decides, as in the pinned release.
+    // property decides.
     private bool KeepsRatio(WindowId window, string arguments)
     {
         var mode = int.TryParse(arguments.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;

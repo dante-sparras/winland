@@ -1,6 +1,6 @@
 namespace Winland;
 
-// Fullscreen and maximized tiles the scrolling Layout lays out itself, as the pinned release's scrolling Layout does.
+// Fullscreen and maximized tiles the scrolling Layout lays out itself, as Winland's scrolling Layout does.
 // Such a tile has a column of its own, as wide as the Monitor when fullscreen and as the view when maximized, and it
 // stays on the tape. It covers the Workspace while its column fills the view, and scrolls away with the tape.
 internal sealed partial class ScrollingLayout
@@ -151,7 +151,7 @@ internal sealed partial class ScrollingLayout
         cell.Box = box;
     }
 
-    // A held tile that shares its column, after a consume or a move, leaves fullscreen as in the pinned release. One
+    // A held tile that shares its column, after a consume or a move, leaves fullscreen. One
     // that floats or leaves the tape is no longer the Layout's to hold.
     private void SyncFullscreen()
     {

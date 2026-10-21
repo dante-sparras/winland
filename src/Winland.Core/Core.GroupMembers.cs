@@ -66,7 +66,7 @@ public sealed partial class Core
         var wasActive = _active == window;
         desk.Leave(group, window, out _);
 
-        // The member that takes the slot does not inherit the closed member's mode, as in the pinned release, which
+        // The member that takes the slot does not inherit the closed member's mode, which
         // ends that mode before the window leaves its Group.
         if (wasShown && mode != FullscreenMode.None && desk.ClientOf(group.Shown) is { Fullscreen: not FullscreenMode.None })
             desk.Layout.SetFullscreen(group.Shown, FullscreenMode.None, FullscreenMode.None);
@@ -78,7 +78,7 @@ public sealed partial class Core
         IReadOnlyList<Placement>? retained = null;
         if (wasActive)
         {
-            // As in the pinned release, the member focused most recently takes the focus, and so is shown.
+            // the member focused most recently takes the focus, and so is shown.
             focus = returned ?? RecentMember(group) ?? group.Shown;
             if (focus != group.Shown && group.Members.IndexOf(focus.Value) is var index and >= 0)
                 _ = desk.Show(group, index);

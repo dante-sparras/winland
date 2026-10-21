@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// The <c>move</c> and <c>resize</c> gestures, as the pinned release plays them on the focused window. A floating
+/// The <c>move</c> and <c>resize</c> gestures, as Winland plays them on the focused window. A floating
 /// window moves with the fingers, and any window resizes from the corner nearest the pointer, as a mouse drag would.
 /// A tiled window shifts with the fingers, at most 100 pixels, and when they lift moves one place in the direction
 /// they went.

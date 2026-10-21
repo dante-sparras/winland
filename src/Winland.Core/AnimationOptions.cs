@@ -80,7 +80,7 @@ public sealed class AnimationOptions
         if (!leaf.Enabled || !_book.TryCurve(leaf.Curve, out var curve))
             return null;
 
-        // Speed is in deciseconds. A spring runs until it settles, whatever the speed, as in the pinned release.
+        // Speed is in deciseconds. A spring runs until it settles, whatever the speed.
         return curve is SpringCurve spring ? new Timing(spring, spring.Milliseconds) : new Timing(curve, leaf.Speed * 100);
     }
 

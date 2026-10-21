@@ -29,7 +29,7 @@ public class BorderRingTests
         Assert.Equal(1, BorderPainter.Coverage(50, 1, 100, 100, ring));
         Assert.Equal(14, ring.OuterRadius, 6);
 
-        // A flatter corner gives some of the outer radius back, as the pinned release's correction does.
+        // A flatter corner gives some of the outer radius back, as Winland's correction does.
         Assert.True(new BorderRing(BorderGradient.Of(Cyan), 4, 10, 1, 255).OuterRadius < 14);
     }
 

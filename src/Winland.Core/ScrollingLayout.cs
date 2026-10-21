@@ -310,7 +310,7 @@ internal sealed partial class ScrollingLayout : Layout
 
     public void NotePointerFocus(WindowId window) => Follow(window, pointer: true);
 
-    // The strip follows the focus with scrolling:follow_focus. As in the pinned release, scrolling:follow_min_visible
+    // The strip follows the focus with scrolling:follow_focus. scrolling:follow_min_visible
     // holds it back only for focus the pointer gives, so a dispatcher, a click or a Group change always follows.
     private void Follow(WindowId window, bool pointer)
     {

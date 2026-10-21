@@ -73,7 +73,7 @@ internal static class GroupBarPainter
             if (!style.Gradients)
                 continue;
 
-            // The pinned release fills the title row with a vertical gradient of the tab's colors, rounded on its own.
+            // Winland fills the title row with a vertical gradient of the tab's colors, rounded on its own.
             var row = bar.TitleBounds(i);
             var colors = style.GradientColors(active, bar.Locked);
             var rowCorners = BarShapes.Rounded(order, count, style.GradientRounding, style.GradientRoundOnlyEdges);

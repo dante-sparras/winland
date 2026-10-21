@@ -40,8 +40,6 @@ public static class ExtraCommands
             return Exact(rest, new SubmapRequest(), flags, out parse);
         if (Is(verb, "animations"))
             return Exact(rest, new AnimationsRequest(), flags, out parse);
-        if (Is(verb, "descriptions"))
-            return Exact(rest, new DescriptionsRequest(), flags, out parse);
         if (Is(verb, "kill"))
             return Exact(rest, new ClickKillRequest(), flags, out parse);
         if (Is(verb, "rollinglog"))
@@ -151,7 +149,7 @@ public static class ExtraCommands
     {
         ArgumentNullException.ThrowIfNull(payload);
 
-        // As the pinned release splits a batch: at every ;, with \; for a ; and \\ for a \ in a command. A backslash
+        // As Winland splits a batch: at every ;, with \; for a ; and \\ for a \ in a command. A backslash
         // before anything else stays, and each command is trimmed, an empty one too.
         var commands = new List<string>();
         var command = new StringBuilder();
@@ -195,7 +193,7 @@ public static class ExtraCommands
             "",
             []));
 
-    // The pinned release's JSON form is this bracketed key, as it writes it.
+    // Winland's JSON form is this bracketed key, as it writes it.
     public static string FormatRollingLog(string log, bool json) =>
         json ? "[\n\"log\":\"" + JsonText(log) + "\"]" : log;
 
@@ -205,7 +203,7 @@ public static class ExtraCommands
         return escaped[1..^1];
     }
 
-    // The plain form is "x, y", as in the pinned release.
+    // The plain form is "x, y".
     public static string FormatCursor(Point point, bool json) => json
         ? string.Create(CultureInfo.InvariantCulture, $"{{\"x\":{point.X},\"y\":{point.Y}}}")
         : string.Create(CultureInfo.InvariantCulture, $"{point.X}, {point.Y}");
@@ -213,7 +211,7 @@ public static class ExtraCommands
     public static string FormatLocked(bool locked) =>
         locked ? "{\"locked\":true}" : "{\"locked\":false}";
 
-    /// <summary>The submap binds run in, as the pinned release answers <c>submap</c>: <c>default</c> outside one.</summary>
+    /// <summary>The submap binds run in, as Winland answers <c>submap</c>: <c>default</c> outside one.</summary>
     public static string FormatSubmap(string submap, bool json)
     {
         var name = submap.Length == 0 ? "default" : submap;
@@ -457,8 +455,6 @@ public sealed record LayoutsRequest : CommandRequest;
 public sealed record SubmapRequest : CommandRequest;
 
 public sealed record AnimationsRequest : CommandRequest;
-
-public sealed record DescriptionsRequest : CommandRequest;
 
 public sealed record ClickKillRequest : CommandRequest;
 

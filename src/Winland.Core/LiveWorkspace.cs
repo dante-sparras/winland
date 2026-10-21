@@ -78,13 +78,13 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
 
     /// <summary>
     /// Whether a Client's fullscreen or maximized mode covers this Workspace. One its Layout holds fullscreen
-    /// covers only while it fills the view, as the pinned release's scrolling Layout reports it.
+    /// covers only while it fills the view, as Winland's scrolling Layout reports it.
     /// </summary>
     public bool IsCovering(Client client) =>
         client.Fullscreen != FullscreenMode.None && (!client.LayoutFullscreen || Layout.FullscreenCovers(client.Window));
 
     /// <summary>
-    /// The Clients a <c>w[]</c> workspace selector counts, as the pinned release does. A Group counts by its
+    /// The Clients a <c>w[]</c> workspace selector counts. A Group counts by its
     /// first member's pin and its shown member's tile and visibility. A waiting member is not a Client
     /// of the Layout, so a Group is one Client without <see cref="WindowCount.Groups"/>. Under a covering
     /// Client only that Client and pinned ones are visible.
@@ -225,7 +225,7 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
 
     /// <summary>
     /// Takes a Client out of the Layout to move it to another Workspace, with its fullscreen modes,
-    /// which <see cref="Receive"/> puts back as the pinned release does.
+    /// which <see cref="Receive"/> puts back.
     /// </summary>
     public bool Take(WindowId window, out Taken taken)
     {

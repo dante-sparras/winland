@@ -74,7 +74,7 @@ public sealed record TrackpadGesture(
     public bool IsResize => Action == ResizeAction;
 
     /// <summary>
-    /// How far close must travel, as the pinned release measures it: a fifth of 200 pixels for close and of 250 for
+    /// How far close must travel, as Winland measures it: a fifth of 200 pixels for close and of 250 for
     /// float and fullscreen. A dispatcher runs at any distance.
     /// </summary>
     internal double ReleaseDistance => Action switch
@@ -170,7 +170,7 @@ public enum GesturePhase
 /// One phase of a swipe that a <c>luafunction</c> gesture took, for the host to hand the Lua config's function
 /// numbered <paramref name="Function"/>. A start and an update carry the fingers and the delta of the update that
 /// made them, and an end whether it was cancelled. A start and an update have the direction the fingers took, and an
-/// end the configured one, as in the pinned release.
+/// end the configured one.
 /// </summary>
 public sealed record GestureCall(
     string Function,

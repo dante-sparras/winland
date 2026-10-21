@@ -467,7 +467,7 @@ public sealed class MouseHook : IDisposable
         }
 
         // input:rotation: the mouse's move turns about where the cursor is. input:touchpad:flip_x and flip_y then turn
-        // the touchpad's move around, as the pinned release flips the touchpad's motion after libinput rotated it.
+        // the touchpad's move around, as Winland flips the touchpad's motion after libinput rotated it.
         // A device that sets sensitivity or rotation defers that turn until the raw packet names the mouse.
         var touchpad = _core.Touchpad;
         var fingers = TouchpadFingers.Moves(Environment.TickCount64);
@@ -544,7 +544,7 @@ public sealed class MouseHook : IDisposable
         _keys.NoteTiming(decision);
         if (TryDrag(decision, out var dispatcher, out var arguments))
         {
-            // With no window under the pointer the press goes on to whatever is there, as the pinned release lets it
+            // With no window under the pointer the press goes on to whatever is there, as Winland lets it
             // through, when the drag is all the bind does.
             if (_keys.Drag.Current is null && OnlyDrag(decision) && !_core.HasDragTarget(position))
             {

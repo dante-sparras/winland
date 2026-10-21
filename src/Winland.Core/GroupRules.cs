@@ -28,7 +28,7 @@ public enum GroupRuleFlags
 internal static class GroupRules
 {
     /// <summary>
-    /// Reads the space-separated options of a <c>group</c> rule the way the pinned release does.
+    /// Reads the space-separated options of a <c>group</c> rule the way Winland does.
     /// An empty value is the manual's shorthand for <c>set</c>.
     /// </summary>
     public static GroupRuleFlags Parse(string? text)

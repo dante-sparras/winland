@@ -43,7 +43,7 @@ internal sealed partial class LiveWorkspace
     }
 
     /// <summary>
-    /// Ends a Group. The last member keeps the tile, as the pinned release does, and the others are
+    /// Ends a Group. The last member keeps the tile, as Winland does, and the others are
     /// returned in member order to be added back to the Layout.
     /// </summary>
     public List<(WindowId Window, Taken Taken)> EndGroup(WindowGroup group)

@@ -38,7 +38,7 @@ public sealed partial class Core
             next.Add(screen);
         }
 
-        // While no Monitor is enabled the pinned release keeps the Workspaces on a FALLBACK Monitor, and gives them back
+        // While no Monitor is enabled Winland keeps the Workspaces on a FALLBACK Monitor, and gives them back
         // when one comes back.
         if (next.Count > 0 && !next.Exists(screen => screen.Effective.Enabled))
             next.Add(FindNamed(previous, FallbackName) ?? new LiveMonitor(NextMonitorId(previous, next), Fallback, Fallback));
@@ -62,7 +62,7 @@ public sealed partial class Core
         EnsurePersistent();
         PlaceBound();
         AssignActives(enabled);
-        // An empty Workspace a Monitor took from one that left is hidden there, so it goes, as in the pinned release,
+        // An empty Workspace a Monitor took from one that left is hidden there, so it goes,
         // and the Monitor that comes back does not show it again.
         DropEmpty();
         RefitAll();
@@ -80,7 +80,7 @@ public sealed partial class Core
         };
     }
 
-    // As in the pinned release, each Workspace of a Monitor that goes away moves intact onto the first
+    // each Workspace of a Monitor that goes away moves intact onto the first
     // Monitor that remains, where it is hidden unless that Monitor shows nothing. When the Monitor
     // comes back, its Workspaces move back and it shows the Workspace it showed when it left.
     private void Relocate(List<LiveMonitor> wasEnabled, List<LiveMonitor> enabled)
@@ -209,7 +209,7 @@ public sealed partial class Core
                 claimed.Remove(preferred);
             }
 
-            // An empty persistent Workspace is not what a Monitor shows when it comes, as in the pinned release, which
+            // An empty persistent Workspace is not what a Monitor shows when it comes, which
             // makes those after the Monitor picks one.
             LiveWorkspace? own = null;
             foreach (var desk in _workspaces)

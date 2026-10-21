@@ -18,7 +18,7 @@ public sealed partial class Core
         if (WorkspaceContaining(id) is not LiveWorkspace desk)
             return Rejected(name, "error: no such window", allowsElevation);
 
-        // A window shadowed by a modal refuses the focus, though its Workspace is still shown, as in the pinned release.
+        // A window shadowed by a modal refuses the focus, though its Workspace is still shown.
         if (BlockedByModal(id))
         {
             return IsShown(desk.Id)
@@ -92,7 +92,7 @@ public sealed partial class Core
         var placements = desk.Layout.ToggleFloating(id);
         _pinned.Remove(id);
 
-        // A window that floats is raised, and so allowed over a fullscreen one, as in the pinned release.
+        // A window that floats is raised, and so allowed over a fullscreen one.
         if (want)
             SetOverFullscreen(id, true);
 
@@ -150,7 +150,7 @@ public sealed partial class Core
         if (ActiveWindow() is not WindowId current || WorkspaceContaining(current) is not LiveWorkspace home)
             return Rejected(name, "error: No window to swap with", allowsElevation);
 
-        // The pinned release's answers, in its order.
+        // Winland's answers, in its order.
         if (Find(current) is { Fullscreen: not FullscreenMode.None })
             return Rejected(name, "error: Can't swap fullscreen window", allowsElevation);
 
@@ -330,7 +330,7 @@ public sealed partial class Core
         return WindowSelector.Find(text, ActiveWindow(), clients);
     }
 
-    // Every Client a window selector can find, a swallowed one too, as in the pinned release.
+    // Every Client a window selector can find, a swallowed one too.
     private List<Client> EveryClient()
     {
         var clients = new List<Client>();

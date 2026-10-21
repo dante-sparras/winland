@@ -4,7 +4,7 @@ using Winland;
 namespace Winland.Tests.Conformance;
 
 /// <summary>
-/// The pinned release's special workspace swipe cases. Each test is named after its case, and sends the same swipes
+/// Winland's special workspace swipe cases. Each test is named after its case, and sends the same swipes
 /// in the same order. The reference drives a special workspace gesture object through its test plugin; here that is
 /// a three-finger horizontal <c>special</c> gesture, and each step is a core swipe event. The plugin's fixture makes
 /// the special workspace on the focused Monitor and shows it when the case asks; here the fixture shows it with

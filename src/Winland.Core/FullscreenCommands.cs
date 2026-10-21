@@ -17,7 +17,7 @@ internal readonly record struct FullscreenTarget(FullscreenMode Internal, Fullsc
 /// <c>fullscreen</c> and <c>fullscreenstate</c> arguments.
 /// The first <c>fullscreen</c> argument selects maximize only for <c>1</c>, <c>maximize</c>, or <c>maximized</c>.
 /// Every other argument, including <c>0</c> and <c>2</c>, selects fullscreen. The second argument is <c>toggle</c>, <c>set</c>, or <c>unset</c>.
-/// A last word <c>default</c> asks for the default fullscreen, as the pinned release's <c>layout_aware = false</c> does.
+/// A last word <c>default</c> asks for the default fullscreen, as Winland's <c>layout_aware = false</c> does.
 /// </summary>
 internal static class FullscreenCommands
 {
@@ -66,7 +66,7 @@ internal static class FullscreenCommands
     /// <summary>
     /// <c>-1</c> keeps the current mode. Any other value is clamped to 0, 1, or 2.
     /// The same pair as the Client already has turns both modes off. A kept mode is the
-    /// current one in that comparison, as in the pinned release, so <c>-1 -1</c> turns both off.
+    /// current one in that comparison, so <c>-1 -1</c> turns both off.
     /// </summary>
     /// <summary>
     /// The window selector after <c>fullscreenstate INTERNAL CLIENT [ACTION]</c>, or empty for the focused Client.
@@ -105,7 +105,7 @@ internal static class FullscreenCommands
     /// <summary>
     /// The modes <c>fullscreenstate INTERNAL CLIENT [set|toggle|unset] [WINDOW]</c> leaves the Client in. A mode of -1
     /// is the current one. Without an action, the pair the Client already has turns both modes off, and any other pair is
-    /// set. The actions are the pinned release's: set applies the pair unless the Client has it, toggle turns each mode off
+    /// set. The actions are Winland's: set applies the pair unless the Client has it, toggle turns each mode off
     /// that already has its value and sets the other, and unset turns both off when the Client has the pair.
     /// </summary>
     internal static FullscreenTarget ResolveState(string arguments, FullscreenMode currentInternal, FullscreenMode currentClient)

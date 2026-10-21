@@ -21,14 +21,14 @@ public sealed partial class Core
         return outcome;
     }
 
-    // The pinned release answers an application's maximize request with maximize mode 1, whichever window has focus.
+    // Winland answers an application's maximize request with maximize mode 1, whichever window has focus.
     // Asking again, which is what the maximize button of a maximized window does, leaves it.
     private Outcome MaximizeRequest(WindowId window)
     {
         if (WorkspaceContaining(window) is not LiveWorkspace desk || desk.ClientOf(window) is not Client client)
             return View([]);
 
-        // The request of a window that showed maximized was made before it mapped, which the pinned release ignores.
+        // The request of a window that showed maximized was made before it mapped, which Winland ignores.
         // The system's maximized state is already undone, so the window goes back where its Layout holds it.
         if (_shownMaximized.Remove(window))
         {

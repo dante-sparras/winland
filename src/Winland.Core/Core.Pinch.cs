@@ -1,9 +1,9 @@
 namespace Winland;
 
 /// <summary>
-/// Touchpad pinches, as the pinned release matches them: a pinch picks a gesture once its fingers have spread or
+/// Touchpad pinches, as Winland matches them: a pinch picks a gesture once its fingers have spread or
 /// closed by a tenth, <c>pinchin</c> when they spread and <c>pinchout</c> when they close, and any action then runs
-/// from it as from a swipe. Its travel is the change of the pinch's scale, as the pinned release counts it.
+/// from it as from a swipe. Its travel is the change of the pinch's scale, as Winland counts it.
 /// </summary>
 public sealed partial class Core
 {

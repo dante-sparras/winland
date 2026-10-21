@@ -36,19 +36,19 @@ public static partial class CommandProtocol
             case ClientRetitled retitled:
                 lines.Add("windowtitle>>" + EventAddress(retitled.Window));
                 lines.Add($"windowtitlev2>>{EventAddress(retitled.Window)},{Clean(retitled.Title)}");
-                // A new title of the focused window is told again as the active window, as in the pinned release.
+                // A new title of the focused window is told again as the active window.
                 if (retitled.Active)
                     AppendFocus(lines, new FocusChanged(retitled.Window), state);
                 break;
             case ClientReclassed reclassed:
-                // The pinned release has no windowclass event. A new class of the focused window is told again as
+                // Winland has no windowclass event. A new class of the focused window is told again as
                 // the active window.
                 if (reclassed.Active)
                     AppendFocus(lines, new FocusChanged(reclassed.Window), state);
                 break;
             case ClientRulesUpdated:
             case MonitorLayoutChanged:
-                // The pinned release tells window.update_rules and monitor.layout_changed to the config only.
+                // Winland tells window.update_rules and monitor.layout_changed to the config only.
                 break;
             case ClientKilled killed:
                 lines.Add("kill>>" + EventAddress(killed.Window));

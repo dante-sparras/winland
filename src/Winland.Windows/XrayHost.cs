@@ -8,7 +8,7 @@ using Windows.Win32.UI.WindowsAndMessaging;
 namespace Winland.Windows;
 
 /// <summary>
-/// Draws the blurred wallpaper under each translucent Client when <c>decoration:blur:xray</c> is on, as the pinned release
+/// Draws the blurred wallpaper under each translucent Client when <c>decoration:blur:xray</c> is on, as Winland
 /// draws its precomputed blur: one click-through layered window per Client, just below it in the z-order and cut to its
 /// frame and corners. The wallpaper of each monitor is read, fitted as Windows shows it and blurred once on a worker
 /// thread, and again when the wallpaper, the monitor layout or the blur options change. The layers go away with this

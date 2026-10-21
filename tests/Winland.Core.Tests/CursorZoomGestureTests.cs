@@ -2,7 +2,7 @@ using Winland;
 
 namespace Winland.Tests;
 
-/// <summary>The cursorZoom gesture changes the cursor zoom as the pinned release's does.</summary>
+/// <summary>The cursorZoom gesture changes the cursor zoom as Winland's does.</summary>
 public class CursorZoomGestureTests
 {
     [Fact]

@@ -2,7 +2,7 @@ namespace Winland.Windows;
 
 /// <summary>
 /// <c>cursor:warp_back_after_non_mouse_input</c>: once something other than the mouse has moved the cursor, the next
-/// mouse move starts from where the mouse last left it, as in the pinned release. Winland's own warps, touch, a pen and
+/// mouse move starts from where the mouse last left it. Winland's own warps, touch, a pen and
 /// moves another program injects are not the mouse.
 /// </summary>
 public sealed class WarpBack

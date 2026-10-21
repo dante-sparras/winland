@@ -9,7 +9,7 @@ public sealed record DimAround(WindowId Window, Rectangle Monitor, double Alpha)
 public sealed partial class Core
 {
     // The dim_around property draws a black layer over the window's Monitor just below it, at decoration:dim_around times
-    // the window's opacity, as the pinned release renders it. A window that is not shown dims nothing.
+    // the window's opacity, as Winland renders it. A window that is not shown dims nothing.
     private List<DimAround> DimsAround(State state, IReadOnlyList<Decoration> decorations)
     {
         var dims = new List<DimAround>();

@@ -1,6 +1,6 @@
 namespace Winland;
 
-// Window rules that match on a window's state, such as float:0 or workspace:w[tv1]. The pinned release matches the
+// Window rules that match on a window's state, such as float:0 or workspace:w[tv1]. Winland matches the
 // property effects of its rules again whenever a window's state changes, so these follow the window as it floats,
 // gains focus, goes fullscreen, joins a Group or moves between Workspaces.
 public sealed partial class Core
@@ -97,7 +97,7 @@ public sealed partial class Core
         return placements;
     }
 
-    // The pinned release reads a window's rules when it opens with the tags its rules give it and the Workspace it
+    // Winland reads a window's rules when it opens with the tags its rules give it and the Workspace it
     // opens on, so a rule with a state match, such as float, tag:x or workspace:name:x, applies then too. The
     // window is not yet floating, focused, pinned, fullscreen or in a Group. Where it opens stays as first decided.
     private WindowDecision DecideAtOpen(WindowTraits traits, IReadOnlyList<WindowRule> rules, WindowDecision decision, LiveWorkspace desk, bool modal)
@@ -143,7 +143,7 @@ public sealed partial class Core
             IsModal(client.Window));
     }
 
-    /// <summary><c>tagwindow tag [window]</c> applies a static tag to the window, or the focused one, as in the pinned release.</summary>
+    /// <summary><c>tagwindow tag [window]</c> applies a static tag to the window, or the focused one.</summary>
     private Outcome TagWindow(string arguments, bool allowsElevation)
     {
         const string name = "tagwindow";
@@ -165,7 +165,7 @@ public sealed partial class Core
     }
 
     /// <summary>
-    /// <c>cleartags [window]</c> takes every tag off the window, or the focused one, as the pinned release's clear_tags
+    /// <c>cleartags [window]</c> takes every tag off the window, or the focused one, as Winland's clear_tags
     /// does. The rules are matched again, so a tag a rule gives comes back.
     /// </summary>
     private Outcome ClearTags(string arguments, bool allowsElevation)

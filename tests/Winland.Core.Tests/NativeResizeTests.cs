@@ -23,7 +23,7 @@ public class NativeResizeTests
         Assert.Equal(new Rectangle(1060, 0, 860, 1080), BoundsOf(ended, 2));
     }
 
-    // A client's resize request is a live resizewindow drag in the pinned release, so the neighbour follows
+    // A client's resize request is a live resizewindow drag in Winland, so the neighbour follows
     // the border while it is held. The system sizes the window itself, so the core does not place it.
     [Fact]
     public void TheNeighbourFollowsTheBorderWhileItIsHeld()

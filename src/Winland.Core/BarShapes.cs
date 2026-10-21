@@ -12,7 +12,7 @@ public enum Corners
     All = TopLeft | TopRight | BottomLeft | BottomRight,
 }
 
-/// <summary>The shapes and gradient of the tab bar, as the pinned release draws them.</summary>
+/// <summary>The shapes and gradient of the tab bar, as Winland draws them.</summary>
 public static class BarShapes
 {
     private const int Samples = 4;

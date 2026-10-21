@@ -276,7 +276,7 @@ public static class KeyNames
         return true;
     }
 
-    // code:N, and a bare number above 9, as the pinned release reads a keycode. 0 to 9 are digit keys.
+    // code:N, and a bare number above 9, as Winland reads a keycode. 0 to 9 are digit keys.
     private static bool TryCode(string text, out string code)
     {
         code = "";

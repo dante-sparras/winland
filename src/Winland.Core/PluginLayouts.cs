@@ -83,7 +83,7 @@ public static class PluginLayouts
             return Scripts.TryGetValue(name, out scripts!);
     }
 
-    // Built-in tiled layouts and the floating layout, which the pinned release also refuses as a plugin name.
+    // Built-in tiled layouts and the floating layout, which Winland also refuses as a plugin name.
     private static bool Reserved(string name)
     {
         foreach (var built in LayoutFactory.Names)

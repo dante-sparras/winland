@@ -80,7 +80,7 @@ internal static class GroupBarHost
     }
 
     /// <summary>
-    /// The window was raised or shown, so the bar of the Group it shows goes just above it again, as the pinned release
+    /// The window was raised or shown, so the bar of the Group it shows goes just above it again, as Winland
     /// draws the bar with its window.
     /// </summary>
     internal static void Follow(WindowId window)

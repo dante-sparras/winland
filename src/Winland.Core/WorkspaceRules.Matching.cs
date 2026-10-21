@@ -20,7 +20,7 @@ internal static partial class WorkspaceRules
         if (IsPositive(selector, out var number))
             return id.TryGetNumber(out var current) && current == number;
 
-        // As the pinned release's filter reads them: name: and a bare token compare the address of a
+        // As Winland's filter reads them: name: and a bare token compare the address of a
         // normal, non-numbered Workspace, never its display name, and special compares a special one's.
         if (selector.StartsWith("name:", StringComparison.Ordinal))
         {
@@ -95,7 +95,7 @@ internal static partial class WorkspaceRules
         return true;
     }
 
-    // As the pinned release's source tests it: -1 nothing covers the Workspace, 0 a fullscreen Client
+    // As Winland's source tests it: -1 nothing covers the Workspace, 0 a fullscreen Client
     // covers it, whatever its client mode, and 1 a maximized one. Any other number tests nothing there.
     private static bool MatchFullscreen(int wanted, FullscreenMode covering) => wanted switch
     {

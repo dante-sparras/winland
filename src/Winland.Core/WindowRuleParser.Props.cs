@@ -4,7 +4,7 @@ namespace Winland;
 
 internal static partial class WindowRuleParser
 {
-    // Window rule effects that set a window property and nothing else, as the pinned release's dynamic effects do.
+    // Window rule effects that set a window property and nothing else, as Winland's dynamic effects do.
     // Those Winland already gives an effect of their own, such as no_focus or opacity, keep it.
     private static readonly HashSet<string> BoolProps = new(StringComparer.Ordinal)
     {
@@ -71,7 +71,7 @@ internal static partial class WindowRuleParser
         return false;
     }
 
-    // The pinned release's border_color: two colors are active and inactive, and otherwise the colors up to the first
+    // Winland's border_color: two colors are active and inactive, and otherwise the colors up to the first
     // angle are the active gradient and the rest the inactive one.
     private static bool TryParseBorderColor(string? argument, out IReadOnlyDictionary<string, object>? props, out string error)
     {

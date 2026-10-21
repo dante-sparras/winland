@@ -118,7 +118,6 @@ jobs:
         run: |
           if ($env:EVENT_NAME -ne 'pull_request') {
             "test=true" >> $env:GITHUB_OUTPUT
-            "reference=true" >> $env:GITHUB_OUTPUT
             Write-Output 'test lane: true (fail open)'
             exit 0
           }
@@ -129,18 +128,10 @@ jobs:
           $test = if ($code.Count -gt 0) { 'true' } else { 'false' }
           "test=$test" >> $env:GITHUB_OUTPUT
           Write-Output "test lane: $test"
-          # scripts/fetch-reference.cs is a developer script nothing else uses. It is built only when it,
-          # or something it compiles from, changed.
-          $inputs = '^(scripts/fetch-reference\.cs|global\.json|nuget\.config|\.editorconfig|Directory\.(Build|Packages)\.(props|targets))$'
-          $reference = if (@($files | Where-Object { $_ -cmatch $inputs }).Count -gt 0) { 'true' } else { 'false' }
-          "reference=$reference" >> $env:GITHUB_OUTPUT
-          Write-Output "reference script build: $reference"
       - name: Run lint
         shell: pwsh
-        env:
-          SKIP_REFERENCE: ${{ steps.classify.outputs.reference != 'true' }}
         run: |
-          if ($env:SKIP_REFERENCE -eq 'true') { ./scripts/check.ps1 -SkipReference } else { ./scripts/check.ps1 }
+          ./scripts/check.ps1
           exit $LASTEXITCODE
       # actionlint is pinned by version and SHA-256. To upgrade, take both from the
       # release's actionlint_<version>_checksums.txt (windows_amd64 zip).

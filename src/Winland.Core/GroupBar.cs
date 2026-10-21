@@ -24,7 +24,7 @@ public sealed record GroupBar(WindowId Shown, Rectangle Bounds, IReadOnlyList<Gr
         : Math.Max(0, (Bounds.Width - (Style.GapsIn * (Tabs.Count - 1))) / Tabs.Count);
 
     /// <summary>
-    /// Where tab <paramref name="index"/> comes in the order the pinned release draws the tabs: left to right, or from
+    /// Where tab <paramref name="index"/> comes in the order Winland draws the tabs: left to right, or from
     /// the bottom up when stacked. Its rounding follows that order.
     /// </summary>
     public int DrawOrder(int index) => Style.Stacked ? Tabs.Count - 1 - index : index;
@@ -52,7 +52,7 @@ public sealed record GroupBar(WindowId Shown, Rectangle Bounds, IReadOnlyList<Gr
         if (Tabs.Count == 0 || x < 0 || y < 0 || x >= Bounds.Width || y >= Bounds.Height)
             return -1;
 
-        // A stacked bar is cut into rows of the pinned release's bar height plus gaps_out, with that gap at each row's top.
+        // A stacked bar is cut into rows of Winland's bar height plus gaps_out, with that gap at each row's top.
         if (Style.Stacked)
         {
             var row = RowStep;
@@ -76,7 +76,7 @@ public sealed record GroupBar(WindowId Shown, Rectangle Bounds, IReadOnlyList<Gr
 
     /// <summary>
     /// The place a window dropped at <paramref name="pointer"/>, in screen pixels, joins: the tab after the one whose
-    /// middle it passed, as the pinned release counts it.
+    /// middle it passed, as Winland counts it.
     /// </summary>
     public int DropIndex(Point pointer)
     {
@@ -96,7 +96,7 @@ public sealed record GroupBar(WindowId Shown, Rectangle Bounds, IReadOnlyList<Gr
         return (relative < 0 || step <= 0 ? -1 : (int)(relative / step)) + 1;
     }
 
-    // The pinned release's stacked row: the bar height it divides the strip into, plus gaps_out.
+    // Winland's stacked row: the bar height it divides the strip into, plus gaps_out.
     private double RowStep =>
         Tabs.Count == 0 ? 0
         : (((Bounds.Height - (Style.GapsOut * (Style.KeepUpperGap ? 1 : 0))) - (Style.GapsOut * Tabs.Count)) / (double)Tabs.Count) + Style.GapsOut;

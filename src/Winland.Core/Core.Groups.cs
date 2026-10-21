@@ -97,7 +97,7 @@ public sealed partial class Core
     }
 
     // The wheel over a Group's tab bar shows the next or previous member, with group:groupbar:scrolling, and moves the focus
-    // only from a shown member that had it, as the pinned release's moveCurrent does.
+    // only from a shown member that had it, as Winland's moveCurrent does.
     private Outcome ScrollGroupBar(GroupBarScrolled scrolled)
     {
         if (!_groupOptions.Bar.Scrolling || WorkspaceContaining(scrolled.Shown) is not LiveWorkspace desk

@@ -45,7 +45,7 @@ public sealed partial class Core
             plan.Close(closing);
 
         // A window the pointer drags follows it at once, and the windows its Layout moves to make room for it, when it
-        // is lifted out or dropped, animate as in the pinned release. A mouse resize moves every window at once.
+        // is lifted out or dropped, animate. A mouse resize moves every window at once.
         if (_gesture is not { Resize: true } && _border is null && _nativeSize is null && !InstantResize(outcome, before))
         {
             var held = _gesture?.Window;
@@ -63,7 +63,7 @@ public sealed partial class Core
             return outcome;
         }
 
-        // A window with no_anim moves, fades and changes border color at once, as the pinned release warps it.
+        // A window with no_anim moves, fades and changes border color at once, as Winland warps it.
         var planned = FromSwipe(plan.Finish(_painted)).Where(motion => OwnProp(motion.Window, "no_anim") is not true).ToList();
         if (own.Count == 0)
             return outcome with { Motions = planned };
@@ -73,7 +73,7 @@ public sealed partial class Core
     }
 
     // A dwindle tile resized by resizeactive or resizewindowpixel, and the tiles that make room for it, move at once
-    // unless misc:animate_manual_resizes is on, as the pinned release's dwindle resize warps them. Master tiles and
+    // unless misc:animate_manual_resizes is on, as Winland's dwindle resize warps them. Master tiles and
     // floating Clients animate, as there.
     private bool InstantResize(Outcome outcome, State before)
     {
@@ -97,7 +97,7 @@ public sealed partial class Core
     }
 
     // A window's own animation style, from setprop or a window rule, replaces the windowsIn or windowsOut style it opens
-    // or closes with, as in the pinned release. Its curve and speed stay the node's.
+    // or closes with. Its curve and speed stay the node's.
     private string WindowStyleOf(WindowId window, string node) =>
         OwnProp(window, "animation") is string { Length: > 0 } own ? own : _animations.StyleOf(node);
 
@@ -247,7 +247,7 @@ public sealed partial class Core
             }
 
             // A Client going into or out of fullscreen mode 2 moves between its rectangle and the monitor's, as in the
-            // pinned release. One that stays fullscreen is put in place at once.
+            // Winland. One that stays fullscreen is put in place at once.
             var fullscreen = client.Fullscreen == FullscreenMode.Fullscreen;
             if (fullscreen && prior.Fullscreen == FullscreenMode.Fullscreen)
                 return;
@@ -332,7 +332,7 @@ public sealed partial class Core
             return _is.TryGetValue(window, out var client) ? client.Bounds : default;
         }
 
-        // The Workspace whose rule style the motion plays, as in the pinned release: the one switched to, for both the
+        // The Workspace whose rule style the motion plays: the one switched to, for both the
         // Workspace leaving and the one entering, and for a special workspace that hides, the special workspace that
         // replaces it on its Monitor, or itself.
         private bool TrySwitch(WorkspaceId workspace, bool entering, out string leaf, out bool left, out WorkspaceId styled)

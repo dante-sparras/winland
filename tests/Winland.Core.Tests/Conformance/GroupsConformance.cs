@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace Winland.Tests.Conformance;
 
-/// <summary>The pinned release's group cases. Each test is named after its case, and sends the same commands.</summary>
+/// <summary>Winland's group cases. Each test is named after its case, and sends the same commands.</summary>
 [Trait("Category", "Conformance")]
 public class GroupsConformance
 {

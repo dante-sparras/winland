@@ -255,7 +255,7 @@ public sealed record InputOptions
         ["4_finger"] = 2,
     };
 
-    // lrm or lmr, as the pinned release's validator allows. Empty is its default, lrm, which leaves Windows alone here.
+    // lrm or lmr, as Winland's validator allows. Empty is its default, lrm, which leaves Windows alone here.
     private static string? ParseTapMap(string text)
     {
         var map = text.Trim().ToLowerInvariant();

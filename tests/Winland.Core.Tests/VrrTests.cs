@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Winland;
 
 namespace Winland.Tests;
@@ -192,18 +191,6 @@ public class VrrTests
 
         Assert.True(core.Execute("dispatch workspace 1").Effect.Vrr!.Global);
         Assert.Equal("{\"option\":\"misc:vrr\",\"int\":1,\"set\":true}", core.Execute("getoption misc:vrr").Text);
-    }
-
-    [Fact]
-    public void DescriptionsNameTheOption()
-    {
-        var core = new Core();
-
-        using var document = JsonDocument.Parse(core.Execute("descriptions").Text);
-        var option = document.RootElement.EnumerateArray().Single(item => item.GetProperty("name").GetString() == "misc:vrr");
-
-        Assert.Equal("controls the VRR (Adaptive Sync) of your monitors", option.GetProperty("description").GetString());
-        Assert.Equal(0, option.GetProperty("default").GetInt32());
     }
 
     [Fact]

@@ -39,9 +39,9 @@ public class PointerDeviceTests
                 new ConfigWarning(12, "Unsupported keyword 'device:force_no_accel'."),
             ],
             document.Warnings);
-        Assert.True(ConfigWarnings.IsGapNotice("Unsupported keyword 'device:enabled'."));
-        Assert.False(ConfigWarnings.IsGapNotice("Unsupported keyword 'device:sensitivity'."));
-        Assert.False(ConfigWarnings.IsGapNotice("Unsupported keyword 'device:force_no_accel'."));
+        Assert.False(ConfigWarnings.SkipsTheErrorBar("Unsupported keyword 'device:enabled'."));
+        Assert.False(ConfigWarnings.SkipsTheErrorBar("Unsupported keyword 'device:sensitivity'."));
+        Assert.False(ConfigWarnings.SkipsTheErrorBar("Unsupported keyword 'device:force_no_accel'."));
     }
 
     [Fact]

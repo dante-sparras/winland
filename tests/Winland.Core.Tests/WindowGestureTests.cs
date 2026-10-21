@@ -2,7 +2,7 @@ using Winland;
 
 namespace Winland.Tests;
 
-/// <summary>The move and resize gestures act on the focused window, as the pinned release plays them.</summary>
+/// <summary>The move and resize gestures act on the focused window, as Winland plays them.</summary>
 public class WindowGestureTests
 {
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);

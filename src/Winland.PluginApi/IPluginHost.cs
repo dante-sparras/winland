@@ -28,7 +28,7 @@ public interface IPluginHost
 
     /// <summary>
     /// Registers a tiled layout under <paramref name="name"/>. <paramref name="create"/> makes one
-    /// <see cref="PluginLayout"/> for each workspace that selects the name, as the pinned release makes one algorithm
+    /// <see cref="PluginLayout"/> for each workspace that selects the name, as Winland makes one algorithm
     /// per workspace. <c>general:layout</c> and a workspace rule select it by that name.
     /// </summary>
     LayoutRegistration RegisterLayout(string name, Func<PluginLayout> create);

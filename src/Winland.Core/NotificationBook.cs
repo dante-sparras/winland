@@ -31,7 +31,7 @@ public sealed record NotificationRestore(
     int Locks,
     bool Gone);
 
-/// <summary>A notification color, read as the pinned release reads one: a number, or the strings its config accepts.</summary>
+/// <summary>A notification color, read as Winland reads one: a number, or the strings its config accepts.</summary>
 public static class NotificationColor
 {
     public static long Bits(BorderColor color) =>
@@ -567,7 +567,7 @@ public sealed class NotificationBook
             Locks,
             gone);
 
-        // As in the pinned release, the lock count rises before the elapsed time is read, so the read sees the frozen
+        // the lock count rises before the elapsed time is read, so the read sees the frozen
         // value: 0 for a first pause, and what the last pause kept after that. A resume then starts the timeout again
         // from that value.
         public void Pause(Func<long> clock)

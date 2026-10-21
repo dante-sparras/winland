@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// A Client the system resizes by its border. The pinned release treats the resize request of a client like a
+/// A Client the system resizes by its border. Winland treats the resize request of a client like a
 /// <c>resizewindow</c> drag, so a tiled Client changes its split, live, while the border is held. The system
 /// resizes the window itself, so the core never places that window in between: its neighbours follow the
 /// border, and the window gets the Layout's rectangle when the border is let go. A floating Client keeps the

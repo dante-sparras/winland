@@ -1,8 +1,8 @@
--- The objects and queries of a running config, with the field names and types of the pinned release. A window, a
+-- The objects and queries of a running config, with the field names and types of Winland. A window, a
 -- workspace, a monitor and a group are userdata that hold only what names them: a window's address, a workspace's
 -- address, a monitor's name, and for a group the address of the window it was read from. Each field is read when it is
 -- read, from Winland's query replies, which the runtime keeps until a dispatch runs or the call ends. An object whose
--- window, workspace or monitor is gone reads nil for every field, as an expired object does in the pinned release.
+-- window, workspace or monitor is gone reads nil for every field, as an expired object does in Winland.
 local hl, native, version = ...
 local fetch, userdata, note, matches, history, unsubscribe, optionName, running, run =
     native.fetch, native.userdata, native.note, native.matches, native.history, native.unsubscribe, native.option, native.running, native.run
@@ -1364,7 +1364,7 @@ end
 
 local LayoutTarget = { __name = "HL.LayoutTarget", __newindex = readOnly }
 
--- The type an argument check names, as the pinned release names it: a number reads as a string there too.
+-- The type an argument check names, as Winland names it: a number reads as a string there too.
 local function kindName(value)
     local kind = type(value)
     if kind == "string" or kind == "number" then

@@ -2,7 +2,7 @@ using Winland;
 
 namespace Winland.Tests;
 
-/// <summary>The text the pinned release answers clients, activewindow, workspaces, activeworkspace and monitors with without j/.</summary>
+/// <summary>The text Winland answers clients, activewindow, workspaces, activeworkspace and monitors with without j/.</summary>
 public class TextRepliesTests
 {
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);

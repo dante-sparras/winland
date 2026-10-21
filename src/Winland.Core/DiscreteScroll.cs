@@ -2,7 +2,7 @@ namespace Winland;
 
 /// <summary>
 /// <c>input:emulate_discrete_scroll</c>: turns the wheel turns of a high resolution wheel, which Windows sends in
-/// parts of a notch, into whole notches, as the pinned release does for a wheel's smooth events. 0 leaves every turn
+/// parts of a notch, into whole notches, as Winland does for a wheel's smooth events. 0 leaves every turn
 /// alone. 1 emulates only the turns that are not whole notches. 2 emulates every turn, whole notches too.
 /// </summary>
 /// <remarks>

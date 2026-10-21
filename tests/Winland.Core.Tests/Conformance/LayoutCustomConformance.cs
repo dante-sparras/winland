@@ -1,7 +1,7 @@
 namespace Winland.Tests.Conformance;
 
 /// <summary>
-/// The pinned release's custom layout cases, run with a Lua config that registers the two layouts the reference's
+/// Winland's custom layout cases, run with a Lua config that registers the two layouts the reference's
 /// config registers. Each test is named after its case and sends the same requests.
 /// </summary>
 [Trait("Category", "Conformance")]

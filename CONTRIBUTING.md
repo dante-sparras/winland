@@ -4,7 +4,7 @@
 
 You need PowerShell 7 (`pwsh`), Git, and the .NET SDK version pinned in `global.json`.
 
-Run `pwsh scripts/dev.ps1` once after cloning. It points git at the repo's two git hooks (see [Git hooks](#git-hooks)). It also clones the reference checkout and fetches its docs, as `AGENTS.md` describes.
+Run `pwsh scripts/dev.ps1` once after cloning. It points git at the repo's two git hooks (see [Git hooks](#git-hooks)).
 
 ## Read this first
 
@@ -26,7 +26,7 @@ A very small, focused fix for an obvious bug can be opened with no prior issue. 
 
 A focused option for a behavior Winland already has can also be opened without that approval. The pull request names the existing behavior, what the option controls, and why the effect stays inside that behavior. A new workflow, a new default, or a wider behavior choice still needs approval. One problem and the evidence requirement still apply.
 
-When the existing config or a dispatcher already does the job, a hard-to-find behavior is a docs or gaps problem. Describe that problem. It does not by itself justify a new feature.
+When the existing config or a dispatcher already does the job, a hard-to-find behavior is a docs problem. Describe that problem. It does not by itself justify a new feature.
 
 ## Solve one underlying problem
 
@@ -105,7 +105,7 @@ Most code changes do not need a new document. The code, the tests, and `CONTEXT.
 Update a document when the change makes it false, and edit the existing text:
 
 - A standing decision is an ADR in `docs/adr/`. Rewrite that ADR when the decision changes, and keep its line in `docs/adr/README.md` in step.
-- Honored behavior, a gap, an extension, and a conformance row live in `docs/behavior.md`, `docs/gaps.md`, `docs/extensions.md`, and `docs/conformance.md`.
+- Honored behavior lives in `docs/behavior.md`.
 - A procedure lives in this file or in `docs/releasing.md`.
 
 Leave the document alone when reading the relevant code answers the question. Do not add a file catalog, a narration of control flow, or a second write-up of a change that already landed.
@@ -139,7 +139,7 @@ A test project that fails runs once more on the same build, locally and in CI. I
 | Lane | What it does | When it runs |
 | --- | --- | --- |
 | History | Fails when the branch shares no commit with `main`. Merging such a branch would add a second root commit to `main` and break `git blame`. | Always. |
-| Lint | Parses the PowerShell, rejects file or folder names that differ only by case, builds the solution at the repo root if there is one, builds `scripts/fetch-reference.cs`, and runs `actionlint` on `.github/workflows/*.yml`. On a pull request, `fetch-reference.cs` is built only when it, `global.json`, `nuget.config`, `.editorconfig` or a `Directory.*` props or targets file changed. | Always. |
+| Lint | Parses the PowerShell, rejects file or folder names that differ only by case, builds the solution at the repo root if there is one, and runs `actionlint` on `.github/workflows/*.yml`. | Always. |
 | Test | Runs `dotnet test` on each `*.Tests.csproj` under `tests/`, except `*.Smoke.Tests.csproj`. | On a push to `main`, and on manual and release runs. On a pull request, unless every changed file is documentation or repo metadata: `*.md`, `docs/`, `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/rulesets/`, `.gitignore`, `.gitattributes`, or `LICENSE*`. Any other change, including one to a workflow or a script, runs it. |
 | Mutation | Mutation testing, one job per mutation run, then a score gate (see [Mutation testing](#mutation-testing)). It is the slow lane, and its jobs run beside the others. | Only on a release run: CI dispatched with **Release run** turned on, or called by a release workflow. |
 

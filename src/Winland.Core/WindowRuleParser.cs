@@ -69,7 +69,7 @@ internal static partial class WindowRuleParser
                     return false;
             }
 
-            // The pinned release never applies a rule that has nothing to match on.
+            // Winland never applies a rule that has nothing to match on.
             if (classPattern is null && titlePattern is null && initialTitlePattern is null && initialClassPattern is null && exePattern is null && aumidPattern is null && dynamic is null)
             {
                 error = "Malformed window rule.";
@@ -482,7 +482,7 @@ internal static partial class WindowRuleParser
                     return true;
                 }
 
-                // As in the pinned release, either size may be an expression, read when the window opens.
+                // either size may be an expression, read when the window opens.
                 if (argument is not null && ExpressionPair.TryParse(argument, out var expression))
                 {
                     placement = new RulePlacement(Expression: expression);
@@ -816,7 +816,7 @@ internal static partial class WindowRuleParser
         && Matches(rule.ExePattern, traits.Exe)
         && Matches(rule.AumidPattern, traits.Aumid);
 
-    // The pinned release matches a rule's pattern against the whole field, and a
+    // Winland matches a rule's pattern against the whole field, and a
     // "negative:" prefix passes only when the rest of the pattern does not match.
     private const string NegativePrefix = "negative:";
 

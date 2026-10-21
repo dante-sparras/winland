@@ -1,7 +1,7 @@
 namespace Winland;
 
 // Modal windows. Windows disables a window while a modal window it owns is open, as a dialog box does, so a disabled
-// window that owns a Client is shadowed by a modal, and that Client is modal. The pinned release dims the shadowed
+// window that owns a Client is shadowed by a modal, and that Client is modal. Winland dims the shadowed
 // window with decoration:dim_modal, and with general:modal_parent_blocking it takes no focus.
 public sealed partial class Core
 {

@@ -68,7 +68,7 @@ public static partial class ConfigParser
                         return;
                     }
 
-                    // As in the pinned release, a negative scale turns the gesture around.
+                    // a negative scale turns the gesture around.
                     if (Math.Abs(scale) < 0.1)
                     {
                         Warn(lineNumber, $"Delta scale must be between -10 and -0.1 or between 0.1 and 10. It is {text}.");

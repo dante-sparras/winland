@@ -84,7 +84,7 @@ internal static class DirectionalNeighbor
 
             if ((bestAngle < Threshold && distance < leader && angle < Threshold) || (angle < bestAngle && bestAngle > Threshold) || leader == -1)
             {
-                // The pinned release keeps the distance as a whole number.
+                // Winland keeps the distance as a whole number.
                 leader = (int)distance;
                 bestAngle = angle;
                 best = client.Window;

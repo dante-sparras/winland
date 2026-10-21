@@ -4,7 +4,7 @@ using Winland;
 namespace Winland.Tests.Conformance;
 
 /// <summary>
-/// The pinned release's swallow case. The reference starts kitty processes from other kitty processes; here each is a
+/// Winland's swallow case. The reference starts kitty processes from other kitty processes; here each is a
 /// window whose process descends from the kitty that started it.
 /// </summary>
 [Trait("Category", "Conformance")]

@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// The scrollMove gesture, as the pinned release has it: the swipe moves the scrolling Layout's tape on the focused
+/// The scrollMove gesture, as Winland has it: the swipe moves the scrolling Layout's tape on the focused
 /// Monitor, and the fingers lifting carry it on by the swipe's speed, settle it on a column with
 /// <c>gestures:scrolling:move_snap_to_grid</c>, and focus a window there.
 /// </summary>
@@ -94,7 +94,7 @@ public sealed partial class Core
         }
         else
         {
-            // The pinned release moves the tape by the projection itself here, not by that share of the view.
+            // Winland moves the tape by the projection itself here, not by that share of the view.
             _ = tape.MoveTape(projection);
             focus = tape.FirstAtCenter();
         }

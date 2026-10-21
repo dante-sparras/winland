@@ -6,7 +6,7 @@ namespace Winland.Windows;
 
 /// <summary>
 /// Shows the pointer shape the core names while a drag holds a window or the pointer is on a border that resizes,
-/// as the pinned release overrides its cursor. Windows lets a program set the pointer only over its own windows, so
+/// as Winland overrides its cursor. Windows lets a program set the pointer only over its own windows, so
 /// every system cursor is replaced by that shape for the time, and the user's own scheme is loaded again after it,
 /// at exit, and on the next start after a crash.
 /// </summary>

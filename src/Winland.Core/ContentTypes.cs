@@ -3,7 +3,7 @@ using System.Globalization;
 namespace Winland;
 
 /// <summary>
-/// A window's content type, as the pinned release names them: 0 none, 1 photo, 2 video, 3 game. Windows reports no
+/// A window's content type, as Winland names them: 0 none, 1 photo, 2 video, 3 game. Windows reports no
 /// content type, so a window has one only when a <c>content</c> window rule gives it.
 /// </summary>
 internal static class ContentTypes

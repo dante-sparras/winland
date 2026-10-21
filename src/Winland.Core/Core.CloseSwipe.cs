@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// The close gesture, as the pinned release plays it: while the fingers move, the focused window fades and shrinks
+/// The close gesture, as Winland plays it: while the fingers move, the focused window fades and shrinks
 /// toward its <c>windowsOut</c> end. When they lift, a swipe of 20 percent of 200 pixels closes it from there, and a
 /// shorter one brings it back. A window that has not closed after <c>gestures:close_max_timeout</c> is put back.
 /// </summary>

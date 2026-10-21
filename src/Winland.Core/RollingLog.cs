@@ -41,7 +41,7 @@ public static class RollingLog
 
 /// <summary>
 /// Writes to another writer and keeps what it wrote in the <see cref="RollingLog"/>. The <c>debug</c> options can add
-/// copies of the log, to a file and to standard output, whose lines may start with the time, as the pinned release's
+/// copies of the log, to a file and to standard output, whose lines may start with the time, as Winland's
 /// logger writes its file and standard output.
 /// </summary>
 public sealed class RollingLogWriter(TextWriter inner, Func<DateTime>? clock = null) : TextWriter

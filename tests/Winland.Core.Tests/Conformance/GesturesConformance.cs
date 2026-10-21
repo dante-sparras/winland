@@ -5,7 +5,7 @@ using Winland;
 namespace Winland.Tests.Conformance;
 
 /// <summary>
-/// The pinned release's gesture cases. The reference test plugin swipes 300 pixels along one axis in a single update;
+/// Winland's gesture cases. The reference test plugin swipes 300 pixels along one axis in a single update;
 /// here that is a core swipe. Its alt switch is Alt held on the keyboard.
 /// </summary>
 [Trait("Category", "Conformance")]

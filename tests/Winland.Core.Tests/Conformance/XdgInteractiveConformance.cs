@@ -1,7 +1,7 @@
 namespace Winland.Tests.Conformance;
 
 /// <summary>
-/// The pinned release's interactive move and resize case. Its client asks to be moved and resized while a button is
+/// Winland's interactive move and resize case. Its client asks to be moved and resized while a button is
 /// held, as a title bar or a border drag does. On Windows the system moves and sizes the window itself and Winland
 /// hears the drag start, the pointer move and the drag end. The checks of what the client hears, the pointer leaving
 /// it and no motion during the move, are left out. A stale serial and a bad resize edge start no drag on Windows, so

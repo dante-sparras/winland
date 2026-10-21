@@ -1,6 +1,6 @@
 namespace Winland.Tests.Conformance;
 
-/// <summary>The pinned release's animations case. The test is named after its case, and sends the same request.</summary>
+/// <summary>Winland's animations case. The test is named after its case, and sends the same request.</summary>
 [Trait("Category", "Conformance")]
 public class AnimationsConformance
 {

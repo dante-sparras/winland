@@ -2,7 +2,7 @@ using Winland;
 
 namespace Winland.Tests;
 
-/// <summary>The close gesture fades and shrinks the focused window with the fingers, as the pinned release plays it.</summary>
+/// <summary>The close gesture fades and shrinks the focused window with the fingers, as Winland plays it.</summary>
 public class CloseSwipeTests
 {
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);

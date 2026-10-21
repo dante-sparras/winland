@@ -4,7 +4,7 @@ namespace Winland;
 public readonly record struct ZoomView(double Factor, double X, double Y);
 
 /// <summary>
-/// Where the cursor zoom looks, as the pinned release's zoom controller works it out. Only the Monitor under the
+/// Where the cursor zoom looks, as Winland's zoom controller works it out. Only the Monitor under the
 /// cursor is zoomed. With <c>cursor:zoom_detached_camera</c> the view keeps the point under the cursor in place when the
 /// factor changes, and pans only when the cursor leaves the middle 90% of it, or never with <c>cursor:zoom_rigid</c>.
 /// Without it the view zooms about the cursor, or keeps the cursor in its middle when rigid. The view never leaves the
@@ -21,7 +21,7 @@ public sealed class ZoomCamera
     {
         ArgumentNullException.ThrowIfNull(zoom);
 
-        // A Monitor shown unzoomed starts its view over at its next change of factor, as in the pinned release.
+        // A Monitor shown unzoomed starts its view over at its next change of factor.
         foreach (var (bounds, other) in _views)
         {
             if (bounds != monitor || zoom.Factor <= 1)

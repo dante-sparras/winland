@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// The border Winland draws around one Client, outside its frame, as the pinned release draws it: <see cref="Thickness"/>
+/// The border Winland draws around one Client, outside its frame, as Winland draws it: <see cref="Thickness"/>
 /// pixels wide, in <see cref="Gradient"/>'s colors at its angle, with the inner corners at <see cref="Radius"/> pixels to
 /// follow the window's own and the outer corners rounded to match, and <see cref="Alpha"/> times the colors' alpha.
 /// </summary>
@@ -35,7 +35,7 @@ public sealed record BorderRing(BorderGradient Gradient, int Thickness, int Radi
 
     /// <summary>
     /// The outer corner radius: the inner radius plus the thickness, less what a corner flatter than a circle gives back,
-    /// as the pinned release's <c>outerRound</c>. A square window has square outer corners too, as the pinned release's
+    /// as Winland's <c>outerRound</c>. A square window has square outer corners too, as Winland's
     /// shader rounds only around a rounded window.
     /// </summary>
     public double OuterRadius => Radius <= 0 ? 0 : Radius + Thickness - (Thickness * (Math.Sqrt(2) - 1) * Math.Max(2.0 - Power, 0));
@@ -113,7 +113,7 @@ public static class BorderPainter
         return Math.Clamp(outer * (1 - inner), 0, 1);
     }
 
-    /// <summary>The color of the gradient at the place a pixel's box-relative position puts it, as the pinned release's shader.</summary>
+    /// <summary>The color of the gradient at the place a pixel's box-relative position puts it, as Winland's shader.</summary>
     public static BorderColor ColorAt(BorderGradient gradient, double nx, double ny)
     {
         ArgumentNullException.ThrowIfNull(gradient);

@@ -38,7 +38,7 @@ internal static class BorderPointer
 
     /// <summary>
     /// How far around a window a wheel turn still counts as meant for it: the border, and the grab area around it when
-    /// <c>resize_on_border</c> is on, as the pinned release extends a window's input past its surface by its decorations.
+    /// <c>resize_on_border</c> is on, as Winland extends a window's input past its surface by its decorations.
     /// </summary>
     public static int AxisReach(LayoutOptions options) =>
         Math.Max(0, options.BorderSize) + (options.ResizeOnBorder ? Math.Max(0, options.ExtendBorderGrabArea) : 0);

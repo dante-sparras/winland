@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// A spring curve from <c>hl.curve</c>, as the pinned release's animation library steps one: a mass on a spring
+/// A spring curve from <c>hl.curve</c>, as Winland's animation library steps one: a mass on a spring
 /// with damping, let go from 0 at rest and pulled to 1, measured in seconds. It runs until it is within
 /// <see cref="Epsilon"/> of 1 and slower than <see cref="Epsilon"/> a second, so its time is its own and not the
 /// animation's speed.
@@ -28,7 +28,7 @@ public sealed record SpringCurve(double Stiffness, double Damping, double Mass) 
     }
 
     // The value and velocity of a spring let go from 0 at rest, after the given seconds. It is solved exactly for an
-    // underdamped, a critically damped and an overdamped spring, as the pinned release's library solves each step.
+    // underdamped, a critically damped and an overdamped spring, as Winland's library solves each step.
     private static (double Value, double Velocity) At(double stiffness, double damping, double mass, double seconds)
     {
         mass = Math.Max(mass, 0.0001);

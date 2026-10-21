@@ -64,7 +64,7 @@ public readonly record struct DigitizerOutcome(bool Take, int X, int Y, bool Rep
 }
 
 /// <summary>
-/// Maps a pen and a touch screen the way the pinned release does. The point it starts from is where Windows already
+/// Maps a pen and a touch screen the way Winland does. The point it starts from is where Windows already
 /// put the pen or the finger, not the device's own report. <c>input:tablet:relative_input</c> then moves by the change
 /// in that mapped pixel, because a mouse hook has no device units.
 /// </summary>

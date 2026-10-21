@@ -173,7 +173,7 @@ public sealed partial class Core
     }
 
     // Starts the gesture a swipe or pinch picked. A workspace swipe reads distance along its configured direction, as
-    // the pinned release's direction sensitive gestures do, and every other gesture along the one the fingers took.
+    // Winland's direction sensitive gestures do, and every other gesture along the one the fingers took.
     private Outcome? Activate(TrackpadGesture gesture, GestureDirection direction)
     {
         _activeGesture = gesture;
@@ -198,7 +198,7 @@ public sealed partial class Core
     }
 
     // A luafunction gesture hands the Lua config each phase of the swipe. The update that picks the gesture starts it
-    // and is its first update too, as in the pinned release, and each phase has the direction the fingers took.
+    // and is its first update too, and each phase has the direction the fingers took.
     private Outcome CallFunction(TrackpadGesture gesture, GesturePhase phase, SwipeUpdated updated)
     {
         GestureCall Call(GesturePhase each) =>
@@ -210,7 +210,7 @@ public sealed partial class Core
         return View([]) with { GestureCalls = calls };
     }
 
-    // The dispatcher, close, float and fullscreen gestures act once the fingers lift, as the pinned release ends them:
+    // The dispatcher, close, float and fullscreen gestures act once the fingers lift, as Winland ends them:
     // a dispatcher always runs, and close, float and fullscreen act on the focused window when the fingers went far
     // enough along their direction. float takes float, tile or toggle, and fullscreen takes fullscreen or maximize.
     private Outcome ReleaseGesture(TrackpadGesture gesture, double distance)

@@ -7,7 +7,7 @@ namespace Winland;
 public readonly record struct DpmsFadeStep(double? Alpha, bool PowerOff, bool PowerOn, int? NextTick);
 
 /// <summary>
-/// <c>animation:fadeDpms</c>, as the pinned release does it: turning the displays off fades them to black first and
+/// <c>animation:fadeDpms</c>, as Winland does it: turning the displays off fades them to black first and
 /// turns them off at the end; turning them on starts black and fades out once they show again. On Windows any input
 /// wakes displays that were turned off, so input after the turn-off counts as turning them on, and the black never
 /// stays over displays that are on. Times are in milliseconds. Used on one thread.

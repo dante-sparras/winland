@@ -2,7 +2,7 @@ namespace Winland;
 
 /// <summary>
 /// The live part of a workspace swipe: while the fingers move, the Workspace swiped from follows them and the one
-/// it goes to slides in beside it, as the pinned release offsets both. When the fingers lift, the switch or the
+/// it goes to slides in beside it, as Winland offsets both. When the fingers lift, the switch or the
 /// return animates on from where the windows are.
 /// </summary>
 public sealed partial class Core

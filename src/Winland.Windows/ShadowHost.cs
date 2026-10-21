@@ -1,7 +1,7 @@
 namespace Winland.Windows;
 
 /// <summary>
-/// Draws each Client's shadow, as the pinned release draws it, when the config tuned it. The shadow is click-through
+/// Draws each Client's shadow, as Winland draws it, when the config tuned it. The shadow is click-through
 /// layered windows kept just below the Client in the z-order, around the window and not under it.
 /// </summary>
 internal static class ShadowHost

@@ -158,7 +158,7 @@ public sealed partial class Core
             _lastMouse = decision.LastMouse;
 
         // A window with no_follow_mouse is still remembered as the one under the pointer, but moving onto it does not
-        // focus it, as in the pinned release. A refocus, after a window closes or moves, still does.
+        // focus it. A refocus, after a window closes or moves, still does.
         if (decision.Focus is WindowId found && OwnProp(found, "no_follow_mouse") is true)
             return null;
 
@@ -262,7 +262,7 @@ public sealed partial class Core
             }
         }
 
-        // Floating windows are tried from the top of the stacking order down, as the pinned release finds the topmost.
+        // Floating windows are tried from the top of the stacking order down, as Winland finds the topmost.
         var tiles = targets.Where(target => !target.Floating);
         var floats = targets.Where(target => target.Floating).OrderBy(target => _stacking.IndexOf(target.Window));
         return [.. tiles, .. floats];
@@ -403,7 +403,7 @@ public sealed partial class Core
             return false;
 
         // The pointer meets the special workspace open on the Monitor under it before that Monitor's Workspace, as the
-        // pinned release looks on the Monitor under the pointer. A maximized or fullscreen Client takes no border resize
+        // Winland looks on the Monitor under the pointer. A maximized or fullscreen Client takes no border resize
         // and hides the tiles behind it, but a floating window allowed over it keeps its ring.
         var desk = PointerWorkspace(pointer);
         var showing = desk.Showing();

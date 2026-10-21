@@ -1,6 +1,6 @@
 namespace Winland;
 
-// Mouse moves and resizes in the monocle Layout, as the pinned release's: a floating Client follows the pointer or resizes
+// Mouse moves and resizes in the monocle Layout, as Winland's: a floating Client follows the pointer or resizes
 // from the grabbed corner, a tile is lifted out of the stack on its first move and dropped back as the shown tile, and a
 // tile does not resize, since every tile fills the area.
 internal sealed partial class MonocleLayout : IMouseDragHost, IDragOwner

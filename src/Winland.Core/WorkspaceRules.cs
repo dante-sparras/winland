@@ -349,12 +349,6 @@ internal static partial class WorkspaceRules
 
             var key = layoutOpt[..split];
             var layoutValue = layoutOpt[(split + 1)..];
-            if (GapReason(key) is string gap)
-            {
-                warnings.Add(gap);
-                return true;
-            }
-
             if (!LayoutOptions.TryOverrideDwindle(LayoutOptions.Unconfigured, key, layoutValue, out _))
                 return true;
 
@@ -534,17 +528,6 @@ internal static partial class WorkspaceRules
 
         cleaned = "[" + string.Join(';', parts) + "]" + cmd[(end + 1)..];
         return true;
-    }
-
-    private static string? GapReason(string key)
-    {
-        foreach (var gap in ConfigGaps.All)
-        {
-            if (gap.Keyword == key || gap.Keyword.EndsWith(":" + key, StringComparison.Ordinal))
-                return gap.Reason;
-        }
-
-        return null;
     }
 
     private static bool Take(string field, string prefix, out string value)

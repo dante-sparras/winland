@@ -319,7 +319,7 @@ internal sealed class GradientLayerHost<T>(
         private GradientMotion Motion => new(_turn, _fadeStart is null ? null : _fadeFrom, _fadeStart is null ? 1 : _fade);
 
         // A new look for the layer. Its colors fade when they changed and a fade is set, and a turn starts when the
-        // window opens and each time it is focused, unless one is under way, as the pinned release does.
+        // window opens and each time it is focused, unless one is under way.
         public void Take(T layer, double now)
         {
             var old = _layer;

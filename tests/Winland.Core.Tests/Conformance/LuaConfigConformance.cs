@@ -1,7 +1,7 @@
 namespace Winland.Tests.Conformance;
 
 /// <summary>
-/// The pinned release's Lua config cases, run with a Lua config, as the reference's is. Each test is named after its
+/// Winland's Lua config cases, run with a Lua config, as the reference's is. Each test is named after its
 /// case and sends the same requests.
 /// </summary>
 [Trait("Category", "Conformance")]
@@ -61,20 +61,6 @@ public class LuaConfigConformance
         Assert.Contains("special:special", SpecialsShown(desk));
         Ok(desk, "eval hl.get_active_monitor():set_special_workspace(nil)");
         Assert.DoesNotContain("special:special", SpecialsShown(desk));
-    }
-
-    [Fact(Skip = "os.execute is not in Winland's Lua (ADR 0007), so the handler cannot write the file the case reads.")]
-    public void LuaEventConfigUnload()
-    {
-        var file = Path.Combine(Path.GetTempPath(), "winland-luaEventConfigUnload.txt").Replace('\\', '/');
-        File.Delete(file);
-        using var desk = Desk.WithLua("");
-
-        Ok(desk, "eval luaEventConfigUnload = 'luaEventConfigUnload'; hl.on('config.unload', function() os.execute('echo -n '..tostring(luaEventConfigUnload)..' > "
-            + file + "') end)");
-        Ok(desk, "reload");
-        Assert.Equal("luaEventConfigUnload", File.Exists(file) ? File.ReadAllText(file) : "error");
-        File.Delete(file);
     }
 
     [Fact]

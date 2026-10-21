@@ -1,7 +1,7 @@
 namespace Winland;
 
 // setworkspace and setspecialworkspace on the pipe: a Monitor shows a Workspace, or opens or closes a special one, without
-// the focus going to that Monitor, as the pinned release's Lua monitor objects do. Only on the focused Monitor does the
+// the focus going to that Monitor, as Winland's Lua monitor objects do. Only on the focused Monitor does the
 // focus follow, and the cursor stays where it is.
 public sealed partial class Core
 {

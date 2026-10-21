@@ -23,14 +23,14 @@ internal readonly record struct MotionBlurState(EffectBox Previous, EffectBox Cu
 
 /// <summary>
 /// Remembers a window's last step so a blur can smear it. A step of two pixels or less on every edge is no motion,
-/// and a step older than 100 ms is over, as in the pinned release.
+/// and a step older than 100 ms is over.
 /// </summary>
 internal sealed class MotionBlurTrail
 {
     internal const double MinEdgeDelta = 2;
     internal const double FreshMilliseconds = 100;
 
-    /// <summary>How long after the last step the pinned release stops blurring on its own timer.</summary>
+    /// <summary>How long after the last step Winland stops blurring on its own timer.</summary>
     internal const double ExpiryMilliseconds = 110;
 
     internal const int MaxSamples = 64;

@@ -10,7 +10,7 @@ internal readonly record struct LuaKeys(string Modifiers, string Key, bool Chord
 // hl.bind, hl.unbind and hl.define_submap, turned into bind, unbind and submap lines.
 internal sealed partial class LuaRun
 {
-    // The modifier names a key string starts with, as the pinned release reads them.
+    // The modifier names a key string starts with, as Winland reads them.
     private static readonly string[] ModifierNames =
         ["SHIFT", "CAPS", "CTRL", "CONTROL", "ALT", "MOD1", "MOD2", "MOD3", "SUPER", "WIN", "LOGO", "MOD4", "META", "MOD5"];
 
@@ -39,7 +39,7 @@ internal sealed partial class LuaRun
 
         if (ParseKeys(_lua.ToString(1, false), out var error) is not LuaKeys keys)
         {
-            // The pinned release splits the string first and makes the bind from its keys after, and says which failed.
+            // Winland splits the string first and makes the bind from its keys after, and says which failed.
             var stage = error is "Empty key in key list" or "Repeated key in the key string" ? "failed to parse key string" : "failed to create bind";
             Warn($"hl.bind: {stage}: {error}");
             return 0;
@@ -160,7 +160,7 @@ internal sealed partial class LuaRun
         return 1;
     }
 
-    // What a keybind object reads: the bind's line, the line that removes it, and its fields as the pinned release
+    // What a keybind object reads: the bind's line, the line that removes it, and its fields as Winland
     // shows them.
     private sealed record BindRecord(int Id, string BindLine, string UnbindLine)
     {
@@ -197,7 +197,7 @@ internal sealed partial class LuaRun
     private int _nextBind;
     private int _makeKeybind;
 
-    // The modifier mask of the pinned release for the modifier names of a key string.
+    // The modifier mask of Winland for the modifier names of a key string.
     private static long ModifierMask(string modifiers)
     {
         long mask = 0;
@@ -390,7 +390,7 @@ internal sealed partial class LuaRun
         reset.Length == 0 ? $"submap = {name}" : $"submap = {name}, {reset}";
 
     /// <summary>
-    /// Reads a key string as the pinned release does: names joined by <c>+</c>, the modifier names first. More than one
+    /// Reads a key string as Winland does: names joined by <c>+</c>, the modifier names first. More than one
     /// key is a chord, written with <c>&amp;</c>. Null with the reason when the string has no bind.
     /// </summary>
     internal static LuaKeys? ParseKeys(string text, out string error)
@@ -481,7 +481,7 @@ internal sealed partial class LuaRun
             Warn(message, level);
     }
 
-    // A device table limits the bind. inclusive left out is true, as in the pinned release, and a value that is not a
+    // A device table limits the bind. inclusive left out is true, and a value that is not a
     // string is skipped. A device that is not a table is ignored. False when the option names no device.
     private bool ReadDevice(int table, out bool inclusive, out List<string> names)
     {

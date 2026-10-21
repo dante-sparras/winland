@@ -26,7 +26,7 @@ csharp_using_directive_placement = outside_namespace:suggestion
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false
 
-# File-scoped namespaces. scripts/fetch-reference.cs is shared with other repos and keeps its block namespace.
+# File-scoped namespaces.
 csharp_style_namespace_declarations = file_scoped:suggestion
 
 # var where the type is clear, and the language keywords for the built-in types.
@@ -95,8 +95,7 @@ dotnet_naming_style.underscored.required_prefix = _
 # The rules every file in src and tests already keeps fail the build: EnforceCodeStyleInBuild is on
 # in Directory.Build.props, and warnings are errors. A rule's severity is the suffix of its option.
 # The build does not run the simplification rules (this. and the built-in type keywords), and var
-# and braces are not kept everywhere, so those stay suggestions. scripts/fetch-reference.cs is not
-# covered, because it is shared with other repos.
+# and braces are not kept everywhere, so those stay suggestions.
 [{src,tests}/**.cs]
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_using_directive_placement = outside_namespace:warning

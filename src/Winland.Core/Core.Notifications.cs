@@ -132,7 +132,7 @@ public static class NotificationCards
     }
 }
 
-/// <summary>The sizes, icons and slide of the pinned release's notifications.</summary>
+/// <summary>The sizes, icons and slide of Winland's notifications.</summary>
 public static class NotificationFrames
 {
     public const int LeftBar = 5;
@@ -160,7 +160,7 @@ public static class NotificationFrames
         new(0xFF, 0, 0, 0),
     ];
 
-    /// <summary>The text that stands for an icon when no icon font is installed, as in the pinned release.</summary>
+    /// <summary>The text that stands for an icon when no icon font is installed.</summary>
     public static string IconText(int icon) => Icons[Math.Clamp(icon, 0, NoIcon)];
 
     /// <summary>The color of an icon, which a notification asked for with the color 0 takes.</summary>
@@ -196,7 +196,7 @@ public sealed partial class Core
 
     internal void UseNotificationClock(Func<long> now) => _notes.UseClock(now);
 
-    // notify ICON TIME_MS COLOR [fontsize:SIZE] MESSAGE, with the pinned release's replies.
+    // notify ICON TIME_MS COLOR [fontsize:SIZE] MESSAGE, with Winland's replies.
     private CommandReply Notify(NotifyRequest request)
     {
         var words = request.Arguments.Split(' ', StringSplitOptions.RemoveEmptyEntries);

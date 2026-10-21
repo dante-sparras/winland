@@ -25,7 +25,7 @@ public class BorderResizeTests
         Assert.True(resized.Live);
     }
 
-    // The pinned release tests floating windows, with their grab rings, before the tiles under them.
+    // Winland tests floating windows, with their grab rings, before the tiles under them.
     [Fact]
     public void AFloatingBorderOverATileResizesTheFloatingWindow()
     {

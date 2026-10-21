@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// Window properties, as the pinned release's <c>getprop</c> and <c>setprop</c> reach them. A property's value is what
+/// Window properties, as Winland's <c>getprop</c> and <c>setprop</c> reach them. A property's value is what
 /// <c>setprop</c> set, else what a window rule or workspace rule gives, else the config's value.
 /// </summary>
 public sealed partial class Core
@@ -24,7 +24,7 @@ public sealed partial class Core
     private void RememberRuleProps(WindowId window, WindowDecision decision)
     {
         var props = decision.Props;
-        // The pinned release turns sync_fullscreen off at the window-rule layer when a fullscreen_state rule maps the
+        // Winland turns sync_fullscreen off at the window-rule layer when a fullscreen_state rule maps the
         // window. Rule props are rebuilt whenever the window's state changes, so the same false is put back while
         // that rule still matches. setprop is a higher layer and is left alone.
         if (decision.StatedFullscreen)
@@ -107,7 +107,7 @@ public sealed partial class Core
     private object PropValue(WindowId window, LiveWorkspace? desk, string key, PropKind kind) =>
         SetPropOf(window, key) ?? RuledProp(window, desk, key) ?? DefaultProp(window, key, kind);
 
-    // The configured border of a window, as the pinned release picks it: a Group's, a window that may not join a
+    // The configured border of a window, as Winland picks it: a Group's, a window that may not join a
     // Group's, or the general one, each as the whole gradient the config gave.
     private BorderGradient ConfiguredBorder(WindowId window, bool active)
     {
@@ -167,7 +167,7 @@ public sealed partial class Core
         return new CommandReply(outcome.Error ?? "ok", outcome);
     }
 
-    /// <summary><c>setprop WINDOW PROP VALUE</c>, the pinned release's set_prop dispatcher.</summary>
+    /// <summary><c>setprop WINDOW PROP VALUE</c>, Winland's set_prop dispatcher.</summary>
     private Outcome SetPropDispatch(string arguments, bool allowsElevation)
     {
         var text = arguments.Trim();
@@ -217,7 +217,7 @@ public sealed partial class Core
                 next = WindowProps.ReadGradient(value);
                 break;
             default:
-                // A value that does not parse changes nothing, as in the pinned release.
+                // A value that does not parse changes nothing.
                 if (!WindowProps.TryTrivial(key, kind, value, Layered(window, desk, key), PropValue(window, desk, key, kind), out next))
                     return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
                 break;

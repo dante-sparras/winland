@@ -11,7 +11,7 @@ public static partial class CommandProtocol
         var indexed = Index(state);
         var views = new List<ClientJson>(state.Clients.Count);
 
-        // As in the pinned release, the Clients are listed from the bottom of the stacking order to the top.
+        // the Clients are listed from the bottom of the stacking order to the top.
         var stacked = new Dictionary<WindowId, int>(state.Stacking.Count);
         for (var i = 0; i < state.Stacking.Count; i++)
             stacked[state.Stacking[i]] = i;
@@ -148,7 +148,7 @@ public static partial class CommandProtocol
     private static WorkspaceJson SpecialJson(WorkspaceId? workspace, Indexed indexed) =>
         workspace is WorkspaceId id && indexed.ByWorkspace.TryGetValue(id, out var described) ? described : NoSpecial;
 
-    // A mirror names the id of the Monitor it shows, as in the pinned release, and "none" otherwise.
+    // A mirror names the id of the Monitor it shows, and "none" otherwise.
     private static string MirrorOf(State state, Monitor monitor)
     {
         if (monitor.MirrorOf.Length == 0)
@@ -329,7 +329,7 @@ public static partial class CommandProtocol
             nextSpecial++;
         }
 
-        // A swallowed Client is out of its Workspace's Layout, so the pinned release does not count it.
+        // A swallowed Client is out of its Workspace's Layout, so Winland does not count it.
         var windows = new Dictionary<WorkspaceId, int>();
         var fullscreen = new HashSet<WorkspaceId>();
         var swallowed = new HashSet<WindowId>(state.Swallowed);
@@ -399,7 +399,7 @@ public static partial class CommandProtocol
         }
     }
 
-    // The handler of a Client's fullscreen, as the pinned release names it: scrolling when the scrolling Layout holds
+    // The handler of a Client's fullscreen, as Winland names it: scrolling when the scrolling Layout holds
     // it, or would take it as a tile that is not fullscreen, and default otherwise.
     private static string FullscreenHandlerOf(State state, Client client)
     {
@@ -518,7 +518,7 @@ public static partial class CommandProtocol
         [property: JsonPropertyName("tearingHint")] bool TearingHint,
         [property: JsonPropertyName("stableId")] string StableId);
 
-    // A Workspace as the pinned release writes one: its address, an id only when it is numbered, its type and its
+    // A Workspace as Winland writes one: its address, an id only when it is numbered, its type and its
     // display name. Order sorts the list and is not written.
     private sealed record WorkspaceJson(
         [property: JsonPropertyName("address")] string Address,

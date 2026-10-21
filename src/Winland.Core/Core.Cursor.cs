@@ -55,7 +55,7 @@ public sealed partial class Core
             RememberLeaving(before);
 
         // A Monitor told to show a Workspace by setworkspace or setspecialworkspace leaves the cursor alone, as in the
-        // pinned release.
+        // Winland.
         var hold = _holdCursor;
         _holdCursor = false;
         if (hold)
@@ -63,7 +63,7 @@ public sealed partial class Core
 
         var warp = TakeRequestedWarp() ?? SwitchWarp(before, outcome);
         // A change that lands on another Monitor follows cursor:warp_on_monitor_change, or warp_on_change_workspace when
-        // that is -1, and one on the same Monitor follows warp_on_change_workspace, as in the pinned release.
+        // that is -1, and one on the same Monitor follows warp_on_change_workspace.
         if (warp is null && monitorChanged)
             warp = Plan(outcome.State, _cursor.MonitorMode()) ?? EmptyMonitorMiddle(outcome);
         else if (warp is null && workspaceChanged)
@@ -92,7 +92,7 @@ public sealed partial class Core
     }
 
     // movefocus, cyclenext, focusurgentorlast and focuscurrentorlast move the cursor to the middle of the window they
-    // focus, or to its last point there with cursor:persistent_warps, as the pinned release's switch to a window does.
+    // focus, or to its last point there with cursor:persistent_warps, as Winland's switch to a window does.
     // Leaving a fullscreen window for another on its Workspace does not, and cursor:no_warps stops it.
     private WarpTo? SwitchWarp(Captured before, Outcome outcome)
     {
@@ -216,7 +216,7 @@ public sealed partial class Core
     }
 
     // focusmonitor, and movefocus onto another Monitor, put the pointer in the middle of a Monitor with nothing to
-    // focus, as the pinned release does, unless cursor:no_warps is set.
+    // focus, as Winland does, unless cursor:no_warps is set.
     private WarpTo? EmptyMonitorMiddle(Outcome outcome)
     {
         if (_cursor.NoWarps || outcome.Dispatcher is not ("focusmonitor" or "movefocus") || FocusedClient(outcome.State) is not null)
@@ -279,7 +279,7 @@ public sealed partial class Core
         return null;
     }
 
-    // animation:zoomFactor animates a change of cursor:zoom_factor, as the pinned release's cursor zoom variable does.
+    // animation:zoomFactor animates a change of cursor:zoom_factor, as Winland's cursor zoom variable does.
     private CursorBehavior WithZoomTiming(CursorBehavior behavior) =>
         behavior with { Zoom = behavior.Zoom with { Animation = _animations.TimingOf("zoomFactor") } };
 }

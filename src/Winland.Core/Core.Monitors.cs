@@ -62,7 +62,7 @@ public sealed partial class Core
         }
     }
 
-    // 0, 1 or 2, a name the pinned release maps to one, or a boolean as older configs write it.
+    // 0, 1 or 2, a name Winland maps to one, or a boolean as older configs write it.
     internal static bool TryBackAndForth(string value, out int mode)
     {
         mode = value.Trim() switch
@@ -93,7 +93,7 @@ public sealed partial class Core
     private void RankFocus(Layout layout) => layout.RankFocus(_focusByHistory ? Recency : null);
 
     // How recently a window was focused: the newest is highest. One never focused is 0, below every focused one,
-    // as the pinned release puts a window that opens at the old end of its history.
+    // as Winland puts a window that opens at the old end of its history.
     private int Recency(WindowId window)
     {
         var index = _focusHistory.IndexOf(window);
@@ -154,7 +154,7 @@ public sealed partial class Core
         return FocusOnto(destination, name, allowsElevation, adjacent);
     }
 
-    // general:no_focus_fallback makes a movefocus that finds nothing answer an error, as in the pinned release.
+    // general:no_focus_fallback makes a movefocus that finds nothing answer an error.
     private Outcome NothingToFocus(string name, MonitorDirection direction, bool allowsElevation) =>
         _session.NoFocusFallback
             ? Rejected(name, "error: Nothing to focus to in direction " + direction.ToString().ToLowerInvariant(), allowsElevation)
@@ -175,8 +175,8 @@ public sealed partial class Core
     }
 
     // The window after or before this one on its Workspace in the order they opened, wrapping around, as the
-    // pinned release cycles. A hidden Group member, a minimized window and one with nofocus are passed over.
-    // The next window on the Workspace in the order the windows opened, as the pinned release's window cycle walks
+    // Winland cycles. A hidden Group member, a minimized window and one with nofocus are passed over.
+    // The next window on the Workspace in the order the windows opened, as Winland's window cycle walks
     // them. floating, when given, takes only floating windows or only tiles.
     private WindowId? CycleFrom(LiveWorkspace desk, WindowId current, bool previous, bool? floating = null)
     {
@@ -233,15 +233,15 @@ public sealed partial class Core
         }
 
         // A direction onto the neighbouring Monitor follows only for the focused window. Another window is assigned
-        // there and the focus stays, as the pinned release does.
+        // there and the focus stays.
         var stay = !DirectionFollows();
         if (_monitorFallback
             && MonitorHolding(desk) is LiveMonitor origin
             && desk.Layout.TryBounds(window, out var box))
         {
-            // As in the pinned release, the focal point is taken from the window's ideal box, which reaches the
+            // the focal point is taken from the window's ideal box, which reaches the
             // Monitor's edge when the tile touches the work area's.
-            // The window goes in at that point there, as the pinned release assigns it to the other Workspace with it.
+            // The window goes in at that point there, as Winland assigns it to the other Workspace with it.
             var focal = MonitorSelector.Focal(Ideal(desk, window, box), direction);
             var hit = MonitorSelector.At(Targets(), focal);
             if (hit is MonitorTarget other && other.Id != origin.Id && MonitorOf(other) is LiveMonitor across)
@@ -440,7 +440,7 @@ public sealed partial class Core
         if (screen.Focused && preferred is null)
             return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
 
-        // A monitor with a special workspace open gives the focus to that workspace's window, as the pinned release does.
+        // A monitor with a special workspace open gives the focus to that workspace's window.
         var desk = SpecialOn(screen.Id) is WorkspaceId special && FindWorkspace(special) is LiveWorkspace open
             ? open
             : screen.Active is WorkspaceId workspace ? FindWorkspace(workspace) : null;
@@ -478,7 +478,7 @@ public sealed partial class Core
         origin.Active = replacement.Id;
         _activeOn[origin.Id] = replacement.Id;
 
-        // Pinned Clients stay on the Monitor, on the Workspace it shows next, as in the pinned release.
+        // Pinned Clients stay on the Monitor, on the Workspace it shows next.
         foreach (var window in PinnedFloating(leaving))
             Transfer(leaving, replacement, window);
     }
@@ -508,7 +508,7 @@ public sealed partial class Core
     }
 
     // A tile's box with its border, and with every side that touches the tiling area pushed out to the
-    // Monitor's edge, as the pinned release compares windows across Monitors. Outer gaps and reserved
+    // Monitor's edge, as Winland compares windows across Monitors. Outer gaps and reserved
     // space then no longer keep two tiles on neighbouring Monitors apart. A floating box is left as it is.
     private Rectangle Ideal(LiveWorkspace desk, WindowId window, Rectangle box)
     {
