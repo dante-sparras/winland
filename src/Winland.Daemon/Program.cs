@@ -8,16 +8,17 @@ using Winland.Windows;
 var log = new RollingLogWriter(Console.Error);
 Console.SetError(log);
 
-if (IsInstall(args))
-    return RunInstall(args);
+if (InstallCommand.Parse(args) is InstallCommand command)
+    return RunMaintenance(args, command);
 
-if (args.Length == 1 && IsVerb(args[0], "uninstall"))
-    return RunElevated(args, Uninstall);
-
+var userInstall = InstallLocations.IsPerUserInstall(
+    Environment.ProcessPath,
+    InstallLocations.User(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)));
 switch (ManualStartElevation.Decide(
     Elevation.IsElevated(),
     Environment.GetEnvironmentVariable(ManualStartElevation.OptOutVariable),
-    args))
+    args,
+    userInstall))
 {
     case ElevationChoice.Relaunch relaunch:
         return Elevation.Relaunch(relaunch.Arguments);
@@ -42,29 +43,65 @@ return Usage();
 static bool IsVerb(string value, string verb) =>
     value.Equals(verb, StringComparison.OrdinalIgnoreCase);
 
-static bool IsInstall(string[] args) =>
-    args.Length is 1 or 2 && IsVerb(args[0], "install");
-
-static int RunInstall(string[] args)
+static int RunMaintenance(string[] args, InstallCommand command)
 {
-    // Relaunch carries the invoking user. An over-the-shoulder UAC approval
-    // runs as the admin who approved it, which is not the account that logs on.
-    if (!Elevation.IsElevated())
+    // One approval for the machine install, and for uninstalling it. The per-user install never asks.
+    // The relaunch carries the invoking user. An over-the-shoulder approval runs as the administrator
+    // who approved it, which is not the account that logs on.
+    var needsAdministrator = command is InstallCommand.Remove
+        ? MachineInstalled()
+        : command.RequiresAdministrator(machineInstallPresent: false);
+    if (needsAdministrator && !Elevation.IsElevated())
     {
-        var relay = args.Length == 1 ? [args[0], CurrentUser()] : args;
+        var relay = command is InstallCommand.Machine { Account: null } ? ["install", CurrentUser()] : args;
         return Elevation.Relaunch(relay);
     }
 
-    return Guard(() => Install(args.Length == 2 ? args[1] : CurrentUser()));
+    return Guard(() => Perform(command));
 }
 
-static int RunElevated(string[] args, Func<int> action)
+static int Perform(InstallCommand command)
 {
-    if (!Elevation.IsElevated())
-        return Elevation.Relaunch(args);
-
-    return Guard(action);
+    var executable = Environment.ProcessPath
+        ?? throw new InvalidOperationException("The executable path is not available.");
+    var app = Maintenance();
+    switch (command)
+    {
+        case InstallCommand.Machine machine:
+            var account = string.IsNullOrWhiteSpace(machine.Account) ? CurrentUser() : machine.Account;
+            app.InstallMachine(executable, account, BuildStamp.Version);
+            Console.WriteLine("Winland is installed and will start at logon.");
+            return 0;
+        case InstallCommand.ForUser:
+            app.InstallForUser(executable, BuildStamp.Version);
+            Console.WriteLine("Winland is installed for this user and will start at logon.");
+            return 0;
+        case InstallCommand.Remove remove:
+            app.Uninstall(remove.Purge, machine: Elevation.IsElevated());
+            Console.WriteLine(remove.Purge
+                ? "Winland is uninstalled, and its config, logs and state are removed."
+                : "Winland is uninstalled.");
+            return 0;
+        default:
+            throw new InvalidOperationException("Unexpected install command.");
+    }
 }
+
+static bool MachineInstalled() => Maintenance().MachinePresent();
+
+static AppInstall Maintenance() => new(
+    new InstallLayout(
+        InstallLocations.Machine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)),
+        InstallLocations.User(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)),
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms),
+        Environment.GetFolderPath(Environment.SpecialFolder.Programs),
+        InstallLocations.Config(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)),
+        InstallLocations.State(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData))),
+    new SchtasksCatalog(),
+    new WindowsInstallFiles(),
+    new WindowsInstallRegistry(),
+    new ShellStartMenu(),
+    new DaemonSession());
 
 static int Guard(Func<int> action)
 {
@@ -86,40 +123,10 @@ static int Guard(Func<int> action)
     }
 }
 
-static int Install(string user)
-{
-    var executable = Environment.ProcessPath
-        ?? throw new InvalidOperationException("The executable path is not available.");
-
-    // The task starts this file elevated at every logon. A folder a non-administrator can
-    // write, or swap through a folder above it, would let any program the user runs replace
-    // what the task starts.
-    var folder = Path.GetDirectoryName(executable)
-        ?? throw new InvalidOperationException("The executable folder is not available.");
-    if (InstallLocation.Refusal(WindowsAccessReader.Tree(folder), WindowsAccessReader.Ancestors(folder)) is string refusal)
-    {
-        throw new InvalidOperationException(
-            $"Refusing to install: {refusal}, and the logon task would start "
-            + "Winland from there with administrator rights. Copy Winland to a folder only administrators can write, "
-            + "such as C:\\Program Files\\Winland, and run 'winland install' from there.");
-    }
-
-    new LogonInstall(new SchtasksCatalog()).Install(executable, user);
-    Console.WriteLine("Winland will start at logon.");
-    return 0;
-}
-
 static string CurrentUser()
 {
     using var identity = WindowsIdentity.GetCurrent();
     return identity.Name;
-}
-
-static int Uninstall()
-{
-    new LogonInstall(new SchtasksCatalog()).Uninstall();
-    Console.WriteLine("Winland will no longer start at logon.");
-    return 0;
 }
 
 static void LaunchConfigured(Core core, IEnumerable<Launch> launches)
@@ -397,10 +404,10 @@ static int Usage()
 {
     Console.Error.WriteLine("usage: winland");
     Console.Error.WriteLine("       winland --config <path>");
-    Console.Error.WriteLine("       winland install");
-    Console.Error.WriteLine("       winland uninstall");
+    Console.Error.WriteLine("       winland install [--user]");
+    Console.Error.WriteLine("       winland uninstall [--purge]");
     Console.Error.WriteLine("WINLAND_NO_ELEVATE=1 or --no-elevate starts without elevation. It exists for tests.");
-    Console.Error.WriteLine("Elevated features then do not work.");
+    Console.Error.WriteLine("Elevated features then do not work. A per-user install never asks for elevation.");
     return 2;
 }
 
