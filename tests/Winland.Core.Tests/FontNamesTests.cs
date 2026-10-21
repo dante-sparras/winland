@@ -16,14 +16,13 @@ public class FontNamesTests
         Assert.Equal(font, FontNames.Windows(family));
 
     [Fact]
-    public void TheErrorBarAndAnUnnamedTabBarUseTheGlobalFont()
+    public void AnUnnamedTabBarUsesTheGlobalFont()
     {
         var core = new Core(ConfigParser.Parse("misc:font_family = Monospace\n"));
         core.Handle(new MonitorsChanged([new Monitor("DISPLAY1", "", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1040))]));
         core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
         core.Execute("dispatch togglegroup");
 
-        Assert.Equal("Consolas", core.Execute("seterror rgba(ff0000ff) oops").Effect.ErrorBar?.Font);
         Assert.Equal("Consolas", Assert.Single(core.Execute("dispatch no_op").Effect.GroupBars).Style.FontFamily);
 
         core.Execute("keyword group:groupbar:font_family Fira Code");

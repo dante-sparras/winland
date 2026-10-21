@@ -108,8 +108,8 @@ public sealed record Outcome(
     /// <summary>Every Group tab bar to draw now. A bar that is not listed is removed.</summary>
     public IReadOnlyList<GroupBar> GroupBars { get; init; } = [];
 
-    /// <summary>The error bar to show, or null when none is.</summary>
-    public ErrorBar? ErrorBar { get; init; }
+    /// <summary>The config notification to show, or null when this load had no config errors. The same notice stays until a later load replaces it.</summary>
+    public ConfigNotice? ConfigNotice { get; init; }
 
     /// <summary>The notification-area icon, or null when this outcome does not say.</summary>
     public TrayIcon? Tray { get; init; }

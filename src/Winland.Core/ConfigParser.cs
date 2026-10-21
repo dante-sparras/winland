@@ -65,6 +65,7 @@ public static partial class ConfigParser
                 WorkspaceRules = _workspaceRules.Count == 0 ? WorkspaceRule.None : [.. _workspaceRules],
                 Sources = [.. _sources],
                 Gestures = [.. _gestures],
+                Path = path,
             };
         }
 

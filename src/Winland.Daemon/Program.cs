@@ -222,6 +222,7 @@ static int Run(string? path, RollingLogWriter log)
     {
         LaunchConfigured(core, core.StartupLaunches(current));
 
+        host.OnOpenFile = TrayFiles.Open;
         host.OnTray = command =>
         {
             switch (command)

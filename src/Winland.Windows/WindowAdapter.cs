@@ -769,8 +769,7 @@ public sealed partial class WindowAdapter : IDisposable
                 BorderHost.Update(rings);
 
             GroupBarHost.Update(outcome.GroupBars);
-            ErrorBarHost.Update(outcome.ErrorBar);
-            TrayHost.Update(outcome.Tray);
+            TrayHost.Update(outcome.Tray, outcome.ConfigNotice);
         }
 
         if (current)

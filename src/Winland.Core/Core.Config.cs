@@ -2,6 +2,15 @@ namespace Winland;
 
 public sealed partial class Core
 {
+    private DebugOptions _debug = DebugOptions.Documented;
+
+    /// <summary>The <c>debug</c> options of the config read last, which say where Winland's log goes.</summary>
+    public DebugOptions Debug => _debug;
+
+    // The notification the last load with config errors showed. A clean load clears it. A live keyword leaves it.
+    private ConfigNotice? _notice;
+    private int _noticeGeneration;
+
     // A loaded config goes through the same path as a reload, so it applies every part of the config.
     private Outcome Load(ConfigLoaded loaded) => Apply(loaded.Config);
 
@@ -53,7 +62,8 @@ public sealed partial class Core
         return View([]);
     }
 
-    private Outcome Apply(ConfigDocument document)
+    // loaded is false for a live keyword. That is not a read of the file, so the notification stays.
+    private Outcome Apply(ConfigDocument document, bool loaded = true)
     {
         ArgumentNullException.ThrowIfNull(document);
         _config = document;
@@ -63,7 +73,8 @@ public sealed partial class Core
         var tiledBefore = _session.SizeLimitsTiled;
         _session = SessionOptions.From(document);
         _debug = DebugOptions.From(document);
-        ShowConfigErrors(document);
+        if (loaded)
+            ShowConfigErrors(document);
         InstallBinds(document);
         _options = LayoutOptions.From(document);
         _scrolling = ScrollingOptions.From(document);
@@ -113,6 +124,22 @@ public sealed partial class Core
         events.Add(new MonitorLayoutChanged());
         _configEvents = events;
         return outcome;
+    }
+
+    // A config read or reloaded with errors replaces the notification with the count and the first error, including
+    // a reload of the same errors. A warning that a feature is not honored, has no Windows meaning, or is a window
+    // rule Winland does not apply is only logged. A load with none takes the notification away.
+    private void ShowConfigErrors(ConfigDocument document)
+    {
+        var next = ConfigNotice.For(document.Warnings, document.Path, _noticeGeneration + 1);
+        if (next is null)
+        {
+            _notice = null;
+            return;
+        }
+
+        _noticeGeneration = next.Generation;
+        _notice = next;
     }
 
     private void MatchLayout(LiveWorkspace desk)

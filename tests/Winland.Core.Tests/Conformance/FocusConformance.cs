@@ -8,24 +8,6 @@ public class FocusConformance
     private const string NoWindow = "{}";
 
     [Fact]
-    public void ErrorBarReservationFollowsFocusedMonitor()
-    {
-        const string TestOutput = "HYPRTEST-ERROR-BAR";
-        var desk = new Desk();
-        desk.AddMonitor(TestOutput, Desk.Second);
-
-        desk.Ok("focusmonitor", "HEADLESS-2");
-        Assert.Equal("ok", desk.Send("seterror rgb(ff0000) reservation-test"));
-        Assert.True(Reserved(desk, "HEADLESS-2", TestOutput));
-
-        desk.Ok("focusmonitor", TestOutput);
-        Assert.True(Reserved(desk, TestOutput, "HEADLESS-2"));
-
-        desk.Ok("focusmonitor", "HEADLESS-2");
-        Assert.True(Reserved(desk, "HEADLESS-2", TestOutput));
-    }
-
-    [Fact]
     public void CrossMonitorFullscreenFocus()
     {
         // A monitor right of the first, and a workspace rule that pins the destination workspace to it. The rule
@@ -106,19 +88,5 @@ public class FocusConformance
         desk.Ok("workspace", "1");
         Assert.Equal(1, desk.ActiveWorkspace().GetProperty("id").GetInt32());
         Assert.Equal(NoWindow, desk.Send("j/activewindow"));
-    }
-
-    // Whether the first monitor reserves space at its top and the second does not.
-    private static bool Reserved(Desk desk, string reserved, string clear)
-    {
-        var monitors = Monitors(desk);
-        int Top(string name) => monitors.Single(monitor => monitor.GetProperty("name").GetString() == name).GetProperty("reserved")[1].GetInt32();
-        return Top(reserved) > 0 && Top(clear) == 0;
-    }
-
-    private static List<System.Text.Json.JsonElement> Monitors(Desk desk)
-    {
-        using var document = System.Text.Json.JsonDocument.Parse(desk.Send("j/monitors"));
-        return [.. document.RootElement.EnumerateArray().Select(monitor => monitor.Clone())];
     }
 }

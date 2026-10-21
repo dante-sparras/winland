@@ -20,7 +20,7 @@ An ADR without a Status line is accepted and true against the code. `Status: Pro
 
 - [0002](0002-hyprland-compatibility-without-its-name.md): Winland keeps the option and Dispatcher names it started with; they are its own now.
 - [0008](0008-the-spec-is-a-pinned-hyprland-release.md): Winland's own `docs/behavior.md` is the spec; Hyprland is its origin, not its reference.
-- [0010](0010-unsupported-keywords-warn-and-are-ignored.md): unknown and malformed lines warn and are skipped, and the rest of the config loads. (proposed)
+- [0010](0010-unsupported-keywords-warn-and-are-ignored.md): unknown and malformed lines warn and are skipped, and the rest of the config loads.
 - [0013](0013-config-is-line-based-or-lua.md): one line-based `winland.conf` that runs no code; a default one is written on first start. (proposed)
 
 ## Extending

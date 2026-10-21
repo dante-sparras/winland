@@ -29,7 +29,7 @@ public class OutcomeConsumerTests
             nameof(Outcome.Live), // WindowAdapter.ApplyCore
             nameof(Outcome.ResetDecorations), // WindowAdapter.ApplyCore
             nameof(Outcome.GroupBars), // WindowAdapter.ApplyCore
-            nameof(Outcome.ErrorBar), // WindowAdapter.ApplyCore
+            nameof(Outcome.ConfigNotice), // WindowAdapter.ApplyCore, TrayHost
             nameof(Outcome.Tray), // WindowAdapter.ApplyCore, TrayHost
             nameof(Outcome.Warp), // SessionEffects
             nameof(Outcome.Cursor), // SessionEffects

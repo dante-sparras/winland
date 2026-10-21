@@ -1,10 +1,8 @@
-using System.Globalization;
-
 namespace Winland;
 
 /// <summary>
-/// The <c>debug</c> options Windows has a meaning for: the config error bar and Winland's log. Any other
-/// <c>debug</c> keyword warns and is skipped.
+/// The <c>debug</c> options Windows has a meaning for: where Winland's log goes. Any other <c>debug</c> keyword
+/// warns and is skipped.
 /// </summary>
 public sealed record DebugOptions
 {
@@ -14,12 +12,7 @@ public sealed record DebugOptions
         "debug:disable_time",
         "debug:enable_stdout_logs",
         "debug:colored_stdout_logs",
-        "debug:suppress_errors",
-        "debug:error_limit",
-        "debug:error_position",
     };
-
-    private static readonly Dictionary<string, int> Positions = new(StringComparer.Ordinal) { ["top"] = 0, ["bottom"] = 1 };
 
     public static DebugOptions Documented { get; } = new();
 
@@ -35,15 +28,6 @@ public sealed record DebugOptions
     /// <summary><c>debug:colored_stdout_logs</c>: the log on standard output is colored.</summary>
     public bool ColoredStdoutLogs { get; init; } = true;
 
-    /// <summary><c>debug:suppress_errors</c>: config errors are not shown in the error bar.</summary>
-    public bool SuppressErrors { get; init; }
-
-    /// <summary><c>debug:error_limit</c>: the lines of the error bar shown, 0 to 20.</summary>
-    public int ErrorLimit { get; init; } = 5;
-
-    /// <summary><c>debug:error_position</c>: 0 puts the error bar at the top of the Monitor, 1 at the bottom.</summary>
-    public int ErrorPosition { get; init; }
-
     public static DebugOptions From(ConfigDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -57,11 +41,6 @@ public sealed record DebugOptions
                 "debug:disable_time" when ConfigValueSyntax.TryParseBool(value, out var untimed) => options with { DisableTime = untimed },
                 "debug:enable_stdout_logs" when ConfigValueSyntax.TryParseBool(value, out var stdout) => options with { EnableStdoutLogs = stdout },
                 "debug:colored_stdout_logs" when ConfigValueSyntax.TryParseBool(value, out var colored) => options with { ColoredStdoutLogs = colored },
-                "debug:suppress_errors" when ConfigValueSyntax.TryParseBool(value, out var suppress) => options with { SuppressErrors = suppress },
-                "debug:error_limit" when int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var limit) =>
-                    options with { ErrorLimit = Math.Clamp(limit, 0, 20) },
-                "debug:error_position" when ConfigValueSyntax.TryParseNamedInt(value, Positions, out var position) =>
-                    options with { ErrorPosition = Math.Clamp(position, 0, 1) },
                 _ => options,
             };
         }
