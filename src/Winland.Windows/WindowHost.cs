@@ -26,6 +26,7 @@ public sealed class WindowHost : IDisposable
     private SessionEffect _deferred = SessionEffect.None;
     private bool _started;
     private bool _opened;
+    private BorderColor? _accent;
     private bool _draining;
     private bool _ownsTaskbar;
     private bool _markerSeen;
@@ -108,6 +109,8 @@ public sealed class WindowHost : IDisposable
             return;
 
         _started = true;
+        // The accent is known before any window is adopted, and again when Windows changes it.
+        NoteAccent();
         // The work area is read once the session opens. Hiding the taskbars, or putting a crash marker back, has to
         // happen first so that read sees the strip the bars reserved or gave back.
         FollowTaskbar();
@@ -170,7 +173,7 @@ public sealed class WindowHost : IDisposable
 
         // A message-only window does not receive power broadcasts. This hidden
         // top-level window does, and it is the target for session notifications.
-        using var session = new SessionWindow(OnSignal, OnFlash, () => SessionEnding?.Invoke());
+        using var session = new SessionWindow(OnSignal, OnFlash, () => SessionEnding?.Invoke(), NoteAccent);
         var shell = WaitForShell();
         var thread = PInvoke.GetCurrentThreadId();
         SessionHalt.Stop = () => _ = PInvoke.PostThreadMessage(thread, QuitMessage, default, default);
@@ -341,6 +344,29 @@ public sealed class WindowHost : IDisposable
         var seconds = (int)SessionPhase.ShellWait.TotalSeconds;
         Console.Error.WriteLine($"The shell was not ready after {seconds} seconds.");
         return SessionSignal.ShellTimedOut;
+    }
+
+    /// <summary>Reads the Windows accent and tells the core, unless this read failed or matches the last one.</summary>
+    internal void NoteAccent()
+    {
+        if (_disposed)
+            return;
+
+        BorderColor? next;
+        try
+        {
+            next = SystemAccent.Read();
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            return;
+        }
+
+        if (next is not BorderColor color || color == _accent)
+            return;
+
+        _accent = color;
+        WindowAdapter.Apply(_core.Handle(new AccentChanged(color)));
     }
 
     private void OnSignal(SessionSignal signal)

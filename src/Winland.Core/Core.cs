@@ -24,6 +24,7 @@ public sealed partial class Core
     private ScrollingOptions _scrolling = ScrollingOptions.Defaults;
     private MasterOptions _master = MasterOptions.Documented;
     private DecorationOptions _decoration = DecorationOptions.Documented;
+    private BorderColor? _accent;
     private Rectangle _area;
     private WindowId? _active;
     private List<StreamEvent>? _configEvents;
@@ -273,6 +274,7 @@ public sealed partial class Core
             WindowTitleChanged retitled => Retitle(retitled),
             WindowClassChanged reclassed => Reclass(reclassed),
             Configure configure => Apply(configure.Document),
+            AccentChanged accent => NoteAccent(accent),
             Preselect preselect => View(CurrentWorkspace().Layout.Preselect(preselect.Direction)),
             Pseudo pseudo => ChangePseudo(pseudo.Window),
             MonitorsChanged changed => SetMonitors(changed.Monitors),

@@ -74,7 +74,7 @@ public sealed partial class Core
             ExtraCommands.FormatCursor(Cursor?.Read() ?? new Point(0, 0), cursor.Flags.HasFlag(CommandFlags.Json)),
             View([])),
         ConfigErrorsRequest => new CommandReply(ExtraCommands.FormatErrors(_configErrors), View([])),
-        GetOptionRequest option => new CommandReply(OptionCatalog.Describe(option.Name, _config), View([])),
+        GetOptionRequest option => new CommandReply(OptionCatalog.Describe(option.Name, _config, _accent), View([])),
         LockedRequest => new CommandReply(ExtraCommands.FormatLocked(SessionLock?.Locked == true), View([])),
         LayoutsRequest => new CommandReply(ExtraCommands.FormatLayouts(), View([])),
         AnimationsRequest animations => new CommandReply(_animations.Describe(animations.Flags.HasFlag(CommandFlags.Json)), View([])),

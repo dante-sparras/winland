@@ -169,7 +169,7 @@ public class WindowPropsTests
     [Fact]
     public void AFocusMatchFollowsTheFocus()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = rounding 8, focus:1\n"));
+        var core = new Core(ConfigParser.Parse("decoration:rounding = 0\nwindowrulev2 = rounding 8, focus:1\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 

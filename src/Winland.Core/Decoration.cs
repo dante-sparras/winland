@@ -48,13 +48,22 @@ public sealed record DecorationOptions
 {
     public static DecorationOptions Documented { get; } = new()
     {
+        // White stands in until the Windows accent is known.
         ActiveBorder = new BorderColor(0xFF, 0xFF, 0xFF, 0xFF),
-        InactiveBorder = new BorderColor(0xFF, 0x44, 0x44, 0x44),
+        InactiveBorder = new BorderColor(0xFF, 0x40, 0x40, 0x40),
+        Rounding = 8,
     };
 
     public BorderColor ActiveBorder { get; init; }
 
     public BorderColor InactiveBorder { get; init; }
+
+    /// <summary>True once <c>general:col.active_border</c> parsed as a color. Otherwise the active border follows the Windows accent.</summary>
+    public bool ActiveBorderSet { get; init; }
+
+    /// <summary>Uses <paramref name="accent"/> for the active border when the config did not set one.</summary>
+    public DecorationOptions WithAccent(BorderColor? accent) =>
+        ActiveBorderSet || accent is not BorderColor color ? this : this with { ActiveBorder = color };
 
     /// <summary>The corner radius in logical pixels. 0 draws square corners.</summary>
     public int Rounding { get; init; }
@@ -75,7 +84,7 @@ public sealed record DecorationOptions
     private static readonly Dictionary<string, Func<DecorationOptions, string, DecorationOptions>> Appliers = new(StringComparer.Ordinal)
     {
         ["general:col.active_border"] = (options, value) => BorderColor.TryParse(value, out var active, out _)
-            ? options with { ActiveBorder = active }
+            ? options with { ActiveBorder = active, ActiveBorderSet = true }
             : options,
         ["general:col.inactive_border"] = (options, value) => BorderColor.TryParse(value, out var inactive, out _)
             ? options with { InactiveBorder = inactive }

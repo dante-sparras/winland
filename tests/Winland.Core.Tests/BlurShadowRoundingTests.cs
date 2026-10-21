@@ -7,7 +7,7 @@ public class BlurShadowRoundingTests
     private static readonly Rectangle Area = new(0, 0, 800, 600);
 
     [Fact]
-    public void DefaultConfigBlursAndDrawsSquareCorners()
+    public void DefaultConfigBlursAndUsesRoundCorners()
     {
         var core = new Core();
         core.Handle(new Configure(ConfigParser.Parse("")));
@@ -15,7 +15,7 @@ public class BlurShadowRoundingTests
         var decoration = For(core.Handle(Appeared(1)), 1);
 
         Assert.True(decoration.Blur);
-        Assert.Equal(CornerPreference.DoNotRound, decoration.Corners);
+        Assert.Equal(CornerPreference.Round, decoration.Corners);
         Assert.Null(decoration.Region);
     }
 

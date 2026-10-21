@@ -164,9 +164,9 @@ public sealed record LayoutOptions
 
     private static LayoutOptions Documented() => new()
     {
-        GapsIn = EdgeInsets.Uniform(5),
-        GapsOut = EdgeInsets.Uniform(20),
-        BorderSize = 1,
+        GapsIn = EdgeInsets.Uniform(4),
+        GapsOut = EdgeInsets.Uniform(8),
+        BorderSize = 2,
     };
 
     private static LayoutOptions Apply(LayoutOptions options, Setting setting) =>

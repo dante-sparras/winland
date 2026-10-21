@@ -46,6 +46,13 @@ public sealed partial class Core
         return new CommandReply("ok", outcome);
     }
 
+    private Outcome NoteAccent(AccentChanged changed)
+    {
+        _accent = changed.Color;
+        _decoration = _decoration.WithAccent(_accent);
+        return View([]);
+    }
+
     private Outcome Apply(ConfigDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -61,7 +68,7 @@ public sealed partial class Core
         _options = LayoutOptions.From(document);
         _scrolling = ScrollingOptions.From(document);
         _master = MasterOptions.From(document);
-        _decoration = DecorationOptions.From(document);
+        _decoration = DecorationOptions.From(document).WithAccent(_accent);
         ReadAnimations(document);
         _groupOptions = GroupOptions.From(document);
         ReadCursor(document);

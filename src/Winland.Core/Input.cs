@@ -96,6 +96,9 @@ public sealed record WindowRestored(WindowId Window) : Event;
 
 public sealed record Configure(ConfigDocument Document) : Command;
 
+/// <summary>The Windows accent. The active border follows it unless the config set <c>general:col.active_border</c>.</summary>
+public sealed record AccentChanged(BorderColor Color) : Event;
+
 public sealed record Preselect(string Direction) : Command;
 
 public sealed record Pseudo(WindowId Window) : Command;

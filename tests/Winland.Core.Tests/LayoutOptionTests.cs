@@ -98,7 +98,7 @@ public class LayoutOptionTests
 
         var outcome = core.Handle(Appeared(1, Wide));
 
-        Assert.Equal(new Rectangle(21, 21, 1878, 1038), BoundsOf(outcome, 1));
+        Assert.Equal(new Rectangle(10, 10, 1900, 1060), BoundsOf(outcome, 1));
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public class LayoutOptionTests
             general:border_size = 0
             """)));
 
-        Assert.Equal(new Rectangle(20, 20, 1880, 1040), BoundsOf(replaced, 1));
+        Assert.Equal(new Rectangle(8, 8, 1904, 1064), BoundsOf(replaced, 1));
     }
 
     [Theory]
