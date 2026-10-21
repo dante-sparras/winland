@@ -3,15 +3,17 @@ namespace Winland;
 public sealed partial class Core
 {
     // The Monitor each Workspace left when its Monitor went away, and the Workspace each Monitor
-    // showed then, by Monitor name.
+    // showed then, by the Monitor's identity, or by its Windows name when it has no model and serial.
     private readonly Dictionary<WorkspaceId, string> _returnMonitors = [];
     private readonly Dictionary<string, WorkspaceId> _rememberedActive = new(StringComparer.OrdinalIgnoreCase);
+    private readonly MonitorIdentity _identity = new();
 
     private Outcome SetMonitors(IReadOnlyList<Monitor> reported)
     {
         ArgumentNullException.ThrowIfNull(reported);
+        var identified = _identity.Number(reported);
         var rules = MonitorRules.From(_config);
-        var arranged = MonitorRules.Arrange(reported, rules);
+        var arranged = MonitorRules.Arrange(identified, rules);
         var previous = _monitors.ToArray();
         var wasEnabled = new List<LiveMonitor>(previous.Length);
         foreach (var screen in previous)
@@ -20,13 +22,12 @@ public sealed partial class Core
                 wasEnabled.Add(screen);
         }
 
-        var next = new List<LiveMonitor>(reported.Count);
-        for (var i = 0; i < reported.Count; i++)
+        var next = new List<LiveMonitor>(identified.Length);
+        for (var i = 0; i < identified.Length; i++)
         {
-            var monitor = reported[i];
-            ArgumentNullException.ThrowIfNull(monitor);
+            var monitor = identified[i];
             var effective = arranged[i];
-            var screen = FindNamed(previous, monitor.Name) ?? FindNamed(next, monitor.Name);
+            var screen = FindTracked(previous, monitor) ?? FindTracked(next, monitor);
             if (screen is null)
                 screen = new LiveMonitor(NextMonitorId(previous, next), monitor, effective);
             else
@@ -116,30 +117,30 @@ public sealed partial class Core
 
     private void NoteLeaving(LiveMonitor screen)
     {
-        var name = screen.Reported.Name;
+        var key = ReturnKey(screen.Reported);
         if (screen.Active is WorkspaceId active)
-            _rememberedActive[name] = active;
+            _rememberedActive[key] = active;
 
         foreach (var desk in _workspaces)
         {
             if (desk.Monitor == screen.Id)
-                _returnMonitors.TryAdd(desk.Id, name);
+                _returnMonitors.TryAdd(desk.Id, key);
         }
     }
 
     private void Return(LiveMonitor screen)
     {
-        var name = screen.Reported.Name;
+        var key = ReturnKey(screen.Reported);
         foreach (var desk in _workspaces.ToArray())
         {
-            if (!_returnMonitors.TryGetValue(desk.Id, out var owner) || !string.Equals(owner, name, StringComparison.OrdinalIgnoreCase))
+            if (!_returnMonitors.TryGetValue(desk.Id, out var owner) || !string.Equals(owner, key, StringComparison.OrdinalIgnoreCase))
                 continue;
 
             _returnMonitors.Remove(desk.Id);
             MoveBack(desk, screen);
         }
 
-        if (!_rememberedActive.Remove(name, out var remembered) || FindWorkspace(remembered) is not LiveWorkspace shown || shown.Id.IsSpecial)
+        if (!_rememberedActive.Remove(key, out var remembered) || FindWorkspace(remembered) is not LiveWorkspace shown || shown.Id.IsSpecial)
             return;
 
         MoveBack(shown, screen);
@@ -325,6 +326,28 @@ public sealed partial class Core
         }
 
         return null;
+    }
+
+    private static string ReturnKey(Monitor monitor) =>
+        MonitorIdentity.Basis(monitor).Length > 0 ? monitor.Description : monitor.Name;
+
+    private static LiveMonitor? FindTracked(IReadOnlyList<LiveMonitor> screens, Monitor monitor)
+    {
+        if (MonitorIdentity.Basis(monitor).Length > 0)
+        {
+            foreach (var screen in screens)
+            {
+                if (MonitorIdentity.Basis(screen.Reported).Length == 0)
+                    continue;
+
+                if (string.Equals(screen.Reported.Description, monitor.Description, StringComparison.Ordinal))
+                    return screen;
+            }
+
+            return null;
+        }
+
+        return FindNamed(screens, monitor.Name);
     }
 
     private static LiveMonitor? FindNamed(IReadOnlyList<LiveMonitor> screens, string name)
