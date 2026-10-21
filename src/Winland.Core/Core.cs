@@ -45,6 +45,9 @@ public sealed partial class Core
     /// </summary>
     public bool ReloadsOnSave => !_session.DisableAutoreload;
 
+    /// <summary><c>general:hide_taskbar</c>: the taskbars are hidden and set to auto-hide while Winland runs.</summary>
+    public bool HideTaskbar => _session.HideTaskbar;
+
     public ICursorPosition? Cursor { get; set; }
 
     public ISessionLock? SessionLock { get; set; }

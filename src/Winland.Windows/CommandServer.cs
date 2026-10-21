@@ -37,6 +37,9 @@ public sealed class CommandServer : IDisposable
     private Exception? _startError;
     private bool _disposed;
 
+    /// <summary>Runs after a command the core handled, so the host can apply what the command changed.</summary>
+    internal Action? AfterCommand { get; set; }
+
     /// <summary>How long a client has to send its request line after it connects.</summary>
     internal TimeSpan RequestTimeout { get; init; } = TimeSpan.FromSeconds(5);
 
@@ -307,6 +310,7 @@ public sealed class CommandServer : IDisposable
             {
                 var reply = _core.Execute(command);
                 Apply(reply.Effect);
+                AfterCommand?.Invoke();
                 text = reply.Text;
             }
         }

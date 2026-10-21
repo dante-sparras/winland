@@ -14,8 +14,13 @@ internal static class ShellBars
 
     // The shell can recreate the tray after sleep or a reconnect. Autohide has
     // to be set again or the work area keeps the strip the new bar reserved.
+    // general:hide_taskbar is off until this run hides the bars. Setting auto-hide
+    // here would take that strip even though the config left the bars alone.
     internal static void Rehide()
     {
+        if (!Taskbar.SessionHidden)
+            return;
+
         var primary = Primary();
         if (!primary.IsNull)
         {

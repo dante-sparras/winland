@@ -28,7 +28,7 @@ How Winland behaves is in `docs/behavior.md`. An unknown keyword warns and is sk
 
 - A running winland takes over every window on the desktop, including the user's. Start it only when the user asked to see a change, and stop it when you are done.
 - To test without touching the user's windows, set `WINLAND_PIPE` and `WINLAND_STATE` to names of your own, then pass `-Config` a file that ignores every window (`windowrulev2 = ignore, class:.*`) and tiles only your test windows. With `WINLAND_PIPE` set, the script replaces only the copies it started. Rule patterns match the whole string, so `^foo` matches only `foo`.
-- `-Stop` stops winland cleanly, which puts the taskbar back. A forced stop leaves the taskbar hidden; recover by running the script and then `-Stop`.
+- `-Stop` stops winland cleanly. When `general:hide_taskbar` hid the taskbar, that shows it again. A forced stop leaves it hidden; recover by running the script and then `-Stop`.
 - `-Config <file>` reads that `.conf` or `.lua` file in place of `%APPDATA%\winland\winland.lua` or, without it, `winland.conf`.
 - The build starts without administrator rights, so it cannot place the windows of elevated programs. `-Elevated` waits for a UAC approval, which an agent cannot give.
 - Each build goes in its own folder under `%LOCALAPPDATA%\winland-dev`, with its output in `winland.out.log` and `winland.err.log`. A build that fails to publish leaves the running winland alone. Piping the script's output is safe.

@@ -137,7 +137,7 @@ internal static class Taskbar
         }
     }
 
-    private static bool MarkerPresent()
+    internal static bool MarkerPresent()
     {
         try
         {
