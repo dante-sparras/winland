@@ -25,7 +25,6 @@ public class GesturesConformance
         gesture = 5, right, dispatcher, sendshortcut, , t, activewindow
         gesture = 4, right, dispatcher, sendshortcut, , return, activewindow
         gesture = 4, left, dispatcher, movecursortocorner, 1
-        gesture = 2, pinch, cursorZoom, 1, live
         gesturep = 2, right, float
         """;
 
@@ -240,14 +239,6 @@ public class GesturesConformance
         Assert.Equal(5, desk.ActiveWorkspace().GetProperty("id").GetInt32());
 
         desk.Ok("workspace", "1");
-
-        var beforePinch = desk.Send("cursorpos").Split(',', StringSplitOptions.TrimEntries);
-        desk.Ok("movecursor", "500 500");
-        desk.Keyword("cursor:zoom_factor", "1");
-
-        // The rest of the case pinches and reads the cursor zoom, which the core has no input or reply for. It then
-        // puts the cursor back.
-        desk.Ok("movecursor", $"{beforePinch[0]} {beforePinch[1]}");
     }
 
     private static bool HasWorkspace(Desk desk, int id) =>

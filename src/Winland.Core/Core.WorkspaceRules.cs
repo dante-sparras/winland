@@ -211,7 +211,7 @@ public sealed partial class Core
         var parsed = LaunchParser.Parse(command, raw: false);
         // Winland starts on-created-empty with the new Workspace as its initial workspace.
         if (parsed.Launch is Launch launch)
-            _born.Enqueue((WithEnvironment(launch) ?? launch) with { InitialWorkspace = desk.Id });
+            _born.Enqueue(launch with { InitialWorkspace = desk.Id });
     }
 
     // Every workspace created since the last outcome runs its command, so all of them leave together.

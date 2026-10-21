@@ -333,7 +333,6 @@ public class LuaRulesTests
             hl.gesture({ fingers = 4, direction = "up", action = "special", workspace_name = "magic" })
             hl.gesture({ fingers = 3, direction = "down", action = "float", mode = "float", mods = "SUPER", scale = 1.5 })
             hl.gesture({ fingers = 4, direction = "left", action = "scroll_move", disable_inhibit = true })
-            hl.gesture({ fingers = 3, direction = "pinch", action = "cursor_zoom", zoom_level = 2, mode = "mult" })
             hl.gesture({ fingers = 4, direction = "up", action = "unset" })
             """);
 
@@ -343,7 +342,6 @@ public class LuaRulesTests
                 "gesture = 4, up, special, magic",
                 "gesture = 3, down, mod:SUPER, scale:1.5, float, float",
                 "gesturep = 4, left, scrollMove",
-                "gesture = 3, pinch, cursorZoom, 2, mult",
                 "gesture = 4, up, unset",
             ],
             Lines(translation));
@@ -352,7 +350,7 @@ public class LuaRulesTests
         Assert.Equal(
             ["Gesture flag 'p' is not honored."],
             Messages(document));
-        Assert.Equal(["workspace", "float", "scrollMove", "cursorZoom"], document.Gestures.Select(gesture => gesture.Action));
+        Assert.Equal(["workspace", "float", "scrollMove"], document.Gestures.Select(gesture => gesture.Action));
         Assert.Equal(Modifier.Super, document.Gestures[1].Modifiers);
         Assert.Equal(1.5, document.Gestures[1].Scale);
     }
@@ -423,7 +421,7 @@ public class LuaRulesTests
     }
 
     [Fact]
-    public void ACommaInARuleMonitorGestureCurveOrEnvReachesTheParsedConfig()
+    public void ACommaInARuleMonitorGestureOrCurveReachesTheParsedConfig()
     {
         var translation = Run("""
             hl.workspace_rule({
@@ -442,7 +440,6 @@ public class LuaRulesTests
             hl.animation({ leaf = "windows", speed = 4, bezier = "ease, out", style = "slide, left" })
             hl.curve("soft, spring", { type = "spring", mass = 1, stiffness = 2, damping = 3 })
             hl.animation({ leaf = "windowsIn", speed = 4, spring = "soft, spring", style = "popin" })
-            hl.env("A,B", "hello, world")
             hl.exec_cmd("notify-send hi, there", { tag = "work, personal" })
             """);
 
@@ -474,8 +471,6 @@ public class LuaRulesTests
         Assert.Equal("ease, out", motion.Leaf("windows").Curve);
         Assert.Equal("slide, left", motion.Leaf("windows").Style);
         Assert.Equal("spring:soft, spring", motion.Leaf("windowsIn").Curve);
-
-        Assert.Equal(new EnvironmentAssignment("A,B", "hello, world"), Assert.Single(document.Environment));
 
         var launch = Assert.Single(new Core().StartupLaunches(document));
         Assert.Equal("notify-send hi, there", launch.CommandLine);
@@ -518,7 +513,6 @@ public class LuaRulesTests
             hl.monitor({ output = "DP-1", mode = "a,b" })
             hl.workspace_rule({ workspace = "1", border_size = "2,0" })
             hl.gesture({ fingers = 3, direction = "up", action = "float", mode = "float,tile" })
-            hl.gesture({ fingers = 4, direction = "down", action = "cursor_zoom", zoom_level = "1,5", mode = "live" })
             hl.animation({ leaf = "win,dows", speed = 1, bezier = "default" })
             """);
 
@@ -527,7 +521,6 @@ public class LuaRulesTests
                 "monitor = DP-1, preferred, auto, auto",
                 "workspace = 1, ruleid:1, ruleon:1",
                 "gesture = 3, up, float",
-                "gesture = 4, down, cursorZoom",
             ],
             Lines(translation));
         Assert.Equal(
@@ -535,7 +528,6 @@ public class LuaRulesTests
                 "hl.monitor: field 'mode': a value with a comma is not honored yet",
                 "hl.workspace_rule: field 'border_size': a value with a comma is not honored yet",
                 "hl.gesture: field 'mode': a value with a comma is not honored yet",
-                "hl.gesture: field 'zoom_level': a value with a comma is not honored yet",
                 "hl.animation(\"win,dows\"): field 'leaf': a value with a comma is not honored yet",
             ],
             Messages(Parse(translation)));
@@ -558,7 +550,6 @@ public class LuaRulesTests
             local terminal    = "kitty"
             local fileManager = "dolphin"
             local menu        = "launcher"
-            hl.env("XCURSOR_SIZE", "24")
             hl.config({
                 general = {
                     gaps_in  = 5,
@@ -616,7 +607,6 @@ public class LuaRulesTests
             hl.animation({ leaf = "workspaces",    enabled = true,  speed = 1.94, bezier = "almostLinear", style = "fade" })
             hl.animation({ leaf = "workspacesIn",  enabled = true,  speed = 1.21, bezier = "almostLinear", style = "fade" })
             hl.animation({ leaf = "workspacesOut", enabled = true,  speed = 1.94, bezier = "almostLinear", style = "fade" })
-            hl.animation({ leaf = "zoomFactor",    enabled = true,  speed = 7,    bezier = "quick" })
             hl.config({ dwindle = { preserve_split = true } })
             hl.config({ master = { new_status = "master" } })
             hl.config({ scrolling = { fullscreen_on_one_column = true } })

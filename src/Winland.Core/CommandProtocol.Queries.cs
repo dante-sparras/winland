@@ -135,9 +135,7 @@ public static partial class CommandProtocol
             client.AllowedOverFullscreen,
             GroupedOf(state, client.Window),
             client.Tags is { Count: > 0 } tags ? [.. tags] : NoStrings,
-            client.Swallowing is WindowId swallowed ? Address(swallowed) : "0x0",
             0,
-            client.InhibitingIdle,
             "",
             "",
             ContentTypes.Name(client.Content),
@@ -329,14 +327,11 @@ public static partial class CommandProtocol
             nextSpecial++;
         }
 
-        // A swallowed Client is out of its Workspace's Layout, so Winland does not count it.
         var windows = new Dictionary<WorkspaceId, int>();
         var fullscreen = new HashSet<WorkspaceId>();
-        var swallowed = new HashSet<WindowId>(state.Swallowed);
         foreach (var client in state.Clients)
         {
-            if (!swallowed.Contains(client.Window))
-                windows[client.Workspace] = windows.GetValueOrDefault(client.Workspace) + 1;
+            windows[client.Workspace] = windows.GetValueOrDefault(client.Workspace) + 1;
             if (client.Fullscreen != FullscreenMode.None)
                 fullscreen.Add(client.Workspace);
         }
@@ -509,9 +504,7 @@ public static partial class CommandProtocol
         [property: JsonPropertyName("allowedOverFullscreen")] bool AllowedOverFullscreen,
         [property: JsonPropertyName("grouped")] string[] Grouped,
         [property: JsonPropertyName("tags")] string[] Tags,
-        [property: JsonPropertyName("swallowing")] string Swallowing,
         [property: JsonPropertyName("focusHistoryID")] int FocusHistoryId,
-        [property: JsonPropertyName("inhibitingIdle")] bool InhibitingIdle,
         [property: JsonPropertyName("xdgTag")] string XdgTag,
         [property: JsonPropertyName("xdgDescription")] string XdgDescription,
         [property: JsonPropertyName("contentType")] string ContentType,

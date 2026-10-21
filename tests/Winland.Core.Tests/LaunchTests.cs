@@ -167,41 +167,6 @@ public class LaunchTests
     }
 
     [Fact]
-    public void EnvPairsReachEveryLaunchAndReloadReplacesThem()
-    {
-        var first = ConfigParser.Parse(
-            "env = BROWSER,firefox\n" +
-            "env = PATH_EXTRA,a,b\n" +
-            "env = ,missing\n" +
-            "exec = every\n" +
-            "exec-once = once\n" +
-            "execr = raw\n" +
-            "exec-shutdown = bye\n");
-        Assert.Equal(new ConfigWarning(3, "Environment variable name is empty."), Assert.Single(first.Warnings));
-        Assert.Equal(
-            [
-                new EnvironmentAssignment("BROWSER", "firefox"),
-                new EnvironmentAssignment("PATH_EXTRA", "a,b"),
-            ],
-            first.Environment);
-
-        var core = new Core(first);
-        var startup = core.StartupLaunches(first);
-        Assert.Equal(first.Environment, startup[0].Environment);
-        Assert.Equal(first.Environment, startup[1].Environment);
-        Assert.Equal(first.Environment, startup[2].Environment);
-        Assert.Equal(first.Environment, core.ShutdownLaunches(first)[0].Environment);
-        Assert.Equal(first.Environment, core.Dispatch("exec", "now").Launch!.Environment);
-
-        var second = ConfigParser.Parse("env = BROWSER,chrome\nexec = every\nexec-shutdown = bye\n");
-        core.Handle(new Configure(second));
-
-        Assert.Equal([new EnvironmentAssignment("BROWSER", "chrome")], core.ReloadLaunches(second)[0].Environment);
-        Assert.Equal([new EnvironmentAssignment("BROWSER", "chrome")], core.ShutdownLaunches(second)[0].Environment);
-        Assert.Equal([new EnvironmentAssignment("BROWSER", "chrome")], core.Dispatch("exec", "later").Launch!.Environment);
-    }
-
-    [Fact]
     public void ExecRulesApplyToTheFirstWindowOfTheProcessOrAChild()
     {
         var core = new Core();

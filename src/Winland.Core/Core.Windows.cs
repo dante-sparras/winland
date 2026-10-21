@@ -117,9 +117,6 @@ public sealed partial class Core
 
     private Outcome Appear(WindowAppeared appeared)
     {
-        if (IsSwallowedParent(appeared.Window))
-            return View([], hide: [appeared.Window]);
-
         var processId = appeared.ProcessId is > 0 and <= int.MaxValue ? (int)appeared.ProcessId : 0;
         if (processId > 0)
         {
@@ -138,7 +135,6 @@ public sealed partial class Core
 
         var restored = FindRestored(appeared.Window);
         decision = Recovered(decision, restored);
-        var swallowee = Swallowee(appeared);
         var screen = MonitorFor(appeared);
         if (_monitors.Count > 0 && screen is null && !RestoredMonitorExists(restored))
             return View([]);
@@ -193,32 +189,13 @@ public sealed partial class Core
         else
             placements = OpenUnderFullscreen(desk, appeared.Window, placements);
 
-        // A window that swallows its parent does not join the Group focused when it opened: in Winland a
-        // swallow and group:auto_group are alternatives, and only a window that swallowed nothing is auto-grouped.
         var focused = restored is null ? ActiveWindow() : null;
-        var openedOn = desk;
-        if (swallowee is not null)
-            placements = SwallowParent(appeared.Window, swallowee, desk, placements, decision.Group);
-
-        // A Group on another Workspace has taken the child there. The open follows that Workspace.
-        var swallowedAcross = false;
-        if (WorkspaceContaining(appeared.Window) is LiveWorkspace landed && landed != openedOn)
-        {
-            swallowedAcross = true;
-            desk = landed;
-            target = landed.Id;
-            covered = landed.Covered();
-            placements = landed.Layout.Visible();
-        }
-
-        var swallowed = _swallows.ContainsKey(appeared.Window);
-        if (GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, swallowed ? null : focused))
+        if (GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, focused))
             placements = desk.Layout.Visible();
 
         NotePlaced(appeared.Window, desk, decision, restored is not null);
         RememberFocus(appeared.Window, decision);
         RememberOpacity(appeared.Window, decision);
-        RememberIdle(appeared.Window, decision);
         RememberRuleProps(appeared.Window, decision);
         RememberExecutable(appeared);
         RememberRuleSubject(appeared.Window, traits, followed, decision);
@@ -233,9 +210,8 @@ public sealed partial class Core
         if (restore == appeared.Window)
             restore = null;
 
-        // A swallow that moved the child onto a hidden Workspace follows it, as focusing the new window does
-        // after replaceMember. A silent workspace rule still does not.
-        if (restored is null && (rule.Id is not null || swallowedAcross) && !rule.Silent && !IsShown(target) && !_awaitingMapFocus.Contains(appeared.Window))
+        // A workspace rule that opens the window on a hidden Workspace follows it. A silent one does not.
+        if (restored is null && rule.Id is not null && !rule.Silent && !IsShown(target) && !_awaitingMapFocus.Contains(appeared.Window))
         {
             if (MonitorById(desk.Monitor) is { } owner)
                 Focus(owner.Id);
@@ -301,30 +277,15 @@ public sealed partial class Core
         _initialWorkspaces.Closed(window);
         _shownMaximized.Remove(window);
         ForgetOwner(window);
-        if (GiveSlotToChild(window) is Outcome slotBack)
-            return slotBack;
-
-        var swallowHome = SwallowHome(window, _swallows.Count);
-        if (ForgetSwallowedParent(window))
-            return ReturnSwallowedInTurn(window, swallowHome);
-
         var desk = WorkspaceContaining(window);
         if (desk is null)
-        {
-            _swallows.Remove(window);
             return View([]);
-        }
 
         var covered = desk.Covered();
         var wasActive = _active == window;
         var mode = desk.ClientOf(window)?.Fullscreen ?? FullscreenMode.None;
 
-        // The parent this window swallowed comes back before the window leaves its Group or its Layout.
-        if (GiveSlotBack(window, desk, covered, wasActive) is Outcome slotted)
-            return slotted;
-
-        var returned = Unswallow(window, desk);
-        if (CloseGroupMember(window, desk, covered, returned, mode) is Outcome grouped)
+        if (CloseGroupMember(window, desk, covered, mode) is Outcome grouped)
             return grouped;
 
         var monitor = desk.Monitor;
@@ -367,7 +328,7 @@ public sealed partial class Core
         var reveal = false;
         if (wasActive)
         {
-            next = returned ?? FocusAfter(desk, floating, hadBounds ? bounds : default, hadBounds);
+            next = FocusAfter(desk, floating, hadBounds ? bounds : default, hadBounds);
 
             // Under an open special workspace a candidate elsewhere is dropped, and the special workspace's Client
             // takes the focus.
@@ -382,7 +343,7 @@ public sealed partial class Core
             if (next is WindowId chosen)
             {
                 TakeFocus(desk, chosen);
-                if (RetainFullscreen(desk, chosen, mode, grouped: chosen == returned) is { } retained)
+                if (RetainFullscreen(desk, chosen, mode, grouped: false) is { } retained)
                     placements = retained;
             }
             else if (_input.FocusOnClose == 0)

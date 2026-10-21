@@ -67,7 +67,7 @@ public class ExtraCommandTests
     }
 
     [Fact]
-    public void VersionCursorLockedLayoutsAndSystemInfoHaveTheirShapes()
+    public void VersionCursorLockedAndLayoutsHaveTheirShapes()
     {
         var core = new Core();
         core.Cursor = new FixedCursor(4, 9);
@@ -86,12 +86,6 @@ public class ExtraCommandTests
         core.SessionLock = new FixedLock(true);
         Assert.Equal("{\"locked\":true}", core.Execute("locked").Text);
         Assert.Equal("[\"dwindle\",\"master\",\"scrolling\",\"monocle\"]", core.Execute("layouts").Text);
-
-        var info = core.Execute("systeminfo").Text;
-        Assert.StartsWith("Winland ", info, StringComparison.Ordinal);
-        Assert.Contains("\nOS: ", info, StringComparison.Ordinal);
-        Assert.Contains("\n.NET: ", info, StringComparison.Ordinal);
-        Assert.Contains("\nMonitors: none", info, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -206,8 +200,6 @@ public class ExtraCommandTests
         core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 200, 100)));
 
         Assert.Equal("ok", core.Execute("kill").Text);
-        Assert.Equal("ok", core.Execute("notify 1 1 0 hi").Text);
-        Assert.Equal("ok", core.Execute("dismissnotify").Text);
         Assert.Equal("not enough args", core.Execute("getprop").Text);
         Assert.Equal("window not found", core.Execute("getprop missing opacity").Text);
         Assert.Equal("1", core.Execute("getprop active opacity").Text);
@@ -437,9 +429,8 @@ public class ExtraCommandTests
     [Theory]
     [InlineData("exec", "notepad")]
     [InlineData("exec-once", "notepad")]
-    [InlineData("env", "A,1")]
     [InlineData("source", "other.conf")]
-    public void KeywordDoesNotLaunchLoadOrSetTheEnvironment(string keyword, string value)
+    public void KeywordDoesNotLaunchOrLoad(string keyword, string value)
     {
         var reply = new Core().Execute($"keyword {keyword} {value}");
 

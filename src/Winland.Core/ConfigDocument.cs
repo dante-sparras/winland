@@ -22,8 +22,6 @@ public sealed record ConfigDocument(
 
     public IReadOnlyList<string> Sources { get; init; } = [];
 
-    public IReadOnlyList<EnvironmentAssignment> Environment { get; init; } = EnvironmentAssignment.None;
-
     public IReadOnlyList<TrackpadGesture> Gestures { get; init; } = [];
 
     /// <summary><c>device[name]:tags</c>, in config order. A later line for the same device replaces the earlier one.</summary>

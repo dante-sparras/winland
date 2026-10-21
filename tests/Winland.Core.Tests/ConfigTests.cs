@@ -208,7 +208,6 @@ public class ConfigTests
             execr = app
             execr-once = app
             exec-shutdown = app
-            env = BROWSER,firefox
             monitor = ,preferred,auto,auto
             windowrule = float, ^(kitty)$
             windowrulev2 = tile, class:^(kitty)$

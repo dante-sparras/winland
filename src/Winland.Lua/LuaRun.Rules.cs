@@ -566,7 +566,6 @@ internal sealed partial class LuaRun
                 "scroll_move" => ["scrollMove"],
                 "special" => Given(Part(1, "workspace_name", Label, commas: true)).Prepend("special"),
                 "float" or "fullscreen" => Given(Part(1, "mode", Label)).Prepend(action),
-                "cursor_zoom" or "cursorZoom" => Given(Part(1, "zoom_level", Label), Part(1, "mode", Label)).Prepend("cursorZoom"),
                 _ => null,
             };
 

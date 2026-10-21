@@ -4,7 +4,7 @@ using Winland.Install;
 using Winland.Lua;
 using Winland.Windows;
 
-// rollinglog answers with the tail of what Winland writes here, and the debug options copy it to a file and stdout.
+// The debug options copy what Winland writes here to a file and to stdout.
 var log = new RollingLogWriter(Console.Error);
 Console.SetError(log);
 

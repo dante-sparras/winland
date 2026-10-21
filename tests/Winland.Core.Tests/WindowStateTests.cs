@@ -13,15 +13,12 @@ public class WindowStateTests
     public void ClosingAWindowLeavesNoPerWindowStateBehind()
     {
         var core = new Core(ConfigParser.Parse("""
-            misc:enable_swallow = true
-            misc:swallow_regex = ^(kitty)$
             input:mouse_refocus = false
             cursor:warp_on_change_workspace = 1
             cursor:persistent_warps = true
             windowrulev2 = float, class:^(stick)$
             windowrulev2 = pin, class:^(stick)$
             windowrulev2 = opacity 0.8, class:^(stick)$
-            windowrulev2 = idle_inhibit always, class:^(stick)$
             windowrulev2 = no_close_for 60000, class:^(stick)$
             windowrulev2 = group deny, class:^(stick)$
             windowrulev2 = noinitialfocus, class:^(quiet)$

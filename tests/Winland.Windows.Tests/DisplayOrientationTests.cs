@@ -87,7 +87,7 @@ public class DisplayOrientationTests
         string[] known =
         [
             nameof(Outcome.Placements), // WindowAdapter.ApplyCore
-            nameof(Outcome.State), // WindowAdapter.ApplyCore, SessionEffects (idle), queries
+            nameof(Outcome.State), // WindowAdapter.ApplyCore, SessionEffects, queries
             nameof(Outcome.Consumed), // the hooks swallow consumed input
             nameof(Outcome.Dispatcher), // events and command replies
             nameof(Outcome.Closes), // WindowAdapter.ApplyCore
@@ -106,7 +106,6 @@ public class DisplayOrientationTests
             nameof(Outcome.ResetDecorations), // WindowAdapter.ApplyCore
             nameof(Outcome.GroupBars), // WindowAdapter.ApplyCore
             nameof(Outcome.ErrorBar), // WindowAdapter.ApplyCore
-            nameof(Outcome.Notifications), // WindowAdapter.ApplyCore
             nameof(Outcome.Orientations), // WindowAdapter.ApplyCore
             nameof(Outcome.DisplayModes), // WindowAdapter.ApplyCore
             nameof(Outcome.DisplayScales), // WindowAdapter.ApplyCore

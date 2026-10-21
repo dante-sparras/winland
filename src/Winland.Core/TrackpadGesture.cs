@@ -59,15 +59,11 @@ public sealed record TrackpadGesture(
 
     public bool IsClose => Action == CloseAction;
 
-    public bool IsHonored => IsWorkspace || IsSpecial || IsOnRelease || IsScrollMove || IsFunction || IsMove || IsResize || IsCursorZoom;
+    public bool IsHonored => IsWorkspace || IsSpecial || IsOnRelease || IsScrollMove || IsFunction || IsMove || IsResize;
 
     public const string MoveAction = "move";
 
     public const string ResizeAction = "resize";
-
-    public const string CursorZoomAction = "cursorZoom";
-
-    public bool IsCursorZoom => Action == CursorZoomAction;
 
     public bool IsMove => Action == MoveAction;
 

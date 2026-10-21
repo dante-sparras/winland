@@ -229,18 +229,12 @@ public sealed partial class Core
             return EmitCustom(arguments);
         else if (Is(name, "dpms"))
             return Dpms(arguments);
-        else if (Is(name, "pass"))
-            return Pass(arguments);
         else if (Is(name, "sendshortcut"))
             return SendShortcut(arguments);
-        else if (Is(name, "sendkeystate"))
-            return SendKeyState(arguments);
         else if (Is(name, "focuscurrentorlast"))
             return FocusCurrentOrLast();
         else if (Is(name, "focusurgentorlast"))
             return FocusUrgentOrLast();
-        else if (Is(name, "toggleswallow"))
-            return ToggleSwallow();
         else if (Is(name, "fullscreen") || Is(name, "fullscreenstate") || Is(name, "maximize"))
             return FullscreenDispatcher(name, arguments);
         else if (Is(name, "layoutmsg") || Is(name, "layout"))
@@ -259,7 +253,7 @@ public sealed partial class Core
             }
 
             var launched = View([], dispatcher: name);
-            return WithEnvironment(parsed.Launch) is Launch launch
+            return parsed.Launch is Launch launch
                 ? launched with { Launches = [.. launched.Launches, launch with { InitialWorkspace = LaunchWorkspace() }] }
                 : launched;
         }

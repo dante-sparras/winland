@@ -520,7 +520,7 @@ public sealed partial class Core
             return ReasonForSwitch(before, after, afterState);
 
         if (Is(name, "focusmonitor") || Is(name, "movetoworkspace") || Is(name, "movetoworkspacesilent")
-            || Is(name, "moveoutofgroup") || Is(name, "toggleswallow"))
+            || Is(name, "moveoutofgroup"))
             return FocusReason.Keybind;
 
         if (Is(name, "swapactiveworkspaces") || Is(name, "movegroupwindow"))

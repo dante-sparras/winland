@@ -20,16 +20,12 @@ public static class ControlInvocation
                winlandctl [-j] [-r] [-a] cursorpos
                winlandctl [-j] [-r] [-a] configerrors
                winlandctl [-j] [-r] [-a] getoption <name>
-               winlandctl [-j] [-r] [-a] systeminfo
                winlandctl [-j] [-r] [-a] locked
                winlandctl [-j] [-r] [-a] layouts
                winlandctl [-j] [-r] [-a] devices
                winlandctl [-j] [-r] [-a] switchxkblayout <keyboard> <next|prev|index>
                winlandctl [-j] [-r] [-a] kill
-               winlandctl [-j] [-r] [-a] rollinglog
                winlandctl [-j] [-r] [-a] keyword <name> <value>
-               winlandctl [-j] [-r] [-a] notify [args]
-               winlandctl [-j] [-r] [-a] dismissnotify [args]
                winlandctl [-j] [-r] [-a] getprop <window> <property>
                winlandctl [-j] [-r] [-a] setprop <window> <property> <value>
                winlandctl eval <lua>
@@ -163,10 +159,8 @@ public static class ControlInvocation
         || verb.Equals("keyword", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("getprop", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("setprop", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("notify", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("seterror", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("switchxkblayout", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("dismissnotify", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("eval", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("repl", StringComparison.OrdinalIgnoreCase);
 
@@ -181,14 +175,12 @@ public static class ControlInvocation
         || verb.Equals("version", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("cursorpos", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("configerrors", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("systeminfo", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("locked", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("layouts", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("devices", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("submap", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("animations", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("kill", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("rollinglog", StringComparison.OrdinalIgnoreCase);
+        || verb.Equals("kill", StringComparison.OrdinalIgnoreCase);
 
     private static string Inject(string payload, string flags)
     {

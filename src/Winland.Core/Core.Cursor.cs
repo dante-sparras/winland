@@ -28,7 +28,6 @@ public sealed partial class Core
         _digitizer = DigitizerOptions.From(document);
         Touchpad = _input.Touchpad;
         ScrollCurve = _input.ScrollCurve;
-        ForgetGestureZoom();
         KeyOptions = KeyboardOptions.Parse(_input.KbOptions);
         _pointers = PointerDevices.From(document, _input);
         Interlocked.Increment(ref _pointerGeneration);
@@ -85,7 +84,7 @@ public sealed partial class Core
             Warp = warp,
             InputSettings = _input.Request(),
             KeyboardLayout = LayoutRequest(),
-            Cursor = WithGestureZoom(WithZoomTiming(_cursor.Behavior())),
+            Cursor = _cursor.Behavior(),
             ResizeCursor = _resizeCursor,
             Vrr = VrrNow(outcome.State),
         };
@@ -278,8 +277,4 @@ public sealed partial class Core
 
         return null;
     }
-
-    // animation:zoomFactor animates a change of cursor:zoom_factor, as Winland's cursor zoom variable does.
-    private CursorBehavior WithZoomTiming(CursorBehavior behavior) =>
-        behavior with { Zoom = behavior.Zoom with { Animation = _animations.TimingOf("zoomFactor") } };
 }

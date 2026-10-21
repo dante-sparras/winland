@@ -9,7 +9,7 @@ public enum KeyRelayPhase
 }
 
 /// <summary>
-/// A key or mouse button that <c>pass</c>, <c>sendshortcut</c> or <c>sendkeystate</c> sends on.
+/// A key or mouse button that <c>sendshortcut</c> sends on.
 /// A null <see cref="Target"/> sends it to the focused window. <see cref="Key"/> is a key name,
 /// <c>code:N</c>, or <c>mouse:N</c>. <see cref="Code"/> is the XKB keycode when the key came from a
 /// bind. A null <see cref="Modifiers"/> leaves the held modifiers alone; otherwise exactly those
@@ -22,5 +22,5 @@ public sealed record KeyRelay(WindowId? Target, string Key, KeyRelayPhase Phase)
     public Modifier? Modifiers { get; init; }
 }
 
-/// <summary>The key or button edge that ran a bind. <c>pass</c> sends the same edge on.</summary>
+/// <summary>The key or button edge that ran a bind.</summary>
 public readonly record struct BindTrigger(string Key, int Code, bool Pressed);

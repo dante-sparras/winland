@@ -71,7 +71,6 @@ public class LuaConfigTests
     public void CommandsRunOnLoadAtStartOrAtExit()
     {
         var translation = Run("""
-            hl.env("XCURSOR_SIZE", 24)
             hl.exec_cmd("notepad")
             hl.on("winland.start", function()
                 hl.exec_cmd("explorer", { workspace = 2, float = true, pin = false })
@@ -82,13 +81,12 @@ public class LuaConfigTests
         Assert.Empty(translation.Warnings);
         Assert.Equal(
             [
-                "env = XCURSOR_SIZE,24",
                 "exec = notepad",
                 "exec-once = [float; workspace 2] explorer",
                 "exec-shutdown = cleanup",
             ],
             Lines(translation).Select(line => line.Replace("[workspace 2; float]", "[float; workspace 2]", StringComparison.Ordinal)));
-        Assert.Equal([1, 2, 4, 6], translation.Origins.Select(origin => origin.Line));
+        Assert.Equal([1, 3, 5], translation.Origins.Select(origin => origin.Line));
     }
 
     [Fact]

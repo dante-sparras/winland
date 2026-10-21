@@ -67,7 +67,7 @@ public sealed class KeyboardHook : IDisposable
     /// </summary>
     public static event Action<int, uint, bool>? KeySeen;
 
-    // Modifiers a relay pressed and left down on purpose (sendkeystate down). Not stale.
+    // Modifiers a relay pressed and left down on purpose. Not stale.
     private static int _relayed;
 
     private readonly Core _core;

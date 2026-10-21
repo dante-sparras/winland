@@ -33,7 +33,7 @@ public sealed partial class Core
             _content[window] = decision.Content;
     }
 
-    // Matches the tag, property, opacity, focus and idle effects of every window's rules against its state now. The placements of each
+    // Matches the tag, property, opacity and focus effects of every window's rules against its state now. The placements of each
     // shown Workspace where a window's border changed, laid out again, and whether any window's tags changed.
     private List<Placement> MatchRulesAgain(out bool tagsChanged)
     {
@@ -73,7 +73,6 @@ public sealed partial class Core
                 var border = RulePropOf(client.Window, "border_size");
                 RememberRuleProps(client.Window, decision);
                 RememberOpacity(client.Window, decision);
-                RememberIdle(client.Window, decision);
                 if (_focusRules.TryGetValue(client.Window, out var focus))
                     _focusRules[client.Window] = focus with { NoFocus = decision.NoFocus, StayFocused = decision.StayFocused };
                 if (forced && _sizes.TryGetValue(client.Window, out var keptSizes))

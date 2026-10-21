@@ -4,9 +4,6 @@ namespace Winland;
 
 public sealed record CursorBehavior(bool HideOnKeyPress, double InactiveTimeoutSeconds)
 {
-    /// <summary>How far the Monitor under the cursor is zoomed, and how its view follows the cursor.</summary>
-    public CursorZoom Zoom { get; init; } = CursorZoom.None;
-
     /// <summary><c>cursor:invisible</c>: the cursor is never shown.</summary>
     public bool Invisible { get; init; }
 
@@ -21,37 +18,6 @@ public sealed record CursorBehavior(bool HideOnKeyPress, double InactiveTimeoutS
 
     /// <summary><c>cursor:hotspot_padding</c>: how many logical pixels the cursor keeps from the outer edges of the monitors.</summary>
     public int HotspotPadding { get; init; }
-}
-
-/// <summary>
-/// <c>cursor:zoom_factor</c>, <c>cursor:zoom_rigid</c> and <c>cursor:zoom_detached_camera</c>: the factor, from 1 to
-/// 10, by which the Monitor under the cursor is zoomed, and how its view follows the cursor.
-/// </summary>
-public sealed record CursorZoom(double Factor, bool Rigid, bool DetachedCamera)
-{
-    public static CursorZoom None { get; } = new(1, false, true);
-
-    /// <summary>How a change of factor animates, from <c>animation:zoomFactor</c>, or null when it changes at once.</summary>
-    public Timing? Animation { get; init; }
-
-    /// <summary><c>cursor:zoom_disable_aa</c>: the zoomed picture is scaled without smoothing.</summary>
-    public bool DisableAntialiasing { get; init; }
-}
-
-/// <summary>A cursor zoom factor easing from one value to another.</summary>
-public sealed record ZoomTween(double From, double To, Timing Timing)
-{
-    /// <summary>The factor <paramref name="milliseconds"/> after the change began.</summary>
-    public double At(double milliseconds)
-    {
-        if (Timing.Milliseconds <= 0 || milliseconds >= Timing.Milliseconds)
-            return To;
-
-        var t = Math.Clamp(milliseconds / Timing.Milliseconds, 0, 1);
-        return From + ((To - From) * Timing.Curve.Ease(t));
-    }
-
-    public bool Done(double milliseconds) => Timing.Milliseconds <= 0 || milliseconds >= Timing.Milliseconds;
 }
 
 public sealed record CursorOptions
@@ -81,14 +47,6 @@ public sealed record CursorOptions
 
     public string DefaultMonitor { get; init; } = "";
 
-    public double ZoomFactor { get; init; } = 1;
-
-    public bool ZoomRigid { get; init; }
-
-    public bool ZoomDetachedCamera { get; init; } = true;
-
-    public bool ZoomDisableAntialiasing { get; init; }
-
     public int HotspotPadding { get; init; }
 
     public static CursorOptions Documented { get; } = new();
@@ -97,7 +55,6 @@ public sealed record CursorOptions
 
     public CursorBehavior Behavior() => new(HideOnKeyPress, InactiveTimeoutSeconds)
     {
-        Zoom = new CursorZoom(ZoomFactor, ZoomRigid, ZoomDetachedCamera) { DisableAntialiasing = ZoomDisableAntialiasing },
         Invisible = Invisible,
         WarpBackAfterNonMouseInput = WarpBackAfterNonMouseInput,
         HideOnTouch = HideOnTouch,
@@ -134,11 +91,7 @@ public sealed record CursorOptions
         ["cursor:invisible"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var invisible) ? options with { Invisible = invisible } : options,
         ["cursor:hide_on_key_press"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var hide) ? options with { HideOnKeyPress = hide } : options,
         ["cursor:default_monitor"] = (options, value) => options with { DefaultMonitor = value.Trim() },
-        ["cursor:zoom_factor"] = (options, value) => TryZoom(value, out var factor) ? options with { ZoomFactor = factor } : options,
-        ["cursor:zoom_rigid"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var rigid) ? options with { ZoomRigid = rigid } : options,
-        ["cursor:zoom_disable_aa"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var sharp) ? options with { ZoomDisableAntialiasing = sharp } : options,
         ["cursor:hotspot_padding"] = (options, value) => int.TryParse(value.Trim(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var padding) ? options with { HotspotPadding = Math.Clamp(padding, 0, 20) } : options,
-        ["cursor:zoom_detached_camera"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var detached) ? options with { ZoomDetachedCamera = detached } : options,
     };
 
     internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);
@@ -164,15 +117,6 @@ public sealed record CursorOptions
         }
 
         mode = Math.Clamp(parsed, min, max);
-        return true;
-    }
-
-    private static bool TryZoom(string text, out double factor)
-    {
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out factor) || !double.IsFinite(factor))
-            return false;
-
-        factor = Math.Clamp(factor, 1, 10);
         return true;
     }
 

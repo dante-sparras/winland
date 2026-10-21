@@ -539,12 +539,11 @@ public static class BindMatcher
     private static bool IsSubmapDispatcher(Bind bind) =>
         bind.Dispatcher.Equals("submap", StringComparison.OrdinalIgnoreCase);
 
-    // A bind that sends its key on runs on the press and again on the release, so the
-    // window it sends to sees both edges.
+    // A sendshortcut bind runs on the press and again on the release, so the window it
+    // sends to sees both edges.
     private static bool SendsBothEdges(Bind bind) =>
         !bind.Flags.HasFlag(BindFlag.LongPress)
-        && (bind.Dispatcher.Equals("pass", StringComparison.OrdinalIgnoreCase)
-            || bind.Dispatcher.Equals("sendshortcut", StringComparison.OrdinalIgnoreCase));
+        && bind.Dispatcher.Equals("sendshortcut", StringComparison.OrdinalIgnoreCase);
 
     private static bool DispatchesNow(Bind bind, bool releasing)
     {

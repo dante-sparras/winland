@@ -9,7 +9,6 @@ public sealed partial class Core
     private IReadOnlyList<WindowRule> _rules;
     private IReadOnlyList<WorkspaceRule> _workspaceRules = WorkspaceRule.None;
     private readonly Queue<Launch> _born = new();
-    private IReadOnlyList<EnvironmentAssignment> _environment = EnvironmentAssignment.None;
     private readonly PidFollowSet _follow = new();
     private readonly InitialWorkspaces _initialWorkspaces = new();
     private readonly BindSession _keyState = new();
@@ -63,7 +62,6 @@ public sealed partial class Core
         TrackWindowState();
         _rules = config?.WindowRules ?? [];
         _workspaceRules = config?.WorkspaceRules ?? WorkspaceRule.None;
-        _environment = config?.Environment ?? EnvironmentAssignment.None;
         _config = config;
         NoteConfigErrors(config);
         if (config is not null)
@@ -307,14 +305,6 @@ public sealed partial class Core
     }
 
     private long FollowNow() => FollowClock?.Invoke() ?? Environment.TickCount64;
-
-    private Launch? WithEnvironment(Launch? launch)
-    {
-        if (launch is null || _environment.Count == 0)
-            return launch;
-
-        return launch with { Environment = _environment };
-    }
 
     // Called under the lock, so the sequence is the order in which the outcomes were decided.
     private Outcome Ordered(Outcome outcome) => outcome with { Order = new OutcomeOrder(_id, ++_sequence) };

@@ -202,7 +202,6 @@ public sealed partial class WindowAdapter
         GroupBarHost.Stop();
         ErrorBarHost.Stop();
         BorderHost.Stop();
-        NotificationHost.Stop();
         EndStandIns();
         StandInHost.Stop();
         PutBackFrames();

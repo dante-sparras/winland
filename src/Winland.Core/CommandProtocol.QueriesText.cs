@@ -90,7 +90,7 @@ public static partial class CommandProtocol
             .Append(CultureInfo.InvariantCulture, $"\txwayland: {Bit(client.Xwayland)}\n\tpinned: {Bit(client.Pinned)}\n\tpinFullscreened: {Bit(client.PinFullscreened)}\n")
             .Append(CultureInfo.InvariantCulture, $"\tfullscreen: {client.Fullscreen}\n\tfullscreenClient: {client.FullscreenClient}\n\tfullscreenHandler: {client.FullscreenHandler}\n")
             .Append(CultureInfo.InvariantCulture, $"\tallowedOverFullscreen: {Bit(client.AllowedOverFullscreen)}\n\tgrouped: {grouped}\n\ttags: {string.Join(", ", client.Tags)}\n")
-            .Append(CultureInfo.InvariantCulture, $"\tswallowing: {Bare(client.Swallowing)}\n\tfocusHistoryID: {client.FocusHistoryId}\n\tinhibitingIdle: {Bit(client.InhibitingIdle)}\n")
+            .Append(CultureInfo.InvariantCulture, $"\tfocusHistoryID: {client.FocusHistoryId}\n")
             .Append(CultureInfo.InvariantCulture, $"\txdgTag: {client.XdgTag}\n\txdgDescription: {client.XdgDescription}\n\tcontentType: {client.ContentType}\n")
             .Append(CultureInfo.InvariantCulture, $"\ttearingHint: {Bit(client.TearingHint)}\n\tstableID: {client.StableId}\n\n");
     }
