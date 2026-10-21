@@ -129,7 +129,7 @@ internal sealed class SmokeDaemon : IDisposable
                 return true;
 
             // WM_QUIT is the message the daemon posts for a console cancel. GetMessage
-            // returns and the process shows hidden windows and restores the taskbars.
+            // returns and the process shows hidden windows and, when this run hid the taskbars, restores them.
             _ = NativeQuit.Post(thread);
             if (_process.WaitForExit(200))
                 return true;

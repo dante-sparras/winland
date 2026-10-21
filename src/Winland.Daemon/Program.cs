@@ -212,6 +212,7 @@ static int Run(string? path, RollingLogWriter log)
     if (prior is not null)
         SessionEffects.RestoreCursors();
     SessionEffects.InstallSystem();
+    TaskbarControl.InstallSystem();
     if (prior?.Input is InputOriginals saved)
         SessionEffects.RestoreSaved(saved);
     if (prior?.Vrr is VrrOriginals vrr)

@@ -50,6 +50,11 @@ public sealed record SessionOptions
     /// <summary><c>general:no_focus_fallback</c>: movefocus with nothing in its direction answers an error.</summary>
     public bool NoFocusFallback { get; init; }
 
+    /// <summary>
+    /// <c>general:hide_taskbar</c>: hide the taskbars and set them to auto-hide, so Clients tile into the strip they reserved.
+    /// </summary>
+    public bool HideTaskbar { get; init; }
+
     /// <summary><c>binds:movefocus_cycles_fullscreen</c>: movefocus from a fullscreen Client cycles its Workspace's windows instead of looking in the direction.</summary>
     public bool MoveFocusCyclesFullscreen { get; init; }
 
@@ -86,6 +91,7 @@ public sealed record SessionOptions
         ["binds:allow_pin_fullscreen"] = (options, value) => TryParseBool(value, out var allow) ? options with { AllowPinFullscreen = allow } : options,
         ["misc:animate_manual_resizes"] = (options, value) => TryParseBool(value, out var animate) ? options with { AnimateManualResizes = animate } : options,
         ["general:no_focus_fallback"] = (options, value) => TryParseBool(value, out var none) ? options with { NoFocusFallback = none } : options,
+        ["general:hide_taskbar"] = (options, value) => TryParseBool(value, out var hide) ? options with { HideTaskbar = hide } : options,
         ["binds:movefocus_cycles_fullscreen"] = (options, value) => TryParseBool(value, out var cycles) ? options with { MoveFocusCyclesFullscreen = cycles } : options,
         ["misc:mouse_move_enables_dpms"] = (options, value) => TryParseBool(value, out var mouse) ? options with { MouseMoveEnablesDpms = mouse } : options,
         ["misc:key_press_enables_dpms"] = (options, value) => TryParseBool(value, out var key) ? options with { KeyPressEnablesDpms = key } : options,

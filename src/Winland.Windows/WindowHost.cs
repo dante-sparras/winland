@@ -28,7 +28,9 @@ public sealed class WindowHost : IDisposable
     private bool _opened;
     private bool _draining;
     private bool _ownsTaskbar;
+    private bool _markerSeen;
     private bool _disposed;
+    private ITaskbarSession _taskbar = NullTaskbarSession.Instance;
 
     public WindowHost(Core core, Action<RecoverySnapshot>? onRecovery = null, string? pipeName = null)
     {
@@ -52,6 +54,19 @@ public sealed class WindowHost : IDisposable
         _core.SessionLock = _phase;
         _core.Devices ??= new RawInputDevices();
         _commands = new CommandServer(core, pipeName);
+        _commands.AfterCommand = FollowTaskbar;
+        _taskbar = TaskbarControl.Current;
+    }
+
+    /// <summary>The bars this host hides and restores. Tests substitute a stand-in before the session starts.</summary>
+    internal ITaskbarSession TaskbarSession
+    {
+        get => _taskbar;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _taskbar = value;
+        }
     }
 
     /// <summary>Runs on the message-loop thread when the session really ends (WM_ENDSESSION with wParam TRUE).</summary>
@@ -70,6 +85,7 @@ public sealed class WindowHost : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         var reply = _core.Execute(line);
         WindowAdapter.Apply(reply.Effect);
+        FollowTaskbar();
         return reply.Text;
     }
 
@@ -78,6 +94,7 @@ public sealed class WindowHost : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         var reply = _core.Execute("reload");
         WindowAdapter.Apply(reply.Effect);
+        FollowTaskbar();
         return reply;
     }
 
@@ -88,8 +105,9 @@ public sealed class WindowHost : IDisposable
             return;
 
         _started = true;
-        _ownsTaskbar = true;
-        Taskbar.Hide();
+        // The work area is read once the session opens. Hiding the taskbars, or putting a crash marker back, has to
+        // happen first so that read sees the strip the bars reserved or gave back.
+        FollowTaskbar();
         _windows.Start();
         _input.Start();
         _touchpad.Start();
@@ -221,7 +239,36 @@ public sealed class WindowHost : IDisposable
             return;
 
         _ownsTaskbar = false;
-        Taskbar.Restore();
+        _taskbar.Restore();
+    }
+
+    // general:hide_taskbar, read again after a reload or a keyword. A change lays the monitors out once the session
+    // is open, because hiding or restoring the bars changes the work area.
+    private void FollowTaskbar()
+    {
+        var choice = TaskbarPolicy.Decide(_core.HideTaskbar, _ownsTaskbar, PendingMarker(), _opened);
+        if (choice.Hide)
+        {
+            _ownsTaskbar = true;
+            _taskbar.Hide();
+        }
+        else if (choice.Restore)
+        {
+            _ownsTaskbar = false;
+            _taskbar.Restore();
+        }
+
+        if (choice.Relayout && _taskbar.ChangesWorkArea)
+            ApplyMonitors();
+    }
+
+    private bool PendingMarker()
+    {
+        if (_markerSeen)
+            return false;
+
+        _markerSeen = true;
+        return _taskbar.Marker;
     }
 
     public void Dispose()

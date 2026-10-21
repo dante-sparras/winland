@@ -221,6 +221,10 @@ internal static partial class OptionCatalog
                 kind = "bool";
                 token = Bool(session.ModalParentBlocking);
                 return true;
+            case "general:hide_taskbar":
+                kind = "bool";
+                token = Bool(session.HideTaskbar);
+                return true;
             case "misc:close_special_on_empty":
                 kind = "bool";
                 token = Bool(session.CloseSpecialOnEmpty);
