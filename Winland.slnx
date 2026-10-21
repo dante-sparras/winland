@@ -2,7 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Winland.Core/Winland.Core.csproj" />
     <Project Path="src/Winland.Windows/Winland.Windows.csproj" />
-    <Project Path="src/winlandctl/winlandctl.csproj" />
+    <Project Path="src/Winland.Ctl/Winland.Ctl.csproj" />
     <Project Path="src/Winland.Install/Winland.Install.csproj" />
     <Project Path="src/Winland.Daemon/Winland.Daemon.csproj" />
   </Folder>

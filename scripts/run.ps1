@@ -83,7 +83,7 @@ $stamp = [DateTime]::Now.ToString('yyyyMMdd-HHmmss')
 $build = Join-Path $dev $stamp
 New-Item -ItemType Directory -Force -Path $build | Out-Null
 
-foreach ($project in @(@('Winland.Daemon', 'winland'), @('winlandctl', 'winlandctl'))) {
+foreach ($project in @(@('Winland.Daemon', 'winland'), @('Winland.Ctl', 'winlandctl'))) {
     $out = Join-Path $build $project[1]
     Write-Output "Publishing $($project[0])."
     $log = dotnet publish (Join-Path $root "src/$($project[0])/$($project[0]).csproj") -c $Configuration -o $out --nologo -v q 2>&1
