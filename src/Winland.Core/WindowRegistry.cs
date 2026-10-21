@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Forgets a window in every piece of per-window state it tracks. The core registers each map, set and

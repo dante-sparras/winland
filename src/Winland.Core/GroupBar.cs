@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The tab bar Winland draws over a Group's tile. <see cref="Bounds"/> is the strip in screen pixels.

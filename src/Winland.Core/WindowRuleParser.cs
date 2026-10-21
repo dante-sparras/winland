@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace Winland;
+namespace Winland.Core;
 
 internal static partial class WindowRuleParser
 {

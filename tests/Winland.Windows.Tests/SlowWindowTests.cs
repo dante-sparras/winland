@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Winland.Tests;
 using Winland.Windows;
+using Winland.Core;
 
 namespace Winland.Windows.Tests;
 

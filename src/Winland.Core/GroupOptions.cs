@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>The <c>group:*</c> and <c>group:groupbar:*</c> options, with the defaults of Winland.</summary>
 public sealed record GroupOptions

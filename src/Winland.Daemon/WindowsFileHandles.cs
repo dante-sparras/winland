@@ -1,8 +1,9 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Microsoft.Win32.SafeHandles;
+using Winland.Core;
 
-namespace Winland;
+namespace Winland.Daemon;
 
 /// <summary>
 /// Opens files and folders by handle, optionally without following a reparse point, and reads or

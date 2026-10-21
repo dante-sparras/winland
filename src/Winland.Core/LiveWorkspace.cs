@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// A Workspace the core owns, with the Layout that places its Clients. <see cref="Workspace"/> is the

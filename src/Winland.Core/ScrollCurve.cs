@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// <c>input:scroll_points</c>: the scroll acceleration curve, as libinput takes it. The value is a step and then

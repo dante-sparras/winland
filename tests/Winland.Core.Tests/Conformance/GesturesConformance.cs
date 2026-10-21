@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests.Conformance;
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>
 /// Workspace swipe cases. One swipe is 300 pixels along one axis in a single update. Alt is held on the keyboard.

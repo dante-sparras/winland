@@ -1,8 +1,9 @@
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using Winland.Core;
 
-namespace Winland;
+namespace Winland.Daemon;
 
 /// <summary>Folders that only SYSTEM and Administrators can write, for the elevated programs.</summary>
 [SupportedOSPlatform("windows")]

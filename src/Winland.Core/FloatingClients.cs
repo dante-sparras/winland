@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The floating Clients of one Layout: the rectangle each one floats at, and the size each Client

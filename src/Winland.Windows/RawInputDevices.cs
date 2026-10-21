@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
+using Winland.Core;
 
 namespace Winland.Windows;
 

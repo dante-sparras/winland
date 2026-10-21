@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Winland;
+namespace Winland.Core;
 
 public readonly record struct EdgeInsets(int Top, int Right, int Bottom, int Left)
 {

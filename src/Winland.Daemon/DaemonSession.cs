@@ -1,7 +1,8 @@
 using System.Diagnostics;
 using Winland.Install;
+using Winland.Core;
 
-namespace Winland;
+namespace Winland.Daemon;
 
 /// <summary>Asks the running Daemon to exit, then starts the installed one.</summary>
 sealed class DaemonSession : IDaemonSession

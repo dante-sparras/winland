@@ -1,3 +1,5 @@
+using Winland.Core;
+
 namespace Winland.Daemon.Tests;
 
 /// <summary>Makes a directory junction. Unlike a symbolic link, it needs no privilege.</summary>

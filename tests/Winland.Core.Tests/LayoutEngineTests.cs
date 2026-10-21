@@ -1,8 +1,8 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
-/// <summary>Drives each Layout directly, without Core, for the paths Core cannot easily reach.</summary>
+/// <summary>Drives each Layout directly, without WindowManager, for the paths WindowManager cannot easily reach.</summary>
 public class LayoutEngineTests
 {
     private static readonly Rectangle Area = new(0, 0, 1000, 800);

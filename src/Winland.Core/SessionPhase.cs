@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Decides when the first layout may run, and when a later session change must

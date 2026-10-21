@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Winland.Core;
 
 namespace Winland.Daemon.Tests;
 

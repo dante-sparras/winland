@@ -1,4 +1,6 @@
-namespace Winland.Tests;
+using Winland.Core;
+
+namespace Winland.Core.Tests;
 
 public class SessionPhaseTests
 {

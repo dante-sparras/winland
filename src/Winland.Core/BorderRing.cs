@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The border Winland draws around one Client, outside its frame: <see cref="Thickness"/> pixels wide,

@@ -1,4 +1,6 @@
-namespace Winland.Tests.Conformance;
+using Winland.Core;
+
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>Winland's drag cases. Each test is named after its case, and sends the same commands.</summary>
 [Trait("Category", "Conformance")]
@@ -202,7 +204,7 @@ public class DragConformance
     // The test plugin reads the drag controller: whether a drag holds a window, and whether it has picked it up.
     private static void ExpectDragState(Desk desk, bool active, bool reached)
     {
-        var gesture = typeof(Core).GetField("_gesture", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(desk.Core);
+        var gesture = typeof(WindowManager).GetField("_gesture", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(desk.WindowManager);
         var pickedUp = gesture is not null && (bool)gesture.GetType().GetProperty("PickedUp")!.GetValue(gesture)!;
         Assert.Equal((active, reached), (gesture is not null, pickedUp));
     }

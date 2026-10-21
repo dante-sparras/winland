@@ -1,8 +1,9 @@
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using Winland.Install;
+using Winland.Core;
 
-namespace Winland;
+namespace Winland.Daemon;
 
 sealed class WindowsInstallRegistry : IRegistry
 {

@@ -3,6 +3,7 @@ using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.Input.KeyboardAndMouse;
 using Windows.Win32.UI.WindowsAndMessaging;
+using Winland.Core;
 
 namespace Winland.Windows;
 
@@ -24,7 +25,7 @@ public sealed class MouseHook : IDisposable
     private const uint ExtraUp = 0x020C;
     private const uint HorizontalWheel = 0x020E;
 
-    private readonly Core _core;
+    private readonly WindowManager _core;
     private readonly KeyboardHook _keys;
     private readonly HOOKPROC _callback;
     private HHOOK _hook;
@@ -38,7 +39,7 @@ public sealed class MouseHook : IDisposable
     private readonly HashSet<string> _killed = new(StringComparer.Ordinal);
     private bool _disposed;
 
-    public MouseHook(Core core, KeyboardHook keys)
+    public MouseHook(WindowManager core, KeyboardHook keys)
     {
         ArgumentNullException.ThrowIfNull(core);
         ArgumentNullException.ThrowIfNull(keys);

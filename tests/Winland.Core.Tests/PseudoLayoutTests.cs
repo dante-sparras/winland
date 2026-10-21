@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class PseudoLayoutTests
 {
@@ -83,9 +83,9 @@ public class PseudoLayoutTests
     private static string Flat(string extra) =>
         "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 
-    private static Core Configured(string text)
+    private static WindowManager Configured(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(text)));
         return core;
     }

@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class ConfigNoticeTests
 {
@@ -66,7 +66,7 @@ public class ConfigNoticeTests
     public void ASourcedErrorNamesThatFile()
     {
         var source = new MemorySource(new Dictionary<string, string> { ["extra.conf"] = "blur = on\n" });
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("source = extra.conf\n", source, path: Path)));
         var notice = Notice(core);
 
@@ -114,18 +114,18 @@ public class ConfigNoticeTests
 
     [Fact]
     public void SetErrorIsNotARequest() =>
-        Assert.Equal("error: unknown request", new Core().Execute("seterror rgb(ff0000) broke").Text);
+        Assert.Equal("error: unknown request", new WindowManager().Execute("seterror rgb(ff0000) broke").Text);
 
     private static ConfigNotice? Load(string text) => Notice(Loaded(text));
 
-    private static Core Loaded(string text)
+    private static WindowManager Loaded(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(text, path: Path)));
         return core;
     }
 
-    private static ConfigNotice? Notice(Core core) => core.Execute("dispatch no_op").Effect.ConfigNotice;
+    private static ConfigNotice? Notice(WindowManager core) => core.Execute("dispatch no_op").Effect.ConfigNotice;
 
     private sealed class MemorySource(IReadOnlyDictionary<string, string> files) : IConfigSource
     {

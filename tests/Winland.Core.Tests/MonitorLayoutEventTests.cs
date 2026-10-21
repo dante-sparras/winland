@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class MonitorLayoutEventTests
 {
@@ -10,7 +10,7 @@ public class MonitorLayoutEventTests
     [Fact]
     public void AMonitorThatComesOrChangesItsModeLaysTheMonitorsOutAgain()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         Assert.Single(core.Handle(new MonitorsChanged([One])).Events, e => e is MonitorLayoutChanged);
         Assert.Single(core.Handle(new MonitorsChanged([One with { Scale = 1.25 }])).Events, e => e is MonitorLayoutChanged);
@@ -20,7 +20,7 @@ public class MonitorLayoutEventTests
     [Fact]
     public void AWorkAreaChangeOrTheSameMonitorsAgainIsNoLayoutChange()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new MonitorsChanged([One]));
 
         Assert.DoesNotContain(core.Handle(new MonitorsChanged([One])).Events, e => e is MonitorLayoutChanged);
@@ -30,7 +30,7 @@ public class MonitorLayoutEventTests
     [Fact]
     public void AReloadLaysTheMonitorsOutAfterItIsReadAndTheStreamSaysNothing()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new MonitorsChanged([One]));
 
         var reloaded = core.Handle(new ConfigLoaded(ConfigParser.Parse("general:gaps_in = 3\n")));

@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// A Group: several Clients that share one tile. Only the shown member is in the Workspace's Layout.

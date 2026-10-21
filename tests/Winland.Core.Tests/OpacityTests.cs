@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class OpacityTests
 {
@@ -234,9 +234,9 @@ public class OpacityTests
         return new OpacityRule(factor, factor, factor);
     }
 
-    private static Core CoreWith(string text)
+    private static WindowManager CoreWith(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(text)));
         return core;
     }

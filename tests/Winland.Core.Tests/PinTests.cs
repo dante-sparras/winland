@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class PinTests
 {
@@ -63,7 +63,7 @@ public class PinTests
     [Fact]
     public void TiledClientDoesNotQualify()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(Window, Area));
 
         var reply = core.Execute("dispatch pin");
@@ -76,7 +76,7 @@ public class PinTests
     [Fact]
     public void MissingClientIsLeftAlone()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         var reply = core.Execute("dispatch pin");
 
@@ -87,7 +87,7 @@ public class PinTests
     [Fact]
     public void PinRuleKeepsAFloatingClientAndSkipsATiledOne()
     {
-        var pinned = new Core(ConfigParser.Parse("""
+        var pinned = new WindowManager(ConfigParser.Parse("""
             windowrulev2 = float, class:^(stick)$
             windowrulev2 = pin, class:^(stick)$
             """));
@@ -102,7 +102,7 @@ public class PinTests
         Assert.DoesNotContain(stayed.Effect.Hide, window => window == Window);
         Assert.True(ClientOf(stayed.Effect, Window).Pinned);
 
-        var tiled = new Core(ConfigParser.Parse("windowrulev2 = pin, class:^(stick)$\n"));
+        var tiled = new WindowManager(ConfigParser.Parse("windowrulev2 = pin, class:^(stick)$\n"));
         var plain = tiled.Handle(new WindowAppeared(Window, Area)
         {
             Traits = WindowTraits.Normal with { Class = "stick" },
@@ -124,7 +124,7 @@ public class PinTests
     [Fact]
     public void SilentPinnedClientIsShownOnTheCurrentWorkspace()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             windowrulev2 = float, class:^(stick)$
             windowrulev2 = pin, class:^(stick)$
             windowrulev2 = workspace 2 silent, class:^(stick)$
@@ -145,7 +145,7 @@ public class PinTests
     [Fact]
     public void FocusStaysOnAPinnedClient()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\n"));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
         core.Handle(new WindowAppeared(Window, Area)
         {
@@ -246,9 +246,9 @@ public class PinTests
         Assert.Equal(new WorkspaceId("3"), ClientOf(normal.Effect, Window).Workspace);
     }
 
-    private static Core Floating()
+    private static WindowManager Floating()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\n"));
         core.Handle(new WindowAppeared(Window, Area)
         {
             Traits = WindowTraits.Normal with { Class = "stick" },

@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>The options of a <c>group</c> window rule, as flags.</summary>
 [Flags]

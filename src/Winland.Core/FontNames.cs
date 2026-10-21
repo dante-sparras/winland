@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>Turns a font family the config names into one Windows has. The generic fontconfig names map to Windows fonts.</summary>
 public static class FontNames

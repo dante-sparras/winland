@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>How a window property's value is read, written and shown.</summary>
 internal enum PropKind

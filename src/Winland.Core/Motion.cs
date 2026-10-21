@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>What happens to a window when its motion lands.</summary>
 public enum MotionEnd

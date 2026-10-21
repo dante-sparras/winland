@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The Groups of a Workspace. The shown member of each Group is in the Layout. The other members wait

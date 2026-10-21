@@ -3,8 +3,9 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using Winland.Install;
+using Winland.Core;
 
-namespace Winland;
+namespace Winland.Daemon;
 
 static class Elevation
 {

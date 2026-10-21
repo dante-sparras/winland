@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>The <c>binds:</c> options that steer focus, Workspace switches and pointer binds.</summary>
 public sealed record BindOptions

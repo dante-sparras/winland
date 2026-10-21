@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class RecoveryTests
 {
@@ -10,7 +10,7 @@ public class RecoveryTests
     [Fact]
     public void RecoveryRecordsEachClientsWorkspaceMonitorAndWhetherItIsHidden()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
             Traits = WindowTraits.Normal with { Class = "Notepad", Title = "Untitled" },
@@ -42,7 +42,7 @@ public class RecoveryTests
     [Fact]
     public void RecoveryKeepsTheMonitorThatOwnsTheWorkspace()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", 0, 1920, 1080);
         var right = Display(@"\\.\DISPLAY2", 1920, 1280, 1024);
         core.Handle(new MonitorsChanged([left, right]));
@@ -64,7 +64,7 @@ public class RecoveryTests
     [Fact]
     public void MinimizedClientOnAnInactiveWorkspaceIsRecordedAsHidden()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowMinimized(new WindowId(1)));
         core.Handle(new Dispatch("workspace", "2"));
@@ -139,7 +139,7 @@ public class RecoveryTests
     [Fact]
     public void RestoreRejoinsTheSameWindowAndIgnoresOnesThatNeverAppear()
     {
-        var prior = new Core();
+        var prior = new WindowManager();
         prior.Handle(new WindowAppeared(new WindowId(1), Area)
         {
             Traits = WindowTraits.Normal with { Class = "Notepad", Title = "Untitled" },
@@ -148,7 +148,7 @@ public class RecoveryTests
         prior.Handle(new Dispatch("workspace", "2"));
         var snapshot = prior.Recovery();
 
-        var core = new Core();
+        var core = new WindowManager();
         core.Restore(snapshot);
         var rejoined = core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
@@ -171,7 +171,7 @@ public class RecoveryTests
         [
             new RecoveredClient(new WindowId(5), new WorkspaceId("4"), MonitorId.Primary, true, "Notepad", "Notes", 10),
         ]);
-        var core = new Core(ConfigParser.Parse("windowrulev2 = workspace 9, class:^(Notepad)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 9, class:^(Notepad)$\n"));
         core.Restore(snapshot);
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(5), Area)
@@ -193,7 +193,7 @@ public class RecoveryTests
         [
             new RecoveredClient(new WindowId(5), new WorkspaceId("3"), new MonitorId(1), true, "Notepad", "Notes", 10),
         ]);
-        var core = new Core();
+        var core = new WindowManager();
         var right = Display(@"\\.\DISPLAY2", 1920, 1280, 1024);
         core.Handle(new MonitorsChanged(
         [
@@ -221,7 +221,7 @@ public class RecoveryTests
     [Fact]
     public void RestoreDropsARememberedWindowWhenItClosesBeforeAdoption()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Restore(new RecoverySnapshot(
         [
             new RecoveredClient(new WindowId(5), new WorkspaceId("4"), MonitorId.Primary, true, "Notepad", "Notes", 10),
@@ -236,7 +236,7 @@ public class RecoveryTests
     [Fact]
     public void MissingMonitorFallsBackWhenTheWindowIsSeenAgain()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", 0, 1920, 1080);
         core.Handle(new MonitorsChanged([left]));
         core.Restore(new RecoverySnapshot(
@@ -257,7 +257,7 @@ public class RecoveryTests
     [Fact]
     public void AFloatingPinnedClientComesBackFloatingPinnedAndWhereItWas()
     {
-        var prior = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\n"));
+        var prior = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\n"));
         prior.Handle(new WindowAppeared(new WindowId(1), Area)
         {
             Bounds = new Rectangle(0, 0, 400, 300),
@@ -272,7 +272,7 @@ public class RecoveryTests
         Assert.True(recorded.Pinned);
         Assert.Equal(placed, recorded.Bounds);
 
-        var core = new Core();
+        var core = new WindowManager();
         core.Restore(snapshot);
         var back = core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
@@ -290,13 +290,13 @@ public class RecoveryTests
     [Fact]
     public void AFullscreenClientComesBackFullscreen()
     {
-        var prior = new Core();
+        var prior = new WindowManager();
         prior.Handle(new WindowAppeared(new WindowId(1), Area));
         prior.Handle(new WindowAppeared(new WindowId(2), Area));
         prior.Handle(new Dispatch("fullscreen", "1"));
         Assert.True(RecoverySnapshot.TryParse(prior.Recovery().ToJson(), out var snapshot));
 
-        var core = new Core();
+        var core = new WindowManager();
         core.Restore(snapshot);
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         var back = core.Handle(new WindowAppeared(new WindowId(2), Area));
@@ -320,7 +320,7 @@ public class RecoveryTests
         Assert.Null(recorded.Pinned);
         Assert.Null(recorded.Fullscreen);
 
-        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\nwindowrulev2 = pin, class:^(stick)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\nwindowrulev2 = pin, class:^(stick)$\n"));
         core.Restore(snapshot);
         var back = core.Handle(new WindowAppeared(new WindowId(5), Area)
         {

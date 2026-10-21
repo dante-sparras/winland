@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class ExtraCommandTests
 {
@@ -37,13 +37,13 @@ public class ExtraCommandTests
     public void PluginListIsAnUnknownCommand()
     {
         Assert.IsType<CommandRejected>(CommandProtocol.Parse("plugin list"));
-        Assert.Equal("error: Unsupported keyword 'plugin'.", new Core().Execute("keyword plugin plugins\\sample.dll").Text);
+        Assert.Equal("error: Unsupported keyword 'plugin'.", new WindowManager().Execute("keyword plugin plugins\\sample.dll").Text);
     }
 
     [Fact]
     public void BindsReportModifierBitsDescriptionsAndKeycodes()
     {
-        var core = new Core();
+        var core = new WindowManager();
         Assert.Equal("[]", core.Execute("binds").Text);
         Assert.Equal("[]", core.Execute("j/binds").Text);
 
@@ -69,7 +69,7 @@ public class ExtraCommandTests
     [Fact]
     public void VersionCursorLockedAndLayoutsHaveTheirShapes()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Cursor = new FixedCursor(4, 9);
         core.SessionLock = new FixedLock(false);
 
@@ -91,7 +91,7 @@ public class ExtraCommandTests
     [Fact]
     public void DisableAutoreloadStopsReloadingOnSaveUntilItIsTurnedOff()
     {
-        var core = new Core();
+        var core = new WindowManager();
         Assert.True(core.ReloadsOnSave);
 
         core.Handle(new Configure(ConfigParser.Parse("misc:disable_autoreload = true\n")));
@@ -105,7 +105,7 @@ public class ExtraCommandTests
     [Fact]
     public void ConfigErrorsKeepTheLastLoadAndGetOptionReadsHonoredDefaults()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("blur = on\n")));
         Assert.Equal("[\"line 1: Unsupported keyword 'blur'.\"]", core.Execute("configerrors").Text);
         Assert.Equal("{\"option\":\"general:border_size\",\"int\":2,\"set\":false}", core.Execute("getoption general:border_size").Text);
@@ -125,7 +125,7 @@ public class ExtraCommandTests
     [Fact]
     public void KeyboardLayoutAndTheDevicesCommandAreNotApplied()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         Assert.Equal("error: Unsupported keyword 'input:kb_variant'.", core.Execute("keyword input:kb_variant nodeadkeys").Text);
         Assert.Equal("error: invalid keyword", core.Execute("keyword input:kb_variant ").Text);
@@ -137,7 +137,7 @@ public class ExtraCommandTests
     [Fact]
     public void GetOptionReportsGapsAsCssWithFourEdges()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("general:gaps_out = 10 20\n")));
 
         Assert.Equal("{\"option\":\"general:gaps_out\",\"css\":\"10 20 10 20\",\"set\":true}", core.Execute("getoption general:gaps_out").Text);
@@ -146,7 +146,7 @@ public class ExtraCommandTests
     [Fact]
     public void GapsReturnErrorsAndPropsCanBeReadAndSet()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 200, 100)));
 
         Assert.Equal("ok", core.Execute("kill").Text);
@@ -165,7 +165,7 @@ public class ExtraCommandTests
     [Fact]
     public void BatchJoinsRepliesAndKeepsEscapedSemicolons()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var joined = core.Execute("[[BATCH]]layouts;locked").Text;
         Assert.Equal("[\"dwindle\",\"master\",\"scrolling\",\"monocle\"]\n\n\n{\"locked\":false}", joined);
 
@@ -186,7 +186,7 @@ public class ExtraCommandTests
     [Fact]
     public void RelayoutFlagStillRunsTheCommand()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
 
         var reply = core.Execute("r/dispatch workspace 2");
@@ -198,7 +198,7 @@ public class ExtraCommandTests
     [Fact]
     public void RelayoutFlagKeepsTheZOrderRequest()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
 
         var reply = core.Execute("r/dispatch alterzorder top,address:0x1");
@@ -209,7 +209,7 @@ public class ExtraCommandTests
     [Fact]
     public void ClientsOmitMinimizedWindowsUntilAllIsRequested()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var area = new Rectangle(0, 0, 400, 300);
         core.Handle(new WindowAppeared(new WindowId(1), area));
         core.Handle(new WindowAppeared(new WindowId(2), area));
@@ -304,7 +304,7 @@ public class ExtraCommandTests
     [Fact]
     public void ABatchKeepsTheLaunchOfEveryExec()
     {
-        var effect = new Core().Execute("[[BATCH]]dispatch exec a ; dispatch exec b").Effect;
+        var effect = new WindowManager().Execute("[[BATCH]]dispatch exec a ; dispatch exec b").Effect;
 
         Assert.Equal(["a", "b"], effect.Launches.Select(launch => launch.CommandLine));
     }
@@ -312,7 +312,7 @@ public class ExtraCommandTests
     [Fact]
     public void ABatchKeepsThePlacementOfEveryMovedFloatingWindow()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\n"));
         foreach (var window in new long[] { 1, 2 })
         {
             core.Handle(new WindowAppeared(new WindowId(window), new Rectangle(0, 0, 1920, 1080))
@@ -334,7 +334,7 @@ public class ExtraCommandTests
     [Fact]
     public void ABatchKeepsEveryDisplayPowerRequest()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new MonitorsChanged(
         [
             new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080)),
@@ -355,7 +355,7 @@ public class ExtraCommandTests
     [Fact]
     public void KeywordAddsAWindowRuleAndKeepsTheOnesAlreadyRead()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("windowrulev2 = float, class:^(first)$\n")));
 
         Assert.Equal("ok", core.Execute("keyword windowrulev2 float, class:^(second)$").Text);
@@ -368,7 +368,7 @@ public class ExtraCommandTests
     [Fact]
     public void KeywordAddsAWorkspaceRuleAndKeepsTheOnesAlreadyRead()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("workspace = 1, gapsout:0\n")));
 
         Assert.Equal("ok", core.Execute("keyword workspace 2, gapsout:7").Text);
@@ -384,7 +384,7 @@ public class ExtraCommandTests
     [InlineData("source", "other.conf")]
     public void KeywordDoesNotLaunchOrLoad(string keyword, string value)
     {
-        var reply = new Core().Execute($"keyword {keyword} {value}");
+        var reply = new WindowManager().Execute($"keyword {keyword} {value}");
 
         Assert.Equal($"error: keyword '{keyword}' is not applied live", reply.Text);
         Assert.Empty(reply.Effect.Launches);

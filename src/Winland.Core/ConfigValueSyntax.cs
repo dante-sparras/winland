@@ -1,7 +1,7 @@
 using System.Globalization;
-using static Winland.OrdinalText;
+using static Winland.Core.OrdinalText;
 
-namespace Winland;
+namespace Winland.Core;
 
 public readonly record struct Vec2(double X, double Y);
 

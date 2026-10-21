@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 public readonly record struct ClientId(long Value);
 
@@ -145,15 +145,15 @@ public sealed record Outcome(
     /// <summary>Clients to raise above or lower below the other windows, in order.</summary>
     public IReadOnlyList<ZOrderRequest> ZOrder { get; init; } = [];
 
-    /// <summary>Where this outcome falls among the ones its Core produced. Null for an outcome made outside a Core.</summary>
+    /// <summary>Where this outcome falls among the ones its WindowManager produced. Null for an outcome made outside a WindowManager.</summary>
     public OutcomeOrder? Order { get; init; }
 }
 
 /// <summary>
-/// The Core that produced an outcome and its place in that Core's sequence, taken under the Core's lock. Outcomes
+/// The WindowManager that produced an outcome and its place in that WindowManager's sequence, taken under the WindowManager's lock. Outcomes
 /// are applied on several threads after the lock is released, so the adapter uses this to tell an older one.
 /// </summary>
-public readonly record struct OutcomeOrder(long Core, long Sequence);
+public readonly record struct OutcomeOrder(long WindowManager, long Sequence);
 
 /// <summary>A request to end the process that owns a Client. The adapter reads the owner of <see cref="Window"/> again when it acts.</summary>
 public readonly record struct KillRequest(long ProcessId)

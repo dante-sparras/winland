@@ -1,4 +1,6 @@
-namespace Winland.Tests.Conformance;
+using Winland.Core;
+
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>Winland's exec case. A program the core starts is a Launch in its outcome.</summary>
 [Trait("Category", "Conformance")]
@@ -11,7 +13,7 @@ public class ExecConformance
     {
         var desk = new Desk();
 
-        var reply = desk.Core.Execute("dispatch exec sleep 1");
+        var reply = desk.WindowManager.Execute("dispatch exec sleep 1");
 
         Assert.Equal("ok", reply.Text);
         Assert.Equal("sleep 1", Assert.Single(reply.Effect.Launches).CommandLine);

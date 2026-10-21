@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class BlurShadowRoundingTests
 {
@@ -9,7 +9,7 @@ public class BlurShadowRoundingTests
     [Fact]
     public void DefaultConfigBlursAndUsesRoundCorners()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("")));
 
         var decoration = For(core.Handle(Appeared(1)), 1);
@@ -34,7 +34,7 @@ public class BlurShadowRoundingTests
                 }
             }
             """);
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(document));
         core.Handle(Appeared(1));
 
@@ -58,7 +58,7 @@ public class BlurShadowRoundingTests
     [Fact]
     public void GetOptionReportsTheBlurAndRoundingPower()
     {
-        var core = new Core(ConfigParser.Parse("decoration:blur:enabled = no\ndecoration:rounding_power = 4\n"));
+        var core = new WindowManager(ConfigParser.Parse("decoration:blur:enabled = no\ndecoration:rounding_power = 4\n"));
 
         Assert.Equal("{\"option\":\"decoration:blur:enabled\",\"bool\":false,\"set\":true}", core.Execute("getoption decoration:blur:enabled").Text);
         Assert.Equal("{\"option\":\"decoration:rounding_power\",\"float\":4,\"set\":true}", core.Execute("getoption decoration:rounding_power").Text);
@@ -98,7 +98,7 @@ public class BlurShadowRoundingTests
     [Fact]
     public void AnExactRadiusIsCutAtTheClientsMonitorScale()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("decoration:rounding = 10\n")));
         var scaled = new Monitor("DISPLAY1", "DISPLAY1", 0, 0, 1600, 1200, 2, true, new Rectangle(0, 0, 1600, 1200));
         core.Handle(new MonitorsChanged([scaled]));
@@ -112,7 +112,7 @@ public class BlurShadowRoundingTests
     [Fact]
     public void FullscreenAndAWorkspaceRuleWithoutRoundingCutNoCorners()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("decoration:rounding = 10\nworkspace = 2, rounding:0\n")));
         core.Handle(Appeared(1));
         core.Handle(Appeared(2));
@@ -178,7 +178,7 @@ public class BlurShadowRoundingTests
     [Fact]
     public void GetOptionReportsTheRoundingInEffectAfterANegativeValue()
     {
-        var core = new Core(ConfigParser.Parse("decoration:rounding = 12\ndecoration:rounding = -3\n"));
+        var core = new WindowManager(ConfigParser.Parse("decoration:rounding = 12\ndecoration:rounding = -3\n"));
 
         Assert.Contains("\"int\":12", core.Execute("getoption decoration:rounding").Text, StringComparison.Ordinal);
     }
@@ -186,7 +186,7 @@ public class BlurShadowRoundingTests
     [Fact]
     public void GetOptionReportsTheDragThresholdInEffectAfterAnUnparsableValue()
     {
-        var core = new Core(ConfigParser.Parse("binds:drag_threshold = 10\nbinds:drag_threshold = no\n"));
+        var core = new WindowManager(ConfigParser.Parse("binds:drag_threshold = 10\nbinds:drag_threshold = no\n"));
 
         Assert.Contains("\"int\":10", core.Execute("getoption binds:drag_threshold").Text, StringComparison.Ordinal);
     }

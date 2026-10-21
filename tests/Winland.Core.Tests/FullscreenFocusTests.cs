@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 /// <summary>On a workspace with a maximized or fullscreen Client, that Client owns the pointer.</summary>
 public class FullscreenFocusTests
@@ -100,18 +100,18 @@ public class FullscreenFocusTests
         Assert.Equal(expected, session.MoveFocusCyclesFullscreen);
     }
 
-    private static Core Desk()
+    private static WindowManager Desk()
     {
-        var core = new Core(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n"));
+        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
         return core;
     }
 
-    private static Outcome Move(Core core, Point point, long time) =>
+    private static Outcome Move(WindowManager core, Point point, long time) =>
         core.Handle(new PointerMoved(point) { TimeMs = time });
 
-    private static string Address(Core core)
+    private static string Address(WindowManager core)
     {
         var text = core.Execute("j/activewindow").Text;
         var at = text.IndexOf("\"address\":", StringComparison.Ordinal);

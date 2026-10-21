@@ -1,4 +1,6 @@
-namespace Winland;
+using Winland.Core;
+
+namespace Winland.Daemon;
 
 /// <summary>
 /// Where the recovery file lives, and which folder an elevated Winland may write it in.

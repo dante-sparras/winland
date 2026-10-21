@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// A window's content type, as Winland names them: 0 none, 1 photo, 2 video, 3 game. Windows reports no

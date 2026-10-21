@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// What Windows reports for one display. <see cref="Split"/> is true when HDR and wide color are two switches, which

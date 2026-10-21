@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Winland;
+namespace Winland.Core;
 
 public static class SourcePath
 {

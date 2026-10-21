@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>The Client record a Layout keeps for a Window it adopts.</summary>
 internal static class ClientAdoption

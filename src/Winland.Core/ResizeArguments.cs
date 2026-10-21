@@ -1,7 +1,7 @@
 using System.Globalization;
-using static Winland.OrdinalText;
+using static Winland.Core.OrdinalText;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>The arguments of <c>resizeactive</c>: two whole pixel numbers, after an optional <c>exact</c>.</summary>
 internal static class ResizeArguments

@@ -1,6 +1,7 @@
 using Winland.Windows;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Windows.Tests;
 
 public class TrayBalloonTests
 {

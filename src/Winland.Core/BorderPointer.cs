@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 internal enum BorderSide
 {

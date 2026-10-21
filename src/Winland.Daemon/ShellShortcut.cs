@@ -1,8 +1,9 @@
 using System.Runtime.InteropServices;
 using System.Text;
 using Winland.Install;
+using Winland.Core;
 
-namespace Winland;
+namespace Winland.Daemon;
 
 /// <summary>Writes a Start menu shortcut that carries Winland's AppUserModelID.</summary>
 sealed class ShellStartMenu : IStartMenu

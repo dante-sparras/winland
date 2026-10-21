@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests.Conformance;
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>
 /// The reference test harness's desktop, rebuilt on the core: two 1920x1080 monitors side by side, its config,
@@ -83,8 +83,8 @@ internal sealed class Desk : IDisposable
     internal Desk(string extra = "")
     {
         var text = Config + "\n" + extra;
-        Core = new Core { Cursor = new PointerReader(this), Devices = new TestDevices() };
-        Core.ReadConfig = () => new ConfigRead(ConfigParser.Parse(text));
+        WindowManager = new WindowManager { Cursor = new PointerReader(this), Devices = new TestDevices() };
+        WindowManager.ReadConfig = () => new ConfigRead(ConfigParser.Parse(text));
         Handle(new Configure(ConfigParser.Parse(text)));
         Pointer = new Point(960, 540);
         AddMonitor("HEADLESS-2", First);
@@ -95,7 +95,7 @@ internal sealed class Desk : IDisposable
     {
     }
 
-    internal Core Core { get; }
+    internal WindowManager WindowManager { get; }
 
     /// <summary>Where the pointer is. It follows the warps the core asks for, as the system cursor does.</summary>
     internal Point Pointer { get; private set; }
@@ -181,7 +181,7 @@ internal sealed class Desk : IDisposable
         Outcome outcome;
         lock (_gate)
         {
-            outcome = Core.Handle(input);
+            outcome = WindowManager.Handle(input);
             Follow(outcome);
         }
 
@@ -197,7 +197,7 @@ internal sealed class Desk : IDisposable
     {
         lock (_gate)
         {
-            var reply = Core.Execute(line);
+            var reply = WindowManager.Execute(line);
             Follow(reply.Effect);
             return reply.Text;
         }
@@ -210,7 +210,7 @@ internal sealed class Desk : IDisposable
             Pointer = warp.Position;
 
         if (outcome.Focus is WindowId focus && focus != echoed)
-            Follow(Core.Handle(new WindowFocused(focus, FocusCause.Requested)), focus);
+            Follow(WindowManager.Handle(new WindowFocused(focus, FocusCause.Requested)), focus);
     }
 
     /// <summary>

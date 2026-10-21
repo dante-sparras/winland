@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Make, model and serial from an EDID block. The model is the monitor-name descriptor and the serial is

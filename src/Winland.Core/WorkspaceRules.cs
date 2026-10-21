@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// One <c>workspace</c> rule. Unset fields stay null and do not override the general config.

@@ -1,3 +1,5 @@
+using Winland.Core;
+
 namespace Winland.Windows;
 
 /// <summary>The window messages the notification-area icon has to receive from Explorer.</summary>

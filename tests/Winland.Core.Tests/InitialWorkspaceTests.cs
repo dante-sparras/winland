@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class InitialWorkspaceTests
 {
@@ -117,21 +117,21 @@ public class InitialWorkspaceTests
         Assert.Equal(new WorkspaceId("4"), WorkspaceOf(opened, 1));
     }
 
-    private static Core Loaded(string config)
+    private static WindowManager Loaded(string config)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(config)));
         return core;
     }
 
     // Runs exec as a bind or the pipe does, and reports the process the adapter started for it.
-    private static void Start(Core core, int pid)
+    private static void Start(WindowManager core, int pid)
     {
         var launch = Assert.Single(core.Execute("dispatch exec app").Effect.Launches);
         core.NoteLaunched(pid, launch);
     }
 
-    private static Outcome Open(Core core, long window, int pid) =>
+    private static Outcome Open(WindowManager core, long window, int pid) =>
         core.Handle(new WindowAppeared(new WindowId(window), Area) { ProcessId = pid });
 
     private static WorkspaceId WorkspaceOf(Outcome outcome, long window)

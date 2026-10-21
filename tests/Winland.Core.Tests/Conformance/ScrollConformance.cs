@@ -1,8 +1,8 @@
 using System.Globalization;
 using System.Text.Json;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests.Conformance;
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>Winland's scrolling cases. Each test is named after its case, and sends the same commands.</summary>
 [Trait("Category", "Conformance")]

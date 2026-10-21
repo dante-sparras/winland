@@ -1,7 +1,9 @@
+using Winland.Core;
+
 namespace Winland.Windows;
 
 /// <summary>
-/// The Core decides outcomes under its lock, but they are applied after the lock is released, on the main
+/// The WindowManager decides outcomes under its lock, but they are applied after the lock is released, on the main
 /// thread, the pipe threads and the group bar thread, so an older outcome can arrive after a newer one.
 /// Each window's visibility, placement and decoration, and the focus, remember the sequence of the outcome
 /// that last set them. An older outcome loses each part a newer one already decided, and keeps the rest.
@@ -25,8 +27,8 @@ internal sealed class ApplyOrder
 
         lock (_gate)
         {
-            if (!_cores.TryGetValue(order.Core, out var ledger))
-                _cores[order.Core] = ledger = new Ledger();
+            if (!_cores.TryGetValue(order.WindowManager, out var ledger))
+                _cores[order.WindowManager] = ledger = new Ledger();
 
             return ledger.Admit(outcome, order.Sequence);
         }

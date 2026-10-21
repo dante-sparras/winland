@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// A window's tags, kept as Winland keeps them. <c>+tag</c> sets a tag, <c>-tag</c> clears it, and a bare

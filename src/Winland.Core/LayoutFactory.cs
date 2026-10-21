@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The Layout a Workspace gets for a <c>general:layout</c> value, and the warning when that

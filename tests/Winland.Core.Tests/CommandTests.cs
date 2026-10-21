@@ -1,8 +1,8 @@
 using System.Globalization;
 using System.Text.Json;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class CommandTests
 {
@@ -29,7 +29,7 @@ public class CommandTests
     [Fact]
     public void ExecOverThePipeRunsTheCommand()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         var reply = core.Execute("dispatch exec elevated notepad");
 
@@ -42,7 +42,7 @@ public class CommandTests
     [Fact]
     public void BoundExecRuns()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, E, exec, notepad")));
         core.Handle(new KeyPressed("Super_L"));
 
@@ -55,7 +55,7 @@ public class CommandTests
     [Fact]
     public void DispatchKillactiveAsksToCloseTheActiveClientAndLeavesItInPlace()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var area = new Rectangle(0, 0, 1920, 1080);
         core.Handle(new WindowAppeared(new WindowId(1), area));
         core.Handle(new WindowAppeared(new WindowId(2), area));
@@ -71,7 +71,7 @@ public class CommandTests
     [Fact]
     public void DispatchWithoutANameIsRejected()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 100, 100)));
 
         var reply = core.Execute("dispatch");
@@ -94,7 +94,7 @@ public class CommandTests
     [Fact]
     public void UnknownRequestIsPlainText()
     {
-        var reply = new Core().Execute("not-a-command");
+        var reply = new WindowManager().Execute("not-a-command");
 
         Assert.Equal("error: unknown request", reply.Text);
     }
@@ -108,7 +108,7 @@ public class CommandTests
     [InlineData("events")]
     public void ReadCommandsRejectTrailingArguments(string command)
     {
-        var reply = new Core().Execute(command + " extra");
+        var reply = new WindowManager().Execute(command + " extra");
 
         Assert.Equal("error: unknown request", reply.Text);
     }
@@ -116,7 +116,7 @@ public class CommandTests
     [Fact]
     public void ClientsReplyIsEmptyUntilAWindowIsAdopted()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var clients = Json(core.Execute("j/clients").Text);
 
         Assert.Equal(JsonValueKind.Array, clients.ValueKind);
@@ -127,7 +127,7 @@ public class CommandTests
     [Fact]
     public void ClientsReplyUsesTheAddressFloatingAndWorkspaceShape()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var area = new Rectangle(0, 0, 800, 600);
         core.Handle(new WindowAppeared(new WindowId(42), area));
         core.Handle(new WindowAppeared(new WindowId(255), area)
@@ -146,7 +146,7 @@ public class CommandTests
     [Fact]
     public void MinimizedClientIsReportedHidden()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(7), new Rectangle(0, 0, 100, 100)));
         core.Handle(new WindowMinimized(new WindowId(7)));
 
@@ -159,7 +159,7 @@ public class CommandTests
     [Fact]
     public void ClientWorkspaceFollowsTheStoredWorkspace()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = workspace 2 silent, class:^(kitty)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 2 silent, class:^(kitty)$\n"));
         core.Handle(new WindowAppeared(new WindowId(9), new Rectangle(0, 0, 100, 100))
         {
             Traits = WindowTraits.Normal with { Class = "kitty" },
@@ -175,7 +175,7 @@ public class CommandTests
     [Fact]
     public void WorkspacesReplyStartsWithTheDefaultWorkspace()
     {
-        var workspace = Assert.Single(Json(new Core().Execute("j/workspaces").Text).EnumerateArray());
+        var workspace = Assert.Single(Json(new WindowManager().Execute("j/workspaces").Text).EnumerateArray());
 
         Assert.Equal(1, workspace.GetProperty("id").GetInt32());
         Assert.Equal("1", workspace.GetProperty("name").GetString());
@@ -185,7 +185,7 @@ public class CommandTests
     [Fact]
     public void WorkspacesReplyCountsClientsAndKeepsTheDefault()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = workspace 2, class:^(kitty)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 2, class:^(kitty)$\n"));
         var area = new Rectangle(0, 0, 100, 100);
         core.Handle(new WindowAppeared(new WindowId(1), area));
         core.Handle(new WindowAppeared(new WindowId(2), area)
@@ -205,7 +205,7 @@ public class CommandTests
     [Fact]
     public void MonitorsReplyIsTheDefaultMonitorOnTheActiveWorkspace()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = workspace 4, class:^(kitty)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 4, class:^(kitty)$\n"));
         core.Handle(new WindowAppeared(new WindowId(3), new Rectangle(0, 0, 100, 100))
         {
             Traits = WindowTraits.Normal with { Class = "kitty" },
@@ -224,7 +224,7 @@ public class CommandTests
     [Fact]
     public void ActiveWindowIsEmptyUntilAClientExists()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var active = Json(core.Execute("j/activewindow").Text);
 
         Assert.Equal(JsonValueKind.Object, active.ValueKind);
@@ -235,7 +235,7 @@ public class CommandTests
     [Fact]
     public void ActiveWindowFollowsTheLatestAdoptedClient()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var area = new Rectangle(0, 0, 640, 480);
         core.Handle(new WindowAppeared(new WindowId(1), area));
         core.Handle(new WindowAppeared(new WindowId(2), area));
@@ -253,7 +253,7 @@ public class CommandTests
     [Fact]
     public void DispatchWorkspaceOverThePipeSwitches()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var area = new Rectangle(0, 0, 800, 600);
         core.Handle(new WindowAppeared(new WindowId(1), area));
         core.Handle(new WindowAppeared(new WindowId(2), area));
@@ -273,7 +273,7 @@ public class CommandTests
     [Fact]
     public void WorkspacesReplyAfterASwitchReportsEachDesk()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var area = new Rectangle(0, 0, 800, 600);
         core.Handle(new WindowAppeared(new WindowId(1), area));
         core.Handle(new WindowAppeared(new WindowId(2), area));
@@ -308,7 +308,7 @@ public class CommandTests
     [Fact]
     public void PipeRunsFocusFloatAndMoveOnTheActiveWorkspace()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var area = new Rectangle(0, 0, 1920, 1080);
         core.Handle(new WindowAppeared(new WindowId(1), area));
         core.Handle(new WindowAppeared(new WindowId(2), area));
@@ -337,7 +337,7 @@ public class CommandTests
     [Fact]
     public void BoundWorkspaceSwitches()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, 2, workspace, 2")));
         core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 100, 100)));
         core.Handle(new KeyPressed("Super_L"));
@@ -353,7 +353,7 @@ public class CommandTests
     [Fact]
     public void ConcurrentPipeRequestsLeaveTheDesksConsistent()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
         var failures = 0;
         var threads = new Thread[4];

@@ -1,13 +1,13 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class LaunchTests
 {
     [Fact]
     public void ExecLaunchesTheCommand()
     {
-        var outcome = new Core().Handle(new Dispatch("exec", "notepad --title hello"));
+        var outcome = new WindowManager().Handle(new Dispatch("exec", "notepad --title hello"));
 
         Assert.Equal("exec", outcome.Dispatcher);
         Assert.Equal(new Launch("notepad --title hello", null) { InitialWorkspace = WorkspaceId.Initial }, outcome.Launch);
@@ -16,7 +16,7 @@ public class LaunchTests
     [Fact]
     public void AWordNamedElevatedIsPartOfTheCommand()
     {
-        var outcome = new Core().Handle(new Dispatch("exec", "elevated notepad"));
+        var outcome = new WindowManager().Handle(new Dispatch("exec", "elevated notepad"));
 
         Assert.Equal(new Launch("elevated notepad", null) { InitialWorkspace = WorkspaceId.Initial }, outcome.Launch);
     }
@@ -24,7 +24,7 @@ public class LaunchTests
     [Fact]
     public void BoundExecLaunchesTheCommand()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, E, exec, notepad")));
         core.Handle(new KeyPressed("Super_L"));
 
@@ -36,7 +36,7 @@ public class LaunchTests
     [Fact]
     public void ExecrRequestsTheCommandWithoutAShell()
     {
-        var outcome = new Core().Handle(new Dispatch("execr", "notepad"));
+        var outcome = new WindowManager().Handle(new Dispatch("execr", "notepad"));
 
         Assert.Equal(new Launch("notepad", null) { Raw = true, InitialWorkspace = WorkspaceId.Initial }, outcome.Launch);
     }
@@ -44,8 +44,8 @@ public class LaunchTests
     [Fact]
     public void EmptyExecDoesNotLaunch()
     {
-        Assert.Null(new Core().Handle(new Dispatch("exec", "   ")).Launch);
-        var block = new Core().Handle(new Dispatch("exec", "[elevated]"));
+        Assert.Null(new WindowManager().Handle(new Dispatch("exec", "   ")).Launch);
+        var block = new WindowManager().Handle(new Dispatch("exec", "[elevated]"));
         Assert.Null(block.Launch);
         Assert.Equal([new ConfigWarned(0, "Unsupported window rule 'elevated'.", null)], block.Events.OfType<ConfigWarned>());
     }
@@ -53,7 +53,7 @@ public class LaunchTests
     [Fact]
     public void RulesBlockLaunchesAndKeepsTheRules()
     {
-        var outcome = new Core().Handle(new Dispatch("exec", "[float; workspace 2] kitty"));
+        var outcome = new WindowManager().Handle(new Dispatch("exec", "[float; workspace 2] kitty"));
 
         Assert.Equal("exec", outcome.Dispatcher);
         Assert.NotNull(outcome.Launch);
@@ -69,7 +69,7 @@ public class LaunchTests
     [Fact]
     public void UnknownExecEffectsWarnAndTheCommandStillLaunches()
     {
-        var outcome = new Core().Handle(new Dispatch("exec", "[float; suppress_event maximize; confine_pointer] cmd"));
+        var outcome = new WindowManager().Handle(new Dispatch("exec", "[float; suppress_event maximize; confine_pointer] cmd"));
 
         Assert.NotNull(outcome.Launch);
         Assert.Equal("cmd", outcome.Launch.CommandLine);
@@ -85,7 +85,7 @@ public class LaunchTests
     [Fact]
     public void ABadKnownEffectDoesNotLaunch()
     {
-        var outcome = new Core().Handle(new Dispatch("exec", "[float; workspace] kitty"));
+        var outcome = new WindowManager().Handle(new Dispatch("exec", "[float; workspace] kitty"));
 
         Assert.Null(outcome.Launch);
         Assert.Equal([new ConfigWarned(0, "Malformed window rule.", null)], outcome.Events.OfType<ConfigWarned>());
@@ -94,7 +94,7 @@ public class LaunchTests
     [Fact]
     public void UnclosedRuleBlockDoesNotLaunch()
     {
-        var outcome = new Core().Handle(new Dispatch("exec", "[float; workspace 2 kitty"));
+        var outcome = new WindowManager().Handle(new Dispatch("exec", "[float; workspace 2 kitty"));
 
         Assert.Null(outcome.Launch);
         Assert.Equal([new ConfigWarned(0, "Unclosed rule block.", null)], outcome.Events.OfType<ConfigWarned>());
@@ -109,11 +109,11 @@ public class LaunchTests
             "execr = raw-every\n" +
             "execr-once = raw-once\n" +
             "exec-shutdown = bye\n");
-        var core = new Core();
+        var core = new WindowManager();
 
         var startup = core.StartupLaunches(document);
         var reload = core.ReloadLaunches(document);
-        var shutdown = Core.ShutdownLaunches(document);
+        var shutdown = WindowManager.ShutdownLaunches(document);
 
         Assert.Equal(
             [
@@ -146,7 +146,7 @@ public class LaunchTests
                 new ConfigWarning(3, "Malformed window rule."),
             ],
             document.Warnings);
-        var launches = new Core().StartupLaunches(document);
+        var launches = new WindowManager().StartupLaunches(document);
         Assert.Equal(2, launches.Count);
         Assert.Equal("kitty", launches[0].CommandLine);
         Assert.Equal(
@@ -161,7 +161,7 @@ public class LaunchTests
     [Fact]
     public void AnExecRuleBlockKeepsTheScrollingWidth()
     {
-        var launches = new Core().StartupLaunches(ConfigParser.Parse("exec = [scrolling_width 0.25] app\n"));
+        var launches = new WindowManager().StartupLaunches(ConfigParser.Parse("exec = [scrolling_width 0.25] app\n"));
 
         Assert.Equal(0.25, Assert.Single(launches[0].Rules).ScrollingWidth);
     }
@@ -169,7 +169,7 @@ public class LaunchTests
     [Fact]
     public void ExecRulesApplyToTheFirstWindowOfTheProcessOrAChild()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var area = new Rectangle(0, 0, 800, 600);
         var bounds = new Rectangle(12, 14, 200, 100);
         var launch = core.Handle(new Dispatch("exec", "[float; workspace 2] kitty")).Launch;
@@ -194,7 +194,7 @@ public class LaunchTests
     [Fact]
     public void AChildProcessInheritsTheLaunchRulesUntilTheTimeout()
     {
-        var core = new Core();
+        var core = new WindowManager();
         long now = 1_000;
         core.FollowClock = () => now;
         var area = new Rectangle(0, 0, 640, 480);

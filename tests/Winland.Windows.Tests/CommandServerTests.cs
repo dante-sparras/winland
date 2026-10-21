@@ -4,7 +4,7 @@ using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
-using Winland;
+using Winland.Core;
 using Winland.Windows;
 
 namespace Winland.Windows.Tests;
@@ -45,7 +45,7 @@ public class CommandServerTests
             NamedPipeServerStream.MaxAllowedServerInstances,
             PipeTransmissionMode.Byte,
             PipeOptions.Asynchronous);
-        using var server = new CommandServer(new Core(), name);
+        using var server = new CommandServer(new WindowManager(), name);
 
         var error = Assert.Throws<InvalidOperationException>(server.Start);
 
@@ -56,9 +56,9 @@ public class CommandServerTests
     public void ASecondServerCannotTakeAPipeNameInUse()
     {
         var name = PipeName();
-        using var first = new CommandServer(new Core(), name);
+        using var first = new CommandServer(new WindowManager(), name);
         first.Start();
-        using var second = new CommandServer(new Core(), name);
+        using var second = new CommandServer(new WindowManager(), name);
 
         Assert.Throws<InvalidOperationException>(second.Start);
         Assert.Equal("ok", CommandClient.Transact("dispatch workspace 1", name));
@@ -67,7 +67,7 @@ public class CommandServerTests
     [Fact]
     public void ClientRoundTripsClientsAndDispatch()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 10, 10)));
         var name = "winland-" + Guid.NewGuid().ToString("N");
         using var server = new CommandServer(core, name);
@@ -83,7 +83,7 @@ public class CommandServerTests
     [Fact]
     public void SubscribersReceiveEachEventInOrder()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var name = PipeName();
         using var server = new CommandServer(core, name);
         server.Start();
@@ -134,7 +134,7 @@ public class CommandServerTests
     [Fact]
     public async Task ASlowSubscriberDoesNotBlockTheCore()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var name = PipeName();
         using var server = new CommandServer(core, name);
         server.Start();
@@ -157,7 +157,7 @@ public class CommandServerTests
     [Fact]
     public void ADeadSubscriberIsDroppedAndThePipeKeepsServing()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var name = PipeName();
         using var server = new CommandServer(core, name);
         server.Start();
@@ -179,7 +179,7 @@ public class CommandServerTests
     [Fact]
     public void ThePipeServesAgainAfterEveryInstanceWasTaken()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var name = PipeName();
         using var server = new CommandServer(core, name) { MaxInstances = 2, RequestTimeout = TimeSpan.FromMilliseconds(300) };
         server.Start();
@@ -195,7 +195,7 @@ public class CommandServerTests
     [Fact]
     public void AClientThatSendsNothingDoesNotStallTheNext()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var name = PipeName();
         using var server = new CommandServer(core, name);
         server.Start();
@@ -208,7 +208,7 @@ public class CommandServerTests
     [Fact]
     public async Task AClientThatSendsNothingIsDroppedAfterTheRequestTimeout()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var name = PipeName();
         using var server = new CommandServer(core, name) { RequestTimeout = TimeSpan.FromMilliseconds(200) };
         server.Start();
@@ -226,7 +226,7 @@ public class CommandServerTests
     [Fact]
     public void IdleSubscribersHoldNoPoolThreads()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var name = PipeName();
         using var server = new CommandServer(core, name);
         server.Start();
@@ -258,7 +258,7 @@ public class CommandServerTests
     [Fact]
     public void CursorAndBatchTravelThePipe()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var name = PipeName();
         using var server = new CommandServer(core, name);
         server.Start();
@@ -287,7 +287,7 @@ public class CommandServerTests
         pipe.Flush();
     }
 
-    private static void WaitUntilSubscribed(Core core, Listener listener)
+    private static void WaitUntilSubscribed(WindowManager core, Listener listener)
     {
         for (var i = 1; i <= 40; i++)
         {
@@ -301,7 +301,7 @@ public class CommandServerTests
 
     // Everything a listener is sent arrives in order. A window opened now is the last thing it hears about,
     // so reading up to that window leaves nothing queued from before. A quiet gap proves nothing on a slow machine.
-    private static void Sync(Core core, params Listener[] listeners)
+    private static void Sync(WindowManager core, params Listener[] listeners)
     {
         const long marker = 0x270F;
         core.Handle(new WindowAppeared(new WindowId(marker), new Rectangle(0, 0, 10, 10)));

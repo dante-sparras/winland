@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// What one window shows at one moment of its motion. A null part is not animating and is left alone.

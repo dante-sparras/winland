@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>How far a Workspace's windows travel and whether they fade, for one animation style.</summary>
 internal readonly record struct WorkspaceShift(int Dx, int Dy, bool Fades);

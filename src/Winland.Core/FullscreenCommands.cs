@@ -1,6 +1,6 @@
-using static Winland.OrdinalText;
+using static Winland.Core.OrdinalText;
 
-namespace Winland;
+namespace Winland.Core;
 
 internal enum FullscreenAction
 {

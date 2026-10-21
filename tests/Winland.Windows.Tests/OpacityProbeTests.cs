@@ -1,9 +1,8 @@
 using System.Runtime.InteropServices;
-using Winland;
+using Winland.Core;
 using Winland.Windows;
-using Winland.Windows.Tests;
 
-namespace Winland.Tests;
+namespace Winland.Windows.Tests;
 
 [Collection(DesktopCollection.Name)]
 [Trait("Category", DesktopCollection.Name)]

@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 public readonly record struct BorderColor(byte A, byte R, byte G, byte B)
 {

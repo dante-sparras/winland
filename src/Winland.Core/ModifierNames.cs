@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>Reads a modifier list such as <c>SUPER SHIFT</c>, as a bind and <c>sendshortcut</c> write it.</summary>
 internal static class ModifierNames

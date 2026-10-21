@@ -1,6 +1,7 @@
 using Winland.Windows;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Windows.Tests;
 
 /// <summary>Outcomes decided in one order and applied in another, as when a pipe thread and the main thread race.</summary>
 public class ApplyOrderTests

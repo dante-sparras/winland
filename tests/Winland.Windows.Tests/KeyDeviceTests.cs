@@ -1,5 +1,5 @@
 using Windows.Win32.UI.Input.KeyboardAndMouse;
-using Winland;
+using Winland.Core;
 
 namespace Winland.Windows.Tests;
 
@@ -305,7 +305,7 @@ public class KeyDeviceTests
 
     private static KeyboardHook Hook(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse(text)));
         return new KeyboardHook(core, new BindSession());
     }

@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class FollowMouseTests
 {
@@ -223,7 +223,7 @@ public class FollowMouseTests
     [Fact]
     public void MovingOntoAnotherMonitorFocusesIt()
     {
-        var core = new Core(ConfigParser.Parse("input:follow_mouse = 0\n"));
+        var core = new WindowManager(ConfigParser.Parse("input:follow_mouse = 0\n"));
         var left = Display(@"\\.\DISPLAY1", 0, 800, 600);
         var right = Display(@"\\.\DISPLAY2", 800, 800, 600);
         core.Handle(new MonitorsChanged([left, right]));
@@ -240,7 +240,7 @@ public class FollowMouseTests
     [Fact]
     public void AMonitorStaysPutWhenMouseFocusIsOff()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             input:follow_mouse = 0
             misc:mouse_move_focuses_monitor = false
             """));
@@ -258,7 +258,7 @@ public class FollowMouseTests
     [Fact]
     public void FollowMouseFocusesTheClientOnTheMonitorUnderThePointer()
     {
-        var core = new Core(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n"));
+        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n"));
         var left = Display(@"\\.\DISPLAY1", 0, 800, 600);
         var right = Display(@"\\.\DISPLAY2", 800, 800, 600);
         core.Handle(new MonitorsChanged([left, right]));
@@ -328,7 +328,7 @@ public class FollowMouseTests
     [Fact]
     public void HoverOnAMonitorWithAnOpenSpecialWorkspaceReachesItsTiles()
     {
-        var core = new Core(ConfigParser.Parse(Flat("")));
+        var core = new WindowManager(ConfigParser.Parse(Flat("")));
         var left = Display(@"\\.\DISPLAY1", 0, 1920, 1080);
         var right = Display(@"\\.\DISPLAY2", 1920, 1920, 1080);
         core.Handle(new MonitorsChanged([left, right]));
@@ -344,16 +344,16 @@ public class FollowMouseTests
         Assert.Equal(new WindowId(3), hovered.Focus);
     }
 
-    private static (Core Core, Outcome Laid) Tiled(string extra = "")
+    private static (WindowManager WindowManager, Outcome Laid) Tiled(string extra = "")
     {
-        var core = new Core(ConfigParser.Parse(Flat(extra)));
+        var core = new WindowManager(ConfigParser.Parse(Flat(extra)));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         return (core, core.Handle(new WindowAppeared(new WindowId(2), Area)));
     }
 
-    private static Core TiledThree(string extra)
+    private static WindowManager TiledThree(string extra)
     {
-        var core = new Core(ConfigParser.Parse(Flat(extra)));
+        var core = new WindowManager(ConfigParser.Parse(Flat(extra)));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
         core.Handle(new WindowAppeared(new WindowId(3), Area));
@@ -363,7 +363,7 @@ public class FollowMouseTests
     private static string Flat(string extra) =>
         "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 
-    private static Core Floats(string extra) =>
+    private static WindowManager Floats(string extra) =>
         new(ConfigParser.Parse(Flat(extra) + "windowrulev2 = float, class:^(box)$\nwindowrulev2 = move window_x window_y, class:^(box)$\n"));
 
     private static WindowAppeared Box(long window, int x, int y, int width = 100, int height = 100) =>
@@ -373,7 +373,7 @@ public class FollowMouseTests
             Traits = WindowTraits.Normal with { Class = "box" },
         };
 
-    private static Outcome Move(Core core, Point point, long time) =>
+    private static Outcome Move(WindowManager core, Point point, long time) =>
         core.Handle(new PointerMoved(point) { TimeMs = time });
 
     private static Point Center(Outcome outcome, long window)
@@ -382,7 +382,7 @@ public class FollowMouseTests
         return new Point(bounds.X + (bounds.Width / 2), bounds.Y + (bounds.Height / 2));
     }
 
-    private static string Address(Core core)
+    private static string Address(WindowManager core)
     {
         var text = core.Execute("j/activewindow").Text;
         var at = text.IndexOf("\"address\":", StringComparison.Ordinal);

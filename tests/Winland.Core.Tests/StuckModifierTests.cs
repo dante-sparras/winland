@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 // The OS keeps a key logically down until it sees that key's release. A release is
 // swallowed only when its press was swallowed too, so no key is ever left down. Super and
@@ -524,7 +524,7 @@ public class StuckModifierTests
     }
 
     // The worker runs a decision's dispatchers; submap changes land in the core's session.
-    private static BindDecision Run(Core core, BindDecision decision)
+    private static BindDecision Run(WindowManager core, BindDecision decision)
     {
         foreach (var dispatch in decision.Dispatches)
             core.Handle(new Dispatch(dispatch.Dispatcher, dispatch.Arguments));
@@ -532,16 +532,16 @@ public class StuckModifierTests
         return decision;
     }
 
-    private static Core Submaps(string config)
+    private static WindowManager Submaps(string config)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse(config)));
         return core;
     }
 
-    private static (Core Core, BindSession Session) Load(string config)
+    private static (WindowManager WindowManager, BindSession Session) Load(string config)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse(config)));
         return (core, new BindSession());
     }

@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// A display Clients can be placed on. Its identity is its make, model and serial, which a later

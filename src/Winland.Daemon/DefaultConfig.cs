@@ -1,6 +1,7 @@
 using System.Text;
+using Winland.Core;
 
-namespace Winland;
+namespace Winland.Daemon;
 
 /// <summary>
 /// The config Winland writes on first start. It is the embedded <c>winland.default.conf</c>.

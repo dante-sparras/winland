@@ -1,6 +1,7 @@
 using System.Text.Json;
+using Winland.Core;
 
-namespace Winland.Tests.Conformance;
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>Winland's persistent workspace cases. Each test is named after its case, and sends the same commands.</summary>
 [Trait("Category", "Conformance")]
@@ -81,7 +82,7 @@ public class PersistentConformance
 
     // The reference adds its rules over the socket, so reload drops them and reads only the reference config.
     private static void ReloadsReferenceConfig(Desk desk) =>
-        desk.Core.ReadConfig = () => new ConfigRead(ConfigParser.Parse(Desk.Config));
+        desk.WindowManager.ReadConfig = () => new ConfigRead(ConfigParser.Parse(Desk.Config));
 
     private static string[] Labels(Desk desk) => [.. desk.Workspaces().Select(Label)];
 

@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// <c>cursor:hotspot_padding</c>: the cursor's hotspot keeps that many pixels from the outer edges of the monitors, as

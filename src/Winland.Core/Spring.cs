@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>A damped spring, advanced by exact steps so that any step length and any stiffness stay stable.</summary>
 internal static class Spring

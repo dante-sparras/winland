@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 /// <summary>The text Winland answers clients, activewindow, workspaces, activeworkspace and monitors with without j/.</summary>
 public class TextRepliesTests
@@ -10,7 +10,7 @@ public class TextRepliesTests
     [Fact]
     public void ClientsAndActiveWindowAnswerInThePinnedReleasesTextForm()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(42), Area) { Traits = WindowTraits.Normal with { Class = "term", Title = "shell" } });
 
         var clients = core.Execute("clients").Text;
@@ -26,7 +26,7 @@ public class TextRepliesTests
     [Fact]
     public void WorkspacesAndActiveWorkspaceAnswerInText()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var workspaces = core.Execute("workspaces").Text;
@@ -39,7 +39,7 @@ public class TextRepliesTests
     [Fact]
     public void MonitorsAnswerInText()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new MonitorsChanged([new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, Area)]));
 
         var monitors = core.Execute("monitors").Text;

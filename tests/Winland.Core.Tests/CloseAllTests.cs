@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class CloseAllTests
 {
@@ -12,7 +12,7 @@ public class CloseAllTests
     [Fact]
     public void CloseAllAsksEveryClientToCloseAndShowsWorkspaceOne()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(Appeared(1));
         core.Handle(new Dispatch("workspace", "2"));
         core.Handle(Appeared(3));
@@ -38,7 +38,7 @@ public class CloseAllTests
     public void NoCloseForLeavesThatClientOpen()
     {
         long now = 1_000;
-        var core = new Core(ConfigParser.Parse("windowrulev2 = no_close_for 500, class:^(stick)$\n")) { RuleClock = () => now };
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = no_close_for 500, class:^(stick)$\n")) { RuleClock = () => now };
         core.Handle(Appeared(1, "stick"));
         core.Handle(Appeared(2, "box"));
 
@@ -52,7 +52,7 @@ public class CloseAllTests
     [Fact]
     public void CloseAllShowsWorkspaceOneOfTheFocusedMonitor()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080));
         var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024));
         core.Handle(new MonitorsChanged([left, right]));

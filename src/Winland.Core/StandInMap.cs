@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>Which part of a window's picture is drawn where, both in pixels of the stand-in's own coordinates.</summary>
 internal readonly record struct StandInMapping(Rectangle Source, Rectangle Destination);

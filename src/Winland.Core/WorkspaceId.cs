@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// A Workspace address. A numbered Workspace is that number on one Monitor. A special workspace

@@ -1,5 +1,6 @@
 using Windows.Win32;
 using Windows.Win32.UI.WindowsAndMessaging;
+using Winland.Core;
 
 namespace Winland.Windows;
 
@@ -7,7 +8,7 @@ public sealed class WindowHost : IDisposable
 {
     private const uint QuitMessage = 0x0012;
 
-    private readonly Core _core;
+    private readonly WindowManager _core;
     private readonly WindowAdapter _windows;
     private readonly KeyboardHook _keys;
     private readonly MouseHook _mouse;
@@ -33,7 +34,7 @@ public sealed class WindowHost : IDisposable
     private bool _disposed;
     private ITaskbarSession _taskbar = NullTaskbarSession.Instance;
 
-    public WindowHost(Core core, Action<RecoverySnapshot>? onRecovery = null, string? pipeName = null)
+    public WindowHost(WindowManager core, Action<RecoverySnapshot>? onRecovery = null, string? pipeName = null)
     {
         ArgumentNullException.ThrowIfNull(core);
         _core = core;

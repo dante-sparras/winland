@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// A cubic Bézier easing curve from (0, 0) to (1, 1) through two control points.

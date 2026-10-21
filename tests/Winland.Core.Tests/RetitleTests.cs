@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 /// <summary>A window that changes its title is followed, as Winland follows a toplevel's title.</summary>
 public class RetitleTests
@@ -11,7 +11,7 @@ public class RetitleTests
     [Fact]
     public void ANewTitleIsKeptAndToldAsAWindowTitleEvent()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(0x2a), Area) { Traits = WindowTraits.Normal with { Class = "kitty", Title = "old" } });
         core.Handle(new WindowAppeared(new WindowId(0x2b), Area) { Traits = WindowTraits.Normal with { Class = "foot", Title = "other" } });
 
@@ -24,7 +24,7 @@ public class RetitleTests
     [Fact]
     public void TheFocusedWindowsNewTitleIsToldAsTheActiveWindowToo()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(0x2a), Area) { Traits = WindowTraits.Normal with { Class = "kitty", Title = "old" } });
 
         var outcome = core.Handle(new WindowTitleChanged(new WindowId(0x2a), "new"));
@@ -37,7 +37,7 @@ public class RetitleTests
     [Fact]
     public void TheSameTitleTellsNothing()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Title = "same" } });
 
         Assert.Empty(core.Handle(new WindowTitleChanged(new WindowId(1), "same")).Events);
@@ -46,7 +46,7 @@ public class RetitleTests
     [Fact]
     public void ARuleOnTheTitleAppliesOnceTheTitleMatches()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = opacity 0.5, title:.*Video.*\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = opacity 0.5, title:.*Video.*\n"));
         var opened = core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Title = "Browser" } });
         Assert.Equal(255, Assert.Single(opened.Decorations).Alpha);
 
@@ -63,7 +63,7 @@ public class RetitleTests
     [Fact]
     public void TheInitialTitleStaysWhileTheTitleChanges()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(0x2a), Area) { Traits = WindowTraits.Normal with { Class = "kitty", Title = "old" } });
 
         var outcome = core.Handle(new WindowTitleChanged(new WindowId(0x2a), "new"));
@@ -83,7 +83,7 @@ public class RetitleTests
     [Fact]
     public void AnInitialTitleRuleKeepsMatchingAfterTheTitleChanges()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = opacity 0.5, initialTitle:^Browser$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = opacity 0.5, initialTitle:^Browser$\n"));
         var opened = core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Title = "Browser" } });
         Assert.Equal(127, Assert.Single(opened.Decorations).Alpha, tolerance: 1);
 
@@ -96,7 +96,7 @@ public class RetitleTests
     [Fact]
     public void AnEmptyInitialTitleDoesNotTakeTheLaterTitle()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = opacity 0.5, initialTitle:^$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = opacity 0.5, initialTitle:^$\n"));
         var opened = core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Title = "" } });
         Assert.Equal(127, Assert.Single(opened.Decorations).Alpha, tolerance: 1);
 
@@ -109,7 +109,7 @@ public class RetitleTests
     [Fact]
     public void AnInitialTitleRuleDoesNotMatchTheNewTitle()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = opacity 0.5, initial_title:.*Video.*\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = opacity 0.5, initial_title:.*Video.*\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Title = "Browser" } });
 
         var retitled = core.Handle(new WindowTitleChanged(new WindowId(1), "A Video - Browser"));
@@ -120,7 +120,7 @@ public class RetitleTests
     [Fact]
     public void ARuleOnTheTitleAndTheInitialTitleNeedsBoth()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = opacity 0.5, title:.*Video.*, initialTitle:^Browser$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = opacity 0.5, title:.*Video.*, initialTitle:^Browser$\n"));
         var opened = core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Title = "Browser" } });
         Assert.Equal(255, Assert.Single(opened.Decorations).Alpha);
 
@@ -134,7 +134,7 @@ public class RetitleTests
     [Fact]
     public void AGroupTabsTitleFollowsTheWindow()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Title = "one" } });
         core.Execute("dispatch togglegroup");
         core.Handle(new WindowAppeared(new WindowId(2), Area) { Traits = WindowTraits.Normal with { Title = "two" } });
@@ -150,7 +150,7 @@ public class RetitleTests
     [Fact]
     public void ATitleForAWindowThatIsNotAClientTellsNothing()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         Assert.Empty(core.Handle(new WindowTitleChanged(new WindowId(1), "title")).Events);
     }

@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 /// <summary>A tiled Client resized by its own border changes its split, as a <c>resizewindow</c> drag does.</summary>
 public class NativeResizeTests
@@ -128,15 +128,15 @@ public class NativeResizeTests
         Assert.Equal(Client(ended, 1).Bounds, BoundsOf(ended, 1));
     }
 
-    private static Core Flat(string extra)
+    private static WindowManager Flat(string extra)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(
             "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra)));
         return core;
     }
 
-    private static Outcome Appear(Core core, long window) =>
+    private static Outcome Appear(WindowManager core, long window) =>
         core.Handle(new WindowAppeared(new WindowId(window), Wide));
 
     private static Client Client(Outcome outcome, long window) =>

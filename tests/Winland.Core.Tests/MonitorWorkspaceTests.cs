@@ -1,15 +1,15 @@
 using System.Text.Json;
-using Winland;
-using Monitor = Winland.Monitor;
+using Winland.Core;
+using Monitor = Winland.Core.Monitor;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class MonitorWorkspaceTests
 {
     [Fact]
     public void EachEnabledMonitorShowsItsOwnWorkspace()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1.5);
         core.Handle(new MonitorsChanged([left, right]));
@@ -77,7 +77,7 @@ public class MonitorWorkspaceTests
     [Fact]
     public void UnpluggingMovesEachWorkspaceIntactOntoARemainingMonitor()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -115,7 +115,7 @@ public class MonitorWorkspaceTests
     [Fact]
     public void ReplugMovesTheWorkspacesBackAndShowsTheOneTheMonitorShowed()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -138,7 +138,7 @@ public class MonitorWorkspaceTests
     [Fact]
     public void UnpluggingKeepsAGroupAndAPinnedClientWithTheirWorkspace()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\n"));
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -173,7 +173,7 @@ public class MonitorWorkspaceTests
     [Fact]
     public void UnpluggingTheFocusedMonitorFocusesTheWindowShownOnTheMonitorThatRemains()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -194,7 +194,7 @@ public class MonitorWorkspaceTests
     [Fact]
     public void ReplugFocusesTheShownWindowWhenTheFocusedOneIsHidden()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -221,7 +221,7 @@ public class MonitorWorkspaceTests
     [Fact]
     public void AShownSpecialWorkspaceFromAnUnpluggedMonitorReplacesTheOneTheRemainingMonitorShows()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -242,7 +242,7 @@ public class MonitorWorkspaceTests
     [Fact]
     public void FocusingAMonitorWithASpecialWorkspaceOpenFocusesItsWindow()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -260,7 +260,7 @@ public class MonitorWorkspaceTests
     [Fact]
     public void UnpluggingCarriesAShownSpecialWorkspaceAndAFullscreenClient()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -295,7 +295,7 @@ public class MonitorWorkspaceTests
     [Fact]
     public void WorkspaceNumberNamesTheFocusedMonitorsWorkspace()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -330,7 +330,7 @@ public class MonitorWorkspaceTests
     [Fact]
     public void MoveToWorkspaceUsesTheFocusedMonitorsNumber()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -363,7 +363,7 @@ public class MonitorWorkspaceTests
     [Fact]
     public void MoveToWorkspaceSilentStaysOnTheFocusedMonitor()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));

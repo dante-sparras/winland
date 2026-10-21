@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// What the core recorded about one Client for the next start. <see cref="Floating"/>, <see cref="Bounds"/>,

@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>A Client's minimum and maximum size. Either may be missing, and a zero or unbounded side is no limit.</summary>
 internal readonly record struct SizeLimits(Size? Min, Size? Max)

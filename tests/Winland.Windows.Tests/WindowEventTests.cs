@@ -1,5 +1,6 @@
 using Winland.Windows;
 using Events = Windows.Win32.PInvoke;
+using Winland.Core;
 
 namespace Winland.Windows.Tests;
 
@@ -11,7 +12,7 @@ public class WindowEventTests
     [Fact]
     public void AWindowDestroyedMidDragLetsTheNextDragStart()
     {
-        var core = new Core();
+        var core = new WindowManager();
         using var adapter = new WindowAdapter(core);
         core.ReducedMotion = () => true;
         var dragged = new WindowId(0x7001);
@@ -30,7 +31,7 @@ public class WindowEventTests
     [Fact]
     public void AClientsTitleChangeGoesToTheCore()
     {
-        var core = new Core();
+        var core = new WindowManager();
         using var adapter = new WindowAdapter(core);
         core.ReducedMotion = () => true;
         var window = new WindowId(0x7009);
@@ -47,7 +48,7 @@ public class WindowEventTests
     [Fact]
     public void AHiddenClientThatIsCloakedStaysAClient()
     {
-        var core = new Core();
+        var core = new WindowManager();
         using var adapter = new WindowAdapter(core);
         core.ReducedMotion = () => true;
         var window = new WindowId(0x7005);
@@ -65,7 +66,7 @@ public class WindowEventTests
     [Fact]
     public void AClientItsApplicationHidesStopsBeingAClient()
     {
-        var core = new Core();
+        var core = new WindowManager();
         using var adapter = new WindowAdapter(core);
         core.ReducedMotion = () => true;
         var window = new WindowId(0x700B);
@@ -92,7 +93,7 @@ public class WindowEventTests
     [Fact]
     public void AClientWinlandHidStaysAClient()
     {
-        var core = new Core();
+        var core = new WindowManager();
         using var adapter = new WindowAdapter(core);
         // The adapter reads the system's setting. Without motion the hide happens as the outcome is applied.
         core.ReducedMotion = () => true;

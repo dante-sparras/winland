@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Pseudotiling, kept once for every tiled Layout. Winland keeps it on the window target and applies it

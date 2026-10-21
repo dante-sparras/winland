@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class FocusTests
 {
@@ -9,7 +9,7 @@ public class FocusTests
     [Fact]
     public void AnApplicationCannotStealFocus()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -23,7 +23,7 @@ public class FocusTests
     [Fact]
     public void FocusOnActivateAcceptsTheApplication()
     {
-        var core = new Core(ConfigParser.Parse("misc:focus_on_activate = true\n"));
+        var core = new WindowManager(ConfigParser.Parse("misc:focus_on_activate = true\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -37,7 +37,7 @@ public class FocusTests
     [Fact]
     public void AWindowTakingTheForegroundWithoutInputIsRefusedEvenWithFocusOnActivate()
     {
-        var core = new Core(ConfigParser.Parse("misc:focus_on_activate = true\n"));
+        var core = new WindowManager(ConfigParser.Parse("misc:focus_on_activate = true\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -50,7 +50,7 @@ public class FocusTests
     [Fact]
     public void AWindowTakingTheForegroundAfterAClickInAnotherProgramNeedsFocusOnActivate()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area) { ProcessId = 10 });
         core.Handle(new WindowAppeared(new WindowId(2), Area) { ProcessId = 20 });
 
@@ -63,7 +63,7 @@ public class FocusTests
     [Fact]
     public void AClickOnTheWindowItsOwnProgramOrAnUnmanagedWindowIsTheUsersChange()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area) { ProcessId = 10 });
         core.Handle(new WindowAppeared(new WindowId(2), Area) { ProcessId = 10 });
         core.Handle(new WindowAppeared(new WindowId(3), Area) { ProcessId = 30 });
@@ -84,7 +84,7 @@ public class FocusTests
     [Fact]
     public void AClickStillChangesFocusWhenActivationIsRefused()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -99,7 +99,7 @@ public class FocusTests
     [InlineData("no_initial_focus")]
     public void ANewClientWithNoInitialFocusDoesNotTakeFocus(string effect)
     {
-        var core = new Core(ConfigParser.Parse($"windowrulev2 = {effect}, class:^(popup)$\n"));
+        var core = new WindowManager(ConfigParser.Parse($"windowrulev2 = {effect}, class:^(popup)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var opened = core.Handle(new WindowAppeared(new WindowId(2), Area)
@@ -125,7 +125,7 @@ public class FocusTests
     [InlineData("no_focus")]
     public void NoFocusRefusesTheClient(string effect)
     {
-        var core = new Core(ConfigParser.Parse($"windowrulev2 = {effect}, class:^(bar)$\n"));
+        var core = new WindowManager(ConfigParser.Parse($"windowrulev2 = {effect}, class:^(bar)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         var opened = core.Handle(new WindowAppeared(new WindowId(2), Area)
         {
@@ -143,7 +143,7 @@ public class FocusTests
     [Fact]
     public void ALaterRuleCanAllowFocusAgain()
     {
-        var core = new Core(ConfigParser.Parse(
+        var core = new WindowManager(ConfigParser.Parse(
             "windowrulev2 = nofocus, class:^(bar)$\n" +
             "windowrulev2 = nofocus 0, class:^(bar)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
@@ -162,7 +162,7 @@ public class FocusTests
     [InlineData("stay_focused")]
     public void StayFocusedKeepsTheClient(string effect)
     {
-        var core = new Core(ConfigParser.Parse($"windowrulev2 = {effect}, class:^(pin)$\n"));
+        var core = new WindowManager(ConfigParser.Parse($"windowrulev2 = {effect}, class:^(pin)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
             Traits = WindowTraits.Normal with { Class = "pin" },
@@ -184,7 +184,7 @@ public class FocusTests
     [Fact]
     public void OurOwnForegroundRequestIsAccepted()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = stayfocused, class:^(pin)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = stayfocused, class:^(pin)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
             Traits = WindowTraits.Normal with { Class = "pin" },
@@ -200,7 +200,7 @@ public class FocusTests
     [Fact]
     public void MoveFocusSkipsAClientThatRefusesFocus()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = nofocus, class:^(bar)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = nofocus, class:^(bar)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area)
         {
@@ -226,7 +226,7 @@ public class FocusTests
     [Fact]
     public void AnUnknownWindowStealingFocusIsSentBack()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var stolen = core.Handle(new WindowFocused(new WindowId(99), FocusCause.Activated));
@@ -236,7 +236,7 @@ public class FocusTests
         Assert.Equal(new WindowId(1), Active(core));
     }
 
-    private static WindowId? Active(Core core)
+    private static WindowId? Active(WindowManager core)
     {
         var outcome = core.Handle(new Dispatch("killactive"));
         return outcome.Close;

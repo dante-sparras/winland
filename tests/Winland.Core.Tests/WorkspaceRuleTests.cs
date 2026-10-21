@@ -1,8 +1,8 @@
 using System.Text.Json;
-using Winland;
-using Monitor = Winland.Monitor;
+using Winland.Core;
+using Monitor = Winland.Core.Monitor;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class WorkspaceRuleTests
 {
@@ -510,7 +510,7 @@ public class WorkspaceRuleTests
     [Fact]
     public void OnCreatedEmptyRunsOnceWhenTheWorkspaceIsCreated()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new MonitorsChanged([Display("DP-1", "One", 0, 0, 1920, 1080, 1)]));
         var created = core.Handle(new Configure(ConfigParser.Parse(Flat("""
             workspace = 3, persistent:true, on-created-empty:notepad
@@ -532,7 +532,7 @@ public class WorkspaceRuleTests
     [Fact]
     public void OnCreatedEmptyRunsForEveryWorkspaceCreatedTogether()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new MonitorsChanged([Display("DP-1", "One", 0, 0, 1920, 1080, 1)]));
         var created = core.Handle(new Configure(ConfigParser.Parse(Flat("""
             workspace = 3, persistent:true, on-created-empty:three
@@ -676,9 +676,9 @@ public class WorkspaceRuleTests
     private static string Flat(string extra) =>
         "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 
-    private static Core Configured(string text)
+    private static WindowManager Configured(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(text)));
         return core;
     }

@@ -1,8 +1,9 @@
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using Winland.Install;
+using Winland.Core;
 
-namespace Winland;
+namespace Winland.Daemon;
 
 /// <summary>
 /// Snap windows and the precision touchpad swipes. The running Daemon does not use this.

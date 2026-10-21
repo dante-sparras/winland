@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Visible minimum and maximum from the window's outer track sizes.

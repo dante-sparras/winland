@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Winland;
+namespace Winland.Core;
 
 public static partial class CommandProtocol
 {

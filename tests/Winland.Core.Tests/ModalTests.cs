@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class ModalTests
 {
@@ -11,7 +11,7 @@ public class ModalTests
     [Fact]
     public void AnOwnerShadowedByItsModalTakesNoFocus()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(Owner, Area));
         core.Handle(new WindowEnabledChanged(Owner, Enabled: false));
         core.Handle(new WindowAppeared(Dialog, Area) { Owner = Owner });
@@ -31,7 +31,7 @@ public class ModalTests
     [Fact]
     public void ADisabledWindowWithNoOpenModalIsNotShadowed()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(Owner, Area) { Disabled = true });
         core.Handle(new WindowAppeared(new WindowId(3), Area));
 
@@ -42,7 +42,7 @@ public class ModalTests
     [Fact]
     public void BlockingCanBeTurnedOff()
     {
-        var core = new Core(ConfigParser.Parse("general:modal_parent_blocking = false\n"));
+        var core = new WindowManager(ConfigParser.Parse("general:modal_parent_blocking = false\n"));
         core.Handle(new WindowAppeared(Owner, Area) { Disabled = true });
         core.Handle(new WindowAppeared(Dialog, Area) { Owner = Owner });
 
@@ -55,7 +55,7 @@ public class ModalTests
     [Fact]
     public void TheModalRuleMatchesTheDialogOfADisabledOwner()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = float, modal:1\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, modal:1\n"));
         core.Handle(new WindowAppeared(Owner, Area) { Disabled = true });
         var opened = core.Handle(new WindowAppeared(Dialog, Area) { Owner = Owner });
         var free = core.Handle(new WindowAppeared(new WindowId(3), Area) { Owner = new WindowId(9) });
@@ -67,7 +67,7 @@ public class ModalTests
     [Fact]
     public void AFloatingWindowWithAnOwnerOpensOverTheMiddleOfItsOwner()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(float)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(float)$\n"));
         var traits = WindowTraits.Normal with { Class = "float" };
         core.Handle(new WindowAppeared(Owner, Area) { Traits = traits, Bounds = new Rectangle(0, 0, 400, 300) });
         core.Handle(new Dispatch("movewindowpixel", "exact 100 100,address:0x1"));

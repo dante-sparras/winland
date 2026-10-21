@@ -1,19 +1,19 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class FloatingLayerTests
 {
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);
 
-    private static Core Desk()
+    private static WindowManager Desk()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = float, title:^(float.*)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, title:^(float.*)$\n"));
         core.Handle(new MonitorsChanged([new Monitor("DISPLAY1", "", 0, 0, 1920, 1080, 1, true, Area)]));
         return core;
     }
 
-    private static void Open(Core core, long window, string title) =>
+    private static void Open(WindowManager core, long window, string title) =>
         core.Handle(new WindowAppeared(new WindowId(window), new Rectangle(100, 100, 400, 300))
         {
             Traits = WindowTraits.Normal with { Class = "app", Title = title },

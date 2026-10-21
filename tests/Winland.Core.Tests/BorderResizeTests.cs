@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class BorderResizeTests
 {
@@ -419,24 +419,24 @@ public class BorderResizeTests
         return new Point(left.X + left.Width + 5, left.Y + (left.Height / 2));
     }
 
-    private static Core CoreWith(string config)
+    private static WindowManager CoreWith(string config)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(
             "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + config)));
         return core;
     }
 
-    private static void Float(Core core, long window)
+    private static void Float(WindowManager core, long window)
     {
         Appear(core, window);
         core.Handle(new Dispatch("togglefloating"));
     }
 
-    private static void Appear(Core core, long window) =>
+    private static void Appear(WindowManager core, long window) =>
         core.Handle(new WindowAppeared(new WindowId(window), Wide));
 
-    private static void Press(Core core, string key) =>
+    private static void Press(WindowManager core, string key) =>
         core.Handle(new KeyPressed(key));
 
     private static Client Client(Outcome outcome, long window) =>

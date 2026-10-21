@@ -9,6 +9,7 @@ using System.Threading.Channels;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Security;
+using Winland.Core;
 
 namespace Winland.Windows;
 
@@ -18,7 +19,7 @@ public sealed class CommandServer : IDisposable
 
     private const int SubscriberQueueCapacity = 256;
 
-    private readonly Core _core;
+    private readonly WindowManager _core;
     private readonly string _pipeName;
     private readonly CancellationTokenSource _cancel = new();
     private readonly object _sync = new();
@@ -47,7 +48,7 @@ public sealed class CommandServer : IDisposable
 
     private static readonly TimeSpan LastRetry = TimeSpan.FromSeconds(2);
 
-    public CommandServer(Core core, string? pipeName = null)
+    public CommandServer(WindowManager core, string? pipeName = null)
     {
         ArgumentNullException.ThrowIfNull(core);
         _core = core;

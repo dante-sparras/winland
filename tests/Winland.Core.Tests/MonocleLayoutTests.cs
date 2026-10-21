@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class MonocleLayoutTests
 {
@@ -325,9 +325,9 @@ public class MonocleLayoutTests
     private const string Flat =
         "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\ngeneral:layout = monocle\n";
 
-    private static Core Open(string extra = "")
+    private static WindowManager Open(string extra = "")
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(Flat + extra)));
         return core;
     }

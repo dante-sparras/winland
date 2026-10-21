@@ -4,6 +4,7 @@ using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Gdi;
 using Windows.Win32.UI.Shell;
 using Windows.Win32.UI.WindowsAndMessaging;
+using Winland.Core;
 
 namespace Winland.Windows;
 

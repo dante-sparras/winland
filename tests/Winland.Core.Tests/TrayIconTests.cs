@@ -1,13 +1,13 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class TrayIconTests
 {
     [Fact]
     public void TheIconStartsOnWorkspaceOne()
     {
-        var outcome = new Core().Execute("dispatch workspace 1").Effect;
+        var outcome = new WindowManager().Execute("dispatch workspace 1").Effect;
 
         Assert.NotNull(outcome.Tray);
         Assert.True(outcome.Tray.Shown);
@@ -18,7 +18,7 @@ public class TrayIconTests
     [Fact]
     public void SwitchingWorkspaceChangesTheNumber()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         var outcome = core.Execute("dispatch workspace 2").Effect;
 
@@ -29,7 +29,7 @@ public class TrayIconTests
     [Fact]
     public void ANamedWorkspaceIsNotCreated()
     {
-        var reply = new Core().Execute("dispatch workspace name:dev");
+        var reply = new WindowManager().Execute("dispatch workspace name:dev");
 
         Assert.Equal("error: no such workspace", reply.Text);
         Assert.Equal(WorkspaceId.Initial, reply.Effect.State.ActiveWorkspace);
@@ -40,7 +40,7 @@ public class TrayIconTests
     [Fact]
     public void ASpecialWorkspaceKeepsTheNumberUnderneath()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Execute("dispatch workspace 4");
 
         var opened = core.Execute("dispatch togglespecialworkspace scratch").Effect;
@@ -53,7 +53,7 @@ public class TrayIconTests
     [Fact]
     public void ChangingTheWorkspaceIdChangesTheNumber()
     {
-        var changed = new Core().Execute("dispatch changeworkspaceid 1 12").Effect;
+        var changed = new WindowManager().Execute("dispatch changeworkspaceid 1 12").Effect;
 
         Assert.Equal("12", changed.Tray!.Number);
     }
@@ -74,7 +74,7 @@ public class TrayIconTests
     [Fact]
     public void TheOptionDefaultsToShown()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         Assert.Equal(
             "{\"option\":\"general:tray_icon\",\"bool\":true,\"set\":false}",
@@ -90,7 +90,7 @@ public class TrayIconTests
     [InlineData("no", false)]
     public void TheOptionAcceptsABool(string value, bool shown)
     {
-        var core = new Core(ConfigParser.Parse($"general:tray_icon = {value}\n"));
+        var core = new WindowManager(ConfigParser.Parse($"general:tray_icon = {value}\n"));
 
         Assert.Empty(ConfigParser.Parse($"general:tray_icon = {value}\n").Warnings);
         Assert.Equal(shown, core.Execute("dispatch workspace 1").Effect.Tray!.Shown);
@@ -107,9 +107,9 @@ public class TrayIconTests
             general:tray_icon = perhaps
             """);
         Assert.Equal(new ConfigWarning(2, "Invalid value 'perhaps' for general:tray_icon."), Assert.Single(document.Warnings));
-        Assert.False(new Core(document).Execute("dispatch workspace 1").Effect.Tray!.Shown);
+        Assert.False(new WindowManager(document).Execute("dispatch workspace 1").Effect.Tray!.Shown);
 
-        var core = new Core();
+        var core = new WindowManager();
         var reply = core.Execute("keyword general:tray_icon perhaps");
 
         Assert.Equal("error: Invalid value 'perhaps' for general:tray_icon.", reply.Text);
@@ -119,7 +119,7 @@ public class TrayIconTests
     [Fact]
     public void KeywordAndReloadApplyAtOnce()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var turnedOff = core.Execute("keyword general:tray_icon false");
 
         Assert.Equal("ok", turnedOff.Text);
@@ -157,9 +157,9 @@ public class TrayIconTests
         Assert.Equal(text, TrayIcon.Text(new WorkspaceId(name)));
     }
 
-    private static Core TwoMonitors()
+    private static WindowManager TwoMonitors()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new MonitorsChanged(
         [
             new Monitor("LEFT", "Left", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080)),

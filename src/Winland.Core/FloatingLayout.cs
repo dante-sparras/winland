@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Places every Client as floating. A Client that arrived tiled floats only while this Layout holds it,

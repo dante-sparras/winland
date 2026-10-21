@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 public readonly record struct WindowTraits(
     bool Visible,

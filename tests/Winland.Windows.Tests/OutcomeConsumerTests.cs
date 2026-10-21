@@ -1,4 +1,4 @@
-using Winland;
+using Winland.Core;
 
 namespace Winland.Windows.Tests;
 
@@ -23,7 +23,7 @@ public class OutcomeConsumerTests
             nameof(Outcome.ShowMinimized), // WindowAdapter.ApplyCore
             nameof(Outcome.Launches), // WindowAdapter.ApplyCore
             nameof(Outcome.Launch), // shorthand for Launches
-            nameof(Outcome.Events), // Core.Noticed, the event stream
+            nameof(Outcome.Events), // WindowManager.Noticed, the event stream
             nameof(Outcome.Decorations), // WindowAdapter.ApplyCore
             nameof(Outcome.Motions), // WindowAdapter.ApplyCore
             nameof(Outcome.Live), // WindowAdapter.ApplyCore

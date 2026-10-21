@@ -2,7 +2,7 @@ using System.Globalization;
 using System.IO.Pipes;
 using System.Text;
 
-namespace Winland;
+namespace Winland.Core;
 
 public static class CommandClient
 {

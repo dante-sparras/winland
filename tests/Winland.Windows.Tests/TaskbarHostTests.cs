@@ -1,4 +1,4 @@
-using Winland;
+using Winland.Core;
 using Winland.Windows;
 
 namespace Winland.Windows.Tests;
@@ -69,7 +69,7 @@ public class TaskbarHostTests
 
     private static WindowHost Host(ConfigDir files, RecordingTaskbar bars)
     {
-        var core = new Core
+        var core = new WindowManager
         {
             ReadConfig = () => new ConfigRead(ConfigParser.Parse(File.ReadAllText(files.Path))),
         };

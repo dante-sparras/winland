@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Winland;
+namespace Winland.Core;
 
 public static class BuildStamp
 {

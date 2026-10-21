@@ -1,4 +1,4 @@
-using Winland;
+using Winland.Core;
 using Winland.Windows;
 
 namespace Winland.Windows.Tests;

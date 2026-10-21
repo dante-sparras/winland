@@ -1,7 +1,7 @@
 using Winland.Windows;
-using Winland.Windows.Tests;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Windows.Tests;
 
 [Collection(DesktopCollection.Name)]
 [Trait("Category", DesktopCollection.Name)]
@@ -25,7 +25,7 @@ public class ExistingWindowTests
             Assert.DoesNotContain(probe.Small, found);
 
             // Only the probe windows are handed over, so the desktop's own windows are left alone.
-            var core = new Core();
+            var core = new WindowManager();
             using var adapter = new WindowAdapter(core);
             core.ReducedMotion = () => true;
             adapter.AdoptExisting([probe.Anchor, probe.Wide]);

@@ -1,4 +1,6 @@
-namespace Winland;
+using Winland.Core;
+
+namespace Winland.Daemon;
 
 /// <summary>
 /// One allow entry from a directory or file access list. <see cref="CanRemove"/> holds the rights

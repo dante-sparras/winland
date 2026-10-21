@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The device field of a <c>bind</c> line with the <c>k</c> flag. <c>+</c> matches only the named devices and

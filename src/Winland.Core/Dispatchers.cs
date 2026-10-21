@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Names the core will run. A bind or a pipe command for any other name is an error.

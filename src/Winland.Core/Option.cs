@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 
-namespace Winland;
+namespace Winland.Core;
 
 internal delegate bool OptionReader<T>(string text, out T value);
 

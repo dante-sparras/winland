@@ -1,6 +1,7 @@
 using System.Text.Json;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public sealed class OptionTableTests
 {
@@ -83,9 +84,9 @@ public sealed class OptionTableTests
         _ => value.GetRawText(),
     };
 
-    private static Core Configured(string text)
+    private static WindowManager Configured(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(text)));
         return core;
     }

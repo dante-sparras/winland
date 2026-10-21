@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 /// <summary>
 /// <c>sync_fullscreen</c> decides whether a fullscreen request copies the internal mode onto the client mode.
@@ -250,20 +250,20 @@ public class SyncFullscreenTests
         Assert.Equal(FullscreenMode.Fullscreen, ClientOf(left).FullscreenClient);
     }
 
-    private static Core Desk(string? config = null)
+    private static WindowManager Desk(string? config = null)
     {
-        var core = config is null ? new Core() : new Core(ConfigParser.Parse(config));
+        var core = config is null ? new WindowManager() : new WindowManager(ConfigParser.Parse(config));
         core.Handle(new MonitorsChanged([new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, Work)]));
         return core;
     }
 
-    private static Outcome Appear(Core core, string? className = null) =>
+    private static Outcome Appear(WindowManager core, string? className = null) =>
         core.Handle(new WindowAppeared(new WindowId(1), Work)
         {
             Traits = className is null ? WindowTraits.Normal : WindowTraits.Normal with { Class = className },
         });
 
-    private static string Prop(Core core) => core.Execute("getprop address:0x1 sync_fullscreen").Text;
+    private static string Prop(WindowManager core) => core.Execute("getprop address:0x1 sync_fullscreen").Text;
 
     private static Client ClientOf(Outcome outcome) =>
         Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(1));
