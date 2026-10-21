@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Winland.Domain;
 
 public sealed record Client(
@@ -21,3 +23,13 @@ public sealed record Client(
     bool LayoutFullscreen = false,
     bool AllowedOverFullscreen = true,
     bool BelowFullscreen = false);
+
+public readonly record struct WindowId(long Value)
+{
+    /// <summary>The window as the replies and selectors write it: <c>0x</c> and the handle in hexadecimal.</summary>
+    public string Address => "0x" + Value.ToString("x", CultureInfo.InvariantCulture);
+}
+
+public readonly record struct ClientId(long Value);
+
+public readonly record struct Placement(ClientId Client, Rectangle Bounds);

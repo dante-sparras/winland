@@ -45,3 +45,17 @@ public static class InputDeviceNames
         return names;
     }
 }
+
+/// <summary>
+/// An input device as the system names it. <paramref name="Address"/> tells it apart from the others for as long as it
+/// is plugged in, and <paramref name="Name"/> is its product name, which <see cref="InputDeviceNames"/> turns into the
+/// name the replies give.
+/// </summary>
+public sealed record InputDevice(InputDeviceKind Kind, long Address, string Name);
+
+/// <summary>What an input device is: a pointer, such as a mouse or a touchpad, or a keyboard.</summary>
+public enum InputDeviceKind
+{
+    Pointer,
+    Keyboard,
+}

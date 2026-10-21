@@ -84,3 +84,24 @@ public static class CornerShape
             points.Add(point);
     }
 }
+
+/// <summary>The corners of a rectangle that are round.</summary>
+[Flags]
+public enum Corners
+{
+    None = 0,
+    TopLeft = 1,
+    TopRight = 2,
+    BottomLeft = 4,
+    BottomRight = 8,
+    All = TopLeft | TopRight | BottomLeft | BottomRight,
+}
+
+/// <summary>Corners cut from the window: a radius in physical pixels and the curve of <see cref="DecorationOptions.RoundingPower"/>.</summary>
+public readonly record struct CornerRegion(int Radius, float Power);
+
+/// <summary>The DWM corner preference for one Client, and the region to cut when no preference matches the radius.</summary>
+public readonly record struct CornerChoice(CornerPreference Preference, CornerRegion? Region)
+{
+    public static CornerChoice Square { get; } = new(CornerPreference.DoNotRound, null);
+}

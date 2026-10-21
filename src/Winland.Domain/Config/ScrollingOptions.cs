@@ -81,3 +81,18 @@ public sealed record ScrollingOptions
     private static Option<ScrollingOptions> Of<T>(string name, OptionValue<T> value, Func<ScrollingOptions, T> get, Func<ScrollingOptions, T, ScrollingOptions> set) =>
         Option<ScrollingOptions>.Of(name, value, get, set);
 }
+
+public enum ScrollingDirection
+{
+    Right,
+    Left,
+    Down,
+    Up,
+}
+
+/// <summary>How a focused column is brought into the viewport. <c>0</c> centers it. <c>1</c> fits it.</summary>
+public enum ScrollingFit
+{
+    Center = 0,
+    Fit = 1,
+}

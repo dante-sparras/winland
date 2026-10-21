@@ -32,3 +32,17 @@ public static class DecorationAlpha
         return (byte)Math.Round(scaled, MidpointRounding.AwayFromZero);
     }
 }
+
+/// <summary>Active, inactive and fullscreen fractions from one <c>opacity</c> rule.</summary>
+public readonly record struct OpacityRule(OpacityFactor Active, OpacityFactor Inactive, OpacityFactor Fullscreen);
+
+/// <summary>One opacity fraction from a window rule. <see cref="Overridden"/> replaces the configured fraction; otherwise the two multiply.</summary>
+public readonly record struct OpacityFactor(float Value, bool Overridden)
+{
+    public static OpacityFactor Identity { get; } = new(1f, false);
+
+    public float Apply(float configured) => Overridden ? Value : Value * configured;
+}
+
+/// <summary>Which opacity applies to one Client. Fullscreen wins over active and inactive.</summary>
+public readonly record struct OpacityInput(bool Active, bool Fullscreen = false);

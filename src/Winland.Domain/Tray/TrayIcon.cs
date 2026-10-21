@@ -41,3 +41,15 @@ public sealed record TrayIcon(bool Shown, string Number)
         return name.Length == 0 ? "special" : name;
     }
 }
+
+/// <summary>A menu row: the command it runs and the words the menu shows.</summary>
+public readonly record struct TrayMenuItem(TrayCommand Command, string Label);
+
+/// <summary>One command on the notification-area icon's menu.</summary>
+public enum TrayCommand
+{
+    Reload,
+    EditConfig,
+    OpenLog,
+    Quit,
+}

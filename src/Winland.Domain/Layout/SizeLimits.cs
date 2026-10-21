@@ -63,3 +63,6 @@ internal readonly record struct SizeLimits(Size? Min, Size? Max)
         return new Rectangle(x, y, width, height);
     }
 }
+
+/// <summary>A tiled Client's minimum and maximum size, when they differ from its floating ones.</summary>
+internal readonly record struct TiledLimits(Size? Min, Size? Max);

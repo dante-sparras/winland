@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 
 namespace Winland.Domain;
@@ -38,4 +37,12 @@ internal sealed class Option<TOptions> : IOption
 
     /// <summary>The value's type and the value in <paramref name="options"/>, as <c>"int":4</c>.</summary>
     public string Reply(TOptions options) => _reply(options);
+}
+
+/// <summary>An Option the config may set: its name, and whether a value reads as its type.</summary>
+internal interface IOption
+{
+    string Name { get; }
+
+    bool Reads(string text);
 }

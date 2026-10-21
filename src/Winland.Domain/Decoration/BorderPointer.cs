@@ -144,3 +144,16 @@ internal static class BorderPointer
     private static Rectangle Expand(Rectangle box, int grab) =>
         new(box.X - grab, box.Y - grab, box.Width + (grab * 2), box.Height + (grab * 2));
 }
+
+internal enum BorderSide
+{
+    None,
+    Top,
+    Bottom,
+    Left,
+    Right,
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
+}
