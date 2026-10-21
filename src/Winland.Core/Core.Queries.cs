@@ -74,7 +74,7 @@ public sealed partial class Core
             ExtraCommands.FormatCursor(Cursor?.Read() ?? new Point(0, 0), cursor.Flags.HasFlag(CommandFlags.Json)),
             View([])),
         ConfigErrorsRequest => new CommandReply(ExtraCommands.FormatErrors(_configErrors), View([])),
-        GetOptionRequest option => new CommandReply(OptionCatalog.Describe(option.Name, _config, _accent), View([])),
+        GetOptionRequest option => new CommandReply(DescribeOption(option.Name), View([])),
         LockedRequest => new CommandReply(ExtraCommands.FormatLocked(SessionLock?.Locked == true), View([])),
         LayoutsRequest => new CommandReply(ExtraCommands.FormatLayouts(), View([])),
         AnimationsRequest animations => new CommandReply(_animations.Describe(animations.Flags.HasFlag(CommandFlags.Json)), View([])),
@@ -86,6 +86,28 @@ public sealed partial class Core
         BatchRequest batch => RunBatch(batch.Payload),
         _ => throw new InvalidOperationException("No handler for this command."),
     };
+
+    // The value Winland applied. set is true when a line the config applied names the Option.
+    private string DescribeOption(string name)
+    {
+        var known = LayoutOptions.Options.TryReply(name, _options, out var value)
+            || ScrollingOptions.Options.TryReply(name, _scrolling, out value)
+            || MasterOptions.Options.TryReply(name, _master, out value)
+            || DecorationOptions.Options.TryReply(name, _decoration, out value)
+            || GroupOptions.Options.TryReply(name, _groupOptions, out value)
+            || SessionOptions.Options.TryReply(name, _session, out value)
+            || BindOptions.Options.TryReply(name, _bindOptions, out value)
+            || CursorOptions.Options.TryReply(name, _cursor, out value)
+            || InputOptions.Options.TryReply(name, _input, out value)
+            || GestureOptions.Options.TryReply(name, _swipe, out value)
+            || AnimationOptions.Options.TryReply(name, _animations, out value)
+            || DebugOptions.Options.TryReply(name, _debug, out value);
+        if (!known)
+            return "no such option";
+
+        var set = _config?.Settings.Any(setting => setting.Keyword == name) == true;
+        return OptionTable.Reply(name, value, set);
+    }
 
     private Outcome Reflow(Outcome current)
     {
