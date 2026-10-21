@@ -178,6 +178,60 @@ public class AppInstallTests
     }
 
     [Fact]
+    public void ReplaceInstalledCopiesIntoTheRunningFolderAndKeepsTheConfig()
+    {
+        files.Seed(Path.Combine(Machine, "winland.exe"), [8]);
+        files.Seed(Path.Combine(User, "winland.exe"), [7]);
+        files.Seed(Path.Combine(User, "winlandctl.exe"), [6]);
+        tasks.Seed(LogonTaskDefinition.Build(Path.Combine(Machine, "winland.exe"), @"DESKTOP\dante"));
+        registry.SetString(RegistryRoot.Machine, InstallLocations.MachinePathKey, InstallLocations.PathValue, Machine, expandable: true);
+        registry.SetString(RegistryRoot.Machine, InstallLocations.UninstallKey, "DisplayVersion", "0.1.0", expandable: false);
+
+        install.ReplaceInstalled(Source, Machine, perUser: false, "0.2.0");
+
+        Assert.Equal([1], files.Read(Path.Combine(Machine, "winland.exe")));
+        Assert.Equal([2], files.Read(Path.Combine(Machine, "winland.dll")));
+        Assert.Equal([3], files.Read(Path.Combine(Machine, "winlandctl.exe")));
+        Assert.Equal([7], files.Read(Path.Combine(User, "winland.exe")));
+        Assert.Equal([9], files.Read(Path.Combine(Config, "winland.conf")));
+        Assert.Equal(["stop", "start"], session.Operations);
+        Assert.Equal(Path.Combine(Machine, "winland.exe"), session.Started);
+        Assert.Empty(session.StartedArguments);
+        Assert.Equal("0.2.0", Text(RegistryRoot.Machine, "DisplayVersion"));
+        Assert.Empty(tasks.Operations);
+        Assert.Equal(Path.Combine(Machine, "winland.exe"), tasks.Only().Executable);
+        Assert.Equal(Machine, Text(RegistryRoot.Machine, InstallLocations.PathValue, InstallLocations.MachinePathKey));
+    }
+
+    [Fact]
+    public void ReplaceInstalledForTheUserStartsWithoutElevation()
+    {
+        install.ReplaceInstalled(Source, User, perUser: true, "0.2.0");
+
+        Assert.Equal([1], files.Read(Path.Combine(User, "winland.exe")));
+        Assert.Equal([3], files.Read(Path.Combine(User, "winlandctl.exe")));
+        Assert.Equal(["--no-elevate"], session.StartedArguments);
+        Assert.Equal("0.2.0", Text(RegistryRoot.User, "DisplayVersion"));
+        Assert.Null(registry.GetString(RegistryRoot.Machine, InstallLocations.UninstallKey, "DisplayVersion"));
+        Assert.Equal([9], files.Read(Path.Combine(Config, "winland.conf")));
+        Assert.Empty(tasks.Operations);
+    }
+
+    [Fact]
+    public void ReplaceInstalledRefusesAMissingControlBeforeStopping()
+    {
+        var tree = new MemoryFileTree();
+        tree.Seed(Source, [1]);
+        var waited = new MemorySession();
+        var replacing = new AppInstall(Layout(), new MemoryTaskCatalog(), tree, new MemoryRegistry(), new MemoryStartMenu(), waited);
+
+        var error = Assert.Throws<InvalidOperationException>(() => replacing.ReplaceInstalled(Source, Machine, perUser: false, "0.2.0"));
+
+        Assert.Contains("winlandctl", error.Message, StringComparison.Ordinal);
+        Assert.Empty(waited.Operations);
+    }
+
+    [Fact]
     public void InstallingAgainFromTheInstalledCopyRefreshesTheTask()
     {
         install.InstallMachine(Source, @"DESKTOP\dante", "0.1.0");

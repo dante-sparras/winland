@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Security.Principal;
 using Winland;
 using Winland.Install;
@@ -81,21 +82,85 @@ static int Perform(InstallCommand command)
                 ? "Winland is uninstalled, and its config, logs and state are removed."
                 : "Winland is uninstalled.");
             return 0;
+        case InstallCommand.Update:
+            return UpdateInstalled();
         default:
             throw new InvalidOperationException("Unexpected install command.");
     }
 }
 
+static int UpdateInstalled()
+{
+    var executable = Environment.ProcessPath
+        ?? throw new InvalidOperationException("The executable path is not available.");
+    var layout = Layout();
+    using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+    var result = new ReleaseUpdate(
+        new GitHubReleaseFeed(http),
+        new ZipReleasePackage(),
+        Maintenance(),
+        StageDirectory,
+        RemoveStage).Run(
+            BuildStamp.Version,
+            executable,
+            layout.MachineDirectory,
+            layout.UserDirectory,
+            Elevation.IsElevated());
+
+    switch (result)
+    {
+        case UpdateResult.NotInstalled:
+            Console.Error.WriteLine("Winland is not installed. Run winland install.");
+            return 1;
+        case UpdateResult.Current:
+            Console.WriteLine("Winland is up to date.");
+            return 0;
+        case UpdateResult.NeedsAdministrator:
+            return Elevation.Relaunch(["update"]);
+        case UpdateResult.Rejected:
+            Console.Error.WriteLine("Refusing the update: the SHA-256 of Winland-win-x64.zip does not match SHA256SUMS.");
+            return 1;
+        case UpdateResult.Updated updated:
+            Console.WriteLine("Winland is updated to " + updated.Version + ".");
+            return 0;
+        default:
+            throw new InvalidOperationException("Unexpected update result.");
+    }
+}
+
+static string StageDirectory()
+{
+    // An elevated replace copies into Program Files. The unpacked zip stays in a folder only
+    // administrators can write, so another program cannot swap it after the hash check.
+    if (Elevation.IsElevated())
+    {
+        var windowsTemp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp");
+        return AdministratorFolder.CreateNew(windowsTemp, "winland-update-");
+    }
+
+    var folder = Path.Combine(Path.GetTempPath(), "winland-update-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(folder);
+    return folder;
+}
+
+static void RemoveStage(string directory)
+{
+    if (Directory.Exists(directory))
+        Directory.Delete(directory, recursive: true);
+}
+
 static bool MachineInstalled() => Maintenance().MachinePresent();
 
+static InstallLayout Layout() => new(
+    InstallLocations.Machine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)),
+    InstallLocations.User(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)),
+    Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms),
+    Environment.GetFolderPath(Environment.SpecialFolder.Programs),
+    InstallLocations.Config(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
+    InstallLocations.State(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
+
 static AppInstall Maintenance() => new(
-    new InstallLayout(
-        InstallLocations.Machine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)),
-        InstallLocations.User(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)),
-        Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms),
-        Environment.GetFolderPath(Environment.SpecialFolder.Programs),
-        InstallLocations.Config(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
-        InstallLocations.State(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))),
+    Layout(),
     new SchtasksCatalog(),
     new WindowsInstallFiles(),
     new WindowsInstallRegistry(),
@@ -372,6 +437,7 @@ static int Usage()
     Console.Error.WriteLine("usage: winland");
     Console.Error.WriteLine("       winland --config <path>");
     Console.Error.WriteLine("       winland install [--user]");
+    Console.Error.WriteLine("       winland update");
     Console.Error.WriteLine("       winland uninstall [--purge]");
     Console.Error.WriteLine("WINLAND_NO_ELEVATE=1 or --no-elevate starts without elevation. It exists for tests.");
     Console.Error.WriteLine("Elevated features then do not work. A per-user install never asks for elevation.");

@@ -36,6 +36,16 @@ public class InstallCommandTests
     }
 
     [Fact]
+    public void UpdateAsksForNoAdministratorUntilAReplaceNeedsOne()
+    {
+        var command = Assert.IsType<InstallCommand.Update>(InstallCommand.Parse(["update"]));
+        var upper = Assert.IsType<InstallCommand.Update>(InstallCommand.Parse(["UPDATE"]));
+
+        Assert.False(command.RequiresAdministrator(machineInstallPresent: true));
+        Assert.False(upper.RequiresAdministrator(machineInstallPresent: false));
+    }
+
+    [Fact]
     public void OtherArgumentsAreNotAnInstall()
     {
         Assert.Null(InstallCommand.Parse([]));
@@ -46,6 +56,8 @@ public class InstallCommandTests
     [InlineData("install", "--purge")]
     [InlineData("uninstall", "--user")]
     [InlineData("install", "--user", "extra")]
+    [InlineData("update", "--user")]
+    [InlineData("update", "extra")]
     public void AMisusedVerbIsRefused(params string[] args)
     {
         Assert.Throws<ArgumentException>(() => InstallCommand.Parse(args));

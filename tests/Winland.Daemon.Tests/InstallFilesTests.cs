@@ -78,6 +78,37 @@ public class InstallFilesTests : IDisposable
         Assert.Equal("daemon", File.ReadAllText(destination));
     }
 
+    [Fact]
+    public void CopyReplacesAnExistingFile()
+    {
+        var source = Path.Combine(root, "new.exe");
+        var destination = Path.Combine(root, "old.exe");
+        File.WriteAllText(source, "new");
+        File.WriteAllText(destination, "old");
+
+        files.Copy(source, destination);
+
+        Assert.Equal("new", File.ReadAllText(destination));
+        Assert.False(File.Exists(destination + ".winland-old"));
+    }
+
+    [Fact]
+    public void CopyRefusesALockedFileOutsideTheRunningFolder()
+    {
+        var source = Path.Combine(root, "new.exe");
+        var destination = Path.Combine(root, "locked.exe");
+        File.WriteAllText(source, "new");
+        File.WriteAllText(destination, "old");
+        using var locked = new FileStream(destination, FileMode.Open, FileAccess.Read, FileShare.None);
+
+        var error = Record.Exception(() => files.Copy(source, destination));
+
+        Assert.True(error is IOException or UnauthorizedAccessException);
+        locked.Dispose();
+        Assert.Equal("old", File.ReadAllText(destination));
+        Assert.False(File.Exists(destination + ".winland-old"));
+    }
+
     private static void Junction(string link, string target)
     {
         var start = new ProcessStartInfo("cmd.exe")

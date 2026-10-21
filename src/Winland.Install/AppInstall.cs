@@ -86,6 +86,26 @@ public sealed class AppInstall
         session.Start(installed, [ManualStartElevation.OptOutArgument]);
     }
 
+    /// <summary>
+    /// Stops the running Winland, copies <paramref name="sourceExecutable"/> into <paramref name="destination"/>
+    /// by the same copy install uses, and starts that copy. The recorded version is updated. The config, the
+    /// logon task and the other install are left as they are.
+    /// </summary>
+    public void ReplaceInstalled(string sourceExecutable, string destination, bool perUser, string version)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceExecutable);
+        ArgumentException.ThrowIfNullOrWhiteSpace(destination);
+        ArgumentException.ThrowIfNullOrWhiteSpace(version);
+
+        var plan = Plan(sourceExecutable, destination);
+        session.Stop();
+        Apply(plan);
+        var installed = plan.InstalledExecutable;
+        var root = perUser ? RegistryRoot.User : RegistryRoot.Machine;
+        RegisterUninstall(root, installed, destination, version);
+        session.Start(installed, perUser ? [ManualStartElevation.OptOutArgument] : []);
+    }
+
     /// <param name="machine">True when this process may change the machine install. A per-user uninstall leaves it.</param>
     public void Uninstall(bool purge, bool machine)
     {
