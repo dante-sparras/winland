@@ -151,19 +151,14 @@ static int Run(string? path, RollingLogWriter log)
         throw new InvalidOperationException($"--config takes a .conf file, not '{path}'.");
 
     var configPath = path ?? ConfigPaths.Default(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
-    ConfigDocument current;
-    if (!File.Exists(configPath))
-    {
-        if (path is not null)
-            throw new InvalidOperationException($"Could not read config '{Path.GetFullPath(configPath)}'.");
+    // The default is written only when Winland was not given --config and the file is not there yet.
+    if (path is null && !File.Exists(configPath) && DefaultConfig.WriteIfMissing(configPath))
+        Console.Error.WriteLine($"Wrote the default config to {configPath}.");
 
-        Console.Error.WriteLine($"No config at {configPath}.");
-        current = ConfigParser.Parse("");
-    }
-    else
-    {
-        current = ReadConfig(configPath);
-    }
+    if (!File.Exists(configPath))
+        throw new InvalidOperationException($"Could not read config '{Path.GetFullPath(configPath)}'.");
+
+    var current = ReadConfig(configPath);
 
     foreach (var warning in current.Warnings)
     {

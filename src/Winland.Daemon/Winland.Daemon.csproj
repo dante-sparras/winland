@@ -21,6 +21,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="winland.default.conf">
+      <LogicalName>winland.default.conf</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Winland.Daemon.Tests" />
   </ItemGroup>
 

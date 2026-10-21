@@ -1,7 +1,5 @@
 # The config is one line-based file, and it runs no code
 
-Status: Proposed (issue to be filed)
-
 Winland reads `%APPDATA%\winland\winland.conf`, or the `.conf` file `--config` names, and the files it sources. Each line sets an option, a bind, a rule or an `exec`: `bind = SUPER, Q, killactive`, `general:gaps_in = 4`. On first start, when there is no config, Winland writes a commented default one. Nothing in the config runs inside Winland. Logic that needs a program, such as reacting to events, is a script that the config starts with `exec-once` and that talks to the IPC pipe (ADR 0011).
 
 The config is a file the user edits with any editor (ADR 0007), and Winland runs elevated by default (ADR 0004). A config that ran code, in Lua or C#, would let any program the user runs gain administrator rights by writing it, unless the code ran in a sandbox. .NET has none for C#, and the Lua sandbox, its second thread and its bridge to Hyprland's Lua API were about seven thousand lines for a format whose calls only produced these same lines. A C# config would also need the .NET SDK on the user's machine, or a compiler inside Winland.
