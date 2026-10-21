@@ -24,7 +24,9 @@ public class StateConformance
 
         desk.ReportEnabled(false);
         Assert.Contains("FALLBACK", desk.Send("j/monitors"), StringComparison.Ordinal);
-        Assert.Equal("FALLBACK", MonitorOf(desk, 9));
+        // The occupied Workspace becomes a Guest. FALLBACK had none of its own, so the Guest is shown as Workspace 1.
+        Assert.Equal("FALLBACK", desk.ActiveWorkspace().GetProperty("monitor").GetString());
+        Assert.Equal(1, desk.ActiveWorkspace().GetProperty("id").GetInt32());
 
         // The reference also asks its test plugin about workspace lifecycle state here, which has no counterpart.
         desk.Ok("workspace", "9");

@@ -1,6 +1,10 @@
 namespace Winland;
 
-public readonly record struct WorkspaceId(string Name)
+/// <summary>
+/// A Workspace address. A numbered Workspace is that number on one Monitor. A special workspace
+/// belongs to no Monitor, and its <see cref="Monitor"/> stays 0.
+/// </summary>
+public readonly record struct WorkspaceId(string Name, int Monitor = 0)
 {
     public const int SpecialStart = -99;
 
@@ -26,11 +30,13 @@ public readonly record struct WorkspaceId(string Name)
         return false;
     }
 
-    public static WorkspaceId FromNumber(long number)
+    public static WorkspaceId FromNumber(long number) => FromNumber(number, MonitorId.Primary);
+
+    public static WorkspaceId FromNumber(long number, MonitorId monitor)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(number);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(number, MaxNumber);
-        return new(number.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return new(number.ToString(System.Globalization.CultureInfo.InvariantCulture), monitor.Value);
     }
 }
 

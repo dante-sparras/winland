@@ -112,21 +112,16 @@ public sealed partial class Core
         if (GroupDispatch(name, arguments) is Outcome grouped)
             return grouped;
 
-        if (Is(name, "workspace") || Is(name, "focusworkspaceoncurrentmonitor"))
+        if (Is(name, "workspace"))
         {
             if (!WorkspaceAddress.TryResolve(arguments, Context(), out var target))
-                return View([], dispatcher: name);
+                return View([], dispatcher: name) with { Error = WorkspaceAddress.IsNamed(arguments) ? "error: no such workspace" : null };
 
             if (target.IsSpecial)
                 return OpenSpecial(target, null, name);
 
             var from = FocusedId();
-            var switched = SwitchTo(
-                BackAndForth(Alias(target)),
-                focus: null,
-                consumed: false,
-                dispatcher: name,
-                pull: Is(name, "focusworkspaceoncurrentmonitor"));
+            var switched = SwitchTo(BackAndForth(target), focus: null, consumed: false, dispatcher: name);
             NoteCrossMonitorWarp(from, switched);
             return switched;
         }
@@ -154,9 +149,6 @@ public sealed partial class Core
 
         if (Is(name, "swapactiveworkspaces"))
             return SwapActiveWorkspaces(arguments);
-
-        if (Is(name, "renameworkspace"))
-            return RenameWorkspace(arguments);
 
         if (Is(name, "changeworkspaceid"))
             return ChangeWorkspaceId(arguments);

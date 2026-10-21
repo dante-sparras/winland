@@ -4,24 +4,23 @@ public sealed partial class Core
 {
     private LiveWorkspace WorkspaceFor(WorkspaceId id, MonitorId? monitor = null)
     {
+        if (!id.IsSpecial && monitor is MonitorId place)
+            id = new WorkspaceId(id.Name, place.Value);
+
         var existing = FindWorkspace(id);
         if (existing is not null)
             return existing;
 
-        var hinted = WorkspaceRules.For(_workspaceRules, id, null, null);
-        var bound = BoundMonitor(hinted);
-        var owner = bound?.Id ?? monitor ?? FocusedId();
+        var owner = id.IsSpecial ? monitor ?? FocusedId() : new MonitorId(id.Monitor);
+        var hinted = WorkspaceRules.For(_workspaceRules, id, null, MonitorById(owner)?.Effective);
         var layout = LayoutFactory.Create(_config, hinted?.Layout);
         layout.Configure(_scrolling);
         RankFocus(layout);
         var desk = new LiveWorkspace(id, owner, layout);
         _workspaces.Add(desk);
         Stamp(desk);
-        var settled = BoundMonitor(RuleFor(desk));
-        if (settled is not null && desk.Monitor != settled.Id)
-            desk.Monitor = settled.Id;
 
-        // A rule that matches by name picks the Layout once the Workspace has its name.
+        // A rule that matches this number picks the Layout once the Workspace exists.
         MatchLayout(desk);
         layout = desk.Layout;
         layout.Apply(_master);
@@ -41,69 +40,47 @@ public sealed partial class Core
         return desk;
     }
 
-    private bool BoundElsewhere(WorkspaceId id, MonitorId monitor)
-    {
-        var bound = WorkspaceRules.BoundMonitor(_workspaceRules, id);
-        if (bound.Length == 0)
-            return false;
-
-        var screen = MonitorById(monitor);
-        return screen is null || !MonitorRules.Matches(screen.Effective, bound);
-    }
-
     private bool TryDefault(LiveMonitor screen, out WorkspaceId id)
     {
         id = default;
         var text = WorkspaceRules.DefaultWorkspace(_workspaceRules, screen.Effective);
-        return text is not null && WorkspaceRules.TryConcrete(text, out id);
+        return text is not null && WorkspaceRules.TryConcrete(text, screen.Id, out id);
     }
 
     private void EnsurePersistent()
     {
         foreach (var rule in _workspaceRules)
         {
-            if (rule.Persistent != true || !WorkspaceRules.TryConcrete(rule.WorkspaceString, out var id) || FindWorkspace(id) is not null)
+            if (rule.Persistent != true)
                 continue;
 
-            // A Workspace bound to a Monitor that is not there yet waits for it.
-            if (rule.Monitor.Length > 0 && BoundMonitor(rule) is null)
-                continue;
+            foreach (var screen in EnabledMonitors())
+            {
+                if (rule.Monitor.Length > 0 && !MonitorRules.Matches(screen.Effective, rule.Monitor))
+                    continue;
 
-            WorkspaceFor(id, BoundMonitor(rule)?.Id);
+                if (!WorkspaceRules.TryConcrete(rule.WorkspaceString, screen.Id, out var id) || FindWorkspace(id) is not null)
+                    continue;
+
+                WorkspaceFor(id, screen.Id);
+            }
         }
 
         foreach (var desk in _workspaces)
             desk.Persistent = PersistentBy(desk, RuleFor(desk));
     }
 
-    private void PlaceBound()
-    {
-        foreach (var desk in _workspaces)
-        {
-            var screen = BoundMonitor(RuleFor(desk));
-            if (screen is null || desk.Monitor == screen.Id)
-                continue;
-
-            var previous = MonitorById(desk.Monitor);
-            desk.Monitor = screen.Id;
-            if (previous is not null && previous.Active == desk.Id)
-                previous.Active = null;
-        }
-    }
-
     private void Stamp(LiveWorkspace desk)
     {
         var rule = RuleFor(desk);
         desk.Persistent = PersistentBy(desk, rule);
-        if (!desk.Renamed)
-            desk.DisplayName = rule?.DefaultName;
+        desk.DisplayName = rule?.DefaultName;
         desk.Options = OptionsFor(desk, rule);
     }
 
-    // A persistent rule keeps a normal Workspace whose Monitor is there, as Winland marks it. A special
-    // workspace is never kept.
-    private bool PersistentBy(LiveWorkspace desk, WorkspaceRule? rule) =>
-        rule?.Persistent == true && !desk.Id.IsSpecial && (rule.Monitor.Length == 0 || BoundMonitor(rule) is not null);
+    // A persistent rule keeps a normal Workspace. A special workspace is never kept.
+    private static bool PersistentBy(LiveWorkspace desk, WorkspaceRule? rule) =>
+        rule?.Persistent == true && !desk.Id.IsSpecial;
 
     private WorkspaceRule? RuleFor(LiveWorkspace desk)
     {
@@ -164,28 +141,6 @@ public sealed partial class Core
             ReservedLeft = Math.Max(0, monitor.WorkArea.X - monitor.X),
             ReservedRight = Math.Max(0, monitor.X + monitor.Width - (monitor.WorkArea.X + monitor.WorkArea.Width)),
         };
-    }
-
-    private LiveMonitor? BoundMonitor(WorkspaceId id)
-    {
-        var desk = FindWorkspace(id);
-        return BoundMonitor(desk is null
-            ? WorkspaceRules.For(_workspaceRules, id, null, null)
-            : RuleFor(desk));
-    }
-
-    private LiveMonitor? BoundMonitor(WorkspaceRule? rule)
-    {
-        if (rule is null || rule.Monitor.Length == 0)
-            return null;
-
-        foreach (var screen in _monitors)
-        {
-            if (screen.Effective.Enabled && MonitorRules.Matches(screen.Effective, rule.Monitor))
-                return screen;
-        }
-
-        return null;
     }
 
     private void NoteCreated(LiveWorkspace desk)

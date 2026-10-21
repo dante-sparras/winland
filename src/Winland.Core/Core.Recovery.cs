@@ -43,6 +43,16 @@ public sealed partial class Core
         {
             var client = state.Clients[i];
             var monitor = monitors.TryGetValue(client.Workspace, out var found) ? found : state.ActiveMonitor;
+            var identity = "";
+            foreach (var screen in _monitors)
+            {
+                if (screen.Id != monitor)
+                    continue;
+
+                identity = ReturnKey(screen.Reported);
+                break;
+            }
+
             clients[i] = new RecoveredClient(
                 client.Window,
                 client.Workspace,
@@ -55,7 +65,10 @@ public sealed partial class Core
                 Bounds: SlotOf(client),
                 Pinned: client.Pinned,
                 Fullscreen: client.Fullscreen,
-                FullscreenClient: client.FullscreenClient);
+                FullscreenClient: client.FullscreenClient)
+            {
+                MonitorIdentity = identity,
+            };
         }
 
         return new RecoverySnapshot(clients);
@@ -98,14 +111,39 @@ public sealed partial class Core
 
     private void ForgetRestored(WindowId window) => _restored.Remove(window);
 
-    private bool RestoredMonitorExists(RecoveredClient? restored) =>
-        restored is not null && MonitorById(restored.Monitor) is not null;
+    private bool RestoredMonitorExists(RecoveredClient? restored)
+    {
+        if (restored is null)
+            return false;
+
+        if (restored.MonitorIdentity.Length > 0)
+            return MonitorByIdentity(restored.MonitorIdentity) is not null || _monitors.Count == 0;
+
+        return _monitors.Count == 0 || MonitorById(restored.Monitor) is not null;
+    }
 
     private MonitorId RestoredMonitor(RecoveredClient? restored, LiveMonitor? screen)
     {
-        if (restored is { } remembered && (_monitors.Count == 0 || MonitorById(remembered.Monitor) is not null))
-            return remembered.Monitor;
+        if (restored is { } remembered)
+        {
+            if (remembered.MonitorIdentity.Length > 0 && MonitorByIdentity(remembered.MonitorIdentity) is { } match)
+                return match.Id;
+
+            if (remembered.MonitorIdentity.Length == 0 && (_monitors.Count == 0 || MonitorById(remembered.Monitor) is not null))
+                return remembered.Monitor;
+        }
 
         return screen?.Id ?? FocusedId();
+    }
+
+    private LiveMonitor? MonitorByIdentity(string identity)
+    {
+        foreach (var screen in _monitors)
+        {
+            if (string.Equals(ReturnKey(screen.Reported), identity, StringComparison.OrdinalIgnoreCase))
+                return screen;
+        }
+
+        return null;
     }
 }

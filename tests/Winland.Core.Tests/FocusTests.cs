@@ -109,7 +109,7 @@ public class FocusTests
 
         Assert.Contains(opened.State.Clients, client => client.Window == new WindowId(2));
         Assert.Equal(new WindowId(1), opened.Focus);
-        Assert.Equal(["openwindow>>2,1,popup,"], Lines(opened));
+        Assert.Equal(["openwindow>>2,1,,popup,"], Lines(opened));
 
         var mapped = core.Handle(new WindowFocused(new WindowId(2), FocusCause.User));
         Assert.Equal(new WindowId(1), mapped.Focus);

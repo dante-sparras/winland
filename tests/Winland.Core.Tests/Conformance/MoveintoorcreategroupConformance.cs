@@ -10,7 +10,7 @@ public class MoveintoorcreategroupConformance
     public void MoveIntoOrCreateGroup()
     {
         var desk = new Desk("group:auto_group = false\n");
-        desk.Dispatch("workspace", "name:moveintoorcreategroup");
+        desk.Ok("workspace", "2");
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
         Assert.Equal(2, desk.Clients().Length);
@@ -42,18 +42,18 @@ public class MoveintoorcreategroupConformance
     {
         var desk = new Desk("""
             group:auto_group = false
-            workspace = name:groupcross-dst, monitor:HYPRTEST-CROSSGROUP
             """);
         desk.AddMonitor("HYPRTEST-CROSSGROUP", Desk.Second);
 
-        desk.Ok("workspace", "name:groupcross-src");
+        desk.Ok("workspace", "2");
         desk.Spawn("groupcross_srcA");
         desk.Spawn("groupcross_srcB");
         desk.Ok("focuswindow", "class:groupcross_srcB");
         desk.Ok("moveintoorcreategroup", "l");
         var source = MonitorOf(desk.ActiveWindow());
 
-        desk.Ok("workspace", "name:groupcross-dst");
+        desk.Ok("focusmonitor", "HYPRTEST-CROSSGROUP");
+        desk.Ok("workspace", "3");
         desk.Spawn("groupcross_dstA");
         desk.Spawn("groupcross_dstB");
         desk.Ok("focuswindow", "class:groupcross_dstB");

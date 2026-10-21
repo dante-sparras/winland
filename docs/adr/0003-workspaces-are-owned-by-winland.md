@@ -1,7 +1,5 @@
 # Workspaces are owned by Winland, and each Monitor has its own
 
-Status: Proposed (issue to be filed)
-
 A Workspace is Winland's own set of Clients. Switching hides the Clients of the old Workspace and shows those of the new one. Winland does not use Windows virtual desktops.
 
 Each Monitor has its own Workspaces 1 to 10, and a number means that Workspace on the focused Monitor: Win+3 shows the third Workspace of the screen you are on, whichever screen that is. A Monitor is recognized by the make, model and serial its EDID reports, so a dock that renames its ports does not move Workspaces between screens. When a Monitor is unplugged, its Workspaces that hold Clients become Guests on the focused Monitor, numbered after its own, and they return under their old numbers when it comes back. Special workspaces belong to no Monitor and open on the focused one. There are no named Workspaces.

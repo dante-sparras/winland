@@ -10,7 +10,7 @@ public class GroupsConformance
     public void GroupDimensions()
     {
         var desk = new Desk();
-        desk.Dispatch("workspace", "name:groups");
+        desk.Ok("workspace", "2");
         desk.Spawn("kittyA");
 
         Assert.Equal(1, CountAt(desk, "22,22"));

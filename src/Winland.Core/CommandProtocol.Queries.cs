@@ -37,7 +37,8 @@ public static partial class CommandProtocol
         var active = indexed.ByWorkspace[state.ActiveWorkspace];
         foreach (var entry in indexed.Workspaces)
         {
-            if (entry.Id == active.Id)
+            // Two Monitors can both show Workspace 1. The address alone does not tell them apart.
+            if (entry.Address == active.Address && entry.Monitor == active.Monitor && entry.Id == active.Id)
                 return JsonSerializer.Serialize(entry);
         }
 
@@ -354,7 +355,7 @@ public static partial class CommandProtocol
         var counts = new List<WorkspaceEntryJson>(ids.Count);
         foreach (var id in ids)
         {
-            var json = Describe(id, namedIds, specialIds, names);
+            var json = Describe(id, namedIds, specialIds, names, MonitorName(state, id));
             byWorkspace[id] = json;
             var lastAddress = "0x0";
             var lastTitle = "";
@@ -379,10 +380,10 @@ public static partial class CommandProtocol
                 tiledLayouts.GetValueOrDefault(id, "dwindle")));
         }
 
-        // Numbered Workspaces in order, then the named ones and the special ones by the order they had as ids.
-        var keys = new long[counts.Count];
+        // Numbered Workspaces in order, then the same number by Monitor, then specials by the order they had as ids.
+        var keys = new (long Order, int Monitor)[counts.Count];
         for (var i = 0; i < counts.Count; i++)
-            keys[i] = byWorkspace[ids[i]].Order;
+            keys[i] = (byWorkspace[ids[i]].Order, counts[i].MonitorId);
         var entries = counts.ToArray();
         Array.Sort(keys, entries);
         return new Indexed(byWorkspace, [.. entries]);
@@ -454,16 +455,17 @@ public static partial class CommandProtocol
         WorkspaceId id,
         Dictionary<string, int> namedIds,
         Dictionary<string, int> specialIds,
-        Dictionary<WorkspaceId, string> names)
+        Dictionary<WorkspaceId, string> names,
+        string monitor)
     {
         var name = names.TryGetValue(id, out var display) ? display : id.Name;
         if (id.IsSpecial)
-            return new WorkspaceJson(id.Name, null, "special", name) { Order = specialIds[id.Name] };
+            return new WorkspaceJson(id.Name, null, "special", name, monitor) { Order = specialIds[id.Name] };
 
         if (id.TryGetNumber(out var number))
-            return new WorkspaceJson(id.Name, number, "normal", name) { Order = number };
+            return new WorkspaceJson(id.Name, number, "normal", name, monitor) { Order = number };
 
-        return new WorkspaceJson(id.Name, null, "normal", name) { Order = namedIds[id.Name] };
+        return new WorkspaceJson(id.Name, null, "normal", name, monitor) { Order = namedIds[id.Name] };
     }
 
     private static int IndexOfWhitespace(string text)
@@ -511,13 +513,14 @@ public static partial class CommandProtocol
         [property: JsonPropertyName("tearingHint")] bool TearingHint,
         [property: JsonPropertyName("stableId")] string StableId);
 
-    // A Workspace as Winland writes one: its address, an id only when it is numbered, its type and its
-    // display name. Order sorts the list and is not written.
+    // A Workspace as Winland writes one: its address, an id only when it is numbered, its type, its
+    // display name and the Monitor it is on. Order sorts the list and is not written.
     private sealed record WorkspaceJson(
         [property: JsonPropertyName("address")] string Address,
         [property: JsonPropertyName("id"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? Id,
         [property: JsonPropertyName("type")] string Type,
-        [property: JsonPropertyName("name")] string Name)
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("monitor")] string Monitor)
     {
         [JsonIgnore]
         public long Order { get; init; }

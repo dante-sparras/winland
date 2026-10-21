@@ -54,7 +54,7 @@ public class SpecialWorkspaceTests
         core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
 
         core.Handle(new Dispatch("movetoworkspace", "special:notes"));
-        var second = core.Handle(new Dispatch("workspace", "2"));
+        var second = core.Handle(new Dispatch("focusmonitor", right.Name));
         Assert.Equal(new MonitorId(1), second.State.ActiveMonitor);
         var other = core.Handle(new Dispatch("movetoworkspace", "special:term"));
 
@@ -93,8 +93,8 @@ public class SpecialWorkspaceTests
             [
                 "activewindow>>quiet,",
                 "activewindowv2>>2",
-                "activespecial>>special:scratch,\\\\.\\DISPLAY1",
-                "activespecialv2>>-98,special:scratch,\\\\.\\DISPLAY1",
+                @"activespecial>>special:scratch,\\.\DISPLAY1",
+                @"activespecialv2>>-98,special:scratch,\\.\DISPLAY1",
             ],
             Lines(named));
         Assert.Equal(WorkspaceId.Initial, named.State.ActiveWorkspace);
@@ -104,12 +104,12 @@ public class SpecialWorkspaceTests
         Assert.Contains(same.Hide, window => window == new WindowId(2));
         Assert.Equal(
             [
-                "createworkspace>>special:special",
-                "createworkspacev2>>-99,special:special",
+                @"createworkspace>>special:special,\\.\DISPLAY1",
+                @"createworkspacev2>>-99,special:special,\\.\DISPLAY1",
                 "activewindow>>,",
                 "activewindowv2>>",
-                "activespecial>>special:special,\\\\.\\DISPLAY1",
-                "activespecialv2>>-99,special:special,\\\\.\\DISPLAY1",
+                @"activespecial>>special:special,\\.\DISPLAY1",
+                @"activespecialv2>>-99,special:special,\\.\DISPLAY1",
             ],
             Lines(same));
 
@@ -122,8 +122,8 @@ public class SpecialWorkspaceTests
             [
                 "activewindow>>,",
                 "activewindowv2>>1",
-                "activespecial>>,\\\\.\\DISPLAY1",
-                "activespecialv2>>,,\\\\.\\DISPLAY1",
+                @"activespecial>>,\\.\DISPLAY1",
+                @"activespecialv2>>,,\\.\DISPLAY1",
             ],
             Lines(closed));
         Assert.Null(closed.State.SpecialWorkspace);

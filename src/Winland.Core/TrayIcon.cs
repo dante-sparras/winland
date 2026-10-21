@@ -37,8 +37,8 @@ public sealed record TrayIcon(bool Shown, string Number)
     public static TrayIcon For(bool shown, WorkspaceId workspace) => new(shown, Text(workspace));
 
     /// <summary>
-    /// The text the icon draws. A numbered Workspace contributes its number. A named one contributes its name,
-    /// and a special one the name after <c>special:</c>, since neither has a number.
+    /// The text the icon draws. A numbered Workspace contributes its number, including a Guest's number on
+    /// the Monitor that is showing it. A special workspace contributes the name after <c>special:</c>.
     /// </summary>
     public static string Text(WorkspaceId workspace)
     {

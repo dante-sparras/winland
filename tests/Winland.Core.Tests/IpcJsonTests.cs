@@ -17,7 +17,7 @@ public class IpcJsonTests
 
         const string Client =
             """
-            {"address":"0x2a","mapped":true,"hidden":false,"visible":true,"acceptsInput":true,"at":[0,0],"size":[800,600],"workspace":{"address":"1","id":1,"type":"normal","name":"1"},"floating":false,"monitor":0,"class":"kitty","title":"term","initialClass":"kitty","initialTitle":"term","pid":4242,"xwayland":false,"pinned":false,"pinFullscreened":false,"fullscreen":0,"fullscreenClient":0,"fullscreenHandler":"default","allowedOverFullscreen":true,"grouped":[],"tags":[],"focusHistoryID":0,"xdgTag":"","xdgDescription":"","contentType":"none","tearingHint":false,"stableId":"2a"}
+            {"address":"0x2a","mapped":true,"hidden":false,"visible":true,"acceptsInput":true,"at":[0,0],"size":[800,600],"workspace":{"address":"1","id":1,"type":"normal","name":"1","monitor":""},"floating":false,"monitor":0,"class":"kitty","title":"term","initialClass":"kitty","initialTitle":"term","pid":4242,"xwayland":false,"pinned":false,"pinFullscreened":false,"fullscreen":0,"fullscreenClient":0,"fullscreenHandler":"default","allowedOverFullscreen":true,"grouped":[],"tags":[],"focusHistoryID":0,"xdgTag":"","xdgDescription":"","contentType":"none","tearingHint":false,"stableId":"2a"}
             """;
 
         Assert.Equal("[" + Client + "]", core.Execute("j/clients").Text);
@@ -129,7 +129,7 @@ public class IpcJsonTests
 
         const string Monitor =
             """
-            {"id":0,"name":"Dell","description":"DEL U2720Q ABC123","make":"DEL","model":"U2720Q","serial":"ABC123","width":1920,"height":1080,"physicalWidth":597,"physicalHeight":336,"refreshRate":60,"x":0,"y":0,"activeWorkspace":{"address":"1","id":1,"type":"normal","name":"1"},"specialWorkspace":{"address":"","type":"","name":""},"reserved":[0,0,0,40],"scale":1,"transform":0,"focused":true,"dpmsStatus":true,"vrr":false,"solitary":"0","solitaryBlockedBy":null,"activelyTearing":false,"tearingBlockedBy":null,"directScanoutTo":"0","directScanoutBlockedBy":null,"disabled":false,"currentFormat":"","mirrorOf":"none","availableModes":["1920x1080@60.00Hz"],"colorManagementPreset":"srgb","sdrBrightness":1,"sdrSaturation":1,"sdrMinLuminance":0.2,"sdrMaxLuminance":80,"hardwareCursorsInUse":false,"hardwareDetails":{"backend":"windows","hdr":false,"chroma":false,"bt2020":false,"vrrCapable":false}}
+            {"id":0,"name":"Dell","description":"DEL U2720Q ABC123","make":"DEL","model":"U2720Q","serial":"ABC123","width":1920,"height":1080,"physicalWidth":597,"physicalHeight":336,"refreshRate":60,"x":0,"y":0,"activeWorkspace":{"address":"1","id":1,"type":"normal","name":"1","monitor":"Dell"},"specialWorkspace":{"address":"","type":"","name":"","monitor":""},"reserved":[0,0,0,40],"scale":1,"transform":0,"focused":true,"dpmsStatus":true,"vrr":false,"solitary":"0","solitaryBlockedBy":null,"activelyTearing":false,"tearingBlockedBy":null,"directScanoutTo":"0","directScanoutBlockedBy":null,"disabled":false,"currentFormat":"","mirrorOf":"none","availableModes":["1920x1080@60.00Hz"],"colorManagementPreset":"srgb","sdrBrightness":1,"sdrSaturation":1,"sdrMinLuminance":0.2,"sdrMaxLuminance":80,"hardwareCursorsInUse":false,"hardwareDetails":{"backend":"windows","hdr":false,"chroma":false,"bt2020":false,"vrrCapable":false}}
             """;
 
         Assert.Equal("[" + Monitor + "]", core.Execute("j/monitors").Text);
@@ -190,7 +190,7 @@ public class IpcJsonTests
     {
         const string Monitor =
             """
-            {"id":0,"name":"","description":"","make":"","model":"","serial":"","width":0,"height":0,"physicalWidth":0,"physicalHeight":0,"refreshRate":0,"x":0,"y":0,"activeWorkspace":{"address":"1","id":1,"type":"normal","name":"1"},"specialWorkspace":{"address":"","type":"","name":""},"reserved":[0,0,0,0],"scale":1,"transform":0,"focused":true,"dpmsStatus":true,"vrr":false,"solitary":"0","solitaryBlockedBy":null,"activelyTearing":false,"tearingBlockedBy":null,"directScanoutTo":"0","directScanoutBlockedBy":null,"disabled":false,"currentFormat":"","mirrorOf":"none","availableModes":[],"colorManagementPreset":"srgb","sdrBrightness":1,"sdrSaturation":1,"sdrMinLuminance":0.2,"sdrMaxLuminance":80,"hardwareCursorsInUse":false,"hardwareDetails":{"backend":"windows","hdr":false,"chroma":false,"bt2020":false,"vrrCapable":false}}
+            {"id":0,"name":"","description":"","make":"","model":"","serial":"","width":0,"height":0,"physicalWidth":0,"physicalHeight":0,"refreshRate":0,"x":0,"y":0,"activeWorkspace":{"address":"1","id":1,"type":"normal","name":"1","monitor":""},"specialWorkspace":{"address":"","type":"","name":"","monitor":""},"reserved":[0,0,0,0],"scale":1,"transform":0,"focused":true,"dpmsStatus":true,"vrr":false,"solitary":"0","solitaryBlockedBy":null,"activelyTearing":false,"tearingBlockedBy":null,"directScanoutTo":"0","directScanoutBlockedBy":null,"disabled":false,"currentFormat":"","mirrorOf":"none","availableModes":[],"colorManagementPreset":"srgb","sdrBrightness":1,"sdrSaturation":1,"sdrMinLuminance":0.2,"sdrMaxLuminance":80,"hardwareCursorsInUse":false,"hardwareDetails":{"backend":"windows","hdr":false,"chroma":false,"bt2020":false,"vrrCapable":false}}
             """;
 
         Assert.Equal("[" + Monitor + "]", new Core().Execute("j/monitors").Text);

@@ -81,7 +81,7 @@ public class WindowMoveSelectorTests
 
         Assert.Equal(new WindowId(1), moved.Focus);
         Assert.Equal(new MonitorId(1), moved.State.ActiveMonitor);
-        Assert.Equal(new WorkspaceId("2"), Client(moved, 1).Workspace);
+        Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), Client(moved, 1).Workspace);
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class WindowMoveSelectorTests
 
         Assert.Null(moved.Focus);
         Assert.Equal(new MonitorId(0), moved.State.ActiveMonitor);
-        Assert.Equal(new WorkspaceId("2"), Client(moved, 3).Workspace);
+        Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), Client(moved, 3).Workspace);
         Assert.Equal(near, BoundsOf(moved, 3));
         Assert.Equal(far, BoundsOf(moved, 2));
         Assert.Equal(new WindowId(1), core.Handle(new Dispatch("killactive")).Close);
@@ -111,7 +111,7 @@ public class WindowMoveSelectorTests
 
         Assert.Equal(new WindowId(1), moved.Focus);
         Assert.Equal(new MonitorId(1), moved.State.ActiveMonitor);
-        Assert.Equal(new WorkspaceId("2"), Client(moved, 1).Workspace);
+        Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), Client(moved, 1).Workspace);
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class WindowMoveSelectorTests
         var moved = core.Handle(new Dispatch("movewindow", "mon:+1,address:0x2"));
 
         Assert.Null(moved.Error);
-        Assert.Equal(new WorkspaceId("2"), Client(moved, 2).Workspace);
+        Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), Client(moved, 2).Workspace);
         Assert.Equal(new MonitorId(0), moved.State.ActiveMonitor);
         Assert.Equal(new WindowId(1), core.Handle(new Dispatch("killactive")).Close);
     }
@@ -185,7 +185,7 @@ public class WindowMoveSelectorTests
 
         Assert.Equal(new WindowId(3), cycled.Focus);
         Assert.Equal(new MonitorId(1), cycled.State.ActiveMonitor);
-        Assert.Equal(new WorkspaceId("2"), cycled.State.ActiveWorkspace);
+        Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), cycled.State.ActiveWorkspace);
     }
 
     [Fact]

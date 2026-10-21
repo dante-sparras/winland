@@ -10,19 +10,19 @@ public class FocusConformance
     [Fact]
     public void CrossMonitorFullscreenFocus()
     {
-        // A monitor right of the first, and a workspace rule that pins the destination workspace to it. The rule
-        // comes before the first window, so it is in the starting config.
-        var desk = new Desk("workspace = name:workspace2, monitor:HYPRTEST-2\n");
+        // A monitor right of the first. Each Monitor has its own Workspaces.
+        var desk = new Desk();
         desk.AddMonitor("HYPRTEST-2", Desk.Second);
 
         // One window on the left monitor.
-        desk.Ok("workspace", "name:workspace1");
+        desk.Ok("workspace", "1");
         desk.Spawn("1A");
         desk.Ok("focuswindow", "class:1A");
         var source = desk.ActiveWindow().GetProperty("monitor").GetInt32();
 
         // Two windows on the right monitor.
-        desk.Ok("workspace", "name:workspace2");
+        desk.Ok("focusmonitor", "HYPRTEST-2");
+        desk.Ok("workspace", "2");
         desk.Spawn("2A");
         desk.Spawn("2B");
         desk.Ok("focuswindow", "class:2B");

@@ -9,7 +9,7 @@ An ADR without a Status line is accepted and true against the code. `Status: Pro
 ## Architecture
 
 - [0001](0001-winland-runs-on-top-of-explorer-and-dwm.md): a background process on Explorer and DWM, no shell replacement, no injection.
-- [0003](0003-workspaces-are-owned-by-winland.md): Workspaces are Winland's own, not Windows virtual desktops, and each Monitor has its own 1 to 10. (proposed)
+- [0003](0003-workspaces-are-owned-by-winland.md): Workspaces are Winland's own, not Windows virtual desktops, and each Monitor has its own 1 to 10.
 - [0004](0004-winland-runs-elevated.md): Winland runs elevated by default, to control elevated windows, and can run as the normal user.
 - [0005](0005-pure-core-and-windows-adapter.md): a pure core with no Win32, a thin Windows adapter, and `winlandctl` as its own project.
 - [0006](0006-startup-through-a-scheduled-task.md): `winland install` copies itself under Program Files and registers an elevated logon task; `--user` uses the Run key, unelevated.

@@ -12,8 +12,8 @@ public class PersistentConformance
         var desk = new Desk("""
             workspace = 5, monitor:HEADLESS-2, persistent:true
             workspace = 6, monitor:HEADLESS-PERSISTENT-TEST, persistent:true
-            workspace = name:PERSIST, monitor:HEADLESS-PERSISTENT-TEST, persistent:true
-            workspace = name:PERSIST-2, monitor:HEADLESS-PERSISTENT-TEST, persistent:true
+            workspace = 7, monitor:HEADLESS-PERSISTENT-TEST, persistent:true
+            workspace = 8, monitor:HEADLESS-PERSISTENT-TEST, persistent:true
             workspace = special:PERSIST-SPECIAL, persistent:true
             """);
         ReloadsReferenceConfig(desk);
@@ -34,18 +34,20 @@ public class PersistentConformance
 
         desk.Ok("focusmonitor", "HEADLESS-PERSISTENT-TEST");
         var labels = Labels(desk);
-        Assert.Contains("2 (2)", labels);
+        // The new Monitor shows its own Workspace 1, beside HEADLESS-2's Workspace 1.
+        Assert.Equal(2, labels.Count(label => label == "1 (1)"));
         Assert.Contains("5 (5)", labels);
         Assert.Contains("6 (6)", labels);
-        Assert.Contains("PERSIST (PERSIST)", labels);
-        Assert.Contains("PERSIST-2 (PERSIST-2)", labels);
+        Assert.Contains("7 (7)", labels);
+        Assert.Contains("8 (8)", labels);
         Assert.Equal(6, labels.Length);
 
         Assert.Equal("ok", desk.Send("reload"));
         labels = Labels(desk);
         Assert.DoesNotContain("5 (5)", labels);
         Assert.DoesNotContain("6 (6)", labels);
-        Assert.DoesNotContain("PERSIST (PERSIST)", labels);
+        Assert.DoesNotContain("7 (7)", labels);
+        Assert.DoesNotContain("8 (8)", labels);
         Assert.Equal(2, labels.Length);
 
         desk.RemoveMonitor("HEADLESS-PERSISTENT-TEST");
@@ -68,7 +70,10 @@ public class PersistentConformance
 
         desk.AddMonitor("HEADLESS-LIFECYCLE-OWNERSHIP", Desk.Second);
         Assert.Contains("HEADLESS-LIFECYCLE-OWNERSHIP", MonitorNames(desk));
-        Assert.DoesNotContain("410 (410)", Labels(desk));
+        // The empty Workspace it was showing comes back under that number.
+        Assert.Contains("410 (410)", Labels(desk));
+        desk.Ok("focusmonitor", "HEADLESS-LIFECYCLE-OWNERSHIP");
+        Assert.Equal("410 (410)", Label(desk.ActiveWorkspace()));
 
         desk.RemoveMonitor("HEADLESS-LIFECYCLE-OWNERSHIP");
         Assert.DoesNotContain("HEADLESS-LIFECYCLE-OWNERSHIP", MonitorNames(desk));

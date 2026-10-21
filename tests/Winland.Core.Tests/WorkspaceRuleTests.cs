@@ -12,13 +12,13 @@ public class WorkspaceRuleTests
     public void HonoredFieldsAreReadWithoutAWarning()
     {
         var document = ConfigParser.Parse("""
-            workspace = name:code, monitor:DP-1, default:true, persistent:false, gapsin:1 2 3 4, gapsout:5, bordersize:6, border:0, rounding:1, decorate:0, defaultName:Code, on-created-empty:notepad, layoutopt:force_split:left
+            workspace = 3, monitor:DP-1, default:true, persistent:false, gapsin:1 2 3 4, gapsout:5, bordersize:6, border:0, rounding:1, decorate:0, defaultName:Code, on-created-empty:notepad, layoutopt:force_split:left
             """);
 
         Assert.Empty(document.Warnings);
         var rule = Assert.Single(document.WorkspaceRules);
-        Assert.Equal("name:code", rule.WorkspaceString);
-        Assert.Equal("code", rule.WorkspaceName);
+        Assert.Equal("3", rule.WorkspaceString);
+        Assert.Equal("3", rule.WorkspaceName);
         Assert.Equal("DP-1", rule.Monitor);
         Assert.True(rule.Default);
         Assert.False(rule.Persistent);
@@ -29,7 +29,7 @@ public class WorkspaceRuleTests
         Assert.True(rule.Rounding);
         Assert.False(rule.Decorate);
         Assert.Equal("Code", rule.DefaultName);
-        Assert.Equal("[workspace code] notepad", rule.OnCreatedEmpty);
+        Assert.Equal("[workspace 3] notepad", rule.OnCreatedEmpty);
         Assert.Equal("left", Assert.Contains("force_split", rule.LayoutOpts));
     }
 
@@ -79,15 +79,15 @@ public class WorkspaceRuleTests
     [Fact]
     public void AWorkspaceUsesTheLayoutItsRuleNames()
     {
-        var core = Configured("general:layout = dwindle\nworkspace = 2, layout:scrolling\nworkspace = name:notes, layout:monocle\n");
+        var core = Configured("general:layout = dwindle\nworkspace = 2, layout:scrolling\nworkspace = 4, layout:monocle\n");
         core.Handle(new MonitorsChanged([Display("DP-1", "One", 0, 0, 1920, 1080, 1)]));
         core.Handle(Appeared(1, Wide));
 
         var moved = core.Handle(new Dispatch("movetoworkspace", "2"));
         Assert.Equal("scrolling", Workspace(moved, "2").TiledLayout);
 
-        var named = core.Handle(new Dispatch("workspace", "name:notes"));
-        Assert.Equal("monocle", Workspace(named, "notes").TiledLayout);
+        var named = core.Handle(new Dispatch("workspace", "4"));
+        Assert.Equal("monocle", Workspace(named, "4").TiledLayout);
 
         var first = core.Handle(new Dispatch("workspace", "1"));
         Assert.Equal("dwindle", Workspace(first, "1").TiledLayout);
@@ -153,14 +153,14 @@ public class WorkspaceRuleTests
     public void WorkspaceRulesQueryListsMergedRulesAndOmitsUnsetFields()
     {
         var core = Configured("""
-            workspace = name:code, monitor:DP-1, default:true, persistent:false, gapsin:1 2 3 4, gapsout:5, bordersize:50, border:0, rounding:1, decorate:0, defaultName:Code, on-created-empty:notepad
+            workspace = 3, monitor:DP-1, default:true, persistent:false, gapsin:1 2 3 4, gapsout:5, bordersize:50, border:0, rounding:1, decorate:0, defaultName:Code, on-created-empty:notepad
             workspace = 2, persistent:true
             """);
 
         var rules = Json(core.Execute("workspacerules").Text).EnumerateArray().ToArray();
 
         Assert.Equal(2, rules.Length);
-        Assert.Equal("name:code", rules[0].GetProperty("workspaceString").GetString());
+        Assert.Equal("3", rules[0].GetProperty("workspaceString").GetString());
         Assert.True(rules[0].GetProperty("enabled").GetBoolean());
         Assert.Equal("DP-1", rules[0].GetProperty("monitor").GetString());
         Assert.True(rules[0].GetProperty("default").GetBoolean());
@@ -172,7 +172,7 @@ public class WorkspaceRuleTests
         Assert.True(rules[0].GetProperty("rounding").GetBoolean());
         Assert.False(rules[0].GetProperty("decorate").GetBoolean());
         Assert.Equal("Code", rules[0].GetProperty("defaultName").GetString());
-        Assert.Equal("[workspace code] notepad", rules[0].GetProperty("onCreatedEmpty").GetString());
+        Assert.Equal("[workspace 3] notepad", rules[0].GetProperty("onCreatedEmpty").GetString());
         Assert.False(rules[0].TryGetProperty("shadow", out _));
         Assert.False(rules[0].TryGetProperty("layoutopts", out _));
         Assert.Equal("2", rules[1].GetProperty("workspaceString").GetString());
@@ -394,46 +394,43 @@ public class WorkspaceRuleTests
     }
 
     [Fact]
-    public void ABoundWorkspaceAppearsOnThatMonitor()
+    public void AMonitorFilterDoesNotMoveTheWorkspace()
     {
         var core = Configured(Flat("""
-            workspace = 1, monitor:\\.\DISPLAY2
+            workspace = 4, monitor:\\.\DISPLAY2, default:true
             """));
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         var connected = core.Handle(new MonitorsChanged([left, right]));
 
         Assert.Equal(new MonitorId(0), connected.State.ActiveMonitor);
-        Assert.Equal(new WorkspaceId("2"), connected.State.ActiveWorkspace);
-        Assert.Equal(new MonitorId(1), Workspace(connected, "1").Monitor);
-        Assert.Equal(new MonitorId(0), Workspace(connected, "2").Monitor);
+        Assert.Equal(new WorkspaceId("1"), connected.State.ActiveWorkspace);
+        Assert.Equal(new MonitorId(1), Workspace(connected, "4").Monitor);
 
-        var focused = core.Handle(new Dispatch("focusworkspaceoncurrentmonitor", "1"));
-        Assert.Equal(new MonitorId(1), focused.State.ActiveMonitor);
-        Assert.Equal(new WorkspaceId("1"), focused.State.ActiveWorkspace);
-        Assert.Equal(new MonitorId(1), Workspace(focused, "1").Monitor);
-        Assert.Equal(new MonitorId(0), Workspace(focused, "2").Monitor);
+        // The number names Workspace 4 on the focused Monitor. It does not jump to DISPLAY2.
+        var stayed = core.Handle(new Dispatch("workspace", "4"));
+        Assert.Equal(new MonitorId(0), stayed.State.ActiveMonitor);
+        Assert.Equal(new WorkspaceId("4"), stayed.State.ActiveWorkspace);
 
+        core.Handle(new Dispatch("focusmonitor", right.Name));
         var opened = core.Handle(new WindowAppeared(new WindowId(1), right.WorkArea));
-        Assert.Equal(new WorkspaceId("1"), Client(opened, 1).Workspace);
+        Assert.Equal(WorkspaceId.FromNumber(4, new MonitorId(1)), Client(opened, 1).Workspace);
         Assert.Equal(right.WorkArea, BoundsOf(opened, 1));
     }
 
     [Fact]
-    public void ADescriptionSelectorBindsTheWorkspaceToThatMonitor()
+    public void ADescriptionSelectorFiltersTheWorkspaceRule()
     {
         var core = Configured(Flat("""
-            workspace = name:code, monitor:desc:Samsung
+            workspace = 4, monitor:desc:Samsung, default:true
             """));
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
-        core.Handle(new MonitorsChanged([left, right]));
+        var connected = core.Handle(new MonitorsChanged([left, right]));
 
-        var focused = core.Handle(new Dispatch("workspace", "name:code"));
-
-        Assert.Equal(new WorkspaceId("code"), focused.State.ActiveWorkspace);
-        Assert.Equal(new MonitorId(1), focused.State.ActiveMonitor);
-        Assert.Equal(new MonitorId(1), Workspace(focused, "code").Monitor);
+        Assert.Equal(new WorkspaceId("1"), connected.State.ActiveWorkspace);
+        Assert.Equal(new MonitorId(0), connected.State.ActiveMonitor);
+        Assert.Equal(new MonitorId(1), Workspace(connected, "4").Monitor);
     }
 
     [Fact]
@@ -459,6 +456,7 @@ public class WorkspaceRuleTests
         var core = Configured(Flat("""
             workspace = 9, persistent:true
             """));
+        core.Handle(new MonitorsChanged([Display("DP-1", "One", 0, 0, 1920, 1080, 1)]));
 
         var listed = Json(core.Execute("j/workspaces").Text)
             .EnumerateArray()
@@ -503,6 +501,7 @@ public class WorkspaceRuleTests
         Assert.Equal("code", listed.GetProperty("name").GetString());
 
         var stayed = core.Handle(new Dispatch("workspace", "code"));
+        Assert.Equal("error: no such workspace", stayed.Error);
         Assert.Equal(new WorkspaceId("1"), stayed.State.ActiveWorkspace);
         Assert.Single(stayed.State.Workspaces);
         Assert.Equal("code", stayed.State.Workspaces[0].DisplayName);
@@ -512,6 +511,7 @@ public class WorkspaceRuleTests
     public void OnCreatedEmptyRunsOnceWhenTheWorkspaceIsCreated()
     {
         var core = new Core();
+        core.Handle(new MonitorsChanged([Display("DP-1", "One", 0, 0, 1920, 1080, 1)]));
         var created = core.Handle(new Configure(ConfigParser.Parse(Flat("""
             workspace = 3, persistent:true, on-created-empty:notepad
             """))));
@@ -533,6 +533,7 @@ public class WorkspaceRuleTests
     public void OnCreatedEmptyRunsForEveryWorkspaceCreatedTogether()
     {
         var core = new Core();
+        core.Handle(new MonitorsChanged([Display("DP-1", "One", 0, 0, 1920, 1080, 1)]));
         var created = core.Handle(new Configure(ConfigParser.Parse(Flat("""
             workspace = 3, persistent:true, on-created-empty:three
             workspace = 4, persistent:true, on-created-empty:four
@@ -559,8 +560,9 @@ public class WorkspaceRuleTests
     {
         Assert.Equal(4, GapsIn("workspace = n[false], gapsin:4", new WorkspaceId("special:scratch")));
         Assert.Equal(4, GapsIn("workspace = n[false], gapsin:4", WorkspaceId.FromNumber(1)));
-        Assert.Equal(4, GapsIn("workspace = n[true], gapsin:4", new WorkspaceId("notes")));
+        Assert.Null(GapsIn("workspace = n[true], gapsin:4", new WorkspaceId("notes")));
         Assert.Null(GapsIn("workspace = n[true], gapsin:4", new WorkspaceId("special:scratch")));
+        Assert.Null(GapsIn("workspace = n[true], gapsin:4", WorkspaceId.FromNumber(1)));
     }
 
     [Theory]
@@ -568,10 +570,10 @@ public class WorkspaceRuleTests
     [InlineData("special:scratch", "scratch", null, false)]
     [InlineData("special", "special:special", null, true)]
     [InlineData("special:", "special:special", null, false)]
-    [InlineData("coding", "coding", null, true)]
+    [InlineData("coding", "coding", null, false)]
     [InlineData("coding", "special:coding", null, false)]
     [InlineData("coding", "1", "coding", false)]
-    [InlineData("name:coding", "coding", null, true)]
+    [InlineData("name:coding", "coding", null, false)]
     [InlineData("name:1", "1", null, false)]
     [InlineData("name:code", "1", "code", false)]
     [InlineData("name:scratch", "special:scratch", null, false)]
@@ -695,7 +697,7 @@ public class WorkspaceRuleTests
         new(name, description, x, y, width, height, scale, true, new Rectangle(x, y, width, height));
 
     private static Workspace Workspace(Outcome outcome, string name) =>
-        Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == new WorkspaceId(name));
+        Assert.Single(outcome.State.Workspaces, workspace => workspace.Id.Name == name);
 
     private static Client Client(Outcome outcome, long window) =>
         Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));

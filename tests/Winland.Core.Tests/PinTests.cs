@@ -157,12 +157,12 @@ public class PinTests
 
         Assert.Equal(
             [
-                "createworkspace>>2",
-                "createworkspacev2>>2,2",
-                "movewindow>>1,2",
-                "movewindowv2>>1,2,2",
-                "workspace>>2",
-                "workspacev2>>2,2",
+                "createworkspace>>2,",
+                "createworkspacev2>>2,2,",
+                "movewindow>>1,2,",
+                "movewindowv2>>1,2,2,",
+                "workspace>>2,",
+                "workspacev2>>2,2,",
             ],
             Lines(switched));
         Assert.Contains(switched.Effect.Hide, window => window == new WindowId(2));

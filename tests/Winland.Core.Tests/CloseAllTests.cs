@@ -58,13 +58,13 @@ public class CloseAllTests
         core.Handle(new MonitorsChanged([left, right]));
         core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
         core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
-        core.Handle(new Dispatch("workspace", "2"));
+        core.Handle(new Dispatch("focusmonitor", @"\\.\DISPLAY2"));
 
         var closed = core.Handle(new Dispatch("closeall", ""));
 
         Assert.Equal(new MonitorId(1), closed.State.ActiveMonitor);
-        Assert.Equal(WorkspaceId.Initial, closed.State.ActiveWorkspace);
-        Assert.Equal(new MonitorId(1), Workspace(closed, "1").Monitor);
+        Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), closed.State.ActiveWorkspace);
+        Assert.Equal(new MonitorId(1), Workspace(closed, WorkspaceId.FromNumber(1, new MonitorId(1))).Monitor);
         Assert.Contains(closed.Closes, window => window == new WindowId(1));
         Assert.Contains(closed.Closes, window => window == new WindowId(2));
     }
@@ -74,6 +74,6 @@ public class CloseAllTests
         Traits = windowClass is null ? WindowTraits.Normal : WindowTraits.Normal with { Class = windowClass },
     };
 
-    private static Workspace Workspace(Outcome outcome, string name) =>
-        Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == new WorkspaceId(name));
+    private static Workspace Workspace(Outcome outcome, WorkspaceId id) =>
+        Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == id);
 }

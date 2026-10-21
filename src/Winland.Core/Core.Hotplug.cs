@@ -2,10 +2,9 @@ namespace Winland;
 
 public sealed partial class Core
 {
-    // The Monitor each Workspace left when its Monitor went away, and the Workspace each Monitor
-    // showed then, by the Monitor's identity, or by its Windows name when it has no model and serial.
-    private readonly Dictionary<WorkspaceId, string> _returnMonitors = [];
-    private readonly Dictionary<string, WorkspaceId> _rememberedActive = new(StringComparer.OrdinalIgnoreCase);
+    // The number each Monitor was showing when it left, by its identity, or by its Windows name when
+    // it has no model and serial. A Guest keeps its own home on the Workspace.
+    private readonly Dictionary<string, long> _rememberedActive = new(StringComparer.OrdinalIgnoreCase);
     private readonly MonitorIdentity _identity = new();
 
     private Outcome SetMonitors(IReadOnlyList<Monitor> reported)
@@ -59,9 +58,8 @@ public sealed partial class Core
         }
 
         home ??= enabled.Count > 0 ? enabled[0] : null;
-        Relocate(wasEnabled, enabled);
+        Relocate(wasEnabled, enabled, home);
         EnsurePersistent();
-        PlaceBound();
         AssignActives(enabled);
         // An empty Workspace a Monitor took from one that left is hidden there, so it goes,
         // and the Monitor that comes back does not show it again.
@@ -73,33 +71,23 @@ public sealed partial class Core
         return View(ShownPlacements(), ShownWindows(), HiddenWindows(), focus: refocus);
     }
 
-    // each Workspace of a Monitor that goes away moves intact onto the first
-    // Monitor that remains, where it is hidden unless that Monitor shows nothing. When the Monitor
-    // comes back, its Workspaces move back and it shows the Workspace it showed when it left.
-    private void Relocate(List<LiveMonitor> wasEnabled, List<LiveMonitor> enabled)
+    // A Monitor that comes back takes its Guests under their old numbers before a Monitor that leaves
+    // puts its Workspaces on the one that remains. Empty Workspaces of a Monitor that leaves are removed.
+    private void Relocate(List<LiveMonitor> wasEnabled, List<LiveMonitor> enabled, LiveMonitor? host)
     {
-        foreach (var screen in wasEnabled)
-        {
-            if (!HeldBy(enabled, screen.Id))
-                NoteLeaving(screen);
-        }
-
-        var backup = enabled.Count > 0 ? enabled[0] : null;
-        if (backup is not null)
-        {
-            foreach (var desk in _workspaces)
-            {
-                if (!desk.Id.IsSpecial && !HeldBy(enabled, desk.Monitor))
-                    desk.Monitor = backup.Id;
-            }
-        }
-
-        RehomeSpecials(backup, enabled);
         foreach (var screen in enabled)
         {
             if (!HeldBy(wasEnabled, screen.Id))
                 Return(screen);
         }
+
+        foreach (var screen in wasEnabled)
+        {
+            if (!HeldBy(enabled, screen.Id))
+                Depart(screen, host);
+        }
+
+        RehomeSpecials(host, enabled);
     }
 
     // A Monitor that goes away or comes back can hide the focused Client with its Workspace. The focus then
@@ -115,72 +103,76 @@ public sealed partial class Core
         return next;
     }
 
-    private void NoteLeaving(LiveMonitor screen)
+    private void Depart(LiveMonitor screen, LiveMonitor? host)
     {
         var key = ReturnKey(screen.Reported);
-        if (screen.Active is WorkspaceId active)
-            _rememberedActive[key] = active;
+        if (screen.Active is WorkspaceId active
+            && FindWorkspace(active) is { Id.IsSpecial: false } shown
+            && shown.Id.TryGetNumber(out var shownNumber))
+            _rememberedActive[key] = shownNumber;
 
+        if (host is null)
+            return;
+
+        var leaving = new List<LiveWorkspace>();
         foreach (var desk in _workspaces)
         {
-            if (desk.Monitor == screen.Id)
-                _returnMonitors.TryAdd(desk.Id, key);
+            if (desk.Monitor == screen.Id && !desk.Id.IsSpecial)
+                leaving.Add(desk);
+        }
+
+        leaving.Sort(static (left, right) => ShownNumber(left).CompareTo(ShownNumber(right)));
+        foreach (var desk in leaving)
+        {
+            if (desk.Layout.Clients.Count == 0)
+            {
+                RemoveWorkspace(desk);
+                continue;
+            }
+
+            if (desk.HomeIdentity is null && desk.Id.TryGetNumber(out var home))
+            {
+                desk.HomeIdentity = key;
+                desk.HomeNumber = home;
+            }
+
+            var number = NextGuestNumber(host.Id);
+            Rebind(desk, WorkspaceId.FromNumber(number, host.Id));
         }
     }
 
     private void Return(LiveMonitor screen)
     {
         var key = ReturnKey(screen.Reported);
-        foreach (var desk in _workspaces.ToArray())
+        var guests = new List<LiveWorkspace>();
+        foreach (var desk in _workspaces)
         {
-            if (!_returnMonitors.TryGetValue(desk.Id, out var owner) || !string.Equals(owner, key, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            _returnMonitors.Remove(desk.Id);
-            MoveBack(desk, screen);
+            if (desk.HomeIdentity is not null && string.Equals(desk.HomeIdentity, key, StringComparison.OrdinalIgnoreCase))
+                guests.Add(desk);
         }
 
-        if (!_rememberedActive.Remove(key, out var remembered) || FindWorkspace(remembered) is not LiveWorkspace shown || shown.Id.IsSpecial)
+        guests.Sort(static (left, right) => left.HomeNumber.CompareTo(right.HomeNumber));
+        foreach (var desk in guests)
+        {
+            var number = desk.HomeNumber > 0 ? desk.HomeNumber : 1;
+            desk.HomeIdentity = null;
+            desk.HomeNumber = 0;
+            var id = WorkspaceId.FromNumber(number, screen.Id);
+            if (FindWorkspace(id) is not null)
+                id = WorkspaceId.FromNumber(FirstFree(screen.Id), screen.Id);
+
+            Rebind(desk, id);
+        }
+
+        if (!_rememberedActive.Remove(key, out var remembered))
             return;
 
-        MoveBack(shown, screen);
+        var shown = WorkspaceFor(WorkspaceId.FromNumber(remembered, screen.Id), screen.Id);
         screen.Active = shown.Id;
     }
 
-    private void MoveBack(LiveWorkspace desk, LiveMonitor screen)
-    {
-        if (desk.Monitor == screen.Id)
-            return;
-
-        var owner = MonitorById(desk.Monitor);
-        if (desk.Id.IsSpecial)
-        {
-            var shown = owner is not null && SpecialOn(owner.Id) == desk.Id;
-            if (shown)
-                SetSpecial(owner!.Id, null);
-
-            desk.Monitor = screen.Id;
-            if (shown && SpecialOn(screen.Id) is null)
-                SetSpecial(screen.Id, desk.Id);
-
-            return;
-        }
-
-        if (owner is { Effective.Enabled: true } && owner.Active == desk.Id)
-            Plug(owner, desk);
-
-        desk.Monitor = screen.Id;
-    }
-
-    private void ForgetReturn(WorkspaceId workspace)
-    {
-        _returnMonitors.Remove(workspace);
-        foreach (var (name, active) in _rememberedActive.ToArray())
-        {
-            if (active == workspace)
-                _rememberedActive.Remove(name);
-        }
-    }
+    private static long ShownNumber(LiveWorkspace desk) =>
+        desk.Id.TryGetNumber(out var number) ? number : 0;
 
     private void AssignActives(List<LiveMonitor> enabled)
     {
@@ -202,19 +194,41 @@ public sealed partial class Core
                 claimed.Remove(preferred);
             }
 
-            // An empty persistent Workspace is not what a Monitor shows when it comes, which
-            // makes those after the Monitor picks one.
-            LiveWorkspace? own = null;
+            // A Workspace that holds Clients is shown before an empty one. Workspace 1 is shown
+            // when it exists and opened when it is free, before a higher empty Workspace. When
+            // 1–10 are all taken, an empty one of those is shown before a number above 10 is made.
+            LiveWorkspace? populated = null;
+            LiveWorkspace? empty = null;
+            long emptyNumber = long.MaxValue;
             foreach (var desk in _workspaces)
             {
-            if (desk.Monitor != screen.Id || desk.Id.IsSpecial || (desk.Persistent && desk.Layout.Clients.Count == 0) || !claimed.Add(desk.Id))
-                continue;
+                if (desk.Monitor != screen.Id || desk.Id.IsSpecial || claimed.Contains(desk.Id))
+                    continue;
 
-                own = desk;
-                break;
+                if (desk.Layout.Clients.Count > 0)
+                {
+                    populated = desk;
+                    break;
+                }
+
+                if (!desk.Id.TryGetNumber(out var number) || number >= emptyNumber)
+                    continue;
+
+                empty = desk;
+                emptyNumber = number;
             }
 
-            own ??= WorkspaceFor(NextFree(screen.Id), screen.Id);
+            var one = WorkspaceId.FromNumber(1, screen.Id);
+            LiveWorkspace own;
+            if (populated is not null)
+                own = populated;
+            else if (FindWorkspace(one) is LiveWorkspace first && !claimed.Contains(first.Id))
+                own = first;
+            else if (FirstFree(screen.Id) == 1)
+                own = WorkspaceFor(one, screen.Id);
+            else
+                own = empty ?? WorkspaceFor(NextFree(screen.Id), screen.Id);
+
             screen.Active = own.Id;
             claimed.Add(own.Id);
         }

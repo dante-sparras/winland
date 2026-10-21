@@ -139,11 +139,10 @@ public class ControlConformance
     {
         const string name = "hyprctl_workspace_json";
         const string special = "special:hyprctl_workspace_json_special";
-        var desk = new Desk();
+        var desk = new Desk($"workspace = 4201, defaultName:{name}\n");
 
         desk.Ok("focusmonitor", "HEADLESS-2");
         desk.Ok("workspace", "4201");
-        desk.Ok("renameworkspace", $"4201 {name}");
         desk.Ok("workspace", special);
 
         var monitor = Json(desk.Send("j/monitors")).EnumerateArray()

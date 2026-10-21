@@ -291,9 +291,9 @@ public class WindowPropsTests
     [Fact]
     public void ARuleOnTheWorkspaceAWindowOpensOnAppliesWhenItOpens()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = float, workspace:name:scratch\n"));
+        var core = new Core(ConfigParser.Parse("windowrulev2 = float, workspace:2\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
-        core.Execute("dispatch workspace name:scratch");
+        core.Execute("dispatch workspace 2");
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(2), Area));
 

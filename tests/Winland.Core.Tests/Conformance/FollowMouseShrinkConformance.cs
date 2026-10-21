@@ -15,7 +15,7 @@ public class FollowMouseShrinkConformance
                 float_switch_override_focus = 2
             }
             """);
-        desk.Send("dispatch workspace name:follow_mouse_shrink");
+        desk.Ok("workspace", "2");
 
         // fms_a at 100,100, 400x400: its hitbox is 100..499 across and down.
         desk.Spawn("fms_a");

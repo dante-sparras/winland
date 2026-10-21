@@ -99,29 +99,29 @@ public class CommandServerTests
             Traits = WindowTraits.Normal with { Class = "app", Title = "title" },
         });
         Assert.Equal(
-            ["openwindow>>7,1,app,title", "activewindow>>app,title", "activewindowv2>>7"],
+            ["openwindow>>7,1,,app,title", "activewindow>>app,title", "activewindowv2>>7"],
             Take(first, 3));
         Assert.Equal(
-            ["openwindow>>7,1,app,title", "activewindow>>app,title", "activewindowv2>>7"],
+            ["openwindow>>7,1,,app,title", "activewindow>>app,title", "activewindowv2>>7"],
             Take(second, 3));
 
         Assert.Equal("ok", CommandClient.Transact("dispatch workspace 2", name));
         Assert.Equal(
             [
-                "createworkspace>>2",
-                "createworkspacev2>>2,2",
-                "workspace>>2",
-                "workspacev2>>2,2",
+                "createworkspace>>2,",
+                "createworkspacev2>>2,2,",
+                "workspace>>2,",
+                "workspacev2>>2,2,",
                 "activewindow>>,",
                 "activewindowv2>>",
             ],
             Take(first, 6));
         Assert.Equal(
             [
-                "createworkspace>>2",
-                "createworkspacev2>>2,2",
-                "workspace>>2",
-                "workspacev2>>2,2",
+                "createworkspace>>2,",
+                "createworkspacev2>>2,2,",
+                "workspace>>2,",
+                "workspacev2>>2,2,",
                 "activewindow>>,",
                 "activewindowv2>>",
             ],
@@ -170,7 +170,7 @@ public class CommandServerTests
         WaitUntilSubscribed(core, listener);
         Sync(core, listener);
         core.Handle(new WindowAppeared(new WindowId(3), new Rectangle(0, 0, 10, 10)));
-        Assert.Equal(["openwindow>>3,1,,", "activewindow>>,", "activewindowv2>>3"], Take(listener, 3));
+        Assert.Equal(["openwindow>>3,1,,,", "activewindow>>,", "activewindowv2>>3"], Take(listener, 3));
         Assert.Equal("ok", CommandClient.Transact("dispatch workspace 1", name));
     }
 

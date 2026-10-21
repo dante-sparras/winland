@@ -136,11 +136,11 @@ public class GroupDragTests
         var moved = core.Handle(new PointerMoved(onto));
         var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = onto });
 
-        Assert.Equal(new WorkspaceId("2"), Client(moved, 1).Workspace);
+        Assert.Equal(new WorkspaceId("1", 1), Client(moved, 1).Workspace);
         Assert.True(Client(moved, 1).Floating);
         Assert.Equal(new MonitorId(0), moved.State.ActiveMonitor);
         Assert.Equal([new WindowId(2)], Assert.Single(moved.State.Groups));
-        Assert.Equal(["movewindow>>1,2", "movewindowv2>>1,2,2"], MoveLines(moved));
+        Assert.Equal([@"movewindow>>1,1,\\.\DISPLAY2", @"movewindowv2>>1,1,1,\\.\DISPLAY2"], MoveLines(moved));
         Assert.Equal([new WindowId(2), new WindowId(1)], Assert.Single(dropped.State.Groups));
         Assert.Equal(new WindowId(1), dropped.Focus);
         Assert.Equal(new MonitorId(1), dropped.State.ActiveMonitor);

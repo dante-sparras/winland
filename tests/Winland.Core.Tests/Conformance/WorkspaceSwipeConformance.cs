@@ -142,17 +142,17 @@ public class WorkspaceSwipeConformance
 
         /// <summary>
         /// The reference's run: the swipe options and gesture, then the fixture. With <paramref name="bounds"/> the
-        /// origin is the largest Workspace id a command can name, with a named Workspace after it and no Workspace
-        /// after it by number; the swipe then steps to the Monitor's neighbours instead of the next numbers.
+        /// origin is the largest Workspace id a command can name. m wraps to Workspace 1, and there is no Workspace
+        /// at the next number, so turning on r mid-swipe has nowhere to go.
         /// </summary>
         internal static Fixture Run(bool bounds = false, string extra = "")
         {
             var swipe = bounds
                 ? new Fixture(
-                    new Desk(Options + "gestures:workspace_swipe_use_r = false\n" + Hold("1", "2147483646", "2147483647", "name:hyprtester-swipe-wrap") + extra),
+                    new Desk(Options + "gestures:workspace_swipe_use_r = false\n" + Hold("1", "2147483646", "2147483647") + extra),
                     "2147483646",
                     "2147483647",
-                    "hyprtester-swipe-wrap")
+                    "1")
                 : new Fixture(new Desk(Options + "gestures:workspace_swipe_use_r = true\n" + Hold("1", "9901", "9902", "9903") + extra), "9901", "9902", "9903");
             swipe.Prepare();
             return swipe;
@@ -230,7 +230,7 @@ public class WorkspaceSwipeConformance
 
         private void Prepare()
         {
-            Desk.Ok("workspace", Origin.All(char.IsAsciiDigit) ? Origin : $"name:{Origin}");
+            Desk.Ok("workspace", Origin);
             L = Snapshot(Left);
             O = Snapshot(Origin);
             R = Snapshot(Right);

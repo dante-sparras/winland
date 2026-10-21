@@ -9,7 +9,7 @@ public class SnapConformance
     {
         var desk = new Desk("monitor = HEADLESS-2, addreserved, 200, 200, 200, 200\n");
         desk.Ok("focusmonitor", "HEADLESS-2");
-        desk.Ok("workspace", "name:snap");
+        desk.Ok("workspace", "2");
 
         SpawnFloatingKitty(desk, "kittyProcA");
         Assert.Single(desk.Clients());

@@ -18,13 +18,13 @@ public sealed partial class Core
         var monitor = FocusedId();
         if (SpecialOn(monitor) is null)
         {
-            return SwitchTo(WorkspaceId.FromNumber(1), focus: null, consumed: false, dispatcher: name, pull: true)
+            return SwitchTo(WorkspaceId.FromNumber(1, monitor), focus: null, consumed: false, dispatcher: name)
                 with { Closes = closes };
         }
 
         // Closing it first shows the Monitor's Workspace. Switching with it still open would leave it on top.
         var concealed = CloseSpecial(monitor, name);
-        var shown = SwitchTo(WorkspaceId.FromNumber(1), focus: null, consumed: false, dispatcher: name, pull: true);
+        var shown = SwitchTo(WorkspaceId.FromNumber(1, monitor), focus: null, consumed: false, dispatcher: name);
         return Merge(concealed, shown) with { Closes = closes, Dispatcher = name, Focus = _active };
     }
 }

@@ -93,10 +93,10 @@ public class RefactorStateConformance
         desk.Ok("workspace", "290");
         desk.Spawn("global_move_fullscreen");
         desk.Ok("fullscreen", "0 set");
-        desk.Ok("movetoworkspacesilent", "291");
+        // A direction refuses a fullscreen Client. mon: puts it on the Workspace that Monitor is showing.
+        desk.Ok("movewindow", $"mon:{Right} silent");
 
         desk.Ok("focusmonitor", Right);
-        desk.Ok("workspace", "291");
         desk.Ok("focuswindow", "class:global_move_fullscreen");
         Assert.Equal(2, Desk.Fullscreen(desk.ActiveWindow()));
 
@@ -109,7 +109,7 @@ public class RefactorStateConformance
         desk.Ok("resizewindowpixel", "exact 400 300,activewindow");
         desk.Ok("movewindowpixel", "exact 200 200,activewindow");
 
-        desk.Ok("movetoworkspace", "294");
+        desk.Ok("movewindow", $"mon:{Right}");
         Assert.Equal("global_move_float", desk.ActiveClass());
         Assert.Equal("2120,200", desk.ActivePlace().At);
 
@@ -120,7 +120,7 @@ public class RefactorStateConformance
         desk.Ok("focusmonitor", Left);
         desk.Ok("workspace", "295");
         desk.Spawn("global_move_group_member");
-        desk.Ok("movetoworkspace", "293");
+        desk.Ok("movewindow", $"mon:{Right}");
         Assert.Equal("global_move_group_member", desk.ActiveClass());
 
         desk.Ok("changegroupactive", "f");
@@ -195,11 +195,12 @@ public class RefactorStateConformance
         desk.Keyword("cursor:warp_on_change_workspace", $"{onWorkspace}");
         desk.Keyword("cursor:warp_on_monitor_change", $"{onMonitor}");
 
+        desk.Ok("focusmonitor", Left);
         desk.Ok("workspace", "300");
         desk.Ok("movecursor", "5 5");
         Assert.Equal("5, 5", CursorPos(desk));
 
-        desk.Ok("workspace", "301");
+        desk.Ok("focusmonitor", Right);
         if (expectMove)
             Assert.NotEqual("5, 5", CursorPos(desk));
         else

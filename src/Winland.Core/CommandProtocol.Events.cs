@@ -25,7 +25,7 @@ public static partial class CommandProtocol
         switch (streamEvent)
         {
             case ClientOpened opened:
-                lines.Add($"openwindow>>{EventAddress(opened.Window)},{WorkspaceNameText(opened.Workspace, indexed)},{Clean(opened.Class)},{Clean(opened.Title)}");
+                lines.Add($"openwindow>>{EventAddress(opened.Window)},{WorkspaceNameText(opened.Workspace, indexed)},{EventMonitor(state, opened.Workspace)},{Clean(opened.Class)},{Clean(opened.Title)}");
                 break;
             case ClientClosed closed:
                 lines.Add($"closewindow>>{EventAddress(closed.Window)}");
@@ -57,8 +57,8 @@ public static partial class CommandProtocol
                 lines.Add("urgent>>" + EventAddress(urgent.Window));
                 break;
             case ClientMoved moved:
-                lines.Add($"movewindow>>{EventAddress(moved.Window)},{WorkspaceNameText(moved.Workspace, indexed)}");
-                lines.Add($"movewindowv2>>{EventAddress(moved.Window)},{WorkspaceIdText(moved.Workspace, indexed)},{WorkspaceNameText(moved.Workspace, indexed)}");
+                lines.Add($"movewindow>>{EventAddress(moved.Window)},{WorkspaceNameText(moved.Workspace, indexed)},{EventMonitor(state, moved.Workspace)}");
+                lines.Add($"movewindowv2>>{EventAddress(moved.Window)},{WorkspaceIdText(moved.Workspace, indexed)},{WorkspaceNameText(moved.Workspace, indexed)},{EventMonitor(state, moved.Workspace)}");
                 break;
             case FloatingChanged floating:
                 lines.Add($"changefloatingmode>>{EventAddress(floating.Window)},{(floating.Floating ? "1" : "0")}");
@@ -82,26 +82,23 @@ public static partial class CommandProtocol
                 lines.Add("lockgroups>>" + (locked.Locked ? "1" : "0"));
                 break;
             case WorkspaceActivated activated:
-                lines.Add("workspace>>" + WorkspaceNameText(activated.Workspace, indexed));
-                lines.Add($"workspacev2>>{WorkspaceIdText(activated.Workspace, indexed)},{WorkspaceNameText(activated.Workspace, indexed)}");
+                lines.Add($"workspace>>{WorkspaceNameText(activated.Workspace, indexed)},{EventMonitor(state, activated.Workspace)}");
+                lines.Add($"workspacev2>>{WorkspaceIdText(activated.Workspace, indexed)},{WorkspaceNameText(activated.Workspace, indexed)},{EventMonitor(state, activated.Workspace)}");
                 break;
             case WorkspaceCreated created:
-                lines.Add("createworkspace>>" + WorkspaceNameText(created.Workspace, indexed));
-                lines.Add($"createworkspacev2>>{WorkspaceIdText(created.Workspace, indexed)},{WorkspaceNameText(created.Workspace, indexed)}");
+                lines.Add($"createworkspace>>{WorkspaceNameText(created.Workspace, indexed)},{EventMonitor(state, created.Workspace)}");
+                lines.Add($"createworkspacev2>>{WorkspaceIdText(created.Workspace, indexed)},{WorkspaceNameText(created.Workspace, indexed)},{EventMonitor(state, created.Workspace)}");
                 break;
             case WorkspaceDestroyed destroyed:
-                lines.Add("destroyworkspace>>" + Clean(destroyed.Name));
-                lines.Add($"destroyworkspacev2>>{destroyed.Id.ToString(CultureInfo.InvariantCulture)},{Clean(destroyed.Name)}");
+                lines.Add($"destroyworkspace>>{Clean(destroyed.Name)},{Clean(destroyed.Monitor)}");
+                lines.Add($"destroyworkspacev2>>{destroyed.Id.ToString(CultureInfo.InvariantCulture)},{Clean(destroyed.Name)},{Clean(destroyed.Monitor)}");
                 break;
             case WorkspaceMoved movedWorkspace:
                 lines.Add($"moveworkspace>>{WorkspaceNameText(movedWorkspace.Workspace, indexed)},{Clean(movedWorkspace.Monitor)}");
                 lines.Add($"moveworkspacev2>>{WorkspaceIdText(movedWorkspace.Workspace, indexed)},{WorkspaceNameText(movedWorkspace.Workspace, indexed)},{Clean(movedWorkspace.Monitor)}");
                 break;
             case WorkspaceIdChanged changed:
-                lines.Add($"changeworkspaceid>>{changed.From.ToString(CultureInfo.InvariantCulture)},{changed.To.ToString(CultureInfo.InvariantCulture)}");
-                break;
-            case WorkspaceRenamed renamed:
-                lines.Add($"renameworkspace>>{Clean(renamed.Workspace.Name)},{Clean(renamed.Name)}");
+                lines.Add($"changeworkspaceid>>{changed.From.ToString(CultureInfo.InvariantCulture)},{changed.To.ToString(CultureInfo.InvariantCulture)},{Clean(changed.Monitor)}");
                 break;
             case MonitorFocused focusedMonitor:
                 lines.Add($"focusedmon>>{Clean(focusedMonitor.Name)},{WorkspaceNameText(focusedMonitor.Workspace, indexed)}");
@@ -178,6 +175,8 @@ public static partial class CommandProtocol
 
     internal static string EventAddress(WindowId window) =>
         window.Value.ToString("x", CultureInfo.InvariantCulture);
+
+    private static string EventMonitor(State state, WorkspaceId id) => Clean(MonitorName(state, id));
 
     internal static string Address(WindowId window) =>
         "0x" + EventAddress(window);

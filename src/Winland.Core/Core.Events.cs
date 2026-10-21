@@ -200,7 +200,8 @@ public sealed partial class Core
             events.Add(new WorkspaceDestroyed(
                 workspace.Id,
                 CommandProtocol.WorkspaceNumber(before, workspace.Id),
-                workspace.DisplayName ?? workspace.Id.Name));
+                workspace.DisplayName ?? workspace.Id.Name,
+                MonitorName(before, workspace.Monitor)));
         }
 
         foreach (var workspace in after.Workspaces)
@@ -510,7 +511,7 @@ public sealed partial class Core
         if (Is(name, "togglespecialworkspace"))
             return FocusReason.ToggleSpecial;
 
-        if (Is(name, "workspace") || Is(name, "focusworkspaceoncurrentmonitor"))
+        if (Is(name, "workspace"))
             return before.State.ActiveMonitor != afterState.ActiveMonitor ? FocusReason.Keybind : FocusReason.Workspace;
 
         if (Is(name, "movefocus"))

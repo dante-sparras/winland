@@ -20,19 +20,14 @@ internal static partial class WorkspaceRules
         if (IsPositive(selector, out var number))
             return id.TryGetNumber(out var current) && current == number;
 
-        // As Winland's filter reads them: name: and a bare token compare the address of a
-        // normal, non-numbered Workspace, never its display name, and special compares a special one's.
         if (selector.StartsWith("name:", StringComparison.Ordinal))
-        {
-            var name = selector[5..];
-            return name.Length > 0 && !IsSignedNumber(name) && IsNamed(id) && name == id.Name;
-        }
+            return false;
 
         if (selector == "special" || selector.StartsWith("special:", StringComparison.Ordinal))
             return selector != "special:" && id.IsSpecial && id.Name == (selector == "special" ? WorkspaceId.DefaultSpecial.Name : selector);
 
         if (!selector.Contains('[', StringComparison.Ordinal))
-            return IsNamed(id) && selector == id.Name;
+            return false;
 
         return MatchProperties(selector, id, displayName, monitor, count, fullscreen);
     }
@@ -120,22 +115,8 @@ internal static partial class WorkspaceRules
         return wantsNamed == IsNamed(id);
     }
 
-    private static bool IsNamed(WorkspaceId id) => !id.IsSpecial && !id.TryGetNumber(out _);
-
-    private static bool IsSignedNumber(string text)
-    {
-        var digits = text.Length > 0 && text[0] is '+' or '-' ? text[1..] : text;
-        if (digits.Length == 0)
-            return false;
-
-        foreach (var character in digits)
-        {
-            if (!char.IsAsciiDigit(character))
-                return false;
-        }
-
-        return true;
-    }
+    // A Workspace is a number or a special workspace. n[true] matches neither.
+    private static bool IsNamed(WorkspaceId id) => false;
 
     private static bool MatchCount(string body, Func<WindowCount, int>? counter)
     {
@@ -190,11 +171,5 @@ internal static partial class WorkspaceRules
         return IsPositive(text[..dash], out from) && IsPositive(text[(dash + 1)..], out to) && to >= from;
     }
 
-    private static string NameOf(string ident)
-    {
-        if (ident.StartsWith("name:", StringComparison.Ordinal))
-            return ident[5..];
-
-        return IsPositive(ident, out _) ? ident : ident;
-    }
+    private static string NameOf(string ident) => ident;
 }

@@ -202,7 +202,7 @@ public sealed partial class Core
             Focus(swipe.Monitor);
 
         LandSwipe();
-        return SwitchTo(Alias(target), focus: null, consumed: false, dispatcher: "workspace");
+        return SwitchTo(target, focus: null, consumed: false, dispatcher: "workspace");
     }
 
     private (WorkspaceId? Left, WorkspaceId? Right) Neighbours(MonitorId monitor)
@@ -214,7 +214,7 @@ public sealed partial class Core
     private WorkspaceId? Resolve(string address, MonitorId monitor) =>
         WorkspaceAddress.TryResolve(address, Context(monitor), out var id) ? id : null;
 
-    // Workspace ids order as numbers. A named Workspace sorts below every number, newest first, and an
+    // Workspace ids order as numbers. A Workspace that is not numbered sorts below every number, and an
     // unresolved one is -1, the invalid id the comparisons were written against.
     private long SwipeRank(WorkspaceId? id)
     {
