@@ -140,7 +140,7 @@ jobs:
           $stage = Join-Path $env:RUNNER_TEMP 'stage'
           dotnet publish (Join-Path $env:GITHUB_WORKSPACE 'src\Winland.Daemon\Winland.Daemon.csproj') -c Release -r win-x64 --self-contained true "-p:Version=$nuget" "-p:SourceRevisionId=$sha" -p:ContinuousIntegrationBuild=true -o $daemon
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet publish (Join-Path $env:GITHUB_WORKSPACE 'src\winlandctl\winlandctl.csproj') -c Release -r win-x64 --self-contained true "-p:Version=$nuget" "-p:SourceRevisionId=$sha" -p:ContinuousIntegrationBuild=true -o $ctl
+          dotnet publish (Join-Path $env:GITHUB_WORKSPACE 'src\Winland.Ctl\Winland.Ctl.csproj') -c Release -r win-x64 --self-contained true "-p:Version=$nuget" "-p:SourceRevisionId=$sha" -p:ContinuousIntegrationBuild=true -o $ctl
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Force -Path (Join-Path $stage 'winland'), (Join-Path $stage 'winlandctl') | Out-Null
           Copy-Item (Join-Path $daemon '*') (Join-Path $stage 'winland') -Recurse

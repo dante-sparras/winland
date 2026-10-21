@@ -17,7 +17,7 @@
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <Private>false</Private>
     </ProjectReference>
-    <ProjectReference Include="..\..\src\winlandctl\winlandctl.csproj">
+    <ProjectReference Include="..\..\src\Winland.Ctl\Winland.Ctl.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <Private>false</Private>
     </ProjectReference>
@@ -26,7 +26,7 @@
   <Target Name="WriteSmokePaths" AfterTargets="Build">
     <PropertyGroup>
       <_Daemon>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\src\Winland.Daemon\bin\$(Configuration)\net10.0-windows10.0.22621.0\winland.exe'))</_Daemon>
-      <_Ctl>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\src\winlandctl\bin\$(Configuration)\net10.0\winlandctl.exe'))</_Ctl>
+      <_Ctl>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\src\Winland.Ctl\bin\$(Configuration)\net10.0\winlandctl.exe'))</_Ctl>
     </PropertyGroup>
     <WriteLinesToFile File="$(TargetDir)smoke.paths" Lines="$(_Daemon)|$(_Ctl)" Overwrite="true" Encoding="UTF-8" />
   </Target>
