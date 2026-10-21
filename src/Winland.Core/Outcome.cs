@@ -18,10 +18,8 @@ public sealed record Client(
     FullscreenMode FullscreenClient = FullscreenMode.None,
     bool Pinned = false,
     bool PinFullscreened = false,
-    WindowId? Swallowing = null,
     IReadOnlyList<string>? Tags = null,
     int Content = 0,
-    bool InhibitingIdle = false,
     bool LayoutFullscreen = false,
     bool AllowedOverFullscreen = true,
     bool BelowFullscreen = false);
@@ -45,9 +43,6 @@ public sealed record State(IReadOnlyList<Client> Clients)
     public MonitorId ActiveMonitor { get; init; } = MonitorId.Primary;
 
     public IReadOnlyList<Client> Hidden { get; init; } = [];
-
-    /// <summary>The Clients another Client swallowed and that are hidden for it. They are in no Layout.</summary>
-    public IReadOnlyList<WindowId> Swallowed { get; init; } = [];
 
     public IReadOnlyList<Monitor> Monitors { get; init; } = [];
 
@@ -122,8 +117,6 @@ public sealed record Outcome(
     /// <summary>The keyboard layouts to load and the one to use, or null to leave the system's alone.</summary>
     public KeyboardLayoutRequest? KeyboardLayout { get; init; }
 
-    /// <summary>Notifications to show or take away.</summary>
-    public IReadOnlyList<NotificationAction> Notifications { get; init; } = [];
 
     public IReadOnlyList<DisplayOrientationRequest> Orientations { get; init; } = [];
 

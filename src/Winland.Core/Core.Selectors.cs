@@ -329,7 +329,7 @@ public sealed partial class Core
         return WindowSelector.Find(text, ActiveWindow(), clients);
     }
 
-    // Every Client a window selector can find, a swallowed one too.
+    // Every Client a window selector can find, including one waiting in a Group.
     private List<Client> EveryClient()
     {
         var clients = new List<Client>();
@@ -339,8 +339,6 @@ public sealed partial class Core
             clients.AddRange(desk.WaitingClients);
         }
 
-        var hidden = new List<Client>();
-        AddSwallowed(clients, hidden);
         return clients;
     }
 

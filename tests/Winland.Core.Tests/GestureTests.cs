@@ -49,7 +49,7 @@ public class GestureTests
     public void ShadowedGestureWarnsAndUnsetRemovesTheMatch()
     {
         var document = ConfigParser.Parse("""
-            gesture = 3, swipe, cursorZoom
+            gesture = 3, swipe, close
             gesture = 3, left, workspace
             gesture = 3, swipe, unset
             gesture = 3, left, workspace
@@ -358,19 +358,6 @@ public class GestureTests
         core.Handle(new InputInhibited(true));
 
         Assert.Null(Swipe(core, 3, [(0, -150)]).State.SpecialWorkspace);
-    }
-
-    [Fact]
-    public void ACursorZoomSwipeTogglesTheZoomAndLeavesTheWorkspace()
-    {
-        var core = Twin("gesture = 3, swipe, cursorZoom, 3\n");
-
-        var zoomed = Swipe(core, 3, Steps(20, -10, 0));
-        var back = Swipe(core, 3, Steps(20, -10, 0));
-
-        Assert.Equal(WorkspaceId.Initial, zoomed.State.ActiveWorkspace);
-        Assert.Equal(3, zoomed.Cursor!.Zoom.Factor);
-        Assert.Equal(1, back.Cursor!.Zoom.Factor);
     }
 
     [Theory]

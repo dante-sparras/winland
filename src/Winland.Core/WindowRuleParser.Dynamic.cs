@@ -117,8 +117,7 @@ internal static partial class WindowRuleParser
         or WindowRuleEffect.MaxSize
         or WindowRuleEffect.NoMaxSize
         or WindowRuleEffect.Opacity
-        or WindowRuleEffect.Opaque
-        or WindowRuleEffect.IdleInhibit;
+        or WindowRuleEffect.Opaque;
 
     // The leading whole number of the text, as std::stoi reads it, or 0 when there is none.
     private static int LeadingInteger(string text)

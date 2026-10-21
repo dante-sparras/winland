@@ -73,7 +73,6 @@ internal static class WindowProps
         ["no_auto_hdr"] = PropKind.Bool,
         ["persistent_size"] = PropKind.Bool,
         ["stay_focused"] = PropKind.Bool,
-        ["idle_inhibit"] = PropKind.Int,
         ["border_size"] = PropKind.Int,
         ["rounding"] = PropKind.Int,
         ["rounding_power"] = PropKind.Float,

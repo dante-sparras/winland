@@ -47,11 +47,9 @@ public sealed partial class Core
 
     /// <summary>
     /// Closes a member of a Group that keeps other members. The next member takes the tile when the
-    /// closed one was shown. <paramref name="returned"/> is a parent the member swallowed that has just
-    /// come back into the Layout, and it takes the focus the member had. Null when the window was in no
-    /// such Group.
+    /// closed one was shown. Null when the window was in no such Group.
     /// </summary>
-    private Outcome? CloseGroupMember(WindowId window, LiveWorkspace desk, HashSet<WindowId> covered, WindowId? returned, FullscreenMode mode)
+    private Outcome? CloseGroupMember(WindowId window, LiveWorkspace desk, HashSet<WindowId> covered, FullscreenMode mode)
     {
         if (desk.GroupOf(window) is not WindowGroup group)
             return null;
@@ -71,7 +69,7 @@ public sealed partial class Core
         if (wasShown && mode != FullscreenMode.None && desk.ClientOf(group.Shown) is { Fullscreen: not FullscreenMode.None })
             desk.Layout.SetFullscreen(group.Shown, FullscreenMode.None, FullscreenMode.None);
 
-        if ((!wasShown && returned is null) || !IsShown(desk.Id))
+        if (!wasShown || !IsShown(desk.Id))
             return View([]);
 
         WindowId? focus = null;
@@ -79,7 +77,7 @@ public sealed partial class Core
         if (wasActive)
         {
             // the member focused most recently takes the focus, and so is shown.
-            focus = returned ?? RecentMember(group) ?? group.Shown;
+            focus = RecentMember(group) ?? group.Shown;
             if (focus != group.Shown && group.Members.IndexOf(focus.Value) is var index and >= 0)
                 _ = desk.Show(group, index);
 

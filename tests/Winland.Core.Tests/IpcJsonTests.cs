@@ -17,7 +17,7 @@ public class IpcJsonTests
 
         const string Client =
             """
-            {"address":"0x2a","mapped":true,"hidden":false,"visible":true,"acceptsInput":true,"at":[0,0],"size":[800,600],"workspace":{"address":"1","id":1,"type":"normal","name":"1"},"floating":false,"monitor":0,"class":"kitty","title":"term","initialClass":"kitty","initialTitle":"term","pid":4242,"xwayland":false,"pinned":false,"pinFullscreened":false,"fullscreen":0,"fullscreenClient":0,"fullscreenHandler":"default","allowedOverFullscreen":true,"grouped":[],"tags":[],"swallowing":"0x0","focusHistoryID":0,"inhibitingIdle":false,"xdgTag":"","xdgDescription":"","contentType":"none","tearingHint":false,"stableId":"2a"}
+            {"address":"0x2a","mapped":true,"hidden":false,"visible":true,"acceptsInput":true,"at":[0,0],"size":[800,600],"workspace":{"address":"1","id":1,"type":"normal","name":"1"},"floating":false,"monitor":0,"class":"kitty","title":"term","initialClass":"kitty","initialTitle":"term","pid":4242,"xwayland":false,"pinned":false,"pinFullscreened":false,"fullscreen":0,"fullscreenClient":0,"fullscreenHandler":"default","allowedOverFullscreen":true,"grouped":[],"tags":[],"focusHistoryID":0,"xdgTag":"","xdgDescription":"","contentType":"none","tearingHint":false,"stableId":"2a"}
             """;
 
         Assert.Equal("[" + Client + "]", core.Execute("j/clients").Text);
@@ -60,7 +60,6 @@ public class IpcJsonTests
         Assert.False(clients[1].GetProperty("xwayland").GetBoolean());
         Assert.Equal(JsonValueKind.Array, clients[1].GetProperty("grouped").ValueKind);
         Assert.Equal(0, clients[1].GetProperty("grouped").GetArrayLength());
-        Assert.Equal("0x0", clients[1].GetProperty("swallowing").GetString());
         Assert.Equal(JsonValueKind.Number, clients[1].GetProperty("fullscreen").ValueKind);
         Assert.Equal(0, clients[1].GetProperty("fullscreen").GetInt32());
         Assert.Equal(0, clients[1].GetProperty("fullscreenClient").GetInt32());

@@ -1,17 +1,10 @@
 namespace Winland;
 
-public sealed record EnvironmentAssignment(string Name, string Value)
-{
-    public static IReadOnlyList<EnvironmentAssignment> None { get; } = [];
-}
-
 public sealed record Launch(string CommandLine, string? WorkingDirectory)
 {
     public static IReadOnlyList<WindowRule> NoRules { get; } = [];
 
     public bool Raw { get; init; }
-
-    public IReadOnlyList<EnvironmentAssignment> Environment { get; init; } = EnvironmentAssignment.None;
 
     public IReadOnlyList<WindowRule> Rules { get; init; } = NoRules;
 
@@ -23,32 +16,6 @@ public sealed record Launch(string CommandLine, string? WorkingDirectory)
 }
 
 internal readonly record struct LaunchParse(Launch? Launch, IReadOnlyList<string> Warnings);
-
-internal static class EnvironmentParser
-{
-    internal static bool TryParse(string value, out EnvironmentAssignment? assignment, out string error)
-    {
-        assignment = null;
-        var comma = value.IndexOf(',');
-        var name = LineText.Unescape((comma < 0 ? value : value[..comma]).Trim());
-        var assigned = LineText.Unescape(comma < 0 ? "" : value[(comma + 1)..].Trim());
-        if (name.Length == 0)
-        {
-            error = "Environment variable name is empty.";
-            return false;
-        }
-
-        if (name.Contains('=') || name.Contains('\0') || assigned.Contains('\0'))
-        {
-            error = "Environment variable name is invalid.";
-            return false;
-        }
-
-        assignment = new EnvironmentAssignment(name, assigned);
-        error = "";
-        return true;
-    }
-}
 
 internal static class LaunchParser
 {
@@ -106,8 +73,6 @@ internal static class LaunchParser
             if (parsed.Launch is not { } launch)
                 continue;
 
-            if (config.Environment.Count > 0)
-                launch = launch with { Environment = config.Environment };
             if (!once && !shutdown)
                 launch = launch with { InitialWorkspace = initialWorkspace };
             launches.Add(launch);

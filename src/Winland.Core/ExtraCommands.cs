@@ -30,8 +30,6 @@ public static class ExtraCommands
             return Exact(rest, new CursorPosRequest(), flags, out parse);
         if (Is(verb, "configerrors"))
             return Exact(rest, new ConfigErrorsRequest(), flags, out parse);
-        if (Is(verb, "systeminfo"))
-            return Exact(rest, new SystemInfoRequest(), flags, out parse);
         if (Is(verb, "locked"))
             return Exact(rest, new LockedRequest(), flags, out parse);
         if (Is(verb, "layouts"))
@@ -42,8 +40,6 @@ public static class ExtraCommands
             return Exact(rest, new AnimationsRequest(), flags, out parse);
         if (Is(verb, "kill"))
             return Exact(rest, new ClickKillRequest(), flags, out parse);
-        if (Is(verb, "rollinglog"))
-            return Exact(rest, new RollingLogRequest(), flags, out parse);
 
         if (Is(verb, "getoption"))
         {
@@ -123,24 +119,6 @@ public static class ExtraCommands
             return true;
         }
 
-        if (Is(verb, "notify"))
-        {
-            parse = Parsed(new NotifyRequest(rest), flags);
-            return true;
-        }
-
-        if (Is(verb, "dismissnotify"))
-        {
-            parse = Parsed(new DismissNotifyRequest(rest), flags);
-            return true;
-        }
-
-        if (Is(verb, "notification"))
-        {
-            parse = Parsed(new NotificationRequest(rest), flags);
-            return true;
-        }
-
         parse = new CommandRejected("error: unknown request");
         return false;
     }
@@ -193,16 +171,6 @@ public static class ExtraCommands
             "",
             []));
 
-    // Winland's JSON form is this bracketed key, as it writes it.
-    public static string FormatRollingLog(string log, bool json) =>
-        json ? "[\n\"log\":\"" + JsonText(log) + "\"]" : log;
-
-    private static string JsonText(string text)
-    {
-        var escaped = System.Text.Json.JsonSerializer.Serialize(text);
-        return escaped[1..^1];
-    }
-
     // The plain form is "x, y".
     public static string FormatCursor(Point point, bool json) => json
         ? string.Create(CultureInfo.InvariantCulture, $"{{\"x\":{point.X},\"y\":{point.Y}}}")
@@ -224,36 +192,6 @@ public static class ExtraCommands
     {
         ArgumentNullException.ThrowIfNull(errors);
         return JsonSerializer.Serialize(errors, Relaxed);
-    }
-
-    public static string FormatSystem(State state)
-    {
-        ArgumentNullException.ThrowIfNull(state);
-        var text = new StringBuilder();
-        text.Append("Winland ").Append(BuildStamp.Version).Append('\n');
-        text.Append("OS: ").Append(Environment.OSVersion.VersionString).Append('\n');
-        text.Append(".NET: ").Append(Environment.Version).Append('\n');
-        text.Append("Monitors:");
-        if (state.Screens.Count == 0)
-        {
-            text.Append(" none");
-            return text.ToString();
-        }
-
-        foreach (var screen in state.Screens)
-        {
-            var monitor = screen.Monitor;
-            text.Append('\n').Append(monitor.Name).Append(' ');
-            text.Append(monitor.Width.ToString(CultureInfo.InvariantCulture));
-            text.Append('x');
-            text.Append(monitor.Height.ToString(CultureInfo.InvariantCulture));
-            text.Append(" @ ");
-            text.Append(monitor.X.ToString(CultureInfo.InvariantCulture));
-            text.Append(',');
-            text.Append(monitor.Y.ToString(CultureInfo.InvariantCulture));
-        }
-
-        return text.ToString();
     }
 
     internal static int ModMask(Modifier modifiers)
@@ -432,8 +370,6 @@ public sealed record ConfigErrorsRequest : CommandRequest;
 
 public sealed record GetOptionRequest(string Name) : CommandRequest;
 
-public sealed record SystemInfoRequest : CommandRequest;
-
 public sealed record LockedRequest : CommandRequest;
 
 public sealed record LayoutsRequest : CommandRequest;
@@ -444,15 +380,7 @@ public sealed record AnimationsRequest : CommandRequest;
 
 public sealed record ClickKillRequest : CommandRequest;
 
-public sealed record RollingLogRequest : CommandRequest;
-
 public sealed record KeywordRequest(string Name, string Value) : CommandRequest;
-
-public sealed record NotifyRequest(string Arguments) : CommandRequest;
-
-public sealed record DismissNotifyRequest(string Arguments) : CommandRequest;
-
-public sealed record NotificationRequest(string Arguments) : CommandRequest;
 
 /// <summary><c>seterror COLOR MESSAGE</c>, or <c>seterror disable</c>.</summary>
 public sealed record SetErrorRequest(string Arguments) : CommandRequest;

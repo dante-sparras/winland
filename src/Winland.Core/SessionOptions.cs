@@ -15,14 +15,6 @@ public sealed record SessionOptions
 
     public bool MouseMoveFocusesMonitor { get; init; } = true;
 
-    public bool EnableSwallow { get; init; }
-
-    /// <summary>The class a parent Client must fully match to be swallowed. Empty swallows nothing.</summary>
-    public string SwallowRegex { get; init; } = "";
-
-    /// <summary>The title that keeps a parent Client from being swallowed. Empty excludes nothing.</summary>
-    public string SwallowExceptionRegex { get; init; } = "";
-
     /// <summary>Whether the minimum and maximum size window rules also hold a tiled Client, not only a floating one.</summary>
     public bool SizeLimitsTiled { get; init; }
 
@@ -80,9 +72,6 @@ public sealed record SessionOptions
         ["misc:close_special_on_empty"] = (options, value) => TryParseBool(value, out var close) ? options with { CloseSpecialOnEmpty = close } : options,
         ["binds:hide_special_on_workspace_change"] = (options, value) => TryParseBool(value, out var hide) ? options with { HideSpecialOnWorkspaceChange = hide } : options,
         ["misc:mouse_move_focuses_monitor"] = (options, value) => TryParseBool(value, out var mouse) ? options with { MouseMoveFocusesMonitor = mouse } : options,
-        ["misc:enable_swallow"] = (options, value) => TryParseBool(value, out var swallow) ? options with { EnableSwallow = swallow } : options,
-        ["misc:swallow_regex"] = (options, value) => options with { SwallowRegex = Unset(value) },
-        ["misc:swallow_exception_regex"] = (options, value) => options with { SwallowExceptionRegex = Unset(value) },
         ["misc:initial_workspace_tracking"] = (options, value) => int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var tracking) ? options with { InitialWorkspaceTracking = Math.Clamp(tracking, 0, 2) } : options,
         ["misc:initial_workspace_token_timeout"] = (options, value) => int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var timeout) ? options with { InitialWorkspaceTokenTimeout = Math.Clamp(timeout, 1, 3600) } : options,
         ["misc:disable_autoreload"] = (options, value) => TryParseBool(value, out var disable) ? options with { DisableAutoreload = disable } : options,

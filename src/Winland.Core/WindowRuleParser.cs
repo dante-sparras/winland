@@ -21,7 +21,7 @@ internal static partial class WindowRuleParser
             return false;
         }
 
-        if (!TryParseEffect(LineText.Unescape(value[..comma].Trim()), out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out var placement, out var group, out var props, out error))
+        if (!TryParseEffect(LineText.Unescape(value[..comma].Trim()), out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var placement, out var group, out var props, out error))
             return false;
 
         string? classPattern = null;
@@ -77,7 +77,7 @@ internal static partial class WindowRuleParser
             }
         }
 
-        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, idle, placement, TextOr(effect, group, out var ruleText), props, dynamic, ruleText, initialTitlePattern, initialClassPattern, ruleId, active);
+        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, placement, TextOr(effect, group, out var ruleText), props, dynamic, ruleText, initialTitlePattern, initialClassPattern, ruleId, active);
         return true;
     }
 
@@ -207,10 +207,10 @@ internal static partial class WindowRuleParser
     {
         rule = null;
         text = LineText.Unescape(text);
-        if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var idle, out var placement, out var group, out var props, out error))
+        if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var placement, out var group, out var props, out error))
             return false;
 
-        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, ScrollingWidth: scrollingWidth, Opacity: opacity, Fullscreen: fullscreen, IdleInhibit: idle, Placement: placement, Group: TextOr(effect, group, out var ruleText), Props: props, Text: ruleText);
+        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, ScrollingWidth: scrollingWidth, Opacity: opacity, Fullscreen: fullscreen, Placement: placement, Group: TextOr(effect, group, out var ruleText), Props: props, Text: ruleText);
         return true;
     }
 
@@ -241,7 +241,6 @@ internal static partial class WindowRuleParser
         bool? maximize = null;
         FullscreenRule? fullscreenState = null;
         bool? pin = null;
-        IdleInhibitMode? idle = null;
         var placement = default(MapPlacement);
         var group = GroupRuleFlags.None;
         Dictionary<string, object>? props = null;
@@ -318,9 +317,6 @@ internal static partial class WindowRuleParser
                 case WindowRuleEffect.Pin:
                     pin = rule.Enabled;
                     break;
-                case WindowRuleEffect.IdleInhibit:
-                    idle = rule.IdleInhibit;
-                    break;
                 case WindowRuleEffect.Group:
                     group = GroupRules.Parse(rule.Group);
                     break;
@@ -359,7 +355,6 @@ internal static partial class WindowRuleParser
             opaque ?? false,
             requested,
             pin ?? false,
-            idle ?? IdleInhibitMode.None,
             placement,
             group,
             sizes,
@@ -379,14 +374,12 @@ internal static partial class WindowRuleParser
         out double? scrollingWidth,
         out OpacityRule? opacity,
         out FullscreenRule? fullscreen,
-        out IdleInhibitMode idle,
         out RulePlacement? placement,
         out string? group,
         out IReadOnlyDictionary<string, object>? props,
         out string error)
     {
         props = null;
-        idle = IdleInhibitMode.None;
         effect = default;
         workspace = null;
         enabled = true;
@@ -541,17 +534,6 @@ internal static partial class WindowRuleParser
                     fullscreen = new FullscreenRule(mode, mode);
                 }
 
-                error = "";
-                return true;
-            case "idle_inhibit":
-            case "idleinhibit":
-                if (argument is null || !IdleInhibit.TryParse(argument, out idle))
-                {
-                    error = $"idle_inhibit rule has unknown mode \"{argument}\"";
-                    return false;
-                }
-
-                effect = WindowRuleEffect.IdleInhibit;
                 error = "";
                 return true;
             case "fullscreen_state":

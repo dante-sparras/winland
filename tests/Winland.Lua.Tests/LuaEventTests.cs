@@ -21,25 +21,25 @@ public class LuaEventTests
            "workspace":{"address":"1","id":1,"type":"normal","name":"1"},"floating":false,"monitor":0,"class":"kitty",
            "title":"term","initialClass":"kitty","initialTitle":"shell","pid":100,"xwayland":false,"pinned":false,
            "pinFullscreened":false,"fullscreen":0,"fullscreenClient":0,"fullscreenHandler":"default",
-           "allowedOverFullscreen":false,"grouped":["0x1a","0x2b"],"tags":["dev"],"swallowing":"0x0","focusHistoryID":0,
-           "inhibitingIdle":false,"xdgTag":"","xdgDescription":"","contentType":"none","tearingHint":false,"stableId":"1f"},
+           "allowedOverFullscreen":false,"grouped":["0x1a","0x2b"],"tags":["dev"],"focusHistoryID":0,
+           "xdgTag":"","xdgDescription":"","contentType":"none","tearingHint":false,"stableId":"1f"},
           {"address":"0x2b","mapped":false,"hidden":true,"visible":false,"acceptsInput":false,"at":[10,20],"size":[800,600],
            "workspace":{"address":"1","id":1,"type":"normal","name":"1"},"floating":false,"monitor":0,"class":"firefox",
            "title":"Mozilla","initialClass":"firefox","initialTitle":"Mozilla","pid":200,"xwayland":false,"pinned":false,
            "pinFullscreened":false,"fullscreen":0,"fullscreenClient":0,"fullscreenHandler":"default",
-           "allowedOverFullscreen":false,"grouped":["0x1a","0x2b"],"tags":[],"swallowing":"0x0","focusHistoryID":0,
-           "inhibitingIdle":false,"xdgTag":"","xdgDescription":"","contentType":"none","tearingHint":false,"stableId":"20"},
+           "allowedOverFullscreen":false,"grouped":["0x1a","0x2b"],"tags":[],"focusHistoryID":0,
+           "xdgTag":"","xdgDescription":"","contentType":"none","tearingHint":false,"stableId":"20"},
           {"address":"0x3c","mapped":true,"hidden":false,"visible":true,"acceptsInput":true,"at":[1920,0],"size":[2560,1440],
            "workspace":{"address":"web","type":"normal","name":"web"},"floating":true,"monitor":1,"class":"code",
            "title":"editor","initialClass":"code","initialTitle":"editor","pid":300,"xwayland":false,"pinned":true,
            "pinFullscreened":false,"fullscreen":1,"fullscreenClient":1,"fullscreenHandler":"default",
-           "allowedOverFullscreen":false,"grouped":[],"tags":["dev","work"],"swallowing":"0x1a","focusHistoryID":0,
-           "inhibitingIdle":true,"xdgTag":"tag","xdgDescription":"","contentType":"video","tearingHint":false,"stableId":"21"},
+           "allowedOverFullscreen":false,"grouped":[],"tags":["dev","work"],"focusHistoryID":0,
+           "xdgTag":"tag","xdgDescription":"","contentType":"video","tearingHint":false,"stableId":"21"},
           {"address":"0x4d","mapped":false,"hidden":true,"visible":false,"acceptsInput":false,"at":[0,0],"size":[300,200],
            "workspace":{"address":"special:scratch","type":"special","name":"special:scratch"},"floating":false,"monitor":0,
            "class":"notes","title":"todo","initialClass":"notes","initialTitle":"todo","pid":400,"xwayland":false,
            "pinned":false,"pinFullscreened":false,"fullscreen":0,"fullscreenClient":0,"fullscreenHandler":"default",
-           "allowedOverFullscreen":false,"grouped":[],"tags":[],"swallowing":"0x0","focusHistoryID":0,"inhibitingIdle":false,
+           "allowedOverFullscreen":false,"grouped":[],"tags":[],"focusHistoryID":0,
            "xdgTag":"","xdgDescription":"","contentType":"none","tearingHint":false,"stableId":"22"}
         ]
         """;
@@ -485,12 +485,12 @@ public class LuaEventTests
             assert(w.class == "kitty" and w.title == "term" and w.initial_class == "kitty" and w.initial_title == "shell")
             assert(w.pid == 100 and w.xwayland == false and w.pinned == false and w.pin_fullscreened == false)
             assert(w.fullscreen == 0 and w.fullscreen_client == 0 and w.allowed_over_fullscreen == false)
-            assert(w.fullscreen_handler == "default" and w.tags[1] == "dev" and w.swallowing == nil)
-            assert(w.inhibiting_idle == false and w.xdg_tag == nil and w.xdg_description == nil and w.content_type == "none")
+            assert(w.fullscreen_handler == "default" and w.tags[1] == "dev")
+            assert(w.xdg_tag == nil and w.xdg_description == nil and w.content_type == "none")
             assert(w.stable_id == "1f" and w.layout.name == "dwindle")
             assert(w.active == true and w.tearing_hint == false and w.focus_history_id == -1 and w.nosuch == nil)
             local e = hl.get_window("class:code")
-            assert(e.swallowing == w and e.layout == nil and e.xdg_tag == "tag" and e.fullscreen == 1 and e.active == false)
+            assert(e.layout == nil and e.xdg_tag == "tag" and e.fullscreen == 1 and e.active == false)
             assert(e.monitor.name == "HDMI-A-1" and e.workspace.name == "web")
             """);
     }

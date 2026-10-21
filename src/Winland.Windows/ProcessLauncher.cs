@@ -110,29 +110,12 @@ public static class ProcessLauncher
         var flags = CreationFlags(launch);
         void* environment = null;
         var ownsEnvironment = false;
-        char[]? overlay = null;
-        var pinned = default(GCHandle);
         try
         {
             if (token is not null && PInvoke.CreateEnvironmentBlock(out environment, token, false))
             {
                 ownsEnvironment = true;
                 flags |= PROCESS_CREATION_FLAGS.CREATE_UNICODE_ENVIRONMENT;
-            }
-
-            if (launch.Environment.Count > 0)
-            {
-                overlay = EnvironmentBlock.Create(launch.Environment, environment);
-                flags |= PROCESS_CREATION_FLAGS.CREATE_UNICODE_ENVIRONMENT;
-                if (ownsEnvironment)
-                {
-                    PInvoke.DestroyEnvironmentBlock(environment);
-                    ownsEnvironment = false;
-                    environment = null;
-                }
-
-                pinned = GCHandle.Alloc(overlay, GCHandleType.Pinned);
-                environment = (void*)pinned.AddrOfPinnedObject();
             }
 
             fixed (char* desktop = "winsta0\\default")
@@ -183,8 +166,6 @@ public static class ProcessLauncher
         }
         finally
         {
-            if (pinned.IsAllocated)
-                pinned.Free();
             if (ownsEnvironment)
                 PInvoke.DestroyEnvironmentBlock(environment);
         }
@@ -206,7 +187,7 @@ public static class ProcessLauncher
         var chain = new List<int>();
         var seen = new HashSet<int> { processId };
         var current = processId;
-        // 25 levels, as Winland reads the process tree when it looks for a window to swallow.
+        // 25 levels: a window opens on the Workspace the program that started it was launched on.
         for (var i = 0; i < 25; i++)
         {
             var parent = ParentOf(current);
@@ -328,70 +309,4 @@ public static class ProcessLauncher
 
     private static InvalidOperationException Fail() =>
         new($"The program was not started ({Marshal.GetLastPInvokeError()}).");
-
-    internal static class EnvironmentBlock
-    {
-        internal static unsafe char[] Create(IReadOnlyList<EnvironmentAssignment> assignments, void* inherited)
-        {
-            var map = inherited is null ? FromProcess() : FromBlock((char*)inherited);
-            foreach (var assignment in assignments)
-                map[assignment.Name] = assignment.Value;
-
-            var length = 1;
-            foreach (var pair in map)
-                length += pair.Key.Length + pair.Value.Length + 2;
-
-            var block = new char[length];
-            var index = 0;
-            foreach (var pair in map)
-            {
-                pair.Key.CopyTo(block.AsSpan(index));
-                index += pair.Key.Length;
-                block[index++] = '=';
-                pair.Value.CopyTo(block.AsSpan(index));
-                index += pair.Value.Length;
-                block[index++] = '\0';
-            }
-
-            block[index] = '\0';
-            return block;
-        }
-
-        private static Dictionary<string, string> FromProcess()
-        {
-            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (System.Collections.DictionaryEntry entry in System.Environment.GetEnvironmentVariables())
-            {
-                if (entry.Key is string key && key.Length > 0 && !key.Contains('=') && entry.Value is string value)
-                    map[key] = value;
-            }
-
-            return map;
-        }
-
-        private static unsafe Dictionary<string, string> FromBlock(char* block)
-        {
-            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (block is null)
-                return map;
-
-            var index = 0;
-            while (block[index] != '\0')
-            {
-                var start = index;
-                while (block[index] != '\0')
-                    index++;
-
-                var entry = new string(block, start, index - start);
-                index++;
-                var split = entry.IndexOf('=');
-                if (split <= 0)
-                    continue;
-
-                map[entry[..split]] = entry[(split + 1)..];
-            }
-
-            return map;
-        }
-    }
 }

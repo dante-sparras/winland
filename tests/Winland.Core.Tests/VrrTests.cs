@@ -87,33 +87,6 @@ public class VrrTests
     }
 
     [Fact]
-    public void ASwallowedWindowStillSuppressesItsProgram()
-    {
-        var core = new Core(ConfigParser.Parse("""
-            misc:enable_swallow = true
-            misc:swallow_regex = ^(kitty)$
-            windowrulev2 = no_vrr, class:^(kitty)$
-            """));
-        core.Handle(new WindowAppeared(new WindowId(1), Area)
-        {
-            ProcessId = 100,
-            Executable = Game,
-            Traits = WindowTraits.Normal with { Class = "kitty" },
-        });
-
-        var swallowed = core.Handle(new WindowAppeared(new WindowId(2), Area)
-        {
-            ProcessId = 202,
-            AncestorProcessIds = [150, 100, 4],
-            Executable = Other,
-            Traits = WindowTraits.Normal with { Class = "mpv" },
-        });
-
-        Assert.Equal([Game], swallowed.Vrr!.Suppressed);
-        Assert.Contains(new WindowId(1), swallowed.State.Clients.Select(client => client.Window));
-    }
-
-    [Fact]
     public void FullscreenRuleFollowsTheWindowThroughACommand()
     {
         var core = new Core(ConfigParser.Parse("windowrulev2 = no_vrr, fullscreen:1, class:^(game)$\n"));

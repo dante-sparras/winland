@@ -281,7 +281,6 @@ internal sealed partial class LuaRun : IDisposable
     {
         _lua.NewTable();
         Function("config", Config);
-        Function("env", Env);
         Function("exec_cmd", ExecCmd);
         Function("on", On);
         Function("bind", Bind);
@@ -505,26 +504,6 @@ internal sealed partial class LuaRun : IDisposable
         }
 
         return string.Join(' ', items);
-    }
-
-    // hl.env(name, value).
-    private int Env(IntPtr state)
-    {
-        if (!_lua.IsStringOrNumber(1) || !_lua.IsStringOrNumber(2))
-        {
-            Warn("hl.env: name and value must be strings");
-            return 0;
-        }
-
-        var name = _lua.ToString(1, false);
-        if (name.Length == 0)
-        {
-            Warn("hl.env: name must not be empty");
-            return 0;
-        }
-
-        Emit($"env = {LineText.Escape(name)},{LineText.Escape(_lua.ToString(2, false))}");
-        return 0;
     }
 
     // hl.exec_cmd(command, rules): runs on every load, once at start in a winland.start handler, and at exit in a

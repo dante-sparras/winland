@@ -7,55 +7,6 @@ public class PassTests
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);
 
     [Fact]
-    public void PassSendsTheBoundKeyToTheWindowOnPressAndRelease()
-    {
-        var core = WithObs("bind = SUPER, F10, pass, class:^(obs)$\n");
-        core.Handle(new KeyPressed("Super_L"));
-
-        var pressed = core.Handle(new KeyPressed("F10") { ScanCode = 76 });
-        var released = core.Handle(new KeyReleased("F10") { ScanCode = 76 });
-
-        Assert.True(pressed.Consumed);
-        Assert.Equal(new KeyRelay(new WindowId(2), "F10", KeyRelayPhase.Press) { Code = 76 }, Assert.Single(pressed.Relays));
-        Assert.True(released.Consumed);
-        Assert.Equal(new KeyRelay(new WindowId(2), "F10", KeyRelayPhase.Release) { Code = 76 }, Assert.Single(released.Relays));
-    }
-
-    [Fact]
-    public void PassDoesNotChangeFocus()
-    {
-        var core = WithObs("bind = SUPER, F10, pass, class:^(obs)$\n");
-        core.Handle(new KeyPressed("Super_L"));
-
-        var pressed = core.Handle(new KeyPressed("F10"));
-
-        Assert.Null(pressed.Focus);
-        Assert.Empty(pressed.Events);
-    }
-
-    [Fact]
-    public void PassFromThePipeHasNoKeyToSend()
-    {
-        var core = WithObs("");
-
-        var reply = core.Execute("dispatch pass class:^(obs)$");
-
-        Assert.Equal("pass: no key to pass", reply.Text);
-        Assert.Empty(reply.Effect.Relays);
-    }
-
-    [Fact]
-    public void PassToAMissingWindowIsAnError()
-    {
-        var core = WithObs("");
-
-        var outcome = core.Handle(new Dispatch("pass", "class:^(nothing)$"));
-
-        Assert.Equal("pass: window not found", outcome.Error);
-        Assert.Empty(outcome.Relays);
-    }
-
-    [Fact]
     public void SendShortcutFromThePipeTapsTheKeyWithExactlyThoseModifiers()
     {
         var core = WithObs("");
@@ -126,47 +77,6 @@ public class PassTests
         Assert.Empty(outcome.Relays);
     }
 
-    [Theory]
-    [InlineData("down", new[] { KeyRelayPhase.Press })]
-    [InlineData("repeat", new[] { KeyRelayPhase.Press, KeyRelayPhase.Press })]
-    [InlineData("up", new[] { KeyRelayPhase.Release })]
-    public void SendKeyStateSendsTheRequestedEdges(string state, KeyRelayPhase[] phases)
-    {
-        var core = WithObs("");
-
-        var outcome = core.Handle(new Dispatch("sendkeystate", $"ALT, F4, {state}, class:^(obs)$"));
-
-        Assert.Equal(phases, outcome.Relays.Select(relay => relay.Phase));
-        Assert.All(outcome.Relays, relay => Assert.Equal(Modifier.Alt, relay.Modifiers));
-    }
-
-    [Fact]
-    public void SendKeyStateRejectsAnUnknownState()
-    {
-        var core = WithObs("");
-
-        var outcome = core.Handle(new Dispatch("sendkeystate", "ALT, F4, sideways, class:^(obs)$"));
-
-        Assert.Equal("sendkeystate: invalid state, must be 'down', 'repeat', or 'up'", outcome.Error);
-    }
-
-    [Fact]
-    public void APassBindRunsOnTheReleaseWithoutTheReleaseFlag()
-    {
-        var core = new Core();
-        core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, F10, pass, class:obs\n")));
-        var session = core.KeyState;
-        core.Decide(new KeyPressed("Super_L"), session);
-
-        var press = core.Decide(new KeyPressed("F10") { ScanCode = 76 }, session);
-        var release = core.Decide(new KeyReleased("F10") { ScanCode = 76 }, session);
-
-        Assert.Equal(new BindTrigger("F10", 76, Pressed: true), press.Trigger);
-        Assert.Equal("pass", Assert.Single(release.Dispatches).Dispatcher);
-        Assert.Equal(new BindTrigger("F10", 76, Pressed: false), release.Trigger);
-        Assert.True(release.Consumed);
-    }
-
     [Fact]
     public void AnOrdinaryBindDoesNotRunOnTheRelease()
     {
@@ -184,9 +94,10 @@ public class PassTests
     [Fact]
     public void TheDispatchersAreKnown()
     {
-        Assert.True(Dispatchers.IsKnown("pass"));
         Assert.True(Dispatchers.IsKnown("sendshortcut"));
-        Assert.True(Dispatchers.IsKnown("sendkeystate"));
+        Assert.False(Dispatchers.IsKnown("pass"));
+        Assert.False(Dispatchers.IsKnown("sendkeystate"));
+        Assert.False(Dispatchers.IsKnown("toggleswallow"));
     }
 
     private static Core WithObs(string config)

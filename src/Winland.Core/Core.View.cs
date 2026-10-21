@@ -127,12 +127,11 @@ public sealed partial class Core
         var snapshot = Snapshot();
         placements = Cover(WithMoved(placements), snapshot);
         var minimized = PlanMinimized(snapshot);
-        var swallowed = TakeSwallowChanges();
         return new(placements, snapshot, consumed, dispatcher, focus)
         {
             Close = close,
-            Show = Combine(show, swallowed.Show),
-            Hide = Combine(Combine(hide, minimized.Hide), swallowed.Hide),
+            Show = show ?? [],
+            Hide = Combine(hide, minimized.Hide),
             ShowMinimized = minimized.Show,
             Launches = TakeBorn(),
         };
@@ -203,10 +202,8 @@ public sealed partial class Core
     {
         var clients = new List<Client>();
         var workspaces = new List<Workspace>(_workspaces.Count);
-        var active = ActiveWindow();
         foreach (var desk in _workspaces)
         {
-            var shown = IsShown(desk.Id);
             foreach (var client in desk.Layout.Clients)
             {
                 var slot = desk.Layout.TryBounds(client.Window, out var found) ? found : client.Bounds;
@@ -216,10 +213,8 @@ public sealed partial class Core
                     Bounds = PlacedBounds(client, desk, slot),
                     Pinned = pinned,
                     PinFullscreened = _pinFullscreened.Contains(client.Window),
-                    Swallowing = SwallowedBy(client.Window),
                     Tags = TagsOf(client.Window),
                     Content = ContentOf(client.Window),
-                    InhibitingIdle = InhibitsIdle(client, shown, active),
                     AllowedOverFullscreen = OverFullscreenFlag(client.Window),
                     BelowFullscreen = _belowFullscreen.Contains(client.Window),
                 });
@@ -236,8 +231,6 @@ public sealed partial class Core
                         {
                             Bounds = tile,
                             Floating = floating,
-                            // A waiting member is not on screen, but always still holds the system awake.
-                            InhibitingIdle = InhibitsIdle(waiting, shown: false, active),
                         });
                 }
             }
@@ -265,8 +258,6 @@ public sealed partial class Core
                 hidden.Add(client);
         }
 
-        AddSwallowed(clients, hidden);
-
         var monitors = new List<Monitor>(_monitors.Count);
         var screens = new List<MonitorSnapshot>(_monitors.Count);
         var focused = FocusedId();
@@ -291,7 +282,6 @@ public sealed partial class Core
             SpecialWorkspace = SpecialOn(focused),
             ActiveMonitor = focused,
             Hidden = hidden,
-            Swallowed = SwallowedParents(),
             Monitors = monitors,
             Screens = screens,
             Groups = groups,

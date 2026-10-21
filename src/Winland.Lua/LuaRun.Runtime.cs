@@ -59,7 +59,6 @@ internal sealed partial class LuaRun
         _world = world;
         _timers = timers;
         _phase = Phase.Running;
-        FlushNotifications();
         foreach (var command in _queued)
             Report(Command(command), command);
 

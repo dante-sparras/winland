@@ -64,7 +64,6 @@ internal sealed partial class LuaRun
         Constructor("window", "cycle_next", WindowCycleNext);
         Constructor("window", "tag", label => new Dispatch("tagwindow", Join(Required("tag"), Window() ?? "")));
         Constructor("window", "clear_tags", label => new Dispatch("cleartags", Window() ?? ""));
-        Constructor("window", "toggle_swallow", label => new Dispatch("toggleswallow", ""), 0);
         Constructor("window", "pin", label => new Dispatch("pin", Join(Action() switch { Toggle.Enable => "enable", Toggle.Disable => "disable", _ => "" }, Window() ?? "")));
         Constructor("window", "bring_to_top", label => new Dispatch("bringactivetotop", ""), 0);
         Constructor("window", "alter_zorder", label => new Dispatch("alterzorder", WithSelector(Required("mode"), Window())));
@@ -87,9 +86,7 @@ internal sealed partial class LuaRun
         Constructor(null, "exit", label => new Dispatch("exit", ""), 0);
         Constructor(null, "reload_config", label => new Dispatch("reload", "", Command: true), 0);
         Constructor(null, "submap", label => new Dispatch("submap", Argument()));
-        Constructor(null, "pass", label => new Dispatch("pass", Required("window")));
         Constructor(null, "send_shortcut", SendShortcut);
-        Constructor(null, "send_key_state", SendKeyState);
         Constructor(null, "layout", label => new Dispatch("layoutmsg", Argument()));
         Constructor(null, "dpms", Dpms);
         Constructor(null, "event", label => new Dispatch("event", Argument()));
@@ -423,17 +420,6 @@ internal sealed partial class LuaRun
         var mods = Required("mods");
         var key = Required("key");
         return new Dispatch("sendshortcut", Window() is string window ? $"{mods}, {key}, {window}" : $"{mods}, {key}");
-    }
-
-    private Dispatch SendKeyState(string label)
-    {
-        var mods = Required("mods");
-        var key = Required("key");
-        var state = Required("state");
-        if (state is not ("down" or "up" or "repeat"))
-            throw Mistake("'state' must be \"down\", \"up\", or \"repeat\"");
-
-        return new Dispatch("sendkeystate", $"{mods}, {key}, {state}, {Window() ?? ""}".TrimEnd());
     }
 
     private Dispatch Dpms(string label)

@@ -34,7 +34,6 @@ internal sealed class AnimationBook
         ["specialWorkspace"] = "workspaces",
         ["specialWorkspaceIn"] = "specialWorkspace",
         ["specialWorkspaceOut"] = "specialWorkspace",
-        ["zoomFactor"] = "global",
     };
 
     private readonly Dictionary<string, AnimationLeaf> _set = new(StringComparer.Ordinal)

@@ -256,7 +256,7 @@ public class CommandServerTests
     }
 
     [Fact]
-    public void CursorBatchAndSystemInfoTravelThePipe()
+    public void CursorAndBatchTravelThePipe()
     {
         var core = new Core();
         var name = PipeName();
@@ -269,12 +269,6 @@ public class CommandServerTests
 
         var batch = CommandClient.Transact("[[BATCH]]layouts;locked", name);
         Assert.Equal("[\"dwindle\",\"master\",\"scrolling\",\"monocle\"]\n\n\n{\"locked\":false}", batch);
-
-        var info = CommandClient.Transact("systeminfo", name);
-        Assert.Contains("Winland ", info, StringComparison.Ordinal);
-        Assert.Contains("\nOS: ", info, StringComparison.Ordinal);
-        Assert.Contains("\n.NET: ", info, StringComparison.Ordinal);
-        Assert.Contains("\nMonitors:", info, StringComparison.Ordinal);
     }
 
     private static string PipeName() => "winland-" + Guid.NewGuid().ToString("N");

@@ -75,16 +75,11 @@ public sealed partial class Core
             View([])),
         ConfigErrorsRequest => new CommandReply(ExtraCommands.FormatErrors(_configErrors), View([])),
         GetOptionRequest option => new CommandReply(OptionCatalog.Describe(option.Name, _config), View([])),
-        SystemInfoRequest => Describe(ExtraCommands.FormatSystem),
         LockedRequest => new CommandReply(ExtraCommands.FormatLocked(SessionLock?.Locked == true), View([])),
         LayoutsRequest => new CommandReply(ExtraCommands.FormatLayouts(), View([])),
         AnimationsRequest animations => new CommandReply(_animations.Describe(animations.Flags.HasFlag(CommandFlags.Json)), View([])),
         SubmapRequest submap => new CommandReply(ExtraCommands.FormatSubmap(_keyState.Submap, submap.Flags.HasFlag(CommandFlags.Json)), View([])),
         ClickKillRequest => ArmClickKill(),
-        RollingLogRequest log => new CommandReply(ExtraCommands.FormatRollingLog(RollingLog.Read(), log.Flags.HasFlag(CommandFlags.Json)), View([])),
-        NotifyRequest notify => Notify(notify),
-        DismissNotifyRequest dismiss => DismissNotify(dismiss),
-        NotificationRequest notification => Notification(notification),
         KeywordRequest keyword => ApplyKeyword(keyword),
         GetPropRequest prop => ReadProp(prop),
         SetPropRequest prop => WriteProp(prop),
@@ -244,10 +239,10 @@ public sealed partial class Core
         return false;
     }
 
-    // A line that launches a program, loads a file, or sets the environment takes effect only when the
-    // config is read. Every other line, an option or a rule, applies at once.
+    // A line that launches a program or loads a file takes effect only when the config is read. Every other line, an
+    // option or a rule, applies at once.
     private static bool LiveKeyword(string keyword) =>
-        keyword is not ("exec" or "exec-once" or "execr" or "execr-once" or "exec-shutdown" or "env" or "source");
+        keyword is not ("exec" or "exec-once" or "execr" or "execr-once" or "exec-shutdown" or "source");
 
     // An option, a keyword with a category such as general:gaps_in, replaces its old value. A keyword that may
     // repeat, such as monitor, workspace or windowrulev2, adds its line after the ones already read.
@@ -298,7 +293,6 @@ public sealed partial class Core
             WindowRules = IntegrateWindowRules(current?.WindowRules, incoming.WindowRules),
             WorkspaceRules = MergeWorkspaceRules(current?.WorkspaceRules ?? WorkspaceRule.None, incoming.WorkspaceRules),
             Sources = current?.Sources ?? [],
-            Environment = current?.Environment ?? EnvironmentAssignment.None,
             Gestures = [.. current?.Gestures ?? [], .. incoming.Gestures],
         };
     }

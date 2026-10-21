@@ -6,38 +6,6 @@ namespace Winland.Windows.Tests;
 public class ProcessLauncherTests
 {
     [Fact]
-    public void LaunchHerePassesTheConfiguredEnvironmentToTheChild()
-    {
-        var directory = Path.Combine(Path.GetTempPath(), "winland-env-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
-        var file = Path.Combine(directory, "env.txt");
-        var launch = new Launch("set > env.txt", directory)
-        {
-            Environment =
-            [
-                new EnvironmentAssignment("WINLAND_ENV_PROBE", "first"),
-                new EnvironmentAssignment("WINLAND_ENV_PROBE", "second"),
-                new EnvironmentAssignment("WINLAND_ENV_OTHER", "kept"),
-            ],
-        };
-
-        try
-        {
-            var pid = ProcessLauncher.LaunchHere(launch);
-            WaitForExit(pid);
-            var text = System.Text.Encoding.Latin1.GetString(File.ReadAllBytes(file));
-            Assert.Contains("WINLAND_ENV_PROBE=second", text);
-            Assert.DoesNotContain("WINLAND_ENV_PROBE=first", text);
-            Assert.Contains("WINLAND_ENV_OTHER=kept", text);
-        }
-        finally
-        {
-            if (Directory.Exists(directory))
-                Directory.Delete(directory, recursive: true);
-        }
-    }
-
-    [Fact]
     public void ARawCommandIsPassedAsWritten()
     {
         var launch = new Launch("\"C:\\Program Files\\App\\app.exe\" --flag \"a b\"", null) { Raw = true };
@@ -143,46 +111,6 @@ public class ProcessLauncherTests
                 return;
             }
         }
-    }
-
-    // The block CreateEnvironmentBlock gives for the shell's token: NAME=value entries, each ended by a
-    // NUL, and one more NUL at the end. An entry that starts with '=' is a drive's current folder.
-    [Fact]
-    public unsafe void TheConfiguredEnvironmentOverridesAnInheritedBlock()
-    {
-        var inherited = "Path=C:\\Windows\0=C:=C:\\Users\0TEMP=C:\\Temp\0\0".ToCharArray();
-        char[] block;
-        fixed (char* pointer = inherited)
-        {
-            block = ProcessLauncher.EnvironmentBlock.Create(
-                [new EnvironmentAssignment("PATH", "D:\\tools"), new EnvironmentAssignment("WINLAND", "1")],
-                pointer);
-        }
-
-        Assert.Equal("Path=D:\\tools\0TEMP=C:\\Temp\0WINLAND=1\0\0", new string(block));
-    }
-
-    [Fact]
-    public unsafe void WithoutAnInheritedBlockTheProcessEnvironmentIsTheBase()
-    {
-        var block = new string(ProcessLauncher.EnvironmentBlock.Create([new EnvironmentAssignment("WINLAND_BLOCK_PROBE", "set")], null));
-        var entries = block.TrimEnd('\0').Split('\0');
-
-        Assert.EndsWith("\0\0", block, StringComparison.Ordinal);
-        Assert.Contains("WINLAND_BLOCK_PROBE=set", entries);
-        Assert.Contains(entries, entry => entry.StartsWith("SystemRoot=", StringComparison.OrdinalIgnoreCase));
-        Assert.All(entries, entry => Assert.True(entry.IndexOf('=') > 0, $"'{entry}' has no name."));
-    }
-
-    [Fact]
-    public unsafe void AnEmptyInheritedBlockLeavesOnlyTheConfiguredVariables()
-    {
-        var inherited = "\0\0".ToCharArray();
-        char[] block;
-        fixed (char* pointer = inherited)
-            block = ProcessLauncher.EnvironmentBlock.Create([new EnvironmentAssignment("A", "")], pointer);
-
-        Assert.Equal("A=\0\0", new string(block));
     }
 
     // Window rules match a Client by the processes that started it, nearest first.

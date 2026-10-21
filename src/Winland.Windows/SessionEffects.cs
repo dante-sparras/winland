@@ -1,10 +1,10 @@
 namespace Winland.Windows;
 
 /// <summary>
-/// Applies cursor, input, relayed key, idle, display mirror, display color and variable refresh requests from an
-/// outcome. Until <see cref="InstallSystem"/> the cursor and the system input are stand-ins, no key is sent, no idle
-/// state is set, no display is mirrored or recolored and no graphics preference is written, so tests that apply an
-/// outcome do not change the machine.
+/// Applies cursor, input, relayed key, display mirror, display color and variable refresh requests from an
+/// outcome. Until <see cref="InstallSystem"/> the cursor and the system input are stand-ins, no key is sent, no
+/// display is mirrored or recolored and no graphics preference is written, so tests that apply an outcome do not
+/// change the machine.
 /// </summary>
 public static class SessionEffects
 {
@@ -18,7 +18,6 @@ public static class SessionEffects
     private static KeyboardLayoutSwitcher? _layouts;
     private static CursorIdleTimer? _timer;
     private static IKeyRelaySender? _relay;
-    private static IdleKeeper? _idle;
     private static DisplayMirrorSession? _mirrors;
     private static GpuPreferenceSession? _vrr;
     private static DisplayColorSession? _colors;
@@ -48,7 +47,6 @@ public static class SessionEffects
         _layouts = new KeyboardLayoutSwitcher(new Win32KeyboardLayouts());
         _timer = new CursorIdleTimer(Idle);
         _relay = new Win32KeyRelaySender();
-        _idle = new IdleKeeper();
         _mirrors = new DisplayMirrorSession(new Win32DisplayTopology());
         _vrr = new GpuPreferenceSession(new RegistryGpuPreferences());
         _colors = new DisplayColorSession(new Win32DisplayColorControl());
@@ -78,15 +76,12 @@ public static class SessionEffects
             _padding = (int)Math.Round(behavior.HotspotPadding * scale);
             Idle.Configure(behavior);
             Back.Configure(behavior.WarpBackAfterNonMouseInput);
-            if (Volatile.Read(ref _installed) != 0)
-                Magnifier.Configure(behavior.Zoom);
         }
 
         if (outcome.Warp is WarpTo warp)
         {
             Idle.Warp(warp.Position);
             Back.NonMouse();
-            Magnifier.Moved(warp.Position);
         }
 
         _layouts?.Apply(outcome.KeyboardLayout);
@@ -99,7 +94,6 @@ public static class SessionEffects
             _vrr?.Apply(vrr);
 
         Relay(outcome);
-        _idle?.Set(IdleInhibit.Wanted(outcome.State));
         // A layout outcome carries the mirrors, including none. Color is applied with it, and an empty list puts back
         // a switch an earlier layout turned. Any other outcome leaves the displays alone.
         if (outcome.DisplayMirrors is { } mirrors)
@@ -120,7 +114,6 @@ public static class SessionEffects
         {
             Idle.Warp(warp.Position);
             Back.NonMouse();
-            Magnifier.Moved(warp.Position);
         }
 
         Relay(outcome);
@@ -141,8 +134,6 @@ public static class SessionEffects
             Idle.Touched(pen: source == PointerSource.Pen);
         else
             Idle.Moved();
-
-        Magnifier.Moved(position);
     }
 
     /// <summary>A touch or a pen pressed down.</summary>
@@ -174,8 +165,6 @@ public static class SessionEffects
         Idle.Reveal();
         _timer?.Dispose();
         _timer = null;
-        _idle?.Dispose();
-        _idle = null;
     }
 
     public static void RestoreSaved(InputOriginals saved) => _session?.RestoreSaved(saved);

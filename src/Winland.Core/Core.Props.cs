@@ -73,7 +73,6 @@ public sealed partial class Core
             "opacity" when opacity.Rule is OpacityRule active => new PropAlpha(active.Active.Value, active.Active.Overridden),
             "opacity_inactive" when opacity.Rule is OpacityRule inactive => new PropAlpha(inactive.Inactive.Value, inactive.Inactive.Overridden),
             "opacity_fullscreen" when opacity.Rule is OpacityRule full => new PropAlpha(full.Fullscreen.Value, full.Fullscreen.Overridden),
-            "idle_inhibit" when _idle.TryGetValue(window, out var idle) => (long)idle,
             "border_size" when workspace?.BorderSize is int border => (long)border,
             "rounding" when workspace?.Rounding == false => 0L,
             "decorate" when workspace?.Decorate is bool decorate => decorate,
@@ -90,7 +89,6 @@ public sealed partial class Core
         "active_border_color" => BorderOf(window, active: true, honorProps: false),
         "inactive_border_color" => BorderOf(window, active: false, honorProps: false),
         "decorate" or "sync_fullscreen" => true,
-        "idle_inhibit" => 0L,
         "border_size" => (long)_options.BorderSize,
         "rounding" => (long)_decoration.Rounding,
         "rounding_power" => _decoration.RoundingPower,
@@ -249,13 +247,5 @@ public sealed partial class Core
         var merged = new OpacityRule(Factor("opacity", rule.Active), Factor("opacity_inactive", rule.Inactive), Factor("opacity_fullscreen", rule.Fullscreen));
         var opaque = props.TryGetValue("opaque", out var held) && held is bool flag ? flag : ruled.Opaque;
         return new OpacityChoice(ruled.Rule is null && merged == rule ? null : merged, opaque);
-    }
-
-    private IdleInhibitMode IdleModeOf(WindowId window)
-    {
-        if (SetPropOf(window, "idle_inhibit") is long set)
-            return set is >= 0 and <= 3 ? (IdleInhibitMode)set : IdleInhibitMode.None;
-
-        return _idle.TryGetValue(window, out var mode) ? mode : IdleInhibitMode.None;
     }
 }

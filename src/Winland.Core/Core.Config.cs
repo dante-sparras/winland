@@ -57,7 +57,6 @@ public sealed partial class Core
         _session = SessionOptions.From(document);
         _debug = DebugOptions.From(document);
         ShowConfigErrors(document);
-        _environment = document.Environment;
         InstallBinds(document);
         _options = LayoutOptions.From(document);
         _scrolling = ScrollingOptions.From(document);

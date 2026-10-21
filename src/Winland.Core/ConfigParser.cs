@@ -38,7 +38,6 @@ public static partial class ConfigParser
         private readonly List<ConfigWarning> _warnings = [];
         private readonly List<WindowRule> _windowRules = [];
         private readonly List<WorkspaceRule> _workspaceRules = [];
-        private readonly List<EnvironmentAssignment> _environment = [];
         private readonly List<DeviceTag> _deviceTags = [];
         private readonly Dictionary<string, PointerDraft> _pointers = new(StringComparer.Ordinal);
         private readonly List<string> _sources = [];
@@ -69,7 +68,6 @@ public static partial class ConfigParser
                 WindowRules = [.. _windowRules],
                 WorkspaceRules = _workspaceRules.Count == 0 ? WorkspaceRule.None : [.. _workspaceRules],
                 Sources = [.. _sources],
-                Environment = _environment.Count == 0 ? EnvironmentAssignment.None : [.. _environment],
                 Gestures = [.. _gestures],
                 DeviceTags = [.. _deviceTags],
                 DevicePointers = [.. _pointers.Select(pair => new DevicePointer(pair.Key, pair.Value.Sensitivity, pair.Value.ScrollFactor, pair.Value.Rotation))],
@@ -227,16 +225,6 @@ public static partial class ConfigParser
                     _settings.Add(new Setting(lhs, rhs));
                 else
                     Warn(lineNumber, $"A script's layout is named lua:NAME, not '{rhs}'.");
-                return;
-            }
-
-            if (lhs == "env")
-            {
-                _settings.Add(new Setting(lhs, rhs));
-                if (!EnvironmentParser.TryParse(rhs, out var assignment, out var error) || assignment is null)
-                    Warn(lineNumber, error);
-                else
-                    _environment.Add(assignment);
                 return;
             }
 

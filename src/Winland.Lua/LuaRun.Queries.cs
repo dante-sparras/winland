@@ -54,11 +54,6 @@ internal sealed partial class LuaRun
             _lua.PushBoolean(_world is not null);
             return 1;
         });
-        Function("makeNotification", "hl.notification", MakeNotification);
-        Function("notificationHold", "hl.notification", NotificationHold);
-        Function("notificationRelease", "hl.notification", NotificationRelease);
-        Function("notification", "hl.notification", NotificationOp);
-        Function("notificationColor", "hl.notification", NotificationColorValue);
         _lua.PushString(BuildStamp.Version);
         if (_lua.PCall(3, 1, 0) != LuaStatus.OK)
             throw new InvalidOperationException(_lua.ToString(-1));
