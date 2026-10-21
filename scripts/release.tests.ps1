@@ -230,6 +230,27 @@ Test-Case 'abandon refuses a published release before it changes anything' {
     Assert-Equal $mutations.Count 0
 }
 
+Test-Case 'publish names the tag on every update, since a draft forgets it otherwise' {
+    $Version = '0.1.0'
+    $updates = New-Object System.Collections.Generic.List[hashtable]
+    $body = "$script:WarningBegin`nwarning`n$script:WarningEnd`n`nnotes`n"
+    function Get-RemoteTags($Context) { @{ 'rc.1-v0.1.0' = [pscustomobject]@{ Name = 'rc.1-v0.1.0'; Commit = $sha; Annotated = $true } } }
+    function Get-TagClaim($Context, $Tag) { [pscustomobject]@{ Commit = $sha; Attempt = 1; Version = '0.1.0'; Autopublish = $false; Epoch = 0 } }
+    function Find-AttemptRelease($Context, $Attempt) {
+        [pscustomobject]@{ draft = $true; prerelease = $false; tag_name = 'rc.1-v0.1.0'; id = 7; body = $body
+            assets = @('Winland-win-x64.zip', 'version.json', 'SHA256SUMS' | ForEach-Object { [pscustomobject]@{ name = $_; state = 'uploaded' } }) }
+    }
+    function New-RemoteTag($Context, $Name, $Sha, $Message) { }
+    function Update-Release($Context, $Id, [hashtable]$Fields) { $updates.Add($Fields) }
+    function Get-ReleaseById($Context, $Id) { [pscustomobject]@{ draft = ($updates.Count -lt 3); tag_name = 'v0.1.0'; body = "notes`n"; html_url = 'url' } }
+    function Invoke-Mutation([string]$Description, [scriptblock]$Action) { & $Action }
+    function Write-Step($Text) { }
+
+    Invoke-Publish @{ Remote = 'origin'; Repo = 'dante-sparras/winland' }
+    Assert-Equal $updates.Count 3
+    foreach ($fields in $updates) { Assert-Equal $fields.tag_name 'v0.1.0' }
+}
+
 if ($script:failures.Count -gt 0) {
     foreach ($failure in $script:failures) { Write-Output "FAIL $failure" }
     Write-Output "$($script:failures.Count) failed, $($script:passed) passed"

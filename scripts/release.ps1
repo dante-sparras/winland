@@ -609,7 +609,7 @@ function Invoke-Publish($Context) {
         Write-Step "$final is already published: $($release.html_url)"
         if (Test-WarningBlocks $release.body) {
             Invoke-Mutation "strip the warning blocks from the body of $final" {
-                Update-Release $Context $release.id @{ body = (Remove-WarningBlocks $release.body) }
+                Update-Release $Context $release.id @{ tag_name = $final; body = (Remove-WarningBlocks $release.body) }
             } | Out-Null
         }
         return
@@ -642,8 +642,9 @@ function Invoke-Publish($Context) {
         } | Out-Null
     }
     if (Test-WarningBlocks $release.body) {
+        # A draft forgets its tag on any update that does not name it again, so every update below names it.
         Invoke-Mutation 'strip the warning blocks from the draft body' {
-            Update-Release $Context $release.id @{ body = (Remove-WarningBlocks $release.body) }
+            Update-Release $Context $release.id @{ tag_name = $final; body = (Remove-WarningBlocks $release.body) }
         } | Out-Null
     }
     if (-not $script:PreviewOnly) {
@@ -653,7 +654,7 @@ function Invoke-Publish($Context) {
     }
     # Making the release public is the last call.
     Invoke-Mutation "publish $final" {
-        Update-Release $Context $release.id @{ draft = $false; prerelease = $false }
+        Update-Release $Context $release.id @{ tag_name = $final; draft = $false; prerelease = $false }
     } | Out-Null
     if (-not $script:PreviewOnly) {
         $done = Get-ReleaseById $Context $release.id
