@@ -22,8 +22,9 @@ public abstract record UpdateResult
 }
 
 /// <summary>
-/// Reads the newest published release and, when it differs, replaces the install this process was started from.
-/// The copy, the stop and the start are <see cref="AppInstall"/>'s.
+/// Reads the release of one channel and, when it differs, replaces the install this process was started from.
+/// Stable differs by version text. Dev differs by commit, so switching back to stable installs that release
+/// even when its version is older. The copy, the stop and the start are <see cref="AppInstall"/>'s.
 /// </summary>
 public sealed class ReleaseUpdate
 {
@@ -57,19 +58,28 @@ public sealed class ReleaseUpdate
         string executable,
         string machineDirectory,
         string userDirectory,
-        bool elevated)
+        bool elevated,
+        UpdateChannel channel = UpdateChannel.Stable,
+        string runningCommit = "")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runningVersion);
         ArgumentException.ThrowIfNullOrWhiteSpace(executable);
         ArgumentException.ThrowIfNullOrWhiteSpace(machineDirectory);
         ArgumentException.ThrowIfNullOrWhiteSpace(userDirectory);
+        ArgumentNullException.ThrowIfNull(runningCommit);
 
         var kind = InstalledCopy.Of(executable, machineDirectory, userDirectory);
         if (kind == InstallKind.None)
             return new UpdateResult.NotInstalled();
 
-        var listing = feed.Latest();
-        if (ReleaseVersion.IsCurrent(runningVersion, listing.Version))
+        var listing = feed.Latest(channel);
+        var current = channel switch
+        {
+            UpdateChannel.Stable => ReleaseVersion.IsCurrent(runningVersion, listing.Version),
+            UpdateChannel.Dev => ReleaseVersion.IsSameCommit(runningCommit, listing.Commit),
+            _ => throw new ArgumentOutOfRangeException(nameof(channel)),
+        };
+        if (current)
             return new UpdateResult.Current();
 
         var archive = feed.Download(listing.ArchiveUrl);

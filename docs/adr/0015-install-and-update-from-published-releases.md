@@ -1,7 +1,5 @@
 # Winland is installed by one command and updated by `winland update`
 
-Status: Proposed (the dev channel, issue to be filed)
-
 A user installs Winland by running one PowerShell line, `irm https://raw.githubusercontent.com/dante-sparras/winland/main/scripts/install.ps1 | iex`. The script asks two questions: whether to run Winland as administrator (Enter means yes, no gives the `--user` install), and whether to turn off Snap and the touchpad swipes (ADR 0014). It downloads `Winland-win-x64.zip` and `SHA256SUMS` from the newest published release, refuses a zip whose hash does not match, and runs `winland install`. Run again on a machine where Winland is installed, it asks nothing and updates.
 
 There are two channels. Stable is the newest published release, and every install starts on it. Dev is one rolling prerelease on the tag `dev`, rebuilt from `main` after CI passes on each commit there, with a version such as `0.1.0-dev.42+439da64`. `winland update --channel stable` or `--channel dev` switches, and Winland remembers the choice in `%USERPROFILE%\.winland`. Switching from dev to stable installs the newest stable release even when it is older.

@@ -145,6 +145,70 @@ public class ReleaseUpdateTests
         Assert.Equal([9], files.Read(Path.Combine(Config, "winland.conf")));
     }
 
+    [Fact]
+    public void TheSameDevCommitStopsBeforeTheZipEvenWhenTheVersionTextDiffers()
+    {
+        const string commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        var feed = new ScriptedFeed(Archive, Sums(Archive), "0.1.0-dev.43+bbbbbbb", commit);
+
+        var result = Apply(feed, "0.1.0-dev.42", MachineExe(), elevated: true, UpdateChannel.Dev, commit);
+
+        Assert.IsType<UpdateResult.Current>(result);
+        Assert.Equal(UpdateChannel.Dev, feed.Requested);
+        Assert.Empty(feed.Downloads);
+        Assert.Empty(session.Operations);
+        Assert.Equal([8], files.Read(Path.Combine(Machine, "winland.exe")));
+    }
+
+    [Fact]
+    public void ADifferentDevCommitReplacesTheInstall()
+    {
+        var feed = new ScriptedFeed(Archive, Sums(Archive), "0.1.0-dev.42+bbbbbbb", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+
+        var result = Apply(
+            feed,
+            "0.1.0-dev.42",
+            MachineExe(),
+            elevated: true,
+            UpdateChannel.Dev,
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+
+        var updated = Assert.IsType<UpdateResult.Updated>(result);
+        Assert.Equal("0.1.0-dev.42+bbbbbbb", updated.Version);
+        Assert.Equal(UpdateChannel.Dev, feed.Requested);
+        Assert.Equal([1], files.Read(Path.Combine(Machine, "winland.exe")));
+        Assert.Equal([9], files.Read(Path.Combine(Config, "winland.conf")));
+    }
+
+    [Fact]
+    public void SwitchingFromDevToStableInstallsTheOlderStableRelease()
+    {
+        var feed = new ScriptedFeed(Archive, Sums(Archive), "0.1.0", "cccccccccccccccccccccccccccccccccccccccc");
+
+        var result = Apply(
+            feed,
+            "0.1.0-dev.42",
+            MachineExe(),
+            elevated: true,
+            UpdateChannel.Stable,
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+
+        var updated = Assert.IsType<UpdateResult.Updated>(result);
+        Assert.Equal("0.1.0", updated.Version);
+        Assert.Equal(UpdateChannel.Stable, feed.Requested);
+        Assert.Equal([1], files.Read(Path.Combine(Machine, "winland.exe")));
+        Assert.Equal([9], files.Read(Path.Combine(Config, "winland.conf")));
+    }
+
+    private UpdateResult Apply(
+        ScriptedFeed feed,
+        string runningVersion,
+        string executable,
+        bool elevated,
+        UpdateChannel channel,
+        string runningCommit) =>
+        Update(feed).Run(runningVersion, executable, Machine, User, elevated, channel, runningCommit);
+
     private ReleaseUpdate Update(ScriptedFeed feed, Action<string>? removed = null) =>
         new(
             feed,
@@ -165,22 +229,27 @@ public class ReleaseUpdateTests
         private readonly byte[] archive;
         private readonly byte[] sums;
         private readonly string version;
+        private readonly string commit;
 
-        public ScriptedFeed(byte[] archive, string sums, string version)
+        public ScriptedFeed(byte[] archive, string sums, string version, string commit = "")
         {
             this.archive = archive;
             this.sums = System.Text.Encoding.UTF8.GetBytes(sums);
             this.version = version;
+            this.commit = commit;
         }
 
         public int LatestCalls { get; private set; }
 
         public List<string> Downloads { get; } = [];
 
-        public ReleaseListing Latest()
+        public UpdateChannel? Requested { get; private set; }
+
+        public ReleaseListing Latest(UpdateChannel channel)
         {
             LatestCalls++;
-            return new ReleaseListing(version, ArchiveUrl, SumsUrl);
+            Requested = channel;
+            return new ReleaseListing(version, ArchiveUrl, SumsUrl, commit);
         }
 
         public byte[] Download(string url)

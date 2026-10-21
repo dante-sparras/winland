@@ -54,5 +54,15 @@ public class ReleaseChecksumTests
         Assert.False(ReleaseVersion.IsCurrent("0.1.0", "0.1.0 "));
     }
 
+    [Fact]
+    public void ADevBuildIsCurrentOnlyWhenTheCommitMatches()
+    {
+        Assert.True(ReleaseVersion.IsSameCommit("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"));
+        Assert.False(ReleaseVersion.IsSameCommit("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"));
+        Assert.False(ReleaseVersion.IsSameCommit("", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+        Assert.False(ReleaseVersion.IsSameCommit("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", ""));
+        Assert.False(ReleaseVersion.IsSameCommit("  ", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+    }
+
     private static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));
 }

@@ -4,13 +4,16 @@ using System.Text.Json;
 
 namespace Winland.Install;
 
-/// <summary>The newest published release: its version, and where the zip and the checksums are.</summary>
-public sealed record ReleaseListing(string Version, string ArchiveUrl, string ChecksumsUrl);
+/// <summary>
+/// A release to install: its version, where the zip and the checksums are, and the commit for the dev channel.
+/// Stable leaves <see cref="Commit"/> empty and compares versions.
+/// </summary>
+public sealed record ReleaseListing(string Version, string ArchiveUrl, string ChecksumsUrl, string Commit = "");
 
 /// <summary>Reads a published release. Tests supply their own. No test calls GitHub.</summary>
 public interface IReleaseFeed
 {
-    ReleaseListing Latest();
+    ReleaseListing Latest(UpdateChannel channel);
 
     byte[] Download(string url);
 }
@@ -20,12 +23,17 @@ public sealed record ParsedRelease(string ArchiveUrl, string ChecksumsUrl, strin
 /// <summary>The JSON of a GitHub release and of its <c>version.json</c>.</summary>
 public static class GitHubReleaseParser
 {
-    public static ParsedRelease ReadRelease(string json)
+    public static ParsedRelease ReadRelease(string json, bool allowPrerelease = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
         using var document = JsonDocument.Parse(json);
         var root = document.RootElement;
-        if (Flag(root, "draft") || Flag(root, "prerelease"))
+        if (Flag(root, "draft"))
+            throw new InvalidOperationException(allowPrerelease
+                ? "The dev release is a draft."
+                : "The latest release is not a published release.");
+
+        if (!allowPrerelease && Flag(root, "prerelease"))
             throw new InvalidOperationException("The latest release is not a published release.");
 
         if (!root.TryGetProperty("assets", out var assets) || assets.ValueKind != JsonValueKind.Array)
@@ -72,6 +80,21 @@ public static class GitHubReleaseParser
         return version;
     }
 
+    /// <summary>The <c>commit</c> in <c>version.json</c>, or null when that field is absent.</summary>
+    public static string? ReadCommit(string json)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(json);
+        using var document = JsonDocument.Parse(json);
+        var commit = Text(document.RootElement, "commit");
+        if (commit is null)
+            return null;
+
+        if (commit.Length > 64 || commit.AsSpan().IndexOfAny("\"\r\n") >= 0)
+            throw new InvalidOperationException("The dev release's version.json has no commit.");
+
+        return commit;
+    }
+
     private static bool Flag(JsonElement root, string name) =>
         root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.True;
 
@@ -95,7 +118,8 @@ public static class GitHubReleaseParser
 
 /// <summary>
 /// The GitHub release API, called with no credentials. <see cref="ReleaseAssets.LatestUrl"/> is the newest
-/// published release, and each file is fetched from the URL that release names.
+/// published release. <see cref="ReleaseAssets.DevUrl"/> is the rolling prerelease on the tag <c>dev</c>.
+/// Each file is fetched from the URL that release names.
 /// </summary>
 public sealed class GitHubReleaseFeed : IReleaseFeed
 {
@@ -107,26 +131,43 @@ public sealed class GitHubReleaseFeed : IReleaseFeed
         this.http = http;
     }
 
-    public ReleaseListing Latest()
+    public ReleaseListing Latest(UpdateChannel channel)
     {
+        if (channel is not UpdateChannel.Stable and not UpdateChannel.Dev)
+            throw new ArgumentOutOfRangeException(nameof(channel));
+
+        var dev = channel == UpdateChannel.Dev;
+        var url = dev ? ReleaseAssets.DevUrl : ReleaseAssets.LatestUrl;
         ParsedRelease release;
         try
         {
-            release = GitHubReleaseParser.ReadRelease(GetText(ReleaseAssets.LatestUrl, github: true));
+            release = GitHubReleaseParser.ReadRelease(GetText(url, github: true), allowPrerelease: dev);
         }
         catch (JsonException)
         {
-            throw new InvalidOperationException("The published release could not be read.");
+            throw new InvalidOperationException(dev
+                ? "The dev release could not be read."
+                : "The published release could not be read.");
         }
 
         try
         {
-            var version = GitHubReleaseParser.ReadVersion(GetText(release.VersionUrl, github: false));
-            return new ReleaseListing(version, release.ArchiveUrl, release.ChecksumsUrl);
+            var body = GetText(release.VersionUrl, github: false);
+            var version = GitHubReleaseParser.ReadVersion(body);
+            var commit = "";
+            if (dev)
+            {
+                commit = GitHubReleaseParser.ReadCommit(body)
+                    ?? throw new InvalidOperationException("The dev release's version.json has no commit.");
+            }
+
+            return new ReleaseListing(version, release.ArchiveUrl, release.ChecksumsUrl, commit);
         }
         catch (JsonException)
         {
-            throw new InvalidOperationException("The published release's version.json has no version.");
+            throw new InvalidOperationException(dev
+                ? "The dev release's version.json has no version."
+                : "The published release's version.json has no version.");
         }
     }
 
@@ -160,7 +201,11 @@ public sealed class GitHubReleaseFeed : IReleaseFeed
         {
             var code = (int)response.StatusCode;
             if (code == 404 && github)
-                throw new InvalidOperationException("No published release was found.");
+            {
+                throw new InvalidOperationException(url == ReleaseAssets.DevUrl
+                    ? "No dev release was found."
+                    : "No published release was found.");
+            }
 
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException("The published release could not be read (HTTP " + code + ").");

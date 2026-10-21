@@ -82,8 +82,8 @@ static int Perform(InstallCommand command)
                 ? "Winland is uninstalled, and its config, logs and state are removed."
                 : "Winland is uninstalled.");
             return 0;
-        case InstallCommand.Update:
-            return UpdateInstalled();
+        case InstallCommand.Update update:
+            return UpdateInstalled(update.Channel);
         case InstallCommand.Tweaks tweaks:
             RecordedSettings().TurnOff(tweaks.Touchpad);
             Console.WriteLine(tweaks.Touchpad
@@ -95,8 +95,14 @@ static int Perform(InstallCommand command)
     }
 }
 
-static int UpdateInstalled()
+static int UpdateInstalled(UpdateChannel? requested)
 {
+    var saved = new FileSettingsText(UpdateChannelFile.PathFor(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
+    if (requested is UpdateChannel chosen)
+        saved.Write(UpdateChannelFile.Text(chosen));
+
+    var channel = UpdateChannelFile.Choose(requested, saved.Read());
     var executable = Environment.ProcessPath
         ?? throw new InvalidOperationException("The executable path is not available.");
     var layout = Layout();
@@ -111,7 +117,9 @@ static int UpdateInstalled()
             executable,
             layout.MachineDirectory,
             layout.UserDirectory,
-            Elevation.IsElevated());
+            Elevation.IsElevated(),
+            channel,
+            BuildStamp.Commit);
 
     switch (result)
     {
@@ -122,7 +130,7 @@ static int UpdateInstalled()
             Console.WriteLine("Winland is up to date.");
             return 0;
         case UpdateResult.NeedsAdministrator:
-            return Elevation.Relaunch(["update"]);
+            return Elevation.Relaunch(["update", "--channel", channel == UpdateChannel.Dev ? "dev" : "stable"]);
         case UpdateResult.Rejected:
             Console.Error.WriteLine("Refusing the update: the SHA-256 of Winland-win-x64.zip does not match SHA256SUMS.");
             return 1;
@@ -449,7 +457,7 @@ static int Usage()
     Console.Error.WriteLine("usage: winland");
     Console.Error.WriteLine("       winland --config <path>");
     Console.Error.WriteLine("       winland install [--user]");
-    Console.Error.WriteLine("       winland update");
+    Console.Error.WriteLine("       winland update [--channel <stable|dev>]");
     Console.Error.WriteLine("       winland uninstall [--purge]");
     Console.Error.WriteLine("       winland tweaks --off [--touchpad]");
     Console.Error.WriteLine("WINLAND_NO_ELEVATE=1 or --no-elevate starts without elevation. It exists for tests.");

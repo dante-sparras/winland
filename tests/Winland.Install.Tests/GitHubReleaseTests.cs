@@ -76,7 +76,7 @@ public class GitHubReleaseTests
         });
         using var http = new HttpClient(handler);
 
-        var listing = new GitHubReleaseFeed(http).Latest();
+        var listing = new GitHubReleaseFeed(http).Latest(UpdateChannel.Stable);
 
         Assert.Equal("0.2.0", listing.Version);
         Assert.Equal(ZipUrl, listing.ArchiveUrl);
@@ -117,7 +117,7 @@ public class GitHubReleaseTests
         var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
         using var http = new HttpClient(handler);
 
-        var error = Assert.Throws<InvalidOperationException>(() => new GitHubReleaseFeed(http).Latest());
+        var error = Assert.Throws<InvalidOperationException>(() => new GitHubReleaseFeed(http).Latest(UpdateChannel.Stable));
 
         Assert.Contains("No published release", error.Message, StringComparison.Ordinal);
         Assert.Equal(ReleaseAssets.LatestUrl, Assert.Single(handler.Calls).Url);
@@ -135,7 +135,7 @@ public class GitHubReleaseTests
         });
         using var http = new HttpClient(handler);
 
-        var error = Assert.Throws<InvalidOperationException>(() => new GitHubReleaseFeed(http).Latest());
+        var error = Assert.Throws<InvalidOperationException>(() => new GitHubReleaseFeed(http).Latest(UpdateChannel.Stable));
 
         Assert.Contains("not a published release", error.Message, StringComparison.Ordinal);
         Assert.Single(handler.Calls);
@@ -147,9 +147,76 @@ public class GitHubReleaseTests
         var handler = new RecordingHandler(_ => Text("not-json"));
         using var http = new HttpClient(handler);
 
-        var error = Assert.Throws<InvalidOperationException>(() => new GitHubReleaseFeed(http).Latest());
+        var error = Assert.Throws<InvalidOperationException>(() => new GitHubReleaseFeed(http).Latest(UpdateChannel.Stable));
 
         Assert.Contains("could not be read", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DevReadsTheTagReleaseAndItsCommit()
+    {
+        var handler = new RecordingHandler(url =>
+        {
+            if (url == ReleaseAssets.DevUrl)
+                return Text(ReleaseJson(prerelease: true));
+
+            if (url == VersionUrl)
+                return Text("{\"commit\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"date\":\"2026-10-21T00:00:00Z\",\"version\":\"0.1.0-dev.42+aaaaaaa\"}\n");
+
+            throw new InvalidOperationException(url);
+        });
+        using var http = new HttpClient(handler);
+
+        var listing = new GitHubReleaseFeed(http).Latest(UpdateChannel.Dev);
+
+        Assert.Equal("0.1.0-dev.42+aaaaaaa", listing.Version);
+        Assert.Equal("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", listing.Commit);
+        Assert.Equal([ReleaseAssets.DevUrl, VersionUrl], handler.Calls.Select(call => call.Url).ToArray());
+        Assert.All(handler.Calls, call => Assert.False(call.Authorized));
+    }
+
+    [Fact]
+    public void ADevReleaseWithoutACommitDoesNotDownloadTheZip()
+    {
+        var handler = new RecordingHandler(url =>
+        {
+            if (url == ReleaseAssets.DevUrl)
+                return Text(ReleaseJson(prerelease: true));
+
+            if (url == VersionUrl)
+                return Text("{\"date\":\"2026-10-21T00:00:00Z\",\"version\":\"0.1.0-dev.1+aaaaaaa\"}\n");
+
+            throw new InvalidOperationException(url);
+        });
+        using var http = new HttpClient(handler);
+
+        var error = Assert.Throws<InvalidOperationException>(() => new GitHubReleaseFeed(http).Latest(UpdateChannel.Dev));
+
+        Assert.Contains("no commit", error.Message, StringComparison.Ordinal);
+        Assert.Equal([ReleaseAssets.DevUrl, VersionUrl], handler.Calls.Select(call => call.Url).ToArray());
+    }
+
+    [Fact]
+    public void AMissingDevReleaseIsRefused()
+    {
+        var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+        using var http = new HttpClient(handler);
+
+        var error = Assert.Throws<InvalidOperationException>(() => new GitHubReleaseFeed(http).Latest(UpdateChannel.Dev));
+
+        Assert.Contains("No dev release", error.Message, StringComparison.Ordinal);
+        Assert.Equal(ReleaseAssets.DevUrl, Assert.Single(handler.Calls).Url);
+    }
+
+    [Fact]
+    public void APrereleaseOnTheDevTagIsAcceptedAndADraftIsNot()
+    {
+        var parsed = GitHubReleaseParser.ReadRelease(ReleaseJson(prerelease: true), allowPrerelease: true);
+
+        Assert.Equal(ZipUrl, parsed.ArchiveUrl);
+        var error = Assert.Throws<InvalidOperationException>(() =>
+            GitHubReleaseParser.ReadRelease(ReleaseJson(draft: true), allowPrerelease: true));
+        Assert.Contains("draft", error.Message, StringComparison.Ordinal);
     }
 
     private static string ReleaseJson(bool draft = false, bool prerelease = false, string? zip = ZipUrl)

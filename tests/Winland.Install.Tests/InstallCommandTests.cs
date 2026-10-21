@@ -43,6 +43,19 @@ public class InstallCommandTests
 
         Assert.False(command.RequiresAdministrator(machineInstallPresent: true));
         Assert.False(upper.RequiresAdministrator(machineInstallPresent: false));
+        Assert.Null(command.Channel);
+        Assert.Null(upper.Channel);
+    }
+
+    [Fact]
+    public void UpdateCanChooseStableOrDev()
+    {
+        var dev = Assert.IsType<InstallCommand.Update>(InstallCommand.Parse(["update", "--channel", "dev"]));
+        var stable = Assert.IsType<InstallCommand.Update>(InstallCommand.Parse(["UPDATE", "--CHANNEL", "STABLE"]));
+
+        Assert.Equal(UpdateChannel.Dev, dev.Channel);
+        Assert.Equal(UpdateChannel.Stable, stable.Channel);
+        Assert.False(dev.RequiresAdministrator(machineInstallPresent: true));
     }
 
     [Fact]
@@ -70,6 +83,9 @@ public class InstallCommandTests
     [InlineData("install", "--user", "extra")]
     [InlineData("update", "--user")]
     [InlineData("update", "extra")]
+    [InlineData("update", "--channel")]
+    [InlineData("update", "--channel", "nightly")]
+    [InlineData("update", "--channel", "dev", "extra")]
     [InlineData("tweaks")]
     [InlineData("tweaks", "--touchpad")]
     [InlineData("tweaks", "--off", "--user")]
