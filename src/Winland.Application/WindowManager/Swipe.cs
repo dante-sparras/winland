@@ -2,95 +2,30 @@ namespace Winland.Application;
 
 public sealed partial class WindowManager
 {
-    // A swipe picks its gesture once it has moved this far on one axis.
-    private const double SwipePickDistance = 5;
-
-    private TrackpadGesture? _activeGesture;
-    private GestureDirection _gestureDirection;
-    private bool _gestureFindFailed;
-    private double _swipeTotalX;
-    private double _swipeTotalY;
+    private readonly SwipeRecognizer _swipeGesture = new();
     private WorkspaceSwipe? _workspaceSwipe;
-    private int _swipeInitialDirection;
 
     private Outcome BeginSwipe()
     {
-        if (_activeGesture is not null)
-            return View([]);
-
-        _gestureFindFailed = false;
-        _swipeTotalX = 0;
-        _swipeTotalY = 0;
+        _swipeGesture.Begin();
         return View([]);
     }
 
+    // The update that picks a workspace gesture starts the workspace swipe and is its first step.
     private Outcome UpdateSwipe(SwipeUpdated updated)
     {
-        if (_gestureFindFailed)
+        var step = _swipeGesture.Update(updated, _config.Gestures, _keyState.Held);
+        if (step.Picked)
+            StartWorkspaceSwipe();
+
+        if (step.Along is not double along || _swipeGesture.Active is not { IsWorkspace: true } || _workspaceSwipe is not { } swipe)
             return View([]);
 
-        _swipeTotalX += updated.DeltaX;
-        _swipeTotalY += updated.DeltaY;
-        if (_activeGesture is null && Math.Abs(_swipeTotalX) < SwipePickDistance && Math.Abs(_swipeTotalY) < SwipePickDistance)
-            return View([]);
-
-        if (_activeGesture is null && !PickGesture(updated.Fingers))
-        {
-            _gestureFindFailed = true;
-            return View([]);
-        }
-
-        return UpdateActive(updated);
-    }
-
-    // One step of the workspace swipe a swipe picked. The update that picked it is its first step.
-    private Outcome UpdateActive(SwipeUpdated updated)
-    {
-        if (_activeGesture is not { IsWorkspace: true } gesture || _workspaceSwipe is not { } swipe)
-            return View([]);
-
-        var along = gesture.Scale * TrackpadGesture.Along(_gestureDirection, updated.DeltaX, updated.DeltaY);
         return StepWorkspaceSwipe(swipe, swipe.Delta + (_config.Swipe.Invert ? -along : along));
     }
 
-    private Outcome EndSwipe()
-    {
-        // An update after the fingers lift belongs to no swipe until the next one begins.
-        _gestureFindFailed = true;
-        var gesture = _activeGesture;
-        _activeGesture = null;
-        return gesture is { IsWorkspace: true } && _workspaceSwipe is { } swipe ? FinishWorkspaceSwipe(swipe) : View([]);
-    }
-
-    private bool PickGesture(int fingers)
-    {
-        var axis = Math.Abs(_swipeTotalX) > Math.Abs(_swipeTotalY) ? GestureDirection.Horizontal : GestureDirection.Vertical;
-        var direction = axis == GestureDirection.Horizontal
-            ? _swipeTotalX < 0 ? GestureDirection.Left : GestureDirection.Right
-            : _swipeTotalY < 0 ? GestureDirection.Up : GestureDirection.Down;
-        var held = _keyState.Held;
-        foreach (var gesture in _config.Gestures)
-        {
-            if (gesture.Direction != axis && gesture.Direction != direction && gesture.Direction != GestureDirection.Swipe)
-                continue;
-
-            if (gesture.Fingers != fingers || gesture.Modifiers != held)
-                continue;
-
-            Activate(gesture);
-            return true;
-        }
-
-        return false;
-    }
-
-    // A workspace swipe reads distance along its configured direction.
-    private void Activate(TrackpadGesture gesture)
-    {
-        _activeGesture = gesture;
-        _gestureDirection = gesture.Direction;
-        StartWorkspaceSwipe();
-    }
+    private Outcome EndSwipe() =>
+        _swipeGesture.End() is { IsWorkspace: true } && _workspaceSwipe is { } swipe ? FinishWorkspaceSwipe(swipe) : View([]);
 
     private void StartWorkspaceSwipe()
     {
@@ -145,10 +80,10 @@ public sealed partial class WindowManager
         if (_config.Swipe.DirectionLock)
         {
             var sign = swipe.Delta < 0 ? -1 : 1;
-            if (_swipeInitialDirection != 0 && _swipeInitialDirection != sign)
+            if (swipe.LockedSign != 0 && swipe.LockedSign != sign)
                 swipe.Delta = 0;
-            else if (_swipeInitialDirection == 0 && Math.Abs(swipe.Delta) > _config.Swipe.DirectionLockThreshold)
-                _swipeInitialDirection = sign;
+            else if (swipe.LockedSign == 0 && Math.Abs(swipe.Delta) > _config.Swipe.DirectionLockThreshold)
+                swipe.LockedSign = sign;
         }
 
         var toward = swipe.Delta < 0 ? left : right;
@@ -180,7 +115,6 @@ public sealed partial class WindowManager
             right = Resolve("r+1", swipe.Monitor);
 
         _workspaceSwipe = null;
-        _swipeInitialDirection = 0;
 
         var magnitude = Math.Abs(swipe.Delta);
         var slow = _config.Swipe.MinSpeedToForce == 0 || swipe.AverageSpeed < _config.Swipe.MinSpeedToForce;
@@ -248,5 +182,8 @@ public sealed partial class WindowManager
         public double AverageSpeed { get; set; }
 
         public int SpeedPoints { get; set; }
+
+        /// <summary>With <c>gestures:workspace_swipe_direction_lock</c>, the sign of the way the swipe first went far enough.</summary>
+        public int LockedSign { get; set; }
     }
 }
