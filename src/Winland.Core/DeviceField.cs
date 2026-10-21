@@ -5,7 +5,7 @@ namespace Winland;
 /// <summary>
 /// The device field of a <c>bind</c> line with the <c>k</c> flag. <c>+</c> matches only the named devices and
 /// <c>-</c> matches every device but those, as Winland's inclusive flag does. Names are separated by a
-/// private-use character so a name may contain a comma, which <see cref="LineText"/> keeps.
+/// private-use character.
 /// </summary>
 internal static class DeviceField
 {
@@ -20,7 +20,7 @@ internal static class DeviceField
         {
             if (i > 0)
                 result.Append(Separator);
-            result.Append(LineText.Escape(names[i]));
+            result.Append(names[i]);
         }
 
         return result.ToString();
@@ -42,9 +42,8 @@ internal static class DeviceField
         var list = new List<string>(parts.Length);
         foreach (var part in parts)
         {
-            var name = LineText.Unescape(part);
-            if (name.Length > 0)
-                list.Add(name);
+            if (part.Length > 0)
+                list.Add(part);
         }
 
         names = [.. list];

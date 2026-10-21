@@ -47,9 +47,9 @@ public sealed partial class Core
         return UpdateActive(new SwipeUpdated(pinched.Fingers, pinched.DeltaX, pinched.DeltaY) { TimeMs = pinched.TimeMs }, begun);
     }
 
-    private Outcome EndPinch(bool cancelled, long timeMs)
+    private Outcome EndPinch(bool cancelled)
     {
-        var ended = EndSwipe(cancelled, timeMs);
+        var ended = EndSwipe(cancelled);
         _pinching = false;
         return ended;
     }

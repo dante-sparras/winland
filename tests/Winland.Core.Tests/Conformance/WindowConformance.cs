@@ -789,7 +789,7 @@ public class WindowConformance
         Assert.Equal("kitty_exec_workspace", Desk.ClassOf(active));
         Assert.Equal(2, Desk.WorkspaceId(active));
 
-        // The options of the Lua call follow the command's own rules.
+        // The options in the rule block follow the command's own rules.
         Launch(desk, "[workspace 3; border_size 7; workspace special:exec_rules silent; no_initial_focus; no_focus] kitty --class kitty_exec_special & wait", pid: 4101);
         Started(desk, window: 2, parent: 4101);
         ExpectProcess(desk.Spawn("kitty_exec_special"), Pid(2));

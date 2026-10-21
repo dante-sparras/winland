@@ -13,16 +13,15 @@ public class ConfigPathsTests
     }
 
     [Fact]
-    public void ALuaConfigIsReadInsteadWhenThereIsOne()
+    public void ALuaFileBesideTheConfigIsNotRead()
     {
         var data = Path.Combine(Path.GetTempPath(), "winland-config-paths-" + Guid.NewGuid().ToString("N"));
         var lua = Path.Combine(data, "winland", "winland.lua");
         Directory.CreateDirectory(Path.GetDirectoryName(lua)!);
         try
         {
-            Assert.Equal(Path.Combine(data, "winland", "winland.conf"), ConfigPaths.Default(data));
             File.WriteAllText(lua, "hl.config({})\n");
-            Assert.Equal(lua, ConfigPaths.Default(data));
+            Assert.Equal(Path.Combine(data, "winland", "winland.conf"), ConfigPaths.Default(data));
         }
         finally
         {

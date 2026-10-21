@@ -80,44 +80,6 @@ public class PseudoLayoutTests
         Assert.Equal(new Rectangle(562, 242, 796, 596), BoundsOf(outcome, 1));
     }
 
-    [Fact]
-    public void PseudotileCentersInTheBoxACustomLayoutPlaced()
-    {
-        var (core, script) = Open();
-        core.Handle(Appeared(1, new Rectangle(0, 0, 400, 300)));
-        core.Handle(Appeared(2, new Rectangle(0, 0, 400, 300)));
-        core.Execute(script.Last.Answer(new Dictionary<int, LayoutBox>
-        {
-            [0] = new(0, 0, 1200, 1080),
-            [1] = new(1200, 0, 720, 1080),
-        }));
-
-        var on = core.Handle(new Pseudo(new WindowId(2)));
-        var off = core.Handle(new Pseudo(new WindowId(2)));
-
-        Assert.Equal(new Rectangle(0, 0, 1200, 1080), BoundsOf(on, 1));
-        Assert.Equal(new Rectangle(1360, 390, 400, 300), BoundsOf(on, 2));
-        Assert.Equal(new Rectangle(1200, 0, 720, 1080), BoundsOf(off, 2));
-    }
-
-    [Fact]
-    public void PseudotileScalesDownToFitACustomLayoutsBox()
-    {
-        var (core, script) = Open();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2, new Rectangle(0, 0, 1280, 720)));
-        core.Execute(script.Last.Answer(new Dictionary<int, LayoutBox>
-        {
-            [0] = new(0, 0, 960, 1080),
-            [1] = new(960, 0, 960, 1080),
-        }));
-
-        var outcome = core.Handle(new Pseudo(new WindowId(2)));
-
-        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(960, 270, 960, 540), BoundsOf(outcome, 2));
-    }
-
     private static string Flat(string extra) =>
         "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 
@@ -126,17 +88,6 @@ public class PseudoLayoutTests
         var core = new Core();
         core.Handle(new Configure(ConfigParser.Parse(text)));
         return core;
-    }
-
-    private static (Core Core, Script Script) Open()
-    {
-        var script = new Script();
-        var core = new Core { LayoutScripts = script };
-        core.Handle(new Configure(ConfigParser.Parse(Flat("""
-            lualayout = lua:rows
-            general:layout = lua:rows
-            """))));
-        return (core, script);
     }
 
     private static WindowAppeared Appeared(long window, Rectangle bounds = default) =>
@@ -149,12 +100,4 @@ public class PseudoLayoutTests
         return placement.Bounds;
     }
 
-    private sealed class Script : ILayoutScripts
-    {
-        public List<LayoutRequest> Requests { get; } = [];
-
-        public LayoutRequest Last => Requests[^1];
-
-        public void Arrange(LayoutRequest request) => Requests.Add(request);
-    }
 }

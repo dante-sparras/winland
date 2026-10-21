@@ -15,9 +15,6 @@ public sealed partial class Core
     // Whether the last pass found a rule that reads state.
     private bool _matchedState;
 
-    // A named rule was turned off or on, or replaced. The next pass matches every window even when no rule reads state.
-    private bool _forceRuleMatch;
-
     private IReadOnlyList<string> TagsOf(WindowId window) =>
         _ruleTags.TryGetValue(window, out var tags) || _staticTags.TryGetValue(window, out tags) ? [.. tags] : [];
 
@@ -39,11 +36,9 @@ public sealed partial class Core
     {
         tagsChanged = false;
         var placements = new List<Placement>();
-        var forced = _forceRuleMatch;
-        _forceRuleMatch = false;
         // Once no rule reads state, one more pass puts back what the rules give a window when it opens.
         var reads = ReadsState(_rules) || FollowedReadState();
-        if (!reads && !_matchedState && !forced)
+        if (!reads && !_matchedState)
             return placements;
 
         _matchedState = reads;
@@ -75,16 +70,6 @@ public sealed partial class Core
                 RememberOpacity(client.Window, decision);
                 if (_focusRules.TryGetValue(client.Window, out var focus))
                     _focusRules[client.Window] = focus with { NoFocus = decision.NoFocus, StayFocused = decision.StayFocused };
-                if (forced && _sizes.TryGetValue(client.Window, out var keptSizes))
-                {
-                    var sizes = ResolvedSizes(desk, client, decision);
-                    if (sizes != keptSizes.Rule)
-                    {
-                        RememberSizes(client.Window, sizes, keptSizes.OwnMin, keptSizes.OwnMax);
-                        if (IsShown(desk.Id))
-                            placements.AddRange(ApplyLimits(client.Window, desk));
-                    }
-                }
 
                 changed |= !Equals(border, RulePropOf(client.Window, "border_size"));
             }

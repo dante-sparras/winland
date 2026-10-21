@@ -8,8 +8,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Winland.Core.Tests" />
-    <InternalsVisibleTo Include="Winland.Lua" />
-    <InternalsVisibleTo Include="Winland.Lua.Tests" />
     <InternalsVisibleTo Include="Winland.Windows" />
     <InternalsVisibleTo Include="Winland.Windows.Tests" />
   </ItemGroup>

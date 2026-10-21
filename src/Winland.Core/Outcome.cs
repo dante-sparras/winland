@@ -92,9 +92,6 @@ public sealed record Outcome(
 
     public IReadOnlyList<StreamEvent> Events { get; init; } = [];
 
-    /// <summary>The phases of a swipe that <c>luafunction</c> gestures took, in order, for the host to hand the Lua config.</summary>
-    public IReadOnlyList<GestureCall> GestureCalls { get; init; } = [];
-
     public IReadOnlyList<Decoration> Decorations { get; init; } = [];
 
     /// <summary>How the windows in this outcome animate to their placements, shows, hides and closes.</summary>
@@ -172,9 +169,6 @@ public sealed record Outcome(
 
     /// <summary>Clients to raise above or lower below the other windows, in order.</summary>
     public IReadOnlyList<ZOrderRequest> ZOrder { get; init; } = [];
-
-    /// <summary>Text a bound dispatcher reports on success. Empty when the dispatcher has nothing to say.</summary>
-    public string? Notice { get; init; }
 
     /// <summary>Where this outcome falls among the ones its Core produced. Null for an outcome made outside a Core.</summary>
     public OutcomeOrder? Order { get; init; }

@@ -99,7 +99,6 @@ public class DisplayOrientationTests
             nameof(Outcome.Launches), // WindowAdapter.ApplyCore
             nameof(Outcome.Launch), // shorthand for Launches
             nameof(Outcome.Events), // Core.Noticed, the event stream
-            nameof(Outcome.GestureCalls), // Core.Noticed, LuaRuntime.Listen
             nameof(Outcome.Decorations), // WindowAdapter.ApplyCore
             nameof(Outcome.Motions), // WindowAdapter.ApplyCore
             nameof(Outcome.Live), // WindowAdapter.ApplyCore
@@ -125,7 +124,6 @@ public class DisplayOrientationTests
             nameof(Outcome.DisplayPower), // WindowAdapter.ApplyCore
             nameof(Outcome.Relays), // SessionEffects
             nameof(Outcome.ZOrder), // WindowAdapter.ApplyCore
-            nameof(Outcome.Notice), // command replies
             nameof(Outcome.Order), // WindowAdapter.Apply through ApplyOrder
         ];
 

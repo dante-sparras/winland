@@ -47,7 +47,7 @@ public sealed partial class Core
     private CommandReply DispatchReply(DispatchRequest dispatch)
     {
         var effect = Execute(dispatch.Name, dispatch.Arguments);
-        return new CommandReply(effect.Error ?? effect.Notice ?? "ok", effect);
+        return new CommandReply(effect.Error ?? "ok", effect);
     }
 
     // Winland's text reply for a query that finds nothing, such as "no open windows"; with j/ it stays the
@@ -87,12 +87,6 @@ public sealed partial class Core
         SwitchLayoutRequest layout => SwitchLayout(layout),
         DevicesRequest devices => DevicesReply(devices),
         BatchRequest batch => RunBatch(batch.Payload),
-        ResolveWorkspaceRequest resolve => ResolveWorkspace(resolve.Arguments, resolve.Flags.HasFlag(CommandFlags.Json)),
-        GroupAddRequest add => GroupAdd(add.Arguments),
-        GroupRemoveRequest remove => GroupRemove(remove.Arguments),
-        SetWorkspaceRequest show => SetWorkspaceOn(show.Arguments),
-        SetSpecialWorkspaceRequest special => SetSpecialOn(special.Arguments),
-        LayoutPlaceRequest place => PlaceScripted(place.Arguments),
         _ => throw new InvalidOperationException("No handler for this command."),
     };
 
@@ -181,8 +175,7 @@ public sealed partial class Core
 
     private CommandReply ApplyKeyword(KeywordRequest request)
     {
-        // An empty value is a value only for the keyboard options, whose default is empty, and which the Lua config's
-        // hl.config sets to "" through here.
+        // An empty value is a value only for the keyboard options, whose default is empty.
         if (request.Name.Length == 0 || (request.Value.Length == 0 && !request.Name.StartsWith("input:kb_", StringComparison.Ordinal)))
             return new CommandReply("error: invalid keyword", View([]));
 
@@ -203,40 +196,9 @@ public sealed partial class Core
         }
 
         var kept = _configErrors;
-        var namedWindows = NamesAWindowRule(parsed);
-        var namedWorkspaces = NamesAWorkspaceRule(parsed);
         var outcome = Apply(MergeLive(_config, parsed));
         _configErrors = kept;
-
-        // A named rule is one the Lua object can turn off. That re-reads the windows and workspaces already there.
-        if (namedWorkspaces)
-            outcome = RestampWorkspaces(outcome);
-        if (namedWindows || namedWorkspaces)
-            _forceRuleMatch = true;
-
         return new CommandReply("ok", outcome);
-    }
-
-    private static bool NamesAWindowRule(ConfigDocument document)
-    {
-        foreach (var rule in document.WindowRules)
-        {
-            if (rule.RuleId != 0 || rule.Edit != WindowRuleEdit.None)
-                return true;
-        }
-
-        return false;
-    }
-
-    private static bool NamesAWorkspaceRule(ConfigDocument document)
-    {
-        foreach (var rule in document.WorkspaceRules)
-        {
-            if (rule.RuleId != 0)
-                return true;
-        }
-
-        return false;
     }
 
     // A line that launches a program or loads a file takes effect only when the config is read. Every other line, an
@@ -268,15 +230,8 @@ public sealed partial class Core
             }
         }
 
-        var control = WindowRuleControl(incoming);
         foreach (var setting in incoming.Settings)
-        {
-            // A drop or ruleon line changes a rule already stored. It is not another window rule.
-            if (control && setting.Keyword == "windowrulev2")
-                continue;
-
             settings.Add(setting);
-        }
 
         var binds = new List<BindDirective>();
         if (current is not null)
@@ -297,43 +252,13 @@ public sealed partial class Core
         };
     }
 
-    private static bool WindowRuleControl(ConfigDocument incoming)
-    {
-        if (incoming.WindowRules.Count == 0)
-            return false;
-
-        foreach (var rule in incoming.WindowRules)
-        {
-            if (rule.Edit == WindowRuleEdit.None)
-                return false;
-        }
-
-        return true;
-    }
-
     private static List<WindowRule> IntegrateWindowRules(IReadOnlyList<WindowRule>? current, IReadOnlyList<WindowRule> incoming)
     {
-        var rules = WithoutEdits(current);
+        var rules = current is null ? [] : new List<WindowRule>(current);
         foreach (var rule in incoming)
-            WindowRuleParser.Integrate(rules, rule);
+            rules.Add(rule);
 
         return rules;
-    }
-
-    // A drop or ruleon line is how a named rule is changed. It is not itself a rule that matches a window.
-    private static List<WindowRule> WithoutEdits(IReadOnlyList<WindowRule>? rules)
-    {
-        var live = new List<WindowRule>();
-        if (rules is null)
-            return live;
-
-        foreach (var rule in rules)
-        {
-            if (rule.Edit == WindowRuleEdit.None)
-                live.Add(rule);
-        }
-
-        return live;
     }
 
     // A rule for a Workspace that already has one merges into it, as a second line in the config does.

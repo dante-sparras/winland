@@ -25,9 +25,6 @@ public static partial class ConfigParser
             }
 
             var parts = SplitArgs(rhs, null);
-            for (var i = 0; i < parts.Count; i++)
-                parts[i] = LineText.Unescape(parts[i]);
-
             if (!int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var fingers) || fingers is <= 1 or >= 10)
             {
                 Warn(lineNumber, $"Invalid value {parts[0]} for finger count.");
@@ -85,7 +82,7 @@ public static partial class ConfigParser
 
             var action = index < parts.Count ? parts[index] : "";
             var takesArgument = action is TrackpadGesture.SpecialAction or TrackpadGesture.DispatcherAction
-                or TrackpadGesture.FloatAction or TrackpadGesture.FullscreenAction or TrackpadGesture.FunctionAction;
+                or TrackpadGesture.FloatAction or TrackpadGesture.FullscreenAction;
             var argument = takesArgument && index + 1 < parts.Count ? parts[index + 1].Trim() : "";
 
             // A dispatcher gesture takes the dispatcher and then its arguments, which may hold commas of their own.

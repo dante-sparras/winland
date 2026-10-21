@@ -28,8 +28,6 @@ public static class ControlInvocation
                winlandctl [-j] [-r] [-a] keyword <name> <value>
                winlandctl [-j] [-r] [-a] getprop <window> <property>
                winlandctl [-j] [-r] [-a] setprop <window> <property> <value>
-               winlandctl eval <lua>
-               winlandctl repl <lua>
                winlandctl [-j] [-r] [-a] --batch <commands>
 
         """;
@@ -160,9 +158,7 @@ public static class ControlInvocation
         || verb.Equals("getprop", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("setprop", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("seterror", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("switchxkblayout", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("eval", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("repl", StringComparison.OrdinalIgnoreCase);
+        || verb.Equals("switchxkblayout", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsBare(string verb) =>
         verb.Equals("clients", StringComparison.OrdinalIgnoreCase)

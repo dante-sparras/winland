@@ -1,14 +1,12 @@
 using System.Text.Json;
 using Winland;
-using Winland.Lua;
 
 namespace Winland.Tests.Conformance;
 
 /// <summary>
 /// The reference test harness's desktop, rebuilt on the core: two 1920x1080 monitors side by side, its config,
 /// workspace 1 focused and the pointer in the middle of the first monitor. A conformance test drives it with the
-/// same commands the reference case sends over its socket, and checks the same replies. <see cref="WithLua"/> builds
-/// it with a Lua config running, as the reference's is.
+/// same commands the reference case sends over its socket, and checks the same replies.
 /// </summary>
 internal sealed class Desk : IDisposable
 {
@@ -76,131 +74,26 @@ internal sealed class Desk : IDisposable
     private readonly List<Monitor> _monitors = [];
     private State _state = new([]);
 
-    // The Lua's dispatches reach the desk from the Lua thread, so the desk's own state is changed under this.
+    // The desk's own state is changed under this.
     private readonly Lock _gate = new();
-    private readonly LuaRuntime? _lua;
-    private LuaSession? _pending;
 
     /// <summary>
     /// Builds the desktop. <paramref name="extra"/> is config after the reference config: the options a case sets
     /// before its first window opens. <c>reload</c> reads the same text again.
     /// </summary>
     internal Desk(string extra = "")
-        : this(extra, lua: null, files: null)
-    {
-    }
-
-    private Desk(string extra, string? lua, IReadOnlyDictionary<string, string>? files)
     {
         var text = Config + "\n" + extra;
         Core = new Core { Cursor = new PointerReader(this), Devices = new TestDevices() };
-        if (lua is null)
-        {
-            Core.ReadConfig = () => new ConfigRead(ConfigParser.Parse(text));
-            Handle(new Configure(ConfigParser.Parse(text)));
-        }
-        else
-        {
-            // A bind to a Lua function names Winland's own dispatcher, which the daemon binds. No case presses one.
-            _ = Dispatchers.TryBind(LuaConfig.FunctionDispatcher, _ => new DispatcherResult(null, null), out _);
-            var runtime = new LuaRuntime(new LuaWorld(this));
-            _lua = runtime;
-            runtime.Listen(Core);
-            Core.LayoutScripts = runtime;
-            Core.ReadConfig = () => new ConfigRead(ReadLua(text, lua, files));
-            Core.AfterReload = _ => runtime.Adopt(TakeLua());
-            Handle(new Configure(ReadLua(text, lua, files)));
-        }
-
+        Core.ReadConfig = () => new ConfigRead(ConfigParser.Parse(text));
+        Handle(new Configure(ConfigParser.Parse(text)));
         Pointer = new Point(960, 540);
         AddMonitor("HEADLESS-2", First);
         Handle(new PointerMoved(Pointer));
-        _lua?.Adopt(TakeLua());
-    }
-
-    /// <summary>The folder of the Lua config of <see cref="WithLua"/>. Nothing is written there.</summary>
-    internal static readonly string LuaFolder = Path.Combine(Path.GetTempPath(), "winland-desk");
-
-    /// <summary>
-    /// Builds the desktop with <paramref name="lua"/> as a running Lua config, read from <c>winland.lua</c> in
-    /// <see cref="LuaFolder"/> after the reference config. <paramref name="files"/> are the files it can require, by
-    /// their path from that folder with forward slashes. <c>eval</c>, <c>repl</c> and a <c>dispatch</c> with a Lua
-    /// call in it go to the Lua, as the daemon routes them, and the Lua's dispatches come back as pipe commands do.
-    /// <c>reload</c> runs the Lua again.
-    /// </summary>
-    internal static Desk WithLua(string lua, string extra = "", IReadOnlyDictionary<string, string>? files = null) =>
-        new(extra, lua, files);
-
-    /// <summary>What the running Lua wrote to the log.</summary>
-    internal List<string> LuaLog { get; } = [];
-
-    // A read of the Lua config: the reference config, then the lines its hl calls make. Its Lua waits until the
-    // config it came with is in use, as the daemon's does.
-    private ConfigDocument ReadLua(string text, string lua, IReadOnlyDictionary<string, string>? files)
-    {
-        var load = LuaConfig.Load(lua + "\n" + TestPlugin, Path.Combine(LuaFolder, "winland.lua"), new LuaFiles(files ?? new Dictionary<string, string>()));
-        _pending?.Dispose();
-        _pending = load.Session;
-        return ConfigParser.Parse(text + "\n" + load.Translation.Text);
-    }
-
-    // The Lua calls of the reference's test plugin that a case uses. Each sends the desk a command of its own, which
-    // its Lua world answers, since Winland's Lua has no plugin calls. It follows the config, so its line numbers stay.
-    private const string TestPlugin = $$"""
-        hl.plugin = hl.plugin or {}
-        hl.plugin.test = hl.plugin.test or {}
-        hl.plugin.test.gesture = function(direction, fingers)
-            hl.dispatch({ __winland_dispatcher = "{{TestCommand}} gesture " .. tostring(direction) .. " " .. tostring(fingers), __winland_command = "true" })
-        end
-        """;
-
-    // The verb of the test plugin's commands.
-    private const string TestCommand = "desk-test-plugin";
-
-    /// <summary>
-    /// Swipes the touchpad as the reference's test plugin does: a begin, one update 300 pixels along
-    /// <paramref name="direction"/> (up, down, left, anything else right), and an end.
-    /// </summary>
-    internal IReadOnlyList<Outcome> Swipe(string direction, int fingers)
-    {
-        var (x, y) = direction switch
-        {
-            "down" => (0, 300),
-            "up" => (0, -300),
-            "left" => (-300, 0),
-            _ => (300, 0),
-        };
-
-        return [Handle(new SwipeBegan(fingers)), Handle(new SwipeUpdated(fingers, x, y)), Handle(new SwipeEnded())];
-    }
-
-    // A command of the test plugin, or null for a pipe command.
-    private string? TestPluginCommand(string command)
-    {
-        var words = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (words.Length == 0 || words[0] != TestCommand)
-            return null;
-
-        if (words is [_, "gesture", var direction, var count] && int.TryParse(count, System.Globalization.CultureInfo.InvariantCulture, out var fingers))
-        {
-            _ = Swipe(direction, fingers);
-            return "ok";
-        }
-
-        return "error: unknown test plugin command";
-    }
-
-    private LuaSession? TakeLua()
-    {
-        var session = _pending;
-        _pending = null;
-        return session;
     }
 
     public void Dispose()
     {
-        _lua?.Dispose();
-        _pending?.Dispose();
     }
 
     internal Core Core { get; }
@@ -284,24 +177,13 @@ internal sealed class Desk : IDisposable
             Follow(outcome);
         }
 
-        Settle();
         return outcome;
     }
 
     /// <summary>
-    /// Sends one pipe line, such as <c>dispatch focuswindow class:a</c> or <c>keyword general:gaps_in 0</c>. With a
-    /// Lua config, the lines the Lua answers go to it.
+    /// Sends one pipe line, such as <c>dispatch focuswindow class:a</c> or <c>keyword general:gaps_in 0</c>.
     /// </summary>
-    internal string Send(string line)
-    {
-        var reply = _lua?.Answer(line, Execute) ?? Execute(line);
-        Settle();
-        return reply;
-    }
-
-    // With a Lua config, waits for what the Lua does in answer, such as a custom layout placing the windows, as the
-    // reference's layouts place them before its reply.
-    private void Settle() => _lua?.Settle(LuaRuntime.EvalWait);
+    internal string Send(string line) => Execute(line);
 
     private string Execute(string line)
     {
@@ -458,29 +340,5 @@ internal sealed class Desk : IDisposable
         ];
 
         public IReadOnlyList<InputDevice> Read() => Plugged;
-    }
-
-    // The files a Lua config can require, by their path from LuaFolder, read and listed as the daemon's reader does.
-    private sealed class LuaFiles(IReadOnlyDictionary<string, string> files) : IConfigSource
-    {
-        public string? Read(string path) => files.TryGetValue(Relative(path), out var content) ? content : null;
-
-        public IReadOnlyList<string> Match(string pattern) =>
-            [.. files.Keys.Select(file => Path.GetFullPath(Path.Combine(LuaFolder, file))).Where(full => SourcePath.Matches(pattern, full))];
-
-        private static string Relative(string full) =>
-            Path.GetRelativePath(LuaFolder, full).Replace(Path.DirectorySeparatorChar, '/');
-    }
-
-    // What the running Lua reaches: the desk's pipe, as the daemon's window host is, and its log.
-    private sealed class LuaWorld(Desk desk) : ILuaWorld
-    {
-        public string Command(string command) => desk.TestPluginCommand(command) ?? desk.Execute(command);
-
-        public void Log(string message)
-        {
-            lock (desk.LuaLog)
-                desk.LuaLog.Add(message);
-        }
     }
 }

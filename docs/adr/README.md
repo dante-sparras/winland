@@ -25,7 +25,7 @@ An ADR without a Status line is accepted and true against the code. `Status: Pro
 
 ## Extending
 
-- [0011](0011-plugins-are-in-process-and-hash-approved.md): no plugins; scripts extend Winland over the IPC pipe as the normal user. (proposed)
+- [0011](0011-plugins-are-in-process-and-hash-approved.md): no plugins; scripts extend Winland over the IPC pipe as the normal user.
 
 ## Reliability
 

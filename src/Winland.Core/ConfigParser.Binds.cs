@@ -46,7 +46,7 @@ public static partial class ConfigParser
             var index = 2;
             if (hasDescription)
             {
-                description = LineText.Unescape(parts[2]);
+                description = parts[2];
                 index = 3;
             }
 

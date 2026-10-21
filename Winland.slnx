@@ -1,7 +1,6 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Winland.Core/Winland.Core.csproj" />
-    <Project Path="src/Winland.Lua/Winland.Lua.csproj" />
     <Project Path="src/Winland.Windows/Winland.Windows.csproj" />
     <Project Path="src/winlandctl/winlandctl.csproj" />
     <Project Path="src/Winland.Install/Winland.Install.csproj" />
@@ -9,7 +8,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Winland.Core.Tests/Winland.Core.Tests.csproj" />
-    <Project Path="tests/Winland.Lua.Tests/Winland.Lua.Tests.csproj" />
     <Project Path="tests/Winland.Install.Tests/Winland.Install.Tests.csproj" />
     <Project Path="tests/Winland.Daemon.Tests/Winland.Daemon.Tests.csproj" />
     <Project Path="tests/Winland.Windows.Tests/Winland.Windows.Tests.csproj" />
