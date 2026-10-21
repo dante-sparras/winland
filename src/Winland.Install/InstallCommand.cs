@@ -1,6 +1,6 @@
 namespace Winland.Install;
 
-/// <summary>What <c>winland install</c>, <c>winland update</c> and <c>winland uninstall</c> were asked to do.</summary>
+/// <summary>What <c>winland install</c>, <c>winland update</c>, <c>winland tweaks</c> and <c>winland uninstall</c> were asked to do.</summary>
 public abstract record InstallCommand
 {
     private InstallCommand()
@@ -21,7 +21,14 @@ public abstract record InstallCommand
     /// </summary>
     public sealed record Update : InstallCommand;
 
-    /// <summary>Null when the arguments are not an install, an update or an uninstall.</summary>
+    /// <summary>
+    /// Turn off Snap windows, and the precision touchpad swipes when <paramref name="Touchpad"/> is true.
+    /// This stays a separate command because <c>winland install</c> may relaunch elevated, and these
+    /// settings belong to the user who answered, not to an administrator who approved that prompt.
+    /// </summary>
+    public sealed record Tweaks(bool Touchpad) : InstallCommand;
+
+    /// <summary>Null when the arguments are not an install, an update, a tweak or an uninstall.</summary>
     public static InstallCommand? Parse(IReadOnlyList<string> args)
     {
         ArgumentNullException.ThrowIfNull(args);
@@ -34,6 +41,17 @@ public abstract record InstallCommand
                 return new Update();
 
             throw new ArgumentException("usage: winland update");
+        }
+
+        if (Is(args[0], "tweaks"))
+        {
+            if (args.Count == 2 && Is(args[1], "--off"))
+                return new Tweaks(false);
+
+            if (args.Count == 3 && Is(args[1], "--off") && Is(args[2], "--touchpad"))
+                return new Tweaks(true);
+
+            throw new ArgumentException("usage: winland tweaks --off [--touchpad]");
         }
 
         if (!Is(args[0], "install") && !Is(args[0], "uninstall"))
@@ -75,6 +93,7 @@ public abstract record InstallCommand
         ForUser => false,
         Remove => machineInstallPresent,
         Update => false,
+        Tweaks => false,
         _ => false,
     };
 

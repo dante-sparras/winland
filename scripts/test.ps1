@@ -1,6 +1,6 @@
 # Run unit test projects under tests/. Passes when none exist yet.
 # Smoke projects stay off this lane. A release run does not execute them either.
-# scripts/release.tests.ps1 runs first when it exists.
+# scripts/*.tests.ps1 run first when they exist.
 #   pwsh -NoProfile -File scripts/test.ps1            builds once, then runs every project at the same time
 #   pwsh -NoProfile -File scripts/test.ps1 -NoBuild   runs them on the Release build already there, as check.ps1 leaves it
 param(
@@ -8,10 +8,10 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-$releaseTests = Join-Path $PSScriptRoot 'release.tests.ps1'
-if (Test-Path $releaseTests) {
-    Write-Output "pwsh $releaseTests"
-    pwsh -NoProfile -File $releaseTests
+$scriptTests = @(Get-ChildItem -Path $PSScriptRoot -Filter '*.tests.ps1' -File | Sort-Object Name)
+foreach ($scriptTest in $scriptTests) {
+    Write-Output "pwsh $($scriptTest.FullName)"
+    pwsh -NoProfile -File $scriptTest.FullName
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 $tests = Join-Path $root 'tests'

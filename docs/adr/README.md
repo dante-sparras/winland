@@ -14,8 +14,8 @@ An ADR without a Status line is accepted and true against the code. `Status: Pro
 - [0005](0005-pure-core-and-windows-adapter.md): a pure core with no Win32, a thin Windows adapter, and `winlandctl` as its own project.
 - [0006](0006-startup-through-a-scheduled-task.md): `winland install` copies itself under Program Files and registers an elevated logon task; `--user` uses the Run key, unelevated.
 - [0007](0007-elevation-does-not-leak-to-launched-programs-or-ipc.md): launched programs are always de-elevated, the pipe is limited to the current user, and the config is an ordinary user file.
-- [0014](0014-winland-manages-windows-and-leaves-the-desktop-to-windows.md): Winland manages windows and leaves settings, notifications, effects and the taskbar to Windows. The installer may turn off Snap and touchpad swipes, with consent. (proposed)
-- [0015](0015-install-and-update-from-published-releases.md): one PowerShell line installs the newest published release, and `winland update` updates it. (proposed)
+- [0014](0014-winland-manages-windows-and-leaves-the-desktop-to-windows.md): Winland manages windows and leaves settings, notifications, effects and the taskbar to Windows. The installer may turn off Snap and touchpad swipes, with consent.
+- [0015](0015-install-and-update-from-published-releases.md): one PowerShell line installs the newest published release, and `winland update` updates it.
 
 ## Config and names
 

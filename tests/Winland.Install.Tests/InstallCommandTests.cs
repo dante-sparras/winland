@@ -52,12 +52,27 @@ public class InstallCommandTests
         Assert.Null(InstallCommand.Parse(["--config", "winland.conf"]));
     }
 
+    [Fact]
+    public void TweaksTurnsOffSnapAndAsksForNoAdministrator()
+    {
+        var snap = Assert.IsType<InstallCommand.Tweaks>(InstallCommand.Parse(["tweaks", "--off"]));
+        var swipes = Assert.IsType<InstallCommand.Tweaks>(InstallCommand.Parse(["TWEAKS", "--OFF", "--touchpad"]));
+
+        Assert.False(snap.Touchpad);
+        Assert.True(swipes.Touchpad);
+        Assert.False(snap.RequiresAdministrator(machineInstallPresent: true));
+        Assert.False(swipes.RequiresAdministrator(machineInstallPresent: false));
+    }
+
     [Theory]
     [InlineData("install", "--purge")]
     [InlineData("uninstall", "--user")]
     [InlineData("install", "--user", "extra")]
     [InlineData("update", "--user")]
     [InlineData("update", "extra")]
+    [InlineData("tweaks")]
+    [InlineData("tweaks", "--touchpad")]
+    [InlineData("tweaks", "--off", "--user")]
     public void AMisusedVerbIsRefused(params string[] args)
     {
         Assert.Throws<ArgumentException>(() => InstallCommand.Parse(args));

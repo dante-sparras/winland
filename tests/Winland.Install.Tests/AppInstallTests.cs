@@ -296,6 +296,19 @@ public class AppInstallTests
     }
 
     [Fact]
+    public void UninstallRestoresRecordedSettingsBeforePurgeDeletesTheFolder()
+    {
+        var folderStillThere = false;
+        var watching = new WatchingRestore(() => folderStillThere = files.Exists(Path.Combine(Config, "winland.conf")));
+        var watched = new AppInstall(Layout(), tasks, files, registry, shortcuts, session, watching);
+
+        watched.Uninstall(purge: true, machine: false);
+
+        Assert.True(folderStillThere);
+        Assert.False(files.Exists(Path.Combine(Config, "winland.conf")));
+    }
+
+    [Fact]
     public void UninstallRemovesOnlyTheInstallFolderFromThePath()
     {
         registry.SetString(
@@ -310,6 +323,11 @@ public class AppInstallTests
         install.Uninstall(purge: false, machine: false);
 
         Assert.Equal(@"C:\Tools", Text(RegistryRoot.User, InstallLocations.PathValue, InstallLocations.UserPathKey));
+    }
+
+    private sealed class WatchingRestore(Action onRestore) : IDesktopRestore
+    {
+        public void Restore() => onRestore();
     }
 
     private string? Text(RegistryRoot root, string name, string? key = null) =>
