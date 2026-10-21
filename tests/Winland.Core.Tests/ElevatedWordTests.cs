@@ -55,6 +55,9 @@ public class ElevatedWordTests
     public void OnCreatedEmptyLaunchesTheCommand()
     {
         var core = new Core();
+        core.Handle(new MonitorsChanged([
+            new Monitor(@"\\.\DISPLAY1", @"\\.\DISPLAY1", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080)),
+        ]));
         var created = core.Handle(new Configure(ConfigParser.Parse(
             "workspace = 3, persistent:true, on-created-empty:[elevated] born\n")));
 

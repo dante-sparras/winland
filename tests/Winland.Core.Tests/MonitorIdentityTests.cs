@@ -20,8 +20,11 @@ public class MonitorIdentityTests
 
         var screen = Assert.Single(back.State.Screens, candidate => candidate.Monitor.Name == @"\\.\DISPLAY4");
         Assert.Equal("SAM S27 RIGHT", screen.Monitor.Description);
-        Assert.Equal(new WorkspaceId("2"), screen.ActiveWorkspace);
-        Assert.Equal(screen.Id, Workspace(back, "2").Monitor);
+        Assert.Equal(WorkspaceId.FromNumber(1, screen.Id), screen.ActiveWorkspace);
+        Assert.Equal(screen.Id, Workspace(back, WorkspaceId.FromNumber(1, screen.Id)).Monitor);
+        Assert.Equal(
+            WorkspaceId.FromNumber(1, screen.Id),
+            Assert.Single(back.State.Clients, client => client.Window == new WindowId(2)).Workspace);
         Assert.Equal(
             new WorkspaceId("1"),
             Assert.Single(back.State.Screens, candidate => candidate.Monitor.Name == left.Name).ActiveWorkspace);
@@ -62,8 +65,11 @@ public class MonitorIdentityTests
 
         Assert.Equal("DEL U2723QE SAME #2", Description(back, @"\\.\DISPLAY9"));
         var screen = Assert.Single(back.State.Screens, candidate => candidate.Monitor.Name == @"\\.\DISPLAY9");
-        Assert.Equal(new WorkspaceId("2"), screen.ActiveWorkspace);
-        Assert.Equal(screen.Id, Workspace(back, "2").Monitor);
+        Assert.Equal(WorkspaceId.FromNumber(1, screen.Id), screen.ActiveWorkspace);
+        Assert.Equal(screen.Id, Workspace(back, WorkspaceId.FromNumber(1, screen.Id)).Monitor);
+        Assert.Equal(
+            WorkspaceId.FromNumber(1, screen.Id),
+            Assert.Single(back.State.Clients, client => client.Window == new WindowId(2)).Workspace);
         Assert.Equal(
             new WorkspaceId("1"),
             Assert.Single(back.State.Screens, candidate => candidate.Monitor.Name == first.Name).ActiveWorkspace);
@@ -146,7 +152,8 @@ public class MonitorIdentityTests
         var renamed = new Monitor(@"\\.\DISPLAY4", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024));
         var back = core.Handle(new MonitorsChanged([left, renamed]));
 
-        Assert.Equal(new MonitorId(0), Workspace(back, "2").Monitor);
+        Assert.Equal(new WorkspaceId("2"), Assert.Single(back.State.Clients, client => client.Window == new WindowId(2)).Workspace);
+        Assert.Equal(new MonitorId(0), Workspace(back, new WorkspaceId("2")).Monitor);
         Assert.Equal("Samsung", Description(back, @"\\.\DISPLAY4"));
     }
 
@@ -162,6 +169,6 @@ public class MonitorIdentityTests
     private static Rectangle WorkArea(Outcome outcome, string name) =>
         Assert.Single(outcome.State.Monitors, monitor => monitor.Name == name).WorkArea;
 
-    private static Workspace Workspace(Outcome outcome, string name) =>
-        Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == new WorkspaceId(name));
+    private static Workspace Workspace(Outcome outcome, WorkspaceId id) =>
+        Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == id);
 }

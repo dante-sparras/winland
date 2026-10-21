@@ -221,7 +221,7 @@ public class OpacityTests
         Assert.True(RecoverySnapshot.TryParse(snapshot.ToJson(), out var parsed));
         Assert.True(Assert.Single(parsed.Clients).Layered);
 
-        var older = """{"clients":[{"window":5,"workspace":"1","monitor":0,"hidden":false,"class":"Notepad","title":"Notes","process":10}]}""";
+        var older = """{"clients":[{"window":5,"workspace":"1","monitor":"\\\\.\\DISPLAY1","hidden":false,"class":"Notepad","title":"Notes","process":10}]}""";
         Assert.True(RecoverySnapshot.TryParse(older, out var legacy));
         Assert.False(Assert.Single(legacy.Clients).Layered);
     }

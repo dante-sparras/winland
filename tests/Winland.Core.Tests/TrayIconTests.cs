@@ -27,13 +27,14 @@ public class TrayIconTests
     }
 
     [Fact]
-    public void ANamedWorkspaceShowsItsName()
+    public void ANamedWorkspaceIsNotCreated()
     {
-        var outcome = new Core().Execute("dispatch workspace name:dev").Effect;
+        var reply = new Core().Execute("dispatch workspace name:dev");
 
-        Assert.Equal(new WorkspaceId("dev"), outcome.State.ActiveWorkspace);
-        Assert.Equal("dev", outcome.Tray!.Number);
-        Assert.Equal("Workspace dev", outcome.Tray.Tip);
+        Assert.Equal("error: no such workspace", reply.Text);
+        Assert.Equal(WorkspaceId.Initial, reply.Effect.State.ActiveWorkspace);
+        Assert.Equal("1", reply.Effect.Tray!.Number);
+        Assert.DoesNotContain(reply.Effect.State.Workspaces, workspace => workspace.Id.Name == "dev");
     }
 
     [Fact]
@@ -66,8 +67,8 @@ public class TrayIconTests
 
         var right = core.Execute("dispatch focusmonitor RIGHT").Effect;
 
-        Assert.Equal(new WorkspaceId("2"), right.State.ActiveWorkspace);
-        Assert.Equal("2", right.Tray!.Number);
+        Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), right.State.ActiveWorkspace);
+        Assert.Equal("1", right.Tray!.Number);
     }
 
     [Fact]

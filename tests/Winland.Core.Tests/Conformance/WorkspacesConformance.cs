@@ -52,30 +52,28 @@ public class WorkspacesConformance
         desk.Ok("workspace", "previous");
         Assert.Equal("1 (1)", ActiveLabel(desk));
 
-        desk.Ok("workspace", "name:TEST_WORKSPACE_NULL");
-        Assert.Equal("TEST_WORKSPACE_NULL (TEST_WORKSPACE_NULL)", ActiveLabel(desk));
-
         desk.Ok("workspace", "1");
 
-        // The new monitor takes workspace 2.
+        // Each Monitor shows its own Workspace 1. The new one does not take a number from this Monitor.
         desk.AddMonitor("HEADLESS-3", Desk.Second);
         var monitors = Monitors(desk);
-        Assert.Contains("2 (2)", monitors.Select(ShownOn));
-        Assert.Contains("1 (1)", monitors.Select(ShownOn));
+        Assert.Equal(2, monitors.Count(monitor => ShownOn(monitor) == "1 (1)"));
         Assert.Contains("HEADLESS-3", monitors.Select(NameOf));
 
         desk.Ok("focusmonitor", "HEADLESS-2");
         Assert.Equal("1 (1)", ActiveLabel(desk));
 
+        // r+1 is the next number on this Monitor. Workspace 3 still holds a window, and 2 is free.
         desk.Ok("workspace", "r+1");
-        Assert.Equal("3 (3)", ActiveLabel(desk));
+        Assert.Equal("2 (2)", ActiveLabel(desk));
 
         desk.Ok("workspace", "1");
         desk.Ok("workspace", "r~2");
-        Assert.Equal("3 (3)", ActiveLabel(desk));
+        Assert.Equal("2 (2)", ActiveLabel(desk));
 
+        // m cycles the Workspaces on this Monitor: 1, 2, and 3.
         desk.Ok("workspace", "m+1");
-        Assert.Equal("1 (1)", ActiveLabel(desk));
+        Assert.Equal("3 (3)", ActiveLabel(desk));
 
         // The reference expects an error here and does not check the reply.
         desk.Dispatch("workspace", "1");
@@ -235,9 +233,6 @@ public class WorkspacesConformance
         desk.Ok("workspace", "150");
         desk.Spawn("a");
 
-        desk.Ok("workspace", "name:coce");
-        desk.Spawn("a");
-
         desk.Ok("workspace", "100");
         Assert.Equal("100 (100)", ActiveLabel(desk));
 
@@ -248,27 +243,22 @@ public class WorkspacesConformance
             Assert.NotEqual("ok", desk.Dispatch("changeworkspaceid", bad));
         Assert.Equal("101 (101)", ActiveLabel(desk));
 
-        desk.Ok("renameworkspace", "101 vaxry_was_here");
-        Assert.Equal("101 (vaxry_was_here)", ActiveLabel(desk));
-
         desk.Ok("changeworkspaceid", "101 102");
-        Assert.Equal("102 (vaxry_was_here)", ActiveLabel(desk));
+        Assert.Equal("102 (102)", ActiveLabel(desk));
     }
 
-    // The reference renames through its test plugin, which also counts the rename events. Here the
-    // events are read from the outcome of renameworkspace.
     [Fact]
-    public void WorkspaceRenameEmitsGlobalEvent()
+    public void WorkspaceChangeIdEmitsTheMonitor()
     {
         var desk = new Desk();
         desk.Ok("workspace", "5201");
         desk.Spawn("workspace_rename_event");
 
-        var reply = desk.Core.Execute("dispatch renameworkspace 5201 renamed_by_event_test");
+        var reply = desk.Core.Execute("dispatch changeworkspaceid 5201 5202");
         Assert.Equal("ok", reply.Text);
         var events = CommandProtocol.FormatStream(reply.Effect.Events, reply.Effect.State);
-        Assert.Equal(["renameworkspace>>5201,renamed_by_event_test"], events.Where(line => line.StartsWith("renameworkspace>>", StringComparison.Ordinal)));
-        Assert.Equal("5201 (renamed_by_event_test)", ActiveLabel(desk));
+        Assert.Equal(["changeworkspaceid>>5201,5202,HEADLESS-2"], events.Where(line => line.StartsWith("changeworkspaceid>>", StringComparison.Ordinal)));
+        Assert.Equal("5202 (5202)", ActiveLabel(desk));
 
         desk.Close("workspace_rename_event");
         desk.Ok("workspace", "1");
@@ -289,42 +279,13 @@ public class WorkspacesConformance
     }
 
     [Fact]
-    public void WorkspaceRenameDoesNotChangeAddress()
-    {
-        var desk = new Desk("workspace = name:vaxry, gapsout:40 40 40 40\n");
-        desk.Ok("workspace", "200");
-        Assert.Equal("200 (200)", ActiveLabel(desk));
-
-        desk.Spawn("a");
-        Assert.Equal("22,22", desk.ActivePlace().At);
-
-        desk.Ok("renameworkspace", "200 vaxry");
-        Assert.Equal("22,22", desk.ActivePlace().At);
-    }
-
-    [Fact]
-    public void WorkspaceRulesMatchBareAddressableNames()
-    {
-        var desk = new Desk("workspace = vaxry, gapsout:40 40 40 40\n");
-        desk.Ok("workspace", "name:vaxry");
-        Assert.Equal("vaxry (vaxry)", ActiveLabel(desk));
-
-        desk.Spawn("a");
-        Assert.Equal("42,42", desk.ActivePlace().At);
-
-        desk.Ok("renameworkspace", "vaxry renamed");
-        Assert.Equal("vaxry (renamed)", ActiveLabel(desk));
-        Assert.Equal("42,42", desk.ActivePlace().At);
-    }
-
-    [Fact]
     public void WorkspacesDistinctTiledAndFloatGaps()
     {
         var desk = new Desk("""
-            workspace = name:workspacesDistinctTiledAndFloatGaps, gapsout:200, float_gaps:10, border:false
-            windowrulev2 = float, workspace:name:workspacesDistinctTiledAndFloatGaps, class:workspacesDistinctTiledAndFloatGaps
+            workspace = 8, gapsout:200, float_gaps:10, border:false
+            windowrulev2 = float, workspace:8, class:workspacesDistinctTiledAndFloatGaps
             """);
-        desk.Ok("workspace", "name:workspacesDistinctTiledAndFloatGaps");
+        desk.Ok("workspace", "8");
 
         desk.Spawn("kitty");
         Assert.Equal(200, X(desk));
@@ -356,65 +317,40 @@ public class WorkspacesConformance
 
     private static void MultimonBaf(Desk desk)
     {
+        desk.Keyword("binds:workspace_back_and_forth", "0");
+
+        desk.Ok("focusmonitor", "HEADLESS-2");
+        desk.Ok("workspace", "1");
+        desk.Spawn("a");
+        desk.Ok("workspace", "2");
+        desk.Spawn("a");
+
+        desk.Ok("focusmonitor", "HEADLESS-3");
+        desk.Ok("workspace", "3");
+        desk.Spawn("a");
+
+        desk.Ok("focusmonitor", "HEADLESS-2");
         desk.Keyword("binds:workspace_back_and_forth", "1");
 
-        desk.Ok("focusmonitor", "HEADLESS-2");
-        desk.Ok("workspace", "1");
-        desk.Spawn("a");
-
+        // previous is global. Workspace 2 again returns to Workspace 3, which HEADLESS-3 is showing.
         desk.Ok("workspace", "2");
-        desk.Spawn("a");
-
-        desk.Ok("focusmonitor", "HEADLESS-3");
-        desk.Ok("workspace", "3");
-        desk.Spawn("a");
-
-        desk.Ok("workspace", "3");
-        Assert.Equal("2 (2)", ActiveLabel(desk));
+        ExpectActive(desk, "3 (3)", "HEADLESS-3");
 
         desk.Ok("workspace", "4");
-        desk.Ok("workspace", "4");
-        Assert.Equal("2 (2)", ActiveLabel(desk));
-
-        desk.Ok("workspace", "2");
-        Assert.Equal("4 (4)", ActiveLabel(desk));
-
-        desk.Ok("workspace", "3");
-        desk.Ok("workspace", "3");
-        Assert.Equal("4 (4)", ActiveLabel(desk));
-
-        desk.Ok("workspace", "2");
-        desk.Ok("workspace", "3");
-        desk.Ok("workspace", "1");
-        desk.Ok("workspace", "1");
-        Assert.Equal("3 (3)", ActiveLabel(desk));
-
-        desk.Ok("focusmonitor", "HEADLESS-2");
-        desk.Ok("focusworkspaceoncurrentmonitor", "1");
-        desk.Ok("focusmonitor", "HEADLESS-3");
-        desk.Ok("focusworkspaceoncurrentmonitor", "3");
-        desk.Ok("focusworkspaceoncurrentmonitor", "4");
-        desk.Ok("focusworkspaceoncurrentmonitor", "2");
-        desk.Ok("focusworkspaceoncurrentmonitor", "2");
-        ExpectActive(desk, "4 (4)", "HEADLESS-3");
-
-        desk.Ok("workspace", "1");
-        desk.Ok("workspace", "1");
+        desk.Ok("workspace", "5");
+        desk.Ok("workspace", "5");
         ExpectActive(desk, "4 (4)", "HEADLESS-3");
 
         desk.Keyword("binds:workspace_back_and_forth", "2");
 
-        // There is no previous Workspace on HEADLESS-2.
-        desk.Ok("workspace", "1");
-        desk.Ok("workspace", "1");
-        ExpectActive(desk, "1 (1)", "HEADLESS-2");
+        // per_monitor stays on this Monitor. Asking again for 4 returns to 5.
+        desk.Ok("workspace", "4");
+        ExpectActive(desk, "5 (5)", "HEADLESS-3");
 
-        desk.Ok("focusworkspaceoncurrentmonitor", "3");
-        desk.Ok("focusworkspaceoncurrentmonitor", "3");
-        ExpectActive(desk, "1 (1)", "HEADLESS-2");
-
-        desk.Ok("workspace", "1");
-        ExpectActive(desk, "3 (3)", "HEADLESS-2");
+        desk.Ok("focusmonitor", "HEADLESS-2");
+        desk.Ok("workspace", "6");
+        desk.Ok("workspace", "6");
+        ExpectActive(desk, "2 (2)", "HEADLESS-2");
 
         KillAll(desk);
     }
@@ -535,11 +471,11 @@ public class WorkspacesConformance
         desk.Dispatch("workspace", "1");
         desk.Send("reload");
 
-        desk.Ok("workspace", "name:gap_split_test");
+        desk.Ok("workspace", "8");
         Assert.Equal("ok", desk.Send("r/keyword general:gaps_in 0"));
         Assert.Equal("ok", desk.Send("r/keyword general:border_size 0"));
         Assert.Equal("ok", desk.Send("r/keyword dwindle:split_width_multiplier 1.0"));
-        Assert.Equal("ok", desk.Send("r/keyword workspace name:gap_split_test, gapsout:0 1000 0 0"));
+        Assert.Equal("ok", desk.Send("r/keyword workspace 8, gapsout:0 1000 0 0"));
 
         // The default split, force_split 0, puts B below A.
         Assert.Equal("ok", desk.Send("r/keyword dwindle:force_split 0"));

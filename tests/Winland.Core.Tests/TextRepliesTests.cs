@@ -16,7 +16,7 @@ public class TextRepliesTests
         var clients = core.Execute("clients").Text;
 
         Assert.StartsWith("Window 2a -> shell:\n\tmapped: 1\n\thidden: 0\n\tvisible: 1\n\tacceptsInput: 1\n", clients, StringComparison.Ordinal);
-        Assert.Contains("\n\tworkspace: 1 (1)\n\tfloating: 0\n\tmonitor: 0\n\tclass: term\n\ttitle: shell\n", clients, StringComparison.Ordinal);
+        Assert.Contains("\n\tworkspace: 1 (1) on monitor \n\tfloating: 0\n\tmonitor: 0\n\tclass: term\n\ttitle: shell\n", clients, StringComparison.Ordinal);
         Assert.Contains("\n\tgrouped: 0\n\ttags: \n", clients, StringComparison.Ordinal);
         Assert.EndsWith("\n\n", clients, StringComparison.Ordinal);
         Assert.Equal(clients, core.Execute("activewindow").Text);

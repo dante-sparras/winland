@@ -5,7 +5,7 @@ namespace Winland.Tests;
 public class WorkspaceSelectorTests
 {
     [Fact]
-    public void MonitorStepCyclesThisMonitorAndEveryStepCyclesEveryOpenWorkspace()
+    public void MonitorStepAndEveryStepCycleTheFocusedMonitorsWorkspaces()
     {
         var core = TwoMonitors(out var left, out var right);
         Appear(core, 1, left);
@@ -14,6 +14,7 @@ public class WorkspaceSelectorTests
         Appear(core, 3, left);
         core.Handle(new Dispatch("workspace", "1"));
 
+        // e walks the same Workspaces as m: the ones on the focused Monitor. The other Monitor's Workspace 1 stays put.
         var monitorNext = core.Handle(new Dispatch("workspace", "m+1"));
         Assert.Equal(new WorkspaceId("3"), monitorNext.State.ActiveWorkspace);
         Assert.Equal(new MonitorId(0), monitorNext.State.ActiveMonitor);
@@ -23,57 +24,46 @@ public class WorkspaceSelectorTests
         Assert.Equal(new MonitorId(0), monitorBack.State.ActiveMonitor);
 
         var everyNext = core.Handle(new Dispatch("workspace", "e+1"));
-        Assert.Equal(new WorkspaceId("2"), everyNext.State.ActiveWorkspace);
-        Assert.Equal(new MonitorId(1), everyNext.State.ActiveMonitor);
+        Assert.Equal(new WorkspaceId("3"), everyNext.State.ActiveWorkspace);
+        Assert.Equal(new MonitorId(0), everyNext.State.ActiveMonitor);
 
-        var onlyOne = core.Handle(new Dispatch("workspace", "m+1"));
-        Assert.Equal(new WorkspaceId("2"), onlyOne.State.ActiveWorkspace);
-        Assert.Equal(new MonitorId(1), onlyOne.State.ActiveMonitor);
-
-        core.Handle(new Dispatch("workspace", "1"));
-        core.Handle(new Dispatch("workspace", "3"));
         var everyBack = core.Handle(new Dispatch("workspace", "e-1"));
-        Assert.Equal(new WorkspaceId("2"), everyBack.State.ActiveWorkspace);
-        Assert.Equal(new MonitorId(1), everyBack.State.ActiveMonitor);
-
-        core.Handle(new Dispatch("workspace", "3"));
-        var monitorPrevious = core.Handle(new Dispatch("workspace", "m-1"));
-        Assert.Equal(new WorkspaceId("1"), monitorPrevious.State.ActiveWorkspace);
-        Assert.Equal(new MonitorId(0), monitorPrevious.State.ActiveMonitor);
+        Assert.Equal(new WorkspaceId("1"), everyBack.State.ActiveWorkspace);
+        Assert.Equal(new MonitorId(0), everyBack.State.ActiveMonitor);
 
         Assert.Equal(new WorkspaceId("1"), core.Handle(new Dispatch("workspace", "m~1")).State.ActiveWorkspace);
         Assert.Equal(new WorkspaceId("3"), core.Handle(new Dispatch("workspace", "m~2")).State.ActiveWorkspace);
         Assert.Equal(new WorkspaceId("3"), core.Handle(new Dispatch("workspace", "m~9")).State.ActiveWorkspace);
         var secondOpen = core.Handle(new Dispatch("workspace", "e~2"));
-        Assert.Equal(new WorkspaceId("2"), secondOpen.State.ActiveWorkspace);
-        Assert.Equal(new MonitorId(1), secondOpen.State.ActiveMonitor);
+        Assert.Equal(new WorkspaceId("3"), secondOpen.State.ActiveWorkspace);
+        Assert.Equal(new MonitorId(0), secondOpen.State.ActiveMonitor);
+        Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), Client(secondOpen, 2).Workspace);
     }
 
     [Fact]
-    public void RelativeStepSkipsIdsShownOnAnotherMonitor()
+    public void RelativeStepWalksThisMonitorsNumbers()
     {
         var core = TwoMonitors(out var left, out var right);
         Appear(core, 1, left);
         Appear(core, 2, right);
 
-        var skipped = core.Handle(new Dispatch("workspace", "r+1"));
-        Assert.Equal(new WorkspaceId("3"), skipped.State.ActiveWorkspace);
-        Assert.Equal(new MonitorId(0), skipped.State.ActiveMonitor);
-        Assert.Equal(new WorkspaceId("2"), Workspace(skipped, "2").Id);
-        Assert.Equal(new MonitorId(1), Workspace(skipped, "2").Monitor);
+        // r+1 is the next number on this Monitor. The same number on the other Monitor does not count.
+        var stepped = core.Handle(new Dispatch("workspace", "r+1"));
+        Assert.Equal(new WorkspaceId("2"), stepped.State.ActiveWorkspace);
+        Assert.Equal(new MonitorId(0), stepped.State.ActiveMonitor);
+        Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), Client(stepped, 2).Workspace);
 
         core.Handle(new Dispatch("workspace", "1"));
         Assert.Equal(new WorkspaceId("1"), core.Handle(new Dispatch("workspace", "r~1")).State.ActiveWorkspace);
-        Assert.Equal(new WorkspaceId("3"), core.Handle(new Dispatch("workspace", "r~2")).State.ActiveWorkspace);
+        Assert.Equal(new WorkspaceId("2"), core.Handle(new Dispatch("workspace", "r~2")).State.ActiveWorkspace);
 
         var back = core.Handle(new Dispatch("workspace", "r-1"));
         Assert.Equal(new WorkspaceId("1"), back.State.ActiveWorkspace);
         Assert.Equal(new MonitorId(0), back.State.ActiveMonitor);
 
         var named = core.Handle(new Dispatch("workspace", "name:notes"));
-        Assert.Equal(new WorkspaceId("notes"), named.State.ActiveWorkspace);
-        Assert.Equal(new WorkspaceId("notes"), core.Handle(new Dispatch("workspace", "r~1")).State.ActiveWorkspace);
-        Assert.Equal(new WorkspaceId("1"), core.Handle(new Dispatch("workspace", "r~2")).State.ActiveWorkspace);
+        Assert.Equal("error: no such workspace", named.Error);
+        Assert.Equal(new WorkspaceId("1"), named.State.ActiveWorkspace);
     }
 
     [Fact]
@@ -89,16 +79,16 @@ public class WorkspaceSelectorTests
 
         core.Handle(new Dispatch("workspace", "2"));
         var stayed = core.Handle(new Dispatch("workspace", "previous_per_monitor"));
-        Assert.Equal(new WorkspaceId("2"), stayed.State.ActiveWorkspace);
-        Assert.Equal(new MonitorId(1), stayed.State.ActiveMonitor);
+        Assert.Equal(new WorkspaceId("1"), stayed.State.ActiveWorkspace);
+        Assert.Equal(new MonitorId(0), stayed.State.ActiveMonitor);
 
         var global = core.Handle(new Dispatch("workspace", "previous"));
-        Assert.Equal(new WorkspaceId("1"), global.State.ActiveWorkspace);
+        Assert.Equal(new WorkspaceId("2"), global.State.ActiveWorkspace);
         Assert.Equal(new MonitorId(0), global.State.ActiveMonitor);
 
         var ready = VisitedBoth(out left, out right);
         var across = ready.Handle(new Dispatch("workspace", "previous"));
-        Assert.Equal(new WorkspaceId("2"), across.State.ActiveWorkspace);
+        Assert.Equal(WorkspaceId.FromNumber(2, new MonitorId(1)), across.State.ActiveWorkspace);
         Assert.Equal(new MonitorId(1), across.State.ActiveMonitor);
 
         var local = VisitedBoth(out _, out _);
@@ -115,7 +105,7 @@ public class WorkspaceSelectorTests
     [InlineData("m-x")]
     [InlineData("e~one")]
     [InlineData("r+1x")]
-    public void TextThatIsNotASelectorNamesAWorkspace(string name)
+    public void TextThatIsNotASelectorDoesNotNameAWorkspace(string name)
     {
         var core = TwoMonitors(out var left, out _);
         Appear(core, 1, left);
@@ -123,7 +113,8 @@ public class WorkspaceSelectorTests
 
         var named = core.Handle(new Dispatch("workspace", name));
 
-        Assert.Equal(new WorkspaceId(name), named.State.ActiveWorkspace);
+        Assert.Equal("error: no such workspace", named.Error);
+        Assert.Equal(new WorkspaceId("2"), named.State.ActiveWorkspace);
     }
 
     [Fact]
@@ -134,11 +125,12 @@ public class WorkspaceSelectorTests
 
         Assert.Equal(new WorkspaceId("2"), core.Handle(new Dispatch("workspace", "empty")).State.ActiveWorkspace);
         core.Handle(new Dispatch("workspace", "1"));
-        Assert.Equal(new WorkspaceId("3"), core.Handle(new Dispatch("workspace", "emptym")).State.ActiveWorkspace);
+        // emptym searches this Monitor, the same way empty does.
+        Assert.Equal(new WorkspaceId("2"), core.Handle(new Dispatch("workspace", "emptym")).State.ActiveWorkspace);
         core.Handle(new Dispatch("workspace", "1"));
         Assert.Equal(new WorkspaceId("2"), core.Handle(new Dispatch("workspace", "emptyn")).State.ActiveWorkspace);
         core.Handle(new Dispatch("workspace", "1"));
-        Assert.Equal(new WorkspaceId("3"), core.Handle(new Dispatch("workspace", "emptynm")).State.ActiveWorkspace);
+        Assert.Equal(new WorkspaceId("2"), core.Handle(new Dispatch("workspace", "emptynm")).State.ActiveWorkspace);
 
         var later = TwoMonitors(out left, out _);
         Appear(later, 1, left);
@@ -230,8 +222,9 @@ public class WorkspaceSelectorTests
         core.Handle(new Dispatch("workspace", "4"));
         Appear(core, 4, left);
         core.Handle(new Dispatch("workspace", "1"));
+        core.Handle(new Dispatch("focusmonitor", right.Name));
         core.Handle(new Dispatch("workspace", "2"));
-        core.Handle(new Dispatch("workspace", "1"));
+        core.Handle(new Dispatch("focusmonitor", left.Name));
         return core;
     }
 

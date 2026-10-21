@@ -82,7 +82,7 @@ public sealed partial class Core
     }
 
     // Winland reads a window's rules when it opens with the tags its rules give it and the Workspace it
-    // opens on, so a rule with a state match, such as float, tag:x or workspace:name:x, applies then too. The
+    // opens on, so a rule with a state match, such as float, tag:x or workspace:3, applies then too. The
     // window is not yet floating, focused, pinned, fullscreen or in a Group. Where it opens stays as first decided.
     private WindowDecision DecideAtOpen(WindowTraits traits, IReadOnlyList<WindowRule> rules, WindowDecision decision, LiveWorkspace desk, bool modal)
     {

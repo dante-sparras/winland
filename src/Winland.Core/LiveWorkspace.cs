@@ -5,7 +5,8 @@ namespace Winland;
 /// snapshot of it that <see cref="State"/> reports.
 /// </summary>
 /// <remarks>
-/// A Workspace keeps its own id. The Monitor it belongs to can change when a display is unplugged.
+/// A numbered Workspace is that number on one Monitor. A Guest keeps the identity of its own Monitor
+/// and the number it had there, and shows a different number until that Monitor comes back.
 /// </remarks>
 internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, Layout layout)
 {
@@ -48,8 +49,13 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
 
     public string? DisplayName { get; set; }
 
-    /// <summary><c>renameworkspace</c> set <see cref="DisplayName"/>, so a rule's <c>defaultName</c> no longer does.</summary>
-    public bool Renamed { get; set; }
+    /// <summary>The identity of the Monitor a Guest belongs to. Null when the Workspace is on its own Monitor.</summary>
+    public string? HomeIdentity { get; set; }
+
+    /// <summary>The number a Guest had on its own Monitor.</summary>
+    public long HomeNumber { get; set; }
+
+    public bool IsGuest => HomeIdentity is not null;
 
     public LayoutOptions Options { get; set; } = LayoutOptions.Unconfigured;
 

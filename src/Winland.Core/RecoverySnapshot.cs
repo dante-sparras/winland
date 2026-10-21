@@ -28,6 +28,9 @@ public sealed record RecoveredClient(
 
     /// <summary>True when the window's region is the corner outline Winland cut, not one of its own.</summary>
     public bool Region { get; init; }
+
+    /// <summary>The identity of the Monitor the Client was on, or its Windows name when it has no model and serial.</summary>
+    public string MonitorIdentity { get; init; } = "";
 }
 
 public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
@@ -47,7 +50,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
             rows[i] = new ClientBody(
                 client.Window.Value,
                 client.Workspace.Name,
-                client.Monitor.Value,
+                client.MonitorIdentity,
                 client.Hidden,
                 client.Class,
                 client.Title,
@@ -85,8 +88,8 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
 
                 clients.Add(new RecoveredClient(
                     new WindowId(row.Window),
-                    new WorkspaceId(row.Workspace),
-                    new MonitorId(row.Monitor),
+                    new WorkspaceId(row.Workspace ?? ""),
+                    MonitorId.Primary,
                     row.Hidden,
                     row.WindowClass ?? "",
                     row.Title ?? "",
@@ -100,6 +103,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 {
                     FrameStyle = row.FrameStyle,
                     Region = row.Region,
+                    MonitorIdentity = row.Monitor ?? "",
                 });
             }
 
@@ -120,7 +124,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
     private sealed record ClientBody(
         [property: JsonPropertyName("window")] long Window,
         [property: JsonPropertyName("workspace")] string? Workspace,
-        [property: JsonPropertyName("monitor")] int Monitor,
+        [property: JsonPropertyName("monitor")] string? Monitor,
         [property: JsonPropertyName("hidden")] bool Hidden,
         [property: JsonPropertyName("class")] string? WindowClass,
         [property: JsonPropertyName("title")] string? Title,

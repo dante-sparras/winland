@@ -229,7 +229,7 @@ public class DecorationTests
         Assert.Equal(Active, For(placed, 1).Border);
         Assert.Equal(Inactive, For(placed, 2).Border);
 
-        var moved = core.Execute("dispatch workspace 2").Effect;
+        var moved = core.Handle(new Dispatch("focusmonitor", @"\\.\DISPLAY2"));
 
         Assert.Equal(Inactive, For(moved, 1).Border);
         Assert.Equal(Active, For(moved, 2).Border);

@@ -71,16 +71,13 @@ public sealed record WorkspaceActivated(WorkspaceId Workspace) : StreamEvent;
 
 public sealed record WorkspaceCreated(WorkspaceId Workspace) : StreamEvent;
 
-/// <summary><paramref name="Id"/> and <paramref name="Name"/> are the id and name the workspace had before it was removed.</summary>
-public sealed record WorkspaceDestroyed(WorkspaceId Workspace, long Id, string Name) : StreamEvent;
+/// <summary><paramref name="Id"/> and <paramref name="Name"/> are the id and name the workspace had before it was removed. <paramref name="Monitor"/> is the Monitor that showed it.</summary>
+public sealed record WorkspaceDestroyed(WorkspaceId Workspace, long Id, string Name, string Monitor) : StreamEvent;
 
 public sealed record WorkspaceMoved(WorkspaceId Workspace, string Monitor) : StreamEvent;
 
-/// <summary><c>changeworkspaceid</c> gave the workspace numbered <paramref name="From"/> the number <paramref name="To"/>.</summary>
-public sealed record WorkspaceIdChanged(long From, long To) : StreamEvent;
-
-/// <summary><paramref name="Name"/> is the name <c>renameworkspace</c> gave the workspace.</summary>
-public sealed record WorkspaceRenamed(WorkspaceId Workspace, string Name) : StreamEvent;
+/// <summary><c>changeworkspaceid</c> gave the workspace numbered <paramref name="From"/> the number <paramref name="To"/> on <paramref name="Monitor"/>.</summary>
+public sealed record WorkspaceIdChanged(long From, long To, string Monitor) : StreamEvent;
 
 public sealed record MonitorFocused(string Name, WorkspaceId Workspace) : StreamEvent;
 

@@ -8,14 +8,14 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class WindowConformance
 {
-    // The reference config's smart gaps on workspaces named window: no gaps and no border while one tile shows.
+    // Smart gaps on Workspace 2: no gaps and no border while one tile shows.
     private const string SmartGaps = """
-        workspace = n[s:window] w[tv1], gapsout:0, gapsin:0
-        workspace = n[s:window] f[1], gapsout:0, gapsin:0
-        windowrulev2 = border_size 0, float:0, workspace:n[s:window] w[tv1]
-        windowrulev2 = rounding 0, float:0, workspace:n[s:window] w[tv1]
-        windowrulev2 = border_size 0, float:0, workspace:n[s:window] f[1]
-        windowrulev2 = rounding 0, float:0, workspace:n[s:window] f[1]
+        workspace = r[2-2] w[tv1], gapsout:0, gapsin:0
+        workspace = r[2-2] f[1], gapsout:0, gapsin:0
+        windowrulev2 = border_size 0, float:0, workspace:r[2-2] w[tv1]
+        windowrulev2 = rounding 0, float:0, workspace:r[2-2] w[tv1]
+        windowrulev2 = border_size 0, float:0, workspace:r[2-2] f[1]
+        windowrulev2 = rounding 0, float:0, workspace:r[2-2] f[1]
         """;
 
     // The reference config's tag rules.
@@ -28,7 +28,7 @@ public class WindowConformance
     public void SwapWindow()
     {
         var desk = new Desk();
-        desk.Dispatch("workspace", "name:swapwindow");
+        desk.Ok("workspace", "2");
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
         Assert.Equal(2, desk.Clients().Length);
@@ -60,7 +60,7 @@ public class WindowConformance
         desk.Dispatch("focuswindow", "class:kitty_B");
         address = Address(desk.ActiveWindow());
         var workspace = WorkspaceName(desk.ActiveWindow());
-        desk.Ok("movetoworkspacesilent", "name:swapwindow2");
+        desk.Ok("movetoworkspacesilent", "3");
         desk.Ok("swapwindow", "address:" + address);
         desk.Dispatch("focuswindow", "class:kitty_B");
         Assert.Equal(workspace, WorkspaceName(desk.ActiveWindow()));
@@ -452,7 +452,7 @@ public class WindowConformance
     {
         var desk = new Desk(SmartGaps + "\n" + TagRules);
         desk.Ok("focusmonitor", "HEADLESS-2");
-        desk.Ok("workspace", "name:window");
+        desk.Ok("workspace", "2");
 
         desk.Spawn("kitty_A");
 

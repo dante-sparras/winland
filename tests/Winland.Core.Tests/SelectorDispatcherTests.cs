@@ -47,7 +47,7 @@ public class SelectorDispatcherTests
 
         Assert.Equal(new WindowId(2), outcome.Focus);
         Assert.Equal(new MonitorId(1), outcome.State.ActiveMonitor);
-        Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
+        Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), outcome.State.ActiveWorkspace);
     }
 
     [Fact]

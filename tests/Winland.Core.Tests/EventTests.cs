@@ -17,7 +17,7 @@ public class EventTests
         });
 
         Assert.Equal(
-            ["openwindow>>1,1,kitty,terminal", "activewindow>>kitty,terminal", "activewindowv2>>1"],
+            ["openwindow>>1,1,,kitty,terminal", "activewindow>>kitty,terminal", "activewindowv2>>1"],
             Lines(outcome));
     }
 
@@ -31,7 +31,7 @@ public class EventTests
             Traits = WindowTraits.Normal with { Class = "app", Title = "a,b" },
         });
 
-        Assert.Equal("openwindow>>1,1,app,a,b", Lines(outcome)[0]);
+        Assert.Equal("openwindow>>1,1,,app,a,b", Lines(outcome)[0]);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class EventTests
             Traits = WindowTraits.Normal with { Title = "a\nb" },
         });
 
-        Assert.Equal("openwindow>>1,1,,a b", Lines(outcome)[0]);
+        Assert.Equal("openwindow>>1,1,,,a b", Lines(outcome)[0]);
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public class EventTests
         });
 
         Assert.Equal(
-            ["createworkspace>>2", "createworkspacev2>>2,2", "openwindow>>1,2,kitty,term"],
+            ["createworkspace>>2,", "createworkspacev2>>2,2,", "openwindow>>1,2,,kitty,term"],
             Lines(outcome));
     }
 
@@ -87,13 +87,13 @@ public class EventTests
 
         Assert.Equal(
             [
-                "createworkspace>>2",
-                "createworkspacev2>>2,2",
-                "destroyworkspace>>1",
-                "destroyworkspacev2>>1,1",
-                "openwindow>>1,2,kitty,term",
-                "workspace>>2",
-                "workspacev2>>2,2",
+                "createworkspace>>2,",
+                "createworkspacev2>>2,2,",
+                "destroyworkspace>>1,",
+                "destroyworkspacev2>>1,1,",
+                "openwindow>>1,2,,kitty,term",
+                "workspace>>2,",
+                "workspacev2>>2,2,",
                 "activewindow>>kitty,term",
                 "activewindowv2>>1",
             ],
@@ -125,26 +125,6 @@ public class EventTests
     }
 
     [Fact]
-    public void LeavingAnEmptyNamedWorkspaceReportsTheIdItHad()
-    {
-        var core = new Core();
-        core.Execute("dispatch workspace name:alpha");
-
-        var back = core.Execute("dispatch workspace 1");
-
-        Assert.Equal(
-            [
-                "createworkspace>>1",
-                "createworkspacev2>>1,1",
-                "destroyworkspace>>alpha",
-                "destroyworkspacev2>>-1,alpha",
-                "workspace>>1",
-                "workspacev2>>1,1",
-            ],
-            Lines(back));
-    }
-
-    [Fact]
     public void ClosingTheLastClientOnAHiddenWorkspaceDestroysIt()
     {
         var core = new Core();
@@ -153,7 +133,7 @@ public class EventTests
 
         var closed = core.Handle(new WindowClosed(new WindowId(7)));
 
-        Assert.Equal(["destroyworkspace>>1", "destroyworkspacev2>>1,1", "closewindow>>7"], Lines(closed));
+        Assert.Equal(["destroyworkspace>>1,", "destroyworkspacev2>>1,1,", "closewindow>>7"], Lines(closed));
     }
 
     [Fact]
@@ -165,7 +145,7 @@ public class EventTests
 
         var closed = core.Handle(new WindowClosed(new WindowId(7)));
 
-        Assert.Equal(["destroyworkspace>>code", "destroyworkspacev2>>1,code", "closewindow>>7"], Lines(closed));
+        Assert.Equal(["destroyworkspace>>code,", "destroyworkspacev2>>1,code,", "closewindow>>7"], Lines(closed));
     }
 
     [Fact]
@@ -238,10 +218,10 @@ public class EventTests
 
         Assert.Equal(
             [
-                "createworkspace>>2",
-                "createworkspacev2>>2,2",
-                "workspace>>2",
-                "workspacev2>>2,2",
+                "createworkspace>>2,",
+                "createworkspacev2>>2,2,",
+                "workspace>>2,",
+                "workspacev2>>2,2,",
                 "activewindow>>,",
                 "activewindowv2>>",
             ],
@@ -259,10 +239,10 @@ public class EventTests
 
         Assert.Equal(
             [
-                "destroyworkspace>>2",
-                "destroyworkspacev2>>2,2",
-                "workspace>>1",
-                "workspacev2>>1,1",
+                "destroyworkspace>>2,",
+                "destroyworkspacev2>>2,2,",
+                "workspace>>1,",
+                "workspacev2>>1,1,",
                 "activewindow>>,",
                 "activewindowv2>>1",
             ],
@@ -290,10 +270,10 @@ public class EventTests
 
         Assert.Equal(
             [
-                "createworkspace>>3",
-                "createworkspacev2>>3,3",
-                "movewindow>>2,3",
-                "movewindowv2>>2,3,3",
+                "createworkspace>>3,",
+                "createworkspacev2>>3,3,",
+                "movewindow>>2,3,",
+                "movewindowv2>>2,3,3,",
                 "activewindow>>,",
                 "activewindowv2>>1",
             ],
@@ -311,32 +291,12 @@ public class EventTests
 
         Assert.Equal(
             [
-                "createworkspace>>4",
-                "createworkspacev2>>4,4",
-                "movewindow>>2,4",
-                "movewindowv2>>2,4,4",
-                "workspace>>4",
-                "workspacev2>>4,4",
-            ],
-            Lines(outcome));
-    }
-
-    [Fact]
-    public void NamedWorkspaceMoveUsesTheSameNegativeIdAsTheReadReply()
-    {
-        var core = new Core();
-        core.Handle(new WindowAppeared(new WindowId(1), Area));
-
-        var outcome = core.Execute("dispatch movetoworkspacesilent name:alpha");
-
-        Assert.Equal(
-            [
-                "createworkspace>>alpha",
-                "createworkspacev2>>-1,alpha",
-                "movewindow>>1,alpha",
-                "movewindowv2>>1,-1,alpha",
-                "activewindow>>,",
-                "activewindowv2>>",
+                "createworkspace>>4,",
+                "createworkspacev2>>4,4,",
+                "movewindow>>2,4,",
+                "movewindowv2>>2,4,4,",
+                "workspace>>4,",
+                "workspacev2>>4,4,",
             ],
             Lines(outcome));
     }
@@ -378,35 +338,10 @@ public class EventTests
         });
 
         Assert.Equal(
-            ["openwindow>>2a,1,kitty,term", "activewindow>>kitty,term", "activewindowv2>>2a"],
+            ["openwindow>>2a,1,,kitty,term", "activewindow>>kitty,term", "activewindowv2>>2a"],
             Lines(outcome));
         using var active = System.Text.Json.JsonDocument.Parse(core.Execute("j/activewindow").Text);
         Assert.Equal("0x2a", active.RootElement.GetProperty("address").GetString());
-    }
-
-    [Fact]
-    public void NamedWorkspaceOpenUsesTheNameAndTheDescribedId()
-    {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = workspace name:alpha, class:^(kitty)$\n"));
-
-        var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area)
-        {
-            Traits = WindowTraits.Normal with { Class = "kitty", Title = "term" },
-        });
-
-        Assert.Equal(
-            [
-                "createworkspace>>alpha",
-                "createworkspacev2>>-1,alpha",
-                "destroyworkspace>>1",
-                "destroyworkspacev2>>1,1",
-                "openwindow>>1,alpha,kitty,term",
-                "workspace>>alpha",
-                "workspacev2>>-1,alpha",
-                "activewindow>>kitty,term",
-                "activewindowv2>>1",
-            ],
-            Lines(outcome));
     }
 
     [Fact]
@@ -448,8 +383,8 @@ public class EventTests
 
         Assert.Equal(
             [
-                "createworkspace>>2",
-                "createworkspacev2>>2,2",
+                @"createworkspace>>1,\\.\DISPLAY2",
+                @"createworkspacev2>>1,1,\\.\DISPLAY2",
                 @"monitoradded>>\\.\DISPLAY1",
                 @"monitoraddedv2>>0,\\.\DISPLAY1,Dell",
                 @"monitoradded>>\\.\DISPLAY2",
@@ -491,13 +426,13 @@ public class EventTests
 
         Assert.Equal(
             [
-                "destroyworkspace>>2",
-                "destroyworkspacev2>>2,2",
+                @"destroyworkspace>>1,\\.\DISPLAY2",
+                @"destroyworkspacev2>>1,1,\\.\DISPLAY2",
                 @"monitorremoved>>\\.\DISPLAY2",
                 @"monitorremovedv2>>1,\\.\DISPLAY2,Samsung",
             ],
             Lines(outcome));
-        Assert.DoesNotContain(outcome.State.Workspaces, workspace => workspace.Id == WorkspaceId.FromNumber(2));
+        Assert.DoesNotContain(outcome.State.Workspaces, workspace => workspace.Id == new WorkspaceId("1", 1));
     }
 
     [Fact]
@@ -516,73 +451,12 @@ public class EventTests
             Traits = WindowTraits.Normal with { Class = "right", Title = "two" },
         });
 
-        var outcome = core.Execute("dispatch workspace 2");
+        var outcome = core.Execute(@"dispatch focusmonitor \\.\DISPLAY2");
 
         Assert.Equal(
             [
-                @"focusedmon>>\\.\DISPLAY2,2",
-                @"focusedmonv2>>\\.\DISPLAY2,2",
-                "activewindow>>right,two",
-                "activewindowv2>>2",
-            ],
-            Lines(outcome));
-    }
-
-    [Fact]
-    public void FocusingANamedWorkspaceUsesItsIdOnTheMonitorEvent()
-    {
-        var core = new Core();
-        var left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, Area);
-        var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024));
-        core.Handle(new MonitorsChanged([left, right]));
-        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
-        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea)
-        {
-            Traits = WindowTraits.Normal with { Class = "right", Title = "two" },
-        });
-        core.Execute("dispatch workspace 2");
-        core.Execute("dispatch movetoworkspace name:beta");
-        core.Execute("dispatch workspace 1");
-
-        var outcome = core.Execute("dispatch workspace name:beta");
-
-        Assert.Equal(
-            [
-                @"focusedmon>>\\.\DISPLAY2,beta",
-                @"focusedmonv2>>\\.\DISPLAY2,-1",
-                "activewindow>>right,two",
-                "activewindowv2>>2",
-            ],
-            Lines(outcome));
-    }
-
-    [Fact]
-    public void PullingANamedWorkspaceReportsItsIdAndTheMonitor()
-    {
-        var core = new Core();
-        var left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, Area);
-        var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024));
-        core.Handle(new MonitorsChanged([left, right]));
-        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea)
-        {
-            Traits = WindowTraits.Normal with { Class = "left", Title = "one" },
-        });
-        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea)
-        {
-            Traits = WindowTraits.Normal with { Class = "right", Title = "two" },
-        });
-        core.Execute("dispatch workspace 2");
-        core.Execute("dispatch movetoworkspacesilent name:beta");
-        core.Execute("dispatch workspace 1");
-
-        var outcome = core.Execute("dispatch workspace name:beta");
-
-        Assert.Equal(
-            [
-                @"moveworkspace>>beta,\\.\DISPLAY1",
-                @"moveworkspacev2>>-1,beta,\\.\DISPLAY1",
-                "workspace>>beta",
-                "workspacev2>>-1,beta",
+                @"focusedmon>>\\.\DISPLAY2,1",
+                @"focusedmonv2>>\\.\DISPLAY2,1",
                 "activewindow>>right,two",
                 "activewindowv2>>2",
             ],

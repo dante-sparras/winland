@@ -197,14 +197,16 @@ public class FocusReasonTests
     }
 
     [Fact]
-    public void WorkspaceOntoAnotherMonitorIsAKeybind()
+    public void AWorkspaceNumberStaysOnTheFocusedMonitor()
     {
         var core = TwoMonitors();
 
         var moved = core.Handle(new Dispatch("workspace", "2"));
 
-        Assert.Equal(new WindowId(2), Focus(moved).Window);
-        Assert.Equal(FocusReason.Keybind, Focus(moved).Reason);
+        Assert.Equal(new MonitorId(0), moved.State.ActiveMonitor);
+        Assert.Equal(new WorkspaceId("2"), moved.State.ActiveWorkspace);
+        Assert.Null(Focus(moved).Window);
+        Assert.Equal(FocusReason.Workspace, Focus(moved).Reason);
     }
 
     [Fact]

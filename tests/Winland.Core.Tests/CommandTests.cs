@@ -185,7 +185,7 @@ public class CommandTests
     [Fact]
     public void WorkspacesReplyCountsClientsAndKeepsTheDefault()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = workspace name:notes, class:^(kitty)$\n"));
+        var core = new Core(ConfigParser.Parse("windowrulev2 = workspace 2, class:^(kitty)$\n"));
         var area = new Rectangle(0, 0, 100, 100);
         core.Handle(new WindowAppeared(new WindowId(1), area));
         core.Handle(new WindowAppeared(new WindowId(2), area)
@@ -198,34 +198,8 @@ public class CommandTests
 
         Assert.Equal(1, byName["1"].GetProperty("id").GetInt32());
         Assert.Equal(1, byName["1"].GetProperty("windows").GetInt32());
-        // A named Workspace has no id.
-        Assert.False(byName["notes"].TryGetProperty("id", out _));
-        Assert.Equal(1, byName["notes"].GetProperty("windows").GetInt32());
-    }
-
-    [Fact]
-    public void NamedWorkspacesHaveNoId()
-    {
-        var text =
-            "windowrulev2 = workspace name:beta, class:^(beta)$\n" +
-            "windowrulev2 = workspace name:alpha, class:^(alpha)$\n";
-        var core = new Core(ConfigParser.Parse(text));
-        var area = new Rectangle(0, 0, 100, 100);
-        core.Handle(new WindowAppeared(new WindowId(1), area)
-        {
-            Traits = WindowTraits.Normal with { Class = "beta" },
-        });
-        core.Handle(new WindowAppeared(new WindowId(2), area)
-        {
-            Traits = WindowTraits.Normal with { Class = "alpha" },
-        });
-
-        var byName = Json(core.Execute("j/workspaces").Text)
-            .EnumerateArray()
-            .ToDictionary(item => item.GetProperty("name").GetString()!);
-
-        Assert.False(byName["alpha"].TryGetProperty("id", out _));
-        Assert.Equal("normal", byName["beta"].GetProperty("type").GetString());
+        Assert.Equal(2, byName["2"].GetProperty("id").GetInt32());
+        Assert.Equal(1, byName["2"].GetProperty("windows").GetInt32());
     }
 
     [Fact]

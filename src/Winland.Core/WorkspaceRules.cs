@@ -116,6 +116,12 @@ internal static partial class WorkspaceRules
             return null;
         }
 
+        if (WorkspaceAddress.IsNamed(ident))
+        {
+            warnings.Add("Named workspaces are not supported.");
+            return null;
+        }
+
         var rule = new WorkspaceRule
         {
             WorkspaceString = ident,
@@ -164,6 +170,9 @@ internal static partial class WorkspaceRules
             if (!Matches(rule.WorkspaceString, id, displayName, monitor, count, fullscreen))
                 continue;
 
+            if (rule.Monitor.Length > 0 && (monitor is null || !MonitorRules.Matches(monitor, rule.Monitor)))
+                continue;
+
             merged = merged is null ? rule : merged.Merge(rule);
         }
 
@@ -188,39 +197,17 @@ internal static partial class WorkspaceRules
         return null;
     }
 
-    internal static string BoundMonitor(IReadOnlyList<WorkspaceRule> rules, WorkspaceId id)
-    {
-        ArgumentNullException.ThrowIfNull(rules);
-        foreach (var rule in rules)
-        {
-            if (rule.WorkspaceName == id.Name)
-                return rule.Monitor;
-        }
-
-        return "";
-    }
-
-    internal static bool TryConcrete(string text, out WorkspaceId id)
+    internal static bool TryConcrete(string text, MonitorId monitor, out WorkspaceId id)
     {
         id = default;
         if (string.IsNullOrWhiteSpace(text))
             return false;
 
         text = text.Trim();
-        if (text.StartsWith("name:", StringComparison.Ordinal))
-        {
-            var name = text[5..];
-            if (name.Length == 0 || IsPositive(name, out _))
-                return false;
-
-            id = new WorkspaceId(name);
-            return true;
-        }
-
         if (!IsPositive(text, out var number))
             return false;
 
-        id = WorkspaceId.FromNumber(number);
+        id = WorkspaceId.FromNumber(number, monitor);
         return true;
     }
 

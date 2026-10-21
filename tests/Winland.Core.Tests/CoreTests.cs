@@ -517,7 +517,7 @@ public class CoreTests
     [Fact]
     public void FloatAndWorkspaceBothApply()
     {
-        var text = "windowrulev2 = workspace name:notes, class:^(kitty)$\nwindowrulev2 = float, class:^(kitty)$\n";
+        var text = "windowrulev2 = workspace 4, class:^(kitty)$\nwindowrulev2 = float, class:^(kitty)$\n";
         var core = new Core(ConfigParser.Parse(text));
         var bounds = new Rectangle(10, 20, 30, 40);
 
@@ -529,8 +529,8 @@ public class CoreTests
 
         var client = Assert.Single(outcome.State.Clients);
         Assert.True(client.Floating);
-        Assert.Equal(new WorkspaceId("notes"), client.Workspace);
-        Assert.Equal(new WorkspaceId("notes"), outcome.State.ActiveWorkspace);
+        Assert.Equal(new WorkspaceId("4"), client.Workspace);
+        Assert.Equal(new WorkspaceId("4"), outcome.State.ActiveWorkspace);
         Assert.Equal(NewFloat.Centered(new Rectangle(0, 0, 800, 600), bounds), Assert.Single(outcome.Placements).Bounds);
     }
 

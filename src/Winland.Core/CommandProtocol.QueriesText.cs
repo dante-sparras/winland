@@ -61,7 +61,7 @@ public static partial class CommandProtocol
         var text = new StringBuilder();
         foreach (var entry in indexed.Workspaces)
         {
-            if (entry.Id == active.Id && entry.Address == active.Address)
+            if (entry.Address == active.Address && entry.Monitor == active.Monitor && entry.Id == active.Id)
                 AppendWorkspace(text, entry);
         }
 
@@ -84,7 +84,7 @@ public static partial class CommandProtocol
         text.Append(CultureInfo.InvariantCulture, $"Window {Bare(client.Address)} -> {client.Title}:\n")
             .Append(CultureInfo.InvariantCulture, $"\tmapped: {Bit(client.Mapped)}\n\thidden: {Bit(client.Hidden)}\n\tvisible: {Bit(client.Visible)}\n")
             .Append(CultureInfo.InvariantCulture, $"\tacceptsInput: {Bit(client.AcceptsInput)}\n\tat: {client.At[0]},{client.At[1]}\n\tsize: {client.Size[0]},{client.Size[1]}\n")
-            .Append(CultureInfo.InvariantCulture, $"\tworkspace: {client.Workspace.Address} ({client.Workspace.Name})\n\tfloating: {Bit(client.Floating)}\n")
+            .Append(CultureInfo.InvariantCulture, $"\tworkspace: {client.Workspace.Address} ({client.Workspace.Name}) on monitor {client.Workspace.Monitor}\n\tfloating: {Bit(client.Floating)}\n")
             .Append(CultureInfo.InvariantCulture, $"\tmonitor: {client.Monitor}\n\tclass: {client.Class}\n\ttitle: {client.Title}\n")
             .Append(CultureInfo.InvariantCulture, $"\tinitialClass: {client.InitialClass}\n\tinitialTitle: {client.InitialTitle}\n\tpid: {client.Pid}\n")
             .Append(CultureInfo.InvariantCulture, $"\txwayland: {Bit(client.Xwayland)}\n\tpinned: {Bit(client.Pinned)}\n\tpinFullscreened: {Bit(client.PinFullscreened)}\n")

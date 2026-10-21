@@ -322,6 +322,12 @@ internal static partial class WindowRuleParser
                     return false;
                 }
 
+                if (WorkspaceAddress.IsNamed(argument))
+                {
+                    error = "Named workspaces are not supported.";
+                    return false;
+                }
+
                 effect = WindowRuleEffect.Workspace;
                 workspace = argument;
                 error = "";

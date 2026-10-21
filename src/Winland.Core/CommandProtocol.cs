@@ -78,7 +78,7 @@ public static partial class CommandProtocol
 
     private static readonly string[] NoStrings = [];
 
-    private static readonly WorkspaceJson NoSpecial = new("", null, "", "");
+    private static readonly WorkspaceJson NoSpecial = new("", null, "", "", "");
 }
 
 public abstract record CommandParse;

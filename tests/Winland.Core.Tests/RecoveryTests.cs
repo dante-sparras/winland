@@ -56,7 +56,7 @@ public class RecoveryTests
         Assert.Equal(new WorkspaceId("1"), first.Workspace);
         Assert.Equal(new MonitorId(0), first.Monitor);
         Assert.False(first.Hidden);
-        Assert.Equal(new WorkspaceId("2"), second.Workspace);
+        Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), second.Workspace);
         Assert.Equal(new MonitorId(1), second.Monitor);
         Assert.False(second.Hidden);
     }
@@ -79,8 +79,14 @@ public class RecoveryTests
     {
         var snapshot = new RecoverySnapshot(
         [
-            new RecoveredClient(new WindowId(42), new WorkspaceId("notes"), new MonitorId(1), true, "Notepad", "Untitled", 4242),
-            new RecoveredClient(new WindowId(7), WorkspaceId.Initial, MonitorId.Primary, false, "CabinetWClass", "Home", 9),
+            new RecoveredClient(new WindowId(42), new WorkspaceId("notes"), MonitorId.Primary, true, "Notepad", "Untitled", 4242)
+            {
+                MonitorIdentity = "Dell P2415Q A",
+            },
+            new RecoveredClient(new WindowId(7), WorkspaceId.Initial, MonitorId.Primary, false, "CabinetWClass", "Home", 9)
+            {
+                MonitorIdentity = @"\\.\DISPLAY1",
+            },
         ]);
 
         var json = snapshot.ToJson();
@@ -89,7 +95,7 @@ public class RecoveryTests
         Assert.Equal(2, clients.Length);
         Assert.Equal(42, clients[0].GetProperty("window").GetInt64());
         Assert.Equal("notes", clients[0].GetProperty("workspace").GetString());
-        Assert.Equal(1, clients[0].GetProperty("monitor").GetInt32());
+        Assert.Equal("Dell P2415Q A", clients[0].GetProperty("monitor").GetString());
         Assert.True(clients[0].GetProperty("hidden").GetBoolean());
         Assert.Equal("Notepad", clients[0].GetProperty("class").GetString());
         Assert.Equal("Untitled", clients[0].GetProperty("title").GetString());
@@ -207,8 +213,9 @@ public class RecoveryTests
         });
 
         var client = Assert.Single(outcome.State.Clients);
-        Assert.Equal(new WorkspaceId("3"), client.Workspace);
-        Assert.Equal(new MonitorId(1), Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == new WorkspaceId("3")).Monitor);
+        var workspace = WorkspaceId.FromNumber(3, new MonitorId(1));
+        Assert.Equal(workspace, client.Workspace);
+        Assert.Equal(new MonitorId(1), Assert.Single(outcome.State.Workspaces, candidate => candidate.Id == workspace).Monitor);
     }
 
     [Fact]
@@ -234,7 +241,7 @@ public class RecoveryTests
         core.Handle(new MonitorsChanged([left]));
         core.Restore(new RecoverySnapshot(
         [
-            new RecoveredClient(new WindowId(5), new WorkspaceId("notes"), new MonitorId(99), true, "Notepad", "Notes", 10),
+            new RecoveredClient(new WindowId(5), new WorkspaceId("4"), new MonitorId(99), true, "Notepad", "Notes", 10),
         ]));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(5), left.WorkArea)
@@ -243,7 +250,7 @@ public class RecoveryTests
         });
 
         var client = Assert.Single(outcome.State.Clients);
-        Assert.Equal(new WorkspaceId("notes"), client.Workspace);
+        Assert.Equal(new WorkspaceId("4"), client.Workspace);
         Assert.Equal(new MonitorId(0), Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == client.Workspace).Monitor);
     }
 
@@ -304,7 +311,7 @@ public class RecoveryTests
     [Fact]
     public void ASnapshotWithoutTheNewerFieldsStillParsesAndLeavesThemToTheRules()
     {
-        const string json = """{"clients":[{"window":5,"workspace":"1","monitor":0,"hidden":false,"class":"stick","title":"","process":10}]}""";
+        const string json = """{"clients":[{"window":5,"workspace":"1","monitor":"\\\\.\\DISPLAY1","hidden":false,"class":"stick","title":"","process":10}]}""";
 
         Assert.True(RecoverySnapshot.TryParse(json, out var snapshot));
         var recorded = Assert.Single(snapshot.Clients);

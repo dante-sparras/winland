@@ -145,9 +145,8 @@ public sealed partial class Core
         var monitor = RestoredMonitor(restored, screen);
         var active = screen is null ? ActiveOn(monitor) : screen.Active ?? ActiveOn(monitor);
         var current = SpecialOn(monitor) ?? active;
-        var rule = WorkspaceAddress.ParseRule(decision.Workspace, Context(monitor));
-        if (rule.Id is WorkspaceId addressed)
-            rule = rule with { Id = Alias(addressed) };
+        // A window rule's Workspace number is the focused Monitor's Workspace of that number.
+        var rule = WorkspaceAddress.ParseRule(decision.Workspace, Context());
 
         // misc:initial_workspace_tracking: a program Winland started opens its window, silently, on the Workspace it was
         // started on. A workspace rule still wins, and a window that comes back after a restart keeps its own.
@@ -159,7 +158,10 @@ public sealed partial class Core
         }
         var target = restored?.Workspace ?? rule.Id ?? current;
         ForgetRestored(appeared.Window);
-        var desk = WorkspaceFor(target, monitor);
+        var ruledHere = restored is null && rule.Id is WorkspaceId ruled && !ruled.IsSpecial;
+        var desk = WorkspaceFor(target, ruledHere ? null : target.IsSpecial ? FocusedId() : monitor);
+        // WorkspaceFor may place the number on another Monitor. The Client keeps that Workspace.
+        target = desk.Id;
         if (restored is null)
             decision = DecideAtOpen(traits, JoinRules(_rules, followed), decision, desk, appeared.Owner is WindowId owner && _disabled.Contains(owner));
         var area = WorkArea(desk, appeared.WorkArea);

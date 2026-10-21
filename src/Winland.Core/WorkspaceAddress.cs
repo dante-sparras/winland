@@ -10,8 +10,7 @@ internal static class WorkspaceAddress
         Func<WorkspaceId?> PreviousOnMonitor,
         IReadOnlyList<WorkspaceId> OnMonitor,
         IReadOnlyList<WorkspaceId> Open,
-        Func<long, bool> NumberIsEmpty,
-        Func<long, bool> NumberIsOnOtherMonitor);
+        Func<long, bool> NumberIsEmpty);
 
     internal readonly record struct Rule(WorkspaceId? Id, bool Silent);
 
@@ -32,6 +31,36 @@ internal static class WorkspaceAddress
         return TryResolve(text, context, out var id) ? new(id, silent) : new(null, false);
     }
 
+    /// <summary>True when <paramref name="text"/> addresses a Workspace by a name instead of a number or a special workspace.</summary>
+    public static bool IsNamed(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        text = text.Trim();
+        var space = text.IndexOfAny([' ', '\t']);
+        if (space > 0)
+            text = text[..space];
+
+        if (text.StartsWith("name:", StringComparison.Ordinal))
+            return true;
+
+        if (text.Contains('[', StringComparison.Ordinal) || text.Contains(']', StringComparison.Ordinal))
+            return false;
+
+        if (text is "special" or "prev" or "previous" or "previous_per_monitor" or "next" || text.StartsWith("special:", StringComparison.Ordinal) || text.StartsWith("empty", StringComparison.Ordinal))
+            return false;
+
+        // A relative selector is one only when the offset is a number. r+notes is a name.
+        if (text.Length > 2 && text[0] is 'r' or 'm' or 'e' && text[1] is '+' or '-' or '~' && IsSignedNumber(text[2..]))
+            return false;
+
+        if (text[0] is '+' or '-')
+            return false;
+
+        return !IsDigits(text);
+    }
+
     public static bool TryResolve(string? text, Context context, out WorkspaceId id)
     {
         id = default;
@@ -42,15 +71,8 @@ internal static class WorkspaceAddress
         if (TrySpecial(text, out id))
             return true;
 
-        if (text.StartsWith("name:", StringComparison.Ordinal))
-        {
-            var name = text[5..];
-            if (name.Length == 0 || IsNumber(name))
-                return false;
-
-            id = new WorkspaceId(name);
-            return true;
-        }
+        if (text.StartsWith("name:", StringComparison.Ordinal) || IsNamed(text))
+            return false;
 
         if (text.StartsWith("empty", StringComparison.Ordinal))
             return TryEmpty(text, context, out id);
@@ -71,14 +93,12 @@ internal static class WorkspaceAddress
             if (!context.Active.TryGetNumber(out var current) || current == WorkspaceId.MaxNumber)
                 return false;
 
-            id = WorkspaceId.FromNumber(current + 1);
-            return true;
+            return TryNumber(current + 1, context, out id);
         }
 
         if (text.Contains('[', StringComparison.Ordinal) || text.Contains(']', StringComparison.Ordinal))
             return false;
 
-        // As Winland's resolver reads it, text whose offset is not a number names a Workspace.
         if (text.Length > 2 && text[0] is 'r' or 'm' or 'e' && text[1] is '+' or '-' or '~' && IsSignedNumber(text[2..]))
             return TrySelector(text, context, out id);
 
@@ -87,14 +107,13 @@ internal static class WorkspaceAddress
             if (!context.Active.TryGetNumber(out var current) || !TryOffset(text, out var offset))
                 return false;
 
-            return TryNumber((long)current + offset, out id);
+            return TryNumber((long)current + offset, context, out id);
         }
 
         if (IsDigits(text))
-            return IsNumber(text) && TryNumber(long.Parse(text, CultureInfo.InvariantCulture), out id);
+            return IsNumber(text) && TryNumber(long.Parse(text, CultureInfo.InvariantCulture), context, out id);
 
-        id = new WorkspaceId(text);
-        return true;
+        return false;
     }
 
     private static bool TrySpecial(string text, out WorkspaceId id)
@@ -121,7 +140,6 @@ internal static class WorkspaceAddress
     {
         id = default;
         var suffix = text[5..];
-        var onMonitor = suffix.Contains('m', StringComparison.Ordinal);
         var next = suffix.Contains('n', StringComparison.Ordinal);
         var start = 0L;
         if (next && context.Active.TryGetNumber(out var current))
@@ -129,14 +147,10 @@ internal static class WorkspaceAddress
 
         for (var number = start + 1; number < WorkspaceId.MaxNumber; number++)
         {
-            if (onMonitor && context.NumberIsOnOtherMonitor(number))
-                continue;
-
             if (!context.NumberIsEmpty(number))
                 continue;
 
-            id = WorkspaceId.FromNumber(number);
-            return true;
+            return TryNumber(number, context, out id);
         }
 
         return false;
@@ -156,145 +170,23 @@ internal static class WorkspaceAddress
         return TryCycle(context, allMonitors: kind == 'e', absolute, offset, out id);
     }
 
+    // r walks the focused Monitor's numbers. r~N is that number, and r-1 on Workspace 1 stays there.
     private static bool TryRelative(Context context, bool absolute, int offset, out WorkspaceId id)
     {
-        var named = Named(context.OnMonitor);
-        return absolute
-            ? TryAbsoluteRelative(context, offset, named, out id)
-            : TrySignedRelative(context, offset, named, out id);
-    }
+        if (absolute)
+            return TryNumber(offset, context, out id);
 
-    private static bool TryAbsoluteRelative(Context context, int offset, List<WorkspaceId> named, out WorkspaceId id)
-    {
-        id = default;
-        if (offset <= 0)
+        if (!context.Active.TryGetNumber(out var current))
+        {
+            id = default;
             return false;
-
-        var remains = offset - 1;
-        if (remains < named.Count)
-        {
-            id = named[remains];
-            return true;
         }
 
-        remains -= named.Count;
-        var number = 0L;
-        while (remains >= 0)
-        {
-            if (number == WorkspaceId.MaxNumber)
-                return false;
+        var next = (long)current + offset;
+        if (next < 1)
+            next = 1;
 
-            number++;
-            if (!context.NumberIsOnOtherMonitor(number))
-                remains--;
-        }
-
-        return TryNumber(number, out id);
-    }
-
-    private static bool TrySignedRelative(Context context, int offset, List<WorkspaceId> named, out WorkspaceId id)
-    {
-        id = default;
-        if (!context.Active.TryGetNumber(out var activeNumber))
-        {
-            var index = named.FindIndex(workspace => workspace == context.Active);
-            if (index < 0)
-                return false;
-
-            var next = index + offset;
-            if (next < 0)
-                next = 0;
-
-            if (next < named.Count)
-            {
-                id = named[next];
-                return true;
-            }
-
-            var diff = next - (named.Count - 1);
-            return Walk(context, diff, CountTaken(context, 1, diff), positive: true, named, out id);
-        }
-
-        var predictedLong = Math.Max(0L, (long)activeNumber + offset);
-        if (predictedLong > WorkspaceId.MaxNumber)
-            return false;
-
-        var predicted = (int)predictedLong;
-        var positive = offset >= 0;
-        var begin = positive ? activeNumber + 1 : predicted;
-        var end = positive ? predicted : activeNumber;
-        return Walk(context, predicted, CountTaken(context, begin, end), positive, named, out id);
-    }
-
-    private static bool Walk(
-        Context context,
-        long predicted,
-        long remaining,
-        bool positive,
-        List<WorkspaceId> named,
-        out WorkspaceId id)
-    {
-        id = default;
-        var final = predicted;
-        if (!positive)
-        {
-            var beginId = final;
-            var current = final;
-            while (remaining > 0 && current > 1)
-            {
-                current--;
-                if (!context.NumberIsOnOtherMonitor(current))
-                    remaining--;
-
-                final = current;
-            }
-
-            if (final <= 0 || context.NumberIsOnOtherMonitor(final))
-            {
-                if (named.Count > 0)
-                {
-                    id = named[(int)Math.Clamp(named.Count - remaining, 0, named.Count - 1)];
-                    return true;
-                }
-
-                positive = true;
-                final = beginId;
-                remaining = 1;
-            }
-        }
-
-        if (positive)
-        {
-            var current = final;
-            while (remaining > 0 && current < WorkspaceId.MaxNumber - 1)
-            {
-                current++;
-                if (!context.NumberIsOnOtherMonitor(current))
-                    remaining--;
-
-                final = current;
-            }
-        }
-
-        return TryNumber(final, out id);
-    }
-
-    private static long CountTaken(Context context, long begin, long end)
-    {
-        if (end < begin)
-            return 0;
-
-        var count = 0L;
-        for (var number = Math.Max(begin, 1L); number <= end; number++)
-        {
-            if (context.NumberIsOnOtherMonitor(number))
-                count++;
-
-            if (number == WorkspaceId.MaxNumber)
-                break;
-        }
-
-        return count;
+        return TryNumber(next, context, out id);
     }
 
     private static bool TryCycle(Context context, bool allMonitors, bool absolute, int offset, out WorkspaceId id)
@@ -334,18 +226,6 @@ internal static class WorkspaceAddress
         return true;
     }
 
-    private static List<WorkspaceId> Named(IReadOnlyList<WorkspaceId> cycle)
-    {
-        var named = new List<WorkspaceId>();
-        foreach (var workspace in cycle)
-        {
-            if (!workspace.TryGetNumber(out _))
-                named.Add(workspace);
-        }
-
-        return named;
-    }
-
     private static bool TryOffset(string text, out int offset)
     {
         offset = 0;
@@ -363,7 +243,7 @@ internal static class WorkspaceAddress
         return true;
     }
 
-    private static bool TryNumber(long number, out WorkspaceId id)
+    private static bool TryNumber(long number, Context context, out WorkspaceId id)
     {
         if (number < 1)
             number = 1;
@@ -374,7 +254,7 @@ internal static class WorkspaceAddress
             return false;
         }
 
-        id = WorkspaceId.FromNumber(number);
+        id = WorkspaceId.FromNumber(number, new MonitorId(context.Active.Monitor));
         return true;
     }
 

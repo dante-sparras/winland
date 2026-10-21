@@ -359,8 +359,16 @@ public sealed partial class Core
         var dy = right.Effective.Y - left.Effective.Y;
         deskLeft.Layout.NudgeFloating(dx, dy);
         deskRight.Layout.NudgeFloating(-dx, -dy);
-        deskLeft.Monitor = right.Id;
-        deskRight.Monitor = left.Id;
+        var leftNumber = NumberOn(deskLeft, right.Id, deskRight);
+        var rightNumber = NumberOn(deskRight, left.Id, deskLeft);
+        deskLeft.HomeIdentity = null;
+        deskLeft.HomeNumber = 0;
+        deskRight.HomeIdentity = null;
+        deskRight.HomeNumber = 0;
+        var parked = new WorkspaceId("\0", int.MinValue);
+        Rebind(deskLeft, parked);
+        Rebind(deskRight, WorkspaceId.FromNumber(rightNumber, left.Id));
+        Rebind(deskLeft, WorkspaceId.FromNumber(leftNumber, right.Id));
         left.Active = deskRight.Id;
         right.Active = deskLeft.Id;
         _activeOn[left.Id] = deskRight.Id;
@@ -405,7 +413,16 @@ public sealed partial class Core
             Plug(origin, desk);
 
         desk.Layout.NudgeFloating(dx, dy);
-        desk.Monitor = destination.Id;
+        if (desk.Id.IsSpecial)
+            desk.Monitor = destination.Id;
+        else
+        {
+            desk.HomeIdentity = null;
+            desk.HomeNumber = 0;
+            var number = NumberOn(desk, destination.Id, desk);
+            Rebind(desk, WorkspaceId.FromNumber(number, destination.Id));
+        }
+
         Refit(desk);
 
         WindowId? focus = null;
@@ -432,7 +449,7 @@ public sealed partial class Core
         if (screen.Active is not WorkspaceId target)
             return View([], dispatcher: dispatcher);
 
-        return MoveTo(target.Name, silent, consumed: false, dispatcher, focal: focal);
+        return MoveTo(target, silent, consumed: false, dispatcher, focal: focal);
     }
 
     private Outcome FocusOnto(LiveMonitor screen, string dispatcher, WindowId? preferred)

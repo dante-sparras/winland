@@ -117,13 +117,12 @@ public class WorkspaceTests
     }
 
     [Fact]
-    public void RelativeNamedAndPreviousAddressesFollowTheManual()
+    public void RelativeAndPreviousAddressesFollowTheManual()
     {
         var core = Load("""
             bind = SUPER, O, workspace, +1
             bind = SUPER, I, workspace, -1
             bind = SUPER, P, workspace, previous
-            bind = SUPER, N, workspace, name:notes
             bind = SUPER, 1, workspace, 1
             """);
         Appear(core, 1);
@@ -139,12 +138,8 @@ public class WorkspaceTests
         var back = Press(core, "I");
         Assert.Equal(new WorkspaceId("2"), back.State.ActiveWorkspace);
 
-        var named = Press(core, "N");
-        Assert.Equal(new WorkspaceId("notes"), named.State.ActiveWorkspace);
-        Assert.Equal(MonitorId.Primary, Assert.Single(named.State.Workspaces, workspace => workspace.Id == new WorkspaceId("notes")).Monitor);
-
         var previous = Press(core, "P");
-        Assert.Equal(new WorkspaceId("2"), previous.State.ActiveWorkspace);
+        Assert.Equal(new WorkspaceId("3"), previous.State.ActiveWorkspace);
 
         var home = Press(core, "1");
         Assert.Equal(new WorkspaceId("1"), home.State.ActiveWorkspace);
@@ -398,26 +393,31 @@ public class WorkspaceTests
     }
 
     [Theory]
-    [InlineData("all_monitors", "3")]
-    [InlineData("per_monitor", "1")]
-    public void BackAndForthPerMonitorLooksOnlyAtThisMonitorsWorkspaces(string value, string expected)
+    [InlineData("all_monitors", 3, 1)]
+    [InlineData("per_monitor", 1, 0)]
+    public void BackAndForthPerMonitorLooksOnlyAtThisMonitorsWorkspaces(string value, int workspace, int monitor)
     {
-        var core = Load($"binds:workspace_back_and_forth = {value}\nworkspace = 3, monitor:RIGHT\n");
+        var core = Load($"binds:workspace_back_and_forth = {value}\n");
         core.Handle(new MonitorsChanged(
         [
             new Monitor("LEFT", "Left", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080)),
             new Monitor("RIGHT", "Right", 1920, 0, 1920, 1080, 1, true, new Rectangle(1920, 0, 1920, 1080)),
         ]));
-        // LEFT shows 1, then 4. RIGHT shows 3. Back on 4, the Workspace visited before it was 3, on RIGHT.
+        // LEFT shows 4, then RIGHT shows 3, then focus returns to LEFT. The visit before that is 3, on RIGHT.
+        // The windows keep Workspaces 1 and 2, so an empty one is not removed from the history.
         core.Execute("dispatch focusmonitor LEFT");
+        core.Execute("dispatch workspace 2");
+        core.Handle(new WindowAppeared(new WindowId(2), Area));
         core.Execute("dispatch workspace 1");
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Execute("dispatch workspace 4");
+        core.Execute("dispatch focusmonitor RIGHT");
         core.Execute("dispatch workspace 3");
-        core.Execute("dispatch workspace 4");
+        core.Execute("dispatch focusmonitor LEFT");
 
         var again = core.Execute("dispatch workspace 4").Effect;
 
-        Assert.Equal(new WorkspaceId(expected), again.State.ActiveWorkspace);
+        Assert.Equal(WorkspaceId.FromNumber(workspace, new MonitorId(monitor)), again.State.ActiveWorkspace);
     }
 
     [Theory]
@@ -427,7 +427,7 @@ public class WorkspaceTests
     {
         var core = TwoMonitors($"binds:workspace_center_on = {centerOn}\n");
 
-        var switched = core.Execute("dispatch workspace 2").Effect;
+        var switched = ShowTheRightsWorkspace(core);
 
         Assert.Equal(new WarpTo(new Point(x, y)), switched.Warp);
     }
@@ -438,13 +438,14 @@ public class WorkspaceTests
     public void WorkspaceCenterOnPicksTheFocusedClientOrTheMonitor(string centerOn, int x, int y)
     {
         var core = TwoMonitors($"binds:workspace_center_on = {centerOn}\n");
+        core.Execute("dispatch focusmonitor RIGHT");
         core.Execute("dispatch workspace 2");
         core.Handle(new WindowAppeared(new WindowId(1), Right));
         core.Handle(new WindowAppeared(new WindowId(2), Right));
         core.Handle(new WindowFocused(new WindowId(1), FocusCause.User));
         core.Execute("dispatch focusmonitor LEFT");
 
-        var switched = core.Execute("dispatch workspace 2").Effect;
+        var switched = core.Execute("dispatch workspace previous").Effect;
 
         Assert.Equal(new WarpTo(new Point(x, y)), switched.Warp);
     }
@@ -454,7 +455,7 @@ public class WorkspaceTests
     {
         var core = TwoMonitors("cursor:no_warps = true\n");
 
-        var switched = core.Execute("dispatch workspace 2").Effect;
+        var switched = ShowTheRightsWorkspace(core);
 
         Assert.Null(switched.Warp);
     }
@@ -463,8 +464,12 @@ public class WorkspaceTests
     public void ASwitchOntoAnotherMonitorFollowsWarpOnMonitorChange()
     {
         var core = TwoMonitors("cursor:no_warps = true\ncursor:warp_on_change_workspace = 2\ncursor:warp_on_monitor_change = 0\n");
+        core.Execute("dispatch focusmonitor RIGHT");
+        core.Execute("dispatch workspace 2");
+        core.Handle(new WindowAppeared(new WindowId(1), Right));
+        core.Execute("dispatch focusmonitor LEFT");
 
-        var switched = core.Execute("dispatch workspace 2").Effect;
+        var switched = core.Execute("dispatch workspace previous").Effect;
 
         Assert.Null(switched.Warp);
     }
@@ -481,7 +486,15 @@ public class WorkspaceTests
 
     private static readonly Rectangle Right = new(1920, 0, 1920, 1080);
 
-    // LEFT shows workspace 1 and RIGHT shows workspace 2, and LEFT is focused.
+    // RIGHT shows empty Workspace 2. previous from LEFT lands there.
+    private static Outcome ShowTheRightsWorkspace(Core core)
+    {
+        core.Execute("dispatch focusmonitor RIGHT");
+        core.Execute("dispatch workspace 2");
+        core.Execute("dispatch focusmonitor LEFT");
+        return core.Execute("dispatch workspace previous").Effect;
+    }
+
     private static Core TwoMonitors(string config)
     {
         var core = Load(config);

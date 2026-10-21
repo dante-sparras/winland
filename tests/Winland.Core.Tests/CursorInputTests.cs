@@ -225,7 +225,7 @@ public class CursorInputTests
         core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
         core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
 
-        var outcome = core.Handle(new Dispatch("workspace", "2"));
+        var outcome = core.Handle(new Dispatch("focusmonitor", @"\\.\DISPLAY2"));
 
         Assert.Equal(new MonitorId(1), outcome.State.ActiveMonitor);
         Assert.Equal(new WarpTo(new Point(2560, 512)), outcome.Warp);
@@ -277,14 +277,19 @@ public class CursorInputTests
     public void ClientsRoundTripAndAnOldInputObjectIsIgnored()
     {
         var snapshot = new RecoverySnapshot(
-            [new RecoveredClient(new WindowId(7), WorkspaceId.Initial, MonitorId.Primary, false, "CabinetWClass", "Home", 9)]);
+        [
+            new RecoveredClient(new WindowId(7), WorkspaceId.Initial, MonitorId.Primary, false, "CabinetWClass", "Home", 9)
+            {
+                MonitorIdentity = @"\\.\DISPLAY1",
+            },
+        ]);
 
         Assert.True(RecoverySnapshot.TryParse(snapshot.ToJson(), out var parsed));
         Assert.Equal(snapshot.Clients, parsed.Clients);
         Assert.DoesNotContain("input", snapshot.ToJson(), StringComparison.Ordinal);
 
         const string Older = """
-            {"clients":[{"window":7,"workspace":"1","monitor":0,"hidden":false,"class":"CabinetWClass","title":"Home","process":9}],"input":{"keyboardDelay":1},"mirrors":[],"vrr":{},"colors":[]}
+            {"clients":[{"window":7,"workspace":"1","monitor":"\\\\.\\DISPLAY1","hidden":false,"class":"CabinetWClass","title":"Home","process":9}],"input":{"keyboardDelay":1},"mirrors":[],"vrr":{},"colors":[]}
             """;
         Assert.True(RecoverySnapshot.TryParse(Older, out var legacy));
         Assert.Equal(snapshot.Clients, legacy.Clients);
