@@ -10,9 +10,7 @@ namespace Winland;
 public sealed record ConfigNotice(string Title, string Text, string? File, int Generation)
 {
     /// <summary>
-    /// The notification for <paramref name="warnings"/>, or null when none of them are config errors.
-    /// A warning that a feature is not honored, has no Windows meaning, or is a window rule Winland does not apply
-    /// is only logged. <paramref name="configPath"/> names the file a warning with no source was read from.
+    /// The notification for <paramref name="warnings"/>, or null when there are none. <paramref name="configPath"/> names the file a warning with no source was read from.
     /// </summary>
     public static ConfigNotice? For(IReadOnlyList<ConfigWarning> warnings, string? configPath, int generation)
     {
@@ -21,9 +19,6 @@ public sealed record ConfigNotice(string Title, string Text, string? File, int G
         var count = 0;
         foreach (var warning in warnings)
         {
-            if (ConfigWarnings.IsOnlyLogged(warning.Message))
-                continue;
-
             count++;
             first ??= warning;
         }

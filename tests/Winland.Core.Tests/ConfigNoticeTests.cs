@@ -60,28 +60,7 @@ public class ConfigNoticeTests
         Assert.Null(Notice(core));
     }
 
-    [Fact]
-    public void ALoggedWarningAloneShowsNothingAndConfigErrorsStillListsIt()
-    {
-        var core = Loaded("general:layout = floating\n");
 
-        Assert.Null(Notice(core));
-        Assert.Contains("not honored", core.Execute("configerrors").Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void ALoggedWarningBeforeAnErrorIsNotTheBody()
-    {
-        var core = Loaded("general:layout = floating\nblur = on\n");
-        var notice = Notice(core);
-
-        Assert.NotNull(notice);
-        Assert.Equal("Winland: 1 config errors", notice.Title);
-        Assert.Equal(@"C:\winland\winland.conf:2: Unsupported keyword 'blur'.", notice.Text);
-        var listed = core.Execute("configerrors").Text;
-        Assert.Contains("not honored", listed, StringComparison.Ordinal);
-        Assert.Contains("blur", listed, StringComparison.Ordinal);
-    }
 
     [Fact]
     public void ASourcedErrorNamesThatFile()

@@ -126,9 +126,8 @@ public sealed partial class Core
         return outcome;
     }
 
-    // A config read or reloaded with errors replaces the notification with the count and the first error, including
-    // a reload of the same errors. A warning that a feature is not honored, has no Windows meaning, or is a window
-    // rule Winland does not apply is only logged. A load with none takes the notification away.
+    // A config read or reloaded with warnings replaces the notification with the count and the first warning,
+    // including a reload of the same warnings. A load with none takes the notification away.
     private void ShowConfigErrors(ConfigDocument document)
     {
         var next = ConfigNotice.For(document.Warnings, document.Path, _noticeGeneration + 1);
