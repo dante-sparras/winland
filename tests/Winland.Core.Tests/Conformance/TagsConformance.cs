@@ -1,4 +1,6 @@
-namespace Winland.Tests.Conformance;
+using Winland.Core;
+
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>Winland's window tag cases. Each test is named after its case, and sends the same commands.</summary>
 [Trait("Category", "Conformance")]

@@ -1,4 +1,6 @@
-namespace Winland.Tests.Conformance;
+using Winland.Core;
+
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>
 /// Winland's activation case. One client opens a source and a target window, and the source asks for the

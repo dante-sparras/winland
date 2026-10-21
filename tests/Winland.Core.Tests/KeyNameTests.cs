@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class KeyNameTests
 {
@@ -315,17 +315,17 @@ public class KeyNameTests
         hasAltGr: true,
         deadKeys: [0xBB, 0xC0]);
 
-    private static Core Load(string text, KeyLayout layout)
+    private static WindowManager Load(string text, KeyLayout layout)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse(text, layout: layout)));
         return core;
     }
 
-    private static void Appear(Core core) =>
+    private static void Appear(WindowManager core) =>
         core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
 
-    private static Outcome Press(Core core, string key, int scanCode = 0) =>
+    private static Outcome Press(WindowManager core, string key, int scanCode = 0) =>
         core.Handle(new KeyPressed(key) { ScanCode = scanCode });
 
     private static void AssertPassed(Outcome outcome)

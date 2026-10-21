@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class BorderRingTests
 {
@@ -47,7 +47,7 @@ public class BorderRingTests
     [Fact]
     public void EachClientGetsARingFromItsBorderSizeAndColors()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("general:border_size = 3\ngeneral:col.active_border = rgba(33ccffff)\n")));
         core.Handle(new MonitorsChanged([new Monitor("DISPLAY1", "", 0, 0, 1920, 1080, 1, true, Area)]));
 
@@ -62,11 +62,11 @@ public class BorderRingTests
     [Fact]
     public void NoRingWithoutABorderInFullscreenOrWithDecorateOff()
     {
-        var none = new Core(ConfigParser.Parse("general:border_size = 0\n"));
+        var none = new WindowManager(ConfigParser.Parse("general:border_size = 0\n"));
         none.Handle(new MonitorsChanged([new Monitor("DISPLAY1", "", 0, 0, 1920, 1080, 1, true, Area)]));
         Assert.Null(Assert.Single(none.Handle(new WindowAppeared(new WindowId(1), Area)).Decorations).Ring);
 
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("general:border_size = 2\n")));
         core.Handle(new MonitorsChanged([new Monitor("DISPLAY1", "", 0, 0, 1920, 1080, 1, true, Area)]));
         Assert.NotNull(Assert.Single(core.Handle(new WindowAppeared(new WindowId(1), Area)).Decorations).Ring);
@@ -80,7 +80,7 @@ public class BorderRingTests
     [Fact]
     public void AGroupBorderTakesItsColorAndAGradientDoesNot()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("general:border_size = 2\ngroup:col.border_active = rgba(33ccffff)\n")));
         core.Handle(new MonitorsChanged([new Monitor("DISPLAY1", "", 0, 0, 1920, 1080, 1, true, Area)]));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
@@ -90,7 +90,7 @@ public class BorderRingTests
         Assert.NotNull(ring);
         Assert.Equal(Cyan, ring.Color);
 
-        var kept = new Core();
+        var kept = new WindowManager();
         kept.Handle(new Configure(ConfigParser.Parse("general:border_size = 2\ngroup:col.border_active = rgba(33ccffff) rgba(00ff99ff) 90deg\n")));
         kept.Handle(new MonitorsChanged([new Monitor("DISPLAY1", "", 0, 0, 1920, 1080, 1, true, Area)]));
         kept.Handle(new WindowAppeared(new WindowId(1), Area));

@@ -1,8 +1,8 @@
 using System.Globalization;
 using System.Text.Json;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests.Conformance;
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>Winland's window cases. Each test is named after its case, and sends the same commands.</summary>
 [Trait("Category", "Conformance")]
@@ -1333,7 +1333,7 @@ public class WindowConformance
     private static void ExpectProcess(WindowId window, int pid) => Assert.Equal(pid, 1000 + window.Value);
 
     // A launched shell starts the process of the nth window, as the adapter notes a new process and its parent.
-    private static void Started(Desk desk, int window, int parent) => desk.Core.NoteProcess(Pid(window), parent);
+    private static void Started(Desk desk, int window, int parent) => desk.WindowManager.NoteProcess(Pid(window), parent);
 
     // Runs exec and records the process it starts, as the adapter does.
     private static void Launch(Desk desk, string arguments, int pid)
@@ -1341,7 +1341,7 @@ public class WindowConformance
         var outcome = desk.Handle(new Dispatch("exec", arguments));
         Assert.Null(outcome.Error);
         foreach (var launch in outcome.Launches)
-            desk.Core.NoteLaunched(pid, launch);
+            desk.WindowManager.NoteLaunched(pid, launch);
     }
 
     private static int MonitorId(Desk desk, string name)

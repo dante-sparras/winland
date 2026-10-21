@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class MasterLayoutTests
 {
@@ -81,7 +81,7 @@ public class MasterLayoutTests
     public void ACenteredMasterCentersOnTheMonitorWhenItIgnoresTheReservedStrip(string ignore, int middle)
     {
         // The Monitor keeps a 200 pixel strip on its left out of the work area.
-        var core = new Core(ConfigParser.Parse(
+        var core = new WindowManager(ConfigParser.Parse(
             $"general:layout = master\ngeneral:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nmaster:orientation = center\nmaster:center_ignores_reserved = {ignore}\n"));
         var work = new Rectangle(200, 0, 1720, 1080);
         core.Handle(new MonitorsChanged([new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, work)]));
@@ -725,9 +725,9 @@ public class MasterLayoutTests
         return outcome;
     }
 
-    private static Core CoreOf(string text)
+    private static WindowManager CoreOf(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(text)));
         return core;
     }
@@ -735,7 +735,7 @@ public class MasterLayoutTests
     private static WindowAppeared Appeared(long window) =>
         new(new WindowId(window), Screen);
 
-    private static void Press(Core core, string key) =>
+    private static void Press(WindowManager core, string key) =>
         core.Handle(new KeyPressed(key));
 
     private static Client ClientOf(Outcome outcome, long window) =>

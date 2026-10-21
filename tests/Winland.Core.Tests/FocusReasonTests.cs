@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class FocusReasonTests
 {
@@ -34,7 +34,7 @@ public class FocusReasonTests
     [Fact]
     public void OpeningAWindowReportsNewWindow()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         var first = core.Handle(new WindowAppeared(new WindowId(1), Area));
         var second = core.Handle(new WindowAppeared(new WindowId(2), Area));
@@ -48,7 +48,7 @@ public class FocusReasonTests
     [Fact]
     public void FocusWindowReportsItsDispatcher()
     {
-        var core = Open(new Core());
+        var core = Open(new WindowManager());
 
         var focused = core.Handle(new Dispatch("focuswindow", "address:0x1"));
 
@@ -149,7 +149,7 @@ public class FocusReasonTests
     [Fact]
     public void FocusCurrentOrLastIsASoftSwitch()
     {
-        var core = Open(new Core());
+        var core = Open(new WindowManager());
 
         var focused = core.Handle(new Dispatch("focuscurrentorlast"));
 
@@ -160,7 +160,7 @@ public class FocusReasonTests
     [Fact]
     public void FocusCurrentOrLastOnAnotherWorkspaceReportsWorkspace()
     {
-        var core = Open(new Core());
+        var core = Open(new WindowManager());
         core.Handle(new Dispatch("movetoworkspacesilent", "2,address:0x1"));
 
         var focused = core.Handle(new Dispatch("focuscurrentorlast"));
@@ -173,7 +173,7 @@ public class FocusReasonTests
     [Fact]
     public void FocusUrgentOrLastIsASoftSwitch()
     {
-        var core = Open(new Core());
+        var core = Open(new WindowManager());
         core.Handle(new WindowFocused(new WindowId(1), FocusCause.Activated));
 
         var focused = core.Handle(new Dispatch("focusurgentorlast"));
@@ -185,7 +185,7 @@ public class FocusReasonTests
     [Fact]
     public void WorkspaceOnTheSameMonitorReportsWorkspace()
     {
-        var core = Open(new Core());
+        var core = Open(new WindowManager());
 
         var away = core.Handle(new Dispatch("workspace", "2"));
         var back = core.Handle(new Dispatch("workspace", "1"));
@@ -223,7 +223,7 @@ public class FocusReasonTests
     [Fact]
     public void ToggleSpecialWorkspaceReportsItsReason()
     {
-        var core = Open(new Core());
+        var core = Open(new WindowManager());
         core.Handle(new Dispatch("movetoworkspace", "special:scratch"));
         core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
 
@@ -258,7 +258,7 @@ public class FocusReasonTests
     [Fact]
     public void ClosingATiledWindowReportsUnmapTiled()
     {
-        var core = Open(new Core());
+        var core = Open(new WindowManager());
 
         var closed = core.Handle(new WindowClosed(new WindowId(2)));
 
@@ -269,7 +269,7 @@ public class FocusReasonTests
     [Fact]
     public void ClosingAFloatingWindowReportsUnmapFloating()
     {
-        var core = Open(new Core());
+        var core = Open(new WindowManager());
         core.Handle(new Dispatch("setfloating"));
 
         var closed = core.Handle(new WindowClosed(new WindowId(2)));
@@ -292,7 +292,7 @@ public class FocusReasonTests
     [Fact]
     public void ClosingTheLastWindowReportsOther()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var closed = core.Handle(new WindowClosed(new WindowId(1)));
@@ -319,7 +319,7 @@ public class FocusReasonTests
     [Fact]
     public void AClickOnTheWindowReportsClick()
     {
-        var core = Open(new Core());
+        var core = Open(new WindowManager());
 
         var clicked = core.Handle(new WindowFocused(new WindowId(1), FocusCause.User) { Clicked = new WindowId(1) });
 
@@ -330,7 +330,7 @@ public class FocusReasonTests
     [Fact]
     public void AUserFocusWithNoClickIsUnknown()
     {
-        var core = Open(new Core());
+        var core = Open(new WindowManager());
 
         var focused = core.Handle(new WindowFocused(new WindowId(1), FocusCause.User));
 
@@ -341,7 +341,7 @@ public class FocusReasonTests
     [Fact]
     public void AnAcceptedActivationIsADesktopStateChange()
     {
-        var core = Open(new Core(ConfigParser.Parse("misc:focus_on_activate = true\n")));
+        var core = Open(new WindowManager(ConfigParser.Parse("misc:focus_on_activate = true\n")));
 
         var activated = core.Handle(new WindowFocused(new WindowId(1), FocusCause.User) { Clicked = new WindowId(2) });
 
@@ -352,7 +352,7 @@ public class FocusReasonTests
     [Fact]
     public void ASilentMoveOfTheFocusedWindowIsAKeybind()
     {
-        var core = Open(new Core());
+        var core = Open(new WindowManager());
 
         var moved = core.Handle(new Dispatch("movetoworkspacesilent", "3"));
 
@@ -363,17 +363,17 @@ public class FocusReasonTests
     private static FocusChanged Focus(Outcome outcome) =>
         Assert.Single(outcome.Events.OfType<FocusChanged>());
 
-    private static Core Flat(string extra = "") =>
+    private static WindowManager Flat(string extra = "") =>
         new(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra));
 
-    private static Core Open(Core core)
+    private static WindowManager Open(WindowManager core)
     {
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
         return core;
     }
 
-    private static Core Grouped(string extra = "")
+    private static WindowManager Grouped(string extra = "")
     {
         var core = Flat("group:auto_group = true\n" + extra);
         core.Handle(new WindowAppeared(new WindowId(1), Area));
@@ -382,9 +382,9 @@ public class FocusReasonTests
         return core;
     }
 
-    private static Core TwoMonitors()
+    private static WindowManager TwoMonitors()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080));
         var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1920, 1080, 1, true, new Rectangle(1920, 0, 1920, 1080));
         core.Handle(new MonitorsChanged([left, right]));
@@ -393,7 +393,7 @@ public class FocusReasonTests
         return core;
     }
 
-    private static Outcome Move(Core core, Point point, long time) =>
+    private static Outcome Move(WindowManager core, Point point, long time) =>
         core.Handle(new PointerMoved(point) { TimeMs = time });
 
     private static Point Center(Outcome outcome, long window)

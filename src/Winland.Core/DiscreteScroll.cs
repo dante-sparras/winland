@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// <c>input:emulate_discrete_scroll</c>: turns the wheel turns of a high resolution wheel, which Windows sends in

@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class DispatcherTests
 {
@@ -50,12 +50,12 @@ public class DispatcherTests
     [InlineData("a b")]
     public void MoveCursorNeedsTwoCoordinates(string arguments)
     {
-        var reply = new Core().Execute($"dispatch movecursor {arguments}");
+        var reply = new WindowManager().Execute($"dispatch movecursor {arguments}");
 
         Assert.Equal("error: movecursor takes two coordinates", reply.Text);
     }
 
-    private static WindowId? Active(Core core)
+    private static WindowId? Active(WindowManager core)
     {
         var address = System.Text.Json.JsonDocument.Parse(core.Execute("j/activewindow").Text).RootElement.GetProperty("address").GetString() ?? "";
         return address.Length > 2 ? new WindowId(Convert.ToInt64(address[2..], 16)) : null;
@@ -73,7 +73,7 @@ public class DispatcherTests
     [Fact]
     public void MoveFocusByLengthPrefersTheUpperOfTwoEqualNeighbors()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("binds:focus_preferred_method = 1\n")));
         Appear(core, 1);
         Appear(core, 2);
@@ -87,7 +87,7 @@ public class DispatcherTests
     [Fact]
     public void MoveFocusByLengthPrefersTheNeighborSharingMore()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("binds:focus_preferred_method = 1\ndwindle:default_split_ratio = 1.5\n")));
         Appear(core, 1);
         Appear(core, 2);
@@ -238,7 +238,7 @@ public class DispatcherTests
     [Fact]
     public void MoveWindowSnapsAFloatingClientToTheWorkAreaEdge()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Wide)
         {
             Traits = WindowTraits.Normal with { Dialog = true },
@@ -263,7 +263,7 @@ public class DispatcherTests
         Assert.Equal(new Rectangle(0, 0, 1440, 1080), BoundsOf(wider, 1));
         Assert.Equal(new Rectangle(1440, 0, 480, 1080), BoundsOf(wider, 2));
 
-        var stacked = new Core();
+        var stacked = new WindowManager();
         Appear(stacked, 1, Tall);
         Appear(stacked, 2, Tall);
 
@@ -277,7 +277,7 @@ public class DispatcherTests
     [Fact]
     public void ResizeActiveOnAFloatingClientGrowsItFromTheCenter()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Wide)
         {
             Traits = WindowTraits.Normal with { Dialog = true },
@@ -538,7 +538,7 @@ public class DispatcherTests
     [Fact]
     public void BoundLayoutMessageRuns()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var document = ConfigParser.Parse("""
             general:gaps_in = 0
             general:gaps_out = 0
@@ -563,7 +563,7 @@ public class DispatcherTests
     [Fact]
     public void PreselectAndPseudoRunFromABindAndThePipe()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var document = ConfigParser.Parse("""
             general:gaps_in = 0
             general:gaps_out = 0
@@ -635,27 +635,27 @@ public class DispatcherTests
         Assert.Equal(2, outcome.State.Clients.Count);
     }
 
-    private static WindowId? FocusToward(Core core, string direction) =>
+    private static WindowId? FocusToward(WindowManager core, string direction) =>
         core.Handle(new Dispatch("movefocus", direction)).Focus;
 
-    private static Core TwoWindows()
+    private static WindowManager TwoWindows()
     {
-        var core = new Core();
+        var core = new WindowManager();
         Appear(core, 1);
         Appear(core, 2);
         return core;
     }
 
-    private static Core ThreeWindows()
+    private static WindowManager ThreeWindows()
     {
         var core = TwoWindows();
         Appear(core, 3);
         return core;
     }
 
-    private static Core Flat(string extra)
+    private static WindowManager Flat(string extra)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(
             "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra)));
         return core;
@@ -664,14 +664,14 @@ public class DispatcherTests
     // A loaded config applies its gaps and borders like a reload, and these rectangles have none.
     private const string Gapless = "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n";
 
-    private static Core Load(string text)
+    private static WindowManager Load(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse(Gapless + text)));
         return core;
     }
 
-    private static Core Floats(string extra) =>
+    private static WindowManager Floats(string extra) =>
         new(ConfigParser.Parse(Gapless + extra + "windowrulev2 = float, class:^(box)$\nwindowrulev2 = move window_x window_y, class:^(box)$\n"));
 
     private static WindowAppeared FloatingAt(long window, int x, int y) =>
@@ -681,10 +681,10 @@ public class DispatcherTests
             Traits = WindowTraits.Normal with { Class = "box" },
         };
 
-    private static Outcome Appear(Core core, long window, Rectangle? area = null) =>
+    private static Outcome Appear(WindowManager core, long window, Rectangle? area = null) =>
         core.Handle(new WindowAppeared(new WindowId(window), area ?? Wide));
 
-    private static Outcome Press(Core core, string key) =>
+    private static Outcome Press(WindowManager core, string key) =>
         core.Handle(new KeyPressed(key));
 
     private static Client Client(Outcome outcome, long window) =>

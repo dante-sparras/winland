@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class UrgencyTests
 {
@@ -124,7 +124,7 @@ public class UrgencyTests
     [Fact]
     public void FocusCurrentOrLastWithAShortHistoryIsAnError()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         Assert.Equal("error: History too short", core.Handle(new Dispatch("focuscurrentorlast")).Error);
@@ -133,7 +133,7 @@ public class UrgencyTests
     [Fact]
     public void FocusUrgentOrLastWithNothingToFocusIsAnError()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         var outcome = core.Handle(new Dispatch("focusurgentorlast"));
 
@@ -153,15 +153,15 @@ public class UrgencyTests
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
     }
 
-    private static Core TwoClients()
+    private static WindowManager TwoClients()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
         return core;
     }
 
-    private static Core ThreeClients()
+    private static WindowManager ThreeClients()
     {
         var core = TwoClients();
         core.Handle(new WindowAppeared(new WindowId(3), Area));

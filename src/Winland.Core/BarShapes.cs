@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>The corners of a rectangle that are round.</summary>
 [Flags]

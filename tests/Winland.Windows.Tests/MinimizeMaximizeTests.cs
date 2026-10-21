@@ -1,7 +1,7 @@
 using Winland.Windows;
-using Winland.Windows.Tests;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Windows.Tests;
 
 /// <summary>Winland has no minimize, and a client's maximize request is maximize mode 1.</summary>
 [Collection(DesktopCollection.Name)]
@@ -19,7 +19,7 @@ public class MinimizeMaximizeTests
         probe.Open();
         try
         {
-            var core = new Core();
+            var core = new WindowManager();
             using var adapter = new WindowAdapter(core);
             core.ReducedMotion = () => true;
             adapter.AdoptExisting([probe.Anchor, probe.Wide]);

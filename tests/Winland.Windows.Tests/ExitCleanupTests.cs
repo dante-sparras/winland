@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
 using Winland.Windows;
-using Winland.Windows.Tests;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Windows.Tests;
 
 [Collection(DesktopCollection.Name)]
 [Trait("Category", DesktopCollection.Name)]
@@ -18,7 +18,7 @@ public class ExitCleanupTests
         probe.Open();
         try
         {
-            var core = new Core();
+            var core = new WindowManager();
             using var adapter = new WindowAdapter(core);
             core.ReducedMotion = () => true;
             var original = GetWindowLong(probe.Anchor, StyleIndex);
@@ -49,7 +49,7 @@ public class ExitCleanupTests
         probe.Open();
         try
         {
-            var core = new Core();
+            var core = new WindowManager();
             using var adapter = new WindowAdapter(core);
             core.ReducedMotion = () => true;
             var original = GetWindowLong(probe.Anchor, StyleIndex);
@@ -93,7 +93,7 @@ public class ExitCleanupTests
                 FrameStyle = original,
             };
 
-            var core = new Core();
+            var core = new WindowManager();
             using var adapter = new WindowAdapter(core);
             core.ReducedMotion = () => true;
             adapter.Recover(new RecoverySnapshot([left]));
@@ -125,7 +125,7 @@ public class ExitCleanupTests
                 "a title from before",
                 Environment.ProcessId);
 
-            var core = new Core();
+            var core = new WindowManager();
             using var adapter = new WindowAdapter(core);
             core.ReducedMotion = () => true;
             adapter.Recover(new RecoverySnapshot([left]));

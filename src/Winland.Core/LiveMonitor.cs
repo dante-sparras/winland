@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// A Monitor the core tracks across hotplug, keyed by <see cref="Id"/>. <see cref="MonitorSnapshot"/> is

@@ -1,7 +1,7 @@
 using System.Text;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class RollingLogTests
 {

@@ -1,4 +1,6 @@
-namespace Winland.Tests.Conformance;
+using Winland.Core;
+
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>Winland's follow_mouse_shrink case. The test is named after its case, and sends the same commands.</summary>
 [Trait("Category", "Conformance")]

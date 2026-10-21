@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// <c>misc:initial_workspace_tracking</c>: the Workspace each program Winland starts was started on, so its window opens

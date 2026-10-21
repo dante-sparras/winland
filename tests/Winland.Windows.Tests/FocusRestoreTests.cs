@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Winland;
+using Winland.Core;
 using Winland.Windows;
 
 namespace Winland.Windows.Tests;
@@ -65,7 +65,7 @@ public class FocusRestoreTests
         if (!File.Exists(exe))
             return "The focus thief was not built at " + exe;
 
-        var core = new Core();
+        var core = new WindowManager();
         using var keys = new KeyboardHook(core);
         using var mouse = new MouseHook(core, keys);
         keys.Start();

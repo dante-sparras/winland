@@ -1,4 +1,6 @@
-namespace Winland.Tests.Conformance;
+using Winland.Core;
+
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>
 /// Winland's initial maximize cases. Its client asks to be maximized before the window first shows, once

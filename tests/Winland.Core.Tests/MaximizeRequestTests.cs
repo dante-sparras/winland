@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 /// <summary>An application's maximize request is maximize mode 1. Asking again leaves it.</summary>
 public class MaximizeRequestTests
@@ -95,14 +95,14 @@ public class MaximizeRequestTests
         Assert.Empty(drifted.Placements);
     }
 
-    private static Core Flat()
+    private static WindowManager Flat()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n")));
         return core;
     }
 
-    private static Outcome Appear(Core core, long window) =>
+    private static Outcome Appear(WindowManager core, long window) =>
         core.Handle(new WindowAppeared(new WindowId(window), Wide));
 
     private static Client Client(Outcome outcome, long window) =>

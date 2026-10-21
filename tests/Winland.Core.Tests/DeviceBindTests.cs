@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class DeviceBindTests
 {
@@ -46,7 +46,7 @@ public class DeviceBindTests
     public void ADeviceTagIsNotABindName()
     {
         var document = ConfigParser.Parse("device[board]:tags = laptop, desk\nbindnk = , Q, +laptop, killactive\n");
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(document));
 
         Assert.Equal(new ConfigWarning(1, "Unsupported keyword 'device[board]:tags'."), Assert.Single(document.Warnings));
@@ -315,7 +315,7 @@ public class DeviceBindTests
         Assert.Equal("E", bind.Key);
         Assert.True(bind.Flags.HasFlag(BindFlag.NonConsuming));
 
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(document));
         Assert.True(core.Binds.HasDeviceBind);
         Assert.Equal("killactive", Press(core, "E", "board").Dispatcher);
@@ -332,7 +332,7 @@ public class DeviceBindTests
         Assert.Equal("mouse:272", bind.Key);
         Assert.Equal(["board"], bind.Devices);
 
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(document));
         Assert.True(core.Binds.HasDeviceBind);
         var press = Decide(core, new BindSession(), new PointerButtonPressed("mouse:272") { Position = new Point(1, 1) });
@@ -367,20 +367,20 @@ public class DeviceBindTests
         Assert.Equal("leave", bind.Description);
     }
 
-    private static Core Load(string text)
+    private static WindowManager Load(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse(text)));
         return core;
     }
 
-    private static BindDecision Press(Core core, string key, string? device = null) =>
+    private static BindDecision Press(WindowManager core, string key, string? device = null) =>
         Decide(core, new BindSession(), new KeyPressed(key) { Device = device });
 
-    private static BindDecision Decide(Core core, BindSession session, Input input) => core.Decide(input, session);
+    private static BindDecision Decide(WindowManager core, BindSession session, Input input) => core.Decide(input, session);
 
     private static BindDecision Device(
-        Core core,
+        WindowManager core,
         BindSession session,
         string key,
         string? device,

@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The one config notification a load shows: the count of config errors, then the first error with its file and

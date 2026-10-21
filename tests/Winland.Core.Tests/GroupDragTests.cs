@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 /// <summary>A window dragged onto a Group joins it, as <c>group:drag_into_group</c> and its options decide.</summary>
 public class GroupDragTests
@@ -115,7 +115,7 @@ public class GroupDragTests
     [Fact]
     public void ATileDraggedOntoAGroupOnAnotherMonitorJoinsItThere()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(
             "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\ngroup:auto_group = false\n"
             + "bindm = SUPER, mouse:272, movewindow\n")));
@@ -148,9 +148,9 @@ public class GroupDragTests
         Assert.Empty(MoveLines(dropped));
     }
 
-    private static Core Grouped(string extra)
+    private static WindowManager Grouped(string extra)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(
             "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\ngroup:auto_group = false\n"
             + "bindm = SUPER, mouse:272, movewindow\n" + extra)));
@@ -160,7 +160,7 @@ public class GroupDragTests
         return core;
     }
 
-    private static Outcome Drag(Core core, long window, Point to)
+    private static Outcome Drag(WindowManager core, long window, Point to)
     {
         var from = Middle(Tile(core, window));
         core.Handle(new KeyPressed("Super_L"));
@@ -171,7 +171,7 @@ public class GroupDragTests
         return dropped;
     }
 
-    private static Rectangle Tile(Core core, long window) =>
+    private static Rectangle Tile(WindowManager core, long window) =>
         Assert.Single(core.Handle(new Dispatch("no_op")).State.Clients, client => client.Window == new WindowId(window)).Bounds;
 
     private static Client Client(Outcome outcome, long window) =>

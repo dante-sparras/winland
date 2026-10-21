@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The two expressions of a <c>move</c> or <c>size</c> window rule, x then y.

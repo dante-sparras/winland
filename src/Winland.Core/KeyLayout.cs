@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>Unshifted characters a keyboard layout produces, keyed by virtual key.</summary>
 public sealed class KeyLayout

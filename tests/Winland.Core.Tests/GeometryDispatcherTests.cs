@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class GeometryDispatcherTests
 {
@@ -35,7 +35,7 @@ public class GeometryDispatcherTests
     [Fact]
     public void MoveWindowPixelLeavesATiledClientAndRejectsAMissingWindow()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var tiled = core.Handle(new Dispatch("movewindowpixel", "10 10,address:0x1"));
@@ -83,7 +83,7 @@ public class GeometryDispatcherTests
     [Fact]
     public void ResizeWindowPixelResizesATiledClientsSplit()
     {
-        var core = new Core(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n"));
+        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -107,7 +107,7 @@ public class GeometryDispatcherTests
     [Fact]
     public void CenterWindowRejectsATiledClient()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var outcome = core.Handle(new Dispatch("centerwindow"));
@@ -154,7 +154,7 @@ public class GeometryDispatcherTests
     [Fact]
     public void WithFollowMouseOffTheFocusStaysAfterAZOrderChange()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\ninput:follow_mouse = 0\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\ninput:follow_mouse = 0\n"));
         core.Handle(Box(1));
         core.Handle(Box(2));
         core.Handle(new PointerMoved(new Point(960, 540)));
@@ -175,7 +175,7 @@ public class GeometryDispatcherTests
     [Fact]
     public void AlterZOrderWithoutAWindowLeavesAnActiveTiledClient()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var outcome = core.Handle(new Dispatch("alterzorder", "top"));
@@ -198,7 +198,7 @@ public class GeometryDispatcherTests
     [Fact]
     public void ZOrderRequestsFromABindAreKept()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("""
             windowrulev2 = float, class:^(box)$
             bind = SUPER, Z, alterzorder, bottom,address:0x1
@@ -274,7 +274,7 @@ public class GeometryDispatcherTests
     [Fact]
     public void ABindPassesTheWindowAfterTheComma()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("""
             windowrulev2 = float, class:^(box)$
             bind = SUPER, Z, togglegroup, ,address:0x1
@@ -288,14 +288,14 @@ public class GeometryDispatcherTests
         Assert.Contains("\"grouped\":[\"0x1\"]", core.Execute("j/clients").Text, StringComparison.Ordinal);
     }
 
-    private static Core OneFloat()
+    private static WindowManager OneFloat()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\n"));
         core.Handle(Box(1));
         return core;
     }
 
-    private static Core TwoFloats()
+    private static WindowManager TwoFloats()
     {
         var core = OneFloat();
         core.Handle(Box(2));

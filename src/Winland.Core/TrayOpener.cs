@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The command that opens a file from the tray menu. The file's type supplies the command when Windows has one,

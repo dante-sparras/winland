@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Converts between the physical pixels Windows reports and the logical pixels a monitor rule uses.

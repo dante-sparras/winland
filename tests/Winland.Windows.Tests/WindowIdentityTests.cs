@@ -1,7 +1,7 @@
 using Winland.Windows;
-using Winland.Windows.Tests;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Windows.Tests;
 
 // One test opens real windows, so the class runs alone with the other desktop tests.
 [Collection(DesktopCollection.Name)]

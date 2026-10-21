@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 /// <summary>window.update_rules runs when a window's rules are read again, as Winland emits it.</summary>
 public class UpdateRulesTests
@@ -10,7 +10,7 @@ public class UpdateRulesTests
     [Fact]
     public void ANewWindowHasItsRulesRead()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Class = "kitty" } });
 
@@ -22,7 +22,7 @@ public class UpdateRulesTests
     [Fact]
     public void AWindowThatMapsOnAHiddenWorkspaceIsNotRead()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = workspace 2 silent, class:^(kitty)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 2 silent, class:^(kitty)$\n"));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Class = "kitty" } });
 
@@ -33,7 +33,7 @@ public class UpdateRulesTests
     [Fact]
     public void FloatingAWindowReadsItsRulesAgain()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var outcome = core.Handle(new Dispatch("togglefloating", ""));
@@ -45,7 +45,7 @@ public class UpdateRulesTests
     [Fact]
     public void MovingFocusReadsBothWindows()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -60,7 +60,7 @@ public class UpdateRulesTests
     [Fact]
     public void ADialogBecomesModalWhenItsOwnerIsDisabled()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var owner = new WindowId(1);
         var dialog = new WindowId(2);
         core.Handle(new WindowAppeared(owner, Area));
@@ -77,7 +77,7 @@ public class UpdateRulesTests
     [Fact]
     public void DisablingAWindowThatOwnsNothingTellsNothing()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         Assert.Empty(core.Handle(new WindowEnabledChanged(new WindowId(1), Enabled: false)).Events);
@@ -86,7 +86,7 @@ public class UpdateRulesTests
     [Fact]
     public void StartingAGroupReadsThatWindow()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var made = core.Handle(new Dispatch("togglegroup", ""));
@@ -98,7 +98,7 @@ public class UpdateRulesTests
     [Fact]
     public void LeavingAGroupReadsEveryMember()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Title = "one" } });
         core.Handle(new Dispatch("togglegroup", ""));
         core.Handle(new WindowAppeared(new WindowId(2), Area) { Traits = WindowTraits.Normal with { Title = "two" } });

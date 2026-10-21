@@ -1,3 +1,5 @@
+using Winland.Core;
+
 namespace Winland.Windows;
 
 public sealed class ConfigWatcher : IDisposable

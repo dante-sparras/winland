@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class AnimationConfigTests
 {
@@ -162,7 +162,7 @@ public class AnimationConfigTests
 
         Assert.Equal(new ConfigWarning(1, "Animation 'monitorAdded' does not exist."), Assert.Single(document.Warnings));
 
-        var text = new Core(document).Execute("animations").Text;
+        var text = new WindowManager(document).Execute("animations").Text;
         Assert.DoesNotContain("monitorAdded", text, StringComparison.Ordinal);
     }
 
@@ -177,7 +177,7 @@ public class AnimationConfigTests
     [Fact]
     public void TheAnimationsRequestListsTheTreeAndTheCurves()
     {
-        var core = new Core(ConfigParser.Parse("bezier = quick, 0.15, 0, 0.1, 1\nanimation = windows, 1, 3, quick, popin\n"));
+        var core = new WindowManager(ConfigParser.Parse("bezier = quick, 0.15, 0, 0.1, 1\nanimation = windows, 1, 3, quick, popin\n"));
 
         var text = core.Execute("animations").Text;
         Assert.StartsWith("animations:", text, StringComparison.Ordinal);

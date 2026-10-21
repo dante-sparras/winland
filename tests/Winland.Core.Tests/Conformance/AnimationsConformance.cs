@@ -1,4 +1,6 @@
-namespace Winland.Tests.Conformance;
+using Winland.Core;
+
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>Winland's animations case. The test is named after its case, and sends the same request.</summary>
 [Trait("Category", "Conformance")]

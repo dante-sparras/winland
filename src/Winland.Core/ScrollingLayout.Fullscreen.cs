@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 // Fullscreen and maximized tiles the scrolling Layout lays out itself, as Winland's scrolling Layout does.
 // Such a tile has a column of its own, as wide as the Monitor when fullscreen and as the view when maximized, and it

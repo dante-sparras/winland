@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class CycleNextTests
 {
@@ -9,7 +9,7 @@ public class CycleNextTests
     [Fact]
     public void CycleNextWalksTheWindowsInTheOrderTheyOpened()
     {
-        var core = Opened(new Core(), 3);
+        var core = Opened(new WindowManager(), 3);
 
         Assert.Equal(new WindowId(1), core.Handle(new Dispatch("cyclenext", "")).Focus);
         Assert.Equal(new WindowId(2), core.Handle(new Dispatch("cyclenext", "")).Focus);
@@ -23,7 +23,7 @@ public class CycleNextTests
     [InlineData("tiled floating", 2L)]
     public void TiledOrFloatingAloneTakesOnlyThatKind(string arguments, long expected)
     {
-        var core = Opened(new Core(), 4);
+        var core = Opened(new WindowManager(), 4);
         core.Handle(new Dispatch("setfloating", "address:0x2"));
         core.Handle(new Dispatch("focuswindow", "address:0x1"));
 
@@ -35,15 +35,15 @@ public class CycleNextTests
     [InlineData("prev tiled", "cycleprev")]
     public void TiledFromATileInMasterRunsTheLayoutsCycle(string arguments, string message)
     {
-        var cycled = Opened(new Core(ConfigParser.Parse("general:layout = master\n")), 3);
-        var messaged = Opened(new Core(ConfigParser.Parse("general:layout = master\n")), 3);
+        var cycled = Opened(new WindowManager(ConfigParser.Parse("general:layout = master\n")), 3);
+        var messaged = Opened(new WindowManager(ConfigParser.Parse("general:layout = master\n")), 3);
 
         Assert.Equal(
             messaged.Handle(new Dispatch("layoutmsg", message)).Focus,
             cycled.Handle(new Dispatch("cyclenext", arguments)).Focus);
     }
 
-    private static Core Opened(Core core, int count)
+    private static WindowManager Opened(WindowManager core, int count)
     {
         for (var window = 1; window <= count; window++)
             core.Handle(new WindowAppeared(new WindowId(window), Area));

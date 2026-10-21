@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// <c>input:scroll_method on_button_down</c>: while <see cref="Button"/> is held, moving the pointer scrolls instead.

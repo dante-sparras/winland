@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class WindowMoveSelectorTests
 {
@@ -13,7 +13,7 @@ public class WindowMoveSelectorTests
     [Fact]
     public void ADirectionOnAnotherWindowLeavesTheFocus()
     {
-        var core = Opened(new Core(), 2);
+        var core = Opened(new WindowManager(), 2);
         var opened = core.Handle(new Dispatch("focuswindow", "address:0x1"));
         Assert.Equal(new WindowId(1), opened.Focus);
 
@@ -157,7 +157,7 @@ public class WindowMoveSelectorTests
     [InlineData("cyclenext", ",address:0x9")]
     public void AMissingWindowIsRejected(string name, string arguments)
     {
-        var core = Opened(new Core(), 1);
+        var core = Opened(new WindowManager(), 1);
 
         var moved = core.Handle(new Dispatch(name, arguments));
 
@@ -167,7 +167,7 @@ public class WindowMoveSelectorTests
     [Fact]
     public void CycleNextOnANamedWindowWalksThatWindowsWorkspace()
     {
-        var core = Opened(new Core(), 3);
+        var core = Opened(new WindowManager(), 3);
 
         var cycled = core.Handle(new Dispatch("cyclenext", ",address:0x1"));
 
@@ -191,7 +191,7 @@ public class WindowMoveSelectorTests
     [Fact]
     public void CycleNextOnAHiddenWorkspaceShowsIt()
     {
-        var core = Opened(new Core(), 2);
+        var core = Opened(new WindowManager(), 2);
         core.Handle(new Dispatch("workspace", "2"));
         core.Handle(new WindowAppeared(new WindowId(3), Area));
         core.Handle(new WindowAppeared(new WindowId(4), Area));
@@ -246,7 +246,7 @@ public class WindowMoveSelectorTests
     [Fact]
     public void MoveWindowOrGroupJoinsTheNamedWindowAndFocusesIt()
     {
-        var core = Opened(new Core(ConfigParser.Parse("group:auto_group = false\n")), 2);
+        var core = Opened(new WindowManager(ConfigParser.Parse("group:auto_group = false\n")), 2);
         core.Handle(new Dispatch("togglegroup", ",address:0x2"));
 
         var joined = core.Handle(new Dispatch("movewindoworgroup", "r,address:0x1"));
@@ -255,9 +255,9 @@ public class WindowMoveSelectorTests
         Assert.Contains(joined.State.Groups, group => group.Contains(new WindowId(1)) && group.Contains(new WindowId(2)));
     }
 
-    private static Core Master() => new(ConfigParser.Parse("general:layout = master\n"));
+    private static WindowManager Master() => new(ConfigParser.Parse("general:layout = master\n"));
 
-    private static Core Opened(Core core, int count)
+    private static WindowManager Opened(WindowManager core, int count)
     {
         for (var window = 1; window <= count; window++)
             core.Handle(new WindowAppeared(new WindowId(window), Area));
@@ -265,9 +265,9 @@ public class WindowMoveSelectorTests
         return core;
     }
 
-    private static Core TwoMonitors(string? config = null)
+    private static WindowManager TwoMonitors(string? config = null)
     {
-        var core = config is null ? new Core() : new Core(ConfigParser.Parse(config));
+        var core = config is null ? new WindowManager() : new WindowManager(ConfigParser.Parse(config));
         var left = Display(@"\\.\DISPLAY1", "Dell", Left);
         var right = Display(@"\\.\DISPLAY2", "Samsung", Right);
         core.Handle(new MonitorsChanged([left, right]));

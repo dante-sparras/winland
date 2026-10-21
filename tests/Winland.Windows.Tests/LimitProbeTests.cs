@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
 using Winland.Windows;
-using Winland.Windows.Tests;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Windows.Tests;
 
 [Collection(DesktopCollection.Name)]
 [Trait("Category", DesktopCollection.Name)]
@@ -32,7 +32,7 @@ public class LimitProbeTests
             var wideId = probe.Wide.ToInt64();
             var smallId = probe.Small.ToInt64();
             // The probe reads where each placement lands, so nothing animates on the way.
-            var core = new Core { ReducedMotion = () => true };
+            var core = new WindowManager { ReducedMotion = () => true };
             core.Handle(new WindowAppeared(new WindowId(anchorId), area)
             {
                 Traits = WindowTraits.Normal with { MinSize = anchorLimits.Min, MaxSize = anchorLimits.Max },

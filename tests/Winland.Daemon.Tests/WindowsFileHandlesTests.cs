@@ -1,7 +1,7 @@
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
-using Winland;
+using Winland.Core;
 
 namespace Winland.Daemon.Tests;
 

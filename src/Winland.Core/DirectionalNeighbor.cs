@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The Client next to a rectangle in a direction: one that touches or slightly overlaps that side and

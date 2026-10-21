@@ -1,6 +1,7 @@
 using Winland.Windows;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Windows.Tests;
 
 /// <summary>Start and Search are flyouts of the shell. Winland leaves them unmanaged so Super does not tile them.</summary>
 public class ShellFlyoutsTests

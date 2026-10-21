@@ -1,4 +1,6 @@
-namespace Winland.Tests.Conformance;
+using Winland.Core;
+
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>
 /// Winland's foreign toplevel case. A taskbar asks to minimize a window and to restore it, and a handler

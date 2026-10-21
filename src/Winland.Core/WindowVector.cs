@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The argument of <c>movewindowpixel</c> and <c>resizewindowpixel</c>: two numbers added to an origin,

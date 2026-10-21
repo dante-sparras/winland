@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// A key or mouse button in the form the input API takes it. A key has a virtual key, a scan code,

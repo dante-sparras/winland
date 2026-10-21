@@ -1,6 +1,7 @@
 using System.Text.Json;
+using Winland.Core;
 
-namespace Winland.Tests.Conformance;
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>
 /// Winland's child window case. Its client opens a parent toplevel and then a child toplevel that names

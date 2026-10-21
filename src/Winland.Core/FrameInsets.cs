@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// How far a window's outer rectangle extends past its visible frame, in physical pixels.

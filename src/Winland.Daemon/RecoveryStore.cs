@@ -1,7 +1,8 @@
 using System.Text;
 using Microsoft.Win32.SafeHandles;
+using Winland.Core;
 
-namespace Winland;
+namespace Winland.Daemon;
 
 /// <summary>
 /// Keeps the recovery file. Winland runs elevated and the file sits in a folder the user can change,

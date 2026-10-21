@@ -1,13 +1,13 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class PerMonitorWorkspaceTests
 {
     [Fact]
     public void EachMonitorHasItsOwnWorkspace3()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Screen(@"\\.\DISPLAY1", "Dell", "P2415Q", "A", 0);
         var right = Screen(@"\\.\DISPLAY2", "Samsung", "S27", "B", 1920);
         core.Handle(new MonitorsChanged([left, right]));
@@ -27,7 +27,7 @@ public class PerMonitorWorkspaceTests
     [Fact]
     public void UnplugNumbersGuestsAfterTheHostsOwn()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Screen(@"\\.\DISPLAY1", "Dell", "P2415Q", "A", 0);
         var right = Screen(@"\\.\DISPLAY2", "Samsung", "S27", "B", 1920);
         core.Handle(new MonitorsChanged([left, right]));
@@ -51,7 +51,7 @@ public class PerMonitorWorkspaceTests
     public void UnplugNumbersGuestsAbove10When1To10AreFull()
     {
         var rules = string.Join('\n', Enumerable.Range(1, 10).Select(number => $"workspace = {number}, persistent:true"));
-        var core = new Core(ConfigParser.Parse(rules + "\n"));
+        var core = new WindowManager(ConfigParser.Parse(rules + "\n"));
         var left = Screen(@"\\.\DISPLAY1", "Dell", "P2415Q", "A", 0);
         var right = Screen(@"\\.\DISPLAY2", "Samsung", "S27", "B", 1920);
         core.Handle(new MonitorsChanged([left, right]));
@@ -71,7 +71,7 @@ public class PerMonitorWorkspaceTests
     [Fact]
     public void ReplugReturnsGuestsUnderTheirOldNumbersAndShowsThePreviousWorkspace()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Screen(@"\\.\DISPLAY1", "Dell", "P2415Q", "A", 0);
         var right = Screen(@"\\.\DISPLAY2", "Samsung", "S27", "B", 1920);
         core.Handle(new MonitorsChanged([left, right]));
@@ -94,7 +94,7 @@ public class PerMonitorWorkspaceTests
     [Fact]
     public void MovingAWorkspaceKeepsItsNumberWhenTheTargetIsFree()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Screen(@"\\.\DISPLAY1", "Dell", "P2415Q", "A", 0);
         var right = Screen(@"\\.\DISPLAY2", "Samsung", "S27", "B", 1920);
         core.Handle(new MonitorsChanged([left, right]));
@@ -112,7 +112,7 @@ public class PerMonitorWorkspaceTests
     [Fact]
     public void MovingAWorkspaceTakesTheFirstFreeNumberWhenItsOwnIsTaken()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Screen(@"\\.\DISPLAY1", "Dell", "P2415Q", "A", 0);
         var right = Screen(@"\\.\DISPLAY2", "Samsung", "S27", "B", 1920);
         core.Handle(new MonitorsChanged([left, right]));
@@ -133,7 +133,7 @@ public class PerMonitorWorkspaceTests
     [Fact]
     public void SwappingWorkspacesNumbered3Keeps3OnBothMonitors()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Screen(@"\\.\DISPLAY1", "Dell", "P2415Q", "A", 0);
         var right = Screen(@"\\.\DISPLAY2", "Samsung", "S27", "B", 1920);
         core.Handle(new MonitorsChanged([left, right]));

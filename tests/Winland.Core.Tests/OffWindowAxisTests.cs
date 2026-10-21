@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class OffWindowAxisTests
 {
@@ -24,13 +24,13 @@ public class OffWindowAxisTests
     {
         Assert.Equal(1, InputOptions.Documented.OffWindowAxisEvents);
         Assert.Equal(1, InputOptions.From(ConfigParser.Parse("input:off_window_axis_events = never\n")).OffWindowAxisEvents);
-        Assert.Equal(1, new Core().OffWindowAxisMode);
+        Assert.Equal(1, new WindowManager().OffWindowAxisMode);
     }
 
     [Fact]
     public void TheModeReachesTheCore()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("input:off_window_axis_events = clamp\n")));
 
         Assert.Equal(2, core.OffWindowAxisMode);
@@ -125,14 +125,14 @@ public class OffWindowAxisTests
         Assert.Equal(new ScrollOverride(3, null), core.ScrollOverrideAt(new Point(900, 500)));
     }
 
-    private static Core CoreWith(string config)
+    private static WindowManager CoreWith(string config)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\n" + config)));
         return core;
     }
 
-    private static void Float(Core core, long window)
+    private static void Float(WindowManager core, long window)
     {
         core.Handle(new WindowAppeared(new WindowId(window), Wide));
         core.Handle(new Dispatch("togglefloating"));

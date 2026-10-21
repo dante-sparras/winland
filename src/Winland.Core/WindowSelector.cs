@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Resolves a window selector against Clients on any Workspace.

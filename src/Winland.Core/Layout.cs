@@ -1,8 +1,8 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The algorithm that places the Clients of one Workspace.
-/// A Workspace holds one Layout. Core adopts, drops, minimizes and restores Clients through it,
+/// A Workspace holds one Layout. WindowManager adopts, drops, minimizes and restores Clients through it,
 /// moves them between Workspaces, and reads the placements of the Clients shown on a Monitor.
 /// </summary>
 internal interface Layout

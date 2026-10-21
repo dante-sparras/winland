@@ -1,3 +1,5 @@
+using Winland.Core;
+
 namespace Winland.Daemon.Tests;
 
 public sealed class ShellShortcutTests : IDisposable

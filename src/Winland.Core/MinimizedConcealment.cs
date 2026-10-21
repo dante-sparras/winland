@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 internal readonly record struct MinimizedPresence(WindowId Window, bool WorkspaceShown, bool Minimized);
 

@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Writes to another writer. The <c>debug</c> options can add copies of the log, to a file and to standard output,

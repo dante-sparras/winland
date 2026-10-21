@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class EventTests
 {
@@ -9,7 +9,7 @@ public class EventTests
     [Fact]
     public void OpeningAClientEmitsOpenThenFocus()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
@@ -24,7 +24,7 @@ public class EventTests
     [Fact]
     public void OpeningKeepsACommaInTheTitle()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
@@ -37,7 +37,7 @@ public class EventTests
     [Fact]
     public void OpeningFlattensANewlineInTheTitle()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
@@ -50,7 +50,7 @@ public class EventTests
     [Fact]
     public void RejectedWindowEmitsNothing()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
@@ -63,7 +63,7 @@ public class EventTests
     [Fact]
     public void SilentWorkspaceOpenDoesNotChangeFocus()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = workspace 2 silent, class:^(kitty)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 2 silent, class:^(kitty)$\n"));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
@@ -78,7 +78,7 @@ public class EventTests
     [Fact]
     public void WorkspaceRuleOpenSwitchesThenFocuses()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = workspace 2, class:^(kitty)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 2, class:^(kitty)$\n"));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
@@ -103,7 +103,7 @@ public class EventTests
     [Fact]
     public void ClosingTheFocusedClientEmitsCloseThenTheNextFocus()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -115,7 +115,7 @@ public class EventTests
     [Fact]
     public void ClosingAnUnfocusedClientEmitsOnlyClose()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -127,7 +127,7 @@ public class EventTests
     [Fact]
     public void ClosingTheLastClientOnAHiddenWorkspaceDestroysIt()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(7), Area));
         core.Execute("dispatch workspace 2");
 
@@ -139,7 +139,7 @@ public class EventTests
     [Fact]
     public void ADestroyedWorkspaceIsReportedByItsDefaultName()
     {
-        var core = new Core(ConfigParser.Parse("workspace = 1, defaultName:code"));
+        var core = new WindowManager(ConfigParser.Parse("workspace = 1, defaultName:code"));
         core.Handle(new WindowAppeared(new WindowId(7), Area));
         core.Execute("dispatch workspace 2");
 
@@ -151,7 +151,7 @@ public class EventTests
     [Fact]
     public void ClosingTheLastClientClearsFocus()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var outcome = core.Handle(new WindowClosed(new WindowId(1)));
@@ -162,7 +162,7 @@ public class EventTests
     [Fact]
     public void KillActiveWaitsForTheWindowToClose()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var killed = core.Execute("dispatch killactive");
@@ -175,7 +175,7 @@ public class EventTests
     [Fact]
     public void FocusDispatcherEmitsTheNewAddress()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -188,7 +188,7 @@ public class EventTests
     [Fact]
     public void ReportedFocusEmitsActiveWindow()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -200,7 +200,7 @@ public class EventTests
     [Fact]
     public void FocusingTheSameClientEmitsNothing()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var outcome = core.Handle(new WindowFocused(new WindowId(1)));
@@ -211,7 +211,7 @@ public class EventTests
     [Fact]
     public void WorkspaceSwitchEmitsTheDeskThenClearsFocus()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var outcome = core.Execute("dispatch workspace 2");
@@ -231,7 +231,7 @@ public class EventTests
     [Fact]
     public void SwitchingBackRestoresFocusAfterTheDeskEvent()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Execute("dispatch workspace 2");
 
@@ -252,7 +252,7 @@ public class EventTests
     [Fact]
     public void StayingOnTheSameWorkspaceEmitsNothing()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         var outcome = core.Execute("dispatch workspace 1");
 
@@ -262,7 +262,7 @@ public class EventTests
     [Fact]
     public void SilentMoveEmitsTheDestinationThenTheReplacementFocus()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -283,7 +283,7 @@ public class EventTests
     [Fact]
     public void FollowingAMoveEmitsTheMoveThenTheDesk()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -304,7 +304,7 @@ public class EventTests
     [Fact]
     public void MinimizeAndRestoreEmitTheFlag()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var minimized = core.Handle(new WindowMinimized(new WindowId(1)));
@@ -317,7 +317,7 @@ public class EventTests
     [Fact]
     public void TogglingFloatEmitsTheMode()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(0xFF), Area));
 
@@ -331,7 +331,7 @@ public class EventTests
     [Fact]
     public void EventAddressesAreBareHexAndTheReadKeepsThePrefix()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var outcome = core.Handle(new WindowAppeared(new WindowId(0x2A), Area)
         {
             Traits = WindowTraits.Normal with { Class = "kitty", Title = "term" },
@@ -347,7 +347,7 @@ public class EventTests
     [Fact]
     public void ConfigWarningsEmitInOrder()
     {
-        var outcome = new Core().Handle(new ConfigLoaded(ConfigParser.Parse("ghostkeyword = path\nnope = 1\n")));
+        var outcome = new WindowManager().Handle(new ConfigLoaded(ConfigParser.Parse("ghostkeyword = path\nnope = 1\n")));
 
         Assert.Equal(
             [
@@ -366,7 +366,7 @@ public class EventTests
             [],
             [new ConfigWarning(4, "bad\r\nline, still", "bad.conf")]);
 
-        var outcome = new Core().Handle(new ConfigLoaded(document));
+        var outcome = new WindowManager().Handle(new ConfigLoaded(document));
 
         Assert.Equal(["warning>>4,bad.conf,bad line, still", "configreloaded>>"], Lines(outcome));
     }
@@ -374,7 +374,7 @@ public class EventTests
     [Fact]
     public void ConnectingMonitorsEmitsAddedThenTheDescribedForm()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         var outcome = core.Handle(new MonitorsChanged([
             new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, Area),
@@ -396,7 +396,7 @@ public class EventTests
     [Fact]
     public void UnpluggingAMonitorEmitsRemovedThenTheDescribedForm()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, Area);
         var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024));
         core.Handle(new MonitorsChanged([left, right]));
@@ -417,7 +417,7 @@ public class EventTests
     [Fact]
     public void UnpluggingAMonitorDestroysItsEmptyWorkspace()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, Area);
         var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024));
         core.Handle(new MonitorsChanged([left, right]));
@@ -438,7 +438,7 @@ public class EventTests
     [Fact]
     public void FocusingAWorkspaceOnAnotherMonitorEmitsTheMonitor()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, Area);
         var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024));
         core.Handle(new MonitorsChanged([left, right]));
@@ -466,7 +466,7 @@ public class EventTests
     [Fact]
     public void ReportingTheSameMonitorsEmitsNothing()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var display = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, Area);
         core.Handle(new MonitorsChanged([display]));
 
@@ -478,7 +478,7 @@ public class EventTests
     [Fact]
     public void EventsCommandIsAStreamAndLeavesTheDeskAlone()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var reply = core.Execute("events");

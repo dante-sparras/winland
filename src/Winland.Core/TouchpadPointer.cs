@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Tells which wheel turns and cursor moves came from the precision touchpad, from the fingers its raw reports show,

@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The <c>debug</c> options Windows has a meaning for: where Winland's log goes. Any other <c>debug</c> keyword

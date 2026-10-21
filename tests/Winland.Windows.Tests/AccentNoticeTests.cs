@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Winland.Core;
 
 namespace Winland.Windows.Tests;
 
@@ -45,7 +46,7 @@ public class AccentNoticeTests
         };
         try
         {
-            var core = new Core();
+            var core = new WindowManager();
             core.Handle(new Configure(ConfigParser.Parse("")));
             using var host = new WindowHost(core);
 
@@ -70,7 +71,7 @@ public class AccentNoticeTests
         SystemAccent.Read = () => new BorderColor(0xFF, 0x11, 0x22, 0x33);
         try
         {
-            var core = new Core();
+            var core = new WindowManager();
             core.Handle(new Configure(ConfigParser.Parse("general:col.active_border = rgba(aabbccff)\n")));
             using var host = new WindowHost(core);
 

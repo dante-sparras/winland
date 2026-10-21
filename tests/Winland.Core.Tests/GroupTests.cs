@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class GroupTests
 {
@@ -321,7 +321,7 @@ public class GroupTests
     [Fact]
     public void GroupRuleOpensTheWindowAsAGroup()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = group set lock, class:^(tabs)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = group set lock, class:^(tabs)$\n"));
 
         var opened = core.Handle(new WindowAppeared(First, Area) { Traits = WindowTraits.Normal with { Class = "tabs", Title = "one" } });
 
@@ -333,7 +333,7 @@ public class GroupTests
     [Fact]
     public void BarredAndDeniedWindowsDoNotJoinTheFocusedGroup()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             windowrulev2 = group barred, class:^(alone)$
             windowrulev2 = group deny, class:^(never)$
             """));
@@ -539,7 +539,7 @@ public class GroupTests
         Assert.Empty(core.Handle(new GroupBarScrolled(Third, Forward: true)).Placements);
     }
 
-    private static Core Grouped(string config = "")
+    private static WindowManager Grouped(string config = "")
     {
         var core = Opened(auto: true, config, First);
         core.Execute("dispatch togglegroup");
@@ -547,12 +547,12 @@ public class GroupTests
         return core;
     }
 
-    private static Core Opened(bool auto, params WindowId[] windows) => Opened(auto, "", windows);
+    private static WindowManager Opened(bool auto, params WindowId[] windows) => Opened(auto, "", windows);
 
-    private static Core Opened(bool auto, string config, params WindowId[] windows)
+    private static WindowManager Opened(bool auto, string config, params WindowId[] windows)
     {
         var text = (auto ? "" : "group:auto_group = false\n") + config;
-        var core = new Core(ConfigParser.Parse(text));
+        var core = new WindowManager(ConfigParser.Parse(text));
         string[] titles = ["", "one", "two", "three"];
         foreach (var window in windows)
             core.Handle(Appear(window, titles[window.Value]));

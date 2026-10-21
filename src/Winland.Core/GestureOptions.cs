@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>The <c>gestures</c> options that steer a workspace swipe. Distances are pixels of touchpad travel.</summary>
 public sealed record GestureOptions

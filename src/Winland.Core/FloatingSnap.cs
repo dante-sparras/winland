@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Snaps a floating rectangle to other windows and to the monitor while it is moved or resized.

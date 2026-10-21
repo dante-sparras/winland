@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 public sealed record CursorBehavior(bool HideOnKeyPress, double InactiveTimeoutSeconds)
 {

@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class MonitorDispatchTests
 {
@@ -96,7 +96,7 @@ public class MonitorDispatchTests
     {
         // Portrait monitors, so each Workspace stacks its second tile below the first. Outer gaps keep
         // the tiles 44px apart across the shared edge.
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 5\ngeneral:gaps_out = 20\ngeneral:border_size = 2\n")));
         var left = Display(@"\\.\DISPLAY1", "Dell", new Rectangle(0, 0, 1080, 1920));
         var right = Display(@"\\.\DISPLAY2", "Samsung", new Rectangle(1080, 0, 1080, 1920));
@@ -331,7 +331,7 @@ public class MonitorDispatchTests
     [Fact]
     public void SwapActiveWorkspacesOfTwoUnfocusedMonitorsReportsNoWorkspace()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", new Rectangle(0, 0, 800, 600));
         var middle = Display(@"\\.\DISPLAY2", "Samsung", new Rectangle(800, 0, 800, 600));
         var right = Display(@"\\.\DISPLAY3", "LG", new Rectangle(1600, 0, 800, 600));
@@ -382,7 +382,7 @@ public class MonitorDispatchTests
             new Setting("binds:window_direction_monitor_fallback", "false"),
             Assert.Single(document.Settings));
 
-        var core = new Core();
+        var core = new WindowManager();
         Assert.Equal(
             "{\"option\":\"binds:window_direction_monitor_fallback\",\"bool\":true,\"set\":false}",
             core.Execute("getoption binds:window_direction_monitor_fallback").Text);
@@ -429,9 +429,9 @@ public class MonitorDispatchTests
         Assert.Equal(error, moved.Error);
     }
 
-    private static Core TwoMonitors(string? config = null)
+    private static WindowManager TwoMonitors(string? config = null)
     {
-        var core = config is null ? new Core() : new Core(ConfigParser.Parse(config));
+        var core = config is null ? new WindowManager() : new WindowManager(ConfigParser.Parse(config));
         var left = Display(@"\\.\DISPLAY1", "Dell", Left);
         var right = Display(@"\\.\DISPLAY2", "Samsung", Right);
         core.Handle(new MonitorsChanged([left, right]));
@@ -440,14 +440,14 @@ public class MonitorDispatchTests
         return core;
     }
 
-    private static Core Gapped(string? config = null)
+    private static WindowManager Gapped(string? config = null)
     {
         var text = config ?? """
             general:gaps_in = 0
             general:gaps_out = 20
             general:border_size = 0
             """;
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(text)));
         var left = Display(@"\\.\DISPLAY1", "Dell", Left);
         var right = Display(@"\\.\DISPLAY2", "Samsung", Right);

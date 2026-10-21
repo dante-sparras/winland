@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The identity of a Monitor is its make, model and serial. Identical monitors, the same three, are

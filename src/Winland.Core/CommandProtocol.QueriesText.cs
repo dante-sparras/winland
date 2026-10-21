@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace Winland;
+namespace Winland.Core;
 
 // The text forms Winland answers clients, activewindow, workspaces, activeworkspace and monitors with when
 // the request has no j/. They are written from the same records as the JSON forms, so the two agree.

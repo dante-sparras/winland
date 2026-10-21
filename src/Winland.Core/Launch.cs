@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 public sealed record Launch(string CommandLine, string? WorkingDirectory)
 {

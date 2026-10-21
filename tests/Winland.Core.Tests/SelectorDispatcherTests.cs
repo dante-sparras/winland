@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class SelectorDispatcherTests
 {
@@ -10,7 +10,7 @@ public class SelectorDispatcherTests
     [Fact]
     public void FocusWindowSwitchesToTheClientsWorkspace()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = workspace 2 silent, title:^(away)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 2 silent, title:^(away)$\n"));
         Appear(core, 1, "app", "here");
         Appear(core, 2, "app", "away");
 
@@ -30,7 +30,7 @@ public class SelectorDispatcherTests
     [Fact]
     public void FocusWindowMovesToTheClientsMonitor()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -53,7 +53,7 @@ public class SelectorDispatcherTests
     [Fact]
     public void FocusWindowReportsAMiss()
     {
-        var core = new Core();
+        var core = new WindowManager();
         Appear(core, 1, "app", "here");
 
         var reply = core.Execute("dispatch focuswindow class:missing");
@@ -65,7 +65,7 @@ public class SelectorDispatcherTests
     [Fact]
     public void CloseWindowClosesTheAddressFromTheClientList()
     {
-        var core = new Core();
+        var core = new WindowManager();
         Appear(core, 1, "keep", "a");
         Appear(core, 42, "go", "b", processId: 7);
         var clients = Json(core.Execute("j/clients").Text).EnumerateArray().ToArray();
@@ -82,7 +82,7 @@ public class SelectorDispatcherTests
     [Fact]
     public void KillWindowRequestsTheProcessAndDoesNotCloseTheWindow()
     {
-        var core = new Core();
+        var core = new WindowManager();
         Appear(core, 1, "app", "term", processId: 4242);
 
         var outcome = core.Handle(new Dispatch("killwindow", "pid:4242"));
@@ -140,7 +140,7 @@ public class SelectorDispatcherTests
     [Fact]
     public void MoveToWorkspaceReadsTheSelectorAfterTheComma()
     {
-        var core = new Core();
+        var core = new WindowManager();
         Appear(core, 1, "stay", "a");
         Appear(core, 2, "go", "b");
 
@@ -199,7 +199,7 @@ public class SelectorDispatcherTests
     [Fact]
     public void SwapWindowExchangesATileAndAFloatingClient()
     {
-        var core = new Core(ConfigParser.Parse(
+        var core = new WindowManager(ConfigParser.Parse(
             "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrulev2 = float, class:^(Float)$\n"));
         Appear(core, 1, "Tile", "a");
         Appear(core, 2, "Float", "b");
@@ -219,7 +219,7 @@ public class SelectorDispatcherTests
     [Fact]
     public void ExitEventNoOpAndRendererReload()
     {
-        var core = new Core();
+        var core = new WindowManager();
         Appear(core, 1, "app", "term");
 
         var exit = core.Execute("dispatch exit");
@@ -246,10 +246,10 @@ public class SelectorDispatcherTests
     [Fact]
     public void DpmsRequestsPowerForTheNamedMonitorOrEveryMonitor()
     {
-        var bare = new Core().Handle(new Dispatch("dpms", "off"));
+        var bare = new WindowManager().Handle(new Dispatch("dpms", "off"));
         Assert.Equal([new DisplayPowerRequest("", false)], Unfaded(bare.DisplayPower));
 
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -275,12 +275,12 @@ public class SelectorDispatcherTests
     public void MouseMoveWakesDisplaysOnlyWithTheOption()
     {
         const string Name = @"\\.\DISPLAY1";
-        var plain = new Core();
+        var plain = new WindowManager();
         plain.Handle(new MonitorsChanged([Display(Name, "Dell", 0, 0, 1920, 1080, 1)]));
         plain.Handle(new Dispatch("dpms", "off"));
         Assert.Empty(plain.Handle(new PointerMoved(new Point(5, 5))).DisplayPower);
 
-        var core = new Core(ConfigParser.Parse("misc:mouse_move_enables_dpms = true\n"));
+        var core = new WindowManager(ConfigParser.Parse("misc:mouse_move_enables_dpms = true\n"));
         core.Handle(new MonitorsChanged([Display(Name, "Dell", 0, 0, 1920, 1080, 1)]));
         Assert.Empty(core.Handle(new PointerMoved(new Point(5, 5))).DisplayPower);
 
@@ -295,11 +295,11 @@ public class SelectorDispatcherTests
     [Fact]
     public void KeyWakesDisplaysOnlyWithTheOptionAfterDpmsOff()
     {
-        var plain = new Core();
+        var plain = new WindowManager();
         plain.Handle(new Dispatch("dpms", "off"));
         Assert.False(plain.KeyWakesDisplays);
 
-        var core = new Core(ConfigParser.Parse("misc:key_press_enables_dpms = true\n"));
+        var core = new WindowManager(ConfigParser.Parse("misc:key_press_enables_dpms = true\n"));
         Assert.False(core.KeyWakesDisplays);
         core.Handle(new Dispatch("dpms", "off"));
         Assert.True(core.KeyWakesDisplays);
@@ -307,15 +307,15 @@ public class SelectorDispatcherTests
         Assert.False(core.KeyWakesDisplays);
     }
 
-    private static Core Flat()
+    private static WindowManager Flat()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(
             "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n")));
         return core;
     }
 
-    private static void Appear(Core core, long window, string windowClass, string title, long processId = 0) =>
+    private static void Appear(WindowManager core, long window, string windowClass, string title, long processId = 0) =>
         core.Handle(new WindowAppeared(new WindowId(window), Wide)
         {
             Traits = WindowTraits.Normal with { Class = windowClass, Title = title },

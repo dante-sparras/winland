@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>Border colors blend in the OkLab space, so the middle of a change is as bright as its ends.</summary>
 internal static class OkLab

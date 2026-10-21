@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 [Flags]
 public enum CommandFlags

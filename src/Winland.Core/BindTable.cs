@@ -1,7 +1,7 @@
 using System.Globalization;
-using static Winland.OrdinalText;
+using static Winland.Core.OrdinalText;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>One consistent bind table. Published as a whole on config load and reload.</summary>
 public sealed class BindTable

@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class WorkspaceSelectorTests
 {
@@ -188,7 +188,7 @@ public class WorkspaceSelectorTests
     [Fact]
     public void BadLayoutMessageReturnsAnErrorAndAKnownOneStillRuns()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(
             "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\ndwindle:preserve_split = true\n")));
         var area = new Rectangle(0, 0, 1920, 1080);
@@ -214,7 +214,7 @@ public class WorkspaceSelectorTests
         Assert.Equal(new Rectangle(0, 540, 1920, 540), BoundsOf(ran.Effect, 2));
     }
 
-    private static Core VisitedBoth(out Monitor left, out Monitor right)
+    private static WindowManager VisitedBoth(out Monitor left, out Monitor right)
     {
         var core = TwoMonitors(out left, out right);
         Appear(core, 1, left);
@@ -228,16 +228,16 @@ public class WorkspaceSelectorTests
         return core;
     }
 
-    private static Core TwoMonitors(out Monitor left, out Monitor right)
+    private static WindowManager TwoMonitors(out Monitor left, out Monitor right)
     {
         left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080));
         right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024));
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new MonitorsChanged([left, right]));
         return core;
     }
 
-    private static void Appear(Core core, long window, Monitor monitor) =>
+    private static void Appear(WindowManager core, long window, Monitor monitor) =>
         core.Handle(new WindowAppeared(new WindowId(window), monitor.WorkArea));
 
     private static Workspace Workspace(Outcome outcome, string name) =>

@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Input options Winland reads for focus, scrolling, and mouse motion. Keys that would write a Windows setting are

@@ -1,7 +1,7 @@
-using Winland;
-using Monitor = Winland.Monitor;
+using Winland.Core;
+using Monitor = Winland.Core.Monitor;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class MonitorTests
 {
@@ -11,7 +11,7 @@ public class MonitorTests
         var document = ConfigParser.Parse("""
             monitor = \\.\DISPLAY2, preferred, 0x1080, auto
             """);
-        var core = new Core(document);
+        var core = new WindowManager(document);
         var left = Display(@"\\.\DISPLAY1", "Samsung", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Dell U2720Q", 1920, 0, 1920, 1080, 1, new Rectangle(1920, 40, 1920, 1040));
 
@@ -37,7 +37,7 @@ public class MonitorTests
         var document = ConfigParser.Parse("""
             monitor = desc:Dell, preferred, 10x20, auto
             """);
-        var core = new Core(document);
+        var core = new WindowManager(document);
         var dell = Display(@"\\.\DISPLAY1", "Dell U2720Q", 0, 0, 1920, 1080, 1);
         var samsung = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1920, 1080, 1);
 
@@ -53,7 +53,7 @@ public class MonitorTests
     [Fact]
     public void DisplayNameDoesNotMatchTheFriendlyName()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             monitor = Dell U2720Q, preferred, 10x20, auto
             """));
 
@@ -65,7 +65,7 @@ public class MonitorTests
     [Fact]
     public void LastRuleWinsAndAFallbackCoversTheRest()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             monitor = , preferred, 5x6, auto
             monitor = \\.\DISPLAY1, preferred, 1x2, auto
             monitor = \\.\display1, preferred, 3x4, auto
@@ -85,7 +85,7 @@ public class MonitorTests
     [Fact]
     public void NegativePositionShiftsTheWorkArea()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, preferred, -1920x-40, auto
             """));
         var display = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, new Rectangle(0, 40, 1920, 1040));
@@ -101,7 +101,7 @@ public class MonitorTests
     [Fact]
     public void AMonitorWindowsReportsDisabledMovesItsClientsToOneThatRemains()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, enabled: false);
         core.Handle(new MonitorsChanged([left, right]));
@@ -117,7 +117,7 @@ public class MonitorTests
     [Fact]
     public void AWindowOpensOnTheFallbackMonitorWhenEveryMonitorIsDisabled()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             general:gaps_out = 0
             general:border_size = 0
             """));
@@ -133,7 +133,7 @@ public class MonitorTests
     [Fact]
     public void EachMonitorOwnsItsOwnLayout()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -150,7 +150,7 @@ public class MonitorTests
     [Fact]
     public void TwoClientsOnOneMonitorStillSplit()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -165,7 +165,7 @@ public class MonitorTests
     [Fact]
     public void HotplugReflowsTheMonitorThatChanged()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var display = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         core.Handle(new MonitorsChanged([display]));
         core.Handle(new WindowAppeared(new WindowId(1), display.WorkArea));
@@ -182,7 +182,7 @@ public class MonitorTests
     [Fact]
     public void UnpluggingAMonitorMovesItsClients()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));
@@ -200,7 +200,7 @@ public class MonitorTests
     [Fact]
     public void MixedDpiPlacementsUseThePhysicalWorkAreaAndScaleGaps()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("""
             general:gaps_in = 0
             general:gaps_out = 10
@@ -231,7 +231,7 @@ public class MonitorTests
             """);
         Assert.Equal(new ConfigWarning(1, MonitorRules.NotHonored), Assert.Single(document.Warnings));
 
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(document));
         var display = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 3840, 2160, 2);
         var listed = core.Handle(new MonitorsChanged([display]));
@@ -265,7 +265,7 @@ public class MonitorTests
     [Fact]
     public void AScaledMonitorPacksAtItsLogicalWidth()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, preferred, 0x0, auto
             monitor = \\.\DISPLAY2, preferred, auto-right, auto
             """));
@@ -284,7 +284,7 @@ public class MonitorTests
     [Fact]
     public void AutomaticPlacementIgnoresTheReportedOrigin()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, preferred, auto-right, auto
             """));
         var display = Display(@"\\.\DISPLAY1", "Dell", 40, 50, 800, 600, 1, new Rectangle(40, 70, 800, 560));
@@ -305,7 +305,7 @@ public class MonitorTests
             monitor = \\.\DISPLAY2, preferred, 1000x0, auto
             monitor = \\.\DISPLAY3, preferred, auto-right, auto
             """);
-        var core = new Core(document);
+        var core = new WindowManager(document);
 
         var outcome = core.Handle(new MonitorsChanged([
             Display(@"\\.\DISPLAY1", "A", 0, 0, 1000, 400, 1),
@@ -327,7 +327,7 @@ public class MonitorTests
     [InlineData("reserved_area")]
     public void ReservedAreaShrinksTheWorkArea(string keyword)
     {
-        var core = new Core(ConfigParser.Parse($"""
+        var core = new WindowManager(ConfigParser.Parse($"""
             monitor = \\.\DISPLAY1, preferred, 0x0, auto
             monitor = \\.\DISPLAY1, {keyword}, 10, 20, 30, 40
             """));
@@ -341,7 +341,7 @@ public class MonitorTests
     [Fact]
     public void ReservedAreaOnAScaledMonitorUsesLogicalPixels()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, reserved_area, 10, 20, 30, 40
             """));
 
@@ -355,7 +355,7 @@ public class MonitorTests
     [Fact]
     public void NegativeReservedEdgesCountAsZero()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, addreserved, -5, 10, 0, 0
             """));
 
@@ -369,7 +369,7 @@ public class MonitorTests
     [Fact]
     public void ReservedAreaSurvivesALaterPositionRule()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, addreserved, 1, 2, 3, 4
             monitor = \\.\DISPLAY1, preferred, 10x20, auto
             """));
@@ -390,7 +390,7 @@ public class MonitorTests
         var document = ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, preferred, 4x5, auto, transform, 2
             """);
-        var core = new Core(document);
+        var core = new WindowManager(document);
 
         var outcome = core.Handle(new MonitorsChanged([
             Display(@"\\.\DISPLAY1", "Dell", 8, 9, 800, 600, 1),
@@ -409,7 +409,7 @@ public class MonitorTests
         var document = ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, preferred, 3x4, auto, mirror, \\.\DISPLAY2, bitdepth, 10, cm, hdr, vrr, 1, transform, 5
             """);
-        var core = new Core(document);
+        var core = new WindowManager(document);
 
         var outcome = core.Handle(new MonitorsChanged([
             Display(@"\\.\DISPLAY1", "Dell", 0, 0, 100, 100, 1),
@@ -426,7 +426,7 @@ public class MonitorTests
         var document = ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, disable
             """);
-        var core = new Core(document);
+        var core = new WindowManager(document);
 
         var outcome = core.Handle(new MonitorsChanged([
             Display(@"\\.\DISPLAY1", "Dell", 0, 0, 100, 100, 1),
@@ -447,7 +447,7 @@ public class MonitorTests
         var document = ConfigParser.Parse($"""
             monitor = \\.\DISPLAY1, {disabled}
             """);
-        var core = new Core(document);
+        var core = new WindowManager(document);
 
         var outcome = core.Handle(new MonitorsChanged([
             Display(@"\\.\DISPLAY1", "Dell", 0, 0, 100, 100, 1),
@@ -473,7 +473,7 @@ public class MonitorTests
         var document = ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, preferred, nope, auto
             """);
-        var core = new Core(document);
+        var core = new WindowManager(document);
 
         var outcome = core.Handle(new MonitorsChanged([Display(@"\\.\DISPLAY1", "Dell", 8, 9, 100, 100, 1)]));
 
@@ -488,7 +488,7 @@ public class MonitorTests
         var document = ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, addreserved, 1
             """);
-        var core = new Core(document);
+        var core = new WindowManager(document);
 
         var outcome = core.Handle(new MonitorsChanged([Display(@"\\.\DISPLAY1", "Dell", 0, 0, 100, 80, 1)]));
 
@@ -499,7 +499,7 @@ public class MonitorTests
     [Fact]
     public void LoadingConfigAppliesPositionToMonitorsAlreadyKnown()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new MonitorsChanged([Display(@"\\.\DISPLAY1", "Dell", 0, 0, 100, 100, 1)]));
 
         var outcome = core.Handle(new ConfigLoaded(ConfigParser.Parse("""

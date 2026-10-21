@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// A <c>monitor</c> line that only reserves space. A name with no reserved area matches and changes nothing.

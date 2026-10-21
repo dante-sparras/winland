@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class SpecialWorkspaceTests
 {
@@ -10,7 +10,7 @@ public class SpecialWorkspaceTests
     [Fact]
     public void AClientCanBeSentToASpecialWorkspaceAndToggled()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(Appeared(1));
         core.Handle(Appeared(2));
 
@@ -46,7 +46,7 @@ public class SpecialWorkspaceTests
     [Fact]
     public void OneSpecialWorkspaceIsShownPerMonitor()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 800, 600);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 800, 0, 800, 600);
         core.Handle(new MonitorsChanged([left, right]));
@@ -74,7 +74,7 @@ public class SpecialWorkspaceTests
     [Fact]
     public void AddressesRulesAndEventsCoverSpecial()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             windowrulev2 = workspace special:scratch silent, class:^(quiet)$
             windowrulev2 = workspace special, class:^(loud)$
             """));
@@ -143,7 +143,7 @@ public class SpecialWorkspaceTests
     [Fact]
     public void CloseOnEmptyHidesTheSpecialWorkspaceUnlessToldNotTo()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(Appeared(1));
         core.Handle(new Dispatch("movetoworkspace", "special"));
         var closed = core.Handle(new WindowClosed(new WindowId(1)));
@@ -151,7 +151,7 @@ public class SpecialWorkspaceTests
         Assert.Null(closed.State.SpecialWorkspace);
         Assert.Empty(closed.State.Clients);
 
-        var kept = new Core(ConfigParser.Parse("misc:close_special_on_empty = false\n"));
+        var kept = new WindowManager(ConfigParser.Parse("misc:close_special_on_empty = false\n"));
         kept.Handle(Appeared(1));
         kept.Handle(new Dispatch("movetoworkspace", "special"));
         var stayed = kept.Handle(new WindowClosed(new WindowId(1)));
@@ -163,7 +163,7 @@ public class SpecialWorkspaceTests
     [Fact]
     public void ChangingWorkspaceHidesTheSpecialWorkspaceWhenAsked()
     {
-        var core = new Core(ConfigParser.Parse("binds:hide_special_on_workspace_change = true\n"));
+        var core = new WindowManager(ConfigParser.Parse("binds:hide_special_on_workspace_change = true\n"));
         core.Handle(Appeared(1));
         core.Handle(new Dispatch("movetoworkspace", "special:scratch"));
         var changed = core.Handle(new Dispatch("workspace", "2"));
@@ -176,7 +176,7 @@ public class SpecialWorkspaceTests
     [Fact]
     public void FallthroughKeepsTheSpecialWorkspaceOpenWhenFocusLeavesIt()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(Appeared(1));
         core.Handle(Appeared(2));
         core.Handle(new Dispatch("movetoworkspace", "special"));
@@ -187,7 +187,7 @@ public class SpecialWorkspaceTests
         Assert.Equal(new WindowId(1), closed.Focus);
         Assert.Contains(closed.State.Hidden, client => client.Window == new WindowId(2));
 
-        var through = new Core(ConfigParser.Parse("input:special_fallthrough = true\n"));
+        var through = new WindowManager(ConfigParser.Parse("input:special_fallthrough = true\n"));
         through.Handle(Appeared(1));
         through.Handle(Appeared(2));
         through.Handle(new Dispatch("movetoworkspace", "special"));
@@ -201,7 +201,7 @@ public class SpecialWorkspaceTests
     [Fact]
     public void TogglingASpecialWorkspaceWarpsToItsClient()
     {
-        var core = new Core(ConfigParser.Parse("cursor:warp_on_toggle_special = 1\n"));
+        var core = new WindowManager(ConfigParser.Parse("cursor:warp_on_toggle_special = 1\n"));
         core.Handle(Appeared(1));
         core.Handle(new Dispatch("movetoworkspacesilent", "special"));
 
@@ -226,7 +226,7 @@ public class SpecialWorkspaceTests
     [Fact]
     public void ASilentMoveDoesNotShowTheSpecialWorkspace()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(Appeared(1));
         var moved = core.Handle(new Dispatch("movetoworkspacesilent", "special:scratch"));
 

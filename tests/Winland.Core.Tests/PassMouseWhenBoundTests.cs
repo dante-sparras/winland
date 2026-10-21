@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class PassMouseWhenBoundTests
 {
@@ -48,9 +48,9 @@ public class PassMouseWhenBoundTests
         Assert.Equal("workspace", turned.Dispatcher);
     }
 
-    private static Core Loaded(string text)
+    private static WindowManager Loaded(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse(text)));
         return core;
     }

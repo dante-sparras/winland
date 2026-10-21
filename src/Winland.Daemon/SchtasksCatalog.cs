@@ -1,8 +1,9 @@
 using System.Diagnostics;
 using System.Text;
 using Winland.Install;
+using Winland.Core;
 
-namespace Winland;
+namespace Winland.Daemon;
 
 sealed class SchtasksCatalog : ITaskCatalog
 {

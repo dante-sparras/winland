@@ -1,4 +1,6 @@
-namespace Winland.Tests.Conformance;
+using Winland.Core;
+
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>
 /// Winland's interactive move and resize case. Its client asks to be moved and resized while a button is

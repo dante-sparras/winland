@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 /// <summary>A workspace swipe moves the Workspaces with the fingers, and animates on from there when they lift.</summary>
 public class LiveSwipeTests
@@ -77,7 +77,7 @@ public class LiveSwipeTests
         Assert.Equal(-540, Assert.Single(halfway.Motions, motion => motion.Window == new WindowId(1)).To.Y);
     }
 
-    private static Outcome Move(Core core, int count, double x)
+    private static Outcome Move(WindowManager core, int count, double x)
     {
         Outcome last = null!;
         for (var i = 0; i < count; i++)
@@ -86,9 +86,9 @@ public class LiveSwipeTests
     }
 
     // Workspaces 1 and 2 each hold a Client, and 1 is shown.
-    private static Core Twin(string config)
+    private static WindowManager Twin(string config)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(config)));
         Open(core, 1, "1");
         Open(core, 2, "2");
@@ -96,7 +96,7 @@ public class LiveSwipeTests
         return core;
     }
 
-    private static void Open(Core core, long window, string workspace)
+    private static void Open(WindowManager core, long window, string workspace)
     {
         core.Handle(new Dispatch("workspace", workspace));
         core.Handle(new WindowAppeared(new WindowId(window), Area));

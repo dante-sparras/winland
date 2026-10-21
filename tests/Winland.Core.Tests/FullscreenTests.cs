@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class FullscreenTests
 {
@@ -178,7 +178,7 @@ public class FullscreenTests
     [Fact]
     public void RulesRequestFullscreenAndMaximize()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             windowrulev2 = fullscreen, class:^(game)$
             windowrulev2 = maximize, class:^(edit)$
             windowrulev2 = fullscreen_state 2 0, class:^(browser)$
@@ -211,7 +211,7 @@ public class FullscreenTests
     [Fact]
     public void FullscreenOpacityAppliesOnlyToModeTwo()
     {
-        var core = new Core(ConfigParser.Parse("decoration:fullscreen_opacity = 0.5\n"));
+        var core = new WindowManager(ConfigParser.Parse("decoration:fullscreen_opacity = 0.5\n"));
         core.Handle(new MonitorsChanged([Screen()]));
         core.Handle(new WindowAppeared(new WindowId(1), Work));
 
@@ -331,7 +331,7 @@ public class FullscreenTests
     [Fact]
     public void AFullscreenClientStaysFullscreenOnTheMonitorItMovesTo()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 984));
         core.Handle(new MonitorsChanged([Screen(), right]));
         core.Handle(new WindowAppeared(new WindowId(1), Work));
@@ -545,17 +545,17 @@ public class FullscreenTests
         Assert.Equal(FullscreenMode.Maximized, ClientOf(maximized, 1).Fullscreen);
     }
 
-    private static Core Desk(string config)
+    private static WindowManager Desk(string config)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(config)));
         core.Handle(new MonitorsChanged([Screen()]));
         return core;
     }
 
-    private static Core Desk()
+    private static WindowManager Desk()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new MonitorsChanged([Screen()]));
         return core;
     }
@@ -563,7 +563,7 @@ public class FullscreenTests
     private static Monitor Screen() =>
         new(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, Work);
 
-    private static Outcome Appear(Core core, int count)
+    private static Outcome Appear(WindowManager core, int count)
     {
         Outcome outcome = null!;
         for (var id = 1; id <= count; id++)
@@ -580,7 +580,7 @@ public class FullscreenTests
         return Assert.Single(outcome.Placements, candidate => candidate.Client == client.Id).Bounds;
     }
 
-    private static Rectangle Bounds(Core core, long window) =>
+    private static Rectangle Bounds(WindowManager core, long window) =>
         ClientOf(core.Handle(new Dispatch("no_op")), window).Bounds;
 
     private static Decoration DecorationOf(Outcome outcome, long window)

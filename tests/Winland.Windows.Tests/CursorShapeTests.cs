@@ -1,4 +1,5 @@
 using Windows.Win32.UI.WindowsAndMessaging;
+using Winland.Core;
 
 namespace Winland.Windows.Tests;
 

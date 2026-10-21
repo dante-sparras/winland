@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Serialization;
 
-namespace Winland;
+namespace Winland.Core;
 
 internal static partial class WorkspaceRules
 {

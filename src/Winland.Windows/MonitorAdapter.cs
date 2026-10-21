@@ -3,12 +3,13 @@ using Windows.Win32.Devices.Display;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Gdi;
 using Windows.Win32.UI.HiDpi;
+using Winland.Core;
 
 namespace Winland.Windows;
 
 public static class MonitorAdapter
 {
-    public static IReadOnlyList<Winland.Monitor> Read()
+    public static IReadOnlyList<Winland.Core.Monitor> Read()
     {
         // -4 is per-monitor v2 awareness. The manifest asks for the same thing, and this call
         // covers a host that has not declared it yet. A second call fails, which is fine.
@@ -16,9 +17,9 @@ public static class MonitorAdapter
         return Enumerate(Panels());
     }
 
-    private static unsafe List<Winland.Monitor> Enumerate(Dictionary<string, Panel> panels)
+    private static unsafe List<Winland.Core.Monitor> Enumerate(Dictionary<string, Panel> panels)
     {
-        var monitors = new List<Winland.Monitor>();
+        var monitors = new List<Winland.Core.Monitor>();
         PInvoke.EnumDisplayMonitors(
             default,
             null,
@@ -32,7 +33,7 @@ public static class MonitorAdapter
         return monitors;
     }
 
-    private static unsafe bool TryRead(HMONITOR monitor, Dictionary<string, Panel> panels, out Winland.Monitor described)
+    private static unsafe bool TryRead(HMONITOR monitor, Dictionary<string, Panel> panels, out Winland.Core.Monitor described)
     {
         described = null!;
         var info = new MONITORINFOEXW();
@@ -48,7 +49,7 @@ public static class MonitorAdapter
         var scale = dpi.Succeeded && dpiX > 0 ? dpiX / 96.0 : 1;
         panels.TryGetValue(name, out var panel);
         var bounds = From(info.monitorInfo.rcMonitor);
-        described = new Winland.Monitor(
+        described = new Winland.Core.Monitor(
             name,
             panel.Description ?? "",
             bounds.X,
@@ -98,7 +99,7 @@ public static class MonitorAdapter
                 continue;
 
             var target = ReadTarget(path);
-            var parsed = Winland.Edid.Parse(MonitorEdid.Read(target.DevicePath) ?? []);
+            var parsed = Winland.Core.Edid.Parse(MonitorEdid.Read(target.DevicePath) ?? []);
             var make = parsed.Make.Length > 0 ? parsed.Make : target.Make;
             panels[source] = new Panel(target.Description, make, parsed.Model, parsed.Serial, Rate(path.targetInfo.refreshRate));
         }

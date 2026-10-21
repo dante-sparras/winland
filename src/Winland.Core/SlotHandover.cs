@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Shared steps for <see cref="Layout.Substitute"/>: a Layout hands one Client's slot to a Window it

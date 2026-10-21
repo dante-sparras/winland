@@ -1,4 +1,4 @@
-using Winland;
+using Winland.Core;
 
 namespace Winland.Windows;
 

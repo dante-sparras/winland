@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>Which opacity applies to one Client. Fullscreen wins over active and inactive.</summary>
 public readonly record struct OpacityInput(bool Active, bool Fullscreen = false);

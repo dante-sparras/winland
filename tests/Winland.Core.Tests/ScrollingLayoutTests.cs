@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class ScrollingLayoutTests
 {
@@ -527,14 +527,14 @@ public class ScrollingLayoutTests
         Assert.True(BoundsOf(focused, 2).X >= 800);
     }
 
-    private static Core Configured(string text)
+    private static WindowManager Configured(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(text)));
         return core;
     }
 
-    private static Core Flat() => Configured("""
+    private static WindowManager Flat() => Configured("""
         general:layout = scrolling
         general:gaps_in = 0
         general:gaps_out = 0

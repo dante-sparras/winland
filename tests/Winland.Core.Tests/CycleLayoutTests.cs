@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class CycleLayoutTests
 {
@@ -12,7 +12,7 @@ public class CycleLayoutTests
     [Fact]
     public void CycleLayoutWalksDwindleScrollingAndFloating()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(Appeared(1));
 
         var scrolling = core.Handle(new Dispatch("cyclelayout", ""));
@@ -34,7 +34,7 @@ public class CycleLayoutTests
     [InlineData("prev")]
     public void OtherWordsGoForward(string arguments)
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         Assert.Equal("scrolling", Layout(core.Handle(new Dispatch("cyclelayout", arguments))));
     }
@@ -45,7 +45,7 @@ public class CycleLayoutTests
     [InlineData("back now")]
     public void BackGoesTheOtherWay(string arguments)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(Appeared(1));
 
         var floating = core.Handle(new Dispatch("cyclelayout", arguments));
@@ -62,8 +62,8 @@ public class CycleLayoutTests
     [InlineData("monocle")]
     public void MasterAndMonocleEnterAtDwindle(string layout)
     {
-        var forward = new Core(ConfigParser.Parse("general:layout = " + layout + "\n"));
-        var backward = new Core(ConfigParser.Parse("general:layout = " + layout + "\n"));
+        var forward = new WindowManager(ConfigParser.Parse("general:layout = " + layout + "\n"));
+        var backward = new WindowManager(ConfigParser.Parse("general:layout = " + layout + "\n"));
 
         Assert.Equal("dwindle", Layout(forward.Handle(new Dispatch("cyclelayout", ""))));
         Assert.Equal("dwindle", Layout(backward.Handle(new Dispatch("cyclelayout", "back"))));
@@ -72,7 +72,7 @@ public class CycleLayoutTests
     [Fact]
     public void AClientThatWasFloatingStaysFloating()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(Appeared(1));
         core.Handle(new Dispatch("setfloating", ""));
 
@@ -87,7 +87,7 @@ public class CycleLayoutTests
     [Fact]
     public void SettiledDoesNotTileInsideTheFloatingLayout()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(Appeared(1));
         core.Handle(new Dispatch("cyclelayout", "back"));
 
@@ -100,7 +100,7 @@ public class CycleLayoutTests
     [Fact]
     public void OnlyTheFocusedWorkspaceChanges()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(Appeared(1));
         core.Handle(new Dispatch("workspace", "2"));
         core.Handle(Appeared(2));
@@ -114,7 +114,7 @@ public class CycleLayoutTests
     [Fact]
     public void AnOpenSpecialWorkspaceIsTheOneThatCycles()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(Appeared(1));
         core.Handle(new Dispatch("movetoworkspace", "special:scratch"));
 
@@ -128,7 +128,7 @@ public class CycleLayoutTests
     public void AReloadReturnsToTheConfigLayout()
     {
         var config = ConfigParser.Parse("general:layout = master\n");
-        var core = new Core(config);
+        var core = new WindowManager(config);
         core.Handle(Appeared(1));
         var cycled = core.Handle(new Dispatch("cyclelayout", ""));
         Assert.Equal("dwindle", Layout(cycled));

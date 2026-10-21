@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// <c>input:rotation</c>: the mouse's motion turns clockwise by that many degrees, as Winland rotates a

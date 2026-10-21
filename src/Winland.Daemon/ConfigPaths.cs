@@ -1,6 +1,7 @@
 using Winland.Install;
+using Winland.Core;
 
-namespace Winland;
+namespace Winland.Daemon;
 
 /// <summary>Where the config is, and which files a change to it can come from.</summary>
 static class ConfigPaths

@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class BindChordTests
 {
@@ -8,7 +8,7 @@ public class BindChordTests
     public void LongPressWaitsSixHundredMillisecondsAndIgnoresRepeatDelay()
     {
         var document = ConfigParser.Parse("input {\n    repeat_delay = 250\n}\nbindo = , Q, killactive\n");
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(document));
 
         var pressed = core.Decide(new KeyPressed("Q"), new BindSession());
@@ -20,7 +20,7 @@ public class BindChordTests
     [Fact]
     public void LongPressAndNormalBindOnTheSameChordBothRun()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = , Q, exec, notepad\nbindo = , Q, killactive\n")));
         var session = new BindSession();
 
@@ -43,7 +43,7 @@ public class BindChordTests
     [Fact]
     public void NonConsumingBindDoesNotConsumeAChordThatAlsoLongPresses()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("bindn = , Q, exec, notepad\nbindo = , Q, killactive\n")));
         var session = new BindSession();
 
@@ -62,7 +62,7 @@ public class BindChordTests
     [Fact]
     public void TransparentAndNormalBindsAreBothListedInConfigOrder()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("bindt = , Q, exec, first\nbind = , Q, killactive\n")));
         var session = new BindSession();
 
@@ -347,19 +347,19 @@ public class BindChordTests
         Assert.Equal("movewindow", pressed.Dispatcher);
     }
 
-    private static Core Load(string text)
+    private static WindowManager Load(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse(text)));
         return core;
     }
 
-    private static void Appear(Core core, long window) =>
+    private static void Appear(WindowManager core, long window) =>
         core.Handle(new WindowAppeared(new WindowId(window), new Rectangle(0, 0, 1920, 1080)));
 
-    private static Outcome Press(Core core, string key) =>
+    private static Outcome Press(WindowManager core, string key) =>
         core.Handle(new KeyPressed(key));
 
-    private static Outcome Release(Core core, string key) =>
+    private static Outcome Release(WindowManager core, string key) =>
         core.Handle(new KeyReleased(key));
 }

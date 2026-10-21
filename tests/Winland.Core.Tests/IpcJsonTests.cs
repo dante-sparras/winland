@@ -1,14 +1,14 @@
 using System.Text.Json;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class IpcJsonTests
 {
     [Fact]
     public void ClientsAndActiveWindowMatchTheStatusBarShape()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 800, 600))
         {
             Traits = WindowTraits.Normal with { Class = "kitty", Title = "term" },
@@ -28,7 +28,7 @@ public class IpcJsonTests
     [Fact]
     public void FloatingClientReportsItsOwnRectangleAndAHiddenClientIsNotVisible()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
         core.Handle(new WindowAppeared(new WindowId(7), new Rectangle(0, 0, 800, 600))
         {
@@ -68,7 +68,7 @@ public class IpcJsonTests
     [Fact]
     public void WorkspacesAndActiveWorkspaceMatchTheStatusBarShape()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 800, 600))
         {
             Traits = WindowTraits.Normal with { Class = "kitty", Title = "term" },
@@ -90,7 +90,7 @@ public class IpcJsonTests
     [InlineData("dwindle")]
     public void WorkspacesReportTheirTiledLayout(string layout)
     {
-        var core = new Core(ConfigParser.Parse("general:layout = " + layout));
+        var core = new WindowManager(ConfigParser.Parse("general:layout = " + layout));
         core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 800, 600)));
 
         var workspace = Assert.Single(Json(core.Execute("j/workspaces").Text).EnumerateArray());
@@ -102,13 +102,13 @@ public class IpcJsonTests
     [Fact]
     public void ActiveWorkspaceRejectsTrailingArguments()
     {
-        Assert.Equal("error: unknown request", new Core().Execute("j/activeworkspace extra").Text);
+        Assert.Equal("error: unknown request", new WindowManager().Execute("j/activeworkspace extra").Text);
     }
 
     [Fact]
     public void MonitorsMatchTheStatusBarShape()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var display = new Monitor(
             "Dell",
             "Dell U2720Q",
@@ -139,7 +139,7 @@ public class IpcJsonTests
     [Fact]
     public void ClientMonitorIdAgreesWithTheMonitorItIsOn()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080), RefreshRate: 60);
         var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1.5, true, new Rectangle(1920, 0, 1280, 1024), RefreshRate: 144);
         core.Handle(new MonitorsChanged([left, right]));
@@ -160,7 +160,7 @@ public class IpcJsonTests
     [Fact]
     public void MonitorsAllIncludesDisabledMonitors()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080));
         var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, false, new Rectangle(1920, 0, 1280, 1024));
         core.Handle(new MonitorsChanged([left, right]));
@@ -193,7 +193,7 @@ public class IpcJsonTests
             {"id":0,"name":"","description":"","make":"","model":"","serial":"","width":0,"height":0,"physicalWidth":0,"physicalHeight":0,"refreshRate":0,"x":0,"y":0,"activeWorkspace":{"address":"1","id":1,"type":"normal","name":"1","monitor":""},"specialWorkspace":{"address":"","type":"","name":"","monitor":""},"reserved":[0,0,0,0],"scale":1,"transform":0,"focused":true,"dpmsStatus":true,"vrr":false,"solitary":"0","solitaryBlockedBy":null,"activelyTearing":false,"tearingBlockedBy":null,"directScanoutTo":"0","directScanoutBlockedBy":null,"disabled":false,"currentFormat":"","mirrorOf":"none","availableModes":[],"colorManagementPreset":"srgb","sdrBrightness":1,"sdrSaturation":1,"sdrMinLuminance":0.2,"sdrMaxLuminance":80,"hardwareCursorsInUse":false,"hardwareDetails":{"backend":"windows","hdr":false,"chroma":false,"bt2020":false,"vrrCapable":false}}
             """;
 
-        Assert.Equal("[" + Monitor + "]", new Core().Execute("j/monitors").Text);
+        Assert.Equal("[" + Monitor + "]", new WindowManager().Execute("j/monitors").Text);
     }
 
     private static JsonElement Json(string text)

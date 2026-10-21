@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>Compares config words, dispatcher names and layout messages, which ignore case.</summary>
 internal static class OrdinalText

@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class ReloadTests
 {
@@ -9,7 +9,7 @@ public class ReloadTests
     [Fact]
     public void ALoadedConfigAppliesWindowRulesLayoutOptionsAndTheLayout()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("""
             general:gaps_in = 0
             general:gaps_out = 10
@@ -34,7 +34,7 @@ public class ReloadTests
     [Fact]
     public void ReloadSwapsSettingsKeepsClientsAndLaysOut()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("""
             general:gaps_in = 0
             general:gaps_out = 0
@@ -80,7 +80,7 @@ public class ReloadTests
     [Fact]
     public void WarningsStillApplyAndAreReportedBeforeReload()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var outcome = core.Handle(new Configure(ConfigParser.Parse("""
@@ -102,7 +102,7 @@ public class ReloadTests
     [Fact]
     public void AMissingSourceStillAppliesTheRest()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         var document = ConfigParser.Parse("""
             source = missing.conf
@@ -127,7 +127,7 @@ public class ReloadTests
     [Fact]
     public void AnUnreadableConfigKeepsTheWorkingConfigAndWarns()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var called = false;
         core.Handle(new Configure(ConfigParser.Parse("""
             general:gaps_in = 0
@@ -155,7 +155,7 @@ public class ReloadTests
     [Fact]
     public void ReloadCommandAppliesTheDocumentAndNotifiesOnce()
     {
-        var core = new Core();
+        var core = new WindowManager();
         ConfigDocument? seen = null;
         var calls = 0;
         core.Handle(new WindowAppeared(new WindowId(1), Area));
@@ -188,7 +188,7 @@ public class ReloadTests
     public void ApplyingADocumentDirectlyDoesNotNotify()
     {
         var called = false;
-        var core = new Core { AfterReload = _ => called = true };
+        var core = new WindowManager { AfterReload = _ => called = true };
 
         core.Handle(new Configure(ConfigParser.Parse("exec = notepad")));
 
@@ -198,7 +198,7 @@ public class ReloadTests
     [Fact]
     public void ReloadWithoutAConfigSourceReportsAnError()
     {
-        var reply = new Core().Execute("reload");
+        var reply = new WindowManager().Execute("reload");
 
         Assert.Equal("error: config is not available", reply.Text);
         Assert.Empty(reply.Effect.Events);
@@ -210,7 +210,7 @@ public class ReloadTests
         var parsed = CommandProtocol.Parse("reload");
         Assert.IsType<ReloadRequest>(Assert.IsType<CommandParsed>(parsed).Request);
 
-        var reply = new Core().Execute("reload now");
+        var reply = new WindowManager().Execute("reload now");
 
         Assert.Equal("error: unknown request", reply.Text);
     }
@@ -218,7 +218,7 @@ public class ReloadTests
     [Fact]
     public void ReloadAppliesMonitorRulesAlreadyKnown()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new MonitorsChanged(
         [
             new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 100, 100, 1, true, new Rectangle(0, 0, 100, 100)),
@@ -241,7 +241,7 @@ public class ReloadTests
     {
         var area = new Rectangle(0, 0, 2000, 1000);
         var floated = new Rectangle(40, 50, 320, 200);
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(LayoutText("dwindle"))));
         core.Handle(Appeared(1, area));
         core.Handle(Appeared(2, area));
@@ -302,7 +302,7 @@ public class ReloadTests
     private static string LayoutText(string name) =>
         "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\ngeneral:layout = " + name + "\n";
 
-    private static Outcome Reload(Core core, string layout) =>
+    private static Outcome Reload(WindowManager core, string layout) =>
         core.Handle(new Configure(ConfigParser.Parse(LayoutText(layout))));
 
     private static WindowAppeared Appeared(long window, Rectangle area, Size? minSize = null) =>

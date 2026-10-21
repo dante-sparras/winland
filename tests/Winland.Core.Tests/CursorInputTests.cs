@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class CursorInputTests
 {
@@ -105,7 +105,7 @@ public class CursorInputTests
     [Fact]
     public void NaturalScrollReversesTheWheelBeforeTheBind()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("input:natural_scroll = true\nbind = , mouse_down, workspace, 2\n")));
         core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
 
@@ -118,7 +118,7 @@ public class CursorInputTests
     [Fact]
     public void WheelDirectionIsUnchangedWhenNaturalScrollIsUnset()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = , mouse_down, workspace, 2\n")));
         core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
 
@@ -201,7 +201,7 @@ public class CursorInputTests
     [Fact]
     public void AWindowThatReusesAClosedHandleDoesNotInheritItsWarpPoint()
     {
-        var core = new Core(ConfigParser.Parse("cursor:warp_on_change_workspace = 1\ncursor:persistent_warps = true\nwindowrulev2 = workspace 1 silent, class:^(again)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("cursor:warp_on_change_workspace = 1\ncursor:persistent_warps = true\nwindowrulev2 = workspace 1 silent, class:^(again)$\n"));
         var monitor = Display(@"\\.\DISPLAY1", "Main", 0, 0, 800, 600);
         core.Handle(new MonitorsChanged([monitor]));
         core.Handle(new WindowAppeared(new WindowId(1), monitor.WorkArea));
@@ -262,7 +262,7 @@ public class CursorInputTests
     public void ConfigurePublishesTheCursorAndSkipsASystemInputKey()
     {
         var document = ConfigParser.Parse("input:repeat_rate = 30\ninput:scroll_factor = 2\n");
-        var outcome = new Core().Handle(new Configure(document));
+        var outcome = new WindowManager().Handle(new Configure(document));
 
         Assert.Equal(
             [
@@ -295,9 +295,9 @@ public class CursorInputTests
         Assert.Equal(snapshot.Clients, legacy.Clients);
     }
 
-    private static Core Load(string text)
+    private static WindowManager Load(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse(text)));
         return core;
     }

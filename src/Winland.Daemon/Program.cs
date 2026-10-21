@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Security.Principal;
-using Winland;
+using Winland.Core;
+using Winland.Daemon;
 using Winland.Install;
 using Winland.Windows;
 
@@ -213,7 +214,7 @@ static string CurrentUser()
     return identity.Name;
 }
 
-static void LaunchConfigured(Core core, IEnumerable<Launch> launches)
+static void LaunchConfigured(WindowManager core, IEnumerable<Launch> launches)
 {
     foreach (var launch in launches)
     {
@@ -251,7 +252,7 @@ static int Run(string? path, RollingLogWriter log)
         Console.Error.WriteLine($"{where}:{warning.Line}: {warning.Message}");
     }
 
-    var core = new Core();
+    var core = new WindowManager();
     core.ReadConfig = () => ReadForReload(configPath);
     ConfigWatcher? watcher = null;
     string? logFile = null;
@@ -334,7 +335,7 @@ static int Run(string? path, RollingLogWriter log)
     {
         Stop(host, store);
         AppDomain.CurrentDomain.UnhandledException -= onCrash;
-        LaunchConfigured(core, Core.ShutdownLaunches(current));
+        LaunchConfigured(core, WindowManager.ShutdownLaunches(current));
 
         Console.WriteLine("Winland stopped.");
     }

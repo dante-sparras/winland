@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// How an animation travels: <see cref="Ease"/> takes the fraction of its time passed, from 0 to 1, and gives the

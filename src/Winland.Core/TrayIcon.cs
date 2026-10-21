@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>One command on the notification-area icon's menu.</summary>
 public enum TrayCommand

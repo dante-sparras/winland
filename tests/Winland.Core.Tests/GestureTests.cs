@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class GestureTests
 {
@@ -367,7 +367,7 @@ public class GestureTests
     }
 
     // Workspaces 1 and 2 each hold a Client, and 1 is shown.
-    private static Core Twin(string config)
+    private static WindowManager Twin(string config)
     {
         var core = Load(config);
         Open(core, 1, "1");
@@ -376,14 +376,14 @@ public class GestureTests
         return core;
     }
 
-    private static Core Load(string config)
+    private static WindowManager Load(string config)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(config)));
         return core;
     }
 
-    private static void Open(Core core, long window, string workspace)
+    private static void Open(WindowManager core, long window, string workspace)
     {
         core.Handle(new Dispatch("workspace", workspace));
         core.Handle(new WindowAppeared(new WindowId(window), Area));
@@ -392,7 +392,7 @@ public class GestureTests
     private static (double X, double Y)[] Steps(int count, double x, double y) =>
         Enumerable.Repeat((x, y), count).ToArray();
 
-    private static Outcome Swipe(Core core, int fingers, IEnumerable<(double X, double Y)> steps)
+    private static Outcome Swipe(WindowManager core, int fingers, IEnumerable<(double X, double Y)> steps)
     {
         core.Handle(new SwipeBegan(fingers));
         foreach (var (x, y) in steps)

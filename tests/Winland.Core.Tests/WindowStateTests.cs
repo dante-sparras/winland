@@ -1,8 +1,8 @@
 using System.Collections;
 using System.Reflection;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 /// <summary>Closing a window forgets it in every piece of per-window state the core keeps.</summary>
 public class WindowStateTests
@@ -12,7 +12,7 @@ public class WindowStateTests
     [Fact]
     public void ClosingAWindowLeavesNoPerWindowStateBehind()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             input:mouse_refocus = false
             cursor:warp_on_change_workspace = 1
             cursor:persistent_warps = true
@@ -60,10 +60,10 @@ public class WindowStateTests
 
     // Every field of the core that is a collection keyed by window, or names one window, except
     // _active, which Close moves to the next Client.
-    private static List<string> Leftovers(Core core, WindowId[] closed)
+    private static List<string> Leftovers(WindowManager core, WindowId[] closed)
     {
         var kept = new List<string>();
-        foreach (var field in typeof(Core).GetFields(BindingFlags.Instance | BindingFlags.NonPublic))
+        foreach (var field in typeof(WindowManager).GetFields(BindingFlags.Instance | BindingFlags.NonPublic))
         {
             if (field.Name == "_active")
                 continue;

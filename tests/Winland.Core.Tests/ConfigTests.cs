@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class ConfigTests
 {
@@ -116,7 +116,7 @@ public class ConfigTests
 
         Assert.Empty(document.WindowRules);
         Assert.Equal([new ConfigWarning(1, "Malformed window rule.")], document.Warnings);
-        var core = new Core(document);
+        var core = new WindowManager(document);
         var opened = core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
         Assert.False(Assert.Single(opened.State.Clients).Floating);
     }
@@ -562,7 +562,7 @@ public class ConfigTests
     [Fact]
     public void ABindOnCapsFiresWhileCapsLockIsHeldAndAnotherDoesNot()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("bind = CAPS, Q, exec, held\nbind = SUPER, Q, exec, super\nbind = , Num_Lock, exec, lock\n")));
 
         core.Handle(new KeyPressed("Caps_Lock"));

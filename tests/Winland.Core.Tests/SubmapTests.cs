@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class SubmapTests
 {
@@ -289,23 +289,23 @@ public class SubmapTests
             Assert.Single(document.Binds));
     }
 
-    private static Core Load(string text)
+    private static WindowManager Load(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse(text)));
         return core;
     }
 
-    private static void Appear(Core core, long window) =>
+    private static void Appear(WindowManager core, long window) =>
         core.Handle(new WindowAppeared(new WindowId(window), new Rectangle(0, 0, 1920, 1080)));
 
-    private static Outcome Press(Core core, string key) =>
+    private static Outcome Press(WindowManager core, string key) =>
         core.Handle(new KeyPressed(key));
 
-    private static Outcome Release(Core core, string key) =>
+    private static Outcome Release(WindowManager core, string key) =>
         core.Handle(new KeyReleased(key));
 
-    private static Outcome Tap(Core core, string key)
+    private static Outcome Tap(WindowManager core, string key)
     {
         var outcome = Press(core, key);
         Release(core, key);

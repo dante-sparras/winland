@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class PassTests
 {
@@ -80,7 +80,7 @@ public class PassTests
     [Fact]
     public void AnOrdinaryBindDoesNotRunOnTheRelease()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, F10, exec, notepad\n")));
         var session = core.KeyState;
         core.Decide(new KeyPressed("Super_L"), session);
@@ -100,9 +100,9 @@ public class PassTests
         Assert.False(Dispatchers.IsKnown("toggleswallow"));
     }
 
-    private static Core WithObs(string config)
+    private static WindowManager WithObs(string config)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse(config)));
         core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Class = "kitty" } });
         core.Handle(new WindowAppeared(new WindowId(2), Area) { Traits = WindowTraits.Normal with { Class = "obs" } });

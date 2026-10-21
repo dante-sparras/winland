@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class WindowPropsTests
 {
@@ -53,7 +53,7 @@ public class WindowPropsTests
     [Fact]
     public void NoFocusSetByPropKeepsAWindowFromTakingFocus()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -67,7 +67,7 @@ public class WindowPropsTests
     [Fact]
     public void ABorderColorAndRoundingSetByPropAreDrawn()
     {
-        var core = new Core(ConfigParser.Parse("decoration:rounding = 0\n"));
+        var core = new WindowManager(ConfigParser.Parse("decoration:rounding = 0\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         core.Execute("dispatch setprop active active_border_color rgb(ff0000)");
@@ -81,7 +81,7 @@ public class WindowPropsTests
     [Fact]
     public void AnOpacitySetByPropIsDrawn()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var outcome = core.Execute("dispatch setprop active opacity 0.5").Effect;
@@ -92,7 +92,7 @@ public class WindowPropsTests
     [Fact]
     public void ABorderSizeRuleShrinksOnlyItsWindowsTile()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 2\nwindowrulev2 = border_size 0, class:^(bare)$\n")));
         core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Class = "bare" } });
         var outcome = core.Handle(new WindowAppeared(new WindowId(2), Area) { Traits = WindowTraits.Normal with { Class = "framed" } });
@@ -106,7 +106,7 @@ public class WindowPropsTests
     [Fact]
     public void SetpropBorderSizeLaysTheWorkspaceOutAgain()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 2\n")));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
@@ -118,7 +118,7 @@ public class WindowPropsTests
     [Fact]
     public void BorderColorAndRoundingRulesAreDrawnAndReported()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = border_color rgb(ff0000) rgb(00ff00), class:.*\nwindowrulev2 = rounding 8, class:.*\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = border_color rgb(ff0000) rgb(00ff00), class:.*\nwindowrulev2 = rounding 8, class:.*\n"));
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var decoration = Assert.Single(outcome.Decorations);
@@ -142,7 +142,7 @@ public class WindowPropsTests
     [Fact]
     public void ABoolPropRuleIsReported()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = no_blur, class:.*\nwindowrulev2 = decorate 0, class:.*\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = no_blur, class:.*\nwindowrulev2 = decorate 0, class:.*\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         Assert.Equal("true", core.Execute("getprop active no_blur").Text);
@@ -152,7 +152,7 @@ public class WindowPropsTests
     [Fact]
     public void AStateMatchFollowsTheWindowAsItsWorkspaceFills()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 2\nwindowrulev2 = border_size 0, float:0, workspace:w[tv1]\n")));
         var alone = core.Handle(new WindowAppeared(new WindowId(1), Area));
         Assert.Equal(new Rectangle(0, 0, 1920, 1080), Assert.Single(alone.Placements).Bounds);
@@ -169,7 +169,7 @@ public class WindowPropsTests
     [Fact]
     public void AFocusMatchFollowsTheFocus()
     {
-        var core = new Core(ConfigParser.Parse("decoration:rounding = 0\nwindowrulev2 = rounding 8, focus:1\n"));
+        var core = new WindowManager(ConfigParser.Parse("decoration:rounding = 0\nwindowrulev2 = rounding 8, focus:1\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -184,7 +184,7 @@ public class WindowPropsTests
     [Fact]
     public void AFocusedBorderColorRuleWithOneColorColorsTheInactiveBorder()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = border_color rgb(ff0000), focus:0\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = border_color rgb(ff0000), focus:0\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
@@ -194,7 +194,7 @@ public class WindowPropsTests
     [Fact]
     public void AGradientSetByPropChangesNothing()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         var before = core.Execute("getprop active active_border_color").Text;
 
@@ -222,7 +222,7 @@ public class WindowPropsTests
     [Fact]
     public void ATagRuleFollowsTheStateItMatches()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = tag +big, fullscreen:1\nwindowrulev2 = rounding 8, tag:big\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = tag +big, fullscreen:1\nwindowrulev2 = rounding 8, tag:big\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Execute("dispatch tagwindow +mine");
 
@@ -239,7 +239,7 @@ public class WindowPropsTests
     [Fact]
     public void ClearTagsTakesTheTagsOffAndTheRulesGiveTheirsBack()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = tag +ruled, class:.*\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = tag +ruled, class:.*\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Execute("dispatch tagwindow +mine");
         core.Execute("dispatch tagwindow +other address:0x1");
@@ -253,7 +253,7 @@ public class WindowPropsTests
         Assert.Contains("\"ruled*\"", clients, StringComparison.Ordinal);
     }
 
-    private static WindowId? Find(Core core, string selector) =>
+    private static WindowId? Find(WindowManager core, string selector) =>
         core.Execute($"dispatch focuswindow {selector}").Text == "ok" ? new WindowId(1) : null;
 
     [Theory]
@@ -270,7 +270,7 @@ public class WindowPropsTests
     [Fact]
     public void AContentRuleIsMatchedByNameAndNumber()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = content photo, class:.*\nwindowrulev2 = opacity 0.5, content:1\nwindowrulev2 = rounding 3, content:photo\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = content photo, class:.*\nwindowrulev2 = opacity 0.5, content:1\nwindowrulev2 = rounding 3, content:photo\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         Assert.Contains("\"contentType\":\"photo\"", core.Execute("j/clients").Text, StringComparison.Ordinal);
@@ -281,7 +281,7 @@ public class WindowPropsTests
     [Fact]
     public void ARuleOnATagAnotherRuleGivesAppliesWhenTheWindowOpens()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = float, tag:dialog\nwindowrulev2 = tag +dialog, class:^(picker)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, tag:dialog\nwindowrulev2 = tag +dialog, class:^(picker)$\n"));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Class = "picker" } });
 
@@ -291,7 +291,7 @@ public class WindowPropsTests
     [Fact]
     public void ARuleOnTheWorkspaceAWindowOpensOnAppliesWhenItOpens()
     {
-        var core = new Core(ConfigParser.Parse("windowrulev2 = float, workspace:2\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, workspace:2\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Execute("dispatch workspace 2");
 

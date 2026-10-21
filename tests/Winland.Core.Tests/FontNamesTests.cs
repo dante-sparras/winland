@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class FontNamesTests
 {
@@ -18,7 +18,7 @@ public class FontNamesTests
     [Fact]
     public void AnUnnamedTabBarUsesTheGlobalFont()
     {
-        var core = new Core(ConfigParser.Parse("misc:font_family = Monospace\n"));
+        var core = new WindowManager(ConfigParser.Parse("misc:font_family = Monospace\n"));
         core.Handle(new MonitorsChanged([new Monitor("DISPLAY1", "", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1040))]));
         core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
         core.Execute("dispatch togglegroup");

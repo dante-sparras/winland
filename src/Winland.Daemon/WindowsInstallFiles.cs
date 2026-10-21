@@ -1,7 +1,8 @@
 using System.Diagnostics;
 using Winland.Install;
+using Winland.Core;
 
-namespace Winland;
+namespace Winland.Daemon;
 
 /// <summary>
 /// Copies and deletes the install folders. A link is never followed: the elevated task must start the

@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class WorkspaceTests
 {
@@ -215,7 +215,7 @@ public class WorkspaceTests
     [Fact]
     public void DispatchSwitchesTheActiveWorkspace()
     {
-        var core = new Core();
+        var core = new WindowManager();
         Appear(core, 1);
         Appear(core, 2);
 
@@ -234,7 +234,7 @@ public class WorkspaceTests
     [Fact]
     public void DispatchMoveToWorkspaceFollowsAndSilentStays()
     {
-        var core = new Core();
+        var core = new WindowManager();
         Appear(core, 1);
         Appear(core, 2);
 
@@ -263,7 +263,7 @@ public class WorkspaceTests
     [InlineData("movetoworkspacesilent")]
     public void MovingAHiddenClientOntoTheShownWorkspaceShowsIt(string dispatcher)
     {
-        var core = new Core();
+        var core = new WindowManager();
         Appear(core, 1);
         Appear(core, 2);
         core.Handle(new Dispatch("movetoworkspacesilent", "3"));
@@ -487,7 +487,7 @@ public class WorkspaceTests
     private static readonly Rectangle Right = new(1920, 0, 1920, 1080);
 
     // RIGHT shows empty Workspace 2. previous from LEFT lands there.
-    private static Outcome ShowTheRightsWorkspace(Core core)
+    private static Outcome ShowTheRightsWorkspace(WindowManager core)
     {
         core.Execute("dispatch focusmonitor RIGHT");
         core.Execute("dispatch workspace 2");
@@ -495,7 +495,7 @@ public class WorkspaceTests
         return core.Execute("dispatch workspace previous").Effect;
     }
 
-    private static Core TwoMonitors(string config)
+    private static WindowManager TwoMonitors(string config)
     {
         var core = Load(config);
         core.Handle(new MonitorsChanged(
@@ -510,19 +510,19 @@ public class WorkspaceTests
     // A loaded config applies its gaps and borders like a reload, and these rectangles have none.
     private const string Gapless = "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n";
 
-    private static Core Load(string text)
+    private static WindowManager Load(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse(Gapless + text)));
         return core;
     }
 
-    private static Outcome Appear(Core core, long window) =>
+    private static Outcome Appear(WindowManager core, long window) =>
         core.Handle(new WindowAppeared(new WindowId(window), Area));
 
-    private static void HoldSuper(Core core) => core.Handle(new KeyPressed("Super_L"));
+    private static void HoldSuper(WindowManager core) => core.Handle(new KeyPressed("Super_L"));
 
-    private static Outcome Press(Core core, string key)
+    private static Outcome Press(WindowManager core, string key)
     {
         var outcome = core.Handle(new KeyPressed(key));
         core.Handle(new KeyReleased(key));

@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using Windows.Win32;
-using Winland;
+using Winland.Core;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.Input.KeyboardAndMouse;
 using Windows.Win32.UI.WindowsAndMessaging;
@@ -54,7 +54,7 @@ public sealed class KeyboardHook : IDisposable
     // Modifiers a relay pressed and left down on purpose. Not stale.
     private static int _relayed;
 
-    private readonly Core _core;
+    private readonly WindowManager _core;
     private readonly BindSession _session;
     private readonly HOOKPROC _callback;
     // The callback must return before any dispatcher work, so it only posts here. Moves that pile
@@ -95,12 +95,12 @@ public sealed class KeyboardHook : IDisposable
 
     internal BindSession Session => _session;
 
-    public KeyboardHook(Core core)
+    public KeyboardHook(WindowManager core)
         : this(core, core.KeyState)
     {
     }
 
-    public KeyboardHook(Core core, BindSession session)
+    public KeyboardHook(WindowManager core, BindSession session)
     {
         ArgumentNullException.ThrowIfNull(core);
         ArgumentNullException.ThrowIfNull(session);

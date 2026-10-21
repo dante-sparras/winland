@@ -1,7 +1,7 @@
 using System.Text;
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests.Conformance;
+namespace Winland.Core.Tests.Conformance;
 
 /// <summary>
 /// Winland's keybind cases. The reference injects key, wheel and button events through its test plugin;
@@ -312,7 +312,7 @@ public class KeybindsConformance
                     _typed.Append(relay.Key.Equals("return", StringComparison.OrdinalIgnoreCase) ? "\n" : relay.Key);
             }
 
-            if (desk.Core.KeyState.LongPressKey is null)
+            if (desk.WindowManager.KeyState.LongPressKey is null)
                 _armedAt = null;
             else if (fresh || _armedAt is null)
                 _armedAt = _now;

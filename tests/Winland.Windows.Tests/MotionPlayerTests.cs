@@ -1,7 +1,7 @@
-using Winland;
+using Winland.Core;
 using Winland.Windows;
 
-namespace Winland.Tests;
+namespace Winland.Windows.Tests;
 
 public class MotionPlayerTests
 {

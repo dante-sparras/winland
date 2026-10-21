@@ -1,13 +1,13 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class MonitorIdentityTests
 {
     [Fact]
     public void WorkspacesReturnWhenWindowsRenamesTheMonitor()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = Panel(@"\\.\DISPLAY1", "DEL", "U2723QE", "LEFT", 0);
         var right = Panel(@"\\.\DISPLAY2", "SAM", "S27", "RIGHT", 1920);
         core.Handle(new MonitorsChanged([left, right]));
@@ -33,7 +33,7 @@ public class MonitorIdentityTests
     [Fact]
     public void IdenticalMonitorsAreNumberedInTheOrderTheyWereFirstSeen()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var first = Panel(@"\\.\DISPLAY1", "DEL", "U2723QE", "SAME", 0);
         core.Handle(new MonitorsChanged([first]));
         var second = Panel(@"\\.\DISPLAY2", "DEL", "U2723QE", "SAME", 1920);
@@ -52,7 +52,7 @@ public class MonitorIdentityTests
     [Fact]
     public void ARepluggedIdenticalMonitorKeepsItsNumberAndItsWorkspaces()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var first = Panel(@"\\.\DISPLAY1", "DEL", "U2723QE", "SAME", 0);
         var second = Panel(@"\\.\DISPLAY2", "DEL", "U2723QE", "SAME", 1920);
         core.Handle(new MonitorsChanged([first, second]));
@@ -78,7 +78,7 @@ public class MonitorIdentityTests
     [Fact]
     public void DescriptionMatchingReadsTheIdentity()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var dell = Panel(@"\\.\DISPLAY1", "DEL", "U2723QE", "ABC", 0);
         var samsung = Panel(@"\\.\DISPLAY2", "SAM", "S27", "XYZ", 1920);
         core.Handle(new MonitorsChanged([dell, samsung]));
@@ -102,7 +102,7 @@ public class MonitorIdentityTests
     [Fact]
     public void AReservedAreaSelectsTheMonitorByItsIdentity()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             monitor = desc:SAM S27 XYZ, addreserved, 10, 0, 0, 0
             """));
         var dell = Panel(@"\\.\DISPLAY1", "DEL", "U2723QE", "ABC", 0);
@@ -117,7 +117,7 @@ public class MonitorIdentityTests
     [Fact]
     public void MakeAloneDoesNotNumberMonitors()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var area = new Rectangle(0, 0, 1920, 1080);
         var first = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, area, Make: "DEL");
         var second = new Monitor(
@@ -141,7 +141,7 @@ public class MonitorIdentityTests
     [Fact]
     public void AMonitorWithoutAModelOrSerialComesBackByItsWindowsName()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080));
         var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024));
         core.Handle(new MonitorsChanged([left, right]));

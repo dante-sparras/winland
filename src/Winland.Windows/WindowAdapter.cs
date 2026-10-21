@@ -4,6 +4,7 @@ using Windows.Win32.Graphics.Dwm;
 using Windows.Win32.Graphics.Gdi;
 using Windows.Win32.UI.Accessibility;
 using Windows.Win32.UI.WindowsAndMessaging;
+using Winland.Core;
 
 namespace Winland.Windows;
 
@@ -24,9 +25,9 @@ public sealed partial class WindowAdapter : IDisposable
     // The windows the core was last told are disabled.
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> Disabled = new();
     private static Action<Outcome>? Applied;
-    private static Core? Session;
+    private static WindowManager? Session;
 
-    private readonly Core _core;
+    private readonly WindowManager _core;
     private readonly Action<RecoverySnapshot>? _changed;
     private readonly Action<Outcome>? _publish;
     private readonly WINEVENTPROC _callback;
@@ -63,7 +64,7 @@ public sealed partial class WindowAdapter : IDisposable
     // Windows whose maximize request was just answered, and when they stop being watched for drifting off their tile.
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, long> Settling = new();
 
-    public WindowAdapter(Core core, Action<RecoverySnapshot>? changed = null)
+    public WindowAdapter(WindowManager core, Action<RecoverySnapshot>? changed = null)
     {
         ArgumentNullException.ThrowIfNull(core);
         _core = core;
@@ -71,12 +72,12 @@ public sealed partial class WindowAdapter : IDisposable
         Session = core;
         GroupBarHost.Dispatch = (name, arguments) =>
         {
-            if (Session is Core session)
+            if (Session is WindowManager session)
                 Apply(session.Handle(new Dispatch(name, arguments)));
         };
         GroupBarHost.Scroll = (shown, forward) =>
         {
-            if (Session is Core session)
+            if (Session is WindowManager session)
                 Apply(session.Handle(new GroupBarScrolled(shown, forward)));
         };
         _callback = OnEvent;

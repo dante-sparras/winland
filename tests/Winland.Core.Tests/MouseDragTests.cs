@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class MouseDragTests
 {
@@ -326,7 +326,7 @@ public class MouseDragTests
     [Fact]
     public void AMouseBindPressedOnTheBorderTakesTheClient()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(
             "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 2\nbindm = SUPER, mouse:273, resizewindow\n")));
         Appear(core, 1);
@@ -665,7 +665,7 @@ public class MouseDragTests
         Assert.Equal(WorkspaceId.Initial, Client(dropped, 1).Workspace);
     }
 
-    private static Core TwoMonitors(string extra = "")
+    private static WindowManager TwoMonitors(string extra = "")
     {
         var core = Flat(extra + "bindm = SUPER, mouse:272, movewindow\n");
         core.Handle(new MonitorsChanged(
@@ -774,7 +774,7 @@ public class MouseDragTests
     }
 
     // Dwindle with 1 on the left, 2 at the top right, and 3 and 4 side by side at the bottom right.
-    private static Core FourTiles(string options)
+    private static WindowManager FourTiles(string options)
     {
         var core = Flat(options + "bindm = SUPER, mouse:273, resizewindow\n");
         Outcome placed = null!;
@@ -786,18 +786,18 @@ public class MouseDragTests
         return core;
     }
 
-    private static Core Flat(string binds)
+    private static WindowManager Flat(string binds)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(
             "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + binds)));
         return core;
     }
 
-    private static Outcome Appear(Core core, long window) =>
+    private static Outcome Appear(WindowManager core, long window) =>
         core.Handle(new WindowAppeared(new WindowId(window), Wide));
 
-    private static void Press(Core core, string key) =>
+    private static void Press(WindowManager core, string key) =>
         core.Handle(new KeyPressed(key));
 
     private static Client Client(Outcome outcome, long window) =>

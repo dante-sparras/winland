@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// Decides which Client the pointer focuses. Distances are logical pixels. Hit boxes are physical pixels.

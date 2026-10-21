@@ -1,13 +1,13 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class HideTaskbarOptionTests
 {
     [Fact]
     public void TheTaskbarStaysVisibleUnlessTheConfigHidesIt()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         Assert.False(core.HideTaskbar);
         Assert.Equal(
@@ -24,7 +24,7 @@ public class HideTaskbarOptionTests
     {
         var text = $"general:hide_taskbar = {value}\n";
         var document = ConfigParser.Parse(text);
-        var core = new Core(document);
+        var core = new WindowManager(document);
 
         Assert.Empty(document.Warnings);
         Assert.True(core.HideTaskbar);
@@ -37,7 +37,7 @@ public class HideTaskbarOptionTests
     public void KeywordAndReloadApplyTheOption()
     {
         var text = "general:hide_taskbar = false\n";
-        var core = new Core(ConfigParser.Parse("general:hide_taskbar = true\n"))
+        var core = new WindowManager(ConfigParser.Parse("general:hide_taskbar = true\n"))
         {
             ReadConfig = () => new ConfigRead(ConfigParser.Parse(text)),
         };

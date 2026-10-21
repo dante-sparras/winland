@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The dwindle layout messages that are also dispatchers: <c>togglesplit</c> runs the same as

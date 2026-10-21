@@ -1,4 +1,4 @@
-using Winland;
+using Winland.Core;
 using Winland.Windows;
 
 namespace Winland.Windows.Tests;
@@ -80,7 +80,7 @@ public class ConfigWatcherTests : ConfigWatcherFacts
     [Fact]
     public void HostReloadAppliesTheCoreReply()
     {
-        var core = new Core
+        var core = new WindowManager
         {
             ReadConfig = () => new ConfigRead(ConfigParser.Parse("blur = on\n")),
         };

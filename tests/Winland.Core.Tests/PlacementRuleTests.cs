@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class PlacementRuleTests
 {
@@ -12,7 +12,7 @@ public class PlacementRuleTests
     [Fact]
     public void ANewFloatOpensCenteredInTheFloatingWorkArea()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("general:float_gaps = 20 40 60 80\n")));
         var area = new Rectangle(100, 0, 1820, 1040);
 
@@ -25,7 +25,7 @@ public class PlacementRuleTests
     [Fact]
     public void AFloatWithoutASizeOpensAtTheDefaultSizeCentered()
     {
-        var core = new Core();
+        var core = new WindowManager();
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
@@ -147,7 +147,7 @@ public class PlacementRuleTests
     [Fact]
     public void MoveAndSizeOnlyApplyToFloatingClientsAndSizeIsThePseudoSize()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var core = new WindowManager(ConfigParser.Parse("""
             general:gaps_in = 0
             general:gaps_out = 0
             general:border_size = 0
@@ -270,7 +270,7 @@ public class PlacementRuleTests
     public void NoCloseForRefusesToCloseUntilTheTimeHasPassed()
     {
         long now = 1_000;
-        var core = new Core(ConfigParser.Parse("windowrulev2 = no_close_for 500, class:^(box)$\n")) { RuleClock = () => now };
+        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = no_close_for 500, class:^(box)$\n")) { RuleClock = () => now };
         core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Class = "box" } });
 
         var early = core.Handle(new Dispatch("killactive"));
@@ -312,7 +312,7 @@ public class PlacementRuleTests
         var core = Ruled("center");
         core.RuleClock = () => now;
         core.Handle(Box(1));
-        now = Core.ReapplyMilliseconds + 1;
+        now = WindowManager.ReapplyMilliseconds + 1;
 
         var resized = core.Handle(new WindowResized(new WindowId(1), new Rectangle(0, 0, 1200, 900)));
 
@@ -323,7 +323,7 @@ public class PlacementRuleTests
     [Fact]
     public void ExecRuleBlocksHonorSizeAndMove()
     {
-        var core = new Core();
+        var core = new WindowManager();
         var launch = core.Handle(new Dispatch("exec", "[float; size 300 200; move 40 50] kitty")).Launch;
         Assert.NotNull(launch);
         core.NoteLaunched(40, launch);
@@ -333,25 +333,25 @@ public class PlacementRuleTests
         Assert.Equal(new Rectangle(40, 50, 300, 200), BoundsOf(outcome, 1));
     }
 
-    private static Core Configured(string text)
+    private static WindowManager Configured(string text)
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(text)));
         return core;
     }
 
-    private static Core Ruled(params string[] effects)
+    private static WindowManager Ruled(params string[] effects)
     {
         var text = "windowrulev2 = float, class:^(box)$\n";
         foreach (var effect in effects)
             text += $"windowrulev2 = {effect}, class:^(box)$\n";
 
-        return new Core(ConfigParser.Parse(text));
+        return new WindowManager(ConfigParser.Parse(text));
     }
 
-    private static Core Monitors(string config)
+    private static WindowManager Monitors(string config)
     {
-        var core = new Core(ConfigParser.Parse("general:gaps_out = 0\ngeneral:border_size = 0\n" + config));
+        var core = new WindowManager(ConfigParser.Parse("general:gaps_out = 0\ngeneral:border_size = 0\n" + config));
         core.Handle(new MonitorsChanged([Display(@"\\.\DISPLAY1", "Dell", Left), Display(@"\\.\DISPLAY2", "Samsung", Right)]));
         return core;
     }

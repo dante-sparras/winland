@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>A rotation Windows may report for a display. Winland does not change it.</summary>
 public enum DisplayOrientation

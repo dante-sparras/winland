@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// The animation tree and the named curves while a config is read. Each <c>animation</c> line sets one
@@ -43,8 +43,8 @@ internal sealed class AnimationBook
 
     private readonly Dictionary<string, Bezier> _curves = new(StringComparer.Ordinal)
     {
-        ["default"] = Winland.Bezier.Default,
-        ["linear"] = Winland.Bezier.Linear,
+        ["default"] = Winland.Core.Bezier.Default,
+        ["linear"] = Winland.Core.Bezier.Linear,
     };
 
     private readonly Dictionary<string, SpringCurve> _springs = new(StringComparer.Ordinal);
@@ -121,7 +121,7 @@ internal sealed class AnimationBook
             return true;
         }
 
-        curve = Winland.Bezier.Default;
+        curve = Winland.Core.Bezier.Default;
         return false;
     }
 
@@ -160,7 +160,7 @@ internal sealed class AnimationBook
         var curveName = Arg(args, 0);
         if (!_curves.ContainsKey(curveName))
             _curveOrder.Add(curveName);
-        _curves[curveName] = new Winland.Bezier(points[0], points[1], points[2], points[3]);
+        _curves[curveName] = new Winland.Core.Bezier(points[0], points[1], points[2], points[3]);
         return null;
     }
 

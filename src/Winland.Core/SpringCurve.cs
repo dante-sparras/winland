@@ -1,4 +1,4 @@
-namespace Winland;
+namespace Winland.Core;
 
 /// <summary>
 /// A spring curve from a <c>spring</c> line, as Winland's animation library steps one: a mass on a spring

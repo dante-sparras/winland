@@ -1,6 +1,6 @@
-using Winland;
+using Winland.Core;
 
-namespace Winland.Tests;
+namespace Winland.Core.Tests;
 
 public class DecorationTests
 {
@@ -274,9 +274,9 @@ public class DecorationTests
         Assert.Empty(outcome.ResetDecorations);
     }
 
-    private static Core Configured()
+    private static WindowManager Configured()
     {
-        var core = new Core();
+        var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse($"""
             general:col.active_border = rgba({Active.R:x2}{Active.G:x2}{Active.B:x2}{Active.A:x2})
             general:col.inactive_border = 0x{Inactive.A:x2}{Inactive.R:x2}{Inactive.G:x2}{Inactive.B:x2}
