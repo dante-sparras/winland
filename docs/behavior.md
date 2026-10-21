@@ -267,6 +267,10 @@ The `monitors` reply reports what Windows reports: the size, position, scale and
 
 In dwindle, `layoutmsg splitratio` changes the split of the focused Client's parent, by a delta or with `exact` to a value, clamped from 0.1 to 1.9. It answers `error: splitratio requires an arg` without a ratio, `error: cannot alter split ratio on no / single node` for a Client with no sibling, and `error: bad layoutmsg 'splitratio'` for a ratio that does not parse, in that order.
 
+`cyclelayout` changes the Layout of the focused Workspace, and of the Special workspace when one is open on the focused Monitor. It goes from dwindle to scrolling to floating and back to dwindle. `back` goes the other way, and any other argument goes forward. From master or monocle, either direction goes to dwindle. A Client that was tiled floats while the Workspace is floating, and tiles again when the Workspace leaves floating. One that was already floating stays floating. The Workspace keeps that Layout until the config is loaded again, which puts it back on the Layout the config names, and a restart does too. `general:layout` does not accept `floating`. `activeworkspace` reports the Layout as `tiledLayout`.
+
+`closeall` asks every Client on every Workspace to close, Special workspaces included, as `closewindow` does, so an application can still ask to save. A Client that `no_close_for` still protects is left open. It then shows Workspace 1 on the focused Monitor. A Special workspace that was open there is closed, so Workspace 1 is what shows.
+
 `movecursor X Y` puts the cursor at that point on the desktop and handles it as a pointer move, so focus follows it as it follows the mouse. `cursor:no_warps` does not stop it. Coordinates may be split by a space or a comma.
 
 `forcerendererreload` returns ok and does nothing. Reloading a renderer has no Windows meaning.

@@ -126,6 +126,12 @@ public sealed partial class Core
             return;
         }
 
+        AdoptLayout(desk, created);
+    }
+
+    // Moves the Workspace onto <paramref name="created"/>, keeping each Client's floating state.
+    private void AdoptLayout(LiveWorkspace desk, Layout created)
+    {
         RankFocus(created);
         if (desk.Layout.Clients.Count == 0)
         {
