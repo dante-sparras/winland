@@ -1,8 +1,6 @@
 # One-line install for Windows PowerShell 5.1 and PowerShell 7.
 #   irm https://raw.githubusercontent.com/dante-sparras/winland/main/scripts/install.ps1 | iex
 # Dot-sourcing defines the decisions and runs nothing. scripts/install.tests.ps1 does that.
-$ErrorActionPreference = 'Stop'
-Set-StrictMode -Version Latest
 
 $script:ArchiveName = 'Winland-win-x64.zip'
 $script:ChecksumsName = 'SHA256SUMS'
@@ -248,6 +246,10 @@ function Read-InstallAnswers([bool]$Interactive, [bool]$PrecisionTouchpad) {
 }
 
 function Invoke-InstallScript {
+    # These stay inside the function, so the terminal that ran irm | iex keeps its own settings.
+    $ErrorActionPreference = 'Stop'
+    $ProgressPreference = 'SilentlyContinue'
+    Set-StrictMode -Version Latest
     $installed = Find-InstalledWinland
     if ($installed) {
         Write-Output 'Winland is already installed. Updating.'
@@ -316,5 +318,4 @@ try {
 } catch {
     # This host already has a protocol that can reach the release.
 }
-$ProgressPreference = 'SilentlyContinue'
 Invoke-InstallScript
