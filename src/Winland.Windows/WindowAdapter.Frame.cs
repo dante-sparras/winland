@@ -200,7 +200,6 @@ public sealed partial class WindowAdapter
     private static void ClearDecorations()
     {
         GroupBarHost.Stop();
-        ErrorBarHost.Stop();
         TrayHost.Stop();
         BorderHost.Stop();
         EndStandIns();

@@ -154,8 +154,7 @@ public static class ControlInvocation
         verb.Equals("getoption", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("keyword", StringComparison.OrdinalIgnoreCase)
         || verb.Equals("getprop", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("setprop", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("seterror", StringComparison.OrdinalIgnoreCase);
+        || verb.Equals("setprop", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsBare(string verb) =>
         verb.Equals("clients", StringComparison.OrdinalIgnoreCase)

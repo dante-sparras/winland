@@ -83,7 +83,6 @@ public sealed partial class Core
         KeywordRequest keyword => ApplyKeyword(keyword),
         GetPropRequest prop => ReadProp(prop),
         SetPropRequest prop => WriteProp(prop),
-        SetErrorRequest error => SetError(error),
         BatchRequest batch => RunBatch(batch.Payload),
         _ => throw new InvalidOperationException("No handler for this command."),
     };
@@ -193,7 +192,8 @@ public sealed partial class Core
         }
 
         var kept = _configErrors;
-        var outcome = Apply(MergeLive(_config, parsed));
+        // A live keyword is not a load of the file, so it leaves the notification where the last load put it.
+        var outcome = Apply(MergeLive(_config, parsed), loaded: false);
         _configErrors = kept;
         return new CommandReply("ok", outcome);
     }
@@ -246,6 +246,7 @@ public sealed partial class Core
             WorkspaceRules = MergeWorkspaceRules(current?.WorkspaceRules ?? WorkspaceRule.None, incoming.WorkspaceRules),
             Sources = current?.Sources ?? [],
             Gestures = [.. current?.Gestures ?? [], .. incoming.Gestures],
+            Path = current?.Path,
         };
     }
 

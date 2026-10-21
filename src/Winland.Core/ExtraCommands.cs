@@ -68,12 +68,6 @@ public static class ExtraCommands
             return true;
         }
 
-        if (Is(verb, "seterror"))
-        {
-            parse = Parsed(new SetErrorRequest(rest), flags);
-            return true;
-        }
-
         parse = new CommandRejected("error: unknown request");
         return false;
     }
@@ -336,9 +330,6 @@ public sealed record AnimationsRequest : CommandRequest;
 public sealed record ClickKillRequest : CommandRequest;
 
 public sealed record KeywordRequest(string Name, string Value) : CommandRequest;
-
-/// <summary><c>seterror COLOR MESSAGE</c>, or <c>seterror disable</c>.</summary>
-public sealed record SetErrorRequest(string Arguments) : CommandRequest;
 
 public sealed record GetPropRequest(string Selector, string Property) : CommandRequest;
 

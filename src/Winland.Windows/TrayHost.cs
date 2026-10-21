@@ -8,10 +8,11 @@ using Windows.Win32.UI.WindowsAndMessaging;
 namespace Winland.Windows;
 
 /// <summary>
-/// The notification-area icon on its own thread. Which number it shows, and what the menu runs, is decided before
-/// this: here is only the icon, the window that receives Explorer, and the filter that lets an elevated process
-/// hear an unelevated one. Nothing is added until <see cref="Start"/>, so a test that applies an outcome does not
-/// put an icon on the desktop.
+/// The notification-area icon on its own thread, and the balloon a config error shows on it. Which number it
+/// shows, what the balloon says, and what a click opens, is decided before this: here is only the icon, the
+/// balloon, the window that receives Explorer, and the filter that lets an elevated process hear an unelevated
+/// one. Nothing is added until <see cref="Start"/>, so a test that applies an outcome does not put an icon on
+/// the desktop.
 /// </summary>
 internal static class TrayHost
 {
@@ -25,6 +26,9 @@ internal static class TrayHost
     private const uint ContextMenu = 0x007B;
     private const uint Select = 0x0400;
     private const uint KeySelect = 0x0401;
+    private const uint BalloonHide = 0x0403;
+    private const uint BalloonTimeout = 0x0404;
+    private const uint BalloonUserClick = 0x0405;
     private const int Version4 = 4;
 
     // TrackPopupMenuEx takes the flags as a plain uint. Right-button, return the command id, and do not notify.
@@ -36,30 +40,41 @@ internal static class TrayHost
     private static readonly Lock Gate = new();
     private static TrayIcon? _pending;
     private static TrayIcon? _shown;
+    private static ConfigNotice? _pendingNotice;
+    private static ConfigNotice? _shownNotice;
     private static Action<TrayCommand>? _onCommand;
+    private static Action<string>? _onOpen;
     private static HWND _window;
     private static HICON _icon;
     private static uint _thread;
     private static uint _taskbarCreated;
     private static int _armed;
+    private static int _shownGeneration;
+    private static int _closedGeneration;
+    private static int _swallowHides;
     private static bool _posted;
     private static bool _added;
+    private static bool _temporary;
     private static long _menuAt;
     private static Thread? _worker;
 
-    /// <summary>Lets later updates add the icon, and remembers where a chosen command is posted.</summary>
-    internal static void Start(Action<TrayCommand> onCommand)
+    /// <summary>Lets later updates add the icon, and remembers where a chosen command or a balloon click is posted.</summary>
+    internal static void Start(Action<TrayCommand> onCommand, Action<string>? onOpen = null)
     {
         ArgumentNullException.ThrowIfNull(onCommand);
         lock (Gate)
         {
             _onCommand = onCommand;
+            _onOpen = onOpen;
             _armed = 1;
         }
     }
 
-    /// <summary>Shows <paramref name="icon"/>, or removes it when the icon says it is hidden. Null leaves it alone.</summary>
-    internal static void Update(TrayIcon? icon)
+    /// <summary>
+    /// Shows <paramref name="icon"/>, or removes it when the icon says it is hidden, and shows <paramref name="notice"/>
+    /// on it. A hidden icon is added only while the notice is up. Null leaves the icon alone.
+    /// </summary>
+    internal static void Update(TrayIcon? icon, ConfigNotice? notice)
     {
         if (icon is null || Volatile.Read(ref _armed) == 0)
             return;
@@ -70,10 +85,11 @@ internal static class TrayHost
             if (_armed == 0)
                 return;
 
-            if (_worker is null && !icon.Shown)
+            if (_worker is null && !icon.Shown && notice is null)
                 return;
 
             _pending = icon;
+            _pendingNotice = notice;
             if (_worker is null)
             {
                 _worker = new Thread(Run) { IsBackground = true, Name = "Winland tray" };
@@ -102,11 +118,20 @@ internal static class TrayHost
             _worker = null;
             _thread = 0;
             _pending = null;
+            _pendingNotice = null;
+            _onOpen = null;
             _posted = false;
         }
 
         if (worker is null)
+        {
+            _shownNotice = null;
+            _shownGeneration = 0;
+            _closedGeneration = 0;
+            _temporary = false;
+            _swallowHides = 0;
             return;
+        }
 
         if (thread != 0)
             _ = PInvoke.PostThreadMessage(thread, QuitMessage, default, default);
@@ -163,21 +188,36 @@ internal static class TrayHost
 
         _window = HWND.Null;
         _shown = null;
+        _shownNotice = null;
+        _shownGeneration = 0;
+        _closedGeneration = 0;
+        _temporary = false;
+        _swallowHides = 0;
     }
 
     private static void Sync()
     {
         TrayIcon? wanted;
+        ConfigNotice? notice;
         lock (Gate)
         {
             wanted = _pending;
+            notice = _pendingNotice;
             _posted = false;
         }
 
-        if (wanted is not { Shown: true })
+        var plan = TrayBalloon.For(wanted is { Shown: true }, notice, _shownGeneration, _closedGeneration);
+        if (!plan.ShowIcon)
         {
-            Remove();
+            TakeDown();
             _shown = wanted;
+            _shownNotice = notice;
+            if (notice is null)
+            {
+                _shownGeneration = 0;
+                _closedGeneration = 0;
+            }
+
             return;
         }
 
@@ -185,8 +225,39 @@ internal static class TrayHost
         if (window.IsNull)
             return;
 
+        if (plan.Temporary)
+        {
+            if (!_added || !_temporary)
+                Present(window, "!", "Winland");
+
+            _temporary = true;
+        }
+        else
+        {
+            // Changing the icon while a balloon is up takes the balloon away, so an outcome that
+            // leaves the number alone does not send the icon again.
+            var same = _added && !_temporary && _shown == wanted;
+            _temporary = false;
+            if (!same)
+                Present(window, wanted!);
+        }
+
         _shown = wanted;
-        Present(window, wanted);
+        _shownNotice = notice;
+        if (!_added)
+            return;
+
+        if (plan.ShowBalloon && notice is not null)
+        {
+            ShowBalloon(window, notice);
+            _shownGeneration = notice.Generation;
+        }
+        else if (plan.ClearBalloon)
+        {
+            HideBalloon(window);
+            _shownGeneration = 0;
+            _closedGeneration = 0;
+        }
     }
 
     private static HWND EnsureWindow()
@@ -217,9 +288,11 @@ internal static class TrayHost
         Log("A notification-area message was not allowed through");
     }
 
-    private static unsafe void Present(HWND window, TrayIcon icon)
+    private static unsafe void Present(HWND window, TrayIcon icon) => Present(window, icon.Number, icon.Tip);
+
+    private static unsafe void Present(HWND window, string label, string tip)
     {
-        var drawn = Draw(icon.Number);
+        var drawn = Draw(label);
         if (drawn.IsNull)
             return;
 
@@ -227,7 +300,7 @@ internal static class TrayHost
         data.uFlags = NOTIFY_ICON_DATA_FLAGS.NIF_MESSAGE | NOTIFY_ICON_DATA_FLAGS.NIF_ICON | NOTIFY_ICON_DATA_FLAGS.NIF_TIP | NOTIFY_ICON_DATA_FLAGS.NIF_SHOWTIP;
         data.uCallbackMessage = TrayMessages.Callback;
         data.hIcon = drawn;
-        WriteTip(ref data, icon.Tip);
+        WriteTip(ref data, tip);
 
         var added = _added && Tell(NOTIFY_ICON_MESSAGE.NIM_MODIFY, ref data);
         if (!added)
@@ -306,6 +379,58 @@ internal static class TrayHost
         data.szTip[text.Length] = '\0';
     }
 
+    // A new balloon replaces the one already showing. szInfo is 256 characters with the null, and the title 64.
+    private static void ShowBalloon(HWND window, ConfigNotice notice)
+    {
+        var data = Blank(window);
+        data.uFlags = NOTIFY_ICON_DATA_FLAGS.NIF_INFO;
+        WriteTitle(ref data, notice.Title);
+        WriteBody(ref data, notice.Text);
+        data.dwInfoFlags = NOTIFY_ICON_INFOTIP_FLAGS.NIIF_ERROR;
+        _swallowHides = 1;
+        if (!Tell(NOTIFY_ICON_MESSAGE.NIM_MODIFY, ref data))
+            Log("The config notification was not shown");
+    }
+
+    // An empty body takes the balloon away and leaves the icon.
+    private static void HideBalloon(HWND window)
+    {
+        var data = Blank(window);
+        data.uFlags = NOTIFY_ICON_DATA_FLAGS.NIF_INFO;
+        data.szInfo[0] = '\0';
+        _swallowHides = 1;
+        if (!Tell(NOTIFY_ICON_MESSAGE.NIM_MODIFY, ref data))
+            Log("The config notification was not removed");
+    }
+
+    private static void WriteTitle(ref NOTIFYICONDATAW data, string title)
+    {
+        var text = title.Length > 63 ? title[..63] : title;
+        for (var i = 0; i < text.Length; i++)
+            data.szInfoTitle[i] = text[i];
+
+        data.szInfoTitle[text.Length] = '\0';
+    }
+
+    private static void WriteBody(ref NOTIFYICONDATAW data, string body)
+    {
+        var text = body.Length > 255 ? body[..255] : body;
+        for (var i = 0; i < text.Length; i++)
+            data.szInfo[i] = text[i];
+
+        data.szInfo[text.Length] = '\0';
+    }
+
+    private static void TakeDown()
+    {
+        if (!_added && _icon.IsNull)
+            return;
+
+        _temporary = false;
+        _swallowHides++;
+        Remove();
+    }
+
     private static LRESULT OnWindow(HWND hwnd, uint message, WPARAM wParam, LPARAM lParam)
     {
         if (_taskbarCreated != 0 && message == _taskbarCreated)
@@ -314,6 +439,11 @@ internal static class TrayHost
             _added = false;
             if (_shown is { Shown: true } icon)
                 Present(hwnd, icon);
+            else if (_temporary && _shownGeneration != 0 && _shownGeneration != _closedGeneration)
+                Present(hwnd, "!", "Winland");
+
+            if (_added && _shownNotice is not null && _shownGeneration != 0 && _shownGeneration != _closedGeneration)
+                ShowBalloon(hwnd, _shownNotice);
 
             return default;
         }
@@ -333,14 +463,64 @@ internal static class TrayHost
         var high = (uint)((lParam.Value >> 16) & 0xFFFF);
         if (high == IconId)
         {
+            if (IsBalloon(low))
+            {
+                OnBalloon(low);
+                return;
+            }
+
             if (low is Select or KeySelect or ContextMenu or RightButtonUp)
                 ShowMenu(hwnd, PointFrom(wParam));
 
             return;
         }
 
+        if ((uint)(wParam.Value & 0xFFFF) == IconId && IsBalloon(low))
+        {
+            OnBalloon(low);
+            return;
+        }
+
         if ((uint)(wParam.Value & 0xFFFF) == IconId && low is LeftButtonUp or RightButtonUp or ContextMenu)
             ShowMenu(hwnd, Cursor());
+    }
+
+    private static bool IsBalloon(uint code) => code is BalloonHide or BalloonTimeout or BalloonUserClick;
+
+    // A hide that follows our own add, replace or delete is not the user dismissing the balloon.
+    // A timeout or a click is. A click opens the file the notice names, and a temporary icon goes away.
+    private static void OnBalloon(uint code)
+    {
+        if (code == BalloonHide && _swallowHides > 0)
+        {
+            _swallowHides--;
+            return;
+        }
+
+        if (code == BalloonUserClick)
+            OpenShown();
+
+        _closedGeneration = _shownGeneration;
+        if (!_temporary)
+            return;
+
+        _temporary = false;
+        _swallowHides++;
+        Remove();
+    }
+
+    private static void OpenShown()
+    {
+        string? file;
+        Action<string>? open;
+        lock (Gate)
+        {
+            file = _shownNotice?.File;
+            open = _onOpen;
+        }
+
+        if (!string.IsNullOrEmpty(file))
+            open?.Invoke(file);
     }
 
     private static (int X, int Y) PointFrom(WPARAM wParam)
