@@ -25,7 +25,7 @@ public class CoreTests
         var other = new Core();
 
         var first = core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 1920, 1080))).Order!.Value;
-        var second = core.Dispatch("workspace", "2").Order!.Value;
+        var second = core.Handle(new Dispatch("workspace", "2")).Order!.Value;
         var third = core.Execute("dispatch workspace 1").Effect.Order!.Value;
         var elsewhere = other.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 1920, 1080))).Order!.Value;
 

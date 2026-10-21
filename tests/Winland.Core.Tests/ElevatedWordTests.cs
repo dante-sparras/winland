@@ -85,7 +85,7 @@ public class ElevatedWordTests
     [Fact]
     public void ElevatedInsideARuleBlockWarnsAndKeepsTheOtherRules()
     {
-        var inside = new Core().Dispatch("exec", "[float; elevated; workspace 2 silent] kitty");
+        var inside = new Core().Handle(new Dispatch("exec", "[float; elevated; workspace 2 silent] kitty"));
 
         Assert.Equal("kitty", inside.Launch?.CommandLine);
         Assert.Equal(
@@ -100,7 +100,7 @@ public class ElevatedWordTests
     [Fact]
     public void ALeadingElevatedBlockIsTheRuleBlock()
     {
-        var leading = new Core().Dispatch("execr", "[elevated] [tile] notepad");
+        var leading = new Core().Handle(new Dispatch("execr", "[elevated] [tile] notepad"));
 
         Assert.Equal("[tile] notepad", leading.Launch?.CommandLine);
         Assert.True(leading.Launch?.Raw);

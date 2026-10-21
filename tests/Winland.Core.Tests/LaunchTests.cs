@@ -7,7 +7,7 @@ public class LaunchTests
     [Fact]
     public void ExecLaunchesTheCommand()
     {
-        var outcome = new Core().Dispatch("exec", "notepad --title hello");
+        var outcome = new Core().Handle(new Dispatch("exec", "notepad --title hello"));
 
         Assert.Equal("exec", outcome.Dispatcher);
         Assert.Equal(new Launch("notepad --title hello", null) { InitialWorkspace = WorkspaceId.Initial }, outcome.Launch);
@@ -16,7 +16,7 @@ public class LaunchTests
     [Fact]
     public void AWordNamedElevatedIsPartOfTheCommand()
     {
-        var outcome = new Core().Dispatch("exec", "elevated notepad");
+        var outcome = new Core().Handle(new Dispatch("exec", "elevated notepad"));
 
         Assert.Equal(new Launch("elevated notepad", null) { InitialWorkspace = WorkspaceId.Initial }, outcome.Launch);
     }
@@ -36,7 +36,7 @@ public class LaunchTests
     [Fact]
     public void ExecrRequestsTheCommandWithoutAShell()
     {
-        var outcome = new Core().Dispatch("execr", "notepad");
+        var outcome = new Core().Handle(new Dispatch("execr", "notepad"));
 
         Assert.Equal(new Launch("notepad", null) { Raw = true, InitialWorkspace = WorkspaceId.Initial }, outcome.Launch);
     }
@@ -44,8 +44,8 @@ public class LaunchTests
     [Fact]
     public void EmptyExecDoesNotLaunch()
     {
-        Assert.Null(new Core().Dispatch("exec", "   ").Launch);
-        var block = new Core().Dispatch("exec", "[elevated]");
+        Assert.Null(new Core().Handle(new Dispatch("exec", "   ")).Launch);
+        var block = new Core().Handle(new Dispatch("exec", "[elevated]"));
         Assert.Null(block.Launch);
         Assert.Equal([new ConfigWarned(0, "Unsupported window rule 'elevated'.", null)], block.Events.OfType<ConfigWarned>());
     }
@@ -53,7 +53,7 @@ public class LaunchTests
     [Fact]
     public void RulesBlockLaunchesAndKeepsTheRules()
     {
-        var outcome = new Core().Dispatch("exec", "[float; workspace 2] kitty");
+        var outcome = new Core().Handle(new Dispatch("exec", "[float; workspace 2] kitty"));
 
         Assert.Equal("exec", outcome.Dispatcher);
         Assert.NotNull(outcome.Launch);
@@ -69,7 +69,7 @@ public class LaunchTests
     [Fact]
     public void UnknownExecEffectsWarnAndTheCommandStillLaunches()
     {
-        var outcome = new Core().Dispatch("exec", "[float; suppress_event maximize; confine_pointer] cmd");
+        var outcome = new Core().Handle(new Dispatch("exec", "[float; suppress_event maximize; confine_pointer] cmd"));
 
         Assert.NotNull(outcome.Launch);
         Assert.Equal("cmd", outcome.Launch.CommandLine);
@@ -85,7 +85,7 @@ public class LaunchTests
     [Fact]
     public void ABadKnownEffectDoesNotLaunch()
     {
-        var outcome = new Core().Dispatch("exec", "[float; workspace] kitty");
+        var outcome = new Core().Handle(new Dispatch("exec", "[float; workspace] kitty"));
 
         Assert.Null(outcome.Launch);
         Assert.Equal([new ConfigWarned(0, "Malformed window rule.", null)], outcome.Events.OfType<ConfigWarned>());
@@ -94,7 +94,7 @@ public class LaunchTests
     [Fact]
     public void UnclosedRuleBlockDoesNotLaunch()
     {
-        var outcome = new Core().Dispatch("exec", "[float; workspace 2 kitty");
+        var outcome = new Core().Handle(new Dispatch("exec", "[float; workspace 2 kitty"));
 
         Assert.Null(outcome.Launch);
         Assert.Equal([new ConfigWarned(0, "Unclosed rule block.", null)], outcome.Events.OfType<ConfigWarned>());
@@ -172,7 +172,7 @@ public class LaunchTests
         var core = new Core();
         var area = new Rectangle(0, 0, 800, 600);
         var bounds = new Rectangle(12, 14, 200, 100);
-        var launch = core.Dispatch("exec", "[float; workspace 2] kitty").Launch;
+        var launch = core.Handle(new Dispatch("exec", "[float; workspace 2] kitty")).Launch;
         Assert.NotNull(launch);
         core.NoteLaunched(40, launch);
 
@@ -198,7 +198,7 @@ public class LaunchTests
         long now = 1_000;
         core.FollowClock = () => now;
         var area = new Rectangle(0, 0, 640, 480);
-        var launch = core.Dispatch("exec", "[tile] tool").Launch;
+        var launch = core.Handle(new Dispatch("exec", "[tile] tool")).Launch;
         Assert.NotNull(launch);
         core.NoteLaunched(10, launch);
         core.NoteProcess(20, 10);
@@ -212,7 +212,7 @@ public class LaunchTests
         var client = Assert.Single(child.State.Clients);
         Assert.False(client.Floating);
 
-        var again = core.Dispatch("exec", "[float] other").Launch;
+        var again = core.Handle(new Dispatch("exec", "[float] other")).Launch;
         Assert.NotNull(again);
         core.NoteLaunched(70, again);
         now = 1_000 + 60_001;

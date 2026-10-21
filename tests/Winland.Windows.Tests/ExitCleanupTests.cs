@@ -26,7 +26,7 @@ public class ExitCleanupTests
             var window = new WindowId(probe.Anchor.ToInt64());
             Assert.True(core.Manages(window));
 
-            WindowAdapter.Apply(core.Dispatch("fullscreen", "2"));
+            WindowAdapter.Apply(core.Handle(new Dispatch("fullscreen", "2")));
             Assert.NotEqual(original, GetWindowLong(probe.Anchor, StyleIndex));
 
             adapter.ResetDecorations();
@@ -55,13 +55,13 @@ public class ExitCleanupTests
             var original = GetWindowLong(probe.Anchor, StyleIndex);
             adapter.AdoptExisting([probe.Anchor]);
             Assert.True(core.Manages(new WindowId(probe.Anchor.ToInt64())));
-            WindowAdapter.Apply(core.Dispatch("fullscreen", "2"));
-            WindowAdapter.Apply(core.Dispatch("fullscreen", "2"));
+            WindowAdapter.Apply(core.Handle(new Dispatch("fullscreen", "2")));
+            WindowAdapter.Apply(core.Handle(new Dispatch("fullscreen", "2")));
             Assert.Equal(original, GetWindowLong(probe.Anchor, StyleIndex));
 
             adapter.RevealHidden();
             adapter.ResetDecorations();
-            WindowAdapter.Apply(core.Dispatch("fullscreen", "2"));
+            WindowAdapter.Apply(core.Handle(new Dispatch("fullscreen", "2")));
 
             Assert.Equal(original, GetWindowLong(probe.Anchor, StyleIndex));
         }
