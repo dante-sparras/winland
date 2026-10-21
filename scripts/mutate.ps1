@@ -48,6 +48,9 @@ $lanes = @(
             # Runs schtasks.exe, which needs administrator rights. SchtasksArguments and
             # LogonTaskDefinition, which build what it passes, are tested.
             'SchtasksCatalog.cs'
+            # SystemParametersInfo and the touchpad registry. Calling them needs the real
+            # desktop. DesktopSettings, which decides what to record and restore, is tested.
+            'WindowsDesktop.cs'
         )
     }
     @{

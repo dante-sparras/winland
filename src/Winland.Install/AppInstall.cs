@@ -21,6 +21,7 @@ public sealed class AppInstall
     private readonly IRegistry registry;
     private readonly IStartMenu shortcuts;
     private readonly IDaemonSession session;
+    private readonly IDesktopRestore desktop;
 
     public AppInstall(
         InstallLayout layout,
@@ -28,7 +29,8 @@ public sealed class AppInstall
         IFileTree files,
         IRegistry registry,
         IStartMenu shortcuts,
-        IDaemonSession session)
+        IDaemonSession session,
+        IDesktopRestore? desktop = null)
     {
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(tasks);
@@ -42,6 +44,7 @@ public sealed class AppInstall
         this.registry = registry;
         this.shortcuts = shortcuts;
         this.session = session;
+        this.desktop = desktop ?? NoDesktopRestore.Instance;
     }
 
     public bool MachinePresent() =>
@@ -110,6 +113,8 @@ public sealed class AppInstall
     public void Uninstall(bool purge, bool machine)
     {
         session.Stop();
+        // The record lives in the folder --purge deletes, so put the settings back first.
+        desktop.Restore();
         if (machine)
             RemoveMachine();
 
@@ -119,6 +124,15 @@ public sealed class AppInstall
 
         files.DeleteTree(layout.ConfigDirectory);
         files.DeleteTree(layout.StateDirectory);
+    }
+
+    private sealed class NoDesktopRestore : IDesktopRestore
+    {
+        public static readonly NoDesktopRestore Instance = new();
+
+        public void Restore()
+        {
+        }
     }
 
     private sealed record CopyPlan(

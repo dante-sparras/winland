@@ -32,6 +32,11 @@ public static class InstallLocations
     /// <summary>The config directory <c>winland uninstall</c> keeps, and <c>--purge</c> removes. It is <c>%USERPROFILE%\.winland</c>.</summary>
     public static string Config(string userProfile) => Path.Combine(userProfile, HomeFolder);
 
+    /// <summary>The file that records Snap and touchpad values before the install script changes them.</summary>
+    public const string SettingsFileName = "windows-settings.json";
+
+    public static string SettingsFile(string userProfile) => Path.Combine(Config(userProfile), SettingsFileName);
+
     /// <summary>The state, log and taskbar marker directory. It is the same folder as <see cref="Config"/>.</summary>
     public static string State(string userProfile) => Config(userProfile);
 

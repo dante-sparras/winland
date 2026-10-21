@@ -84,6 +84,12 @@ static int Perform(InstallCommand command)
             return 0;
         case InstallCommand.Update:
             return UpdateInstalled();
+        case InstallCommand.Tweaks tweaks:
+            RecordedSettings().TurnOff(tweaks.Touchpad);
+            Console.WriteLine(tweaks.Touchpad
+                ? "Snap windows and the three- and four-finger touchpad swipes are off."
+                : "Snap windows is off.");
+            return 0;
         default:
             throw new InvalidOperationException("Unexpected install command.");
     }
@@ -165,7 +171,13 @@ static AppInstall Maintenance() => new(
     new WindowsInstallFiles(),
     new WindowsInstallRegistry(),
     new ShellStartMenu(),
-    new DaemonSession());
+    new DaemonSession(),
+    RecordedSettings());
+
+static DesktopSettings RecordedSettings() => new(
+    new WindowsDesktop(),
+    new FileSettingsText(InstallLocations.SettingsFile(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))));
 
 static int Guard(Func<int> action)
 {
@@ -439,6 +451,7 @@ static int Usage()
     Console.Error.WriteLine("       winland install [--user]");
     Console.Error.WriteLine("       winland update");
     Console.Error.WriteLine("       winland uninstall [--purge]");
+    Console.Error.WriteLine("       winland tweaks --off [--touchpad]");
     Console.Error.WriteLine("WINLAND_NO_ELEVATE=1 or --no-elevate starts without elevation. It exists for tests.");
     Console.Error.WriteLine("Elevated features then do not work. A per-user install never asks for elevation.");
     return 2;
