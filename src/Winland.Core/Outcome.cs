@@ -114,6 +114,9 @@ public sealed record Outcome(
     /// <summary>The error bar to show, or null when none is.</summary>
     public ErrorBar? ErrorBar { get; init; }
 
+    /// <summary>The notification-area icon, or null when this outcome does not say.</summary>
+    public TrayIcon? Tray { get; init; }
+
     /// <summary>The keyboard layouts to load and the one to use, or null to leave the system's alone.</summary>
     public KeyboardLayoutRequest? KeyboardLayout { get; init; }
 

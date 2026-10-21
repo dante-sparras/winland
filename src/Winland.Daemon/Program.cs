@@ -252,6 +252,25 @@ static int Run(string? path, RollingLogWriter log)
     {
         LaunchConfigured(core, core.StartupLaunches(current));
 
+        host.OnTray = command =>
+        {
+            switch (command)
+            {
+                case TrayCommand.Reload:
+                    host.Reload();
+                    break;
+                case TrayCommand.EditConfig:
+                    TrayFiles.Open(configPath);
+                    break;
+                case TrayCommand.OpenLog:
+                    TrayFiles.Open(logFile);
+                    break;
+                case TrayCommand.Quit:
+                    host.Command("dispatch exit");
+                    break;
+            }
+        };
+
         host.Run(prior, () =>
         {
             store.Arm();
