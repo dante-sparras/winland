@@ -10,7 +10,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Winland.Core\Winland.Core.csproj" />
     <ProjectReference Include="..\Winland.Install\Winland.Install.csproj" />
-    <ProjectReference Include="..\Winland.Plugins\Winland.Plugins.csproj" />
   </ItemGroup>
 
 </Project>

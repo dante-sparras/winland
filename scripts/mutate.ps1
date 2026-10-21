@@ -56,11 +56,6 @@ $lanes = @(
         Source = 'Winland.Install.csproj'
     }
     @{
-        Name = 'Plugins'
-        Tests = 'Winland.Plugins.Tests'
-        Source = 'Winland.Plugins.csproj'
-    }
-    @{
         Name = 'Windows'
         Tests = 'Winland.Windows.Tests'
         Source = 'Winland.Windows.csproj'

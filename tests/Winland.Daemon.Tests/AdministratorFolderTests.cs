@@ -1,8 +1,8 @@
 using System.Security.AccessControl;
 using System.Security.Principal;
-using Winland.Plugins;
+using Winland;
 
-namespace Winland.Tests;
+namespace Winland.Daemon.Tests;
 
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class AdministratorFolderTests

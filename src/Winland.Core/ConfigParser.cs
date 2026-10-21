@@ -257,23 +257,10 @@ public static partial class ConfigParser
                 return;
             }
 
-            if (lhs == "plugin")
-            {
-                _settings.Add(new Setting("plugin", rhs));
-                return;
-            }
-
             if (TryDevice(lhs, rhs, out var global))
                 return;
 
             var keyword = global ?? (KeyedName.TryInline(lhs, out var inline) ? inline : Qualify(lhs));
-            if (PluginKeywords.TryApply(keyword, rhs, out var pluginWarnings))
-            {
-                _settings.Add(new Setting(keyword, rhs));
-                foreach (var warning in pluginWarnings)
-                    Warn(lineNumber, warning);
-                return;
-            }
             if (!HonoredKeywords.Contains(keyword))
             {
                 Warn(lineNumber, $"Unsupported keyword '{keyword}'.");

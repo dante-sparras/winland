@@ -2,7 +2,6 @@ using System.Security.Principal;
 using Winland;
 using Winland.Install;
 using Winland.Lua;
-using Winland.Plugins;
 using Winland.Windows;
 
 // rollinglog answers with the tail of what Winland writes here, and the debug options copy it to a file and stdout.
@@ -176,8 +175,6 @@ static int Run(string? path, RollingLogWriter log)
         current = ReadConfig(configPath);
     }
 
-    var plugins = PluginHost.CreateDefault();
-    current = plugins.Incorporate(current, () => ReadConfig(configPath), ConfigDirectory(configPath));
     foreach (var warning in current.Warnings)
     {
         var where = warning.Source ?? configPath;
@@ -185,11 +182,9 @@ static int Run(string? path, RollingLogWriter log)
     }
 
     var core = new Core();
-    core.Plugins = plugins;
-    core.Noticed += outcome => plugins.Deliver(outcome.Events);
     lua.Listen(core);
     core.LayoutScripts = lua;
-    core.ReadConfig = () => ReadForReload(configPath, plugins);
+    core.ReadConfig = () => ReadForReload(configPath);
     ConfigWatcher? watcher = null;
     string? logFile = null;
     core.AfterReload = document =>
@@ -222,7 +217,6 @@ static int Run(string? path, RollingLogWriter log)
         SessionEffects.RestoreSaved(colors);
     using var host = new WindowHost(core, snapshot => Persist(store, snapshot), PipeName());
     luaWorld.Host = host;
-    plugins.Command = host.Command;
     lua.Adopt(LuaHosting.Take());
     // Log off and shut down clean up from WM_ENDSESSION, on the loop thread. Closing the console calls in from
     // a thread of its own, so the cleanup is handed to the loop thread there too.
@@ -263,13 +257,12 @@ static int Run(string? path, RollingLogWriter log)
         Stop(host, store);
         AppDomain.CurrentDomain.UnhandledException -= onCrash;
         LaunchConfigured(core, core.ShutdownLaunches(current));
-        plugins.Dispose();
 
         Console.WriteLine("Winland stopped.");
     }
 }
 
-static ConfigRead ReadForReload(string path, PluginHost plugins)
+static ConfigRead ReadForReload(string path)
 {
     var full = Path.GetFullPath(path);
     if (!File.Exists(full))
@@ -280,19 +273,12 @@ static ConfigRead ReadForReload(string path, PluginHost plugins)
 
     try
     {
-        var document = plugins.Incorporate(ReadConfig(full), () => ReadConfig(full), ConfigDirectory(full));
-        return new ConfigRead(document);
+        return new ConfigRead(ReadConfig(full));
     }
     catch (InvalidOperationException exception)
     {
         return new ConfigRead(null, new ConfigWarning(0, exception.Message, full));
     }
-}
-
-static string? ConfigDirectory(string path)
-{
-    var full = Path.GetFullPath(path);
-    return Path.GetDirectoryName(full);
 }
 
 static void Persist(RecoveryStore store, RecoverySnapshot snapshot)

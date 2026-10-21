@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Text;
 using Winland.Install;
-using Winland.Plugins;
 
 namespace Winland;
 

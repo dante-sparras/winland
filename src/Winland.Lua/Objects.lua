@@ -1351,14 +1351,6 @@ function hl.version()
     return version
 end
 
-function hl.get_loaded_plugins()
-    local plugins = {}
-    for i, plugin in ipairs(list("plugin list")) do
-        plugins[i] = { name = plugin.name, author = "", version = tostring(plugin.version), description = "" }
-    end
-    return plugins
-end
-
 -- Custom layouts: the ctx and the targets a registered layout's recalculate and layout_msg get. A target places itself
 -- with :place(box) or :set_box(box), which note the box for Winland to apply once the callback returns.
 

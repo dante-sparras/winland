@@ -46,12 +46,6 @@ public static partial class CommandProtocol
             return new CommandRejected("error: unknown request");
         }
 
-        if (verb.Equals("plugin", StringComparison.OrdinalIgnoreCase))
-        {
-            var plugin = ParsePlugin(rest);
-            return plugin is CommandParsed parsed ? Attach(parsed.Request, flags) : plugin;
-        }
-
         if (rest.Length > 0)
             return new CommandRejected("error: unknown request");
 
@@ -81,50 +75,6 @@ public static partial class CommandProtocol
 
     private static CommandParse Attach(CommandRequest request, CommandFlags flags) =>
         new CommandParsed(request with { Flags = flags });
-
-    private static CommandParse ParsePlugin(string rest)
-    {
-        if (rest.Equals("list", StringComparison.OrdinalIgnoreCase))
-            return new CommandParsed(new PluginListRequest());
-
-        if (TryVerb(rest, "load", out var path))
-        {
-            if (path.Length == 0)
-                return new CommandRejected("error: missing plugin path");
-
-            return new CommandParsed(new PluginLoadRequest(path));
-        }
-
-        if (TryVerb(rest, "unload", out var name))
-        {
-            if (name.Length == 0)
-                return new CommandRejected("error: missing plugin name");
-
-            return new CommandParsed(new PluginUnloadRequest(name));
-        }
-
-        return new CommandRejected("error: unknown request");
-    }
-
-    private static bool TryVerb(string rest, string verb, out string args)
-    {
-        if (rest.Equals(verb, StringComparison.OrdinalIgnoreCase))
-        {
-            args = "";
-            return true;
-        }
-
-        if (rest.Length > verb.Length
-            && rest.StartsWith(verb, StringComparison.OrdinalIgnoreCase)
-            && char.IsWhiteSpace(rest[verb.Length]))
-        {
-            args = rest[verb.Length..].TrimStart();
-            return true;
-        }
-
-        args = "";
-        return false;
-    }
 
     private static readonly string[] NoStrings = [];
 
@@ -161,14 +111,6 @@ public sealed record ActiveWindowRequest : CommandRequest;
 public sealed record EventsRequest : CommandRequest;
 
 public sealed record ReloadRequest : CommandRequest;
-
-public abstract record PluginRequest : CommandRequest;
-
-public sealed record PluginListRequest : PluginRequest;
-
-public sealed record PluginLoadRequest(string AssemblyPath) : PluginRequest;
-
-public sealed record PluginUnloadRequest(string Name) : PluginRequest;
 
 public readonly record struct CommandReply(string Text, Outcome Effect)
 {

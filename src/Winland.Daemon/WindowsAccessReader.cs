@@ -3,7 +3,7 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using Microsoft.Win32.SafeHandles;
 
-namespace Winland.Plugins;
+namespace Winland;
 
 /// <summary>Reads the owner and the allow entries of a file or directory for <see cref="AdministratorOnly"/>.</summary>
 [SupportedOSPlatform("windows")]

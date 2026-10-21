@@ -13,9 +13,12 @@
   <ItemGroup>
     <ProjectReference Include="..\Winland.Core\Winland.Core.csproj" />
     <ProjectReference Include="..\Winland.Lua\Winland.Lua.csproj" />
-    <ProjectReference Include="..\Winland.Plugins\Winland.Plugins.csproj" />
     <ProjectReference Include="..\Winland.Install\Winland.Install.csproj" />
     <ProjectReference Include="..\Winland.Windows\Winland.Windows.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.FileSystem.AccessControl" />
   </ItemGroup>
 
   <ItemGroup>

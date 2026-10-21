@@ -35,7 +35,6 @@ public sealed partial class Core
                 : CommandProtocol.FormatActiveWorkspaceText(state)),
             EventsRequest => new CommandReply("", View([])) { Stream = true },
             ReloadRequest => ReloadCommand(),
-            PluginRequest plugin => PluginCommand(plugin),
             _ => ReplyExtra(request),
         };
 
@@ -254,10 +253,10 @@ public sealed partial class Core
         return false;
     }
 
-    // A line that launches a program, loads code or a file, or sets the environment takes effect only when the
+    // A line that launches a program, loads a file, or sets the environment takes effect only when the
     // config is read. Every other line, an option or a rule, applies at once.
     private static bool LiveKeyword(string keyword) =>
-        keyword is not ("exec" or "exec-once" or "execr" or "execr-once" or "exec-shutdown" or "env" or "source" or "plugin");
+        keyword is not ("exec" or "exec-once" or "execr" or "execr-once" or "exec-shutdown" or "env" or "source");
 
     // An option, a keyword with a category such as general:gaps_in, replaces its old value. A keyword that may
     // repeat, such as monitor, workspace or windowrulev2, adds its line after the ones already read.

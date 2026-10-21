@@ -389,14 +389,12 @@ public class ConfigTests
     }
 
     [Fact]
-    public void PluginAssignmentIsKept()
+    public void PluginKeywordWarnsAndIsSkipped()
     {
         var document = ConfigParser.Parse("plugin = plugins\\sample.dll\ngeneral:gaps_in = 2\n");
 
-        Assert.Empty(document.Warnings);
-        Assert.Equal(
-            new[] { new Setting("plugin", "plugins\\sample.dll"), new Setting("general:gaps_in", "2") },
-            document.Settings);
+        Assert.Equal(new ConfigWarning(1, "Unsupported keyword 'plugin'."), Assert.Single(document.Warnings));
+        Assert.Equal(new Setting("general:gaps_in", "2"), Assert.Single(document.Settings));
     }
 
     [Fact]

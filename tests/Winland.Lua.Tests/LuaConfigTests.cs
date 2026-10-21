@@ -136,18 +136,6 @@ public class LuaConfigTests
     }
 
     [Fact]
-    public void PluginLoadWritesAPluginLine()
-    {
-        var translation = Run("""
-            hl.plugin.load("plugins/echo.dll")
-            hl.plugin.load("")
-            """);
-
-        Assert.Equal(["plugin = plugins/echo.dll"], Lines(translation));
-        Assert.Equal(new ConfigWarning(2, "hl.plugin.load: path must not be empty"), Assert.Single(translation.Warnings));
-    }
-
-    [Fact]
     public void TheSandboxHasNoWayToTheSystem()
     {
         var translation = Run("""

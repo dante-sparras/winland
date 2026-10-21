@@ -34,16 +34,6 @@ public static class ControlInvocation
                winlandctl [-j] [-r] [-a] setprop <window> <property> <value>
                winlandctl eval <lua>
                winlandctl repl <lua>
-               winlandctl plugin list
-               winlandctl plugin load <path>
-               winlandctl plugin unload <name>
-               winlandctl plugin install <git-url> [revision]
-               winlandctl plugin update [--force]
-               winlandctl plugin remove <git-url|name|author/name>
-               winlandctl plugin enable <name|author/name>
-               winlandctl plugin disable <name|author/name>
-               winlandctl plugin reload [--force]
-               winlandctl plugin list --installed
                winlandctl [-j] [-r] [-a] --batch <commands>
 
         """;
@@ -155,20 +145,6 @@ public static class ControlInvocation
 
             if (args.Count == 2 && args[1].Equals("all", StringComparison.OrdinalIgnoreCase))
                 return "monitors all";
-
-            return null;
-        }
-
-        if (args[0].Equals("plugin", StringComparison.OrdinalIgnoreCase))
-        {
-            if (args.Count == 2 && args[1].Equals("list", StringComparison.OrdinalIgnoreCase))
-                return "plugin list";
-
-            if (args.Count >= 3 && args[1].Equals("load", StringComparison.OrdinalIgnoreCase))
-                return "plugin load " + string.Join(' ', args.Skip(2));
-
-            if (args.Count >= 3 && args[1].Equals("unload", StringComparison.OrdinalIgnoreCase))
-                return "plugin unload " + string.Join(' ', args.Skip(2));
 
             return null;
         }
