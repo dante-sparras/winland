@@ -1,9 +1,9 @@
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
-using Winland.Plugins;
+using Winland;
 
-namespace Winland.Tests;
+namespace Winland.Daemon.Tests;
 
 [SupportedOSPlatform("windows")]
 public class WindowsFileHandlesTests

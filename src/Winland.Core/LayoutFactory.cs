@@ -24,16 +24,12 @@ internal static class LayoutFactory
 
     /// <summary>
     /// Creates the Layout for a Workspace whose rule may name one, as Winland picks it: the rule's
-    /// <c>layout</c>, or else <c>general:layout</c>. A name that is no Layout uses dwindle. A name a plugin registered
-    /// is a <see cref="ScriptedLayout"/> that plugin arranges. A <c>lua:NAME</c> the config registered is one that
-    /// <paramref name="scripts"/> arranges.
+    /// <c>layout</c>, or else <c>general:layout</c>. A name that is no Layout uses dwindle. A <c>lua:NAME</c> the
+    /// config registered is a <see cref="ScriptedLayout"/> that <paramref name="scripts"/> arranges.
     /// </summary>
     public static Layout Create(ConfigDocument? config, string? ruleLayout, ILayoutScripts? scripts = null)
     {
         var name = (ruleLayout ?? Name(config))?.Trim();
-        if (name is not null && PluginLayouts.TryScripts(name, out var pluginScripts))
-            return new ScriptedLayout(name, pluginScripts);
-
         if (name is not null && IsScript(name) && Registered(config, name))
             return new ScriptedLayout(name, scripts);
 
@@ -63,8 +59,7 @@ internal static class LayoutFactory
     /// Resolves a <c>general:layout</c> value. <c>dwindle</c>, <c>master</c>, <c>monocle</c>,
     /// <c>scrolling</c>, and a missing name select a Layout and return no warning. A missing name
     /// selects dwindle. A <c>lua:NAME</c> also selects dwindle without a warning here, as a name no script registered does
-    /// in Winland, and so does a layout a plugin registered. Any other value keeps the dwindle Layout and
-    /// returns a warning.
+    /// in Winland. Any other value keeps the dwindle Layout and returns a warning.
     /// </summary>
     public static LayoutFallback Fallback(string? name)
     {
@@ -77,7 +72,7 @@ internal static class LayoutFactory
             return new LayoutFallback(new ScrollingLayout(), null);
         if (trimmed.Equals("monocle", StringComparison.OrdinalIgnoreCase))
             return new LayoutFallback(new MonocleLayout(), null);
-        if (IsScript(trimmed) || PluginLayouts.Contains(trimmed))
+        if (IsScript(trimmed))
             return new LayoutFallback(new DwindleLayout(), null);
 
         return new LayoutFallback(new DwindleLayout(), $"Layout '{trimmed}' is not available; using dwindle.");

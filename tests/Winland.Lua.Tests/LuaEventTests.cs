@@ -96,7 +96,6 @@ public class LuaEventTests
             ["getoption general:gaps_in"] = """{"option":"general:gaps_in","css":"5 5 5 5","set":true}""",
             ["getoption general:border_size"] = """{"option":"general:border_size","int":2,"set":false}""",
             ["getoption decoration:active_opacity"] = """{"option":"decoration:active_opacity","float":0.9,"set":true}""",
-            ["plugin list"] = """[{"name":"demo","version":3,"state":"loaded","failures":0}]""",
         };
 
         public Action<string>? OnDispatch { get; set; }
@@ -690,8 +689,6 @@ public class LuaEventTests
             local value, why = hl.get_config("general.nosuch")
             assert(value == nil and why == "unknown config key 'general.nosuch'")
             assert(type(hl.version()) == "string")
-            local plugin = hl.get_loaded_plugins()[1]
-            assert(plugin.name == "demo" and plugin.version == "3" and plugin.author == "" and plugin.description == "")
             """);
     }
 

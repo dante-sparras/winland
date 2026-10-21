@@ -272,11 +272,11 @@ public sealed partial class Core
 
             return View([], dispatcher: name, allowsElevation: allowsElevation);
         }
-        else if (Dispatchers.TryInvoke(name, arguments, out var pluginResult))
+        else if (Dispatchers.TryInvoke(name, arguments, out var bound))
             return View([], dispatcher: name, allowsElevation: allowsElevation) with
             {
-                Error = pluginResult.Error,
-                Notice = pluginResult.Notice,
+                Error = bound.Error,
+                Notice = bound.Notice,
             };
         else if (!Dispatchers.IsKnown(name))
             return View([], dispatcher: name, allowsElevation: allowsElevation) with

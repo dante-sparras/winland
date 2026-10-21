@@ -257,7 +257,7 @@ public sealed record GroupBarStyle
 
     /// <summary>
     /// <c>priority</c>: where the bar goes among the decorations on a window's top edge. The bar is the only one Winland
-    /// draws there, as it is in Winland without a plugin that adds one, so it changes nothing yet.
+    /// draws there, so the value is kept and changes nothing.
     /// </summary>
     public int Priority { get; init; } = 3;
 

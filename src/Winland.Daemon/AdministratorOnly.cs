@@ -1,4 +1,4 @@
-namespace Winland.Plugins;
+namespace Winland;
 
 /// <summary>
 /// One allow entry from a directory or file access list. <see cref="CanRemove"/> holds the rights

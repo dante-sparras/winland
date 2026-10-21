@@ -298,9 +298,6 @@ internal sealed partial class LuaRun : IDisposable
             return 0;
         });
         Function("clear_crashed_lockscreen", state => 0);
-        _lua.NewTable();
-        Function("load", "hl.plugin.load", PluginLoad);
-        _lua.SetField(-2, "plugin");
 
         RegisterDispatchers();
 
@@ -630,26 +627,6 @@ internal sealed partial class LuaRun : IDisposable
         }
 
         return 1;
-    }
-
-    // hl.plugin.load(path) loads a plugin as a plugin line does.
-    private int PluginLoad(IntPtr state)
-    {
-        if (!_lua.IsString(1))
-        {
-            Warn("hl.plugin.load: first argument (path) must be a string");
-            return 0;
-        }
-
-        var path = _lua.ToString(1, false);
-        if (path.Length == 0)
-        {
-            Warn("hl.plugin.load: path must not be empty");
-            return 0;
-        }
-
-        Emit("plugin = " + path);
-        return 0;
     }
 
     // hl.is_key_down(key): whether the user holds a key, named as a keysym, such as "a" or "Super_L", or by its XKB

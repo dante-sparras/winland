@@ -120,7 +120,7 @@ public sealed partial class Core
             return;
         }
 
-        // The workspace stopped using this algorithm. Drop it before the clients move, and do not call into the plugin.
+        // The workspace stopped using this algorithm. Drop it before the clients move, and do not call into the layout.
         if (desk.Layout is ScriptedLayout previous)
             previous.Retire();
 

@@ -34,11 +34,10 @@ public class ExtraCommandTests
     }
 
     [Fact]
-    public void PluginCommandsKeepTheirFlags()
+    public void PluginListIsAnUnknownCommand()
     {
-        var parsed = Assert.IsType<CommandParsed>(CommandProtocol.Parse(@"r/plugin load C:\p\a.dll"));
-        var load = Assert.IsType<PluginLoadRequest>(parsed.Request);
-        Assert.Equal(CommandFlags.Relayout, load.Flags);
+        Assert.IsType<CommandRejected>(CommandProtocol.Parse("plugin list"));
+        Assert.Equal("error: Unsupported keyword 'plugin'.", new Core().Execute("keyword plugin plugins\\sample.dll").Text);
     }
 
     [Fact]
@@ -321,6 +320,8 @@ public class ExtraCommandTests
         Assert.True(ControlInvocation.TryCreate(["events"], out line, out events));
         Assert.True(events);
         Assert.False(ControlInvocation.TryCreate(["nope"], out _, out _));
+        Assert.False(ControlInvocation.TryCreate(["plugin", "list"], out _, out _));
+        Assert.False(ControlInvocation.TryCreate(["plugin", "install", "https://example.com/plugins.git"], out _, out _));
         Assert.False(ControlInvocation.TryCreate(["--batch"], out _, out _));
     }
 
@@ -440,7 +441,6 @@ public class ExtraCommandTests
     [InlineData("exec-once", "notepad")]
     [InlineData("env", "A,1")]
     [InlineData("source", "other.conf")]
-    [InlineData("plugin", "plugins\\sample.dll")]
     public void KeywordDoesNotLaunchLoadOrSetTheEnvironment(string keyword, string value)
     {
         var reply = new Core().Execute($"keyword {keyword} {value}");

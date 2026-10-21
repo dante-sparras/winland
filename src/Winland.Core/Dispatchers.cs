@@ -1,11 +1,11 @@
 namespace Winland;
 
-/// <summary>The text a plugin dispatcher reports. <see cref="Error"/> is null on success.</summary>
+/// <summary>The text a bound dispatcher reports. <see cref="Error"/> is null on success.</summary>
 public readonly record struct DispatcherResult(string? Error, string? Notice);
 
 /// <summary>
 /// Names the core will run. A bind or a pipe command for any other name is an error.
-/// Built-in names are registered here. A plugin binds a handler with <see cref="TryBind"/>.
+/// Built-in names are registered here. Lua binds a function handler with <see cref="TryBind"/>.
 /// </summary>
 public static class Dispatchers
 {

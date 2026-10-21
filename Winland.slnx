@@ -6,14 +6,10 @@
     <Project Path="src/winlandctl/winlandctl.csproj" />
     <Project Path="src/Winland.Install/Winland.Install.csproj" />
     <Project Path="src/Winland.Daemon/Winland.Daemon.csproj" />
-    <Project Path="src/Winland.PluginApi/Winland.PluginApi.csproj" />
-    <Project Path="src/Winland.Plugins/Winland.Plugins.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Winland.Core.Tests/Winland.Core.Tests.csproj" />
     <Project Path="tests/Winland.Lua.Tests/Winland.Lua.Tests.csproj" />
-    <Project Path="tests/Winland.Plugins.Tests/Winland.Plugins.Tests.csproj" />
-    <Project Path="tests/Winland.Plugins.Tests/SamplePlugin/SamplePlugin.csproj" />
     <Project Path="tests/Winland.Install.Tests/Winland.Install.Tests.csproj" />
     <Project Path="tests/Winland.Daemon.Tests/Winland.Daemon.Tests.csproj" />
     <Project Path="tests/Winland.Windows.Tests/Winland.Windows.Tests.csproj" />

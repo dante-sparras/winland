@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Microsoft.Win32.SafeHandles;
 
-namespace Winland.Plugins;
+namespace Winland;
 
 /// <summary>
 /// Opens files and folders by handle, optionally without following a reparse point, and reads or
