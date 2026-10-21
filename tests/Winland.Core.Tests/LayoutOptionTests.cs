@@ -126,7 +126,7 @@ public class LayoutOptionTests
     [InlineData("NaN")]
     [InlineData("Infinity")]
     [InlineData("-infinity")]
-    public void ANumberThatIsNotFiniteIsLeftOut(string value)
+    public void ANumberThatIsNotFiniteWarnsAndIsSkipped(string value)
     {
         var document = ConfigParser.Parse($"""
             dwindle:split_width_multiplier = 1.5
@@ -149,12 +149,14 @@ public class LayoutOptionTests
         var scrolling = ScrollingOptions.From(document);
         var cursor = CursorOptions.From(document);
 
+        Assert.Equal([2, 4, 6, 8, 10, 11, 13], document.Warnings.Select(warning => warning.Line));
+
         Assert.Equal(1.5, layout.SplitWidthMultiplier);
         Assert.Equal(1.2, layout.DefaultSplitRatio);
         Assert.Equal(0.6, master.Mfact);
         Assert.Equal(0.7, scrolling.ColumnWidth);
         Assert.Equal(0.3, scrolling.FollowMinVisible);
-        Assert.Equal([0.5], scrolling.ExplicitColumnWidths);
+        Assert.Equal(ScrollingOptions.Defaults.ExplicitColumnWidths, scrolling.ExplicitColumnWidths);
         Assert.Equal(3, cursor.InactiveTimeoutSeconds);
     }
 

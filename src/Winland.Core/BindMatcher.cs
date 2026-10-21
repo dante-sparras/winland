@@ -62,20 +62,6 @@ public static class BindMatcher
         ["ISO_Level3_Shift"] = Modifier.Mod5,
     };
 
-    // Settings under binds: that are read. Add a keyword here when it is applied.
-    internal static IReadOnlySet<string> Keywords { get; } = new HashSet<string>(StringComparer.Ordinal)
-    {
-        "binds:allow_workspace_cycles",
-        "binds:drag_center_window",
-        "binds:drag_threshold",
-        "binds:focus_preferred_method",
-        "binds:pass_mouse_when_bound",
-        "binds:scroll_event_delay",
-        "binds:window_direction_monitor_fallback",
-        "binds:workspace_back_and_forth",
-        "binds:workspace_center_on",
-    };
-
     public static BindDecision Decide(BindTable table, BindSession session, Input input)
     {
         ArgumentNullException.ThrowIfNull(table);

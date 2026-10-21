@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Winland;
 
 /// <summary>The corner preference DWM draws. <see cref="Round"/> and <see cref="RoundSmall"/> are circular corners of 8 and 4 pixels at 96 DPI.</summary>
@@ -80,57 +78,26 @@ public sealed record DecorationOptions
 
     public float FullscreenOpacity { get; init; } = 1;
 
-    // Adding an entry here applies that keyword and stops the config warning.
-    private static readonly Dictionary<string, Func<DecorationOptions, string, DecorationOptions>> Appliers = new(StringComparer.Ordinal)
-    {
-        ["general:col.active_border"] = (options, value) => BorderColor.TryParse(value, out var active, out _)
-            ? options with { ActiveBorder = active, ActiveBorderSet = true }
-            : options,
-        ["general:col.inactive_border"] = (options, value) => BorderColor.TryParse(value, out var inactive, out _)
-            ? options with { InactiveBorder = inactive }
-            : options,
-        ["decoration:rounding"] = (options, value) => TryParseRounding(value, out var rounding) ? options with { Rounding = rounding } : options,
-        ["decoration:rounding_power"] = (options, value) => TryParsePower(value, out var power) ? options with { RoundingPower = power } : options,
-        ["decoration:blur:enabled"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var enabled) ? options with { Blur = enabled } : options,
-        ["decoration:active_opacity"] = (options, value) => TryParseUnit(value, out var opacity) ? options with { ActiveOpacity = opacity } : options,
-        ["decoration:inactive_opacity"] = (options, value) => TryParseUnit(value, out var opacity) ? options with { InactiveOpacity = opacity } : options,
-        ["decoration:fullscreen_opacity"] = (options, value) => TryParseUnit(value, out var opacity) ? options with { FullscreenOpacity = opacity } : options,
-    };
+    // A negative radius does not read.
+    private static readonly OptionValue<int> Radius = OptionValue.Of(
+        "int",
+        (string text, out int radius) => OptionValue.Int().Read(text, out radius) && radius >= 0,
+        OptionValue.Int().Json);
 
-    internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);
+    internal static OptionSet<DecorationOptions> Options { get; } = new(
+    [
+        Of("general:col.active_border", OptionValue.Color, o => o.ActiveBorder, (o, v) => o with { ActiveBorder = v, ActiveBorderSet = true }),
+        Of("general:col.inactive_border", OptionValue.Color, o => o.InactiveBorder, (o, v) => o with { InactiveBorder = v }),
+        Of("decoration:rounding", Radius, o => o.Rounding, (o, v) => o with { Rounding = v }),
+        Of("decoration:rounding_power", OptionValue.Single(1f, 10f), o => o.RoundingPower, (o, v) => o with { RoundingPower = v }),
+        Of("decoration:blur:enabled", OptionValue.Bool, o => o.Blur, (o, v) => o with { Blur = v }),
+        Of("decoration:active_opacity", OptionValue.Single(0f, 1f), o => o.ActiveOpacity, (o, v) => o with { ActiveOpacity = v }),
+        Of("decoration:inactive_opacity", OptionValue.Single(0f, 1f), o => o.InactiveOpacity, (o, v) => o with { InactiveOpacity = v }),
+        Of("decoration:fullscreen_opacity", OptionValue.Single(0f, 1f), o => o.FullscreenOpacity, (o, v) => o with { FullscreenOpacity = v }),
+    ]);
 
-    public static DecorationOptions From(ConfigDocument document)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-        var options = Documented;
-        foreach (var setting in document.Settings)
-            options = Apply(options, setting);
-        return options;
-    }
+    public static DecorationOptions From(ConfigDocument document) => Options.From(Documented, document);
 
-    private static DecorationOptions Apply(DecorationOptions options, Setting setting) =>
-        Appliers.TryGetValue(setting.Keyword, out var apply) ? apply(options, setting.Value) : options;
-
-    private static bool TryParseRounding(string text, out int rounding) =>
-        int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out rounding) && rounding >= 0;
-
-    private static bool TryParsePower(string text, out float power)
-    {
-        power = 0;
-        if (!float.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) || !float.IsFinite(parsed))
-            return false;
-
-        power = Math.Clamp(parsed, 1f, 10f);
-        return true;
-    }
-
-    private static bool TryParseUnit(string text, out float value)
-    {
-        value = 0;
-        if (!float.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) || !float.IsFinite(parsed))
-            return false;
-
-        value = Math.Clamp(parsed, 0f, 1f);
-        return true;
-    }
+    private static Option<DecorationOptions> Of<T>(string name, OptionValue<T> value, Func<DecorationOptions, T> get, Func<DecorationOptions, T, DecorationOptions> set) =>
+        Option<DecorationOptions>.Of(name, value, get, set);
 }

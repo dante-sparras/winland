@@ -1,6 +1,3 @@
-using System.Globalization;
-using static Winland.OrdinalText;
-
 namespace Winland;
 
 public enum MasterOrientation
@@ -56,125 +53,62 @@ public sealed record MasterOptions
 
     public bool FocusMasterOnClose { get; init; }
 
+    /// <summary><c>master:special_scale_factor</c>: read and kept. A special workspace is not scaled on Windows.</summary>
+    public double SpecialScaleFactor { get; init; } = 1;
+
     public static MasterOptions Documented { get; } = new();
 
-    private static readonly Dictionary<string, Func<MasterOptions, string, MasterOptions>> Appliers = new(StringComparer.Ordinal)
+    private static readonly Dictionary<string, MasterNewStatus> StatusNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["master:allow_small_split"] = (options, value) => TryBool(value, out var allow) ? options with { AllowSmallSplit = allow } : options,
-        ["master:mfact"] = (options, value) => TryDouble(value, out var mfact) ? options with { Mfact = Clamp(mfact, 0, 1) } : options,
-        ["master:new_status"] = (options, value) => TryStatus(value, out var status) ? options with { NewStatus = status } : options,
-        ["master:new_on_top"] = (options, value) => TryBool(value, out var top) ? options with { NewOnTop = top } : options,
-        ["master:new_on_active"] = (options, value) => TryOnActive(value, out var placed) ? options with { NewOnActive = placed } : options,
-        ["master:orientation"] = (options, value) => TryOrientation(value, out var orientation) ? options with { Orientation = orientation } : options,
-        ["master:slave_count_for_center_master"] = (options, value) => TryInt(value, out var count) ? options with { SlaveCountForCenter = Clamp(count, 0, 10) } : options,
-        ["master:center_ignores_reserved"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var ignore) ? options with { CenterIgnoresReserved = ignore } : options,
-        ["master:center_master_fallback"] = (options, value) => TryFallback(value, out var fallback) ? options with { CenterFallback = fallback } : options,
-        ["master:smart_resizing"] = (options, value) => TryBool(value, out var smart) ? options with { SmartResizing = smart } : options,
-        ["master:drop_at_cursor"] = (options, value) => TryBool(value, out var drop) ? options with { DropAtCursor = drop } : options,
-        ["master:always_keep_position"] = (options, value) => TryBool(value, out var keep) ? options with { AlwaysKeepPosition = keep } : options,
-        ["master:focus_master_on_close"] = (options, value) => TryBool(value, out var focus) ? options with { FocusMasterOnClose = focus } : options,
+        ["slave"] = MasterNewStatus.Slave,
+        ["master"] = MasterNewStatus.Master,
+        ["inherit"] = MasterNewStatus.Inherit,
     };
 
-    internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);
-
-    public static MasterOptions From(ConfigDocument document)
+    private static readonly Dictionary<string, MasterNewOnActive> OnActiveNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        ArgumentNullException.ThrowIfNull(document);
-        var options = Documented;
-        foreach (var setting in document.Settings)
-            options = Apply(options, setting);
-        return options;
-    }
+        ["none"] = MasterNewOnActive.None,
+        ["before"] = MasterNewOnActive.Before,
+        ["after"] = MasterNewOnActive.After,
+    };
 
-    private static MasterOptions Apply(MasterOptions options, Setting setting) =>
-        Appliers.TryGetValue(setting.Keyword, out var apply) ? apply(options, setting.Value) : options;
-
-    private static bool TryStatus(string text, out MasterNewStatus status)
+    private static readonly Dictionary<string, MasterOrientation> OrientationNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        if (Is(text, "master"))
-            status = MasterNewStatus.Master;
-        else if (Is(text, "slave"))
-            status = MasterNewStatus.Slave;
-        else if (Is(text, "inherit"))
-            status = MasterNewStatus.Inherit;
-        else
-        {
-            status = MasterNewStatus.Slave;
-            return false;
-        }
+        ["left"] = MasterOrientation.Left,
+        ["top"] = MasterOrientation.Top,
+        ["right"] = MasterOrientation.Right,
+        ["bottom"] = MasterOrientation.Bottom,
+        ["center"] = MasterOrientation.Center,
+    };
 
-        return true;
-    }
-
-    private static bool TryOnActive(string text, out MasterNewOnActive placed)
+    private static readonly Dictionary<string, MasterOrientation> FallbackNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        if (Is(text, "before"))
-            placed = MasterNewOnActive.Before;
-        else if (Is(text, "after"))
-            placed = MasterNewOnActive.After;
-        else if (Is(text, "none"))
-            placed = MasterNewOnActive.None;
-        else
-        {
-            placed = MasterNewOnActive.None;
-            return false;
-        }
+        ["left"] = MasterOrientation.Left,
+        ["top"] = MasterOrientation.Top,
+        ["right"] = MasterOrientation.Right,
+        ["bottom"] = MasterOrientation.Bottom,
+    };
 
-        return true;
-    }
+    internal static OptionSet<MasterOptions> Options { get; } = new(
+    [
+        Of("master:allow_small_split", OptionValue.Bool, o => o.AllowSmallSplit, (o, v) => o with { AllowSmallSplit = v }),
+        Of("master:special_scale_factor", OptionValue.Number(0, 1), o => o.SpecialScaleFactor, (o, v) => o with { SpecialScaleFactor = v }),
+        Of("master:mfact", OptionValue.Number(0, 1), o => o.Mfact, (o, v) => o with { Mfact = v }),
+        Of("master:new_status", OptionValue.Named(StatusNames), o => o.NewStatus, (o, v) => o with { NewStatus = v }),
+        Of("master:new_on_top", OptionValue.Bool, o => o.NewOnTop, (o, v) => o with { NewOnTop = v }),
+        Of("master:new_on_active", OptionValue.Named(OnActiveNames), o => o.NewOnActive, (o, v) => o with { NewOnActive = v }),
+        Of("master:orientation", OptionValue.Named(OrientationNames), o => o.Orientation, (o, v) => o with { Orientation = v }),
+        Of("master:slave_count_for_center_master", OptionValue.Int(0, 10), o => o.SlaveCountForCenter, (o, v) => o with { SlaveCountForCenter = v }),
+        Of("master:center_ignores_reserved", OptionValue.Bool, o => o.CenterIgnoresReserved, (o, v) => o with { CenterIgnoresReserved = v }),
+        Of("master:center_master_fallback", OptionValue.Named(FallbackNames), o => o.CenterFallback, (o, v) => o with { CenterFallback = v }),
+        Of("master:smart_resizing", OptionValue.Bool, o => o.SmartResizing, (o, v) => o with { SmartResizing = v }),
+        Of("master:drop_at_cursor", OptionValue.Bool, o => o.DropAtCursor, (o, v) => o with { DropAtCursor = v }),
+        Of("master:always_keep_position", OptionValue.Bool, o => o.AlwaysKeepPosition, (o, v) => o with { AlwaysKeepPosition = v }),
+        Of("master:focus_master_on_close", OptionValue.Bool, o => o.FocusMasterOnClose, (o, v) => o with { FocusMasterOnClose = v }),
+    ]);
 
-    private static bool TryOrientation(string text, out MasterOrientation orientation)
-    {
-        if (Is(text, "top"))
-            orientation = MasterOrientation.Top;
-        else if (Is(text, "right"))
-            orientation = MasterOrientation.Right;
-        else if (Is(text, "bottom"))
-            orientation = MasterOrientation.Bottom;
-        else if (Is(text, "center"))
-            orientation = MasterOrientation.Center;
-        else if (Is(text, "left"))
-            orientation = MasterOrientation.Left;
-        else if (text.Length > 0)
-            orientation = MasterOrientation.Left;
-        else
-        {
-            orientation = MasterOrientation.Left;
-            return false;
-        }
+    public static MasterOptions From(ConfigDocument document) => Options.From(Documented, document);
 
-        return true;
-    }
-
-    private static bool TryFallback(string text, out MasterOrientation orientation)
-    {
-        if (Is(text, "right"))
-            orientation = MasterOrientation.Right;
-        else if (Is(text, "top"))
-            orientation = MasterOrientation.Top;
-        else if (Is(text, "bottom"))
-            orientation = MasterOrientation.Bottom;
-        else if (Is(text, "left") || text.Length > 0)
-            orientation = MasterOrientation.Left;
-        else
-        {
-            orientation = MasterOrientation.Left;
-            return false;
-        }
-
-        return true;
-    }
-
-    private static bool TryBool(string text, out bool value) =>
-        ConfigValueSyntax.TryParseBool(text, out value);
-
-    private static bool TryInt(string text, out int value) =>
-        int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-
-    private static bool TryDouble(string text, out double value) =>
-        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && double.IsFinite(value);
-
-    private static int Clamp(int value, int min, int max) => Math.Clamp(value, min, max);
-
-    private static double Clamp(double value, double min, double max) => Math.Clamp(value, min, max);
+    private static Option<MasterOptions> Of<T>(string name, OptionValue<T> value, Func<MasterOptions, T> get, Func<MasterOptions, T, MasterOptions> set) =>
+        Option<MasterOptions>.Of(name, value, get, set);
 }

@@ -53,7 +53,7 @@ public class DecorationTests
     }
 
     [Fact]
-    public void LatestBorderAndRoundingWinAndAGradientKeepsThePreviousColor()
+    public void LatestBorderAndRoundingWinAndAGradientWarnsAndKeepsThePreviousColor()
     {
         var document = ConfigParser.Parse("""
             general:col.active_border = rgba(ff0000ff)
@@ -68,7 +68,7 @@ public class DecorationTests
         Assert.Equal(new BorderColor(0xFF, 0xFF, 0x00, 0x00), options.ActiveBorder);
         Assert.Equal(new BorderColor(0x80, 0xAA, 0xBB, 0xCC), options.InactiveBorder);
         Assert.Equal(3, options.Rounding);
-        Assert.Empty(document.Warnings);
+        Assert.Equal([2, 5], document.Warnings.Select(warning => warning.Line));
     }
 
     [Fact]

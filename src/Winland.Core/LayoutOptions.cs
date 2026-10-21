@@ -100,102 +100,22 @@ public sealed record LayoutOptions
 
     public bool PreciseMouseMove { get; init; }
 
+    /// <summary><c>general:layout</c>: the Layout a Workspace uses when no workspace rule names one.</summary>
+    public string Layout { get; init; } = "dwindle";
+
+    /// <summary><c>dwindle:special_scale_factor</c>: read and kept. A special workspace is not scaled on Windows.</summary>
+    public double SpecialScaleFactor { get; init; } = 1;
+
+    /// <summary>Before the config is read: no gaps and no border.</summary>
     public static LayoutOptions Unconfigured { get; } = new();
 
-    internal const string LayoutKeyword = "general:layout";
-
-    // Values of general:layout that do not warn. Add a name here when that layout is selected.
-    private static readonly HashSet<string> LayoutNames = new(StringComparer.Ordinal)
-    {
-        "dwindle",
-        "master",
-        "monocle",
-        "scrolling",
-    };
-
-    internal static bool HonorsLayout(string value) => LayoutNames.Contains(value);
-
-    // Adding an entry here applies that keyword and stops the config warning.
-    private static readonly Dictionary<string, Func<LayoutOptions, string, LayoutOptions>> Appliers = new(StringComparer.Ordinal)
-    {
-        ["general:gaps_in"] = (options, value) => TryParseGaps(value, out var gaps) ? options with { GapsIn = gaps } : options,
-        ["general:gaps_out"] = (options, value) => TryParseGaps(value, out var gaps) ? options with { GapsOut = gaps } : options,
-        ["general:gaps_workspaces"] = (options, value) => TryParseInt(value, out var between) ? options with { GapsWorkspaces = Clamp(between, 0, 100) } : options,
-        ["general:border_size"] = (options, value) => TryParseInt(value, out var border) ? options with { BorderSize = Clamp(border, 0, 20) } : options,
-        ["general:resize_on_border"] = (options, value) => TryParseBool(value, out var resize) ? options with { ResizeOnBorder = resize } : options,
-        ["general:extend_border_grab_area"] = (options, value) => TryParseInt(value, out var extend) ? options with { ExtendBorderGrabArea = Clamp(extend, 0, 100) } : options,
-        ["general:hover_icon_on_border"] = (options, value) => TryParseBool(value, out var hover) ? options with { HoverIconOnBorder = hover } : options,
-        ["general:resize_corner"] = (options, value) => TryParseResizeCorner(value, out var corner) ? options with { ResizeCorner = corner } : options,
-        ["general:float_gaps"] = (options, value) => TryParseGaps(value, out var floatGaps) ? options with { FloatGaps = floatGaps } : options,
-        ["layout:single_window_aspect_ratio"] = (options, value) => ConfigValueSyntax.TryParseVec2(value, out var ratio) && ratio.X is >= 0 and <= 1000 && ratio.Y is >= 0 and <= 1000 ? options with { SingleWindowAspectRatio = ratio } : options,
-        ["layout:single_window_aspect_ratio_tolerance"] = (options, value) => TryParseDouble(value, out var tolerance) ? options with { SingleWindowAspectRatioTolerance = Clamp(tolerance, 0, 1) } : options,
-        ["misc:float_force_onscreen"] = (options, value) => TryParseInt(value, out var onscreen) ? options with { FloatForceOnscreen = Clamp(onscreen, 0, 2) } : options,
-        ["misc:new_float_force_onscreen"] = (options, value) => TryParseInt(value, out var onscreen) ? options with { NewFloatForceOnscreen = Clamp(onscreen, 0, 2) } : options,
-        ["general:snap:enabled"] = (options, value) => TryParseBool(value, out var snap) ? options with { SnapEnabled = snap } : options,
-        ["general:snap:window_gap"] = (options, value) => TryParseInt(value, out var windowGap) ? options with { SnapWindowGap = Clamp(windowGap, 0, 100) } : options,
-        ["general:snap:monitor_gap"] = (options, value) => TryParseInt(value, out var monitorGap) ? options with { SnapMonitorGap = Clamp(monitorGap, 0, 100) } : options,
-        ["general:snap:border_overlap"] = (options, value) => TryParseBool(value, out var overlap) ? options with { SnapBorderOverlap = overlap } : options,
-        ["general:snap:respect_gaps"] = (options, value) => TryParseBool(value, out var respect) ? options with { SnapRespectGaps = respect } : options,
-        ["dwindle:force_split"] = (options, value) => TryParseForceSplit(value, out var force) ? options with { ForceSplit = force } : options,
-        ["dwindle:preserve_split"] = (options, value) => TryParseBool(value, out var preserve) ? options with { PreserveSplit = preserve } : options,
-        ["dwindle:smart_split"] = (options, value) => TryParseBool(value, out var smart) ? options with { SmartSplit = smart } : options,
-        ["dwindle:permanent_direction_override"] = (options, value) => TryParseBool(value, out var permanent) ? options with { PermanentDirectionOverride = permanent } : options,
-        ["dwindle:split_width_multiplier"] = (options, value) => TryParseDouble(value, out var multiplier) ? options with { SplitWidthMultiplier = Clamp(multiplier, 0.1, 3) } : options,
-        ["dwindle:use_active_for_splits"] = (options, value) => TryParseBool(value, out var useActive) ? options with { UseActiveForSplits = useActive } : options,
-        ["dwindle:default_split_ratio"] = (options, value) => TryParseDouble(value, out var ratio) ? options with { DefaultSplitRatio = Clamp(ratio, 0.1, 1.9) } : options,
-        ["dwindle:split_bias"] = (options, value) => TryParseSplitBias(value, out var bias) ? options with { SplitBias = bias } : options,
-        ["dwindle:smart_resizing"] = (options, value) => TryParseBool(value, out var smartResizing) ? options with { SmartResizing = smartResizing } : options,
-        ["dwindle:precise_mouse_move"] = (options, value) => TryParseBool(value, out var precise) ? options with { PreciseMouseMove = precise } : options,
-    };
-
-    internal static IReadOnlySet<string> Keywords { get; } = new HashSet<string>(Appliers.Keys, StringComparer.Ordinal)
-    {
-        LayoutKeyword,
-    };
-
-    public static LayoutOptions From(ConfigDocument document)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-        var options = Documented();
-        foreach (var setting in document.Settings)
-            options = Apply(options, setting);
-        return options;
-    }
-
-    private static LayoutOptions Documented() => new()
+    /// <summary>The options a config that sets none of them gives.</summary>
+    public static LayoutOptions Documented { get; } = new()
     {
         GapsIn = EdgeInsets.Uniform(4),
         GapsOut = EdgeInsets.Uniform(8),
         BorderSize = 2,
     };
-
-    private static LayoutOptions Apply(LayoutOptions options, Setting setting) =>
-        Appliers.TryGetValue(setting.Keyword, out var apply) ? apply(options, setting.Value) : options;
-
-    private static bool TryParseGaps(string text, out EdgeInsets gaps)
-    {
-        gaps = EdgeInsets.Zero;
-        var parts = text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0)
-            return false;
-
-        var count = Math.Min(parts.Length, 4);
-        var values = new int[count];
-        for (var i = 0; i < count; i++)
-        {
-            if (!TryParseInt(parts[i], out values[i]))
-                return false;
-        }
-
-        gaps = count switch
-        {
-            1 => EdgeInsets.Uniform(values[0]),
-            2 => new EdgeInsets(values[0], values[1], values[0], values[1]),
-            3 => new EdgeInsets(values[0], values[1], values[2], values[1]),
-            _ => new EdgeInsets(values[0], values[1], values[2], values[3]),
-        };
-        return true;
-    }
 
     private static readonly Dictionary<string, int> ForceSplitNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -209,6 +129,51 @@ public sealed record LayoutOptions
         ["directional"] = 0,
         ["current"] = 1,
     };
+
+    private static readonly Dictionary<string, int> ResizeCornerNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["disable"] = 0,
+        ["top_left"] = 1,
+        ["top_right"] = 2,
+        ["bottom_right"] = 3,
+        ["bottom_left"] = 4,
+    };
+
+    internal static OptionSet<LayoutOptions> Options { get; } = new(
+    [
+        Of("general:layout", OptionValue.OneOf([.. LayoutFactory.Names]), o => o.Layout, (o, v) => o with { Layout = v }),
+        Of("general:gaps_in", OptionValue.Gaps, o => o.GapsIn, (o, v) => o with { GapsIn = v }),
+        Of("general:gaps_out", OptionValue.Gaps, o => o.GapsOut, (o, v) => o with { GapsOut = v }),
+        Of("general:gaps_workspaces", OptionValue.Int(0, 100), o => o.GapsWorkspaces, (o, v) => o with { GapsWorkspaces = v }),
+        Of("general:border_size", OptionValue.Int(0, 20), o => o.BorderSize, (o, v) => o with { BorderSize = v }),
+        Of("general:resize_on_border", OptionValue.Bool, o => o.ResizeOnBorder, (o, v) => o with { ResizeOnBorder = v }),
+        Of("general:extend_border_grab_area", OptionValue.Int(0, 100), o => o.ExtendBorderGrabArea, (o, v) => o with { ExtendBorderGrabArea = v }),
+        Of("general:hover_icon_on_border", OptionValue.Bool, o => o.HoverIconOnBorder, (o, v) => o with { HoverIconOnBorder = v }),
+        Of("general:resize_corner", OptionValue.Int(0, 4, ResizeCornerNames), o => o.ResizeCorner, (o, v) => o with { ResizeCorner = v }),
+        Of("general:float_gaps", OptionValue.Gaps, o => o.FloatGaps, (o, v) => o with { FloatGaps = v }),
+        Of("layout:single_window_aspect_ratio", OptionValue.Pair(0, 1000), o => o.SingleWindowAspectRatio, (o, v) => o with { SingleWindowAspectRatio = v }),
+        Of("layout:single_window_aspect_ratio_tolerance", OptionValue.Number(0, 1), o => o.SingleWindowAspectRatioTolerance, (o, v) => o with { SingleWindowAspectRatioTolerance = v }),
+        Of("misc:float_force_onscreen", OptionValue.Int(0, 2), o => o.FloatForceOnscreen, (o, v) => o with { FloatForceOnscreen = v }),
+        Of("misc:new_float_force_onscreen", OptionValue.Int(0, 2), o => o.NewFloatForceOnscreen, (o, v) => o with { NewFloatForceOnscreen = v }),
+        Of("general:snap:enabled", OptionValue.Bool, o => o.SnapEnabled, (o, v) => o with { SnapEnabled = v }),
+        Of("general:snap:window_gap", OptionValue.Int(0, 100), o => o.SnapWindowGap, (o, v) => o with { SnapWindowGap = v }),
+        Of("general:snap:monitor_gap", OptionValue.Int(0, 100), o => o.SnapMonitorGap, (o, v) => o with { SnapMonitorGap = v }),
+        Of("general:snap:border_overlap", OptionValue.Bool, o => o.SnapBorderOverlap, (o, v) => o with { SnapBorderOverlap = v }),
+        Of("general:snap:respect_gaps", OptionValue.Bool, o => o.SnapRespectGaps, (o, v) => o with { SnapRespectGaps = v }),
+        Of("dwindle:force_split", OptionValue.Int(0, 2, ForceSplitNames), o => o.ForceSplit, (o, v) => o with { ForceSplit = v }),
+        Of("dwindle:preserve_split", OptionValue.Bool, o => o.PreserveSplit, (o, v) => o with { PreserveSplit = v }),
+        Of("dwindle:smart_split", OptionValue.Bool, o => o.SmartSplit, (o, v) => o with { SmartSplit = v }),
+        Of("dwindle:permanent_direction_override", OptionValue.Bool, o => o.PermanentDirectionOverride, (o, v) => o with { PermanentDirectionOverride = v }),
+        Of("dwindle:special_scale_factor", OptionValue.Number(0, 1), o => o.SpecialScaleFactor, (o, v) => o with { SpecialScaleFactor = v }),
+        Of("dwindle:split_width_multiplier", OptionValue.Number(0.1, 3), o => o.SplitWidthMultiplier, (o, v) => o with { SplitWidthMultiplier = v }),
+        Of("dwindle:use_active_for_splits", OptionValue.Bool, o => o.UseActiveForSplits, (o, v) => o with { UseActiveForSplits = v }),
+        Of("dwindle:default_split_ratio", OptionValue.Number(0.1, 1.9), o => o.DefaultSplitRatio, (o, v) => o with { DefaultSplitRatio = v }),
+        Of("dwindle:split_bias", OptionValue.Int(0, 1, SplitBiasNames), o => o.SplitBias, (o, v) => o with { SplitBias = v }),
+        Of("dwindle:smart_resizing", OptionValue.Bool, o => o.SmartResizing, (o, v) => o with { SmartResizing = v }),
+        Of("dwindle:precise_mouse_move", OptionValue.Bool, o => o.PreciseMouseMove, (o, v) => o with { PreciseMouseMove = v }),
+    ]);
+
+    public static LayoutOptions From(ConfigDocument document) => Options.From(Documented, document);
 
     /// <summary>
     /// Gaps around floating Clients. A negative side means the floating gap was not set, so
@@ -268,64 +233,12 @@ public sealed record LayoutOptions
     /// </summary>
     internal OnScreen NewFloatingOnScreen(Rectangle area) => new(FloatingWorkArea(area), 0, NewFloatForceOnscreen);
 
-    private static readonly Dictionary<string, int> ResizeCornerNames = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["disable"] = 0,
-        ["top_left"] = 1,
-        ["top_right"] = 2,
-        ["bottom_right"] = 3,
-        ["bottom_left"] = 4,
-    };
-
-    private static bool TryParseResizeCorner(string text, out int value)
-    {
-        if (!ConfigValueSyntax.TryParseNamedInt(text, ResizeCornerNames, out var parsed))
-        {
-            value = 0;
-            return false;
-        }
-
-        value = Clamp(parsed, 0, 4);
-        return true;
-    }
-
-    private static bool TryParseForceSplit(string text, out int value)
-    {
-        if (!ConfigValueSyntax.TryParseNamedInt(text, ForceSplitNames, out var parsed))
-        {
-            value = 0;
-            return false;
-        }
-
-        value = Clamp(parsed, 0, 2);
-        return true;
-    }
-
-    private static bool TryParseSplitBias(string text, out int value)
-    {
-        if (!ConfigValueSyntax.TryParseNamedInt(text, SplitBiasNames, out var parsed))
-        {
-            value = 0;
-            return false;
-        }
-
-        value = Clamp(parsed, 0, 1);
-        return true;
-    }
-
+    // A workspace rule's layoutopt sets a dwindle Option for that Workspace.
     internal static bool TryOverrideDwindle(LayoutOptions options, string key, string value, out LayoutOptions updated)
     {
         ArgumentNullException.ThrowIfNull(options);
-        updated = options;
-        if (!Appliers.TryGetValue("dwindle:" + key, out var apply))
-            return false;
-
-        var next = apply(options, value);
-        if (ReferenceEquals(next, options))
-            return false;
-
-        updated = next;
-        return true;
+        updated = Options.Apply(options, "dwindle:" + key, value) ?? options;
+        return !ReferenceEquals(updated, options);
     }
 
     /// <summary>Multiplies the gaps and borders, which the config gives in logical pixels, by a Monitor's scale.</summary>
@@ -354,16 +267,6 @@ public sealed record LayoutOptions
     private static int Scale(int value, double scale) =>
         (int)Math.Round(value * scale, MidpointRounding.AwayFromZero);
 
-    private static bool TryParseBool(string text, out bool value) =>
-        ConfigValueSyntax.TryParseBool(text, out value);
-
-    private static bool TryParseInt(string text, out int value) =>
-        int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-
-    private static bool TryParseDouble(string text, out double value) =>
-        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && double.IsFinite(value);
-
-    private static int Clamp(int value, int min, int max) => Math.Clamp(value, min, max);
-
-    private static double Clamp(double value, double min, double max) => Math.Clamp(value, min, max);
+    private static Option<LayoutOptions> Of<T>(string name, OptionValue<T> value, Func<LayoutOptions, T> get, Func<LayoutOptions, T, LayoutOptions> set) =>
+        Option<LayoutOptions>.Of(name, value, get, set);
 }

@@ -129,15 +129,9 @@ public class ConfigTests
         var document = ConfigParser.Parse(text);
 
         Assert.Equal(
-            new ConfigWarning(3, "Layout 'dwindle # hash' is not honored."),
+            new ConfigWarning(3, "Invalid value 'dwindle # hash' for general:layout."),
             Assert.Single(document.Warnings));
-        Assert.Equal(
-            new[]
-            {
-                new Setting("general:gaps_in", "5"),
-                new Setting("general:layout", "dwindle # hash"),
-            },
-            document.Settings);
+        Assert.Equal(new Setting("general:gaps_in", "5"), Assert.Single(document.Settings));
     }
 
     [Fact]
@@ -182,27 +176,9 @@ public class ConfigTests
     }
 
     [Fact]
-    public void HonoredKeywordsLoadWithoutAWarning()
+    public void KeptKeywordsLoadWithoutAWarning()
     {
         var text = """
-            general:gaps_in = 5
-            general:gaps_out = 10
-            general:border_size = 2
-            general:col.active_border = rgba(ffffffff)
-            general:col.inactive_border = rgba(444444ff)
-            general:layout = dwindle
-            dwindle:force_split = 0
-            dwindle:preserve_split = true
-            dwindle:smart_split = false
-            dwindle:permanent_direction_override = false
-            dwindle:split_width_multiplier = 1
-            dwindle:use_active_for_splits = true
-            dwindle:default_split_ratio = 1
-            dwindle:split_bias = 0
-            decoration:rounding = 0
-            binds:drag_threshold = 0
-            binds:scroll_event_delay = 300
-            misc:focus_on_activate = false
             exec = app
             exec-once = app
             execr = app
@@ -279,8 +255,8 @@ public class ConfigTests
     {
         var document = ConfigParser.Parse("general:layout = $PATH\n");
 
-        Assert.Equal(new Setting("general:layout", "$PATH"), Assert.Single(document.Settings));
-        Assert.Equal(new ConfigWarning(1, "Layout '$PATH' is not honored."), Assert.Single(document.Warnings));
+        Assert.Empty(document.Settings);
+        Assert.Equal(new ConfigWarning(1, "Invalid value '$PATH' for general:layout."), Assert.Single(document.Warnings));
     }
 
     [Fact]
@@ -708,14 +684,23 @@ public class ConfigTests
 
     [Theory]
     [InlineData("floating")]
-    [InlineData("Dwindle")]
-    [InlineData("")]
-    public void OtherLayoutsWarnAndAreKept(string name)
+    [InlineData("tabbed")]
+    public void OtherLayoutsWarnAndAreSkipped(string name)
     {
-        var document = ConfigParser.Parse($"general {{\n    layout = {name}\n}}\n");
+        var document = ConfigParser.Parse($"general {{\n    layout = master\n    layout = {name}\n}}\n");
 
-        Assert.Equal(new Setting("general:layout", name), Assert.Single(document.Settings));
-        Assert.Equal(new ConfigWarning(2, $"Layout '{name}' is not honored."), Assert.Single(document.Warnings));
+        Assert.Equal(new Setting("general:layout", "master"), Assert.Single(document.Settings));
+        Assert.Equal(new ConfigWarning(3, $"Invalid value '{name}' for general:layout."), Assert.Single(document.Warnings));
+        Assert.Equal("master", LayoutOptions.From(document).Layout);
+    }
+
+    [Fact]
+    public void ALayoutNameReadsInAnyCase()
+    {
+        var document = ConfigParser.Parse("general:layout = Master\n");
+
+        Assert.Empty(document.Warnings);
+        Assert.Equal("master", LayoutOptions.From(document).Layout);
     }
 
     [Fact]
@@ -726,7 +711,7 @@ public class ConfigTests
 
         Assert.Empty(honored.Warnings);
         Assert.Equal(new Setting("general:layout", "dwindle"), Assert.Single(honored.Settings));
-        Assert.Equal(new ConfigWarning(2, "Layout 'floating' is not honored."), Assert.Single(rejected.Warnings));
+        Assert.Equal(new ConfigWarning(2, "Invalid value 'floating' for general:layout."), Assert.Single(rejected.Warnings));
     }
 
     [Fact]

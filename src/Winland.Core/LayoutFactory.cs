@@ -21,7 +21,7 @@ internal static class LayoutFactory
     /// <c>layout</c>, or else <c>general:layout</c>. A name that is no Layout uses dwindle.
     /// </summary>
     public static Layout Create(ConfigDocument? config, string? ruleLayout) =>
-        Fallback(ruleLayout ?? Name(config)).Layout;
+        Fallback(ruleLayout ?? (config is null ? null : LayoutOptions.From(config).Layout)).Layout;
 
     /// <summary>
     /// Resolves a <c>general:layout</c> value. <c>dwindle</c>, <c>master</c>, <c>monocle</c>,
@@ -55,19 +55,4 @@ internal static class LayoutFactory
         FloatingLayout => "floating",
         _ => "dwindle",
     };
-
-    private static string? Name(ConfigDocument? config)
-    {
-        if (config is null)
-            return null;
-
-        string? name = null;
-        foreach (var setting in config.Settings)
-        {
-            if (setting.Keyword.Equals("general:layout", StringComparison.OrdinalIgnoreCase))
-                name = setting.Value;
-        }
-
-        return name;
-    }
 }

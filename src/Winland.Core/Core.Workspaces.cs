@@ -301,7 +301,7 @@ public sealed partial class Core
     // Workspace that was removed since stays, as a gone one, until the history is collected.
     private void Remember(WorkspaceId workspace, MonitorId monitor)
     {
-        if (!_allowWorkspaceCycles && _history.Count > 0 && _history[0] is { Gone: false } newest && newest.Workspace == workspace)
+        if (!_bindOptions.AllowWorkspaceCycles && _history.Count > 0 && _history[0] is { Gone: false } newest && newest.Workspace == workspace)
             return;
 
         _history.RemoveAll(visit => !visit.Gone && visit.Workspace == workspace);
@@ -346,7 +346,7 @@ public sealed partial class Core
             return;
 
         var bounds = screen.Bounds;
-        if (_workspaceCenterOn == 1 && _active is WindowId window)
+        if (_bindOptions.WorkspaceCenterOn == 1 && _active is WindowId window)
         {
             foreach (var placement in FocusedWorkspace().Layout.Visible())
             {
@@ -372,10 +372,10 @@ public sealed partial class Core
     private WorkspaceId BackAndForth(WorkspaceId target)
     {
         var monitor = FocusedId();
-        if (_backAndForth == 0 || target != ActiveOn(monitor))
+        if (_bindOptions.BackAndForth == 0 || target != ActiveOn(monitor))
             return target;
 
-        return Previous(monitor, perMonitor: _backAndForth == 2) ?? target;
+        return Previous(monitor, perMonitor: _bindOptions.BackAndForth == 2) ?? target;
     }
 
     private WorkspaceId? Previous(MonitorId monitor, bool perMonitor)

@@ -1,5 +1,3 @@
-using static Winland.OrdinalText;
-
 namespace Winland;
 
 public sealed record SessionOptions
@@ -62,85 +60,69 @@ public sealed record SessionOptions
     /// <summary><c>misc:font_family</c>: the font of the text Winland draws, where nothing names another.</summary>
     public string FontFamily { get; init; } = "Sans";
 
+    /// <summary><c>misc:animate_mouse_windowdragging</c>: read and kept. A dragged window follows the pointer at once.</summary>
+    public bool AnimateMouseWindowDragging { get; init; }
+
     public static SessionOptions Documented { get; } = new();
 
-    // Adding an entry here applies that keyword and stops the config warning.
-    private static readonly Dictionary<string, Func<SessionOptions, string, SessionOptions>> Appliers = new(StringComparer.Ordinal)
+    private static readonly Dictionary<string, int> UnderFullscreenNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["general:modal_parent_blocking"] = (options, value) => TryParseBool(value, out var blocking) ? options with { ModalParentBlocking = blocking } : options,
-        [TrayIcon.Keyword] = (options, value) => TryParseBool(value, out var tray) ? options with { ShowTray = tray } : options,
-        ["misc:focus_on_activate"] = (options, value) => TryParseBool(value, out var focus) ? options with { FocusOnActivate = focus } : options,
-        ["misc:close_special_on_empty"] = (options, value) => TryParseBool(value, out var close) ? options with { CloseSpecialOnEmpty = close } : options,
-        ["binds:hide_special_on_workspace_change"] = (options, value) => TryParseBool(value, out var hide) ? options with { HideSpecialOnWorkspaceChange = hide } : options,
-        ["misc:mouse_move_focuses_monitor"] = (options, value) => TryParseBool(value, out var mouse) ? options with { MouseMoveFocusesMonitor = mouse } : options,
-        ["misc:initial_workspace_tracking"] = (options, value) => int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var tracking) ? options with { InitialWorkspaceTracking = Math.Clamp(tracking, 0, 2) } : options,
-        ["misc:initial_workspace_token_timeout"] = (options, value) => int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var timeout) ? options with { InitialWorkspaceTokenTimeout = Math.Clamp(timeout, 1, 3600) } : options,
-        ["misc:disable_autoreload"] = (options, value) => TryParseBool(value, out var disable) ? options with { DisableAutoreload = disable } : options,
-        ["misc:on_focus_under_fullscreen"] = (options, value) => UnderFullscreen(value) is int mode ? options with { OnFocusUnderFullscreen = mode } : options,
-        ["misc:exit_window_retains_fullscreen"] = (options, value) => RetainsFullscreen(value) is int retain ? options with { ExitWindowRetainsFullscreen = retain } : options,
-        ["binds:allow_pin_fullscreen"] = (options, value) => TryParseBool(value, out var allow) ? options with { AllowPinFullscreen = allow } : options,
-        ["misc:animate_manual_resizes"] = (options, value) => TryParseBool(value, out var animate) ? options with { AnimateManualResizes = animate } : options,
-        ["general:no_focus_fallback"] = (options, value) => TryParseBool(value, out var none) ? options with { NoFocusFallback = none } : options,
-        ["general:hide_taskbar"] = (options, value) => TryParseBool(value, out var hide) ? options with { HideTaskbar = hide } : options,
-        ["binds:movefocus_cycles_fullscreen"] = (options, value) => TryParseBool(value, out var cycles) ? options with { MoveFocusCyclesFullscreen = cycles } : options,
-        ["misc:mouse_move_enables_dpms"] = (options, value) => TryParseBool(value, out var mouse) ? options with { MouseMoveEnablesDpms = mouse } : options,
-        ["misc:key_press_enables_dpms"] = (options, value) => TryParseBool(value, out var key) ? options with { KeyPressEnablesDpms = key } : options,
-        ["misc:font_family"] = (options, value) => options with { FontFamily = value.Trim() },
-        ["misc:size_limits_tiled"] = (options, value) => TryParseBool(value, out var tiled) ? options with { SizeLimitsTiled = tiled } : options,
+        ["ignore"] = 0,
+        ["take_over"] = 1,
+        ["exit_fullscreen"] = 2,
     };
 
-    private static int? UnderFullscreen(string value) => value.Trim() switch
+    private static readonly Dictionary<string, int> RetainsFullscreenNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        "ignore" => 0,
-        "take_over" => 1,
-        "exit_fullscreen" => 2,
-        var number when int.TryParse(number, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var mode) && mode is >= 0 and <= 2 => mode,
-        _ => null,
+        ["disable"] = 0,
+        ["enable"] = 1,
+        ["only_when_grouped"] = 2,
+        ["only_when_nongrouped"] = 3,
     };
 
-    private static int? RetainsFullscreen(string value) => value.Trim() switch
-    {
-        "disable" => 0,
-        "enable" => 1,
-        "only_when_grouped" => 2,
-        "only_when_nongrouped" => 3,
-        var number when int.TryParse(number, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var mode) && mode is >= 0 and <= 3 => mode,
-        var flag when TryParseBool(flag, out var on) => on ? 1 : 0,
-        _ => null,
-    };
-
-    internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);
-
-    public static SessionOptions From(ConfigDocument document)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-        var options = Documented;
-        foreach (var setting in document.Settings)
-            options = Apply(options, setting);
-        return options;
-    }
-
-    private static SessionOptions Apply(SessionOptions options, Setting setting) =>
-        Appliers.TryGetValue(setting.Keyword, out var apply) ? apply(options, setting.Value) : options;
-
-    // The reference config writes an unset string as [[EMPTY]].
-    private static string Unset(string value) => value == "[[EMPTY]]" ? "" : value;
-
-    private static bool TryParseBool(string text, out bool value)
-    {
-        if (Is(text, "true") || Is(text, "yes") || Is(text, "on") || text == "1")
+    // 0 to 3, a name for one, or a boolean for 0 and 1.
+    private static readonly OptionValue<int> RetainsFullscreen = OptionValue.Of(
+        "int",
+        (string text, out int mode) =>
         {
-            value = true;
-            return true;
-        }
+            if (OptionValue.Int(0, 3, RetainsFullscreenNames).Read(text, out mode))
+                return true;
 
-        if (Is(text, "false") || Is(text, "no") || Is(text, "off") || text == "0")
-        {
-            value = false;
-            return true;
-        }
+            if (!ConfigValueSyntax.TryParseBool(text.Trim(), out var on))
+                return false;
 
-        value = false;
-        return false;
-    }
+            mode = on ? 1 : 0;
+            return true;
+        },
+        OptionValue.Int().Json);
+
+    internal static OptionSet<SessionOptions> Options { get; } = new(
+    [
+        Of("general:modal_parent_blocking", OptionValue.Bool, o => o.ModalParentBlocking, (o, v) => o with { ModalParentBlocking = v }),
+        Of(TrayIcon.Keyword, OptionValue.Bool, o => o.ShowTray, (o, v) => o with { ShowTray = v }),
+        Of("misc:focus_on_activate", OptionValue.Bool, o => o.FocusOnActivate, (o, v) => o with { FocusOnActivate = v }),
+        Of("misc:close_special_on_empty", OptionValue.Bool, o => o.CloseSpecialOnEmpty, (o, v) => o with { CloseSpecialOnEmpty = v }),
+        Of("binds:hide_special_on_workspace_change", OptionValue.Bool, o => o.HideSpecialOnWorkspaceChange, (o, v) => o with { HideSpecialOnWorkspaceChange = v }),
+        Of("misc:mouse_move_focuses_monitor", OptionValue.Bool, o => o.MouseMoveFocusesMonitor, (o, v) => o with { MouseMoveFocusesMonitor = v }),
+        Of("misc:initial_workspace_tracking", OptionValue.Int(0, 2), o => o.InitialWorkspaceTracking, (o, v) => o with { InitialWorkspaceTracking = v }),
+        Of("misc:initial_workspace_token_timeout", OptionValue.Int(1, 3600), o => o.InitialWorkspaceTokenTimeout, (o, v) => o with { InitialWorkspaceTokenTimeout = v }),
+        Of("misc:disable_autoreload", OptionValue.Bool, o => o.DisableAutoreload, (o, v) => o with { DisableAutoreload = v }),
+        Of("misc:on_focus_under_fullscreen", OptionValue.Int(0, 2, UnderFullscreenNames), o => o.OnFocusUnderFullscreen, (o, v) => o with { OnFocusUnderFullscreen = v }),
+        Of("misc:exit_window_retains_fullscreen", RetainsFullscreen, o => o.ExitWindowRetainsFullscreen, (o, v) => o with { ExitWindowRetainsFullscreen = v }),
+        Of("binds:allow_pin_fullscreen", OptionValue.Bool, o => o.AllowPinFullscreen, (o, v) => o with { AllowPinFullscreen = v }),
+        Of("misc:animate_manual_resizes", OptionValue.Bool, o => o.AnimateManualResizes, (o, v) => o with { AnimateManualResizes = v }),
+        Of("misc:animate_mouse_windowdragging", OptionValue.Bool, o => o.AnimateMouseWindowDragging, (o, v) => o with { AnimateMouseWindowDragging = v }),
+        Of("general:no_focus_fallback", OptionValue.Bool, o => o.NoFocusFallback, (o, v) => o with { NoFocusFallback = v }),
+        Of("general:hide_taskbar", OptionValue.Bool, o => o.HideTaskbar, (o, v) => o with { HideTaskbar = v }),
+        Of("binds:movefocus_cycles_fullscreen", OptionValue.Bool, o => o.MoveFocusCyclesFullscreen, (o, v) => o with { MoveFocusCyclesFullscreen = v }),
+        Of("misc:mouse_move_enables_dpms", OptionValue.Bool, o => o.MouseMoveEnablesDpms, (o, v) => o with { MouseMoveEnablesDpms = v }),
+        Of("misc:key_press_enables_dpms", OptionValue.Bool, o => o.KeyPressEnablesDpms, (o, v) => o with { KeyPressEnablesDpms = v }),
+        Of("misc:font_family", OptionValue.Text, o => o.FontFamily, (o, v) => o with { FontFamily = v }),
+        Of("misc:size_limits_tiled", OptionValue.Bool, o => o.SizeLimitsTiled, (o, v) => o with { SizeLimitsTiled = v }),
+    ]);
+
+    public static SessionOptions From(ConfigDocument document) => Options.From(Documented, document);
+
+    private static Option<SessionOptions> Of<T>(string name, OptionValue<T> value, Func<SessionOptions, T> get, Func<SessionOptions, T, SessionOptions> set) =>
+        Option<SessionOptions>.Of(name, value, get, set);
 }

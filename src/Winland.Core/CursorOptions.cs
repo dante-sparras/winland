@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Winland;
 
 public sealed record CursorBehavior(bool HideOnKeyPress, double InactiveTimeoutSeconds)
@@ -77,55 +75,25 @@ public sealed record CursorOptions
         ["force"] = 2,
     };
 
-    private static readonly Dictionary<string, Func<CursorOptions, string, CursorOptions>> Appliers = new(StringComparer.Ordinal)
-    {
-        ["cursor:warp_on_change_workspace"] = (options, value) => TryMode(value, WorkspaceModes, 0, 2, out var mode) ? options with { WarpOnWorkspace = mode } : options,
-        ["cursor:warp_on_monitor_change"] = (options, value) => TryMode(value, MonitorModes, -1, 2, out var mode) ? options with { WarpOnMonitor = mode } : options,
-        ["cursor:warp_on_toggle_special"] = (options, value) => TryMode(value, WorkspaceModes, 0, 2, out var mode) ? options with { WarpOnSpecial = mode } : options,
-        ["cursor:no_warps"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var noWarps) ? options with { NoWarps = noWarps } : options,
-        ["cursor:persistent_warps"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var persistent) ? options with { PersistentWarps = persistent } : options,
-        ["cursor:inactive_timeout"] = (options, value) => TryTimeout(value, out var seconds) ? options with { InactiveTimeoutSeconds = seconds } : options,
-        ["cursor:warp_back_after_non_mouse_input"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var back) ? options with { WarpBackAfterNonMouseInput = back } : options,
-        ["cursor:hide_on_touch"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var touch) ? options with { HideOnTouch = touch } : options,
-        ["cursor:hide_on_tablet"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var tablet) ? options with { HideOnTablet = tablet } : options,
-        ["cursor:invisible"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var invisible) ? options with { Invisible = invisible } : options,
-        ["cursor:hide_on_key_press"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var hide) ? options with { HideOnKeyPress = hide } : options,
-        ["cursor:default_monitor"] = (options, value) => options with { DefaultMonitor = value.Trim() },
-        ["cursor:hotspot_padding"] = (options, value) => int.TryParse(value.Trim(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var padding) ? options with { HotspotPadding = Math.Clamp(padding, 0, 20) } : options,
-    };
+    internal static OptionSet<CursorOptions> Options { get; } = new(
+    [
+        Of("cursor:warp_on_change_workspace", OptionValue.Int(0, 2, WorkspaceModes), o => o.WarpOnWorkspace, (o, v) => o with { WarpOnWorkspace = v }),
+        Of("cursor:warp_on_monitor_change", OptionValue.Int(-1, 2, MonitorModes), o => o.WarpOnMonitor, (o, v) => o with { WarpOnMonitor = v }),
+        Of("cursor:warp_on_toggle_special", OptionValue.Int(0, 2, WorkspaceModes), o => o.WarpOnSpecial, (o, v) => o with { WarpOnSpecial = v }),
+        Of("cursor:no_warps", OptionValue.Bool, o => o.NoWarps, (o, v) => o with { NoWarps = v }),
+        Of("cursor:persistent_warps", OptionValue.Bool, o => o.PersistentWarps, (o, v) => o with { PersistentWarps = v }),
+        Of("cursor:inactive_timeout", OptionValue.Number(0, 20), o => o.InactiveTimeoutSeconds, (o, v) => o with { InactiveTimeoutSeconds = v }),
+        Of("cursor:warp_back_after_non_mouse_input", OptionValue.Bool, o => o.WarpBackAfterNonMouseInput, (o, v) => o with { WarpBackAfterNonMouseInput = v }),
+        Of("cursor:hide_on_touch", OptionValue.Bool, o => o.HideOnTouch, (o, v) => o with { HideOnTouch = v }),
+        Of("cursor:hide_on_tablet", OptionValue.Bool, o => o.HideOnTablet, (o, v) => o with { HideOnTablet = v }),
+        Of("cursor:invisible", OptionValue.Bool, o => o.Invisible, (o, v) => o with { Invisible = v }),
+        Of("cursor:hide_on_key_press", OptionValue.Bool, o => o.HideOnKeyPress, (o, v) => o with { HideOnKeyPress = v }),
+        Of("cursor:default_monitor", OptionValue.Text, o => o.DefaultMonitor, (o, v) => o with { DefaultMonitor = v }),
+        Of("cursor:hotspot_padding", OptionValue.Int(0, 20), o => o.HotspotPadding, (o, v) => o with { HotspotPadding = v }),
+    ]);
 
-    internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);
+    public static CursorOptions From(ConfigDocument document) => Options.From(Documented, document);
 
-    public static CursorOptions From(ConfigDocument document)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-        var options = Documented;
-        foreach (var setting in document.Settings)
-            options = Apply(options, setting);
-        return options;
-    }
-
-    private static CursorOptions Apply(CursorOptions options, Setting setting) =>
-        Appliers.TryGetValue(setting.Keyword, out var apply) ? apply(options, setting.Value) : options;
-
-    private static bool TryMode(string text, IReadOnlyDictionary<string, int> names, int min, int max, out int mode)
-    {
-        if (!ConfigValueSyntax.TryParseNamedInt(text, names, out var parsed))
-        {
-            mode = 0;
-            return false;
-        }
-
-        mode = Math.Clamp(parsed, min, max);
-        return true;
-    }
-
-    private static bool TryTimeout(string text, out double seconds)
-    {
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out seconds) || !double.IsFinite(seconds))
-            return false;
-
-        seconds = Math.Clamp(seconds, 0, 20);
-        return true;
-    }
+    private static Option<CursorOptions> Of<T>(string name, OptionValue<T> value, Func<CursorOptions, T> get, Func<CursorOptions, T, CursorOptions> set) =>
+        Option<CursorOptions>.Of(name, value, get, set);
 }

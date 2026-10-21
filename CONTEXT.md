@@ -42,6 +42,10 @@ _Avoid_: Tabbed container, stack
 A named action with an argument, such as `workspace 2`, that a bind, a gesture or the IPC pipe runs.
 _Avoid_: Action
 
+**Option**:
+A named config setting with a category, such as `general:gaps_in`, that holds one value of one type. A later line that sets it replaces the earlier value, and with no such line it has its default.
+_Avoid_: Setting, variable
+
 **Daemon**:
 The `Winland.Daemon` process, built as `winland`. It is the one long-running process, elevated by default: it hosts the core, the Windows adapter and the IPC pipe, and it starts at logon.
 _Avoid_: Service

@@ -253,7 +253,7 @@ public sealed partial class Core
 
     private (WindowId Window, LiveWorkspace Desk)? NeighborAcross(LiveWorkspace desk, WindowId window, string direction)
     {
-        if (!_monitorFallback || !MonitorSelector.TryDirection(direction, out var side)
+        if (!_bindOptions.MonitorFallback || !MonitorSelector.TryDirection(direction, out var side)
             || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from
             || MonitorSelector.InDirection(Targets(), from, side) is not MonitorTarget neighbor
             || MonitorOf(neighbor) is not LiveMonitor screen || screen.Active is not WorkspaceId shown

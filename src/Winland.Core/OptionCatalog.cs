@@ -340,17 +340,7 @@ internal static partial class OptionCatalog
 
     private static string Bool(bool value) => value ? "true" : "false";
 
-    private static int BackAndForth(ConfigDocument document)
-    {
-        var mode = 0;
-        foreach (var setting in document.Settings)
-        {
-            if (setting.Keyword == "binds:workspace_back_and_forth" && Core.TryBackAndForth(setting.Value, out var parsed))
-                mode = parsed;
-        }
-
-        return mode;
-    }
+    private static int BackAndForth(ConfigDocument document) => BindOptions.From(document).BackAndForth;
 
     private static bool MonitorFallback(ConfigDocument document)
     {

@@ -2,95 +2,21 @@ namespace Winland;
 
 public sealed partial class Core
 {
-    private bool _monitorFallback = true;
+    private BindOptions _bindOptions = BindOptions.Documented;
 
-    // binds:focus_preferred_method: 0 picks the tile focused most recently, 1 the one sharing the longest edge.
-    private bool _focusByHistory = true;
-
-    // binds:workspace_back_and_forth: 0 off, 1 the previous Workspace on any Monitor, 2 the previous one on this Monitor.
-    private int _backAndForth;
-
-    // binds:allow_workspace_cycles: the Workspace visited last is recorded again when it is visited again.
-    private bool _allowWorkspaceCycles;
-
-    // binds:drag_center_window: a dragged tile is held by its middle when it is lifted, or by the point grabbed.
-    private bool _dragCenterWindow = true;
-
-    // binds:workspace_center_on: switching to a Workspace on another Monitor puts the cursor in the middle of that
-    // Monitor (0) or of the Client it focuses (1).
-    private int _workspaceCenterOn = 1;
-
-    // Where that switch puts the cursor when no cursor option warps it elsewhere.
+    // Where a switch to a Workspace on another Monitor puts the cursor when no cursor option warps it elsewhere.
     private WarpTo? _crossMonitorWarp;
 
-    // binds:pass_mouse_when_bound: a mouse button that runs a bind still reaches the window under the pointer. The
-    // hook thread reads it outside the lock.
+    // binds:pass_mouse_when_bound. The hook thread reads it outside the lock.
     private volatile bool _passMouseWhenBound;
 
     private void ReadBinds(ConfigDocument document)
     {
-        _monitorFallback = true;
-        _focusByHistory = true;
-        _backAndForth = 0;
-        _allowWorkspaceCycles = false;
-        _dragCenterWindow = true;
-        _workspaceCenterOn = 1;
-        _passMouseWhenBound = false;
-        foreach (var setting in document.Settings)
-        {
-            if (setting.Keyword == "binds:pass_mouse_when_bound" && ConfigValueSyntax.TryParseBool(setting.Value, out var passMouse))
-                _passMouseWhenBound = passMouse;
-
-            if (setting.Keyword == "binds:workspace_center_on"
-                && int.TryParse(setting.Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var centerOn))
-                _workspaceCenterOn = Math.Clamp(centerOn, 0, 1);
-
-            if (setting.Keyword == "binds:drag_center_window" && ConfigValueSyntax.TryParseBool(setting.Value, out var center))
-                _dragCenterWindow = center;
-
-            if (setting.Keyword == "binds:workspace_back_and_forth" && TryBackAndForth(setting.Value, out var mode))
-                _backAndForth = mode;
-            else if (setting.Keyword == "binds:allow_workspace_cycles" && ConfigValueSyntax.TryParseBool(setting.Value, out var cycles))
-                _allowWorkspaceCycles = cycles;
-
-            if (setting.Keyword == "binds:window_direction_monitor_fallback"
-                && ConfigValueSyntax.TryParseBool(setting.Value, out var enabled))
-                _monitorFallback = enabled;
-            else if (setting.Keyword == "binds:focus_preferred_method"
-                && int.TryParse(setting.Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var method))
-                _focusByHistory = Math.Clamp(method, 0, 1) == 0;
-        }
+        _bindOptions = BindOptions.From(document);
+        _passMouseWhenBound = _bindOptions.PassMouseWhenBound;
     }
 
-    // 0, 1 or 2, a name Winland maps to one, or a boolean as older configs write it.
-    internal static bool TryBackAndForth(string value, out int mode)
-    {
-        mode = value.Trim() switch
-        {
-            "disabled" => 0,
-            "all_monitors" => 1,
-            "per_monitor" => 2,
-            _ => -1,
-        };
-        if (mode >= 0)
-            return true;
-
-        if (int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var number))
-        {
-            mode = Math.Clamp(number, 0, 2);
-            return true;
-        }
-
-        if (ConfigValueSyntax.TryParseBool(value, out var enabled))
-        {
-            mode = enabled ? 1 : 0;
-            return true;
-        }
-
-        return false;
-    }
-
-    private void RankFocus(Layout layout) => layout.RankFocus(_focusByHistory ? Recency : null);
+    private void RankFocus(Layout layout) => layout.RankFocus(_bindOptions.FocusPreferredMethod == 0 ? Recency : null);
 
     // How recently a window was focused: the newest is highest. One never focused is 0, below every focused one,
     // as Winland puts a window that opens at the old end of its history.
@@ -140,7 +66,7 @@ public sealed partial class Core
             }
         }
 
-        if (!_monitorFallback || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from)
+        if (!_bindOptions.MonitorFallback || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from)
             return NothingToFocus(name, direction);
 
         if (MonitorSelector.InDirection(Targets(), from, direction) is not MonitorTarget neighbor
@@ -235,7 +161,7 @@ public sealed partial class Core
         // A direction onto the neighbouring Monitor follows only for the focused window. Another window is assigned
         // there and the focus stays.
         var stay = !DirectionFollows();
-        if (_monitorFallback
+        if (_bindOptions.MonitorFallback
             && MonitorHolding(desk) is LiveMonitor origin
             && desk.Layout.TryBounds(window, out var box))
         {
@@ -254,7 +180,7 @@ public sealed partial class Core
             held = slot;
 
         var placements = desk.Layout.MoveWindow(window, arguments);
-        if (_monitorFallback
+        if (_bindOptions.MonitorFallback
             && placements.Count == 0
             && desk.Layout.FollowsMonitorWhenUnmoved
             && MonitorHolding(desk) is LiveMonitor home

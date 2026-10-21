@@ -46,7 +46,7 @@ public sealed partial class Core
             WasTiled = LayoutWorkspace(window).ClientOf(window) is { Floating: false },
             KeepRatio = IsResize(drag.Dispatcher) && KeepsRatio(window, drag.Arguments),
             PickedUp = _binds.DragThreshold <= 0,
-            CenterOnLift = _dragCenterWindow,
+            CenterOnLift = _bindOptions.DragCenterWindow,
         };
 
         NoteBorderCursor(pointer);
