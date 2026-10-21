@@ -101,7 +101,7 @@ public sealed partial class WindowManager
             var special = SpecialOn(owner.Monitor);
             var onSpecial = special == owner.Id;
             var onNormal = owner.Id == ActiveOn(owner.Monitor);
-            if (onSpecial || (onNormal && (special is null || _input.SpecialFallthrough)))
+            if (onSpecial || (onNormal && (special is null || _config.Input.SpecialFallthrough)))
             {
                 _active = window;
                 owner.Focus = window;
@@ -126,7 +126,7 @@ public sealed partial class WindowManager
 
         var followed = processId > 0 ? _follow.Take(processId, Clock()) : [];
         var traits = WithInitialClass(WithInitialTitle(appeared.Traits));
-        var decision = WindowRuleParser.Decide(traits, JoinRules(_rules, followed));
+        var decision = WindowRuleParser.Decide(traits, JoinRules(_config.WindowRules, followed));
         if (!decision.Adopt)
             return View([]);
 
@@ -150,9 +150,9 @@ public sealed partial class WindowManager
 
         // misc:initial_workspace_tracking: a program Winland started opens its window, silently, on the Workspace it was
         // started on. A workspace rule still wins, and a window that comes back after a restart keeps its own.
-        if (restored is null && _session.InitialWorkspaceTracking > 0 && processId > 0)
+        if (restored is null && _config.Session.InitialWorkspaceTracking > 0 && processId > 0)
         {
-            var started = _initialWorkspaces.Take(processId, appeared.Window, _session.InitialWorkspaceTracking == 2, Clock(), window => Find(window)?.Workspace);
+            var started = _initialWorkspaces.Take(processId, appeared.Window, _config.Session.InitialWorkspaceTracking == 2, Clock(), window => Find(window)?.Workspace);
             if (rule.Id is null && started is WorkspaceId origin && origin != current)
                 rule = new WorkspaceAddress.Rule(origin, Silent: true);
         }
@@ -163,7 +163,7 @@ public sealed partial class WindowManager
         // WorkspaceFor may place the number on another Monitor. The Client keeps that Workspace.
         target = desk.Id;
         if (restored is null)
-            decision = DecideAtOpen(traits, JoinRules(_rules, followed), decision, desk, appeared.Owner is WindowId owner && _disabled.Contains(owner));
+            decision = DecideAtOpen(traits, JoinRules(_config.WindowRules, followed), decision, desk, appeared.Owner is WindowId owner && _disabled.Contains(owner));
         var area = WorkArea(desk, appeared.WorkArea);
         _area = area;
         decision = EvaluateSizeRules(appeared, decision, desk, area);
@@ -255,7 +255,7 @@ public sealed partial class WindowManager
     private TiledLimits RememberSizes(WindowId window, SizeRule rule, Size? ownMin, Size? ownMax)
     {
         _sizes[window] = (rule, ownMin, ownMax);
-        return EffectiveSizes(window, rule).Tiled(ownMin, ownMax, _session.SizeLimitsTiled);
+        return EffectiveSizes(window, rule).Tiled(ownMin, ownMax, _config.Session.SizeLimitsTiled);
     }
 
     // misc:size_limits_tiled changed, so every tiled Client keeps other limits. The Layouts are laid out again after.
@@ -299,7 +299,7 @@ public sealed partial class WindowManager
 
         if (special && desk.Layout.Clients.Count == 0)
         {
-            if (_session.CloseSpecialOnEmpty)
+            if (_config.Session.CloseSpecialOnEmpty)
             {
                 SetSpecial(monitor, null);
                 DropIfEmpty(desk.Id);
@@ -311,7 +311,7 @@ public sealed partial class WindowManager
                 return View(normal?.Layout.Visible() ?? [], focus: specialFocus);
             }
 
-            _active = _input.SpecialFallthrough ? (FindWorkspace(ActiveOn(monitor)) ?? FocusedWorkspace()).Remembered() : null;
+            _active = _config.Input.SpecialFallthrough ? (FindWorkspace(ActiveOn(monitor)) ?? FocusedWorkspace()).Remembered() : null;
             desk.Focus = null;
             return View([], focus: _active);
         }
@@ -347,7 +347,7 @@ public sealed partial class WindowManager
                 if (RetainFullscreen(desk, chosen, mode, grouped: false) is { } retained)
                     placements = retained;
             }
-            else if (_input.FocusOnClose == 0)
+            else if (_config.Input.FocusOnClose == 0)
                 reveal = true;
             else
                 TakeFocus(desk, null);

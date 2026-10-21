@@ -12,9 +12,9 @@ public sealed partial class WindowManager
             return existing;
 
         var owner = id.IsSpecial ? monitor ?? FocusedId() : new MonitorId(id.Monitor);
-        var hinted = WorkspaceRules.For(_workspaceRules, id, null, MonitorById(owner)?.Effective);
-        var layout = LayoutFactory.Create(_config, hinted?.Layout);
-        layout.Configure(_scrolling);
+        var hinted = WorkspaceRules.For(_config.WorkspaceRules, id, null, MonitorById(owner)?.Effective);
+        var layout = LayoutFactory.Create(_config.Document, hinted?.Layout);
+        layout.Configure(_config.Scrolling);
         RankFocus(layout);
         var desk = new LiveWorkspace(id, owner, layout);
         _workspaces.Add(desk);
@@ -23,7 +23,7 @@ public sealed partial class WindowManager
         // A rule that matches this number picks the Layout once the Workspace exists.
         MatchLayout(desk);
         layout = desk.Layout;
-        layout.Apply(_master);
+        layout.Apply(_config.Master);
         var screen = MonitorById(desk.Monitor);
         if (screen is { Effective.Enabled: true })
         {
@@ -43,13 +43,13 @@ public sealed partial class WindowManager
     private bool TryDefault(LiveMonitor screen, out WorkspaceId id)
     {
         id = default;
-        var text = WorkspaceRules.DefaultWorkspace(_workspaceRules, screen.Effective);
+        var text = WorkspaceRules.DefaultWorkspace(_config.WorkspaceRules, screen.Effective);
         return text is not null && WorkspaceRules.TryConcrete(text, screen.Id, out id);
     }
 
     private void EnsurePersistent()
     {
-        foreach (var rule in _workspaceRules)
+        foreach (var rule in _config.WorkspaceRules)
         {
             if (rule.Persistent != true)
                 continue;
@@ -88,7 +88,7 @@ public sealed partial class WindowManager
         int Count(WindowCount wanted) => desk.CountWindows(wanted, _pinned);
         var fullscreen = desk.CoveringMode();
         var first = WorkspaceRules.For(
-            _workspaceRules,
+            _config.WorkspaceRules,
             desk.Id,
             desk.DisplayName,
             screen?.Effective,
@@ -99,7 +99,7 @@ public sealed partial class WindowManager
             return first;
 
         return WorkspaceRules.For(
-            _workspaceRules,
+            _config.WorkspaceRules,
             desk.Id,
             name,
             screen?.Effective,
@@ -112,7 +112,7 @@ public sealed partial class WindowManager
         var screen = MonitorById(desk.Monitor);
         var scale = screen is { Effective.Enabled: true } ? screen.Effective.Scale : 1;
         // A negative general:float_gaps side takes general:gaps_out, not the rule's.
-        var options = _options with { ClientBorder = _clientBorder, FloatGaps = _options.EffectiveFloatGaps };
+        var options = _config.Layout with { ClientBorder = _clientBorder, FloatGaps = _config.Layout.EffectiveFloatGaps };
         if (rule is not null)
         {
             if (rule.GapsIn is EdgeInsets gapsIn)

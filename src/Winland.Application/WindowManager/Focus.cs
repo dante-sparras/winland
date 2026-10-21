@@ -18,7 +18,6 @@ public sealed partial class WindowManager
         else
             _stacking.Insert(0, window);
     }
-    private SessionOptions _session = SessionOptions.Documented;
     private WindowId? _unmanagedFocus;
     private WindowId? _beforeUnmanaged;
     private List<StreamEvent>? _extraEvents;
@@ -55,7 +54,7 @@ public sealed partial class WindowManager
             return Restore(Kept());
 
         if (focused.Cause == FocusCause.User
-            && _input.FollowMouse == 3
+            && _config.Input.FollowMouse == 3
             && _keyState.DownButtons.Count > 0
             && _active != window)
             return Restore(Kept());
@@ -65,7 +64,7 @@ public sealed partial class WindowManager
         // key before it has no such serial. One that takes it right after a click in a Client of another program has one.
         var activated = focused.Cause == FocusCause.Activated;
         var afterInput = ActivatedAfterClick(focused);
-        if ((activated || afterInput) && (activated || !(OwnProp(window, "focus_on_activate") as bool? ?? _session.FocusOnActivate)))
+        if ((activated || afterInput) && (activated || !(OwnProp(window, "focus_on_activate") as bool? ?? _config.Session.FocusOnActivate)))
         {
             if (_active == window)
                 return View([]);
@@ -78,7 +77,7 @@ public sealed partial class WindowManager
             && !desk.Id.IsSpecial
             && IsShown(desk.Id)
             && SpecialOn(desk.Monitor) is not null
-            && !_input.SpecialFallthrough)
+            && !_config.Input.SpecialFallthrough)
         {
             var hidden = ConcealSpecial(desk.Monitor);
             NoteFocus(window);
@@ -174,7 +173,7 @@ public sealed partial class WindowManager
 
     private WindowId? FocusAfter(LiveWorkspace desk, bool floating, Rectangle bounds, bool hadBounds)
     {
-        var mode = _input.FocusOnClose;
+        var mode = _config.Input.FocusOnClose;
         if (mode == 1)
             return WindowUnder(_pointer ?? Cursor?.Read(), shrink: false);
 

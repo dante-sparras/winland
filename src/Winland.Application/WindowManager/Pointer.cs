@@ -10,7 +10,7 @@ public sealed partial class WindowManager
 
     private Outcome RunKey(Input input)
     {
-        var match = BindMatcher.Decide(_binds, _keyState, input);
+        var match = BindMatcher.Decide(_config.Binds, _keyState, input);
 
         // The mouse dispatcher bound to a key drags the window under the pointer while the key is held, as in the pinned
         // release, and the key's release drops it.
@@ -48,7 +48,7 @@ public sealed partial class WindowManager
 
     private Outcome PressPointer(PointerButtonPressed pressed)
     {
-        var match = BindMatcher.Decide(_binds, _keyState, pressed);
+        var match = BindMatcher.Decide(_config.Binds, _keyState, pressed);
 
         // A drag already running keeps the pointer. A second drag button does not start another one.
         if (_gesture is null && TryDragHit(match, out var drag) && (TabUnder(drag, pressed.Position) ?? DragTarget(pressed.Position)) is WindowId target)
@@ -94,7 +94,7 @@ public sealed partial class WindowManager
         }
 
         NoteBorderCursor(released.Position);
-        var ran = RunBind(BindMatcher.Decide(_binds, _keyState, released));
+        var ran = RunBind(BindMatcher.Decide(_config.Binds, _keyState, released));
         if (ended is null)
             return ran;
 
@@ -112,7 +112,7 @@ public sealed partial class WindowManager
 
     private Outcome MovePointer(PointerMoved moved)
     {
-        _ = BindMatcher.Decide(_binds, _keyState, moved);
+        _ = BindMatcher.Decide(_config.Binds, _keyState, moved);
         NoteBorderCursor(moved.Position);
         if (_border is not null)
             return MoveBorder(moved.Position);
@@ -136,7 +136,7 @@ public sealed partial class WindowManager
         }
 
         var traveled = Advance(moved.Position, now);
-        if (_session.MouseMoveFocusesMonitor)
+        if (_config.Session.MouseMoveFocusesMonitor)
             FocusMonitorAt(moved.Position);
 
         if (_keyState.DownButtons.Count > 0)
@@ -144,11 +144,11 @@ public sealed partial class WindowManager
 
         var under = WindowUnder(moved.Position, shrink: true);
         var decision = PointerFocus.Choose(
-            _input.FollowMouse,
-            _input.MouseRefocus,
-            _input.FloatSwitchOverrideFocus,
+            _config.Input.FollowMouse,
+            _config.Input.MouseRefocus,
+            _config.Input.FloatSwitchOverrideFocus,
             traveled,
-            _input.FollowMouseThreshold,
+            _config.Input.FollowMouseThreshold,
             under,
             Floats(under),
             _active,
@@ -190,7 +190,7 @@ public sealed partial class WindowManager
 
         var recent = _lastMoveAt is long seen && now >= seen && now - seen < 500;
         _lastMoveAt = now;
-        if (_input.FollowMouse == 1 && recent)
+        if (_config.Input.FollowMouse == 1 && recent)
             _traveled += step;
         else
             _traveled = 0;
@@ -216,7 +216,7 @@ public sealed partial class WindowManager
             return null;
 
         // A special workspace open over the normal one answers first, floating and tiled alike.
-        var inset = shrink ? MonitorPixels.Physical(_input.FollowMouseShrink, ScaleOf(at)) : 0;
+        var inset = shrink ? MonitorPixels.Physical(_config.Input.FollowMouseShrink, ScaleOf(at)) : 0;
         return PointerFocus.At(Targets(at, special: true), at, inset, _active)
             ?? PointerFocus.At(Targets(at, special: false), at, inset, _active);
     }
@@ -497,9 +497,9 @@ public sealed partial class WindowManager
     {
         var screen = MonitorById(FocusedWorkspace().Monitor);
         if (screen is { Effective.Enabled: true })
-            return _options.ScaledBy(screen.Effective.Scale);
+            return _config.Layout.ScaledBy(screen.Effective.Scale);
 
-        return _options;
+        return _config.Layout;
     }
 
     private sealed class BorderDrag(WindowId window, string button, bool floating, Point origin, Rectangle start, bool left, bool top)

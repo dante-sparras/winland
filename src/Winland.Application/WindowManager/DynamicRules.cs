@@ -37,7 +37,7 @@ public sealed partial class WindowManager
         tagsChanged = false;
         var placements = new List<Placement>();
         // Once no rule reads state, one more pass puts back what the rules give a window when it opens.
-        var reads = ReadsState(_rules) || FollowedReadState();
+        var reads = ReadsState(_config.WindowRules) || FollowedReadState();
         if (!reads && !_matchedState)
             return placements;
 
@@ -53,7 +53,7 @@ public sealed partial class WindowManager
                     continue;
 
                 var traits = kept.Traits with { Class = client.Class, Title = client.Title };
-                var rules = JoinRules(_rules, kept.Followed);
+                var rules = JoinRules(_config.WindowRules, kept.Followed);
                 var tags = _staticTags.TryGetValue(client.Window, out var own)
                     ? new SortedSet<string>(own, StringComparer.Ordinal)
                     : new SortedSet<string>(StringComparer.Ordinal);

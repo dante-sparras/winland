@@ -22,7 +22,7 @@ public sealed partial class WindowManager
 
         var preview = _swipePreview ??= new SwipePreview(swipe.Begin);
         var (vertical, span) = SwipeSpan(swipe.Begin, screen?.Bounds ?? _area);
-        var offset = -swipe.Delta / Math.Max(1, _swipe.Distance) * span;
+        var offset = -swipe.Delta / Math.Max(1, _config.Swipe.Distance) * span;
         var motions = new List<Motion>();
         Offset(swipe.Begin, offset, vertical, preview, motions);
 
@@ -77,7 +77,7 @@ public sealed partial class WindowManager
     // and the gap between Workspaces.
     private (bool Vertical, double Span) SwipeSpan(WorkspaceId workspace, Rectangle monitor)
     {
-        var style = _animations.StyleOf("workspaces");
+        var style = _config.Animations.StyleOf("workspaces");
         var vertical = style == "slidevert" || style.StartsWith("slidefadevert", StringComparison.Ordinal);
         var between = FindWorkspace(workspace)?.Options.GapsWorkspaces ?? 0;
         return (vertical, (vertical ? monitor.Height : monitor.Width) + between);
@@ -90,8 +90,8 @@ public sealed partial class WindowManager
             return View([]);
 
         var (vertical, span) = SwipeSpan(swipe.Begin, MonitorById(swipe.Monitor)?.Bounds ?? _area);
-        var back = _animations.Enabled && ReducedMotion?.Invoke() != true ? _animations.TimingOf("workspacesIn") : null;
-        var away = _animations.Enabled && ReducedMotion?.Invoke() != true ? _animations.TimingOf("workspacesOut") : null;
+        var back = _config.Animations.Enabled && ReducedMotion?.Invoke() != true ? _config.Animations.TimingOf("workspacesIn") : null;
+        var away = _config.Animations.Enabled && ReducedMotion?.Invoke() != true ? _config.Animations.TimingOf("workspacesOut") : null;
         var motions = new List<Motion>();
         var hide = new List<WindowId>();
         var side = Pixels(swipe.Delta < 0 ? -span : span);

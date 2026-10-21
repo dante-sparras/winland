@@ -45,8 +45,8 @@ public sealed partial class WindowManager
             Cursor = DragCursor(desk, window, IsResize(drag.Dispatcher), pointer),
             WasTiled = LayoutWorkspace(window).ClientOf(window) is { Floating: false },
             KeepRatio = IsResize(drag.Dispatcher) && KeepsRatio(window, drag.Arguments),
-            PickedUp = _binds.DragThreshold <= 0,
-            CenterOnLift = _bindOptions.DragCenterWindow,
+            PickedUp = _config.Binds.DragThreshold <= 0,
+            CenterOnLift = _config.BindOptions.DragCenterWindow,
         };
 
         NoteBorderCursor(pointer);
@@ -81,7 +81,7 @@ public sealed partial class WindowManager
         var layout = LayoutWorkspace(gesture.Window).Layout;
         if (!gesture.PickedUp)
         {
-            if (!PastThreshold(gesture.Origin, pointer, _binds.DragThreshold))
+            if (!PastThreshold(gesture.Origin, pointer, _config.Binds.DragThreshold))
                 return View([], consumed: true, dispatcher: gesture.Dispatcher);
 
             // The drag starts where the pointer crossed the threshold, so the Client does not jump.
@@ -255,7 +255,7 @@ public sealed partial class WindowManager
     // group:merge_floated_into_tiled_on_groupbar.
     private DropTarget? GroupDrop(WindowId dragged, bool wasTiled, Point pointer)
     {
-        if (_groupOptions.DragIntoGroup == 0 || WorkspaceContaining(dragged) is not LiveWorkspace from)
+        if (_config.Groups.DragIntoGroup == 0 || WorkspaceContaining(dragged) is not LiveWorkspace from)
             return null;
 
         var own = from.GroupOf(dragged);
@@ -269,14 +269,14 @@ public sealed partial class WindowManager
 
             var floatedIntoTiled = there.ClientOf(bar.Shown) is { Floating: false } && !wasTiled;
             if (!CanDragInto(from, dragged, target)
-                || (floatedIntoTiled && !_groupOptions.MergeFloatedIntoTiledOnGroupbar)
-                || (own is not null && !_groupOptions.MergeGroupsOnGroupbar))
+                || (floatedIntoTiled && !_config.Groups.MergeFloatedIntoTiledOnGroupbar)
+                || (own is not null && !_config.Groups.MergeGroupsOnGroupbar))
                 break;
 
             return new DropTarget(there, target, bar.DropIndex(pointer));
         }
 
-        if (_groupOptions.DragIntoGroup != 1
+        if (_config.Groups.DragIntoGroup != 1
             || WindowUnderExcept(pointer, dragged) is not WindowId under
             || WorkspaceContaining(under) is not LiveWorkspace home
             || home.GroupOf(under) is not WindowGroup group
@@ -298,7 +298,7 @@ public sealed partial class WindowManager
             && !target.Denied
             && own != target
             && CanJoin(RulesOf(dragged), target)
-            && (own is null || _groupOptions.MergeGroupsOnDrag);
+            && (own is null || _config.Groups.MergeGroupsOnDrag);
     }
 
     private Outcome JoinDragged(WindowId dragged, DropTarget drop, string? dispatcher)
@@ -312,7 +312,7 @@ public sealed partial class WindowManager
             if (!TakeForGroup(from, members[i], out var taken))
                 continue;
 
-            var position = index is int at ? at + i : _groupOptions.InsertAfterCurrent ? target.Current + 1 : target.Count;
+            var position = index is int at ? at + i : _config.Groups.InsertAfterCurrent ? target.Current + 1 : target.Count;
             position = Math.Clamp(position, 0, target.Count);
             there.Join(target, members[i], taken, position);
             there.Show(target, position);

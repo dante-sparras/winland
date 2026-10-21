@@ -11,7 +11,7 @@ public sealed partial class WindowManager
     {
         ArgumentNullException.ThrowIfNull(reported);
         var identified = _identity.Number(reported);
-        var rules = MonitorRules.From(_config);
+        var rules = MonitorRules.From(_config.Document);
         var arranged = MonitorRules.Arrange(identified, rules);
         var previous = _monitors.ToArray();
         var wasEnabled = new List<LiveMonitor>(previous.Length);
@@ -253,7 +253,7 @@ public sealed partial class WindowManager
         if (screen is not { Effective.Enabled: true })
             return;
 
-        desk.Layout.Apply(_master);
+        desk.Layout.Apply(_config.Master);
         desk.Layout.Apply(desk.Options);
         desk.Layout.Fit(screen.Effective.WorkArea);
     }

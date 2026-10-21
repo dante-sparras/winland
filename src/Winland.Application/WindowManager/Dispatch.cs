@@ -307,7 +307,7 @@ public sealed partial class WindowManager
             return true;
         }
 
-        if (!_binds.HasSubmap(name))
+        if (!_config.Binds.HasSubmap(name))
         {
             error = "error: submap '" + name + "' does not exist";
             return false;

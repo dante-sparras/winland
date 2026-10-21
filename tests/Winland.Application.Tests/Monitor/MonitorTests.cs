@@ -8,6 +8,9 @@ public class MonitorTests
     {
         var document = ConfigParser.Parse("""
             monitor = \\.\DISPLAY2, preferred, 0x1080, auto
+            general:gaps_in = 0
+            general:gaps_out = 0
+            general:border_size = 0
             """);
         var core = new WindowManager(document);
         var left = Display(@"\\.\DISPLAY1", "Samsung", 0, 0, 1920, 1080, 1);
@@ -117,6 +120,7 @@ public class MonitorTests
     {
         var core = new WindowManager(ConfigParser.Parse("""
             general:gaps_out = 0
+            general:border_size = 0
             general:border_size = 0
             """));
         var display = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 2560, 1440, 1, enabled: false);

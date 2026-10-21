@@ -23,7 +23,7 @@ public sealed partial class WindowManager
                 ? CommandProtocol.FormatClients(state, clients.All)
                 : Text(CommandProtocol.FormatClientsText(state, clients.All), "no open windows")),
             WorkspacesRequest workspaces => Describe(state => Json(workspaces) ? CommandProtocol.FormatWorkspaces(state) : CommandProtocol.FormatWorkspacesText(state)),
-            WorkspaceRulesRequest => new CommandReply(WorkspaceRules.Format(_workspaceRules), View([])),
+            WorkspaceRulesRequest => new CommandReply(WorkspaceRules.Format(_config.WorkspaceRules), View([])),
             MonitorsRequest monitors => Describe(state => Json(monitors)
                 ? CommandProtocol.FormatMonitors(state, monitors.All)
                 : CommandProtocol.FormatMonitorsText(state, monitors.All)),
@@ -68,7 +68,7 @@ public sealed partial class WindowManager
 
     private CommandReply ReplyExtra(CommandRequest request) => request switch
     {
-        BindsRequest => Describe(_ => ExtraCommands.FormatBinds(_binds.Entries)),
+        BindsRequest => Describe(_ => ExtraCommands.FormatBinds(_config.Binds.Entries)),
         VersionRequest => new CommandReply(ExtraCommands.FormatVersion(), View([])),
         CursorPosRequest cursor => new CommandReply(
             ExtraCommands.FormatCursor(Cursor?.Read() ?? new Point(0, 0), cursor.Flags.HasFlag(CommandFlags.Json)),
@@ -77,7 +77,7 @@ public sealed partial class WindowManager
         GetOptionRequest option => new CommandReply(DescribeOption(option.Name), View([])),
         LockedRequest => new CommandReply(ExtraCommands.FormatLocked(SessionLock?.Locked == true), View([])),
         LayoutsRequest => new CommandReply(ExtraCommands.FormatLayouts(), View([])),
-        AnimationsRequest animations => new CommandReply(_animations.Describe(animations.Flags.HasFlag(CommandFlags.Json)), View([])),
+        AnimationsRequest animations => new CommandReply(_config.Animations.Describe(animations.Flags.HasFlag(CommandFlags.Json)), View([])),
         SubmapRequest submap => new CommandReply(ExtraCommands.FormatSubmap(_keyState.Submap, submap.Flags.HasFlag(CommandFlags.Json)), View([])),
         ClickKillRequest => ArmClickKill(),
         KeywordRequest keyword => ApplyKeyword(keyword),
@@ -90,22 +90,22 @@ public sealed partial class WindowManager
     // The value Winland applied. set is true when a line the config applied names the Option.
     private string DescribeOption(string name)
     {
-        var known = LayoutOptions.Options.TryReply(name, _options, out var value)
-            || ScrollingOptions.Options.TryReply(name, _scrolling, out value)
-            || MasterOptions.Options.TryReply(name, _master, out value)
-            || DecorationOptions.Options.TryReply(name, _decoration, out value)
-            || GroupOptions.Options.TryReply(name, _groupOptions, out value)
-            || SessionOptions.Options.TryReply(name, _session, out value)
-            || BindOptions.Options.TryReply(name, _bindOptions, out value)
-            || CursorOptions.Options.TryReply(name, _cursor, out value)
-            || InputOptions.Options.TryReply(name, _input, out value)
-            || GestureOptions.Options.TryReply(name, _swipe, out value)
-            || AnimationOptions.Options.TryReply(name, _animations, out value)
-            || DebugOptions.Options.TryReply(name, _debug, out value);
+        var known = LayoutOptions.Options.TryReply(name, _config.Layout, out var value)
+            || ScrollingOptions.Options.TryReply(name, _config.Scrolling, out value)
+            || MasterOptions.Options.TryReply(name, _config.Master, out value)
+            || DecorationOptions.Options.TryReply(name, _config.Decoration, out value)
+            || GroupOptions.Options.TryReply(name, _config.Groups, out value)
+            || SessionOptions.Options.TryReply(name, _config.Session, out value)
+            || BindOptions.Options.TryReply(name, _config.BindOptions, out value)
+            || CursorOptions.Options.TryReply(name, _config.Cursor, out value)
+            || InputOptions.Options.TryReply(name, _config.Input, out value)
+            || GestureOptions.Options.TryReply(name, _config.Swipe, out value)
+            || AnimationOptions.Options.TryReply(name, _config.Animations, out value)
+            || DebugOptions.Options.TryReply(name, _config.Debug, out value);
         if (!known)
             return "no such option";
 
-        var set = _config?.Settings.Any(setting => setting.Keyword == name) == true;
+        var set = _config.Document?.Settings.Any(setting => setting.Keyword == name) == true;
         return OptionTable.Reply(name, value, set);
     }
 
@@ -215,7 +215,7 @@ public sealed partial class WindowManager
 
         var kept = _configErrors;
         // A live keyword is not a load of the file, so it leaves the notification where the last load put it.
-        var outcome = Apply(MergeLive(_config, parsed), loaded: false);
+        var outcome = Apply(MergeLive(_config.Document, parsed), loaded: false);
         _configErrors = kept;
         return new CommandReply("ok", outcome);
     }

@@ -146,7 +146,7 @@ public sealed partial class WindowManager
 
         if (source.Id.IsSpecial
             && source.Layout.Clients.Count == 0
-            && _session.CloseSpecialOnEmpty
+            && _config.Session.CloseSpecialOnEmpty
             && SpecialOn(source.Monitor) == source.Id)
         {
             foreach (var concealed in ConcealSpecial(source.Monitor))
@@ -224,7 +224,7 @@ public sealed partial class WindowManager
         if (sourceId == target)
         {
             if (focus is WindowId requested && ClientOn(target, requested) is not null
-                && (SpecialOn(monitor) is null || _input.SpecialFallthrough))
+                && (SpecialOn(monitor) is null || _config.Input.SpecialFallthrough))
             {
                 _active = requested;
                 FocusedWorkspace().Focus = requested;
@@ -301,7 +301,7 @@ public sealed partial class WindowManager
     // Workspace that was removed since stays, as a gone one, until the history is collected.
     private void Remember(WorkspaceId workspace, MonitorId monitor)
     {
-        if (!_bindOptions.AllowWorkspaceCycles && _history.Count > 0 && _history[0] is { Gone: false } newest && newest.Workspace == workspace)
+        if (!_config.BindOptions.AllowWorkspaceCycles && _history.Count > 0 && _history[0] is { Gone: false } newest && newest.Workspace == workspace)
             return;
 
         _history.RemoveAll(visit => !visit.Gone && visit.Workspace == workspace);
@@ -346,7 +346,7 @@ public sealed partial class WindowManager
             return;
 
         var bounds = screen.Bounds;
-        if (_bindOptions.WorkspaceCenterOn == 1 && _active is WindowId window)
+        if (_config.BindOptions.WorkspaceCenterOn == 1 && _active is WindowId window)
         {
             foreach (var placement in FocusedWorkspace().Layout.Visible())
             {
@@ -372,10 +372,10 @@ public sealed partial class WindowManager
     private WorkspaceId BackAndForth(WorkspaceId target)
     {
         var monitor = FocusedId();
-        if (_bindOptions.BackAndForth == 0 || target != ActiveOn(monitor))
+        if (_config.BindOptions.BackAndForth == 0 || target != ActiveOn(monitor))
             return target;
 
-        return Previous(monitor, perMonitor: _bindOptions.BackAndForth == 2) ?? target;
+        return Previous(monitor, perMonitor: _config.BindOptions.BackAndForth == 2) ?? target;
     }
 
     private WorkspaceId? Previous(MonitorId monitor, bool perMonitor)

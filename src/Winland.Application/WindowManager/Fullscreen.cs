@@ -133,7 +133,7 @@ public sealed partial class WindowManager
         if (!pinned && !held)
             return true;
 
-        var allow = _session.AllowPinFullscreen;
+        var allow = _config.Session.AllowPinFullscreen;
         if (allow && pinned && !held && old == FullscreenMode.None)
         {
             _pinned.Remove(window);
@@ -159,7 +159,7 @@ public sealed partial class WindowManager
     private IReadOnlyList<Placement> EndFullscreen(LiveWorkspace desk, WindowId window)
     {
         var none = FullscreenMode.None;
-        if (desk.ClientOf(window) is Client client && _session.AllowPinFullscreen)
+        if (desk.ClientOf(window) is Client client && _config.Session.AllowPinFullscreen)
             _ = PinFullscreen(window, client.Fullscreen, ref none, synced: true);
 
         return desk.Layout.SetFullscreen(window, FullscreenMode.None, FullscreenMode.None);
@@ -193,7 +193,7 @@ public sealed partial class WindowManager
         if (desk.ClientOf(window) is not { Floating: false } || CoveringOther(desk, window) is not Client covering)
             return placements;
 
-        switch (_session.OnFocusUnderFullscreen)
+        switch (_config.Session.OnFocusUnderFullscreen)
         {
             case 0:
                 _awaitingMapFocus.Add(window);
@@ -220,7 +220,7 @@ public sealed partial class WindowManager
         if (desk.ClientOf(window) is not { Floating: false } || CoveringOther(desk, window) is not { LayoutFullscreen: false } covering)
             return window;
 
-        switch (_session.OnFocusUnderFullscreen)
+        switch (_config.Session.OnFocusUnderFullscreen)
         {
             case 0:
                 return covering.Window;
@@ -237,7 +237,7 @@ public sealed partial class WindowManager
     // fullscreen or maximized one takes its mode. 1 always, 2 only for the next member of its Group, 3 only otherwise.
     private IReadOnlyList<Placement>? RetainFullscreen(LiveWorkspace desk, WindowId next, FullscreenMode mode, bool grouped)
     {
-        var retain = _session.ExitWindowRetainsFullscreen switch
+        var retain = _config.Session.ExitWindowRetainsFullscreen switch
         {
             1 => true,
             2 => grouped,

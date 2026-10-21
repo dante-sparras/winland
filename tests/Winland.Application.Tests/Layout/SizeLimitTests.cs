@@ -253,7 +253,7 @@ public class SizeLimitTests
     [Fact]
     public void MinSizeRuleRaisesTheTileWithSizeLimitsTiled()
     {
-        var core = new WindowManager(ConfigParser.Parse("misc:size_limits_tiled = true\nwindowrulev2 = min_size 1400 100, class:^(wide)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nmisc:size_limits_tiled = true\nwindowrulev2 = min_size 1400 100, class:^(wide)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(2), Area)
@@ -268,7 +268,7 @@ public class SizeLimitTests
     [Fact]
     public void MinSizeRuleLeavesATileAloneByDefault()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = min_size 1400 100, class:^(wide)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrulev2 = min_size 1400 100, class:^(wide)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(2), Area)
@@ -347,7 +347,7 @@ public class SizeLimitTests
     [Fact]
     public void NoMaxSizeKeepsTheWindowsOwnMaximumFromFloatingIt()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = no_max_size, class:^(free)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrulev2 = no_max_size, class:^(free)$\n"));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
@@ -381,6 +381,9 @@ public class SizeLimitTests
     public void LaterMinSizeReplacesAnEarlierOne()
     {
         var core = new WindowManager(ConfigParser.Parse("""
+            general:gaps_in = 0
+            general:gaps_out = 0
+            general:border_size = 0
             misc:size_limits_tiled = true
             windowrulev2 = min_size 1400 100, class:^(wide)$
             windowrulev2 = min_size 100 100, class:^(wide)$

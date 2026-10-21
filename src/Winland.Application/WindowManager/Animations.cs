@@ -2,14 +2,10 @@ namespace Winland.Application;
 
 public sealed partial class WindowManager
 {
-    private AnimationOptions _animations = AnimationOptions.Documented;
     private readonly Dictionary<WindowId, Decoration> _painted = [];
 
     /// <summary>Reads the system's reduced motion setting. When it returns true, nothing animates.</summary>
     public Func<bool>? ReducedMotion { get; set; }
-
-    private void ReadAnimations(ConfigDocument document) =>
-        _animations = AnimationOptions.From(document);
 
     // Plans the motions for an outcome by comparing it with the state before it. The placements,
     // shows and hides stay as they are; a motion only says how the adapter gets the window there.
@@ -30,7 +26,7 @@ public sealed partial class WindowManager
                 _painted[client.Window] = decoration;
         }
 
-        if (!_animations.Enabled || ReducedMotion?.Invoke() == true)
+        if (!_config.Animations.Enabled || ReducedMotion?.Invoke() == true)
         {
             _swipeLanding = null;
             return outcome;
@@ -77,7 +73,7 @@ public sealed partial class WindowManager
     // floating Clients animate, as there.
     private bool InstantResize(Outcome outcome, State before)
     {
-        if (_session.AnimateManualResizes || outcome.Dispatcher is not ("resizeactive" or "resizewindowpixel"))
+        if (_config.Session.AnimateManualResizes || outcome.Dispatcher is not ("resizeactive" or "resizewindowpixel"))
             return false;
 
         if (ActiveWindow() is not WindowId active)
@@ -99,7 +95,7 @@ public sealed partial class WindowManager
     // A window's own animation style, from setprop or a window rule, replaces the windowsIn or windowsOut style it opens
     // or closes with. Its curve and speed stay the node's.
     private string WindowStyleOf(WindowId window, string node) =>
-        OwnProp(window, "animation") is string { Length: > 0 } own ? own : _animations.StyleOf(node);
+        OwnProp(window, "animation") is string { Length: > 0 } own ? own : _config.Animations.StyleOf(node);
 
     // A Workspace's own animation style, from the animation: field of the workspace rule that matches it, or null.
     private string? WorkspaceStyleOf(WorkspaceId workspace) =>
@@ -160,7 +156,7 @@ public sealed partial class WindowManager
 
         public int Count => _motions.Count;
 
-        private AnimationOptions Options => _core._animations;
+        private AnimationOptions Options => _core._config.Animations;
 
         public void Workspaces(IReadOnlyList<WindowId> windows, bool entering)
         {

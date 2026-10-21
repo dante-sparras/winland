@@ -2,10 +2,8 @@ namespace Winland.Application;
 
 public sealed partial class WindowManager
 {
-    private DebugOptions _debug = DebugOptions.Documented;
-
     /// <summary>The <c>debug</c> options of the config read last, which say where Winland's log goes.</summary>
-    public DebugOptions Debug => _debug;
+    public DebugOptions Debug => _config.Debug;
 
     // The notification the last load with config errors showed. A clean load clears it. A live keyword leaves it.
     private ConfigNotice? _notice;
@@ -13,9 +11,6 @@ public sealed partial class WindowManager
 
     // A loaded config goes through the same path as a reload, so it applies every part of the config.
     private Outcome Load(ConfigLoaded loaded) => Apply(loaded.Config);
-
-    private void InstallBinds(ConfigDocument document) =>
-        _binds = BindTable.From(document);
 
     private CommandReply ReloadCommand()
     {
@@ -58,34 +53,27 @@ public sealed partial class WindowManager
     private Outcome NoteAccent(AccentChanged changed)
     {
         _accent = changed.Color;
-        _decoration = _decoration.WithAccent(_accent);
+        _config = _config with { Decoration = _config.Decoration.WithAccent(_accent) };
         return View([]);
+    }
+
+    // Puts a config in force. Every option is in the one record, so a reader never sees part of two configs.
+    private void Use(AppliedConfig config)
+    {
+        _config = config;
+        ScrollCurve = config.Input.ScrollCurve;
     }
 
     // loaded is false for a live keyword. That is not a read of the file, so the notification stays.
     private Outcome Apply(ConfigDocument document, bool loaded = true)
     {
         ArgumentNullException.ThrowIfNull(document);
-        _config = document;
-        _workspaceRules = document.WorkspaceRules;
+        var tiledBefore = _config.Session.SizeLimitsTiled;
+        Use(AppliedConfig.From(document, _accent));
         NoteConfigErrors(document);
-        _rules = document.WindowRules;
-        var tiledBefore = _session.SizeLimitsTiled;
-        _session = SessionOptions.From(document);
-        _debug = DebugOptions.From(document);
         if (loaded)
             ShowConfigErrors(document);
-        InstallBinds(document);
-        _options = LayoutOptions.From(document);
-        _scrolling = ScrollingOptions.From(document);
-        _master = MasterOptions.From(document);
-        _decoration = DecorationOptions.From(document).WithAccent(_accent);
-        ReadAnimations(document);
-        _groupOptions = GroupOptions.From(document);
-        ReadCursor(document);
-        ReadGestures(document);
-        ReadBinds(document);
-        if (_session.SizeLimitsTiled != tiledBefore)
+        if (_config.Session.SizeLimitsTiled != tiledBefore)
             RefreshTiledLimits();
 
         var active = FocusedWorkspace();
@@ -143,11 +131,11 @@ public sealed partial class WindowManager
 
     private void MatchLayout(LiveWorkspace desk)
     {
-        var created = LayoutFactory.Create(_config, RuleFor(desk)?.Layout);
+        var created = LayoutFactory.Create(_config.Document, RuleFor(desk)?.Layout);
         if (created.GetType() == desk.Layout.GetType() && LayoutFactory.NameOf(created) == LayoutFactory.NameOf(desk.Layout))
         {
-            desk.Layout.Apply(_master);
-            desk.Layout.Configure(_scrolling);
+            desk.Layout.Apply(_config.Master);
+            desk.Layout.Configure(_config.Scrolling);
             RankFocus(desk.Layout);
             return;
         }
@@ -162,8 +150,8 @@ public sealed partial class WindowManager
         if (desk.Layout.Clients.Count == 0)
         {
             desk.Replace(created);
-            created.Apply(_master);
-            created.Configure(_scrolling);
+            created.Apply(_config.Master);
+            created.Configure(_config.Scrolling);
             return;
         }
 
@@ -176,8 +164,8 @@ public sealed partial class WindowManager
 
         var focus = desk.Focus;
         desk.Replace(created);
-        created.Apply(_master);
-        created.Configure(_scrolling);
+        created.Apply(_config.Master);
+        created.Configure(_config.Scrolling);
         Stamp(desk);
         var screen = MonitorById(desk.Monitor);
         var area = WorkArea(desk, _area);

@@ -7,7 +7,7 @@ public sealed partial class WindowManager
     private List<GroupBar> GroupBars(State snapshot)
     {
         var bars = new List<GroupBar>();
-        var style = _groupOptions.Bar;
+        var style = _config.Groups.Bar;
         if (!style.Enabled)
             return bars;
 
@@ -24,7 +24,7 @@ public sealed partial class WindowManager
             var scaled = style.ScaledBy(MonitorById(desk.Monitor)?.Effective.Scale ?? 1);
 
             // The bar's own font_family wins, and misc:font_family stands in for an empty one.
-            scaled = scaled with { FontFamily = FontNames.Windows(scaled.FontFamily.Length == 0 ? _session.FontFamily : scaled.FontFamily) };
+            scaled = scaled with { FontFamily = FontNames.Windows(scaled.FontFamily.Length == 0 ? _config.Session.FontFamily : scaled.FontFamily) };
             var showing = desk.Showing();
             foreach (var group in desk.Groups)
             {
@@ -105,13 +105,13 @@ public sealed partial class WindowManager
         {
             var locked = group.Locked || _groupsLocked;
             return active
-                ? locked ? _groupOptions.LockedActiveBorder : _groupOptions.ActiveBorder
-                : locked ? _groupOptions.LockedInactiveBorder : _groupOptions.InactiveBorder;
+                ? locked ? _config.Groups.LockedActiveBorder : _config.Groups.ActiveBorder
+                : locked ? _config.Groups.LockedInactiveBorder : _config.Groups.InactiveBorder;
         }
 
         if (RulesOf(window).HasFlag(GroupRuleFlags.Deny))
-            return active ? _groupOptions.NoGroupActiveBorder : _groupOptions.NoGroupBorder;
+            return active ? _config.Groups.NoGroupActiveBorder : _config.Groups.NoGroupBorder;
 
-        return active ? _decoration.ActiveBorder : _decoration.InactiveBorder;
+        return active ? _config.Decoration.ActiveBorder : _config.Decoration.InactiveBorder;
     }
 }
