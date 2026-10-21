@@ -59,6 +59,8 @@ public static class MonitorAdapter
             true,
             From(info.monitorInfo.rcWork),
             Make: panel.Make ?? "",
+            Model: panel.Model ?? "",
+            Serial: panel.Serial ?? "",
             RefreshRate: panel.RefreshRate);
         if (Win32DisplayColorControl.TryDescribe(name, out var color))
         {
@@ -81,7 +83,7 @@ public static class MonitorAdapter
         return true;
     }
 
-    private readonly record struct Panel(string? Description, string? Make, double RefreshRate);
+    private readonly record struct Panel(string Description, string Make, string Model, string Serial, double RefreshRate);
 
     private static Dictionary<string, Panel> Panels()
     {
@@ -96,7 +98,9 @@ public static class MonitorAdapter
                 continue;
 
             var target = ReadTarget(path);
-            panels[source] = new Panel(target.Description, target.Make, Rate(path.targetInfo.refreshRate));
+            var parsed = Winland.Edid.Parse(MonitorEdid.Read(target.DevicePath) ?? []);
+            var make = parsed.Make.Length > 0 ? parsed.Make : target.Make;
+            panels[source] = new Panel(target.Description, make, parsed.Model, parsed.Serial, Rate(path.targetInfo.refreshRate));
         }
 
         return panels;
@@ -188,7 +192,7 @@ public static class MonitorAdapter
         return name.Length == 0 ? null : name;
     }
 
-    internal readonly record struct Target(string Description, string Make);
+    internal readonly record struct Target(string Description, string Make, string DevicePath);
 
     internal static unsafe Target ReadTarget(DISPLAYCONFIG_PATH_INFO path)
     {
@@ -198,9 +202,12 @@ public static class MonitorAdapter
         request.header.adapterId = path.targetInfo.adapterId;
         request.header.id = path.targetInfo.id;
         if (PInvoke.DisplayConfigGetDeviceInfo(ref request.header) != 0)
-            return new Target("", "");
+            return new Target("", "", "");
 
-        return new Target(Text(request.monitorFriendlyDeviceName), Manufacturer(request.edidManufactureId));
+        return new Target(
+            Text(request.monitorFriendlyDeviceName),
+            Manufacturer(request.edidManufactureId),
+            Text(request.monitorDevicePath));
     }
 
     private static string Manufacturer(ushort id)
@@ -224,6 +231,8 @@ public static class MonitorAdapter
     private static string Text(__char_32 buffer) => Trim(buffer.ToString());
 
     private static string Text(__char_64 buffer) => Trim(buffer.ToString());
+
+    private static string Text(__char_128 buffer) => Trim(buffer.ToString());
 
     private static string Trim(string text)
     {

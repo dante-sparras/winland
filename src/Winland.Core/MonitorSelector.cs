@@ -21,8 +21,8 @@ internal readonly record struct MonitorTarget(
     int Height);
 
 /// <summary>
-/// Resolves a Monitor argument: a name, a <c>desc:</c> prefix, a direction, <c>current</c>,
-/// a relative <c>+N</c> or <c>-N</c>, or an id.
+/// Resolves a Monitor argument: a name, a <c>desc:</c> prefix of its identity, a direction,
+/// <c>current</c>, a relative <c>+N</c> or <c>-N</c>, or an id.
 /// </summary>
 internal static class MonitorSelector
 {

@@ -1,8 +1,9 @@
 namespace Winland;
 
 /// <summary>
-/// A display Clients can be placed on. Its identity is <see cref="Name"/>, which a later Workspace
-/// can attach to without owning the geometry.
+/// A display Clients can be placed on. Its identity is its make, model and serial, which a later
+/// Workspace can attach to without owning the geometry. With no model and no serial, the identity
+/// is <see cref="Name"/>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -19,12 +20,16 @@ namespace Winland;
 /// </para>
 /// <para>
 /// <see cref="Name"/> is the Windows display name, for example <c>\\.\DISPLAY1</c>.
-/// <see cref="Description"/> is the EDID friendly name. A <c>monitor</c> rule selects a monitor by that
-/// display name, or by a <c>desc:</c> prefix of the friendly name.
-/// <c>reserved_area</c> and <c>addreserved</c> take top, bottom, left and right in logical pixels and
-/// remove them from <see cref="WorkArea"/>. Any other monitor setting is skipped.
-/// <see cref="Make"/>, <see cref="Model"/>, <see cref="Serial"/>, <see cref="RefreshRate"/>,
-/// <see cref="PhysicalWidth"/> and <see cref="PhysicalHeight"/> stay empty unless the adapter has them.
+/// <see cref="Description"/> is the Monitor's identity: <see cref="Make"/>, <see cref="Model"/> and
+/// <see cref="Serial"/> from its EDID, joined by spaces. Identical monitors, the same three, get
+/// <c> #2</c>, <c> #3</c> and so on in the order they were first seen. A <c>desc:</c> prefix matches
+/// that identity. With no model and no serial, <see cref="Description"/> stays the friendly name and
+/// <c>desc:</c> matches that. A <c>monitor</c> rule selects a monitor by its display name or by that
+/// prefix. <c>reserved_area</c> and <c>addreserved</c> take top, bottom, left and right in logical
+/// pixels and remove them from <see cref="WorkArea"/>. Any other monitor setting is skipped.
+/// The adapter fills <see cref="Make"/>, <see cref="Model"/> and <see cref="Serial"/> from the EDID.
+/// <see cref="RefreshRate"/>, <see cref="PhysicalWidth"/> and <see cref="PhysicalHeight"/> stay empty
+/// unless the adapter has them.
 /// </para>
 /// </remarks>
 public sealed record Monitor(
