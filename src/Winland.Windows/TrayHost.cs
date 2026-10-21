@@ -649,7 +649,7 @@ internal static class TrayHost
 
         var old = PInvoke.SelectObject(memory, color);
         var pixels = new Span<uint>(bits, size * size);
-        pixels.Fill(0);
+        pixels.Clear();
         PaintCircle(pixels, size);
         DrawLabel(memory, size, text);
         // GDI writes the digits with the alpha byte clear. The circle keeps its color and becomes opaque;

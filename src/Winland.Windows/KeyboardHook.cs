@@ -706,7 +706,7 @@ public sealed class KeyboardHook : IDisposable
 
     // A modifier the OS holds down that the user is not holding: left by a release lost
     // before this daemon ran, on a desktop the hook cannot see, or by a relay. Release it.
-    private void ReleaseStale()
+    private static void ReleaseStale()
     {
         var kept = Volatile.Read(ref _held) | Volatile.Read(ref _relayed);
         for (var i = 0; i < Modifiers.Length; i++)

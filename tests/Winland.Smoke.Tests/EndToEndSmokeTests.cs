@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
@@ -343,7 +344,7 @@ public class EndToEndSmokeTests
 
         try
         {
-            Assert.Fail("A winland process is still running: " + string.Join(", ", running.Select(process => process.Id.ToString())));
+            Assert.Fail("A winland process is still running: " + string.Join(", ", running.Select(process => process.Id.ToString(CultureInfo.InvariantCulture))));
         }
         finally
         {

@@ -4,6 +4,8 @@ namespace Winland.Tests;
 
 public class ScrollingLayoutTests
 {
+    private static readonly double[] DefaultColumnWidths = [0.333, 0.5, 0.667, 1.0];
+    private static readonly double[] ParsedColumnWidths = [0.2, 0.4];
     private static readonly Rectangle Area = new(0, 0, 1000, 800);
 
     [Fact]
@@ -339,7 +341,7 @@ public class ScrollingLayoutTests
         Assert.Equal(ScrollingFit.Fit, options.FocusFitMethod);
         Assert.True(options.FollowFocus);
         Assert.Equal(0.4, options.FollowMinVisible);
-        Assert.Equal(new[] { 0.333, 0.5, 0.667, 1.0 }, options.ExplicitColumnWidths);
+        Assert.Equal(DefaultColumnWidths, options.ExplicitColumnWidths);
         Assert.Equal(ScrollingDirection.Right, options.Direction);
         Assert.True(options.WrapFocus);
         Assert.True(options.WrapSwapCol);
@@ -365,7 +367,7 @@ public class ScrollingLayoutTests
         Assert.Equal(ScrollingFit.Center, options.FocusFitMethod);
         Assert.False(options.FollowFocus);
         Assert.Equal(0.2, options.FollowMinVisible);
-        Assert.Equal(new[] { 0.2, 0.4 }, options.ExplicitColumnWidths);
+        Assert.Equal(ParsedColumnWidths, options.ExplicitColumnWidths);
         Assert.Equal(ScrollingDirection.Up, options.Direction);
         Assert.False(options.WrapFocus);
         Assert.False(options.WrapSwapCol);

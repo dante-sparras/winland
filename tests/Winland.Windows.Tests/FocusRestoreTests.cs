@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Winland;
@@ -122,7 +123,7 @@ public class FocusRestoreTests
                     return null;
             }
 
-            return "Foreground stayed on 0x" + Desktop.Foreground().ToString("x") + " (" + Desktop.Title(Desktop.Foreground()) + ") after the other process called SetForegroundWindow.";
+            return "Foreground stayed on 0x" + Desktop.Foreground().ToString("x", CultureInfo.InvariantCulture) + " (" + Desktop.Title(Desktop.Foreground()) + ") after the other process called SetForegroundWindow.";
         }
         finally
         {

@@ -113,7 +113,7 @@ public class LaunchTests
 
         var startup = core.StartupLaunches(document);
         var reload = core.ReloadLaunches(document);
-        var shutdown = core.ShutdownLaunches(document);
+        var shutdown = Core.ShutdownLaunches(document);
 
         Assert.Equal(
             [

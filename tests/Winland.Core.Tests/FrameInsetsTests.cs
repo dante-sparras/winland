@@ -98,10 +98,8 @@ public class FrameInsetsTests
     [Fact]
     public void InsetsStayCachedUntilTheDpiChanges()
     {
-        var cached = new FrameInsets(7, 0, 7, 7);
-
-        Assert.True(cached.AppliesAt(96, 96));
-        Assert.False(cached.AppliesAt(96, 144));
-        Assert.False(cached.AppliesAt(144, 96));
+        Assert.True(FrameInsets.AppliesAt(96, 96));
+        Assert.False(FrameInsets.AppliesAt(96, 144));
+        Assert.False(FrameInsets.AppliesAt(144, 96));
     }
 }

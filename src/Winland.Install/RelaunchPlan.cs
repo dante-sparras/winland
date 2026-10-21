@@ -1,3 +1,5 @@
+using System.Buffers;
+
 namespace Winland.Install;
 
 public sealed record RelaunchSpec(string FileName, string Arguments, string WorkingDirectory);
@@ -106,6 +108,8 @@ public static class RelaunchPlan
     private static string Assignment(string name, string value) =>
         "set \"" + name + "=" + Checked(value, name) + "\"";
 
+    private static readonly SearchValues<char> MetaCharacters = SearchValues.Create(" \t&|<>^!()");
+
     // The value holds no quote. Backslashes are literal except a run before the closing
     // quote, which would escape it, so that run is doubled.
     private static string QuoteAlways(string value)
@@ -116,7 +120,7 @@ public static class RelaunchPlan
 
     private static string Quote(string value)
     {
-        if (value.Length > 0 && value.AsSpan().IndexOfAny(" \t&|<>^!()") < 0)
+        if (value.Length > 0 && value.AsSpan().IndexOfAny(MetaCharacters) < 0)
             return value;
 
         return QuoteAlways(value);

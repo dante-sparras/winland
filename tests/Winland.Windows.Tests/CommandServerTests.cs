@@ -340,7 +340,7 @@ public class CommandServerTests
         private readonly Task _task;
 
         public Listener(string pipe) =>
-            _task = Task.Run(() => CommandClient.Follow("events", line => _lines.Writer.TryWrite(line), _cancel.Token, pipe));
+            _task = Task.Run(() => CommandClient.Follow("events", line => _lines.Writer.TryWrite(line), pipe, cancel: _cancel.Token));
 
         public bool TryTake(TimeSpan timeout, out string line)
         {

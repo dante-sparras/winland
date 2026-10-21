@@ -22,7 +22,7 @@ public readonly record struct FrameInsets(int Left, int Top, int Right, int Bott
             visible.Width + Left + Right,
             visible.Height + Top + Bottom);
 
-    public bool AppliesAt(int measuredAt, int dpi) => measuredAt == dpi;
+    public static bool AppliesAt(int measuredAt, int dpi) => measuredAt == dpi;
 
     /// <summary>
     /// One follow-up after a placement. Each axis is corrected on its own: an axis the window refused keeps

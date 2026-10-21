@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace Winland.Daemon.Tests;
 
-public class InstallFilesTests : IDisposable
+public sealed class InstallFilesTests : IDisposable
 {
     private readonly string root = Path.Combine(Path.GetTempPath(), "winland-install-" + Guid.NewGuid().ToString("N"));
     private readonly WindowsInstallFiles files = new();

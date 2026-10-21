@@ -29,7 +29,7 @@ public static class CommandClient
         return ReadReply(pipe, 1024 * 1024);
     }
 
-    public static void Follow(string command, Action<string> onLine, CancellationToken cancel = default, string? pipeName = null, int timeoutMs = 2000)
+    public static void Follow(string command, Action<string> onLine, string? pipeName = null, int timeoutMs = 2000, CancellationToken cancel = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(command);
         ArgumentNullException.ThrowIfNull(onLine);

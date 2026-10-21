@@ -3,7 +3,7 @@ using Winland.Install;
 
 namespace Winland.Install.Tests;
 
-public class ReleasePackageTests : IDisposable
+public sealed class ReleasePackageTests : IDisposable
 {
     private readonly string root = Path.Combine(Path.GetTempPath(), "winland-zip-" + Guid.NewGuid().ToString("N"));
     private readonly ZipReleasePackage package = new();

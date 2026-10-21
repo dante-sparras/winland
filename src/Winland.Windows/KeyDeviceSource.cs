@@ -209,7 +209,7 @@ internal sealed class KeyDeviceSource : IDisposable
             throw new InvalidOperationException($"Keyboard devices were not registered ({Marshal.GetLastPInvokeError()}).");
     }
 
-    private unsafe void Silence()
+    private static unsafe void Silence()
     {
         var device = new RAWINPUTDEVICE
         {
