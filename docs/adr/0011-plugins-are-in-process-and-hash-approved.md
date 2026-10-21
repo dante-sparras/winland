@@ -1,11 +1,7 @@
-# Plugins are in-process .NET assemblies, approved by hash
+# Winland is extended through its IPC pipe, not plugins
 
-A plugin is a .NET assembly loaded into Winland. It can register Dispatchers, config keywords and event handlers. It loads at startup from the config, and loads and unloads at runtime through `winlandctl plugin`, using a collectible `AssemblyLoadContext`. A plugin can also register a tiled layout algorithm.
+Status: Proposed (issue to be filed)
 
-.NET has no in-process sandbox, so a loaded plugin has the full rights of an elevated Winland. The security is in what may load, and in containing faults:
+Winland loads no code into itself. A script or program in any language extends it from outside: it reads the Event stream and sends commands and Dispatchers over the IPC pipe, as the normal user. A config's `exec-once` can start it.
 
-- The plugin directory is writable only by administrators. A plugin loads only when its SHA-256 hash is approved in the protected config. A changed file stops loading until it is approved again.
-- Every call into a plugin is wrapped. An exception is caught, logged and reported, and a plugin that keeps failing is disabled. Calls have a time budget, so a hung plugin can't freeze the event loop.
-- The plugin API has one version number, compared exactly with the version a plugin declares. A mismatch refuses to load.
-
-Hyprland's plugins are native code with the same trust, loaded without hash approval or fault containment. Winland keeps the model and adds both.
+Winland runs elevated by default (ADR 0004), and .NET has no in-process sandbox, so code loaded into it would have administrator rights. Making that safe took an admin-only plugin folder, hash approvals, a UAC step, fault containment and time budgets, and building a plugin needed git and the .NET SDK on the user's machine. A script on the pipe can do what a plugin did, except arrange a custom Layout, and it runs with the user's rights, so it needs none of that. Hyprland plugins mostly draw inside the compositor, which Winland cannot do on Windows (ADR 0014).
