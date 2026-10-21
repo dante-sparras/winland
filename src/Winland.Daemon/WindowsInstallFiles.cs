@@ -9,6 +9,10 @@ namespace Winland;
 /// </summary>
 sealed class WindowsInstallFiles : IFileTree
 {
+    private int retirementScheduled;
+
+    private string? imageDirectory;
+
     public bool Exists(string path) => File.Exists(path);
 
     public bool DirectoryExists(string path) => Directory.Exists(path);
@@ -79,7 +83,16 @@ sealed class WindowsInstallFiles : IFileTree
                 if (attributes.HasFlag(FileAttributes.ReparsePoint) || attributes.HasFlag(FileAttributes.Directory))
                     throw new InvalidOperationException($"Refusing to install over '{destination}': it is a link or a folder.");
 
-                File.Delete(destination);
+                try
+                {
+                    File.Delete(destination);
+                }
+                catch (Exception exception) when (exception is (IOException or UnauthorizedAccessException) && ImageDirectoryHolds(destination))
+                {
+                    // Windows will not delete the executable this process is running, or a library it has
+                    // loaded. It will rename them, and the new file can then take the old name.
+                    MoveAside(destination);
+                }
             }
 
             using var input = new FileStream(handle, FileAccess.Read);
@@ -180,6 +193,89 @@ sealed class WindowsInstallFiles : IFileTree
         return new FileStream(handle, FileAccess.Read);
     }
 
+    private bool ImageDirectoryHolds(string path)
+    {
+        var root = ImageDirectory();
+        if (root is null)
+            return false;
+
+        var full = Path.GetFullPath(path);
+        var prefix = Path.TrimEndingDirectorySeparator(root) + Path.DirectorySeparatorChar;
+        return full.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string? ImageDirectory()
+    {
+        if (imageDirectory is not null)
+            return imageDirectory;
+
+        var image = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(image))
+            return null;
+
+        imageDirectory = Path.GetDirectoryName(Path.GetFullPath(image));
+        return imageDirectory;
+    }
+
+    private void MoveAside(string destination)
+    {
+        var aside = destination + ".winland-old";
+        if (File.Exists(aside) || Directory.Exists(aside))
+        {
+            var attributes = File.GetAttributes(aside);
+            if (attributes.HasFlag(FileAttributes.ReparsePoint))
+                throw new InvalidOperationException($"Refusing to install over '{aside}': it is a link.");
+
+            var removed = false;
+            if (!attributes.HasFlag(FileAttributes.Directory))
+            {
+                try
+                {
+                    File.Delete(aside);
+                    removed = true;
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                }
+            }
+
+            if (!removed)
+                aside = destination + ".winland-old-" + Guid.NewGuid().ToString("N");
+        }
+
+        File.Move(destination, aside);
+        var directory = ImageDirectory();
+        if (directory is not null)
+            ScheduleRetirement(directory);
+    }
+
+    private void ScheduleRetirement(string directory)
+    {
+        if (Interlocked.Exchange(ref retirementScheduled, 1) != 0)
+            return;
+
+        var script = "Wait-Process -Id " + Environment.ProcessId + "\r\n"
+            + "function Remove-Retired([string]$Path) {\r\n"
+            + "  if (-not (Test-Path -LiteralPath $Path)) { return }\r\n"
+            + "  $attributes = [IO.File]::GetAttributes($Path)\r\n"
+            + "  $link = ($attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0\r\n"
+            + "  $container = ($attributes -band [IO.FileAttributes]::Directory) -ne 0\r\n"
+            + "  if ($link) { return }\r\n"
+            + "  if ($container) {\r\n"
+            + "    foreach ($child in [IO.Directory]::EnumerateFileSystemEntries($Path)) { Remove-Retired $child }\r\n"
+            + "    return\r\n"
+            + "  }\r\n"
+            + "  if ([IO.Path]::GetFileName($Path).Contains('.winland-old')) {\r\n"
+            + "    [IO.File]::SetAttributes($Path, [IO.FileAttributes]::Normal)\r\n"
+            + "    [IO.File]::Delete($Path)\r\n"
+            + "  }\r\n"
+            + "}\r\n"
+            + "Remove-Retired " + Quote(directory) + "\r\n"
+            + "Remove-Item -LiteralPath $PSCommandPath -Force\r\n";
+
+        StartCleanupScript(script);
+    }
+
     private static bool ImageIsInside(string directory)
     {
         var image = Environment.ProcessPath;
@@ -210,6 +306,11 @@ sealed class WindowsInstallFiles : IFileTree
             + "Remove-Tree " + Quote(directory) + "\r\n"
             + "Remove-Item -LiteralPath $PSCommandPath -Force\r\n";
 
+        StartCleanupScript(script);
+    }
+
+    private static void StartCleanupScript(string script)
+    {
         string folder;
         if (Elevation.IsElevated())
         {

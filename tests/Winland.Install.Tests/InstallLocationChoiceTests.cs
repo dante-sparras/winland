@@ -39,4 +39,16 @@ public class InstallLocationChoiceTests
             @"C:\Users\me\AppData\Local\Programs\Winland",
             InstallLocations.User(@"C:\Users\me\AppData\Local"));
     }
+
+    [Fact]
+    public void TheRunningFolderSelectsTheInstall()
+    {
+        var machine = @"C:\Program Files\Winland";
+        var user = @"C:\Users\me\AppData\Local\Programs\Winland";
+
+        Assert.Equal(InstallKind.Machine, InstalledCopy.Of(Path.Combine(machine, "winland.exe"), machine, user));
+        Assert.Equal(InstallKind.Machine, InstalledCopy.Of(Path.Combine(machine.ToLowerInvariant(), "winland.exe"), machine + @"\", user));
+        Assert.Equal(InstallKind.User, InstalledCopy.Of(Path.Combine(user, "winland.exe"), machine, user + @"\"));
+        Assert.Equal(InstallKind.None, InstalledCopy.Of(@"C:\Dev\winland\winland.exe", machine, user));
+    }
 }

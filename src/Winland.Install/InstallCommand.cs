@@ -1,6 +1,6 @@
 namespace Winland.Install;
 
-/// <summary>What <c>winland install</c> and <c>winland uninstall</c> were asked to do.</summary>
+/// <summary>What <c>winland install</c>, <c>winland update</c> and <c>winland uninstall</c> were asked to do.</summary>
 public abstract record InstallCommand
 {
     private InstallCommand()
@@ -15,11 +15,28 @@ public abstract record InstallCommand
 
     public sealed record Remove(bool Purge) : InstallCommand;
 
-    /// <summary>Null when the arguments are not an install or an uninstall.</summary>
+    /// <summary>
+    /// Replace the install this process was started from with the newest published release.
+    /// A machine install asks for one approval when a replace will happen. A per-user install does not.
+    /// </summary>
+    public sealed record Update : InstallCommand;
+
+    /// <summary>Null when the arguments are not an install, an update or an uninstall.</summary>
     public static InstallCommand? Parse(IReadOnlyList<string> args)
     {
         ArgumentNullException.ThrowIfNull(args);
-        if (args.Count == 0 || !Is(args[0], "install") && !Is(args[0], "uninstall"))
+        if (args.Count == 0)
+            return null;
+
+        if (Is(args[0], "update"))
+        {
+            if (args.Count == 1)
+                return new Update();
+
+            throw new ArgumentException("usage: winland update");
+        }
+
+        if (!Is(args[0], "install") && !Is(args[0], "uninstall"))
             return null;
 
         if (Is(args[0], "install"))
@@ -49,13 +66,15 @@ public abstract record InstallCommand
 
     /// <summary>
     /// The elevated install always needs an administrator. Uninstall needs one only when a machine
-    /// install is present, because deleting it does. The per-user install never does.
+    /// install is present, because deleting it does. The per-user install never does. Update decides
+    /// later, and only when the running copy is the machine install and a replace will happen.
     /// </summary>
     public bool RequiresAdministrator(bool machineInstallPresent) => this switch
     {
         Machine => true,
         ForUser => false,
         Remove => machineInstallPresent,
+        Update => false,
         _ => false,
     };
 
