@@ -15,7 +15,7 @@ Run `pwsh scripts/dev.ps1` once after cloning. It points git at the hooks in `sc
 
 - `CONTRIBUTING.md` covers branch names, commit messages, evidence, documentation, and how a pull request lands. Open a pull request only when the maintainer asks.
 - Issues are GitHub Issues on `dante-sparras/winland`. An issue labelled `ready-for-agent` is specified well enough to fix without asking. See `docs/agents/issue-tracker.md` and `docs/agents/triage-labels.md`.
-- `pwsh -NoProfile -File scripts/check.ps1` lints and builds. Run `dotnet test` on the test project that covers the change. CI runs `scripts/test.ps1`, and `scripts/mutate.ps1` is the release lane.
+- `pwsh -NoProfile -File scripts/check.ps1` lints and builds. Run `dotnet test` on the test project that covers the change. CI runs `scripts/test.ps1`, and `scripts/mutate.ps1` runs mutation testing by hand.
 - The committed version is `0.0.0`. Releases are cut with `scripts/release.ps1`; see `docs/releasing.md`.
 
 ## Records

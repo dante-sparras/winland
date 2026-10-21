@@ -12,7 +12,7 @@ The release version is the newest published, non-prerelease GitHub release whose
 2. It opens one draft release on that tag. The notes run from the previous published `vX.Y.Z` to this commit. An `rc.*` tag is not that previous release. The first release has no previous `vX.Y.Z`, so the notes start at the beginning of the history. A warning block sits at the top and the bottom of the body.
 3. It dispatches **Stable Release** from `main` with that tag.
 4. The workflow checks the claim, checks that the commit is on `origin/main`, and checks that the draft exists.
-5. It runs CI for that commit with `release: true`, so mutation testing runs and a skipped lane fails. Mutation testing is one job per mutation run and then a score gate; any of them failing fails CI (see [CONTRIBUTING.md](../CONTRIBUTING.md#mutation-testing)). Then it builds the artifact.
+5. It runs CI for that commit: the lint and every unit test. Mutation testing is not part of a release. Then it builds the artifact.
 6. It uploads `Winland-win-x64.zip`, `version.json`, and `SHA256SUMS` to the draft.
 7. It stops. The draft stays a draft. `scripts/release.ps1 publish` creates the annotated tag `vX.Y.Z` on the same commit, points the release at that tag, strips the warnings, and publishes.
 

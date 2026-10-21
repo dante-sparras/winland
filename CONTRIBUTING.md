@@ -141,11 +141,11 @@ A test project that fails runs once more on the same build, locally and in CI. I
 | History | Fails when the branch shares no commit with `main`. Merging such a branch would add a second root commit to `main` and break `git blame`. | Always. |
 | Lint | Parses the PowerShell, rejects file or folder names that differ only by case, builds the solution at the repo root if there is one, and runs `actionlint` on `.github/workflows/*.yml`. | Always. |
 | Test | Runs `dotnet test` on each `*.Tests.csproj` under `tests/`, except `*.Smoke.Tests.csproj`. | On a push to `main`, and on manual and release runs. On a pull request, unless every changed file is documentation or repo metadata: `*.md`, `docs/`, `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/rulesets/`, `.gitignore`, `.gitattributes`, or `LICENSE*`. Any other change, including one to a workflow or a script, runs it. |
-| Mutation | Mutation testing, one job per mutation run, then a score gate (see [Mutation testing](#mutation-testing)). It is the slow lane, and its jobs run beside the others. | Only on a release run: CI dispatched with **Release run** turned on, or called by a release workflow. |
+| Mutation | Mutation testing, one job per mutation run, then a score gate (see [Mutation testing](#mutation-testing)). It is the slow lane, and its jobs run beside the others. | Only when CI is dispatched by hand with **Release run** turned on. A release does not run it. |
 
 - Test and Mutation pass until a unit test project exists.
 - The unit tests that open real windows are in one xunit collection (`DesktopCollection` in `tests/Winland.Windows.Tests`) that runs alone, one test at a time. The ones a running Winland would disturb skip while its pipe `\\.\pipe\winland` exists, so run them with the daemon stopped. CI has no daemon and runs them.
-- A release run always runs Test and Mutation, and a failure in either fails the run. A failure in any mutation job, or in the gate, fails Mutation.
+- A release runs Test, and a failure fails the release. A failure in any mutation job, or in the gate, fails Mutation.
 - The check job has a 60-minute timeout, and each mutation job has its own 60.
 - Smoke tests (`*.Smoke.Tests.csproj`) run only when someone dispatches the `Smoke tests` workflow by hand (`.github/workflows/smoke.yml`). A release run does not execute them, and they are not a required check. `scripts/smoke.ps1` runs them locally. It sets `WINLAND_SMOKE=1`, without which every smoke test skips itself, and it fails when every test in a smoke project was skipped, for example on a host with no desktop.
 
