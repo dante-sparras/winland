@@ -52,7 +52,7 @@ public sealed partial class Core
 
     public ISessionLock? SessionLock { get; set; }
 
-    /// <summary>The keyboards and pointers <c>devices</c> reports. Without it there is one of each, named <c>keyboard</c> and <c>mouse</c>.</summary>
+    /// <summary>The keyboards and pointers Raw Input lists. A device-name bind matches these names. Without it there is one of each, named <c>keyboard</c> and <c>mouse</c>.</summary>
     public IInputDevices? Devices { get; set; }
 
     public Action<ConfigDocument>? AfterReload { get; set; }
@@ -252,7 +252,6 @@ public sealed partial class Core
             WindowMoveStarted started => BeginNativeMove(started),
             WindowMoveEnded ended => EndNativeMove(ended),
             ClickKillChosen chosen => ChooseKill(chosen),
-            LayoutCycled => CycleLayout(),
             SwipeBegan => BeginSwipe(),
             SwipeUpdated updated => UpdateSwipe(updated),
             SwipeEnded ended => EndSwipe(ended.Cancelled),

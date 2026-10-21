@@ -122,14 +122,15 @@ public class ExtraCommandTests
     }
 
     [Fact]
-    public void AKeyboardOptionCanBeSetToNothing()
+    public void KeyboardLayoutAndTheDevicesCommandAreNotApplied()
     {
         var core = new Core();
-        Assert.Equal("ok", core.Execute("keyword input:kb_variant nodeadkeys").Text);
 
-        Assert.Equal("ok", core.Execute("keyword input:kb_variant ").Text);
-
-        Assert.Contains("\"variant\": \"\"", core.Execute("j/devices").Text, StringComparison.Ordinal);
+        Assert.Equal("error: Unsupported keyword 'input:kb_variant'.", core.Execute("keyword input:kb_variant nodeadkeys").Text);
+        Assert.Equal("error: invalid keyword", core.Execute("keyword input:kb_variant ").Text);
+        Assert.Equal("error: unknown request", core.Execute("devices").Text);
+        Assert.Equal("error: unknown request", core.Execute("j/devices").Text);
+        Assert.Equal("error: unknown request", core.Execute("switchxkblayout all next").Text);
     }
 
     [Fact]

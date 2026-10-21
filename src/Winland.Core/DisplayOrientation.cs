@@ -1,6 +1,6 @@
 namespace Winland;
 
-/// <summary>A rotation a monitor rule can ask the display to use. Flipped values are not represented.</summary>
+/// <summary>A rotation Windows may report for a display. Winland does not change it.</summary>
 public enum DisplayOrientation
 {
     Identity = 0,
@@ -8,6 +8,3 @@ public enum DisplayOrientation
     Rotate180 = 2,
     Rotate270 = 3,
 }
-
-/// <summary>A request to rotate one display. The adapter applies it; the layout does not call the display.</summary>
-public readonly record struct DisplayOrientationRequest(string Device, DisplayOrientation Orientation);

@@ -8,38 +8,13 @@ using Windows.Win32.Graphics.Dxgi;
 namespace Winland.Windows;
 
 /// <summary>
-/// Reads and turns Windows' HDR and wide color switches. The bits per channel have no switch of their own: advanced
-/// color is what raises them above 8. The SDR white level Windows publishes cannot be set. Nothing here runs until
-/// the session is installed, so a test does not change a display.
+/// Reads Windows' HDR and wide color switches. The bits per channel have no switch of their own: advanced color is
+/// what raises them above 8. Winland reads the switches and does not change them.
 /// </summary>
-// Stryker disable once all : changes the real displays; what to turn is decided and tested in DisplayColors.
-internal sealed class Win32DisplayColorControl : IDisplayColorControl
+internal static class Win32DisplayColorControl
 {
     private const int GetAdvancedColorInfo = 9;
-    private const int SetAdvancedColorState = 10;
     private const int GetAdvancedColorInfo2 = 15;
-    private const int SetHdrState = 16;
-    private const int SetWideColorState = 17;
-
-    public bool TryRead(string device, out DisplayColorReading reading) => TryDescribe(device, out reading);
-
-    public bool TrySet(string device, DisplayColorChange change)
-    {
-        if (device.Length == 0 || !MonitorAdapter.TryTarget(device, out var adapter, out var target))
-            return false;
-
-        if (!TryRead2(adapter, target, out var display) && !TryRead1(adapter, target, out display))
-            return false;
-
-        var applied = true;
-        if (change.Hdr is bool hdr)
-            applied &= Set(adapter, target, display.Split ? SetHdrState : SetAdvancedColorState, hdr);
-
-        if (change.Wide is bool wide)
-            applied &= display.Split && Set(adapter, target, SetWideColorState, wide);
-
-        return applied;
-    }
 
     internal static bool TryDescribe(string device, out DisplayColorReading reading)
     {
@@ -97,17 +72,6 @@ internal sealed class Win32DisplayColorControl : IDisplayColorControl
         var supported = Bit(info.Value, 0);
         reading = new DisplayColorReading(supported, false, Bit(info.Value, 1), false, supported, false, Bits(info.BitsPerColorChannel));
         return true;
-    }
-
-    private static unsafe bool Set(LUID adapter, uint target, int type, bool on)
-    {
-        var state = new ColorState();
-        state.Header.type = (DISPLAYCONFIG_DEVICE_INFO_TYPE)type;
-        state.Header.size = (uint)sizeof(ColorState);
-        state.Header.adapterId = adapter;
-        state.Header.id = target;
-        state.Value = on ? 1u : 0u;
-        return PInvoke.DisplayConfigSetDeviceInfo(in Unsafe.As<ColorState, DISPLAYCONFIG_DEVICE_INFO_HEADER>(ref state)) == 0;
     }
 
     // Mastering luminance and color primaries. A failure leaves the luminance unknown and chroma unset.
@@ -237,10 +201,4 @@ internal sealed class Win32DisplayColorControl : IDisplayColorControl
         public uint ActiveColorMode;
     }
 #pragma warning restore CS0649
-
-    private struct ColorState
-    {
-        public DISPLAYCONFIG_DEVICE_INFO_HEADER Header;
-        public uint Value;
-    }
 }

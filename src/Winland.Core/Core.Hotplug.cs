@@ -11,7 +11,7 @@ public sealed partial class Core
     {
         ArgumentNullException.ThrowIfNull(reported);
         var rules = MonitorRules.From(_config);
-        var arrangement = MonitorRules.Arrange(reported, rules);
+        var arranged = MonitorRules.Arrange(reported, rules);
         var previous = _monitors.ToArray();
         var wasEnabled = new List<LiveMonitor>(previous.Length);
         foreach (var screen in previous)
@@ -25,7 +25,7 @@ public sealed partial class Core
         {
             var monitor = reported[i];
             ArgumentNullException.ThrowIfNull(monitor);
-            var effective = arrangement.Monitors[i];
+            var effective = arranged[i];
             var screen = FindNamed(previous, monitor.Name) ?? FindNamed(next, monitor.Name);
             if (screen is null)
                 screen = new LiveMonitor(NextMonitorId(previous, next), monitor, effective);
@@ -69,15 +69,7 @@ public sealed partial class Core
         EnsureFocus(home);
         SyncActive();
         var refocus = RefocusShown();
-        var outcome = View(ShownPlacements(), ShownWindows(), HiddenWindows(), focus: refocus);
-        return outcome with
-        {
-            Orientations = arrangement.Orientations,
-            DisplayModes = arrangement.Modes,
-            DisplayScales = arrangement.Scales,
-            DisplayColors = arrangement.Colors,
-            DisplayMirrors = arrangement.Mirrors,
-        };
+        return View(ShownPlacements(), ShownWindows(), HiddenWindows(), focus: refocus);
     }
 
     // each Workspace of a Monitor that goes away moves intact onto the first

@@ -92,8 +92,8 @@ public sealed partial class Core
         "border_size" => (long)_options.BorderSize,
         "rounding" => (long)_decoration.Rounding,
         "rounding_power" => _decoration.RoundingPower,
-        "scroll_mouse" => (float)(_input.ScrollFactor ?? 1),
-        "scroll_touchpad" => (float)_input.TouchpadScrollFactor,
+        "scroll_mouse" => 1f,
+        "scroll_touchpad" => 1f,
         _ when kind == PropKind.Bool => false,
         _ => throw new ArgumentOutOfRangeException(nameof(key), key, "No default for this property."),
     };

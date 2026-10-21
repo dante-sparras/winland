@@ -82,12 +82,11 @@ public static class BindMatcher
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(input);
         session.EventDevice = null;
-        session.EventTags = null;
         session.DeviceMatchMask = null;
         return input switch
         {
-            KeyPressed pressed => Shadow(table, session, OnPress(table, session, pressed.Key, pressed.ScanCode, mouse: false, pressed.Device, pressed.DeviceTags), pressed.Key),
-            KeyReleased released => Shadow(table, session, OnRelease(table, session, released.Key, released.ScanCode, mouse: false, released.Device, released.DeviceTags), excluded: null),
+            KeyPressed pressed => Shadow(table, session, OnPress(table, session, pressed.Key, pressed.ScanCode, mouse: false, pressed.Device), pressed.Key),
+            KeyReleased released => Shadow(table, session, OnRelease(table, session, released.Key, released.ScanCode, mouse: false, released.Device), excluded: null),
             PointerButtonPressed button => Shadow(table, session, OnButton(table, session, button.Button, button.Position, up: false), button.Button),
             PointerButtonReleased button => Shadow(table, session, OnButton(table, session, button.Button, button.Position, up: true), excluded: null),
             PointerMoved moved => OnMoved(session, moved.Position),
@@ -149,8 +148,8 @@ public static class BindMatcher
     {
         session.Pointer = position;
         return up
-            ? OnRelease(table, session, button, scanCode: 0, mouse: true, device: null, tags: null)
-            : OnPress(table, session, button, scanCode: 0, mouse: true, device: null, tags: null);
+            ? OnRelease(table, session, button, scanCode: 0, mouse: true, device: null)
+            : OnPress(table, session, button, scanCode: 0, mouse: true, device: null);
     }
 
     private static BindDecision OnMoved(BindSession session, Point position)
@@ -159,7 +158,7 @@ public static class BindMatcher
         return Passed();
     }
 
-    private static BindDecision OnPress(BindTable table, BindSession session, string key, int scanCode, bool mouse, string? device, IReadOnlyList<string>? tags)
+    private static BindDecision OnPress(BindTable table, BindSession session, string key, int scanCode, bool mouse, string? device)
     {
         if (key.Length == 0)
             return Passed();
@@ -169,7 +168,7 @@ public static class BindMatcher
         if (!mouse && ModifierKeys.TryGetValue(key, out var modifier))
             session.Held |= modifier;
 
-        ApplyDevice(table, session, key, device, tags, remember: !repeat && !mouse);
+        ApplyDevice(session, key, device, remember: !repeat && !mouse);
         if (repeat)
             return OnRepeat(table, session, key, scanCode, mouse);
 
@@ -275,13 +274,13 @@ public static class BindMatcher
         return WithFailure(MaskHeld(session, Ran(repeating, consumed, trigger)), release);
     }
 
-    private static BindDecision OnRelease(BindTable table, BindSession session, string key, int scanCode, bool mouse, string? device, IReadOnlyList<string>? tags)
+    private static BindDecision OnRelease(BindTable table, BindSession session, string key, int scanCode, bool mouse, string? device)
     {
         var down = mouse ? session.DownButtons : session.DownKeys;
         if (key.Length == 0 || !down.Remove(key))
             return Passed();
 
-        ApplyDevice(table, session, key, device, tags, remember: false);
+        ApplyDevice(session, key, device, remember: false);
         if (!mouse)
             ReleaseModifier(session, key);
 
@@ -349,28 +348,13 @@ public static class BindMatcher
 
                 // A device bind matches the keyboard that held key went down on, not the key being shadowed now.
                 var savedDevice = session.EventDevice;
-                var savedTags = session.EventTags;
                 var named = bind.Devices is not null;
                 if (named)
-                {
-                    if (session.Devices.TryGetValue(held, out var remembered))
-                    {
-                        session.EventDevice = remembered.Device;
-                        session.EventTags = remembered.Tags;
-                    }
-                    else
-                    {
-                        session.EventDevice = null;
-                        session.EventTags = null;
-                    }
-                }
+                    session.EventDevice = session.Devices.TryGetValue(held, out var remembered) ? remembered : null;
 
                 var matched = Eligible(bind, session, held, session.ScanCodeOf(held), mouse: false, releasing: true, anyKey: false);
                 if (named)
-                {
                     session.EventDevice = savedDevice;
-                    session.EventTags = savedTags;
-                }
 
                 if (matched)
                 {
@@ -431,7 +415,7 @@ public static class BindMatcher
         if (session.LongPressKey is not string key)
             return Passed();
 
-        ApplyDevice(table, session, key, device: null, tags: null, remember: false);
+        ApplyDevice(session, key, device: null, remember: false);
         var mouse = session.LongPressMouse;
         session.LongPressKey = null;
         var down = mouse ? session.DownButtons : session.DownKeys;
@@ -934,7 +918,6 @@ public static class BindMatcher
         bool repeat,
         string? device,
         bool remember,
-        IReadOnlyList<string>? tags = null,
         string? submap = null,
         Modifier? pressedUnder = null,
         Point anchor = default,
@@ -945,7 +928,6 @@ public static class BindMatcher
         if (key.Length == 0 || string.IsNullOrEmpty(device))
         {
             session.EventDevice = null;
-            session.EventTags = null;
             return Passed();
         }
 
@@ -970,7 +952,7 @@ public static class BindMatcher
 
         try
         {
-            ApplyDevice(table, session, key, device, tags, remember);
+            ApplyDevice(session, key, device, remember);
             var map = submap ?? session.Submap;
             if (repeat)
                 return Ran(DeviceRepeats(table, session, key, scanCode, map), consumed: false, new BindTrigger(key, scanCode, Pressed: true));
@@ -994,7 +976,6 @@ public static class BindMatcher
 
             session.DeviceMatchMask = savedMask;
             session.EventDevice = null;
-            session.EventTags = null;
             if (restoredUnder)
                 session.PressedUnder.Remove(key);
         }
@@ -1140,9 +1121,9 @@ public static class BindMatcher
         return decision with { DisarmLongPress = true };
     }
 
-    // A bind with no device list matches every keyboard. One with a list matches only a named keyboard: inclusive when
-    // that name or one of its tags is listed, exclusive otherwise. An event that names no keyboard matches neither.
-    // The keyboard is known only after the key is delivered, so an unknown one must not run an exclusive bind.
+    // A bind with no device list matches every keyboard. One with a list matches only a named keyboard. An event that
+    // names no keyboard matches neither. The keyboard is known only after the key is delivered, so an unknown one must
+    // not run an exclusive bind.
     private static bool MatchesDevice(Bind bind, BindSession session)
     {
         if (bind.Devices is null)
@@ -1153,18 +1134,6 @@ public static class BindMatcher
             return false;
 
         var listed = ListedDevice(bind.Devices, name);
-        if (!listed && session.EventTags is { } tags)
-        {
-            foreach (var tag in tags)
-            {
-                if (ListedDevice(bind.Devices, tag))
-                {
-                    listed = true;
-                    break;
-                }
-            }
-        }
-
         return bind.Flags.HasFlag(BindFlag.DeviceInclusive) ? listed : !listed;
     }
 
@@ -1179,35 +1148,22 @@ public static class BindMatcher
         return false;
     }
 
-    // The device of this edge, or the one the key went down on when this edge has none. Tags left unset are the
-    // config's tags for that device name. Remembering an unnamed edge forgets the key, so a later packet can store
-    // the real keyboard. Storing a null would keep that packet from being remembered.
-    private static void ApplyDevice(BindTable table, BindSession session, string key, string? device, IReadOnlyList<string>? tags, bool remember)
+    // The device of this edge, or the one the key went down on when this edge has none. Remembering an unnamed edge
+    // forgets the key, so a later packet can store the real keyboard. Storing a null would keep that packet from
+    // being remembered.
+    private static void ApplyDevice(BindSession session, string key, string? device, bool remember)
     {
         if (string.IsNullOrEmpty(device) && session.Devices.TryGetValue(key, out var remembered))
-        {
-            device = remembered.Device;
-            tags ??= remembered.Tags;
-        }
-        else if (string.IsNullOrEmpty(device))
-        {
-            device = null;
-            tags = null;
-        }
-        else if (tags is null)
-        {
-            tags = table.TagsFor(device);
-        }
+            device = remembered;
 
         session.EventDevice = string.IsNullOrEmpty(device) ? null : device;
-        session.EventTags = tags;
         if (!remember)
             return;
 
         if (string.IsNullOrEmpty(session.EventDevice))
             session.Devices.Remove(key);
         else
-            session.Devices[key] = (session.EventDevice, tags);
+            session.Devices[key] = session.EventDevice;
     }
 
     private static BindDecision WithFailure(BindDecision decision, List<string>? release) =>

@@ -353,9 +353,13 @@ public class ConfigSyntaxTests
             general:gaps_in = 2
             """);
 
-        Assert.Equal(new ConfigWarning(3, "Unsupported keyword 'device:gaps_in'."), Assert.Single(document.Warnings));
+        Assert.Equal(
+            [
+                new ConfigWarning(2, "Unsupported keyword 'device[mouse]:sensitivity'."),
+                new ConfigWarning(3, "Unsupported keyword 'device[mouse]:gaps_in'."),
+            ],
+            document.Warnings);
         Assert.Equal(new Setting("general:gaps_in", "2"), Assert.Single(document.Settings));
-        Assert.Equal(new DevicePointer("mouse", 1, null, null), Assert.Single(document.DevicePointers));
     }
 
     [Fact]
@@ -368,9 +372,8 @@ public class ConfigSyntaxTests
             }
             """);
 
-        Assert.Empty(document.Warnings);
+        Assert.Equal(new ConfigWarning(2, "Unsupported keyword 'device[mouse]:sensitivity'."), Assert.Single(document.Warnings));
         Assert.Equal(new Setting("general:gaps_in", "2"), Assert.Single(document.Settings));
-        Assert.Equal(new DevicePointer("mouse", 1, null, null), Assert.Single(document.DevicePointers));
     }
 
     [Fact]

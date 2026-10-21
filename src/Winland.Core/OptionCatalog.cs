@@ -209,10 +209,6 @@ internal static partial class OptionCatalog
                 kind = "bool";
                 token = Bool(session.FocusOnActivate);
                 return true;
-            case "misc:vrr":
-                kind = "int";
-                token = (session.Vrr ?? 0).ToString(CultureInfo.InvariantCulture);
-                return true;
             case "general:modal_parent_blocking":
                 kind = "bool";
                 token = Bool(session.ModalParentBlocking);

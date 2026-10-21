@@ -54,7 +54,6 @@ internal sealed class Desk : IDisposable
         }
         input {
             follow_mouse = 1
-            sensitivity = 0
         }
         windowrulev2 = float, class:^(wr_kitty)$
         windowrulev2 = size 200 200, class:^(wr_kitty)$
@@ -154,6 +153,15 @@ internal sealed class Desk : IDisposable
     internal void AddMonitor(string name, Rectangle bounds)
     {
         _monitors.Add(Monitor(name, bounds));
+        Handle(new MonitorsChanged([.. _monitors]));
+    }
+
+    /// <summary>Reports every plugged-in monitor enabled or disabled, as Windows does. Config cannot do this.</summary>
+    internal void ReportEnabled(bool enabled)
+    {
+        for (var i = 0; i < _monitors.Count; i++)
+            _monitors[i] = _monitors[i] with { Enabled = enabled };
+
         Handle(new MonitorsChanged([.. _monitors]));
     }
 

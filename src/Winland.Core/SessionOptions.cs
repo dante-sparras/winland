@@ -62,9 +62,6 @@ public sealed record SessionOptions
     /// <summary><c>misc:font_family</c>: the font of the text Winland draws, where nothing names another.</summary>
     public string FontFamily { get; init; } = "Sans";
 
-    /// <summary><c>misc:vrr</c>: 0 off, 1 on, 2 fullscreen, 3 fullscreen with a content type. Null when the option is absent.</summary>
-    public int? Vrr { get; init; }
-
     public static SessionOptions Documented { get; } = new();
 
     // Adding an entry here applies that keyword and stops the config warning.
@@ -90,25 +87,6 @@ public sealed record SessionOptions
         ["misc:key_press_enables_dpms"] = (options, value) => TryParseBool(value, out var key) ? options with { KeyPressEnablesDpms = key } : options,
         ["misc:font_family"] = (options, value) => options with { FontFamily = value.Trim() },
         ["misc:size_limits_tiled"] = (options, value) => TryParseBool(value, out var tiled) ? options with { SizeLimitsTiled = tiled } : options,
-        ["misc:vrr"] = (options, value) => TryVrr(value) is int mode ? options with { Vrr = mode } : options,
-    };
-
-    /// <summary>The warning a <c>misc:vrr</c> value earns, or null when 0, 1, <c>off</c> or <c>on</c> is applied.</summary>
-    internal static string? VrrWarning(string value) => TryVrr(value) switch
-    {
-        2 or 3 => "Fullscreen variable refresh rate is not honored.",
-        null => "Invalid variable refresh rate.",
-        _ => null,
-    };
-
-    private static int? TryVrr(string value) => value.Trim() switch
-    {
-        "off" => 0,
-        "on" => 1,
-        "fullscreen" => 2,
-        "fullscreen_game" => 3,
-        var number when int.TryParse(number, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var mode) && mode is >= 0 and <= 3 => mode,
-        _ => null,
     };
 
     private static int? UnderFullscreen(string value) => value.Trim() switch

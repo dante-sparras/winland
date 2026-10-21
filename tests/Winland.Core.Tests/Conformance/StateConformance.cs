@@ -4,6 +4,8 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class StateConformance
 {
+    private const string MonitorNotHonored = "error: Monitor settings other than a reserved area are not honored.";
+
     [Fact]
     public void State()
     {
@@ -13,9 +15,14 @@ public class StateConformance
         desk.Ok("workspace", "9");
         desk.Spawn("fallback-workspace-a");
 
+        // A monitor keyword cannot disable a display. Windows reports that.
         foreach (var monitor in new[] { "HEADLESS-1", "HEADLESS-2", "HEADLESS-3", "HEADLESS-4" })
-            desk.Keyword("monitor", $"{monitor}, disable");
+            Assert.Equal(MonitorNotHonored, desk.Send($"keyword monitor {monitor}, disable"));
 
+        Assert.DoesNotContain("FALLBACK", desk.Send("j/monitors"), StringComparison.Ordinal);
+        Assert.Equal("HEADLESS-2", MonitorOf(desk, 9));
+
+        desk.ReportEnabled(false);
         Assert.Contains("FALLBACK", desk.Send("j/monitors"), StringComparison.Ordinal);
         Assert.Equal("FALLBACK", MonitorOf(desk, 9));
 
@@ -24,6 +31,9 @@ public class StateConformance
         desk.Spawn("fallback-workspace-b");
 
         Assert.Equal("ok", desk.Send("reload"));
+        Assert.Equal("FALLBACK", MonitorOf(desk, 9));
+
+        desk.ReportEnabled(true);
         Assert.Equal("HEADLESS-2", MonitorOf(desk, 9));
     }
 

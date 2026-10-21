@@ -6,16 +6,18 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class ColorsConformance
 {
+    private const string MonitorNotHonored = "error: Monitor settings other than a reserved area are not honored.";
+
     [Fact]
     public void MonitorsColorManagement()
     {
         var desk = new Desk();
         ExpectFields(desk, "colorManagementPreset");
 
-        desk.Keyword("monitor", "HEADLESS-2, preferred, auto, auto, bitdepth, 10, cm, wide");
+        Assert.Equal(MonitorNotHonored, desk.Send("keyword monitor HEADLESS-2, preferred, auto, auto, bitdepth, 10, cm, wide"));
         ExpectFields(desk, "colorManagementPreset");
 
-        desk.Keyword("monitor", "HEADLESS-2, preferred, auto, auto, bitdepth, 10, cm, srgb, sdrbrightness, 1.2, sdrsaturation, 0.98");
+        Assert.Equal(MonitorNotHonored, desk.Send("keyword monitor HEADLESS-2, preferred, auto, auto, bitdepth, 10, cm, srgb, sdrbrightness, 1.2, sdrsaturation, 0.98"));
         ExpectFields(desk, "colorManagementPreset", "sdrBrightness", "sdrSaturation");
     }
 

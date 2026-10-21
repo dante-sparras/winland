@@ -114,33 +114,8 @@ public sealed record Outcome(
     /// <summary>The notification-area icon, or null when this outcome does not say.</summary>
     public TrayIcon? Tray { get; init; }
 
-    /// <summary>The keyboard layouts to load and the one to use, or null to leave the system's alone.</summary>
-    public KeyboardLayoutRequest? KeyboardLayout { get; init; }
-
-
-    public IReadOnlyList<DisplayOrientationRequest> Orientations { get; init; } = [];
-
-    /// <summary>The display modes the monitor rules ask for.</summary>
-    public IReadOnlyList<DisplayModeRequest> DisplayModes { get; init; } = [];
-
-    /// <summary>The display scales the monitor rules ask for that the displays do not show yet.</summary>
-    public IReadOnlyList<DisplayScaleRequest> DisplayScales { get; init; } = [];
-
-    /// <summary>The color modes monitor rules ask the displays to show.</summary>
-    public IReadOnlyList<DisplayColorRequest> DisplayColors { get; init; } = [];
-
-    /// <summary>
-    /// Every display the monitor rules ask to mirror another, when this outcome lays the monitors out, or null when it
-    /// does not. A mirror Winland made that is not listed is put back.
-    /// </summary>
-    public IReadOnlyList<DisplayMirrorRequest>? DisplayMirrors { get; init; }
 
     public WarpTo? Warp { get; init; }
-
-    public InputSettingsRequest? InputSettings { get; init; }
-
-    /// <summary>Variable refresh rate for the account's graphics settings. Null when this outcome does not say.</summary>
-    public VrrRequest? Vrr { get; init; }
 
     public CursorBehavior? Cursor { get; init; }
 

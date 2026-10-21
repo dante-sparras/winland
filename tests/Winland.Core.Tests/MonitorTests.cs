@@ -8,18 +8,20 @@ public class MonitorTests
     [Fact]
     public void DisplayNameSelectsTheMonitorAndAppliesItsPosition()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var document = ConfigParser.Parse("""
             monitor = \\.\DISPLAY2, preferred, 0x1080, auto
-            """));
+            """);
+        var core = new Core(document);
         var left = Display(@"\\.\DISPLAY1", "Samsung", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Dell U2720Q", 1920, 0, 1920, 1080, 1, new Rectangle(1920, 40, 1920, 1040));
 
         var listed = core.Handle(new MonitorsChanged([left, right]));
 
+        Assert.Equal(new ConfigWarning(1, MonitorRules.NotHonored), Assert.Single(document.Warnings));
         var moved = Assert.Single(listed.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY2");
-        Assert.Equal(0, moved.X);
-        Assert.Equal(1080, moved.Y);
-        Assert.Equal(new Rectangle(0, 1120, 1920, 1040), moved.WorkArea);
+        Assert.Equal(1920, moved.X);
+        Assert.Equal(0, moved.Y);
+        Assert.Equal(new Rectangle(1920, 40, 1920, 1040), moved.WorkArea);
         Assert.True(moved.Enabled);
         var stayed = Assert.Single(listed.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY1");
         Assert.Equal(left, stayed);
@@ -32,17 +34,19 @@ public class MonitorTests
     [Fact]
     public void DescriptionPrefixSelectsTheMonitor()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var document = ConfigParser.Parse("""
             monitor = desc:Dell, preferred, 10x20, auto
-            """));
+            """);
+        var core = new Core(document);
         var dell = Display(@"\\.\DISPLAY1", "Dell U2720Q", 0, 0, 1920, 1080, 1);
         var samsung = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1920, 1080, 1);
 
         var outcome = core.Handle(new MonitorsChanged([dell, samsung]));
 
+        Assert.Equal(new ConfigWarning(1, MonitorRules.NotHonored), Assert.Single(document.Warnings));
         var moved = Assert.Single(outcome.State.Monitors, monitor => monitor.Description == "Dell U2720Q");
-        Assert.Equal(10, moved.X);
-        Assert.Equal(20, moved.Y);
+        Assert.Equal(0, moved.X);
+        Assert.Equal(0, moved.Y);
         Assert.Equal(samsung, Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY2"));
     }
 
@@ -72,10 +76,10 @@ public class MonitorTests
             Display(@"\\.\DISPLAY2", "Samsung", 100, 0, 100, 100, 1),
         ]));
 
-        Assert.Equal(3, Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY1").X);
-        Assert.Equal(4, Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY1").Y);
-        Assert.Equal(5, Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY2").X);
-        Assert.Equal(6, Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY2").Y);
+        Assert.Equal(0, Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY1").X);
+        Assert.Equal(0, Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY1").Y);
+        Assert.Equal(100, Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY2").X);
+        Assert.Equal(0, Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY2").Y);
     }
 
     [Fact]
@@ -89,21 +93,17 @@ public class MonitorTests
         var outcome = core.Handle(new MonitorsChanged([display]));
 
         var monitor = Assert.Single(outcome.State.Monitors);
-        Assert.Equal(-1920, monitor.X);
-        Assert.Equal(-40, monitor.Y);
-        Assert.Equal(new Rectangle(-1920, 0, 1920, 1040), monitor.WorkArea);
+        Assert.Equal(0, monitor.X);
+        Assert.Equal(0, monitor.Y);
+        Assert.Equal(new Rectangle(0, 40, 1920, 1040), monitor.WorkArea);
     }
 
-    [Theory]
-    [InlineData("disable")]
-    [InlineData("disabled")]
-    public void DisablingAMonitorMovesItsClientsToOneThatRemains(string disabled)
+    [Fact]
+    public void AMonitorWindowsReportsDisabledMovesItsClientsToOneThatRemains()
     {
-        var core = new Core(ConfigParser.Parse($"""
-            monitor = \\.\DISPLAY2, {disabled}
-            """));
+        var core = new Core();
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
-        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, enabled: false);
         core.Handle(new MonitorsChanged([left, right]));
         core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
 
@@ -118,11 +118,10 @@ public class MonitorTests
     public void AWindowOpensOnTheFallbackMonitorWhenEveryMonitorIsDisabled()
     {
         var core = new Core(ConfigParser.Parse("""
-            monitor = \\.\DISPLAY1, disable
             general:gaps_out = 0
             general:border_size = 0
             """));
-        var display = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 2560, 1440, 1);
+        var display = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 2560, 1440, 1, enabled: false);
         core.Handle(new MonitorsChanged([display]));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), display.WorkArea));
@@ -230,7 +229,7 @@ public class MonitorTests
             general:gaps_out = 10
             general:border_size = 0
             """);
-        Assert.Empty(document.Warnings);
+        Assert.Equal(new ConfigWarning(1, MonitorRules.NotHonored), Assert.Single(document.Warnings));
 
         var core = new Core();
         core.Handle(new Configure(document));
@@ -238,13 +237,11 @@ public class MonitorTests
         var listed = core.Handle(new MonitorsChanged([display]));
         var placed = core.Handle(new WindowAppeared(new WindowId(1), display.WorkArea));
 
-        Assert.Equal([new DisplayModeRequest(@"\\.\DISPLAY1", "1920x1080@60")], listed.DisplayModes);
-        Assert.Equal([new DisplayScaleRequest(@"\\.\DISPLAY1", 1.5)], listed.DisplayScales);
         var monitor = Assert.Single(listed.State.Monitors);
         Assert.Equal(2, monitor.Scale);
-        Assert.Equal(60, monitor.X);
-        Assert.Equal(80, monitor.Y);
-        Assert.Equal(new Rectangle(80, 100, 3800, 2120), BoundsOf(placed, 1));
+        Assert.Equal(0, monitor.X);
+        Assert.Equal(0, monitor.Y);
+        Assert.Equal(new Rectangle(20, 20, 3800, 2120), BoundsOf(placed, 1));
     }
 
     [Theory]
@@ -279,8 +276,8 @@ public class MonitorTests
         ]));
 
         var packed = Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY2");
-        Assert.Equal(1920, packed.X);
-        Assert.Equal(0, packed.Y);
+        Assert.Equal(100, packed.X);
+        Assert.Equal(50, packed.Y);
         Assert.Equal(3840, Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY1").Width);
     }
 
@@ -295,28 +292,20 @@ public class MonitorTests
         var outcome = core.Handle(new MonitorsChanged([display]));
 
         var monitor = Assert.Single(outcome.State.Monitors);
-        Assert.Equal(0, monitor.X);
-        Assert.Equal(0, monitor.Y);
-        Assert.Equal(new Rectangle(0, 20, 800, 560), monitor.WorkArea);
+        Assert.Equal(40, monitor.X);
+        Assert.Equal(50, monitor.Y);
+        Assert.Equal(new Rectangle(40, 70, 800, 560), monitor.WorkArea);
     }
 
-    [Theory]
-    [InlineData("auto", 1500, 0)]
-    [InlineData("auto-right", 1500, 0)]
-    [InlineData("auto-left", -200, 0)]
-    [InlineData("auto-down", 0, 900)]
-    [InlineData("auto-up", 0, -100)]
-    [InlineData("auto-center-right", 1500, 400)]
-    [InlineData("auto-center-left", -200, 400)]
-    [InlineData("auto-center-down", 650, 900)]
-    [InlineData("auto-center-up", 650, -100)]
-    public void AutomaticDirectionsPackAgainstThePlacedMonitors(string direction, int x, int y)
+    [Fact]
+    public void ADirectionDoesNotMoveTheMonitor()
     {
-        var core = new Core(ConfigParser.Parse($"""
+        var document = ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, preferred, 0x0, auto
             monitor = \\.\DISPLAY2, preferred, 1000x0, auto
-            monitor = \\.\DISPLAY3, preferred, {direction}, auto
-            """));
+            monitor = \\.\DISPLAY3, preferred, auto-right, auto
+            """);
+        var core = new Core(document);
 
         var outcome = core.Handle(new MonitorsChanged([
             Display(@"\\.\DISPLAY1", "A", 0, 0, 1000, 400, 1),
@@ -324,11 +313,13 @@ public class MonitorTests
             Display(@"\\.\DISPLAY3", "C", 9, 9, 200, 100, 1),
         ]));
 
+        Assert.Equal(3, document.Warnings.Count);
+        Assert.All(document.Warnings, warning => Assert.Equal(MonitorRules.NotHonored, warning.Message));
         Assert.Equal(0, Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY1").X);
-        Assert.Equal(1000, Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY2").X);
-        var packed = Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY3");
-        Assert.Equal(x, packed.X);
-        Assert.Equal(y, packed.Y);
+        Assert.Equal(0, Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY2").X);
+        var stayed = Assert.Single(outcome.State.Monitors, monitor => monitor.Name == @"\\.\DISPLAY3");
+        Assert.Equal(9, stayed.X);
+        Assert.Equal(9, stayed.Y);
     }
 
     [Theory]
@@ -388,68 +379,28 @@ public class MonitorTests
         ]));
 
         var monitor = Assert.Single(outcome.State.Monitors);
-        Assert.Equal(10, monitor.X);
-        Assert.Equal(20, monitor.Y);
-        Assert.Equal(new Rectangle(13, 21, 93, 77), monitor.WorkArea);
-    }
-
-    [Theory]
-    [InlineData("0", DisplayOrientation.Identity)]
-    [InlineData("1", DisplayOrientation.Rotate90)]
-    [InlineData("2", DisplayOrientation.Rotate180)]
-    [InlineData("3", DisplayOrientation.Rotate270)]
-    public void TransformZeroThroughThreeRequestsThatRotation(string transform, DisplayOrientation orientation)
-    {
-        var core = new Core(ConfigParser.Parse($"""
-            monitor = \\.\DISPLAY1, preferred, 4x5, auto, transform, {transform}
-            """));
-
-        var outcome = core.Handle(new MonitorsChanged([
-            Display(@"\\.\DISPLAY1", "Dell", 0, 0, 800, 600, 1),
-        ]));
-
-        var request = Assert.Single(outcome.Orientations);
-        Assert.Equal(@"\\.\DISPLAY1", request.Device);
-        Assert.Equal(orientation, request.Orientation);
-        Assert.Equal(orientation, Assert.Single(outcome.State.Monitors).Orientation);
-        Assert.Equal(4, Assert.Single(outcome.State.Monitors).X);
+        Assert.Equal(0, monitor.X);
+        Assert.Equal(0, monitor.Y);
+        Assert.Equal(new Rectangle(3, 1, 93, 77), monitor.WorkArea);
     }
 
     [Fact]
-    public void ALaterTransformLineUpdatesTheMonitor()
+    public void ATransformIsNotApplied()
     {
-        var core = new Core(ConfigParser.Parse("""
-            monitor = \\.\DISPLAY1, preferred, 4x5, auto
-            monitor = \\.\DISPLAY1, transform, 2
-            """));
-
-        var outcome = core.Handle(new MonitorsChanged([
-            Display(@"\\.\DISPLAY1", "Dell", 0, 0, 100, 100, 1),
-        ]));
-
-        Assert.Equal(DisplayOrientation.Rotate180, Assert.Single(outcome.Orientations).Orientation);
-        Assert.Equal(4, Assert.Single(outcome.State.Monitors).X);
-        Assert.Equal(5, Assert.Single(outcome.State.Monitors).Y);
-    }
-
-    [Theory]
-    [InlineData("4")]
-    [InlineData("7")]
-    public void FlippedTransformsWarnAndAreNotApplied(string transform)
-    {
-        var document = ConfigParser.Parse($"""
-            monitor = \\.\DISPLAY1, preferred, 0x0, auto, transform, {transform}
+        var document = ConfigParser.Parse("""
+            monitor = \\.\DISPLAY1, preferred, 4x5, auto, transform, 2
             """);
         var core = new Core(document);
 
         var outcome = core.Handle(new MonitorsChanged([
-            Display(@"\\.\DISPLAY1", "Dell", 8, 9, 100, 100, 1),
+            Display(@"\\.\DISPLAY1", "Dell", 8, 9, 800, 600, 1),
         ]));
 
-        Assert.Equal(new ConfigWarning(1, "Flipped monitor transforms are not honored."), Assert.Single(document.Warnings));
-        Assert.Empty(outcome.Orientations);
-        Assert.Null(Assert.Single(outcome.State.Monitors).Orientation);
-        Assert.Equal(0, Assert.Single(outcome.State.Monitors).X);
+        Assert.Equal(new ConfigWarning(1, MonitorRules.NotHonored), Assert.Single(document.Warnings));
+        var monitor = Assert.Single(outcome.State.Monitors);
+        Assert.Null(monitor.Orientation);
+        Assert.Equal(8, monitor.X);
+        Assert.Equal(9, monitor.Y);
     }
 
     [Fact]
@@ -464,42 +415,56 @@ public class MonitorTests
             Display(@"\\.\DISPLAY1", "Dell", 0, 0, 100, 100, 1),
         ]));
 
-        Assert.Equal(
-            [
-                new ConfigWarning(1, "Variable refresh rate is not honored."),
-                new ConfigWarning(1, "Flipped monitor transforms are not honored."),
-            ],
-            document.Warnings);
-        Assert.Empty(outcome.Orientations);
-        Assert.Equal(3, Assert.Single(outcome.State.Monitors).X);
-        Assert.Equal(4, Assert.Single(outcome.State.Monitors).Y);
+        Assert.Equal(new ConfigWarning(1, MonitorRules.NotHonored), Assert.Single(document.Warnings));
+        Assert.Equal(0, Assert.Single(outcome.State.Monitors).X);
+        Assert.Equal(0, Assert.Single(outcome.State.Monitors).Y);
     }
 
     [Fact]
-    public void DisablingAMonitorDoesNotRemoveIt()
+    public void AConfigDisableDoesNotRemoveTheMonitor()
     {
-        var core = new Core(ConfigParser.Parse("""
+        var document = ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, disable
-            """));
+            """);
+        var core = new Core(document);
 
         var outcome = core.Handle(new MonitorsChanged([
             Display(@"\\.\DISPLAY1", "Dell", 0, 0, 100, 100, 1),
         ]));
 
-        Assert.False(outcome.State.Monitors[0].Enabled);
-        Assert.Equal("FALLBACK", outcome.State.Monitors[1].Name);
-        Assert.Contains(outcome.Events, static item => item is MonitorAdded);
+        Assert.Equal(new ConfigWarning(1, MonitorRules.NotHonored), Assert.Single(document.Warnings));
+        var monitor = Assert.Single(outcome.State.Monitors);
+        Assert.True(monitor.Enabled);
+        Assert.Equal(@"\\.\DISPLAY1", monitor.Name);
         Assert.DoesNotContain(outcome.Events, static item => item is MonitorRemoved);
     }
 
+    [Theory]
+    [InlineData("disable")]
+    [InlineData("disabled")]
+    public void DisableWarnsAndLeavesTheMonitorEnabled(string disabled)
+    {
+        var document = ConfigParser.Parse($"""
+            monitor = \\.\DISPLAY1, {disabled}
+            """);
+        var core = new Core(document);
+
+        var outcome = core.Handle(new MonitorsChanged([
+            Display(@"\\.\DISPLAY1", "Dell", 0, 0, 100, 100, 1),
+        ]));
+
+        Assert.Equal(new ConfigWarning(1, MonitorRules.NotHonored), Assert.Single(document.Warnings));
+        Assert.True(Assert.Single(outcome.State.Monitors).Enabled);
+    }
+
     [Fact]
-    public void APreferredAutomaticRuleDoesNotWarn()
+    public void APositionRuleWarnsAndIsNotApplied()
     {
         var document = ConfigParser.Parse("""
             monitor = \\.\DISPLAY1, preferred, auto, auto
             """);
 
-        Assert.Empty(document.Warnings);
+        Assert.Equal(new ConfigWarning(1, MonitorRules.NotHonored), Assert.Single(document.Warnings));
     }
 
     [Fact]
@@ -512,8 +477,23 @@ public class MonitorTests
 
         var outcome = core.Handle(new MonitorsChanged([Display(@"\\.\DISPLAY1", "Dell", 8, 9, 100, 100, 1)]));
 
-        Assert.Equal(new ConfigWarning(1, "Malformed monitor rule."), Assert.Single(document.Warnings));
+        Assert.Equal(new ConfigWarning(1, MonitorRules.NotHonored), Assert.Single(document.Warnings));
         Assert.Equal(8, Assert.Single(outcome.State.Monitors).X);
+        Assert.Equal(9, Assert.Single(outcome.State.Monitors).Y);
+    }
+
+    [Fact]
+    public void AMalformedReservedAreaWarnsAndIsNotApplied()
+    {
+        var document = ConfigParser.Parse("""
+            monitor = \\.\DISPLAY1, addreserved, 1
+            """);
+        var core = new Core(document);
+
+        var outcome = core.Handle(new MonitorsChanged([Display(@"\\.\DISPLAY1", "Dell", 0, 0, 100, 80, 1)]));
+
+        Assert.Equal(new ConfigWarning(1, "Malformed monitor rule."), Assert.Single(document.Warnings));
+        Assert.Equal(new Rectangle(0, 0, 100, 80), Assert.Single(outcome.State.Monitors).WorkArea);
     }
 
     [Fact]
@@ -523,12 +503,13 @@ public class MonitorTests
         core.Handle(new MonitorsChanged([Display(@"\\.\DISPLAY1", "Dell", 0, 0, 100, 100, 1)]));
 
         var outcome = core.Handle(new ConfigLoaded(ConfigParser.Parse("""
-            monitor = \\.\DISPLAY1, preferred, 4x5, auto
+            monitor = \\.\DISPLAY1, addreserved, 1, 2, 3, 4
             """)));
 
         var monitor = Assert.Single(outcome.State.Monitors);
-        Assert.Equal(4, monitor.X);
-        Assert.Equal(5, monitor.Y);
+        Assert.Equal(0, monitor.X);
+        Assert.Equal(0, monitor.Y);
+        Assert.Equal(new Rectangle(3, 1, 93, 97), monitor.WorkArea);
     }
 
     private static Monitor Display(
@@ -539,8 +520,9 @@ public class MonitorTests
         int width,
         int height,
         double scale,
-        Rectangle? workArea = null) =>
-        new(name, description, x, y, width, height, scale, true, workArea ?? new Rectangle(x, y, width, height));
+        Rectangle? workArea = null,
+        bool enabled = true) =>
+        new(name, description, x, y, width, height, scale, enabled, workArea ?? new Rectangle(x, y, width, height));
 
     private static Rectangle BoundsOf(Outcome outcome, long window)
     {

@@ -54,7 +54,6 @@ public class ReloadTests
             general:border_size = 0
             bind = SUPER, W, killactive
             windowrulev2 = float, class:^(kitty)$
-            monitor = \\.\DISPLAY1, preferred, 4x5, auto
             """)));
 
         Assert.Equal(new WorkspaceId("2"), reloaded.State.ActiveWorkspace);
@@ -225,14 +224,15 @@ public class ReloadTests
             new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 100, 100, 1, true, new Rectangle(0, 0, 100, 100)),
         ]));
         core.ReadConfig = () => new ConfigRead(ConfigParser.Parse("""
-            monitor = \\.\DISPLAY1, preferred, 4x5, auto
+            monitor = \\.\DISPLAY1, addreserved, 1, 2, 3, 4
             """));
 
         var reply = core.Execute("reload");
 
         var monitor = Assert.Single(reply.Effect.State.Monitors);
-        Assert.Equal(4, monitor.X);
-        Assert.Equal(5, monitor.Y);
+        Assert.Equal(0, monitor.X);
+        Assert.Equal(0, monitor.Y);
+        Assert.Equal(new Rectangle(3, 1, 93, 97), monitor.WorkArea);
         Assert.Equal("ok", reply.Text);
     }
 

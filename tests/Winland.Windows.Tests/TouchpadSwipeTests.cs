@@ -98,20 +98,6 @@ public class TouchpadSwipeTests
     }
 
     [Fact]
-    public void TheDragFingerCountMakesNoSwipeOrPinchButOthersStill()
-    {
-        var swipe = new TouchpadSwipe { DragFingers = 3 };
-
-        Assert.Empty(swipe.Report(3, Fingers((0, 10, 10), (1, 20, 10), (2, 30, 10))));
-        Assert.Empty(swipe.Report(3, Fingers((0, 15, 10), (1, 25, 10), (2, 35, 10))));
-        Assert.Empty(swipe.Report(3, Fingers((0, 15, 10), (1, 35, 10), (2, 55, 10))));
-        Assert.Empty(swipe.Report(1, []));
-
-        Assert.Empty(swipe.Report(4, Fingers((0, 10, 10), (1, 20, 10), (2, 30, 10), (3, 40, 10))));
-        Assert.Equal(new SwipeBegan(4), swipe.Report(4, Fingers((0, 15, 10), (1, 25, 10), (2, 35, 10), (3, 45, 10)))[0]);
-    }
-
-    [Fact]
     public void EachFinishedFrameIsHandedOnWithTheFingersDown()
     {
         var frames = new List<IReadOnlyDictionary<int, (double X, double Y)>>();

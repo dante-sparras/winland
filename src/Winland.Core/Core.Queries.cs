@@ -84,8 +84,6 @@ public sealed partial class Core
         GetPropRequest prop => ReadProp(prop),
         SetPropRequest prop => WriteProp(prop),
         SetErrorRequest error => SetError(error),
-        SwitchLayoutRequest layout => SwitchLayout(layout),
-        DevicesRequest devices => DevicesReply(devices),
         BatchRequest batch => RunBatch(batch.Payload),
         _ => throw new InvalidOperationException("No handler for this command."),
     };
@@ -175,8 +173,7 @@ public sealed partial class Core
 
     private CommandReply ApplyKeyword(KeywordRequest request)
     {
-        // An empty value is a value only for the keyboard options, whose default is empty.
-        if (request.Name.Length == 0 || (request.Value.Length == 0 && !request.Name.StartsWith("input:kb_", StringComparison.Ordinal)))
+        if (request.Name.Length == 0 || request.Value.Length == 0)
             return new CommandReply("error: invalid keyword", View([]));
 
         if (!LiveKeyword(request.Name))

@@ -4,7 +4,15 @@ namespace Winland;
 public readonly record struct OffWindowScroll(WindowId Window, Point Inside);
 
 /// <summary>The scroll factors a window sets for itself, each null when it sets none.</summary>
-public readonly record struct ScrollOverride(double? Mouse, double? Touchpad);
+public readonly record struct ScrollOverride(double? Mouse, double? Touchpad)
+{
+    /// <summary>The window's factor for this wheel, or 1 when the window does not set one.</summary>
+    public double Factor(bool touchpad)
+    {
+        var factor = touchpad ? Touchpad : Mouse;
+        return factor ?? 1;
+    }
+}
 
 public sealed partial class Core
 {

@@ -36,20 +36,7 @@ public sealed class MouseHook : IDisposable
     private readonly ScrollAccelerator _curveWheel = new();
     private readonly DiscreteScroll _discreteWheel = new();
     private readonly HashSet<string> _killed = new(StringComparer.Ordinal);
-    private readonly MiddleButtonEmulation _middle = new();
-    private readonly DigitizerCursor _digitizer = new();
-    private readonly Timer _middleTimer;
-    private readonly PointerCorrection _correction = new();
-    private readonly PointerDeviceSource _pointerSource;
-    private ISystemInput? _speeds;
-    private uint _inputThread;
-    private int _seenGeneration;
-    private int _syncPosted;
-    private int _systemSpeed = PointerCorrection.DefaultSpeed;
     private bool _disposed;
-
-    internal const uint SyncMessage = 0x8000 + 30;
-    internal const uint PointerRefreshMessage = 0x8000 + 31;
 
     public MouseHook(Core core, KeyboardHook keys)
     {
@@ -58,8 +45,6 @@ public sealed class MouseHook : IDisposable
         _core = core;
         _keys = keys;
         _callback = OnMouse;
-        _middleTimer = new Timer(_ => ReleaseHeldPress(), null, Timeout.Infinite, Timeout.Infinite);
-        _pointerSource = new PointerDeviceSource(RequestPointerRefresh, OnPointerMove, OnPointerWheel);
     }
 
     // Stryker disable all : from here to TryDrag, installing the low-level mouse hook and its callback, which need real mouse input.
@@ -69,13 +54,11 @@ public sealed class MouseHook : IDisposable
         if (!_hook.IsNull)
             return;
 
-        _inputThread = PInvoke.GetCurrentThreadId();
         _hook = PInvoke.SetWindowsHookEx(WINDOWS_HOOK_ID.WH_MOUSE_LL, _callback, default(HINSTANCE), 0);
         if (_hook.IsNull)
             throw new InvalidOperationException($"The mouse hook was not installed ({Marshal.GetLastPInvokeError()}).");
 
         InputClock.Watch();
-        SyncPointer();
     }
 
     internal void Reinstall()
@@ -110,8 +93,6 @@ public sealed class MouseHook : IDisposable
             return;
 
         _disposed = true;
-        _middleTimer.Dispose();
-        _pointerSource.Dispose();
         if (_hook.IsNull)
             return;
 
@@ -131,18 +112,9 @@ public sealed class MouseHook : IDisposable
             if (info.dwExtraInfo == KeyboardHook.InjectedTag)
                 return Next(code, wParam, lParam);
 
-            RequestSync();
             var position = new Point(info.pt.X, info.pt.Y);
             var message = (uint)wParam.Value;
             var source = PointerSources.Of(info.flags, (ulong)info.dwExtraInfo);
-            if (source == PointerSource.Mouse)
-                _digitizer.Note(position.X, position.Y);
-            if (source is PointerSource.Pen or PointerSource.Touch
-                && PlaceDigitizer(code, wParam, lParam, message, info.mouseData, position, info.time, source) is LRESULT placed)
-                return placed;
-            if (source == PointerSource.Mouse && EmulateMiddle(message))
-                return new LRESULT(1);
-
             if (ButtonScroll(message, info.mouseData, position))
                 return new LRESULT(1);
 
@@ -206,120 +178,6 @@ public sealed class MouseHook : IDisposable
         return result.Swallow;
     }
 
-    // input:touchpad:middle_button_emulation: the first of the left and right buttons pressed with a finger on the
-    // touchpad is held back for a moment. True when the event was taken.
-    private bool EmulateMiddle(uint message)
-    {
-        if (message is not (LeftDown or LeftUp or RightDown or RightUp))
-            return false;
-
-        var button = message is LeftDown or LeftUp ? EmulatedButton.Left : EmulatedButton.Right;
-        var now = Environment.TickCount64;
-        var step = message is LeftUp or RightUp
-            ? _middle.Up(button, now)
-            : _middle.Down(button, now, TouchpadFingers.Touched(now), _core.Touchpad.MiddleEmulation);
-        SendEmulation(step);
-        if (_middle.ExpiresAt is long at)
-            _ = _middleTimer.Change(Math.Max(0, at - now), Timeout.Infinite);
-
-        return step.Swallow;
-    }
-
-    // The timer can fire a tick early, and a held press must not wait past its time.
-    private void ReleaseHeldPress()
-    {
-        try
-        {
-            SendEmulation(_middle.Expire(Environment.TickCount64 + 16));
-        }
-        catch (Exception exception) when (exception is not OutOfMemoryException)
-        {
-            Console.Error.WriteLine(exception.Message);
-        }
-    }
-
-    // The held press, or the middle button, goes out with the emulation's tag: the hook handles it as clicked, so binds
-    // see it, and does not hold it again. The buttons are sent as the hardware's, so swapped buttons swap back.
-    private static void SendEmulation(MiddleStep step)
-    {
-        var inputs = new List<INPUT>(2);
-        if (step.Press is EmulatedButton press)
-            inputs.Add(Emulated(Side(press, down: true)));
-        if (step.Release is EmulatedButton release)
-            inputs.Add(Emulated(Side(release, down: false)));
-        if (step.MiddleDown)
-            inputs.Add(Emulated(MOUSE_EVENT_FLAGS.MOUSEEVENTF_MIDDLEDOWN));
-        if (step.MiddleUp)
-            inputs.Add(Emulated(MOUSE_EVENT_FLAGS.MOUSEEVENTF_MIDDLEUP));
-
-        InputInjector.Post([.. inputs]);
-    }
-
-    private static MOUSE_EVENT_FLAGS Side(EmulatedButton button, bool down)
-    {
-        var right = (button == EmulatedButton.Right) != (PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_SWAPBUTTON) != 0);
-        return (right, down) switch
-        {
-            (true, true) => MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTDOWN,
-            (true, false) => MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTUP,
-            (false, true) => MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTDOWN,
-            _ => MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTUP,
-        };
-    }
-
-    private static INPUT Emulated(MOUSE_EVENT_FLAGS flags, int data = 0)
-    {
-        var input = new INPUT { type = INPUT_TYPE.INPUT_MOUSE };
-        input.Anonymous.mi.dwFlags = flags;
-        input.Anonymous.mi.mouseData = unchecked((uint)data);
-        input.Anonymous.mi.dwExtraInfo = KeyboardHook.EmulationTag;
-        return input;
-    }
-
-    // input:tablet and input:touchdevice. Windows has already mapped the pen or the finger. Winland moves the cursor
-    // it made from that. A program that reads the pointer messages still sees Windows' mapping. Null leaves the event.
-    private LRESULT? PlaceDigitizer(int code, WPARAM wParam, LPARAM lParam, uint message, uint mouseData, Point position, uint time, PointerSource source)
-    {
-        var pen = source == PointerSource.Pen;
-        var kind = pen ? DigitizerKind.Pen : DigitizerKind.Touch;
-        var sample = PointerDigitizer.At(pen, position.X, position.Y);
-        var space = _core.Digitizer;
-        if (message == MoveMessage)
-        {
-            var placed = _digitizer.Move(kind, space, sample, position.X, position.Y);
-            if (!placed.Take)
-                return null;
-
-            _ = PInvoke.SetCursorPos(placed.X, placed.Y);
-            if (!placed.Report)
-                return new LRESULT(1);
-
-            var landed = PInvoke.GetCursorPos(out var at) ? new Point(at.X, at.Y) : new Point(placed.X, placed.Y);
-            _ = OnMove(code, wParam, lParam, landed, time, source);
-            return new LRESULT(1);
-        }
-
-        if (!TryButton(message, mouseData, out var button, out var up))
-            return null;
-
-        var click = _digitizer.Button(kind, space, sample, position.X, position.Y);
-        if (!click.Take)
-            return null;
-        if (!click.Report)
-            return new LRESULT(1);
-
-        if (!up)
-        {
-            SessionEffects.NoteTouch(pen);
-            InputClock.NoteClickOrKey(time, ClickedWindow(new System.Drawing.Point(click.X, click.Y)));
-        }
-
-        _ = PInvoke.SetCursorPos(click.X, click.Y);
-        if (Buttons(button) is var (press, release, data))
-            InputInjector.Post(Emulated(up ? release : press, data));
-        return new LRESULT(1);
-    }
-
     private static (MOUSE_EVENT_FLAGS Press, MOUSE_EVENT_FLAGS Release, int Data)? Buttons(string button) => button switch
     {
         "mouse:272" => (MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTDOWN, MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTUP, 0),
@@ -329,108 +187,6 @@ public sealed class MouseHook : IDisposable
         "mouse:276" => (MOUSE_EVENT_FLAGS.MOUSEEVENTF_XDOWN, MOUSE_EVENT_FLAGS.MOUSEEVENTF_XUP, 2),
         _ => null,
     };
-
-    /// <summary>The rotation the hook applies itself. A device override defers it until the raw packet names the mouse.</summary>
-    internal static int AppliedRotation(bool defersMotion, int global) => defersMotion ? 0 : global;
-
-    // The raw window is created here, on the input thread, never inside the hook. A generation the hook has not
-    // applied yet posts one message, and this runs when the thread pumps it.
-    internal void SyncPointer()
-    {
-        var generation = _core.PointerGeneration;
-        var devices = _core.Pointers;
-        if (_disposed || !devices.Active)
-        {
-            _pointerSource.Stop();
-            _correction.Clear();
-            _systemSpeed = PointerCorrection.DefaultSpeed;
-        }
-        else
-        {
-            // Wheel correction does not use the pointer speed, so a scroll-only override does not read it.
-            if (devices.DefersMotion)
-                _systemSpeed = ResolveSpeed();
-
-            _correction.Clear();
-            _pointerSource.Start(_core.Devices);
-        }
-
-        Volatile.Write(ref _seenGeneration, generation);
-        Interlocked.Exchange(ref _syncPosted, 0);
-    }
-
-    internal void RefreshPointers()
-    {
-        if (!_disposed)
-            _pointerSource.Refresh();
-    }
-
-    private void RequestSync()
-    {
-        if (_core.PointerGeneration == Volatile.Read(ref _seenGeneration))
-            return;
-
-        if (Interlocked.Exchange(ref _syncPosted, 1) != 0)
-            return;
-
-        if (_inputThread == 0 || !PInvoke.PostThreadMessage(_inputThread, SyncMessage, default, default))
-            Interlocked.Exchange(ref _syncPosted, 0);
-    }
-
-    private void RequestPointerRefresh()
-    {
-        if (_disposed || _inputThread == 0)
-            return;
-
-        _ = PInvoke.PostThreadMessage(_inputThread, PointerRefreshMessage, default, default);
-    }
-
-    private int ResolveSpeed()
-    {
-        if (_core.ConfiguredPointerSpeed is int configured)
-            return configured;
-
-        _speeds ??= new Win32SystemInput();
-        return _speeds.TryReadMouseSpeed(out var speed) && speed is >= 1 and <= 20
-            ? speed
-            : PointerCorrection.DefaultSpeed;
-    }
-
-    private void OnPointerMove(int dx, int dy, long device)
-    {
-        if (!_pointerSource.TryName(device, out var name))
-        {
-            _ = _correction.TakeMove(_core.Pointers, null, _systemSpeed, Environment.TickCount64);
-            _pointerSource.AskRefresh();
-            return;
-        }
-
-        if (_correction.TakeMove(_core.Pointers, name, _systemSpeed, Environment.TickCount64) is (int x, int y))
-            InputInjector.Post(Relative(x, y));
-    }
-
-    private void OnPointerWheel(int delta, bool horizontal, long device)
-    {
-        if (!_pointerSource.TryName(device, out var name))
-        {
-            _pointerSource.AskRefresh();
-            return;
-        }
-
-        if (_correction.CorrectWheel(_core.Pointers, name, delta, horizontal) is int extra)
-            InputInjector.Post(Mouse(horizontal ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL : MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, extra));
-    }
-
-    // Sent with Winland's tag, so this hook passes it on and the window under the pointer gets it.
-    private static INPUT Relative(int dx, int dy)
-    {
-        var input = new INPUT { type = INPUT_TYPE.INPUT_MOUSE };
-        input.Anonymous.mi.dwFlags = MOUSE_EVENT_FLAGS.MOUSEEVENTF_MOVE;
-        input.Anonymous.mi.dx = dx;
-        input.Anonymous.mi.dy = dy;
-        input.Anonymous.mi.dwExtraInfo = KeyboardHook.InjectedTag;
-        return input;
-    }
 
     // Sent with Winland's tag, so this hook passes it on and the window under the pointer gets it.
     private static INPUT Mouse(MOUSE_EVENT_FLAGS flags, int data)
@@ -466,22 +222,12 @@ public sealed class MouseHook : IDisposable
             }
         }
 
-        // input:rotation: the mouse's move turns about where the cursor is. input:touchpad:flip_x and flip_y then turn
-        // the touchpad's move around, as Winland flips the touchpad's motion after libinput rotated it.
-        // A device that sets sensitivity or rotation defers that turn until the raw packet names the mouse.
-        var touchpad = _core.Touchpad;
+        // input:rotation turns a mouse move about where the cursor is. A touchpad move is not turned.
         var fingers = TouchpadFingers.Moves(Environment.TickCount64);
-        var flip = source == PointerSource.Mouse && touchpad.Flips && fingers;
-        var degrees = AppliedRotation(_core.Pointers.DefersMotion, _core.PointerRotation);
-        if (!redirected && haveMove && (degrees != 0 || flip) && PInvoke.GetCursorPos(out var at))
+        var degrees = source == PointerSource.Mouse && !fingers ? _core.PointerRotation : 0;
+        if (!redirected && haveMove && degrees != 0 && PInvoke.GetCursorPos(out var at))
         {
             var (dx, dy) = _rotation.Turn(moveX, moveY, degrees);
-            if (flip)
-            {
-                var (flippedX, flippedY) = touchpad.Flip(dx, dy);
-                (dx, dy) = ((int)flippedX, (int)flippedY);
-            }
-
             var turned = new Point(at.X + dx, at.Y + dy);
             if (turned != position)
             {
@@ -498,9 +244,6 @@ public sealed class MouseHook : IDisposable
             position = padded;
             redirected = true;
         }
-
-        if (_pointerSource.IsOpen && PointerCorrection.ShouldNote(_core.Pointers.DefersMotion, redirected, fingers, moveX, moveY))
-            _correction.NoteMove(moveX, moveY, Environment.TickCount64);
 
         _ = _core.Decide(new PointerMoved(position), _keys.Session);
         SessionEffects.NoteMove(position, source);
@@ -586,8 +329,8 @@ public sealed class MouseHook : IDisposable
         return decision.Consumed;
     }
 
-    // input:touchpad:scroll_factor, and a window's scroll_mouse and scroll_touchpad: the wheel turn is taken and sent
-    // again multiplied. True when it was taken.
+    // A window's scroll_mouse and scroll_touchpad: the wheel turn is taken and sent again multiplied. True when it
+    // was taken. A factor of 1 leaves a mouse wheel to discrete scroll and scroll_points.
     private bool ScaleWheel(uint message, uint mouseData, Point position, PointerSource source, uint time)
     {
         if (source != PointerSource.Mouse)
@@ -595,7 +338,7 @@ public sealed class MouseHook : IDisposable
 
         var delta = (short)(mouseData >> 16);
         var touchpad = TouchpadFingers.Scrolls(Environment.TickCount64, delta);
-        var scale = _core.Touchpad.WheelScale(touchpad, _core.ScrollOverrideAt(position));
+        var scale = _core.ScrollOverrideAt(position).Factor(touchpad);
         if (scale == 1)
             return !touchpad && (DiscreteWheel(message, delta, time) || (_core.ScrollCurve is ScrollCurve curve && CurveWheel(curve, message, delta, time)));
 
@@ -626,8 +369,7 @@ public sealed class MouseHook : IDisposable
             return false;
 
         var horizontal = message == HorizontalWheel;
-        var factor = _core.Touchpad.WheelFactor ?? 1;
-        var notches = _discreteWheel.Emulate(delta, horizontal, factor, time);
+        var notches = _discreteWheel.Emulate(delta, horizontal, 1, time);
         if (notches != 0)
             InputInjector.Post(Mouse(horizontal ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL : MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, notches));
         return true;

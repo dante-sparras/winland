@@ -50,8 +50,7 @@ internal sealed class ContactFrame
 /// or more. Two fingers that travel are a scroll and give nothing. The mean movement of the fingers that stayed down
 /// is each update, and a pinch also reports how far they spread since it began. A finger lifted ends the gesture, and
 /// more fingers end it cancelled and start another. Once a finger lifts, a new gesture waits until every finger is up.
-/// Fingers of the count <see cref="DragFingers"/> names drag instead and give nothing, as libinput sends no gesture of
-/// the count its three-finger drag takes. Each finished frame is also handed to <see cref="Framed"/>.
+/// Each finished frame is also handed to <see cref="Framed"/>.
 /// </summary>
 internal sealed class TouchpadSwipe
 {
@@ -80,11 +79,7 @@ internal sealed class TouchpadSwipe
         Swipe,
         Pinch,
         Scroll,
-        Drag,
     }
-
-    /// <summary>The finger count <c>input:touchpad:drag_3fg</c> drags with, which is then no swipe or pinch. 0 for none.</summary>
-    internal int DragFingers { get; set; }
 
     /// <summary>Called with the fingers down in each finished frame, by contact id, in millimetres.</summary>
     internal Action<IReadOnlyDictionary<int, (double X, double Y)>>? Framed { get; set; }
@@ -141,7 +136,7 @@ internal sealed class TouchpadSwipe
     private void Start(Dictionary<int, (double X, double Y)> down)
     {
         _fingers = down.Count;
-        _kind = down.Count == DragFingers ? Kind.Drag : Kind.Undecided;
+        _kind = Kind.Undecided;
         _startCentre = Centre(down);
         _startSpread = Spread(down, _startCentre);
     }
@@ -177,7 +172,7 @@ internal sealed class TouchpadSwipe
             return;
         }
 
-        if (_kind is Kind.Scroll or Kind.Drag)
+        if (_kind == Kind.Scroll)
             return;
 
         var moved = TryMove(down, out var dx, out var dy);
