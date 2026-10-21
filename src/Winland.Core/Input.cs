@@ -35,7 +35,7 @@ public sealed record WindowAppeared(WindowId Window, Rectangle WorkArea) : Event
 
     /// <summary>
     /// The window was maximized when it first showed, as a client that asks to be maximized before it maps. The core
-    /// ignores the maximize request that follows, as the pinned release does.
+    /// ignores the maximize request that follows.
     /// </summary>
     public bool ShownMaximized { get; init; }
 

@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// Pseudotiling, kept once for every tiled Layout. The pinned release keeps it on the window target and applies it
+/// Pseudotiling, kept once for every tiled Layout. Winland keeps it on the window target and applies it
 /// after that Layout's tile, its gaps and its aspect padding, and before the border. A pseudo Client is centered in
 /// the tile at its natural size, or scaled down to fit while keeping its aspect. The natural size is the size the
 /// window asked for, and 1280 by 720 when it has none.
@@ -24,7 +24,7 @@ internal sealed class PseudoTiles
 
     /// <summary>
     /// The tile a Client is shown in. A pseudo Client is centered at its natural size first, then the border is taken
-    /// off, as the pinned release does. Any other Client keeps <paramref name="tile"/> and only loses the border.
+    /// off. Any other Client keeps <paramref name="tile"/> and only loses the border.
     /// </summary>
     public Rectangle Frame(ClientId? id, Rectangle tile, Rectangle natural, int border)
     {
@@ -37,7 +37,7 @@ internal sealed class PseudoTiles
     private static (int Width, int Height) Size(Rectangle natural) =>
         natural.Width > 0 && natural.Height > 0 ? (natural.Width, natural.Height) : (1280, 720);
 
-    // The same scale the pinned release uses: shrink the size to the tile on the axis that overflows, then center it.
+    // The same scale Winland uses: shrink the size to the tile on the axis that overflows, then center it.
     private static Rectangle Fit(Rectangle tile, (int Width, int Height) size)
     {
         var width = (double)size.Width;

@@ -54,7 +54,7 @@ public class MonitorDispatchTests
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
         Assert.Equal(new WorkspaceId("2"), Client(outcome, 1).Workspace);
         Assert.Equal(new WorkspaceId("2"), Client(outcome, 2).Workspace);
-        // As in the pinned release, the window goes in at the point just past the edge it crossed.
+        // the window goes in at the point just past the edge it crossed.
         Assert.Equal(new Rectangle(1920, 0, 960, 1080), BoundsOf(outcome, 1));
         Assert.Equal(new Rectangle(2880, 0, 960, 1080), BoundsOf(outcome, 2));
         Assert.Equal(
@@ -116,7 +116,7 @@ public class MonitorDispatchTests
     [Fact]
     public void DwindleMoveWindowCrossesFromATileAtTheEdgeOfTheGaps()
     {
-        // As in the pinned release, a tile that meets the work area's edge reaches the Monitor's for the focal point,
+        // a tile that meets the work area's edge reaches the Monitor's for the focal point,
         // so gaps_out does not keep it on this Monitor.
         var core = Gapped();
 

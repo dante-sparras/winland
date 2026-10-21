@@ -282,7 +282,7 @@ internal static class MonitorRules
         return new MonitorArrangement(result, requests.ToArray(), modes.ToArray(), scales.ToArray(), colors.ToArray(), mirrors);
     }
 
-    // Which display each one mirrors, by index, or -1, and the mirrors to ask Windows for. As in the pinned release, a
+    // Which display each one mirrors, by index, or -1, and the mirrors to ask Windows for. a
     // display cannot mirror itself, a mirror, or a display that is off, and a display another one mirrors cannot
     // become a mirror. A display Windows still shows as a mirror stays out of the layout until it is put back.
     private static (int[] Sources, DisplayMirrorRequest[] Requests) Mirrors(IReadOnlyList<Monitor> reported, MonitorRule?[] rules)

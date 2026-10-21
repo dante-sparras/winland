@@ -18,10 +18,10 @@ public interface ILuaWorld
 }
 
 // The config's Lua keeps running after it loads: binds that call a function, timers, hl.dispatch and winlandctl eval
-// run on the runtime's thread, between the core's own calls. Each call has the pinned release's time limit.
+// run on the runtime's thread, between the core's own calls. Each call has Winland's time limit.
 internal sealed partial class LuaRun
 {
-    // The time limits of the pinned release, in seconds.
+    // The time limits of Winland, in seconds.
     internal const double BindLimit = 0.1;
     internal const double TimerLimit = 0.05;
     internal const double EvalLimit = 0.25;
@@ -77,7 +77,7 @@ internal sealed partial class LuaRun
     public void Call(int id) => Call(id, BindLimit, "keybind callback");
 
     /// <summary>
-    /// Calls the function a bind names and reads its result, as the pinned release does: a table's <c>ok</c> false or a
+    /// Calls the function a bind names and reads its result, as Winland does: a table's <c>ok</c> false or a
     /// raised error fails, a missing <c>ok</c> succeeds, and <c>pass_event</c> asks the key to be passed on.
     /// </summary>
     public LuaBindResult CallBind(int id)
@@ -211,7 +211,7 @@ internal sealed partial class LuaRun
                 _lua.Pop(1);
                 if (_lua.LoadString(code, "=eval") != LuaStatus.OK)
                 {
-                    // The pinned release puts the status of the first load before the error.
+                    // Winland puts the status of the first load before the error.
                     var error = _lua.ToString(-1);
                     _lua.Pop(1);
                     return $"error: {(int)status} {error}";
@@ -266,7 +266,7 @@ internal sealed partial class LuaRun
     // print: into an eval's reply while it runs, into the log otherwise.
     private int Print(IntPtr state)
     {
-        // print() with nothing to print prints nothing, as in the pinned release.
+        // print() with nothing to print prints nothing.
         var count = _lua.GetTop();
         if (count == 0)
             return 0;

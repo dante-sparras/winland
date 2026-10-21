@@ -416,7 +416,7 @@ public sealed partial class Core
         bool focusRevealed = false)
     {
         // A w[] workspace rule counts the Clients, so a Client that opens, closes, floats or moves can match another
-        // rule. The pinned release reads its rules again whenever a window changes its workspace's layout.
+        // rule. Winland reads its rules again whenever a window changes its workspace's layout.
         placements = Restamp(desk, placements);
         var showList = new List<WindowId>(show ?? []);
         var hideList = new List<WindowId>(hide ?? []);
@@ -554,7 +554,7 @@ public sealed partial class Core
         return windows.ToArray();
     }
 
-    // The border the pinned release draws outside a Client: its own border size, its colors, and corners that follow the
+    // The border Winland draws outside a Client: its own border size, its colors, and corners that follow the
     // window's. A minimized Client, and one with decorate 0, has none.
     private BorderRing? RingFor(Client client, bool active, CornerChoice shape, byte alpha)
     {
@@ -575,7 +575,7 @@ public sealed partial class Core
         };
     }
 
-    // The shadow the pinned release draws under a Client, when the config tuned it past turning it on or off. A minimized
+    // The shadow Winland draws under a Client, when the config tuned it past turning it on or off. A minimized
     // Client, one with decorate 0, and a shadow with no color that shows have none.
     private DropShadow? ShadowFor(Client client, bool active, CornerChoice shape, byte alpha)
     {
@@ -750,7 +750,7 @@ public sealed partial class Core
         return client.Bounds;
     }
 
-    // The glow the pinned release draws inside a Client's edge when decoration:glow:enabled is set, its corners a pixel
+    // The glow Winland draws inside a Client's edge when decoration:glow:enabled is set, its corners a pixel
     // inside the window's. A minimized Client, one with decorate 0 or no_glow, and a glow with no color that shows have none.
     private InnerGlow? GlowFor(Client client, bool active, CornerChoice shape, byte alpha)
     {
@@ -778,7 +778,7 @@ public sealed partial class Core
     }
 
     // A window with no_anim draws its border, shadow and glow at rest: their angles do not turn and they do not fade,
-    // as the pinned release warps every animated value of such a window.
+    // as Winland warps every animated value of such a window.
     private static BorderRing? Still(BorderRing? ring, bool still) => still && ring is not null ? ring with { Spin = null } : ring;
 
     private static DropShadow? Still(DropShadow? shadow, bool still) =>

@@ -63,7 +63,7 @@ internal sealed partial class MasterLayout
     private void PlaceColumns(Rectangle area, MasterOrientation orientation, Tile master, int slaves, bool centered)
     {
         // master:center_ignores_reserved centers the master on the work area widened by the Monitor's reserved
-        // strips, as the pinned release does, so a bar on one side does not push it off the middle.
+        // strips, as Winland does, so a bar on one side does not push it off the middle.
         var ignore = centered && _master.CenterIgnoresReserved;
         var reservedLeft = ignore ? _layout.ReservedLeft : 0;
         var total = ignore ? area.Width + _layout.ReservedLeft + _layout.ReservedRight : area.Width;

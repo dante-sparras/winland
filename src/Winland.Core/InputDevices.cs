@@ -22,11 +22,11 @@ public interface IInputDevices
     IReadOnlyList<InputDevice> Read();
 }
 
-/// <summary>Device names as the pinned release makes them.</summary>
+/// <summary>Device names as Winland makes them.</summary>
 public static class InputDeviceNames
 {
     /// <summary>
-    /// A name in lower case with a space, a line break or a comma as <c>-</c>, as the pinned release writes a device's
+    /// A name in lower case with a space, a line break or a comma as <c>-</c>, as Winland writes a device's
     /// name for its config and its replies.
     /// </summary>
     public static string Internal(string name)
@@ -41,7 +41,7 @@ public static class InputDeviceNames
 
     /// <summary>
     /// Each device's name, in order: its <see cref="Internal"/> name, <c>unknown-device</c> for an empty one, and
-    /// <c>-1</c>, <c>-2</c> and so on after a name an earlier device already has, as the pinned release names a new device.
+    /// <c>-1</c>, <c>-2</c> and so on after a name an earlier device already has, as Winland names a new device.
     /// </summary>
     public static IReadOnlyList<string> Assign(IReadOnlyList<InputDevice> devices)
     {

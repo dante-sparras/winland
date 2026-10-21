@@ -217,7 +217,7 @@ public class CommandTests
 
         Assert.Equal(1, byName["1"].GetProperty("id").GetInt32());
         Assert.Equal(1, byName["1"].GetProperty("windows").GetInt32());
-        // As in the pinned release, a named Workspace has no id.
+        // A named Workspace has no id.
         Assert.False(byName["notes"].TryGetProperty("id", out _));
         Assert.Equal(1, byName["notes"].GetProperty("windows").GetInt32());
     }

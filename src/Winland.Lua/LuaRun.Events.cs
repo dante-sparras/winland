@@ -6,7 +6,7 @@ namespace Winland.Lua;
 
 /// <summary>
 /// The handlers an event a handler's own dispatch raised came from. That event runs after the handler, not inside it,
-/// and is not handed to those handlers again, as the pinned release suppresses a handler's recursive call.
+/// and is not handed to those handlers again, as Winland suppresses a handler's recursive call.
 /// </summary>
 internal sealed record EventCause(LuaRun Owner, ImmutableArray<long> Handles);
 
@@ -15,7 +15,7 @@ internal sealed partial class LuaRun
 {
     internal const double EventLimit = 0.05;
 
-    // How deep handlers may raise events for other handlers, as in the pinned release.
+    // How deep handlers may raise events for other handlers.
     internal const int MaxDispatchDepth = 32;
 
     // How many windows and workspaces the focus history keeps.
@@ -91,14 +91,14 @@ internal sealed partial class LuaRun
         }
     }
 
-    // The events of the pinned release an event of Winland is, with their arguments. Winland's events with no such
+    // The events of Winland an event of Winland is, with their arguments. Winland's events with no such
     // event give none.
     private static IEnumerable<(string Name, EventArgument[] Arguments)> Translate(StreamEvent streamEvent)
     {
         switch (streamEvent)
         {
             case ClientOpened opened:
-                // The pinned release raises open_early as the window maps, before its rules; Winland raises both after.
+                // Winland raises open_early as the window maps, before its rules; Winland raises both after.
                 yield return ("window.open_early", [new WindowEventArgument(opened.Window)]);
                 yield return ("window.open", [new WindowEventArgument(opened.Window)]);
                 break;
@@ -164,7 +164,7 @@ internal sealed partial class LuaRun
                 yield return ("workspace.move_to_monitor", [new WorkspaceEventArgument(movedWorkspace.Workspace), new MonitorEventArgument(movedWorkspace.Monitor)]);
                 break;
             case ConfigReloaded:
-                // A reload refreshes every prop once it has read the config, as the pinned release schedules it.
+                // A reload refreshes every prop once it has read the config, as Winland schedules it.
                 yield return ("config.reloaded", []);
                 yield return ("config.props_refreshed", [new BooleanEventArgument(true)]);
                 break;
@@ -175,7 +175,7 @@ internal sealed partial class LuaRun
     }
 
     // hl.config and the other calls that change the config while Winland runs schedule one prop refresh, which runs
-    // when the outermost Lua call returns, as the pinned release runs it at the end of the current event, or at once
+    // when the outermost Lua call returns, as Winland runs it at the end of the current event, or at once
     // through hl.exec_scheduled_prop_refresh_immediately. Its handlers learn which.
     private void ScheduleRefresh()
     {
@@ -209,7 +209,7 @@ internal sealed partial class LuaRun
 
     /// <summary>
     /// The config's Lua is about to be let go, for a reload or because Winland exits: its <c>config.unload</c>
-    /// handlers run, as in the pinned release.
+    /// handlers run.
     /// </summary>
     public void Unload()
     {
@@ -265,7 +265,7 @@ internal sealed partial class LuaRun
     {
         switch (argument)
         {
-            // No window or workspace is nil, as in the pinned release; one that is gone is an expired object.
+            // No window or workspace is nil. One that is gone is an expired object.
             case WindowEventArgument { Window: null }:
             case WorkspaceEventArgument { Workspace: null }:
                 _lua.PushNil();

@@ -360,7 +360,7 @@ internal sealed partial class DwindleLayout
         return true;
     }
 
-    // As in the pinned release, a missing ratio is refused first, then a Client with no sibling, then a bad ratio.
+    // a missing ratio is refused first, then a Client with no sibling, then a bad ratio.
     private IReadOnlyList<Placement> SplitRatio(WindowId? active, string[] tokens)
     {
         if (tokens.Length < 2)
@@ -446,7 +446,7 @@ internal sealed partial class DwindleLayout
         return true;
     }
 
-    // The pinned release refuses to edit the tree around a maximized or fullscreen Client.
+    // Winland refuses to edit the tree around a maximized or fullscreen Client.
     private bool Covers(ClientId id) =>
         _clients.Exists(client => client.Id == id && client.Fullscreen != FullscreenMode.None);
 

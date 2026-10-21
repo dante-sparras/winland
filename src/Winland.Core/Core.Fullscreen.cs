@@ -6,7 +6,7 @@ public sealed partial class Core
 {
     private readonly HashSet<WindowId> _pinFullscreened = [];
 
-    // Clients asked for client mode 2 while maximized, as the pinned release's restoreClientMaximized marks them. Asked
+    // Clients asked for client mode 2 while maximized, as Winland's restoreClientMaximized marks them. Asked
     // for client mode 0 after that, such a Client goes back to client mode 1.
     private readonly HashSet<WindowId> _restoreClientMaximized = [];
 
@@ -73,7 +73,7 @@ public sealed partial class Core
     private bool SyncsFullscreen(WindowId window, LiveWorkspace desk) =>
         PropValue(window, desk, "sync_fullscreen", PropKind.Bool) is true;
 
-    // fullscreenstate sets sync_fullscreen as setprop would, from the modes it left. The pinned release writes that
+    // fullscreenstate sets sync_fullscreen as setprop would, from the modes it left. Winland writes that
     // after the modes are applied, including when a pin forced the internal mode off, and true when the modes are equal.
     private Outcome HoldSync(WindowId window, Outcome outcome)
     {
@@ -123,7 +123,7 @@ public sealed partial class Core
         return Present(desk, covered, placements, dispatcher: dispatcher, allowsElevation: allowsElevation);
     }
 
-    // binds:allow_pin_fullscreen, as in the pinned release. With it on, a pinned Client that goes fullscreen or
+    // binds:allow_pin_fullscreen. With it on, a pinned Client that goes fullscreen or
     // maximized loses its pin, and gets it back when it leaves that mode. With it off, a pinned Client stays as it
     // is: a synced request changes nothing, and fullscreenstate sets only the client mode. False when nothing changes.
     private bool PinFullscreen(WindowId window, FullscreenMode old, ref FullscreenMode mode, bool synced)
@@ -166,7 +166,7 @@ public sealed partial class Core
     }
 
     // An f[] workspace rule follows the fullscreen state, so a Client that covers, uncovers, closes or moves
-    // can bring other options, as the pinned release reads its rules again. The Layout's placements when
+    // can bring other options, as Winland reads its rules again. The Layout's placements when
     // the options changed, with the given ones for the Clients those leave out, such as a floating one, or the ones given.
     private IReadOnlyList<Placement> Restamp(LiveWorkspace desk, IReadOnlyList<Placement> placements)
     {
@@ -187,7 +187,7 @@ public sealed partial class Core
     }
 
     // misc:on_focus_under_fullscreen for a tiled window that opens on a Workspace with a fullscreen Client, as in the
-    // pinned release: 0 opens it without focus, 1 gives it the fullscreen Client's mode, and 2 ends that mode.
+    // Winland: 0 opens it without focus, 1 gives it the fullscreen Client's mode, and 2 ends that mode.
     private IReadOnlyList<Placement> OpenUnderFullscreen(LiveWorkspace desk, WindowId window, IReadOnlyList<Placement> placements)
     {
         if (desk.ClientOf(window) is not { Floating: false } || CoveringOther(desk, window) is not Client covering)
@@ -206,7 +206,7 @@ public sealed partial class Core
     }
 
     // misc:on_focus_under_fullscreen for a request to focus a tiled Client under another fullscreen one, as in the
-    // pinned release: 0 focuses the fullscreen Client instead, 1 moves its mode to the Client asked for, and 2 ends it.
+    // Winland: 0 focuses the fullscreen Client instead, 1 moves its mode to the Client asked for, and 2 ends it.
     // A floating Client is focused over it. The Client to focus, and the Layout's placements when a mode changed.
     // A Client its Layout holds fullscreen is left alone, and the Layout scrolls to the Client asked for.
     private WindowId FocusUnderFullscreen(LiveWorkspace desk, WindowId window, out IReadOnlyList<Placement>? placements)
@@ -233,7 +233,7 @@ public sealed partial class Core
         }
     }
 
-    // misc:exit_window_retains_fullscreen, as in the pinned release: the Client that takes the focus from a closed
+    // misc:exit_window_retains_fullscreen: the Client that takes the focus from a closed
     // fullscreen or maximized one takes its mode. 1 always, 2 only for the next member of its Group, 3 only otherwise.
     private IReadOnlyList<Placement>? RetainFullscreen(LiveWorkspace desk, WindowId next, FullscreenMode mode, bool grouped)
     {
@@ -333,7 +333,7 @@ public sealed partial class Core
         return FullscreenGeometry.Cover(client.Fullscreen, work, monitor);
     }
 
-    // A maximized Client fills its Workspace's work area as the pinned release lays it out: less gaps_out, or
+    // A maximized Client fills its Workspace's work area as Winland lays it out: less gaps_out, or
     // general:float_gaps for a floating Client, and less its border.
     private static Rectangle Maximized(Client client, LiveWorkspace desk, Rectangle work)
     {

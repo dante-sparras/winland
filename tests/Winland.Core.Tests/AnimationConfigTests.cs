@@ -149,7 +149,7 @@ public class AnimationConfigTests
                 new ConfigWarning(8, "Bezier needs four points."),
                 new ConfigWarning(9, "Bezier point 'a' is not a number."),
                 new ConfigWarning(10, "Bezier has too many arguments."),
-                new ConfigWarning(11, "Layer shell surfaces have no Windows meaning."),
+                new ConfigWarning(11, "Animation 'layers' does not exist."),
             ],
             document.Warnings);
     }
@@ -157,13 +157,12 @@ public class AnimationConfigTests
     [Fact]
     public void AMonitorAddedAnimationIsSkipped()
     {
-        const string Reason = "A monitor that is added zooms its picture and fades its wallpaper in. Windows draws that picture and that wallpaper, so neither can be animated.";
         var document = ConfigParser.Parse("animation = monitorAdded, 1, 3, default\n");
 
-        Assert.Equal(new ConfigWarning(1, Reason), Assert.Single(document.Warnings));
+        Assert.Equal(new ConfigWarning(1, "Animation 'monitorAdded' does not exist."), Assert.Single(document.Warnings));
 
         var text = new Core(document).Execute("animations").Text;
-        Assert.Contains("name: monitorAdded\n\t\toverridden: 0\n", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("monitorAdded", text, StringComparison.Ordinal);
     }
 
     [Fact]

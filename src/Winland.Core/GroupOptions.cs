@@ -3,7 +3,7 @@ using static Winland.ConfigValueSyntax;
 
 namespace Winland;
 
-/// <summary>The <c>group:*</c> and <c>group:groupbar:*</c> options, with the defaults of the pinned release.</summary>
+/// <summary>The <c>group:*</c> and <c>group:groupbar:*</c> options, with the defaults of Winland.</summary>
 public sealed record GroupOptions
 {
     public static GroupOptions Documented { get; } = new();
@@ -257,7 +257,7 @@ public sealed record GroupBarStyle
 
     /// <summary>
     /// <c>priority</c>: where the bar goes among the decorations on a window's top edge. The bar is the only one Winland
-    /// draws there, as it is in the pinned release without a plugin that adds one, so it changes nothing yet.
+    /// draws there, as it is in Winland without a plugin that adds one, so it changes nothing yet.
     /// </summary>
     public int Priority { get; init; } = 3;
 

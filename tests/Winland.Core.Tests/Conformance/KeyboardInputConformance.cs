@@ -3,7 +3,7 @@ using Winland;
 namespace Winland.Tests.Conformance;
 
 /// <summary>
-/// The pinned release's keyboard input cases. The reference records the key events that reach the focused window;
+/// Winland's keyboard input cases. The reference records the key events that reach the focused window;
 /// here that is every key event no bind consumed. A command a bind runs shows up as a Launch.
 /// </summary>
 [Trait("Category", "Conformance")]

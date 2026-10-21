@@ -65,7 +65,7 @@ public sealed partial class Core
             if (!rule.Active || rule.Persistent != true || !WorkspaceRules.TryConcrete(rule.WorkspaceString, out var id) || FindWorkspace(id) is not null)
                 continue;
 
-            // A Workspace bound to a Monitor that is not there yet waits for it, as in the pinned release.
+            // A Workspace bound to a Monitor that is not there yet waits for it.
             if (rule.Monitor.Length > 0 && BoundMonitor(rule) is null)
                 continue;
 
@@ -114,7 +114,7 @@ public sealed partial class Core
         desk.Options = OptionsFor(desk, rule);
     }
 
-    // A persistent rule keeps a normal Workspace whose Monitor is there, as the pinned release marks it. A special
+    // A persistent rule keeps a normal Workspace whose Monitor is there, as Winland marks it. A special
     // workspace is never kept.
     private bool PersistentBy(LiveWorkspace desk, WorkspaceRule? rule) =>
         rule?.Persistent == true && !desk.Id.IsSpecial && (rule.Monitor.Length == 0 || BoundMonitor(rule) is not null);
@@ -148,7 +148,7 @@ public sealed partial class Core
     {
         var screen = MonitorById(desk.Monitor);
         var scale = screen is { Effective.Enabled: true } ? screen.Effective.Scale : 1;
-        // A negative general:float_gaps side takes general:gaps_out, not the rule's, as in the pinned release.
+        // A negative general:float_gaps side takes general:gaps_out, not the rule's.
         var options = _options with { ClientBorder = _clientBorder, FloatGaps = _options.EffectiveFloatGaps };
         if (rule is not null)
         {
@@ -209,7 +209,7 @@ public sealed partial class Core
             return;
 
         var parsed = LaunchParser.Parse(command, allowsElevation: ElevationTrusted, raw: false);
-        // The pinned release starts on-created-empty with the new Workspace as its initial workspace.
+        // Winland starts on-created-empty with the new Workspace as its initial workspace.
         if (parsed.Launch is Launch launch)
             _born.Enqueue((WithEnvironment(launch) ?? launch) with { InitialWorkspace = desk.Id });
     }

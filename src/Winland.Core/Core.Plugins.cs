@@ -20,7 +20,7 @@ public sealed partial class Core
             _ => "error: unknown request",
         };
 
-        // A plugin that registers or drops a layout switches the workspaces that name it, as the pinned release does
+        // A plugin that registers or drops a layout switches the workspaces that name it, as Winland does
         // when an algorithm is added or removed. A load that registers nothing leaves them as they are.
         if (text != "ok" || SameNames(before, PluginLayouts.Names()))
             return new CommandReply(text, View([]));

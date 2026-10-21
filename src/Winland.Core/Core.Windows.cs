@@ -193,7 +193,7 @@ public sealed partial class Core
         else
             placements = OpenUnderFullscreen(desk, appeared.Window, placements);
 
-        // A window that swallows its parent does not join the Group focused when it opened: in the pinned release a
+        // A window that swallows its parent does not join the Group focused when it opened: in Winland a
         // swallow and group:auto_group are alternatives, and only a window that swallowed nothing is auto-grouped.
         var focused = restored is null ? ActiveWindow() : null;
         var openedOn = desk;
@@ -224,7 +224,7 @@ public sealed partial class Core
         RememberRuleSubject(appeared.Window, traits, followed, decision);
         NoteOwner(appeared);
         Stack(appeared.Window, top: true);
-        // A window owned by a pinned Client is pinned too, as the pinned release pins a child of a pinned parent. A
+        // A window owned by a pinned Client is pinned too, as Winland pins a child of a pinned parent. A
         // tiled window is never pinned.
         var ownerPinned = appeared.Owner is WindowId owning && _pinned.Contains(owning);
         if ((decision.Pin || ownerPinned) && decision.Floating)
@@ -370,7 +370,7 @@ public sealed partial class Core
             next = returned ?? FocusAfter(desk, floating, hadBounds ? bounds : default, hadBounds);
 
             // Under an open special workspace a candidate elsewhere is dropped, and the special workspace's Client
-            // takes the focus, as in the pinned release.
+            // takes the focus.
             if (SpecialOn(monitor) is WorkspaceId open && open != desk.Id && FindWorkspace(open) is LiveWorkspace shownSpecial
                 && (next is not WindowId candidate || WorkspaceContaining(candidate)?.Id != open)
                 && (shownSpecial.Remembered() ?? shownSpecial.LastVisible()) is WindowId onSpecial)

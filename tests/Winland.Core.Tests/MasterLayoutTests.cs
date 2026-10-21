@@ -69,7 +69,7 @@ public class MasterLayoutTests
             master:mfact = 0.5
             """);
 
-        // special_scale_factor is read without a warning, and changes nothing, as the pinned release never reads it.
+        // special_scale_factor is read without a warning, and changes nothing, as Winland never reads it.
         Assert.Empty(document.Warnings);
         Assert.Equal(3, document.Settings.Count);
         Assert.True(MasterOptions.From(document).CenterIgnoresReserved);

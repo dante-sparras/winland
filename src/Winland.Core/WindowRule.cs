@@ -143,7 +143,7 @@ internal readonly record struct WindowDecision(
 
 /// <summary>
 /// What the min_size, max_size and no_max_size window rules ask of a Client. A floating Client keeps the rule's sizes in
-/// place of the window's own. A tiled Client keeps them only with <c>misc:size_limits_tiled</c>, as in the pinned release.
+/// place of the window's own. A tiled Client keeps them only with <c>misc:size_limits_tiled</c>.
 /// </summary>
 internal readonly record struct SizeRule(Size? Min, Size? Max, bool NoMax)
 {

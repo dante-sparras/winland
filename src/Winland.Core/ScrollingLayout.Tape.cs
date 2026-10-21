@@ -1,6 +1,6 @@
 namespace Winland;
 
-// The tape as the scrollMove gesture moves it. Offsets are in shares of the view, as the pinned release measures them.
+// The tape as the scrollMove gesture moves it. Offsets are in shares of the view, as Winland measures them.
 internal sealed partial class ScrollingLayout
 {
     internal double ViewLength => PrimaryLength();
@@ -30,7 +30,7 @@ internal sealed partial class ScrollingLayout
 
     /// <summary>
     /// Settles the tape on the column whose place is nearest the projected offset: centered, or fitted by
-    /// <c>scrolling:focus_fit_method</c>, as the pinned release snaps a scrollMove swipe. The column, or null with none.
+    /// <c>scrolling:focus_fit_method</c>, as Winland snaps a scrollMove swipe. The column, or null with none.
     /// </summary>
     internal int? SnapToProjected(double projectedNormalized)
     {

@@ -22,7 +22,7 @@ internal sealed class WindowGroup(WindowId first)
 
     public bool Contains(WindowId window) => Members.Contains(window);
 
-    /// <summary>The index after removing the member at <paramref name="index"/>, as the pinned release computes it.</summary>
+    /// <summary>The index after removing the member at <paramref name="index"/>, as Winland computes it.</summary>
     public int CurrentAfterRemoving(int index)
     {
         var current = Current;

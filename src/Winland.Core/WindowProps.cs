@@ -34,8 +34,8 @@ internal readonly record struct PropAlpha(float Value, bool Overridden)
 }
 
 /// <summary>
-/// A border color as the pinned release keeps it: every color of the gradient and its angle. Winland draws the
-/// first color, since gradient borders are a Gap.
+/// A border color as Winland keeps it: every color of the gradient and its angle. Winland draws the
+/// first color of a gradient.
 /// </summary>
 public sealed record BorderGradient(IReadOnlyList<BorderColor> Colors, int AngleDegrees)
 {
@@ -74,7 +74,7 @@ public sealed record BorderGradient(IReadOnlyList<BorderColor> Colors, int Angle
         return true;
     }
 
-    /// <summary>The pinned release's form: each color as hexadecimal ARGB, then the angle in degrees.</summary>
+    /// <summary>Winland's form: each color as hexadecimal ARGB, then the angle in degrees.</summary>
     public override string ToString()
     {
         var text = new System.Text.StringBuilder();
@@ -94,7 +94,7 @@ public sealed record BorderGradient(IReadOnlyList<BorderColor> Colors, int Angle
 }
 
 /// <summary>
-/// The window properties of the pinned release's <c>getprop</c> and <c>setprop</c>: their kinds, and how a value is
+/// The window properties of Winland's <c>getprop</c> and <c>setprop</c>: their kinds, and how a value is
 /// read from text and shown. A property's value comes from <c>setprop</c>, then the window rules, then the config.
 /// </summary>
 internal static class WindowProps
@@ -147,7 +147,7 @@ internal static class WindowProps
         ["scroll_touchpad"] = PropKind.Float,
     };
 
-    // Properties that cannot go below zero, as the pinned release clamps them.
+    // Properties that cannot go below zero, as Winland clamps them.
     private static readonly HashSet<string> NonNegative = new(StringComparer.Ordinal) { "border_size", "rounding" };
 
     public static bool TryKind(string name, out PropKind kind) => Kinds.TryGetValue(name, out kind);
@@ -156,7 +156,7 @@ internal static class WindowProps
     public static string StorageKey(string name) =>
         name.EndsWith("_override", StringComparison.Ordinal) ? name[..^"_override".Length] : name;
 
-    /// <summary>The pinned release's truthy: <c>1</c>, or text starting with <c>true</c>, <c>yes</c> or <c>on</c>.</summary>
+    /// <summary>Winland's truthy: <c>1</c>, or text starting with <c>true</c>, <c>yes</c> or <c>on</c>.</summary>
     public static bool Truthy(string text)
     {
         if (text == "1")
@@ -183,7 +183,7 @@ internal static class WindowProps
         switch (kind)
         {
             case PropKind.Bool:
-                // Toggling flips what a layer holds, or false when none holds anything, as the pinned release does.
+                // Toggling flips what a layer holds, or false when none holds anything.
                 next = text == "toggle" ? layered is not true : Truthy(text);
                 return true;
             case PropKind.Int:
@@ -221,7 +221,7 @@ internal static class WindowProps
     }
 
     /// <summary>
-    /// A border color as <c>setprop</c> reads it. With more than one token the pinned release reads from the second on,
+    /// A border color as <c>setprop</c> reads it. With more than one token Winland reads from the second on,
     /// colors and an angle; one token is a single color, and <c>-1</c> is a gradient with no colors.
     /// </summary>
     public static BorderGradient ReadGradient(string text)
@@ -253,7 +253,7 @@ internal static class WindowProps
     }
 
     /// <summary>
-    /// The pinned release's integer reading: hexadecimal after <c>0x</c>, 1 for text starting with <c>true</c>, <c>on</c>
+    /// Winland's integer reading: hexadecimal after <c>0x</c>, 1 for text starting with <c>true</c>, <c>on</c>
     /// or <c>yes</c>, 0 for <c>false</c>, <c>off</c> or <c>no</c>, and otherwise a whole number.
     /// </summary>
     public static bool TryInteger(string text, out long value)
@@ -277,7 +277,7 @@ internal static class WindowProps
     public static bool TryFloat(string text, out float value) =>
         float.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value) && float.IsFinite(value);
 
-    /// <summary>The reply of <c>getprop</c>, as plain text or as the pinned release's one-member JSON object.</summary>
+    /// <summary>The reply of <c>getprop</c>, as plain text or as Winland's one-member JSON object.</summary>
     public static string Format(string name, PropKind kind, object value, bool json, bool animationSet = true) => kind switch
     {
         PropKind.Text when !json => animationSet ? (string)value : "(unset)",

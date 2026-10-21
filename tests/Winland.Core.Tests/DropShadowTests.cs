@@ -132,7 +132,7 @@ public class DropShadowTests
         Assert.InRange(red, 1u, 254u);
         Assert.Equal(red, middle & 0xFF);
 
-        // A sharp shadow blends its first colors in plain RGB, as the pinned release does.
+        // A sharp shadow blends its first colors in plain RGB.
         Assert.Equal(0xFF808080u, PaintOne(shadow with { Sharp = true }, new GradientMotion(0, from, 0.5)));
     }
 

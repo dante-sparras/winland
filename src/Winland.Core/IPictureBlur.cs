@@ -1,6 +1,6 @@
 namespace Winland;
 
-/// <summary>Blurs one opaque picture with the pinned release's dual Kawase blur. A GPU blur and the CPU blur both implement it.</summary>
+/// <summary>Blurs one opaque picture with Winland's dual Kawase blur. A GPU blur and the CPU blur both implement it.</summary>
 public interface IPictureBlur
 {
     /// <summary>

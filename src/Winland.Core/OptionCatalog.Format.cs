@@ -55,7 +55,7 @@ internal static partial class OptionCatalog
         public string[]? Choices { get; init; }
     }
 
-    private readonly record struct Resolved(bool Set, string Descriptions, string Option);
+    private readonly record struct Resolved(bool Set, string Option);
 
     private static readonly Dictionary<string, CatalogOption> ByName;
 
@@ -64,7 +64,6 @@ internal static partial class OptionCatalog
         ("thin", 100),
         ("ultralight", 200),
         ("light", 300),
-        ("semilight", 350),
         ("book", 380),
         ("normal", 400),
         ("medium", 500),
@@ -157,28 +156,6 @@ internal static partial class OptionCatalog
     private static CatalogOption Weight(string name, string description, long value = 400) =>
         new(name, description, CatalogKind.Weight) { Integer = value };
 
-    internal static bool Contains(string keyword) => ByName.ContainsKey(keyword);
-
-    /// <summary>
-    /// Every option the pinned release has, in its order, with the default and the current value written as that
-    /// release writes the type.
-    /// </summary>
-    public static string Descriptions(ConfigDocument? config)
-    {
-        var document = config ?? Empty;
-        var entries = new string[Table.Length];
-        for (var i = 0; i < Table.Length; i++)
-        {
-            var spec = Table[i];
-            var current = TryValue(spec.Name, document, out var kind, out var token)
-                ? Adapt(spec, kind, token)
-                : Resolve(spec, document).Descriptions;
-            entries[i] = Entry(spec, current);
-        }
-
-        return "[" + string.Join(',', entries) + "]";
-    }
-
     public static string Describe(string name, ConfigDocument? config)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -193,77 +170,26 @@ internal static partial class OptionCatalog
         return ReferenceJson(name, OptionKey(spec.Kind), resolved.Option, resolved.Set);
     }
 
-    private static string Entry(CatalogOption spec, string current)
-    {
-        var json = "{\"name\":" + JsonSerializer.Serialize(spec.Name)
-            + ",\"description\":" + JsonSerializer.Serialize(spec.Description)
-            + ",\"default\":" + DefaultToken(spec)
-            + ",\"current\":" + current;
-        if (spec.Kind is CatalogKind.Int)
-            json += ",\"min\":" + Optional(spec.HasMin, spec.Min) + ",\"max\":" + Optional(spec.HasMax, spec.Max) + ",\"map\":" + MapJson(spec);
-        else if (spec.Kind is CatalogKind.Float)
-            json += ",\"min\":" + Optional(spec.HasMin, spec.MinF) + ",\"max\":" + Optional(spec.HasMax, spec.MaxF);
-        else if (spec.Kind is CatalogKind.Css)
-            json += ",\"min\":" + Optional(spec.HasMin, spec.Min) + ",\"max\":" + Optional(spec.HasMax, spec.Max);
-
-        return json + "}";
-    }
-
-    private static string MapJson(CatalogOption spec)
-    {
-        if (spec.Map is null)
-            return "null";
-
-        var parts = new string[spec.Map.Length];
-        for (var i = 0; i < spec.Map.Length; i++)
-        {
-            var (key, value) = spec.Map[i];
-            parts[i] = "{ " + JsonSerializer.Serialize(key) + ": " + Integer(value) + " }";
-        }
-
-        return "[" + string.Join(',', parts) + "]";
-    }
-
-    private static string Optional(bool present, long value) => present ? Integer(value) : "null";
-
-    private static string Optional(bool present, float value) => present ? FormatGeneral(value) : "null";
-
-    // A keyword Winland stored is set even when the value does not apply, and a number outside its range is clamped,
-    // as Winland reads it. A keyword Winland does not read is set only when the value parses, and a number outside
-    // its range is left unchanged.
+    // A stored keyword is set even when the value does not apply. A number outside its range is clamped.
     private static Resolved Resolve(CatalogOption spec, ConfigDocument document)
     {
         var set = false;
-        var descriptions = DefaultToken(spec);
         var option = DefaultOption(spec);
-        Visit(document.Settings, clamp: true);
-        Visit(document.Recorded, clamp: false);
-        return new Resolved(set, descriptions, option);
-
-        void Visit(IReadOnlyList<Setting> rows, bool clamp)
+        foreach (var row in document.Settings)
         {
-            foreach (var row in rows)
-            {
-                if (row.Keyword != spec.Name)
-                    continue;
+            if (row.Keyword != spec.Name)
+                continue;
 
-                if (TryAccept(spec, row.Value, clamp, out var nextDescriptions, out var nextOption))
-                {
-                    set = true;
-                    descriptions = nextDescriptions;
-                    option = nextOption;
-                }
-                else if (clamp)
-                {
-                    set = true;
-                }
-            }
+            set = true;
+            if (TryAccept(spec, row.Value, out var nextOption))
+                option = nextOption;
         }
+
+        return new Resolved(set, option);
     }
 
-    private static bool TryAccept(CatalogOption spec, string text, bool clamp, out string descriptions, out string option)
+    private static bool TryAccept(CatalogOption spec, string text, out string option)
     {
-        descriptions = "";
         option = "";
         switch (spec.Kind)
         {
@@ -271,66 +197,59 @@ internal static partial class OptionCatalog
                 if (!ConfigValueSyntax.TryParseBool(text, out var flag))
                     return false;
 
-                descriptions = option = flag ? "true" : "false";
+                option = flag ? "true" : "false";
                 return true;
             case CatalogKind.Int:
-                if (!TryInt(spec, text, clamp, out var number))
+                if (!TryInt(spec, text, out var number))
                     return false;
 
-                descriptions = option = Integer(number);
+                option = Integer(number);
                 return true;
             case CatalogKind.Float:
-                if (!TryFloat(spec, text, clamp, out var numberF))
+                if (!TryFloat(spec, text, out var numberF))
                     return false;
 
-                descriptions = FormatGeneral(numberF);
                 option = Fixed6(numberF);
                 return true;
             case CatalogKind.String:
-                if (!clamp && spec.Choices is not null && !spec.Choices.Contains(text, StringComparer.Ordinal))
-                    return false;
-
-                descriptions = option = Quote(text);
+                option = Quote(text);
                 return true;
             case CatalogKind.Vec2:
-                if (!TryVec(spec, text, clamp, out var x, out var y))
+                if (!TryVec(spec, text, out var x, out var y))
                     return false;
 
-                descriptions = "[" + FormatGeneral(x) + ", " + FormatGeneral(y) + "]";
                 option = "[" + FormatGeneral(x) + "," + FormatGeneral(y) + "]";
                 return true;
             case CatalogKind.Css:
-                if (!TryCss(spec, text, clamp, out var css))
+                if (!TryCss(spec, text, out var css))
                     return false;
 
-                descriptions = option = Quote(css);
+                option = Quote(css);
                 return true;
             case CatalogKind.Color:
                 if (!TryParseColor(text, out var parsed))
                     return false;
 
-                var stored = (long)GetAsHex(unchecked((ulong)parsed));
-                descriptions = Quote(stored.ToString("x", CultureInfo.InvariantCulture));
-                option = Integer(stored);
+                option = Integer((long)GetAsHex(unchecked((ulong)parsed)));
                 return true;
             case CatalogKind.Gradient:
                 if (!TryParseGradient(text, out var gradient))
                     return false;
 
-                descriptions = option = Quote(gradient);
+                option = Quote(gradient);
                 return true;
             case CatalogKind.Weight:
-                if (!TryWeight(text, clamp, out var weight))
+                if (!TryWeight(text, out var weight))
                     return false;
 
-                descriptions = option = Quote(Integer(weight));
+                option = Quote(Integer(weight));
                 return true;
             default:
                 return false;
         }
     }
 
-    private static bool TryInt(CatalogOption spec, string text, bool clamp, out long value)
+    private static bool TryInt(CatalogOption spec, string text, out long value)
     {
         if (spec.Map is not null)
         {
@@ -359,41 +278,30 @@ internal static partial class OptionCatalog
             return false;
         }
 
-        if (clamp)
-        {
-            if (spec.HasMin && value < spec.Min)
-                value = spec.Min;
-            if (spec.HasMax && value > spec.Max)
-                value = spec.Max;
-            return true;
-        }
-
-        return (!spec.HasMin || value >= spec.Min) && (!spec.HasMax || value <= spec.Max);
+        if (spec.HasMin && value < spec.Min)
+            value = spec.Min;
+        if (spec.HasMax && value > spec.Max)
+            value = spec.Max;
+        return true;
     }
 
-    private static bool TryFloat(CatalogOption spec, string text, bool clamp, out float value)
+    private static bool TryFloat(CatalogOption spec, string text, out float value)
     {
         if (!float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) || !float.IsFinite(value))
             return false;
 
-        if (clamp)
-        {
-            if (spec.HasMin && value < spec.MinF)
-                value = spec.MinF;
-            if (spec.HasMax && value > spec.MaxF)
-                value = spec.MaxF;
-            return true;
-        }
-
-        return (!spec.HasMin || value >= spec.MinF) && (!spec.HasMax || value <= spec.MaxF);
+        if (spec.HasMin && value < spec.MinF)
+            value = spec.MinF;
+        if (spec.HasMax && value > spec.MaxF)
+            value = spec.MaxF;
+        return true;
     }
 
-    private static bool TryVec(CatalogOption spec, string text, bool clamp, out float x, out float y)
+    private static bool TryVec(CatalogOption spec, string text, out float x, out float y)
     {
         x = 0;
         y = 0;
-        var source = clamp ? text : text.Replace(',', ' ');
-        var parts = source.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
+        var parts = text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length != 2
             || !float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out x)
             || !float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out y)
@@ -404,17 +312,12 @@ internal static partial class OptionCatalog
         if (!spec.HasVec)
             return true;
 
-        if (clamp)
-        {
-            x = Math.Clamp(x, spec.VecMinX, spec.VecMaxX);
-            y = Math.Clamp(y, spec.VecMinY, spec.VecMaxY);
-            return true;
-        }
-
-        return x >= spec.VecMinX && x <= spec.VecMaxX && y >= spec.VecMinY && y <= spec.VecMaxY;
+        x = Math.Clamp(x, spec.VecMinX, spec.VecMaxX);
+        y = Math.Clamp(y, spec.VecMinY, spec.VecMaxY);
+        return true;
     }
 
-    private static bool TryCss(CatalogOption spec, string text, bool clamp, out string rendered)
+    private static bool TryCss(CatalogOption spec, string text, out string rendered)
     {
         rendered = "";
         var parts = text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
@@ -433,39 +336,31 @@ internal static partial class OptionCatalog
         var right = count > 1 ? edges[1] : top;
         var bottom = count > 2 ? edges[2] : top;
         var left = count > 3 ? edges[3] : right;
-        if (!FitEdge(spec, clamp, ref top) || !FitEdge(spec, clamp, ref right) || !FitEdge(spec, clamp, ref bottom) || !FitEdge(spec, clamp, ref left))
-            return false;
+        FitEdge(spec, ref top);
+        FitEdge(spec, ref right);
+        FitEdge(spec, ref bottom);
+        FitEdge(spec, ref left);
 
         rendered = Integer(top) + " " + Integer(right) + " " + Integer(bottom) + " " + Integer(left);
         return true;
     }
 
-    private static bool FitEdge(CatalogOption spec, bool clamp, ref long edge)
+    private static void FitEdge(CatalogOption spec, ref long edge)
     {
-        if (clamp)
-        {
-            if (spec.HasMin && edge < spec.Min)
-                edge = spec.Min;
-            if (spec.HasMax && edge > spec.Max)
-                edge = spec.Max;
-            return true;
-        }
-
-        return (!spec.HasMin || edge >= spec.Min) && (!spec.HasMax || edge <= spec.Max);
+        if (spec.HasMin && edge < spec.Min)
+            edge = spec.Min;
+        if (spec.HasMax && edge > spec.Max)
+            edge = spec.Max;
     }
 
-    // Winland's names omit semilight, and a number it reads is clamped to 100..1000. An option it does not read
-    // takes the pinned release's names and any weight that is not negative.
-    private static bool TryWeight(string text, bool clamp, out long value)
+    // Names omit semilight. A number is clamped to 100..1000.
+    private static bool TryWeight(string text, out long value)
     {
         var name = text.Trim().ToLowerInvariant();
         foreach (var (key, weight) in Weights)
         {
             if (key != name)
                 continue;
-
-            if (clamp && key == "semilight")
-                break;
 
             value = weight;
             return true;
@@ -474,13 +369,8 @@ internal static partial class OptionCatalog
         if (!long.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value))
             return false;
 
-        if (clamp)
-        {
-            value = Math.Clamp(value, 100, 1000);
-            return true;
-        }
-
-        return value >= 0;
+        value = Math.Clamp(value, 100, 1000);
+        return true;
     }
 
     private static bool TryParseGradient(string text, out string rendered)
@@ -662,7 +552,7 @@ internal static partial class OptionCatalog
         return count;
     }
 
-    // The same rounding as the pinned release: each channel is a float division by 255, times 255, truncated toward zero.
+    // Each channel is a float division by 255, times 255, truncated toward zero.
     private static uint GetAsHex(ulong bits)
     {
         static uint Channel(ulong value, int shift)
@@ -705,23 +595,6 @@ internal static partial class OptionCatalog
     private static string GradientDefault(long packed) =>
         GetAsHex(unchecked((ulong)packed)).ToString("x", CultureInfo.InvariantCulture) + " 0deg";
 
-    private static string Adapt(CatalogOption spec, string kind, string token)
-    {
-        if (spec.Kind == CatalogKind.Gradient && kind == "str")
-        {
-            var text = JsonSerializer.Deserialize<string>(token);
-            if (text is not null
-                && text.StartsWith("0x", StringComparison.Ordinal)
-                && TryHex(text, out var bits))
-                return Quote(GetAsHex(bits).ToString("x", CultureInfo.InvariantCulture) + " 0deg");
-        }
-
-        if (spec.Kind == CatalogKind.Vec2 && kind == "vec2")
-            return token.Replace(",", ", ", StringComparison.Ordinal);
-
-        return token;
-    }
-
     private static string OptionKey(CatalogKind kind) => kind switch
     {
         CatalogKind.Bool => "bool",
@@ -731,8 +604,6 @@ internal static partial class OptionCatalog
         CatalogKind.Vec2 => "vec2",
         CatalogKind.Css => "css",
         CatalogKind.Gradient => "gradient",
-        // The pinned release reports this value's type as the complex-value pointer, so its getoption falls through
-        // to an internal error. The value is a font weight, and that is what Winland answers.
         CatalogKind.Weight => "font_weight",
         _ => "custom",
     };

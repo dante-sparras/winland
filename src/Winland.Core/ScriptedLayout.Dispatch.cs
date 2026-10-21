@@ -2,7 +2,7 @@ using static Winland.OrdinalText;
 
 namespace Winland;
 
-// What the dispatchers do in a script's Layout, as the pinned release's Lua layouts do: focus moves to the tile beside
+// What the dispatchers do in a script's Layout, as Winland's Lua layouts do: focus moves to the tile beside
 // by geometry, movewindow and swapwindow exchange places in the order the script reads, and layoutmsg goes to the
 // script's layout_msg. A floating Client moves, resizes and is dragged as in every Layout.
 internal sealed partial class ScriptedLayout : IMouseDragHost, IDragOwner
@@ -48,12 +48,12 @@ internal sealed partial class ScriptedLayout : IMouseDragHost, IDragOwner
     private WindowId? Neighbor(Rectangle origin, Side side, WindowId except, bool floating) =>
         DirectionalNeighbor.Find(_clients, origin, side, except, floating, (WindowId window, out Rectangle box) => TryGeometry(window, out box, out _), _recency);
 
-    // The tile after the one that closed is the last one in the order, as the pinned release picks it.
+    // The tile after the one that closed is the last one in the order, as Winland picks it.
     public WindowId? FocusAfterClose() => _order.Count == 0 ? null : new WindowId(_order[^1].Value);
 
     /// <summary>
     /// A tile moves one place back in the order for left and up and one place on for right and down, and stays at either
-    /// end, as the pinned release moves a target of a Lua layout. Its box goes with it until the script answers.
+    /// end, as Winland moves a target of a Lua layout. Its box goes with it until the script answers.
     /// </summary>
     public IReadOnlyList<Placement> MoveWindow(WindowId window, string arguments)
     {
@@ -160,7 +160,7 @@ internal sealed partial class ScriptedLayout : IMouseDragHost, IDragOwner
         return true;
     }
 
-    // A tile keeps the box the script gave it, as the pinned release only lays a Lua layout out again.
+    // A tile keeps the box the script gave it, as Winland only lays a Lua layout out again.
     IReadOnlyList<Placement> IMouseDragHost.ResizeTile(ClientId id, int dx, int dy, (bool Left, bool Top) corner) => [];
 
     // A tile dropped back joins the end of the order, as a target moved into a Lua layout does.
@@ -193,7 +193,7 @@ internal sealed partial class ScriptedLayout : IMouseDragHost, IDragOwner
         return true;
     }
 
-    // A direction by its word or its first letter, as the pinned release reads one.
+    // A direction by its word or its first letter, as Winland reads one.
     private static bool TrySide(string text, out Side side)
     {
         side = default;

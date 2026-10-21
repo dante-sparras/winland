@@ -293,7 +293,7 @@ public sealed record DecorationOptions
         return true;
     }
 
-    // Each axis from -250 to 250, as the pinned release's validator allows.
+    // Each axis from -250 to 250, as Winland's validator allows.
     private static bool TryParseOffset(string text, out Vec2 offset)
     {
         offset = default;

@@ -188,7 +188,7 @@ internal sealed partial class ScrollingLayout
             return next is not null;
         }
 
-        // movefocus scrolls to the column only with scrolling:follow_focus, as in the pinned release. layoutmsg focus always does.
+        // movefocus scrolls to the column only with scrolling:follow_focus. layoutmsg focus always does.
         if (wrap || _scrolling.FollowFocus)
         {
             CenterOrFit(neighbor);

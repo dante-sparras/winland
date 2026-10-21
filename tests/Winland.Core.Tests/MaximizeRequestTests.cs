@@ -2,7 +2,7 @@ using Winland;
 
 namespace Winland.Tests;
 
-/// <summary>An application's maximize request is maximize mode 1, as in the pinned release. Asking again leaves it.</summary>
+/// <summary>An application's maximize request is maximize mode 1. Asking again leaves it.</summary>
 public class MaximizeRequestTests
 {
     private static readonly Rectangle Wide = new(0, 0, 1920, 1080);

@@ -1,7 +1,7 @@
 namespace Winland.Windows;
 
 /// <summary>
-/// Draws each Client's inner glow, as the pinned release draws it, when the config turns it on. The glow is four
+/// Draws each Client's inner glow, as Winland draws it, when the config turns it on. The glow is four
 /// click-through layered strips along the inside of the window's edge, kept just above the Client in the z-order, so the
 /// middle of the window is not covered.
 /// </summary>

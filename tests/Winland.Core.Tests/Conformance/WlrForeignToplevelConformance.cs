@@ -1,7 +1,7 @@
 namespace Winland.Tests.Conformance;
 
 /// <summary>
-/// The pinned release's foreign toplevel case. A taskbar asks to minimize a window and to restore it, and a handler
+/// Winland's foreign toplevel case. A taskbar asks to minimize a window and to restore it, and a handler
 /// records each minimize event. On Windows the taskbar does that itself, and Winland hears the window minimized and
 /// restored. The handler is a Lua hook in the reference, and the stream's <c>minimized</c> events here.
 /// </summary>

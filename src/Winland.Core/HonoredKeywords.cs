@@ -5,8 +5,7 @@ namespace Winland;
 internal static class HonoredKeywords
 {
     /// <summary>
-    /// Options the pinned release defines and never reads, so they change nothing there either. They are read and
-    /// change nothing here, without a warning.
+    /// Options that are read and change nothing, without a warning.
     /// </summary>
     internal static IReadOnlyList<string> Inert { get; } =
     [

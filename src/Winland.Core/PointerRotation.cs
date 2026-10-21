@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// <c>input:rotation</c>: the mouse's motion turns clockwise by that many degrees, as the pinned release rotates a
+/// <c>input:rotation</c>: the mouse's motion turns clockwise by that many degrees, as Winland rotates a
 /// pointer device. What rounding leaves of each move is kept for the next, so slow moves are not lost. Used on the hook
 /// thread.
 /// </summary>

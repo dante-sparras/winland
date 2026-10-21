@@ -4,7 +4,7 @@ using System.Text;
 namespace Winland;
 
 /// <summary>
-/// The error bar <c>seterror</c> and a config with errors show, as the pinned release draws it: a strip across the top
+/// The error bar <c>seterror</c> and a config with errors show, as Winland draws it: a strip across the top
 /// or bottom of the focused Monitor, in pixels, holding up to <c>debug:error_limit</c> lines of the message. Its height
 /// is kept out of that Monitor's work area.
 /// </summary>
@@ -16,10 +16,10 @@ public sealed record ErrorBar(Rectangle Bounds, string Text, BorderColor Color, 
 
 public sealed partial class Core
 {
-    // The most lines of errors the message holds before it gives up, as the pinned release's config reload counts them.
+    // The most lines of errors the message holds before it gives up, as Winland's config reload counts them.
     private const int ConfigErrorLines = 15;
 
-    // The pinned release's error color, the first of its error gradient.
+    // Winland's error color, the first of its error gradient.
     private static readonly BorderColor ConfigErrorColor = new(0xFF, 0xFF, 0x66, 0x66);
 
     private (string Text, BorderColor Color)? _error;
@@ -28,7 +28,7 @@ public sealed partial class Core
     /// <summary>The <c>debug</c> options of the config read last, which say where Winland's log goes.</summary>
     public DebugOptions Debug => _debug;
 
-    // seterror COLOR MESSAGE shows the bar, and seterror alone or seterror disable takes it away, as in the pinned release.
+    // seterror COLOR MESSAGE shows the bar, and seterror alone or seterror disable takes it away.
     private CommandReply SetError(SetErrorRequest request)
     {
         var words = request.Arguments.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -45,11 +45,11 @@ public sealed partial class Core
     }
 
     // A config read or reloaded with errors shows them in the bar, unless debug:suppress_errors is set, and one without
-    // takes the bar away, a seterror one too, as the pinned release does after it reads its config. A notice that a
-    // keyword or feature is a Gap is not an error there, so it is only logged.
+    // takes the bar away, a seterror one too. An unknown keyword is shown. A warning that a feature is not
+    // honored, has no Windows meaning, or is a window rule Winland does not apply is only logged.
     private void ShowConfigErrors(ConfigDocument document)
     {
-        var errors = document.Warnings.Where(warning => !ConfigWarnings.IsGapNotice(warning.Message)).ToList();
+        var errors = document.Warnings.Where(warning => !ConfigWarnings.SkipsTheErrorBar(warning.Message)).ToList();
         if (errors.Count == 0 || _debug.SuppressErrors)
         {
             _error = null;
@@ -135,7 +135,7 @@ public sealed partial class Core
     /// <summary>The height of one line of bar text, in pixels.</summary>
     public static int ErrorLineHeight(int fontSize) => (int)Math.Ceiling(fontSize * 1.35);
 
-    // The first lines of the message, and how many more there are, as the pinned release cuts a long error. A limit of 0
+    // The first lines of the message, and how many more there are, as Winland cuts a long error. A limit of 0
     // leaves only the count.
     private static string VisibleErrorText(string text, int limit)
     {

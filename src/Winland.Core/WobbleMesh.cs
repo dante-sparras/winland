@@ -34,7 +34,7 @@ internal readonly record struct MeshVertex(float X, float Y, float U, float V);
 
 /// <summary>
 /// The wobble of a window: a grid of points, each pushed by the window's motion against its direction and pulled back
-/// to rest by a spring. It is the pinned release's deformable mesh.
+/// to rest by a spring. It is Winland's deformable mesh.
 /// </summary>
 internal sealed class WobbleMesh
 {

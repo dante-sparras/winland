@@ -78,7 +78,7 @@ internal static class WorkspaceAddress
         if (text.Contains('[', StringComparison.Ordinal) || text.Contains(']', StringComparison.Ordinal))
             return false;
 
-        // As the pinned release's resolver reads it, text whose offset is not a number names a Workspace.
+        // As Winland's resolver reads it, text whose offset is not a number names a Workspace.
         if (text.Length > 2 && text[0] is 'r' or 'm' or 'e' && text[1] is '+' or '-' or '~' && IsSignedNumber(text[2..]))
             return TrySelector(text, context, out id);
 

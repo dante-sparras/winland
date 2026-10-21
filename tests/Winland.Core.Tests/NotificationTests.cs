@@ -80,7 +80,7 @@ public class NotificationTests
         Assert.Equal(pixels, NotificationFrames.FontPixels(fontSize, width, scale));
 
     [Fact]
-    // As in the pinned release, a pause reads its elapsed time after the lock is taken, so it holds 0 and a resume
+    // a pause reads its elapsed time after the lock is taken, so it holds 0 and a resume
     // starts the timeout again.
     public void APauseHoldsZeroAndAResumeStartsTheTimeoutAgain()
     {

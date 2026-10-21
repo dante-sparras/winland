@@ -1,10 +1,10 @@
 # Keys
 
-How Winland names keys: the XKB keycode, the Windows scan code and the evdev code of each key a bind can name. A keyword Winland does not honor is in [gaps.md](gaps.md), honored behavior is in [behavior.md](behavior.md), and terms are defined in [CONTEXT.md](../CONTEXT.md).
+How Winland names keys: the XKB keycode, the Windows scan code and the evdev code of each key a bind can name. Honored behavior is in [behavior.md](behavior.md), and terms are defined in [CONTEXT.md](../CONTEXT.md).
 
 ## Winland notes
 
-`code:N` is the XKB keycode, which is the evdev keycode plus 8. It names a physical key, so it does not follow the active layout. A bare number above 9 in a bind is the same keycode, so `bind = SUPER, 36, exec, kitty` is `code:36`, as in the pinned release. `0` to `9` are the digit keys. A config is resolved when it is read. Character names such as `├ñ` and `adiaeresis` follow the layout that is active when the key is pressed. A virtual-key alias such as `bracketleft` is resolved against the layout active when the config is read.
+`code:N` is the XKB keycode, which is the evdev keycode plus 8. It names a physical key, so it does not follow the active layout. A bare number above 9 in a bind is the same keycode, so `bind = SUPER, 36, exec, kitty` is `code:36`. `0` to `9` are the digit keys. A config is resolved when it is read. Character names such as `├ñ` and `adiaeresis` follow the layout that is active when the key is pressed. A virtual-key alias such as `bracketleft` is resolved against the layout active when the config is read.
 
 Windows scan codes below are set 1. Extended means the extended-key flag. Pause uses the same scan as num lock; the virtual key tells them apart. The synthetic left control of an AltGr press (scan `0x21D`, or left control with the extended flag) is not a key in this table.
 

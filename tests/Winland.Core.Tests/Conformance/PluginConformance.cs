@@ -1,7 +1,7 @@
 namespace Winland.Tests.Conformance;
 
 /// <summary>
-/// The pinned release's plugin case. Its test plugin registers a function, and the case calls it over the socket and
+/// Winland's plugin case. Its test plugin registers a function, and the case calls it over the socket and
 /// expects <c>ok</c>. A Winland plugin registers a dispatcher, which the core runs through the same path as a
 /// built-in one. Loading and approving the assembly is covered by the plugin tests.
 /// </summary>

@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// A Client the system moves by its title bar. The pinned release treats the move request of a client like a
+/// A Client the system moves by its title bar. Winland treats the move request of a client like a
 /// <c>movewindow</c> drag: a tiled Client is lifted out of the Layout, follows the pointer, and is
 /// dropped back in where the pointer ends. Here the system moves the window itself, so the core lifts
 /// it and drops it but never places it in between. A floating Client stays where the system leaves it.
@@ -64,7 +64,7 @@ public sealed partial class Core
         return View(dropped.Count > 0 ? dropped : layout.Placed());
     }
 
-    // Taking a floating Client that is maximized or fullscreen leaves that mode, as a drag in the pinned release
+    // Taking a floating Client that is maximized or fullscreen leaves that mode, as a drag in Winland
     // does. The system already moves the window, so it is not placed, and the other windows are.
     private Outcome BeginNativeFloating(LiveWorkspace desk, Client client)
     {
@@ -77,7 +77,7 @@ public sealed partial class Core
         return Present(desk, covered, [.. placements.Where(placement => placement.Client != client.Id)]);
     }
 
-    // Records where the system has the floating Client now, as the pinned release's own drag puts it there.
+    // Records where the system has the floating Client now, as Winland's own drag puts it there.
     private Outcome FollowNativeFloating(WindowId window, Rectangle? bounds, bool done)
     {
         if (done)

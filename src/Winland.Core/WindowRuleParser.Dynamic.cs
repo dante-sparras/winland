@@ -4,7 +4,7 @@ namespace Winland;
 
 internal static partial class WindowRuleParser
 {
-    // The matches on a window's state, by the pinned release's names and the older names a line config still uses.
+    // The matches on a window's state, by Winland's names and the older names a line config still uses.
     private static readonly Dictionary<string, RuleMatchKind> DynamicKeys = new(StringComparer.Ordinal)
     {
         ["float"] = RuleMatchKind.Float,
@@ -57,7 +57,7 @@ internal static partial class WindowRuleParser
                 RuleMatchKind.FullscreenStateClient => LeadingInteger(match.Value) == state.FullscreenClient,
                 RuleMatchKind.Workspace => state.OnWorkspace(match.Value),
                 RuleMatchKind.Tag => state.Tagged(match.Value),
-                // As the pinned release reads it, the pattern matches the type's number or its name.
+                // As Winland reads it, the pattern matches the type's number or its name.
                 RuleMatchKind.Content => Matches(match.Value, state.Content.ToString(CultureInfo.InvariantCulture))
                     || Matches(match.Value, ContentTypes.Name(state.Content)),
                 _ => false,
@@ -71,7 +71,7 @@ internal static partial class WindowRuleParser
     }
 
     // A border_color rule that matches on focus gives its one gradient to the border that focus shows, as in the
-    // pinned release: focus:1 with only an inactive color colors the active border, focus:0 with only an active
+    // Winland: focus:1 with only an inactive color colors the active border, focus:0 with only an active
     // color the inactive one.
     private static void FocusBorderColor(WindowRule rule, Dictionary<string, object> props)
     {
@@ -109,7 +109,7 @@ internal static partial class WindowRuleParser
     internal static bool ReadsState(WindowRule rule) =>
         rule.Active && rule.Edit == WindowRuleEdit.None && (rule.Dynamic is { Count: > 0 } || rule.Effect == WindowRuleEffect.Tag);
 
-    /// <summary>True when the rule's effect is one the pinned release applies again while the window lives.</summary>
+    /// <summary>True when the rule's effect is one Winland applies again while the window lives.</summary>
     internal static bool IsDynamicEffect(WindowRule rule) => rule.Effect is WindowRuleEffect.Prop
         or WindowRuleEffect.NoFocus
         or WindowRuleEffect.StayFocused

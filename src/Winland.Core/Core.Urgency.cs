@@ -32,7 +32,7 @@ public sealed partial class Core
         return FocusClient(target, name, allowsElevation);
     }
 
-    // focuscurrentorlast focuses the Client focused before the newest one in the focus history, as the pinned release does.
+    // focuscurrentorlast focuses the Client focused before the newest one in the focus history.
     private Outcome FocusCurrentOrLast(bool allowsElevation)
     {
         const string name = "focuscurrentorlast";
@@ -54,7 +54,7 @@ public sealed partial class Core
         return null;
     }
 
-    // The Client the pinned release takes from its focus history, which it reads from the oldest end: with a Client
+    // The Client Winland takes from its focus history, which it reads from the oldest end: with a Client
     // focused the second oldest, and with none the oldest. That is the one focused before the current one only while
     // two Clients have been focused.
     private WindowId? LastClient()

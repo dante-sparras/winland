@@ -2,7 +2,7 @@ using Winland;
 
 namespace Winland.Tests;
 
-/// <summary>A touchpad pinch picks and drives a gesture as the pinned release matches it.</summary>
+/// <summary>A touchpad pinch picks and drives a gesture as Winland matches it.</summary>
 public class PinchTests
 {
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);

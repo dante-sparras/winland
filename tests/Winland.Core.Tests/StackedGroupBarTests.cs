@@ -44,7 +44,7 @@ public class StackedGroupBarTests
     [Fact]
     public void ClicksPickTheRowPastItsTopGap()
     {
-        // The pinned release's row: ((59 - 2) - 2 * 3) / 3 = 17, plus gaps_out, is 19.
+        // Winland's row: ((59 - 2) - 2 * 3) / 3 = 17, plus gaps_out, is 19.
         var bar = Bar(Stacked, 59);
 
         Assert.Equal(-1, bar.TabAt(10, 1));

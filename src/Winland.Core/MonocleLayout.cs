@@ -289,7 +289,7 @@ internal sealed partial class MonocleLayout : Layout
         return Window(_tiled[(((_visible + delta) % count) + count) % count]);
     }
 
-    // The shown tile takes the focus when the focused Client closes, as the pinned release's monocle picks it.
+    // The shown tile takes the focus when the focused Client closes, as Winland's monocle picks it.
     public WindowId? FocusAfterClose() => VisibleTiled() is ClientId shown ? Window(shown) : null;
 
     public void NoteFocus(WindowId window)
@@ -404,7 +404,7 @@ internal sealed partial class MonocleLayout : Layout
             return true;
         }
 
-        // As in the pinned release, the Client focused most recently is shown in its place, else the next one.
+        // the Client focused most recently is shown in its place, else the next one.
         if (shown)
             _visible = MostRecentTiled() ?? index % _tiled.Count;
         else if (index < _visible)

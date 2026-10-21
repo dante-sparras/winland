@@ -3,7 +3,7 @@ using System.Globalization;
 namespace Winland;
 
 // groupadd and groupremove on the pipe: a window put into a given Group at a given place, or taken out of its Group, as
-// the pinned release's Lua group objects do. Neither is a dispatcher, so the Lua config reaches them as pipe commands.
+// Winland's Lua group objects do. Neither is a dispatcher, so the Lua config reaches them as pipe commands.
 public sealed partial class Core
 {
     /// <summary>
@@ -80,7 +80,7 @@ public sealed partial class Core
         CommandReply Refuse(string error) => new(error, View([]) with { Error = error });
     }
 
-    // The pinned release's canBeGroupedInto for a window that is already mapped: no lock on groups, on the Group or on the
+    // Winland's canBeGroupedInto for a window that is already mapped: no lock on groups, on the Group or on the
     // window's own Group, and no group rule that denies it.
     private bool CanBeGroupedInto(WindowId window, WindowGroup? own, WindowGroup target) =>
         !_groupsLocked
@@ -89,7 +89,7 @@ public sealed partial class Core
         && !RulesOf(window).HasFlag(GroupRuleFlags.Deny);
 
     // One window into the Group, out of its own Group or tile, shown in the Group's tile. Its own fullscreen ends, and the
-    // Group's fullscreen goes to it with the tile, as in the pinned release.
+    // Group's fullscreen goes to it with the tile.
     private void AddOne(WindowGroup group, LiveWorkspace there, LiveWorkspace source, WindowId window, int? index)
     {
         if (source.ClientOf(window) is { Fullscreen: not FullscreenMode.None } && !source.IsWaiting(window))
@@ -108,7 +108,7 @@ public sealed partial class Core
         _ = there.Show(group, position);
     }
 
-    // The focus after the focused window left for the Group or was hidden in it. The pinned release clears the keyboard
+    // The focus after the focused window left for the Group or was hidden in it. Winland clears the keyboard
     // focus when that window is a hidden member, because hiding it blocks its input. A hidden member is hidden with
     // SW_HIDE, which activates another window, and putting the foreground back on it would send keystrokes to a window
     // that is not visible, so on a Workspace that shows the shown member takes the focus, on its Monitor. Otherwise the

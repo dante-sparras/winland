@@ -69,7 +69,7 @@ public sealed partial class Core
     }
 
     // A floating Client whose middle is off the Monitor a special workspace opens on is brought onto it, as in the
-    // pinned release: by the offset between the Monitors when its middle is on another one, else to the middle.
+    // Winland: by the offset between the Monitors when its middle is on another one, else to the middle.
     private void BringFloatingOnto(LiveWorkspace desk, MonitorId monitor)
     {
         if (MonitorById(monitor) is not { Effective.Enabled: true } screen)
@@ -99,7 +99,7 @@ public sealed partial class Core
         }
     }
 
-    // Edges count as inside, as the pinned release tests a point against a Monitor.
+    // Edges count as inside, as Winland tests a point against a Monitor.
     private static bool Holds(Rectangle bounds, Point point) =>
         point.X >= bounds.X && point.X <= bounds.X + bounds.Width && point.Y >= bounds.Y && point.Y <= bounds.Y + bounds.Height;
 
@@ -289,7 +289,7 @@ public sealed partial class Core
             Refit(desk);
 
             // A special workspace that was shown is shown on the Monitor that takes it, in place of the one
-            // shown there, as in the pinned release.
+            // shown there.
             if (shown)
                 SetSpecial(home.Id, desk.Id);
         }

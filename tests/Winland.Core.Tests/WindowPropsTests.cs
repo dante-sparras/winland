@@ -25,7 +25,7 @@ public class WindowPropsTests
         Assert.Equal("ee33ccff ee00ff99 45deg", gradient.ToString());
         Assert.Equal("ffabcdef 0deg", WindowProps.ReadGradient("rgb(abcdef)").ToString());
         Assert.Equal("0deg", WindowProps.ReadGradient("-1").ToString());
-        // Past one token the pinned release reads from the second on.
+        // Past one token Winland reads from the second on.
         Assert.Equal("ff00ff00 90deg", WindowProps.ReadGradient("rgb(ff0000) rgb(00ff00) 90deg").ToString());
     }
 

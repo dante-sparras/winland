@@ -1,8 +1,8 @@
 namespace Winland.Tests.Conformance;
 
 /// <summary>
-/// The pinned release's activation case. One client opens a source and a target window, and the source asks for the
-/// target to be activated with a token. The pinned release honors only a token made from a fresh input serial. On
+/// Winland's activation case. One client opens a source and a target window, and the source asks for the
+/// target to be activated with a token. Winland honors only a token made from a fresh input serial. On
 /// Windows the source holds the foreground, so the system lets it hand the foreground to the target with or without
 /// input: Winland hears the target take it, after a click as a user's change and otherwise as an activation.
 /// </summary>

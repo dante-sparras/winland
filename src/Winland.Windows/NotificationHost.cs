@@ -8,7 +8,7 @@ using Windows.Win32.UI.WindowsAndMessaging;
 namespace Winland.Windows;
 
 /// <summary>
-/// Draws the <c>notify</c> notifications as the pinned release does: a stack of black cards at the top right of the
+/// Draws the <c>notify</c> notifications as Winland does: a stack of black cards at the top right of the
 /// work area, each with a strip and a progress line in its color, sliding in and out. One click-through layered window
 /// on its own thread holds the stack, and it goes away with this process.
 /// </summary>
@@ -295,7 +295,7 @@ internal static class NotificationHost
         return new SIZE(box.right - box.left, box.bottom - box.top);
     }
 
-    // The icon and the message in white on the card, placed as the pinned release places them.
+    // The icon and the message in white on the card, placed as Winland places them.
     private static void Write(HDC memory, Card card, int cardX, int top)
     {
         _ = PInvoke.SetBkMode(memory, BACKGROUND_MODE.TRANSPARENT);

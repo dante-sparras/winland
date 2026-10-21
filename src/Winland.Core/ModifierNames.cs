@@ -3,7 +3,7 @@ namespace Winland;
 /// <summary>Reads a modifier list such as <c>SUPER SHIFT</c>, as a bind and <c>sendshortcut</c> write it.</summary>
 internal static class ModifierNames
 {
-    // The pinned release upper-cases the list and looks for each name anywhere in it,
+    // Winland upper-cases the list and looks for each name anywhere in it,
     // so SUPER SHIFT, SUPER_SHIFT, SUPER+SHIFT and SUPERSHIFT are the same mask.
     private static readonly (string Name, Modifier Modifier)[] Names =
     [

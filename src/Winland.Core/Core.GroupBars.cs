@@ -23,7 +23,7 @@ public sealed partial class Core
 
             var scaled = style.ScaledBy(MonitorById(desk.Monitor)?.Effective.Scale ?? 1);
 
-            // The bar's own font_family wins, and misc:font_family stands in for an empty one, as in the pinned release.
+            // The bar's own font_family wins, and misc:font_family stands in for an empty one.
             scaled = scaled with { FontFamily = FontNames.Windows(scaled.FontFamily.Length == 0 ? _session.FontFamily : scaled.FontFamily) };
             var showing = desk.Showing();
             foreach (var group in desk.Groups)
@@ -71,7 +71,7 @@ public sealed partial class Core
         var floating = new HashSet<ClientId>();
         foreach (var client in snapshot.Clients)
         {
-            // A maximized Group member keeps room for its bar even while it floats, as in the pinned release.
+            // A maximized Group member keeps room for its bar even while it floats.
             if (client.Floating && client.Fullscreen != FullscreenMode.Maximized)
                 floating.Add(client.Id);
         }

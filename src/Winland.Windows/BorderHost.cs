@@ -8,7 +8,7 @@ using Windows.Win32.UI.WindowsAndMessaging;
 namespace Winland.Windows;
 
 /// <summary>
-/// Draws each Client's border outside its frame, as the pinned release draws it, on its own thread. A border is four
+/// Draws each Client's border outside its frame, as Winland draws it, on its own thread. A border is four
 /// thin click-through layered windows, top, bottom, left and right, kept just above the Client in the z-order. They
 /// follow the window wherever it moves, by the frame Windows reports, so a move or an animation carries the border
 /// along. The borders go away with this process.

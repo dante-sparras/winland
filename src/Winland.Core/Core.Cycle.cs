@@ -4,7 +4,7 @@ public sealed partial class Core
 {
     /// <summary>
     /// <c>cyclenext [prev] [tiled] [floating]</c> focuses the next window on the focused window's Workspace, as the
-    /// pinned release's window cycle does. A window selector after a comma names the window, and the cycle runs on
+    /// window cycle does. A window selector after a comma names the window, and the cycle runs on
     /// that window's Workspace, then focuses the window it lands on. <c>prev</c> goes the other way. <c>tiled</c> or
     /// <c>floating</c> alone takes only that kind of window, and both or neither take either. With <c>tiled</c> from a
     /// tile in master or monocle, that Workspace's <c>cyclenext</c> or <c>cycleprev</c> runs instead.

@@ -1,6 +1,6 @@
 namespace Winland.Tests.Conformance;
 
-/// <summary>The pinned release's snap case. The test is named after its case, and sends the same commands.</summary>
+/// <summary>Winland's snap case. The test is named after its case, and sends the same commands.</summary>
 [Trait("Category", "Conformance")]
 public class SnapConformance
 {

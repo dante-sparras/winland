@@ -51,9 +51,9 @@ public sealed partial class Core
         return new CommandReply(effect.Error ?? effect.Notice ?? "ok", effect);
     }
 
-    // The pinned release's text reply for a query that finds nothing, such as "no open windows"; with j/ it stays the
+    // Winland's text reply for a query that finds nothing, such as "no open windows"; with j/ it stays the
     // empty JSON.
-    // The pinned release answers in JSON with j/ and in text without it.
+    // Winland answers in JSON with j/ and in text without it.
     private static bool Json(CommandRequest request) => request.Flags.HasFlag(CommandFlags.Json);
 
     private static string Text(string reply, string empty) => reply.Length == 0 ? empty : reply;
@@ -79,7 +79,6 @@ public sealed partial class Core
         SystemInfoRequest => Describe(ExtraCommands.FormatSystem),
         LockedRequest => new CommandReply(ExtraCommands.FormatLocked(SessionLock?.Locked == true), View([])),
         LayoutsRequest => new CommandReply(ExtraCommands.FormatLayouts(), View([])),
-        DescriptionsRequest => new CommandReply(OptionCatalog.Descriptions(_config), View([])),
         AnimationsRequest animations => new CommandReply(_animations.Describe(animations.Flags.HasFlag(CommandFlags.Json)), View([])),
         SubmapRequest submap => new CommandReply(ExtraCommands.FormatSubmap(_keyState.Submap, submap.Flags.HasFlag(CommandFlags.Json)), View([])),
         ClickKillRequest => ArmClickKill(),
@@ -256,7 +255,7 @@ public sealed partial class Core
     }
 
     // A line that launches a program, loads code or a file, or sets the environment takes effect only when the
-    // config is read. Every other line, an option or a rule, applies at once, as in the pinned release.
+    // config is read. Every other line, an option or a rule, applies at once.
     private static bool LiveKeyword(string keyword) =>
         keyword is not ("exec" or "exec-once" or "execr" or "execr-once" or "exec-shutdown" or "env" or "source" or "plugin");
 
@@ -312,37 +311,7 @@ public sealed partial class Core
             Environment = current?.Environment ?? EnvironmentAssignment.None,
             Gestures = [.. current?.Gestures ?? [], .. incoming.Gestures],
             ElevationTrusted = current?.ElevationTrusted ?? false,
-            Recorded = MergeRecorded(current?.Recorded, incoming.Recorded),
         };
-    }
-
-    private static IReadOnlyList<Setting> MergeRecorded(IReadOnlyList<Setting>? current, IReadOnlyList<Setting> incoming)
-    {
-        if (current is null || current.Count == 0)
-            return incoming.Count == 0 ? Array.Empty<Setting>() : incoming;
-
-        if (incoming.Count == 0)
-            return current;
-
-        var recorded = new List<Setting>(current.Count + incoming.Count);
-        foreach (var setting in current)
-        {
-            var replaced = false;
-            foreach (var update in incoming)
-            {
-                if (update.Keyword == setting.Keyword)
-                {
-                    replaced = true;
-                    break;
-                }
-            }
-
-            if (!replaced)
-                recorded.Add(setting);
-        }
-
-        recorded.AddRange(incoming);
-        return recorded;
     }
 
     private static bool WindowRuleControl(ConfigDocument incoming)

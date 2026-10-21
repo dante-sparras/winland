@@ -110,7 +110,7 @@ internal sealed class FloatingClients
 
     /// <summary>
     /// Moves a floating Client against one edge of the floating work area, with its border inside the area, as in the
-    /// pinned release. Empty when it already is there.
+    /// Winland. Empty when it already is there.
     /// </summary>
     public IReadOnlyList<Placement> MoveToEdge(ClientId id, Side side, Rectangle area, int border)
     {
@@ -178,7 +178,7 @@ internal sealed class FloatingClients
 }
 
 /// <summary>
-/// How far a floating Client is kept on screen, as the pinned release keeps it: in <see cref="Work"/>, the floating work
+/// How far a floating Client is kept on screen, as Winland keeps it: in <see cref="Work"/>, the floating work
 /// area, with <see cref="Border"/> drawn around the frame. <see cref="Mode"/> 0 leaves the Client where it is put. 1 moves
 /// a Client that would be wholly off the area until its middle is on the nearest edge. 2 moves it, not resizing it, to lie
 /// wholly inside with its border, so one larger than the area lines up with the right and bottom edges.

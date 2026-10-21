@@ -8,7 +8,7 @@ internal readonly record struct SwallowedKey(ushort VirtualKey, ushort Scan, boo
 
 /// <summary>
 /// Counts the dispatches of one auto-consuming decision. The key is replayed once when every one of them reports
-/// failure, and one success keeps it swallowed, as the pinned release passes the event only when the dispatcher
+/// failure, and one success keeps it swallowed, as Winland passes the event only when the dispatcher
 /// does not succeed.
 /// </summary>
 internal sealed class BindConsumption

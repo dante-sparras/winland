@@ -3,8 +3,8 @@ using System.Globalization;
 namespace Winland;
 
 /// <summary>
-/// The <c>debug</c> options Windows has a meaning for: the config error bar and Winland's log. The rest of the
-/// <c>debug</c> category is a Gap.
+/// The <c>debug</c> options Windows has a meaning for: the config error bar and Winland's log. Any other
+/// <c>debug</c> keyword warns and is skipped.
 /// </summary>
 public sealed record DebugOptions
 {

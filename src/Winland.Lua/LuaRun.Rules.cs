@@ -19,7 +19,7 @@ internal sealed partial class LuaRun
 
     private static readonly string[] MonitorFields = ["mode", "position", "scale", "reserved", "reserved_area", "disabled"];
 
-    // The fields of hl.device, as the pinned release names them.
+    // The fields of hl.device, as Winland names them.
     private static readonly string[] DeviceFields =
     [
         "sensitivity", "accel_profile", "rotation", "kb_file", "kb_layout", "kb_variant", "kb_options", "kb_rules", "kb_model",
@@ -340,7 +340,7 @@ internal sealed partial class LuaRun
                 var numbers = new List<string>(3);
                 foreach (var field in (string[])["stiffness", "damping", "mass"])
                 {
-                    // damping was spelled dampening before, and the pinned release still reads that spelling.
+                    // damping was spelled dampening before, and Winland still reads that spelling.
                     if (_lua.GetField(2, field) == LuaType.Nil && field == "damping")
                     {
                         _lua.Pop(1);
@@ -435,7 +435,7 @@ internal sealed partial class LuaRun
     }
 
     // hl.animation({ leaf, enabled, speed, bezier | spring, style }) is "animation = leaf, 1, speed, curve[, style]", where
-    // a spring's curve is "spring:name" as in the pinned release, or "animation = leaf, 0" when it is not enabled.
+    // a spring's curve is "spring:name" or "animation = leaf, 0" when it is not enabled.
     private int AddAnimation(IntPtr state)
     {
         if (!_lua.IsTable(1))
@@ -740,7 +740,7 @@ internal sealed partial class LuaRun
     }
 
     // The config text of a field for a line whose values are split at commas, or null when it is absent or cannot be
-    // written there, which warns. commas keeps a comma the pinned release's Lua takes: escape writes the private-use
+    // written there, which warns. commas keeps a comma Winland's Lua takes: escape writes the private-use
     // character when the line splits at commas, and leaves the comma when the line does not.
     private string? Part(int table, string field, string label, bool commas = false, bool escape = true)
     {

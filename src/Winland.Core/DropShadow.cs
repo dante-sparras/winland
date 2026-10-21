@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// The shadow Winland draws under one Client, as the pinned release draws it, in screen pixels: it reaches
+/// The shadow Winland draws under one Client, as Winland draws it, in screen pixels: it reaches
 /// <see cref="Range"/> pixels past the window and its <see cref="Border"/>, fades out at <see cref="Power"/>, follows the
 /// border's outer corners of <see cref="Rounding"/> pixels, and is scaled about its middle by <see cref="Scale"/> and
 /// moved by the offset. <see cref="Alpha"/> is the window's opacity.
@@ -152,7 +152,7 @@ public static class ShadowPainter
 
     /// <summary>
     /// How much of the shadow's color shows at <paramref name="px"/>, <paramref name="py"/> in its box, from 0 to 1, as the
-    /// pinned release's shadow shader works it out: full inside, falling to nothing over the range at the edges and
+    /// shadow shader works it out: full inside, falling to nothing over the range at the edges and
     /// round the corners at the render power.
     /// </summary>
     public static double Falloff(double px, double py, int boxWidth, int boxHeight, DropShadow shadow)
@@ -189,7 +189,7 @@ public static class ShadowPainter
         return range > 0 && smallest < range ? Math.Pow(smallest / range, power) : 1;
     }
 
-    /// <summary>Whether a point lies under the window, inside its rounded corners, where the pinned release cuts the shadow away.</summary>
+    /// <summary>Whether a point lies under the window, inside its rounded corners, where Winland cuts the shadow away.</summary>
     public static bool UnderWindow(double px, double py, Rectangle frame, int radius, float roundingPower)
     {
         if (frame.Width <= 0 || frame.Height <= 0)

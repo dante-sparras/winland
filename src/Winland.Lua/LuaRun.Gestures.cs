@@ -11,11 +11,11 @@ internal sealed partial class LuaRun
     private readonly Dictionary<int, GestureCallbacks> _gestureCallbacks = [];
     private readonly List<GestureCall> _heldGestures = [];
 
-    // The fields of an action table, as the pinned release reads them: the end is "finish".
+    // The fields of an action table, as Winland reads them: the end is "finish".
     private static readonly string[] CallbackNames = ["start", "update", "finish"];
 
     // The functions of one gesture, by their registry references, or 0 for none. A gesture whose action is one
-    // function calls it once the fingers lift, with nothing, as in the pinned release.
+    // function calls it once the fingers lift, with nothing.
     private sealed record GestureCallbacks(int Start, int Update, int Finish, bool EndOnly);
 
     // The action of hl.gesture when it is a function or a table of them: the number the gesture line names, null when
@@ -92,7 +92,7 @@ internal sealed partial class LuaRun
 
     /// <summary>
     /// Keeps the phases of a swipe that a command of this Lua made, to run once that command has returned, as the
-    /// pinned release runs them inside the call that made the swipe.
+    /// Winland runs them inside the call that made the swipe.
     /// </summary>
     public void Hold(IReadOnlyList<GestureCall> calls) => _heldGestures.AddRange(calls);
 

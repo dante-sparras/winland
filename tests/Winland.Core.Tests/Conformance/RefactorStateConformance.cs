@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace Winland.Tests.Conformance;
 
 /// <summary>
-/// The pinned release's refactor_state cases. Each test is named after its case, and sends the same commands.
+/// Winland's refactor_state cases. Each test is named after its case, and sends the same commands.
 /// Each case keeps the harness's HEADLESS-2 at 0,0 as its left monitor and creates a right one at 1920,0.
 /// </summary>
 [Trait("Category", "Conformance")]

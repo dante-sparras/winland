@@ -1,6 +1,6 @@
 namespace Winland;
 
-/// <summary>A keyboard layout the config names: the Windows layout it loads, and the name the pinned release shows for it.</summary>
+/// <summary>A keyboard layout the config names: the Windows layout it loads, and the name Winland shows for it.</summary>
 public readonly record struct KeyboardLayoutChoice(string Layout, string Variant, string? WindowsId, string Description);
 
 /// <summary>

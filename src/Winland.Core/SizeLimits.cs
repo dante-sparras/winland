@@ -43,7 +43,7 @@ internal readonly record struct SizeLimits(Size? Min, Size? Max)
     /// <summary>
     /// A tiled window's rectangle. A window cannot be smaller than its minimum, so a tile below it grows
     /// to the minimum around the tile's middle, then moves to stay inside the area as far as it fits, as
-    /// the pinned release places a window with tiled size limits. It overlaps its neighbours instead of
+    /// Winland places a window with tiled size limits. It overlaps its neighbours instead of
     /// pushing them off the Monitor.
     /// </summary>
     public Rectangle Raise(Rectangle tile, Rectangle area)

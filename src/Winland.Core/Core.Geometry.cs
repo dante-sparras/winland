@@ -106,7 +106,7 @@ public sealed partial class Core
         if (_pointer is not Point at)
             return stacked;
 
-        // The pinned release simulates a pointer move after it raises or lowers a window, a pixel off so it counts as a
+        // Winland simulates a pointer move after it raises or lowers a window, a pixel off so it counts as a
         // move, so with input:follow_mouse the window now under the pointer takes the focus.
         _pointer = at with { X = at.X - 1, Y = at.Y - 1 };
         var moved = MovePointer(new PointerMoved(at));
@@ -114,7 +114,7 @@ public sealed partial class Core
     }
 
     // movecursor X Y: puts the cursor at a point on the desktop and handles it as a pointer move, so focus follows it as
-    // it would follow the mouse, as the pinned release warps the pointer and simulates a mouse movement.
+    // it would follow the mouse, as Winland warps the pointer and simulates a mouse movement.
     private Outcome MoveCursor(string arguments, bool allowsElevation)
     {
         const string name = "movecursor";

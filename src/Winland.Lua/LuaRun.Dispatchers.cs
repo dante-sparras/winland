@@ -104,7 +104,7 @@ internal sealed partial class LuaRun
     }
 
     // Sets field name of the table on top of the stack to a constructor that pushes the table for what build returns.
-    // The table shows as HL.Dispatcher(name), as the pinned release's dispatcher does, and a constructor given more
+    // The table shows as HL.Dispatcher(name), as Winland's dispatcher does, and a constructor given more
     // arguments than it takes warns and returns nothing.
     private void Constructor(string? group, string name, Func<string, Dispatch> build, int maxArguments = 1)
     {
@@ -224,7 +224,7 @@ internal sealed partial class LuaRun
         return new Dispatch("lockactivegroup", WithWindow(LockWord(Action())));
     }
 
-    // The pinned release keeps lock_active as group.lock without all, and notes that it is deprecated.
+    // Winland keeps lock_active as group.lock without all, and notes that it is deprecated.
     private Dispatch GroupLockActive(string label)
     {
         const string Notice = "hl.dsp.group.lock_active(): The group.lock_active() dispatcher is deprecated, use group.lock() instead";

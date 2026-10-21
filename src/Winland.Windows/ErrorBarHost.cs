@@ -7,7 +7,7 @@ using Windows.Win32.UI.WindowsAndMessaging;
 namespace Winland.Windows;
 
 /// <summary>
-/// Draws the <c>seterror</c> bar as a topmost layered window on its own thread, as the pinned release draws its error
+/// Draws the <c>seterror</c> bar as a topmost layered window on its own thread, as Winland draws its error
 /// overlay: a dark strip with a two-pixel border in the error's color and the message in light text. The bar takes no
 /// clicks, and goes away with this process.
 /// </summary>
@@ -197,7 +197,7 @@ internal static class ErrorBarHost
         var old = PInvoke.SelectObject(memory, bitmap);
         var pixels = new Span<uint>(bits, width * height);
 
-        // The pinned release's bar: the strip at 6% grey, and its border in the error's color.
+        // Winland's bar: the strip at 6% grey, and its border in the error's color.
         const uint Background = 0x000F0F0F;
         pixels.Fill(Background);
         DrawText(memory, bar, width, height);

@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace Winland.Tests.Conformance;
 
 /// <summary>
-/// The pinned release's child window case. Its client opens a parent toplevel and then a child toplevel that names
+/// Winland's child window case. Its client opens a parent toplevel and then a child toplevel that names
 /// the parent. On Windows that child is an owned window, which the system reports as a dialog.
 /// </summary>
 [Trait("Category", "Conformance")]

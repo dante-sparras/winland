@@ -3,7 +3,7 @@ namespace Winland;
 public sealed partial class Core
 {
     // A floating Client keeps its place relative to the Monitor when it moves onto a Workspace on another Monitor,
-    // as in the pinned release.
+    //.
     private Taken OntoMonitor(Taken taken, MonitorId from, MonitorId to)
     {
         if (!taken.Floating || from == to || MonitorById(from) is not { Effective.Enabled: true } source || MonitorById(to) is not { Effective.Enabled: true } destination)
@@ -29,7 +29,7 @@ public sealed partial class Core
 
         var target = Alias(resolved);
 
-        // A pinned Client is never moved onto a special workspace, as in the pinned release, which still opens that special
+        // A pinned Client is never moved onto a special workspace, which still opens that special
         // workspace on a move that is not silent and keeps the Client focused.
         var source = WorkspaceContaining(id);
         if (source is not null && target.IsSpecial && _pinned.Contains(id))
@@ -326,7 +326,7 @@ public sealed partial class Core
             Transfer(desk, home, window);
     }
 
-    // The visits are the pinned release's workspace history: newest first, each with the Monitor it was on. A visit to a
+    // The visits are Winland's workspace history: newest first, each with the Monitor it was on. A visit to a
     // Workspace that was removed since stays, as a gone one, until the history is collected.
     private void Remember(WorkspaceId workspace, MonitorId monitor)
     {
@@ -346,7 +346,7 @@ public sealed partial class Core
         }
     }
 
-    // Drops the visits to removed Workspaces as the pinned release collects its history: the newest visit on each
+    // Drops the visits to removed Workspaces as Winland collects its history: the newest visit on each
     // Monitor is kept until that Monitor has been seen past the first one in the list, so it can still be gone to.
     private void CollectVisits()
     {
@@ -364,8 +364,8 @@ public sealed partial class Core
         });
     }
 
-    // A switch to a Workspace another Monitor shows moves the cursor onto that Monitor, as in the pinned release, to the
-    // middle of the Client it focuses or of the Monitor. cursor:no_warps stops it, as it stops the pinned release's warp.
+    // A switch to a Workspace another Monitor shows moves the cursor onto that Monitor, to the
+    // middle of the Client it focuses or of the Monitor. cursor:no_warps stops it, as it stops Winland's warp.
     // A cursor option that warps after a switch goes first.
     private void NoteCrossMonitorWarp(MonitorId from, Outcome switched)
     {
@@ -397,7 +397,7 @@ public sealed partial class Core
     }
 
     // binds:workspace_back_and_forth: asking for the Workspace the focused Monitor shows goes to the previous one
-    // instead, as in the pinned release. Without a previous one the Monitor stays where it is.
+    // instead. Without a previous one the Monitor stays where it is.
     private WorkspaceId BackAndForth(WorkspaceId target)
     {
         var monitor = FocusedId();

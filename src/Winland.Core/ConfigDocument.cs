@@ -36,12 +36,6 @@ public sealed record ConfigDocument(
     public IReadOnlyList<DevicePointer> DevicePointers { get; init; } = [];
 
     /// <summary>
-    /// Options the pinned release has and this config set, which Winland did not apply. A later line for the same
-    /// option replaces the earlier one. <c>descriptions</c> and <c>getoption</c> still report the value.
-    /// </summary>
-    public IReadOnlyList<Setting> Recorded { get; init; } = Array.Empty<Setting>();
-
-    /// <summary>
     /// True only when the daemon found the config and every sourced file writable by
     /// administrators alone. Otherwise <c>[elevated]</c> launches run de-elevated (ADR 0007).
     /// </summary>
@@ -79,13 +73,13 @@ public enum Modifier
     Ctrl = 1 << 2,
     Shift = 1 << 3,
 
-    /// <summary>The Caps Lock key held down. The lock itself is not a modifier, as in the pinned release.</summary>
+    /// <summary>The Caps Lock key held down. The lock itself is not a modifier.</summary>
     Caps = 1 << 4,
 
     /// <summary>The Num Lock key held down.</summary>
     Mod2 = 1 << 5,
 
-    /// <summary>No key on Windows holds it, as on the pinned release's default keymap.</summary>
+    /// <summary>No key on Windows holds it, as on Winland's default keymap.</summary>
     Mod3 = 1 << 6,
 
     /// <summary>AltGr held down, on a keyboard layout that has it.</summary>
@@ -110,7 +104,7 @@ public enum BindFlag
     Drag = 1 << 11,
     SubmapUniversal = 1 << 12,
 
-    /// <summary>Swallow the key only when the dispatcher succeeds, as the pinned release's auto-consuming flag.</summary>
+    /// <summary>Swallow the key only when the dispatcher succeeds, as Winland's auto-consuming flag.</summary>
     AutoConsuming = 1 << 13,
 
     /// <summary>The bind matches only the devices it names. Without it, the bind matches every device but those.</summary>

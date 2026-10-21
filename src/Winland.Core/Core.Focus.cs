@@ -7,7 +7,7 @@ public sealed partial class Core
     private readonly List<WindowId> _focusHistory = [];
 
     // The Clients from the bottom of the stacking order to the top. A new Client opens on top, and alterzorder and
-    // bringactivetotop move one, as the pinned release orders its window list.
+    // bringactivetotop move one, as Winland orders its window list.
     private readonly List<WindowId> _stacking = [];
 
     private void Stack(WindowId window, bool top)
@@ -60,7 +60,7 @@ public sealed partial class Core
             && _active != window)
             return Restore(Kept());
 
-        // The pinned release rejects an activation without a fresh input serial, and honors one with it only under
+        // Winland rejects an activation without a fresh input serial, and honors one with it only under
         // focus_on_activate, which a window rule or setprop wins over. A window that takes the foreground with no click or
         // key before it has no such serial. One that takes it right after a click in a Client of another program has one.
         var activated = focused.Cause == FocusCause.Activated;

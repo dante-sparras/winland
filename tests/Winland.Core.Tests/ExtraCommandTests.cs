@@ -398,7 +398,7 @@ public class ExtraCommandTests
             new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024)),
         ]));
 
-        // In a batch a backslash is written \\, as in the pinned release.
+        // In a batch a backslash is written \\.
         var effect = core.Execute(@"[[BATCH]]dispatch dpms off \\\\.\\DISPLAY1 ; dispatch dpms on \\\\.\\DISPLAY2").Effect;
 
         Assert.Equal(
@@ -458,20 +458,5 @@ public class ExtraCommandTests
     private sealed class FixedLock(bool locked) : ISessionLock
     {
         public bool Locked { get; } = locked;
-    }
-
-    [Fact]
-    public void DescriptionsCarryEachOptionsDescription()
-    {
-        var core = new Core();
-
-        using var document = JsonDocument.Parse(core.Execute("descriptions").Text);
-        var options = document.RootElement.EnumerateArray().ToDictionary(
-            option => option.GetProperty("name").GetString()!,
-            option => option.GetProperty("description").GetString()!);
-
-        Assert.Equal("size of the border around windows", options["general:border_size"]);
-        Assert.Equal("Whether Winland should focus an app that requests to be focused.", options["misc:focus_on_activate"]);
-        Assert.DoesNotContain(options, option => option.Value.Length == 0);
     }
 }

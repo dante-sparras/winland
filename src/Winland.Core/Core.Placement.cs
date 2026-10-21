@@ -84,7 +84,7 @@ public sealed partial class Core
         }
         else if (decision.Floating && OwnerBounds(appeared) is Rectangle owner)
         {
-            // A window with an owner opens over the middle of its owner, as the pinned release opens one with a parent.
+            // A window with an owner opens over the middle of its owner, as Winland opens one with a parent.
             placed = new Rectangle(
                 owner.X + ((owner.Width - width) / 2),
                 owner.Y + ((owner.Height - height) / 2),
@@ -112,7 +112,7 @@ public sealed partial class Core
             ? bounds
             : null;
 
-    // persistent_size, as in the pinned release: a floating window that closes leaves its size behind for its initial
+    // persistent_size: a floating window that closes leaves its size behind for its initial
     // class and title, and a window of that class and title that opens floating with the rule takes it back.
     private readonly Dictionary<(string Class, string Title), Size> _persistentSizes = [];
 

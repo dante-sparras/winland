@@ -1,6 +1,6 @@
 namespace Winland.Tests.Conformance;
 
-/// <summary>The pinned release's exec case. A program the core starts is a Launch in its outcome.</summary>
+/// <summary>Winland's exec case. A program the core starts is a Launch in its outcome.</summary>
 [Trait("Category", "Conformance")]
 public class ExecConformance
 {

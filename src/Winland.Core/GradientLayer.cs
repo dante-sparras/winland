@@ -2,7 +2,7 @@ namespace Winland;
 
 /// <summary>
 /// A layer Winland draws beside a Client in a gradient that can fade to new colors when focus moves and turn, as the
-/// pinned release's animated decoration gradient does for the shadow and the glow.
+/// animated decoration gradient does for the shadow and the glow.
 /// </summary>
 public interface IGradientLayer
 {
@@ -46,7 +46,7 @@ public readonly record struct GradientMotion(double TurnDegrees, BorderGradient?
 public sealed record LayerLayout(Rectangle Box, Rectangle Frame, IReadOnlyList<Rectangle> Pieces);
 
 /// <summary>
-/// The color of a gradient layer at each place in its box, as the pinned release's shader picks it: the gradient at
+/// The color of a gradient layer at each place in its box, as Winland's shader picks it: the gradient at
 /// its angle plus the turn, mixed in OkLab with the colors it fades from.
 /// </summary>
 internal sealed class GradientSampler

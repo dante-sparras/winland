@@ -400,24 +400,6 @@ public class ConfigTests
     }
 
     [Fact]
-    public void GapKeywordsMatchTheGapsDocumentAndAreSkipped()
-    {
-        var documented = ReadGaps(File.ReadAllText(GapsDocumentPath()));
-
-        Assert.Equal(
-            ConfigGaps.All.Select(gap => (gap.Keyword, gap.Reason)).OrderBy(gap => gap.Keyword),
-            documented.OrderBy(gap => gap.Keyword));
-
-        foreach (var gap in ConfigGaps.All)
-        {
-            var document = ConfigParser.Parse($"{gap.Keyword} = 1\ngeneral:gaps_in = 2\n");
-
-            Assert.Equal(new Setting("general:gaps_in", "2"), Assert.Single(document.Settings));
-            Assert.Equal(new ConfigWarning(1, $"Unsupported keyword '{gap.Keyword}'."), Assert.Single(document.Warnings));
-        }
-    }
-
-    [Fact]
     public void UnclosedCategoryWarnsAndTheSettingRemains()
     {
         var document = ConfigParser.Parse("general {\n    gaps_in = 5\n");
@@ -778,40 +760,6 @@ public class ConfigTests
         Assert.Equal(
             new Bind(Modifier.Super, "H", "resizeactive", "10 0", BindFlag.None, null, "resize"),
             Assert.Single(document.Binds));
-    }
-
-    private static string GapsDocumentPath()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir.FullName, "docs", "gaps.md");
-            if (File.Exists(candidate))
-                return candidate;
-
-            dir = dir.Parent;
-        }
-
-        throw new FileNotFoundException("docs/gaps.md");
-    }
-
-    private static List<(string Keyword, string Reason)> ReadGaps(string text)
-    {
-        var rows = new List<(string Keyword, string Reason)>();
-        foreach (var raw in text.Split('\n'))
-        {
-            var line = raw.Trim();
-            if (!line.StartsWith('|'))
-                continue;
-
-            var cells = line.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-            if (cells.Length != 2 || cells[0] == "keyword" || cells[0].All(character => character == '-'))
-                continue;
-
-            rows.Add((cells[0], cells[1]));
-        }
-
-        return rows;
     }
 
     private sealed class MemorySource(IReadOnlyDictionary<string, string> files) : IConfigSource

@@ -48,7 +48,7 @@ internal sealed partial class MasterLayout
             || max.Height < monitor.Height / (double)(_tiles.Count - 1);
     }
 
-    // The size the pinned release gives a window that opens: the whole Monitor on an empty Workspace, the master's
+    // The size Winland gives a window that opens: the whole Monitor on an empty Workspace, the master's
     // with new_status master, half the Monitor beside a lone master, or a slave's share otherwise.
     private Rectangle? PredictedTile()
     {

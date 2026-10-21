@@ -225,7 +225,7 @@ public sealed record LayoutOptions
 
     /// <summary>
     /// A tiled Client's frame, padded on two sides to <c>layout:single_window_aspect_ratio</c> when it is the only tiled
-    /// Client, as the pinned release pads it. The padding is worked out from the whole work area and split evenly, and
+    /// Client, as Winland pads it. The padding is worked out from the whole work area and split evenly, and
     /// none is added when half of it would be less than the tolerance's share of the work area's height or width.
     /// </summary>
     internal Rectangle KeepAspect(Rectangle frame, Rectangle area, int tiled)

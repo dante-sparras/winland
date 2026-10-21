@@ -7,7 +7,7 @@ public sealed record ClientOpened(WindowId Window, WorkspaceId Workspace, string
 public sealed record ClientClosed(WindowId Window) : StreamEvent;
 
 /// <summary>
-/// Why the focus moved, as a bit set, as in the pinned release. A handler can test a bit.
+/// Why the focus moved, as a bit set. A handler can test a bit.
 /// <see cref="Unknown"/> is a focus with no equivalent.
 /// </summary>
 public enum FocusReason : uint

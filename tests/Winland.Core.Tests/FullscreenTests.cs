@@ -93,7 +93,7 @@ public class FullscreenTests
     }
 
     // -1 takes the current mode before the pair is compared, so naming the current
-    // client mode with -1 is the same pair and turns both modes off, as in the pinned release.
+    // client mode with -1 is the same pair and turns both modes off.
     [Theory]
     [InlineData("1 0", "-1 0")]
     [InlineData("2 2", "-1 2")]

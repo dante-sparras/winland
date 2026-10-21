@@ -436,7 +436,7 @@ public sealed partial class WindowAdapter : IDisposable
                         return;
                     }
 
-                    // An application that hides its own window unmaps it, as in the pinned release. It is
+                    // An application that hides its own window unmaps it. It is
                     // adopted again when it is shown. A window shown again before this event arrives stays.
                     if (!Concealed.ContainsKey(window) && !PInvoke.IsWindowVisible(hwnd) && _core.Manages(window))
                     {
@@ -926,7 +926,7 @@ public sealed partial class WindowAdapter : IDisposable
     }
 
     // A layered window input passes through, such as a screen overlay, cannot be clicked or focused, so
-    // it is never a Client. The pinned release draws such surfaces as layers, which it never tiles.
+    // it is never a Client. Winland draws such surfaces as layers, which it never tiles.
     internal static bool IsOverlay(int extended) =>
         (extended & LayeredStyle) != 0 && (extended & ClickThroughStyle) != 0;
 

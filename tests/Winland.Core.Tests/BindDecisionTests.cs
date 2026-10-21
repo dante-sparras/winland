@@ -73,7 +73,7 @@ public class BindDecisionTests
         Assert.False(core.Decide(new KeyPressed("E"), session).Consumed);
     }
 
-    // The pinned release folds the released key's own modifier into the mask on release,
+    // Winland folds the released key's own modifier into the mask on release,
     // so the classic "bindr = SUPER, Super_L" runs when Super is let go.
     [Theory]
     [InlineData("bindr = SUPER, Super_L, exec, menu", "Super_L")]
@@ -95,7 +95,7 @@ public class BindDecisionTests
     }
 
     // On release the mask holds the released key's own modifier, so a release bind that leaves it out
-    // does not run, as in the pinned release, and one release runs only the bind that names it.
+    // does not run, and one release runs only the bind that names it.
     [Fact]
     public void OnlyTheReleaseBindNamingTheKeysOwnModifierRuns()
     {
@@ -344,7 +344,7 @@ public class BindDecisionTests
         Assert.False(release.Consumed);
     }
 
-    // The press matches the release bind without Super, so the pinned release swallows it, and the
+    // The press matches the release bind without Super, so Winland swallows it, and the
     // release, with Super still held, matches nothing and is swallowed with it.
     [Fact]
     public void AReleaseBindLeavingOutTheKeysModifierSwallowsTheKeyAndRunsNothing()

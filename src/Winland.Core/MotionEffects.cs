@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// The spring and mesh of <c>decoration:wobble</c>, with the limits the pinned release gives each value.
+/// The spring and mesh of <c>decoration:wobble</c>, with the limits Winland gives each value.
 /// </summary>
 public sealed record WobbleSettings(
     int Mesh,

@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// A window's tags, kept as the pinned release keeps them. <c>+tag</c> sets a tag, <c>-tag</c> clears it, and a bare
+/// A window's tags, kept as Winland keeps them. <c>+tag</c> sets a tag, <c>-tag</c> clears it, and a bare
 /// tag toggles it. A tag a window rule gives is dynamic and is kept with a trailing <c>*</c>, beside a static tag of
 /// the same name that <c>tagwindow</c> gave.
 /// </summary>

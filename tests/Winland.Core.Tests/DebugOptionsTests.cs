@@ -21,7 +21,7 @@ public class DebugOptionsTests
     }
 
     [Fact]
-    public void TheSevenOptionsAreReadWithoutAWarningAndTheRestOfDebugStaysAGap()
+    public void TheSevenOptionsAreReadWithoutAWarningAndAnotherDebugKeywordWarns()
     {
         var document = ConfigParser.Parse("""
             debug:disable_logs = false
@@ -46,21 +46,26 @@ public class DebugOptionsTests
     }
 
     [Fact]
-    public void AConfigWithErrorsShowsThemInTheBarButNotItsGapNotices()
+    public void AConfigWithErrorsShowsEveryUnknownKeywordInTheBar()
     {
         var core = Configured("general:nonsense = 1\ninput:kb_rules = evdev\nmisc:bell_sound = ding\n");
 
         var bar = core.Execute("dispatch no_op").Effect.ErrorBar;
 
         Assert.NotNull(bar);
-        Assert.Equal("Your config has errors:\nline 4: Unsupported keyword 'general:nonsense'.", bar.Text);
+        Assert.Equal(
+            "Your config has errors:\nline 4: Unsupported keyword 'general:nonsense'.\nline 5: Unsupported keyword 'input:kb_rules'.\nline 6: Unsupported keyword 'misc:bell_sound'.",
+            bar.Text);
         Assert.Equal(new BorderColor(0xFF, 0xFF, 0x66, 0x66), bar.Color);
     }
 
     [Fact]
-    public void OnlyGapNoticesOrSuppressErrorsShowNoBar()
+    public void ANotHonoredWarningOrSuppressErrorsShowsNoBar()
     {
-        Assert.Null(Configured("input:kb_rules = evdev\n").Execute("dispatch no_op").Effect.ErrorBar);
+        Assert.Null(Configured("general:layout = floating\n").Execute("dispatch no_op").Effect.ErrorBar);
+        Assert.Equal(
+            "Your config has errors:\nline 4: Unsupported keyword 'input:kb_rules'.",
+            Configured("input:kb_rules = evdev\n").Execute("dispatch no_op").Effect.ErrorBar?.Text);
         Assert.Null(Configured("debug:suppress_errors = true\ngeneral:nonsense = 1\n").Execute("dispatch no_op").Effect.ErrorBar);
     }
 

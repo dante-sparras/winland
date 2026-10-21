@@ -1,6 +1,6 @@
 namespace Winland.Tests.Conformance;
 
-/// <summary>The pinned release's follow_mouse_shrink case. The test is named after its case, and sends the same commands.</summary>
+/// <summary>Winland's follow_mouse_shrink case. The test is named after its case, and sends the same commands.</summary>
 [Trait("Category", "Conformance")]
 public class FollowMouseShrinkConformance
 {

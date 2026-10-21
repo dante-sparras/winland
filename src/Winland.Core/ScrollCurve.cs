@@ -6,7 +6,7 @@ namespace Winland;
 /// <c>input:scroll_points</c>: the custom scroll acceleration curve, as libinput takes it. The value is a step and then
 /// the factors the wheel's speed is multiplied by: the first factor is at speed 0, the next one a step faster, and so on.
 /// Between two points the factor is interpolated in a straight line, and a speed past the last point gets the last factor.
-/// Like the pinned release, the curve applies only when <c>accel_profile</c> starts with <c>custom</c>. Speed is in
+/// Like Winland, the curve applies only when <c>accel_profile</c> starts with <c>custom</c>. Speed is in
 /// scroll units per millisecond, where one wheel notch is <see cref="UnitsPerNotch"/> units.
 /// </summary>
 public sealed class ScrollCurve

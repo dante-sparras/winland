@@ -536,7 +536,7 @@ public class LuaRulesTests
         Assert.Null(Assert.Single(Parse(translation).WorkspaceRules).BorderSize);
     }
 
-    // The example config of the pinned release, without its comments, with its own name taken out of the run window's
+    // The example config of Winland, without its comments, with its own name taken out of the run window's
     // class, and without the misc option named after it, which ADR 0002 keeps out of the code. Its commented-out calls
     // are at the end.
     [Fact]
@@ -697,16 +697,16 @@ public class LuaRulesTests
         Assert.Contains("windowrulev2 = rounding 0, float:false, workspace:w[tv1], ruleid:4, ruleon:1", lines);
 
         // What remains is what Winland does not honor: popup and input-method blur, tearing, the wallpaper,
-        // the XKB files, layer shell animations, the suppress_event effect and XWayland.
+        // the XKB files, unknown animations, the suppress_event effect and XWayland.
         // hl.config lines come in Lua's table order, so the warnings are compared sorted.
         var messages = Messages(document);
         Assert.Equal(
             [
-                "Layer shell surfaces have no Windows meaning.",
-                "Layer shell surfaces have no Windows meaning.",
-                "Layer shell surfaces have no Windows meaning.",
-                "Layer shell surfaces have no Windows meaning.",
-                "Layer shell surfaces have no Windows meaning.",
+                "Animation 'fadeLayersIn' does not exist.",
+                "Animation 'fadeLayersOut' does not exist.",
+                "Animation 'layers' does not exist.",
+                "Animation 'layersIn' does not exist.",
+                "Animation 'layersOut' does not exist.",
                 "Unsupported keyword 'decoration:blur:input_methods'.",
                 "Unsupported keyword 'decoration:blur:popups'.",
                 "Unsupported keyword 'general:allow_tearing'.",

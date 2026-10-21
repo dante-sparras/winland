@@ -204,7 +204,7 @@ public sealed class LuaRuntime : IDisposable, ILayoutScripts
     /// <summary>
     /// Hands the phases of a swipe that a <c>luafunction</c> gesture took to the gesture's Lua functions. Like
     /// <see cref="Deliver"/> it only queues them. A swipe the running Lua's own command made runs them as soon as that
-    /// command returns, before the Lua goes on, as in the pinned release.
+    /// command returns, before the Lua goes on.
     /// </summary>
     public void Gesture(IReadOnlyList<GestureCall> calls)
     {
@@ -241,7 +241,7 @@ public sealed class LuaRuntime : IDisposable, ILayoutScripts
 
     /// <summary>
     /// The pipe commands the Lua answers: <c>eval</c> and <c>repl</c> run Lua, and with a Lua config <c>dispatch</c>
-    /// with a call in it is <c>eval 'hl.dispatch(...)'</c>, as in the pinned release. A batch with one of them in it
+    /// with a call in it is <c>eval 'hl.dispatch(...)'</c>. A batch with one of them in it
     /// runs its other commands through <paramref name="execute"/>, as the pipe would. Anything else is the core's,
     /// and gives null.
     /// </summary>

@@ -17,7 +17,7 @@ public sealed record Launch(string CommandLine, string? WorkingDirectory, bool E
 
     /// <summary>
     /// The Workspace this program was started on, which its window opens on under <c>misc:initial_workspace_tracking</c>.
-    /// Null for <c>exec-once</c> and <c>exec-shutdown</c>, which the pinned release starts without a token.
+    /// Null for <c>exec-once</c> and <c>exec-shutdown</c>, which Winland starts without a token.
     /// </summary>
     public WorkspaceId? InitialWorkspace { get; init; }
 }

@@ -3,7 +3,7 @@ using System.Globalization;
 namespace Winland;
 
 /// <summary>
-/// The <c>cursorZoom</c> gesture, as the pinned release plays it. With no mode it toggles between its zoom and
+/// The <c>cursorZoom</c> gesture, as Winland plays it. With no mode it toggles between its zoom and
 /// <c>cursor:zoom_factor</c>. <c>mult</c> multiplies the zoom by its value. <c>live</c> follows a pinch: the zoom when
 /// it began times how far the fingers spread, and below 1.05 no zoom. The zoom it sets lasts until the config is read.
 /// </summary>

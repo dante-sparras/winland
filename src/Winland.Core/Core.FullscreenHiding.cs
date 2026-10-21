@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// Which windows may stay over a fullscreen or maximized Client, as the pinned release's allowedOverFullscreen flag
+/// Which windows may stay over a fullscreen or maximized Client, as Winland's allowedOverFullscreen flag
 /// decides it. Each window holds the flag, true until a fullscreen takes it. The default handlers clear it on every
 /// other window of the Workspace when a Client goes fullscreen and set it again when that ends. The scrolling Layout
 /// hides the floating windows that were open when a tile went fullscreen, and lets later ones stay over it. A window
@@ -30,7 +30,7 @@ public sealed partial class Core
 
     private void SetOverFullscreen(WindowId window, bool allowed) => _overFullscreen[window] = allowed;
 
-    // Runs after every change, as the pinned release's fullscreen handlers and the scrolling Layout's recalculation do.
+    // Runs after every change, as Winland's fullscreen handlers and the scrolling Layout's recalculation do.
     // The z-order requests that lower a window the flag now keeps under a covering Client, and raise one it lets out.
     private List<ZOrderRequest> SyncFullscreenHiding()
     {
@@ -130,7 +130,7 @@ public sealed partial class Core
         }
     }
 
-    // The pinned release's scrolling fullscreen handler, as its recalculation runs it.
+    // Winland's scrolling fullscreen handler, as its recalculation runs it.
     private void SyncScrollingHiding(LiveWorkspace desk)
     {
         if (!_scrollHiding.TryGetValue(desk.Id, out var state))
@@ -224,7 +224,7 @@ public sealed partial class Core
 
     private bool IsPinnedClient(Client client) => client.Floating && _pinned.Contains(client.Window);
 
-    // The Client covering the Workspace, as the pinned release picks it: a floating fullscreen one first, then a tile
+    // The Client covering the Workspace, as Winland picks it: a floating fullscreen one first, then a tile
     // fullscreen the default way, then a tile the Layout holds while it fills the view.
     private static Client? CoveringWindow(LiveWorkspace desk)
     {

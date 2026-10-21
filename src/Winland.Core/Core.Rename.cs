@@ -5,7 +5,7 @@ namespace Winland;
 public sealed partial class Core
 {
     /// <summary>
-    /// <c>renameworkspace WORKSPACE NAME</c> gives a Workspace a new display name, as the pinned release's rename
+    /// <c>renameworkspace WORKSPACE NAME</c> gives a Workspace a new display name, as Winland's rename
     /// does. Its address stays, so selectors, rules and other dispatchers still find it by the old one. A special
     /// workspace keeps its name.
     /// </summary>
@@ -103,7 +103,7 @@ public sealed partial class Core
         return View(shown ? placements : [], dispatcher: dispatcher, allowsElevation: allowsElevation);
     }
 
-    // The workspace a rename names, read as the pinned release's workspace query reads it: by number, by address
+    // The workspace a rename names, read as Winland's workspace query reads it: by number, by address
     // after name: or special, or else by a bare address.
     private static WorkspaceId? RenameTarget(string selector)
     {

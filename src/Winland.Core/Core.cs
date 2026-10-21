@@ -95,7 +95,7 @@ public sealed partial class Core
             input = NaturalScroll.Apply(_input, wheel);
         var decision = BindMatcher.Decide(_binds, session, input);
 
-        // binds:pass_mouse_when_bound: a button that runs a bind is not swallowed, as in the pinned release, so the window
+        // binds:pass_mouse_when_bound: a button that runs a bind is not swallowed, so the window
         // under the pointer gets its press and release. A wheel notch is not a button and stays swallowed.
         if (_passMouseWhenBound && decision.Consumed && input is PointerButtonPressed or PointerButtonReleased)
             decision = decision with { Consumed = false, PassesOnFailure = false, ReleaseOnFailure = [] };
@@ -184,7 +184,7 @@ public sealed partial class Core
             if (launch.Rules.Count > 0)
                 _follow.Track(processId, launch.Rules, FollowNow());
 
-            // misc:initial_workspace_tracking 2 keeps the token for good, as the pinned release gives it a very long life.
+            // misc:initial_workspace_tracking 2 keeps the token for good, as Winland gives it a very long life.
             var tracking = _session.InitialWorkspaceTracking;
             if (tracking > 0 && launch.InitialWorkspace is WorkspaceId workspace)
             {
@@ -298,7 +298,7 @@ public sealed partial class Core
     }
 
     // The Workspace a program started now is started on: the special workspace the focused Monitor shows, or its
-    // Workspace, as in the pinned release.
+    // Workspace.
     private WorkspaceId LaunchWorkspace()
     {
         var monitor = FocusedId();

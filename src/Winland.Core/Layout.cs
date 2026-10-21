@@ -184,7 +184,7 @@ internal interface Layout
 
     /// <summary>
     /// Records a Client's fullscreen modes. With <paramref name="layoutAware"/> a Layout that lays out its own
-    /// fullscreen Clients takes this one, as the pinned release's scrolling Layout does, and marks it
+    /// fullscreen Clients takes this one, as Winland's scrolling Layout does, and marks it
     /// <see cref="Client.LayoutFullscreen"/>. Other Layouts ignore it.
     /// </summary>
     IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, bool layoutAware) =>

@@ -7,7 +7,7 @@ namespace Winland.Lua;
 // recalculate and layout_msg here, on the Lua's own thread, and sends the boxes back as layoutplace (ADR 0013).
 internal sealed partial class LuaRun
 {
-    // LUA_TIMEOUT_LAYOUT_CALLBACK_MS of the pinned release, in seconds.
+    // LUA_TIMEOUT_LAYOUT_CALLBACK_MS of Winland, in seconds.
     internal const double LayoutLimit = 0.05;
 
     // Each registered layout's provider table, by its name with the lua: prefix.
@@ -55,7 +55,7 @@ internal sealed partial class LuaRun
             return 0;
         }
 
-        // A name with a space would not survive the config line, and no layout name the pinned release lists has one.
+        // A name with a space would not survive the config line, and no layout name Winland lists has one.
         if (name.Any(char.IsWhiteSpace) || _layouts.ContainsKey(name))
         {
             Warn(_layouts.ContainsKey(name)
@@ -70,7 +70,7 @@ internal sealed partial class LuaRun
         return 0;
     }
 
-    // The type a check names, as the pinned release names it: a number reads as a string there.
+    // The type a check names, as Winland names it: a number reads as a string there.
     private string TypeName(int index) => _lua.Type(index) switch
     {
         LuaType.String or LuaType.Number => "string",

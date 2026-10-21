@@ -11,7 +11,7 @@ public readonly record struct WorkspaceId(string Name)
 
     public bool IsSpecial => Name.StartsWith("special:", StringComparison.Ordinal);
 
-    /// <summary>The highest Workspace number, as the pinned release keeps a number in 32 unsigned bits.</summary>
+    /// <summary>The highest Workspace number, as Winland keeps a number in 32 unsigned bits.</summary>
     public const long MaxNumber = uint.MaxValue;
 
     public bool TryGetNumber(out long number)

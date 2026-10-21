@@ -36,7 +36,7 @@ public sealed partial class Core
     private int _layoutIndex;
 
     /// <summary>
-    /// Whether binds read keys in the first layout <c>kb_layout</c> names, as the pinned release does unless
+    /// Whether binds read keys in the first layout <c>kb_layout</c> names, as Winland does unless
     /// <c>resolve_binds_by_sym</c> is set. With no <c>kb_layout</c> Winland leaves the layouts alone, and binds read keys in
     /// the layout in use. The keyboard hook reads it with no lock.
     /// </summary>
@@ -83,8 +83,8 @@ public sealed partial class Core
         return new KeyboardLayoutRequest(ids, Math.Clamp(_layoutIndex, 0, layouts.Count - 1));
     }
 
-    // The pinned release's switchxkblayout: all keyboards, the main one, or one by name, to the next, the previous or a
-    // numbered layout. next and prev wrap around.
+    // Winland's switchxkblayout: all keyboards, the main one, or one by name, to the next, the previous or a
+    // numbered layout. Next and prev wrap around.
     private CommandReply SwitchLayout(SwitchLayoutRequest request)
     {
         var words = request.Arguments.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -92,7 +92,7 @@ public sealed partial class Core
         var command = words.Length > 1 ? words[1] : "";
 
         // Windows puts every keyboard through one layout, so a switch changes it for all of them. The event names the
-        // keyboards the request named, as the pinned release's does.
+        // keyboards the request named, as Winland's does.
         var keyboards = NamedDevices().Where(device => device.Device.Kind == InputDeviceKind.Keyboard).Select(device => device.Name).ToList();
         string[] named;
         if (keyboard == "all")

@@ -371,7 +371,7 @@ public class SwallowTests
     }
 
     [Fact]
-    // In the pinned release a swallow and group:auto_group are alternatives: a child that swallowed is not auto-grouped.
+    // In Winland a swallow and group:auto_group are alternatives: a child that swallowed is not auto-grouped.
     public void AChildThatSwallowsAStandaloneTerminalDoesNotJoinTheFocusedGroup()
     {
         var core = WithTerminal(Swallowing);

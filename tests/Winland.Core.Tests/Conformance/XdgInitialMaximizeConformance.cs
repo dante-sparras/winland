@@ -1,7 +1,7 @@
 namespace Winland.Tests.Conformance;
 
 /// <summary>
-/// The pinned release's initial maximize cases. Its client asks to be maximized before the window first shows, once
+/// Winland's initial maximize cases. Its client asks to be maximized before the window first shows, once
 /// before its first commit and once before it maps. On Windows both are a window shown maximized, which Winland
 /// finds in the system's maximized state the first time the window moves, and takes as a maximize request.
 /// </summary>

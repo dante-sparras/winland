@@ -75,7 +75,7 @@ public sealed class BindTable
 
     internal int ScrollDelay { get; }
 
-    /// <summary>How long a key is held before a long-press bind runs: <c>input:repeat_delay</c>, as in the pinned release.</summary>
+    /// <summary>How long a key is held before a long-press bind runs: <c>input:repeat_delay</c>.</summary>
     internal int LongPressDelay { get; }
 
     internal static BindTable From(ConfigDocument config)

@@ -2,7 +2,7 @@ using Winland;
 
 namespace Winland.Tests;
 
-/// <summary>window.update_rules runs when a window's rules are read again, as the pinned release emits it.</summary>
+/// <summary>window.update_rules runs when a window's rules are read again, as Winland emits it.</summary>
 public class UpdateRulesTests
 {
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);

@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace Winland.Tests.Conformance;
 
 /// <summary>
-/// The pinned release's cases for its control requests. Each test is named after its case, and sends the same
+/// Winland's cases for its control requests. Each test is named after its case, and sends the same
 /// requests. A text reply there and a JSON reply here that carry the same value are the same check.
 /// </summary>
 [Trait("Category", "Conformance")]
@@ -100,7 +100,8 @@ public class ControlConformance
     {
         var desk = new Desk();
 
-        Assert.Equal(JsonValueKind.Array, Json(desk.Send("descriptions")).ValueKind);
+        Assert.Equal(JsonValueKind.Object, Json(desk.Send("getoption general:border_size")).ValueKind);
+        Assert.Equal("no such option", desk.Send("getoption no:such"));
     }
 
     [Fact]
@@ -114,11 +115,10 @@ public class ControlConformance
         desk.Keyword("master:new_status", "inherit");
         desk.Keyword("scrolling:follow_min_visible", "0.625");
 
-        var descriptions = Descriptions(desk);
-        ExpectDescription(descriptions, "general:border_size", "1", "7");
-        ExpectDescription(descriptions, "general:snap:enabled", "false", "false");
-        ExpectDescription(descriptions, "master:new_status", "\"slave\"", "\"inherit\"");
-        ExpectDescription(descriptions, "scrolling:follow_min_visible", "0.4", "0.625");
+        Assert.Equal("""{"option":"general:border_size","int":7,"set":true}""", desk.Send("getoption general:border_size"));
+        Assert.Equal("""{"option":"general:snap:enabled","bool":false,"set":true}""", desk.Send("getoption general:snap:enabled"));
+        Assert.Equal("""{"option":"master:new_status","str":"inherit","set":true}""", desk.Send("getoption master:new_status"));
+        Assert.Equal("""{"option":"scrolling:follow_min_visible","float":0.625,"set":true}""", desk.Send("getoption scrolling:follow_min_visible"));
 
         Assert.Equal("ok", desk.Send("reload"));
         ExpectConfigured(desk);
@@ -204,22 +204,11 @@ public class ControlConformance
 
     private static void ExpectConfigured(Desk desk)
     {
-        var descriptions = Descriptions(desk);
-        ExpectDescription(descriptions, "general:border_size", "1", "2");
-        ExpectDescription(descriptions, "general:snap:enabled", "false", "true");
-        ExpectDescription(descriptions, "decoration:rounding", "0", "10");
-        ExpectDescription(descriptions, "master:new_status", "\"slave\"", "\"master\"");
-        ExpectDescription(descriptions, "scrolling:follow_min_visible", "0.4", "1");
-    }
-
-    private static JsonElement[] Descriptions(Desk desk) => [.. Json(desk.Send("descriptions")).EnumerateArray()];
-
-    // The option is described once, with this default and this current value, each written as JSON.
-    private static void ExpectDescription(JsonElement[] descriptions, string name, string defaultValue, string current)
-    {
-        var option = Assert.Single(descriptions, item => Text(item, "name") == name);
-        Assert.Equal(defaultValue, Compact(option.GetProperty("default").GetRawText()));
-        Assert.Equal(current, Compact(option.GetProperty("current").GetRawText()));
+        Assert.Equal("""{"option":"general:border_size","int":2,"set":true}""", desk.Send("getoption general:border_size"));
+        Assert.Equal("""{"option":"general:snap:enabled","bool":true,"set":true}""", desk.Send("getoption general:snap:enabled"));
+        Assert.Equal("""{"option":"decoration:rounding","int":10,"set":true}""", desk.Send("getoption decoration:rounding"));
+        Assert.Equal("""{"option":"master:new_status","str":"master","set":true}""", desk.Send("getoption master:new_status"));
+        Assert.Equal("""{"option":"scrolling:follow_min_visible","float":1,"set":true}""", desk.Send("getoption scrolling:follow_min_visible"));
     }
 
     private static void ExpectNormal(JsonElement workspace, int id, string name)

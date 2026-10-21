@@ -94,7 +94,7 @@ public class UrgencyTests
 
         var outcome = core.Handle(new Dispatch("focusurgentorlast"));
 
-        // The history left, oldest first, is 2 and 3, and the pinned release takes the second: the focused Client itself.
+        // The history left, oldest first, is 2 and 3, and Winland takes the second: the focused Client itself.
         Assert.Equal(new WindowId(3), outcome.Focus);
     }
 
@@ -105,7 +105,7 @@ public class UrgencyTests
         core.Handle(new WindowFocused(new WindowId(1)));
         core.Handle(new WindowFocused(new WindowId(2)));
 
-        // Oldest first the history is 3, 1, 2, so the pinned release goes to 1, not to 3, the one focused just before.
+        // Oldest first the history is 3, 1, 2, so Winland goes to 1, not to 3, the one focused just before.
         Assert.Equal(new WindowId(1), core.Handle(new Dispatch("focusurgentorlast")).Focus);
     }
 

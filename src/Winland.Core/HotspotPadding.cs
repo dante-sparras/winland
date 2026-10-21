@@ -2,7 +2,7 @@ namespace Winland;
 
 /// <summary>
 /// <c>cursor:hotspot_padding</c>: the cursor's hotspot keeps that many pixels from the outer edges of the monitors, as
-/// the pinned release keeps it. A point whose box of the padding around it is not inside one monitor is pushed into the
+/// Winland keeps it. A point whose box of the padding around it is not inside one monitor is pushed into the
 /// layout, towards the nearest monitor, until the corners of that box are on a monitor.
 /// </summary>
 public static class HotspotPadding
@@ -39,7 +39,7 @@ public static class HotspotPadding
         return new Point(x + padding, y + padding);
     }
 
-    // The pinned release's boxes are half-open on their far edges: the last pixel row or column is not inside.
+    // Winland's boxes are half-open on their far edges: the last pixel row or column is not inside.
     private static bool Inside(Rectangle box, Rectangle monitor) =>
         box.X >= monitor.X && box.Y >= monitor.Y
         && box.X + box.Width <= monitor.X + monitor.Width && box.Y + box.Height <= monitor.Y + monitor.Height;

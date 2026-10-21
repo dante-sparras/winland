@@ -4,9 +4,7 @@
 #   pwsh -NoProfile -File scripts/check.ps1 -Ref <sha> -Test   also runs scripts/test.ps1 on that commit
 param(
     [string]$Ref,
-    [switch]$Test,
-    # CI passes this when nothing that compiles scripts/fetch-reference.cs changed.
-    [switch]$SkipReference
+    [switch]$Test
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,7 +23,7 @@ function Get-LintFiles([string]$start, [string]$filter) {
     while ($stack.Count -gt 0) {
         $dir = $stack.Pop()
         $name = Split-Path $dir -Leaf
-        if ($name -in @('.git', 'bin', 'obj', 'StrykerOutput', 'node_modules', 'omarchy', 'quickshell', 'hyprland')) {
+        if ($name -in @('.git', 'bin', 'obj', 'StrykerOutput', 'node_modules')) {
             continue
         }
         foreach ($file in [System.IO.Directory]::EnumerateFiles($dir, $filter)) {
@@ -51,10 +49,8 @@ function Test-MarkdownLinks([string]$Root, [string[]]$Tracked) {
         }
     }
 
-    # A file that docs/agents/domain.md says may be missing, and a reference
-    # checkout that is gitignored, are not an error in AGENTS.md.
+    # A file that docs/agents/domain.md says may be missing is not an error in AGENTS.md.
     $optional = @('CONTEXT.md', 'docs/adr', 'docs/adr/README.md')
-    $ignoredCheckout = '^docs/agents/(omarchy|quickshell|hyprland)(/|$)'
     $pathExtensions = '\.(md|ps1|json|yml|yaml|props|slnx|csproj)$'
 
     $linkCount = 0
@@ -111,7 +107,6 @@ function Test-MarkdownLinks([string]$Root, [string[]]$Tracked) {
                 if ($candidate -match '^dante-sparras/[^/]+$') { continue }
                 $path = $candidate.TrimEnd('/')
                 if ($path.StartsWith('./')) { $path = $path.Substring(2) }
-                if ($path -match $ignoredCheckout -or $candidate.Contains('site/') -or $candidate.Contains('manual/')) { continue }
                 if ($path -in $optional) { continue }
                 $pathCount++
                 if (-not $files.Contains($path) -and -not $dirs.Contains($path)) {
@@ -177,28 +172,6 @@ try {
         Write-Output "no case collisions in $($tracked.Count) tracked files"
     }
 
-    # ADR 0002: the reference project's name never appears in product code, its tests, or their file names.
-    $forbidden = 'hypr' + 'land'
-    $named = @($tracked | Where-Object { $_ -match '^(src|tests)/' -and $_ -match $forbidden })
-    $mentions = @(& git -C $root grep -n -i -I -e $forbidden -- src tests)
-    if ($LASTEXITCODE -gt 1) { throw 'git grep failed' }
-    foreach ($hit in $named + $mentions) {
-        Write-Output "Forbidden name (ADR 0002): $hit"
-        $failed = 1
-    }
-    if ($named.Count + $mentions.Count -eq 0) {
-        Write-Output 'no forbidden name in src or tests'
-    }
-
-    # scripts/fetch-reference.cs is a file-based app that no solution builds. Compile it here,
-    # without running it, so it stays under the repo's compiler rules.
-    if ($SkipReference) {
-        Write-Output 'scripts/fetch-reference.cs is not built: nothing it compiles from changed.'
-    } else {
-        Write-Output 'dotnet build scripts/fetch-reference.cs'
-        dotnet build (Join-Path $root 'scripts/fetch-reference.cs') --configuration Release --nologo
-        if ($LASTEXITCODE -ne 0) { $failed = 1 }
-    }
     if ((Test-MarkdownLinks $root $tracked) -gt 0) { $failed = 1 }
 
     $solutions = @()

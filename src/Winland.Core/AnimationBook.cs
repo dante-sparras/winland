@@ -11,10 +11,9 @@ internal sealed class AnimationBook
     internal const string BezierKeyword = "bezier";
     internal const string SpringKeyword = "spring";
 
-    // An animation names a spring curve with this before the spring's name, as the pinned release does.
+    // An animation names a spring curve with this before the spring's name.
     internal const string SpringPrefix = "spring:";
     internal const string AnimationKeyword = "animation";
-    internal const string GapPrefix = "animation:";
 
     // Child, parent. The root is global.
     private static readonly Dictionary<string, string?> Parents = new(StringComparer.Ordinal)
@@ -24,9 +23,6 @@ internal sealed class AnimationBook
         ["windowsIn"] = "windows",
         ["windowsOut"] = "windows",
         ["windowsMove"] = "windows",
-        ["layers"] = "global",
-        ["layersIn"] = "layers",
-        ["layersOut"] = "layers",
         ["fade"] = "global",
         ["fadeIn"] = "fade",
         ["fadeOut"] = "fade",
@@ -34,12 +30,6 @@ internal sealed class AnimationBook
         ["fadeShadow"] = "fade",
         ["fadeGlow"] = "fade",
         ["fadeDim"] = "fade",
-        ["fadeLayers"] = "fade",
-        ["fadeLayersIn"] = "fadeLayers",
-        ["fadeLayersOut"] = "fadeLayers",
-        ["fadePopups"] = "fade",
-        ["fadePopupsIn"] = "fadePopups",
-        ["fadePopupsOut"] = "fadePopups",
         ["fadeDpms"] = "fade",
         ["border"] = "global",
         ["borderangle"] = "global",
@@ -52,7 +42,6 @@ internal sealed class AnimationBook
         ["specialWorkspaceIn"] = "specialWorkspace",
         ["specialWorkspaceOut"] = "specialWorkspace",
         ["zoomFactor"] = "global",
-        ["monitorAdded"] = "global",
     };
 
     private readonly Dictionary<string, AnimationLeaf> _set = new(StringComparer.Ordinal)
@@ -78,7 +67,7 @@ internal sealed class AnimationBook
     internal static bool Exists(string node) => Parents.ContainsKey(node);
 
     /// <summary>
-    /// The tree and the curves, as the pinned release answers <c>animations</c>. Its maps list them in no fixed order;
+    /// The tree and the curves, as Winland answers <c>animations</c>. Its maps list them in no fixed order;
     /// here the nodes follow the tree and the curves come newest first.
     /// </summary>
     internal string Describe(bool json)
@@ -188,7 +177,7 @@ internal sealed class AnimationBook
 
     /// <summary>
     /// Reads <c>NAME, STIFFNESS, DAMPING, MASS</c>, the line form of a spring <c>hl.curve</c>. Each number must be above
-    /// 0.5, as the pinned release requires. Returns the warning, or null when the spring is kept.
+    /// 0.5. Returns the warning, or null when the spring is kept.
     /// </summary>
     internal string? AddSpring(string value)
     {
@@ -223,9 +212,6 @@ internal sealed class AnimationBook
         var name = Arg(args, 0);
         if (!Exists(name))
             return $"Animation '{name}' does not exist.";
-
-        if (ConfigGaps.ReasonFor(GapPrefix + name) is string reason)
-            return reason;
 
         _overridden.Add(name);
         if (!IsOn(Arg(args, 1)))
