@@ -105,7 +105,8 @@ public class ExtraCommandTests
     [Fact]
     public void ConfigErrorsKeepTheLastLoadAndGetOptionReadsHonoredDefaults()
     {
-        var core = new Core(ConfigParser.Parse("blur = on\n"));
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse("blur = on\n")));
         Assert.Equal("[\"line 1: Unsupported keyword 'blur'.\"]", core.Execute("configerrors").Text);
         Assert.Equal("{\"option\":\"general:border_size\",\"int\":2,\"set\":false}", core.Execute("getoption general:border_size").Text);
         Assert.Equal("{\"option\":\"dwindle:use_active_for_splits\",\"bool\":true,\"set\":false}", core.Execute("getoption dwindle:use_active_for_splits").Text);
@@ -136,7 +137,8 @@ public class ExtraCommandTests
     [Fact]
     public void GetOptionReportsGapsAsCssWithFourEdges()
     {
-        var core = new Core(ConfigParser.Parse("general:gaps_out = 10 20\n"));
+        var core = new Core();
+        core.Handle(new Configure(ConfigParser.Parse("general:gaps_out = 10 20\n")));
 
         Assert.Equal("{\"option\":\"general:gaps_out\",\"css\":\"10 20 10 20\",\"set\":true}", core.Execute("getoption general:gaps_out").Text);
     }
