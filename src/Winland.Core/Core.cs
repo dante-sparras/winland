@@ -116,46 +116,7 @@ public sealed partial class Core
     {
         ArgumentNullException.ThrowIfNull(input);
         lock (_gate)
-        {
-            try
-            {
-                var outcome = Ordered(HandleCore(input));
-                Emit(outcome);
-                return outcome;
-            }
-            finally
-            {
-                _configEvents = null;
-                _extraEvents = null;
-                _noted = null;
-                _modalRules = null;
-                _activated = null;
-            }
-        }
-    }
-
-    public Outcome Dispatch(string name, string arguments)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ArgumentNullException.ThrowIfNull(arguments);
-        lock (_gate)
-        {
-            var before = Capture();
-            try
-            {
-                var outcome = Ordered(Decorate(WithEvents(Execute(name, arguments), before, input: null), before.State));
-                Emit(outcome);
-                return outcome;
-            }
-            finally
-            {
-                _configEvents = null;
-                _extraEvents = null;
-                _noted = null;
-                _modalRules = null;
-                _activated = null;
-            }
-        }
+            return Step(input, () => HandleInput(input));
     }
 
     public IReadOnlyList<Launch> StartupLaunches(ConfigDocument config)
@@ -209,29 +170,43 @@ public sealed partial class Core
     {
         lock (_gate)
         {
-            var before = Capture();
-            try
-            {
-                var reply = ExecuteLine(line);
-                var outcome = Ordered(Decorate(WithEvents(reply.Effect, before, input: null), before.State));
-                Emit(outcome);
-                return reply with { Effect = outcome };
-            }
-            finally
-            {
-                _configEvents = null;
-                _extraEvents = null;
-                _noted = null;
-                _modalRules = null;
-                _activated = null;
-            }
+            var reply = default(CommandReply);
+            var outcome = Step(null, () => (reply = ExecuteLine(line)).Effect);
+            return reply with { Effect = outcome };
         }
     }
 
-    private Outcome HandleCore(Input input)
+    // Every input and every command runs as one step: the change, then the rules matched again, the fullscreen
+    // hiding, the decorations and the Motions, and only then the events and the cursor, so they describe the
+    // finished State. The scratch state a step gathers is dropped when it ends.
+    private Outcome Step(Input? input, Func<Outcome> run)
     {
         var before = Capture();
-        var outcome = input switch
+        try
+        {
+            var outcome = run();
+            if (input is not null)
+            {
+                outcome = WakeDisplays(input, outcome);
+                Note(input);
+            }
+
+            outcome = Ordered(WithEvents(Decorate(outcome, before.State), before, input));
+            Emit(outcome);
+            return outcome;
+        }
+        finally
+        {
+            _configEvents = null;
+            _extraEvents = null;
+            _noted = null;
+            _modalRules = null;
+            _activated = null;
+        }
+    }
+
+    private Outcome HandleInput(Input input) =>
+        input switch
         {
             WindowAppeared appeared => AppearMaybeMaximized(appeared),
             ConfigLoaded loaded => Load(loaded),
@@ -273,11 +248,6 @@ public sealed partial class Core
             MonitorsChanged changed => SetMonitors(changed.Monitors),
             _ => throw new ArgumentOutOfRangeException(nameof(input), input, "No handler for this input."),
         };
-
-        outcome = WakeDisplays(input, outcome);
-        Note(input);
-        return WithEvents(Decorate(outcome, before.State), before, input);
-    }
 
     private Outcome Inhibit(InputInhibited inhibited)
     {
