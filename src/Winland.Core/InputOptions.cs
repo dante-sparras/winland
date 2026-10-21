@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Winland;
 
 /// <summary>
@@ -89,60 +87,37 @@ public sealed record InputOptions
         ["warp"] = 3,
     };
 
-    private static readonly Dictionary<string, Func<InputOptions, string, InputOptions>> Appliers = new(StringComparer.Ordinal)
-    {
-        ["input:natural_scroll"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var natural) ? options with { NaturalScroll = natural } : options,
-        ["input:scroll_points"] = (options, value) => options with { ScrollPoints = value.Trim() },
-        ["input:rotation"] = (options, value) => TryInt(value, 0, 359, out var degrees) ? options with { Rotation = degrees } : options,
-        ["input:emulate_discrete_scroll"] = (options, value) => TryMode(value, DiscreteScrollNames, 0, 2, out var mode) ? options with { EmulateDiscreteScroll = mode } : options,
-        ["input:off_window_axis_events"] = (options, value) => TryMode(value, OffWindowAxisNames, 0, 3, out var mode) ? options with { OffWindowAxisEvents = mode } : options,
-        ["input:special_fallthrough"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var fallthrough) ? options with { SpecialFallthrough = fallthrough } : options,
-        ["input:follow_mouse"] = (options, value) => TryMode(value, FollowMouseNames, 0, 3, out var mode) ? options with { FollowMouse = mode } : options,
-        ["input:follow_mouse_threshold"] = (options, value) => TryUnbounded(value, out var threshold) ? options with { FollowMouseThreshold = threshold } : options,
-        ["input:follow_mouse_shrink"] = (options, value) => TryInt(value, 0, 300, out var shrink) ? options with { FollowMouseShrink = shrink } : options,
-        ["input:mouse_refocus"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var refocus) ? options with { MouseRefocus = refocus } : options,
-        ["input:float_switch_override_focus"] = (options, value) => TryInt(value, 0, 2, out var behavior) ? options with { FloatSwitchOverrideFocus = behavior } : options,
-        ["input:scroll_method"] = (options, value) => options with { ScrollMethod = value.Trim() },
-        ["input:scroll_button"] = (options, value) => TryInt(value, 0, 300, out var button) ? options with { ScrollButton = button } : options,
-        ["input:scroll_button_lock"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var locked) ? options with { ScrollButtonLock = locked } : options,
-        ["input:focus_on_close"] = (options, value) => TryMode(value, FocusOnCloseNames, 0, 2, out var close) ? options with { FocusOnClose = close } : options,
-    };
-
-    internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);
-
-    public static InputOptions From(ConfigDocument document)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-        var options = Documented;
-        foreach (var setting in document.Settings)
-            options = Apply(options, setting);
-        return options;
-    }
-
-    private static InputOptions Apply(InputOptions options, Setting setting) =>
-        Appliers.TryGetValue(setting.Keyword, out var apply) ? apply(options, setting.Value) : options;
-
-    private static bool TryInt(string text, int min, int max, out int value)
-    {
-        if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value))
-            return false;
-
-        value = Math.Clamp(value, min, max);
-        return true;
-    }
-
-    private static bool TryUnbounded(string text, out double value) =>
-        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && double.IsFinite(value);
-
-    private static bool TryMode(string text, IReadOnlyDictionary<string, int> names, int min, int max, out int value)
-    {
-        if (!ConfigValueSyntax.TryParseNamedInt(text, names, out var parsed))
+    // A curve that does not read warns. An empty one turns the curve off.
+    private static readonly OptionValue<string> Curve = OptionValue.Of(
+        "str",
+        (string text, out string points) =>
         {
-            value = 0;
-            return false;
-        }
+            OptionValue.Text.Read(text, out points);
+            return points.Length == 0 || ScrollCurve.Parse(points) is not null;
+        },
+        OptionValue.Text.Json);
 
-        value = Math.Clamp(parsed, min, max);
-        return true;
-    }
+    internal static OptionSet<InputOptions> Options { get; } = new(
+    [
+        Of("input:natural_scroll", OptionValue.Bool, o => o.NaturalScroll == true, (o, v) => o with { NaturalScroll = v }),
+        Of("input:scroll_points", Curve, o => o.ScrollPoints ?? "", (o, v) => o with { ScrollPoints = v }),
+        Of("input:rotation", OptionValue.Int(0, 359), o => o.Rotation, (o, v) => o with { Rotation = v }),
+        Of("input:emulate_discrete_scroll", OptionValue.Int(0, 2, DiscreteScrollNames), o => o.EmulateDiscreteScroll, (o, v) => o with { EmulateDiscreteScroll = v }),
+        Of("input:off_window_axis_events", OptionValue.Int(0, 3, OffWindowAxisNames), o => o.OffWindowAxisEvents, (o, v) => o with { OffWindowAxisEvents = v }),
+        Of("input:special_fallthrough", OptionValue.Bool, o => o.SpecialFallthrough, (o, v) => o with { SpecialFallthrough = v }),
+        Of("input:follow_mouse", OptionValue.Int(0, 3, FollowMouseNames), o => o.FollowMouse, (o, v) => o with { FollowMouse = v }),
+        Of("input:follow_mouse_threshold", OptionValue.Number(), o => o.FollowMouseThreshold, (o, v) => o with { FollowMouseThreshold = v }),
+        Of("input:follow_mouse_shrink", OptionValue.Int(0, 300), o => o.FollowMouseShrink, (o, v) => o with { FollowMouseShrink = v }),
+        Of("input:mouse_refocus", OptionValue.Bool, o => o.MouseRefocus, (o, v) => o with { MouseRefocus = v }),
+        Of("input:float_switch_override_focus", OptionValue.Int(0, 2), o => o.FloatSwitchOverrideFocus, (o, v) => o with { FloatSwitchOverrideFocus = v }),
+        Of("input:scroll_method", OptionValue.OneOf("2fg", "edge", "on_button_down", "no_scroll"), o => o.ScrollMethod ?? "", (o, v) => o with { ScrollMethod = v }),
+        Of("input:scroll_button", OptionValue.Int(0, 300), o => o.ScrollButton, (o, v) => o with { ScrollButton = v }),
+        Of("input:scroll_button_lock", OptionValue.Bool, o => o.ScrollButtonLock, (o, v) => o with { ScrollButtonLock = v }),
+        Of("input:focus_on_close", OptionValue.Int(0, 2, FocusOnCloseNames), o => o.FocusOnClose, (o, v) => o with { FocusOnClose = v }),
+    ]);
+
+    public static InputOptions From(ConfigDocument document) => Options.From(Documented, document);
+
+    private static Option<InputOptions> Of<T>(string name, OptionValue<T> value, Func<InputOptions, T> get, Func<InputOptions, T, InputOptions> set) =>
+        Option<InputOptions>.Of(name, value, get, set);
 }

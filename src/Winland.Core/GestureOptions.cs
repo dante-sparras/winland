@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Winland;
 
 /// <summary>The <c>gestures</c> options that steer a workspace swipe. Distances are pixels of touchpad travel.</summary>
@@ -25,50 +23,21 @@ public sealed record GestureOptions
 
     public static GestureOptions Documented { get; } = new();
 
-    // Adding an entry here applies that keyword and stops the config warning.
-    private static readonly Dictionary<string, Func<GestureOptions, string, GestureOptions>> Appliers = new(StringComparer.Ordinal)
-    {
-        ["gestures:workspace_swipe_distance"] = (options, value) => TryInt(value, 0, 2000, out var distance) ? options with { Distance = distance } : options,
-        ["gestures:workspace_swipe_invert"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var invert) ? options with { Invert = invert } : options,
-        ["gestures:workspace_swipe_min_speed_to_force"] = (options, value) => TryInt(value, 0, 200, out var speed) ? options with { MinSpeedToForce = speed } : options,
-        ["gestures:workspace_swipe_cancel_ratio"] = (options, value) => TryFloat(value, 0, 1, out var ratio) ? options with { CancelRatio = ratio } : options,
-        ["gestures:workspace_swipe_create_new"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var create) ? options with { CreateNew = create } : options,
-        ["gestures:workspace_swipe_direction_lock"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var locked) ? options with { DirectionLock = locked } : options,
-        ["gestures:workspace_swipe_direction_lock_threshold"] = (options, value) => TryInt(value, 0, 200, out var threshold) ? options with { DirectionLockThreshold = threshold } : options,
-        ["gestures:workspace_swipe_forever"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var forever) ? options with { Forever = forever } : options,
-        ["gestures:workspace_swipe_use_r"] = (options, value) => ConfigValueSyntax.TryParseBool(value, out var relative) ? options with { UseRelative = relative } : options,
-    };
+    internal static OptionSet<GestureOptions> Options { get; } = new(
+    [
+        Of("gestures:workspace_swipe_distance", OptionValue.Int(0, 2000), o => o.Distance, (o, v) => o with { Distance = v }),
+        Of("gestures:workspace_swipe_invert", OptionValue.Bool, o => o.Invert, (o, v) => o with { Invert = v }),
+        Of("gestures:workspace_swipe_min_speed_to_force", OptionValue.Int(0, 200), o => o.MinSpeedToForce, (o, v) => o with { MinSpeedToForce = v }),
+        Of("gestures:workspace_swipe_cancel_ratio", OptionValue.Number(0, 1), o => o.CancelRatio, (o, v) => o with { CancelRatio = v }),
+        Of("gestures:workspace_swipe_create_new", OptionValue.Bool, o => o.CreateNew, (o, v) => o with { CreateNew = v }),
+        Of("gestures:workspace_swipe_direction_lock", OptionValue.Bool, o => o.DirectionLock, (o, v) => o with { DirectionLock = v }),
+        Of("gestures:workspace_swipe_direction_lock_threshold", OptionValue.Int(0, 200), o => o.DirectionLockThreshold, (o, v) => o with { DirectionLockThreshold = v }),
+        Of("gestures:workspace_swipe_forever", OptionValue.Bool, o => o.Forever, (o, v) => o with { Forever = v }),
+        Of("gestures:workspace_swipe_use_r", OptionValue.Bool, o => o.UseRelative, (o, v) => o with { UseRelative = v }),
+    ]);
 
-    internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);
+    public static GestureOptions From(ConfigDocument document) => Options.From(Documented, document);
 
-    public static GestureOptions From(ConfigDocument document)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-        var options = Documented;
-        foreach (var setting in document.Settings)
-        {
-            if (Appliers.TryGetValue(setting.Keyword, out var apply))
-                options = apply(options, setting.Value);
-        }
-
-        return options;
-    }
-
-    private static bool TryInt(string text, int min, int max, out int value)
-    {
-        if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value))
-            return false;
-
-        value = Math.Clamp(value, min, max);
-        return true;
-    }
-
-    private static bool TryFloat(string text, double min, double max, out double value)
-    {
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) || !double.IsFinite(value))
-            return false;
-
-        value = Math.Clamp(value, min, max);
-        return true;
-    }
+    private static Option<GestureOptions> Of<T>(string name, OptionValue<T> value, Func<GestureOptions, T> get, Func<GestureOptions, T, GestureOptions> set) =>
+        Option<GestureOptions>.Of(name, value, get, set);
 }

@@ -180,7 +180,7 @@ public class ConfigSyntaxTests
             $VAR1 = 2
             $VAR2 = {{VAR1 + 3}}
             general:gaps_in = {{VAR2 * 2}}
-            general:border_size = {{10 / 4}}
+            dwindle:split_width_multiplier = {{10 / 4}}
             """);
 
         Assert.Empty(document.Warnings);
@@ -188,7 +188,7 @@ public class ConfigSyntaxTests
             new[]
             {
                 new Setting("general:gaps_in", "10"),
-                new Setting("general:border_size", "2.5"),
+                new Setting("dwindle:split_width_multiplier", "2.5"),
             },
             document.Settings);
     }

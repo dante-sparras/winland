@@ -100,19 +100,19 @@ public class TrayIconTests
     }
 
     [Fact]
-    public void AnInvalidBoolKeepsThePreviousValueAndDoesNotWarn()
+    public void AnInvalidBoolWarnsAndKeepsThePreviousValue()
     {
         var document = ConfigParser.Parse("""
             general:tray_icon = false
             general:tray_icon = perhaps
             """);
-        Assert.Empty(document.Warnings);
+        Assert.Equal(new ConfigWarning(2, "Invalid value 'perhaps' for general:tray_icon."), Assert.Single(document.Warnings));
         Assert.False(new Core(document).Execute("dispatch workspace 1").Effect.Tray!.Shown);
 
         var core = new Core();
         var reply = core.Execute("keyword general:tray_icon perhaps");
 
-        Assert.Equal("ok", reply.Text);
+        Assert.Equal("error: Invalid value 'perhaps' for general:tray_icon.", reply.Text);
         Assert.True(reply.Effect.Tray!.Shown);
     }
 

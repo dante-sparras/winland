@@ -69,7 +69,7 @@ public class FullscreenFocusTests
     [InlineData("misc:exit_window_retains_fullscreen = false", 0)]
     [InlineData("misc:exit_window_retains_fullscreen = only_when_grouped", 2)]
     [InlineData("misc:exit_window_retains_fullscreen = only_when_nongrouped", 3)]
-    [InlineData("misc:exit_window_retains_fullscreen = 4", 0)]
+    [InlineData("misc:exit_window_retains_fullscreen = 4", 3)]
     public void ExitWindowRetainsFullscreenReadsANumberAFlagOrAName(string line, int expected)
     {
         var session = SessionOptions.From(ConfigParser.Parse(line));

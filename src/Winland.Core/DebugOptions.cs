@@ -6,14 +6,6 @@ namespace Winland;
 /// </summary>
 public sealed record DebugOptions
 {
-    internal static IReadOnlySet<string> Keywords { get; } = new HashSet<string>(StringComparer.Ordinal)
-    {
-        "debug:disable_logs",
-        "debug:disable_time",
-        "debug:enable_stdout_logs",
-        "debug:colored_stdout_logs",
-    };
-
     public static DebugOptions Documented { get; } = new();
 
     /// <summary><c>debug:disable_logs</c>: no log file and no log on standard output. Winland's error stream is still written.</summary>
@@ -28,23 +20,16 @@ public sealed record DebugOptions
     /// <summary><c>debug:colored_stdout_logs</c>: the log on standard output is colored.</summary>
     public bool ColoredStdoutLogs { get; init; } = true;
 
-    public static DebugOptions From(ConfigDocument document)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-        var options = Documented;
-        foreach (var setting in document.Settings)
-        {
-            var value = setting.Value.Trim();
-            options = setting.Keyword switch
-            {
-                "debug:disable_logs" when ConfigValueSyntax.TryParseBool(value, out var off) => options with { DisableLogs = off },
-                "debug:disable_time" when ConfigValueSyntax.TryParseBool(value, out var untimed) => options with { DisableTime = untimed },
-                "debug:enable_stdout_logs" when ConfigValueSyntax.TryParseBool(value, out var stdout) => options with { EnableStdoutLogs = stdout },
-                "debug:colored_stdout_logs" when ConfigValueSyntax.TryParseBool(value, out var colored) => options with { ColoredStdoutLogs = colored },
-                _ => options,
-            };
-        }
+    internal static OptionSet<DebugOptions> Options { get; } = new(
+    [
+        Of("debug:disable_logs", OptionValue.Bool, o => o.DisableLogs, (o, v) => o with { DisableLogs = v }),
+        Of("debug:disable_time", OptionValue.Bool, o => o.DisableTime, (o, v) => o with { DisableTime = v }),
+        Of("debug:enable_stdout_logs", OptionValue.Bool, o => o.EnableStdoutLogs, (o, v) => o with { EnableStdoutLogs = v }),
+        Of("debug:colored_stdout_logs", OptionValue.Bool, o => o.ColoredStdoutLogs, (o, v) => o with { ColoredStdoutLogs = v }),
+    ]);
 
-        return options;
-    }
+    public static DebugOptions From(ConfigDocument document) => Options.From(Documented, document);
+
+    private static Option<DebugOptions> Of<T>(string name, OptionValue<T> value, Func<DebugOptions, T> get, Func<DebugOptions, T, DebugOptions> set) =>
+        Option<DebugOptions>.Of(name, value, get, set);
 }

@@ -92,31 +92,8 @@ public sealed class BindTable
             }
         }
 
-        return new BindTable([.. binds], ReadThreshold(config), ReadScrollDelay(config), LongPressMilliseconds);
-    }
-
-    private static int ReadThreshold(ConfigDocument config)
-    {
-        var threshold = 0;
-        foreach (var setting in config.Settings)
-        {
-            if (setting.Keyword == "binds:drag_threshold" && int.TryParse(setting.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
-                threshold = Math.Max(0, parsed);
-        }
-
-        return threshold;
-    }
-
-    private static int ReadScrollDelay(ConfigDocument config)
-    {
-        var delay = 300;
-        foreach (var setting in config.Settings)
-        {
-            if (setting.Keyword == "binds:scroll_event_delay" && int.TryParse(setting.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
-                delay = Math.Clamp(parsed, 0, 2000);
-        }
-
-        return delay;
+        var options = BindOptions.From(config);
+        return new BindTable([.. binds], options.DragThreshold, options.ScrollEventDelay, LongPressMilliseconds);
     }
 
     /// <summary>How long a key is held before a long-press bind runs, in milliseconds.</summary>

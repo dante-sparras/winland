@@ -44,99 +44,55 @@ public sealed record ScrollingOptions
 
     public static ScrollingOptions Defaults { get; } = new();
 
-    public static ScrollingOptions From(ConfigDocument document)
+    private static readonly Dictionary<string, int> FitNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        ArgumentNullException.ThrowIfNull(document);
-        var options = Defaults;
-        foreach (var setting in document.Settings)
-            options = Apply(options, setting);
-        return options;
-    }
-
-    private static readonly Dictionary<string, Func<ScrollingOptions, string, ScrollingOptions>> Appliers = new(StringComparer.Ordinal)
-    {
-        ["scrolling:fullscreen_on_one_column"] = (options, value) =>
-            TryBool(value, out var enabled) ? options with { FullscreenOnOneColumn = enabled } : options,
-        ["scrolling:column_width"] = (options, value) =>
-            TryDouble(value, out var width) ? options with { ColumnWidth = Clamp(width, 0.1, 1) } : options,
-        ["scrolling:focus_fit_method"] = (options, value) =>
-            TryFit(value, out var fit) ? options with { FocusFitMethod = fit } : options,
-        ["scrolling:follow_focus"] = (options, value) =>
-            TryBool(value, out var follow) ? options with { FollowFocus = follow } : options,
-        ["scrolling:follow_min_visible"] = (options, value) =>
-            TryDouble(value, out var fraction) ? options with { FollowMinVisible = Clamp(fraction, 0, 1) } : options,
-        ["scrolling:explicit_column_widths"] = (options, value) =>
-            TryWidths(value, out var widths) ? options with { ExplicitColumnWidths = widths } : options,
-        ["scrolling:direction"] = (options, value) => options with { Direction = ParseDirection(value) },
-        ["scrolling:wrap_focus"] = (options, value) =>
-            TryBool(value, out var wrap) ? options with { WrapFocus = wrap } : options,
-        ["scrolling:wrap_swapcol"] = (options, value) =>
-            TryBool(value, out var wrap) ? options with { WrapSwapCol = wrap } : options,
+        ["center"] = 0,
+        ["fit"] = 1,
     };
 
-    internal static IReadOnlySet<string> Keywords { get; } = new HashSet<string>(Appliers.Keys, StringComparer.Ordinal);
-
-    private static ScrollingOptions Apply(ScrollingOptions options, Setting setting) =>
-        Appliers.TryGetValue(setting.Keyword, out var apply) ? apply(options, setting.Value) : options;
-
-    private static readonly Dictionary<string, ScrollingFit> FitNames = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, ScrollingDirection> DirectionNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["center"] = ScrollingFit.Center,
-        ["fit"] = ScrollingFit.Fit,
+        ["right"] = ScrollingDirection.Right,
+        ["left"] = ScrollingDirection.Left,
+        ["down"] = ScrollingDirection.Down,
+        ["up"] = ScrollingDirection.Up,
     };
 
-    private static bool TryFit(string text, out ScrollingFit fit)
-    {
-        if (FitNames.TryGetValue(text, out fit))
-            return true;
-
-        if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+    // Widths split by commas, each clamped to a column's range. Every width has to read.
+    private static readonly OptionValue<IReadOnlyList<double>> Widths = OptionValue.Of<IReadOnlyList<double>>(
+        "str",
+        (string text, out IReadOnlyList<double> widths) =>
         {
-            fit = ScrollingFit.Fit;
-            return false;
-        }
+            var width = OptionValue.Number(MinColumnWidth, MaxColumnWidth);
+            var parsed = new List<double>();
+            widths = parsed;
+            foreach (var part in text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (!width.Read(part, out var read))
+                    return false;
 
-        fit = (ScrollingFit)Clamp(parsed, 0, 1);
-        return true;
-    }
+                parsed.Add(read);
+            }
 
-    private static ScrollingDirection ParseDirection(string text)
-    {
-        if (text.Equals("left", StringComparison.OrdinalIgnoreCase))
-            return ScrollingDirection.Left;
-        if (text.Equals("down", StringComparison.OrdinalIgnoreCase))
-            return ScrollingDirection.Down;
-        if (text.Equals("up", StringComparison.OrdinalIgnoreCase))
-            return ScrollingDirection.Up;
-        return ScrollingDirection.Right;
-    }
+            return parsed.Count > 0;
+        },
+        widths => OptionValue.Quote(string.Join(", ", widths.Select(width => width.ToString("0.###", CultureInfo.InvariantCulture)))));
 
-    private static bool TryWidths(string text, out IReadOnlyList<double> widths)
-    {
-        var parsed = new List<double>();
-        foreach (var part in text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
-        {
-            if (TryDouble(part, out var width))
-                parsed.Add(Clamp(width, MinColumnWidth, MaxColumnWidth));
-        }
+    internal static OptionSet<ScrollingOptions> Options { get; } = new(
+    [
+        Of("scrolling:fullscreen_on_one_column", OptionValue.Bool, o => o.FullscreenOnOneColumn, (o, v) => o with { FullscreenOnOneColumn = v }),
+        Of("scrolling:column_width", OptionValue.Number(0.1, 1), o => o.ColumnWidth, (o, v) => o with { ColumnWidth = v }),
+        Of("scrolling:focus_fit_method", OptionValue.Int(0, 1, FitNames), o => (int)o.FocusFitMethod, (o, v) => o with { FocusFitMethod = (ScrollingFit)v }),
+        Of("scrolling:follow_focus", OptionValue.Bool, o => o.FollowFocus, (o, v) => o with { FollowFocus = v }),
+        Of("scrolling:follow_min_visible", OptionValue.Number(0, 1), o => o.FollowMinVisible, (o, v) => o with { FollowMinVisible = v }),
+        Of("scrolling:explicit_column_widths", Widths, o => o.ExplicitColumnWidths, (o, v) => o with { ExplicitColumnWidths = v }),
+        Of("scrolling:direction", OptionValue.Named(DirectionNames), o => o.Direction, (o, v) => o with { Direction = v }),
+        Of("scrolling:wrap_focus", OptionValue.Bool, o => o.WrapFocus, (o, v) => o with { WrapFocus = v }),
+        Of("scrolling:wrap_swapcol", OptionValue.Bool, o => o.WrapSwapCol, (o, v) => o with { WrapSwapCol = v }),
+    ]);
 
-        if (parsed.Count == 0)
-        {
-            widths = Defaults.ExplicitColumnWidths;
-            return text.Trim().Length > 0;
-        }
+    public static ScrollingOptions From(ConfigDocument document) => Options.From(Defaults, document);
 
-        widths = parsed;
-        return true;
-    }
-
-    private static bool TryBool(string text, out bool value) =>
-        ConfigValueSyntax.TryParseBool(text, out value);
-
-    private static bool TryDouble(string text, out double value) =>
-        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && double.IsFinite(value);
-
-    private static double Clamp(double value, double min, double max) => Math.Clamp(value, min, max);
-
-    private static int Clamp(int value, int min, int max) => Math.Clamp(value, min, max);
+    private static Option<ScrollingOptions> Of<T>(string name, OptionValue<T> value, Func<ScrollingOptions, T> get, Func<ScrollingOptions, T, ScrollingOptions> set) =>
+        Option<ScrollingOptions>.Of(name, value, get, set);
 }

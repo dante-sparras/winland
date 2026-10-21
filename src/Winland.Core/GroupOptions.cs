@@ -1,6 +1,3 @@
-using System.Globalization;
-using static Winland.ConfigValueSyntax;
-
 namespace Winland;
 
 /// <summary>The <c>group:*</c> and <c>group:groupbar:*</c> options, with the defaults of Winland.</summary>
@@ -43,129 +40,91 @@ public sealed record GroupOptions
 
     public GroupBarStyle Bar { get; init; } = GroupBarStyle.Documented;
 
-    // Adding an entry here applies that keyword and stops the config warning.
-    private static readonly Dictionary<string, Func<GroupOptions, string, GroupOptions>> Appliers = new(StringComparer.Ordinal)
+    private static readonly Dictionary<string, int> DragIntoGroupNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["group:auto_group"] = (o, v) => TryParseBool(v, out var b) ? o with { AutoGroup = b } : o,
-        ["group:insert_after_current"] = (o, v) => TryParseBool(v, out var b) ? o with { InsertAfterCurrent = b } : o,
-        ["group:focus_removed_window"] = (o, v) => TryParseBool(v, out var b) ? o with { FocusRemovedWindow = b } : o,
-        ["group:group_on_movetoworkspace"] = (o, v) => TryParseBool(v, out var b) ? o with { GroupOnMoveToWorkspace = b } : o,
-        ["binds:ignore_group_lock"] = (o, v) => TryParseBool(v, out var b) ? o with { IgnoreGroupLock = b } : o,
-        ["binds:movefocus_cycles_groupfirst"] = (o, v) => TryParseBool(v, out var b) ? o with { MoveFocusCyclesGroupFirst = b } : o,
-        ["group:drag_into_group"] = (o, v) => TryInt(v, 0, 2, out var i) ? o with { DragIntoGroup = i } : o,
-        ["group:merge_groups_on_drag"] = (o, v) => TryParseBool(v, out var b) ? o with { MergeGroupsOnDrag = b } : o,
-        ["group:merge_groups_on_groupbar"] = (o, v) => TryParseBool(v, out var b) ? o with { MergeGroupsOnGroupbar = b } : o,
-        ["group:merge_floated_into_tiled_on_groupbar"] = (o, v) => TryParseBool(v, out var b) ? o with { MergeFloatedIntoTiledOnGroupbar = b } : o,
-        ["group:col.border_active"] = (o, v) => TryColor(v, out var c) ? o with { ActiveBorder = c } : o,
-        ["group:col.border_inactive"] = (o, v) => TryColor(v, out var c) ? o with { InactiveBorder = c } : o,
-        ["group:col.border_locked_active"] = (o, v) => TryColor(v, out var c) ? o with { LockedActiveBorder = c } : o,
-        ["group:col.border_locked_inactive"] = (o, v) => TryColor(v, out var c) ? o with { LockedInactiveBorder = c } : o,
-        ["general:col.nogroup_border"] = (o, v) => TryColor(v, out var c) ? o with { NoGroupBorder = c } : o,
-        ["general:col.nogroup_border_active"] = (o, v) => TryColor(v, out var c) ? o with { NoGroupActiveBorder = c } : o,
-        ["group:groupbar:enabled"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { Enabled = b }) : o,
-        ["group:groupbar:disable_when_only"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { DisableWhenOnly = b }) : o,
-        ["group:groupbar:render_titles"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { RenderTitles = b }) : o,
-        ["group:groupbar:scrolling"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { Scrolling = b }) : o,
-        ["group:groupbar:middle_click_close"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { MiddleClickClose = b }) : o,
-        ["group:groupbar:keep_upper_gap"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { KeepUpperGap = b }) : o,
-        ["group:groupbar:font_family"] = (o, v) => o.WithBar(o.Bar with { FontFamily = v.Trim() == "[[EMPTY]]" ? "" : v.Trim() }),
-        ["group:groupbar:font_size"] = (o, v) => TryInt(v, 2, 64, out var i) ? o.WithBar(o.Bar with { FontSize = i }) : o,
-        ["group:groupbar:font_weight_active"] = (o, v) => TryWeight(v, out var w) ? o.WithBar(o.Bar with { FontWeightActive = w }) : o,
-        ["group:groupbar:font_weight_inactive"] = (o, v) => TryWeight(v, out var w) ? o.WithBar(o.Bar with { FontWeightInactive = w }) : o,
-        ["group:groupbar:priority"] = (o, v) => TryInt(v, 0, 6, out var i) ? o.WithBar(o.Bar with { Priority = i }) : o,
-        ["group:groupbar:height"] = (o, v) => TryInt(v, 1, 64, out var i) ? o.WithBar(o.Bar with { Height = i }) : o,
-        ["group:groupbar:indicator_height"] = (o, v) => TryInt(v, 1, 64, out var i) ? o.WithBar(o.Bar with { IndicatorHeight = i }) : o,
-        ["group:groupbar:indicator_gap"] = (o, v) => TryInt(v, 0, 64, out var i) ? o.WithBar(o.Bar with { IndicatorGap = i }) : o,
-        ["group:groupbar:gaps_out"] = (o, v) => TryInt(v, 0, 20, out var i) ? o.WithBar(o.Bar with { GapsOut = i }) : o,
-        ["group:groupbar:gaps_in"] = (o, v) => TryInt(v, 0, 20, out var i) ? o.WithBar(o.Bar with { GapsIn = i }) : o,
-        ["group:groupbar:text_offset"] = (o, v) => TryInt(v, -20, 20, out var i) ? o.WithBar(o.Bar with { TextOffset = i }) : o,
-        ["group:groupbar:text_padding"] = (o, v) => TryInt(v, 0, 22, out var i) ? o.WithBar(o.Bar with { TextPadding = i }) : o,
-        ["group:groupbar:text_color"] = (o, v) => TryColor(v, out var c) ? o.WithBar(o.Bar with { TextColor = c }) : o,
-        ["group:groupbar:text_color_inactive"] = (o, v) => TryColor(v, out var c) ? o.WithBar(o.Bar with { TextColorInactive = c }) : o,
-        ["group:groupbar:text_color_locked_active"] = (o, v) => TryColor(v, out var c) ? o.WithBar(o.Bar with { TextColorLockedActive = c }) : o,
-        ["group:groupbar:text_color_locked_inactive"] = (o, v) => TryColor(v, out var c) ? o.WithBar(o.Bar with { TextColorLockedInactive = c }) : o,
-        ["group:groupbar:col.active"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { Active = c[0], ActiveGradient = new BarGradient(c) }) : o,
-        ["group:groupbar:col.inactive"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { Inactive = c[0], InactiveGradient = new BarGradient(c) }) : o,
-        ["group:groupbar:col.locked_active"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { LockedActive = c[0], LockedActiveGradient = new BarGradient(c) }) : o,
-        ["group:groupbar:col.locked_inactive"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { LockedInactive = c[0], LockedInactiveGradient = new BarGradient(c) }) : o,
-        ["group:groupbar:stacked"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { Stacked = b }) : o,
-        ["group:groupbar:gradients"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { Gradients = b }) : o,
-        ["group:groupbar:rounding"] = (o, v) => TryInt(v, 0, 40, out var i) ? o.WithBar(o.Bar with { Rounding = i }) : o,
-        ["group:groupbar:rounding_power"] = (o, v) => TryPower(v, out var p) ? o.WithBar(o.Bar with { RoundingPower = p }) : o,
-        ["group:groupbar:round_only_edges"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { RoundOnlyEdges = b }) : o,
-        ["group:groupbar:gradient_rounding"] = (o, v) => TryInt(v, 0, 40, out var i) ? o.WithBar(o.Bar with { GradientRounding = i }) : o,
-        ["group:groupbar:gradient_rounding_power"] = (o, v) => TryPower(v, out var p) ? o.WithBar(o.Bar with { GradientRoundingPower = p }) : o,
-        ["group:groupbar:gradient_round_only_edges"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { GradientRoundOnlyEdges = b }) : o,
+        ["disabled"] = 0,
+        ["enabled"] = 1,
+        ["only_into_groupbar"] = 2,
     };
 
-    internal static IReadOnlySet<string> Keywords { get; } = Appliers.Keys.ToHashSet(StringComparer.Ordinal);
-
-    public static GroupOptions From(ConfigDocument document)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-        var options = Documented;
-        foreach (var setting in document.Settings)
-        {
-            if (Appliers.TryGetValue(setting.Keyword, out var apply))
-                options = apply(options, setting.Value);
-        }
-
-        return options;
-    }
-
-    private GroupOptions WithBar(GroupBarStyle bar) => this with { Bar = bar };
-
-    private static bool TryColor(string text, out BorderColor color) => BorderColor.TryParse(text, out color, out _);
-
-    private static bool TryColors(string text, out BorderColor[] colors) =>
-        ConfigValueSyntax.TryParseColors(text, out colors) && colors.Length > 0;
-
-    // A corner's rounding power, from 1 to 10, where 2 is a circle.
-    private static bool TryPower(string text, out double power)
-    {
-        if (!double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out power) || !double.IsFinite(power))
-            return false;
-
-        power = Math.Clamp(power, 1, 10);
-        return true;
-    }
-
-    private static bool TryInt(string text, int min, int max, out int value)
-    {
-        if (!int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value))
-            return false;
-
-        value = Math.Clamp(value, min, max);
-        return true;
-    }
-
     // A font weight is a name or a number from 100 to 1000.
-    private static bool TryWeight(string text, out int weight)
+    private static readonly OptionValue<int> Weight = OptionValue.Int(100, 1000, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
     {
-        weight = text.Trim().ToLowerInvariant() switch
-        {
-            "thin" => 100,
-            "ultralight" => 200,
-            "light" => 300,
-            "book" => 380,
-            "normal" => 400,
-            "medium" => 500,
-            "semibold" => 600,
-            "bold" => 700,
-            "ultrabold" => 800,
-            "heavy" => 900,
-            "ultraheavy" => 1000,
-            _ => 0,
-        };
-        if (weight > 0)
-            return true;
+        ["thin"] = 100,
+        ["ultralight"] = 200,
+        ["light"] = 300,
+        ["book"] = 380,
+        ["normal"] = 400,
+        ["medium"] = 500,
+        ["semibold"] = 600,
+        ["bold"] = 700,
+        ["ultrabold"] = 800,
+        ["heavy"] = 900,
+        ["ultraheavy"] = 1000,
+    });
 
-        if (!int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out weight))
-            return false;
+    internal static OptionSet<GroupOptions> Options { get; } = new(
+    [
+        Of("group:auto_group", OptionValue.Bool, o => o.AutoGroup, (o, v) => o with { AutoGroup = v }),
+        Of("group:insert_after_current", OptionValue.Bool, o => o.InsertAfterCurrent, (o, v) => o with { InsertAfterCurrent = v }),
+        Of("group:focus_removed_window", OptionValue.Bool, o => o.FocusRemovedWindow, (o, v) => o with { FocusRemovedWindow = v }),
+        Of("group:group_on_movetoworkspace", OptionValue.Bool, o => o.GroupOnMoveToWorkspace, (o, v) => o with { GroupOnMoveToWorkspace = v }),
+        Of("binds:ignore_group_lock", OptionValue.Bool, o => o.IgnoreGroupLock, (o, v) => o with { IgnoreGroupLock = v }),
+        Of("binds:movefocus_cycles_groupfirst", OptionValue.Bool, o => o.MoveFocusCyclesGroupFirst, (o, v) => o with { MoveFocusCyclesGroupFirst = v }),
+        Of("group:drag_into_group", OptionValue.Int(0, 2, DragIntoGroupNames), o => o.DragIntoGroup, (o, v) => o with { DragIntoGroup = v }),
+        Of("group:merge_groups_on_drag", OptionValue.Bool, o => o.MergeGroupsOnDrag, (o, v) => o with { MergeGroupsOnDrag = v }),
+        Of("group:merge_groups_on_groupbar", OptionValue.Bool, o => o.MergeGroupsOnGroupbar, (o, v) => o with { MergeGroupsOnGroupbar = v }),
+        Of("group:merge_floated_into_tiled_on_groupbar", OptionValue.Bool, o => o.MergeFloatedIntoTiledOnGroupbar, (o, v) => o with { MergeFloatedIntoTiledOnGroupbar = v }),
+        Of("group:col.border_active", OptionValue.Color, o => o.ActiveBorder, (o, v) => o with { ActiveBorder = v }),
+        Of("group:col.border_inactive", OptionValue.Color, o => o.InactiveBorder, (o, v) => o with { InactiveBorder = v }),
+        Of("group:col.border_locked_active", OptionValue.Color, o => o.LockedActiveBorder, (o, v) => o with { LockedActiveBorder = v }),
+        Of("group:col.border_locked_inactive", OptionValue.Color, o => o.LockedInactiveBorder, (o, v) => o with { LockedInactiveBorder = v }),
+        Of("general:col.nogroup_border", OptionValue.Color, o => o.NoGroupBorder, (o, v) => o with { NoGroupBorder = v }),
+        Of("general:col.nogroup_border_active", OptionValue.Color, o => o.NoGroupActiveBorder, (o, v) => o with { NoGroupActiveBorder = v }),
+        OfBar("enabled", OptionValue.Bool, b => b.Enabled, (b, v) => b with { Enabled = v }),
+        OfBar("disable_when_only", OptionValue.Bool, b => b.DisableWhenOnly, (b, v) => b with { DisableWhenOnly = v }),
+        OfBar("render_titles", OptionValue.Bool, b => b.RenderTitles, (b, v) => b with { RenderTitles = v }),
+        OfBar("scrolling", OptionValue.Bool, b => b.Scrolling, (b, v) => b with { Scrolling = v }),
+        OfBar("middle_click_close", OptionValue.Bool, b => b.MiddleClickClose, (b, v) => b with { MiddleClickClose = v }),
+        OfBar("keep_upper_gap", OptionValue.Bool, b => b.KeepUpperGap, (b, v) => b with { KeepUpperGap = v }),
+        OfBar("font_family", OptionValue.Text, b => b.FontFamily, (b, v) => b with { FontFamily = v }),
+        OfBar("font_size", OptionValue.Int(2, 64), b => b.FontSize, (b, v) => b with { FontSize = v }),
+        OfBar("font_weight_active", Weight, b => b.FontWeightActive, (b, v) => b with { FontWeightActive = v }),
+        OfBar("font_weight_inactive", Weight, b => b.FontWeightInactive, (b, v) => b with { FontWeightInactive = v }),
+        OfBar("priority", OptionValue.Int(0, 6), b => b.Priority, (b, v) => b with { Priority = v }),
+        OfBar("height", OptionValue.Int(1, 64), b => b.Height, (b, v) => b with { Height = v }),
+        OfBar("indicator_height", OptionValue.Int(1, 64), b => b.IndicatorHeight, (b, v) => b with { IndicatorHeight = v }),
+        OfBar("indicator_gap", OptionValue.Int(0, 64), b => b.IndicatorGap, (b, v) => b with { IndicatorGap = v }),
+        OfBar("gaps_out", OptionValue.Int(0, 20), b => b.GapsOut, (b, v) => b with { GapsOut = v }),
+        OfBar("gaps_in", OptionValue.Int(0, 20), b => b.GapsIn, (b, v) => b with { GapsIn = v }),
+        OfBar("text_offset", OptionValue.Int(-20, 20), b => b.TextOffset, (b, v) => b with { TextOffset = v }),
+        OfBar("text_padding", OptionValue.Int(0, 22), b => b.TextPadding, (b, v) => b with { TextPadding = v }),
+        OfBar("text_color", OptionValue.Color, b => b.TextColor, (b, v) => b with { TextColor = v }),
+        OfBar("text_color_inactive", OptionValue.Color, b => b.TitleColor(active: false, locked: false), (b, v) => b with { TextColorInactive = v }),
+        OfBar("text_color_locked_active", OptionValue.Color, b => b.TitleColor(active: true, locked: true), (b, v) => b with { TextColorLockedActive = v }),
+        OfBar("text_color_locked_inactive", OptionValue.Color, b => b.TitleColor(active: false, locked: true), (b, v) => b with { TextColorLockedInactive = v }),
+        OfBar("col.active", OptionValue.Colors, b => [.. b.GradientColors(active: true, locked: false)], (b, v) => b with { Active = v[0], ActiveGradient = new BarGradient(v) }),
+        OfBar("col.inactive", OptionValue.Colors, b => [.. b.GradientColors(active: false, locked: false)], (b, v) => b with { Inactive = v[0], InactiveGradient = new BarGradient(v) }),
+        OfBar("col.locked_active", OptionValue.Colors, b => [.. b.GradientColors(active: true, locked: true)], (b, v) => b with { LockedActive = v[0], LockedActiveGradient = new BarGradient(v) }),
+        OfBar("col.locked_inactive", OptionValue.Colors, b => [.. b.GradientColors(active: false, locked: true)], (b, v) => b with { LockedInactive = v[0], LockedInactiveGradient = new BarGradient(v) }),
+        OfBar("stacked", OptionValue.Bool, b => b.Stacked, (b, v) => b with { Stacked = v }),
+        OfBar("gradients", OptionValue.Bool, b => b.Gradients, (b, v) => b with { Gradients = v }),
+        OfBar("rounding", OptionValue.Int(0, 40), b => b.Rounding, (b, v) => b with { Rounding = v }),
+        OfBar("rounding_power", OptionValue.Number(1, 10), b => b.RoundingPower, (b, v) => b with { RoundingPower = v }),
+        OfBar("round_only_edges", OptionValue.Bool, b => b.RoundOnlyEdges, (b, v) => b with { RoundOnlyEdges = v }),
+        OfBar("gradient_rounding", OptionValue.Int(0, 40), b => b.GradientRounding, (b, v) => b with { GradientRounding = v }),
+        OfBar("gradient_rounding_power", OptionValue.Number(1, 10), b => b.GradientRoundingPower, (b, v) => b with { GradientRoundingPower = v }),
+        OfBar("gradient_round_only_edges", OptionValue.Bool, b => b.GradientRoundOnlyEdges, (b, v) => b with { GradientRoundOnlyEdges = v }),
+    ]);
 
-        weight = Math.Clamp(weight, 100, 1000);
-        return true;
-    }
+    public static GroupOptions From(ConfigDocument document) => Options.From(Documented, document);
+
+    private static Option<GroupOptions> Of<T>(string name, OptionValue<T> value, Func<GroupOptions, T> get, Func<GroupOptions, T, GroupOptions> set) =>
+        Option<GroupOptions>.Of(name, value, get, set);
+
+    // An Option of the tab bar, under group:groupbar.
+    private static Option<GroupOptions> OfBar<T>(string key, OptionValue<T> value, Func<GroupBarStyle, T> get, Func<GroupBarStyle, T, GroupBarStyle> set) =>
+        Option<GroupOptions>.Of("group:groupbar:" + key, value, o => get(o.Bar), (o, v) => o with { Bar = set(o.Bar, v) });
 }
 
 /// <summary>How the tab bar over a Group's tile is drawn. Unset text colors fall back as the manual says.</summary>

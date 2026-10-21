@@ -235,15 +235,19 @@ public static partial class ConfigParser
                 return;
 
             var keyword = KeyedName.TryInline(lhs, out var inline) ? inline : Qualify(lhs);
-            if (!HonoredKeywords.Contains(keyword))
+            if (OptionTable.Find(keyword) is not IOption option)
             {
                 Warn(lineNumber, $"Unsupported keyword '{keyword}'.");
                 return;
             }
 
+            if (!option.Reads(rhs))
+            {
+                Warn(lineNumber, $"Invalid value '{rhs}' for {keyword}.");
+                return;
+            }
+
             _settings.Add(new Setting(keyword, rhs));
-            if (keyword == LayoutOptions.LayoutKeyword && !LayoutOptions.HonorsLayout(rhs))
-                Warn(lineNumber, $"Layout '{rhs}' is not honored.");
         }
 
         private void ParseBrace(int lineNumber, string line)
