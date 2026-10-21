@@ -94,8 +94,8 @@ jobs:
     name: CI
     needs: admit
     uses: ./.github/workflows/ci.yml
+    # Mutation testing is not a release gate. Run CI by hand with Release run on for it.
     with:
-      release: true
       ref: ${{ needs.admit.outputs.commit }}
 
   build:
