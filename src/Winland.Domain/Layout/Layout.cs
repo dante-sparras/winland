@@ -199,31 +199,3 @@ internal interface Layout
     /// <summary>Moves a floating Client to a rectangle. An empty list means that Client is not floating.</summary>
     IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds) => [];
 }
-
-/// <summary>One step of a mouse move or resize. <see cref="KeepRatio"/> holds a floating Client's aspect ratio while it is resized.</summary>
-/// <summary>
-/// One step of a mouse drag. <paramref name="CenterOnLift"/> is <c>binds:drag_center_window</c>: a tile lifted out of its
-/// Layout is held by its middle, or by the point the pointer grabbed, at the same fraction of its size.
-/// </summary>
-internal readonly record struct PointerDrag(bool Resize, PointerDragPhase Phase, Point Pointer, bool KeepRatio = false, bool CenterOnLift = true);
-
-/// <summary>
-/// A Client handed from one Workspace's Layout to another. A Layout leaves the fullscreen modes at none;
-/// <see cref="LiveWorkspace.Take"/> fills them in so the Client is fullscreen again where it lands.
-/// </summary>
-internal readonly record struct Taken(
-    bool Floating,
-    bool Minimized,
-    Rectangle Bounds,
-    string Class = "",
-    string Title = "",
-    long ProcessId = 0,
-    string InitialClass = "",
-    string InitialTitle = "",
-    Size? MinSize = null,
-    Size? MaxSize = null,
-    double? ScrollingWidth = null,
-    FullscreenMode Fullscreen = FullscreenMode.None,
-    FullscreenMode FullscreenClient = FullscreenMode.None,
-    TiledLimits? TiledLimits = null,
-    bool LayoutFullscreen = false);

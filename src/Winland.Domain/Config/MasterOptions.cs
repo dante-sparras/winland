@@ -1,28 +1,5 @@
 namespace Winland.Domain;
 
-public enum MasterOrientation
-{
-    Left,
-    Top,
-    Right,
-    Bottom,
-    Center,
-}
-
-public enum MasterNewStatus
-{
-    Slave,
-    Master,
-    Inherit,
-}
-
-public enum MasterNewOnActive
-{
-    None,
-    Before,
-    After,
-}
-
 /// <summary>Options of the <c>master:</c> category. Defaults match the pinned layout source.</summary>
 public sealed record MasterOptions
 {

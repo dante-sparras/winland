@@ -65,10 +65,7 @@ internal sealed partial class LiveWorkspace
     /// <summary>Adds a window that is in no Layout to <paramref name="group"/> at <paramref name="position"/>, hidden.</summary>
     public void Join(WindowGroup group, WindowId window, Taken taken, int position)
     {
-        position = Math.Clamp(position, 0, group.Count);
-        group.Members.Insert(position, window);
-        if (position <= group.Current)
-            group.Current++;
+        group.Insert(position, window);
 
         var floating = ClientOf(group.Shown)?.Floating ?? taken.Floating;
         _waiting[window] = Wait(window, taken with { Floating = floating, Minimized = false });
@@ -92,7 +89,7 @@ internal sealed partial class LiveWorkspace
         }
 
         _waiting[shown] = Wait(shown, outgoing);
-        group.Current = index;
+        group.ShowAt(index);
         if (Focus == shown)
             Focus = next;
 
@@ -106,7 +103,7 @@ internal sealed partial class LiveWorkspace
     public GroupExit Leave(WindowGroup group, WindowId window, out Taken taken)
     {
         taken = default;
-        var index = group.Members.IndexOf(window);
+        var index = group.IndexOf(window);
         if (index < 0)
             return GroupExit.NotMember;
 
@@ -146,8 +143,7 @@ internal sealed partial class LiveWorkspace
             }
         }
 
-        group.Members.RemoveAt(index);
-        group.Current = current;
+        group.RemoveAt(index);
         if (Focus == window)
             Focus = group.Shown;
 
@@ -161,7 +157,7 @@ internal sealed partial class LiveWorkspace
     /// </summary>
     public bool ReplaceMember(WindowGroup group, WindowId current, WindowId next, Taken incoming)
     {
-        var index = group.Members.IndexOf(current);
+        var index = group.IndexOf(current);
         if (index < 0 || group.Contains(next))
             return false;
 
@@ -179,7 +175,7 @@ internal sealed partial class LiveWorkspace
             _waiting[next] = Wait(next, incoming with { Floating = floating });
         }
 
-        group.Members[index] = next;
+        group.Replace(index, next);
         if (Focus == current)
             Focus = next;
 

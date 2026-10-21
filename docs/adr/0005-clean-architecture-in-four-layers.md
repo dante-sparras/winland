@@ -9,4 +9,8 @@ Winland's source is four layers, and each project references only the layers ins
 
 Each of those projects has its own test project, and the solution folders are numbered in this order.
 
+The Domain is organized by concept, not by pattern: `Client/`, `Workspace/`, `Monitor/`, `Layout/` and so on, with the types every concept uses in `Shared/`. Each file holds one type. Values are immutable records, and an entity such as `LiveWorkspace` or `WindowGroup` changes only through its own methods, which keep it valid. A test in each layer's test project fails when the layer references one outside it.
+
+Some building blocks of a textbook domain layer are left out because nothing here would use them. A Workspace's id is its address and changes with `changeworkspaceid`, so an entity base class that compares by id would be wrong. Records already compare by value, so a value object base class adds nothing. The parsers keep .NET's `TryParse` form and report problems as config warnings, so there is no `Result` type. The event stream is the IPC protocol, with versioned events such as `monitoraddedv2`, so it stays in Application. Nothing is stored in a database, so there are no repositories.
+
 Layouts and config are pure algorithms, and Win32 work (hooks, `SetWindowPos`) can't be unit-tested. With every Win32 call outside Domain and Application, those two are tested with plain unit tests and no real windows. The project references make the compiler enforce the direction, so an inner layer cannot reach an outer one by accident.

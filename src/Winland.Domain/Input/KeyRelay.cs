@@ -1,13 +1,5 @@
 namespace Winland.Domain;
 
-/// <summary>Whether a relayed key goes down, comes up, or goes down and up.</summary>
-public enum KeyRelayPhase
-{
-    Press,
-    Release,
-    Tap,
-}
-
 /// <summary>
 /// A key or mouse button that <c>sendshortcut</c> sends on.
 /// A null <see cref="Target"/> sends it to the focused window. <see cref="Key"/> is a key name,
@@ -21,6 +13,3 @@ public sealed record KeyRelay(WindowId? Target, string Key, KeyRelayPhase Phase)
 
     public Modifier? Modifiers { get; init; }
 }
-
-/// <summary>The key or button edge that ran a bind.</summary>
-public readonly record struct BindTrigger(string Key, int Code, bool Pressed);

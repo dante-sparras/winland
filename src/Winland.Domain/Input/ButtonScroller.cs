@@ -1,23 +1,6 @@
 namespace Winland.Domain;
 
 /// <summary>
-/// <c>input:scroll_method on_button_down</c>: while <see cref="Button"/> is held, moving the pointer scrolls instead.
-/// With <see cref="Lock"/> a click of the button turns the scrolling on until the next click.
-/// </summary>
-public sealed record ButtonScrollOptions(bool Enabled, string Button, bool Lock, bool Natural)
-{
-    public static ButtonScrollOptions Off { get; } = new(false, "mouse:274", false, false);
-}
-
-/// <summary>What the hook does with one press, release or move while button scrolling is on.</summary>
-public readonly record struct ButtonScrollStep(bool Swallow, bool Click, int WheelX, int WheelY)
-{
-    public static ButtonScrollStep Pass { get; } = new(false, false, 0, 0);
-
-    public static ButtonScrollStep Taken { get; } = new(true, false, 0, 0);
-}
-
-/// <summary>
 /// Scrolling on button down, as libinput does it: a press of the scroll button is held back; moving the pointer while it
 /// is down scrolls by the motion, a wheel notch for each 15 pixels, and the cursor stays; a release with no scrolling
 /// gives the click back, or with the lock on turns scrolling on until the next click. Used on the hook thread.

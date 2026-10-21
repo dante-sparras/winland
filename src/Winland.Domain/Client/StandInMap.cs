@@ -1,8 +1,5 @@
 namespace Winland.Domain;
 
-/// <summary>Which part of a window's picture is drawn where, both in pixels of the stand-in's own coordinates.</summary>
-public readonly record struct StandInMapping(Rectangle Source, Rectangle Destination);
-
 /// <summary>
 /// How a stand-in draws a window during a motion that changes the window's size. The window has its final size
 /// from the first frame, and its picture is scaled onto each frame's rectangle: stretched to it when the window

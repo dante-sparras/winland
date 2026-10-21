@@ -2,21 +2,6 @@ using System.Globalization;
 
 namespace Winland.Domain;
 
-public enum ScrollingDirection
-{
-    Right,
-    Left,
-    Down,
-    Up,
-}
-
-/// <summary>How a focused column is brought into the viewport. <c>0</c> centers it. <c>1</c> fits it.</summary>
-public enum ScrollingFit
-{
-    Center = 0,
-    Fit = 1,
-}
-
 /// <summary>Options under <c>scrolling:</c>. Gaps and borders stay on <see cref="LayoutOptions"/>.</summary>
 public sealed record ScrollingOptions
 {

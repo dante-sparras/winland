@@ -1,16 +1,5 @@
 namespace Winland.Domain;
 
-public enum GestureDirection
-{
-    Swipe,
-    Left,
-    Right,
-    Up,
-    Down,
-    Vertical,
-    Horizontal,
-}
-
 /// <summary>One <c>gesture</c> line. Only <c>workspace</c> is kept; any other action warns and is skipped.</summary>
 public sealed record TrackpadGesture(
     int Fingers,

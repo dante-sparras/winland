@@ -2,18 +2,6 @@ using System.Globalization;
 
 namespace Winland.Domain;
 
-/// <summary>One command on the notification-area icon's menu.</summary>
-public enum TrayCommand
-{
-    Reload,
-    EditConfig,
-    OpenLog,
-    Quit,
-}
-
-/// <summary>A menu row: the command it runs and the words the menu shows.</summary>
-public readonly record struct TrayMenuItem(TrayCommand Command, string Label);
-
 /// <summary>
 /// The notification-area icon. It shows the number of the Workspace the focused Monitor is showing,
 /// and its menu runs Winland.

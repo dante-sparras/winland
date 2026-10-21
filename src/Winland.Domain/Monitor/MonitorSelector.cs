@@ -2,24 +2,6 @@ using System.Globalization;
 
 namespace Winland.Domain;
 
-internal enum MonitorDirection
-{
-    Left,
-    Right,
-    Up,
-    Down,
-}
-
-/// <summary>An enabled Monitor a dispatcher can address.</summary>
-internal readonly record struct MonitorTarget(
-    MonitorId Id,
-    string Name,
-    string Description,
-    int X,
-    int Y,
-    int Width,
-    int Height);
-
 /// <summary>
 /// Resolves a Monitor argument: a name, a <c>desc:</c> prefix of its identity, a direction,
 /// <c>current</c>, a relative <c>+N</c> or <c>-N</c>, or an id.
