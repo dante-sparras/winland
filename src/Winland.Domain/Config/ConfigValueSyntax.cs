@@ -150,3 +150,7 @@ public static class ConfigValueSyntax
         return double.TryParse(token.AsSpan(0, token.Length - 3), NumberStyles.Float, CultureInfo.InvariantCulture, out degrees);
     }
 }
+
+public readonly record struct Vec2(double X, double Y);
+
+public readonly record struct GradientValue(BorderColor Color, double AngleDegrees, bool HasAngle, int Colors);

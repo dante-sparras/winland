@@ -1,6 +1,6 @@
 using System.Globalization;
-using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace Winland.Domain;
 
@@ -433,3 +433,9 @@ internal static partial class WorkspaceRules
         [property: JsonPropertyName("defaultName"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? DefaultName,
         [property: JsonPropertyName("onCreatedEmpty"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? OnCreatedEmpty);
 }
+
+/// <summary>
+/// What a <c>w[]</c> workspace selector counts: only tiled or only floating Clients when <see cref="Tiled"/>
+/// is set, only pinned ones, Groups in place of Clients, and only the ones shown.
+/// </summary>
+internal readonly record struct WindowCount(bool? Tiled, bool Pinned, bool Groups, bool Visible);

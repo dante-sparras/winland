@@ -131,3 +131,5 @@ internal static class LaunchParser
         Shutdown,
     }
 }
+
+internal readonly record struct LaunchParse(Launch? Launch, IReadOnlyList<string> Warnings);

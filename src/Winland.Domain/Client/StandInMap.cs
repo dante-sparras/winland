@@ -42,3 +42,6 @@ public static class StandInMap
     private static int ScaleBy(int size, int numerator, int denominator) =>
         (int)Math.Round((double)size * numerator / denominator, MidpointRounding.AwayFromZero);
 }
+
+/// <summary>Which part of a window's picture is drawn where, both in pixels of the stand-in's own coordinates.</summary>
+public readonly record struct StandInMapping(Rectangle Source, Rectangle Destination);

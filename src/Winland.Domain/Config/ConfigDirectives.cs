@@ -54,3 +54,12 @@ internal static class ConfigDirectives
         return false;
     }
 }
+
+internal readonly record struct ConfigDirective(ConfigDirectiveKind Kind, string Argument, bool Negated, bool Enabled);
+
+internal enum ConfigDirectiveKind
+{
+    If,
+    EndIf,
+    NoError,
+}

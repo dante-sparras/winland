@@ -70,3 +70,9 @@ public sealed record AnimationOptions
     /// <summary>The style of <paramref name="node"/>, lower case. Empty when none is set.</summary>
     public string StyleOf(string node) => Book.Effective(node).Style.ToLowerInvariant();
 }
+
+/// <summary>The values one node of the animation tree resolves to, after inheritance.</summary>
+public sealed record AnimationLeaf(bool Enabled, double Speed, string Curve, string Style);
+
+/// <summary>How long one animation runs and how it eases.</summary>
+public readonly record struct Timing(Easing Curve, double Milliseconds);

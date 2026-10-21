@@ -89,3 +89,26 @@ public sealed record MasterOptions
     private static Option<MasterOptions> Of<T>(string name, OptionValue<T> value, Func<MasterOptions, T> get, Func<MasterOptions, T, MasterOptions> set) =>
         Option<MasterOptions>.Of(name, value, get, set);
 }
+
+public enum MasterOrientation
+{
+    Left,
+    Top,
+    Right,
+    Bottom,
+    Center,
+}
+
+public enum MasterNewStatus
+{
+    Slave,
+    Master,
+    Inherit,
+}
+
+public enum MasterNewOnActive
+{
+    None,
+    Before,
+    After,
+}

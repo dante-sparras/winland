@@ -247,3 +247,21 @@ internal static class MonitorSelector
     private static double Shared(int start, int size, int otherStart, int otherSize) =>
         Math.Max(0, Math.Min(start + size, otherStart + otherSize) - Math.Max(start, otherStart));
 }
+
+internal enum MonitorDirection
+{
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
+/// <summary>An enabled Monitor a dispatcher can address.</summary>
+internal readonly record struct MonitorTarget(
+    MonitorId Id,
+    string Name,
+    string Description,
+    int X,
+    int Y,
+    int Width,
+    int Height);

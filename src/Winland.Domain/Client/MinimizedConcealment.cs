@@ -31,3 +31,10 @@ internal static class MinimizedConcealment
         return new MinimizedPlan(hide, show, next);
     }
 }
+
+internal readonly record struct MinimizedPlan(
+    IReadOnlyList<WindowId> Hide,
+    IReadOnlyList<WindowId> Show,
+    IReadOnlyList<WindowId> Concealed);
+
+internal readonly record struct MinimizedPresence(WindowId Window, bool WorkspaceShown, bool Minimized);
