@@ -9,71 +9,20 @@ public enum GestureDirection
     Down,
     Vertical,
     Horizontal,
-    Pinch,
-    PinchIn,
-    PinchOut,
 }
 
-/// <summary>
-/// One <c>gesture</c> line. Every action is kept so a later line is shadowed and <c>unset</c> matches as configured,
-/// but only the honored ones run. <paramref name="Argument"/> is the special workspace's name, the dispatcher, or the
-/// float or fullscreen mode.
-/// </summary>
+/// <summary>One <c>gesture</c> line. Only <c>workspace</c> is kept; any other action warns and is skipped.</summary>
 public sealed record TrackpadGesture(
     int Fingers,
     GestureDirection Direction,
     Modifier Modifiers,
     double Scale,
     string Action,
-    bool DisableInhibit = false,
-    string Argument = "",
-    string DispatchArguments = "")
+    bool DisableInhibit = false)
 {
     public const string WorkspaceAction = "workspace";
 
-    public const string SpecialAction = "special";
-
-    public const string DispatcherAction = "dispatcher";
-
-    public const string CloseAction = "close";
-
-    public const string FloatAction = "float";
-
-    public const string FullscreenAction = "fullscreen";
-
-    public const string ScrollMoveAction = "scrollMove";
-
-    public bool IsScrollMove => Action == ScrollMoveAction;
-
     public bool IsWorkspace => Action == WorkspaceAction;
-
-    public bool IsSpecial => Action == SpecialAction;
-
-    /// <summary>An action that runs once the fingers lift: a dispatcher, or close, float or fullscreen far enough.</summary>
-    public bool IsOnRelease => Action is DispatcherAction or CloseAction or FloatAction or FullscreenAction;
-
-    public bool IsClose => Action == CloseAction;
-
-    public bool IsHonored => IsWorkspace || IsSpecial || IsOnRelease || IsScrollMove || IsMove || IsResize;
-
-    public const string MoveAction = "move";
-
-    public const string ResizeAction = "resize";
-
-    public bool IsMove => Action == MoveAction;
-
-    public bool IsResize => Action == ResizeAction;
-
-    /// <summary>
-    /// How far close must travel, as Winland measures it: a fifth of 200 pixels for close and of 250 for
-    /// float and fullscreen. A dispatcher runs at any distance.
-    /// </summary>
-    internal double ReleaseDistance => Action switch
-    {
-        CloseAction => 0.2 * 200,
-        FloatAction or FullscreenAction => 0.2 * 250,
-        _ => double.NegativeInfinity,
-    };
 
     internal static bool TryDirection(string text, out GestureDirection direction)
     {
@@ -100,29 +49,16 @@ public sealed record TrackpadGesture(
             case "vertical" or "vert":
                 direction = GestureDirection.Vertical;
                 return true;
-            case "pinch":
-                direction = GestureDirection.Pinch;
-                return true;
-            case "pinchin" or "zoomin":
-                direction = GestureDirection.PinchIn;
-                return true;
-            case "pinchout" or "zoomout":
-                direction = GestureDirection.PinchOut;
-                return true;
             default:
                 direction = default;
                 return false;
         }
     }
 
-    internal static bool IsPinch(GestureDirection direction) =>
-        direction is GestureDirection.Pinch or GestureDirection.PinchIn or GestureDirection.PinchOut;
-
     internal static GestureDirection Axis(GestureDirection direction) => direction switch
     {
         GestureDirection.Up or GestureDirection.Down or GestureDirection.Vertical => GestureDirection.Vertical,
         GestureDirection.Left or GestureDirection.Right or GestureDirection.Horizontal => GestureDirection.Horizontal,
-        GestureDirection.Pinch or GestureDirection.PinchIn or GestureDirection.PinchOut => GestureDirection.Pinch,
         _ => GestureDirection.Swipe,
     };
 

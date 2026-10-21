@@ -1,14 +1,11 @@
 namespace Winland.Windows;
 
-/// <summary>
-/// One finger in a precision touchpad report, in millimetres from the pad's origin, or in a touch screen report, from 0
-/// to 1 across the screen.
-/// </summary>
+/// <summary>One finger in a precision touchpad report, in millimetres from the pad's origin.</summary>
 internal readonly record struct TouchContact(int Id, bool Down, double X, double Y);
 
 /// <summary>
 /// Gathers a digitizer's reports into frames. A report with a contact count opens a frame of that many contacts, and
-/// later reports with a count of 0 carry the rest of it, as precision touchpads and touch screens report in hybrid mode.
+/// later reports with a count of 0 carry the rest of it, as precision touchpads report in hybrid mode.
 /// </summary>
 internal sealed class ContactFrame
 {
@@ -45,12 +42,11 @@ internal sealed class ContactFrame
 }
 
 /// <summary>
-/// Turns precision touchpad reports into swipe and pinch inputs. Fingers that come down together wait until they
-/// either travel together, which is a swipe of three or more fingers, or spread apart or close, which is a pinch of two
-/// or more. Two fingers that travel are a scroll and give nothing. The mean movement of the fingers that stayed down
-/// is each update, and a pinch also reports how far they spread since it began. A finger lifted ends the gesture, and
-/// more fingers end it cancelled and start another. Once a finger lifts, a new gesture waits until every finger is up.
-/// Each finished frame is also handed to <see cref="Framed"/>.
+/// Turns precision touchpad reports into swipe inputs. Fingers that come down together wait until they travel, which
+/// is a swipe of three or more fingers. Two fingers that travel are a scroll and give nothing. The mean movement of
+/// the fingers that stayed down is each update. A finger lifted ends the gesture, and more fingers end it cancelled
+/// and start another. Once a finger lifts, a new gesture waits until every finger is up. Each finished frame is also
+/// handed to <see cref="Framed"/>.
 /// </summary>
 internal sealed class TouchpadSwipe
 {
@@ -59,27 +55,15 @@ internal sealed class TouchpadSwipe
 
     internal const int MinimumFingers = 3;
 
-    internal const int MinimumPinchFingers = 2;
-
-    // How far the fingers' middle travels, in millimetres, or how much their spread changes, before the kind is known.
+    // How far the fingers' middle travels, in millimetres, before the swipe is known.
     internal const double SwipeStart = 1;
-    internal const double PinchStart = 0.08;
 
     private readonly ContactFrame _frames = new();
     private readonly Dictionary<int, (double X, double Y)> _last = [];
     private int _fingers;
-    private Kind _kind;
+    private bool _swiping;
     private (double X, double Y) _startCentre;
-    private double _startSpread;
     private bool _waitForLift;
-
-    private enum Kind
-    {
-        Undecided,
-        Swipe,
-        Pinch,
-        Scroll,
-    }
 
     /// <summary>Called with the fingers down in each finished frame, by contact id, in millimetres.</summary>
     internal Action<IReadOnlyDictionary<int, (double X, double Y)>>? Framed { get; set; }
@@ -121,7 +105,7 @@ internal sealed class TouchpadSwipe
         {
             _waitForLift = down.Count > 0;
         }
-        else if (down.Count >= MinimumPinchFingers)
+        else if (down.Count >= MinimumFingers)
         {
             Start(down);
         }
@@ -136,66 +120,37 @@ internal sealed class TouchpadSwipe
     private void Start(Dictionary<int, (double X, double Y)> down)
     {
         _fingers = down.Count;
-        _kind = Kind.Undecided;
+        _swiping = false;
         _startCentre = Centre(down);
-        _startSpread = Spread(down, _startCentre);
     }
 
     private void Step(Dictionary<int, (double X, double Y)> down, List<Input> inputs)
     {
         var centre = Centre(down);
-        var scale = _startSpread > 0 ? Spread(down, centre) / _startSpread : 1;
-        if (_kind == Kind.Undecided)
+        if (!_swiping)
         {
             var travel = Math.Sqrt(Math.Pow(centre.X - _startCentre.X, 2) + Math.Pow(centre.Y - _startCentre.Y, 2));
-            if (Math.Abs(scale - 1) >= PinchStart)
-            {
-                _kind = Kind.Pinch;
-                inputs.Add(new PinchBegan(_fingers));
-                inputs.Add(new PinchUpdated(_fingers, (centre.X - _startCentre.X) * PixelsPerMillimetre, (centre.Y - _startCentre.Y) * PixelsPerMillimetre, scale) { TimeMs = Environment.TickCount64 });
-                return;
-            }
-
             if (travel < SwipeStart)
                 return;
 
-            if (_fingers < MinimumFingers)
-            {
-                _kind = Kind.Scroll;
-                return;
-            }
-
             // The first update carries the whole travel since the fingers came down.
-            _kind = Kind.Swipe;
+            _swiping = true;
             inputs.Add(new SwipeBegan(_fingers));
             inputs.Add(new SwipeUpdated(_fingers, (centre.X - _startCentre.X) * PixelsPerMillimetre, (centre.Y - _startCentre.Y) * PixelsPerMillimetre) { TimeMs = Environment.TickCount64 });
             return;
         }
 
-        if (_kind == Kind.Scroll)
-            return;
-
-        var moved = TryMove(down, out var dx, out var dy);
-        if (_kind == Kind.Swipe)
-        {
-            if (moved)
-                inputs.Add(new SwipeUpdated(_fingers, dx, dy) { TimeMs = Environment.TickCount64 });
-            return;
-        }
-
-        // A pinch updates whenever its fingers move, even when only their spread changed.
-        inputs.Add(new PinchUpdated(_fingers, dx, dy, scale) { TimeMs = Environment.TickCount64 });
+        if (TryMove(down, out var dx, out var dy))
+            inputs.Add(new SwipeUpdated(_fingers, dx, dy) { TimeMs = Environment.TickCount64 });
     }
 
     private void End(List<Input> inputs, bool cancelled)
     {
-        if (_kind == Kind.Swipe)
+        if (_swiping)
             inputs.Add(new SwipeEnded(cancelled) { TimeMs = Environment.TickCount64 });
-        else if (_kind == Kind.Pinch)
-            inputs.Add(new PinchEnded(cancelled) { TimeMs = Environment.TickCount64 });
 
         _fingers = 0;
-        _kind = Kind.Undecided;
+        _swiping = false;
     }
 
     private bool TryMove(Dictionary<int, (double X, double Y)> down, out double dx, out double dy)
@@ -231,15 +186,5 @@ internal sealed class TouchpadSwipe
         }
 
         return (x / down.Count, y / down.Count);
-    }
-
-    // The fingers' mean distance from their middle.
-    private static double Spread(Dictionary<int, (double X, double Y)> down, (double X, double Y) centre)
-    {
-        var total = 0.0;
-        foreach (var point in down.Values)
-            total += Math.Sqrt(Math.Pow(point.X - centre.X, 2) + Math.Pow(point.Y - centre.Y, 2));
-
-        return total / down.Count;
     }
 }

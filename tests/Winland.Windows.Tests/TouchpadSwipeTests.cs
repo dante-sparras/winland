@@ -36,24 +36,6 @@ public class TouchpadSwipeTests
     }
 
     [Fact]
-    public void FingersThatSpreadStartAPinchThatReportsItsScale()
-    {
-        var swipe = new TouchpadSwipe();
-        swipe.Report(2, Fingers((0, 20, 10), (1, 30, 10)));
-
-        var began = swipe.Report(2, Fingers((0, 19, 10), (1, 31, 10)));
-        var spread = swipe.Report(2, Fingers((0, 15, 10), (1, 35, 10)));
-        var lifted = swipe.Report(2, [new(0, true, 15, 10), new(1, false, 35, 10)]);
-
-        Assert.Equal(new PinchBegan(2), began[0]);
-        Assert.Equal(1.2, Assert.IsType<PinchUpdated>(began[1]).Scale, 6);
-        var update = Assert.IsType<PinchUpdated>(Assert.Single(spread));
-        Assert.Equal(2, update.Scale, 6);
-        Assert.Equal(0, update.DeltaX, 6);
-        Assert.Equal([new PinchEnded()], Untimed(lifted));
-    }
-
-    [Fact]
     public void AFrameSpreadOverReportsIsAssembledFirst()
     {
         var swipe = new TouchpadSwipe();
@@ -130,7 +112,6 @@ public class TouchpadSwipeTests
         [.. inputs.Select(input => input switch
         {
             SwipeEnded ended => ended with { TimeMs = 0 },
-            PinchEnded ended => ended with { TimeMs = 0 },
             _ => input,
         })];
 

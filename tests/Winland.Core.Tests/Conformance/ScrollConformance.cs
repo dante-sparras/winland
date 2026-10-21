@@ -701,37 +701,6 @@ public class ScrollConformance
         FloatingOntopFullscreenWorkspaceFocusRetention(" default");
 
     [Fact]
-    public void ScrollNegativeScaleGesture()
-    {
-        var desk = new Desk(Scrolling + """
-            scrolling:follow_focus = false
-            gestures:scrolling:move_snap_to_grid = false
-            gestures:scrolling:move_snap_cursor = false
-            gesture = 6, left, scale:-2, scrollMove
-            gesture = 7, left, scale:2, scrollMove
-            gesture = 8, left, scale:-1, scrollMove
-            gesture = 9, left, scale:1, scrollMove
-            """);
-        foreach (var name in new[] { "negative_scale_a", "negative_scale_b", "negative_scale_c", "negative_scale_d" })
-            desk.Spawn(name);
-
-        var start = TapeX(desk, "negative_scale_a");
-
-        SwipeLeft(desk, 7);
-        var plusTwo = TapeX(desk, "negative_scale_a");
-
-        SwipeLeft(desk, 8);
-        var plusOne = TapeX(desk, "negative_scale_a");
-        Assert.True(plusOne > plusTwo, $"A negative scale should move the view right, from x={plusTwo} to x={plusOne}.");
-
-        SwipeLeft(desk, 9);
-        Assert.Equal(plusTwo, TapeX(desk, "negative_scale_a"));
-
-        SwipeLeft(desk, 6);
-        Assert.Equal(start, TapeX(desk, "negative_scale_a"));
-    }
-
-    [Fact]
     public void TestScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse()
     {
         var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
@@ -1099,18 +1068,6 @@ public class ScrollConformance
             CloseAll(desk);
             Assert.Empty(desk.Clients());
         }
-    }
-
-    // The reference reads at from clients. A column scrolled out of view has no frame on screen, and the clients reply
-    // gives its slot on the tape, which is where the reference's window is.
-    private static int TapeX(Desk desk, string windowClass) =>
-        desk.Client(windowClass).GetProperty("at")[0].GetInt32();
-
-    private static void SwipeLeft(Desk desk, int fingers)
-    {
-        desk.Handle(new SwipeBegan(fingers));
-        desk.Handle(new SwipeUpdated(fingers, -300, 0));
-        desk.Handle(new SwipeEnded());
     }
 
     private static void CloseAll(Desk desk)
