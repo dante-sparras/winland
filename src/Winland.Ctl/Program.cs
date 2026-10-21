@@ -1,4 +1,3 @@
-using Winland.Core;
 
 if (!ControlInvocation.TryCreate(args, out var line, out var events))
     return Usage();

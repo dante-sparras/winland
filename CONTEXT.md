@@ -47,7 +47,7 @@ A named config setting with a category, such as `general:gaps_in`, that holds on
 _Avoid_: Setting, variable
 
 **Daemon**:
-The `Winland.Daemon` process, built as `winland`. It is the one long-running process, elevated by default: it hosts the core, the Windows adapter and the IPC pipe, and it starts at logon.
+The `Winland.Daemon` process, built as `winland`. It is the one long-running process, elevated by default: it hosts the window manager, the Windows adapter and the IPC pipe, and it starts at logon.
 _Avoid_: Service
 
 **IPC pipe**:
@@ -61,5 +61,5 @@ The lines the Daemon writes to a client that sends `events` on the IPC pipe, one
 A named set of binds that is active only while that Submap is selected. A `submap` line in the config opens one for the binds that follow, and the `submap` Dispatcher selects it. `reset` or an empty name selects the default binds. Each change emits a `submap` event.
 
 **Motion**:
-One window's animation toward its Layout rectangle, or out of sight before it is hidden or closed. The core plans it from the animation tree, and the adapter steps it. A Motion always ends on the newest Layout rectangle.
+One window's animation toward its Layout rectangle, or out of sight before it is hidden or closed. The window manager plans it from the animation tree, and the Windows adapter steps it. A Motion always ends on the newest Layout rectangle.
 _Avoid_: Tween, transition

@@ -1,16 +1,24 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/Winland.Core/Winland.Core.csproj" />
-    <Project Path="src/Winland.Windows/Winland.Windows.csproj" />
-    <Project Path="src/Winland.Ctl/Winland.Ctl.csproj" />
+  <Folder Name="/src/1 Domain/">
+    <Project Path="src/Winland.Domain/Winland.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/2 Application/">
+    <Project Path="src/Winland.Application/Winland.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/3 Infrastructure/">
+    <Project Path="src/Winland.Infrastructure/Winland.Infrastructure.csproj" />
     <Project Path="src/Winland.Install/Winland.Install.csproj" />
+  </Folder>
+  <Folder Name="/src/4 Presentation/">
     <Project Path="src/Winland.Daemon/Winland.Daemon.csproj" />
+    <Project Path="src/Winland.Ctl/Winland.Ctl.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Winland.Core.Tests/Winland.Core.Tests.csproj" />
+    <Project Path="tests/Winland.Domain.Tests/Winland.Domain.Tests.csproj" />
+    <Project Path="tests/Winland.Application.Tests/Winland.Application.Tests.csproj" />
+    <Project Path="tests/Winland.Infrastructure.Tests/Winland.Infrastructure.Tests.csproj" />
     <Project Path="tests/Winland.Install.Tests/Winland.Install.Tests.csproj" />
     <Project Path="tests/Winland.Daemon.Tests/Winland.Daemon.Tests.csproj" />
-    <Project Path="tests/Winland.Windows.Tests/Winland.Windows.Tests.csproj" />
     <Project Path="tests/Winland.Smoke.Tests/Winland.Smoke.Tests.csproj" />
     <Project Path="tests/Winland.FocusThief/Winland.FocusThief.csproj" />
   </Folder>

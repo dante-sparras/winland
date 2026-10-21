@@ -11,7 +11,7 @@ An ADR without a Status line is accepted and true against the code. `Status: Pro
 - [0001](0001-winland-runs-on-top-of-explorer-and-dwm.md): a background process on Explorer and DWM, no shell replacement, no injection.
 - [0003](0003-workspaces-are-owned-by-winland.md): Workspaces are Winland's own, not Windows virtual desktops, and each Monitor has its own 1 to 10.
 - [0004](0004-winland-runs-elevated.md): Winland runs elevated by default, to control elevated windows, and can run as the normal user.
-- [0005](0005-pure-core-and-windows-adapter.md): a pure core with no Win32, a thin Windows adapter, and `winlandctl` as its own project.
+- [0005](0005-clean-architecture-in-four-layers.md): four layers, Domain, Application, Infrastructure and presentation, each referencing only the layers inside it.
 - [0006](0006-startup-through-a-scheduled-task.md): `winland install` copies itself under Program Files and registers an elevated logon task; `--user` uses the Run key, unelevated.
 - [0007](0007-elevation-does-not-leak-to-launched-programs-or-ipc.md): launched programs are always de-elevated, the pipe is limited to the current user, and the config is an ordinary user file.
 - [0014](0014-winland-manages-windows-and-leaves-the-desktop-to-windows.md): Winland manages windows and leaves settings, notifications, effects and the taskbar to Windows. The installer may turn off Snap and touchpad swipes, with consent.

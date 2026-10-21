@@ -8,9 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Winland.Core\Winland.Core.csproj" />
     <ProjectReference Include="..\Winland.Install\Winland.Install.csproj" />
-    <ProjectReference Include="..\Winland.Windows\Winland.Windows.csproj" />
+    <ProjectReference Include="..\Winland.Infrastructure\Winland.Infrastructure.csproj" />
+    <Using Include="Winland.Domain" />
+    <Using Include="Winland.Domain.Monitor" Alias="Monitor" />
+    <Using Include="Winland.Application" />
+    <Using Include="Winland.Infrastructure" />
   </ItemGroup>
 
   <ItemGroup>

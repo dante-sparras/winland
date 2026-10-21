@@ -25,15 +25,25 @@ $root = Split-Path $PSScriptRoot -Parent
 #   Tests     the test project's folder under tests/
 #   Source    the project it mutates, as the test project references it
 #   Shards    how many runs share the project's files, so each fits in a CI job (default 1)
-#   Exclude   file name patterns left out of mutation; each one says why
+#   AlsoTests other test projects that also run against the mutants, when the project is mostly
+#             tested through a layer above it
+#   Exclude   file name or project-relative path patterns left out of mutation; each one says why
 #   Filter    a dotnet test filter for the tests the lane runs
 #   CsWin32   the project generates its Win32 interop with CsWin32 (see Set-CsWin32Inputs)
 $lanes = @(
     @{
-        Name = 'Core'
-        Tests = 'Winland.Core.Tests'
-        Source = 'Winland.Core.csproj'
-        Shards = 4
+        Name = 'Domain'
+        Tests = 'Winland.Domain.Tests'
+        Source = 'Winland.Domain.csproj'
+        # Most Domain behavior is tested through the WindowManager, in the Application tests.
+        AlsoTests = @('Winland.Application.Tests')
+        Shards = 2
+    }
+    @{
+        Name = 'Application'
+        Tests = 'Winland.Application.Tests'
+        Source = 'Winland.Application.csproj'
+        Shards = 2
     }
     @{
         Name = 'Daemon'
@@ -59,9 +69,9 @@ $lanes = @(
         Source = 'Winland.Install.csproj'
     }
     @{
-        Name = 'Windows'
-        Tests = 'Winland.Windows.Tests'
-        Source = 'Winland.Windows.csproj'
+        Name = 'Infrastructure'
+        Tests = 'Winland.Infrastructure.Tests'
+        Source = 'Winland.Infrastructure.csproj'
         Shards = 2
         CsWin32 = $true
         # Each file left out drives Win32 or the shell directly and has no seam a unit test can
@@ -69,16 +79,16 @@ $lanes = @(
         Exclude = @(
             # Real top-level windows: WinEvent hooks, SetWindowPos, cloaking, the message loop. Only
             # the Desktop tests reach them, and the lane cannot run those (see Filter).
-            'WindowAdapter*.cs'
+            'WindowAdapter/*.cs'
             'WindowHost.cs'
             'SessionWindow.cs'
             'SessionRecovery.cs'
             # The low-level keyboard hook callback. It needs real key events; the bind matching
-            # and modifier tracking it feeds are in Winland.Core.
+            # and modifier tracking it feeds are in Winland.Domain.
             'KeyboardHook.cs'
             # Raw input registration and HID report parsing. TouchpadSwipe holds the gesture logic.
             'TouchpadInput.cs'
-            # The pointer-device query. It needs a live pen or touch screen; the mapping it feeds is in Winland.Core.
+            # The pointer-device query. It needs a live pen or touch screen; the mapping it feeds is in Winland.Domain.
             'PointerDigitizer.cs'
             # Group bar windows: a layered window and its GDI painting.
             'GroupBarHost.cs'
@@ -211,7 +221,7 @@ if ($List) {
 
 $selected = @($lanes)
 if ($Project) {
-    # pwsh -File passes "Core,Daemon" as one string.
+    # pwsh -File passes "Domain,Daemon" as one string.
     $names = @($Project | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     $selected = @(foreach ($name in $names) {
         $match = $lanes | Where-Object { $_.Name -eq $name }
@@ -233,7 +243,7 @@ if ($Run) {
 # hands them only the properties MSBuild sets when it evaluates the project. CsWin32 learns where the
 # Win32 metadata is from properties a target sets during the build, so under Stryker it would generate
 # nothing and the project would not compile. MSBuild reports what that target sets, and the project
-# file reads the values back from the environment (see Winland.Windows.csproj).
+# file reads the values back from the environment (see Winland.Infrastructure.csproj).
 function Set-CsWin32Inputs([string]$SourceProject) {
     $names = @('CsWin32InputMetadataPaths', 'CsWin32InputDocPaths')
     $query = @('msbuild', $SourceProject, '-restore', '-nologo', '-t:AssembleCsWin32InputPaths') + @($names | ForEach-Object { "-getProperty:$_" })
@@ -255,7 +265,8 @@ function Get-ShardFiles([string]$ProjectDir, [string[]]$Exclude, [int]$Index, [i
         $relative = [System.IO.Path]::GetRelativePath($ProjectDir, $_.FullName)
         $first = ($relative -split '[\\/]')[0]
         $name = $_.Name
-        $first -notin @('bin', 'obj') -and -not ($Exclude | Where-Object { $name -like $_ })
+        $path = $relative.Replace('\', '/')
+        $first -notin @('bin', 'obj') -and -not ($Exclude | Where-Object { $name -like $_ -or $path -like $_ })
     } | Sort-Object @{ Expression = { $_.Length }; Descending = $true }, @{ Expression = { $_.FullName } })
     $sizes = New-Object long[] $Count
     $mine = New-Object System.Collections.Generic.List[string]
@@ -292,6 +303,14 @@ foreach ($entry in $runs) {
         $part['mutate'] = @($exclude | ForEach-Object { "!**/$_" })
     }
     if ($lane.Filter) { $part['test-case-filter'] = $lane.Filter }
+    # With more than one test project, Stryker runs from the project it mutates and is given each one.
+    $runDir = $testDir
+    if ($lane.AlsoTests) {
+        $part['test-projects'] = @(@($lane.Tests) + $lane.AlsoTests | ForEach-Object {
+            Join-Path $tests "$_/$_.csproj"
+        })
+        $runDir = $source.DirectoryName
+    }
     $runConfig = Join-Path ([System.IO.Path]::GetTempPath()) "stryker-$($entry.Name)-$([guid]::NewGuid().ToString('n')).json"
     $settings | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $runConfig -Encoding utf8
 
@@ -302,7 +321,7 @@ foreach ($entry in $runs) {
     if ($Concurrency -gt 0) { $arguments += @('--concurrency', $Concurrency) }
     $exported = @()
     Write-Output "Mutation testing $($lane.Source) with $($lane.Tests) ($($entry.Name))"
-    Push-Location $testDir
+    Push-Location $runDir
     try {
         if ($lane.CsWin32) { $exported = Set-CsWin32Inputs $source.FullName }
         dotnet @arguments

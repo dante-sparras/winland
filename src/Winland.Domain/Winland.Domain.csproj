@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The innermost layer. It references nothing: no other project and no package. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Winland.Application" />
+    <InternalsVisibleTo Include="Winland.Domain.Tests" />
+    <InternalsVisibleTo Include="Winland.Application.Tests" />
+  </ItemGroup>
+
+</Project>

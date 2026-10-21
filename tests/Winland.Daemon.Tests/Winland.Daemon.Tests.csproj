@@ -5,6 +5,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Include="Winland.Domain" />
+    <Using Include="Winland.Domain.Monitor" Alias="Monitor" />
+    <Using Include="Winland.Application" />
     <ProjectReference Include="..\..\src\Winland.Daemon\Winland.Daemon.csproj" />
   </ItemGroup>
 
