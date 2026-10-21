@@ -70,8 +70,8 @@ internal static partial class WindowRuleParser
         return true;
     }
 
-    // A border_color rule that matches on focus gives its one gradient to the border that focus shows, as in the
-    // Winland: focus:1 with only an inactive color colors the active border, focus:0 with only an active
+    // A border_color rule that matches on focus gives its one color to the border that focus shows:
+    // focus:1 with only an inactive color colors the active border, focus:0 with only an active
     // color the inactive one.
     private static void FocusBorderColor(WindowRule rule, Dictionary<string, object> props)
     {

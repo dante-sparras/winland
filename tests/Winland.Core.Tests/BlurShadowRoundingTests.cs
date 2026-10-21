@@ -7,7 +7,7 @@ public class BlurShadowRoundingTests
     private static readonly Rectangle Area = new(0, 0, 800, 600);
 
     [Fact]
-    public void DefaultConfigBlursKeepsTheShadowAndDrawsSquareCorners()
+    public void DefaultConfigBlursAndDrawsSquareCorners()
     {
         var core = new Core();
         core.Handle(new Configure(ConfigParser.Parse("")));
@@ -15,13 +15,12 @@ public class BlurShadowRoundingTests
         var decoration = For(core.Handle(Appeared(1)), 1);
 
         Assert.True(decoration.Blur);
-        Assert.True(decoration.Shadow);
         Assert.Equal(CornerPreference.DoNotRound, decoration.Corners);
         Assert.Null(decoration.Region);
     }
 
     [Fact]
-    public void BlurAndShadowSwitchesAreHonoredWithoutAWarningAndReloadFlipsThem()
+    public void TheBlurSwitchIsHonoredAndTheOtherBlurAndShadowKeywordsWarn()
     {
         var document = ConfigParser.Parse("""
             decoration {
@@ -41,25 +40,27 @@ public class BlurShadowRoundingTests
 
         var off = For(core.Handle(Appeared(2)), 1);
 
-        Assert.Equal([new ConfigWarning(4, "Unsupported keyword 'decoration:blur:popups'.")], document.Warnings);
+        Assert.Equal(
+            [
+                new ConfigWarning(4, "Unsupported keyword 'decoration:blur:popups'."),
+                new ConfigWarning(7, "Unsupported keyword 'decoration:shadow:enabled'."),
+                new ConfigWarning(8, "Unsupported keyword 'decoration:shadow:range'."),
+            ],
+            document.Warnings);
         Assert.False(off.Blur);
-        Assert.False(off.Shadow);
-        Assert.Null(off.DrawnShadow);
 
-        var reloaded = core.Handle(new Configure(ConfigParser.Parse("decoration:shadow:enabled = true\n")));
+        var reloaded = core.Handle(new Configure(ConfigParser.Parse("decoration:blur:enabled = true\n")));
 
         Assert.True(For(reloaded, 1).Blur);
-        Assert.True(For(reloaded, 1).Shadow);
         Assert.Empty(reloaded.ResetDecorations);
     }
 
     [Fact]
-    public void GetOptionReportsTheBlurShadowAndRoundingPower()
+    public void GetOptionReportsTheBlurAndRoundingPower()
     {
         var core = new Core(ConfigParser.Parse("decoration:blur:enabled = no\ndecoration:rounding_power = 4\n"));
 
         Assert.Equal("{\"option\":\"decoration:blur:enabled\",\"bool\":false,\"set\":true}", core.Execute("getoption decoration:blur:enabled").Text);
-        Assert.Equal("{\"option\":\"decoration:shadow:enabled\",\"bool\":true,\"set\":false}", core.Execute("getoption decoration:shadow:enabled").Text);
         Assert.Equal("{\"option\":\"decoration:rounding_power\",\"float\":4,\"set\":true}", core.Execute("getoption decoration:rounding_power").Text);
     }
 

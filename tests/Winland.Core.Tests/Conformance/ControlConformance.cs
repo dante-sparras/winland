@@ -68,9 +68,9 @@ public class ControlConformance
             ExpectProp(desk, name, "true", $$"""{"{{name}}": true}""");
         }
 
-        ExpectProp(desk, "active_border_color", "ee33ccff ee00ff99 45deg", """{"active_border_color": "ee33ccff ee00ff99 45deg"}""");
+        ExpectProp(desk, "active_border_color", "ee33ccff", """{"active_border_color": "ee33ccff"}""");
         SetProp(desk, "active_border_color", "rgb(abcdef)");
-        ExpectProp(desk, "active_border_color", "ffabcdef 0deg", """{"active_border_color": "ffabcdef 0deg"}""");
+        ExpectProp(desk, "active_border_color", "ffabcdef", """{"active_border_color": "ffabcdef"}""");
 
         ExpectProp(desk, "rounding", "10", """{"rounding": 10}""");
         SetProp(desk, "rounding", "4");

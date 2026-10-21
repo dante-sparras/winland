@@ -97,10 +97,6 @@ internal static partial class OptionCatalog
                 kind = "bool";
                 token = Bool(decoration.Blur);
                 return true;
-            case "decoration:shadow:enabled":
-                kind = "bool";
-                token = Bool(decoration.Shadow);
-                return true;
             case "dwindle:force_split":
                 kind = "int";
                 token = layout.ForceSplit.ToString(CultureInfo.InvariantCulture);

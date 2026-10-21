@@ -36,9 +36,6 @@ public sealed record WorkspaceRule
 
     public bool? Decorate { get; init; }
 
-    /// <summary>False turns the shadow off for the Clients on this Workspace, as <c>no_shadow</c> does.</summary>
-    public bool? Shadow { get; init; }
-
     /// <summary>The style this Workspace is switched to and from with, in place of the workspaces node's.</summary>
     public string? Animation { get; init; }
 
@@ -82,7 +79,6 @@ public sealed record WorkspaceRule
             Border = other.Border ?? Border,
             Rounding = other.Rounding ?? Rounding,
             Decorate = other.Decorate ?? Decorate,
-            Shadow = other.Shadow ?? Shadow,
             Animation = other.Animation ?? Animation,
             DefaultName = other.DefaultName ?? DefaultName,
             OnCreatedEmpty = other.OnCreatedEmpty ?? OnCreatedEmpty,
@@ -360,9 +356,6 @@ internal static partial class WorkspaceRules
             return true;
         }
 
-        if (Take(field, "shadow:", out var shadow))
-            return TryFlag(rule, shadow, warnings, static (current, value) => current with { Shadow = value }, out updated, out failed);
-
         if (Take(field, "animation:", out var animation))
         {
             if (animation.Trim() is { Length: > 0 } style)
@@ -565,7 +558,6 @@ internal static partial class WorkspaceRules
         rule.Border,
         rule.Rounding,
         rule.Decorate,
-        rule.Shadow,
         rule.DefaultName,
         rule.OnCreatedEmpty);
 
@@ -584,7 +576,6 @@ internal static partial class WorkspaceRules
         [property: JsonPropertyName("border"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Border,
         [property: JsonPropertyName("rounding"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Rounding,
         [property: JsonPropertyName("decorate"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Decorate,
-        [property: JsonPropertyName("shadow"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Shadow,
         [property: JsonPropertyName("defaultName"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? DefaultName,
         [property: JsonPropertyName("onCreatedEmpty"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? OnCreatedEmpty);
 }

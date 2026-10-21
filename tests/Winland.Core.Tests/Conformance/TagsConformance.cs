@@ -12,19 +12,19 @@ public class TagsConformance
         desk.Spawn("untagged");
 
         Assert.Equal("ok", desk.Send("keyword windowrulev2 tag +testTag, class:tagged"));
-        Assert.Equal("ok", desk.Send("keyword windowrulev2 no_shadow, tag:negative:testTag"));
-        Assert.Equal("ok", desk.Send("keyword windowrulev2 no_dim, tag:testTag"));
+        Assert.Equal("ok", desk.Send("keyword windowrulev2 no_blur, tag:negative:testTag"));
+        Assert.Equal("ok", desk.Send("keyword windowrulev2 allows_input, tag:testTag"));
 
         Assert.Equal(2, desk.Clients().Length);
         desk.Ok("focuswindow", "class:tagged");
         Assert.Contains("testTag", ActiveTags(desk), StringComparison.Ordinal);
-        Assert.Contains("true", desk.Send("getprop activewindow no_dim"), StringComparison.Ordinal);
-        Assert.Contains("false", desk.Send("getprop activewindow no_shadow"), StringComparison.Ordinal);
+        Assert.Contains("true", desk.Send("getprop activewindow allows_input"), StringComparison.Ordinal);
+        Assert.Contains("false", desk.Send("getprop activewindow no_blur"), StringComparison.Ordinal);
 
         desk.Ok("focuswindow", "class:untagged");
         Assert.DoesNotContain("testTag", ActiveTags(desk), StringComparison.Ordinal);
-        Assert.Contains("true", desk.Send("getprop activewindow no_shadow"), StringComparison.Ordinal);
-        Assert.Contains("false", desk.Send("getprop activewindow no_dim"), StringComparison.Ordinal);
+        Assert.Contains("true", desk.Send("getprop activewindow no_blur"), StringComparison.Ordinal);
+        Assert.Contains("false", desk.Send("getprop activewindow allows_input"), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -41,22 +41,6 @@ public sealed record GroupOptions
 
     public BorderColor NoGroupActiveBorder { get; init; } = new(0xFF, 0xFF, 0x00, 0xFF);
 
-    /// <summary>The full gradients of the Group border colors, by keyword, for the ones the config gives.</summary>
-    public IReadOnlyDictionary<string, BorderGradient> BorderGradients { get; init; } = new Dictionary<string, BorderGradient>(StringComparer.Ordinal);
-
-    /// <summary>The gradient of a Group border color keyword, or its one color when the config gives none.</summary>
-    public BorderGradient GradientOf(string keyword, BorderColor color) =>
-        BorderGradients.TryGetValue(keyword, out var gradient) && gradient.Colors.Count > 0 ? gradient : BorderGradient.Of(color);
-
-    private GroupOptions WithGradient(string keyword, string value)
-    {
-        if (!BorderGradient.TryParse(value, out var gradient))
-            return this;
-
-        var gradients = new Dictionary<string, BorderGradient>(BorderGradients, StringComparer.Ordinal) { [keyword] = gradient };
-        return this with { BorderGradients = gradients };
-    }
-
     public GroupBarStyle Bar { get; init; } = GroupBarStyle.Documented;
 
     // Adding an entry here applies that keyword and stops the config warning.
@@ -72,12 +56,12 @@ public sealed record GroupOptions
         ["group:merge_groups_on_drag"] = (o, v) => TryParseBool(v, out var b) ? o with { MergeGroupsOnDrag = b } : o,
         ["group:merge_groups_on_groupbar"] = (o, v) => TryParseBool(v, out var b) ? o with { MergeGroupsOnGroupbar = b } : o,
         ["group:merge_floated_into_tiled_on_groupbar"] = (o, v) => TryParseBool(v, out var b) ? o with { MergeFloatedIntoTiledOnGroupbar = b } : o,
-        ["group:col.border_active"] = (o, v) => TryColor(v, out var c) ? (o with { ActiveBorder = c }).WithGradient("group:col.border_active", v) : o,
-        ["group:col.border_inactive"] = (o, v) => TryColor(v, out var c) ? (o with { InactiveBorder = c }).WithGradient("group:col.border_inactive", v) : o,
-        ["group:col.border_locked_active"] = (o, v) => TryColor(v, out var c) ? (o with { LockedActiveBorder = c }).WithGradient("group:col.border_locked_active", v) : o,
-        ["group:col.border_locked_inactive"] = (o, v) => TryColor(v, out var c) ? (o with { LockedInactiveBorder = c }).WithGradient("group:col.border_locked_inactive", v) : o,
-        ["general:col.nogroup_border"] = (o, v) => TryColor(v, out var c) ? (o with { NoGroupBorder = c }).WithGradient("general:col.nogroup_border", v) : o,
-        ["general:col.nogroup_border_active"] = (o, v) => TryColor(v, out var c) ? (o with { NoGroupActiveBorder = c }).WithGradient("general:col.nogroup_border_active", v) : o,
+        ["group:col.border_active"] = (o, v) => TryColor(v, out var c) ? o with { ActiveBorder = c } : o,
+        ["group:col.border_inactive"] = (o, v) => TryColor(v, out var c) ? o with { InactiveBorder = c } : o,
+        ["group:col.border_locked_active"] = (o, v) => TryColor(v, out var c) ? o with { LockedActiveBorder = c } : o,
+        ["group:col.border_locked_inactive"] = (o, v) => TryColor(v, out var c) ? o with { LockedInactiveBorder = c } : o,
+        ["general:col.nogroup_border"] = (o, v) => TryColor(v, out var c) ? o with { NoGroupBorder = c } : o,
+        ["general:col.nogroup_border_active"] = (o, v) => TryColor(v, out var c) ? o with { NoGroupActiveBorder = c } : o,
         ["group:groupbar:enabled"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { Enabled = b }) : o,
         ["group:groupbar:disable_when_only"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { DisableWhenOnly = b }) : o,
         ["group:groupbar:render_titles"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { RenderTitles = b }) : o,
@@ -104,7 +88,6 @@ public sealed record GroupOptions
         ["group:groupbar:col.inactive"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { Inactive = c[0], InactiveGradient = new BarGradient(c) }) : o,
         ["group:groupbar:col.locked_active"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { LockedActive = c[0], LockedActiveGradient = new BarGradient(c) }) : o,
         ["group:groupbar:col.locked_inactive"] = (o, v) => TryColors(v, out var c) ? o.WithBar(o.Bar with { LockedInactive = c[0], LockedInactiveGradient = new BarGradient(c) }) : o,
-        ["group:groupbar:blur"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { Blur = b }) : o,
         ["group:groupbar:stacked"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { Stacked = b }) : o,
         ["group:groupbar:gradients"] = (o, v) => TryParseBool(v, out var b) ? o.WithBar(o.Bar with { Gradients = b }) : o,
         ["group:groupbar:rounding"] = (o, v) => TryInt(v, 0, 40, out var i) ? o.WithBar(o.Bar with { Rounding = i }) : o,
@@ -248,9 +231,6 @@ public sealed record GroupBarStyle
     public BarGradient? LockedActiveGradient { get; init; }
 
     public BarGradient? LockedInactiveGradient { get; init; }
-
-    /// <summary><c>blur</c>: the bar shows a blurred backdrop, behind the colors it draws.</summary>
-    public bool Blur { get; init; }
 
     /// <summary><c>stacked</c>: the tabs are rows, one above the other, instead of side by side.</summary>
     public bool Stacked { get; init; }

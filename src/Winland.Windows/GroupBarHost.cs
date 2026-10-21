@@ -380,7 +380,6 @@ internal static class GroupBarHost
 
     private sealed class Bar(HWND handle, GroupBar spec) : IDisposable
     {
-        private readonly BarBackdrop _backdrop = new(new Win32BackdropSurface(handle));
         private string[] _titles = [];
 
         public HWND Handle { get; } = handle;
@@ -394,7 +393,6 @@ internal static class GroupBarHost
         public void Render()
         {
             _titles = GroupBarPainter.Titles(Spec);
-            _backdrop.Set(Spec.Style.Blur);
             GroupBarPainter.Paint(Handle, Spec, _titles);
         }
 

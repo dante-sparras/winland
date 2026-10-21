@@ -54,18 +54,6 @@ public sealed record Motion(WindowId Window, Rectangle To)
 
     public Timing? Alpha { get; init; }
 
-    /// <summary>The opacity part of <see cref="AlphaTo"/> that <see cref="Alpha"/> animates. Null is <see cref="AlphaTo"/>.</summary>
-    public byte? OpacityTo { get; init; }
-
-    /// <summary>What dimming leaves of the window after the motion, from 0 to 255. <see cref="AlphaTo"/> is the opacity times this.</summary>
-    public byte DimTo { get; init; } = 255;
-
-    /// <summary>What dimming left of the window before, when it changes.</summary>
-    public byte? DimFrom { get; init; }
-
-    /// <summary>The timing the dim animates with, <c>fadeDim</c> in the core's plans. Null applies it at once.</summary>
-    public Timing? Dim { get; init; }
-
     /// <summary>The border color after the motion, from its decoration. Null leaves the border alone.</summary>
     public BorderColor? BorderTo { get; init; }
 

@@ -181,7 +181,6 @@ public class SpecialWorkspaceSwipeConformance
 
         private static string Options(bool animations) => $"""
             animations:enabled = {(animations ? "true" : "false")}
-            decoration:dim_special = 0.4
             animation = specialWorkspace, 1, 1, default, slidefade
             animation = specialWorkspaceIn, 1, 1, default, slidefade
             animation = specialWorkspaceOut, 1, 1, default, slidefade

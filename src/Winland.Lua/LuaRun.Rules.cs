@@ -45,7 +45,7 @@ internal sealed partial class LuaRun
     [
         ("monitor", "monitor"), ("default", "default"), ("persistent", "persistent"), ("gaps_in", "gapsin"),
         ("gaps_out", "gapsout"), ("float_gaps", "float_gaps"), ("border_size", "bordersize"), ("no_border", "!border"),
-        ("no_rounding", "!rounding"), ("decorate", "decorate"), ("no_shadow", "!shadow"), ("on_created_empty", "on-created-empty"),
+        ("no_rounding", "!rounding"), ("decorate", "decorate"), ("on_created_empty", "on-created-empty"),
         ("default_name", "defaultName"), ("layout", "layout"), ("animation", "animation"),
     ];
 

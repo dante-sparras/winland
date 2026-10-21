@@ -31,26 +31,13 @@ public sealed partial class Core
             var border = BorderOf(client.Window, client.Window == active);
             var corners = CornersFor(client);
             var choice = PropOpacity(client.Window, OpacityOf(client.Window));
-            var special = FindWorkspace(client.Workspace) is LiveWorkspace home ? SpecialOn(home.Monitor) : null;
-            var parts = DecorationAlpha.Parts(
+            var alpha = DecorationAlpha.Compute(
                 _decoration,
-                new OpacityInput(
-                    client.Window == active,
-                    Fullscreen: borderless,
-                    ShadowedByModal: ShadowedByModal(client.Window),
-                    SpecialOpen: special is not null,
-                    OnSpecial: special == client.Workspace,
-                    NoDim: OwnProp(client.Window, "no_dim") is true),
+                new OpacityInput(client.Window == active, Fullscreen: borderless),
                 choice.Rule,
                 choice.Opaque);
-            var alpha = parts.Alpha;
             var shape = borderless ? CornerChoice.Square : corners;
-            var noShadow = NoShadow(client);
             var noBlur = OwnProp(client.Window, "no_blur") is true;
-            var still = OwnProp(client.Window, "no_anim") is true;
-            var (xray, behind) = noBlur || hidden.Contains(client.Window)
-                ? (null, null)
-                : BackdropFor(client, shape, alpha, outcome.State, outcome.Placements, hidden);
             decorations.Add(new Decoration(
                 client.Id,
                 border,
@@ -59,16 +46,9 @@ public sealed partial class Core
                 borderless)
             {
                 Region = shape.Region,
-                Opacity = parts.Opacity,
-                Keep = parts.Keep,
-                Blur = _decoration.Blur && !noBlur && xray is null && behind is null,
-                Xray = xray,
-                Behind = behind,
-                Shadow = _decoration.Shadow && !_decoration.ShadowDrawn && !noShadow,
-                Ring = borderless || hidden.Contains(client.Window) ? null : Still(RingFor(client, client.Window == active, shape, alpha), still),
-                DrawnShadow = borderless || noShadow || hidden.Contains(client.Window) ? null : Still(ShadowFor(client, client.Window == active, shape, alpha), still),
-                Glow = borderless || hidden.Contains(client.Window) ? null : Still(GlowFor(client, client.Window == active, shape, alpha), still),
-                Motion = still ? null : _decoration.EffectsFor(OwnProp(client.Window, "no_wobble") is true, borderless),
+                Opacity = alpha,
+                Blur = _decoration.Blur && !noBlur,
+                Ring = borderless || hidden.Contains(client.Window) ? null : RingFor(client, client.Window == active, shape, alpha),
             });
         }
 
@@ -91,8 +71,6 @@ public sealed partial class Core
                 Placements = WithHiddenMembers(BelowBars(outcome.Placements, outcome.State, bars)),
                 GroupBars = bars,
                 Decorations = decorations,
-                SpecialBlurs = SpecialLayers(outcome.State, outcome.Placements, hidden),
-                Dims = DimsAround(outcome.State, decorations),
                 ResetDecorations = reset,
             },
             before);
@@ -564,230 +542,8 @@ public sealed partial class Core
 
         var scale = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Effective.Scale : 1;
         var (radius, power) = CornerRadius(shape, scale);
-        return new BorderRing(BorderGradientOf(client.Window, active), thickness, radius, power, alpha)
-        {
-            Focused = active,
-            Spin = _animations.TimingOf("borderangle"),
-            SpinLoops = _animations.StyleOf("borderangle") == "loop",
-        };
+        return new BorderRing(BorderOf(client.Window, active), thickness, radius, power, alpha);
     }
-
-    // The shadow Winland draws under a Client, when the config tuned it past turning it on or off. A minimized
-    // Client, one with decorate 0, and a shadow with no color that shows have none.
-    private DropShadow? ShadowFor(Client client, bool active, CornerChoice shape, byte alpha)
-    {
-        if (!_decoration.Shadow || !_decoration.ShadowDrawn || client.Minimized || FindWorkspace(client.Workspace) is not LiveWorkspace desk)
-            return null;
-
-        if ((OwnProp(client.Window, "decorate") as bool? ?? RuleFor(desk)?.Decorate) == false)
-            return null;
-
-        var gradient = active ? _decoration.ShadowColor : _decoration.ShadowColorInactive ?? _decoration.ShadowColor;
-        if (gradient.Colors.All(color => color.A == 0))
-            return null;
-
-        var scale = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Effective.Scale : 1;
-        var (radius, power) = CornerRadius(shape, scale);
-        var thickness = Math.Max(0, desk.Options.BorderFor(client.Id));
-        var reach = _decoration.BorderPartOfWindow ? thickness : 0;
-        var outer = radius <= 0 ? 0 : radius + reach - (reach * (Math.Sqrt(2) - 1) * Math.Max(2.0 - power, 0));
-        return new DropShadow(gradient, (int)Math.Round(_decoration.ShadowRange * scale), _decoration.ShadowPower, alpha)
-        {
-            Border = reach,
-            Rounding = (int)outer,
-            RoundingPower = power,
-            WindowRounding = radius,
-            Scale = Math.Clamp(_decoration.ShadowScale, 0, 1),
-            OffsetX = _decoration.ShadowOffset.X * scale,
-            OffsetY = _decoration.ShadowOffset.Y * scale,
-            Sharp = _decoration.ShadowSharp,
-            Focused = active,
-            Spin = _animations.TimingOf("shadowangle"),
-            SpinLoops = _animations.StyleOf("shadowangle") == "loop",
-            Fade = _animations.TimingOf("fadeShadow"),
-        };
-    }
-
-    // The drawn blur under a translucent Client. An xray property, the xray option, or the shared blur of a tiled Client on
-    // an ordinary workspace is the wallpaper. Anything else blurs the Clients behind the window. A fully opaque Client, a
-    // fully clear one, and a minimized one keep DWM's backdrop instead, and a Client with a drawn blur gives that up so the
-    // two do not stack. An xray property of off chooses the windows behind even when the xray option is on.
-    private (XrayBackdrop? Xray, BehindBlur? Behind) BackdropFor(
-        Client client,
-        CornerChoice shape,
-        byte alpha,
-        State state,
-        IReadOnlyList<Placement> placements,
-        HashSet<WindowId> hidden)
-    {
-        if (!_decoration.Blur || alpha is 0 or 255 || client.Minimized || FindWorkspace(client.Workspace) is not LiveWorkspace desk)
-            return (null, null);
-
-        var scale = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Effective.Scale : 1;
-        var (radius, power) = CornerRadius(shape, scale);
-        var layerAlpha = _decoration.IgnoreOpacity ? (byte)255 : alpha;
-        if (WallpaperBlur(client, desk))
-            return (new XrayBackdrop(_decoration.BlurTuning, radius, power, layerAlpha), null);
-
-        return (null, new BehindBlur(_decoration.BlurTuning, radius, power, layerAlpha, LiveSources(state, placements, hidden, client)));
-    }
-
-    private bool WallpaperBlur(Client client, LiveWorkspace desk)
-    {
-        if (OwnProp(client.Window, "xray") is bool chosen)
-            return chosen;
-
-        if (_decoration.Xray)
-            return true;
-
-        return _decoration.NewOptimizations && !client.Floating && SpecialOn(desk.Monitor) != client.Workspace;
-    }
-
-    private IReadOnlyList<WindowId> LiveSources(State state, IReadOnlyList<Placement> placements, HashSet<WindowId> hidden, Client client)
-    {
-        var visible = new List<BehindCandidate>();
-        foreach (var other in state.Clients)
-        {
-            if (other.Window == client.Window || other.Minimized || hidden.Contains(other.Window))
-                continue;
-
-            visible.Add(new BehindCandidate(other.Window, ShownBounds(other, placements)));
-        }
-
-        return BehindBlurPlan.Sources(state.Stacking, visible, ShownBounds(client, placements));
-    }
-
-    // One blur for each monitor whose special workspace is open: the Clients on that monitor that are not on the special
-    // workspace, behind the lowest special Client.
-    private List<SpecialBlur> SpecialLayers(State state, IReadOnlyList<Placement> placements, HashSet<WindowId> hidden)
-    {
-        var layers = new List<SpecialBlur>();
-        if (!_decoration.Blur || !_decoration.BlurSpecial)
-            return layers;
-
-        foreach (var screen in state.Screens)
-        {
-            if (screen.SpecialWorkspace is not WorkspaceId special)
-                continue;
-
-            var area = new Rectangle(screen.Monitor.X, screen.Monitor.Y, screen.Monitor.Width, screen.Monitor.Height);
-            if (area.Width <= 0 || area.Height <= 0)
-                continue;
-
-            var visible = new List<BehindCandidate>();
-            foreach (var client in state.Clients)
-            {
-                if (client.Minimized || hidden.Contains(client.Window) || client.Workspace == special)
-                    continue;
-
-                if (FindWorkspace(client.Workspace) is not LiveWorkspace desk || desk.Monitor != screen.Id)
-                    continue;
-
-                visible.Add(new BehindCandidate(client.Window, ShownBounds(client, placements)));
-            }
-
-            WindowId? anchor = null;
-            var seen = new HashSet<WindowId>();
-            foreach (var window in state.Stacking)
-            {
-                if (!seen.Add(window) || !OnSpecial(state, window, special, screen.Id, hidden))
-                    continue;
-
-                anchor = window;
-                break;
-            }
-
-            if (anchor is null)
-            {
-                foreach (var client in state.Clients)
-                {
-                    if (seen.Contains(client.Window) || !OnSpecial(state, client.Window, special, screen.Id, hidden))
-                        continue;
-
-                    anchor = client.Window;
-                    break;
-                }
-            }
-
-            layers.Add(new SpecialBlur(
-                screen.Id,
-                area,
-                anchor,
-                new BehindBlur(_decoration.BlurTuning, 0, 2f, 255, BehindBlurPlan.Sources(state.Stacking, visible, area))));
-        }
-
-        return layers;
-    }
-
-    private bool OnSpecial(State state, WindowId window, WorkspaceId special, MonitorId monitor, HashSet<WindowId> hidden)
-    {
-        foreach (var client in state.Clients)
-        {
-            if (client.Window != window)
-                continue;
-
-            return client.Workspace == special
-                && !client.Minimized
-                && !hidden.Contains(window)
-                && FindWorkspace(client.Workspace) is LiveWorkspace desk
-                && desk.Monitor == monitor;
-        }
-
-        return false;
-    }
-
-    private static Rectangle ShownBounds(Client client, IReadOnlyList<Placement> placements)
-    {
-        foreach (var placement in placements)
-        {
-            if (placement.Client == client.Id)
-                return placement.Bounds;
-        }
-
-        return client.Bounds;
-    }
-
-    // The glow Winland draws inside a Client's edge when decoration:glow:enabled is set, its corners a pixel
-    // inside the window's. A minimized Client, one with decorate 0 or no_glow, and a glow with no color that shows have none.
-    private InnerGlow? GlowFor(Client client, bool active, CornerChoice shape, byte alpha)
-    {
-        if (!_decoration.Glow || _decoration.GlowRange <= 0 || client.Minimized || FindWorkspace(client.Workspace) is not LiveWorkspace desk)
-            return null;
-
-        if ((OwnProp(client.Window, "decorate") as bool? ?? RuleFor(desk)?.Decorate) == false || OwnProp(client.Window, "no_glow") is true)
-            return null;
-
-        var gradient = active ? _decoration.GlowColor : _decoration.GlowColorInactive ?? _decoration.GlowColor;
-        if (gradient.Colors.All(color => color.A == 0))
-            return null;
-
-        var scale = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Effective.Scale : 1;
-        var (radius, power) = CornerRadius(shape, scale);
-        return new InnerGlow(gradient, (int)Math.Round(_decoration.GlowRange * scale), _decoration.GlowPower, alpha)
-        {
-            Rounding = radius <= 0 ? 0 : Math.Max(0, (int)(radius - scale)),
-            RoundingPower = power,
-            Focused = active,
-            Spin = _animations.TimingOf("glowangle"),
-            SpinLoops = _animations.StyleOf("glowangle") == "loop",
-            Fade = _animations.TimingOf("fadeGlow"),
-        };
-    }
-
-    // A window with no_anim draws its border, shadow and glow at rest: their angles do not turn and they do not fade,
-    // as Winland warps every animated value of such a window.
-    private static BorderRing? Still(BorderRing? ring, bool still) => still && ring is not null ? ring with { Spin = null } : ring;
-
-    private static DropShadow? Still(DropShadow? shadow, bool still) =>
-        still && shadow is not null ? shadow with { Spin = null, Fade = null } : shadow;
-
-    private static InnerGlow? Still(InnerGlow? glow, bool still) => still && glow is not null ? glow with { Spin = null, Fade = null } : glow;
-
-    // no_shadow from setprop, a window rule or the workspace rule's shadow:0.
-    private bool NoShadow(Client client) =>
-        OwnProp(client.Window, "no_shadow") is bool own
-            ? own
-            : FindWorkspace(client.Workspace) is LiveWorkspace desk && RuleFor(desk)?.Shadow == false;
 
     private static (int Radius, float Power) CornerRadius(CornerChoice shape, double scale) => shape switch
     {

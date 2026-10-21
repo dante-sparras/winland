@@ -270,7 +270,7 @@ public sealed partial class Core
             Volatile.Write(ref _displaysOn, on);
             return View([], dispatcher: "dpms") with
             {
-                DisplayPower = [new DisplayPowerRequest("", on) { Fade = _animations.TimingOf("fadeDpms") }],
+                DisplayPower = [new DisplayPowerRequest("", on)],
             };
         }
 
@@ -292,12 +292,11 @@ public sealed partial class Core
             }
         }
 
-        var fade = _animations.TimingOf("fadeDpms");
         var requests = new DisplayPowerRequest[chosen.Count];
         for (var i = 0; i < chosen.Count; i++)
         {
             var device = chosen[i].Effective.Name;
-            requests[i] = new DisplayPowerRequest(device, PowerAfter(device, turnOn, toggle)) { Fade = fade };
+            requests[i] = new DisplayPowerRequest(device, PowerAfter(device, turnOn, toggle));
         }
 
         if (requests.Length > 0)

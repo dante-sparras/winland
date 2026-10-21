@@ -12,8 +12,6 @@ internal interface IDwmSurface
 
     bool TrySetBackdrop(WindowId window, uint backdrop);
 
-    bool TrySetRenderingPolicy(WindowId window, uint policy);
-
     bool HasRegion(WindowId window);
 
     /// <summary>The window rectangle and the visible frame DWM draws inside it, in screen pixels. False while the window is minimized.</summary>
@@ -24,9 +22,10 @@ internal interface IDwmSurface
 }
 
 /// <summary>
-/// The backdrop, shadow and corner region of each Client. Each attribute is changed only when the
+/// The backdrop and corner region of each Client. Each attribute is changed only when the
 /// decoration asks for something other than what the window has, and is put back on reset.
 /// A window that already has a region of its own keeps it, and its corners are not cut.
+/// DWM's own shadow is left as Windows draws it.
 /// </summary>
 internal sealed class DwmEffects
 {
@@ -35,13 +34,8 @@ internal sealed class DwmEffects
     internal const uint NoBackdrop = 1;
     internal const uint BlurBackdrop = 3;
 
-    // DWMNCRP_USEWINDOWSTYLE, DWMNCRP_DISABLED.
-    internal const uint StylePolicy = 0;
-    internal const uint DisabledPolicy = 1;
-
     private readonly IDwmSurface _surface;
     private readonly Dictionary<WindowId, Backdrop> _backdrops = [];
-    private readonly HashSet<WindowId> _shadowless = [];
     private readonly Dictionary<WindowId, Cut> _regions = [];
     private readonly HashSet<WindowId> _foreignRegions = [];
     private readonly Lock _gate = new();
@@ -67,7 +61,6 @@ internal sealed class DwmEffects
                 return;
 
             ApplyBackdrop(window, decoration.Blur ? BlurBackdrop : NoBackdrop);
-            ApplyShadow(window, decoration.Shadow);
             if (decoration.Region is CornerRegion region && !decoration.Borderless)
                 ApplyRegion(window, region);
             else
@@ -91,15 +84,13 @@ internal sealed class DwmEffects
         {
             if (_backdrops.Remove(window, out var backdrop))
                 _surface.TrySetBackdrop(window, backdrop.Original);
-            if (_shadowless.Remove(window))
-                _surface.TrySetRenderingPolicy(window, StylePolicy);
             ClearRegion(window);
             _foreignRegions.Remove(window);
         }
     }
 
     /// <summary>
-    /// Puts back the backdrop, shadow and region of every window this changed, for the exit cleanup. Nothing
+    /// Puts back the backdrop and region of every window this changed, for the exit cleanup. Nothing
     /// is changed after that until <see cref="Reopen"/>: an outcome that arrives late would stay for good.
     /// </summary>
     internal void ResetAll()
@@ -109,7 +100,6 @@ internal sealed class DwmEffects
         {
             _closed = true;
             windows = [.. _backdrops.Keys];
-            windows.UnionWith(_shadowless);
             windows.UnionWith(_regions.Keys);
             windows.UnionWith(_foreignRegions);
         }
@@ -170,19 +160,6 @@ internal sealed class DwmEffects
             _backdrops[window] = new Backdrop(original, wanted);
     }
 
-    private void ApplyShadow(WindowId window, bool shadow)
-    {
-        if (shadow)
-        {
-            if (_shadowless.Remove(window))
-                _surface.TrySetRenderingPolicy(window, StylePolicy);
-            return;
-        }
-
-        if (!_shadowless.Contains(window) && _surface.TrySetRenderingPolicy(window, DisabledPolicy))
-            _shadowless.Add(window);
-    }
-
     private void ApplyRegion(WindowId window, CornerRegion region)
     {
         if (_foreignRegions.Contains(window))
@@ -235,8 +212,7 @@ internal sealed class DwmEffects
 // Stryker disable once all : each member reads or sets a real window's DWM attributes or region.
 internal sealed class Win32DwmSurface : IDwmSurface
 {
-    // DWMWA_NCRENDERING_POLICY, DWMWA_SYSTEMBACKDROP_TYPE.
-    private const DWMWINDOWATTRIBUTE PolicyAttribute = (DWMWINDOWATTRIBUTE)2;
+    // DWMWA_SYSTEMBACKDROP_TYPE.
     private const DWMWINDOWATTRIBUTE BackdropAttribute = (DWMWINDOWATTRIBUTE)38;
 
     public unsafe bool TryReadBackdrop(WindowId window, out uint backdrop)
@@ -254,8 +230,6 @@ internal sealed class Win32DwmSurface : IDwmSurface
     }
 
     public bool TrySetBackdrop(WindowId window, uint backdrop) => TrySet(window, BackdropAttribute, backdrop);
-
-    public bool TrySetRenderingPolicy(WindowId window, uint policy) => TrySet(window, PolicyAttribute, policy);
 
     public bool HasRegion(WindowId window)
     {

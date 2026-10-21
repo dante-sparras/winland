@@ -18,15 +18,14 @@ public class WindowPropsTests
         Assert.Equal(expected, WindowProps.Truthy(text));
 
     [Fact]
-    public void AGradientReadsBackInThePinnedReleasesForm()
+    public void ABorderColorIsOneColorAndAGradientChangesNothing()
     {
-        Assert.True(BorderGradient.TryParse("rgba(33ccffee) rgba(00ff99ee) 45deg", out var gradient));
-
-        Assert.Equal("ee33ccff ee00ff99 45deg", gradient.ToString());
-        Assert.Equal("ffabcdef 0deg", WindowProps.ReadGradient("rgb(abcdef)").ToString());
-        Assert.Equal("0deg", WindowProps.ReadGradient("-1").ToString());
-        // Past one token Winland reads from the second on.
-        Assert.Equal("ff00ff00 90deg", WindowProps.ReadGradient("rgb(ff0000) rgb(00ff00) 90deg").ToString());
+        Assert.True(WindowProps.TryReadColor("rgb(abcdef)", out var color));
+        Assert.Equal(new BorderColor(0xFF, 0xAB, 0xCD, 0xEF), color);
+        Assert.False(WindowProps.TryReadColor("rgba(33ccffee) rgba(00ff99ee) 45deg", out _));
+        Assert.False(WindowProps.TryReadColor("rgb(ff0000) 90deg", out _));
+        Assert.False(WindowProps.TryReadColor("-1", out _));
+        Assert.False(WindowProps.TryReadColor("rgb(ff0000) rgb(00ff00)", out _));
     }
 
     [Fact]
@@ -125,7 +124,7 @@ public class WindowPropsTests
         var decoration = Assert.Single(outcome.Decorations);
         Assert.Equal(new BorderColor(0xFF, 0xFF, 0x00, 0x00), decoration.Border);
         Assert.Equal(CornerPreference.Round, decoration.Corners);
-        Assert.Equal("ff00ff00 0deg", core.Execute("getprop active inactive_border_color").Text);
+        Assert.Equal("ff00ff00", core.Execute("getprop active inactive_border_color").Text);
         Assert.Equal("8", core.Execute("getprop active rounding").Text);
     }
 
@@ -183,13 +182,24 @@ public class WindowPropsTests
     }
 
     [Fact]
-    public void AFocusedBorderColorRuleWithOneGradientColorsTheInactiveBorder()
+    public void AFocusedBorderColorRuleWithOneColorColorsTheInactiveBorder()
     {
         var core = new Core(ConfigParser.Parse("windowrulev2 = border_color rgb(ff0000), focus:0\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
 
-        Assert.Equal("ffff0000 0deg", core.Execute("getprop address:0x1 inactive_border_color").Text);
+        Assert.Equal("ffff0000", core.Execute("getprop address:0x1 inactive_border_color").Text);
+    }
+
+    [Fact]
+    public void AGradientSetByPropChangesNothing()
+    {
+        var core = new Core();
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        var before = core.Execute("getprop active active_border_color").Text;
+
+        Assert.Equal("ok", core.Execute("dispatch setprop active active_border_color rgba(33ccffee) rgba(00ff99ee) 45deg").Text);
+        Assert.Equal(before, core.Execute("getprop active active_border_color").Text);
     }
 
     [Fact]

@@ -21,8 +21,6 @@ internal static class BorderHost
     private const uint SyncMessage = 0x8000 + 0x4B;
     private const uint QuitMessage = 0x0012;
     private const uint MouseActivateMessage = 0x0021;
-    private const uint TimerMessage = 0x0113;
-    private const uint FrameMilliseconds = 16;
     private const int NoActivate = 3;
     private const int TopmostStyle = 0x00000008;
 
@@ -35,8 +33,6 @@ internal static class BorderHost
     private static bool _posted;
     private static uint _thread;
     private static Thread? _worker;
-    private static nuint _timer;
-    private static readonly System.Diagnostics.Stopwatch Clock = System.Diagnostics.Stopwatch.StartNew();
 
     /// <summary>Replaces every border with <paramref name="rings"/>. Starts the thread for the first one.</summary>
     internal static void Update(IReadOnlyDictionary<WindowId, BorderRing> rings)
@@ -66,7 +62,7 @@ internal static class BorderHost
     }
 
     /// <summary>
-    /// Draws the border in one color while a border color animation runs, or puts its colors back when
+    /// Draws the border in one color while a border color animation runs, or puts its color back when
     /// <paramref name="color"/> is null.
     /// </summary>
     internal static void Tint(WindowId window, BorderColor? color)
@@ -157,12 +153,6 @@ internal static class BorderHost
                     continue;
                 }
 
-                if (message.hwnd.IsNull && message.message == TimerMessage)
-                {
-                    Turn();
-                    continue;
-                }
-
                 PInvoke.TranslateMessage(in message);
                 PInvoke.DispatchMessage(in message);
             }
@@ -172,10 +162,6 @@ internal static class BorderHost
             }
         }
 
-        if (_timer != 0)
-            _ = PInvoke.KillTimer(HWND.Null, _timer);
-
-        _timer = 0;
         lock (Gate)
         {
             foreach (var entry in Entries.Values)
@@ -183,31 +169,6 @@ internal static class BorderHost
 
             Entries.Clear();
         }
-    }
-
-    // borderangle: each turning border is drawn again at its new angle, and the timer stops when none turns.
-    private static void Turn()
-    {
-        Entry[] entries;
-        lock (Gate)
-            entries = [.. Entries.Values];
-
-        var now = Clock.Elapsed.TotalMilliseconds;
-        var turning = false;
-        foreach (var entry in entries)
-            turning |= entry.Turn(now);
-
-        if (!turning && _timer != 0)
-        {
-            _ = PInvoke.KillTimer(HWND.Null, _timer);
-            _timer = 0;
-        }
-    }
-
-    private static void KeepTurning()
-    {
-        if (_timer == 0)
-            _timer = PInvoke.SetTimer(HWND.Null, 0, FrameMilliseconds, null);
     }
 
     private static void Sync()
@@ -248,12 +209,7 @@ internal static class BorderHost
                         Entries[window] = entry;
                     }
 
-                    var focused = ring.Focused && !entry.Ring.Focused;
-                    var opened = entry.Ring.Thickness == 0;
                     entry.Ring = ring;
-                    if (ring.Spins && (opened || focused))
-                        entry.StartTurn(Clock.Elapsed.TotalMilliseconds);
-
                     touched.Add(window);
                 }
             }
@@ -271,13 +227,6 @@ internal static class BorderHost
             entry.Tint = tints.GetValueOrDefault(window);
             entry.Place();
         }
-
-        bool turning;
-        lock (Gate)
-            turning = Entries.Values.Any(entry => entry.Turning);
-
-        if (turning)
-            KeepTurning();
     }
 
     private static LRESULT OnWindow(HWND hwnd, uint message, WPARAM wParam, LPARAM lParam) =>
@@ -326,49 +275,15 @@ internal static class BorderHost
         private readonly HWND[] _pieces = new HWND[4];
         private Rectangle _box;
         private BorderRing? _painted;
-        private double _paintedTurn;
         private bool _shown;
         private byte _alpha = 255;
         private byte _paintedAlpha = 255;
-        private double? _turnStart;
-        private double _turn;
 
-        public BorderRing Ring { get; set; } = new(BorderGradient.Of(default), 0, 0, 2, 0);
+        public BorderRing Ring { get; set; } = new(default, 0, 0, 2, 0);
 
         public BorderColor? Tint { get; set; }
 
-        private BorderRing Drawn => Tint is BorderColor tint ? Ring with { Gradient = BorderGradient.Of(tint) } : Ring;
-
-        public bool Turning => _turnStart is not null;
-
-        // A turn starts when the window opens and when a window is focused, unless one is under way.
-        public void StartTurn(double now)
-        {
-            if (_turnStart is null)
-                _turnStart = now;
-        }
-
-        // Moves a turning border to its angle now. False once it has stopped turning.
-        public bool Turn(double now)
-        {
-            if (_turnStart is not double start || Ring.Spin is not Timing spin || !Ring.Spins)
-            {
-                _turnStart = null;
-                _turn = 0;
-                return false;
-            }
-
-            var elapsed = now - start;
-            _turn = BorderPainter.Turn(spin, elapsed);
-            if (elapsed >= spin.Milliseconds)
-            {
-                _turn = 0;
-                _turnStart = Ring.SpinLoops ? now : null;
-            }
-
-            Place();
-            return _turnStart is not null;
-        }
+        private BorderRing Drawn => Tint is BorderColor tint ? Ring with { Color = tint } : Ring;
 
         public void Place()
         {
@@ -390,13 +305,12 @@ internal static class BorderHost
             var box = new Rectangle(frame.X - thickness, frame.Y - thickness, frame.Width + (2 * thickness), frame.Height + (2 * thickness));
             var drawn = Drawn;
             var pieces = BorderPainter.Pieces(box.Width, box.Height, drawn);
-            if (box.Width != _box.Width || box.Height != _box.Height || !drawn.Equals(_painted) || !_shown || _turn != _paintedTurn || _alpha != _paintedAlpha)
+            if (box.Width != _box.Width || box.Height != _box.Height || !drawn.Equals(_painted) || !_shown || _alpha != _paintedAlpha)
             {
                 for (var i = 0; i < pieces.Length; i++)
                     Paint(i, box, pieces[i], drawn);
 
                 _painted = drawn;
-                _paintedTurn = _turn;
                 _paintedAlpha = _alpha;
             }
             else if (box != _box)
@@ -468,7 +382,7 @@ internal static class BorderHost
                     return;
 
                 var old = PInvoke.SelectObject(memory, bitmap);
-                BorderPainter.Paint(new Span<uint>(bits, piece.Width * piece.Height), ring, box.Width, box.Height, piece, _turn);
+                BorderPainter.Paint(new Span<uint>(bits, piece.Width * piece.Height), ring, box.Width, box.Height, piece);
                 var size = new SIZE(piece.Width, piece.Height);
                 var origin = new System.Drawing.Point(0, 0);
                 var position = new System.Drawing.Point(box.X + piece.X, box.Y + piece.Y);

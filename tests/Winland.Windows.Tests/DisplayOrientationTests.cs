@@ -101,13 +101,11 @@ public class DisplayOrientationTests
             nameof(Outcome.Events), // Core.Noticed, the event stream
             nameof(Outcome.GestureCalls), // Core.Noticed, LuaRuntime.Listen
             nameof(Outcome.Decorations), // WindowAdapter.ApplyCore
-            nameof(Outcome.SpecialBlurs), // WindowAdapter.ApplyCore, BehindHost
             nameof(Outcome.Motions), // WindowAdapter.ApplyCore
             nameof(Outcome.Live), // WindowAdapter.ApplyCore
             nameof(Outcome.ResetDecorations), // WindowAdapter.ApplyCore
             nameof(Outcome.GroupBars), // WindowAdapter.ApplyCore
             nameof(Outcome.ErrorBar), // WindowAdapter.ApplyCore
-            nameof(Outcome.Dims), // WindowAdapter.ApplyCore
             nameof(Outcome.Notifications), // WindowAdapter.ApplyCore
             nameof(Outcome.Orientations), // WindowAdapter.ApplyCore
             nameof(Outcome.DisplayModes), // WindowAdapter.ApplyCore

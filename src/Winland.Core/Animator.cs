@@ -61,7 +61,7 @@ public sealed class Animator
         ArgumentNullException.ThrowIfNull(motion);
         if (!_entries.TryGetValue(motion.Window, out var entry))
         {
-            entry = new Entry { Goal = motion.To, AlphaGoal = motion.AlphaTo, OpacityGoal = motion.OpacityTo ?? motion.AlphaTo, DimGoal = motion.DimTo };
+            entry = new Entry { Goal = motion.To, AlphaGoal = motion.AlphaTo };
             _entries.Add(motion.Window, entry);
         }
 
@@ -90,30 +90,17 @@ public sealed class Animator
         }
 
         entry.FadeGoal = motion.FadeTo;
-        var opacity = motion.OpacityTo ?? motion.AlphaTo;
         if (motion.Alpha is Timing alpha)
         {
-            var begun = entry.Alpha?.Value(now)[0] ?? motion.AlphaFrom ?? entry.OpacityGoal;
-            entry.Alpha = new Track([begun], [opacity], now, alpha);
+            var begun = entry.Alpha?.Value(now)[0] ?? motion.AlphaFrom ?? entry.AlphaGoal;
+            entry.Alpha = new Track([begun], [motion.AlphaTo], now, alpha);
         }
-        else if (entry.Alpha is not null && entry.OpacityGoal != opacity)
+        else if (entry.Alpha is not null && entry.AlphaGoal != motion.AlphaTo)
         {
             entry.Alpha = null;
         }
 
-        if (motion.Dim is Timing dim)
-        {
-            var begun = entry.Dim?.Value(now)[0] ?? motion.DimFrom ?? entry.DimGoal;
-            entry.Dim = new Track([begun], [motion.DimTo], now, dim);
-        }
-        else if (entry.Dim is not null && entry.DimGoal != motion.DimTo)
-        {
-            entry.Dim = null;
-        }
-
         entry.AlphaGoal = motion.AlphaTo;
-        entry.OpacityGoal = opacity;
-        entry.DimGoal = motion.DimTo;
         if (motion.BorderTo is BorderColor border)
         {
             if (motion.Border is Timing timing)
@@ -170,21 +157,15 @@ public sealed class Animator
     /// Takes a window's decoration. A running fade or alpha change moves toward the new alpha instead of
     /// jumping to it, and a running border change toward the new color.
     /// </summary>
-    public PaintHold Paint(WindowId window, byte alpha, BorderColor border, double now, byte? opacity = null, byte keep = 255)
+    public PaintHold Paint(WindowId window, byte alpha, BorderColor border, double now)
     {
         if (!_entries.TryGetValue(window, out var entry))
             return default;
 
-        var part = opacity ?? alpha;
-        if (entry.Alpha is Track running && entry.OpacityGoal != part)
-            entry.Alpha = new Track(running.Value(now), [part], now, running.Timing);
-
-        if (entry.Dim is Track dimming && entry.DimGoal != keep)
-            entry.Dim = new Track(dimming.Value(now), [keep], now, dimming.Timing);
+        if (entry.Alpha is Track running && entry.AlphaGoal != alpha)
+            entry.Alpha = new Track(running.Value(now), [alpha], now, running.Timing);
 
         entry.AlphaGoal = alpha;
-        entry.OpacityGoal = part;
-        entry.DimGoal = keep;
         var holdsBorder = entry.Border is not null;
         if (entry.Border is Track changing && entry.BorderGoal != border)
             entry.Border = new Track(changing.Value(now), OkLab.From(border), now, changing.Timing);
@@ -192,7 +173,7 @@ public sealed class Animator
         if (holdsBorder)
             entry.BorderGoal = border;
 
-        return new PaintHold(entry.Fade is not null || entry.Alpha is not null || entry.Dim is not null, holdsBorder);
+        return new PaintHold(entry.Fade is not null || entry.Alpha is not null, holdsBorder);
     }
 
     /// <summary>Stops the window's motion where it is. The caller puts the window on its Layout rectangle.</summary>
@@ -215,9 +196,8 @@ public sealed class Animator
             entry.Geometry = Done(entry.Geometry, now);
             entry.Fade = Done(entry.Fade, now);
             entry.Alpha = Done(entry.Alpha, now);
-            entry.Dim = Done(entry.Dim, now);
             entry.Border = Done(entry.Border, now);
-            if (entry.Geometry is null && entry.Fade is null && entry.Alpha is null && entry.Dim is null && entry.Border is null)
+            if (entry.Geometry is null && entry.Fade is null && entry.Alpha is null && entry.Border is null)
             {
                 frame = Rested(frame, entry);
                 _entries.Remove(window);
@@ -253,20 +233,10 @@ public sealed class Animator
         Rectangle? bounds = entry.Geometry is Track geometry ? Box(final ? geometry.Goal : geometry.Value(now)) : null;
         Rectangle? goal = entry.Geometry is Track heading ? Box(heading.Goal) : null;
         byte? alpha = null;
-        if (entry.Fade is not null || entry.Alpha is not null || entry.Dim is not null)
+        if (entry.Fade is not null || entry.Alpha is not null)
         {
             var fade = entry.Fade is Track f ? (final ? f.Goal[0] : f.Value(now)[0]) : entry.FadeGoal;
-
-            // The opacity and the dim each ease on their own curve while either runs. Once both have landed, the level
-            // is the exact alpha the decoration asked for, not the product of two rounded parts.
-            var level = (double)entry.AlphaGoal;
-            if (!final && (Running(entry.Alpha, now) || Running(entry.Dim, now)))
-            {
-                var opacity = entry.Alpha is Track a ? a.Value(now)[0] : entry.OpacityGoal;
-                var keep = entry.Dim is Track d ? d.Value(now)[0] : entry.DimGoal;
-                level = opacity * keep / 255;
-            }
-
+            var level = !final && Running(entry.Alpha, now) ? entry.Alpha!.Value(now)[0] : entry.AlphaGoal;
             alpha = ToByte(Math.Clamp(fade, 0, 1) * level);
         }
 
@@ -304,14 +274,8 @@ public sealed class Animator
 
         public Track? Alpha { get; set; }
 
-        /// <summary>The alpha the window lands on, the opacity times what dimming leaves.</summary>
+        /// <summary>The alpha the window lands on.</summary>
         public byte AlphaGoal { get; set; } = 255;
-
-        public Track? Dim { get; set; }
-
-        public byte OpacityGoal { get; set; } = 255;
-
-        public byte DimGoal { get; set; } = 255;
 
         public Track? Border { get; set; }
 

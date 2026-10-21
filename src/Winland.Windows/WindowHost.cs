@@ -330,9 +330,6 @@ public sealed class WindowHost : IDisposable
 
     private void OnSignal(SessionSignal signal)
     {
-        if (signal == SessionSignal.DisplayOn)
-            DpmsFadeHost.DisplaysShown();
-
         _pending.Enqueue(signal);
         if (_draining)
             return;
