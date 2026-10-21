@@ -91,8 +91,7 @@ public sealed partial class Core
         _trigger = trigger;
         try
         {
-            // A bind comes from the config, so it may launch elevated only when the config may.
-            return Execute(name, arguments, allowsElevation: ElevationTrusted);
+            return Execute(name, arguments);
         }
         finally
         {
@@ -100,27 +99,27 @@ public sealed partial class Core
         }
     }
 
-    private Outcome Execute(string name, string arguments, bool allowsElevation)
+    private Outcome Execute(string name, string arguments)
     {
         ArgumentNullException.ThrowIfNull(name);
         arguments ??= "";
 
         if (ActsOnAWindow(name) && arguments.IndexOf(',', StringComparison.Ordinal) is var comma and >= 0)
-            return ExecuteOn(name, arguments[..comma], arguments[(comma + 1)..].Trim(), allowsElevation);
+            return ExecuteOn(name, arguments[..comma], arguments[(comma + 1)..].Trim());
 
         if (Is(name, "togglespecialworkspace"))
-            return ToggleSpecial(arguments, allowsElevation);
+            return ToggleSpecial(arguments);
 
-        if (GroupDispatch(name, arguments, allowsElevation) is Outcome grouped)
+        if (GroupDispatch(name, arguments) is Outcome grouped)
             return grouped;
 
         if (Is(name, "workspace") || Is(name, "focusworkspaceoncurrentmonitor"))
         {
             if (!WorkspaceAddress.TryResolve(arguments, Context(), out var target))
-                return View([], dispatcher: name, allowsElevation: allowsElevation);
+                return View([], dispatcher: name);
 
             if (target.IsSpecial)
-                return OpenSpecial(target, null, name, allowsElevation);
+                return OpenSpecial(target, null, name);
 
             var from = FocusedId();
             var switched = SwitchTo(
@@ -128,53 +127,52 @@ public sealed partial class Core
                 focus: null,
                 consumed: false,
                 dispatcher: name,
-                allowsElevation: allowsElevation,
                 pull: Is(name, "focusworkspaceoncurrentmonitor"));
             NoteCrossMonitorWarp(from, switched);
             return switched;
         }
 
         if (Is(name, "movetoworkspace"))
-            return MoveWindowToWorkspace(arguments, silent: false, allowsElevation: allowsElevation);
+            return MoveWindowToWorkspace(arguments, silent: false);
 
         if (Is(name, "movetoworkspacesilent"))
-            return MoveWindowToWorkspace(arguments, silent: true, allowsElevation: allowsElevation);
+            return MoveWindowToWorkspace(arguments, silent: true);
 
         if (Is(name, "movefocus"))
-            return MoveFocusDirection(arguments, allowsElevation);
+            return MoveFocusDirection(arguments);
 
         if (Is(name, "movewindow"))
-            return MoveWindowDirection(arguments, allowsElevation);
+            return MoveWindowDirection(arguments);
 
         if (Is(name, "focusmonitor"))
-            return FocusMonitorDispatch(arguments, allowsElevation);
+            return FocusMonitorDispatch(arguments);
 
         if (Is(name, "movecurrentworkspacetomonitor"))
-            return MoveCurrentWorkspace(arguments, allowsElevation);
+            return MoveCurrentWorkspace(arguments);
 
         if (Is(name, "moveworkspacetomonitor"))
-            return MoveWorkspace(arguments, allowsElevation);
+            return MoveWorkspace(arguments);
 
         if (Is(name, "swapactiveworkspaces"))
-            return SwapActiveWorkspaces(arguments, allowsElevation);
+            return SwapActiveWorkspaces(arguments);
 
         if (Is(name, "renameworkspace"))
-            return RenameWorkspace(arguments, allowsElevation);
+            return RenameWorkspace(arguments);
 
         if (Is(name, "changeworkspaceid"))
-            return ChangeWorkspaceId(arguments, allowsElevation);
+            return ChangeWorkspaceId(arguments);
 
         if (Is(name, "setprop"))
-            return SetPropDispatch(arguments, allowsElevation);
+            return SetPropDispatch(arguments);
 
         if (Is(name, "tagwindow"))
-            return TagWindow(arguments, allowsElevation);
+            return TagWindow(arguments);
 
         if (Is(name, "cleartags"))
-            return ClearTags(arguments, allowsElevation);
+            return ClearTags(arguments);
 
         if (Is(name, "cyclenext"))
-            return CycleNext(arguments, allowsElevation);
+            return CycleNext(arguments);
 
         var active = ActiveWindow();
         var desk = CurrentWorkspace();
@@ -187,71 +185,71 @@ public sealed partial class Core
         if (Is(name, "killactive"))
         {
             if (active is WindowId closing && !Closeable(closing))
-                return Rejected(name, NotCloseable, allowsElevation);
+                return Rejected(name, NotCloseable);
 
             close = active;
         }
         else if (Is(name, "resizeactive"))
             placements = active is WindowId window ? layout.ResizeActive(window, arguments) : [];
         else if (Is(name, "togglefloating"))
-            return FloatWindow(arguments, floating: null, allowsElevation);
+            return FloatWindow(arguments, floating: null);
         else if (Is(name, "setfloating"))
-            return FloatWindow(arguments, floating: true, allowsElevation);
+            return FloatWindow(arguments, floating: true);
         else if (Is(name, "settiled"))
-            return FloatWindow(arguments, floating: false, allowsElevation);
+            return FloatWindow(arguments, floating: false);
         else if (Is(name, "pin"))
-            return PinWindow(arguments, allowsElevation);
+            return PinWindow(arguments);
         else if (Is(name, "pseudo"))
-            return PseudoWindow(arguments, allowsElevation);
+            return PseudoWindow(arguments);
         else if (Is(name, "focuswindow"))
-            return FocusWindow(arguments, allowsElevation);
+            return FocusWindow(arguments);
         else if (Is(name, "closewindow"))
-            return CloseWindow(arguments, allowsElevation);
+            return CloseWindow(arguments);
         else if (Is(name, "killwindow"))
-            return KillWindow(arguments, allowsElevation);
+            return KillWindow(arguments);
         else if (Is(name, "swapwindow"))
-            return SwapWindow(arguments, allowsElevation);
+            return SwapWindow(arguments);
         else if (Is(name, "movewindowpixel"))
-            return MoveWindowPixel(arguments, allowsElevation);
+            return MoveWindowPixel(arguments);
         else if (Is(name, "resizewindowpixel"))
-            return ResizeWindowPixel(arguments, allowsElevation);
+            return ResizeWindowPixel(arguments);
         else if (Is(name, "centerwindow"))
-            return CenterWindow(allowsElevation);
+            return CenterWindow();
         else if (Is(name, "alterzorder") || Is(name, "bringactivetotop"))
-            return AlterZOrder(arguments, Is(name, "bringactivetotop"), allowsElevation);
+            return AlterZOrder(arguments, Is(name, "bringactivetotop"));
         else if (Is(name, "movecursortocorner"))
-            return MoveCursorToCorner(arguments, allowsElevation);
+            return MoveCursorToCorner(arguments);
         else if (Is(name, "movecursor"))
-            return MoveCursor(arguments, allowsElevation);
+            return MoveCursor(arguments);
         else if (Is(name, "movetoroot"))
-            return MoveRoot(arguments, allowsElevation);
+            return MoveRoot(arguments);
         else if (Is(name, "exit"))
-            return ExitDaemon(allowsElevation);
+            return ExitDaemon();
         else if (Is(name, "event"))
-            return EmitCustom(arguments, allowsElevation);
+            return EmitCustom(arguments);
         else if (Is(name, "dpms"))
-            return Dpms(arguments, allowsElevation);
+            return Dpms(arguments);
         else if (Is(name, "pass"))
-            return Pass(arguments, allowsElevation);
+            return Pass(arguments);
         else if (Is(name, "sendshortcut"))
-            return SendShortcut(arguments, allowsElevation);
+            return SendShortcut(arguments);
         else if (Is(name, "sendkeystate"))
-            return SendKeyState(arguments, allowsElevation);
+            return SendKeyState(arguments);
         else if (Is(name, "focuscurrentorlast"))
-            return FocusCurrentOrLast(allowsElevation);
+            return FocusCurrentOrLast();
         else if (Is(name, "focusurgentorlast"))
-            return FocusUrgentOrLast(allowsElevation);
+            return FocusUrgentOrLast();
         else if (Is(name, "toggleswallow"))
-            return ToggleSwallow(allowsElevation);
+            return ToggleSwallow();
         else if (Is(name, "fullscreen") || Is(name, "fullscreenstate") || Is(name, "maximize"))
-            return FullscreenDispatcher(name, arguments, allowsElevation);
+            return FullscreenDispatcher(name, arguments);
         else if (Is(name, "layoutmsg") || Is(name, "layout"))
             placements = layout.LayoutMessage(active, arguments);
         else if (DwindleMessages.Contains(name))
             placements = layout.LayoutMessage(active, Join(name, arguments));
         else if (Is(name, "exec") || Is(name, "execr"))
         {
-            var parsed = LaunchParser.Parse(arguments, allowsElevation, raw: Is(name, "execr"));
+            var parsed = LaunchParser.Parse(arguments, raw: Is(name, "execr"));
             if (parsed.Warnings.Count > 0)
             {
                 var warnings = new List<StreamEvent>(parsed.Warnings.Count);
@@ -260,7 +258,7 @@ public sealed partial class Core
                 _configEvents = warnings;
             }
 
-            var launched = View([], dispatcher: name, allowsElevation: allowsElevation);
+            var launched = View([], dispatcher: name);
             return WithEnvironment(parsed.Launch) is Launch launch
                 ? launched with { Launches = [.. launched.Launches, launch with { InitialWorkspace = LaunchWorkspace() }] }
                 : launched;
@@ -268,27 +266,27 @@ public sealed partial class Core
         else if (Is(name, "submap"))
         {
             if (!TryEnterSubmap(arguments, out var error))
-                return View([], dispatcher: name, allowsElevation: allowsElevation) with { Error = error };
+                return View([], dispatcher: name) with { Error = error };
 
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return View([], dispatcher: name);
         }
         else if (Dispatchers.TryInvoke(name, arguments, out var bound))
-            return View([], dispatcher: name, allowsElevation: allowsElevation) with
+            return View([], dispatcher: name) with
             {
                 Error = bound.Error,
                 Notice = bound.Notice,
             };
         else if (!Dispatchers.IsKnown(name))
-            return View([], dispatcher: name, allowsElevation: allowsElevation) with
+            return View([], dispatcher: name) with
             {
                 Error = "error: unknown dispatcher '" + name + "'",
             };
         else
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return View([], dispatcher: name);
 
         if (layout.LayoutMessageError is string layoutError
             && (Is(name, "layoutmsg") || Is(name, "layout") || DwindleMessages.Contains(name)))
-            return View(placements, dispatcher: name, allowsElevation: allowsElevation) with { Error = layoutError };
+            return View(placements, dispatcher: name) with { Error = layoutError };
 
         if (focus is null && layout.LayoutMessageFocus is WindowId requested)
             focus = requested;
@@ -310,7 +308,6 @@ public sealed partial class Core
             dispatcher: name,
             close: close,
             focus: focus,
-            allowsElevation: allowsElevation,
             focusRevealed: message && focus is null);
     }
 

@@ -163,12 +163,12 @@ public sealed partial class Core
 
     private CommandReply WriteProp(SetPropRequest request)
     {
-        var outcome = SetProp(request.Selector, request.Property, request.Value, "setprop", allowsElevation: false);
+        var outcome = SetProp(request.Selector, request.Property, request.Value, "setprop");
         return new CommandReply(outcome.Error ?? "ok", outcome);
     }
 
     /// <summary><c>setprop WINDOW PROP VALUE</c>, Winland's set_prop dispatcher.</summary>
-    private Outcome SetPropDispatch(string arguments, bool allowsElevation)
+    private Outcome SetPropDispatch(string arguments)
     {
         var text = arguments.Trim();
         var first = text.IndexOfAny([' ', '\t']);
@@ -177,12 +177,12 @@ public sealed partial class Core
         var second = rest.IndexOfAny([' ', '\t']);
         var property = second < 0 ? rest : rest[..second];
         var value = second < 0 ? "" : rest[(second + 1)..].Trim();
-        return SetProp(selector, property, value, "setprop", allowsElevation);
+        return SetProp(selector, property, value, "setprop");
     }
 
-    private Outcome SetProp(string selector, string property, string value, string dispatcher, bool allowsElevation)
+    private Outcome SetProp(string selector, string property, string value, string dispatcher)
     {
-        Outcome Refused(string error) => View([], dispatcher: dispatcher, allowsElevation: allowsElevation) with { Error = error };
+        Outcome Refused(string error) => View([], dispatcher: dispatcher) with { Error = error };
 
         if (selector.Length == 0 || property.Length == 0 || value.Length == 0)
             return Refused("error: not enough args");
@@ -219,7 +219,7 @@ public sealed partial class Core
             default:
                 // A value that does not parse changes nothing.
                 if (!WindowProps.TryTrivial(key, kind, value, Layered(window, desk, key), PropValue(window, desk, key, kind), out next))
-                    return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
+                    return View([], dispatcher: dispatcher);
                 break;
         }
 
@@ -241,7 +241,7 @@ public sealed partial class Core
             "border_size" => desk.Layout.Apply(desk.Options),
             _ => [],
         };
-        return View(IsShown(desk.Id) ? placements : [], dispatcher: dispatcher, allowsElevation: allowsElevation);
+        return View(IsShown(desk.Id) ? placements : [], dispatcher: dispatcher);
     }
 
     // The variables a min_size or max_size expression reads, for this window as it is now.

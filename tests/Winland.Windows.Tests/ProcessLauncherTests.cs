@@ -11,7 +11,7 @@ public class ProcessLauncherTests
         var directory = Path.Combine(Path.GetTempPath(), "winland-env-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         var file = Path.Combine(directory, "env.txt");
-        var launch = new Launch("set > env.txt", directory, false)
+        var launch = new Launch("set > env.txt", directory)
         {
             Environment =
             [
@@ -40,7 +40,7 @@ public class ProcessLauncherTests
     [Fact]
     public void ARawCommandIsPassedAsWritten()
     {
-        var launch = new Launch("\"C:\\Program Files\\App\\app.exe\" --flag \"a b\"", null, false) { Raw = true };
+        var launch = new Launch("\"C:\\Program Files\\App\\app.exe\" --flag \"a b\"", null) { Raw = true };
 
         Assert.Equal(launch.CommandLine, ProcessLauncher.CommandLine(launch));
     }
@@ -49,7 +49,7 @@ public class ProcessLauncherTests
     public void AShellCommandIsQuotedWholeForCmd()
     {
         var shell = Path.Combine(Environment.SystemDirectory, "cmd.exe");
-        var launch = new Launch("\"C:\\Program Files\\App\\app.exe\" \"a b\" && echo done", null, false);
+        var launch = new Launch("\"C:\\Program Files\\App\\app.exe\" \"a b\" && echo done", null);
 
         Assert.Equal(
             "\"" + shell + "\" /d /s /c \"\"C:\\Program Files\\App\\app.exe\" \"a b\" && echo done\"",
@@ -63,7 +63,7 @@ public class ProcessLauncherTests
         Directory.CreateDirectory(directory);
         var file = Path.Combine(directory, "out file.txt");
         var where = Path.Combine(Environment.SystemDirectory, "where.exe");
-        var launch = new Launch("\"" + where + "\" \"cmd.exe\" > \"out file.txt\"", directory, false);
+        var launch = new Launch("\"" + where + "\" \"cmd.exe\" > \"out file.txt\"", directory);
 
         try
         {
@@ -82,8 +82,8 @@ public class ProcessLauncherTests
     [Fact]
     public void ARawProgramGetsAConsoleOfItsOwnAndTheShellOneWithNoWindow()
     {
-        var raw = ProcessLauncher.CreationFlags(new Launch("app.exe", null, false) { Raw = true });
-        var shell = ProcessLauncher.CreationFlags(new Launch("app.exe", null, false));
+        var raw = ProcessLauncher.CreationFlags(new Launch("app.exe", null) { Raw = true });
+        var shell = ProcessLauncher.CreationFlags(new Launch("app.exe", null));
 
         Assert.True(raw.HasFlag(Flags.CREATE_NEW_CONSOLE));
         Assert.False(raw.HasFlag(Flags.CREATE_NO_WINDOW));
@@ -102,7 +102,7 @@ public class ProcessLauncherTests
             "$t = Add-Type -MemberDefinition '[DllImport(\"kernel32.dll\")] public static extern IntPtr GetConsoleWindow();' -Name ConsoleProbe -Namespace Probe -PassThru\r\n"
             + "[string]$t::GetConsoleWindow() | Set-Content -Path console.txt\r\n");
         var powershell = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
-        var launch = new Launch("\"" + powershell + "\" -NoProfile -ExecutionPolicy Bypass -File \"" + probe + "\"", directory, false) { Raw = true };
+        var launch = new Launch("\"" + powershell + "\" -NoProfile -ExecutionPolicy Bypass -File \"" + probe + "\"", directory) { Raw = true };
 
         try
         {

@@ -180,7 +180,7 @@ public class ReloadTests
         Assert.Equal(1, calls);
         Assert.Same(document, seen);
         Assert.NotNull(seen);
-        Assert.Equal([new Launch("notepad", null, false) { InitialWorkspace = WorkspaceId.Initial }], core.ReloadLaunches(seen));
+        Assert.Equal([new Launch("notepad", null) { InitialWorkspace = WorkspaceId.Initial }], core.ReloadLaunches(seen));
         Assert.Equal(new Rectangle(10, 10, 1900, 1060), BoundsOf(reply.Effect, 1));
         Assert.Contains("configreloaded>>", Lines(reply));
     }

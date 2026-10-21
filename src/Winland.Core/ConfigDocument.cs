@@ -34,12 +34,6 @@ public sealed record ConfigDocument(
     /// and field replaces the earlier one. The name is the spelling the <c>devices</c> reply uses.
     /// </summary>
     public IReadOnlyList<DevicePointer> DevicePointers { get; init; } = [];
-
-    /// <summary>
-    /// True only when the daemon found the config and every sourced file writable by
-    /// administrators alone. Otherwise <c>[elevated]</c> launches run de-elevated (ADR 0007).
-    /// </summary>
-    public bool ElevationTrusted { get; init; }
 }
 
 public sealed record ConfigRead(ConfigDocument? Document, ConfigWarning? Failure = null);

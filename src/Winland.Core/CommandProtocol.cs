@@ -89,8 +89,6 @@ public sealed record CommandRejected(string Error) : CommandParse;
 
 public abstract record CommandRequest
 {
-    public bool AllowsElevation => false;
-
     public CommandFlags Flags { get; init; }
 }
 

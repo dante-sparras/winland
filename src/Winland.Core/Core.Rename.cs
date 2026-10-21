@@ -9,7 +9,7 @@ public sealed partial class Core
     /// does. Its address stays, so selectors, rules and other dispatchers still find it by the old one. A special
     /// workspace keeps its name.
     /// </summary>
-    private Outcome RenameWorkspace(string arguments, bool allowsElevation)
+    private Outcome RenameWorkspace(string arguments)
     {
         const string dispatcher = "renameworkspace";
         var text = arguments.Trim();
@@ -18,14 +18,14 @@ public sealed partial class Core
         var name = split < 0 ? "" : text[(split + 1)..].Trim();
         if (RenameTarget(selector) is not WorkspaceId id || FindWorkspace(id) is not { } desk)
         {
-            return View([], dispatcher: dispatcher, allowsElevation: allowsElevation) with
+            return View([], dispatcher: dispatcher) with
             {
                 Error = "error: no such workspace",
             };
         }
 
         if (id.IsSpecial)
-            return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
+            return View([], dispatcher: dispatcher);
 
         desk.DisplayName = name;
         desk.Renamed = true;
@@ -34,7 +34,7 @@ public sealed partial class Core
         // A rule that reads the display name may now match, or stop matching.
         var shown = ActiveOn(desk.Monitor) == id;
         var placements = Restamp(desk, []);
-        return View(shown ? placements : [], dispatcher: dispatcher, allowsElevation: allowsElevation);
+        return View(shown ? placements : [], dispatcher: dispatcher);
     }
 
     /// <summary>
@@ -42,7 +42,7 @@ public sealed partial class Core
     /// release's id change does. Its Clients, the Monitor showing it and the Workspace history follow it, and the rules
     /// for the new number apply. A Workspace that was not renamed takes the new number as its name.
     /// </summary>
-    private Outcome ChangeWorkspaceId(string arguments, bool allowsElevation)
+    private Outcome ChangeWorkspaceId(string arguments)
     {
         const string dispatcher = "changeworkspaceid";
         var parts = arguments.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
@@ -51,7 +51,7 @@ public sealed partial class Core
             || number <= 0
             || number > WorkspaceId.MaxNumber)
         {
-            return View([], dispatcher: dispatcher, allowsElevation: allowsElevation) with { Error = "error: invalid workspace id" };
+            return View([], dispatcher: dispatcher) with { Error = "error: invalid workspace id" };
         }
 
         var to = WorkspaceId.FromNumber(number);
@@ -60,7 +60,7 @@ public sealed partial class Core
             || FindWorkspace(from) is not { } desk
             || FindWorkspace(to) is not null)
         {
-            return View([], dispatcher: dispatcher, allowsElevation: allowsElevation) with { Error = "error: bad workspace" };
+            return View([], dispatcher: dispatcher) with { Error = "error: bad workspace" };
         }
 
         desk.Readdress(to);
@@ -100,7 +100,7 @@ public sealed partial class Core
 
         var shown = ActiveOn(desk.Monitor) == to;
         var placements = Restamp(desk, []);
-        return View(shown ? placements : [], dispatcher: dispatcher, allowsElevation: allowsElevation);
+        return View(shown ? placements : [], dispatcher: dispatcher);
     }
 
     // The workspace a rename names, read as Winland's workspace query reads it: by number, by address

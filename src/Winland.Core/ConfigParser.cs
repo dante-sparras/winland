@@ -250,7 +250,7 @@ public static partial class ConfigParser
                     RememberRule(lhs, rhs, lineNumber);
                 else if (IsLaunchKeyword(lhs))
                 {
-                    foreach (var warning in LaunchParser.Parse(rhs, allowsElevation: true, raw: false).Warnings)
+                    foreach (var warning in LaunchParser.Parse(rhs, raw: false).Warnings)
                         Warn(lineNumber, warning);
                 }
 

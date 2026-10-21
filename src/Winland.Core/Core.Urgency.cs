@@ -22,25 +22,25 @@ public sealed partial class Core
         (_extraEvents ??= []).Add(new ClientUrgent(window));
     }
 
-    private Outcome FocusUrgentOrLast(bool allowsElevation)
+    private Outcome FocusUrgentOrLast()
     {
         const string name = "focusurgentorlast";
         if ((UrgentClient() ?? LastClient()) is not WindowId target)
-            return Rejected(name, "error: window not found", allowsElevation);
+            return Rejected(name, "error: window not found");
 
         _urgent.Remove(target);
-        return FocusClient(target, name, allowsElevation);
+        return FocusClient(target, name);
     }
 
     // focuscurrentorlast focuses the Client focused before the newest one in the focus history.
-    private Outcome FocusCurrentOrLast(bool allowsElevation)
+    private Outcome FocusCurrentOrLast()
     {
         const string name = "focuscurrentorlast";
         var live = _focusHistory.Where(window => Find(window) is not null).ToList();
         if (live.Count <= 1)
-            return Rejected(name, "error: History too short", allowsElevation);
+            return Rejected(name, "error: History too short");
 
-        return FocusClient(live[1], name, allowsElevation);
+        return FocusClient(live[1], name);
     }
 
     private WindowId? UrgentClient()

@@ -85,8 +85,6 @@ public sealed record Outcome(
     // again without leaving the minimized state.
     public IReadOnlyList<WindowId> ShowMinimized { get; init; } = [];
 
-    public bool AllowsElevation { get; init; }
-
     /// <summary>Programs to start, in order: every exec the outcome ran and every on-created-empty command.</summary>
     public IReadOnlyList<Launch> Launches { get; init; } = [];
 

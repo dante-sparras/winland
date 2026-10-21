@@ -17,19 +17,19 @@ public sealed partial class Core
 
     private static bool ActsOnAWindow(string name) => WindowTakers.Any(taker => Is(name, taker));
 
-    private Outcome ExecuteOn(string name, string arguments, string selector, bool allowsElevation)
+    private Outcome ExecuteOn(string name, string arguments, string selector)
     {
         if (selector.Length == 0)
-            return Execute(name, arguments, allowsElevation);
+            return Execute(name, arguments);
 
         if (WindowSelector.Find(selector, ActiveWindow(), EveryClient()) is not WindowId target)
-            return Rejected(name, "error: window not found", allowsElevation);
+            return Rejected(name, "error: window not found");
 
         var outer = _actingOn;
         _actingOn = target;
         try
         {
-            return Execute(name, arguments, allowsElevation);
+            return Execute(name, arguments);
         }
         finally
         {
@@ -241,7 +241,7 @@ public sealed partial class Core
                 Focus(owner.Id);
 
             if (target.IsSpecial)
-                return OpenSpecial(target, appeared.Window, null, allowsElevation: false);
+                return OpenSpecial(target, appeared.Window, null);
 
             return SwitchTo(target, appeared.Window, consumed: false, dispatcher: null);
         }

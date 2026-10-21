@@ -4,75 +4,75 @@ public sealed partial class Core
 {
     private readonly Dictionary<string, bool> _powered = new(StringComparer.OrdinalIgnoreCase);
 
-    private Outcome FocusWindow(string arguments, bool allowsElevation)
+    private Outcome FocusWindow(string arguments)
     {
         const string name = "focuswindow";
         if (Select(arguments, emptyMeansActive: false) is not WindowId id)
-            return Rejected(name, "error: no such window", allowsElevation);
+            return Rejected(name, "error: no such window");
 
-        return FocusClient(id, name, allowsElevation);
+        return FocusClient(id, name);
     }
 
-    private Outcome FocusClient(WindowId id, string name, bool allowsElevation)
+    private Outcome FocusClient(WindowId id, string name)
     {
         if (WorkspaceContaining(id) is not LiveWorkspace desk)
-            return Rejected(name, "error: no such window", allowsElevation);
+            return Rejected(name, "error: no such window");
 
         // A window shadowed by a modal refuses the focus, though its Workspace is still shown.
         if (BlockedByModal(id))
         {
             return IsShown(desk.Id)
-                ? View([], dispatcher: name, allowsElevation: allowsElevation)
-                : SwitchTo(desk.Id, null, consumed: false, dispatcher: name, allowsElevation: allowsElevation);
+                ? View([], dispatcher: name)
+                : SwitchTo(desk.Id, null, consumed: false, dispatcher: name);
         }
 
         if (_pinned.Contains(id) && Find(id) is { Floating: true })
-            return FocusPinned(desk, id, name, allowsElevation);
+            return FocusPinned(desk, id, name);
 
         var covered = desk.Covered();
         id = FocusUnderFullscreen(desk, id, out var refit);
-        var raised = RaiseMember(desk, id, name, allowsElevation);
+        var raised = RaiseMember(desk, id, name);
         desk.Layout.NoteFocus(id);
         if (desk.Id.IsSpecial)
         {
-            var special = OpenSpecial(desk.Id, id, name, allowsElevation);
+            var special = OpenSpecial(desk.Id, id, name);
             return raised is null ? special : Merge(raised, special);
         }
 
-        var outcome = SwitchTo(desk.Id, id, consumed: false, dispatcher: name, allowsElevation: allowsElevation);
+        var outcome = SwitchTo(desk.Id, id, consumed: false, dispatcher: name);
         outcome = outcome.Focus is null ? outcome with { Focus = id } : outcome;
         if (refit is not null && IsShown(desk.Id))
             outcome = Merge(Present(desk, covered, refit), outcome);
         return raised is null ? outcome : Merge(raised, outcome);
     }
 
-    private Outcome CloseWindow(string arguments, bool allowsElevation)
+    private Outcome CloseWindow(string arguments)
     {
         const string name = "closewindow";
         var window = Select(arguments, emptyMeansActive: false);
         if (window is not WindowId id)
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return View([], dispatcher: name);
 
         if (!Closeable(id))
-            return Rejected(name, NotCloseable, allowsElevation);
+            return Rejected(name, NotCloseable);
 
-        return View([], dispatcher: name, close: id, allowsElevation: allowsElevation);
+        return View([], dispatcher: name, close: id);
     }
 
-    private Outcome KillWindow(string arguments, bool allowsElevation)
+    private Outcome KillWindow(string arguments)
     {
         const string name = "killwindow";
         var window = Select(arguments, emptyMeansActive: false);
         if (window is not WindowId id || (Find(id) ?? EveryClient().Find(client => client.Window == id)) is not Client client || client.ProcessId <= 0)
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return View([], dispatcher: name);
 
-        return View([], dispatcher: name, allowsElevation: allowsElevation) with
+        return View([], dispatcher: name) with
         {
             Kill = new KillRequest(client.ProcessId) { Window = id },
         };
     }
 
-    private Outcome FloatWindow(string arguments, bool? floating, bool allowsElevation)
+    private Outcome FloatWindow(string arguments, bool? floating)
     {
         var name = floating switch
         {
@@ -82,11 +82,11 @@ public sealed partial class Core
         };
         var window = Select(arguments, emptyMeansActive: true);
         if (window is not WindowId id || Find(id) is not Client client || WorkspaceContaining(id) is not LiveWorkspace desk)
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return View([], dispatcher: name);
 
         var want = floating ?? !client.Floating;
         if (want == client.Floating)
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return View([], dispatcher: name);
 
         var covered = desk.Covered();
         var placements = desk.Layout.ToggleFloating(id);
@@ -97,33 +97,33 @@ public sealed partial class Core
             SetOverFullscreen(id, true);
 
         return IsShown(desk.Id)
-            ? Present(desk, covered, placements, dispatcher: name, allowsElevation: allowsElevation)
-            : View([], dispatcher: name, allowsElevation: allowsElevation);
+            ? Present(desk, covered, placements, dispatcher: name)
+            : View([], dispatcher: name);
     }
 
-    private Outcome PseudoWindow(string arguments, bool allowsElevation)
+    private Outcome PseudoWindow(string arguments)
     {
         const string name = "pseudo";
         var window = Select(arguments, emptyMeansActive: true);
         if (window is not WindowId id)
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return View([], dispatcher: name);
 
-        return ChangePseudo(id) with { Dispatcher = name, AllowsElevation = allowsElevation };
+        return ChangePseudo(id) with { Dispatcher = name };
     }
 
-    private Outcome MoveWindowToWorkspace(string arguments, bool silent, bool allowsElevation)
+    private Outcome MoveWindowToWorkspace(string arguments, bool silent)
     {
         var name = silent ? "movetoworkspacesilent" : "movetoworkspace";
         var comma = arguments.LastIndexOf(',');
         if (comma < 0)
-            return MoveTo(arguments, silent, consumed: false, name, allowsElevation);
+            return MoveTo(arguments, silent, consumed: false, name);
 
         var workspace = arguments[..comma];
         var window = Select(arguments[(comma + 1)..], emptyMeansActive: false);
-        return MoveTo(workspace, silent, consumed: false, name, allowsElevation, window, windowChosen: true);
+        return MoveTo(workspace, silent, consumed: false, name, window, windowChosen: true);
     }
 
-    private Outcome MoveRoot(string arguments, bool allowsElevation)
+    private Outcome MoveRoot(string arguments)
     {
         const string name = "movetoroot";
         var tokens = arguments.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
@@ -136,39 +136,39 @@ public sealed partial class Core
         var message = arguments.Length == 0 ? name : string.Concat(name, " ", arguments);
         var placements = desk.Layout.LayoutMessage(window, message);
         if (desk.Layout.LayoutMessageError is string error)
-            return View(placements, dispatcher: name, allowsElevation: allowsElevation) with { Error = error };
+            return View(placements, dispatcher: name) with { Error = error };
 
         return IsShown(desk.Id)
-            ? Present(desk, covered, placements, dispatcher: name, allowsElevation: allowsElevation)
-            : View([], dispatcher: name, allowsElevation: allowsElevation);
+            ? Present(desk, covered, placements, dispatcher: name)
+            : View([], dispatcher: name);
     }
 
-    private Outcome SwapWindow(string arguments, bool allowsElevation)
+    private Outcome SwapWindow(string arguments)
     {
         const string name = "swapwindow";
         var text = arguments.Trim();
         if (ActiveWindow() is not WindowId current || WorkspaceContaining(current) is not LiveWorkspace home)
-            return Rejected(name, "error: No window to swap with", allowsElevation);
+            return Rejected(name, "error: No window to swap with");
 
         // Winland's answers, in its order.
         if (Find(current) is { Fullscreen: not FullscreenMode.None })
-            return Rejected(name, "error: Can't swap fullscreen window", allowsElevation);
+            return Rejected(name, "error: Can't swap fullscreen window");
 
         WindowId other;
         if (IsDirection(text))
         {
             if (home.Layout.Neighbor(current, text) is not WindowId neighbor || neighbor == current)
-                return Rejected(name, "error: No window to swap with in that direction", allowsElevation);
+                return Rejected(name, "error: No window to swap with in that direction");
 
             other = neighbor;
         }
         else if (WindowSelector.Find(text, current, EveryClient()) is not WindowId selected)
         {
-            return Rejected(name, "error: No window to swap with", allowsElevation);
+            return Rejected(name, "error: No window to swap with");
         }
         else if (selected == current)
         {
-            return Rejected(name, "error: Can't swap a window with itself", allowsElevation);
+            return Rejected(name, "error: Can't swap a window with itself");
         }
         else
         {
@@ -176,38 +176,38 @@ public sealed partial class Core
         }
 
         if (WorkspaceContaining(other) is not LiveWorkspace away)
-            return Rejected(name, "error: No window to swap with", allowsElevation);
+            return Rejected(name, "error: No window to swap with");
         if (Find(other) is { Fullscreen: not FullscreenMode.None })
-            return Rejected(name, "error: Can't swap fullscreen window", allowsElevation);
+            return Rejected(name, "error: Can't swap fullscreen window");
         if (away.Id != home.Id)
-            return SwapAcross(current, other, home, away, name, allowsElevation);
+            return SwapAcross(current, other, home, away, name);
 
         var covered = home.Covered();
         var placements = home.Layout.Swap(current, other);
         if (placements.Count == 0)
-            return Rejected(name, "error: No window to swap with", allowsElevation);
+            return Rejected(name, "error: No window to swap with");
 
         return IsShown(home.Id)
-            ? Present(home, covered, placements, dispatcher: name, allowsElevation: allowsElevation)
-            : View(placements, dispatcher: name, allowsElevation: allowsElevation);
+            ? Present(home, covered, placements, dispatcher: name)
+            : View(placements, dispatcher: name);
     }
 
     // Two windows on different Workspaces trade places, each taking the other's slot and Workspace, as the pinned
     // release switches their targets. A window in a Group is not swapped across Workspaces.
-    private Outcome SwapAcross(WindowId current, WindowId other, LiveWorkspace home, LiveWorkspace away, string name, bool allowsElevation)
+    private Outcome SwapAcross(WindowId current, WindowId other, LiveWorkspace home, LiveWorkspace away, string name)
     {
         if (home.GroupOf(current) is not null || away.GroupOf(other) is not null)
-            return Rejected(name, "error: No window to swap with", allowsElevation);
+            return Rejected(name, "error: No window to swap with");
 
         // The first slot is held by a placeholder while the second changes hands.
         var placeholder = new WindowId(long.MinValue);
         if (!home.Layout.Substitute(current, placeholder, new Taken(Floating: false, Minimized: false, Bounds: default), out var mine))
-            return Rejected(name, "error: No window to swap with", allowsElevation);
+            return Rejected(name, "error: No window to swap with");
 
         if (!away.Layout.Substitute(other, current, mine, out var theirs))
         {
             _ = home.Layout.Substitute(placeholder, current, mine, out _);
-            return Rejected(name, "error: No window to swap with", allowsElevation);
+            return Rejected(name, "error: No window to swap with");
         }
 
         _ = home.Layout.Substitute(placeholder, other, theirs, out _);
@@ -241,19 +241,19 @@ public sealed partial class Core
         if (awayShown)
             placements.AddRange(away.Layout.Visible());
 
-        return View(placements, show, hide, dispatcher: name, focus: focus, allowsElevation: allowsElevation);
+        return View(placements, show, hide, dispatcher: name, focus: focus);
     }
 
-    private Outcome ExitDaemon(bool allowsElevation) =>
-        View([], dispatcher: "exit", allowsElevation: allowsElevation) with { Exit = true };
+    private Outcome ExitDaemon() =>
+        View([], dispatcher: "exit") with { Exit = true };
 
-    private Outcome EmitCustom(string arguments, bool allowsElevation)
+    private Outcome EmitCustom(string arguments)
     {
         (_extraEvents ??= []).Add(new CustomEvent(arguments));
-        return View([], dispatcher: "event", allowsElevation: allowsElevation);
+        return View([], dispatcher: "event");
     }
 
-    private Outcome Dpms(string arguments, bool allowsElevation)
+    private Outcome Dpms(string arguments)
     {
         var text = arguments.Trim();
         var toggle = text.StartsWith("toggle", StringComparison.Ordinal);
@@ -268,7 +268,7 @@ public sealed partial class Core
         {
             var on = PowerAfter("", turnOn, toggle);
             Volatile.Write(ref _displaysOn, on);
-            return View([], dispatcher: "dpms", allowsElevation: allowsElevation) with
+            return View([], dispatcher: "dpms") with
             {
                 DisplayPower = [new DisplayPowerRequest("", on) { Fade = _animations.TimingOf("fadeDpms") }],
             };
@@ -303,7 +303,7 @@ public sealed partial class Core
         if (requests.Length > 0)
             Volatile.Write(ref _displaysOn, requests[^1].On);
 
-        return View([], dispatcher: "dpms", allowsElevation: allowsElevation) with { DisplayPower = requests };
+        return View([], dispatcher: "dpms") with { DisplayPower = requests };
     }
 
     private bool PowerAfter(string device, bool turnOn, bool toggle)
@@ -345,8 +345,8 @@ public sealed partial class Core
         return clients;
     }
 
-    private Outcome Rejected(string name, string error, bool allowsElevation) =>
-        View([], dispatcher: name, allowsElevation: allowsElevation) with { Error = error };
+    private Outcome Rejected(string name, string error) =>
+        View([], dispatcher: name) with { Error = error };
 
     private static bool IsDirection(string text) =>
         text is "l" or "r" or "u" or "d" or "t" or "b"

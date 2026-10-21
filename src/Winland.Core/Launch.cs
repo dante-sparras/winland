@@ -5,7 +5,7 @@ public sealed record EnvironmentAssignment(string Name, string Value)
     public static IReadOnlyList<EnvironmentAssignment> None { get; } = [];
 }
 
-public sealed record Launch(string CommandLine, string? WorkingDirectory, bool Elevated)
+public sealed record Launch(string CommandLine, string? WorkingDirectory)
 {
     public static IReadOnlyList<WindowRule> NoRules { get; } = [];
 
@@ -52,12 +52,9 @@ internal static class EnvironmentParser
 
 internal static class LaunchParser
 {
-    private const string ElevatedPrefix = "[elevated]";
-
-    internal static LaunchParse Parse(string arguments, bool allowsElevation, bool raw)
+    internal static LaunchParse Parse(string arguments, bool raw)
     {
         var text = arguments.Trim();
-        var elevated = TryTakeElevated(ref text);
         var warnings = new List<string>();
         IReadOnlyList<WindowRule> rules = Launch.NoRules;
         if (text.StartsWith('['))
@@ -66,7 +63,7 @@ internal static class LaunchParser
             if (end < 0)
                 return new LaunchParse(null, ["Unclosed rule block."]);
 
-            if (!TryParseRules(text[1..end], ref elevated, out rules, warnings))
+            if (!TryParseRules(text[1..end], out rules, warnings))
             {
                 text = text[(end + 1)..].TrimStart();
                 return new LaunchParse(null, warnings);
@@ -78,7 +75,7 @@ internal static class LaunchParser
         if (text.Length == 0)
             return new LaunchParse(null, warnings);
 
-        var launch = new Launch(text, null, elevated && allowsElevation)
+        var launch = new Launch(text, null)
         {
             Raw = raw,
             Rules = rules.Count == 0 ? Launch.NoRules : rules,
@@ -105,7 +102,7 @@ internal static class LaunchParser
             if (!include)
                 continue;
 
-            var parsed = Parse(setting.Value, allowsElevation: config.ElevationTrusted, raw);
+            var parsed = Parse(setting.Value, raw);
             if (parsed.Launch is not { } launch)
                 continue;
 
@@ -119,23 +116,13 @@ internal static class LaunchParser
         return launches;
     }
 
-    internal static bool IsExec(string dispatcher) =>
-        dispatcher.Equals("exec", StringComparison.OrdinalIgnoreCase)
-        || dispatcher.Equals("execr", StringComparison.OrdinalIgnoreCase);
-
-    private static bool TryParseRules(string body, ref bool elevated, out IReadOnlyList<WindowRule> rules, List<string> warnings)
+    private static bool TryParseRules(string body, out IReadOnlyList<WindowRule> rules, List<string> warnings)
     {
         rules = Launch.NoRules;
         var parsed = new List<WindowRule>();
         var fatal = false;
         foreach (var piece in body.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
         {
-            if (piece.Equals("elevated", StringComparison.OrdinalIgnoreCase))
-            {
-                elevated = true;
-                continue;
-            }
-
             if (WindowRuleParser.TryParseBare(piece, out var rule, out var error) && rule is not null)
             {
                 parsed.Add(rule);
@@ -150,18 +137,6 @@ internal static class LaunchParser
         if (parsed.Count > 0)
             rules = parsed;
         return !fatal;
-    }
-
-    private static bool TryTakeElevated(ref string text)
-    {
-        if (text.Length < ElevatedPrefix.Length || !text.StartsWith(ElevatedPrefix, StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        if (text.Length > ElevatedPrefix.Length && !char.IsWhiteSpace(text[ElevatedPrefix.Length]))
-            return false;
-
-        text = text[ElevatedPrefix.Length..].TrimStart();
-        return true;
     }
 
     private static bool TryClassify(string keyword, out bool once, out bool raw, out bool shutdown)

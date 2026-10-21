@@ -136,7 +136,7 @@ public sealed partial class Core
             return null;
         }
 
-        return OutOfGroup(desk, group, window, direction: null, drag.Dispatcher, allowsElevation: false);
+        return OutOfGroup(desk, group, window, direction: null, drag.Dispatcher);
     }
 
     // The member whose tab a move drag starts on, in a Group of more than one, or null.

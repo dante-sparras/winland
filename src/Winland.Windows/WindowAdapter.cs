@@ -79,7 +79,7 @@ public sealed partial class WindowAdapter : IDisposable
         GroupBarHost.Dispatch = (name, arguments) =>
         {
             if (Session is Core session)
-                Apply(session.Dispatch(name, arguments, allowsElevation: false));
+                Apply(session.Dispatch(name, arguments));
         };
         GroupBarHost.Scroll = (shown, forward) =>
         {

@@ -324,7 +324,7 @@ public class PlacementRuleTests
     public void ExecRuleBlocksHonorSizeAndMove()
     {
         var core = new Core();
-        var launch = core.Dispatch("exec", "[float; size 300 200; move 40 50] kitty", allowsElevation: true).Launch;
+        var launch = core.Dispatch("exec", "[float; size 300 200; move 40 50] kitty").Launch;
         Assert.NotNull(launch);
         core.NoteLaunched(40, launch);
 

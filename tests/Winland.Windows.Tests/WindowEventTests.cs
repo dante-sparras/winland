@@ -38,7 +38,7 @@ public class WindowEventTests
 
         adapter.Notice(Events.EVENT_OBJECT_NAMECHANGE, (nint)window.Value);
 
-        var after = core.Dispatch("workspace", "1", allowsElevation: false).Order!.Value.Sequence;
+        var after = core.Dispatch("workspace", "1").Order!.Value.Sequence;
         Assert.Equal(before + 2, after);
     }
 
@@ -52,7 +52,7 @@ public class WindowEventTests
         core.ReducedMotion = () => true;
         var window = new WindowId(0x7005);
         core.Handle(new WindowAppeared(window, Area) { Traits = WindowTraits.Normal });
-        var away = core.Dispatch("workspace", "2", allowsElevation: false);
+        var away = core.Dispatch("workspace", "2");
         Assert.Contains(window, away.Hide);
 
         adapter.Notice(Events.EVENT_OBJECT_CLOAKED, (nint)window.Value);
@@ -98,7 +98,7 @@ public class WindowEventTests
         core.ReducedMotion = () => true;
         var window = new WindowId(0x700D);
         core.Handle(new WindowAppeared(window, Area) { Traits = WindowTraits.Normal });
-        var away = core.Dispatch("workspace", "2", allowsElevation: false);
+        var away = core.Dispatch("workspace", "2");
         Assert.Contains(window, away.Hide);
         WindowAdapter.Apply(away);
 

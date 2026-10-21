@@ -25,7 +25,7 @@ public sealed partial class Core
         if (_monitors.Count > 0 && MonitorById(monitor) is not { Effective.Enabled: true })
             return null;
 
-        var opened = closing ? null : OpenSpecial(target, null, dispatcher: null, allowsElevation: false);
+        var opened = closing ? null : OpenSpecial(target, null, dispatcher: null);
         if (MonitorShowing(target) != monitor)
             return opened;
 
@@ -59,7 +59,7 @@ public sealed partial class Core
         if (!close || !OwnsSpecial(swipe))
             return View([]);
 
-        return CloseSpecial(swipe.Monitor, dispatcher: null, allowsElevation: false);
+        return CloseSpecial(swipe.Monitor, dispatcher: null);
     }
 
     private bool OwnsSpecial(SpecialSwipe swipe) =>

@@ -8,27 +8,27 @@ public sealed partial class Core
     private BindTrigger? _trigger;
 
     // The key that ran the bind goes on to the window: its press on the press, its release on the release.
-    private Outcome Pass(string arguments, bool allowsElevation)
+    private Outcome Pass(string arguments)
     {
         const string name = "pass";
         if (Select(arguments, emptyMeansActive: false) is not WindowId target)
-            return Rejected(name, "pass: window not found", allowsElevation);
+            return Rejected(name, "pass: window not found");
 
         if (_trigger is not BindTrigger trigger || trigger.Key.Length == 0)
-            return Rejected(name, "pass: no key to pass", allowsElevation);
+            return Rejected(name, "pass: no key to pass");
 
         var relay = new KeyRelay(target, trigger.Key, trigger.Pressed ? KeyRelayPhase.Press : KeyRelayPhase.Release)
         {
             Code = trigger.Code,
         };
-        return Relayed(name, relay, allowsElevation);
+        return Relayed(name, relay);
     }
 
-    private Outcome SendShortcut(string arguments, bool allowsElevation)
+    private Outcome SendShortcut(string arguments)
     {
         const string name = "sendshortcut";
         if (!TryReadShortcut(name, arguments, parts: 3, out var shortcut, out var error))
-            return Rejected(name, error, allowsElevation);
+            return Rejected(name, error);
 
         var phase = _trigger switch
         {
@@ -36,34 +36,34 @@ public sealed partial class Core
             BindTrigger { Pressed: false } => KeyRelayPhase.Release,
             _ => KeyRelayPhase.Tap,
         };
-        return Relayed(name, shortcut.Relay(phase), allowsElevation);
+        return Relayed(name, shortcut.Relay(phase));
     }
 
-    private Outcome SendKeyState(string arguments, bool allowsElevation)
+    private Outcome SendKeyState(string arguments)
     {
         const string name = "sendkeystate";
         var parts = arguments.Split(',', 4, StringSplitOptions.TrimEntries);
         if (parts.Length != 4)
-            return Rejected(name, "sendkeystate: invalid args", allowsElevation);
+            return Rejected(name, "sendkeystate: invalid args");
 
         var state = parts[2];
         if (state is not ("down" or "repeat" or "up"))
-            return Rejected(name, "sendkeystate: invalid state, must be 'down', 'repeat', or 'up'", allowsElevation);
+            return Rejected(name, "sendkeystate: invalid state, must be 'down', 'repeat', or 'up'");
 
         var rest = string.Join(',', parts[0], parts[1], parts[3]);
         if (!TryReadShortcut(name, rest, parts: 3, out var shortcut, out var error))
-            return Rejected(name, error, allowsElevation);
+            return Rejected(name, error);
 
         if (state == "up")
-            return Relayed(name, shortcut.Relay(KeyRelayPhase.Release), allowsElevation);
+            return Relayed(name, shortcut.Relay(KeyRelayPhase.Release));
 
         var press = shortcut.Relay(KeyRelayPhase.Press);
         IReadOnlyList<KeyRelay> relays = state == "repeat" ? [press, press] : [press];
-        return View([], dispatcher: name, allowsElevation: allowsElevation) with { Relays = relays };
+        return View([], dispatcher: name) with { Relays = relays };
     }
 
-    private Outcome Relayed(string name, KeyRelay relay, bool allowsElevation) =>
-        View([], dispatcher: name, allowsElevation: allowsElevation) with { Relays = [relay] };
+    private Outcome Relayed(string name, KeyRelay relay) =>
+        View([], dispatcher: name) with { Relays = [relay] };
 
     private bool TryReadShortcut(string name, string arguments, int parts, out Shortcut shortcut, out string error)
     {

@@ -144,8 +144,7 @@ public sealed partial class Core
         bool consumed = false,
         string? dispatcher = null,
         WindowId? close = null,
-        WindowId? focus = null,
-        bool allowsElevation = false)
+        WindowId? focus = null)
     {
         var snapshot = Snapshot();
         placements = Cover(WithMoved(placements), snapshot);
@@ -157,7 +156,6 @@ public sealed partial class Core
             Show = Combine(show, swallowed.Show),
             Hide = Combine(Combine(hide, minimized.Hide), swallowed.Hide),
             ShowMinimized = minimized.Show,
-            AllowsElevation = allowsElevation,
             Launches = TakeBorn(),
         };
     }
@@ -412,7 +410,6 @@ public sealed partial class Core
         string? dispatcher = null,
         WindowId? close = null,
         WindowId? focus = null,
-        bool allowsElevation = false,
         bool focusRevealed = false)
     {
         // A w[] workspace rule counts the Clients, so a Client that opens, closes, floats or moves can match another
@@ -433,7 +430,7 @@ public sealed partial class Core
             TouchHistory(showList[0]);
         }
 
-        return View(placements, showList, hideList, consumed, dispatcher, close, focus, allowsElevation);
+        return View(placements, showList, hideList, consumed, dispatcher, close, focus);
     }
 
     private List<Placement> ShownPlacements()

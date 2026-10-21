@@ -10,29 +10,29 @@ public sealed partial class Core
     // for client mode 0 after that, such a Client goes back to client mode 1.
     private readonly HashSet<WindowId> _restoreClientMaximized = [];
 
-    private Outcome FullscreenDispatcher(string name, string arguments, bool allowsElevation)
+    private Outcome FullscreenDispatcher(string name, string arguments)
     {
         if (Is(name, "fullscreenstate"))
-            return FullscreenState(arguments, allowsElevation);
+            return FullscreenState(arguments);
 
         var text = Is(name, "maximize") ? Join("1", arguments) : arguments;
         var parsed = FullscreenCommands.Parse(text);
         if (parsed.Ignored)
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return View([], dispatcher: name);
 
         if (ActiveWindow() is not WindowId window || WorkspaceContaining(window) is not LiveWorkspace desk || desk.ClientOf(window) is not Client client)
-            return MissingWindow(name, allowsElevation);
+            return MissingWindow(name);
 
         if (!FullscreenCommands.Changed(client.Fullscreen, parsed.Mode, parsed.Action, out var next))
-            return View([], dispatcher: name, allowsElevation: allowsElevation);
+            return View([], dispatcher: name);
 
         // sync_fullscreen, default true, copies the internal mode onto the client mode. False leaves the client mode.
         var synced = SyncsFullscreen(window, desk);
         var clientMode = synced ? next : client.FullscreenClient;
-        return CommitFullscreen(window, next, clientMode, name, allowsElevation, synced, parsed.LayoutAware);
+        return CommitFullscreen(window, next, clientMode, name, synced, parsed.LayoutAware);
     }
 
-    private Outcome FullscreenState(string arguments, bool allowsElevation)
+    private Outcome FullscreenState(string arguments)
     {
         const string name = "fullscreenstate";
         var selector = FullscreenCommands.StateSelector(arguments);
@@ -40,11 +40,11 @@ public sealed partial class Core
         if (selector.Length > 0)
         {
             if (!TrySelect(selector, out client, out _))
-                return MissingWindow(name, allowsElevation);
+                return MissingWindow(name);
         }
         else if (ActiveWindow() is not WindowId active || WorkspaceContaining(active) is not LiveWorkspace desk || desk.ClientOf(active) is not Client focused)
         {
-            return MissingWindow(name, allowsElevation);
+            return MissingWindow(name);
         }
         else
         {
@@ -55,7 +55,7 @@ public sealed partial class Core
 
         var target = FullscreenCommands.ResolveState(arguments, client.Fullscreen, client.FullscreenClient);
         if (target.Internal == client.Fullscreen && target.Client == client.FullscreenClient)
-            return HoldSync(window, View([], dispatcher: name, allowsElevation: allowsElevation));
+            return HoldSync(window, View([], dispatcher: name));
 
         var clientMode = target.Client;
         if (FullscreenCommands.StateClientGiven(arguments))
@@ -66,7 +66,7 @@ public sealed partial class Core
                 clientMode = FullscreenMode.Maximized;
         }
 
-        return HoldSync(window, CommitFullscreen(window, target.Internal, clientMode, name, allowsElevation, synced: false, FullscreenCommands.StateLayoutAware(arguments)));
+        return HoldSync(window, CommitFullscreen(window, target.Internal, clientMode, name, synced: false, FullscreenCommands.StateLayoutAware(arguments)));
     }
 
     // sync_fullscreen is true unless a rule or setprop says otherwise. The default is true.
@@ -104,23 +104,23 @@ public sealed partial class Core
         return null;
     }
 
-    private Outcome CommitFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, string? dispatcher, bool allowsElevation, bool synced, bool layoutAware = true)
+    private Outcome CommitFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, string? dispatcher, bool synced, bool layoutAware = true)
     {
         var desk = WorkspaceContaining(window);
         if (desk is null || desk.ClientOf(window) is not Client client)
-            return MissingWindow(dispatcher, allowsElevation);
+            return MissingWindow(dispatcher);
 
         if (!PinFullscreen(window, client.Fullscreen, ref mode, synced))
-            return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
+            return View([], dispatcher: dispatcher);
 
         var covered = desk.Covered();
         var placements = Restamp(desk, desk.Layout.SetFullscreen(window, mode, clientMode, layoutAware));
         if (mode != FullscreenMode.Fullscreen)
             _restoreClientMaximized.Remove(window);
         if (!IsShown(desk.Id))
-            return View([], dispatcher: dispatcher, allowsElevation: allowsElevation);
+            return View([], dispatcher: dispatcher);
 
-        return Present(desk, covered, placements, dispatcher: dispatcher, allowsElevation: allowsElevation);
+        return Present(desk, covered, placements, dispatcher: dispatcher);
     }
 
     // binds:allow_pin_fullscreen. With it on, a pinned Client that goes fullscreen or
@@ -261,8 +261,8 @@ public sealed partial class Core
         return null;
     }
 
-    private Outcome MissingWindow(string? dispatcher, bool allowsElevation) =>
-        View([], dispatcher: dispatcher, allowsElevation: allowsElevation) with { Error = "error: window not found" };
+    private Outcome MissingWindow(string? dispatcher) =>
+        View([], dispatcher: dispatcher) with { Error = "error: window not found" };
 
     private Rectangle CoveringBounds(LiveWorkspace desk)
     {
