@@ -198,3 +198,12 @@ LoadCursor
 SYSTEM_CURSOR_ID
 GdiFlush
 EVENT_OBJECT_REORDER
+Shell_NotifyIcon
+CreatePopupMenu
+AppendMenu
+TrackPopupMenuEx
+DestroyMenu
+CreateIconIndirect
+DestroyIcon
+CreateBitmap
+ChangeWindowMessageFilterEx

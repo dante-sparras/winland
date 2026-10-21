@@ -500,6 +500,14 @@ With no window, `clients` replies `no open windows` and `activewindow` replies `
 
 Winland's Workspaces are not Windows virtual desktops. A shown Client that a virtual desktop switch cloaks stops being a Client, and it is adopted again when it is uncloaked. A Client Winland has hidden stays a Client on its Workspace while it is cloaked, so it comes back when its Workspace is shown.
 
+## Notification area
+
+Winland shows an icon in the notification area with the number of the Workspace the focused Monitor is showing. Switching Workspace changes that number. A named Workspace has no number, so the icon shows its name. A special workspace has no number either, and the icon keeps the number of the Workspace underneath. The tooltip names the Workspace. `general:tray_icon` defaults to true. False removes the icon, and a reload or `keyword` applies the change at once.
+
+A click or a right-click on the icon opens its menu: Reload, Edit config, Open log and Quit. Reload reads the config again, as `winlandctl reload` does. Edit config opens the config Winland is reading in the program Windows opens that file's type with, or in Notepad when the type has none. For `winland.conf` that program is the editor for `.conf`. Open log opens `winland.log` beside the state file the same way. Quit runs `exit`, which stops Winland and puts its windows back.
+
+The icon comes back when Explorer starts again. Winland runs elevated and Explorer does not, so the icon's callback and the `TaskbarCreated` message are let through the window's message filter. Without that, Windows drops them and the icon never answers a click or a restart of Explorer.
+
 ## Daemon
 
 One Daemon runs per session. A second `winland` started in the same session prints "Winland is already running in this session." and exits with code 1. A Daemon started with a different `WINLAND_PIPE` counts as a separate instance.

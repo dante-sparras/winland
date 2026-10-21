@@ -9,6 +9,9 @@ public sealed record SessionOptions
     /// <summary><c>general:modal_parent_blocking</c>: a window shadowed by a modal takes no focus.</summary>
     public bool ModalParentBlocking { get; init; } = true;
 
+    /// <summary><c>general:tray_icon</c>: the notification area shows the focused Workspace's number.</summary>
+    public bool ShowTray { get; init; } = true;
+
     public bool CloseSpecialOnEmpty { get; init; } = true;
 
     public bool HideSpecialOnWorkspaceChange { get; init; }
@@ -68,6 +71,7 @@ public sealed record SessionOptions
     private static readonly Dictionary<string, Func<SessionOptions, string, SessionOptions>> Appliers = new(StringComparer.Ordinal)
     {
         ["general:modal_parent_blocking"] = (options, value) => TryParseBool(value, out var blocking) ? options with { ModalParentBlocking = blocking } : options,
+        [TrayIcon.Keyword] = (options, value) => TryParseBool(value, out var tray) ? options with { ShowTray = tray } : options,
         ["misc:focus_on_activate"] = (options, value) => TryParseBool(value, out var focus) ? options with { FocusOnActivate = focus } : options,
         ["misc:close_special_on_empty"] = (options, value) => TryParseBool(value, out var close) ? options with { CloseSpecialOnEmpty = close } : options,
         ["binds:hide_special_on_workspace_change"] = (options, value) => TryParseBool(value, out var hide) ? options with { HideSpecialOnWorkspaceChange = hide } : options,

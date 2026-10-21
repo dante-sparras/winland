@@ -26,6 +26,7 @@ internal static partial class OptionCatalog
         Bool("general:snap:respect_gaps", "if true, snapping will respect gaps between windows", false),
         Bool("general:modal_parent_blocking", "if true, parent windows of modals will not be interactive.", true),
         Bool("general:hide_taskbar", "hide the taskbar and set it to auto-hide, so windows tile into the space it reserved", false),
+        Bool("general:tray_icon", "show the focused workspace's number in the notification area", true),
         Int("decoration:rounding", "rounded corners' radius (in layout px)", 0, min: 0, max: 100),
         Float("decoration:rounding_power", "rounding power of corners (2 is a circle)", 2f, min: 1f, max: 10f),
         Float("decoration:active_opacity", "opacity of active windows.", 1f, min: 0f, max: 1f),

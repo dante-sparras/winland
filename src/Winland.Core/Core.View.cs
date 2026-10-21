@@ -74,7 +74,11 @@ public sealed partial class Core
                 ResetDecorations = reset,
             },
             before);
-        return outcome with { Vrr = VrrNow(outcome.State) };
+        return outcome with
+        {
+            Vrr = VrrNow(outcome.State),
+            Tray = TrayIcon.For(_session.ShowTray, outcome.State.ActiveWorkspace),
+        };
     }
 
     // A hidden Group member takes the frame of the shown member whenever that one is placed, as in the pinned

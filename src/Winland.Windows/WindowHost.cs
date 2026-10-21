@@ -72,6 +72,9 @@ public sealed class WindowHost : IDisposable
     /// <summary>Runs on the message-loop thread when the session really ends (WM_ENDSESSION with wParam TRUE).</summary>
     public Action? SessionEnding { get; set; }
 
+    /// <summary>Runs on the message-loop thread when a command is chosen from the notification-area menu.</summary>
+    public Action<TrayCommand>? OnTray { get; set; }
+
     /// <summary>
     /// Runs <paramref name="action"/> on the message-loop thread and waits for it, or here when the loop does not
     /// answer. Windows ends a process five seconds after its console is closed, so an action the loop took is
@@ -172,6 +175,18 @@ public sealed class WindowHost : IDisposable
         var thread = PInvoke.GetCurrentThreadId();
         SessionHalt.Stop = () => _ = PInvoke.PostThreadMessage(thread, QuitMessage, default, default);
         _loop.Attach(thread);
+        // Armed only once the loop can take a click. Applying an outcome from a test must not add an icon.
+        TrayHost.Start(command => _loop.Post(() =>
+        {
+            try
+            {
+                OnTray?.Invoke(command);
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                Console.Error.WriteLine(exception.Message);
+            }
+        }));
         try
         {
             Start();

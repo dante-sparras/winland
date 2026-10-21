@@ -221,6 +221,10 @@ internal static partial class OptionCatalog
                 kind = "bool";
                 token = Bool(session.HideTaskbar);
                 return true;
+            case "general:tray_icon":
+                kind = "bool";
+                token = Bool(session.ShowTray);
+                return true;
             case "misc:close_special_on_empty":
                 kind = "bool";
                 token = Bool(session.CloseSpecialOnEmpty);
