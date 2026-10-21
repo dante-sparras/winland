@@ -149,8 +149,7 @@ public sealed partial class WindowManager
         var other = text is "b" or "prev"
             ? (group.Current == 0 ? group.Count - 1 : group.Current - 1)
             : (group.Current + 1 >= group.Count ? 0 : group.Current + 1);
-        (group.Members[group.Current], group.Members[other]) = (group.Members[other], group.Members[group.Current]);
-        group.Current = other;
+        group.MoveShownTo(other);
         return View([], dispatcher: name);
     }
 

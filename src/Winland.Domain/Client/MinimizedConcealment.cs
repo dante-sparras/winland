@@ -1,12 +1,5 @@
 namespace Winland.Domain;
 
-internal readonly record struct MinimizedPresence(WindowId Window, bool WorkspaceShown, bool Minimized);
-
-internal readonly record struct MinimizedPlan(
-    IReadOnlyList<WindowId> Hide,
-    IReadOnlyList<WindowId> Show,
-    IReadOnlyList<WindowId> Concealed);
-
 internal static class MinimizedConcealment
 {
     internal static MinimizedPlan Plan(IReadOnlyList<MinimizedPresence> clients, IReadOnlyCollection<WindowId> concealed)

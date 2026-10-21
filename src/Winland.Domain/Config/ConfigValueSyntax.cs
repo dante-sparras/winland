@@ -3,10 +3,6 @@ using static Winland.Domain.OrdinalText;
 
 namespace Winland.Domain;
 
-public readonly record struct Vec2(double X, double Y);
-
-public readonly record struct GradientValue(BorderColor Color, double AngleDegrees, bool HasAngle, int Colors);
-
 public static class ConfigValueSyntax
 {
     public static bool TryParseBool(string text, out bool value)

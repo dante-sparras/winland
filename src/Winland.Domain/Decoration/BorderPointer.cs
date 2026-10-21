@@ -1,25 +1,5 @@
 namespace Winland.Domain;
 
-internal enum BorderSide
-{
-    None,
-    Top,
-    Bottom,
-    Left,
-    Right,
-    TopLeft,
-    TopRight,
-    BottomLeft,
-    BottomRight,
-}
-
-internal readonly record struct SnapEdges(bool Left, bool Top, bool Right, bool Bottom)
-{
-    public static SnapEdges All { get; } = new(true, true, true, true);
-
-    public static SnapEdges FromGrab(bool left, bool top) => new(left, top, !left, !top);
-}
-
 /// <summary>
 /// Hit testing and resizing from a window border. The pointer positions are supplied by the caller.
 /// </summary>

@@ -1,7 +1,5 @@
 namespace Winland.Domain;
 
-public readonly record struct WarpTo(Point Position);
-
 public static class CursorWarp
 {
     public static WarpTo? Place(int mode, bool noWarps, bool persistent, Rectangle bounds, Point? relative)

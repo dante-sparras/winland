@@ -1,0 +1,31 @@
+namespace Winland.Domain;
+
+public enum WindowRuleEffect
+{
+    Float,
+    Tile,
+    Workspace,
+    Ignore,
+    NoInitialFocus,
+    NoFocus,
+    StayFocused,
+    MinSize,
+    MaxSize,
+    NoMaxSize,
+    ScrollingWidth,
+    Opacity,
+    Opaque,
+    Fullscreen,
+    Maximize,
+    FullscreenState,
+    Pin,
+    Move,
+    Size,
+    Center,
+    Monitor,
+    NoCloseFor,
+    Group,
+    Prop,
+    Tag,
+    Content,
+}

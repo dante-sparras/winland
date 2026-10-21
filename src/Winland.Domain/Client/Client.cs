@@ -1,7 +1,5 @@
 namespace Winland.Domain;
 
-public readonly record struct ClientId(long Value);
-
 public sealed record Client(
     ClientId Id,
     WindowId Window,
@@ -23,5 +21,3 @@ public sealed record Client(
     bool LayoutFullscreen = false,
     bool AllowedOverFullscreen = true,
     bool BelowFullscreen = false);
-
-public readonly record struct Placement(ClientId Client, Rectangle Bounds);

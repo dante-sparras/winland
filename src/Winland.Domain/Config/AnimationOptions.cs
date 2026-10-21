@@ -1,11 +1,5 @@
 namespace Winland.Domain;
 
-/// <summary>How long one animation runs and how it eases.</summary>
-public readonly record struct Timing(Easing Curve, double Milliseconds);
-
-/// <summary>The values one node of the animation tree resolves to, after inheritance.</summary>
-public sealed record AnimationLeaf(bool Enabled, double Speed, string Curve, string Style);
-
 /// <summary>
 /// <c>animations:enabled</c>, <c>animations:workspace_wraparound</c>, the named <c>bezier</c> curves
 /// and the <c>animation</c> tree, read in config order.

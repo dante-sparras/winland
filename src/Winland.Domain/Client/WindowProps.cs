@@ -2,37 +2,6 @@ using System.Globalization;
 
 namespace Winland.Domain;
 
-/// <summary>How a window property's value is read, written and shown.</summary>
-internal enum PropKind
-{
-    Bool,
-    Int,
-    Float,
-    Text,
-    Size,
-    Alpha,
-    AlphaOverride,
-    Color,
-}
-
-/// <summary>A min_size or max_size: a width and height in pixels, either of them infinite.</summary>
-internal readonly record struct PropSize(double Width, double Height)
-{
-    public static PropSize Unbounded { get; } = new(double.PositiveInfinity, double.PositiveInfinity);
-
-    /// <summary>The size as a Layout limit. An infinite or out of range side is no limit.</summary>
-    public Size? ToLimit() =>
-        double.IsFinite(Width) && double.IsFinite(Height) && Width is >= 0 and <= int.MaxValue && Height is >= 0 and <= int.MaxValue
-            ? new Size((int)Math.Round(Width), (int)Math.Round(Height))
-            : null;
-}
-
-/// <summary>One opacity fraction and whether it replaces the configured one, as a window's opacity props hold it.</summary>
-internal readonly record struct PropAlpha(float Value, bool Overridden)
-{
-    public static PropAlpha Identity { get; } = new(1f, false);
-}
-
 /// <summary>
 /// The window properties of Winland's <c>getprop</c> and <c>setprop</c>: their kinds, and how a value is
 /// read from text and shown. A property's value comes from <c>setprop</c>, then the window rules, then the config.

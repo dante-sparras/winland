@@ -1,14 +1,5 @@
 namespace Winland.Domain;
 
-/// <summary>Corners cut from the window: a radius in physical pixels and the curve of <see cref="DecorationOptions.RoundingPower"/>.</summary>
-public readonly record struct CornerRegion(int Radius, float Power);
-
-/// <summary>The DWM corner preference for one Client, and the region to cut when no preference matches the radius.</summary>
-public readonly record struct CornerChoice(CornerPreference Preference, CornerRegion? Region)
-{
-    public static CornerChoice Square { get; } = new(CornerPreference.DoNotRound, null);
-}
-
 /// <summary>
 /// Picks how one Client's corners are drawn. The radius is <c>rounding * rounding_power / 2</c>
 /// logical pixels, so a squarer curve keeps the same perceived roundness. DWM draws circular

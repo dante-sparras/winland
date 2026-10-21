@@ -106,14 +106,3 @@ public sealed record GroupBar(WindowId Shown, Rectangle Bounds, IReadOnlyList<Gr
 
     private int TabX(int index) => Style.Stacked ? 0 : index * (TabWidth + Style.GapsIn);
 }
-
-/// <summary>The colors of a tab bar gradient, as the config lists them. Two are equal when their colors are.</summary>
-public sealed record BarGradient(IReadOnlyList<BorderColor> Colors)
-{
-    public bool Equals(BarGradient? other) => other is not null && Colors.SequenceEqual(other.Colors);
-
-    public override int GetHashCode() => Colors.Count == 0 ? 0 : HashCode.Combine(Colors.Count, Colors[0]);
-}
-
-/// <summary>One member's tab. <see cref="Focused"/> marks the focused window, which the bar colors as active.</summary>
-public readonly record struct GroupTab(WindowId Window, string Title, bool Focused);

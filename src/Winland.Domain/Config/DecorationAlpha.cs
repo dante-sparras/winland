@@ -1,8 +1,5 @@
 namespace Winland.Domain;
 
-/// <summary>Which opacity applies to one Client. Fullscreen wins over active and inactive.</summary>
-public readonly record struct OpacityInput(bool Active, bool Fullscreen = false);
-
 /// <summary>
 /// Alpha for one Client. Rule and configured fractions multiply unless the rule value is overridden.
 /// The result is the window's alpha, from 0 to 255. A translucent Client shows what is behind it.

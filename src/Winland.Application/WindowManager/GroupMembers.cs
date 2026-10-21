@@ -78,7 +78,7 @@ public sealed partial class WindowManager
         {
             // the member focused most recently takes the focus, and so is shown.
             focus = RecentMember(group) ?? group.Shown;
-            if (focus != group.Shown && group.Members.IndexOf(focus.Value) is var index and >= 0)
+            if (focus != group.Shown && group.IndexOf(focus.Value) is var index and >= 0)
                 _ = desk.Show(group, index);
 
             TakeGroupFocus(desk, focus.Value);
@@ -105,7 +105,7 @@ public sealed partial class WindowManager
         if (!desk.IsWaiting(window) || desk.GroupOf(window) is not WindowGroup group)
             return null;
 
-        return ShowMember(desk, group, group.Members.IndexOf(window), name);
+        return ShowMember(desk, group, group.IndexOf(window), name);
     }
 
     /// <summary>Moves the Group of a shown member that just moved from <paramref name="source"/> to <paramref name="destination"/>.</summary>
