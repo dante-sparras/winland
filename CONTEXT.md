@@ -1,6 +1,6 @@
 # Winland
 
-Winland is the Windows 11 window manager that matches Hyprland's features and behavior.
+Winland is a keyboard-driven tiling window manager for Windows 11.
 
 ## Language
 
@@ -15,35 +15,40 @@ _Avoid_: Managed window, tile
 **Managed**:
 The state of a Window that has become a Client. A Window that no rule adopts stays unmanaged and is left alone.
 
-**Gap**:
-A Hyprland feature or behavior that Winland does not match, because Windows cannot support it or by choice. Each Gap is documented.
-_Avoid_: Limitation, TODO
-
-**Non-goal**:
-A Hyprland feature that Winland will never have because it has no Windows meaning: XWayland, DRM and GPU options, Wayland protocol options, and the other Hypr ecosystem tools.
-_Avoid_: Permanent gap
-
 **Layout**:
-The algorithm that places the Clients of a Workspace. Winland ships every Layout Hyprland has: floating, dwindle, master, monocle and scrolling.
+The algorithm that places the Clients of a Workspace. Winland ships floating, dwindle, master, monocle and scrolling.
 _Avoid_: Tiling mode, arrangement
 
 **Workspace**:
-A set of Clients that Winland shows or hides together, owned by Winland and not by Windows virtual desktops.
-_Avoid_: Virtual desktop
+A numbered set of Clients on one Monitor that Winland shows or hides together. Each Monitor has its own Workspaces 1 to 10, so Workspace 3 means the third Workspace of the focused Monitor. Owned by Winland, not by Windows virtual desktops.
+_Avoid_: Virtual desktop, named workspace
+
+**Guest**:
+A Workspace shown on a Monitor other than its own, because its own Monitor was unplugged. It is numbered after that Monitor's own Workspaces, and returns under its old number when its Monitor comes back.
+
+**Special workspace**:
+A named Workspace that belongs to no Monitor. It opens over the focused Monitor's Workspace and closes again, keeping its Clients out of sight until it is next opened.
+_Avoid_: Scratchpad
+
+**Monitor**:
+A display Windows reports, recognized by its make, model and serial. It shows one of its Workspaces at a time, and can show a Special workspace over it.
+_Avoid_: Screen, output
+
+**Group**:
+A set of Clients that share one place in a Layout and show one at a time, switched like tabs.
+_Avoid_: Tabbed container, stack
+
+**Dispatcher**:
+A named action with an argument, such as `workspace 2`, that a bind, a gesture or the IPC pipe runs.
+_Avoid_: Action
 
 **Daemon**:
-The `Winland.Daemon` process, built as `winland`. It is the one long-running, elevated process: it hosts the core, the Windows adapter, the Plugins and the IPC pipe, and a scheduled task starts it at logon.
+The `Winland.Daemon` process, built as `winland`. It is the one long-running process, elevated by default: it hosts the core, the Windows adapter and the IPC pipe, and it starts at logon.
 _Avoid_: Service
 
-**Plugin**:
-A .NET assembly loaded into the Daemon that registers Dispatchers, config keywords and event handlers. It loads only when the SHA-256 of its file is approved. Layouts from a Plugin are reserved and refused for now.
-
-**Plugin manager**:
-The `winlandctl plugin install`, `update` and `remove` commands. They clone and build a plugin repository as the normal user in a staging folder, and an elevated step behind one UAC confirmation copies each assembly into the plugin directory and approves its hash.
-_Avoid_: Package manager
-
 **IPC pipe**:
-The named pipe `winland` that the Daemon listens on. `winlandctl` and scripts send it commands and Dispatchers, and read the Event stream from it. It accepts only the current user.
+The named pipe `winland` that the Daemon listens on. `winlandctl` and scripts send it commands and Dispatchers, and read the Event stream from it. It accepts only the current user. It is the only way to extend Winland.
+_Avoid_: Plugin API
 
 **Event stream**:
 The lines the Daemon writes to a client that sends `events` on the IPC pipe, one event per line in the form `name>>data`. Window, Workspace and Monitor events, config warnings and Submap changes are reported in it.
@@ -54,10 +59,3 @@ A named set of binds that is active only while that Submap is selected. A `subma
 **Motion**:
 One window's animation toward its Layout rectangle, or out of sight before it is hidden or closed. The core plans it from the animation tree, and the adapter steps it. A Motion always ends on the newest Layout rectangle.
 _Avoid_: Tween, transition
-
-**Conformance case**:
-One case of the pinned release's integration tests, rebuilt as a core test that sends the same commands and checks the same results. It passes, or it is skipped with the reason Winland differs. `docs/conformance.md` lists every case and the score.
-_Avoid_: Parity test, ported test
-
-**Monitor**, **Dispatcher**, **Special workspace**, **Group**:
-Used with the meaning they have in Hyprland's manual, unless a Gap says otherwise.

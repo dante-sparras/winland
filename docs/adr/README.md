@@ -9,23 +9,23 @@ An ADR without a Status line is accepted and true against the code. `Status: Pro
 ## Architecture
 
 - [0001](0001-winland-runs-on-top-of-explorer-and-dwm.md): a background process on Explorer and DWM, no shell replacement, no injection.
-- [0003](0003-workspaces-are-owned-by-winland.md): Workspaces are Winland's own, not Windows virtual desktops.
-- [0004](0004-winland-runs-elevated.md): Winland always runs elevated, to control elevated windows.
+- [0003](0003-workspaces-are-owned-by-winland.md): Workspaces are Winland's own, not Windows virtual desktops, and each Monitor has its own 1 to 10. (proposed)
+- [0004](0004-winland-runs-elevated.md): Winland runs elevated by default, to control elevated windows, and can run as the normal user. (proposed)
 - [0005](0005-pure-core-and-windows-adapter.md): a pure core with no Win32, a thin Windows adapter, and `winlandctl` as its own project.
-- [0006](0006-startup-through-a-scheduled-task.md): started at logon by an elevated scheduled task, not a service or Run key.
-- [0007](0007-elevation-does-not-leak-to-launched-programs-or-ipc.md): launched programs are de-elevated, and the pipe is limited to the current user.
+- [0006](0006-startup-through-a-scheduled-task.md): `winland install` copies itself under Program Files and registers an elevated logon task; `--user` uses the Run key, unelevated. (proposed)
+- [0007](0007-elevation-does-not-leak-to-launched-programs-or-ipc.md): launched programs are always de-elevated, the pipe is limited to the current user, and the config is an ordinary user file. (proposed)
+- [0014](0014-winland-manages-windows-and-leaves-the-desktop-to-windows.md): Winland manages windows; settings, notifications, effects and the taskbar stay with Windows. (proposed)
 
-## Compatibility
+## Config and names
 
-- [0002](0002-hyprland-compatibility-without-its-name.md): Hyprland's names and semantics, Gaps documented, and "hyprland" never appears in the code.
-- [0008](0008-the-spec-is-a-pinned-hyprland-release.md): the spec is one pinned Hyprland commit, `e2d94f5` after v0.56.2.
-- [0010](0010-unsupported-keywords-warn-and-are-ignored.md): unsupported keywords warn and are ignored, and the config still loads.
-- [0013](0013-config-is-line-based-or-lua.md): `winland.lua` or `winland.conf`; Lua 5.4 in a sandbox turns `hl` calls into config lines.
+- [0002](0002-hyprland-compatibility-without-its-name.md): Winland keeps the option and Dispatcher names it started with; they are its own now. (proposed)
+- [0008](0008-the-spec-is-a-pinned-hyprland-release.md): Winland's own `docs/behavior.md` is the spec; Hyprland is its origin, not its reference. (proposed)
+- [0010](0010-unsupported-keywords-warn-and-are-ignored.md): unknown and malformed lines warn and are skipped, and the rest of the config loads. (proposed)
+- [0013](0013-config-is-line-based-or-lua.md): one line-based `winland.conf` that runs no code; a default one is written on first start. (proposed)
 
-## Plugins
+## Extending
 
-- [0011](0011-plugins-are-in-process-and-hash-approved.md): in-process .NET plugins, approved by hash, with fault containment and an exact API version.
-- [0012](0012-plugin-manager-builds-de-elevated-and-approves-through-uac.md): the plugin manager builds de-elevated and approves each change through one UAC confirmation.
+- [0011](0011-plugins-are-in-process-and-hash-approved.md): no plugins; scripts extend Winland over the IPC pipe as the normal user. (proposed)
 
 ## Reliability
 

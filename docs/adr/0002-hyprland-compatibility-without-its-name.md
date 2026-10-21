@@ -1,5 +1,7 @@
-# Winland matches Hyprland's names and semantics, and its code never says Hyprland
+# Winland keeps the names it started with
 
-Winland's config syntax, option names, dispatchers and concepts match Hyprland's, so its manual is the spec. Anything that cannot match is a Gap, documented as such. The product is Winland, so no source file, identifier, file name or user-visible string contains "hyprland". The config file is `winland.conf`, and the control tool is `winlandctl`.
+Status: Proposed (issue to be filed)
 
-Hyprland's manual covers Wayland-only options and shell commands that have no Windows meaning. Each such keyword is ignored, warned about or rejected on a per-keyword basis, and recorded as a Gap.
+Winland's config syntax, option names and Dispatcher names are the ones it took from Hyprland when it began: `bind = SUPER, Q, killactive`, `general:gaps_in`, `windowrulev2`, `togglespecialworkspace`. They are Winland's names now, documented in `docs/behavior.md`, and they change only when a change to Winland gives a reason. An option or Dispatcher of a removed feature goes with it.
+
+Renaming about seventy Dispatchers and three hundred options would cost every user and test a rewrite, and gain a new user nothing, since they learn the names from the default config either way. Someone who knows Hyprland finds the names they know. Hyprland is credited as Winland's origin in the README, and the code has no rule about naming it, because it has nothing left to refer to.
