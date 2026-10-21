@@ -14,9 +14,9 @@ public class AppInstallTests
 
     private const string UserPrograms = @"C:\Users\me\AppData\Roaming\Microsoft\Windows\Start Menu\Programs";
 
-    private const string Config = @"C:\Users\me\AppData\Roaming\winland";
+    private static readonly string Config = InstallLocations.Config(@"C:\Users\me");
 
-    private const string State = @"C:\Users\me\AppData\Local\Winland";
+    private static readonly string State = InstallLocations.State(@"C:\Users\me");
 
     private readonly MemoryFileTree files = new();
     private readonly MemoryTaskCatalog tasks = new();
@@ -221,6 +221,8 @@ public class AppInstallTests
         install.Uninstall(purge: true, machine: false);
 
         Assert.False(files.DirectoryExists(User));
+        Assert.False(files.DirectoryExists(Config));
+        Assert.False(files.DirectoryExists(State));
         Assert.False(files.Exists(Path.Combine(Config, "winland.conf")));
         Assert.False(files.Exists(Path.Combine(State, "state.json")));
         Assert.False(files.Exists(Path.Combine(State, "winland.log")));

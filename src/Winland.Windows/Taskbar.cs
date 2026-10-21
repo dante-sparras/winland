@@ -149,8 +149,12 @@ internal static class Taskbar
         }
     }
 
+    // The same %USERPROFILE%\.winland folder as the config and the state file.
+    internal static string MarkerFile(string userProfile) =>
+        Path.Combine(userProfile, ".winland", "taskbar.marker");
+
     private static string MarkerPath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Winland", "taskbar.marker");
+        MarkerFile(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 
     private static void WriteMarker(int state)
     {

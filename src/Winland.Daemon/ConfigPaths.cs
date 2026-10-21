@@ -1,14 +1,16 @@
+using Winland.Install;
+
 namespace Winland;
 
 /// <summary>Where the config is, and which files a change to it can come from.</summary>
 static class ConfigPaths
 {
     /// <summary>
-    /// The config Winland reads when it is started without <c>--config</c>: <c>winland.conf</c> in the winland folder
-    /// of application data.
+    /// The config Winland reads when it is started without <c>--config</c>: <c>winland.conf</c> in
+    /// <c>.winland</c> under the user profile.
     /// </summary>
-    public static string Default(string applicationData) =>
-        Path.Combine(applicationData, "winland", "winland.conf");
+    public static string Default(string userProfile) =>
+        Path.Combine(InstallLocations.Config(userProfile), "winland.conf");
 
     /// <summary>
     /// The config and every source it names, as full paths. A relative source is relative to the

@@ -94,8 +94,8 @@ static AppInstall Maintenance() => new(
         InstallLocations.User(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)),
         Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms),
         Environment.GetFolderPath(Environment.SpecialFolder.Programs),
-        InstallLocations.Config(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)),
-        InstallLocations.State(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData))),
+        InstallLocations.Config(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
+        InstallLocations.State(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))),
     new SchtasksCatalog(),
     new WindowsInstallFiles(),
     new WindowsInstallRegistry(),
@@ -150,7 +150,7 @@ static int Run(string? path, RollingLogWriter log)
     if (path is not null && !path.EndsWith(".conf", StringComparison.OrdinalIgnoreCase))
         throw new InvalidOperationException($"--config takes a .conf file, not '{path}'.");
 
-    var configPath = path ?? ConfigPaths.Default(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
+    var configPath = path ?? ConfigPaths.Default(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
     // The default is written only when Winland was not given --config and the file is not there yet.
     if (path is null && !File.Exists(configPath) && DefaultConfig.WriteIfMissing(configPath))
         Console.Error.WriteLine($"Wrote the default config to {configPath}.");
@@ -317,8 +317,7 @@ static void Salvage(WindowHost host)
 static RecoveryStore StateStore()
 {
     var standard = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Winland",
+        InstallLocations.State(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
         "state.json");
     var variable = Environment.GetEnvironmentVariable(StateLocation.Variable);
     if (!Elevation.IsElevated())

@@ -22,15 +22,18 @@ public static class InstallLocations
 
     public const string PathValue = "Path";
 
+    /// <summary>The per-user folder under the profile that holds the config, the log, the state and the taskbar marker.</summary>
+    public const string HomeFolder = ".winland";
+
     public static string Machine(string programFiles) => Path.Combine(programFiles, FolderName);
 
     public static string User(string localAppData) => Path.Combine(localAppData, "Programs", FolderName);
 
-    /// <summary>The config directory <c>winland uninstall</c> keeps, and <c>--purge</c> removes.</summary>
-    public static string Config(string applicationData) => Path.Combine(applicationData, "winland");
+    /// <summary>The config directory <c>winland uninstall</c> keeps, and <c>--purge</c> removes. It is <c>%USERPROFILE%\.winland</c>.</summary>
+    public static string Config(string userProfile) => Path.Combine(userProfile, HomeFolder);
 
-    /// <summary>The state and log directory under <c>%LOCALAPPDATA%\Winland</c>.</summary>
-    public static string State(string localAppData) => Path.Combine(localAppData, FolderName);
+    /// <summary>The state, log and taskbar marker directory. It is the same folder as <see cref="Config"/>.</summary>
+    public static string State(string userProfile) => Config(userProfile);
 
     public static string Executable(string directory) => Path.Combine(directory, "winland.exe");
 

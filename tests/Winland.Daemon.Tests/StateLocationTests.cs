@@ -5,7 +5,7 @@ namespace Winland.Daemon.Tests;
 public class StateLocationTests
 {
     private const string User = "S-1-5-21-9";
-    private const string Standard = @"C:\Users\me\AppData\Local\Winland\state.json";
+    private const string Standard = @"C:\Users\me\.winland\state.json";
 
     [Fact]
     public void WithoutElevationTheVariableIsFollowedWithoutAsking()
@@ -46,8 +46,8 @@ public class StateLocationTests
             AdministratorOnly.AdministratorsSid,
             [new PrincipalAccess(User, CanWrite: true, AppliesToTarget: true, CanRemove: true)]);
 
-        Assert.Null(StateLocation.Refusal(@"C:\Users\me\AppData\Local\Winland", owned, User));
-        Assert.Null(StateLocation.Refusal(@"C:\Users\me\AppData\Local\Winland", granted, User));
+        Assert.Null(StateLocation.Refusal(@"C:\Users\me\.winland", owned, User));
+        Assert.Null(StateLocation.Refusal(@"C:\Users\me\.winland", granted, User));
     }
 
     // Writing there as an administrator would replace and then delete a file the user could not touch.

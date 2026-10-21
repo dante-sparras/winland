@@ -2,7 +2,7 @@
 #   pwsh -NoProfile -File scripts/run.ps1                 build, stop the running winland, start the new build
 #   pwsh -NoProfile -File scripts/run.ps1 -Elevated       start it with administrator rights, which asks for one UAC approval
 #   pwsh -NoProfile -File scripts/run.ps1 -Stop           stop the running winland and start nothing
-#   pwsh -NoProfile -File scripts/run.ps1 -Config <file>  read this .conf file instead of the one in %APPDATA%\winland
+#   pwsh -NoProfile -File scripts/run.ps1 -Config <file>  read this .conf file instead of the one in %USERPROFILE%\.winland
 #
 # Without -Elevated the build starts as the normal user and no prompt appears, so it can place no window of an
 # elevated program. A build is published to a folder of its own first, so a build that fails leaves the running
