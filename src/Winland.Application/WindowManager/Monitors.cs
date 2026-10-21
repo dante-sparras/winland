@@ -2,21 +2,10 @@ namespace Winland.Application;
 
 public sealed partial class WindowManager
 {
-    private BindOptions _bindOptions = BindOptions.Documented;
-
     // Where a switch to a Workspace on another Monitor puts the cursor when no cursor option warps it elsewhere.
     private WarpTo? _crossMonitorWarp;
 
-    // binds:pass_mouse_when_bound. The hook thread reads it outside the lock.
-    private volatile bool _passMouseWhenBound;
-
-    private void ReadBinds(ConfigDocument document)
-    {
-        _bindOptions = BindOptions.From(document);
-        _passMouseWhenBound = _bindOptions.PassMouseWhenBound;
-    }
-
-    private void RankFocus(Layout layout) => layout.RankFocus(_bindOptions.FocusPreferredMethod == 0 ? Recency : null);
+    private void RankFocus(Layout layout) => layout.RankFocus(_config.BindOptions.FocusPreferredMethod == 0 ? Recency : null);
 
     // How recently a window was focused: the newest is highest. One never focused is 0, below every focused one,
     // as Winland puts a window that opens at the old end of its history.
@@ -39,7 +28,7 @@ public sealed partial class WindowManager
             return cycled;
 
         if (active is WindowId fullscreen
-            && _session.MoveFocusCyclesFullscreen
+            && _config.Session.MoveFocusCyclesFullscreen
             && desk.ClientOf(fullscreen) is { Fullscreen: not FullscreenMode.None, LayoutFullscreen: false })
         {
             var previous = direction is MonitorDirection.Left or MonitorDirection.Up;
@@ -66,7 +55,7 @@ public sealed partial class WindowManager
             }
         }
 
-        if (!_bindOptions.MonitorFallback || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from)
+        if (!_config.BindOptions.MonitorFallback || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from)
             return NothingToFocus(name, direction);
 
         if (MonitorSelector.InDirection(Targets(), from, direction) is not MonitorTarget neighbor
@@ -82,7 +71,7 @@ public sealed partial class WindowManager
 
     // general:no_focus_fallback makes a movefocus that finds nothing answer an error.
     private Outcome NothingToFocus(string name, MonitorDirection direction) =>
-        _session.NoFocusFallback
+        _config.Session.NoFocusFallback
             ? Rejected(name, "error: Nothing to focus to in direction " + direction.ToString().ToLowerInvariant())
             : View([], dispatcher: name);
 
@@ -93,7 +82,7 @@ public sealed partial class WindowManager
             if (!desk.IsCovering(client))
                 continue;
 
-            if (!client.LayoutFullscreen || !_session.MoveFocusCyclesFullscreen || _session.OnFocusUnderFullscreen == 0)
+            if (!client.LayoutFullscreen || !_config.Session.MoveFocusCyclesFullscreen || _config.Session.OnFocusUnderFullscreen == 0)
                 return true;
         }
 
@@ -161,7 +150,7 @@ public sealed partial class WindowManager
         // A direction onto the neighbouring Monitor follows only for the focused window. Another window is assigned
         // there and the focus stays.
         var stay = !DirectionFollows();
-        if (_bindOptions.MonitorFallback
+        if (_config.BindOptions.MonitorFallback
             && MonitorHolding(desk) is LiveMonitor origin
             && desk.Layout.TryBounds(window, out var box))
         {
@@ -180,7 +169,7 @@ public sealed partial class WindowManager
             held = slot;
 
         var placements = desk.Layout.MoveWindow(window, arguments);
-        if (_bindOptions.MonitorFallback
+        if (_config.BindOptions.MonitorFallback
             && placements.Count == 0
             && desk.Layout.FollowsMonitorWhenUnmoved
             && MonitorHolding(desk) is LiveMonitor home

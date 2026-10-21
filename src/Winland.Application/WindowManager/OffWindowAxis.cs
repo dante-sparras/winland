@@ -20,7 +20,7 @@ public sealed partial class WindowManager
     /// <c>input:off_window_axis_events</c>: 0 drops a wheel turn over the ring around a window, 1 and 2 send it to the
     /// window at the nearest point inside it, and 3 also moves the cursor there. The mouse hook reads it with no lock.
     /// </summary>
-    public int OffWindowAxisMode => _input.OffWindowAxisEvents;
+    public int OffWindowAxisMode => _config.Input.OffWindowAxisEvents;
 
     /// <summary>
     /// The window a wheel turn at <paramref name="pointer"/> is meant for when the pointer is not inside it but within

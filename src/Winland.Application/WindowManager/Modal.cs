@@ -14,7 +14,7 @@ public sealed partial class WindowManager
     private bool IsModal(WindowId window) => _owners.TryGetValue(window, out var owner) && _disabled.Contains(owner);
 
     // A window shadowed by a modal takes no focus with general:modal_parent_blocking.
-    private bool BlockedByModal(WindowId window) => _session.ModalParentBlocking && ShadowedByModal(window);
+    private bool BlockedByModal(WindowId window) => _config.Session.ModalParentBlocking && ShadowedByModal(window);
 
     private void NoteOwner(WindowAppeared appeared)
     {

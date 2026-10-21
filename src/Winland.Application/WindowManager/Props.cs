@@ -89,9 +89,9 @@ public sealed partial class WindowManager
         "active_border_color" => BorderOf(window, active: true, honorProps: false),
         "inactive_border_color" => BorderOf(window, active: false, honorProps: false),
         "decorate" or "sync_fullscreen" => true,
-        "border_size" => (long)_options.BorderSize,
-        "rounding" => (long)_decoration.Rounding,
-        "rounding_power" => _decoration.RoundingPower,
+        "border_size" => (long)_config.Layout.BorderSize,
+        "rounding" => (long)_config.Decoration.Rounding,
+        "rounding_power" => _config.Decoration.RoundingPower,
         "scroll_mouse" => 1f,
         "scroll_touchpad" => 1f,
         _ when kind == PropKind.Bool => false,
@@ -231,7 +231,7 @@ public sealed partial class WindowManager
 
         var rule = EffectiveSizes(window, sizes.Rule);
         var floating = rule.Floating(sizes.OwnMin, sizes.OwnMax);
-        return desk.Layout.UpdateLimits(window, floating.Min, floating.Max, rule.Tiled(sizes.OwnMin, sizes.OwnMax, _session.SizeLimitsTiled));
+        return desk.Layout.UpdateLimits(window, floating.Min, floating.Max, rule.Tiled(sizes.OwnMin, sizes.OwnMax, _config.Session.SizeLimitsTiled));
     }
 
     // The opacity a window's props ask for: setprop's fractions over the opacity rule's.

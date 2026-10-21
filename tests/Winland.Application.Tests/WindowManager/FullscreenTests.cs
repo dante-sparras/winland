@@ -178,6 +178,9 @@ public class FullscreenTests
     public void RulesRequestFullscreenAndMaximize()
     {
         var core = new WindowManager(ConfigParser.Parse("""
+            general:gaps_in = 0
+            general:gaps_out = 0
+            general:border_size = 0
             windowrulev2 = fullscreen, class:^(game)$
             windowrulev2 = maximize, class:^(edit)$
             windowrulev2 = fullscreen_state 2 0, class:^(browser)$

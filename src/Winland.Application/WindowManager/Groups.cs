@@ -5,7 +5,6 @@ namespace Winland.Application;
 public sealed partial class WindowManager
 {
     private readonly Dictionary<WindowId, GroupRuleFlags> _groupRules = [];
-    private GroupOptions _groupOptions = GroupOptions.Documented;
     private bool _groupsLocked;
 
     private Outcome? GroupDispatch(string name, string arguments)
@@ -100,7 +99,7 @@ public sealed partial class WindowManager
     // only from a shown member that had it, as Winland's moveCurrent does.
     private Outcome ScrollGroupBar(GroupBarScrolled scrolled)
     {
-        if (!_groupOptions.Bar.Scrolling || WorkspaceContaining(scrolled.Shown) is not LiveWorkspace desk
+        if (!_config.Groups.Bar.Scrolling || WorkspaceContaining(scrolled.Shown) is not LiveWorkspace desk
             || desk.GroupOf(scrolled.Shown) is not WindowGroup group || group.Count < 2)
         {
             return View([]);
@@ -202,7 +201,7 @@ public sealed partial class WindowManager
         if (!TryGroupDirection(text, out var direction))
             return Rejected(name, "error: unsupported direction: " + (text.Length == 0 ? "" : text[..1]));
 
-        if (!_groupOptions.IgnoreGroupLock && _groupsLocked)
+        if (!_config.Groups.IgnoreGroupLock && _groupsLocked)
             return View([], dispatcher: name);
 
         if (ActiveWindow() is not WindowId id || WorkspaceContaining(id) is not LiveWorkspace desk)
@@ -228,7 +227,7 @@ public sealed partial class WindowManager
             target = StartGroup(desk, neighbor);
         }
 
-        if (!_groupOptions.IgnoreGroupLock && (target.Locked || desk.GroupOf(id)?.Locked == true))
+        if (!_config.Groups.IgnoreGroupLock && (target.Locked || desk.GroupOf(id)?.Locked == true))
             return Present(desk, covered, desk.Layout.Visible(), dispatcher: name);
 
         return IntoGroup(desk, covered, id, target, name);
@@ -242,7 +241,7 @@ public sealed partial class WindowManager
         if (!TakeForGroup(desk, window, out var taken))
             return View([], dispatcher: name);
 
-        var position = _groupOptions.InsertAfterCurrent ? target.Current + 1 : target.Count;
+        var position = _config.Groups.InsertAfterCurrent ? target.Current + 1 : target.Count;
         desk.Join(target, window, taken, position);
         desk.Show(target, position);
         TakeGroupFocus(desk, window);
@@ -252,7 +251,7 @@ public sealed partial class WindowManager
 
     private (WindowId Window, LiveWorkspace Desk)? NeighborAcross(LiveWorkspace desk, WindowId window, string direction)
     {
-        if (!_bindOptions.MonitorFallback || !MonitorSelector.TryDirection(direction, out var side)
+        if (!_config.BindOptions.MonitorFallback || !MonitorSelector.TryDirection(direction, out var side)
             || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from
             || MonitorSelector.InDirection(Targets(), from, side) is not MonitorTarget neighbor
             || MonitorOf(neighbor) is not LiveMonitor screen || screen.Active is not WorkspaceId shown
@@ -276,14 +275,14 @@ public sealed partial class WindowManager
             target = StartGroup(there, neighbor);
         }
 
-        if (target.Denied || (!_groupOptions.IgnoreGroupLock && (target.Locked || desk.GroupOf(window)?.Locked == true)))
+        if (target.Denied || (!_config.Groups.IgnoreGroupLock && (target.Locked || desk.GroupOf(window)?.Locked == true)))
             return View([], dispatcher: name);
 
         var covered = there.Covered();
         if (!TakeForGroup(desk, window, out var taken))
             return View([], dispatcher: name);
 
-        var position = _groupOptions.InsertAfterCurrent ? target.Current + 1 : target.Count;
+        var position = _config.Groups.InsertAfterCurrent ? target.Current + 1 : target.Count;
         there.Join(target, window, taken, position);
         there.Show(target, position);
         Restamp(desk, []);
@@ -316,7 +315,7 @@ public sealed partial class WindowManager
 
     private Outcome MoveOutOfGroup(string text, string name)
     {
-        if (!_groupOptions.IgnoreGroupLock && _groupsLocked)
+        if (!_config.Groups.IgnoreGroupLock && _groupsLocked)
             return Rejected(name, "error: groups locked");
 
         var window = text != "active" && text.Length > 1 ? Select(text, emptyMeansActive: false) : ActiveWindow();
@@ -341,7 +340,7 @@ public sealed partial class WindowManager
             desk.Receive(window, taken, WorkArea(desk, _area));
         }
 
-        var focus = _groupOptions.FocusRemovedWindow || exit != GroupExit.Detached ? window : group.Shown;
+        var focus = _config.Groups.FocusRemovedWindow || exit != GroupExit.Detached ? window : group.Shown;
         TakeGroupFocus(desk, focus);
         (_extraEvents ??= []).Add(new ClientOutOfGroup(window));
         return IsShown(desk.Id)
@@ -360,7 +359,7 @@ public sealed partial class WindowManager
         if (client.Fullscreen != FullscreenMode.None)
             return View([], dispatcher: name);
 
-        var ignore = _groupOptions.IgnoreGroupLock;
+        var ignore = _config.Groups.IgnoreGroupLock;
         if (!ignore && _groupsLocked)
             return MoveInstead(direction, name);
 
@@ -394,7 +393,7 @@ public sealed partial class WindowManager
     // binds:movefocus_cycles_groupfirst: left and right step through the Group before leaving it at either end.
     private Outcome? CycleGroupFirst(LiveWorkspace desk, WindowId active, string arguments, string name)
     {
-        if (!_groupOptions.MoveFocusCyclesGroupFirst || desk.GroupOf(active) is not WindowGroup group)
+        if (!_config.Groups.MoveFocusCyclesGroupFirst || desk.GroupOf(active) is not WindowGroup group)
             return null;
 
         var word = arguments.Trim();

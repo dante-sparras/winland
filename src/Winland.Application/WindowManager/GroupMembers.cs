@@ -15,7 +15,7 @@ public sealed partial class WindowManager
         else
             _groupRules.Remove(window);
 
-        if (_groupOptions.AutoGroup
+        if (_config.Groups.AutoGroup
             && focused is WindowId owner
             && owner != window
             && desk.GroupOf(owner) is WindowGroup group
@@ -24,7 +24,7 @@ public sealed partial class WindowManager
             && !(decision.Floating && desk.ClientOf(owner)?.Floating != true)
             && desk.Layout.TryTake(window, out var taken))
         {
-            var position = _groupOptions.InsertAfterCurrent ? group.Current + 1 : group.Count;
+            var position = _config.Groups.InsertAfterCurrent ? group.Current + 1 : group.Count;
             desk.Join(group, window, taken, position);
             desk.Show(group, position);
             return true;
@@ -121,7 +121,7 @@ public sealed partial class WindowManager
     /// </summary>
     private WindowGroup? SolitaryGroup(LiveWorkspace destination, WindowId moving)
     {
-        if (!_groupOptions.GroupOnMoveToWorkspace)
+        if (!_config.Groups.GroupOnMoveToWorkspace)
             return null;
 
         var visible = destination.VisibleWindows();
@@ -137,7 +137,7 @@ public sealed partial class WindowManager
         if (group is null || destination.GroupOf(window) is not null || !destination.Layout.TryTake(window, out var taken))
             return;
 
-        var position = _groupOptions.InsertAfterCurrent ? group.Current + 1 : group.Count;
+        var position = _config.Groups.InsertAfterCurrent ? group.Current + 1 : group.Count;
         destination.Join(group, window, taken, position);
         destination.Show(group, position);
     }

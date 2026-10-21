@@ -2,8 +2,6 @@ namespace Winland.Application;
 
 public sealed partial class WindowManager
 {
-    private CursorOptions _cursor = CursorOptions.Documented;
-    private volatile InputOptions _input = InputOptions.Documented;
     private Point? _pointer;
     private readonly Dictionary<WindowId, Point> _cursorOnWindow = [];
     private bool _defaultMonitorDone;
@@ -11,14 +9,7 @@ public sealed partial class WindowManager
     internal WarpTo? SpecialWarp(Rectangle bounds, Point? relative)
     {
         lock (_gate)
-            return CursorWarp.Place(_cursor.WarpOnSpecial, _cursor.NoWarps, _cursor.PersistentWarps, bounds, relative);
-    }
-
-    private void ReadCursor(ConfigDocument document)
-    {
-        _cursor = CursorOptions.From(document);
-        _input = InputOptions.From(document);
-        ScrollCurve = _input.ScrollCurve;
+            return CursorWarp.Place(_config.Cursor.WarpOnSpecial, _config.Cursor.NoWarps, _config.Cursor.PersistentWarps, bounds, relative);
     }
 
     private Outcome FinishCursor(Captured before, Outcome outcome, Input? input)
@@ -36,12 +27,12 @@ public sealed partial class WindowManager
         // A change that lands on another Monitor follows cursor:warp_on_monitor_change, or warp_on_change_workspace when
         // that is -1, and one on the same Monitor follows warp_on_change_workspace.
         if (warp is null && monitorChanged)
-            warp = Plan(outcome.State, _cursor.MonitorMode()) ?? EmptyMonitorMiddle(outcome);
+            warp = Plan(outcome.State, _config.Cursor.MonitorMode()) ?? EmptyMonitorMiddle(outcome);
         else if (warp is null && workspaceChanged)
-            warp = Plan(outcome.State, _cursor.WarpOnWorkspace);
+            warp = Plan(outcome.State, _config.Cursor.WarpOnWorkspace);
         if (warp is null && specialToggled)
-            warp = PlanFocused(outcome.State, _cursor.WarpOnSpecial);
-        if (warp is null && _crossMonitorWarp is WarpTo crossed && !_cursor.NoWarps)
+            warp = PlanFocused(outcome.State, _config.Cursor.WarpOnSpecial);
+        if (warp is null && _crossMonitorWarp is WarpTo crossed && !_config.Cursor.NoWarps)
         {
             warp = crossed;
             _pointer = crossed.Position;
@@ -54,7 +45,7 @@ public sealed partial class WindowManager
         return outcome with
         {
             Warp = warp,
-            Cursor = _cursor.Behavior(),
+            Cursor = _config.Cursor.Behavior(),
             ResizeCursor = _resizeCursor,
         };
     }
@@ -88,7 +79,7 @@ public sealed partial class WindowManager
 
         RememberLeaving(before);
         Point? relative = _cursorOnWindow.Remove(window, out var saved) ? saved : null;
-        var warp = CursorWarp.Place(1, _cursor.NoWarps, _cursor.PersistentWarps, target.Bounds, relative);
+        var warp = CursorWarp.Place(1, _config.Cursor.NoWarps, _config.Cursor.PersistentWarps, target.Bounds, relative);
         if (warp is WarpTo to)
             _pointer = to.Position;
 
@@ -97,7 +88,7 @@ public sealed partial class WindowManager
 
     private void RememberLeaving(Captured before)
     {
-        if (_cursor.NoWarps || _pointer is not Point pointer || before.Active is not WindowId window)
+        if (_config.Cursor.NoWarps || _pointer is not Point pointer || before.Active is not WindowId window)
             return;
 
         Client? client = null;
@@ -158,7 +149,7 @@ public sealed partial class WindowManager
         if (_cursorOnWindow.Remove(window, out var saved))
             relative = saved;
 
-        var warp = CursorWarp.Place(mode, _cursor.NoWarps, _cursor.PersistentWarps, client.Bounds, relative);
+        var warp = CursorWarp.Place(mode, _config.Cursor.NoWarps, _config.Cursor.PersistentWarps, client.Bounds, relative);
         if (warp is WarpTo to)
             _pointer = to.Position;
         return warp;
@@ -177,7 +168,7 @@ public sealed partial class WindowManager
         if (_cursorOnWindow.Remove(client.Window, out var saved))
             relative = saved;
 
-        var warp = CursorWarp.Place(mode, _cursor.NoWarps, _cursor.PersistentWarps, client.Bounds, relative);
+        var warp = CursorWarp.Place(mode, _config.Cursor.NoWarps, _config.Cursor.PersistentWarps, client.Bounds, relative);
         if (warp is WarpTo to)
             _pointer = to.Position;
         return warp;
@@ -187,7 +178,7 @@ public sealed partial class WindowManager
     // focus, as Winland does, unless cursor:no_warps is set.
     private WarpTo? EmptyMonitorMiddle(Outcome outcome)
     {
-        if (_cursor.NoWarps || outcome.Dispatcher is not ("focusmonitor" or "movefocus") || FocusedClient(outcome.State) is not null)
+        if (_config.Cursor.NoWarps || outcome.Dispatcher is not ("focusmonitor" or "movefocus") || FocusedClient(outcome.State) is not null)
             return null;
 
         foreach (var screen in outcome.State.Screens)
@@ -206,12 +197,12 @@ public sealed partial class WindowManager
 
     private WarpTo? DefaultMonitor(Outcome outcome)
     {
-        if (_defaultMonitorDone || _cursor.DefaultMonitor.Length == 0)
+        if (_defaultMonitorDone || _config.Cursor.DefaultMonitor.Length == 0)
             return null;
 
         foreach (var monitor in outcome.State.Monitors)
         {
-            if (!monitor.Enabled || !CursorWarp.Names(monitor, _cursor.DefaultMonitor))
+            if (!monitor.Enabled || !CursorWarp.Names(monitor, _config.Cursor.DefaultMonitor))
                 continue;
 
             _defaultMonitorDone = true;
