@@ -1,6 +1,6 @@
 # Winland
 
-A keyboard-driven tiling window manager for Windows 11. Winland arranges your windows side by side so they never overlap, and gives every monitor its own workspaces 1 to 10.
+A keyboard-driven tiling window manager for Windows 11.
 
 ## Install
 
@@ -79,9 +79,11 @@ Winland is now running and starts with Windows. The build is unsigned, so if Sma
 
 Alt+Tab, Win+L, Win+E, Win+Space and Win+Shift+S still do what Windows does.
 
-Every bind is in your config, `%APPDATA%\winland\winland.conf`. Winland writes it the first time it starts, with comments, and reloads it whenever you save. Right-click the tray icon to edit it or quit.
-
 Tip: turn off **Snap windows** (Settings › System › Multitasking) so Windows doesn't fight Winland over the Win+Arrow keys.
+
+## Important files
+
+`%APPDATA%\winland\winland.conf` is your config. Every hotkey above is in it, and you can change them there. Winland writes it the first time it starts, with comments, and reloads it whenever you save. Right-click the tray icon to open it.
 
 ## Uninstall
 
