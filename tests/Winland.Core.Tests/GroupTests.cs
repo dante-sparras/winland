@@ -393,18 +393,11 @@ public class GroupTests
     }
 
     [Fact]
-    public void GroupBarBlurIsOffByDefaultAndReachesTheBar()
+    public void GroupBarBlurIsAnUnsupportedKeyword()
     {
-        Assert.False(GroupBarStyle.Documented.Blur);
-
         var document = ConfigParser.Parse("group:groupbar:blur = true\n");
-        Assert.Empty(document.Warnings);
-        Assert.True(GroupOptions.From(document).Bar.Blur);
 
-        var core = Opened(auto: true, "group:groupbar:blur = true\n", First);
-        var bar = Assert.Single(core.Execute("dispatch togglegroup").Effect.GroupBars);
-        Assert.True(bar.Style.Blur);
-        Assert.False(bar.SameAs(bar with { Style = bar.Style with { Blur = false } }));
+        Assert.Equal([new ConfigWarning(1, "Unsupported keyword 'group:groupbar:blur'.")], document.Warnings);
     }
 
     [Fact]

@@ -1179,12 +1179,12 @@ public class WindowConformance
     public void WindowRuleBorderColors()
     {
         var desk = new Desk("""
-            general:col.active_border = rgba(00ff00ff) rgba(ffffffff) 45deg
-            general:col.inactive_border = rgba(ff0000ff) rgba(ffffffff) 45deg
+            general:col.active_border = rgba(00ff00ff)
+            general:col.inactive_border = rgba(ff0000ff)
             windowrulev2 = border_color rgba(ffff00ff) rgba(000000ff), class:border_color_kitty
             """);
 
-        // Both colors with no gradient.
+        // Both colors.
         desk.Spawn("border_color_kitty");
         desk.Ok("focuswindow", "class:border_color_kitty");
         Assert.Contains("ffffff00", desk.Send("getprop active active_border_color"), StringComparison.Ordinal);
@@ -1193,68 +1193,68 @@ public class WindowConformance
         CloseAll(desk);
 
         // Only the active border.
-        desk.Keyword("windowrulev2", "border_color rgba(ffff00ff) rgba(000000ff) 90deg, class:active_border_kitty, focus:1");
+        desk.Keyword("windowrulev2", "border_color rgba(ffff00ff), class:active_border_kitty, focus:1");
         desk.Spawn("active_border_kitty");
         desk.Ok("focuswindow", "class:active_border_kitty");
-        ExpectColor(desk.Send("getprop active active_border_color"), "ffffff00", "ff000000", "90deg");
+        ExpectColor(desk.Send("getprop active active_border_color"), "ffffff00");
 
         // The inactive color is the global one.
-        ExpectColor(desk.Send("getprop active inactive_border_color"), "ffff0000", "ffffffff", "45deg");
+        ExpectColor(desk.Send("getprop active inactive_border_color"), "ffff0000");
 
         CloseAll(desk);
 
-        // Only the inactive border.
-        desk.Keyword("windowrulev2", "border_color 0deg rgba(ffff00ff) rgba(000000ff) 90deg, class:inactive_border_kitty, focus:0");
+        // Only the inactive border. A focus:0 rule with one color gives it to the inactive border.
+        desk.Keyword("windowrulev2", "border_color rgba(ffff00ff), class:inactive_border_kitty, focus:0");
         desk.Spawn("inactive_border_kitty");
         desk.Spawn("dummy_kitty");
 
         // The active color is the global one.
         desk.Ok("focuswindow", "class:inactive_border_kitty");
-        ExpectColor(desk.Send("getprop active active_border_color"), "ff00ff00", "ffffffff", "45deg");
+        ExpectColor(desk.Send("getprop active active_border_color"), "ff00ff00");
 
         desk.Ok("focuswindow", "class:dummy_kitty");
-        ExpectColor(desk.Send("getprop class:inactive_border_kitty inactive_border_color"), "ffffff00", "ff000000", "90deg");
+        ExpectColor(desk.Send("getprop class:inactive_border_kitty inactive_border_color"), "ffffff00");
 
         CloseAll(desk);
 
-        // Both colors.
-        desk.Keyword("windowrulev2", "border_color rgba(ffff00ff) rgba(000000ff) 90deg rgba(0000ffff) rgba(ff0000ff) 90deg, class:border_color_kitty");
+        // Both colors, a later rule.
+        desk.Keyword("windowrulev2", "border_color rgba(ffff00ff) rgba(0000ffff), class:border_color_kitty");
         desk.Spawn("border_color_kitty");
         desk.Ok("focuswindow", "class:border_color_kitty");
-        ExpectColor(desk.Send("getprop active active_border_color"), "ffffff00", "ff000000", "90deg");
-        ExpectColor(desk.Send("getprop active inactive_border_color"), "ff0000ff", "ffff0000", "90deg");
+        ExpectColor(desk.Send("getprop active active_border_color"), "ffffff00");
+        ExpectColor(desk.Send("getprop active inactive_border_color"), "ff0000ff");
     }
 
     [Fact]
     public void WindowRuleBorderColorsFocus()
     {
         var desk = new Desk("""
-            general:col.active_border = rgba(00ff00ff) rgba(ffffffff) 45deg
-            general:col.inactive_border = rgba(ff0000ff) rgba(ffffffff) 45deg
-            windowrulev2 = border_color rgba(ff00ffff) rgba(000000ff) 90deg, class:active_border_kitty, focus:1
+            general:col.active_border = rgba(00ff00ff)
+            general:col.inactive_border = rgba(ff0000ff)
+            windowrulev2 = border_color rgba(ff00ffff), class:active_border_kitty, focus:1
             """);
 
         // Only the active border.
         desk.Spawn("active_border_kitty");
         desk.Ok("focuswindow", "class:active_border_kitty");
-        ExpectColor(desk.Send("getprop active active_border_color"), "ffff00ff", "ff000000", "90deg");
+        ExpectColor(desk.Send("getprop active active_border_color"), "ffff00ff");
 
         // The inactive color is the global one.
-        ExpectColor(desk.Send("getprop active inactive_border_color"), "ffff0000", "ffffffff", "45deg");
+        ExpectColor(desk.Send("getprop active inactive_border_color"), "ffff0000");
 
         CloseAll(desk);
 
         // Only the inactive border.
-        desk.Keyword("windowrulev2", "border_color rgba(ffff00ff) rgba(000000ff) 90deg, class:inactive_border_kitty, focus:0");
+        desk.Keyword("windowrulev2", "border_color rgba(ffff00ff), class:inactive_border_kitty, focus:0");
         desk.Spawn("inactive_border_kitty");
         desk.Spawn("dummy_kitty");
 
         // The active color is the global one.
         desk.Ok("focuswindow", "class:inactive_border_kitty");
-        ExpectColor(desk.Send("getprop active active_border_color"), "ff00ff00", "ffffffff", "45deg");
+        ExpectColor(desk.Send("getprop active active_border_color"), "ff00ff00");
 
         desk.Ok("focuswindow", "class:dummy_kitty");
-        ExpectColor(desk.Send("getprop class:inactive_border_kitty inactive_border_color"), "ffffff00", "ff000000", "90deg");
+        ExpectColor(desk.Send("getprop class:inactive_border_kitty inactive_border_color"), "ffffff00");
 
         CloseAll(desk);
     }

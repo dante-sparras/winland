@@ -44,7 +44,6 @@ public class WorkspaceRuleTests
         var rule = Assert.Single(document.WorkspaceRules);
         Assert.Equal("pop", rule.Animation);
         Assert.Equal("DP-1", rule.Monitor);
-        Assert.True(rule.Shadow);
         Assert.Equal("left", Assert.Contains("force_split", rule.LayoutOpts));
         Assert.Equal("1", Assert.Contains("precise_mouse_move", rule.LayoutOpts));
         Assert.Equal("true", Assert.Contains("smart_resizing", rule.LayoutOpts));

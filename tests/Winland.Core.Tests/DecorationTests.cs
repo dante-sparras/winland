@@ -15,16 +15,17 @@ public class DecorationTests
     [InlineData("RGBA(33CCFFEE)", 0x33, 0xCC, 0xFF, 0xEE, false)]
     [InlineData("0xee33ccff", 0x33, 0xCC, 0xFF, 0xEE, false)]
     [InlineData("rgb(112233)", 0x11, 0x22, 0x33, 0xFF, false)]
-    [InlineData("rgba(33ccffee) rgba(00ff99ee) 45deg", 0x33, 0xCC, 0xFF, 0xEE, true)]
-    [InlineData("rgba(ff00ffff) 90deg", 0xFF, 0x00, 0xFF, 0xFF, true)]
     public void OneBorderColorIsParsed(string text, byte r, byte g, byte b, byte a, bool gradient)
     {
-        Assert.True(BorderColor.TryParse(text, out var color, out var parsedGradient));
-        Assert.Equal(new BorderColor(a, r, g, b), color);
+        Assert.Equal(!gradient, BorderColor.TryParse(text, out var color, out var parsedGradient));
         Assert.Equal(gradient, parsedGradient);
+        if (!gradient)
+            Assert.Equal(new BorderColor(a, r, g, b), color);
     }
 
     [Theory]
+    [InlineData("rgba(33ccffee) rgba(00ff99ee) 45deg")]
+    [InlineData("rgba(ff00ffff) 90deg")]
     [InlineData("")]
     [InlineData("nope")]
     [InlineData("rgba(123)")]
@@ -45,18 +46,13 @@ public class DecorationTests
         Assert.Equal(0, options.Rounding);
         Assert.Equal(2f, options.RoundingPower);
         Assert.True(options.Blur);
-        Assert.True(options.Shadow);
         Assert.Equal(1f, options.ActiveOpacity);
         Assert.Equal(1f, options.InactiveOpacity);
         Assert.Equal(1f, options.FullscreenOpacity);
-        Assert.False(options.DimInactive);
-        Assert.Equal(0.5f, options.DimStrength);
-        Assert.True(options.DimModal);
-        Assert.Equal(0.2f, options.DimSpecial);
     }
 
     [Fact]
-    public void LatestBorderAndRoundingWinAndAGradientKeepsItsFirstColor()
+    public void LatestBorderAndRoundingWinAndAGradientKeepsThePreviousColor()
     {
         var document = ConfigParser.Parse("""
             general:col.active_border = rgba(ff0000ff)
@@ -68,12 +64,10 @@ public class DecorationTests
 
         var options = DecorationOptions.From(document);
 
-        Assert.Equal(new BorderColor(0x04, 0x01, 0x02, 0x03), options.ActiveBorder);
+        Assert.Equal(new BorderColor(0xFF, 0xFF, 0x00, 0x00), options.ActiveBorder);
         Assert.Equal(new BorderColor(0x80, 0xAA, 0xBB, 0xCC), options.InactiveBorder);
         Assert.Equal(3, options.Rounding);
         Assert.Empty(document.Warnings);
-        Assert.Equal(45, options.ActiveBorderGradient?.AngleDegrees);
-        Assert.Equal(2, options.ActiveBorderGradient?.Colors.Count);
     }
 
     [Fact]

@@ -4,8 +4,8 @@ using Windows.Win32.Foundation;
 namespace Winland.Windows;
 
 /// <summary>
-/// The rectangle a window's stand-in shows while a motion plays. The border, shadow and glow of a window with a stand-in
-/// follow this rectangle instead of the window's own frame, which already has its final size, and are stacked against the
+/// The rectangle a window's stand-in shows while a motion plays. The border of a window with a stand-in
+/// follows this rectangle instead of the window's own frame, which already has its final size, and is stacked against the
 /// stand-in. Any thread may read or change it.
 /// </summary>
 internal static class StandFrames
@@ -34,9 +34,5 @@ internal static class StandFrames
     internal static void Follow(WindowId window)
     {
         BorderHost.Follow(window);
-        ShadowHost.Follow(window);
-        GlowHost.Follow(window);
-        XrayHost.Follow(window);
-        BehindHost.Follow(window);
     }
 }

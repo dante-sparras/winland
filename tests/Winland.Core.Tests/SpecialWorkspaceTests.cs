@@ -199,18 +199,6 @@ public class SpecialWorkspaceTests
     }
 
     [Fact]
-    public void AnOpenSpecialWorkspaceDimsTheClientsUnderIt()
-    {
-        var core = new Core(ConfigParser.Parse("decoration:dim_special = 0.2\n"));
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
-        var opened = core.Handle(new Dispatch("movetoworkspace", "special"));
-
-        Assert.Equal(204, Alpha(opened, 1));
-        Assert.Equal(255, Alpha(opened, 2));
-    }
-
-    [Fact]
     public void TogglingASpecialWorkspaceWarpsToItsClient()
     {
         var core = new Core(ConfigParser.Parse("cursor:warp_on_toggle_special = 1\n"));
@@ -261,12 +249,6 @@ public class SpecialWorkspaceTests
 
     private static MonitorSnapshot Screen(Outcome outcome, int id) =>
         Assert.Single(outcome.State.Screens, screen => screen.Id == new MonitorId(id));
-
-    private static byte Alpha(Outcome outcome, long window)
-    {
-        var client = Client(outcome, window);
-        return Assert.Single(outcome.Decorations, decoration => decoration.Client == client.Id).Alpha;
-    }
 
     private static IReadOnlyList<string> Lines(Outcome outcome) =>
         CommandProtocol.FormatStream(outcome.Events, outcome.State);

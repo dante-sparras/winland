@@ -41,40 +41,25 @@ public sealed partial class WindowAdapter
                     return;
 
                 PlaceFrame(window, bounds, borderless);
-                SettleStandIn(window, bounds);
+                EndStandIn(window, null);
                 return;
             }
 
-            // The end of a drag that wobbled: the window is placed exactly and the wobble goes on from there.
-            var wobbling = Park(window);
             if (Motions.Settle(window, bounds))
-            {
-                Unpark(window, wobbling);
                 return;
-            }
 
-            Unpark(window, wobbling);
             PlaceFrame(window, bounds, borderless);
-            SettleStandIn(window, bounds);
+            EndStandIn(window, null);
         }
     }
 
-    // A step of a drag still held. The drag's end places the window exactly. A window with wobble or motion blur is drawn
-    // by a stand-in that follows the pointer.
+    // A step of a drag still held. The drag's end places the window exactly.
     private static void PlaceLive(WindowId window, Rectangle bounds, bool borderless, Dictionary<WindowId, Motion> motions)
     {
         lock (Motions.For(window))
         {
             motions.Remove(window);
-            var held = Park(window);
             if (Motions.Settle(window, bounds))
-            {
-                Unpark(window, held);
-                return;
-            }
-
-            Unpark(window, held);
-            if (!borderless && MotionFx.Of(window) is not null && StandFor(window, bounds, bounds, GripOn(bounds)))
                 return;
 
             EndStandIn(window, null);
@@ -148,7 +133,7 @@ public sealed partial class WindowAdapter
             {
                 // A fullscreen window has no frame, so it is placed by its outer rectangle, as every placement of it is.
                 PlaceFrame(window, bounds, Borderless.Owns(window));
-                SettleStandIn(window, bounds);
+                EndStandIn(window, null);
             }
             finally
             {

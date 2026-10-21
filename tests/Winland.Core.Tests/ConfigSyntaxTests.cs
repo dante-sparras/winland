@@ -397,7 +397,6 @@ public class ConfigSyntaxTests
         Assert.Equal(0, decoration.Rounding);
         Assert.Equal(2f, decoration.RoundingPower);
         Assert.True(decoration.Blur);
-        Assert.True(decoration.Shadow);
     }
 
     private sealed class MemorySource(IReadOnlyDictionary<string, string> files) : IConfigSource

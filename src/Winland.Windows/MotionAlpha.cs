@@ -3,8 +3,8 @@ using System.Collections.Concurrent;
 namespace Winland.Windows;
 
 /// <summary>
-/// The alpha a window shows while a motion fades it. The border, shadow and glow of the window are drawn with it, so
-/// they fade in and out with the window. A window with no running motion has none, and its decorations are opaque.
+/// The alpha a window shows while a motion fades it. The border of the window is drawn with it, so
+/// it fades in and out with the window. A window with no running motion has none, and its border is opaque.
 /// Any thread may read or change it.
 /// </summary>
 internal static class MotionAlpha

@@ -103,7 +103,7 @@ public class AnimationConfigTests
         Assert.False(options.Wraparound);
         Assert.Equal(new Timing(Bezier.Default, 800), options.TimingOf("windowsIn"));
         Assert.Equal(new Timing(Bezier.Default, 800), options.TimingOf("workspacesOut"));
-        Assert.Null(options.TimingOf("borderangle"));
+        Assert.Equal(new Timing(Bezier.Default, 800), options.TimingOf("border"));
     }
 
     [Fact]
@@ -150,6 +150,7 @@ public class AnimationConfigTests
                 new ConfigWarning(9, "Bezier point 'a' is not a number."),
                 new ConfigWarning(10, "Bezier has too many arguments."),
                 new ConfigWarning(11, "Animation 'layers' does not exist."),
+                new ConfigWarning(12, "Animation 'fadeDpms' does not exist."),
             ],
             document.Warnings);
     }

@@ -102,9 +102,6 @@ public sealed record Outcome(
 
     public IReadOnlyList<Decoration> Decorations { get; init; } = [];
 
-    /// <summary>One blur per monitor whose special workspace is open, when <c>decoration:blur:special</c> is on.</summary>
-    public IReadOnlyList<SpecialBlur> SpecialBlurs { get; init; } = [];
-
     /// <summary>How the windows in this outcome animate to their placements, shows, hides and closes.</summary>
     public IReadOnlyList<Motion> Motions { get; init; } = [];
 
@@ -127,9 +124,6 @@ public sealed record Outcome(
 
     /// <summary>Notifications to show or take away.</summary>
     public IReadOnlyList<NotificationAction> Notifications { get; init; } = [];
-
-    /// <summary>The dim layers to keep below windows with the dim_around property.</summary>
-    public IReadOnlyList<DimAround> Dims { get; init; } = [];
 
     public IReadOnlyList<DisplayOrientationRequest> Orientations { get; init; } = [];
 
@@ -206,8 +200,4 @@ public readonly record struct KillRequest(long ProcessId)
 public readonly record struct ZOrderRequest(WindowId Window, bool Top);
 
 /// <summary>A request to turn one display, or every display when <see cref="Device"/> is empty, on or off.</summary>
-public readonly record struct DisplayPowerRequest(string Device, bool On)
-{
-    /// <summary>How the displays fade to and from black, from <c>animation:fadeDpms</c>, or null when they do not.</summary>
-    public Timing? Fade { get; init; }
-}
+public readonly record struct DisplayPowerRequest(string Device, bool On);

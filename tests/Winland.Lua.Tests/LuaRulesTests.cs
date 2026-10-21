@@ -103,8 +103,10 @@ public class LuaRulesTests
             Lines(translation));
 
         var document = Parse(translation);
-        Assert.Empty(document.Warnings);
-        Assert.Equal(8, document.WindowRules.Count);
+        Assert.Contains(
+            document.Warnings,
+            warning => warning.Message == "border_color rule \"rgba(33ccffee) 0xFF00FF99 45deg\" has invalid color");
+        Assert.Equal(7, document.WindowRules.Count);
         Assert.Equal(WindowRuleEffect.Tile, document.WindowRules[^1].Effect);
         Assert.All(document.WindowRules.Take(document.WindowRules.Count - 1), rule => Assert.False(rule.Active));
         Assert.True(document.WindowRules[^1].Active);
@@ -215,14 +217,18 @@ public class LuaRulesTests
                 "workspace = 3, monitor:DP-1, default:true, persistent:true, gapsin:5 10 0 0, bordersize:4, border:false, rounding:true, decorate:false, defaultName:web, layout:dwindle, layoutopt:force_split:2, ruleid:2, ruleon:1",
                 "workspace = special:term, on-created-empty:wt, ruleid:3, ruleon:1",
                 "workspace = 4, persistent:true, ruleid:4, ruleon:0",
-                "workspace = 5, shadow:false, ruleid:5, ruleon:1",
+                "workspace = 5, ruleid:5, ruleon:1",
             ],
             Lines(translation));
 
         var document = Parse(translation);
-        Assert.Equal(["hl.workspace_rule: unknown field 'gapsin'"], Messages(document));
+        Assert.Equal(
+            [
+                "hl.workspace_rule: unknown field 'gapsin'",
+                "hl.workspace_rule: unknown field 'no_shadow'",
+            ],
+            Messages(document));
         Assert.False(Assert.Single(document.WorkspaceRules, rule => rule.WorkspaceString == "4").Active);
-        Assert.False(Assert.Single(document.WorkspaceRules, rule => rule.WorkspaceString == "5").Shadow);
         var third = Assert.Single(document.WorkspaceRules, rule => rule.WorkspaceString == "3");
         Assert.Equal("DP-1", third.Monitor);
         Assert.Equal(new EdgeInsets(5, 10, 0, 0), third.GapsIn);
@@ -696,8 +702,8 @@ public class LuaRulesTests
         Assert.Contains("workspace = f[1], gapsin:0 0 0 0, gapsout:0 0 0 0, ruleid:2, ruleon:1", lines);
         Assert.Contains("windowrulev2 = rounding 0, float:false, workspace:w[tv1], ruleid:4, ruleon:1", lines);
 
-        // What remains is what Winland does not honor: popup and input-method blur, tearing, the wallpaper,
-        // the XKB files, unknown animations, the suppress_event effect and XWayland.
+        // What remains is what Winland does not honor: blur other than the acrylic switch, shadow,
+        // tearing, the wallpaper, the XKB files, unknown animations, the suppress_event effect and XWayland.
         // hl.config lines come in Lua's table order, so the warnings are compared sorted.
         var messages = Messages(document);
         Assert.Equal(
@@ -709,6 +715,11 @@ public class LuaRulesTests
                 "Animation 'layersOut' does not exist.",
                 "Unsupported keyword 'decoration:blur:input_methods'.",
                 "Unsupported keyword 'decoration:blur:popups'.",
+                "Unsupported keyword 'decoration:blur:special'.",
+                "Unsupported keyword 'decoration:shadow:color'.",
+                "Unsupported keyword 'decoration:shadow:enabled'.",
+                "Unsupported keyword 'decoration:shadow:range'.",
+                "Unsupported keyword 'decoration:shadow:render_power'.",
                 "Unsupported keyword 'general:allow_tearing'.",
                 "Unsupported keyword 'input:kb_model'.",
                 "Unsupported keyword 'input:kb_rules'.",

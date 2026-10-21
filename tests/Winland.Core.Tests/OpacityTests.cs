@@ -15,42 +15,25 @@ public class OpacityTests
             decoration:inactive_opacity = -0.4
             decoration:fullscreen_opacity = 0.9
             decoration:fullscreen_opacity = no
-            decoration:dim_inactive = yes
-            decoration:dim_inactive = maybe
-            decoration:dim_strength = 0.25
-            decoration:dim_strength = 4
-            decoration:dim_modal = 0
-            decoration:dim_special = 0.2
             """));
 
         Assert.Equal(1f, options.ActiveOpacity);
         Assert.Equal(0f, options.InactiveOpacity);
         Assert.Equal(0.9f, options.FullscreenOpacity);
-        Assert.True(options.DimInactive);
-        Assert.Equal(1f, options.DimStrength);
-        Assert.False(options.DimModal);
-        Assert.Equal(0.2f, options.DimSpecial);
     }
 
     [Fact]
-    public void OpacityAndDimKeysAreHonored()
+    public void OpacityKeysAreHonored()
     {
         var document = ConfigParser.Parse("""
             decoration:active_opacity = 0.8
             decoration:inactive_opacity = 0.4
             decoration:fullscreen_opacity = 0.9
-            decoration:dim_inactive = true
-            decoration:dim_strength = 0.5
-            decoration:dim_modal = true
-            decoration:dim_special = 0.2
-            decoration:dim_around = 0.4
             decoration:blur:enabled = true
-            decoration:shadow:enabled = true
             """);
 
         Assert.Empty(document.Warnings);
-        Assert.Equal(10, document.Settings.Count);
-        Assert.Equal(0.4f, DecorationOptions.From(document).DimAround);
+        Assert.Equal(4, document.Settings.Count);
     }
 
     [Fact]
@@ -174,37 +157,18 @@ public class OpacityTests
     }
 
     [Fact]
-    public void OpaqueForcesTheFractionToOneAndDimStillMultiplies()
+    public void OpaqueForcesTheFractionToOne()
     {
         var core = CoreWith("""
             decoration:inactive_opacity = 0.5
-            decoration:dim_inactive = true
-            decoration:dim_strength = 0.5
             windowrulev2 = opacity 0.5, class:^(kitty)$
             windowrulev2 = opaque, class:^(kitty)$
             """);
         core.Handle(Appeared(1, "kitty"));
         var outcome = core.Handle(Appeared(2, "other"));
 
-        Assert.Equal(128, Alpha(outcome, 1));
+        Assert.Equal(255, Alpha(outcome, 1));
         Assert.Equal(255, Alpha(outcome, 2));
-    }
-
-    [Fact]
-    public void DimInactiveLowersInactiveAlphaAndCombinesWithTheRule()
-    {
-        var core = CoreWith("""
-            decoration:active_opacity = 1
-            decoration:inactive_opacity = 0.8
-            decoration:dim_inactive = true
-            decoration:dim_strength = 0.5
-            windowrulev2 = opacity 0.5, class:^(kitty)$
-            """);
-        core.Handle(Appeared(1, "kitty"));
-        var outcome = core.Handle(Appeared(2, "other"));
-
-        Assert.Equal(255, Alpha(outcome, 2));
-        Assert.Equal(51, Alpha(outcome, 1));
     }
 
     [Fact]
@@ -222,42 +186,18 @@ public class OpacityTests
     }
 
     [Fact]
-    public void FullscreenSelectsItsFractionAndDimFollowsFocus()
+    public void FullscreenSelectsItsFraction()
     {
         var options = DecorationOptions.Documented with
         {
             ActiveOpacity = 0.8f,
             InactiveOpacity = 0.4f,
             FullscreenOpacity = 0.9f,
-            DimInactive = true,
-            DimStrength = 0.5f,
         };
 
         Assert.Equal(230, DecorationAlpha.Compute(options, new OpacityInput(Active: true, Fullscreen: true), null, false));
-        Assert.Equal(115, DecorationAlpha.Compute(options, new OpacityInput(Active: false, Fullscreen: true), null, false));
+        Assert.Equal(230, DecorationAlpha.Compute(options, new OpacityInput(Active: false, Fullscreen: true), null, false));
         Assert.Equal(204, DecorationAlpha.Compute(options, new OpacityInput(Active: true), null, false));
-    }
-
-    [Fact]
-    public void ModalAndSpecialDimMultiplyTheFraction()
-    {
-        var options = DecorationOptions.Documented with
-        {
-            DimInactive = true,
-            DimStrength = 0.5f,
-            DimModal = true,
-            DimSpecial = 0.2f,
-        };
-
-        Assert.Equal(128, DecorationAlpha.Compute(options, new OpacityInput(Active: true, ShadowedByModal: true), null, false));
-        Assert.Equal(64, DecorationAlpha.Compute(options, new OpacityInput(Active: false, ShadowedByModal: true), null, false));
-        Assert.Equal(128, DecorationAlpha.Compute(options, new OpacityInput(Active: false, ShadowedByModal: false), null, false));
-        var undimmed = options with { DimModal = false };
-        Assert.Equal(255, DecorationAlpha.Compute(undimmed, new OpacityInput(Active: true, ShadowedByModal: true), null, false));
-
-        Assert.Equal(204, DecorationAlpha.Compute(options, new OpacityInput(Active: true, SpecialOpen: true), null, false));
-        Assert.Equal(255, DecorationAlpha.Compute(options, new OpacityInput(Active: true, SpecialOpen: true, OnSpecial: true), null, false));
-        Assert.Equal(102, DecorationAlpha.Compute(options, new OpacityInput(Active: false, SpecialOpen: true), null, false));
     }
 
     [Fact]

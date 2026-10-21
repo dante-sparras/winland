@@ -77,7 +77,6 @@ public sealed partial class Core
             "border_size" when workspace?.BorderSize is int border => (long)border,
             "rounding" when workspace?.Rounding == false => 0L,
             "decorate" when workspace?.Decorate is bool decorate => decorate,
-            "no_shadow" when workspace?.Shadow is bool shadow => !shadow,
             _ => null,
         };
     }
@@ -88,8 +87,8 @@ public sealed partial class Core
         "max_size" => PropSize.Unbounded,
         "min_size" => new PropSize(20, 20),
         "opacity" or "opacity_inactive" or "opacity_fullscreen" => PropAlpha.Identity,
-        "active_border_color" => ConfiguredBorder(window, active: true),
-        "inactive_border_color" => ConfiguredBorder(window, active: false),
+        "active_border_color" => BorderOf(window, active: true, honorProps: false),
+        "inactive_border_color" => BorderOf(window, active: false, honorProps: false),
         "decorate" or "sync_fullscreen" => true,
         "idle_inhibit" => 0L,
         "border_size" => (long)_options.BorderSize,
@@ -106,42 +105,6 @@ public sealed partial class Core
 
     private object PropValue(WindowId window, LiveWorkspace? desk, string key, PropKind kind) =>
         SetPropOf(window, key) ?? RuledProp(window, desk, key) ?? DefaultProp(window, key, kind);
-
-    // The configured border of a window, as Winland picks it: a Group's, a window that may not join a
-    // Group's, or the general one, each as the whole gradient the config gave.
-    private BorderGradient ConfiguredBorder(WindowId window, bool active)
-    {
-        var drawn = BorderOf(window, active, honorProps: false);
-        string keyword;
-        if (WorkspaceContaining(window)?.GroupOf(window) is WindowGroup group)
-        {
-            var locked = group.Locked || _groupsLocked;
-            keyword = (active, locked) switch
-            {
-                (true, true) => "group:col.border_locked_active",
-                (true, false) => "group:col.border_active",
-                (false, true) => "group:col.border_locked_inactive",
-                _ => "group:col.border_inactive",
-            };
-        }
-        else if (RulesOf(window).HasFlag(GroupRuleFlags.Deny))
-        {
-            keyword = active ? "general:col.nogroup_border_active" : "general:col.nogroup_border";
-        }
-        else
-        {
-            keyword = active ? "general:col.active_border" : "general:col.inactive_border";
-        }
-
-        string? text = null;
-        foreach (var setting in _config?.Settings ?? [])
-        {
-            if (setting.Keyword == keyword)
-                text = setting.Value;
-        }
-
-        return text is not null && BorderGradient.TryParse(text, out var gradient) ? gradient : BorderGradient.Of(drawn);
-    }
 
     private CommandReply ReadProp(GetPropRequest request)
     {
@@ -213,8 +176,10 @@ public sealed partial class Core
                 var flag = WindowProps.TryInteger(value, out var number) && number != 0;
                 next = ((PropAlpha)PropValue(window, desk, key, PropKind.Alpha)) with { Overridden = flag };
                 break;
-            case PropKind.Gradient:
-                next = WindowProps.ReadGradient(value);
+            case PropKind.Color:
+                if (!WindowProps.TryReadColor(value, out var color))
+                    return View([], dispatcher: dispatcher);
+                next = color;
                 break;
             default:
                 // A value that does not parse changes nothing.

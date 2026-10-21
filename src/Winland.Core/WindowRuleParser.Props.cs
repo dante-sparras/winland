@@ -8,9 +8,9 @@ internal static partial class WindowRuleParser
     // Those Winland already gives an effect of their own, such as no_focus or opacity, keep it.
     private static readonly HashSet<string> BoolProps = new(StringComparer.Ordinal)
     {
-        "allows_input", "dim_around", "decorate", "focus_on_activate", "keep_aspect_ratio", "nearest_neighbor", "no_anim",
-        "no_blur", "no_dim", "no_follow_mouse", "no_shadow", "no_glow", "no_wobble", "no_shortcuts_inhibit", "force_rgbx",
-        "sync_fullscreen", "immediate", "xray", "render_unfocused", "no_screen_share", "no_vrr", "no_auto_hdr", "persistent_size",
+        "allows_input", "decorate", "focus_on_activate", "keep_aspect_ratio", "nearest_neighbor", "no_anim",
+        "no_blur", "no_follow_mouse", "no_shortcuts_inhibit", "force_rgbx",
+        "sync_fullscreen", "immediate", "render_unfocused", "no_screen_share", "no_vrr", "no_auto_hdr", "persistent_size",
     };
 
     private static readonly HashSet<string> FloatProps = new(StringComparer.Ordinal) { "rounding_power", "scroll_mouse", "scroll_touchpad" };
@@ -71,74 +71,51 @@ internal static partial class WindowRuleParser
         return false;
     }
 
-    // Winland's border_color: two colors are active and inactive, and otherwise the colors up to the first
-    // angle are the active gradient and the rest the inactive one.
+    // One color sets the active border. Two colors set the active and the inactive borders.
+    // An angle, or any further color, is not a border.
     private static bool TryParseBorderColor(string? argument, out IReadOnlyDictionary<string, object>? props, out string error)
     {
         props = null;
         var tokens = (argument ?? "").Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-        var active = new List<BorderColor>();
-        var inactive = new List<BorderColor>();
-        int? activeAngle = null;
-        var inactiveAngle = 0;
-        if (tokens.Length == 2 && !tokens[1].Contains("deg", StringComparison.Ordinal))
-        {
-            if (!BorderColor.TryParse(tokens[0], out var first, out _) || !BorderColor.TryParse(tokens[1], out var second, out _))
-            {
-                error = $"border_color rule \"{argument}\" has invalid color";
-                return false;
-            }
-
-            active.Add(first);
-            inactive.Add(second);
-        }
-        else
-        {
-            foreach (var token in tokens)
-            {
-                if (token.Contains("deg", StringComparison.Ordinal))
-                {
-                    var degrees = token.EndsWith("deg", StringComparison.Ordinal) ? token[..^3] : token;
-                    if (!int.TryParse(degrees, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var angle))
-                    {
-                        error = $"border_color rule \"{argument}\" has invalid angle \"{token}\"";
-                        return false;
-                    }
-
-                    if (activeAngle is null)
-                        activeAngle = angle;
-                    else
-                        inactiveAngle = angle;
-                    continue;
-                }
-
-                if (!BorderColor.TryParse(token, out var color, out _))
-                {
-                    error = $"border_color rule \"{argument}\" has invalid color \"{token}\"";
-                    return false;
-                }
-
-                (activeAngle is null ? active : inactive).Add(color);
-            }
-        }
-
-        if (active.Count > 10 || inactive.Count > 10)
-        {
-            error = $"border_color rule \"{argument}\" has more than 10 colors in one gradient";
-            return false;
-        }
-
-        if (active.Count == 0 && inactive.Count == 0)
+        if (tokens.Length == 0)
         {
             error = $"border_color rule \"{argument}\" has no colors";
             return false;
         }
 
-        var values = new Dictionary<string, object>(StringComparer.Ordinal);
-        if (active.Count > 0)
-            values["active_border_color"] = new BorderGradient(active, activeAngle ?? 0);
-        if (inactive.Count > 0)
-            values["inactive_border_color"] = new BorderGradient(inactive, inactiveAngle);
+        if (tokens.Length > 2)
+        {
+            error = $"border_color rule \"{argument}\" has invalid color";
+            return false;
+        }
+
+        foreach (var token in tokens)
+        {
+            if (token.Contains("deg", StringComparison.Ordinal))
+            {
+                error = $"border_color rule \"{argument}\" has invalid angle \"{token}\"";
+                return false;
+            }
+        }
+
+        if (!BorderColor.TryParse(tokens[0], out var active, out _))
+        {
+            error = $"border_color rule \"{argument}\" has invalid color \"{tokens[0]}\"";
+            return false;
+        }
+
+        var values = new Dictionary<string, object>(StringComparer.Ordinal) { ["active_border_color"] = active };
+        if (tokens.Length == 2)
+        {
+            if (!BorderColor.TryParse(tokens[1], out var inactive, out _))
+            {
+                error = $"border_color rule \"{argument}\" has invalid color \"{tokens[1]}\"";
+                return false;
+            }
+
+            values["inactive_border_color"] = inactive;
+        }
+
         props = values;
         error = "";
         return true;

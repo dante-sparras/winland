@@ -27,14 +27,7 @@ internal sealed class AnimationBook
         ["fadeIn"] = "fade",
         ["fadeOut"] = "fade",
         ["fadeSwitch"] = "fade",
-        ["fadeShadow"] = "fade",
-        ["fadeGlow"] = "fade",
-        ["fadeDim"] = "fade",
-        ["fadeDpms"] = "fade",
         ["border"] = "global",
-        ["borderangle"] = "global",
-        ["shadowangle"] = "global",
-        ["glowangle"] = "global",
         ["workspaces"] = "global",
         ["workspacesIn"] = "workspaces",
         ["workspacesOut"] = "workspaces",
@@ -47,9 +40,6 @@ internal sealed class AnimationBook
     private readonly Dictionary<string, AnimationLeaf> _set = new(StringComparer.Ordinal)
     {
         ["global"] = new(true, 8, "default", ""),
-        ["borderangle"] = new(false, 1, "default", ""),
-        ["shadowangle"] = new(false, 1, "default", ""),
-        ["glowangle"] = new(false, 1, "default", ""),
     };
 
     private readonly Dictionary<string, Bezier> _curves = new(StringComparer.Ordinal)

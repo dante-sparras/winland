@@ -12,7 +12,7 @@ internal enum PropKind
     Size,
     Alpha,
     AlphaOverride,
-    Gradient,
+    Color,
 }
 
 /// <summary>A min_size or max_size: a width and height in pixels, either of them infinite.</summary>
@@ -34,66 +34,6 @@ internal readonly record struct PropAlpha(float Value, bool Overridden)
 }
 
 /// <summary>
-/// A border color as Winland keeps it: every color of the gradient and its angle. Winland draws the
-/// first color of a gradient.
-/// </summary>
-public sealed record BorderGradient(IReadOnlyList<BorderColor> Colors, int AngleDegrees)
-{
-    public static BorderGradient Of(BorderColor color) => new([color], 0);
-
-    /// <summary>The color Winland draws, or null for a gradient with no colors.</summary>
-    public BorderColor? First => Colors.Count > 0 ? Colors[0] : null;
-
-    /// <summary>Parses a config value such as <c>rgba(33ccffee) rgba(00ff99ee) 45deg</c>.</summary>
-    public static bool TryParse(string text, out BorderGradient gradient)
-    {
-        gradient = Of(default);
-        if (string.IsNullOrWhiteSpace(text))
-            return false;
-
-        var colors = new List<BorderColor>();
-        var angle = 0;
-        foreach (var part in text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries))
-        {
-            if (part.EndsWith("deg", StringComparison.Ordinal))
-            {
-                if (!int.TryParse(part[..^3], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out angle))
-                    return false;
-                continue;
-            }
-
-            if (!BorderColor.TryParse(part, out var color, out _))
-                return false;
-            colors.Add(color);
-        }
-
-        if (colors.Count == 0)
-            return false;
-
-        gradient = new BorderGradient(colors, angle);
-        return true;
-    }
-
-    /// <summary>Winland's form: each color as hexadecimal ARGB, then the angle in degrees.</summary>
-    public override string ToString()
-    {
-        var text = new System.Text.StringBuilder();
-        foreach (var color in Colors)
-        {
-            var argb = ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
-            text.Append(argb.ToString("x", CultureInfo.InvariantCulture)).Append(' ');
-        }
-
-        return text.Append(AngleDegrees.ToString(CultureInfo.InvariantCulture)).Append("deg").ToString();
-    }
-
-    public bool Equals(BorderGradient? other) =>
-        other is not null && AngleDegrees == other.AngleDegrees && Colors.SequenceEqual(other.Colors);
-
-    public override int GetHashCode() => HashCode.Combine(AngleDegrees, Colors.Count);
-}
-
-/// <summary>
 /// The window properties of Winland's <c>getprop</c> and <c>setprop</c>: their kinds, and how a value is
 /// read from text and shown. A property's value comes from <c>setprop</c>, then the window rules, then the config.
 /// </summary>
@@ -110,8 +50,8 @@ internal static class WindowProps
         ["opacity_override"] = PropKind.AlphaOverride,
         ["opacity_inactive_override"] = PropKind.AlphaOverride,
         ["opacity_fullscreen_override"] = PropKind.AlphaOverride,
-        ["active_border_color"] = PropKind.Gradient,
-        ["inactive_border_color"] = PropKind.Gradient,
+        ["active_border_color"] = PropKind.Color,
+        ["inactive_border_color"] = PropKind.Color,
         ["allows_input"] = PropKind.Bool,
         ["decorate"] = PropKind.Bool,
         ["focus_on_activate"] = PropKind.Bool,
@@ -119,19 +59,13 @@ internal static class WindowProps
         ["nearest_neighbor"] = PropKind.Bool,
         ["no_anim"] = PropKind.Bool,
         ["no_blur"] = PropKind.Bool,
-        ["no_dim"] = PropKind.Bool,
         ["no_focus"] = PropKind.Bool,
         ["no_max_size"] = PropKind.Bool,
-        ["no_shadow"] = PropKind.Bool,
-        ["no_glow"] = PropKind.Bool,
-        ["no_wobble"] = PropKind.Bool,
         ["no_shortcuts_inhibit"] = PropKind.Bool,
         ["opaque"] = PropKind.Bool,
-        ["dim_around"] = PropKind.Bool,
         ["force_rgbx"] = PropKind.Bool,
         ["sync_fullscreen"] = PropKind.Bool,
         ["immediate"] = PropKind.Bool,
-        ["xray"] = PropKind.Bool,
         ["render_unfocused"] = PropKind.Bool,
         ["no_follow_mouse"] = PropKind.Bool,
         ["no_screen_share"] = PropKind.Bool,
@@ -221,35 +155,14 @@ internal static class WindowProps
     }
 
     /// <summary>
-    /// A border color as <c>setprop</c> reads it. With more than one token Winland reads from the second on,
-    /// colors and an angle; one token is a single color, and <c>-1</c> is a gradient with no colors.
+    /// One border color as <c>setprop</c> reads it. A gradient, an angle, or text that is not one color
+    /// changes nothing.
     /// </summary>
-    public static BorderGradient ReadGradient(string text)
+    public static bool TryReadColor(string text, out BorderColor color)
     {
-        var colors = new List<BorderColor>();
-        var angle = 0;
+        color = default;
         var tokens = text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-        if (tokens.Length > 1)
-        {
-            for (var i = 1; i < tokens.Length; i++)
-            {
-                if (tokens[i].EndsWith("deg", StringComparison.Ordinal))
-                {
-                    if (int.TryParse(tokens[i][..^3], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var degrees))
-                        angle = degrees;
-                }
-                else if (BorderColor.TryParse(tokens[i], out var color, out _))
-                {
-                    colors.Add(color);
-                }
-            }
-        }
-        else if (text != "-1" && BorderColor.TryParse(text, out var single, out _))
-        {
-            colors.Add(single);
-        }
-
-        return new BorderGradient(colors, angle);
+        return tokens.Length == 1 && BorderColor.TryParse(tokens[0], out color, out _);
     }
 
     /// <summary>
@@ -285,7 +198,7 @@ internal static class WindowProps
         PropKind.Size => FormatSize(name, (PropSize)value, json),
         PropKind.Alpha => Wrap(name, Number(((PropAlpha)value).Value), json),
         PropKind.AlphaOverride => Wrap(name, ((PropAlpha)value).Overridden ? "true" : "false", json),
-        PropKind.Gradient => json ? $"{{\"{name}\": \"{value}\"}}" : value.ToString() ?? "",
+        PropKind.Color => json ? $"{{\"{name}\": \"{Hex((BorderColor)value)}\"}}" : Hex((BorderColor)value),
         PropKind.Bool => Wrap(name, (bool)value ? "true" : "false", json),
         PropKind.Int => Wrap(name, ((long)value).ToString(CultureInfo.InvariantCulture), json),
         PropKind.Float => Wrap(name, Number((float)value), json),
@@ -302,6 +215,13 @@ internal static class WindowProps
     }
 
     private static string Wrap(string name, string value, bool json) => json ? $"{{\"{name}\": {value}}}" : value;
+
+    // Hexadecimal ARGB, as a border color is shown, with no angle.
+    private static string Hex(BorderColor color)
+    {
+        var argb = ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
+        return argb.ToString("x", CultureInfo.InvariantCulture);
+    }
 
     // The shortest text that reads back as the same number, with inf for infinity, as std::format writes it.
     private static string Number(double value) =>

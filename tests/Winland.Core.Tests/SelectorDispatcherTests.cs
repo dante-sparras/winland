@@ -241,9 +241,7 @@ public class SelectorDispatcherTests
         Assert.False(reload.Effect.Exit);
     }
 
-    // The requests without their fade, which the default animations give every one.
-    private static DisplayPowerRequest[] Unfaded(IReadOnlyList<DisplayPowerRequest> requests) =>
-        [.. requests.Select(request => request with { Fade = null })];
+    private static DisplayPowerRequest[] Unfaded(IReadOnlyList<DisplayPowerRequest> requests) => [.. requests];
 
     [Fact]
     public void DpmsRequestsPowerForTheNamedMonitorOrEveryMonitor()

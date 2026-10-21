@@ -40,26 +40,6 @@ public class DwmEffectsTests
     }
 
     [Fact]
-    public void ShadowOffDisablesNonClientRenderingAndOnOrResetPutsTheStylePolicyBack()
-    {
-        var surface = new FakeSurface();
-        var effects = new DwmEffects(surface);
-
-        effects.Apply(Window, Decorated());
-        Assert.False(surface.Policies.ContainsKey(Window));
-
-        effects.Apply(Window, Decorated(shadow: false));
-        Assert.Equal(DwmEffects.DisabledPolicy, surface.Policies[Window]);
-
-        effects.Apply(Window, Decorated());
-        Assert.Equal(DwmEffects.StylePolicy, surface.Policies[Window]);
-
-        effects.Apply(Window, Decorated(shadow: false));
-        effects.Reset(Window);
-        Assert.Equal(DwmEffects.StylePolicy, surface.Policies[Window]);
-    }
-
-    [Fact]
     public void ARegionIsCutInsideTheVisibleFrameAndClearedOnReset()
     {
         var surface = new FakeSurface();
@@ -130,7 +110,7 @@ public class DwmEffectsTests
         var other = new WindowId(8);
         var effects = new DwmEffects(surface);
         effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
-        effects.Apply(other, Decorated(blur: false, shadow: false));
+        effects.Apply(other, Decorated(blur: false));
 
         effects.ResetAll();
 
@@ -138,11 +118,10 @@ public class DwmEffectsTests
         Assert.Empty(surface.Regions[Window]);
         Assert.False(effects.CutsCorners(Window));
         Assert.Equal(DwmEffects.AutoBackdrop, surface.Backdrops[other]);
-        Assert.Equal(DwmEffects.StylePolicy, surface.Policies[other]);
     }
 
     // After the exit cleanup the process ends with the state file gone, so an outcome that arrives
-    // late must not change a backdrop, a shadow or a region again.
+    // late must not change a backdrop or a region again.
     [Fact]
     public void AfterResettingAllNothingIsChangedUntilReopened()
     {
@@ -269,18 +248,17 @@ public class DwmEffectsTests
         Assert.True(effects.CutsCorners(Window));
     }
 
-    // A window whose backdrop could not be set still gets its shadow and region back.
+    // A window whose backdrop could not be set still gets its region back.
     [Fact]
     public void ResettingAllReachesAWindowWhoseBackdropWasNeverSet()
     {
         var surface = new FakeSurface { SetsBackdrop = false };
         surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
         var effects = new DwmEffects(surface);
-        effects.Apply(Window, Decorated(shadow: false, region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
 
         effects.ResetAll();
 
-        Assert.Equal(DwmEffects.StylePolicy, surface.Policies[Window]);
         Assert.Empty(surface.Regions[Window]);
         Assert.False(effects.CutsCorners(Window));
     }
@@ -337,21 +315,17 @@ public class DwmEffectsTests
 
     private static Decoration Decorated(
         bool blur = true,
-        bool shadow = true,
         CornerRegion? region = null,
         CornerPreference corners = CornerPreference.DoNotRound) =>
         new(new ClientId(1), new BorderColor(0xFF, 0, 0, 0), corners)
         {
             Blur = blur,
-            Shadow = shadow,
             Region = region,
         };
 
     private sealed class FakeSurface : IDwmSurface
     {
         public Dictionary<WindowId, uint> Backdrops { get; } = [];
-
-        public Dictionary<WindowId, uint> Policies { get; } = [];
 
         public Dictionary<WindowId, (Rectangle Outer, Rectangle Visible)> Frames { get; } = [];
 
@@ -382,12 +356,6 @@ public class DwmEffectsTests
 
             Backdrops[window] = backdrop;
             BackdropWrites++;
-            return true;
-        }
-
-        public bool TrySetRenderingPolicy(WindowId window, uint policy)
-        {
-            Policies[window] = policy;
             return true;
         }
 

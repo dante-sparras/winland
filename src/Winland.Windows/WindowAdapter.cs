@@ -347,16 +347,12 @@ public sealed partial class WindowAdapter : IDisposable
         {
             var window = new WindowId(((IntPtr)hwnd).ToInt64());
 
-            // A Client's border, shadow and glow follow its window wherever it goes, and hide with it.
+            // A Client's border follows its window wherever it goes, and hides with it.
             if (@event is PInvoke.EVENT_OBJECT_LOCATIONCHANGE or PInvoke.EVENT_OBJECT_SHOW or PInvoke.EVENT_OBJECT_HIDE
                 or PInvoke.EVENT_OBJECT_CLOAKED or PInvoke.EVENT_OBJECT_UNCLOAKED or PInvoke.EVENT_SYSTEM_MINIMIZESTART
                 or PInvoke.EVENT_SYSTEM_MINIMIZEEND or PInvoke.EVENT_SYSTEM_FOREGROUND)
             {
                 BorderHost.Follow(window);
-                ShadowHost.Follow(window);
-                GlowHost.Follow(window);
-                XrayHost.Follow(window);
-                BehindHost.Follow(window);
             }
 
             // A Group's shown member raised or shown takes its tab bar up with it.
@@ -693,16 +689,6 @@ public sealed partial class WindowAdapter : IDisposable
         foreach (var client in outcome.State.Clients)
             windows[client.Id] = client.Window;
 
-        // The motions this outcome starts are drawn with the effects its decorations give, a new window's too.
-        if (!Releasing)
-        {
-            foreach (var decoration in outcome.Decorations)
-            {
-                if (windows.TryGetValue(decoration.Client, out var decorated))
-                    MotionFx.Set(decorated, decoration.Motion);
-            }
-        }
-
         // Once the exit cleanup began, nothing starts a motion that would change alpha or the border again.
         // The frame, effects and alpha refuse changes themselves once they were put back.
         var motions = Releasing ? [] : MotionsOf(outcome);
@@ -759,10 +745,6 @@ public sealed partial class WindowAdapter : IDisposable
         }
 
         var rings = new Dictionary<WindowId, BorderRing>();
-        var shadows = new Dictionary<WindowId, DropShadow>();
-        var glows = new Dictionary<WindowId, InnerGlow>();
-        var xrays = new Dictionary<WindowId, XrayBackdrop>();
-        var behinds = new Dictionary<WindowId, BehindBlur>();
         lock (PaintGate)
         {
             if (!Releasing)
@@ -770,7 +752,6 @@ public sealed partial class WindowAdapter : IDisposable
                 foreach (var window in outcome.ResetDecorations)
                 {
                     DropMotion(window);
-                    MotionFx.Forget(window);
                     Borderless.Release(window);
                     ResetDecoration(window);
                     Painted.Remove(window);
@@ -785,33 +766,17 @@ public sealed partial class WindowAdapter : IDisposable
                     Painted.Add(window);
                     if (decoration.Ring is BorderRing ring)
                         rings[window] = ring;
-                    if (decoration.DrawnShadow is DropShadow shadow)
-                        shadows[window] = shadow;
-                    if (decoration.Glow is InnerGlow glow)
-                        glows[window] = glow;
-                    if (decoration.Xray is XrayBackdrop xray)
-                        xrays[window] = xray;
-                    if (decoration.Behind is BehindBlur behind)
-                        behinds[window] = behind;
                 }
             }
         }
 
         if (!Releasing && current)
         {
-            if (outcome.Decorations.Count > 0 || outcome.ResetDecorations.Count > 0 || outcome.SpecialBlurs.Count > 0)
-            {
+            if (outcome.Decorations.Count > 0 || outcome.ResetDecorations.Count > 0)
                 BorderHost.Update(rings);
-                ShadowHost.Update(shadows);
-                GlowHost.Update(glows);
-                EffectLayers.Update(rings, shadows, glows);
-                XrayHost.Update(xrays);
-                BehindHost.Update(behinds, outcome.SpecialBlurs);
-            }
 
             GroupBarHost.Update(outcome.GroupBars);
             ErrorBarHost.Update(outcome.ErrorBar);
-            DimHost.Update(outcome.Dims);
             NotificationHost.Update(outcome.Notifications);
         }
 
@@ -826,12 +791,7 @@ public sealed partial class WindowAdapter : IDisposable
             Kill(kill);
 
         foreach (var power in outcome.DisplayPower)
-        {
-            if (power.Fade is null && !DpmsFadeHost.Started)
-                DisplayPowerAdapter.TryApplyToSystem(power);
-            else
-                DpmsFadeHost.Request(power);
-        }
+            DisplayPowerAdapter.TryApplyToSystem(power);
 
         // A rotation that matches the display commits nothing, so the display change it causes does not loop.
         foreach (var orientation in outcome.Orientations)

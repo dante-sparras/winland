@@ -9,7 +9,7 @@ public class ModalTests
     private static readonly WindowId Dialog = new(2);
 
     [Fact]
-    public void AnOwnerShadowedByItsModalTakesNoFocusAndIsDimmed()
+    public void AnOwnerShadowedByItsModalTakesNoFocus()
     {
         var core = new Core();
         core.Handle(new WindowAppeared(Owner, Area));
@@ -18,13 +18,12 @@ public class ModalTests
 
         var clicked = core.Handle(new WindowFocused(Owner, FocusCause.User));
         Assert.Equal(Dialog, clicked.Focus);
-        Assert.Equal(128, AlphaOf(clicked, Owner));
+        Assert.Equal(255, AlphaOf(clicked, Owner));
 
         core.Handle(new Dispatch("focuswindow", "address:0x1"));
         Assert.Equal(Dialog, core.Handle(new Dispatch("killactive")).Close);
 
-        var enabled = core.Handle(new WindowEnabledChanged(Owner, Enabled: true));
-        Assert.Equal(255, AlphaOf(enabled, Owner));
+        core.Handle(new WindowEnabledChanged(Owner, Enabled: true));
         core.Handle(new WindowFocused(Owner, FocusCause.User));
         Assert.Equal(Owner, core.Handle(new Dispatch("killactive")).Close);
     }
@@ -41,7 +40,7 @@ public class ModalTests
     }
 
     [Fact]
-    public void BlockingCanBeTurnedOffAndTheDimStays()
+    public void BlockingCanBeTurnedOff()
     {
         var core = new Core(ConfigParser.Parse("general:modal_parent_blocking = false\n"));
         core.Handle(new WindowAppeared(Owner, Area) { Disabled = true });
@@ -49,7 +48,7 @@ public class ModalTests
 
         var clicked = core.Handle(new WindowFocused(Owner, FocusCause.User));
         Assert.Equal(Owner, core.Handle(new Dispatch("killactive")).Close);
-        Assert.True(AlphaOf(clicked, Owner) < 255);
+        Assert.Equal(255, AlphaOf(clicked, Owner));
         Assert.Equal("{\"option\":\"general:modal_parent_blocking\",\"bool\":false,\"set\":true}", core.Execute("getoption general:modal_parent_blocking").Text);
     }
 

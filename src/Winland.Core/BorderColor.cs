@@ -9,8 +9,11 @@ public readonly record struct BorderColor(byte A, byte R, byte G, byte B)
         if (!ConfigValueSyntax.TryParseGradient(text, out var parsed))
             return false;
 
-        color = parsed.Color;
         gradient = parsed.Colors > 1 || parsed.HasAngle;
+        if (gradient)
+            return false;
+
+        color = parsed.Color;
         return true;
     }
 }

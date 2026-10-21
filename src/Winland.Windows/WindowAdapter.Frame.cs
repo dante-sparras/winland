@@ -201,22 +201,14 @@ public sealed partial class WindowAdapter
     {
         GroupBarHost.Stop();
         ErrorBarHost.Stop();
-        DimHost.Stop();
-        DpmsFadeHost.Stop();
         BorderHost.Stop();
-        ShadowHost.Stop();
-        GlowHost.Stop();
-        EffectLayers.Clear();
-        XrayHost.Stop();
-        BehindHost.Stop();
         NotificationHost.Stop();
         EndStandIns();
         StandInHost.Stop();
-        Gpu.Shutdown();
         PutBackFrames();
     }
 
-    // Every window whose frame, border, corners, backdrop, shadow, region or alpha this changed, painted or not.
+    // Every window whose frame, border, corners, backdrop, region or alpha this changed, painted or not.
     private static void PutBackFrames()
     {
         WindowId[] painted;
@@ -230,7 +222,6 @@ public sealed partial class WindowAdapter
             ResetDecoration(window);
 
         Borderless.ReleaseAll();
-        MotionFx.ForgetAll();
         Effects.ResetAll();
         Opacity.ResetAll();
     }
@@ -244,7 +235,7 @@ public sealed partial class WindowAdapter
         lock (Motions.For(window))
         {
             // Winland draws the border itself, outside the window, so DWM draws none.
-            var held = Motions.Paint(window, decoration.Alpha, decoration.Border, decoration.Opacity, decoration.Keep);
+            var held = Motions.Paint(window, decoration.Alpha, decoration.Border);
             SetAttribute(hwnd, BorderColorAttribute, NoneBorderColor);
             if (!held.Border)
                 BorderHost.Tint(window, null);
@@ -256,7 +247,6 @@ public sealed partial class WindowAdapter
             };
             SetAttribute(hwnd, CornerAttribute, corners);
             Effects.Apply(window, decoration);
-            MotionFx.Set(window, decoration.Motion);
             if (!held.Alpha)
                 Opacity.Apply(window, decoration.Alpha);
         }
