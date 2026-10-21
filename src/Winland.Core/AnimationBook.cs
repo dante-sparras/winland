@@ -165,7 +165,7 @@ internal sealed class AnimationBook
     }
 
     /// <summary>
-    /// Reads <c>NAME, STIFFNESS, DAMPING, MASS</c>, the line form of a spring <c>hl.curve</c>. Each number must be above
+    /// Reads <c>NAME, STIFFNESS, DAMPING, MASS</c>, a <c>spring</c> line. Each number must be above
     /// 0.5. Returns the warning, or null when the spring is kept.
     /// </summary>
     internal string? AddSpring(string value)
@@ -291,10 +291,7 @@ internal sealed class AnimationBook
 
     private static string[] Split(string value)
     {
-        var parts = value.Split(',');
-        for (var i = 0; i < parts.Length; i++)
-            parts[i] = LineText.Unescape(parts[i].Trim());
-        return parts;
+        return value.Split(',', StringSplitOptions.TrimEntries);
     }
 
     private static string Arg(string[] args, int index) => index < args.Length ? args[index] : "";

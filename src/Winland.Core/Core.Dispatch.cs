@@ -48,7 +48,6 @@ public sealed partial class Core
             Launches = [.. first.Launches, .. second.Launches],
             Kills = [.. first.Kills, .. second.Kills],
             Exit = second.Exit || first.Exit,
-            Notice = second.Notice ?? first.Notice,
             DisplayPower = [.. first.DisplayPower, .. second.DisplayPower],
             Relays = [.. first.Relays, .. second.Relays],
             ZOrder = [.. first.ZOrder, .. second.ZOrder],
@@ -264,12 +263,6 @@ public sealed partial class Core
 
             return View([], dispatcher: name);
         }
-        else if (Dispatchers.TryInvoke(name, arguments, out var bound))
-            return View([], dispatcher: name) with
-            {
-                Error = bound.Error,
-                Notice = bound.Notice,
-            };
         else if (!Dispatchers.IsKnown(name))
             return View([], dispatcher: name) with
             {

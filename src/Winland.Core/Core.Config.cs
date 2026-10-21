@@ -52,7 +52,7 @@ public sealed partial class Core
         _config = document;
         _workspaceRules = document.WorkspaceRules;
         NoteConfigErrors(document);
-        _rules = WithoutEdits(document.WindowRules);
+        _rules = document.WindowRules;
         var tiledBefore = _session.SizeLimitsTiled;
         _session = SessionOptions.From(document);
         _debug = DebugOptions.From(document);
@@ -110,7 +110,7 @@ public sealed partial class Core
 
     private void MatchLayout(LiveWorkspace desk)
     {
-        var created = LayoutFactory.Create(_config, RuleFor(desk)?.Layout, LayoutScripts);
+        var created = LayoutFactory.Create(_config, RuleFor(desk)?.Layout);
         if (created.GetType() == desk.Layout.GetType() && LayoutFactory.NameOf(created) == LayoutFactory.NameOf(desk.Layout))
         {
             desk.Layout.Apply(_master);
@@ -118,10 +118,6 @@ public sealed partial class Core
             RankFocus(desk.Layout);
             return;
         }
-
-        // The workspace stopped using this algorithm. Drop it before the clients move, and do not call into the layout.
-        if (desk.Layout is ScriptedLayout previous)
-            previous.Retire();
 
         RankFocus(created);
         if (desk.Layout.Clients.Count == 0)

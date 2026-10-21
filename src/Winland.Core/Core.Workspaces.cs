@@ -424,25 +424,6 @@ public sealed partial class Core
 
     private WorkspaceAddress.Context Context() => Context(FocusedId());
 
-    // resolveworkspace MONITOR SELECTOR: the address of the existing workspace the selector names from that monitor,
-    // or an empty reply, as JSON a string or null. It creates nothing.
-    private CommandReply ResolveWorkspace(string arguments, bool json)
-    {
-        var text = arguments.Trim();
-        var space = text.IndexOf(' ', StringComparison.Ordinal);
-        if (space < 0)
-            return new CommandReply("error: expected a monitor and a workspace", View([]));
-
-        if (MonitorOf(MonitorSelector.Resolve(text[..space], Targets(), TargetOf(FocusedMonitor()))) is not LiveMonitor screen)
-            return new CommandReply("error: monitor not found", View([]));
-
-        var found = WorkspaceAddress.TryResolve(text[(space + 1)..], Context(screen.Id), out var id) && FindWorkspace(id) is not null;
-        var reply = json
-            ? (found ? System.Text.Json.JsonSerializer.Serialize(id.Name) : "null")
-            : (found ? id.Name : "");
-        return new CommandReply(reply, View([]));
-    }
-
     private WorkspaceAddress.Context Context(MonitorId monitor) =>
         new(
             ActiveOn(monitor),

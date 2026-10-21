@@ -4,7 +4,7 @@ namespace Winland;
 
 public sealed partial class Core
 {
-    // The dispatchers that act on the active window and, after a comma, take another one, as their Lua forms do.
+    // The dispatchers that act on the active window and, after a comma, take another one.
     private static readonly string[] WindowTakers =
         [
             "movecursortocorner", "togglegroup", "changegroupactive", "centerwindow", "fullscreen", "fullscreenstate",

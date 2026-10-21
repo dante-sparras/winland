@@ -71,42 +71,6 @@ public static class ExtraCommands
         if (Is(verb, "devices"))
             return Exact(rest, new DevicesRequest(), flags, out parse);
 
-        if (Is(verb, "resolveworkspace"))
-        {
-            parse = Parsed(new ResolveWorkspaceRequest(rest), flags);
-            return true;
-        }
-
-        if (Is(verb, "groupadd"))
-        {
-            parse = Parsed(new GroupAddRequest(rest), flags);
-            return true;
-        }
-
-        if (Is(verb, "groupremove"))
-        {
-            parse = Parsed(new GroupRemoveRequest(rest), flags);
-            return true;
-        }
-
-        if (Is(verb, "setworkspace"))
-        {
-            parse = Parsed(new SetWorkspaceRequest(rest), flags);
-            return true;
-        }
-
-        if (Is(verb, "setspecialworkspace"))
-        {
-            parse = Parsed(new SetSpecialWorkspaceRequest(rest), flags);
-            return true;
-        }
-
-        if (Is(verb, LayoutRequest.Verb))
-        {
-            parse = Parsed(new LayoutPlaceRequest(rest), flags);
-            return true;
-        }
-
         if (Is(verb, "switchxkblayout"))
         {
             parse = Parsed(new SwitchLayoutRequest(rest), flags);
@@ -390,36 +354,3 @@ public sealed record GetPropRequest(string Selector, string Property) : CommandR
 public sealed record SetPropRequest(string Selector, string Property, string Value) : CommandRequest;
 
 public sealed record BatchRequest(string Payload) : CommandRequest;
-
-/// <summary>
-/// <c>resolveworkspace MONITOR SELECTOR</c>: the address of the workspace a selector names, read as a dispatcher on that
-/// monitor reads it, when the workspace exists. It creates nothing. The Lua config's workspace queries use it.
-/// </summary>
-public sealed record ResolveWorkspaceRequest(string Arguments) : CommandRequest;
-
-/// <summary>
-/// <c>groupadd MEMBER WINDOW [INDEX]</c>: puts a window into the Group of another at a 1-based place. The Lua config's
-/// group objects use it.
-/// </summary>
-public sealed record GroupAddRequest(string Arguments) : CommandRequest;
-
-/// <summary>
-/// <c>layoutplace LAYOUT GENERATION [failed | WINDOW X Y W H ...]</c>: a script's answer to a request to lay out the
-/// Workspace of a Layout it arranges. The Lua config's custom layouts use it.
-/// </summary>
-public sealed record LayoutPlaceRequest(string Arguments) : CommandRequest;
-
-/// <summary><c>groupremove WINDOW</c>: takes a window out of its Group. The Lua config's group objects use it.</summary>
-public sealed record GroupRemoveRequest(string Arguments) : CommandRequest;
-
-/// <summary>
-/// <c>setworkspace MONITOR SELECTOR</c>: shows a Workspace on a Monitor without focusing that Monitor. The Lua config's
-/// monitor objects use it.
-/// </summary>
-public sealed record SetWorkspaceRequest(string Arguments) : CommandRequest;
-
-/// <summary>
-/// <c>setspecialworkspace MONITOR [SELECTOR]</c>: opens a special Workspace on a Monitor, or closes the one open there,
-/// without focusing that Monitor. The Lua config's monitor objects use it.
-/// </summary>
-public sealed record SetSpecialWorkspaceRequest(string Arguments) : CommandRequest;

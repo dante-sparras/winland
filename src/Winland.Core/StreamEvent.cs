@@ -107,7 +107,7 @@ public sealed record CustomEvent(string Text) : StreamEvent;
 
 /// <summary>
 /// A Client entered or left a covering fullscreen mode. The data is <c>1</c> or <c>0</c>. <paramref name="Window"/> is
-/// the Client, which the event line leaves out and a Lua config's <c>window.fullscreen</c> handler is given.
+/// the Client, which the event line leaves out.
 /// </summary>
 public sealed record FullscreenChanged(bool Entered, WindowId? Window = null) : StreamEvent;
 

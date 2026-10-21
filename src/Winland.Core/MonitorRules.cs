@@ -643,11 +643,11 @@ internal static class MonitorRules
             if (value[i] != ',')
                 continue;
 
-            parts.Add(LineText.Unescape(value[start..i].Trim()));
+            parts.Add(value[start..i].Trim());
             start = i + 1;
         }
 
-        parts.Add(LineText.Unescape(value[start..].Trim()));
+        parts.Add(value[start..].Trim());
         return parts;
     }
 

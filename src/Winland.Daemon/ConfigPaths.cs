@@ -4,15 +4,11 @@ namespace Winland;
 static class ConfigPaths
 {
     /// <summary>
-    /// The config Winland reads when it is started without <c>--config</c>: <c>winland.lua</c> when there is one,
-    /// otherwise <c>winland.conf</c>.
+    /// The config Winland reads when it is started without <c>--config</c>: <c>winland.conf</c> in the winland folder
+    /// of application data.
     /// </summary>
-    public static string Default(string applicationData)
-    {
-        var folder = Path.Combine(applicationData, "winland");
-        var lua = Path.Combine(folder, "winland.lua");
-        return File.Exists(lua) ? lua : Path.Combine(folder, "winland.conf");
-    }
+    public static string Default(string applicationData) =>
+        Path.Combine(applicationData, "winland", "winland.conf");
 
     /// <summary>
     /// The config and every source it names, as full paths. A relative source is relative to the

@@ -133,23 +133,6 @@ public class ExtraCommandTests
     }
 
     [Fact]
-    public void ResolveWorkspaceNamesAnExistingWorkspaceAndMakesNone()
-    {
-        var core = new Core();
-        core.Handle(new MonitorsChanged([new Monitor("HEADLESS-2", "HEADLESS-2", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080))]));
-        core.Handle(new Dispatch("workspace", "name:test"));
-        core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 1920, 1080)));
-        core.Handle(new Dispatch("workspace", "1"));
-
-        Assert.Equal("\"test\"", core.Execute("j/resolveworkspace HEADLESS-2 e-1").Text);
-        Assert.Equal("test", core.Execute("resolveworkspace HEADLESS-2 name:test").Text);
-        Assert.Equal("null", core.Execute("j/resolveworkspace HEADLESS-2 42").Text);
-        Assert.Equal("", core.Execute("resolveworkspace HEADLESS-2 r+1").Text);
-        Assert.Equal("error: monitor not found", core.Execute("resolveworkspace nosuch 1").Text);
-        Assert.DoesNotContain("42", core.Execute("j/workspaces").Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void GetOptionReportsGapsAsCssWithFourEdges()
     {
         var core = new Core(ConfigParser.Parse("general:gaps_out = 10 20\n"));
@@ -291,8 +274,8 @@ public class ExtraCommandTests
         Assert.True(ControlInvocation.TryCreate(["-j", "--batch", "layouts ; locked"], out line, out events));
         Assert.Equal("[[BATCH]]j/layouts ;j/locked", line);
 
-        Assert.True(ControlInvocation.TryCreate(["-j", "--batch", @"repl a\; b; eval c\\; clients"], out line, out events));
-        Assert.Equal(@"[[BATCH]]j/repl a\; b;j/eval c\\;j/clients", line);
+        Assert.True(ControlInvocation.TryCreate(["-j", "--batch", @"notify a\; b; keyword c\\; clients"], out line, out events));
+        Assert.Equal(@"[[BATCH]]j/notify a\; b;j/keyword c\\;j/clients", line);
 
         Assert.True(ControlInvocation.TryCreate(["-a", "clients"], out line, out events));
         Assert.Equal("a/clients", line);
@@ -312,6 +295,8 @@ public class ExtraCommandTests
         Assert.True(ControlInvocation.TryCreate(["events"], out line, out events));
         Assert.True(events);
         Assert.False(ControlInvocation.TryCreate(["nope"], out _, out _));
+        Assert.False(ControlInvocation.TryCreate(["eval", "1"], out _, out _));
+        Assert.False(ControlInvocation.TryCreate(["repl"], out _, out _));
         Assert.False(ControlInvocation.TryCreate(["plugin", "list"], out _, out _));
         Assert.False(ControlInvocation.TryCreate(["plugin", "install", "https://example.com/plugins.git"], out _, out _));
         Assert.False(ControlInvocation.TryCreate(["--batch"], out _, out _));

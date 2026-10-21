@@ -13,7 +13,7 @@ internal static partial class OptionCatalog
         Color("general:col.active_border", "border color for the active window", 0xffffffff),
         Color("general:col.nogroup_border", "inactive border color for window that cannot be added to a group", 0xffffaaff),
         Color("general:col.nogroup_border_active", "active border color for window that cannot be added to a group", 0xffff00ff),
-        Str("general:layout", "which layout to use. [dwindle/master/scrolling/monocle/lua:<name>]", "dwindle"),
+        Str("general:layout", "which layout to use. [dwindle/master/scrolling/monocle]", "dwindle"),
         Bool("general:no_focus_fallback", "if true, will not fall back to the next available window when moving focus in a direction where no window was found", false),
         Bool("general:resize_on_border", "enables resizing windows by clicking and dragging on borders and gaps", false),
         Int("general:extend_border_grab_area", "extends the area around the border where you can click and drag on, only used when general:resize_on_border is on.", 15, min: 0, max: 100),

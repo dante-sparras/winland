@@ -16,8 +16,8 @@ public enum GestureDirection
 
 /// <summary>
 /// One <c>gesture</c> line. Every action is kept so a later line is shadowed and <c>unset</c> matches as configured,
-/// but only the honored ones run. <paramref name="Argument"/> is the special workspace's name, the dispatcher, the
-/// float or fullscreen mode, or the number of the Lua function a <c>luafunction</c> gesture calls.
+/// but only the honored ones run. <paramref name="Argument"/> is the special workspace's name, the dispatcher, or the
+/// float or fullscreen mode.
 /// </summary>
 public sealed record TrackpadGesture(
     int Fingers,
@@ -43,11 +43,6 @@ public sealed record TrackpadGesture(
 
     public const string ScrollMoveAction = "scrollMove";
 
-    /// <summary>Winland's own action: a function of the Lua config, kept under the number the line names, follows the swipe.</summary>
-    public const string FunctionAction = "luafunction";
-
-    public bool IsFunction => Action == FunctionAction;
-
     public bool IsScrollMove => Action == ScrollMoveAction;
 
     public bool IsWorkspace => Action == WorkspaceAction;
@@ -59,7 +54,7 @@ public sealed record TrackpadGesture(
 
     public bool IsClose => Action == CloseAction;
 
-    public bool IsHonored => IsWorkspace || IsSpecial || IsOnRelease || IsScrollMove || IsFunction || IsMove || IsResize;
+    public bool IsHonored => IsWorkspace || IsSpecial || IsOnRelease || IsScrollMove || IsMove || IsResize;
 
     public const string MoveAction = "move";
 
@@ -153,27 +148,3 @@ public sealed record TrackpadGesture(
         _ => Math.Sqrt((x * x) + (y * y)),
     };
 }
-
-/// <summary>The phase of a swipe a <see cref="GestureCall"/> reports.</summary>
-public enum GesturePhase
-{
-    Start,
-    Update,
-    End,
-}
-
-/// <summary>
-/// One phase of a swipe that a <c>luafunction</c> gesture took, for the host to hand the Lua config's function
-/// numbered <paramref name="Function"/>. A start and an update carry the fingers and the delta of the update that
-/// made them, and an end whether it was cancelled. A start and an update have the direction the fingers took, and an
-/// end the configured one.
-/// </summary>
-public sealed record GestureCall(
-    string Function,
-    GesturePhase Phase,
-    GestureDirection Direction,
-    long TimeMs,
-    int Fingers = 0,
-    double DeltaX = 0,
-    double DeltaY = 0,
-    bool Cancelled = false);

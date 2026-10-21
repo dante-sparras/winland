@@ -219,15 +219,6 @@ public static partial class ConfigParser
                 return;
             }
 
-            if (lhs == LayoutFactory.ScriptKeyword)
-            {
-                if (LayoutFactory.IsScript(rhs))
-                    _settings.Add(new Setting(lhs, rhs));
-                else
-                    Warn(lineNumber, $"A script's layout is named lua:NAME, not '{rhs}'.");
-                return;
-            }
-
             if (TryAnimationLine(lhs, rhs, lineNumber))
                 return;
 
@@ -361,13 +352,7 @@ public static partial class ConfigParser
             if (!WindowRuleParser.TryParse(keyword, value, out var rule, out var error) || rule is null)
                 Warn(lineNumber, error);
             else
-            {
-                // Applied here so a later line in this file changes the rule it names. A keyword is one line and has
-                // no earlier rule, so the edit is kept for the rules already stored.
-                WindowRuleParser.Integrate(_windowRules, rule);
-                if (rule.Edit != WindowRuleEdit.None)
-                    _windowRules.Add(rule);
-            }
+                _windowRules.Add(rule);
         }
 
         private void Warn(int line, string message)

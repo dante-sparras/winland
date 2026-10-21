@@ -48,15 +48,6 @@ public sealed record WorkspaceRule
 
     public IReadOnlyDictionary<string, string> LayoutOpts { get; init; } = EmptyOpts;
 
-    /// <summary>The id <c>hl.workspace_rule</c> writes, or 0 for a line that is not named.</summary>
-    public int RuleId { get; init; }
-
-    /// <summary>False leaves the rule stored and stops it applying, as <c>set_enabled(false)</c> does.</summary>
-    public bool Active { get; init; } = true;
-
-    /// <summary>True when the line named <c>ruleon</c>, so a merge can change <see cref="Active"/>.</summary>
-    public bool ActiveSpecified { get; init; }
-
     private static readonly IReadOnlyDictionary<string, string> EmptyOpts =
         new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -84,7 +75,6 @@ public sealed record WorkspaceRule
             OnCreatedEmpty = other.OnCreatedEmpty ?? OnCreatedEmpty,
             Layout = other.Layout ?? Layout,
             LayoutOpts = opts.Count == 0 ? EmptyOpts : opts,
-            Active = other.ActiveSpecified ? other.Active : Active,
         };
     }
 }
@@ -102,25 +92,9 @@ internal static partial class WorkspaceRules
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(rule);
 
-        // A named rule is one object. A later line with its id replaces it, as a second hl.workspace_rule rewrites it.
-        if (rule.RuleId != 0)
-        {
-            for (var i = 0; i < rules.Count; i++)
-            {
-                if (rules[i].RuleId == rule.RuleId)
-                {
-                    rules[i] = rule;
-                    return;
-                }
-            }
-
-            rules.Add(rule);
-            return;
-        }
-
         for (var i = 0; i < rules.Count; i++)
         {
-            if (rules[i].RuleId == 0 && rules[i].WorkspaceString == rule.WorkspaceString)
+            if (rules[i].WorkspaceString == rule.WorkspaceString)
             {
                 rules[i] = rules[i].Merge(rule);
                 return;
@@ -135,7 +109,7 @@ internal static partial class WorkspaceRules
         ArgumentNullException.ThrowIfNull(value);
         ArgumentNullException.ThrowIfNull(warnings);
         var comma = value.IndexOf(',');
-        var ident = LineText.Unescape((comma < 0 ? value : value[..comma]).Trim());
+        var ident = (comma < 0 ? value : value[..comma]).Trim();
         if (ident.Length == 0)
         {
             warnings.Add("Malformed workspace rule.");
@@ -153,7 +127,7 @@ internal static partial class WorkspaceRules
         var fatal = false;
         foreach (var piece in value[(comma + 1)..].Split(','))
         {
-            var field = LineText.Unescape(piece.Trim());
+            var field = piece.Trim();
             if (field.Length == 0)
                 continue;
 
@@ -187,7 +161,7 @@ internal static partial class WorkspaceRules
         WorkspaceRule? merged = null;
         foreach (var rule in rules)
         {
-            if (!rule.Active || !Matches(rule.WorkspaceString, id, displayName, monitor, count, fullscreen))
+            if (!Matches(rule.WorkspaceString, id, displayName, monitor, count, fullscreen))
                 continue;
 
             merged = merged is null ? rule : merged.Merge(rule);
@@ -202,7 +176,7 @@ internal static partial class WorkspaceRules
         ArgumentNullException.ThrowIfNull(monitor);
         foreach (var rule in rules)
         {
-            if (!rule.Active || rule.Default != true)
+            if (rule.Default != true)
                 continue;
 
             if (rule.Monitor.Length > 0 && !MonitorRules.Matches(monitor, rule.Monitor))
@@ -219,7 +193,7 @@ internal static partial class WorkspaceRules
         ArgumentNullException.ThrowIfNull(rules);
         foreach (var rule in rules)
         {
-            if (rule.Active && rule.WorkspaceName == id.Name)
+            if (rule.WorkspaceName == id.Name)
                 return rule.Monitor;
         }
 
@@ -365,32 +339,6 @@ internal static partial class WorkspaceRules
 
         if (Take(field, "floatgaps:", out var floatGaps) || Take(field, "float_gaps:", out floatGaps))
             return TryGaps(rule, floatGaps, warnings, static (current, gaps) => current with { FloatGaps = gaps }, out updated, out failed);
-
-        if (Take(field, "ruleid:", out var ruleId))
-        {
-            if (!int.TryParse(ruleId.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) || id < 1)
-            {
-                warnings.Add("Malformed workspace rule.");
-                failed = true;
-                return false;
-            }
-
-            updated = rule with { RuleId = id };
-            return true;
-        }
-
-        if (Take(field, "ruleon:", out var ruleOn))
-        {
-            if (!TryBool(ruleOn, out var active))
-            {
-                warnings.Add("Malformed workspace rule.");
-                failed = true;
-                return false;
-            }
-
-            updated = rule with { Active = active, ActiveSpecified = true };
-            return true;
-        }
 
         return true;
     }
@@ -548,7 +496,7 @@ internal static partial class WorkspaceRules
 
     private static RuleJson Describe(WorkspaceRule rule) => new(
         rule.WorkspaceString,
-        rule.Active,
+        true,
         rule.Monitor.Length == 0 ? null : rule.Monitor,
         rule.Default,
         rule.Persistent,

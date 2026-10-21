@@ -58,14 +58,8 @@ public sealed class KeyboardHook : IDisposable
     private static int _held;
 
     // Every key the user physically holds, one bit per virtual key, as the hook saw them, a key a bind swallows too.
-    // Only the hook thread writes it; the Lua config's hl.is_key_down reads it.
+    // Only the hook thread writes it.
     private static readonly long[] _down = new long[4];
-
-    /// <summary>
-    /// Each key the user presses or lets go, with its XKB keycode, the time Windows stamped on it in milliseconds and
-    /// whether it went down. A key Windows repeats while it is held is not raised again. Raised on the hook thread.
-    /// </summary>
-    public static event Action<int, uint, bool>? KeySeen;
 
     // Modifiers a relay pressed and left down on purpose. Not stale.
     private static int _relayed;
@@ -85,11 +79,6 @@ public sealed class KeyboardHook : IDisposable
     private readonly bool[] _givenBack = new bool[256];
     private readonly Queue<(SwallowedKey Key, IReadOnlyList<string> Release, bool? StillDown)> _replays = new();
     private readonly Lock _replayGate = new();
-
-    // Set on the bind worker while a luafunction dispatch runs, so that dispatch notes the Lua result instead of
-    // the dispatcher's own, which returns before the function does.
-    [ThreadStatic]
-    private static BindConsumption? _luaConsumption;
 
     private readonly object _timerGate = new();
     private HHOOK _hook;
@@ -313,11 +302,6 @@ public sealed class KeyboardHook : IDisposable
 
             var repeated = !up && IsDown((int)info.vkCode);
             NoteHeld(info.vkCode, up);
-            if (!repeated && KeySeen is { } seen)
-            {
-                var scanned = info.scanCode > int.MaxValue ? 0 : (int)info.scanCode;
-                seen(KeyNames.XkbCode((int)info.vkCode, scanned, info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_EXTENDED)), info.time, !up);
-            }
 
             // misc:key_press_enables_dpms: any key turns the displays back on after dpms turned them off.
             if (_core.KeyWakesDisplays)
@@ -1073,9 +1057,6 @@ public sealed class KeyboardHook : IDisposable
                 return;
             }
 
-            if (queued.Lua)
-                _luaConsumption = queued.Consumption;
-
             var outcome = _core.Handle(new Dispatch(queued.Dispatcher, queued.Arguments) { Trigger = queued.Trigger });
             Apply(outcome);
             noted = NoteConsumption(queued, outcome.Error is null);
@@ -1088,35 +1069,12 @@ public sealed class KeyboardHook : IDisposable
         }
     }
 
-    // A built-in dispatcher notes its own result. A Lua function notes later, from the result it returns, unless the
-    // dispatcher did not take that note, in which case this one stands.
     private static bool NoteConsumption(Queued queued, bool succeeded)
     {
         if (queued.Consumption is not { } note)
             return true;
 
-        if (queued.Lua && _luaConsumption is null)
-            return true;
-
-        _luaConsumption = null;
         note.Note(succeeded);
-        return true;
-    }
-
-    /// <summary>
-    /// The auto-consuming Lua dispatch running on this thread, if the bind worker is inside one. The dispatcher
-    /// takes it and notes the function's result. True when there was one.
-    /// </summary>
-    public static bool TakeLuaConsumption(out Action<bool> note)
-    {
-        if (_luaConsumption is not { } pending)
-        {
-            note = static _ => { };
-            return false;
-        }
-
-        _luaConsumption = null;
-        note = pending.Note;
         return true;
     }
 
@@ -1171,8 +1129,7 @@ public sealed class KeyboardHook : IDisposable
             arguments,
             false,
             Trigger: trigger,
-            Consumption: batch,
-            Lua: batch is not null && dispatcher == TrackpadGesture.FunctionAction));
+            Consumption: batch));
     }
 
     private void PostReplay(SwallowedKey key, IReadOnlyList<string> release, bool? stillDown = null)
@@ -1291,6 +1248,5 @@ public sealed class KeyboardHook : IDisposable
         bool HasTime = false,
         Input? Event = null,
         BindTrigger? Trigger = null,
-        BindConsumption? Consumption = null,
-        bool Lua = false);
+        BindConsumption? Consumption = null);
 }

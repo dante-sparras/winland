@@ -117,24 +117,6 @@ public class KeybindsConformance
     }
 
     [Fact]
-    public void LuaDispatcherStrings()
-    {
-        using var desk = Desk.WithLua("", ConfigBinds);
-
-        Assert.Equal("ok", desk.Send("eval B = hl.bind('SUPER + F24', hl.dsp.exec_cmd('true'))"));
-        Assert.Equal("HL.Dispatcher(exec_cmd)", desk.Send("repl return B.handler"));
-        Assert.Equal("ok", desk.Send("eval B:unbind()"));
-
-        Assert.Equal("ok", desk.Send("eval B = hl.bind('SUPER + F24', hl.dsp.window.close())"));
-        Assert.Equal("HL.Dispatcher(close)", desk.Send("repl return B.handler"));
-        Assert.Equal("ok", desk.Send("eval B:unbind()"));
-
-        Assert.Equal("ok", desk.Send("eval B = hl.bind('SUPER + F24', function() hl.exec_cmd('true') end)"));
-        Assert.StartsWith("function: ", desk.Send("repl return B.handler"), StringComparison.Ordinal);
-        Assert.Equal("ok", desk.Send("eval B:unbind()"));
-    }
-
-    [Fact]
     public void ModifierReleaseBindShadowing()
     {
         var desk = new Desk(ConfigBinds);

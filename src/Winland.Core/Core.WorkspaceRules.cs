@@ -11,7 +11,7 @@ public sealed partial class Core
         var hinted = WorkspaceRules.For(_workspaceRules, id, null, null);
         var bound = BoundMonitor(hinted);
         var owner = bound?.Id ?? monitor ?? FocusedId();
-        var layout = LayoutFactory.Create(_config, hinted?.Layout, LayoutScripts);
+        var layout = LayoutFactory.Create(_config, hinted?.Layout);
         layout.Configure(_scrolling);
         RankFocus(layout);
         var desk = new LiveWorkspace(id, owner, layout);
@@ -62,7 +62,7 @@ public sealed partial class Core
     {
         foreach (var rule in _workspaceRules)
         {
-            if (!rule.Active || rule.Persistent != true || !WorkspaceRules.TryConcrete(rule.WorkspaceString, out var id) || FindWorkspace(id) is not null)
+            if (rule.Persistent != true || !WorkspaceRules.TryConcrete(rule.WorkspaceString, out var id) || FindWorkspace(id) is not null)
                 continue;
 
             // A Workspace bound to a Monitor that is not there yet waits for it.
@@ -89,20 +89,6 @@ public sealed partial class Core
             if (previous is not null && previous.Active == desk.Id)
                 previous.Active = null;
         }
-    }
-
-    // A named workspace rule changed. The workspaces already there take its gaps, border and layout options now.
-    private Outcome RestampWorkspaces(Outcome current)
-    {
-        var placements = new List<Placement>();
-        foreach (var desk in _workspaces)
-        {
-            Stamp(desk);
-            if (IsShown(desk.Id))
-                placements.AddRange(desk.Layout.Apply(desk.Options));
-        }
-
-        return current with { Placements = placements, State = Snapshot() };
     }
 
     private void Stamp(LiveWorkspace desk)

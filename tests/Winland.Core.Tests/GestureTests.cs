@@ -119,30 +119,6 @@ public class GestureTests
     }
 
     [Fact]
-    public void AFunctionGestureReportsEachPhaseOfTheSwipe()
-    {
-        var core = Twin("gesture = 3, horizontal, luafunction, 7\n");
-        Assert.Empty(ConfigParser.Parse("gesture = 3, horizontal, luafunction, 7\n").Warnings);
-
-        core.Handle(new SwipeBegan(3));
-        var waiting = core.Handle(new SwipeUpdated(3, 2, 0));
-        var started = core.Handle(new SwipeUpdated(3, 4, -1) { TimeMs = 20 });
-        var updated = core.Handle(new SwipeUpdated(3, 6, 0) { TimeMs = 30 });
-        var ended = core.Handle(new SwipeEnded { TimeMs = 40 });
-
-        Assert.Empty(waiting.GestureCalls);
-        Assert.Equal(
-            [
-                new GestureCall("7", GesturePhase.Start, GestureDirection.Right, 20, 3, 4, -1),
-                new GestureCall("7", GesturePhase.Update, GestureDirection.Right, 20, 3, 4, -1),
-            ],
-            started.GestureCalls);
-        Assert.Equal([new GestureCall("7", GesturePhase.Update, GestureDirection.Right, 30, 3, 6, 0)], updated.GestureCalls);
-        Assert.Equal([new GestureCall("7", GesturePhase.End, GestureDirection.Horizontal, 40)], ended.GestureCalls);
-        Assert.Equal(WorkspaceId.Initial, ended.State.ActiveWorkspace);
-    }
-
-    [Fact]
     public void ShortSlowSwipeReverts()
     {
         var core = Twin(Horizontal);

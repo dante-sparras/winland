@@ -1,7 +1,7 @@
 namespace Winland;
 
 /// <summary>
-/// A spring curve from <c>hl.curve</c>, as Winland's animation library steps one: a mass on a spring
+/// A spring curve from a <c>spring</c> line, as Winland's animation library steps one: a mass on a spring
 /// with damping, let go from 0 at rest and pulled to 1, measured in seconds. It runs until it is within
 /// <see cref="Epsilon"/> of 1 and slower than <see cref="Epsilon"/> a second, so its time is its own and not the
 /// animation's speed.

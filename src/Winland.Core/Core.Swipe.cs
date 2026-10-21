@@ -62,9 +62,6 @@ public sealed partial class Core
     // One step of the gesture a swipe or pinch picked. The update that picked it is its first step.
     private Outcome UpdateActive(SwipeUpdated updated, Outcome? begun)
     {
-        if (_activeGesture is { IsFunction: true } function)
-            return CallFunction(function, begun is null ? GesturePhase.Update : GesturePhase.Start, updated);
-
         if (_activeGesture is { IsScrollMove: true } scrollMove)
         {
             var stepped = StepScrollMove(scrollMove, updated);
@@ -102,7 +99,7 @@ public sealed partial class Core
         return StepWorkspaceSwipe(swipe, swipe.Delta + (_swipe.Invert ? -along : along));
     }
 
-    private Outcome EndSwipe(bool cancelled, long timeMs)
+    private Outcome EndSwipe(bool cancelled)
     {
         // An update after the fingers lift belongs to no swipe until the next one begins.
         _gestureFindFailed = true;
@@ -110,12 +107,6 @@ public sealed partial class Core
             return View([]);
 
         _activeGesture = null;
-        if (gesture.IsFunction)
-        {
-            var end = new GestureCall(gesture.Argument, GesturePhase.End, gesture.Direction, timeMs, Cancelled: cancelled);
-            return View([]) with { GestureCalls = [end] };
-        }
-
         if (gesture.IsScrollMove)
             return EndScrollMove(cancelled);
 
@@ -173,27 +164,12 @@ public sealed partial class Core
             return BeginSpecialSwipe(gesture);
         else if (gesture.IsScrollMove)
             BeginScrollMove();
-        else if (gesture.IsFunction)
-            return View([]);
         else if (gesture.IsClose)
             BeginCloseSwipe();
         else if (gesture.IsMove || gesture.IsResize)
             return BeginWindowGesture(gesture);
 
         return null;
-    }
-
-    // A luafunction gesture hands the Lua config each phase of the swipe. The update that picks the gesture starts it
-    // and is its first update too, and each phase has the direction the fingers took.
-    private Outcome CallFunction(TrackpadGesture gesture, GesturePhase phase, SwipeUpdated updated)
-    {
-        GestureCall Call(GesturePhase each) =>
-            new(gesture.Argument, each, _gestureDirection, updated.TimeMs, updated.Fingers, updated.DeltaX, updated.DeltaY);
-
-        IReadOnlyList<GestureCall> calls = phase == GesturePhase.Start
-            ? [Call(GesturePhase.Start), Call(GesturePhase.Update)]
-            : [Call(GesturePhase.Update)];
-        return View([]) with { GestureCalls = calls };
     }
 
     // The dispatcher, close, float and fullscreen gestures act once the fingers lift, as Winland ends them:

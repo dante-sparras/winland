@@ -98,7 +98,7 @@ internal static partial class WindowRuleParser
         var tags = new List<string>();
         foreach (var rule in rules)
         {
-            if (rule.Effect == WindowRuleEffect.Tag && rule.Active && rule.Edit == WindowRuleEdit.None && rule.Text is string tag && Matches(rule, traits) && MatchesState(rule, subject))
+            if (rule.Effect == WindowRuleEffect.Tag && rule.Text is string tag && Matches(rule, traits) && MatchesState(rule, subject))
                 tags.Add(tag);
         }
 
@@ -107,7 +107,7 @@ internal static partial class WindowRuleParser
 
     /// <summary>True when the rule reads a window's state, so it is checked again as that state changes.</summary>
     internal static bool ReadsState(WindowRule rule) =>
-        rule.Active && rule.Edit == WindowRuleEdit.None && (rule.Dynamic is { Count: > 0 } || rule.Effect == WindowRuleEffect.Tag);
+        rule.Dynamic is { Count: > 0 } || rule.Effect == WindowRuleEffect.Tag;
 
     /// <summary>True when the rule's effect is one Winland applies again while the window lives.</summary>
     internal static bool IsDynamicEffect(WindowRule rule) => rule.Effect is WindowRuleEffect.Prop

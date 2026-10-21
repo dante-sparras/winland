@@ -342,9 +342,8 @@ public class DeviceBindTests
     [Fact]
     public void TheDeviceFieldAndTagsAreReadAndAnInvalidFieldWarns()
     {
-        var comma = LineText.Comma;
         var document = ConfigParser.Parse(
-            $"bindnakd = SUPER, Q, leave, +a{comma}b\uE001hash##name, exit\n" +
+            "bindnakd = SUPER, Q, leave, +ab\uE001hash##name, exit\n" +
             "bindk = , Q, board, killactive\n" +
             "bindk = , W, +board, killactive\n" +
             "bindmk = , mouse:272, +pad, killactive\n" +
@@ -360,7 +359,7 @@ public class DeviceBindTests
             ],
             document.Warnings);
         var bind = Assert.Single(document.Binds.OfType<Bind>());
-        Assert.Equal(["a,b", "hash#name"], bind.Devices);
+        Assert.Equal(["ab", "hash#name"], bind.Devices);
         Assert.Equal(BindFlag.NonConsuming | BindFlag.AutoConsuming | BindFlag.DeviceInclusive, bind.Flags);
         Assert.Equal("leave", bind.Description);
         var tag = Assert.Single(document.DeviceTags);
