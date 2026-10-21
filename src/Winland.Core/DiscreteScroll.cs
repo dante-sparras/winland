@@ -8,7 +8,7 @@ namespace Winland;
 /// <remarks>
 /// The first turn of a run, a run being the same axis and direction with under <see cref="IdleMs"/> between turns, sends
 /// a notch at once so the wheel answers. After that a notch is sent for every <c>120 / factor</c> units the turns add
-/// up to, where <c>factor</c> is the <c>scroll_factor</c> Windows' wheel lines already apply. Used on the hook thread.
+/// up to. The mouse hook passes a factor of 1, so a notch is 120 units. Used on the hook thread.
 /// </remarks>
 public sealed class DiscreteScroll
 {

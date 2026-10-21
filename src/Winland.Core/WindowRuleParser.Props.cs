@@ -10,7 +10,7 @@ internal static partial class WindowRuleParser
     {
         "allows_input", "decorate", "focus_on_activate", "keep_aspect_ratio", "nearest_neighbor", "no_anim",
         "no_blur", "no_follow_mouse", "no_shortcuts_inhibit", "force_rgbx",
-        "sync_fullscreen", "immediate", "render_unfocused", "no_screen_share", "no_vrr", "no_auto_hdr", "persistent_size",
+        "sync_fullscreen", "immediate", "render_unfocused", "no_screen_share", "no_auto_hdr", "persistent_size",
     };
 
     private static readonly HashSet<string> FloatProps = new(StringComparer.Ordinal) { "rounding_power", "scroll_mouse", "scroll_touchpad" };

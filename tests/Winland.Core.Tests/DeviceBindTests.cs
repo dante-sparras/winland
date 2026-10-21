@@ -43,14 +43,15 @@ public class DeviceBindTests
     }
 
     [Fact]
-    public void ATagMatchesAsTheDeviceNameDoesAndAnEmptyTagListDoesNotFallThrough()
+    public void ADeviceTagIsNotABindName()
     {
-        var core = Load("device[board]:tags = laptop, desk\nbindnk = , Q, +laptop, killactive\n");
+        var document = ConfigParser.Parse("device[board]:tags = laptop, desk\nbindnk = , Q, +laptop, killactive\n");
+        var core = new Core();
+        core.Handle(new ConfigLoaded(document));
 
-        Assert.Equal("killactive", Press(core, "Q", "board").Dispatcher);
-        Assert.Null(Press(core, "Q", "board", []).Dispatcher);
-        Assert.Equal("killactive", Press(core, "Q", "elsewhere", ["laptop"]).Dispatcher);
-        Assert.Null(Press(core, "Q", "Board").Dispatcher);
+        Assert.Equal(new ConfigWarning(1, "Unsupported keyword 'device[board]:tags'."), Assert.Single(document.Warnings));
+        Assert.Null(Press(core, "Q", "board").Dispatcher);
+        Assert.Equal("killactive", Press(core, "Q", "laptop").Dispatcher);
     }
 
     [Fact]
@@ -355,6 +356,8 @@ public class DeviceBindTests
             [
                 new ConfigWarning(2, "Bind device is invalid."),
                 new ConfigWarning(3, ConfigParser.ConsumingDeviceBind),
+                new ConfigWarning(5, "Unsupported keyword 'device[board]:tags'."),
+                new ConfigWarning(7, "Unsupported keyword 'device[board]:tags'."),
                 new ConfigWarning(9, "Unsupported keyword 'device:sensitivity'."),
             ],
             document.Warnings);
@@ -362,9 +365,6 @@ public class DeviceBindTests
         Assert.Equal(["ab", "hash#name"], bind.Devices);
         Assert.Equal(BindFlag.NonConsuming | BindFlag.AutoConsuming | BindFlag.DeviceInclusive, bind.Flags);
         Assert.Equal("leave", bind.Description);
-        var tag = Assert.Single(document.DeviceTags);
-        Assert.Equal("board", tag.Device);
-        Assert.Equal(["laptop"], tag.Tags);
     }
 
     private static Core Load(string text)
@@ -374,8 +374,8 @@ public class DeviceBindTests
         return core;
     }
 
-    private static BindDecision Press(Core core, string key, string? device = null, IReadOnlyList<string>? tags = null) =>
-        Decide(core, new BindSession(), new KeyPressed(key) { Device = device, DeviceTags = tags });
+    private static BindDecision Press(Core core, string key, string? device = null) =>
+        Decide(core, new BindSession(), new KeyPressed(key) { Device = device });
 
     private static BindDecision Decide(Core core, BindSession session, Input input) => core.Decide(input, session);
 

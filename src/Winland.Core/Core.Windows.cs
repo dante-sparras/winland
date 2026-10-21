@@ -197,7 +197,6 @@ public sealed partial class Core
         RememberFocus(appeared.Window, decision);
         RememberOpacity(appeared.Window, decision);
         RememberRuleProps(appeared.Window, decision);
-        RememberExecutable(appeared);
         RememberRuleSubject(appeared.Window, traits, followed, decision);
         NoteOwner(appeared);
         Stack(appeared.Window, top: true);

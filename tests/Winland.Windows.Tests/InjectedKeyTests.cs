@@ -21,21 +21,4 @@ public class InjectedKeyTests
         Assert.False(inputs[0].Anonymous.ki.dwFlags.HasFlag(KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP));
         Assert.True(inputs[1].Anonymous.ki.dwFlags.HasFlag(KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP));
     }
-
-    [Fact]
-    public void TheNumLockToggleIsTaggedAndExtended()
-    {
-        var inputs = Win32SystemInput.NumLockToggle();
-
-        Assert.Equal(2, inputs.Length);
-        Assert.All(inputs, input =>
-        {
-            Assert.Equal(KeyboardHook.InjectedTag, input.Anonymous.ki.dwExtraInfo);
-            Assert.Equal(0x90, (int)input.Anonymous.ki.wVk);
-            Assert.Equal(0x45, input.Anonymous.ki.wScan);
-            Assert.True(input.Anonymous.ki.dwFlags.HasFlag(KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY));
-        });
-        Assert.False(inputs[0].Anonymous.ki.dwFlags.HasFlag(KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP));
-        Assert.True(inputs[1].Anonymous.ki.dwFlags.HasFlag(KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP));
-    }
 }

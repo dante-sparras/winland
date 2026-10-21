@@ -1,10 +1,8 @@
 namespace Winland.Windows;
 
 /// <summary>
-/// Applies cursor, input, relayed key, display mirror, display color and variable refresh requests from an
-/// outcome. Until <see cref="InstallSystem"/> the cursor and the system input are stand-ins, no key is sent, no
-/// display is mirrored or recolored and no graphics preference is written, so tests that apply an outcome do not
-/// change the machine.
+/// Applies cursor and relayed key requests from an outcome. Until <see cref="InstallSystem"/> the cursor is a
+/// stand-in and no key is sent, so tests that apply an outcome do not change the machine.
 /// </summary>
 public static class SessionEffects
 {
@@ -14,28 +12,9 @@ public static class SessionEffects
     // cursor:hotspot_padding and the monitors it keeps the cursor inside, in physical pixels. The mouse hook reads both.
     private static volatile int _padding;
     private static volatile Rectangle[] _monitors = [];
-    private static SystemInputSession? _session;
-    private static KeyboardLayoutSwitcher? _layouts;
     private static CursorIdleTimer? _timer;
     private static IKeyRelaySender? _relay;
-    private static DisplayMirrorSession? _mirrors;
-    private static GpuPreferenceSession? _vrr;
-    private static DisplayColorSession? _colors;
     private static int _installed;
-
-    public static InputOriginals? Originals => _session?.Originals;
-
-    /// <summary>Graphics preferences Winland changed, to put back.</summary>
-    public static VrrOriginals? OriginalVrr => _vrr?.Originals;
-
-    /// <summary>The displays Winland made mirror another, to put back.</summary>
-    public static IReadOnlyList<DisplayMirrorOriginal> MirrorOriginals => _mirrors?.Originals ?? [];
-
-    /// <summary>The color switches Winland changed, to put back.</summary>
-    public static IReadOnlyList<DisplayColorOriginal> ColorOriginals => _colors?.Originals ?? [];
-
-    /// <summary>The first layout <c>kb_layout</c> names, once loaded, or 0.</summary>
-    public static nint FirstLayout => _layouts?.First ?? 0;
 
     public static void InstallSystem()
     {
@@ -43,13 +22,8 @@ public static class SessionEffects
             return;
 
         Idle.Use(new Win32Cursor());
-        _session = new SystemInputSession(new Win32SystemInput());
-        _layouts = new KeyboardLayoutSwitcher(new Win32KeyboardLayouts());
         _timer = new CursorIdleTimer(Idle);
         _relay = new Win32KeyRelaySender();
-        _mirrors = new DisplayMirrorSession(new Win32DisplayTopology());
-        _vrr = new GpuPreferenceSession(new RegistryGpuPreferences());
-        _colors = new DisplayColorSession(new Win32DisplayColorControl());
     }
 
     public static void Apply(Outcome outcome)
@@ -84,23 +58,7 @@ public static class SessionEffects
             Back.NonMouse();
         }
 
-        _layouts?.Apply(outcome.KeyboardLayout);
-        if (outcome.InputSettings is InputSettingsRequest settings)
-            _session?.Apply(settings);
-        else
-            _session?.Revert();
-
-        if (outcome.Vrr is VrrRequest vrr)
-            _vrr?.Apply(vrr);
-
         Relay(outcome);
-        // A layout outcome carries the mirrors, including none. Color is applied with it, and an empty list puts back
-        // a switch an earlier layout turned. Any other outcome leaves the displays alone.
-        if (outcome.DisplayMirrors is { } mirrors)
-        {
-            _mirrors?.Apply(mirrors);
-            _colors?.Apply(outcome.DisplayColors);
-        }
     }
 
     /// <summary>
@@ -155,28 +113,12 @@ public static class SessionEffects
 
     public static void Restore()
     {
-        _session?.Restore();
-        _vrr?.Restore();
-        _mirrors?.Restore();
-        _colors?.Restore();
-        _layouts?.Restore();
         Magnifier.Stop();
         CursorShape.Reset();
         Idle.Reveal();
         _timer?.Dispose();
         _timer = null;
     }
-
-    public static void RestoreSaved(InputOriginals saved) => _session?.RestoreSaved(saved);
-
-    /// <summary>Puts back graphics preferences a run that did not stop cleanly left.</summary>
-    public static void RestoreSaved(VrrOriginals saved) => _vrr?.RestoreSaved(saved);
-
-    /// <summary>Puts back the mirrors a run that did not stop cleanly left.</summary>
-    public static void RestoreSaved(IReadOnlyList<DisplayMirrorOriginal> mirrors) => _mirrors?.RestoreSaved(mirrors);
-
-    /// <summary>Puts back the color switches a run that did not stop cleanly left.</summary>
-    public static void RestoreSaved(IReadOnlyList<DisplayColorOriginal> colors) => _colors?.RestoreSaved(colors);
 
     private sealed class NullCursor : ICursorSurface
     {

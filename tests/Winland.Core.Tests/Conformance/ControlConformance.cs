@@ -10,20 +10,6 @@ namespace Winland.Tests.Conformance;
 public class ControlConformance
 {
     [Fact]
-    public void HyprctlDevicesActiveLayoutIndex()
-    {
-        var desk = new Desk();
-        Assert.Equal("ok", desk.Send("r/keyword input:kb_layout us,pl,ua"));
-
-        for (var i = 0; i < 3; i++)
-        {
-            desk.Send($"switchxkblayout all {i}");
-            var keyboards = Json(desk.Send("j/devices")).GetProperty("keyboards").EnumerateArray();
-            Assert.Contains(keyboards, keyboard => keyboard.GetProperty("active_layout_index").GetInt32() == i);
-        }
-    }
-
-    [Fact]
     public void HyprctlGetprop()
     {
         var desk = new Desk();

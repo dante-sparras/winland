@@ -140,64 +140,6 @@ public class TouchSwipeTests
     }
 
     [Fact]
-    public void ATransformTurnsALeftEdgeFingerIntoARightEdgeSwipe()
-    {
-        var core = Twin(On + "input:touchdevice:transform = 4\n");
-
-        core.Handle(new TouchDown(1, 0, 0.001, 0.5));
-        core.Handle(new TouchMoved(1, 0, 0.3, 0.5));
-        core.Handle(new TouchMoved(1, 0, 0.6, 0.5));
-
-        Assert.Equal(Next, core.Handle(new TouchUp(1, 0)).State.ActiveWorkspace);
-    }
-
-    [Fact]
-    public void AnOutputMapsTheTouchOntoThatMonitor()
-    {
-        var core = new Core();
-        var right = new Rectangle(1920, 0, 1920, 1080);
-        core.Handle(new MonitorsChanged([
-            new Monitor("DISPLAY1", "", 0, 0, 1920, 1080, 1, true, Area),
-            new Monitor("DISPLAY2", "", 1920, 0, 1920, 1080, 1, true, right),
-        ]));
-        core.Handle(new Configure(ConfigParser.Parse(On + "input:touchdevice:output = DISPLAY2\n")));
-        core.Handle(new Dispatch("focusmonitor", "DISPLAY2"));
-        core.Handle(new Dispatch("workspace", "5"));
-        core.Handle(new WindowAppeared(new WindowId(5), right));
-        core.Handle(new Dispatch("workspace", "6"));
-        core.Handle(new WindowAppeared(new WindowId(6), right));
-        core.Handle(new Dispatch("workspace", "5"));
-        core.Handle(new Dispatch("focusmonitor", "DISPLAY1"));
-
-        core.Handle(new TouchDown(1, 0, 0.999, 0.5, Area));
-        core.Handle(new TouchMoved(1, 0, 0.2, 0.5, Area));
-
-        Assert.Equal(new WorkspaceId("6"), core.Handle(new TouchUp(1, 0)).State.ActiveWorkspace);
-    }
-
-    [Fact]
-    public void ADisabledTouchScreenDoesNotSwipe()
-    {
-        var core = Twin(On + "input:touchdevice:enabled = false\n");
-
-        core.Handle(new TouchDown(1, 0, 0.999, 0.5));
-        core.Handle(new TouchMoved(1, 0, 0.2, 0.5));
-
-        Assert.Equal(WorkspaceId.Initial, core.Handle(new TouchUp(1, 0)).State.ActiveWorkspace);
-    }
-
-    [Fact]
-    public void DisablingTheTouchScreenPutsTheSwipeBack()
-    {
-        var core = Twin(On);
-        core.Handle(new TouchDown(1, 0, 0.999, 0.5));
-        core.Handle(new TouchMoved(1, 0, 0.4, 0.5));
-        core.Handle(new Configure(ConfigParser.Parse(On + "input:touchdevice:enabled = false\n")));
-
-        Assert.Equal(WorkspaceId.Initial, core.Handle(new TouchMoved(1, 0, 0.2, 0.5)).State.ActiveWorkspace);
-    }
-
-    [Fact]
     public void AScreensFramesBecomeDownsMovesAndUpsOnlyForWantedFingers()
     {
         var screen = new TouchScreen(7);

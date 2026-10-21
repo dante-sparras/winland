@@ -23,15 +23,6 @@ public sealed record ConfigDocument(
     public IReadOnlyList<string> Sources { get; init; } = [];
 
     public IReadOnlyList<TrackpadGesture> Gestures { get; init; } = [];
-
-    /// <summary><c>device[name]:tags</c>, in config order. A later line for the same device replaces the earlier one.</summary>
-    public IReadOnlyList<DeviceTag> DeviceTags { get; init; } = [];
-
-    /// <summary>
-    /// <c>device[name]</c> sensitivity, scroll factor and rotation, in config order. A later line for the same device
-    /// and field replaces the earlier one. The name is the spelling the <c>devices</c> reply uses.
-    /// </summary>
-    public IReadOnlyList<DevicePointer> DevicePointers { get; init; } = [];
 }
 
 public sealed record ConfigRead(ConfigDocument? Document, ConfigWarning? Failure = null);
@@ -48,9 +39,6 @@ public sealed record Bind(
     string? Submap,
     string? SubmapReset = null,
     IReadOnlyList<string>? Devices = null) : BindDirective;
-
-/// <summary>Tags named for one device. A bind's device list matches a tag as it matches the device's name.</summary>
-public sealed record DeviceTag(string Device, IReadOnlyList<string> Tags);
 
 public sealed record Unbind(Modifier Modifiers, string Key) : BindDirective;
 

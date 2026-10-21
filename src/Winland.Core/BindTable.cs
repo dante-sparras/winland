@@ -6,7 +6,7 @@ namespace Winland;
 /// <summary>One consistent bind table. Published as a whole on config load and reload.</summary>
 public sealed class BindTable
 {
-    public static BindTable Empty { get; } = new([], dragThreshold: 0, scrollDelay: 300, longPressDelay: 600, deviceTags: null);
+    public static BindTable Empty { get; } = new([], dragThreshold: 0, scrollDelay: 300, longPressDelay: 600);
 
     private static readonly Bind[] NoBinds = [];
 
@@ -14,10 +14,9 @@ public sealed class BindTable
     private readonly Dictionary<string, Bind[]> _active;
     private readonly HashSet<string> _submaps;
     private readonly Bind[] _universal;
-    private readonly Dictionary<string, string[]> _deviceTags;
     private readonly bool _hasDeviceBind;
 
-    private BindTable(Bind[] entries, int dragThreshold, int scrollDelay, int longPressDelay, Dictionary<string, string[]>? deviceTags)
+    private BindTable(Bind[] entries, int dragThreshold, int scrollDelay, int longPressDelay)
     {
         LongPressDelay = longPressDelay;
         _entries = Array.AsReadOnly(entries);
@@ -54,12 +53,7 @@ public sealed class BindTable
         }
 
         _active = active;
-        _deviceTags = deviceTags ?? new Dictionary<string, string[]>(StringComparer.Ordinal);
     }
-
-    /// <summary>Tags of a device named as <c>devices</c> reports it, or null when the config names none.</summary>
-    internal IReadOnlyList<string>? TagsFor(string? name) =>
-        name is not null && _deviceTags.TryGetValue(name, out var tags) ? tags : null;
 
     public IReadOnlyList<Bind> Entries => _entries;
 
@@ -75,7 +69,7 @@ public sealed class BindTable
 
     internal int ScrollDelay { get; }
 
-    /// <summary>How long a key is held before a long-press bind runs: <c>input:repeat_delay</c>.</summary>
+    /// <summary>How long a key is held before a long-press bind runs, in milliseconds. It does not follow a Windows setting.</summary>
     internal int LongPressDelay { get; }
 
     internal static BindTable From(ConfigDocument config)
@@ -98,7 +92,7 @@ public sealed class BindTable
             }
         }
 
-        return new BindTable([.. binds], ReadThreshold(config), ReadScrollDelay(config), ReadRepeatDelay(config), ReadDeviceTags(config));
+        return new BindTable([.. binds], ReadThreshold(config), ReadScrollDelay(config), LongPressMilliseconds);
     }
 
     private static int ReadThreshold(ConfigDocument config)
@@ -125,24 +119,6 @@ public sealed class BindTable
         return delay;
     }
 
-    private static int ReadRepeatDelay(ConfigDocument config)
-    {
-        var delay = 600;
-        foreach (var setting in config.Settings)
-        {
-            if (setting.Keyword == "input:repeat_delay" && int.TryParse(setting.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) && parsed is >= 0 and <= 2000)
-                delay = parsed;
-        }
-
-        return delay;
-    }
-
-    private static Dictionary<string, string[]> ReadDeviceTags(ConfigDocument config)
-    {
-        var tags = new Dictionary<string, string[]>(StringComparer.Ordinal);
-        foreach (var entry in config.DeviceTags)
-            tags[entry.Device] = [.. entry.Tags];
-
-        return tags;
-    }
+    /// <summary>How long a key is held before a long-press bind runs, in milliseconds.</summary>
+    private const int LongPressMilliseconds = 600;
 }

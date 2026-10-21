@@ -4,13 +4,6 @@ public sealed partial class Core
 {
     private CursorOptions _cursor = CursorOptions.Documented;
     private volatile InputOptions _input = InputOptions.Documented;
-    private volatile PointerDevices _pointers = PointerDevices.Empty;
-    private int _pointerGeneration;
-    private DigitizerOptions _digitizer = DigitizerOptions.Documented;
-    private volatile DigitizerSpace _digitizerSpace = DigitizerSpace.Empty;
-
-    /// <summary>The pen and touch mapping the mouse hook reads, with no lock.</summary>
-    public DigitizerSpace Digitizer => _digitizerSpace;
     private Point? _pointer;
     private readonly Dictionary<WindowId, Point> _cursorOnWindow = [];
     private bool _defaultMonitorDone;
@@ -25,22 +18,8 @@ public sealed partial class Core
     {
         _cursor = CursorOptions.From(document);
         _input = InputOptions.From(document);
-        _digitizer = DigitizerOptions.From(document);
-        Touchpad = _input.Touchpad;
         ScrollCurve = _input.ScrollCurve;
-        KeyOptions = KeyboardOptions.Parse(_input.KbOptions);
-        _pointers = PointerDevices.From(document, _input);
-        Interlocked.Increment(ref _pointerGeneration);
     }
-
-    /// <summary>The per-device pointer overrides. The mouse hook reads them with no lock.</summary>
-    public PointerDevices Pointers => _pointers;
-
-    /// <summary>Bumps each time <see cref="Pointers"/> is replaced, so the hook can start or stop listening.</summary>
-    public int PointerGeneration => Volatile.Read(ref _pointerGeneration);
-
-    /// <summary>The pointer speed <c>input:sensitivity</c> maps to, when that key is set. The hook reads it with no lock.</summary>
-    public int? ConfiguredPointerSpeed => _input.Sensitivity is double sensitivity ? InputMapping.MouseSpeed(sensitivity) : null;
 
     private Outcome FinishCursor(Captured before, Outcome outcome, Input? input)
     {
@@ -75,11 +54,8 @@ public sealed partial class Core
         return outcome with
         {
             Warp = warp,
-            InputSettings = _input.Request(),
-            KeyboardLayout = LayoutRequest(),
             Cursor = _cursor.Behavior(),
             ResizeCursor = _resizeCursor,
-            Vrr = VrrNow(outcome.State),
         };
     }
 

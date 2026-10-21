@@ -69,7 +69,6 @@ internal static class WindowProps
         ["render_unfocused"] = PropKind.Bool,
         ["no_follow_mouse"] = PropKind.Bool,
         ["no_screen_share"] = PropKind.Bool,
-        ["no_vrr"] = PropKind.Bool,
         ["no_auto_hdr"] = PropKind.Bool,
         ["persistent_size"] = PropKind.Bool,
         ["stay_focused"] = PropKind.Bool,

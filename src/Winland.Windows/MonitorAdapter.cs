@@ -13,8 +13,7 @@ public static class MonitorAdapter
         // -4 is per-monitor v2 awareness. The manifest asks for the same thing, and this call
         // covers a host that has not declared it yet. A second call fails, which is fine.
         _ = PInvoke.SetProcessDpiAwarenessContext((DPI_AWARENESS_CONTEXT)(nint)(-4));
-        var mirrors = SessionEffects.MirrorOriginals;
-        return DisplayMirrors.Report(Enumerate(Panels(mirrors)), mirrors);
+        return Enumerate(Panels());
     }
 
     private static unsafe List<Winland.Monitor> Enumerate(Dictionary<string, Panel> panels)
@@ -84,8 +83,7 @@ public static class MonitorAdapter
 
     private readonly record struct Panel(string? Description, string? Make, double RefreshRate);
 
-    // A display Winland mirrors shares its source's name, so its panel does not describe that source.
-    private static Dictionary<string, Panel> Panels(IReadOnlyList<DisplayMirrorOriginal> mirrors)
+    private static Dictionary<string, Panel> Panels()
     {
         var panels = new Dictionary<string, Panel>(StringComparer.OrdinalIgnoreCase);
         if (!TryPaths(out var paths))
@@ -94,7 +92,7 @@ public static class MonitorAdapter
         foreach (var path in paths)
         {
             var source = SourceName(path);
-            if (source is null || IsMirror(path, mirrors))
+            if (source is null)
                 continue;
 
             var target = ReadTarget(path);
@@ -141,17 +139,6 @@ public static class MonitorAdapter
             adapter = path.targetInfo.adapterId;
             target = path.targetInfo.id;
             return true;
-        }
-
-        return false;
-    }
-
-    private static bool IsMirror(DISPLAYCONFIG_PATH_INFO path, IReadOnlyList<DisplayMirrorOriginal> mirrors)
-    {
-        foreach (var mirror in mirrors)
-        {
-            if (mirror.Adapter == DisplayTopology.Key(path.targetInfo.adapterId) && mirror.Target == path.targetInfo.id)
-                return true;
         }
 
         return false;

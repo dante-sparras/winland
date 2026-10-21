@@ -3,11 +3,10 @@ using System.Globalization;
 namespace Winland;
 
 /// <summary>
-/// <c>input:scroll_points</c>: the custom scroll acceleration curve, as libinput takes it. The value is a step and then
+/// <c>input:scroll_points</c>: the scroll acceleration curve, as libinput takes it. The value is a step and then
 /// the factors the wheel's speed is multiplied by: the first factor is at speed 0, the next one a step faster, and so on.
 /// Between two points the factor is interpolated in a straight line, and a speed past the last point gets the last factor.
-/// Like Winland, the curve applies only when <c>accel_profile</c> starts with <c>custom</c>. Speed is in
-/// scroll units per millisecond, where one wheel notch is <see cref="UnitsPerNotch"/> units.
+/// Speed is in scroll units per millisecond, where one wheel notch is <see cref="UnitsPerNotch"/> units.
 /// </summary>
 public sealed class ScrollCurve
 {
@@ -26,10 +25,10 @@ public sealed class ScrollCurve
         _points = points;
     }
 
-    /// <summary>The curve the two values name, or null when the profile is not custom, the points are unset, or they are not a step and at least two non-negative factors.</summary>
-    public static ScrollCurve? Parse(string? profile, string? points)
+    /// <summary>The curve the points name, or null when they are unset or are not a step and at least two non-negative factors.</summary>
+    public static ScrollCurve? Parse(string? points)
     {
-        if (profile is null || !profile.TrimStart().StartsWith("custom", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(points))
+        if (string.IsNullOrWhiteSpace(points))
             return null;
 
         var words = points.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

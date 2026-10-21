@@ -4,6 +4,8 @@ namespace Winland.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class LayoutConformance
 {
+    private const string MonitorNotHonored = "error: Monitor settings other than a reserved area are not honored.";
+
     [Fact]
     public void SingleWindowAspectRatio()
     {
@@ -28,9 +30,9 @@ public class LayoutConformance
         desk.Spawn("a");
         desk.Spawn("a");
 
-        Assert.Equal("ok", desk.Send("keyword monitor HEADLESS-2,1920x1080@60,1000x0,1"));
+        Assert.Equal(MonitorNotHonored, desk.Send("keyword monitor HEADLESS-2,1920x1080@60,1000x0,1"));
         desk.Ok("movefocus", "r");
-        Assert.Equal("ok", desk.Send("keyword monitor HEADLESS-2,1920x1080@60,0x0,1"));
+        Assert.Equal(MonitorNotHonored, desk.Send("keyword monitor HEADLESS-2,1920x1080@60,0x0,1"));
     }
 
     [Fact]
@@ -40,8 +42,8 @@ public class LayoutConformance
 
         desk.AddMonitor("HEADLESS-5", Desk.Second);
 
-        Assert.Equal("ok", desk.Send("keyword monitor HEADLESS-2,1920x1080@60,0x0,1"));
-        Assert.Equal("ok", desk.Send("keyword monitor HEADLESS-5,1920x1080@60,1920x0,1"));
+        Assert.Equal(MonitorNotHonored, desk.Send("keyword monitor HEADLESS-2,1920x1080@60,0x0,1"));
+        Assert.Equal(MonitorNotHonored, desk.Send("keyword monitor HEADLESS-5,1920x1080@60,1920x0,1"));
 
         desk.Ok("focusmonitor", "HEADLESS-5");
         desk.Ok("workspace", "30");
@@ -52,7 +54,7 @@ public class LayoutConformance
         desk.Ok("focusmonitor", "HEADLESS-2");
         desk.Ok("workspace", "1");
 
-        Assert.Equal("ok", desk.Send("keyword monitor HEADLESS-5,disable"));
+        Assert.Equal(MonitorNotHonored, desk.Send("keyword monitor HEADLESS-5,disable"));
         desk.Keyword("general:layout", "master");
 
         Assert.Contains("HEADLESS-5", desk.Send("monitors all"), StringComparison.Ordinal);

@@ -195,14 +195,6 @@ static int Run(string? path, RollingLogWriter log)
         SessionEffects.RestoreCursors();
     SessionEffects.InstallSystem();
     TaskbarControl.InstallSystem();
-    if (prior?.Input is InputOriginals saved)
-        SessionEffects.RestoreSaved(saved);
-    if (prior?.Vrr is VrrOriginals vrr)
-        SessionEffects.RestoreSaved(vrr);
-    if (prior?.Mirrors is { Count: > 0 } mirrored)
-        SessionEffects.RestoreSaved(mirrored);
-    if (prior?.Colors is { Count: > 0 } colors)
-        SessionEffects.RestoreSaved(colors);
     using var host = new WindowHost(core, snapshot => Persist(store, snapshot), PipeName());
     // Log off and shut down clean up from WM_ENDSESSION, on the loop thread. Closing the console calls in from
     // a thread of its own, so the cleanup is handed to the loop thread there too.
@@ -289,13 +281,7 @@ static ConfigRead ReadForReload(string path)
 static void Persist(RecoveryStore store, RecoverySnapshot snapshot)
 {
     // A Client that closed since the snapshot was taken is left out. The rest are still recorded.
-    store.Save(WindowIdentity.Annotate(snapshot with
-    {
-        Input = SessionEffects.Originals,
-        Mirrors = SessionEffects.MirrorOriginals,
-        Vrr = SessionEffects.OriginalVrr,
-        Colors = SessionEffects.ColorOriginals,
-    }));
+    store.Save(WindowIdentity.Annotate(snapshot));
 }
 
 static void Stop(WindowHost host, RecoveryStore store)

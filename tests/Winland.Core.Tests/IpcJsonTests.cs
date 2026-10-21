@@ -160,11 +160,9 @@ public class IpcJsonTests
     [Fact]
     public void MonitorsAllIncludesDisabledMonitors()
     {
-        var core = new Core(ConfigParser.Parse("""
-            monitor = \\.\DISPLAY2, disable
-            """));
+        var core = new Core();
         var left = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080));
-        var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024));
+        var right = new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, false, new Rectangle(1920, 0, 1280, 1024));
         core.Handle(new MonitorsChanged([left, right]));
 
         var shown = Json(core.Execute("j/monitors").Text).EnumerateArray().ToArray();

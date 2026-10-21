@@ -72,113 +72,34 @@ public class CursorInputTests
     }
 
     [Fact]
-    public void UnsetInputDoesNotRequestASystemChange()
-    {
-        var request = InputOptions.From(ConfigParser.Parse("")).Request();
-
-        Assert.Null(request);
-    }
-
-    [Fact]
-    public void InputSettingsMapOntoSystemRanges()
+    public void ASystemInputKeyWarnsAndIsNotApplied()
     {
         var document = ConfigParser.Parse("""
-            input {
-                repeat_rate = 25
-                repeat_delay = 600
-                numlock_by_default = true
-                left_handed = true
-                natural_scroll = true
-                accel_profile = flat
-                sensitivity = 0
-                scroll_factor = 1
-            }
+            input:natural_scroll = true
+            input:repeat_rate = 25
+            input:sensitivity = 0
+            input:left_handed = true
             """);
 
-        Assert.Empty(document.Warnings);
-        var options = InputOptions.From(document);
-        Assert.True(options.InvertsScroll);
-        var request = options.Request();
-        Assert.NotNull(request);
-        Assert.Equal(25, request.KeyboardSpeed);
-        Assert.Equal(1, request.KeyboardDelay);
-        Assert.True(request.NumLock);
-        Assert.True(request.SwapButtons);
-        Assert.Equal(PointerAcceleration.Flat, request.Acceleration);
-        Assert.Equal(10, request.MouseSpeed);
-        Assert.Equal(3, request.WheelLines);
-    }
-
-    [Theory]
-    [InlineData(0, 0)]
-    [InlineData(250, 0)]
-    [InlineData(600, 1)]
-    [InlineData(625, 2)]
-    [InlineData(1000, 3)]
-    [InlineData(2000, 3)]
-    public void KeyboardDelayPicksTheNearestStep(int milliseconds, int delay) =>
-        Assert.Equal(delay, InputMapping.KeyboardDelay(milliseconds));
-
-    [Theory]
-    [InlineData(0, 0)]
-    [InlineData(25, 25)]
-    [InlineData(30, 31)]
-    [InlineData(200, 31)]
-    public void KeyboardSpeedFollowsTheSystemScale(int repeatsPerSecond, int speed) =>
-        Assert.Equal(speed, InputMapping.KeyboardSpeed(repeatsPerSecond));
-
-    [Theory]
-    [InlineData(-1, 1)]
-    [InlineData(-0.5, 5)]
-    [InlineData(0, 10)]
-    [InlineData(0.5, 15)]
-    [InlineData(1, 20)]
-    public void SensitivityMapsOntoPointerSpeed(double sensitivity, int speed) =>
-        Assert.Equal(speed, InputMapping.MouseSpeed(sensitivity));
-
-    [Theory]
-    [InlineData(0, 0)]
-    [InlineData(0.5, 2)]
-    [InlineData(1, 3)]
-    [InlineData(2, 6)]
-    public void ScrollFactorMapsOntoWheelLines(double factor, int lines) =>
-        Assert.Equal(lines, InputMapping.WheelLines(factor));
-
-    [Fact]
-    public void AdaptiveAccelerationAndPartialSettingsStayPartial()
-    {
-        var request = InputOptions.From(ConfigParser.Parse("input:accel_profile = adaptive\ninput:sensitivity = 1\n")).Request();
-
-        Assert.NotNull(request);
-        Assert.Equal(PointerAcceleration.Adaptive, request.Acceleration);
-        Assert.Equal(20, request.MouseSpeed);
-        Assert.Null(request.KeyboardDelay);
-        Assert.Null(request.KeyboardSpeed);
-        Assert.Null(request.NumLock);
-        Assert.Null(request.SwapButtons);
-        Assert.Null(request.WheelLines);
+        Assert.Equal(
+            [
+                new ConfigWarning(2, "Unsupported keyword 'input:repeat_rate'."),
+                new ConfigWarning(3, "Unsupported keyword 'input:sensitivity'."),
+                new ConfigWarning(4, "Unsupported keyword 'input:left_handed'."),
+            ],
+            document.Warnings);
+        Assert.True(InputOptions.From(document).InvertsScroll);
+        Assert.Equal([new Setting("input:natural_scroll", "true")], document.Settings);
     }
 
     [Fact]
-    public void CustomAccelerationWarnsAndDoesNotRequestACurve()
-    {
-        var document = ConfigParser.Parse("input:accel_profile = custom\n");
-
-        Assert.Equal(new ConfigWarning(1, "Custom acceleration profiles are not honored."), Assert.Single(document.Warnings));
-        Assert.Null(InputOptions.From(document).Request());
-    }
-
-    [Fact]
-    public void FollowMouseAndATabletAreRead()
+    public void FollowMouseIsReadAndATabletKeyWarns()
     {
         var document = ConfigParser.Parse("input:follow_mouse = detached\ninput:tablet:enabled = true\n");
 
-        Assert.Equal(
-            [new Setting("input:follow_mouse", "detached"), new Setting("input:tablet:enabled", "true")],
-            document.Settings);
-        Assert.Empty(document.Warnings);
+        Assert.Equal([new Setting("input:follow_mouse", "detached")], document.Settings);
+        Assert.Equal(new ConfigWarning(2, "Unsupported keyword 'input:tablet:enabled'."), Assert.Single(document.Warnings));
         Assert.Equal(2, InputOptions.From(document).FollowMouse);
-        Assert.True(DigitizerOptions.From(document).Tablet.Enabled);
     }
 
     [Fact]
@@ -338,39 +259,35 @@ public class CursorInputTests
     }
 
     [Fact]
-    public void ConfigurePublishesTheInputRequest()
+    public void ConfigurePublishesTheCursorAndSkipsASystemInputKey()
     {
-        var core = new Core();
-        var outcome = core.Handle(new Configure(ConfigParser.Parse("input:repeat_rate = 30\ninput:scroll_factor = 2\n")));
+        var document = ConfigParser.Parse("input:repeat_rate = 30\ninput:scroll_factor = 2\n");
+        var outcome = new Core().Handle(new Configure(document));
 
-        Assert.NotNull(outcome.InputSettings);
-        Assert.Equal(31, outcome.InputSettings.KeyboardSpeed);
-        Assert.Equal(6, outcome.InputSettings.WheelLines);
-        Assert.Null(outcome.InputSettings.KeyboardDelay);
+        Assert.Equal(
+            [
+                new ConfigWarning(1, "Unsupported keyword 'input:repeat_rate'."),
+                new ConfigWarning(2, "Unsupported keyword 'input:scroll_factor'."),
+            ],
+            document.Warnings);
         Assert.Equal(new CursorBehavior(false, 0), outcome.Cursor);
     }
 
     [Fact]
-    public void SavedInputRoundTripsBesideTheClients()
+    public void ClientsRoundTripAndAnOldInputObjectIsIgnored()
     {
         var snapshot = new RecoverySnapshot(
-            [new RecoveredClient(new WindowId(7), WorkspaceId.Initial, MonitorId.Primary, false, "CabinetWClass", "Home", 9)])
-        {
-            Input = new InputOriginals
-            {
-                KeyboardDelay = 1,
-                KeyboardSpeed = 10,
-                NumLock = false,
-                SwappedButtons = true,
-                MouseCurve = new MouseCurve(6, 10, 1),
-                MouseSpeed = 10,
-                WheelLines = 3,
-            },
-        };
+            [new RecoveredClient(new WindowId(7), WorkspaceId.Initial, MonitorId.Primary, false, "CabinetWClass", "Home", 9)]);
 
         Assert.True(RecoverySnapshot.TryParse(snapshot.ToJson(), out var parsed));
         Assert.Equal(snapshot.Clients, parsed.Clients);
-        Assert.Equal(snapshot.Input, parsed.Input);
+        Assert.DoesNotContain("input", snapshot.ToJson(), StringComparison.Ordinal);
+
+        const string Older = """
+            {"clients":[{"window":7,"workspace":"1","monitor":0,"hidden":false,"class":"CabinetWClass","title":"Home","process":9}],"input":{"keyboardDelay":1},"mirrors":[],"vrr":{},"colors":[]}
+            """;
+        Assert.True(RecoverySnapshot.TryParse(Older, out var legacy));
+        Assert.Equal(snapshot.Clients, legacy.Clients);
     }
 
     private static Core Load(string text)

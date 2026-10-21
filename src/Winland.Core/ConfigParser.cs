@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Winland;
 
 public static partial class ConfigParser
@@ -38,8 +36,6 @@ public static partial class ConfigParser
         private readonly List<ConfigWarning> _warnings = [];
         private readonly List<WindowRule> _windowRules = [];
         private readonly List<WorkspaceRule> _workspaceRules = [];
-        private readonly List<DeviceTag> _deviceTags = [];
-        private readonly Dictionary<string, PointerDraft> _pointers = new(StringComparer.Ordinal);
         private readonly List<string> _sources = [];
         private readonly Dictionary<string, string> _variables = new(StringComparer.Ordinal);
         private readonly List<OpenCategory> _categories = [];
@@ -69,8 +65,6 @@ public static partial class ConfigParser
                 WorkspaceRules = _workspaceRules.Count == 0 ? WorkspaceRule.None : [.. _workspaceRules],
                 Sources = [.. _sources],
                 Gestures = [.. _gestures],
-                DeviceTags = [.. _deviceTags],
-                DevicePointers = [.. _pointers.Select(pair => new DevicePointer(pair.Key, pair.Value.Sensitivity, pair.Value.ScrollFactor, pair.Value.Rotation))],
             };
         }
 
@@ -236,10 +230,10 @@ public static partial class ConfigParser
                 return;
             }
 
-            if (TryDevice(lhs, rhs, out var global))
+            if (TryDevice(lhs, lineNumber))
                 return;
 
-            var keyword = global ?? (KeyedName.TryInline(lhs, out var inline) ? inline : Qualify(lhs));
+            var keyword = KeyedName.TryInline(lhs, out var inline) ? inline : Qualify(lhs);
             if (!HonoredKeywords.Contains(keyword))
             {
                 Warn(lineNumber, $"Unsupported keyword '{keyword}'.");
@@ -249,15 +243,6 @@ public static partial class ConfigParser
             _settings.Add(new Setting(keyword, rhs));
             if (keyword == LayoutOptions.LayoutKeyword && !LayoutOptions.HonorsLayout(rhs))
                 Warn(lineNumber, $"Layout '{rhs}' is not honored.");
-            else if (keyword == "input:kb_options")
-            {
-                foreach (var option in KeyboardOptions.Parse(rhs).Unknown)
-                    Warn(lineNumber, $"XKB option '{option}' is not honored.");
-            }
-            else if (keyword == "input:accel_profile" && rhs.TrimStart().StartsWith("custom", StringComparison.OrdinalIgnoreCase))
-                Warn(lineNumber, "Custom acceleration profiles are not honored.");
-            else if (keyword == "misc:vrr" && SessionOptions.VrrWarning(rhs) is string vrr)
-                Warn(lineNumber, vrr);
         }
 
         private void ParseBrace(int lineNumber, string line)
@@ -363,81 +348,16 @@ public static partial class ConfigParser
             _warnings.Add(new ConfigWarning(line, message, _source));
         }
 
-        // device[name]:field, or a field inside a device[name] block. tags, sensitivity, scroll_factor and rotation
-        // are kept. A field Windows applies to every device is returned as its input option in global, and then
-        // reads as that line. Any other field falls through and warns as that per-device option.
-        private bool TryDevice(string lhs, string rhs, out string? global)
+        // device[name]:field, or a field inside a device[name] block. Winland does not apply device settings.
+        private bool TryDevice(string lhs, int lineNumber)
         {
-            global = null;
             if (!TryDeviceField(lhs, out var name, out var field) || name.Length == 0)
                 return false;
 
-            if (DeviceGlobals.TryGetValue(field, out global))
-            {
-                // A block does not say whether it names a pen or a touch screen, so output and transform set both.
-                if (field is "output" or "transform")
-                    _settings.Add(new Setting("input:touchdevice:" + field, rhs));
-                return false;
-            }
-
-            if (field == "tags")
-            {
-                var tags = new List<string>();
-                foreach (var part in rhs.Split(','))
-                {
-                    var tag = part.Trim();
-                    if (tag.Length > 0)
-                        tags.Add(tag);
-                }
-
-                _deviceTags.RemoveAll(existing => existing.Device == name);
-                _deviceTags.Add(new DeviceTag(name, tags));
-                return true;
-            }
-
-            if (field is not ("sensitivity" or "scroll_factor" or "rotation"))
-                return false;
-
-            StorePointer(name, field, rhs);
+            var keyword = lhs.StartsWith("device[", StringComparison.Ordinal) ? lhs : $"device[{name}]:{field}";
+            Warn(lineNumber, $"Unsupported keyword '{keyword}'.");
             return true;
         }
-
-        // Per-device options that Windows has one setting for. A device block's value sets it for every device.
-        private static readonly Dictionary<string, string> DeviceGlobals = new(StringComparer.Ordinal)
-        {
-            ["accel_profile"] = "input:accel_profile",
-            ["kb_layout"] = "input:kb_layout",
-            ["kb_options"] = "input:kb_options",
-            ["kb_variant"] = "input:kb_variant",
-            ["left_handed"] = "input:left_handed",
-            ["natural_scroll"] = "input:natural_scroll",
-            ["numlock_by_default"] = "input:numlock_by_default",
-            ["repeat_delay"] = "input:repeat_delay",
-            ["repeat_rate"] = "input:repeat_rate",
-            ["resolve_binds_by_sym"] = "input:resolve_binds_by_sym",
-            ["scroll_button"] = "input:scroll_button",
-            ["scroll_button_lock"] = "input:scroll_button_lock",
-            ["scroll_method"] = "input:scroll_method",
-            ["scroll_points"] = "input:scroll_points",
-            ["clickfinger_behavior"] = "input:touchpad:clickfinger_behavior",
-            ["disable_while_typing"] = "input:touchpad:disable_while_typing",
-            ["drag_3fg"] = "input:touchpad:drag_3fg",
-            ["drag_lock"] = "input:touchpad:drag_lock",
-            ["flip_x"] = "input:touchpad:flip_x",
-            ["flip_y"] = "input:touchpad:flip_y",
-            ["middle_button_emulation"] = "input:touchpad:middle_button_emulation",
-            ["tap-and-drag"] = "input:touchpad:tap-and-drag",
-            ["tap-to-click"] = "input:touchpad:tap-to-click",
-            ["tap_button_map"] = "input:touchpad:tap_button_map",
-            ["absolute_region_position"] = "input:tablet:absolute_region_position",
-            ["active_area_position"] = "input:tablet:active_area_position",
-            ["active_area_size"] = "input:tablet:active_area_size",
-            ["region_position"] = "input:tablet:region_position",
-            ["region_size"] = "input:tablet:region_size",
-            ["relative_input"] = "input:tablet:relative_input",
-            ["output"] = "input:tablet:output",
-            ["transform"] = "input:tablet:transform",
-        };
 
         private bool TryDeviceField(string lhs, out string name, out string field)
         {
@@ -464,72 +384,6 @@ public static partial class ConfigParser
             name = key;
             field = lhs;
             return field.Length > 0;
-        }
-
-        // A value outside the range is clamped, as the global key is. One that is not a number is left unset.
-        private void StorePointer(string name, string field, string rhs)
-        {
-            var key = InputDeviceNames.Internal(name);
-            if (key.Length == 0)
-                return;
-
-            double? sensitivity = null;
-            double? scroll = null;
-            int? rotation = null;
-            switch (field)
-            {
-                case "sensitivity" when TryDeviceFloat(rhs, -1, 1, out var parsedSensitivity):
-                    sensitivity = parsedSensitivity;
-                    break;
-                case "scroll_factor" when TryDeviceFloat(rhs, 0, 100, out var parsedScroll):
-                    scroll = parsedScroll;
-                    break;
-                case "rotation" when TryDeviceInt(rhs, 0, 359, out var parsedRotation):
-                    rotation = parsedRotation;
-                    break;
-                default:
-                    return;
-            }
-
-            if (!_pointers.TryGetValue(key, out var draft))
-            {
-                draft = new PointerDraft();
-                _pointers.Add(key, draft);
-            }
-
-            if (sensitivity is not null)
-                draft.Sensitivity = sensitivity;
-            if (scroll is not null)
-                draft.ScrollFactor = scroll;
-            if (rotation is not null)
-                draft.Rotation = rotation;
-        }
-
-        private static bool TryDeviceInt(string text, int min, int max, out int value)
-        {
-            if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value))
-                return false;
-
-            value = Math.Clamp(value, min, max);
-            return true;
-        }
-
-        private static bool TryDeviceFloat(string text, double min, double max, out double value)
-        {
-            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) || !double.IsFinite(value))
-                return false;
-
-            value = Math.Clamp(value, min, max);
-            return true;
-        }
-
-        private sealed class PointerDraft
-        {
-            public double? Sensitivity { get; set; }
-
-            public double? ScrollFactor { get; set; }
-
-            public int? Rotation { get; set; }
         }
 
         private static bool IsLaunchKeyword(string keyword) =>

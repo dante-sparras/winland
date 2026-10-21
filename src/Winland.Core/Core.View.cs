@@ -76,7 +76,6 @@ public sealed partial class Core
             before);
         return outcome with
         {
-            Vrr = VrrNow(outcome.State),
             Tray = TrayIcon.For(_session.ShowTray, outcome.State.ActiveWorkspace),
         };
     }
@@ -278,7 +277,6 @@ public sealed partial class Core
             });
         }
 
-        PublishDigitizer();
         return new State(clients)
         {
             Workspaces = workspaces,
@@ -291,66 +289,6 @@ public sealed partial class Core
             Groups = groups,
             Stacking = [.. _stacking],
         };
-    }
-
-    // The mouse hook maps a pen and a touch screen from this, and never takes the lock. Unchanged geometry is kept.
-    private void PublishDigitizer()
-    {
-        if (DigitizerUnchanged())
-            return;
-
-        _digitizerSpace = new DigitizerSpace(_digitizer, DigitizerMonitors(out var focused), focused);
-    }
-
-    private bool DigitizerUnchanged()
-    {
-        var space = _digitizerSpace;
-        if (!space.Options.Equals(_digitizer))
-            return false;
-
-        var index = 0;
-        var focused = "";
-        foreach (var screen in _monitors)
-        {
-            var monitor = screen.Effective;
-            if (!monitor.Enabled || monitor.Width <= 0 || monitor.Height <= 0)
-                continue;
-            if (index >= space.Monitors.Length)
-                return false;
-
-            var published = space.Monitors[index];
-            if (published.Name != monitor.Name
-                || published.Description != monitor.Description
-                || published.X != monitor.X
-                || published.Y != monitor.Y
-                || published.Width != monitor.Width
-                || published.Height != monitor.Height)
-                return false;
-
-            if (screen.Focused)
-                focused = monitor.Name;
-            index++;
-        }
-
-        return index == space.Monitors.Length && space.Focused == focused;
-    }
-
-    private DigitizerMonitor[] DigitizerMonitors(out string focused)
-    {
-        var monitors = new List<DigitizerMonitor>(_monitors.Count);
-        focused = "";
-        foreach (var screen in _monitors)
-        {
-            var monitor = screen.Effective;
-            if (!monitor.Enabled || monitor.Width <= 0 || monitor.Height <= 0)
-                continue;
-
-            monitors.Add(new DigitizerMonitor(monitor.Name, monitor.Description, monitor.X, monitor.Y, monitor.Width, monitor.Height));
-            if (screen.Focused)
-                focused = monitor.Name;
-        }
-
-        return [.. monitors];
     }
 
     // The allowedOverFullscreen flag and whether a covering Client keeps the window under it, as the last sync left them.

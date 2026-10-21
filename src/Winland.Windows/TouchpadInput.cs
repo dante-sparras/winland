@@ -3,7 +3,6 @@ using Windows.Win32;
 using Windows.Win32.Devices.HumanInterfaceDevice;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.Input;
-using Windows.Win32.UI.Input.KeyboardAndMouse;
 using Windows.Win32.UI.Input.Pointer;
 using Windows.Win32.UI.WindowsAndMessaging;
 
@@ -12,10 +11,9 @@ namespace Winland.Windows;
 /// <summary>
 /// Reads precision touchpad reports as raw input, in the background, on a message-only window. The window proc
 /// only parses and queues; the bind worker hands each swipe to the core. Raw input cannot be consumed, so
-/// Windows still acts on its own touchpad gestures. The fingers of each report are also noted for the mouse hook, and
-/// carry out the touchpad options Windows has no setting for: three- or four-finger drag and a two-finger middle tap,
-/// whose button presses and cursor moves go through <see cref="InputInjector"/>. Touch screens are read the same way, and
-/// their fingers go to the core while <c>gestures:workspace_swipe_touch</c> wants them.
+/// Windows still acts on its own touchpad gestures. The fingers of each report are also noted for the mouse hook, so a
+/// touchpad move is not turned with the mouse. Touch screens are read the same way, and their fingers go to the core
+/// while <c>gestures:workspace_swipe_touch</c> wants them.
 /// </summary>
 internal sealed class TouchpadInput : IDisposable
 {
@@ -44,37 +42,20 @@ internal sealed class TouchpadInput : IDisposable
     private static readonly WNDPROC Proc = OnWindow;
     private static TouchpadInput? Active;
 
-    // Absolute mouse coordinates run from 0 to this across the virtual desktop.
-    private const double AbsoluteSpan = 65535;
-
     private readonly Action<Input> _post;
-    private readonly Func<TouchpadBehavior> _options;
     private readonly Func<bool> _touchWanted;
     private readonly Dictionary<nint, TouchScreen> _screens = [];
     private readonly TouchpadSwipe _swipe = new();
-    private readonly TouchpadDrag _drag = new();
-    private readonly TouchpadTap _tap = new();
-    private readonly TouchpadTapDrag _tapDrag = new();
-    private readonly Timer _tapDragExpiry;
-    private MOUSE_EVENT_FLAGS _tapDragUp;
-    private readonly Lock _dragGate = new();
-    private readonly Timer _dragExpiry;
-    private double _cursorX;
-    private double _cursorY;
-    private MOUSE_EVENT_FLAGS _dragUp;
     private readonly DeviceCache<Pad> _pads = new(device => Pad.Open(new HANDLE(device)), () => Environment.TickCount64, RetryMs);
     private HWND _hwnd;
     private bool _disposed;
 
-    internal TouchpadInput(Action<Input> post, Func<TouchpadBehavior>? options = null, Func<bool>? touchWanted = null)
+    internal TouchpadInput(Action<Input> post, Func<bool>? touchWanted = null)
     {
         ArgumentNullException.ThrowIfNull(post);
         _post = post;
-        _options = options ?? (() => TouchpadBehavior.Default);
         _touchWanted = touchWanted ?? (() => false);
         _swipe.Framed = OnFrame;
-        _dragExpiry = new Timer(_ => ExpireDrag());
-        _tapDragExpiry = new Timer(_ => ExpireTapDrag());
     }
 
     /// <summary>Starts listening. A machine without a touchpad, or a refused registration, only logs.</summary>
@@ -113,17 +94,6 @@ internal sealed class TouchpadInput : IDisposable
         }
 
         _pads.Dispose();
-        _dragExpiry.Dispose();
-        _tapDragExpiry.Dispose();
-        lock (_dragGate)
-        {
-            if (_tapDrag.Holding)
-                CarryTapDrag(_tapDrag.Frame(0, new Dictionary<int, (double X, double Y)>(), Environment.TickCount64));
-
-            // A drag held when Winland stops lets its button go, or it would stay down.
-            if (_drag.Holding)
-                Carry(new TouchpadDragStep(false, 0, 0, Release: true), TouchpadBehavior.Default);
-        }
     }
 
     private static LRESULT OnWindow(HWND hwnd, uint message, WPARAM wParam, LPARAM lParam)
@@ -208,7 +178,6 @@ internal sealed class TouchpadInput : IDisposable
             contacts.Add(new TouchContact((int)id, pad.Tip(link, report, length), x * pad.MillimetresX, y * pad.MillimetresY));
         }
 
-        _swipe.DragFingers = _options().DragFingers;
         foreach (var input in _swipe.Report((int)Math.Min(count, int.MaxValue), contacts))
             _post(input);
     }
@@ -252,121 +221,8 @@ internal sealed class TouchpadInput : IDisposable
             _post(input);
     }
 
-    private void OnFrame(IReadOnlyDictionary<int, (double X, double Y)> down)
-    {
-        var now = Environment.TickCount64;
-        TouchpadFingers.Note(down.Count, now);
-        var options = _options();
-        lock (_dragGate)
-        {
-            var lifted = _drag.ReleaseAt is not null;
-            var step = _drag.Frame(options.DragFingers, down, now);
-
-            // Fingers put back after a lift carry on from wherever the cursor went meanwhile.
-            if (lifted && _drag.Holding && _drag.ReleaseAt is null)
-                ReadCursor();
-
-            Carry(step, options);
-            if (_drag.ReleaseAt is long at)
-                _ = _dragExpiry.Change(Math.Max(0, at - now), Timeout.Infinite);
-
-            CarryTapDrag(_tapDrag.Frame(options.DragLock, down, now));
-            if (_tapDrag.ReleaseAt is long lockAt)
-                _ = _tapDragExpiry.Change(Math.Max(0, lockAt - now), Timeout.Infinite);
-        }
-
-        if (_tap.Frame(down, now) && options.MiddleTap)
-            InputInjector.Post(Mouse(MOUSE_EVENT_FLAGS.MOUSEEVENTF_MIDDLEDOWN), Mouse(MOUSE_EVENT_FLAGS.MOUSEEVENTF_MIDDLEUP));
-    }
-
-    private void ExpireDrag()
-    {
-        try
-        {
-            lock (_dragGate)
-                Carry(_drag.Expire(Environment.TickCount64), _options());
-        }
-        catch (Exception exception) when (exception is not OutOfMemoryException)
-        {
-            Console.Error.WriteLine(exception.Message);
-        }
-    }
-
-    private void ExpireTapDrag()
-    {
-        try
-        {
-            lock (_dragGate)
-                CarryTapDrag(_tapDrag.Expire(Environment.TickCount64));
-        }
-        catch (Exception exception) when (exception is not OutOfMemoryException)
-        {
-            Console.Error.WriteLine(exception.Message);
-        }
-    }
-
-    // Tap and drag with a lock only holds the primary button. Windows moves the cursor with the finger itself.
-    private void CarryTapDrag(TouchpadDragStep step)
-    {
-        if (step.Press)
-        {
-            var swapped = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_SWAPBUTTON) != 0;
-            _tapDragUp = swapped ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTUP : MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTUP;
-            InputInjector.Post(Mouse(swapped ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTDOWN : MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTDOWN));
-        }
-
-        if (step.Release)
-            InputInjector.Post(Mouse(_tapDragUp == 0 ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTUP : _tapDragUp));
-    }
-
-    // The drag presses the primary button, which is the right one when the buttons are swapped, and moves the cursor
-    // to where the fingers took it, as absolute moves so pointer acceleration does not change them.
-    private void Carry(TouchpadDragStep step, TouchpadBehavior options)
-    {
-        if (step.Press)
-        {
-            ReadCursor();
-            var swapped = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_SWAPBUTTON) != 0;
-            _dragUp = swapped ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTUP : MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTUP;
-            InputInjector.Post(Mouse(swapped ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTDOWN : MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTDOWN));
-        }
-
-        if (step.Dx != 0 || step.Dy != 0)
-        {
-            var (dx, dy) = options.Flip(step.Dx, step.Dy);
-            var left = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_XVIRTUALSCREEN);
-            var top = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_YVIRTUALSCREEN);
-            var width = Math.Max(2, PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXVIRTUALSCREEN));
-            var height = Math.Max(2, PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYVIRTUALSCREEN));
-            _cursorX = Math.Clamp(_cursorX + dx, left, left + width - 1);
-            _cursorY = Math.Clamp(_cursorY + dy, top, top + height - 1);
-            var move = Mouse(MOUSE_EVENT_FLAGS.MOUSEEVENTF_MOVE | MOUSE_EVENT_FLAGS.MOUSEEVENTF_ABSOLUTE | MOUSE_EVENT_FLAGS.MOUSEEVENTF_VIRTUALDESK);
-            move.Anonymous.mi.dx = (int)Math.Round((Math.Round(_cursorX) - left) * AbsoluteSpan / (width - 1));
-            move.Anonymous.mi.dy = (int)Math.Round((Math.Round(_cursorY) - top) * AbsoluteSpan / (height - 1));
-            InputInjector.Post(move);
-        }
-
-        if (step.Release)
-            InputInjector.Post(Mouse(_dragUp == 0 ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTUP : _dragUp));
-    }
-
-    private void ReadCursor()
-    {
-        if (!PInvoke.GetCursorPos(out var at))
-            return;
-
-        _cursorX = at.X;
-        _cursorY = at.Y;
-    }
-
-    // Sent with Winland's tag, so its own mouse hook passes it on to the window under the cursor.
-    private static INPUT Mouse(MOUSE_EVENT_FLAGS flags)
-    {
-        var input = new INPUT { type = INPUT_TYPE.INPUT_MOUSE };
-        input.Anonymous.mi.dwFlags = flags;
-        input.Anonymous.mi.dwExtraInfo = KeyboardHook.InjectedTag;
-        return input;
-    }
+    private void OnFrame(IReadOnlyDictionary<int, (double X, double Y)> down) =>
+        TouchpadFingers.Note(down.Count, Environment.TickCount64);
 
     private static unsafe void Listen(HWND hwnd)
     {

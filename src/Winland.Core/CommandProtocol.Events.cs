@@ -143,9 +143,6 @@ public static partial class CommandProtocol
             case MonitorRemovedV2 removed:
                 lines.Add($"monitorremovedv2>>{removed.Id.ToString(CultureInfo.InvariantCulture)},{Clean(removed.Name)},{Clean(removed.Description)}");
                 break;
-            case ActiveLayoutChanged layout:
-                lines.Add($"activelayout>>{Clean(layout.Keyboard)},{Clean(layout.Layout)}");
-                break;
             case CustomEvent custom:
                 lines.Add("custom>>" + Clean(custom.Text));
                 break;

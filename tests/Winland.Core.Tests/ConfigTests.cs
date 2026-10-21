@@ -208,7 +208,7 @@ public class ConfigTests
             execr = app
             execr-once = app
             exec-shutdown = app
-            monitor = ,preferred,auto,auto
+            monitor = , addreserved, 0, 0, 0, 0
             windowrule = float, ^(kitty)$
             windowrulev2 = tile, class:^(kitty)$
             """;

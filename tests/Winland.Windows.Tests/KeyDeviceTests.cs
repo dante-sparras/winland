@@ -204,18 +204,24 @@ public class KeyDeviceTests
     }
 
     [Fact]
-    public void ATagOnTheNamedKeyboardRunsTheBind()
+    public void ADeviceTagDoesNotRunTheBind()
     {
-        using var hook = Hook("device[board]:tags = laptop\nbindnk = , Q, +laptop, killactive\n");
-        hook.DeliverTracked(Edge(0x51, "Q"), repeated: false);
+        using var tagged = Hook("device[board]:tags = laptop\nbindnk = , Q, +laptop, killactive\n");
+        tagged.DeliverTracked(Edge(0x51, "Q"), repeated: false);
 
-        Assert.True(hook.DeliverDevice(0x51, 16, up: false, "board", out var delivery));
-        Assert.Equal("killactive", delivery.Decision.Dispatcher);
-        Assert.False(delivery.Decision.Consumed);
+        Assert.True(tagged.DeliverDevice(0x51, 16, up: false, "board", out var board));
+        Assert.Null(board.Decision.Dispatcher);
+        Assert.False(board.Decision.Consumed);
+
+        using var named = Hook("bindnk = , Q, +laptop, killactive\n");
+        named.DeliverTracked(Edge(0x51, "Q"), repeated: false);
+        Assert.True(named.DeliverDevice(0x51, 16, up: false, "laptop", out var laptop));
+        Assert.Equal("killactive", laptop.Decision.Dispatcher);
+        Assert.False(laptop.Decision.Consumed);
     }
 
     [Fact]
-    public void NamesFollowTheDevicesReplyIncludingDuplicates()
+    public void NamesFollowTheRawInputNamesIncludingDuplicates()
     {
         var cache = new DeviceNameCache();
         cache.Replace(

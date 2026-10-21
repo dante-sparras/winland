@@ -5,14 +5,16 @@ namespace Winland.Tests;
 public class BindChordTests
 {
     [Fact]
-    public void LongPressWaitsTheRepeatDelay()
+    public void LongPressWaitsSixHundredMillisecondsAndIgnoresRepeatDelay()
     {
+        var document = ConfigParser.Parse("input {\n    repeat_delay = 250\n}\nbindo = , Q, killactive\n");
         var core = new Core();
-        core.Handle(new ConfigLoaded(ConfigParser.Parse("input {\n    repeat_delay = 250\n}\nbindo = , Q, killactive\n")));
+        core.Handle(new ConfigLoaded(document));
 
         var pressed = core.Decide(new KeyPressed("Q"), new BindSession());
 
-        Assert.Equal(250, pressed.ArmLongPressMs);
+        Assert.Equal(new ConfigWarning(2, "Unsupported keyword 'input:repeat_delay'."), Assert.Single(document.Warnings));
+        Assert.Equal(600, pressed.ArmLongPressMs);
     }
 
     [Fact]
