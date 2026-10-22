@@ -194,6 +194,17 @@ Test-Case 'the script text has no semicolon and no em dash' {
     if ($text.Contains(';')) { throw 'semicolon in install.ps1' }
 }
 
+Test-Case 'the answers come back alone, without the question lines' {
+    function Read-Answer([string]$Prompt) { 'n' }
+    $answers = @(Read-InstallAnswers $true $true 6>$null)
+    Assert-Equal $answers.Count 1
+    Assert-Equal $answers[0].Administrator 'n'
+    Assert-Equal $answers[0].Settings 'n'
+    $answers = @(Read-InstallAnswers $false $true 6>$null)
+    Assert-Equal $answers.Count 1
+    Assert-Equal $answers[0].Administrator ''
+}
+
 Test-Case 'Windows PowerShell 5.1 can parse the script' {
     $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     if (-not (Test-Path -LiteralPath $powershell)) { throw 'Windows PowerShell is not installed' }

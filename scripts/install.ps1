@@ -228,16 +228,17 @@ function Get-LatestReleaseJson {
 }
 
 function Read-InstallAnswers([bool]$Interactive, [bool]$PrecisionTouchpad) {
+    # Write-Host, because Write-Output here would become part of the returned answers.
     if (-not $Interactive) {
-        Write-Output (Get-DefaultLine)
+        Write-Host (Get-DefaultLine)
         return [pscustomobject]@{
             Administrator = ''
             Settings = ''
         }
     }
-    foreach ($line in (Get-AdministratorLines)) { Write-Output $line }
+    foreach ($line in (Get-AdministratorLines)) { Write-Host $line }
     $admin = Read-Answer 'Y or n'
-    foreach ($line in (Get-SettingsLines $PrecisionTouchpad)) { Write-Output $line }
+    foreach ($line in (Get-SettingsLines $PrecisionTouchpad)) { Write-Host $line }
     $settings = Read-Answer 'Y or n'
     return [pscustomobject]@{
         Administrator = $admin
