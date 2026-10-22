@@ -19,8 +19,6 @@ public interface IFileTree
 
     IReadOnlyList<ListedFile> List(string directory);
 
-    bool SameContent(string left, string right);
-
     void PrepareDirectory(string directory);
 
     void Copy(string source, string destination);

@@ -45,9 +45,9 @@ The binaries are unsigned.
 
 `version.json` has `commit`, `date`, and `version`. The same file is at the root of the zip. `date` is UTC.
 
-The zip has two directories. `winland/` is `Winland.Daemon` published self-contained for `win-x64`, not single-file. `winlandctl/` is `winlandctl` published the same way.
+The zip has one directory. `winland/` is `Winland.Daemon` published self-contained for `win-x64`, not single-file. Releases up to `v0.1.0` also had a `winlandctl/` directory. An install from one of those cannot `winland update` to a later release, because its install code still looks for `winlandctl`, so it is reinstalled from the zip once.
 
-The `v0.1.2` zip was one flat self-contained folder of the old host (`winland.exe`, `Winland.Host.exe`, `Winland.Watch.exe`) plus `version.json`. Those projects are gone. The two current programs do not share one runtime folder, so the zip has two directories. The `version.json` fields are the same.
+The `v0.1.2` zip was one flat self-contained folder of the old host (`winland.exe`, `Winland.Host.exe`, `Winland.Watch.exe`) plus `version.json`. Those projects are gone. The `version.json` fields are the same.
 
 ## Tags
 

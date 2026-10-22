@@ -1,6 +1,10 @@
 using Winland.Daemon;
 using Winland.Install;
 
+// A command for the running Winland is sent down its pipe before anything that starts one, so it never asks for UAC.
+if (ControlInvocation.TryCreate(args, out var line, out var events))
+    return ControlCommand.Run(line, events, PipeName());
+
 // The debug options copy what Winland writes here to a file and to stdout.
 var log = new RollingLogWriter(Console.Error);
 Console.SetError(log);
@@ -18,7 +22,8 @@ switch (ManualStartElevation.Decide(
     userInstall))
 {
     case ElevationChoice.Relaunch relaunch:
-        return Elevation.Relaunch(relaunch.Arguments);
+        // The relaunch puts the loop argument first. Arguments Winland cannot start with ask for no approval.
+        return IsStart([.. relaunch.Arguments.Skip(1)]) ? Elevation.Relaunch(relaunch.Arguments) : Usage();
     case ElevationChoice.Refuse refuse:
         Console.Error.WriteLine(refuse.Message);
         return 1;
@@ -29,16 +34,13 @@ switch (ManualStartElevation.Decide(
         throw new InvalidOperationException("Unexpected start decision.");
 }
 
-if (args.Length == 0)
-    return Guard(() => Run(null, log));
+if (!IsStart(args))
+    return Usage();
 
-if (args.Length == 2 && IsVerb(args[0], "--config"))
-    return Guard(() => Run(args[1], log));
+return Guard(() => Run(args.Length == 0 ? null : args[1], log));
 
-return Usage();
-
-static bool IsVerb(string value, string verb) =>
-    value.Equals(verb, StringComparison.OrdinalIgnoreCase);
+static bool IsStart(string[] arguments) =>
+    arguments.Length == 0 || (arguments.Length == 2 && arguments[0].Equals("--config", StringComparison.OrdinalIgnoreCase));
 
 static int Guard(Func<int> action)
 {
@@ -277,6 +279,7 @@ static int Usage()
     Console.Error.WriteLine("       winland update [--channel <stable|dev>]");
     Console.Error.WriteLine("       winland uninstall [--purge]");
     Console.Error.WriteLine("       winland tweaks --off [--touchpad]");
+    Console.Error.Write(ControlInvocation.Usage);
     Console.Error.WriteLine("WINLAND_NO_ELEVATE=1 or --no-elevate starts without elevation. It exists for tests.");
     Console.Error.WriteLine("Elevated features then do not work. A per-user install never asks for elevation.");
     return 2;

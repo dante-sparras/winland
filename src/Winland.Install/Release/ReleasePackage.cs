@@ -37,7 +37,7 @@ public sealed class ZipReleasePackage : IReleasePackage
             entry.ExtractToFile(destination);
         }
 
-        var executable = Path.Combine(directory, "winland", InstallPayload.DaemonFile);
+        var executable = InstallLocations.Executable(Path.Combine(directory, "winland"));
         if (!File.Exists(executable))
             throw new InvalidOperationException("The release zip has no winland\\winland.exe.");
 

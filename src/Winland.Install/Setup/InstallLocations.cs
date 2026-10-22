@@ -40,7 +40,9 @@ public static class InstallLocations
     /// <summary>The state, log and taskbar marker directory. It is the same folder as <see cref="Config"/>.</summary>
     public static string State(string userProfile) => Config(userProfile);
 
-    public static string Executable(string directory) => Path.Combine(directory, "winland.exe");
+    public const string ExecutableName = "winland.exe";
+
+    public static string Executable(string directory) => Path.Combine(directory, ExecutableName);
 
     public static string Shortcut(string programsDirectory) => Path.Combine(programsDirectory, ShortcutName);
 

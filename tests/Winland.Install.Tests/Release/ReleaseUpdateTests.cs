@@ -35,9 +35,7 @@ public class ReleaseUpdateTests
             session);
         files.Seed(Source, [1]);
         files.Seed(@"C:\Users\me\Downloads\Winland\winland\winland.dll", [2]);
-        files.Seed(@"C:\Users\me\Downloads\Winland\winlandctl\winlandctl.exe", [3]);
         files.Seed(Path.Combine(Machine, "winland.exe"), [8]);
-        files.Seed(Path.Combine(Machine, "winlandctl.exe"), [6]);
         files.Seed(Path.Combine(User, "winland.exe"), [7]);
         files.Seed(Path.Combine(Config, "winland.conf"), [9]);
         tasks.Seed(LogonTaskDefinition.Build(Path.Combine(Machine, "winland.exe"), @"DESKTOP\dante"));
@@ -118,7 +116,6 @@ public class ReleaseUpdateTests
         var updated = Assert.IsType<UpdateResult.Updated>(result);
         Assert.Equal("0.2.0", updated.Version);
         Assert.Equal([1], files.Read(Path.Combine(Machine, "winland.exe")));
-        Assert.Equal([3], files.Read(Path.Combine(Machine, "winlandctl.exe")));
         Assert.Equal([7], files.Read(Path.Combine(User, "winland.exe")));
         Assert.Equal([9], files.Read(Path.Combine(Config, "winland.conf")));
         Assert.Equal(["stop", "start"], session.Operations);

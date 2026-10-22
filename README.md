@@ -94,8 +94,6 @@ Everything Winland keeps for you is in `%USERPROFILE%\.winland`.
 
 ## CLI
 
-### winland
-
 | Command | Does |
 | --- | --- |
 | `winland` | Start Winland |
@@ -109,33 +107,31 @@ Everything Winland keeps for you is in `%USERPROFILE%\.winland`.
 | `winland tweaks --off` | Turn off Windows Snap, and remember how it was |
 | `winland tweaks --off --touchpad` | Also turn off the three- and four-finger touchpad swipes |
 
-### winlandctl
-
-`winlandctl` talks to the running Winland.
+These talk to the running Winland.
 
 | Command | Does |
 | --- | --- |
-| `winlandctl dispatch <name> [args]` | Run a Dispatcher, such as `winlandctl dispatch workspace 2` |
-| `winlandctl reload` | Read the config again |
-| `winlandctl keyword <name> <value>` | Change one option until the next reload |
-| `winlandctl getoption <name>` | Show an option's value |
-| `winlandctl clients` | List the windows Winland manages |
-| `winlandctl activewindow` | Show the focused window |
-| `winlandctl workspaces` | List the workspaces |
-| `winlandctl activeworkspace` | Show the focused workspace |
-| `winlandctl workspacerules` | List the workspace rules |
-| `winlandctl monitors [all]` | List the monitors. `all` includes disabled ones |
-| `winlandctl layouts` | List the layouts |
-| `winlandctl binds` | List the hotkeys |
-| `winlandctl configerrors` | List the config's warnings |
-| `winlandctl getprop <window> <property>` | Show a window property |
-| `winlandctl setprop <window> <property> <value>` | Set a window property |
-| `winlandctl cursorpos` | Show the pointer position |
-| `winlandctl locked` | Show whether the PC is locked |
-| `winlandctl kill` | Click a window to end its program. Escape cancels |
-| `winlandctl version` | Show the version |
-| `winlandctl events` | Print every event as it happens, one per line |
-| `winlandctl --batch "<command>; <command>"` | Run several commands in one go |
+| `winland dispatch <name> [args]` | Run a Dispatcher, such as `winland dispatch workspace 2` |
+| `winland reload` | Read the config again |
+| `winland keyword <name> <value>` | Change one option until the next reload |
+| `winland getoption <name>` | Show an option's value |
+| `winland clients` | List the windows Winland manages |
+| `winland activewindow` | Show the focused window |
+| `winland workspaces` | List the workspaces |
+| `winland activeworkspace` | Show the focused workspace |
+| `winland workspacerules` | List the workspace rules |
+| `winland monitors [all]` | List the monitors. `all` includes disabled ones |
+| `winland layouts` | List the layouts |
+| `winland binds` | List the hotkeys |
+| `winland configerrors` | List the config's warnings |
+| `winland getprop <window> <property>` | Show a window property |
+| `winland setprop <window> <property> <value>` | Set a window property |
+| `winland cursorpos` | Show the pointer position |
+| `winland locked` | Show whether the PC is locked |
+| `winland kill` | Click a window to end its program. Escape cancels |
+| `winland version` | Show the version |
+| `winland events` | Print every event as it happens, one per line |
+| `winland --batch "<command>; <command>"` | Run several commands in one go |
 
 | Flag | Does |
 | --- | --- |

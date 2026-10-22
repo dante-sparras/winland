@@ -55,7 +55,7 @@ The `Winland.Daemon` process, built as `winland`. It is the one long-running pro
 _Avoid_: Service
 
 **IPC pipe**:
-The named pipe `winland` that the Daemon listens on. `winlandctl` and scripts send it commands and Dispatchers, and read the Event stream from it. It accepts only the current user. It is the only way to extend Winland.
+The named pipe `winland` that the Daemon listens on. The `winland` command and scripts send it commands and Dispatchers, and read the Event stream from it. It accepts only the current user. It is the only way to extend Winland.
 _Avoid_: Plugin API
 
 **Event stream**:

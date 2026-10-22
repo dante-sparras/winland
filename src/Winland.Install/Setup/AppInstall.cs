@@ -136,83 +136,30 @@ public sealed class AppInstall
     }
 
     private sealed record CopyPlan(
-        string DaemonDirectory,
-        IReadOnlyList<ListedFile> DaemonFiles,
-        string? ControlDirectory,
-        IReadOnlyList<ListedFile> ControlFiles,
+        string SourceDirectory,
+        IReadOnlyList<ListedFile> Files,
         string Destination,
         string InstalledExecutable);
 
+    /// <summary>Install copies the folder <paramref name="executable"/> is in, as it is.</summary>
     private CopyPlan Plan(string executable, string destination)
     {
-        var (daemonDirectory, controlDirectory) = InstallPayload.Locate(executable, files.Exists);
-        var daemonFiles = files.List(daemonDirectory);
-        Require(daemonFiles, InstallPayload.DaemonFile, daemonDirectory);
-        RefuseLinks(daemonDirectory, daemonFiles);
-
-        IReadOnlyList<ListedFile> controlFiles = [];
-        if (controlDirectory is null)
-            Require(daemonFiles, InstallPayload.ControlFile, daemonDirectory);
-        else
-        {
-            controlFiles = files.List(controlDirectory);
-            Require(controlFiles, InstallPayload.ControlFile, controlDirectory);
-            RefuseLinks(controlDirectory, controlFiles);
-            RefuseDifferentCopies(daemonDirectory, daemonFiles, controlDirectory, controlFiles);
-        }
-
-        return new CopyPlan(
-            daemonDirectory,
-            daemonFiles,
-            controlDirectory,
-            controlFiles,
-            destination,
-            InstallLocations.Executable(destination));
+        var source = Path.GetDirectoryName(Path.GetFullPath(executable))
+            ?? throw new InvalidOperationException("The executable folder is not available.");
+        var listed = files.List(source);
+        Require(listed, InstallLocations.ExecutableName, source);
+        RefuseLinks(source, listed);
+        return new CopyPlan(source, listed, destination, InstallLocations.Executable(destination));
     }
 
     private void Apply(CopyPlan plan)
     {
-        if (plan.ControlDirectory is not null && !SameDirectory(plan.ControlDirectory, plan.Destination))
-        {
-            files.PrepareDirectory(plan.Destination);
-            CopyEach(plan.ControlDirectory, plan.ControlFiles, plan.Destination);
-        }
+        if (SameDirectory(plan.SourceDirectory, plan.Destination))
+            return;
 
-        if (!SameDirectory(plan.DaemonDirectory, plan.Destination))
-        {
-            files.PrepareDirectory(plan.Destination);
-            CopyEach(plan.DaemonDirectory, plan.DaemonFiles, plan.Destination);
-        }
-    }
-
-    private void CopyEach(string sourceDirectory, IReadOnlyList<ListedFile> listed, string destination)
-    {
-        foreach (var file in listed)
-            files.Copy(Path.Combine(sourceDirectory, file.RelativePath), Path.Combine(destination, file.RelativePath));
-    }
-
-    private void RefuseDifferentCopies(
-        string daemonDirectory,
-        IReadOnlyList<ListedFile> daemonFiles,
-        string controlDirectory,
-        IReadOnlyList<ListedFile> controlFiles)
-    {
-        var daemonNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var file in daemonFiles)
-            daemonNames[file.RelativePath] = Path.Combine(daemonDirectory, file.RelativePath);
-
-        foreach (var file in controlFiles)
-        {
-            if (!daemonNames.TryGetValue(file.RelativePath, out var daemonPath))
-                continue;
-
-            var controlPath = Path.Combine(controlDirectory, file.RelativePath);
-            if (!files.SameContent(daemonPath, controlPath))
-            {
-                throw new InvalidOperationException(
-                    $"Cannot install '{file.RelativePath}': winland and winlandctl both contain it and they differ.");
-            }
-        }
+        files.PrepareDirectory(plan.Destination);
+        foreach (var file in plan.Files)
+            files.Copy(Path.Combine(plan.SourceDirectory, file.RelativePath), Path.Combine(plan.Destination, file.RelativePath));
     }
 
     private static void Require(IReadOnlyList<ListedFile> files, string name, string directory)

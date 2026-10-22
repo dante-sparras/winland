@@ -36,7 +36,7 @@ public class EndToEndSmokeTests
     public EndToEndSmokeTests(ITestOutputHelper output) => _output = output;
 
     [SmokeFact]
-    public void RealDaemonTilesTwoWindowsThroughWinlandctl()
+    public void RealDaemonTilesTwoWindowsThroughTheCli()
     {
         // -4 is per-monitor v2, matching the daemon, so window rects share one coordinate space.
         _ = PInvoke.SetProcessDpiAwarenessContext((DPI_AWARENESS_CONTEXT)(nint)(-4));

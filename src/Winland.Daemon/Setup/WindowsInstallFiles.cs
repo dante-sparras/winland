@@ -28,35 +28,6 @@ sealed class WindowsInstallFiles : IFileTree
         return listed;
     }
 
-    public bool SameContent(string left, string right)
-    {
-        using var first = OpenPlain(left);
-        using var second = OpenPlain(right);
-        if (first.Length != second.Length)
-            return false;
-
-        var buffer = new byte[81920];
-        var other = new byte[buffer.Length];
-        int read;
-        while ((read = first.Read(buffer, 0, buffer.Length)) > 0)
-        {
-            var got = 0;
-            while (got < read)
-            {
-                var count = second.Read(other, got, read - got);
-                if (count == 0)
-                    return false;
-
-                got += count;
-            }
-
-            if (!buffer.AsSpan(0, read).SequenceEqual(other.AsSpan(0, read)))
-                return false;
-        }
-
-        return true;
-    }
-
     public void PrepareDirectory(string directory)
     {
         Directory.CreateDirectory(directory);
@@ -179,18 +150,6 @@ sealed class WindowsInstallFiles : IFileTree
             {
             }
         }
-    }
-
-    private static FileStream OpenPlain(string path)
-    {
-        var handle = WindowsFileHandles.Open(path, WindowsFileHandles.GenericRead, FileShare.Read, followReparse: false);
-        if (WindowsFileHandles.Attributes(handle).HasFlag(FileAttributes.ReparsePoint))
-        {
-            handle.Dispose();
-            throw new InvalidOperationException($"Refusing to install '{path}': it is a link.");
-        }
-
-        return new FileStream(handle, FileAccess.Read);
     }
 
     private bool ImageDirectoryHolds(string path)
