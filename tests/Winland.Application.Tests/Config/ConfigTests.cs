@@ -554,7 +554,7 @@ public class ConfigTests
 
         Assert.Empty(document.Warnings);
         Assert.Equal(modifiers, Assert.IsType<Bind>(Assert.Single(document.Binds)).Modifiers);
-        Assert.Equal(mask, ExtraCommands.ModMask(modifiers));
+        Assert.Equal(mask, CommandProtocol.ModMask(modifiers));
     }
 
     [Fact]

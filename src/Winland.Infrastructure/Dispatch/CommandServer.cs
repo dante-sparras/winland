@@ -279,7 +279,20 @@ public sealed class CommandServer : IDisposable
             return;
         }
 
-        if (CommandProtocol.Parse(command) is CommandParsed { Request: EventsRequest })
+        CommandReply reply;
+        try
+        {
+            reply = _core.Execute(command);
+            Apply(reply.Effect);
+            AfterCommand?.Invoke();
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            Release(server);
+            return;
+        }
+
+        if (reply.Stream)
         {
             var subscriber = new Subscriber(server);
             lock (_subscribersGate)
@@ -289,21 +302,7 @@ public sealed class CommandServer : IDisposable
             return;
         }
 
-        string text;
-        try
-        {
-            var reply = _core.Execute(command);
-            Apply(reply.Effect);
-            AfterCommand?.Invoke();
-            text = reply.Text;
-        }
-        catch (Exception exception) when (exception is not OutOfMemoryException)
-        {
-            Release(server);
-            return;
-        }
-
-        await Finish(server, text, stopping).ConfigureAwait(false);
+        await Finish(server, reply.Text, stopping).ConfigureAwait(false);
     }
 
     // Every wait here is asynchronous, so an idle subscriber holds no thread. The pool also

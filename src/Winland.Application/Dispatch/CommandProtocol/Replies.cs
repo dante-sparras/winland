@@ -3,75 +3,12 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using static Winland.Domain.OrdinalText;
 
 namespace Winland.Application;
 
-public static class ExtraCommands
+/// <summary>The replies to the smaller requests: binds, version, the cursor, config errors, and how a batch splits.</summary>
+public static partial class CommandProtocol
 {
-    public static bool TryParse(string text, CommandFlags flags, out CommandParse parse)
-    {
-        ArgumentNullException.ThrowIfNull(text);
-        if (text.StartsWith("[[BATCH]]", StringComparison.Ordinal))
-        {
-            parse = Parsed(new BatchRequest(text["[[BATCH]]".Length..]), flags);
-            return true;
-        }
-
-        var verbEnd = IndexOfWhitespace(text);
-        var verb = verbEnd < 0 ? text : text[..verbEnd];
-        var rest = verbEnd < 0 ? "" : text[(verbEnd + 1)..].TrimStart();
-
-        if (Is(verb, "binds"))
-            return Exact(rest, new BindsRequest(), flags, out parse);
-        if (Is(verb, "version"))
-            return Exact(rest, new VersionRequest(), flags, out parse);
-        if (Is(verb, "cursorpos"))
-            return Exact(rest, new CursorPosRequest(), flags, out parse);
-        if (Is(verb, "configerrors"))
-            return Exact(rest, new ConfigErrorsRequest(), flags, out parse);
-        if (Is(verb, "locked"))
-            return Exact(rest, new LockedRequest(), flags, out parse);
-        if (Is(verb, "layouts"))
-            return Exact(rest, new LayoutsRequest(), flags, out parse);
-        if (Is(verb, "submap"))
-            return Exact(rest, new SubmapRequest(), flags, out parse);
-        if (Is(verb, "animations"))
-            return Exact(rest, new AnimationsRequest(), flags, out parse);
-        if (Is(verb, "kill"))
-            return Exact(rest, new ClickKillRequest(), flags, out parse);
-
-        if (Is(verb, "getoption"))
-        {
-            parse = Parsed(new GetOptionRequest(First(rest)), flags);
-            return true;
-        }
-
-        if (Is(verb, "keyword"))
-        {
-            SplitOnce(rest, out var name, out var value);
-            parse = Parsed(new KeywordRequest(name, value), flags);
-            return true;
-        }
-
-        if (Is(verb, "getprop"))
-        {
-            SplitProp(rest, withValue: false, out var selector, out var property, out _);
-            parse = Parsed(new GetPropRequest(selector, property), flags);
-            return true;
-        }
-
-        if (Is(verb, "setprop"))
-        {
-            SplitProp(rest, withValue: true, out var selector, out var property, out var value);
-            parse = Parsed(new SetPropRequest(selector, property, value), flags);
-            return true;
-        }
-
-        parse = new CommandRejected("error: unknown request");
-        return false;
-    }
-
     public static IReadOnlyList<string> SplitBatch(string payload)
     {
         ArgumentNullException.ThrowIfNull(payload);
@@ -103,7 +40,7 @@ public static class ExtraCommands
         ArgumentNullException.ThrowIfNull(binds);
         var views = new BindJson[binds.Count];
         for (var i = 0; i < binds.Count; i++)
-            views[i] = Describe(binds[i]);
+            views[i] = BindOf(binds[i]);
 
         return JsonSerializer.Serialize(views);
     }
@@ -166,7 +103,7 @@ public static class ExtraCommands
         return mask;
     }
 
-    private static BindJson Describe(Bind bind)
+    private static BindJson BindOf(Bind bind)
     {
         var key = bind.Key;
         var keycode = 0;
@@ -200,82 +137,10 @@ public static class ExtraCommands
             bind.Arguments);
     }
 
-    private static bool Exact(string rest, CommandRequest request, CommandFlags flags, out CommandParse parse)
-    {
-        if (rest.Length > 0)
-        {
-            parse = new CommandRejected("error: unknown request");
-            return false;
-        }
-
-        parse = Parsed(request, flags);
-        return true;
-    }
-
-    private static CommandParse Parsed(CommandRequest request, CommandFlags flags) =>
-        new CommandParsed(request with { Flags = flags });
-
-    private static string First(string rest)
-    {
-        var end = IndexOfWhitespace(rest);
-        return end < 0 ? rest : rest[..end];
-    }
-
-    private static void SplitOnce(string rest, out string name, out string value)
-    {
-        var end = IndexOfWhitespace(rest);
-        if (end < 0)
-        {
-            name = rest;
-            value = "";
-            return;
-        }
-
-        name = rest[..end];
-        value = rest[(end + 1)..].TrimStart();
-    }
-
-    private static void SplitProp(string rest, bool withValue, out string selector, out string property, out string value)
-    {
-        selector = "";
-        property = "";
-        value = "";
-        var first = IndexOfWhitespace(rest);
-        if (first < 0)
-        {
-            selector = rest;
-            return;
-        }
-
-        selector = rest[..first];
-        var tail = rest[(first + 1)..].TrimStart();
-        var second = IndexOfWhitespace(tail);
-        if (second < 0)
-        {
-            property = tail;
-            return;
-        }
-
-        property = tail[..second];
-        if (withValue)
-            value = tail[(second + 1)..].TrimStart();
-    }
-
     private static readonly JsonSerializerOptions Relaxed = new()
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
-
-    private static int IndexOfWhitespace(string text)
-    {
-        for (var i = 0; i < text.Length; i++)
-        {
-            if (char.IsWhiteSpace(text[i]))
-                return i;
-        }
-
-        return -1;
-    }
 
     private sealed record BindJson(
         [property: JsonPropertyName("locked")] bool Locked,
@@ -308,31 +173,3 @@ public static class ExtraCommands
         [property: JsonPropertyName("commits")] string Commits,
         [property: JsonPropertyName("flags")] string[] Flags);
 }
-
-public sealed record BindsRequest : CommandRequest;
-
-public sealed record VersionRequest : CommandRequest;
-
-public sealed record CursorPosRequest : CommandRequest;
-
-public sealed record ConfigErrorsRequest : CommandRequest;
-
-public sealed record GetOptionRequest(string Name) : CommandRequest;
-
-public sealed record LockedRequest : CommandRequest;
-
-public sealed record LayoutsRequest : CommandRequest;
-
-public sealed record SubmapRequest : CommandRequest;
-
-public sealed record AnimationsRequest : CommandRequest;
-
-public sealed record ClickKillRequest : CommandRequest;
-
-public sealed record KeywordRequest(string Name, string Value) : CommandRequest;
-
-public sealed record GetPropRequest(string Selector, string Property) : CommandRequest;
-
-public sealed record SetPropRequest(string Selector, string Property, string Value) : CommandRequest;
-
-public sealed record BatchRequest(string Payload) : CommandRequest;

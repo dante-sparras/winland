@@ -15,6 +15,7 @@ public sealed partial class WindowManager
             _ => throw new InvalidOperationException("No handler for this command."),
         };
 
+    // Each request's reply. A query answers with the current State and changes nothing.
     private CommandReply Reply(CommandRequest request)
     {
         var reply = request switch
@@ -24,7 +25,7 @@ public sealed partial class WindowManager
                 ? CommandProtocol.FormatClients(state, clients.All)
                 : Text(CommandProtocol.FormatClientsText(state, clients.All), "no open windows")),
             WorkspacesRequest workspaces => Describe(state => Json(workspaces) ? CommandProtocol.FormatWorkspaces(state) : CommandProtocol.FormatWorkspacesText(state)),
-            WorkspaceRulesRequest => new CommandReply(WorkspaceRules.Format(_config.WorkspaceRules), View([])),
+            WorkspaceRulesRequest => Answer(WorkspaceRules.Format(_config.WorkspaceRules)),
             MonitorsRequest monitors => Describe(state => Json(monitors)
                 ? CommandProtocol.FormatMonitors(state, monitors.All)
                 : CommandProtocol.FormatMonitorsText(state, monitors.All)),
@@ -34,9 +35,23 @@ public sealed partial class WindowManager
             ActiveWorkspaceRequest activeWorkspace => Describe(state => Json(activeWorkspace)
                 ? CommandProtocol.FormatActiveWorkspace(state)
                 : CommandProtocol.FormatActiveWorkspaceText(state)),
-            EventsRequest => new CommandReply("", View([])) { Stream = true },
+            EventsRequest => Answer("") with { Stream = true },
             ReloadRequest => ReloadCommand(),
-            _ => ReplyExtra(request),
+            BindsRequest => Describe(_ => CommandProtocol.FormatBinds(_config.Binds.Entries)),
+            VersionRequest => Answer(CommandProtocol.FormatVersion()),
+            CursorPosRequest cursor => Answer(CommandProtocol.FormatCursor(Cursor?.Read() ?? new Point(0, 0), Json(cursor))),
+            ConfigErrorsRequest => Answer(CommandProtocol.FormatErrors(_configErrors)),
+            GetOptionRequest option => Answer(OptionTable.Describe(option.Name, _config) ?? "no such option"),
+            LockedRequest => Answer(CommandProtocol.FormatLocked(SessionLock?.Locked == true)),
+            LayoutsRequest => Answer(CommandProtocol.FormatLayouts()),
+            AnimationsRequest animations => Answer(_config.Animations.Describe(Json(animations))),
+            SubmapRequest submap => Answer(CommandProtocol.FormatSubmap(_keyState.Submap, Json(submap))),
+            ClickKillRequest => ArmClickKill(),
+            KeywordRequest keyword => ApplyKeyword(keyword),
+            GetPropRequest prop => ReadProp(prop),
+            SetPropRequest prop => WriteProp(prop),
+            BatchRequest batch => RunBatch(batch.Payload),
+            _ => throw new InvalidOperationException("No handler for this command."),
         };
 
         if (request.Flags.HasFlag(CommandFlags.Relayout))
@@ -51,42 +66,19 @@ public sealed partial class WindowManager
         return new CommandReply(effect.Error ?? "ok", effect);
     }
 
-    // Winland's text reply for a query that finds nothing, such as "no open windows"; with j/ it stays the
-    // empty JSON.
     // Winland answers in JSON with j/ and in text without it.
     private static bool Json(CommandRequest request) => request.Flags.HasFlag(CommandFlags.Json);
 
+    // Winland's text reply for a query that finds nothing, such as "no open windows". With j/ it stays the empty JSON.
     private static string Text(string reply, string empty) => reply.Length == 0 ? empty : reply;
 
-    private static string Empty(string reply, string empty, CommandRequest request, string text) =>
-        reply == empty && !request.Flags.HasFlag(CommandFlags.Json) ? text : reply;
+    private CommandReply Answer(string text) => new(text, View([]));
 
     private CommandReply Describe(Func<State, string> format)
     {
         var outcome = View([]);
         return new CommandReply(format(outcome.State), outcome);
     }
-
-    private CommandReply ReplyExtra(CommandRequest request) => request switch
-    {
-        BindsRequest => Describe(_ => ExtraCommands.FormatBinds(_config.Binds.Entries)),
-        VersionRequest => new CommandReply(ExtraCommands.FormatVersion(), View([])),
-        CursorPosRequest cursor => new CommandReply(
-            ExtraCommands.FormatCursor(Cursor?.Read() ?? new Point(0, 0), cursor.Flags.HasFlag(CommandFlags.Json)),
-            View([])),
-        ConfigErrorsRequest => new CommandReply(ExtraCommands.FormatErrors(_configErrors), View([])),
-        GetOptionRequest option => new CommandReply(OptionTable.Describe(option.Name, _config) ?? "no such option", View([])),
-        LockedRequest => new CommandReply(ExtraCommands.FormatLocked(SessionLock?.Locked == true), View([])),
-        LayoutsRequest => new CommandReply(ExtraCommands.FormatLayouts(), View([])),
-        AnimationsRequest animations => new CommandReply(_config.Animations.Describe(animations.Flags.HasFlag(CommandFlags.Json)), View([])),
-        SubmapRequest submap => new CommandReply(ExtraCommands.FormatSubmap(_keyState.Submap, submap.Flags.HasFlag(CommandFlags.Json)), View([])),
-        ClickKillRequest => ArmClickKill(),
-        KeywordRequest keyword => ApplyKeyword(keyword),
-        GetPropRequest prop => ReadProp(prop),
-        SetPropRequest prop => WriteProp(prop),
-        BatchRequest batch => RunBatch(batch.Payload),
-        _ => throw new InvalidOperationException("No handler for this command."),
-    };
 
     // A keyword that changes the layout lays every Workspace out again. The result follows the keyword's own outcome.
     private Outcome Reflow(Outcome current)
@@ -233,7 +225,7 @@ public sealed partial class WindowManager
 
     private CommandReply RunBatch(string payload)
     {
-        var commands = ExtraCommands.SplitBatch(payload);
+        var commands = CommandProtocol.SplitBatch(payload);
         if (commands.Count == 0)
             return new CommandReply("", View([]));
 

@@ -176,10 +176,10 @@ public class ExtraCommandTests
     [Fact]
     public void ABatchSplitsAtEverySemicolonAsThePinnedReleaseDoes()
     {
-        Assert.Equal(["dispatch exec [float", "tile] a", "layouts"], ExtraCommands.SplitBatch("dispatch exec [float; tile] a;layouts"));
-        Assert.Equal([@"a\b;c", @"d\.e", ""], ExtraCommands.SplitBatch(@" a\\b\;c ; d\.e ;"));
-        Assert.Equal([@"x\"], ExtraCommands.SplitBatch(@"x\"));
-        Assert.Equal([""], ExtraCommands.SplitBatch(""));
+        Assert.Equal(["dispatch exec [float", "tile] a", "layouts"], CommandProtocol.SplitBatch("dispatch exec [float; tile] a;layouts"));
+        Assert.Equal([@"a\b;c", @"d\.e", ""], CommandProtocol.SplitBatch(@" a\\b\;c ; d\.e ;"));
+        Assert.Equal([@"x\"], CommandProtocol.SplitBatch(@"x\"));
+        Assert.Equal([""], CommandProtocol.SplitBatch(""));
     }
 
     [Fact]
