@@ -59,7 +59,7 @@ public sealed partial class WindowManager
             return decision;
 
         var screen = MonitorById(desk.Monitor);
-        int Count(WindowCount wanted) => desk.CountWindows(wanted, _pinned);
+        int Count(WindowCount wanted) => desk.CountWindows(wanted, _pins.IsPinned);
         var tags = new SortedSet<string>(StringComparer.Ordinal);
         var opening = new RuleSubject(
             Floating: false,
@@ -82,12 +82,12 @@ public sealed partial class WindowManager
     private RuleSubject SubjectOf(LiveWorkspace desk, Client client, WindowId? active, IReadOnlySet<string> tags)
     {
         var screen = MonitorById(desk.Monitor);
-        int Count(WindowCount wanted) => desk.CountWindows(wanted, _pinned);
+        int Count(WindowCount wanted) => desk.CountWindows(wanted, _pins.IsPinned);
         return new RuleSubject(
             client.Floating,
             (int)client.Fullscreen,
             (int)client.FullscreenClient,
-            IsPinned(client.Window),
+            _pins.IsPinned(client.Window),
             client.Window == active,
             desk.GroupOf(client.Window) is not null,
             selector => WorkspaceRules.MatchesSelector(selector, desk.Id, desk.DisplayName, screen?.Effective, Count, desk.CoveringMode()),

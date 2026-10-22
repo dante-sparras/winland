@@ -5,8 +5,6 @@ namespace Winland.Application;
 /// <summary>The <c>fullscreen</c>, <c>fullscreenstate</c> and <c>maximize</c> dispatchers, and what a fullscreen Client covers.</summary>
 public sealed partial class WindowManager
 {
-    private readonly HashSet<WindowId> _pinFullscreened = [];
-
     // Clients asked for client mode 2 while maximized, as Winland's restoreClientMaximized marks them. Asked
     // for client mode 0 after that, such a Client goes back to client mode 1.
     private readonly HashSet<WindowId> _restoreClientMaximized = [];
@@ -126,22 +124,14 @@ public sealed partial class WindowManager
     // is: a synced request changes nothing, and fullscreenstate sets only the client mode. False when nothing changes.
     private bool PinFullscreen(WindowId window, FullscreenMode old, ref FullscreenMode mode, bool synced)
     {
-        var pinned = IsPinned(window);
-        var held = _pinFullscreened.Contains(window);
-        if (!pinned && !held)
+        if (!_pins.IsPinnedOrHeld(window))
             return true;
 
         var allow = _config.Session.AllowPinFullscreen;
-        if (allow && pinned && !held && old == FullscreenMode.None)
-        {
-            _pinned.Remove(window);
-            _pinFullscreened.Add(window);
-        }
-        else if (allow && held && !pinned && old != FullscreenMode.None && mode == FullscreenMode.None)
-        {
-            _pinned.Add(window);
-            _pinFullscreened.Remove(window);
-        }
+        if (allow && _pins.IsPinned(window) && old == FullscreenMode.None)
+            _pins.Hold(window);
+        else if (allow && _pins.IsHeld(window) && old != FullscreenMode.None && mode == FullscreenMode.None)
+            _pins.Release(window);
         else if (!allow)
         {
             if (synced)

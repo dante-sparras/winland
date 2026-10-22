@@ -27,7 +27,7 @@ public sealed partial class WindowManager
                 : SwitchTo(desk.Id, null, consumed: false, dispatcher: name);
         }
 
-        if (IsPinned(id))
+        if (_pins.IsPinned(id))
             return FocusPinned(desk, id, name);
 
         var covered = desk.Covered();
@@ -92,8 +92,7 @@ public sealed partial class WindowManager
         var covered = desk.Covered();
         var placements = desk.Layout.ToggleFloating(id);
         // Only a floating Client is pinned, including one whose pin a fullscreen mode holds.
-        _pinned.Remove(id);
-        _pinFullscreened.Remove(id);
+        _pins.Forget(id);
 
         // A window that floats is raised, and so allowed over a fullscreen one.
         if (want)

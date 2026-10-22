@@ -86,7 +86,7 @@ public sealed partial class WindowManager
     private WorkspaceRule? RuleFor(LiveWorkspace desk)
     {
         var screen = MonitorById(desk.Monitor);
-        int Count(WindowCount wanted) => desk.CountWindows(wanted, _pinned);
+        int Count(WindowCount wanted) => desk.CountWindows(wanted, _pins.IsPinned);
         var fullscreen = desk.CoveringMode();
         var first = WorkspaceRules.For(
             _config.WorkspaceRules,

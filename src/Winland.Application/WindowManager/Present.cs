@@ -198,12 +198,11 @@ public sealed partial class WindowManager
             foreach (var client in desk.Layout.Clients)
             {
                 var slot = desk.Layout.TryBounds(client.Window, out var found) ? found : client.Bounds;
-                var pinned = IsPinned(client.Window);
                 clients.Add(client with
                 {
                     Bounds = PlacedBounds(client, desk, slot),
-                    Pinned = pinned,
-                    PinFullscreened = _pinFullscreened.Contains(client.Window),
+                    Pinned = _pins.IsPinned(client.Window),
+                    PinFullscreened = _pins.IsHeld(client.Window),
                     Tags = _props.Tags(client.Window),
                     Content = _props.Content(client.Window),
                     AllowedOverFullscreen = _cover.Flag(client.Window),
@@ -376,12 +375,10 @@ public sealed partial class WindowManager
 
     private void AddPinnedPlacements(LiveWorkspace desk, List<Placement> placements)
     {
-        if (!_workspaces.Shown.ShowsAWorkspace(desk.Monitor))
-            return;
-
+        var shows = _workspaces.Shown.ShowsAWorkspace(desk.Monitor);
         foreach (var client in desk.Layout.Clients)
         {
-            if (client.Minimized || !IsPinned(client.Window))
+            if (!_pins.StaysVisible(client.Window, client.Minimized, shows))
                 continue;
 
             if (desk.Layout.TryBounds(client.Window, out var bounds))
@@ -400,12 +397,10 @@ public sealed partial class WindowManager
                 continue;
             }
 
-            if (!_workspaces.Shown.ShowsAWorkspace(desk.Monitor))
-                continue;
-
+            var shows = _workspaces.Shown.ShowsAWorkspace(desk.Monitor);
             foreach (var client in desk.Layout.Clients)
             {
-                if (!client.Minimized && IsPinned(client.Window))
+                if (_pins.StaysVisible(client.Window, client.Minimized, shows))
                     windows.Add(client.Window);
             }
         }
@@ -430,12 +425,10 @@ public sealed partial class WindowManager
                 continue;
             }
 
+            var shows = _workspaces.Shown.ShowsAWorkspace(desk.Monitor);
             foreach (var client in desk.Layout.Clients)
             {
-                if (client.Minimized)
-                    continue;
-
-                if (IsPinned(client.Window) && _workspaces.Shown.ShowsAWorkspace(desk.Monitor))
+                if (client.Minimized || _pins.StaysVisible(client.Window, client.Minimized, shows))
                     continue;
 
                 windows.Add(client.Window);

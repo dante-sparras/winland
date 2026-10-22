@@ -19,9 +19,8 @@ public sealed partial class WindowManager
         _windowState.Track(_mapPlaced);
         _windowState.Track(_closeableAt);
         _windowState.Track(_cursorOnWindow);
-        _windowState.Track(_pinned);
+        _windowState.Track(_pins.Forget);
         _windowState.Track(_stacking);
-        _windowState.Track(_pinFullscreened);
         _windowState.Track(_restoreClientMaximized);
         _windowState.Track(_cover.Forget);
         _windowState.Track(ForgetDrag);

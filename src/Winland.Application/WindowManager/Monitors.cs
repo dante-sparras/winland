@@ -379,7 +379,7 @@ public sealed partial class WindowManager
         _workspaces.Shown.Show(origin.Id, replacement.Id);
 
         // Pinned Clients stay on the Monitor, on the Workspace it shows next.
-        foreach (var window in PinnedFloating(leaving))
+        foreach (var window in PinnedOn(leaving))
             Transfer(leaving, replacement, window);
     }
 

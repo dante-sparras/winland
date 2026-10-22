@@ -111,7 +111,7 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
     /// of the Layout, so a Group is one Client without <see cref="WindowCount.Groups"/>. Under a covering
     /// Client only that Client and pinned ones are visible.
     /// </summary>
-    public int CountWindows(WindowCount wanted, IReadOnlySet<WindowId> pinned)
+    public int CountWindows(WindowCount wanted, Func<WindowId, bool> isPinned)
     {
         var showing = wanted.Visible ? Showing() : null;
         WindowId? covering = null;
@@ -149,7 +149,7 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
             if (wanted.Tiled is bool tiled && client.Floating == tiled)
                 return false;
 
-            if (wanted.Pinned && !pinned.Contains(pin))
+            if (wanted.Pinned && !isPinned(pin))
                 return false;
 
             if (showing is null)
@@ -157,7 +157,7 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
 
             return !client.Minimized
                 && showing.Contains(client.Window)
-                && (covering is null || covering == client.Window || pinned.Contains(client.Window));
+                && (covering is null || covering == client.Window || isPinned(client.Window));
         }
     }
 
