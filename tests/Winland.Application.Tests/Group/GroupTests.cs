@@ -106,6 +106,16 @@ public class GroupTests
     }
 
     [Fact]
+    public void GroupDirectionsAreWholeWordsNotTheirFirstLetter()
+    {
+        var core = Opened(auto: true, First);
+        core.Execute("dispatch togglegroup");
+
+        Assert.Equal("error: unsupported direction: leftover", core.Execute("dispatch moveintogroup leftover").Text);
+        Assert.Equal("error: unsupported direction: leftover", core.Execute("dispatch movewindoworgroup leftover").Text);
+    }
+
+    [Fact]
     public void MoveOutOfGroupGivesTheWindowItsOwnTile()
     {
         var core = Grouped();

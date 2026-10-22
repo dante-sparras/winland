@@ -525,6 +525,17 @@ public class ScrollingLayoutTests
         Assert.True(BoundsOf(focused, 2).X >= 800);
     }
 
+    [Fact]
+    public void MoveFocusReadsTheWholeDirectionWord()
+    {
+        var core = Flat();
+        core.Handle(Appeared(1));
+        core.Handle(Appeared(2));
+
+        Assert.Null(core.Execute("dispatch movefocus leftover").Effect.Focus);
+        Assert.Equal(Window(1), core.Execute("dispatch movefocus left").Effect.Focus);
+    }
+
     private static WindowManager Flat() => Configured("""
         general:layout = scrolling
         general:gaps_in = 0

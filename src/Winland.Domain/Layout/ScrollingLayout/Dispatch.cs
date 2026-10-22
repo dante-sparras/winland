@@ -8,18 +8,18 @@ internal sealed partial class ScrollingLayout
     // looks in a direction across Monitors there. Only layoutmsg focus follows scrolling:wrap_focus.
     public WindowId? MoveFocus(WindowId active, string arguments)
     {
-        if (!FocusToward(active, arguments, out var next, wrap: false))
+        if (!Sides.TryParse(First(arguments), out _) || !FocusToward(active, arguments, out var next, wrap: false))
             return null;
 
         return next;
     }
 
     public WindowId? Neighbor(WindowId active, string arguments) =>
-        FocusToward(active, arguments, out var next, commit: false, wrap: false) ? next : null;
+        Sides.TryParse(First(arguments), out _) && FocusToward(active, arguments, out var next, commit: false, wrap: false) ? next : null;
 
     public IReadOnlyList<Placement> MoveWindow(WindowId window, string arguments)
     {
-        if (!TrySide(First(arguments), out var side))
+        if (!Sides.TryParse(First(arguments), out var side))
             return [];
 
         var id = new ClientId(window.Value);
@@ -223,35 +223,5 @@ internal sealed partial class ScrollingLayout
     {
         var tokens = Tokens(arguments);
         return tokens.Length == 0 ? "" : tokens[0];
-    }
-
-    private static bool TrySide(string text, out Side side)
-    {
-        if (text.Length == 0)
-        {
-            side = Side.Left;
-            return false;
-        }
-
-        switch (char.ToLowerInvariant(text[0]))
-        {
-            case 'l':
-                side = Side.Left;
-                return true;
-            case 'r':
-                side = Side.Right;
-                return true;
-            case 'u':
-            case 't':
-                side = Side.Up;
-                return true;
-            case 'd':
-            case 'b':
-                side = Side.Down;
-                return true;
-            default:
-                side = Side.Left;
-                return false;
-        }
     }
 }

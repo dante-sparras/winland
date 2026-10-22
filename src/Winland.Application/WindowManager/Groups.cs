@@ -167,7 +167,7 @@ public sealed partial class WindowManager
     private Outcome MoveIntoGroup(string text, bool create, string name)
     {
         if (!TryGroupDirection(text, out var direction))
-            return Rejected(name, "error: unsupported direction: " + (text.Length == 0 ? "" : text[..1]));
+            return Rejected(name, "error: unsupported direction: " + text);
 
         if (!_config.Groups.IgnoreGroupLock && _groupsLocked)
             return View([], dispatcher: name);
@@ -319,7 +319,7 @@ public sealed partial class WindowManager
     private Outcome MoveWindowOrGroup(string text, string name)
     {
         if (!TryGroupDirection(text, out var direction))
-            return Rejected(name, "error: unsupported direction: " + (text.Length == 0 ? "" : text[..1]));
+            return Rejected(name, "error: unsupported direction: " + text);
 
         if (ActiveWindow() is not WindowId id || WorkspaceContaining(id) is not LiveWorkspace desk || Find(id) is not Client client)
             return View([], dispatcher: name);
@@ -384,14 +384,14 @@ public sealed partial class WindowManager
 
     private static bool TryGroupDirection(string text, out string direction)
     {
-        direction = text.Length == 0 ? "" : text[0] switch
+        var parsed = Sides.TryParse(text, out var side);
+        direction = !parsed ? "" : side switch
         {
-            'l' => "l",
-            'r' => "r",
-            'u' or 't' => "u",
-            'd' or 'b' => "d",
-            _ => "",
+            Side.Left => "l",
+            Side.Right => "r",
+            Side.Up => "u",
+            _ => "d",
         };
-        return direction.Length > 0;
+        return parsed;
     }
 }
