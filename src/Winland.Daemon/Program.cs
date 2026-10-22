@@ -1,4 +1,3 @@
-using System.Security.Principal;
 using Winland.Daemon;
 using Winland.Install;
 
@@ -7,7 +6,7 @@ var log = new RollingLogWriter(Console.Error);
 Console.SetError(log);
 
 if (InstallCommand.Parse(args) is InstallCommand command)
-    return RunMaintenance(args, command);
+    return Guard(() => MaintenanceCommand.Run(args, command));
 
 var userInstall = InstallLocations.IsPerUserInstall(
     Environment.ProcessPath,
@@ -41,150 +40,6 @@ return Usage();
 static bool IsVerb(string value, string verb) =>
     value.Equals(verb, StringComparison.OrdinalIgnoreCase);
 
-static int RunMaintenance(string[] args, InstallCommand command)
-{
-    // One approval for the machine install, and for uninstalling it. The per-user install never asks.
-    // The relaunch carries the invoking user. An over-the-shoulder approval runs as the administrator
-    // who approved it, which is not the account that logs on.
-    var needsAdministrator = command is InstallCommand.Remove
-        ? MachineInstalled()
-        : command.RequiresAdministrator(machineInstallPresent: false);
-    if (needsAdministrator && !Elevation.IsElevated())
-    {
-        var relay = command is InstallCommand.Machine { Account: null } ? ["install", CurrentUser()] : args;
-        return Elevation.Relaunch(relay);
-    }
-
-    return Guard(() => Perform(command));
-}
-
-static int Perform(InstallCommand command)
-{
-    var executable = Environment.ProcessPath
-        ?? throw new InvalidOperationException("The executable path is not available.");
-    var app = Maintenance();
-    switch (command)
-    {
-        case InstallCommand.Machine machine:
-            var account = string.IsNullOrWhiteSpace(machine.Account) ? CurrentUser() : machine.Account;
-            app.InstallMachine(executable, account, BuildStamp.Version);
-            Console.WriteLine("Winland is installed and will start at logon.");
-            return 0;
-        case InstallCommand.ForUser:
-            app.InstallForUser(executable, BuildStamp.Version);
-            Console.WriteLine("Winland is installed for this user and will start at logon.");
-            return 0;
-        case InstallCommand.Remove remove:
-            app.Uninstall(remove.Purge, machine: Elevation.IsElevated());
-            Console.WriteLine(remove.Purge
-                ? "Winland is uninstalled, and its config, logs and state are removed."
-                : "Winland is uninstalled.");
-            return 0;
-        case InstallCommand.Update update:
-            return UpdateInstalled(update.Channel);
-        case InstallCommand.Tweaks tweaks:
-            RecordedSettings().TurnOff(tweaks.Touchpad);
-            Console.WriteLine(tweaks.Touchpad
-                ? "Snap windows and the three- and four-finger touchpad swipes are off."
-                : "Snap windows is off.");
-            return 0;
-        default:
-            throw new InvalidOperationException("Unexpected install command.");
-    }
-}
-
-static int UpdateInstalled(UpdateChannel? requested)
-{
-    var saved = new FileSettingsText(UpdateChannelFile.PathFor(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
-    if (requested is UpdateChannel chosen)
-        saved.Write(UpdateChannelFile.Text(chosen));
-
-    var channel = UpdateChannelFile.Choose(requested, saved.Read());
-    var executable = Environment.ProcessPath
-        ?? throw new InvalidOperationException("The executable path is not available.");
-    var layout = Layout();
-    using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
-    var result = new ReleaseUpdate(
-        new GitHubReleaseFeed(http),
-        new ZipReleasePackage(),
-        Maintenance(),
-        StageDirectory,
-        RemoveStage).Run(
-            BuildStamp.Version,
-            executable,
-            layout.MachineDirectory,
-            layout.UserDirectory,
-            Elevation.IsElevated(),
-            channel,
-            BuildStamp.Commit);
-
-    switch (result)
-    {
-        case UpdateResult.NotInstalled:
-            Console.Error.WriteLine("Winland is not installed. Run winland install.");
-            return 1;
-        case UpdateResult.Current:
-            Console.WriteLine("Winland is up to date.");
-            return 0;
-        case UpdateResult.NeedsAdministrator:
-            return Elevation.Relaunch(["update", "--channel", channel == UpdateChannel.Dev ? "dev" : "stable"]);
-        case UpdateResult.Rejected:
-            Console.Error.WriteLine("Refusing the update: the SHA-256 of Winland-win-x64.zip does not match SHA256SUMS.");
-            return 1;
-        case UpdateResult.Updated updated:
-            Console.WriteLine("Winland is updated to " + updated.Version + ".");
-            return 0;
-        default:
-            throw new InvalidOperationException("Unexpected update result.");
-    }
-}
-
-static string StageDirectory()
-{
-    // An elevated replace copies into Program Files. The unpacked zip stays in a folder only
-    // administrators can write, so another program cannot swap it after the hash check.
-    if (Elevation.IsElevated())
-    {
-        var windowsTemp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp");
-        return AdministratorFolder.CreateNew(windowsTemp, "winland-update-");
-    }
-
-    var folder = Path.Combine(Path.GetTempPath(), "winland-update-" + Guid.NewGuid().ToString("N"));
-    Directory.CreateDirectory(folder);
-    return folder;
-}
-
-static void RemoveStage(string directory)
-{
-    if (Directory.Exists(directory))
-        Directory.Delete(directory, recursive: true);
-}
-
-static bool MachineInstalled() => Maintenance().MachinePresent();
-
-static InstallLayout Layout() => new(
-    InstallLocations.Machine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)),
-    InstallLocations.User(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)),
-    Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms),
-    Environment.GetFolderPath(Environment.SpecialFolder.Programs),
-    InstallLocations.Config(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
-    InstallLocations.State(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
-
-static AppInstall Maintenance() => new(
-    Layout(),
-    new SchtasksCatalog(),
-    new WindowsInstallFiles(),
-    new WindowsInstallRegistry(),
-    new ShellStartMenu(),
-    new DaemonSession(),
-    RecordedSettings());
-
-static DesktopSettings RecordedSettings() => new(
-    new WindowsDesktop(),
-    new FileSettingsText(InstallLocations.SettingsFile(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))));
-
 static int Guard(Func<int> action)
 {
     try
@@ -203,12 +58,6 @@ static int Guard(Func<int> action)
         Console.Error.WriteLine(ex);
         return 1;
     }
-}
-
-static string CurrentUser()
-{
-    using var identity = WindowsIdentity.GetCurrent();
-    return identity.Name;
 }
 
 static void LaunchConfigured(WindowManager core, IEnumerable<Launch> launches)
@@ -241,7 +90,7 @@ static int Run(string? path, RollingLogWriter log)
     if (!File.Exists(configPath))
         throw new InvalidOperationException($"Could not read config '{Path.GetFullPath(configPath)}'.");
 
-    var current = ReadConfig(configPath);
+    var current = ConfigFile.Read(configPath);
 
     foreach (var warning in current.Warnings)
     {
@@ -250,7 +99,7 @@ static int Run(string? path, RollingLogWriter log)
     }
 
     var core = new WindowManager();
-    core.ReadConfig = () => ReadForReload(configPath);
+    core.ReadConfig = () => ConfigFile.TryRead(configPath);
     ConfigWatcher? watcher = null;
     string? logFile = null;
     core.AfterReload = document =>
@@ -338,25 +187,6 @@ static int Run(string? path, RollingLogWriter log)
     }
 }
 
-static ConfigRead ReadForReload(string path)
-{
-    var full = Path.GetFullPath(path);
-    if (!File.Exists(full))
-    {
-        var missing = $"Could not read config '{full}'.";
-        return new ConfigRead(null, new ConfigWarning(0, missing, full));
-    }
-
-    try
-    {
-        return new ConfigRead(ReadConfig(full));
-    }
-    catch (InvalidOperationException exception)
-    {
-        return new ConfigRead(null, new ConfigWarning(0, exception.Message, full));
-    }
-}
-
 static void Persist(RecoveryStore store, RecoverySnapshot snapshot)
 {
     // A Client that closed since the snapshot was taken is left out. The rest are still recorded.
@@ -437,17 +267,6 @@ static string? PipeName()
 {
     var configured = Environment.GetEnvironmentVariable("WINLAND_PIPE");
     return string.IsNullOrWhiteSpace(configured) ? null : configured;
-}
-
-static ConfigDocument ReadConfig(string path)
-{
-    var full = Path.GetFullPath(path);
-    var directory = Path.GetDirectoryName(full) ?? ".";
-    var source = new FileConfigSource(directory);
-    var text = source.Read(full)
-        ?? throw new InvalidOperationException($"Could not read config '{full}'.");
-
-    return ConfigParser.Parse(text, source, KeyboardLayout.Active(), full);
 }
 
 static int Usage()
