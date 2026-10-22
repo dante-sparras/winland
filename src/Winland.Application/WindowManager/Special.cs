@@ -3,28 +3,10 @@ namespace Winland.Application;
 /// <summary>Special Workspaces: <c>togglespecialworkspace</c> and how they show over a Monitor.</summary>
 public sealed partial class WindowManager
 {
-    private WorkspaceId? SpecialOn(MonitorId monitor) => _workspaces.Shown.SpecialOn(monitor);
-
-    private void SetSpecial(MonitorId monitor, WorkspaceId? workspace) => _workspaces.Shown.ShowSpecial(monitor, workspace);
-
-    private MonitorId? MonitorShowing(WorkspaceId workspace)
-    {
-        if (_monitors.Count == 0)
-            return SpecialOn(MonitorId.Primary) == workspace ? MonitorId.Primary : null;
-
-        foreach (var screen in _monitors)
-        {
-            if (screen.Effective.Enabled && SpecialShownOn(screen) == workspace)
-                return screen.Id;
-        }
-
-        return null;
-    }
-
     private LiveWorkspace CurrentWorkspace()
     {
         var monitor = FocusedId();
-        if (SpecialOn(monitor) is WorkspaceId special && _workspaces.Find(special) is LiveWorkspace desk)
+        if (_workspaces.Shown.SpecialOn(monitor) is WorkspaceId special && _workspaces.Find(special) is LiveWorkspace desk)
             return desk;
 
         return FocusedWorkspace();
@@ -37,7 +19,7 @@ public sealed partial class WindowManager
         const string name = "togglespecialworkspace";
         var target = SpecialName(arguments);
         var monitor = FocusedId();
-        if (SpecialOn(monitor) == target)
+        if (_workspaces.Shown.SpecialOn(monitor) == target)
             return CloseSpecial(monitor, name);
 
         return OpenSpecial(target, null, name);
@@ -90,7 +72,7 @@ public sealed partial class WindowManager
     private Outcome OpenSpecial(WorkspaceId target, WindowId? focus, string? dispatcher)
     {
         var monitor = FocusedId();
-        if (SpecialOn(monitor) == target)
+        if (_workspaces.Shown.SpecialOn(monitor) == target)
         {
             if (focus is WindowId requested && ClientOn(target, requested) is { Minimized: false })
             {
@@ -103,10 +85,10 @@ public sealed partial class WindowManager
 
         var show = new List<WindowId>();
         var hide = new List<WindowId>();
-        if (MonitorShowing(target) is MonitorId other && other != monitor)
-            SetSpecial(other, null);
+        if (_workspaces.Shown.ShowingSpecial(target) is MonitorId other && other != monitor)
+            _workspaces.Shown.ShowSpecial(other, null);
 
-        if (SpecialOn(monitor) is WorkspaceId previous && previous != target)
+        if (_workspaces.Shown.SpecialOn(monitor) is WorkspaceId previous && previous != target)
         {
             foreach (var window in VisibleIds(previous))
                 hide.Add(window);
@@ -119,7 +101,7 @@ public sealed partial class WindowManager
             Refit(desk);
         }
 
-        SetSpecial(monitor, target);
+        _workspaces.Shown.ShowSpecial(monitor, target);
         BringFloatingOnto(desk, monitor);
         foreach (var window in VisibleIds(target))
         {
@@ -150,7 +132,7 @@ public sealed partial class WindowManager
 
     private WindowId[] SpecialHiddenBy(MonitorId monitor, WindowId? focus)
     {
-        if (SpecialOn(monitor) is null)
+        if (_workspaces.Shown.SpecialOn(monitor) is null)
             return [];
 
         if (focus is not null && !_config.Input.SpecialFallthrough)
@@ -164,12 +146,12 @@ public sealed partial class WindowManager
 
     private WindowId[] ConcealSpecial(MonitorId monitor)
     {
-        if (SpecialOn(monitor) is not WorkspaceId current)
+        if (_workspaces.Shown.SpecialOn(monitor) is not WorkspaceId current)
             return [];
 
         var hidden = VisibleIds(current);
-        SetSpecial(monitor, null);
-        var normal = _workspaces.Find(ActiveOn(monitor));
+        _workspaces.Shown.ShowSpecial(monitor, null);
+        var normal = _workspaces.Find(_workspaces.Shown.ActiveOn(monitor));
         var next = normal is null ? null : _focus.Remembered(normal);
         _focus.Take(next, normal);
 
@@ -193,7 +175,7 @@ public sealed partial class WindowManager
             if (source.Id.IsSpecial && source.Layout.Clients.Count == 0)
                 DropIfEmpty(source.Id);
 
-            if (!IsShown(source.Id) || source.Id == destination.Id)
+            if (!_workspaces.Shown.IsShown(source.Id) || source.Id == destination.Id)
                 return opened.Focus is null ? opened with { Focus = window } : opened;
 
             var show = new List<WindowId>(opened.Show);
@@ -212,9 +194,9 @@ public sealed partial class WindowManager
 
         var revealed = new List<WindowId>();
         var hidden = new List<WindowId>();
-        if (IsShown(source.Id))
+        if (_workspaces.Shown.IsShown(source.Id))
             source.Collect(sourceCovered, revealed, hidden);
-        if (IsShown(destination.Id))
+        if (_workspaces.Shown.IsShown(destination.Id))
             destination.Collect(destinationCovered, revealed, hidden);
         else
             hidden.Add(window);
@@ -222,7 +204,7 @@ public sealed partial class WindowManager
         if (source.Id.IsSpecial
             && source.Layout.Clients.Count == 0
             && _config.Session.CloseSpecialOnEmpty
-            && SpecialOn(source.Monitor) == source.Id)
+            && _workspaces.Shown.SpecialOn(source.Monitor) == source.Id)
         {
             foreach (var concealed in ConcealSpecial(source.Monitor))
             {
@@ -239,9 +221,9 @@ public sealed partial class WindowManager
         }
 
         var placed = new List<Placement>();
-        if (IsShown(source.Id))
+        if (_workspaces.Shown.IsShown(source.Id))
             placed.AddRange(source.Layout.Placed());
-        if (IsShown(destination.Id))
+        if (_workspaces.Shown.IsShown(destination.Id))
             placed.AddRange(destination.Layout.Visible());
 
         return View(placed, revealed, hidden, consumed, dispatcher);
@@ -257,15 +239,15 @@ public sealed partial class WindowManager
             if (!desk.Id.IsSpecial || HeldBy(enabled, desk.Monitor))
                 continue;
 
-            var shown = SpecialOn(desk.Monitor) == desk.Id;
-            SetSpecial(desk.Monitor, null);
+            var shown = _workspaces.Shown.SpecialOn(desk.Monitor) == desk.Id;
+            _workspaces.Shown.ShowSpecial(desk.Monitor, null);
             desk.Monitor = home.Id;
             Refit(desk);
 
             // A special workspace that was shown is shown on the Monitor that takes it, in place of the one
             // shown there.
             if (shown)
-                SetSpecial(home.Id, desk.Id);
+                _workspaces.Shown.ShowSpecial(home.Id, desk.Id);
         }
     }
 

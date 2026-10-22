@@ -187,7 +187,7 @@ public sealed partial class WindowManager
 
         var covered = desk.Covered();
         var placements = desk.Layout.PlaceFloating(resized.Window, placed.Bounds);
-        return IsShown(desk.Id) ? Present(desk, covered, placements) : View([]);
+        return _workspaces.Shown.IsShown(desk.Id) ? Present(desk, covered, placements) : View([]);
     }
 
     private static Dictionary<string, double> Variables(Rectangle monitor, Rectangle window, Point cursor) => new(StringComparer.Ordinal)

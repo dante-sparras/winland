@@ -43,7 +43,7 @@ public sealed partial class WindowManager
         var screen = MonitorById(desk.Monitor);
         (_extraEvents ??= []).Add(new WorkspaceIdChanged(old, number, screen?.Reported.Name ?? ""));
 
-        var shown = ActiveOn(desk.Monitor) == to;
+        var shown = _workspaces.Shown.ActiveOn(desk.Monitor) == to;
         var placements = Restamp(desk, []);
         return View(shown ? placements : [], dispatcher: dispatcher);
     }

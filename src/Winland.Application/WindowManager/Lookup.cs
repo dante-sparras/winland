@@ -3,14 +3,7 @@ namespace Winland.Application;
 /// <summary>Finds the active Workspace, Monitor and Client, and the Workspace that holds a window.</summary>
 public sealed partial class WindowManager
 {
-    private WorkspaceId ActiveId() => ActiveOn(FocusedId());
-
-    private WorkspaceId ActiveOn(MonitorId monitor) => _workspaces.Shown.ActiveOn(monitor);
-
-    // The Shown workspace of a live Monitor, and the Special workspace over it.
-    private WorkspaceId? ShownOn(LiveMonitor screen) => _workspaces.Shown.Shown(screen.Id);
-
-    private WorkspaceId? SpecialShownOn(LiveMonitor screen) => _workspaces.Shown.SpecialOn(screen.Id);
+    private WorkspaceId ActiveId() => _workspaces.Shown.ActiveOn(FocusedId());
 
     // Each enabled Monitor shows a Workspace no other enabled Monitor shows. A step may break this on its way, so it is
     // checked after each one, in debug builds, where the tests run.
@@ -20,7 +13,7 @@ public sealed partial class WindowManager
         var seen = new HashSet<WorkspaceId>();
         foreach (var screen in _monitors)
         {
-            if (screen.Effective.Enabled && ShownOn(screen) is WorkspaceId shown && !seen.Add(shown))
+            if (screen.Effective.Enabled && _workspaces.Shown.Shown(screen.Id) is WorkspaceId shown && !seen.Add(shown))
                 throw new InvalidOperationException($"Workspace {shown} is shown on two Monitors.");
         }
     }
@@ -43,23 +36,6 @@ public sealed partial class WindowManager
         }
 
         return _monitors[0].Id;
-    }
-
-    private bool IsShown(WorkspaceId id)
-    {
-        if (id.IsSpecial)
-            return MonitorShowing(id) is not null;
-
-        if (_monitors.Count == 0)
-            return id == ActiveId();
-
-        foreach (var screen in _monitors)
-        {
-            if (screen.Effective.Enabled && ShownOn(screen) == id)
-                return true;
-        }
-
-        return false;
     }
 
     private LiveWorkspace FocusedWorkspace() => WorkspaceFor(ActiveId(), FocusedId());

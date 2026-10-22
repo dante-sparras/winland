@@ -116,4 +116,44 @@ public class ShownWorkspacesTests
 
         Assert.Equal(Number(2, Left), shown.Previous(Left, perMonitor: false));
     }
+
+    [Fact]
+    public void OnlyWhatAnEnabledMonitorShowsIsShown()
+    {
+        var shown = new ShownWorkspaces();
+        shown.SetLive([Left, Right], enabled: [Left]);
+        shown.Show(Left, Number(1, Left));
+        shown.Show(Right, Number(1, Right));
+
+        Assert.True(shown.IsShown(Number(1, Left)));
+        Assert.False(shown.IsShown(Number(1, Right)));
+        Assert.True(shown.ShowsAWorkspace(Left));
+        Assert.False(shown.ShowsAWorkspace(Right));
+    }
+
+    [Fact]
+    public void ASpecialWorkspaceIsShownOverTheEnabledMonitorThatOpensIt()
+    {
+        var shown = new ShownWorkspaces();
+        var scratch = new WorkspaceId("special:scratch");
+        shown.SetLive([Left, Right]);
+        shown.ShowSpecial(Right, scratch);
+
+        Assert.Equal(Right, shown.ShowingSpecial(scratch));
+        Assert.True(shown.IsShown(scratch));
+
+        shown.SetLive([Left, Right], enabled: [Left]);
+        Assert.Null(shown.ShowingSpecial(scratch));
+    }
+
+    [Fact]
+    public void WithNoMonitorReportedThePrimaryShowsWhatItShowedLast()
+    {
+        var shown = new ShownWorkspaces();
+        shown.Show(MonitorId.Primary, Number(3, MonitorId.Primary));
+
+        Assert.True(shown.IsShown(Number(3, MonitorId.Primary)));
+        Assert.False(shown.IsShown(Number(4, MonitorId.Primary)));
+        Assert.True(shown.ShowsAWorkspace(Left));
+    }
 }

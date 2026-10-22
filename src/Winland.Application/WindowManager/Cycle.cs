@@ -67,12 +67,12 @@ public sealed partial class WindowManager
         var focus = desk.Layout.LayoutMessageFocus ?? RevealedTile(desk, covered, placements);
         if (focus is null || HasNoFocus(focus.Value))
         {
-            return IsShown(desk.Id)
+            return _workspaces.Shown.IsShown(desk.Id)
                 ? Present(desk, covered, placements, dispatcher: name)
                 : View([], dispatcher: name);
         }
 
-        if (!IsShown(desk.Id))
+        if (!_workspaces.Shown.IsShown(desk.Id))
             return FocusClient(focus.Value, name);
 
         var laid = Present(desk, covered, placements, dispatcher: name);

@@ -165,7 +165,7 @@ public sealed partial class WindowManager
         if (window is not WindowId next || next == _focus.Focused || HeldByStay(next) || HasNoFocus(next))
             return null;
 
-        if (WorkspaceContaining(next) is not LiveWorkspace desk || !IsShown(desk.Id))
+        if (WorkspaceContaining(next) is not LiveWorkspace desk || !_workspaces.Shown.IsShown(desk.Id))
             return null;
 
         NoteFocus(next);
@@ -229,7 +229,7 @@ public sealed partial class WindowManager
         var targets = new List<PointerFocus.Target>();
         foreach (var desk in _workspaces)
         {
-            if (desk.Id.IsSpecial != special || !IsShown(desk.Id))
+            if (desk.Id.IsSpecial != special || !_workspaces.Shown.IsShown(desk.Id))
                 continue;
 
             if (screen is not null && desk.Monitor != screen.Id)
@@ -364,7 +364,7 @@ public sealed partial class WindowManager
     // the focused one when no Monitor is under it.
     private LiveWorkspace PointerWorkspace(Point pointer)
     {
-        if (MonitorAt(pointer) is { } screen && (SpecialShownOn(screen) ?? ShownOn(screen)) is WorkspaceId shown && _workspaces.Find(shown) is LiveWorkspace desk)
+        if (MonitorAt(pointer) is { } screen && (_workspaces.Shown.SpecialOn(screen.Id) ?? _workspaces.Shown.Shown(screen.Id)) is WorkspaceId shown && _workspaces.Find(shown) is LiveWorkspace desk)
             return desk;
 
         return CurrentWorkspace();

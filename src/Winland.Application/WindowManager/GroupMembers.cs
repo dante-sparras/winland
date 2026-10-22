@@ -66,7 +66,7 @@ public sealed partial class WindowManager
         if (wasShown && mode != FullscreenMode.None && desk.ClientOf(group.Shown) is { Fullscreen: not FullscreenMode.None })
             desk.Layout.SetFullscreen(group.Shown, FullscreenMode.None, FullscreenMode.None);
 
-        if (!wasShown || !IsShown(desk.Id))
+        if (!wasShown || !_workspaces.Shown.IsShown(desk.Id))
             return View([]);
 
         WindowId? focus = null;

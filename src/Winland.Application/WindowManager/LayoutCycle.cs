@@ -17,7 +17,7 @@ public sealed partial class WindowManager
         var created = LayoutNamed(NextLayout(LayoutFactory.NameOf(desk.Layout), GoesBack(arguments)));
         AdoptLayout(desk, created);
         Refit(desk);
-        return IsShown(desk.Id)
+        return _workspaces.Shown.IsShown(desk.Id)
             ? Present(desk, covered, desk.Layout.Visible(), dispatcher: name)
             : View([], dispatcher: name);
     }

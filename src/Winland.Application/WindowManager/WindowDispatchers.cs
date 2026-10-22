@@ -22,7 +22,7 @@ public sealed partial class WindowManager
         // A window shadowed by a modal refuses the focus, though its Workspace is still shown.
         if (BlockedByModal(id))
         {
-            return IsShown(desk.Id)
+            return _workspaces.Shown.IsShown(desk.Id)
                 ? View([], dispatcher: name)
                 : SwitchTo(desk.Id, null, consumed: false, dispatcher: name);
         }
@@ -42,7 +42,7 @@ public sealed partial class WindowManager
 
         var outcome = SwitchTo(desk.Id, id, consumed: false, dispatcher: name);
         outcome = outcome.Focus is null ? outcome with { Focus = id } : outcome;
-        if (refit is not null && IsShown(desk.Id))
+        if (refit is not null && _workspaces.Shown.IsShown(desk.Id))
             outcome = Present(desk, covered, refit).Then(outcome);
         return raised is null ? outcome : raised.Then(outcome);
     }
@@ -99,7 +99,7 @@ public sealed partial class WindowManager
         if (want)
             _cover.SetFlag(id, true);
 
-        return IsShown(desk.Id)
+        return _workspaces.Shown.IsShown(desk.Id)
             ? Present(desk, covered, placements, dispatcher: name)
             : View([], dispatcher: name);
     }
@@ -141,7 +141,7 @@ public sealed partial class WindowManager
         if (desk.Layout.LayoutMessageError is string error)
             return View(placements, dispatcher: name) with { Error = error };
 
-        return IsShown(desk.Id)
+        return _workspaces.Shown.IsShown(desk.Id)
             ? Present(desk, covered, placements, dispatcher: name)
             : View([], dispatcher: name);
     }
@@ -190,7 +190,7 @@ public sealed partial class WindowManager
         if (placements.Count == 0)
             return Rejected(name, "error: No window to swap with");
 
-        return IsShown(home.Id)
+        return _workspaces.Shown.IsShown(home.Id)
             ? Present(home, covered, placements, dispatcher: name)
             : View(placements, dispatcher: name);
     }
@@ -219,8 +219,8 @@ public sealed partial class WindowManager
         if (away.Focus == other)
             FocusState.Remember(away, current);
 
-        var homeShown = IsShown(home.Id);
-        var awayShown = IsShown(away.Id);
+        var homeShown = _workspaces.Shown.IsShown(home.Id);
+        var awayShown = _workspaces.Shown.IsShown(away.Id);
         var show = new List<WindowId>();
         var hide = new List<WindowId>();
         if (homeShown != awayShown)
@@ -372,7 +372,7 @@ public sealed partial class WindowManager
         }
 
         var monitor = FocusedId();
-        if (SpecialOn(monitor) is null)
+        if (_workspaces.Shown.SpecialOn(monitor) is null)
         {
             return SwitchTo(WorkspaceId.FromNumber(1, monitor), focus: null, consumed: false, dispatcher: name)
                 with { Closes = closes };

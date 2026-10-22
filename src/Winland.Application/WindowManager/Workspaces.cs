@@ -59,7 +59,7 @@ public sealed partial class WindowManager
             return View([], consumed: consumed, dispatcher: dispatcher);
 
         var sourceCovered = source.Covered();
-        var wasHidden = !IsShown(source.Id) || sourceCovered.Contains(id);
+        var wasHidden = !_workspaces.Shown.IsShown(source.Id) || sourceCovered.Contains(id);
         if (!source.Take(id, out var taken))
             return View([], consumed: consumed, dispatcher: dispatcher);
 
@@ -78,7 +78,7 @@ public sealed partial class WindowManager
         if (target.IsSpecial)
             return FinishSpecialMove(source, destination, id, silent, consumed, dispatcher, sourceCovered, destinationCovered);
 
-        if (!silent && source.Id.IsSpecial && SpecialOn(source.Monitor) == source.Id)
+        if (!silent && source.Id.IsSpecial && _workspaces.Shown.SpecialOn(source.Monitor) == source.Id)
         {
             var concealed = ConcealSpecial(source.Monitor);
             return FollowMove(SwitchTo(target, id, consumed, dispatcher), id, concealed, destination);
@@ -89,14 +89,14 @@ public sealed partial class WindowManager
             var followed = FocusShown(owner, target, id, consumed, dispatcher);
             var show = new List<WindowId>();
             var conceal = new List<WindowId>();
-            if (IsShown(source.Id))
+            if (_workspaces.Shown.IsShown(source.Id))
                 source.Collect(sourceCovered, show, conceal);
-            if (IsShown(destination.Id))
+            if (_workspaces.Shown.IsShown(destination.Id))
                 Arrive(show, conceal);
             var moved = new List<Placement>();
-            if (IsShown(source.Id))
+            if (_workspaces.Shown.IsShown(source.Id))
                 moved.AddRange(source.Layout.Placed());
-            if (IsShown(destination.Id))
+            if (_workspaces.Shown.IsShown(destination.Id))
                 moved.AddRange(destination.Layout.Visible());
             return followed with
             {
@@ -110,22 +110,22 @@ public sealed partial class WindowManager
         {
             // Switching to the Workspace already shown here changes nothing on screen, so the reflow
             // and the arriving window are added to what the switch returns.
-            var here = ActiveOn(FocusedId()) == target;
+            var here = _workspaces.Shown.ActiveOn(FocusedId()) == target;
             var followedSwitch = SwitchTo(target, id, consumed, dispatcher);
             if (here)
             {
                 var show = new List<WindowId>(followedSwitch.Show);
                 var conceal = new List<WindowId>(followedSwitch.Hide);
-                if (IsShown(source.Id))
+                if (_workspaces.Shown.IsShown(source.Id))
                     source.Collect(sourceCovered, show, conceal);
                 Arrive(show, conceal);
                 var moved = new List<Placement>();
-                if (IsShown(source.Id))
+                if (_workspaces.Shown.IsShown(source.Id))
                     moved.AddRange(source.Layout.Placed());
                 moved.AddRange(destination.Layout.Visible());
                 followedSwitch = followedSwitch with { Placements = moved, Show = show, Hide = conceal };
             }
-            else if (IsShown(source.Id))
+            else if (_workspaces.Shown.IsShown(source.Id))
             {
                 // The Workspace the window left is still shown on its own Monitor, so it is laid out again too.
                 followedSwitch = followedSwitch with { Placements = [.. source.Layout.Placed(), .. followedSwitch.Placements] };
@@ -138,9 +138,9 @@ public sealed partial class WindowManager
 
         var revealed = new List<WindowId>();
         var hidden = new List<WindowId>();
-        if (IsShown(source.Id))
+        if (_workspaces.Shown.IsShown(source.Id))
             source.Collect(sourceCovered, revealed, hidden);
-        if (IsShown(destination.Id))
+        if (_workspaces.Shown.IsShown(destination.Id))
             Arrive(revealed, hidden);
         else
             hidden.Add(id);
@@ -148,7 +148,7 @@ public sealed partial class WindowManager
         if (source.Id.IsSpecial
             && source.Layout.Clients.Count == 0
             && _config.Session.CloseSpecialOnEmpty
-            && SpecialOn(source.Monitor) == source.Id)
+            && _workspaces.Shown.SpecialOn(source.Monitor) == source.Id)
         {
             foreach (var concealed in ConcealSpecial(source.Monitor))
             {
@@ -163,9 +163,9 @@ public sealed partial class WindowManager
         }
 
         var placements = new List<Placement>();
-        if (IsShown(source.Id))
+        if (_workspaces.Shown.IsShown(source.Id))
             placements.AddRange(source.Layout.Placed());
-        if (IsShown(destination.Id))
+        if (_workspaces.Shown.IsShown(destination.Id))
             placements.AddRange(destination.Layout.Visible());
 
         return View(placements, revealed, hidden, consumed, dispatcher);
@@ -186,7 +186,7 @@ public sealed partial class WindowManager
     private Outcome FollowMove(Outcome followed, WindowId window, WindowId[] concealed, LiveWorkspace destination)
     {
         var show = new List<WindowId>(followed.Show);
-        if (IsShown(destination.Id) && !show.Contains(window))
+        if (_workspaces.Shown.IsShown(destination.Id) && !show.Contains(window))
             show.Add(window);
 
         var placements = followed.Placements.Count > 0 ? followed.Placements : destination.Layout.Visible();
@@ -218,11 +218,11 @@ public sealed partial class WindowManager
         var monitor = FocusedId();
         var concealed = SpecialHiddenBy(monitor, focus);
 
-        var sourceId = ActiveOn(monitor);
+        var sourceId = _workspaces.Shown.ActiveOn(monitor);
         if (sourceId == target)
         {
             if (focus is WindowId requested && ClientOn(target, requested) is not null
-                && (SpecialOn(monitor) is null || _config.Input.SpecialFallthrough))
+                && (_workspaces.Shown.SpecialOn(monitor) is null || _config.Input.SpecialFallthrough))
             {
                 _focus.Take(requested, FocusedWorkspace());
             }
@@ -242,7 +242,7 @@ public sealed partial class WindowManager
         var destination = WorkspaceFor(target, monitor);
         CarryPinned(sourceId, destination);
         var hide = VisibleIds(sourceId);
-        var keepSpecial = SpecialOn(monitor) is not null && focus is null;
+        var keepSpecial = _workspaces.Shown.SpecialOn(monitor) is not null && focus is null;
         if (!keepSpecial)
         {
             _focus.Take(
@@ -270,7 +270,7 @@ public sealed partial class WindowManager
             return null;
 
         var owner = MonitorById(desk.Monitor);
-        if (owner is null || !owner.Effective.Enabled || ShownOn(owner) != target || owner.Id == FocusedId())
+        if (owner is null || !owner.Effective.Enabled || _workspaces.Shown.Shown(owner.Id) != target || owner.Id == FocusedId())
             return null;
 
         return owner;
@@ -332,7 +332,7 @@ public sealed partial class WindowManager
     private WorkspaceId BackAndForth(WorkspaceId target)
     {
         var monitor = FocusedId();
-        if (_config.BindOptions.BackAndForth == 0 || target != ActiveOn(monitor))
+        if (_config.BindOptions.BackAndForth == 0 || target != _workspaces.Shown.ActiveOn(monitor))
             return target;
 
         return Previous(monitor, perMonitor: _config.BindOptions.BackAndForth == 2) ?? target;
@@ -344,7 +344,7 @@ public sealed partial class WindowManager
 
     private WorkspaceAddress.Context Context(MonitorId monitor)
     {
-        var active = ActiveOn(monitor);
+        var active = _workspaces.Shown.ActiveOn(monitor);
         if (!active.IsSpecial && active.Monitor != monitor.Value)
             active = new WorkspaceId(active.Name, monitor.Value);
 
@@ -358,7 +358,7 @@ public sealed partial class WindowManager
             number => _workspaces.NumberIsEmpty(number, monitor));
     }
 
-    private void DropIfEmpty(WorkspaceId id) => _workspaces.DropIfEmpty(id, IsShown(id));
+    private void DropIfEmpty(WorkspaceId id) => _workspaces.DropIfEmpty(id, _workspaces.Shown.IsShown(id));
 
     private void Rebind(LiveWorkspace desk, WorkspaceId to) => Readdressed(_workspaces.Rebind(desk, to));
 

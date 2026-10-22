@@ -43,7 +43,7 @@ public sealed partial class WindowManager
                 changed |= !Equals(border, _props.RuleProp(client.Window, "border_size"));
             }
 
-            if (changed && IsShown(desk.Id))
+            if (changed && _workspaces.Shown.IsShown(desk.Id))
                 placements.AddRange(desk.Layout.Apply(desk.Options));
         }
 

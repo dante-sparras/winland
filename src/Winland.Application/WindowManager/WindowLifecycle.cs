@@ -53,7 +53,7 @@ public sealed partial class WindowManager
             return active;
 
         var desk = WorkspaceContaining(active);
-        if (desk is null || !IsShown(desk.Id))
+        if (desk is null || !_workspaces.Shown.IsShown(desk.Id))
             return null;
 
         return desk.ClientOf(active) is { Minimized: false } ? active : null;
@@ -64,9 +64,9 @@ public sealed partial class WindowManager
         switch (input)
         {
             case WindowAppeared appeared when WorkspaceContaining(appeared.Window) is { } appearedWorkspace
-                && IsShown(appearedWorkspace.Id)
+                && _workspaces.Shown.IsShown(appearedWorkspace.Id)
                 && !_awaitingMapFocus.Contains(appeared.Window):
-                var current = SpecialOn(appearedWorkspace.Monitor) ?? ActiveOn(appearedWorkspace.Monitor);
+                var current = _workspaces.Shown.SpecialOn(appearedWorkspace.Monitor) ?? _workspaces.Shown.ActiveOn(appearedWorkspace.Monitor);
                 if (appearedWorkspace.Id == current)
                 {
                     FocusState.Remember(appearedWorkspace, appeared.Window);
@@ -82,14 +82,14 @@ public sealed partial class WindowManager
     private void NoteFocus(WindowId window)
     {
         var owner = WorkspaceContaining(window);
-        if (owner is not null && IsShown(owner.Id))
+        if (owner is not null && _workspaces.Shown.IsShown(owner.Id))
         {
             if (_monitors.Count > 0)
                 Focus(owner.Monitor);
 
-            var special = SpecialOn(owner.Monitor);
+            var special = _workspaces.Shown.SpecialOn(owner.Monitor);
             var onSpecial = special == owner.Id;
-            var onNormal = owner.Id == ActiveOn(owner.Monitor);
+            var onNormal = owner.Id == _workspaces.Shown.ActiveOn(owner.Monitor);
             if (onSpecial || (onNormal && (special is null || _config.Input.SpecialFallthrough)))
             {
                 _focus.Take(window, owner);
@@ -119,7 +119,7 @@ public sealed partial class WindowManager
             return View([]);
 
         if (Find(appeared.Window) is { } existing)
-            return IsShown(existing.Workspace) && !IsWaiting(appeared.Window) ? View([]) : View([], hide: [appeared.Window]);
+            return _workspaces.Shown.IsShown(existing.Workspace) && !IsWaiting(appeared.Window) ? View([]) : View([], hide: [appeared.Window]);
 
         var restored = FindRestored(appeared.Window);
         decision = Recovered(decision, restored);
@@ -131,8 +131,8 @@ public sealed partial class WindowManager
             screen = RuleMonitor(decision.Placement.Monitor, screen);
 
         var monitor = RestoredMonitor(restored, screen);
-        var active = ActiveOn(monitor);
-        var current = SpecialOn(monitor) ?? active;
+        var active = _workspaces.Shown.ActiveOn(monitor);
+        var current = _workspaces.Shown.SpecialOn(monitor) ?? active;
         // A window rule's Workspace number is the focused Monitor's Workspace of that number.
         var rule = WorkspaceAddress.ParseRule(decision.Workspace, Context());
 
@@ -168,7 +168,7 @@ public sealed partial class WindowManager
             target,
             appeared.Traits.Class,
             appeared.Traits.Title,
-            IsShown(target),
+            _workspaces.Shown.IsShown(target),
             FocusedMonitorBounds(),
             appeared.ProcessId,
             minSize: decision.MinSize,
@@ -198,7 +198,7 @@ public sealed partial class WindowManager
             restore = null;
 
         // A workspace rule that opens the window on a hidden Workspace follows it. A silent one does not.
-        if (restored is null && rule.Id is not null && !rule.Silent && !IsShown(target) && !_awaitingMapFocus.Contains(appeared.Window))
+        if (restored is null && rule.Id is not null && !rule.Silent && !_workspaces.Shown.IsShown(target) && !_awaitingMapFocus.Contains(appeared.Window))
         {
             if (MonitorById(desk.Monitor) is { } owner)
                 Focus(owner.Id);
@@ -209,9 +209,9 @@ public sealed partial class WindowManager
             return SwitchTo(target, appeared.Window, consumed: false, dispatcher: null);
         }
 
-        if (!IsShown(target))
+        if (!_workspaces.Shown.IsShown(target))
         {
-            if (IsPinned(appeared.Window) && MonitorShowing(desk.Monitor))
+            if (IsPinned(appeared.Window) && _workspaces.Shown.ShowsAWorkspace(desk.Monitor))
                 return Offering(View(placements, show: [appeared.Window]), restore);
 
             return Offering(View([], hide: [appeared.Window]), restore);
@@ -231,7 +231,7 @@ public sealed partial class WindowManager
         var tiled = RememberSizes(changed.Window, rule, changed.MinSize, changed.MaxSize);
         var floating = _props.EffectiveSizes(changed.Window, rule).Floating(changed.MinSize, changed.MaxSize);
         var placements = desk.Layout.UpdateLimits(changed.Window, floating.Min, floating.Max, tiled);
-        return IsShown(desk.Id) ? View(placements) : View([]);
+        return _workspaces.Shown.IsShown(desk.Id) ? View(placements) : View([]);
     }
 
     // The size rules and the window's own limits are kept, so its limits can be worked out again when either the window or
@@ -270,32 +270,32 @@ public sealed partial class WindowManager
             return grouped;
 
         var monitor = desk.Monitor;
-        var special = desk.Id.IsSpecial && SpecialOn(monitor) == desk.Id;
+        var special = desk.Id.IsSpecial && _workspaces.Shown.SpecialOn(monitor) == desk.Id;
         var floating = desk.ClientOf(window)?.Floating == true;
         var hadBounds = desk.Layout.TryBounds(window, out var bounds);
         var placements = Restamp(desk, desk.Layout.Remove(window));
-        if (!IsShown(desk.Id))
+        if (!_workspaces.Shown.IsShown(desk.Id))
             placements = [];
 
         if (special && desk.Layout.Clients.Count == 0)
         {
             if (_config.Session.CloseSpecialOnEmpty)
             {
-                SetSpecial(monitor, null);
+                _workspaces.Shown.ShowSpecial(monitor, null);
                 DropIfEmpty(desk.Id);
-                var normal = _workspaces.Find(ActiveOn(monitor));
+                var normal = _workspaces.Find(_workspaces.Shown.ActiveOn(monitor));
                 var specialFocus = normal is null ? null : _focus.Remembered(normal);
                 _focus.Take(specialFocus, normal);
                 return View(normal?.Layout.Visible() ?? [], focus: specialFocus);
             }
 
-            _focus.Take(_config.Input.SpecialFallthrough ? _focus.Remembered(_workspaces.Find(ActiveOn(monitor)) ?? FocusedWorkspace()) : null);
+            _focus.Take(_config.Input.SpecialFallthrough ? _focus.Remembered(_workspaces.Find(_workspaces.Shown.ActiveOn(monitor)) ?? FocusedWorkspace()) : null);
             FocusState.Remember(desk, null);
             return View([], focus: _focus.Focused);
         }
 
         DropIfEmpty(desk.Id);
-        if (!IsShown(desk.Id))
+        if (!_workspaces.Shown.IsShown(desk.Id))
         {
             if (wasActive)
                 _focus.Take(null);
@@ -311,7 +311,7 @@ public sealed partial class WindowManager
 
             // Under an open special workspace a candidate elsewhere is dropped, and the special workspace's Client
             // takes the focus.
-            if (SpecialOn(monitor) is WorkspaceId open && open != desk.Id && _workspaces.Find(open) is LiveWorkspace shownSpecial
+            if (_workspaces.Shown.SpecialOn(monitor) is WorkspaceId open && open != desk.Id && _workspaces.Find(open) is LiveWorkspace shownSpecial
                 && (next is not WindowId candidate || WorkspaceContaining(candidate)?.Id != open)
                 && _focus.Remembered(shownSpecial) is WindowId onSpecial)
             {
@@ -351,7 +351,7 @@ public sealed partial class WindowManager
         var covered = desk.Covered();
         var wasActive = _focus.Focused == window;
         var placements = desk.Layout.Minimize(window);
-        return IsShown(desk.Id)
+        return _workspaces.Shown.IsShown(desk.Id)
             ? Present(desk, covered, placements, focusRevealed: wasActive)
             : View([]);
     }
@@ -364,7 +364,7 @@ public sealed partial class WindowManager
 
         var covered = desk.Covered();
         var placements = desk.Layout.Restore(restored.Window);
-        if (!IsShown(desk.Id))
+        if (!_workspaces.Shown.IsShown(desk.Id))
             return View([], hide: [restored.Window]);
 
         return Present(desk, covered, placements);
@@ -378,7 +378,7 @@ public sealed partial class WindowManager
 
         var covered = desk.Covered();
         var placements = desk.Layout.TogglePseudo(window);
-        return IsShown(desk.Id) ? Present(desk, covered, placements) : View([]);
+        return _workspaces.Shown.IsShown(desk.Id) ? Present(desk, covered, placements) : View([]);
     }
 
     // A window changed its class. The class it had when it appeared stays, for initialClass. Its Client takes the new

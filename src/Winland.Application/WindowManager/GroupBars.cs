@@ -18,7 +18,7 @@ public sealed partial class WindowManager
         var active = ActiveWindow();
         foreach (var desk in _workspaces)
         {
-            if (desk.Groups.Count == 0 || !IsShown(desk.Id))
+            if (desk.Groups.Count == 0 || !_workspaces.Shown.IsShown(desk.Id))
                 continue;
 
             var scaled = style.ScaledBy(MonitorById(desk.Monitor)?.Effective.Scale ?? 1);

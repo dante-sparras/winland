@@ -43,7 +43,7 @@ public sealed partial class WindowManager
 
         _monitors.Clear();
         _monitors.AddRange(next);
-        _workspaces.Shown.SetLive(next.Select(screen => screen.Id));
+        _workspaces.Shown.SetLive(next.Select(screen => screen.Id), next.Where(screen => screen.Effective.Enabled).Select(screen => screen.Id));
 
         var enabled = EnabledMonitors();
         LiveMonitor? home = null;
@@ -120,7 +120,7 @@ public sealed partial class WindowManager
         var claimed = new HashSet<WorkspaceId>();
         foreach (var screen in enabled)
         {
-            if (ShownOn(screen) is WorkspaceId active && _workspaces.On(screen.Id, active) is not null && claimed.Add(active))
+            if (_workspaces.Shown.Shown(screen.Id) is WorkspaceId active && _workspaces.On(screen.Id, active) is not null && claimed.Add(active))
                 continue;
 
             if (TryDefault(screen, out var preferred) && claimed.Add(preferred))
@@ -176,7 +176,7 @@ public sealed partial class WindowManager
 
         foreach (var screen in _monitors)
         {
-            if (!screen.Effective.Enabled && ShownOn(screen) is null)
+            if (!screen.Effective.Enabled && _workspaces.Shown.Shown(screen.Id) is null)
                 _workspaces.Shown.Show(screen.Id, WorkspaceId.Initial);
         }
     }
@@ -233,7 +233,7 @@ public sealed partial class WindowManager
             }
         }
 
-        Remember(ActiveOn(FocusedId()), FocusedId());
+        Remember(_workspaces.Shown.ActiveOn(FocusedId()), FocusedId());
     }
 
     private LiveMonitor? MonitorFor(WindowAppeared appeared)

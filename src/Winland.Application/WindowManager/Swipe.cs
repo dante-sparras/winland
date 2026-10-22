@@ -49,7 +49,7 @@ public sealed partial class WindowManager
     }
 
     private void BeginWorkspaceSwipe(MonitorId monitor) =>
-        _workspaceSwipe = new WorkspaceSwipe(ActiveOn(monitor), monitor);
+        _workspaceSwipe = new WorkspaceSwipe(_workspaces.Shown.ActiveOn(monitor), monitor);
 
     private Outcome StepWorkspaceSwipe(WorkspaceSwipe swipe, double delta)
     {
