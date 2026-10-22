@@ -2,6 +2,7 @@ using static Winland.Domain.OrdinalText;
 
 namespace Winland.Application;
 
+/// <summary>A window's life as a Client: it appears, changes title or class, minimizes, restores and closes.</summary>
 public sealed partial class WindowManager
 {
     // The window a dispatcher given a window acts on in place of the active one, while it runs.
@@ -391,5 +392,33 @@ public sealed partial class WindowManager
         var covered = desk.Covered();
         var placements = desk.Layout.TogglePseudo(window);
         return IsShown(desk.Id) ? Present(desk, covered, placements) : View([]);
+    }
+
+    // A window changed its class. The class it had when it appeared stays, for initialClass. Its Client takes the new
+    // class, and the rules are matched against it again. The events follow from the new State.
+    private Outcome Reclass(WindowClassChanged reclassed)
+    {
+        if (WorkspaceContaining(reclassed.Window) is not { } desk || desk.ClientOf(reclassed.Window) is not { } client || client.Class == reclassed.Class)
+            return View([]);
+
+        desk.Reclass(reclassed.Window, reclassed.Class);
+
+        // A rule that matches the class may now match or stop matching, so the next pass reads every rule again.
+        _matchedState = true;
+        return View([]);
+    }
+
+    // A window changed its title. The title it had when it appeared stays, for initialTitle. Its Client takes the new
+    // title, the rules are matched against it again, and the groupbar and the events follow from the new State.
+    private Outcome Retitle(WindowTitleChanged retitled)
+    {
+        if (WorkspaceContaining(retitled.Window) is not { } desk || desk.ClientOf(retitled.Window) is not { } client || client.Title == retitled.Title)
+            return View([]);
+
+        desk.Retitle(retitled.Window, retitled.Title);
+
+        // A rule that matches the title may now match or stop matching, so the next pass reads every rule again.
+        _matchedState = true;
+        return View([]);
     }
 }

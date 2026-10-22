@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>The <c>cyclenext</c> dispatcher.</summary>
 public sealed partial class WindowManager
 {
     /// <summary>

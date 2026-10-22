@@ -2,6 +2,7 @@ using static Winland.Domain.OrdinalText;
 
 namespace Winland.Application;
 
+/// <summary>The <c>cyclelayout</c> dispatcher.</summary>
 public sealed partial class WindowManager
 {
     // dwindle, scrolling, then floating. Master and monocle sit outside the cycle, so either direction

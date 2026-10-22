@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Keeps a Workspace's floating Clients above its tiled ones in the z-order.</summary>
 public sealed partial class WindowManager
 {
     // The window that was active when the floating Clients were last put back above the tiles.

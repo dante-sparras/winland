@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>The <c>pin</c> dispatcher: a pinned Client shows on every Workspace of its Monitor.</summary>
 public sealed partial class WindowManager
 {
     private readonly HashSet<WindowId> _pinned = [];

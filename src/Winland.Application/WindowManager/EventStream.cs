@@ -2,6 +2,7 @@ using static Winland.Domain.OrdinalText;
 
 namespace Winland.Application;
 
+/// <summary>The Event stream: compares the state before and after a step and reports what changed.</summary>
 public sealed partial class WindowManager
 {
     private readonly record struct Captured(State State, WindowId? Active);

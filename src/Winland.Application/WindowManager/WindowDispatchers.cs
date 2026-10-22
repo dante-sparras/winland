@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Dispatchers that act on one window and the daemon: focus, close, kill, float, swap, move to a Workspace, <c>exit</c>, <c>event</c> and <c>dpms</c>.</summary>
 public sealed partial class WindowManager
 {
     private readonly Dictionary<string, bool> _powered = new(StringComparer.OrdinalIgnoreCase);
@@ -354,4 +355,50 @@ public sealed partial class WindowManager
         || screen.Reported.Name.Equals(token, StringComparison.OrdinalIgnoreCase)
         || screen.Effective.Description.Equals(token, StringComparison.OrdinalIgnoreCase)
         || screen.Reported.Description.Equals(token, StringComparison.OrdinalIgnoreCase);
+
+    // The same request closewindow makes, so the application can still ask to save, for every Client.
+    // A Client no_close_for still protects is left open. Workspace 1 of the focused Monitor is what shows
+    // afterwards, which closes a Special workspace open on that Monitor.
+    private Outcome CloseAll()
+    {
+        const string name = "closeall";
+        var closes = new List<WindowId>();
+        foreach (var client in EveryClient())
+        {
+            if (Closeable(client.Window))
+                closes.Add(client.Window);
+        }
+
+        var monitor = FocusedId();
+        if (SpecialOn(monitor) is null)
+        {
+            return SwitchTo(WorkspaceId.FromNumber(1, monitor), focus: null, consumed: false, dispatcher: name)
+                with { Closes = closes };
+        }
+
+        // Closing it first shows the Monitor's Workspace. Switching with it still open would leave it on top.
+        var concealed = CloseSpecial(monitor, name);
+        var shown = SwitchTo(WorkspaceId.FromNumber(1, monitor), focus: null, consumed: false, dispatcher: name);
+        return Merge(concealed, shown) with { Closes = closes, Dispatcher = name, Focus = _active };
+    }
+
+    // Whether the displays are on, as the last dpms left them, which Winland keeps for every display at once.
+    private bool _displaysOn = true;
+
+    /// <summary>
+    /// Whether a key press or release should turn the displays back on: <c>misc:key_press_enables_dpms</c> is set and
+    /// dpms turned them off. The keyboard hook reads it with no lock and sends <c>dpms on</c>.
+    /// </summary>
+    public bool KeyWakesDisplays => _config.Session.KeyPressEnablesDpms && !Volatile.Read(ref _displaysOn);
+
+    // misc:mouse_move_enables_dpms: a pointer move, or the start of a swipe, after dpms off turns every display on, as
+    // in Winland.
+    private Outcome WakeDisplays(Input input, Outcome outcome)
+    {
+        if (input is not (PointerMoved or SwipeBegan) || !_config.Session.MouseMoveEnablesDpms || Volatile.Read(ref _displaysOn))
+            return outcome;
+
+        var woken = Dpms("on");
+        return outcome with { DisplayPower = [.. outcome.DisplayPower, .. woken.DisplayPower] };
+    }
 }

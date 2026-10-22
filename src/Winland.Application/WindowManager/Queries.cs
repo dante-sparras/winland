@@ -2,6 +2,7 @@ using System.Globalization;
 
 namespace Winland.Application;
 
+/// <summary>The pipe's requests: queries, <c>keyword</c> and <c>--batch</c>.</summary>
 public sealed partial class WindowManager
 {
     private string[] _configErrors = [];

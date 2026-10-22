@@ -2,6 +2,7 @@ using static Winland.Domain.OrdinalText;
 
 namespace Winland.Application;
 
+/// <summary>The group dispatchers, and moving Clients into and out of groups.</summary>
 public sealed partial class WindowManager
 {
     private readonly Dictionary<WindowId, GroupRuleFlags> _groupRules = [];

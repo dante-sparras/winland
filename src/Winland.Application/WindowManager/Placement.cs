@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Where a Client goes when it opens, and the timers of the rules that place it.</summary>
 public sealed partial class WindowManager
 {
     // A window that resizes itself this soon after it opens is put back where it was placed, once.

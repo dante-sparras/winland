@@ -2,6 +2,7 @@ using System.Globalization;
 
 namespace Winland.Application;
 
+/// <summary>Dispatchers that move, resize and restack by pixels: <c>movewindowpixel</c>, <c>resizewindowpixel</c>, <c>centerwindow</c>, <c>alterzorder</c>, <c>movecursor</c> and <c>movecursortocorner</c>.</summary>
 public sealed partial class WindowManager
 {
     private WarpTo? _requestedWarp;

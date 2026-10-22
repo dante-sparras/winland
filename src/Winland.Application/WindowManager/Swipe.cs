@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>The workspace swipe: a touchpad gesture that slides between Workspaces.</summary>
 public sealed partial class WindowManager
 {
     private readonly SwipeRecognizer _swipeGesture = new();

@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Directional focus and moves, <c>movefocus</c> and <c>movewindow</c>, and the dispatchers that focus and move Monitors and their Workspaces.</summary>
 public sealed partial class WindowManager
 {
     // Where a switch to a Workspace on another Monitor puts the cursor when no cursor option warps it elsewhere.

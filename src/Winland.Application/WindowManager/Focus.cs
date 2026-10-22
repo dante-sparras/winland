@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Which Client takes focus, the focus history, and the stacking order.</summary>
 public sealed partial class WindowManager
 {
     private readonly Dictionary<WindowId, FocusRule> _focusRules = [];
