@@ -98,73 +98,60 @@ public sealed partial class WindowManager
         }
     }
 
+    // Runs a dispatcher from the table. One that takes a window and is given one after a comma runs on that window.
     private Outcome Execute(string name, string arguments)
     {
         ArgumentNullException.ThrowIfNull(name);
         arguments ??= "";
 
-        if (ActsOnAWindow(name) && arguments.IndexOf(',', StringComparison.Ordinal) is var comma and >= 0)
+        if (!Table.TryGetValue(name, out var dispatcher))
+            return View([], dispatcher: name) with { Error = "error: unknown dispatcher '" + name + "'" };
+
+        if (dispatcher.TakesWindow && arguments.IndexOf(',', StringComparison.Ordinal) is var comma and >= 0)
             return ExecuteOn(name, arguments[..comma], arguments[(comma + 1)..].Trim());
 
-        if (Is(name, "togglespecialworkspace"))
-            return ToggleSpecial(arguments);
+        return dispatcher.Run(this, name, arguments);
+    }
 
-        if (GroupDispatch(name, arguments) is Outcome grouped)
-            return grouped;
+    private Outcome WorkspaceDispatch(string name, string arguments)
+    {
+        if (!WorkspaceAddress.TryResolve(arguments, Context(), out var target))
+            return View([], dispatcher: name) with { Error = WorkspaceAddress.IsNamed(arguments) ? "error: no such workspace" : null };
 
-        if (Is(name, "workspace"))
+        if (target.IsSpecial)
+            return OpenSpecial(target, null, name);
+
+        var from = FocusedId();
+        var switched = SwitchTo(BackAndForth(target), focus: null, consumed: false, dispatcher: name);
+        NoteCrossMonitorWarp(from, switched);
+        return switched;
+    }
+
+    private Outcome Exec(string name, string arguments)
+    {
+        var parsed = LaunchParser.Parse(arguments, raw: Is(name, "execr"));
+        if (parsed.Warnings.Count > 0)
         {
-            if (!WorkspaceAddress.TryResolve(arguments, Context(), out var target))
-                return View([], dispatcher: name) with { Error = WorkspaceAddress.IsNamed(arguments) ? "error: no such workspace" : null };
-
-            if (target.IsSpecial)
-                return OpenSpecial(target, null, name);
-
-            var from = FocusedId();
-            var switched = SwitchTo(BackAndForth(target), focus: null, consumed: false, dispatcher: name);
-            NoteCrossMonitorWarp(from, switched);
-            return switched;
+            var warnings = new List<StreamEvent>(parsed.Warnings.Count);
+            foreach (var warning in parsed.Warnings)
+                warnings.Add(new ConfigWarned(0, warning, null));
+            _configEvents = warnings;
         }
 
-        if (Is(name, "movetoworkspace"))
-            return MoveWindowToWorkspace(arguments, silent: false);
+        var launched = View([], dispatcher: name);
+        return parsed.Launch is Launch launch
+            ? launched with { Launches = [.. launched.Launches, launch with { InitialWorkspace = LaunchWorkspace() }] }
+            : launched;
+    }
 
-        if (Is(name, "movetoworkspacesilent"))
-            return MoveWindowToWorkspace(arguments, silent: true);
+    private Outcome SubmapDispatch(string name, string arguments) =>
+        TryEnterSubmap(arguments, out var error)
+            ? View([], dispatcher: name)
+            : View([], dispatcher: name) with { Error = error };
 
-        if (Is(name, "movefocus"))
-            return MoveFocusDirection(arguments);
-
-        if (Is(name, "movewindow"))
-            return MoveWindowDirection(arguments);
-
-        if (Is(name, "focusmonitor"))
-            return FocusMonitorDispatch(arguments);
-
-        if (Is(name, "movecurrentworkspacetomonitor"))
-            return MoveCurrentWorkspace(arguments);
-
-        if (Is(name, "moveworkspacetomonitor"))
-            return MoveWorkspace(arguments);
-
-        if (Is(name, "swapactiveworkspaces"))
-            return SwapActiveWorkspaces(arguments);
-
-        if (Is(name, "changeworkspaceid"))
-            return ChangeWorkspaceId(arguments);
-
-        if (Is(name, "setprop"))
-            return SetPropDispatch(arguments);
-
-        if (Is(name, "tagwindow"))
-            return TagWindow(arguments);
-
-        if (Is(name, "cleartags"))
-            return ClearTags(arguments);
-
-        if (Is(name, "cyclenext"))
-            return CycleNext(arguments);
-
+    // The dispatchers the active Workspace's Layout answers: killactive, resizeactive, and the layout messages.
+    private Outcome LayoutDispatch(string name, string arguments)
+    {
         var active = ActiveWindow();
         var desk = CurrentWorkspace();
         var layout = desk.Layout;
@@ -172,6 +159,7 @@ public sealed partial class WindowManager
         IReadOnlyList<Placement> placements = [];
         WindowId? close = null;
         WindowId? focus = null;
+        var message = false;
 
         if (Is(name, "killactive"))
         {
@@ -182,96 +170,18 @@ public sealed partial class WindowManager
         }
         else if (Is(name, "resizeactive"))
             placements = active is WindowId window ? layout.ResizeActive(window, arguments) : [];
-        else if (Is(name, "togglefloating"))
-            return FloatWindow(arguments, floating: null);
-        else if (Is(name, "setfloating"))
-            return FloatWindow(arguments, floating: true);
-        else if (Is(name, "settiled"))
-            return FloatWindow(arguments, floating: false);
-        else if (Is(name, "pin"))
-            return PinWindow(arguments);
-        else if (Is(name, "pseudo"))
-            return PseudoWindow(arguments);
-        else if (Is(name, "focuswindow"))
-            return FocusWindow(arguments);
-        else if (Is(name, "closewindow"))
-            return CloseWindow(arguments);
-        else if (Is(name, "closeall"))
-            return CloseAll();
-        else if (Is(name, "cyclelayout"))
-            return CycleWorkspaceLayout(arguments);
-        else if (Is(name, "killwindow"))
-            return KillWindow(arguments);
-        else if (Is(name, "swapwindow"))
-            return SwapWindow(arguments);
-        else if (Is(name, "movewindowpixel"))
-            return MoveWindowPixel(arguments);
-        else if (Is(name, "resizewindowpixel"))
-            return ResizeWindowPixel(arguments);
-        else if (Is(name, "centerwindow"))
-            return CenterWindow();
-        else if (Is(name, "alterzorder") || Is(name, "bringactivetotop"))
-            return AlterZOrder(arguments, Is(name, "bringactivetotop"));
-        else if (Is(name, "movecursortocorner"))
-            return MoveCursorToCorner(arguments);
-        else if (Is(name, "movecursor"))
-            return MoveCursor(arguments);
-        else if (Is(name, "movetoroot"))
-            return MoveRoot(arguments);
-        else if (Is(name, "exit"))
-            return ExitDaemon();
-        else if (Is(name, "event"))
-            return EmitCustom(arguments);
-        else if (Is(name, "dpms"))
-            return Dpms(arguments);
-        else if (Is(name, "sendshortcut"))
-            return SendShortcut(arguments);
-        else if (Is(name, "focuscurrentorlast"))
-            return FocusCurrentOrLast();
-        else if (Is(name, "focusurgentorlast"))
-            return FocusUrgentOrLast();
-        else if (Is(name, "fullscreen") || Is(name, "fullscreenstate") || Is(name, "maximize"))
-            return FullscreenDispatcher(name, arguments);
-        else if (Is(name, "layoutmsg") || Is(name, "layout"))
-            placements = layout.LayoutMessage(active, arguments);
-        else if (DwindleMessages.Contains(name))
-            placements = layout.LayoutMessage(active, Join(name, arguments));
-        else if (Is(name, "exec") || Is(name, "execr"))
-        {
-            var parsed = LaunchParser.Parse(arguments, raw: Is(name, "execr"));
-            if (parsed.Warnings.Count > 0)
-            {
-                var warnings = new List<StreamEvent>(parsed.Warnings.Count);
-                foreach (var warning in parsed.Warnings)
-                    warnings.Add(new ConfigWarned(0, warning, null));
-                _configEvents = warnings;
-            }
-
-            var launched = View([], dispatcher: name);
-            return parsed.Launch is Launch launch
-                ? launched with { Launches = [.. launched.Launches, launch with { InitialWorkspace = LaunchWorkspace() }] }
-                : launched;
-        }
-        else if (Is(name, "submap"))
-        {
-            if (!TryEnterSubmap(arguments, out var error))
-                return View([], dispatcher: name) with { Error = error };
-
-            return View([], dispatcher: name);
-        }
-        else if (!Dispatchers.IsKnown(name))
-            return View([], dispatcher: name) with
-            {
-                Error = "error: unknown dispatcher '" + name + "'",
-            };
         else
-            return View([], dispatcher: name);
+        {
+            message = true;
+            placements = Is(name, "layoutmsg") || Is(name, "layout")
+                ? layout.LayoutMessage(active, arguments)
+                : layout.LayoutMessage(active, Join(name, arguments));
+        }
 
-        if (layout.LayoutMessageError is string layoutError
-            && (Is(name, "layoutmsg") || Is(name, "layout") || DwindleMessages.Contains(name)))
+        if (message && layout.LayoutMessageError is string layoutError)
             return View(placements, dispatcher: name) with { Error = layoutError };
 
-        if (focus is null && layout.LayoutMessageFocus is WindowId requested)
+        if (layout.LayoutMessageFocus is WindowId requested)
             focus = requested;
 
         if (focus is WindowId next && HasNoFocus(next))
@@ -283,7 +193,6 @@ public sealed partial class WindowManager
             desk.Layout.NoteFocus(accepted);
         }
 
-        var message = Is(name, "layoutmsg") || Is(name, "layout") || DwindleMessages.Contains(name);
         return Present(
             desk,
             covered,

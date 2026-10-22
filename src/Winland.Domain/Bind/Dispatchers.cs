@@ -1,17 +1,16 @@
+using System.Collections.Frozen;
+
 namespace Winland.Domain;
 
 /// <summary>
-/// Names the core will run. A bind or a pipe command for any other name is an error.
-/// Built-in names are registered here.
+/// The names of the dispatchers Winland runs. A bind or a pipe command for any other name is an error. The
+/// application's dispatcher table runs each of them, and a test keeps the two lists equal.
 /// </summary>
 public static class Dispatchers
 {
-    private static readonly Lock Gate = new();
-    private static readonly HashSet<string> Names = new(StringComparer.OrdinalIgnoreCase);
-
-    static Dispatchers()
-    {
-        Register(
+    public static FrozenSet<string> Names { get; } =
+        new[]
+        {
             "exec",
             "execr",
             "killactive",
@@ -64,9 +63,7 @@ public static class Dispatchers
             "bringactivetotop",
             "alterzorder",
             "movecursortocorner",
-            "movecursor");
-        Register([.. DwindleMessages.Names]);
-        Register(
+            "movecursor",
             "togglegroup",
             "changegroupactive",
             "movegroupwindow",
@@ -77,28 +74,10 @@ public static class Dispatchers
             "moveintoorcreategroup",
             "moveoutofgroup",
             "movewindoworgroup",
-            "setignoregrouplock");
-    }
-
-    public static void Register(params string[] names)
-    {
-        ArgumentNullException.ThrowIfNull(names);
-        lock (Gate)
-        {
-            foreach (var name in names)
-            {
-                ArgumentException.ThrowIfNullOrWhiteSpace(name);
-                Names.Add(name);
-            }
+            "setignoregrouplock",
         }
-    }
+        .Concat(DwindleMessages.Names)
+        .ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-    public static bool IsKnown(string? name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            return false;
-
-        lock (Gate)
-            return Names.Contains(name);
-    }
+    public static bool IsKnown(string? name) => !string.IsNullOrWhiteSpace(name) && Names.Contains(name);
 }
