@@ -15,7 +15,7 @@ internal sealed partial class ScrollingLayout
     public IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, bool layoutAware)
     {
         var id = new ClientId(window.Value);
-        var index = _clients.FindIndex(client => client.Id == id);
+        var index = IndexOf(id);
         if (index < 0)
             return [];
 

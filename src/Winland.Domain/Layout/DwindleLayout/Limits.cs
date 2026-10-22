@@ -2,12 +2,11 @@ namespace Winland.Domain;
 
 internal sealed partial class DwindleLayout
 {
-    private readonly Dictionary<ClientId, SizeLimits> _limits = [];
 
     public IReadOnlyList<Placement> UpdateLimits(WindowId window, Size? minSize, Size? maxSize, TiledLimits? tiledLimits = null)
     {
         var id = new ClientId(window.Value);
-        var index = _clients.FindIndex(client => client.Id == id);
+        var index = IndexOf(id);
         if (index < 0)
             return [];
 

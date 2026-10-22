@@ -7,18 +7,13 @@ namespace Winland.Domain;
 /// A column whose box misses the viewport is left out of the placements, so the caller conceals it.
 /// A column that only partly overlaps keeps its full tape rectangle and hangs off the edge.
 /// </summary>
-internal sealed partial class ScrollingLayout : Layout
+internal sealed partial class ScrollingLayout : TiledLayout, Layout
 {
     private const double MinRow = 0.1;
     private const double MaxRow = 1;
 
-    private readonly List<Client> _clients = [];
     private readonly Dictionary<ClientId, Cell> _cells = [];
     private readonly Dictionary<ClientId, Suspension> _suspended = [];
-    private readonly FloatingClients _floating = new();
-    private readonly Dictionary<ClientId, Rectangle> _natural = [];
-    private readonly PseudoTiles _pseudo = new();
-    private readonly Dictionary<ClientId, SizeLimits> _limits = [];
     private readonly Dictionary<WindowId, double> _widths = [];
     private readonly List<Column> _columns = [];
     private LayoutOptions _layoutOptions = LayoutOptions.Unconfigured;
@@ -31,35 +26,7 @@ internal sealed partial class ScrollingLayout : Layout
     private double _inhibitedOffset;
     private bool _dragging;
 
-    public IReadOnlyList<Client> Clients => _clients;
-
-    public void Retitle(WindowId window, string title)
-    {
-        for (var i = 0; i < _clients.Count; i++)
-        {
-            if (_clients[i].Window == window)
-                _clients[i] = _clients[i] with { Title = title };
-        }
-    }
-
-    public void Reclass(WindowId window, string windowClass)
-    {
-        for (var i = 0; i < _clients.Count; i++)
-        {
-            if (_clients[i].Window == window)
-                _clients[i] = _clients[i] with { Class = windowClass };
-        }
-    }
-
-    public void Readdress(WorkspaceId workspace)
-    {
-        for (var i = 0; i < _clients.Count; i++)
-            _clients[i] = _clients[i] with { Workspace = workspace };
-    }
-
     public bool FollowsMonitorWhenUnmoved => true;
-
-    public void NudgeFloating(int dx, int dy) => _floating.Nudge(dx, dy);
 
     public string? LayoutMessageError { get; private set; }
 
@@ -145,7 +112,7 @@ internal sealed partial class ScrollingLayout : Layout
         return Placements();
     }
 
-    public IReadOnlyList<Placement> Remove(WindowId window)
+    public override IReadOnlyList<Placement> Remove(WindowId window)
     {
         var id = new ClientId(window.Value);
         _natural.Remove(id);
@@ -200,7 +167,7 @@ internal sealed partial class ScrollingLayout : Layout
         var id = new ClientId(window.Value);
         if (_floating.TryGet(id, out var bounds))
         {
-            var index = _clients.FindIndex(client => client.Id == id);
+            var index = IndexOf(id);
             if (index < 0 || !_clients[index].Minimized)
                 return [];
 
@@ -231,38 +198,23 @@ internal sealed partial class ScrollingLayout : Layout
         return Placements();
     }
 
-    public bool TryTake(WindowId window, out Taken taken)
-    {
-        taken = default;
-        var id = new ClientId(window.Value);
-        var index = _clients.FindIndex(client => client.Id == id);
-        if (index < 0)
-            return false;
-
-        var client = _clients[index];
-        _limits.TryGetValue(id, out var limits);
-        var bounds = _floating.TryGet(id, out var floating)
-            ? floating
-            : _natural.TryGetValue(id, out var natural) ? natural : default;
-        double? width = _cells.TryGetValue(id, out var cell) && cell.Column is Column column
-            ? column.Width
-            : _suspended.TryGetValue(id, out var suspension) ? suspension.Column.Width : null;
-        taken = SlotHandover.Describe(client, bounds, limits, width);
-        Remove(window);
-        return true;
-    }
-
     // Column widths come from the tape, so a window's size limits do not change a tiled placement here.
     // They are kept so a later layout can still honor them. A floating Client is clamped to them.
     public IReadOnlyList<Placement> UpdateLimits(WindowId window, Size? minSize, Size? maxSize, TiledLimits? tiledLimits = null)
     {
         var id = new ClientId(window.Value);
-        if (_clients.FindIndex(client => client.Id == id) < 0)
+        if (IndexOf(id) < 0)
             return [];
 
         _limits[id] = new SizeLimits(minSize, maxSize) { Tiled = tiledLimits };
         return _floating.Clamp(id, new SizeLimits(minSize, maxSize));
     }
+
+    // A tile takes its column's width to the Workspace that adopts it.
+    private protected override double? TakenWidth(ClientId id) =>
+        _cells.TryGetValue(id, out var cell) && cell.Column is Column column
+            ? column.Width
+            : _suspended.TryGetValue(id, out var suspension) ? suspension.Column.Width : null;
 
     public bool TryBounds(WindowId window, out Rectangle bounds)
     {
@@ -280,14 +232,7 @@ internal sealed partial class ScrollingLayout : Layout
         return false;
     }
 
-    public IReadOnlyList<Placement> Visible()
-    {
-        var placements = new List<Placement>(Placements());
-        _floating.AddShown(placements, _clients);
-        return placements;
-    }
-
-    public IReadOnlyList<Placement> Placed() => Placements();
+    public override IReadOnlyList<Placement> Placed() => Placements();
 
     public IReadOnlyList<Placement> Preselect(string direction)
     {
@@ -368,20 +313,6 @@ internal sealed partial class ScrollingLayout : Layout
 
     private Column? FocusColumn() =>
         _focus is WindowId window && CellFor(window) is Cell cell ? cell.Column : null;
-
-    private void SetMinimized(ClientId id, bool minimized)
-    {
-        var index = _clients.FindIndex(client => client.Id == id);
-        if (index >= 0)
-            _clients[index] = _clients[index] with { Minimized = minimized };
-    }
-
-    private void SetFloating(ClientId id, bool floating)
-    {
-        var index = _clients.FindIndex(client => client.Id == id);
-        if (index >= 0)
-            _clients[index] = _clients[index] with { Floating = floating };
-    }
 
     private static bool Intersects(Rectangle box, Rectangle view) =>
         box.Width > 0

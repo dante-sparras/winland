@@ -22,7 +22,7 @@ internal sealed partial class DwindleLayout : IMouseDragHost, IDragOwner
     {
         bounds = default;
         floating = false;
-        var index = _clients.FindIndex(client => client.Id == id);
+        var index = IndexOf(id);
         if (index < 0 || _clients[index].Minimized)
             return false;
 
@@ -102,7 +102,7 @@ internal sealed partial class DwindleLayout : IMouseDragHost, IDragOwner
 
     private void MarkFloating(ClientId id, bool floating)
     {
-        var index = _clients.FindIndex(client => client.Id == id);
+        var index = IndexOf(id);
         if (index >= 0)
             _clients[index] = _clients[index] with { Floating = floating };
     }

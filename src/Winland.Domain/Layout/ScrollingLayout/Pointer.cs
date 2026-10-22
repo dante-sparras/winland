@@ -156,7 +156,7 @@ internal sealed partial class ScrollingLayout : IMouseDragHost, IDragOwner
     {
         bounds = default;
         floating = false;
-        var index = _clients.FindIndex(client => client.Id == id);
+        var index = IndexOf(id);
         if (index < 0 || _clients[index].Minimized)
             return false;
 

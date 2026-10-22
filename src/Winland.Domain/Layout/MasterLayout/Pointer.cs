@@ -45,7 +45,7 @@ internal sealed partial class MasterLayout : IMouseDragHost, IDragOwner
 
     public void NoteFocus(WindowId window)
     {
-        if (FindClient(Id(window)) >= 0)
+        if (IndexOf(Id(window)) >= 0)
             _focused = window;
     }
 
@@ -97,13 +97,13 @@ internal sealed partial class MasterLayout : IMouseDragHost, IDragOwner
     public IReadOnlyList<Placement> ToggleFloating(WindowId window)
     {
         var id = Id(window);
-        var index = FindClient(id);
+        var index = IndexOf(id);
         if (index < 0 || _clients[index].Minimized)
             return [];
 
         if (_floating.TryGet(id, out var floatingBox) && _floating.Sink(id))
         {
-            MarkFloating(id, false);
+            SetFloating(id, false);
             var tile = new Tile { Id = id, MasterFraction = _master.Mfact };
             if (!Adopt(tile, firstMap: true, dragging: false, pointer: null))
                 Refloat(id, floatingBox);
@@ -119,7 +119,7 @@ internal sealed partial class MasterLayout : IMouseDragHost, IDragOwner
         Detach(existing);
         var floated = _floating.Around(id, tileBox, _layout.FloatingOnScreen(_area));
         _floating.Set(id, floated);
-        MarkFloating(id, true);
+        SetFloating(id, true);
         var placements = new List<Placement>(Placed()) { new(id, floated) };
         return placements;
     }
@@ -151,7 +151,7 @@ internal sealed partial class MasterLayout : IMouseDragHost, IDragOwner
 
         box = Present(tile);
         Detach(tile);
-        MarkFloating(id, true);
+        SetFloating(id, true);
         _floating.Set(id, box);
         return true;
     }
@@ -170,7 +170,7 @@ internal sealed partial class MasterLayout : IMouseDragHost, IDragOwner
     {
         var lifted = _floating.TryGet(id, out var liftedBox);
         _floating.Remove(id);
-        MarkFloating(id, false);
+        SetFloating(id, false);
         var tile = new Tile { Id = id, MasterFraction = _master.Mfact };
         if (!Adopt(tile, firstMap: false, dragging: true, pointer: pointer))
             Refloat(id, lifted ? liftedBox : _natural.GetValueOrDefault(id));
@@ -182,7 +182,7 @@ internal sealed partial class MasterLayout : IMouseDragHost, IDragOwner
     private void Refloat(ClientId id, Rectangle box)
     {
         _floating.Set(id, box);
-        MarkFloating(id, true);
+        SetFloating(id, true);
     }
 
     IReadOnlyList<Placement> IMouseDragHost.ShowFloating(ClientId id) => Visible();
