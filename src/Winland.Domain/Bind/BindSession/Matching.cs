@@ -1,15 +1,15 @@
 namespace Winland.Domain;
 
 /// <summary>Which binds an edge matches: the key, the modifiers, the submap, the flags, and whether a bind consumes the edge.</summary>
-public static partial class BindMatcher
+public sealed partial class BindSession
 {
     // The anchor is where the released key went down. Only a release reads it.
-    private static List<Bind> Collect(BindTable table, BindSession session, string key, int scanCode, bool mouse, bool releasing, string submap, Point anchor = default)
+    private List<Bind> Collect(BindTable table, string key, int scanCode, bool mouse, bool releasing, string submap, Point anchor = default)
     {
         var matches = new List<Bind>();
         foreach (var bind in table.Active(submap))
         {
-            if (IsCatchAll(bind) || !Include(bind, table, session, key, scanCode, mouse, releasing, anchor, catchAll: false))
+            if (IsCatchAll(bind) || !Include(bind, table, key, scanCode, mouse, releasing, anchor, catchAll: false))
                 continue;
 
             matches.Add(bind);
@@ -17,11 +17,11 @@ public static partial class BindMatcher
                 break;
         }
 
-        if (matches.Count == 0 && submap == session.Submap)
+        if (matches.Count == 0 && submap == Submap)
         {
             foreach (var bind in table.Active(submap))
             {
-                if (!IsCatchAll(bind) || !Include(bind, table, session, key, scanCode, mouse, releasing, anchor, catchAll: true))
+                if (!IsCatchAll(bind) || !Include(bind, table, key, scanCode, mouse, releasing, anchor, catchAll: true))
                     continue;
 
                 matches.Add(bind);
@@ -33,22 +33,22 @@ public static partial class BindMatcher
         return matches;
     }
 
-    private static bool Include(Bind bind, BindTable table, BindSession session, string key, int scanCode, bool mouse, bool releasing, Point anchor, bool catchAll)
+    private bool Include(Bind bind, BindTable table, string key, int scanCode, bool mouse, bool releasing, Point anchor, bool catchAll)
     {
-        if (!Eligible(bind, session, key, scanCode, mouse, releasing, anyKey: catchAll))
+        if (!Eligible(bind, key, scanCode, mouse, releasing, anyKey: catchAll))
             return false;
 
         if (releasing)
         {
             if (!bind.Flags.HasFlag(BindFlag.Release) && !SendsBothEdges(bind))
                 return false;
-            if (!mouse && Listed(session.Suppressed, key, bind))
+            if (!mouse && Listed(_suppressed, key, bind))
                 return false;
-            if (session.Shadowed.Contains(bind))
+            if (_shadowed.Contains(bind))
                 return false;
-            if (!mouse && bind.Flags.HasFlag(BindFlag.Release) && Parts(bind).Length > 1 && !Listed(session.Armed, key, bind))
+            if (!mouse && bind.Flags.HasFlag(BindFlag.Release) && Parts(bind).Length > 1 && !Listed(_armed, key, bind))
                 return false;
-            if (!WithinGesture(table, session, bind, anchor))
+            if (!WithinGesture(table, bind, anchor))
                 return false;
         }
 
@@ -56,19 +56,19 @@ public static partial class BindMatcher
     }
 
     // Mouse, modifiers, the key unless any key will do, the locked flag, and the gesture flags.
-    private static bool Eligible(Bind bind, BindSession session, string key, int scanCode, bool mouse, bool releasing, bool anyKey)
+    private bool Eligible(Bind bind, string key, int scanCode, bool mouse, bool releasing, bool anyKey)
     {
         if (IsMouseBind(bind) != mouse)
             return false;
         // A release chord armed on this key matched the modifiers held when the key went down.
-        var armed = releasing && !mouse && Listed(session.Armed, key, bind);
-        if (!bind.Flags.HasFlag(BindFlag.IgnoreModifiers) && !armed && !ModifiersMatch(bind, session, key, mouse, releasing))
+        var armed = releasing && !mouse && Listed(_armed, key, bind);
+        if (!bind.Flags.HasFlag(BindFlag.IgnoreModifiers) && !armed && !ModifiersMatch(bind, key, mouse, releasing))
             return false;
         if (!anyKey && !KeyMatches(bind, key, scanCode))
             return false;
-        if (!MatchesDevice(bind, session))
+        if (!MatchesDevice(bind))
             return false;
-        if (session.Inhibited && !bind.Flags.HasFlag(BindFlag.Locked))
+        if (Inhibited && !bind.Flags.HasFlag(BindFlag.Locked))
             return false;
         if (!releasing && bind.Flags.HasFlag(BindFlag.Release) && bind.Flags.HasFlag(BindFlag.LongPress))
             return false;
@@ -102,14 +102,14 @@ public static partial class BindMatcher
         return !release && !longPress;
     }
 
-    private static bool WithinGesture(BindTable table, BindSession session, Bind bind, Point anchor)
+    private bool WithinGesture(BindTable table, Bind bind, Point anchor)
     {
         var click = bind.Flags.HasFlag(BindFlag.Click);
         var drag = bind.Flags.HasFlag(BindFlag.Drag);
         if (!click && !drag)
             return true;
 
-        var past = PastThreshold(table, session, anchor);
+        var past = PastThreshold(table, anchor);
         if (click && past)
             return false;
         if (drag && !past)
@@ -118,10 +118,10 @@ public static partial class BindMatcher
         return true;
     }
 
-    private static bool PastThreshold(BindTable table, BindSession session, Point anchor)
+    private bool PastThreshold(BindTable table, Point anchor)
     {
-        var dx = (long)session.Pointer.X - anchor.X;
-        var dy = (long)session.Pointer.Y - anchor.Y;
+        var dx = (long)Pointer.X - anchor.X;
+        var dy = (long)Pointer.Y - anchor.Y;
         var limit = (long)table.DragThreshold * table.DragThreshold;
         return (dx * dx) + (dy * dy) > limit;
     }
@@ -158,13 +158,13 @@ public static partial class BindMatcher
         return false;
     }
 
-    private static void Catch(BindSession session, string key, bool mouse, List<string>? added)
+    private void Catch( string key, bool mouse, List<string>? added)
     {
-        NoteCaught(mouse ? session.CaughtButtons : session.CaughtKeys, key, added);
-        foreach (var held in session.DownKeys)
+        NoteCaught(mouse ? _caughtButtons : _caughtKeys, key, added);
+        foreach (var held in _downKeys)
         {
             if (ModifierKeys.ContainsKey(held))
-                NoteCaught(session.CaughtKeys, held, added);
+                NoteCaught(_caughtKeys, held, added);
         }
     }
 
@@ -174,29 +174,29 @@ public static partial class BindMatcher
             added.Add(key);
     }
 
-    private static void ReleaseModifier(BindSession session, string key)
+    private void ReleaseModifier( string key)
     {
         if (!ModifierKeys.TryGetValue(key, out var modifier))
             return;
 
         foreach (var pair in ModifierKeys)
         {
-            if (pair.Value == modifier && session.DownKeys.Contains(pair.Key))
+            if (pair.Value == modifier && _downKeys.Contains(pair.Key))
                 return;
         }
 
-        session.Held &= ~modifier;
+        Held &= ~modifier;
     }
 
     // On release Winland compares the modifiers the key went down under, with the released key's own
     // modifier added, so "bindr = SUPER, Super_L" runs when Super is let go and "bindr = , Super_L" does not, and
     // "bindr = SUPER, K" runs when Super is let go before K.
-    private static bool ModifiersMatch(Bind bind, BindSession session, string key, bool mouse, bool releasing)
+    private bool ModifiersMatch(Bind bind, string key, bool mouse, bool releasing)
     {
-        if (!releasing && session.DeviceMatchMask is Modifier forced)
+        if (!releasing && _deviceMatchMask is Modifier forced)
             return bind.Modifiers == forced;
 
-        var mask = releasing && session.PressedUnder.TryGetValue(key, out var under) ? under : MaskFor(session, key, mouse);
+        var mask = releasing && _pressedUnder.TryGetValue(key, out var under) ? under : MaskFor(key, mouse);
         if (releasing && !mouse && ModifierKeys.TryGetValue(key, out var own))
             mask |= own;
 
@@ -205,20 +205,20 @@ public static partial class BindMatcher
 
     // A modifier keysym is matched against the mask without that key folded in,
     // unless the other side of the same modifier is already held.
-    private static Modifier MaskFor(BindSession session, string key, bool mouse)
+    private Modifier MaskFor( string key, bool mouse)
     {
         if (mouse || !ModifierKeys.TryGetValue(key, out var modifier))
-            return session.Held;
+            return Held;
 
         foreach (var pair in ModifierKeys)
         {
             if (pair.Value != modifier || pair.Key.Equals(key, StringComparison.OrdinalIgnoreCase))
                 continue;
-            if (session.DownKeys.Contains(pair.Key))
-                return session.Held;
+            if (_downKeys.Contains(pair.Key))
+                return Held;
         }
 
-        return session.Held & ~modifier;
+        return Held & ~modifier;
     }
 
     // A bind on several keys is triggered by its last key.

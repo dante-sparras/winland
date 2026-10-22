@@ -271,7 +271,7 @@ public class StuckModifierTests
         core.Decide(new KeyPressed("T"), session);
 
         // The releases happened where the hook could not see them, such as the lock screen.
-        BindMatcher.Forget(session, _ => false);
+        session.Forget(_ => false);
 
         Assert.False(core.Decide(new KeyPressed("T"), session).Consumed);
         Assert.False(core.Decide(new KeyReleased("T"), session).Consumed);
@@ -283,7 +283,7 @@ public class StuckModifierTests
         var (core, session) = Load("bind = SUPER, T, killactive");
         core.Decide(new KeyPressed("Super_L"), session);
 
-        BindMatcher.Forget(session, key => key == "Super_L");
+        session.Forget(key => key == "Super_L");
 
         Assert.True(core.Decide(new KeyPressed("T"), session).Consumed);
     }

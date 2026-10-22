@@ -265,7 +265,7 @@ public class BindTests
     {
         var core = Load("bind = SUPER, Q, killactive\nbindl = SUPER, M, killactive\n");
         Appear(core, 1);
-        core.Handle(new InputInhibited(true));
+        core.KeyState.Inhibit(true);
         Press(core, "Super_L");
 
         AssertPassed(Press(core, "Q"));
@@ -273,7 +273,7 @@ public class BindTests
         AssertRan(Press(core, "M"), "killactive", 1);
 
         Release(core, "M");
-        core.Handle(new InputInhibited(false));
+        core.KeyState.Inhibit(false);
         AssertRan(Press(core, "Q"), "killactive", 1);
     }
 

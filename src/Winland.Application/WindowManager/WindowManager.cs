@@ -77,7 +77,7 @@ public sealed partial class WindowManager
         ArgumentNullException.ThrowIfNull(session);
         if (input is WheelTurned wheel)
             input = NaturalScroll.Apply(_config.Input, wheel);
-        var decision = BindMatcher.Decide(_config.Binds, session, input);
+        var decision = session.Decide(_config.Binds, input);
 
         // binds:pass_mouse_when_bound: a button that runs a bind is not swallowed, so the window
         // under the pointer gets its press and release. A wheel notch is not a button and stays swallowed.
@@ -191,7 +191,6 @@ public sealed partial class WindowManager
         {
             WindowAppeared appeared => AppearMaybeMaximized(appeared),
             ConfigLoaded loaded => Load(loaded),
-            InputInhibited inhibited => Inhibit(inhibited),
             KeyPressed or KeyReleased => RunKey(input),
             PointerButtonPressed pressed => PressPointer(pressed),
             PointerButtonReleased released => ReleasePointer(released),
@@ -229,12 +228,6 @@ public sealed partial class WindowManager
             MonitorsChanged changed => SetMonitors(changed.Monitors),
             _ => throw new ArgumentOutOfRangeException(nameof(input), input, "No handler for this input."),
         };
-
-    private Outcome Inhibit(InputInhibited inhibited)
-    {
-        _keyState.Inhibit(inhibited.Inhibited);
-        return View([]);
-    }
 
     private static IReadOnlyList<Launch> ConfigLaunches(ConfigDocument config, LaunchParser.LaunchMoment moment, WorkspaceId? initialWorkspace = null)
     {
