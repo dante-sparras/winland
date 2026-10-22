@@ -65,7 +65,7 @@ public sealed partial class WindowManager
         // key before it has no such serial. One that takes it right after a click in a Client of another program has one.
         var activated = focused.Cause == FocusCause.Activated;
         var afterInput = ActivatedAfterClick(focused);
-        if ((activated || afterInput) && (activated || !(OwnProp(window, "focus_on_activate") as bool? ?? _config.Session.FocusOnActivate)))
+        if ((activated || afterInput) && (activated || !(Own(window, WindowProp.FocusOnActivate) ?? _config.Session.FocusOnActivate)))
         {
             if (_active == window)
                 return View([]);

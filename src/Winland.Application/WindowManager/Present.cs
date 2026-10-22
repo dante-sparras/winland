@@ -33,7 +33,7 @@ public sealed partial class WindowManager
                 choice.Rule,
                 choice.Opaque);
             var shape = borderless ? CornerChoice.Square : corners;
-            var noBlur = OwnProp(client.Window, "no_blur") is true;
+            var noBlur = Own(client.Window, WindowProp.NoBlur) == true;
             decorations.Add(new Decoration(
                 client.Id,
                 border,
@@ -462,7 +462,7 @@ public sealed partial class WindowManager
     // window's. A minimized Client, and one with decorate 0, has none.
     private BorderRing? RingFor(Client client, bool active, CornerChoice shape, byte alpha)
     {
-        if (client.Minimized || OwnProp(client.Window, "decorate") is false || FindWorkspace(client.Workspace) is not LiveWorkspace desk)
+        if (client.Minimized || Own(client.Window, WindowProp.Decorate) == false || FindWorkspace(client.Workspace) is not LiveWorkspace desk)
             return null;
 
         var thickness = desk.Options.BorderFor(client.Id);
@@ -485,11 +485,11 @@ public sealed partial class WindowManager
     private CornerChoice CornersFor(Client client)
     {
         var desk = FindWorkspace(client.Workspace);
-        var rounding = OwnProp(client.Window, "rounding") is long set ? (int)Math.Min(set, int.MaxValue) : _config.Decoration.Rounding;
-        if (OwnProp(client.Window, "rounding") is null && desk is not null && RuleFor(desk)?.Rounding == false)
+        var rounding = Own(client.Window, WindowProp.Rounding) is { } set ? (int)Math.Min(set, int.MaxValue) : _config.Decoration.Rounding;
+        if (Own(client.Window, WindowProp.Rounding) is null && desk is not null && RuleFor(desk)?.Rounding == false)
             return CornerChoice.Square;
 
-        var power = OwnProp(client.Window, "rounding_power") is float setPower ? Math.Clamp(setPower, 1f, 10f) : _config.Decoration.RoundingPower;
+        var power = Own(client.Window, WindowProp.RoundingPower) is { } setPower ? Math.Clamp(setPower, 1f, 10f) : _config.Decoration.RoundingPower;
         var screen = desk is null ? null : MonitorById(desk.Monitor);
         var scale = screen is { Effective.Enabled: true } ? screen.Effective.Scale : 1;
         return CornerShape.For(rounding, power, scale);

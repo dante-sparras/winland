@@ -116,7 +116,7 @@ public sealed partial class WindowManager
     {
         if (WorkspaceContaining(window) is not LiveWorkspace desk
             || desk.ClientOf(window) is not { Floating: true } client
-            || OwnProp(window, "persistent_size") is not true
+            || Own(window, WindowProp.PersistentSize) != true
             || !desk.Layout.TryBounds(window, out var bounds))
             return;
 

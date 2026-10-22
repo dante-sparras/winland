@@ -4,17 +4,6 @@ namespace Winland.Domain;
 
 internal static partial class WindowRuleParser
 {
-    // Window rule effects that set a window property and nothing else, as Winland's dynamic effects do.
-    // Those Winland already gives an effect of their own, such as no_focus or opacity, keep it.
-    private static readonly HashSet<string> BoolProps = new(StringComparer.Ordinal)
-    {
-        "allows_input", "decorate", "focus_on_activate", "keep_aspect_ratio", "nearest_neighbor", "no_anim",
-        "no_blur", "no_follow_mouse", "no_shortcuts_inhibit", "force_rgbx",
-        "sync_fullscreen", "immediate", "render_unfocused", "no_screen_share", "no_auto_hdr", "persistent_size",
-    };
-
-    private static readonly HashSet<string> FloatProps = new(StringComparer.Ordinal) { "rounding_power", "scroll_mouse", "scroll_touchpad" };
-
     /// <summary>
     /// Reads a property effect, such as <c>border_size 4</c> or <c>no_blur</c>. False with an empty error means the name
     /// is not a property effect, and false with an error means its argument does not parse.
@@ -23,7 +12,7 @@ internal static partial class WindowRuleParser
     {
         props = null;
         error = "";
-        if (BoolProps.Contains(name))
+        if (WindowProps.IsRuleEffect(name, PropKind.Bool))
         {
             props = new Dictionary<string, object>(StringComparer.Ordinal) { [name] = argument is null || WindowProps.Truthy(argument) };
             return true;
@@ -41,7 +30,7 @@ internal static partial class WindowRuleParser
             return true;
         }
 
-        if (FloatProps.Contains(name))
+        if (WindowProps.IsRuleEffect(name, PropKind.Float))
         {
             if (argument is null || !WindowProps.TryFloat(argument, out var value))
             {

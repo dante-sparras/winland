@@ -61,7 +61,7 @@ public sealed partial class WindowManager
         }
 
         // A window with no_anim moves, fades and changes border color at once, as Winland warps it.
-        var planned = FromSwipe(plan.Finish(_painted)).Where(motion => OwnProp(motion.Window, "no_anim") is not true).ToList();
+        var planned = FromSwipe(plan.Finish(_painted)).Where(motion => Own(motion.Window, WindowProp.NoAnim) != true).ToList();
         if (own.Count == 0)
             return outcome with { Motions = planned };
 
@@ -96,7 +96,7 @@ public sealed partial class WindowManager
     // A window's own animation style, from setprop or a window rule, replaces the windowsIn or windowsOut style it opens
     // or closes with. Its curve and speed stay the node's.
     private string WindowStyleOf(WindowId window, string node) =>
-        OwnProp(window, "animation") is string { Length: > 0 } own ? own : _config.Animations.StyleOf(node);
+        Own(window, WindowProp.Animation) is { Length: > 0 } own ? own : _config.Animations.StyleOf(node);
 
     // A Workspace's own animation style, from the animation: field of the workspace rule that matches it, or null.
     private string? WorkspaceStyleOf(WorkspaceId workspace) =>

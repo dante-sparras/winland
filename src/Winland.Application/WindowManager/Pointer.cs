@@ -158,7 +158,7 @@ public sealed partial class WindowManager
 
         // A window with no_follow_mouse is still remembered as the one under the pointer, but moving onto it does not
         // focus it. A refocus, after a window closes or moves, still does.
-        if (decision.Focus is WindowId found && OwnProp(found, "no_follow_mouse") is true)
+        if (decision.Focus is WindowId found && Own(found, WindowProp.NoFollowMouse) == true)
             return null;
 
         return TakePointerFocus(decision.Focus);

@@ -8,50 +8,22 @@ namespace Winland.Domain;
 /// </summary>
 internal static class WindowProps
 {
-    private static readonly Dictionary<string, PropKind> Kinds = new(StringComparer.Ordinal)
-    {
-        ["animation"] = PropKind.Text,
-        ["max_size"] = PropKind.Size,
-        ["min_size"] = PropKind.Size,
-        ["opacity"] = PropKind.Alpha,
-        ["opacity_inactive"] = PropKind.Alpha,
-        ["opacity_fullscreen"] = PropKind.Alpha,
-        ["opacity_override"] = PropKind.AlphaOverride,
-        ["opacity_inactive_override"] = PropKind.AlphaOverride,
-        ["opacity_fullscreen_override"] = PropKind.AlphaOverride,
-        ["active_border_color"] = PropKind.Color,
-        ["inactive_border_color"] = PropKind.Color,
-        ["allows_input"] = PropKind.Bool,
-        ["decorate"] = PropKind.Bool,
-        ["focus_on_activate"] = PropKind.Bool,
-        ["keep_aspect_ratio"] = PropKind.Bool,
-        ["nearest_neighbor"] = PropKind.Bool,
-        ["no_anim"] = PropKind.Bool,
-        ["no_blur"] = PropKind.Bool,
-        ["no_focus"] = PropKind.Bool,
-        ["no_max_size"] = PropKind.Bool,
-        ["no_shortcuts_inhibit"] = PropKind.Bool,
-        ["opaque"] = PropKind.Bool,
-        ["force_rgbx"] = PropKind.Bool,
-        ["sync_fullscreen"] = PropKind.Bool,
-        ["immediate"] = PropKind.Bool,
-        ["render_unfocused"] = PropKind.Bool,
-        ["no_follow_mouse"] = PropKind.Bool,
-        ["no_screen_share"] = PropKind.Bool,
-        ["no_auto_hdr"] = PropKind.Bool,
-        ["persistent_size"] = PropKind.Bool,
-        ["stay_focused"] = PropKind.Bool,
-        ["border_size"] = PropKind.Int,
-        ["rounding"] = PropKind.Int,
-        ["rounding_power"] = PropKind.Float,
-        ["scroll_mouse"] = PropKind.Float,
-        ["scroll_touchpad"] = PropKind.Float,
-    };
+    private static readonly Dictionary<string, WindowProp> ByName =
+        WindowProp.All.ToDictionary(prop => prop.Name, StringComparer.Ordinal);
 
     // Properties that cannot go below zero, as Winland clamps them.
     private static readonly HashSet<string> NonNegative = new(StringComparer.Ordinal) { "border_size", "rounding" };
 
-    public static bool TryKind(string name, out PropKind kind) => Kinds.TryGetValue(name, out kind);
+    public static bool TryKind(string name, out PropKind kind)
+    {
+        var found = ByName.TryGetValue(name, out var prop);
+        kind = found ? prop!.Kind : default;
+        return found;
+    }
+
+    /// <summary>Whether a window rule named <paramref name="name"/> only sets that <paramref name="kind"/> of property.</summary>
+    public static bool IsRuleEffect(string name, PropKind kind) =>
+        ByName.TryGetValue(name, out var prop) && prop.IsRuleEffect && prop.Kind == kind;
 
     /// <summary>The key a property is stored under. An <c>_override</c> flag lives in the opacity it belongs to.</summary>
     public static string StorageKey(string name) =>

@@ -401,7 +401,7 @@ public sealed partial class WindowManager
     private bool KeepsRatio(WindowId window, string arguments)
     {
         var mode = int.TryParse(arguments.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
-        return mode == 1 || (mode != 2 && OwnProp(window, "keep_aspect_ratio") is true);
+        return mode == 1 || (mode != 2 && Own(window, WindowProp.KeepAspectRatio) == true);
     }
 
     // The Client a mouse bind takes: the one under the pointer, or else one whose border is under it, as the pinned

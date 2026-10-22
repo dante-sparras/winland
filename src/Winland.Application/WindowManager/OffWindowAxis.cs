@@ -71,7 +71,7 @@ public sealed partial class WindowManager
             }
 
             return window is WindowId found
-                ? new ScrollOverride(OwnProp(found, "scroll_mouse") as float?, OwnProp(found, "scroll_touchpad") as float?)
+                ? new ScrollOverride(Own(found, WindowProp.ScrollMouse), Own(found, WindowProp.ScrollTouchpad))
                 : default;
         }
         finally
