@@ -252,6 +252,9 @@ internal static partial class WorkspaceRules
         if (Take(field, "floatgaps:", out var floatGaps) || Take(field, "float_gaps:", out floatGaps))
             return TryGaps(rule, floatGaps, warnings, static (current, gaps) => current with { FloatGaps = gaps }, out updated, out failed);
 
+        // A field Winland does not read warns, and the rest of the rule still applies.
+        var colon = field.IndexOf(':', StringComparison.Ordinal);
+        warnings.Add($"Unsupported workspace rule field '{(colon < 0 ? field : field[..colon])}'.");
         return true;
     }
 
