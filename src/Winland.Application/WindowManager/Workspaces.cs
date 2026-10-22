@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Switching Workspaces, moving windows between them, and the history <c>workspace previous</c> reads.</summary>
 public sealed partial class WindowManager
 {
     // A floating Client keeps its place relative to the Monitor when it moves onto a Workspace on another Monitor,

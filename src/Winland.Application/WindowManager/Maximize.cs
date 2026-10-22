@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>A window's own maximize: when Winland lets it, and putting it back.</summary>
 public sealed partial class WindowManager
 {
     /// <summary>True when the window is a Client the core manages.</summary>

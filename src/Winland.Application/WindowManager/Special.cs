@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Special Workspaces: <c>togglespecialworkspace</c> and how they show over a Monitor.</summary>
 public sealed partial class WindowManager
 {
     private readonly Dictionary<MonitorId, WorkspaceId> _specialOn = [];

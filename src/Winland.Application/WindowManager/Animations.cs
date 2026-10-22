@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Plans the motions of an outcome: how each window gets from where it was to where it goes.</summary>
 public sealed partial class WindowManager
 {
     private readonly Dictionary<WindowId, Decoration> _painted = [];

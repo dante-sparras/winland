@@ -2,6 +2,7 @@ using static Winland.Domain.OrdinalText;
 
 namespace Winland.Application;
 
+/// <summary>The pointer: key and mouse binds, focus follows mouse, and resizing by the border.</summary>
 public sealed partial class WindowManager
 {
     private Gesture? _gesture;

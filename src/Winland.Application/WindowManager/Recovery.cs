@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Saves where hidden Clients are, so a restart after a crash finds them again.</summary>
 public sealed partial class WindowManager
 {
     private readonly Dictionary<WindowId, RecoveredClient> _restored = [];

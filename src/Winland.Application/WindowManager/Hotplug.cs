@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Monitors that are plugged in or out: which Workspaces go where, and which come back.</summary>
 public sealed partial class WindowManager
 {
     // The number each Monitor was showing when it left, by its identity, or by its Windows name when

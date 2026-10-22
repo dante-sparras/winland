@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Urgent Clients, and <c>focusurgentorlast</c> and <c>focuscurrentorlast</c>.</summary>
 public sealed partial class WindowManager
 {
     // Clients that asked for attention and have not been focused since, oldest first.

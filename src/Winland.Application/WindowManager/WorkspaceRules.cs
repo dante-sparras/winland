@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Creating Workspaces, with the options their <c>workspace</c> rules give them.</summary>
 public sealed partial class WindowManager
 {
     private LiveWorkspace WorkspaceFor(WorkspaceId id, MonitorId? monitor = null)

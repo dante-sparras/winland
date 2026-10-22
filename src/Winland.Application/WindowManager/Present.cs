@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Builds the Outcome a step returns: placements, decorations, and the windows to show and hide.</summary>
 public sealed partial class WindowManager
 {
     private Outcome Decorate(Outcome outcome, State before)

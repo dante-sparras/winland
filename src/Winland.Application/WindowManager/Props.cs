@@ -248,4 +248,22 @@ public sealed partial class WindowManager
         var opaque = props.TryGetValue("opaque", out var held) && held is bool flag ? flag : ruled.Opaque;
         return new OpacityChoice(ruled.Rule is null && merged == rule ? null : merged, opaque);
     }
+
+    private readonly Dictionary<WindowId, OpacityChoice> _opacity = [];
+
+    private readonly record struct OpacityChoice(OpacityRule? Rule, bool Opaque);
+
+    private void RememberOpacity(WindowId window, WindowDecision decision)
+    {
+        if (decision.Opacity is null && !decision.Opaque)
+        {
+            _opacity.Remove(window);
+            return;
+        }
+
+        _opacity[window] = new OpacityChoice(decision.Opacity, decision.Opaque);
+    }
+
+    private OpacityChoice OpacityOf(WindowId window) =>
+        _opacity.TryGetValue(window, out var choice) ? choice : default;
 }

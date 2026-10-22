@@ -3,6 +3,7 @@ using static Winland.Domain.OrdinalText;
 
 namespace Winland.Application;
 
+/// <summary>The <c>sendshortcut</c> dispatcher.</summary>
 public sealed partial class WindowManager
 {
     private BindTrigger? _trigger;

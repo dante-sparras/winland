@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Finds the active Workspace, Monitor and Client, and the Workspace that holds a window.</summary>
 public sealed partial class WindowManager
 {
     private WorkspaceId ActiveId() => ActiveOn(FocusedId());

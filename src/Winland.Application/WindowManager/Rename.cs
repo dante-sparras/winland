@@ -2,6 +2,7 @@ using System.Globalization;
 
 namespace Winland.Application;
 
+/// <summary>The <c>changeworkspaceid</c> dispatcher.</summary>
 public sealed partial class WindowManager
 {
     /// <summary>

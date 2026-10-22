@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>The core of Winland. Every input and command runs as one step under one lock and returns an Outcome for the adapter to apply.</summary>
 public sealed partial class WindowManager
 {
     private readonly List<LiveWorkspace> _workspaces = [];

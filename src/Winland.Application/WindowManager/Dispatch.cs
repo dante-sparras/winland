@@ -2,6 +2,7 @@ using static Winland.Domain.OrdinalText;
 
 namespace Winland.Application;
 
+/// <summary>Runs binds and dispatchers through the table in DispatcherTable.cs, and merges the outcomes of a bind with several.</summary>
 public sealed partial class WindowManager
 {
     private Outcome RunBind(BindDecision match)

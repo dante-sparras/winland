@@ -1,5 +1,6 @@
 namespace Winland.Application;
 
+/// <summary>Where the cursor goes after a focus change or a switch, under the <c>cursor</c> options.</summary>
 public sealed partial class WindowManager
 {
     private Point? _pointer;
