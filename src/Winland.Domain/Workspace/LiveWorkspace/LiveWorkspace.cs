@@ -43,7 +43,10 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
 
     public void Replace(Layout layout) => Layout = layout;
 
-    public WindowId? Focus { get; set; }
+    /// <summary>The Client this Workspace gives focus back to when it is shown again. Set through FocusState.</summary>
+    public WindowId? Focus { get; private set; }
+
+    internal void RememberFocus(WindowId? window) => Focus = window;
 
     public bool Persistent { get; set; }
 

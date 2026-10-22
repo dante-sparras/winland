@@ -34,6 +34,10 @@ A Workspace shown on a Monitor other than its own, because its own Monitor was u
 A named Workspace that belongs to no Monitor. It opens over the focused Monitor's Workspace and closes again, keeping its Clients out of sight until it is next opened.
 _Avoid_: Scratchpad
 
+**Focused client**:
+The Client that gets keyboard input. Each Workspace remembers the Client it last focused, which gets focus back when that Workspace is shown again.
+_Avoid_: Active window
+
 **Monitor**:
 A display Windows reports, recognized by its make, model and serial. It shows one of its Workspaces at a time, and can show a Special workspace over it.
 _Avoid_: Screen, output

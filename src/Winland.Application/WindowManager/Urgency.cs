@@ -8,7 +8,7 @@ public sealed partial class WindowManager
 
     private Outcome Flash(WindowId window)
     {
-        if (Find(window) is null || _active == window)
+        if (Find(window) is null || _focus.Focused == window)
             return View([]);
 
         MarkUrgent(window);
@@ -37,7 +37,7 @@ public sealed partial class WindowManager
     private Outcome FocusCurrentOrLast()
     {
         const string name = "focuscurrentorlast";
-        var live = _focusHistory.Where(window => Find(window) is not null).ToList();
+        var live = _focus.History.Where(window => Find(window) is not null).ToList();
         if (live.Count <= 1)
             return Rejected(name, "error: History too short");
 
@@ -48,7 +48,7 @@ public sealed partial class WindowManager
     {
         foreach (var client in EveryClient())
         {
-            if (client.Window != _active && _urgent.Contains(client.Window))
+            if (client.Window != _focus.Focused && _urgent.Contains(client.Window))
                 return client.Window;
         }
 
@@ -60,11 +60,11 @@ public sealed partial class WindowManager
     // two Clients have been focused.
     private WindowId? LastClient()
     {
-        var oldestFirst = new List<WindowId>(_focusHistory.Count);
-        for (var i = _focusHistory.Count - 1; i >= 0; i--)
+        var oldestFirst = new List<WindowId>(_focus.History.Count);
+        for (var i = _focus.History.Count - 1; i >= 0; i--)
         {
-            if (Find(_focusHistory[i]) is not null)
-                oldestFirst.Add(_focusHistory[i]);
+            if (Find(_focus.History[i]) is not null)
+                oldestFirst.Add(_focus.History[i]);
         }
 
         var index = ActiveWindow() is null ? 0 : 1;

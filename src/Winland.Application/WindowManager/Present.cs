@@ -331,8 +331,7 @@ public sealed partial class WindowManager
         if (focusRevealed && focus is null && showList.Count == 1)
         {
             focus = showList[0];
-            _active = focus;
-            desk.Focus = focus;
+            _focus.Take(focus, desk);
             desk.Layout.NoteFocus(showList[0]);
             TouchHistory(showList[0]);
         }

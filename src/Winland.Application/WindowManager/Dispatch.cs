@@ -143,8 +143,7 @@ public sealed partial class WindowManager
             focus = null;
         else if (focus is WindowId accepted)
         {
-            _active = accepted;
-            desk.Focus = accepted;
+            _focus.Take(accepted, desk);
             desk.Layout.NoteFocus(accepted);
         }
 

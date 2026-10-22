@@ -61,7 +61,7 @@ public sealed partial class WindowManager
         }
 
         var wasShown = group.Shown == window;
-        var wasActive = _active == window;
+        var wasActive = _focus.Focused == window;
         desk.Leave(group, window, out _);
 
         // The member that takes the slot does not inherit the closed member's mode, which
@@ -90,7 +90,7 @@ public sealed partial class WindowManager
 
     private WindowId? RecentMember(WindowGroup group)
     {
-        foreach (var window in _focusHistory)
+        foreach (var window in _focus.History)
         {
             if (group.Members.Contains(window))
                 return window;

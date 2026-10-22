@@ -57,8 +57,7 @@ public sealed partial class WindowManager
             desk = destination;
         }
 
-        _active = id;
-        desk.Focus = id;
+        _focus.Take(id, desk);
         desk.Layout.NoteFocus(id);
         var placements = IsShown(desk.Id) ? desk.Layout.Visible() : [];
         var show = !fromShown && IsShown(desk.Id) && desk.ClientOf(id) is { Minimized: false }
