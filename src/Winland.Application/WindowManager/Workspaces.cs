@@ -253,7 +253,7 @@ public sealed partial class WindowManager
                 ? requestedFocus
                 : keep is WindowId pinnedFocus && ClientOn(target, pinnedFocus) is not null
                     ? pinnedFocus
-                    : destination.Remembered();
+                    : RememberedOn(destination);
             destination.Focus = _active;
         }
 
@@ -287,7 +287,7 @@ public sealed partial class WindowManager
         if (focus is WindowId requested && ClientOn(target, requested) is not null)
             next = requested;
         else if (destination is not null)
-            next = destination.Remembered();
+            next = RememberedOn(destination);
 
         _active = next;
         if (destination is not null)

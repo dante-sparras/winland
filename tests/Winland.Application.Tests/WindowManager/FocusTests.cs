@@ -234,6 +234,21 @@ public class FocusTests
         Assert.Equal(new WindowId(1), Active(core));
     }
 
+    [Fact]
+    public void AWorkspaceShownAgainDoesNotFocusAWindowThatTakesNoFocus()
+    {
+        var core = new WindowManager();
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        core.Execute("dispatch workspace 2");
+        core.Handle(new WindowAppeared(new WindowId(2), Area));
+        core.Execute("setprop address:0x2 no_focus true");
+        core.Execute("dispatch workspace 1");
+
+        core.Execute("dispatch workspace 2");
+
+        Assert.False(System.Text.Json.JsonDocument.Parse(core.Execute("j/activewindow").Text).RootElement.TryGetProperty("address", out _));
+    }
+
     private static WindowId? Active(WindowManager core)
     {
         var outcome = core.Handle(new Dispatch("killactive"));

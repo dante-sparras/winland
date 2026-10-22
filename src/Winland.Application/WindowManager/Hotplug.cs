@@ -99,7 +99,7 @@ public sealed partial class WindowManager
             return null;
 
         var desk = CurrentWorkspace();
-        var next = desk.Remembered();
+        var next = RememberedOn(desk);
         TakeFocus(desk, next);
         return next;
     }

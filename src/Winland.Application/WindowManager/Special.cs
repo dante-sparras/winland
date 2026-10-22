@@ -131,9 +131,9 @@ public sealed partial class WindowManager
 
         WindowId? next = focus is WindowId wanted && desk.ClientOf(wanted) is { Minimized: false }
             ? wanted
-            : desk.Remembered();
+            : RememberedOn(desk);
         if (next is null && _config.Input.SpecialFallthrough)
-            next = FocusedWorkspace().Remembered();
+            next = RememberedOn(FocusedWorkspace());
 
         _active = next;
         desk.Focus = next;
@@ -173,7 +173,7 @@ public sealed partial class WindowManager
         var hidden = VisibleIds(current);
         SetSpecial(monitor, null);
         var normal = FindWorkspace(ActiveOn(monitor));
-        var next = normal is null ? null : normal.Remembered();
+        var next = normal is null ? null : RememberedOn(normal);
         _active = next;
         if (normal is not null)
             normal.Focus = next;
