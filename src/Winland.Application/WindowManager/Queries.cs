@@ -75,7 +75,7 @@ public sealed partial class WindowManager
             ExtraCommands.FormatCursor(Cursor?.Read() ?? new Point(0, 0), cursor.Flags.HasFlag(CommandFlags.Json)),
             View([])),
         ConfigErrorsRequest => new CommandReply(ExtraCommands.FormatErrors(_configErrors), View([])),
-        GetOptionRequest option => new CommandReply(DescribeOption(option.Name), View([])),
+        GetOptionRequest option => new CommandReply(OptionTable.Describe(option.Name, _config) ?? "no such option", View([])),
         LockedRequest => new CommandReply(ExtraCommands.FormatLocked(SessionLock?.Locked == true), View([])),
         LayoutsRequest => new CommandReply(ExtraCommands.FormatLayouts(), View([])),
         AnimationsRequest animations => new CommandReply(_config.Animations.Describe(animations.Flags.HasFlag(CommandFlags.Json)), View([])),
@@ -87,28 +87,6 @@ public sealed partial class WindowManager
         BatchRequest batch => RunBatch(batch.Payload),
         _ => throw new InvalidOperationException("No handler for this command."),
     };
-
-    // The value Winland applied. set is true when a line the config applied names the Option.
-    private string DescribeOption(string name)
-    {
-        var known = LayoutOptions.Options.TryReply(name, _config.Layout, out var value)
-            || ScrollingOptions.Options.TryReply(name, _config.Scrolling, out value)
-            || MasterOptions.Options.TryReply(name, _config.Master, out value)
-            || DecorationOptions.Options.TryReply(name, _config.Decoration, out value)
-            || GroupOptions.Options.TryReply(name, _config.Groups, out value)
-            || SessionOptions.Options.TryReply(name, _config.Session, out value)
-            || BindOptions.Options.TryReply(name, _config.BindOptions, out value)
-            || CursorOptions.Options.TryReply(name, _config.Cursor, out value)
-            || InputOptions.Options.TryReply(name, _config.Input, out value)
-            || GestureOptions.Options.TryReply(name, _config.Swipe, out value)
-            || AnimationOptions.Options.TryReply(name, _config.Animations, out value)
-            || DebugOptions.Options.TryReply(name, _config.Debug, out value);
-        if (!known)
-            return "no such option";
-
-        var set = _config.Document?.Settings.Any(setting => setting.Keyword == name) == true;
-        return OptionTable.Reply(name, value, set);
-    }
 
     // A keyword that changes the layout lays every Workspace out again. The result follows the keyword's own outcome.
     private Outcome Reflow(Outcome current)

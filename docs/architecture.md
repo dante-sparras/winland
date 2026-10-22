@@ -28,7 +28,7 @@ Nothing in Domain or Application calls Win32. A test drives `WindowManager` with
 | To change | Look in |
 | --- | --- |
 | A dispatcher | `Application/WindowManager/DispatcherTable.cs` for the entry, `Domain/Bind/Dispatchers.cs` for the name. A test keeps the two equal. |
-| A config option | The `*Options.cs` file of its section in `Domain/Config`, for example `LayoutOptions.cs` for `general:gaps_in`. `AppliedConfig.cs` holds every section. |
+| A config option | The `*Options.cs` file of its section in `Domain/Config`, for example `LayoutOptions.cs` for `general:gaps_in`. `AppliedConfig.cs` holds every section, and a new section gets one line in `OptionTable.cs`, which the parser and `getoption` read. |
 | A window rule | `Domain/WindowRule`, with its parser in `Domain/WindowRule/WindowRuleParser`. |
 | A Layout | `Domain/Layout`: one folder per Layout, such as `DwindleLayout/`. |
 | Which Workspace a Monitor shows, and `workspace previous` | `Domain/Workspace/ShownWorkspaces.cs`. Hotplug decides where Guests go in `Application/WindowManager/Hotplug.cs` and calls it. |
