@@ -7,8 +7,8 @@ internal sealed partial class MasterLayout
         outgoing = default;
         var from = Id(current);
         var to = Id(next);
-        var index = FindClient(from);
-        if (index < 0 || from == to || FindClient(to) >= 0)
+        var index = IndexOf(from);
+        if (index < 0 || from == to || IndexOf(to) >= 0)
             return false;
 
         var client = _clients[index];

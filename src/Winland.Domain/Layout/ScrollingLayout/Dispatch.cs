@@ -115,7 +115,7 @@ internal sealed partial class ScrollingLayout
     public IReadOnlyList<Placement> ToggleFloating(WindowId window)
     {
         var id = new ClientId(window.Value);
-        var index = _clients.FindIndex(client => client.Id == id);
+        var index = IndexOf(id);
         if (index < 0 || _clients[index].Minimized)
             return [];
 
@@ -217,12 +217,6 @@ internal sealed partial class ScrollingLayout
     {
         var index = column.Cells.IndexOf(cell);
         return index > 0 ? column.Cells[index - 1] : null;
-    }
-
-    private bool Minimized(ClientId id)
-    {
-        var index = _clients.FindIndex(client => client.Id == id);
-        return index >= 0 && _clients[index].Minimized;
     }
 
     private static string First(string arguments)

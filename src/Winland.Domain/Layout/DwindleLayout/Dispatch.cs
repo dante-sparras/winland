@@ -157,17 +157,10 @@ internal sealed partial class DwindleLayout
         return [.. Placements(), new Placement(tiled, box)];
     }
 
-    private void SetFloating(ClientId id, bool floating)
-    {
-        var index = _clients.FindIndex(client => client.Id == id);
-        if (index >= 0)
-            _clients[index] = _clients[index] with { Floating = floating };
-    }
-
     public IReadOnlyList<Placement> ToggleFloating(WindowId window)
     {
         var id = new ClientId(window.Value);
-        var index = _clients.FindIndex(client => client.Id == id);
+        var index = IndexOf(id);
         if (index < 0 || _clients[index].Minimized)
             return [];
 
@@ -449,12 +442,6 @@ internal sealed partial class DwindleLayout
     // Winland refuses to edit the tree around a maximized or fullscreen Client.
     private bool Covers(ClientId id) =>
         _clients.Exists(client => client.Id == id && client.Fullscreen != FullscreenMode.None);
-
-    private bool Minimized(ClientId id)
-    {
-        var index = _clients.FindIndex(client => client.Id == id);
-        return index >= 0 && _clients[index].Minimized;
-    }
 
     private static bool TowardLeafSibling(Node node, PendingSplit direction)
     {

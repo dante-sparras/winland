@@ -1,13 +1,8 @@
 namespace Winland.Domain;
 
-internal sealed partial class MasterLayout : Layout
+internal sealed partial class MasterLayout : TiledLayout, Layout
 {
-    private readonly List<Client> _clients = [];
     private readonly List<Tile> _tiles = [];
-    private readonly FloatingClients _floating = new();
-    private readonly Dictionary<ClientId, Rectangle> _natural = [];
-    private readonly PseudoTiles _pseudo = new();
-    private readonly Dictionary<ClientId, SizeLimits> _limits = [];
     private readonly Dictionary<ClientId, Suspended> _suspended = [];
     private LayoutOptions _layout = LayoutOptions.Unconfigured;
     private Rectangle _monitor;
@@ -16,35 +11,7 @@ internal sealed partial class MasterLayout : Layout
     private WindowId? _focused;
     private Rectangle _area;
 
-    public IReadOnlyList<Client> Clients => _clients;
-
-    public void Retitle(WindowId window, string title)
-    {
-        for (var i = 0; i < _clients.Count; i++)
-        {
-            if (_clients[i].Window == window)
-                _clients[i] = _clients[i] with { Title = title };
-        }
-    }
-
-    public void Reclass(WindowId window, string windowClass)
-    {
-        for (var i = 0; i < _clients.Count; i++)
-        {
-            if (_clients[i].Window == window)
-                _clients[i] = _clients[i] with { Class = windowClass };
-        }
-    }
-
-    public void Readdress(WorkspaceId workspace)
-    {
-        for (var i = 0; i < _clients.Count; i++)
-            _clients[i] = _clients[i] with { Workspace = workspace };
-    }
-
     public bool FollowsMonitorWhenUnmoved => true;
-
-    public void NudgeFloating(int dx, int dy) => _floating.Nudge(dx, dy);
 
     public string? LayoutMessageError { get; private set; }
 
@@ -121,7 +88,7 @@ internal sealed partial class MasterLayout : Layout
             if (predicted is Rectangle size)
                 placed = FloatedLimits.Centered(new SizeLimits(minSize, maxSize), size, _area);
 
-            MarkFloating(id, true);
+            SetFloating(id, true);
             _floating.Set(id, placed);
             return [.. Placed(), new Placement(id, placed)];
         }
@@ -129,7 +96,7 @@ internal sealed partial class MasterLayout : Layout
         return Placed();
     }
 
-    public IReadOnlyList<Placement> Remove(WindowId window)
+    public override IReadOnlyList<Placement> Remove(WindowId window)
     {
         var id = Id(window);
         _natural.Remove(id);
@@ -162,7 +129,7 @@ internal sealed partial class MasterLayout : Layout
         var id = Id(window);
         if (_floating.Contains(id))
         {
-            MarkMinimized(id, true);
+            SetMinimized(id, true);
             return [];
         }
 
@@ -175,7 +142,7 @@ internal sealed partial class MasterLayout : Layout
         Detach(tile);
         var promoted = tile.Master ? _tiles.Find(other => other.Master && !masters.Contains(other)) : null;
         _suspended[id] = new Suspended(tile, index, promoted);
-        MarkMinimized(id, true);
+        SetMinimized(id, true);
         return Placed();
     }
 
@@ -187,14 +154,14 @@ internal sealed partial class MasterLayout : Layout
             if (!Minimized(id))
                 return [];
 
-            MarkMinimized(id, false);
+            SetMinimized(id, false);
             return [new Placement(id, bounds)];
         }
 
         if (!_suspended.Remove(id, out var saved))
             return [];
 
-        MarkMinimized(id, false);
+        SetMinimized(id, false);
 
         // A master that was minimized takes its place back from the tile promoted in its stead.
         if (saved.Tile.Master && saved.Promoted is { Master: true } promoted && _tiles.Contains(promoted))
@@ -210,30 +177,12 @@ internal sealed partial class MasterLayout : Layout
         return Placed();
     }
 
-    public bool TryTake(WindowId window, out Taken taken)
-    {
-        taken = default;
-        var id = Id(window);
-        var index = _clients.FindIndex(client => client.Id == id);
-        if (index < 0)
-            return false;
-
-        var client = _clients[index];
-        var bounds = _floating.TryGet(id, out var floating)
-            ? floating
-            : _natural.TryGetValue(id, out var natural) ? natural : default;
-        _limits.TryGetValue(id, out var limits);
-        taken = SlotHandover.Describe(client, bounds, limits);
-        Remove(window);
-        return true;
-    }
-
     // A maximum is remembered and handed on with the Client. It clamps a floating window.
     // It does not shrink a tiled master or slave: the master fraction owns that size.
     public IReadOnlyList<Placement> UpdateLimits(WindowId window, Size? minSize, Size? maxSize, TiledLimits? tiledLimits = null)
     {
         var id = Id(window);
-        if (FindClient(id) < 0)
+        if (IndexOf(id) < 0)
             return [];
 
         _limits[id] = new SizeLimits(minSize, maxSize) { Tiled = tiledLimits };
@@ -270,14 +219,6 @@ internal sealed partial class MasterLayout : Layout
         return false;
     }
 
-    // Every tiled Client is placed, so master does not conceal one behind another.
-    public IReadOnlyList<Placement> Visible()
-    {
-        var placements = new List<Placement>(Placed());
-        _floating.AddShown(placements, _clients);
-        return placements;
-    }
-
     public IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode)
     {
         if (!FullscreenClients.Assign(_clients, window, mode, clientMode))
@@ -286,7 +227,7 @@ internal sealed partial class MasterLayout : Layout
         return Visible();
     }
 
-    public IReadOnlyList<Placement> Placed()
+    public override IReadOnlyList<Placement> Placed()
     {
         var placements = new List<Placement>();
         foreach (var client in _clients)
@@ -311,7 +252,7 @@ internal sealed partial class MasterLayout : Layout
     public IReadOnlyList<Placement> TogglePseudo(WindowId window)
     {
         var id = Id(window);
-        if (FindClient(id) < 0)
+        if (IndexOf(id) < 0)
             return [];
 
         _pseudo.Toggle(id);
@@ -439,30 +380,7 @@ internal sealed partial class MasterLayout : Layout
     }
 
     private bool Known(ClientId id) =>
-        FindClient(id) >= 0;
-
-    private int FindClient(ClientId id) =>
-        _clients.FindIndex(client => client.Id == id);
-
-    private bool Minimized(ClientId id)
-    {
-        var index = FindClient(id);
-        return index >= 0 && _clients[index].Minimized;
-    }
-
-    private void MarkMinimized(ClientId id, bool minimized)
-    {
-        var index = FindClient(id);
-        if (index >= 0)
-            _clients[index] = _clients[index] with { Minimized = minimized };
-    }
-
-    private void MarkFloating(ClientId id, bool floating)
-    {
-        var index = FindClient(id);
-        if (index >= 0)
-            _clients[index] = _clients[index] with { Floating = floating };
-    }
+        IndexOf(id) >= 0;
 
     private static WindowId WindowOf(Tile tile) => new(tile.Id.Value);
 
