@@ -118,7 +118,7 @@ public sealed partial class WindowManager
             client.Floating,
             (int)client.Fullscreen,
             (int)client.FullscreenClient,
-            client.Floating && _pinned.Contains(client.Window),
+            IsPinned(client.Window),
             client.Window == active,
             desk.GroupOf(client.Window) is not null,
             selector => WorkspaceRules.MatchesSelector(selector, desk.Id, desk.DisplayName, screen?.Effective, Count, desk.CoveringMode()),

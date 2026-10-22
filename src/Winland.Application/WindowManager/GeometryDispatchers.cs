@@ -99,7 +99,7 @@ public sealed partial class WindowManager
             return Rejected(name, "error: Bad z-order position: " + mode);
 
         Stack(chosen, top: mode == "top");
-        SetOverFullscreen(chosen, mode == "top");
+        _cover.SetFlag(chosen, mode == "top");
         var stacked = View([], dispatcher: name) with
         {
             ZOrder = [new ZOrderRequest(chosen, mode == "top")],

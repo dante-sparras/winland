@@ -129,7 +129,7 @@ public sealed partial class WindowManager
     // is: a synced request changes nothing, and fullscreenstate sets only the client mode. False when nothing changes.
     private bool PinFullscreen(WindowId window, FullscreenMode old, ref FullscreenMode mode, bool synced)
     {
-        var pinned = _pinned.Contains(window);
+        var pinned = IsPinned(window);
         var held = _pinFullscreened.Contains(window);
         if (!pinned && !held)
             return true;
@@ -216,7 +216,7 @@ public sealed partial class WindowManager
 
         // A floating window focused over a default fullscreen one is let over it.
         if (desk.ClientOf(window) is { Floating: true } && CoveringOther(desk, window) is { LayoutFullscreen: false })
-            SetOverFullscreen(window, true);
+            _cover.SetFlag(window, true);
 
         if (desk.ClientOf(window) is not { Floating: false } || CoveringOther(desk, window) is not { LayoutFullscreen: false } covering)
             return window;

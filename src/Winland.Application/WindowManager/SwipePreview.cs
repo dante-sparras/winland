@@ -60,7 +60,7 @@ public sealed partial class WindowManager
         var shift = Pixels(offset);
         foreach (var client in desk.Layout.Clients)
         {
-            if (client.Minimized || _pinned.Contains(client.Window) || desk.IsWaiting(client.Window) || !desk.Layout.TryBounds(client.Window, out var slot))
+            if (client.Minimized || IsPinned(client.Window) || desk.IsWaiting(client.Window) || !desk.Layout.TryBounds(client.Window, out var slot))
                 continue;
 
             var rest = PlacedBounds(client, desk, slot);
