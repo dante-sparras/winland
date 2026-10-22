@@ -45,14 +45,14 @@ function Get-Winland {
     @($found | ForEach-Object { Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue } | Where-Object { $_ })
 }
 
-function Stop-Winland([string]$ctl) {
+function Stop-Winland([string]$cli) {
     $running = Get-Winland
     if ($running.Count -eq 0) { return }
 
     Write-Output "Stopping winland ($(($running | ForEach-Object { $_.Id }) -join ', '))."
-    if ($ctl -and (Test-Path -LiteralPath $ctl)) {
+    if ($cli -and (Test-Path -LiteralPath $cli)) {
         # The pipe takes the current user, elevated or not, so this reaches an elevated winland too.
-        & $ctl dispatch exit *> $null
+        & $cli dispatch exit *> $null
     }
 
     $deadline = [DateTime]::UtcNow.AddSeconds(20)
@@ -72,9 +72,9 @@ function Stop-Winland([string]$ctl) {
 $env:DOTNET_ROOT = Resolve-DotnetRoot
 
 if ($Stop) {
-    $ctl = Get-ChildItem -Path $dev -Filter winlandctl.exe -Recurse -ErrorAction SilentlyContinue |
+    $cli = Get-ChildItem -Path $dev -Filter winland.exe -Recurse -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending | Select-Object -First 1
-    Stop-Winland ($ctl.FullName)
+    Stop-Winland ($cli.FullName)
     Write-Output 'winland is stopped.'
     return
 }
@@ -83,20 +83,16 @@ $stamp = [DateTime]::Now.ToString('yyyyMMdd-HHmmss')
 $build = Join-Path $dev $stamp
 New-Item -ItemType Directory -Force -Path $build | Out-Null
 
-foreach ($project in @(@('Winland.Daemon', 'winland'), @('Winland.Ctl', 'winlandctl'))) {
-    $out = Join-Path $build $project[1]
-    Write-Output "Publishing $($project[0])."
-    $log = dotnet publish (Join-Path $root "src/$($project[0])/$($project[0]).csproj") -c $Configuration -o $out --nologo -v q 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        $log | Select-Object -Last 40 | ForEach-Object { Write-Output $_ }
-        Remove-Item -LiteralPath $build -Recurse -Force -ErrorAction SilentlyContinue
-        throw "dotnet publish of $($project[0]) failed. The running winland was left alone."
-    }
+Write-Output 'Publishing Winland.Daemon.'
+$log = dotnet publish (Join-Path $root 'src/Winland.Daemon/Winland.Daemon.csproj') -c $Configuration -o (Join-Path $build 'winland') --nologo -v q 2>&1
+if ($LASTEXITCODE -ne 0) {
+    $log | Select-Object -Last 40 | ForEach-Object { Write-Output $_ }
+    Remove-Item -LiteralPath $build -Recurse -Force -ErrorAction SilentlyContinue
+    throw 'dotnet publish of Winland.Daemon failed. The running winland was left alone.'
 }
 
 $exe = Join-Path $build 'winland/winland.exe'
-$ctl = Join-Path $build 'winlandctl/winlandctl.exe'
-Stop-Winland $ctl
+Stop-Winland $exe
 
 $arguments = @()
 if (-not $Elevated) { $arguments += '--no-elevate' }
@@ -133,7 +129,7 @@ $deadline = [DateTime]::UtcNow.AddSeconds($(if ($Elevated) { 90 } else { 30 }))
 $ready = $false
 while ([DateTime]::UtcNow -lt $deadline) {
     if ($process.HasExited -and -not $Elevated) { break }
-    & $ctl clients *> $null
+    & $exe clients *> $null
     if ($LASTEXITCODE -eq 0) { $ready = $true; break }
     Start-Sleep -Milliseconds 250
 }

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Winland.Smoke.Tests;
 
-internal readonly record struct SmokePaths(string Daemon, string Control)
+internal readonly record struct SmokePaths(string Daemon)
 {
     public static SmokePaths Read()
     {
@@ -13,16 +13,11 @@ internal readonly record struct SmokePaths(string Daemon, string Control)
         if (!File.Exists(file))
             throw new InvalidOperationException($"Smoke host paths were not written ({file}).");
 
-        var parts = File.ReadAllText(file).Trim().Split('|');
-        if (parts.Length != 2)
-            throw new InvalidOperationException($"Smoke host paths are malformed ({File.ReadAllText(file)}).");
+        var daemon = File.ReadAllText(file).Trim();
+        if (!File.Exists(daemon))
+            throw new InvalidOperationException($"Smoke host is missing ({daemon}).");
 
-        var daemon = parts[0].Trim();
-        var control = parts[1].Trim();
-        if (!File.Exists(daemon) || !File.Exists(control))
-            throw new InvalidOperationException($"Smoke hosts are missing ({daemon}, {control}).");
-
-        return new SmokePaths(daemon, control);
+        return new SmokePaths(daemon);
     }
 }
 
@@ -265,7 +260,7 @@ internal sealed class SmokeDaemon : IDisposable
     private string Run(string arguments)
     {
         if (!TryRun(arguments, TimeSpan.FromSeconds(10), out var reply, out var error))
-            throw new InvalidOperationException($"winlandctl {arguments} failed. {error} {Logs()}");
+            throw new InvalidOperationException($"winland {arguments} failed. {error} {Logs()}");
 
         return reply.Trim();
     }
@@ -274,7 +269,7 @@ internal sealed class SmokeDaemon : IDisposable
     {
         reply = "";
         error = "";
-        var info = new ProcessStartInfo(_paths.Control)
+        var info = new ProcessStartInfo(_paths.Daemon)
         {
             UseShellExecute = false,
             CreateNoWindow = true,
@@ -291,7 +286,7 @@ internal sealed class SmokeDaemon : IDisposable
         using var process = new Process { StartInfo = info };
         if (!process.Start())
         {
-            error = "winlandctl did not start.";
+            error = "winland did not start.";
             return false;
         }
 
@@ -307,7 +302,7 @@ internal sealed class SmokeDaemon : IDisposable
             {
             }
 
-            error = $"winlandctl {arguments} timed out.";
+            error = $"winland {arguments} timed out.";
             return false;
         }
 
@@ -521,7 +516,7 @@ internal sealed class EventLog : IDisposable
 
     public static EventLog Follow(SmokePaths paths, string pipe, string dotnetRoot)
     {
-        var info = new ProcessStartInfo(paths.Control, "events")
+        var info = new ProcessStartInfo(paths.Daemon, "events")
         {
             UseShellExecute = false,
             CreateNoWindow = true,
@@ -546,13 +541,13 @@ internal sealed class EventLog : IDisposable
                 log._error.AppendLine(args.Data);
         };
         if (!process.Start())
-            throw new InvalidOperationException("winlandctl events did not start.");
+            throw new InvalidOperationException("winland events did not start.");
 
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         Thread.Sleep(750);
         if (process.HasExited)
-            throw new InvalidOperationException($"winlandctl events exited {process.ExitCode}. {log._error}");
+            throw new InvalidOperationException($"winland events exited {process.ExitCode}. {log._error}");
 
         return log;
     }

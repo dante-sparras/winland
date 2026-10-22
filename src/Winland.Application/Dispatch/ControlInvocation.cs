@@ -6,27 +6,27 @@ public static class ControlInvocation
 {
     public const string Usage =
         """
-        usage: winlandctl [-j] [-r] [-a] dispatch <name> [args]
-               winlandctl [-j] [-r] [-a] clients
-               winlandctl [-j] [-r] [-a] workspaces
-               winlandctl [-j] [-r] [-a] workspacerules
-               winlandctl [-j] [-r] [-a] monitors [all]
-               winlandctl [-j] [-r] [-a] activeworkspace
-               winlandctl [-j] [-r] [-a] activewindow
-               winlandctl [-j] [-r] [-a] reload
-               winlandctl events
-               winlandctl [-j] [-r] [-a] binds
-               winlandctl [-j] [-r] [-a] version
-               winlandctl [-j] [-r] [-a] cursorpos
-               winlandctl [-j] [-r] [-a] configerrors
-               winlandctl [-j] [-r] [-a] getoption <name>
-               winlandctl [-j] [-r] [-a] locked
-               winlandctl [-j] [-r] [-a] layouts
-               winlandctl [-j] [-r] [-a] kill
-               winlandctl [-j] [-r] [-a] keyword <name> <value>
-               winlandctl [-j] [-r] [-a] getprop <window> <property>
-               winlandctl [-j] [-r] [-a] setprop <window> <property> <value>
-               winlandctl [-j] [-r] [-a] --batch <commands>
+               winland [-j] [-r] [-a] dispatch <name> [args]
+               winland [-j] [-r] [-a] clients
+               winland [-j] [-r] [-a] workspaces
+               winland [-j] [-r] [-a] workspacerules
+               winland [-j] [-r] [-a] monitors [all]
+               winland [-j] [-r] [-a] activeworkspace
+               winland [-j] [-r] [-a] activewindow
+               winland [-j] [-r] [-a] reload
+               winland events
+               winland [-j] [-r] [-a] binds
+               winland [-j] [-r] [-a] version
+               winland [-j] [-r] [-a] cursorpos
+               winland [-j] [-r] [-a] configerrors
+               winland [-j] [-r] [-a] getoption <name>
+               winland [-j] [-r] [-a] locked
+               winland [-j] [-r] [-a] layouts
+               winland [-j] [-r] [-a] kill
+               winland [-j] [-r] [-a] keyword <name> <value>
+               winland [-j] [-r] [-a] getprop <window> <property>
+               winland [-j] [-r] [-a] setprop <window> <property> <value>
+               winland [-j] [-r] [-a] --batch <commands>
 
         """;
 

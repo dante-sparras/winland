@@ -12,8 +12,7 @@ Each project references only the layers above it in this list. A test in each la
 | `src/Winland.Application` | `WindowManager`, the command protocol and the event stream. `Ports/` holds what an outer layer implements. |
 | `src/Winland.Infrastructure` | Win32: hooks, window placement, monitors, the tray, the IPC pipe server. |
 | `src/Winland.Install` | Install, update and release files. |
-| `src/Winland.Daemon` | `winland.exe`: reads the config and wires the rest together in `Program.cs`. |
-| `src/Winland.Ctl` | `winlandctl.exe`: sends one command down the pipe. |
+| `src/Winland.Daemon` | `winland.exe`: reads the config and wires the rest together in `Program.cs`. `ControlCommand` sends one command down the pipe. |
 
 ## How an input flows
 

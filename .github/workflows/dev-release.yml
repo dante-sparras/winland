@@ -136,15 +136,11 @@ jobs:
           # -p:Version omits +metadata. The SDK appends +<SourceRevisionId> for BuildStamp's commit.
           # version.json records the full dev version, including the short sha, and the full commit.
           $daemon = Join-Path $env:RUNNER_TEMP 'pub-daemon'
-          $ctl = Join-Path $env:RUNNER_TEMP 'pub-ctl'
           $stage = Join-Path $env:RUNNER_TEMP 'stage'
           dotnet publish (Join-Path $env:GITHUB_WORKSPACE 'src\Winland.Daemon\Winland.Daemon.csproj') -c Release -r win-x64 --self-contained true "-p:Version=$nuget" "-p:SourceRevisionId=$sha" -p:ContinuousIntegrationBuild=true -o $daemon
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet publish (Join-Path $env:GITHUB_WORKSPACE 'src\Winland.Ctl\Winland.Ctl.csproj') -c Release -r win-x64 --self-contained true "-p:Version=$nuget" "-p:SourceRevisionId=$sha" -p:ContinuousIntegrationBuild=true -o $ctl
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          New-Item -ItemType Directory -Force -Path (Join-Path $stage 'winland'), (Join-Path $stage 'winlandctl') | Out-Null
+          New-Item -ItemType Directory -Force -Path (Join-Path $stage 'winland') | Out-Null
           Copy-Item (Join-Path $daemon '*') (Join-Path $stage 'winland') -Recurse
-          Copy-Item (Join-Path $ctl '*') (Join-Path $stage 'winlandctl') -Recurse
           $date = [DateTimeOffset]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssK')
           $json = '{"commit":"' + $sha + '","date":"' + $date + '","version":"' + $display + '"}' + "`n"
           $jsonPath = Join-Path $env:RUNNER_TEMP 'version.json'

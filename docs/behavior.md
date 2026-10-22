@@ -255,7 +255,9 @@ The `monitors` reply reports what Windows reports: the size, position, scale and
 
 ## Dispatchers
 
-`winlandctl` reads an argument that starts with `-` as a flag unless it is a number. A number may have a fraction and one trailing comma, so `winlandctl dispatch splitratio -0.1` and `winlandctl dispatch moveactive -50, 0` pass their numbers to the dispatcher.
+A command for the running Winland, such as `winland dispatch` or `winland clients`, goes down the pipe and never asks for UAC or starts Winland. An argument `winland` does not know prints the usage and asks for no approval either.
+
+`winland` reads an argument that starts with `-` as a flag unless it is a number. A number may have a fraction and one trailing comma, so `winland dispatch splitratio -0.1` and `winland dispatch moveactive -50, 0` pass their numbers to the dispatcher.
 
 In dwindle, `layoutmsg splitratio` changes the split of the focused Client's parent, by a delta or with `exact` to a value, clamped from 0.1 to 1.9. It answers `error: splitratio requires an arg` without a ratio, `error: cannot alter split ratio on no / single node` for a Client with no sibling, and `error: bad layoutmsg 'splitratio'` for a ratio that does not parse, in that order.
 
@@ -421,9 +423,9 @@ An event that names a Workspace also names its Monitor, in the field just after 
 
 `kill` waits for a click: the next press of any mouse button ends the program of the Client under the pointer, emits `kill>>ADDRESS`, and goes to neither window, nor does its release. Escape gives up instead and goes no further. A click on no Client ends nothing. Either way the wait is over. The pointer keeps its shape while it waits.
 
-A config that is read or reloaded with warnings shows one notification: `Winland: N config errors`, then the first warning with its file and line. A later load replaces that notification, including a reload of the same errors. A load with none shows nothing and takes the previous notification away. `winlandctl configerrors` and the event stream list every warning. Clicking the notification opens the file the first warning names, in the program Windows opens that type with, or in Notepad when the type has none.
+A config that is read or reloaded with warnings shows one notification: `Winland: N config errors`, then the first warning with its file and line. A later load replaces that notification, including a reload of the same errors. A load with none shows nothing and takes the previous notification away. `winland configerrors` and the event stream list every warning. Clicking the notification opens the file the first warning names, in the program Windows opens that type with, or in Notepad when the type has none.
 
-A batch, `[[BATCH]]` or `winlandctl --batch`, splits: at every `;`, brackets or not, and each command is trimmed. `\;` puts a `;` in a command and `\\` a backslash, and a backslash before anything else stays as it is. So a Windows display name in a batch is written `\\\\.\\DISPLAY1`, and a rule block with more than one rule `[float\; tile]`. The replies are joined by two empty lines, and a command left empty, as after a last `;`, replies as an unknown command does. With `-j`, `winlandctl` puts `j/` before each command the batch splits into.
+A batch, `[[BATCH]]` or `winland --batch`, splits: at every `;`, brackets or not, and each command is trimmed. `\;` puts a `;` in a command and `\\` a backslash, and a backslash before anything else stays as it is. So a Windows display name in a batch is written `\\\\.\\DISPLAY1`, and a rule block with more than one rule `[float\; tile]`. The replies are joined by two empty lines, and a command left empty, as after a last `;`, replies as an unknown command does. With `-j`, `winland` puts `j/` before each command the batch splits into.
 
 With no window, `clients` replies `no open windows` and `activewindow` replies `Invalid`. With `j/` they reply `[]` and `{}`.
 
@@ -443,7 +445,7 @@ Winland shows an icon in the notification area with the number of the Workspace 
 
 The icon also carries that notification as a balloon. `general:tray_icon` false adds an icon only for the balloon and removes it once the balloon is dismissed or clicked. A click on the balloon opens the file, as Edit config does.
 
-A click or a right-click on the icon opens its menu: Reload, Edit config, Open log and Quit. Reload reads the config again, as `winlandctl reload` does. Edit config opens the config Winland is reading in the program Windows opens that file's type with, or in Notepad when the type has none. For `winland.conf` that program is the editor for `.conf`. Open log opens `winland.log` beside the state file the same way. Quit runs `exit`, which stops Winland and puts its windows back.
+A click or a right-click on the icon opens its menu: Reload, Edit config, Open log and Quit. Reload reads the config again, as `winland reload` does. Edit config opens the config Winland is reading in the program Windows opens that file's type with, or in Notepad when the type has none. For `winland.conf` that program is the editor for `.conf`. Open log opens `winland.log` beside the state file the same way. Quit runs `exit`, which stops Winland and puts its windows back.
 
 The icon comes back when Explorer starts again. Winland runs elevated and Explorer does not, so the icon's callback and the `TaskbarCreated` message are let through the window's message filter. Without that, Windows drops them and the icon never answers a click or a restart of Explorer.
 
@@ -451,7 +453,7 @@ The icon comes back when Explorer starts again. Winland runs elevated and Explor
 
 One Daemon runs per session. A second `winland` started in the same session prints "Winland is already running in this session." and exits with code 1. A Daemon started with a different `WINLAND_PIPE` counts as a separate instance.
 
-`winland install` asks for one UAC approval, stops a running Winland, and copies `winland` and `winlandctl` from the folder it was run from into `C:\Program Files\Winland` (ADR 0006). A release zip has those two folders beside each other; a folder that already holds both executables is copied as it is. The logon task starts `C:\Program Files\Winland\winland.exe` at logon with the highest privileges, and never the folder install was run from. That folder is added to the machine `PATH`, so a new terminal can run `winlandctl`. A shortcut in the common Start menu carries Winland's AppUserModelID, `Winland.Winland`, and Settings › Apps lists Winland. Its uninstall runs `winland uninstall`. Winland then starts. An elevated install also removes a per-user install, so logon starts only one.
+`winland install` asks for one UAC approval, stops a running Winland, and copies the folder `winland` was run from into `C:\Program Files\Winland` (ADR 0006). In a release zip that folder is `winland\`. The logon task starts `C:\Program Files\Winland\winland.exe` at logon with the highest privileges, and never the folder install was run from. That folder is added to the machine `PATH`, so a new terminal can run `winland`. A shortcut in the common Start menu carries Winland's AppUserModelID, `Winland.Winland`, and Settings › Apps lists Winland. Its uninstall runs `winland uninstall`. Winland then starts. An elevated install also removes a per-user install, so logon starts only one.
 
 `winland install --user` asks for no approval. It copies into `%LOCALAPPDATA%\Programs\Winland`, adds that folder to the user `PATH`, and starts Winland at logon from the user's Run key as `"<that folder>\winland.exe" --no-elevate`. The Start menu shortcut and the Settings › Apps entry are per-user, and the shortcut starts Winland with `--no-elevate`. A Winland whose executable is in that folder never relaunches itself through UAC. It leaves an elevated install in place, because removing that needs an administrator.
 
@@ -465,7 +467,7 @@ On stable, Winland reads `version.json` from that published release. When its ve
 
 `winland tweaks --off` turns Snap windows off with `SystemParametersInfo` (`SPI_SETWINARRANGING` and `SPIF_UPDATEINIFILE | SPIF_SENDCHANGE`). `--touchpad` also sets `ThreeFingerSlideEnabled` and `FourFingerSlideEnabled` to 0 under `HKCU\Software\Microsoft\Windows\CurrentVersion\PrecisionTouchPad`. 0 means those swipes do nothing. A value that was absent is recorded as absent, and uninstall removes it again rather than writing a guessed number. Winland writes no Windows setting while it is running. These two commands are the exception, and only after the install script has asked.
 
-Saving the config or a file it sources reloads it. `misc:disable_autoreload` defaults to false, and true leaves a saved config unread until `winlandctl reload`. Setting it back to false, with `keyword` or that reload, makes saving reload again.
+Saving the config or a file it sources reloads it. `misc:disable_autoreload` defaults to false, and true leaves a saved config unread until `winland reload`. Setting it back to false, with `keyword` or that reload, makes saving reload again.
 
 On log off and shut down, Winland shows its hidden Clients and puts back what it changed only once Windows says the session is ending, not when it first asks. A shutdown that another program cancels leaves Winland running as it was. Closing Winland's console does the same cleanup on the Daemon's message loop. Windows ends the process five seconds after the console closes. A loop that does not take the cleanup within three seconds has it run on the closing thread instead, and a cleanup the loop has started is waited for until four and a half seconds have passed. Once the cleanup has put a frame, an effect, an alpha or a border back, a command or a key that is still being handled does not change it again before the process ends.
 

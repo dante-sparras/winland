@@ -16,19 +16,17 @@ public sealed class ReleasePackageTests : IDisposable
     }
 
     [Fact]
-    public void ExtractReturnsTheDaemonBesideWinlandctl()
+    public void ExtractReturnsWinlandExe()
     {
         var archive = Zip(
             ("winland/winland.exe", "daemon"),
             ("winland/winland.dll", "lib"),
-            ("winlandctl/winlandctl.exe", "control"),
             ("version.json", "{\"version\":\"0.2.0\"}"));
 
         var executable = package.Extract(archive, Path.Combine(root, "stage"));
 
         Assert.Equal(Path.Combine(root, "stage", "winland", "winland.exe"), executable);
         Assert.Equal("daemon", File.ReadAllText(executable));
-        Assert.Equal("control", File.ReadAllText(Path.Combine(root, "stage", "winlandctl", "winlandctl.exe")));
     }
 
     [Fact]
@@ -47,7 +45,7 @@ public sealed class ReleasePackageTests : IDisposable
     [Fact]
     public void ExtractRefusesAZipWithNoDaemon()
     {
-        var archive = Zip(("winlandctl/winlandctl.exe", "control"));
+        var archive = Zip(("winland/winland.dll", "lib"));
 
         var error = Assert.Throws<InvalidOperationException>(() => package.Extract(archive, Path.Combine(root, "stage")));
 

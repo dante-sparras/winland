@@ -28,15 +28,12 @@ public class AppInstallTests
         install = new AppInstall(Layout(), tasks, files, registry, shortcuts, session);
         files.Seed(Source, [1]);
         files.Seed(@"C:\Users\me\Downloads\Winland\winland\winland.dll", [2]);
-        files.Seed(@"C:\Users\me\Downloads\Winland\winlandctl\winlandctl.exe", [3]);
-        files.Seed(@"C:\Users\me\Downloads\Winland\winlandctl\winlandctl.dll", [4]);
         files.Seed(@"C:\Users\me\Downloads\Winland\winland\Winland.Domain.dll", [5]);
-        files.Seed(@"C:\Users\me\Downloads\Winland\winlandctl\Winland.Domain.dll", [5]);
         files.Seed(Path.Combine(Config, "winland.conf"), [9]);
     }
 
     [Fact]
-    public void MachineInstallCopiesBothProgramsAndPointsTheTaskAtProgramFiles()
+    public void MachineInstallCopiesTheFolderAndPointsTheTaskAtProgramFiles()
     {
         files.Seed(Path.Combine(User, "winland.exe"), [8]);
         registry.SetString(RegistryRoot.User, InstallLocations.RunKey, InstallLocations.RunValue, "old", expandable: false);
@@ -45,8 +42,6 @@ public class AppInstallTests
 
         Assert.Equal([1], files.Read(Path.Combine(Machine, "winland.exe")));
         Assert.Equal([2], files.Read(Path.Combine(Machine, "winland.dll")));
-        Assert.Equal([3], files.Read(Path.Combine(Machine, "winlandctl.exe")));
-        Assert.Equal([4], files.Read(Path.Combine(Machine, "winlandctl.dll")));
         Assert.Equal([5], files.Read(Path.Combine(Machine, "Winland.Domain.dll")));
         Assert.Equal([1], files.Read(Source));
 
@@ -100,7 +95,6 @@ public class AppInstallTests
         install.InstallForUser(Source, "0.1.0");
 
         Assert.Equal([1], files.Read(Path.Combine(User, "winland.exe")));
-        Assert.Equal([3], files.Read(Path.Combine(User, "winlandctl.exe")));
         Assert.False(tasks.Contains("Winland"));
         Assert.Empty(tasks.Operations);
         Assert.Equal(
@@ -135,44 +129,15 @@ public class AppInstallTests
     }
 
     [Fact]
-    public void DifferentCopiesOfTheSameFileAreRefused()
+    public void AFolderWithoutWinlandIsRefused()
     {
-        files.Seed(@"C:\Users\me\Downloads\Winland\winlandctl\Winland.Domain.dll", [6]);
-
-        var error = Assert.Throws<InvalidOperationException>(() => install.InstallForUser(Source, "0.1.0"));
-
-        Assert.Contains("Winland.Domain.dll", error.Message, StringComparison.Ordinal);
-        Assert.Contains("differ", error.Message, StringComparison.Ordinal);
-        Assert.Empty(session.Operations);
-    }
-
-    [Fact]
-    public void MissingWinlandctlIsRefused()
-    {
-        var tree = new MemoryFileTree();
-        tree.Seed(Source, [1]);
         var session = new MemorySession();
-        var install = new AppInstall(Layout(), new MemoryTaskCatalog(), tree, new MemoryRegistry(), new MemoryStartMenu(), session);
+        var install = new AppInstall(Layout(), new MemoryTaskCatalog(), new MemoryFileTree(), new MemoryRegistry(), new MemoryStartMenu(), session);
 
         var error = Assert.Throws<InvalidOperationException>(() => install.InstallMachine(Source, @"DESKTOP\dante", "0.1.0"));
 
-        Assert.Contains("winlandctl", error.Message, StringComparison.Ordinal);
+        Assert.Contains("winland.exe", error.Message, StringComparison.Ordinal);
         Assert.Empty(session.Operations);
-    }
-
-    [Fact]
-    public void AFolderThatAlreadyHoldsBothExecutablesIsCopiedOnce()
-    {
-        var tree = new MemoryFileTree();
-        var flat = @"C:\Users\me\Downloads\flat";
-        tree.Seed(Path.Combine(flat, "winland.exe"), [1]);
-        tree.Seed(Path.Combine(flat, "winlandctl.exe"), [3]);
-        var install = new AppInstall(Layout(), tasks, tree, registry, shortcuts, session);
-
-        install.InstallForUser(Path.Combine(flat, "winland.exe"), "0.1.0");
-
-        Assert.Equal([1], tree.Read(Path.Combine(User, "winland.exe")));
-        Assert.Equal([3], tree.Read(Path.Combine(User, "winlandctl.exe")));
     }
 
     [Fact]
@@ -180,7 +145,6 @@ public class AppInstallTests
     {
         files.Seed(Path.Combine(Machine, "winland.exe"), [8]);
         files.Seed(Path.Combine(User, "winland.exe"), [7]);
-        files.Seed(Path.Combine(User, "winlandctl.exe"), [6]);
         tasks.Seed(LogonTaskDefinition.Build(Path.Combine(Machine, "winland.exe"), @"DESKTOP\dante"));
         registry.SetString(RegistryRoot.Machine, InstallLocations.MachinePathKey, InstallLocations.PathValue, Machine, expandable: true);
         registry.SetString(RegistryRoot.Machine, InstallLocations.UninstallKey, "DisplayVersion", "0.1.0", expandable: false);
@@ -189,7 +153,6 @@ public class AppInstallTests
 
         Assert.Equal([1], files.Read(Path.Combine(Machine, "winland.exe")));
         Assert.Equal([2], files.Read(Path.Combine(Machine, "winland.dll")));
-        Assert.Equal([3], files.Read(Path.Combine(Machine, "winlandctl.exe")));
         Assert.Equal([7], files.Read(Path.Combine(User, "winland.exe")));
         Assert.Equal([9], files.Read(Path.Combine(Config, "winland.conf")));
         Assert.Equal(["stop", "start"], session.Operations);
@@ -207,7 +170,6 @@ public class AppInstallTests
         install.ReplaceInstalled(Source, User, perUser: true, "0.2.0");
 
         Assert.Equal([1], files.Read(Path.Combine(User, "winland.exe")));
-        Assert.Equal([3], files.Read(Path.Combine(User, "winlandctl.exe")));
         Assert.Equal(["--no-elevate"], session.StartedArguments);
         Assert.Equal("0.2.0", Text(RegistryRoot.User, "DisplayVersion"));
         Assert.Null(registry.GetString(RegistryRoot.Machine, InstallLocations.UninstallKey, "DisplayVersion"));
@@ -216,16 +178,14 @@ public class AppInstallTests
     }
 
     [Fact]
-    public void ReplaceInstalledRefusesAMissingControlBeforeStopping()
+    public void ReplaceInstalledRefusesAFolderWithoutWinlandBeforeStopping()
     {
-        var tree = new MemoryFileTree();
-        tree.Seed(Source, [1]);
         var waited = new MemorySession();
-        var replacing = new AppInstall(Layout(), new MemoryTaskCatalog(), tree, new MemoryRegistry(), new MemoryStartMenu(), waited);
+        var replacing = new AppInstall(Layout(), new MemoryTaskCatalog(), new MemoryFileTree(), new MemoryRegistry(), new MemoryStartMenu(), waited);
 
         var error = Assert.Throws<InvalidOperationException>(() => replacing.ReplaceInstalled(Source, Machine, perUser: false, "0.2.0"));
 
-        Assert.Contains("winlandctl", error.Message, StringComparison.Ordinal);
+        Assert.Contains("winland.exe", error.Message, StringComparison.Ordinal);
         Assert.Empty(waited.Operations);
     }
 
@@ -316,7 +276,6 @@ public class AppInstallTests
             User + @"\;C:\Tools",
             expandable: true);
         files.Seed(Path.Combine(User, "winland.exe"), [1]);
-        files.Seed(Path.Combine(User, "winlandctl.exe"), [3]);
 
         install.Uninstall(purge: false, machine: false);
 

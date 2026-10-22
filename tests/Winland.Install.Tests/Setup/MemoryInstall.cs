@@ -40,9 +40,6 @@ sealed class MemoryFileTree : IFileTree
             .ToList();
     }
 
-    public bool SameContent(string left, string right) =>
-        files[Full(left)].AsSpan().SequenceEqual(files[Full(right)]);
-
     public void PrepareDirectory(string directory)
     {
         var full = Full(directory);
