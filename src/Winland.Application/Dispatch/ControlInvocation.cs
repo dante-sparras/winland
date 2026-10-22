@@ -1,43 +1,24 @@
-using System.Text;
-
 namespace Winland.Application;
 
+/// <summary>Turns <c>winland</c>'s arguments into the line it sends down the pipe.</summary>
 public static class ControlInvocation
 {
-    public const string Usage =
-        """
-               winland [-j] [-r] [-a] dispatch <name> [args]
-               winland [-j] [-r] [-a] clients
-               winland [-j] [-r] [-a] workspaces
-               winland [-j] [-r] [-a] workspacerules
-               winland [-j] [-r] [-a] monitors [all]
-               winland [-j] [-r] [-a] activeworkspace
-               winland [-j] [-r] [-a] activewindow
-               winland [-j] [-r] [-a] reload
-               winland events
-               winland [-j] [-r] [-a] binds
-               winland [-j] [-r] [-a] version
-               winland [-j] [-r] [-a] cursorpos
-               winland [-j] [-r] [-a] configerrors
-               winland [-j] [-r] [-a] getoption <name>
-               winland [-j] [-r] [-a] locked
-               winland [-j] [-r] [-a] layouts
-               winland [-j] [-r] [-a] kill
-               winland [-j] [-r] [-a] keyword <name> <value>
-               winland [-j] [-r] [-a] getprop <window> <property>
-               winland [-j] [-r] [-a] setprop <window> <property> <value>
-               winland [-j] [-r] [-a] --batch <commands>
+    // The verbs come from CommandProtocol, so a verb the pipe answers is one winland takes.
+    public static string Usage { get; } =
+        string.Concat(CommandProtocol.VerbForms.Select(form => "       winland " + (form == "events" ? "" : "[-j] [-r] [-a] ") + form + "\n"))
+        + "       winland [-j] [-r] [-a] --batch <commands>\n";
 
-        """;
-
+    /// <summary>
+    /// The line for <paramref name="args"/>: flags such as <c>-j</c> become <c>j/</c>, and the rest is joined with
+    /// spaces. False when the line is not a request the pipe answers. <paramref name="events"/> is true for
+    /// <c>events</c>, which follows the Event stream.
+    /// </summary>
     public static bool TryCreate(string[] args, out string line, out bool events)
     {
         ArgumentNullException.ThrowIfNull(args);
         line = "";
         events = false;
-        var json = false;
-        var relayout = false;
-        var all = false;
+        var flags = "";
         string? batch = null;
         var rest = new List<string>();
         for (var i = 0; i < args.Length; i++)
@@ -45,161 +26,46 @@ public static class ControlInvocation
             var arg = args[i];
             if (arg == "--")
             {
-                for (var j = i + 1; j < args.Length; j++)
-                    rest.Add(args[j]);
+                rest.AddRange(args.Skip(i + 1));
                 break;
             }
 
-            if (arg.StartsWith('-') && !IsNumber(arg))
+            if (!arg.StartsWith('-') || IsNumber(arg))
             {
-                if (arg == "-j")
-                {
-                    json = true;
-                    continue;
-                }
-
-                if (arg == "-r")
-                {
-                    relayout = true;
-                    continue;
-                }
-
-                if (arg == "-a")
-                {
-                    all = true;
-                    continue;
-                }
-
-                if (arg == "--batch")
-                {
-                    if (batch is not null || i + 1 >= args.Length)
-                        return false;
-
-                    batch = args[++i];
-                    continue;
-                }
-
-                return false;
+                rest.Add(arg);
+                continue;
             }
 
-            rest.Add(arg);
+            if (arg is "-j" or "-r" or "-a")
+            {
+                if (!flags.Contains(arg[1], StringComparison.Ordinal))
+                    flags += arg[1];
+
+                continue;
+            }
+
+            if (arg != "--batch" || batch is not null || i + 1 >= args.Length)
+                return false;
+
+            batch = args[++i];
         }
 
-        var flags = "";
-        if (json)
-            flags += "j";
-        if (relayout)
-            flags += "r";
-        if (all)
-            flags += "a";
-
+        var prefix = flags.Length == 0 ? "" : flags + "/";
         if (batch is not null)
         {
             if (rest.Count > 0)
                 return false;
 
-            line = "[[BATCH]]" + (flags.Length == 0 ? batch : Inject(batch, flags));
+            line = prefix + "[[BATCH]]" + batch;
             return true;
         }
 
-        if (rest.Count == 0)
+        if (rest.Count == 0 || CommandProtocol.Parse(prefix + string.Join(' ', rest)) is not CommandParsed parsed)
             return false;
 
-        if (rest[0].Equals("events", StringComparison.OrdinalIgnoreCase) && rest.Count == 1)
-        {
-            events = true;
-            line = "events";
-            return true;
-        }
-
-        var body = Body(rest);
-        if (body is null)
-            return false;
-
-        line = flags.Length == 0 ? body : flags + "/" + body;
+        line = prefix + string.Join(' ', rest);
+        events = parsed.Request is EventsRequest;
         return true;
-    }
-
-    private static string? Body(List<string> args)
-    {
-        if (args[0].Equals("dispatch", StringComparison.OrdinalIgnoreCase))
-        {
-            if (args.Count < 2)
-                return null;
-
-            return "dispatch " + string.Join(' ', args.Skip(1));
-        }
-
-        if (args[0].Equals("monitors", StringComparison.OrdinalIgnoreCase))
-        {
-            if (args.Count == 1)
-                return "monitors";
-
-            if (args.Count == 2 && args[1].Equals("all", StringComparison.OrdinalIgnoreCase))
-                return "monitors all";
-
-            return null;
-        }
-
-        if (TakesArguments(args[0]))
-            return args[0].ToLowerInvariant() + (args.Count == 1 ? "" : " " + string.Join(' ', args.Skip(1)));
-
-        if (args.Count != 1 || !IsBare(args[0]))
-            return null;
-
-        return args[0].ToLowerInvariant();
-    }
-
-    private static bool TakesArguments(string verb) =>
-        verb.Equals("getoption", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("keyword", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("getprop", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("setprop", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsBare(string verb) =>
-        verb.Equals("clients", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("workspaces", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("workspacerules", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("activeworkspace", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("activewindow", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("reload", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("binds", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("version", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("cursorpos", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("configerrors", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("locked", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("layouts", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("submap", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("animations", StringComparison.OrdinalIgnoreCase)
-        || verb.Equals("kill", StringComparison.OrdinalIgnoreCase);
-
-    private static string Inject(string payload, string flags)
-    {
-        var prefix = flags + "/";
-        var result = new StringBuilder(prefix);
-
-        // The flags go before each command the batch splits into, so an escaped \; or \\ is passed over as the split
-        // passes it over.
-        for (var i = 0; i < payload.Length; i++)
-        {
-            var ch = payload[i];
-            result.Append(ch);
-            if (ch == '\\' && i + 1 < payload.Length && payload[i + 1] is '\\' or ';')
-            {
-                result.Append(payload[++i]);
-                continue;
-            }
-
-            if (ch != ';')
-                continue;
-
-            while (i + 1 < payload.Length && char.IsWhiteSpace(payload[i + 1]))
-                i++;
-
-            result.Append(prefix);
-        }
-
-        return result.ToString();
     }
 
     // A negative number is an argument, not a flag: "-20", "-0.1", and "-50," as the
