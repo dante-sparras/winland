@@ -1,5 +1,3 @@
-using static Winland.Domain.OrdinalText;
-
 namespace Winland.Application;
 
 /// <summary>A window's life as a Client: it appears, changes title or class, minimizes, restores and closes.</summary>

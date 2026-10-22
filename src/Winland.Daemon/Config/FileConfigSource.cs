@@ -1,4 +1,3 @@
-
 namespace Winland.Daemon;
 
 sealed class FileConfigSource(string directory) : IConfigSource

@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using Winland.Install;
 
 namespace Winland.Install.Tests;
 

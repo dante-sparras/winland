@@ -1,5 +1,3 @@
-using Winland.Install;
-
 namespace Winland.Install.Tests;
 
 public sealed class FileSettingsTextTests : IDisposable

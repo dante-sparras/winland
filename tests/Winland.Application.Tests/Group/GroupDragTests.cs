@@ -1,4 +1,3 @@
-
 namespace Winland.Application.Tests;
 
 /// <summary>A window dragged onto a Group joins it, as <c>group:drag_into_group</c> and its options decide.</summary>

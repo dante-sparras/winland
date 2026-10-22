@@ -1,4 +1,3 @@
-
 namespace Winland.Infrastructure;
 
 public interface IClock

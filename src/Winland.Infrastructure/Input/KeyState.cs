@@ -1,4 +1,3 @@
-
 namespace Winland.Infrastructure;
 
 /// <summary>Whether the user holds a key, named as a config names it or by its XKB keycode, as the keyboard hook saw.</summary>

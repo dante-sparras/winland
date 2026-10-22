@@ -1,4 +1,3 @@
-
 namespace Winland.Domain.Tests;
 
 public class PointerRotationTests

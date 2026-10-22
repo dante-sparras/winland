@@ -1,4 +1,3 @@
-
 namespace Winland.Application.Tests;
 
 // The OS keeps a key logically down until it sees that key's release. A release is

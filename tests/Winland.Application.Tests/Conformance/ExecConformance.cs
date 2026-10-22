@@ -1,4 +1,3 @@
-
 namespace Winland.Application.Tests.Conformance;
 
 /// <summary>Winland's exec case. A program the core starts is a Launch in its outcome.</summary>

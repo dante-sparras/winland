@@ -1,4 +1,3 @@
-
 namespace Winland.Infrastructure.Tests;
 
 /// <summary>Outcomes decided in one order and applied in another, as when a pipe thread and the main thread race.</summary>

@@ -1,4 +1,3 @@
-
 namespace Winland.Infrastructure.Tests;
 
 /// <summary>Start and Search are flyouts of the shell. Winland leaves them unmanaged so Super does not tile them.</summary>

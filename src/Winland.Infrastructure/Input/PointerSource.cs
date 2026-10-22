@@ -1,4 +1,3 @@
-
 namespace Winland.Infrastructure;
 
 /// <summary>What moved the pointer or pressed its button, as the low-level mouse hook sees it.</summary>

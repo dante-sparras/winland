@@ -1,4 +1,3 @@
-
 namespace Winland.Application.Tests;
 
 // The word elevated inside a rule block is an unknown window rule. The command still launches.

@@ -1,4 +1,3 @@
-
 namespace Winland.Application.Tests;
 
 /// <summary>A tiled Client resized by its own border changes its split, as a <c>resizewindow</c> drag does.</summary>

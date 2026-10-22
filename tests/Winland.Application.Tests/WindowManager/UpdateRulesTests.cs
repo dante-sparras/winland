@@ -1,4 +1,3 @@
-
 namespace Winland.Application.Tests;
 
 /// <summary>window.update_rules runs when a window's rules are read again, as Winland emits it.</summary>

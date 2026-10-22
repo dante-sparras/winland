@@ -1,4 +1,3 @@
-
 namespace Winland.Application.Tests;
 
 /// <summary>A workspace swipe moves the Workspaces with the fingers, and animates on from there when they lift.</summary>

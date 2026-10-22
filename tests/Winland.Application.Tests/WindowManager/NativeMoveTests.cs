@@ -1,4 +1,3 @@
-
 namespace Winland.Application.Tests;
 
 /// <summary>A Client moved by its own title bar is dragged like a <c>movewindow</c> drag: lifted, then dropped where the pointer ends.</summary>

@@ -1,4 +1,3 @@
-
 namespace Winland.Application.Tests;
 
 /// <summary>On a workspace with a maximized or fullscreen Client, that Client owns the pointer.</summary>
