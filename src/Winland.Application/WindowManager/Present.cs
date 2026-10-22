@@ -7,7 +7,7 @@ public sealed partial class WindowManager
     {
         var refit = MatchRulesAgain(out var tagsChanged);
         if (refit.Count > 0 || tagsChanged)
-            outcome = outcome with { Placements = Union(outcome.Placements, refit, outcome.State), State = Snapshot() };
+            outcome = outcome with { Placements = Outcome.Union(outcome.Placements, refit, outcome.State), State = Snapshot() };
 
         var restack = SyncFullscreenHiding();
         outcome = outcome with { State = WithHiding(outcome.State) };

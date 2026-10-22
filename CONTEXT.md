@@ -23,6 +23,10 @@ _Avoid_: Tiling mode, arrangement
 A numbered set of Clients on one Monitor that Winland shows or hides together. Each Monitor has its own Workspaces 1 to 10, so Workspace 3 means the third Workspace of the focused Monitor. Owned by Winland, not by Windows virtual desktops.
 _Avoid_: Virtual desktop, named workspace
 
+**Shown workspace**:
+The Workspace a Monitor shows now, and the Special workspace it shows over it, if any. Each Monitor has exactly one Shown workspace, and a Workspace is shown on at most one Monitor.
+_Avoid_: Active workspace, current workspace
+
 **Guest**:
 A Workspace shown on a Monitor other than its own, because its own Monitor was unplugged. It is numbered after that Monitor's own Workspaces, and returns under its old number when its Monitor comes back.
 
