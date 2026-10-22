@@ -2,29 +2,13 @@ namespace Winland.Domain;
 
 internal sealed partial class MasterLayout : IMouseDragHost, IDragOwner
 {
-    private static readonly (string Word, Side Side)[] Directions =
-    [
-        ("l", Side.Left),
-        ("left", Side.Left),
-        ("r", Side.Right),
-        ("right", Side.Right),
-        ("u", Side.Up),
-        ("up", Side.Up),
-        ("t", Side.Up),
-        ("top", Side.Up),
-        ("d", Side.Down),
-        ("down", Side.Down),
-        ("b", Side.Down),
-        ("bottom", Side.Down),
-    ];
-
     private readonly MouseDrag _drag = new();
 
     MouseDrag IDragOwner.Drag => _drag;
 
     public WindowId? MoveFocus(WindowId active, string arguments)
     {
-        if (!TryDirection(First(arguments), out var direction))
+        if (!Sides.TryParse(First(arguments), out var direction))
             return null;
         if (!TryBox(active, out var origin, out var floating))
             return null;
@@ -51,7 +35,7 @@ internal sealed partial class MasterLayout : IMouseDragHost, IDragOwner
 
     public IReadOnlyList<Placement> MoveWindow(WindowId window, string arguments)
     {
-        if (!TryDirection(First(arguments), out var direction))
+        if (!Sides.TryParse(First(arguments), out var direction))
             return [];
         if (Minimized(Id(window)))
             return [];
@@ -211,21 +195,6 @@ internal sealed partial class MasterLayout : IMouseDragHost, IDragOwner
     }
 
     private static bool Sticks(int edge, int other) => Math.Abs(edge - other) <= 1;
-
-    private static bool TryDirection(string text, out Side direction)
-    {
-        foreach (var (word, parsed) in Directions)
-        {
-            if (text.Equals(word, StringComparison.OrdinalIgnoreCase))
-            {
-                direction = parsed;
-                return true;
-            }
-        }
-
-        direction = Side.Left;
-        return false;
-    }
 
     private static string First(string arguments)
     {

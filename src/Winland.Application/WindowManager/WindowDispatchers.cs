@@ -157,7 +157,7 @@ public sealed partial class WindowManager
             return Rejected(name, "error: Can't swap fullscreen window");
 
         WindowId other;
-        if (IsDirection(text))
+        if (Sides.TryParse(text, out _))
         {
             if (home.Layout.Neighbor(current, text) is not WindowId neighbor || neighbor == current)
                 return Rejected(name, "error: No window to swap with in that direction");
@@ -346,10 +346,6 @@ public sealed partial class WindowManager
 
     private Outcome Rejected(string name, string error) =>
         View([], dispatcher: name) with { Error = error };
-
-    private static bool IsDirection(string text) =>
-        text is "l" or "r" or "u" or "d" or "t" or "b"
-            or "left" or "right" or "up" or "down" or "top" or "bottom";
 
     private static bool MonitorMatches(LiveMonitor screen, string token) =>
         screen.Effective.Name.Equals(token, StringComparison.OrdinalIgnoreCase)

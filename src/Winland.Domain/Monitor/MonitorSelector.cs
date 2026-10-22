@@ -8,37 +8,6 @@ namespace Winland.Domain;
 /// </summary>
 internal static class MonitorSelector
 {
-    private static readonly (string Word, MonitorDirection Direction)[] Words =
-    [
-        ("l", MonitorDirection.Left),
-        ("left", MonitorDirection.Left),
-        ("r", MonitorDirection.Right),
-        ("right", MonitorDirection.Right),
-        ("u", MonitorDirection.Up),
-        ("up", MonitorDirection.Up),
-        ("t", MonitorDirection.Up),
-        ("top", MonitorDirection.Up),
-        ("d", MonitorDirection.Down),
-        ("down", MonitorDirection.Down),
-        ("b", MonitorDirection.Down),
-        ("bottom", MonitorDirection.Down),
-    ];
-
-    public static bool TryDirection(string text, out MonitorDirection direction)
-    {
-        foreach (var (word, parsed) in Words)
-        {
-            if (text.Equals(word, StringComparison.OrdinalIgnoreCase))
-            {
-                direction = parsed;
-                return true;
-            }
-        }
-
-        direction = MonitorDirection.Left;
-        return false;
-    }
-
     public static MonitorTarget? Resolve(string? text, IReadOnlyList<MonitorTarget> monitors, MonitorTarget? current)
     {
         ArgumentNullException.ThrowIfNull(monitors);
@@ -49,7 +18,7 @@ internal static class MonitorSelector
         if (text.Equals("current", StringComparison.OrdinalIgnoreCase))
             return current;
 
-        if (TryDirection(text, out var direction))
+        if (Sides.TryParse(text, out var direction))
             return current is MonitorTarget origin ? InDirection(monitors, origin, direction) : null;
 
         if (text[0] is '+' or '-')
@@ -79,7 +48,7 @@ internal static class MonitorSelector
         return null;
     }
 
-    public static MonitorTarget? InDirection(IReadOnlyList<MonitorTarget> monitors, MonitorTarget origin, MonitorDirection direction)
+    public static MonitorTarget? InDirection(IReadOnlyList<MonitorTarget> monitors, MonitorTarget origin, Side direction)
     {
         ArgumentNullException.ThrowIfNull(monitors);
         var best = -1.0;
@@ -89,7 +58,7 @@ internal static class MonitorSelector
             if (monitor.Id == origin.Id || !Touches(origin, monitor, direction))
                 continue;
 
-            var length = direction is MonitorDirection.Left or MonitorDirection.Right
+            var length = direction is Side.Left or Side.Right
                 ? Shared(origin.Y, origin.Height, monitor.Y, monitor.Height)
                 : Shared(origin.X, origin.Width, monitor.X, monitor.Width);
             if (length <= best)
@@ -123,28 +92,28 @@ internal static class MonitorSelector
         return closest;
     }
 
-    public static Point Focal(Rectangle box, MonitorDirection direction) => direction switch
+    public static Point Focal(Rectangle box, Side direction) => direction switch
     {
-        MonitorDirection.Left => new Point(box.X - 1, box.Y + (box.Height / 2)),
-        MonitorDirection.Right => new Point(box.X + box.Width + 1, box.Y + (box.Height / 2)),
-        MonitorDirection.Up => new Point(box.X + (box.Width / 2), box.Y - 1),
-        MonitorDirection.Down => new Point(box.X + (box.Width / 2), box.Y + box.Height + 1),
+        Side.Left => new Point(box.X - 1, box.Y + (box.Height / 2)),
+        Side.Right => new Point(box.X + box.Width + 1, box.Y + (box.Height / 2)),
+        Side.Up => new Point(box.X + (box.Width / 2), box.Y - 1),
+        Side.Down => new Point(box.X + (box.Width / 2), box.Y + box.Height + 1),
         _ => new Point(box.X, box.Y),
     };
 
-    public static bool Overlaps(Rectangle origin, Rectangle other, MonitorDirection direction, out double overlap)
+    public static bool Overlaps(Rectangle origin, Rectangle other, Side direction, out double overlap)
     {
         var adjacent = direction switch
         {
-            MonitorDirection.Left => Adjacent(origin.X, origin.X + origin.Width, other.X, other.X + other.Width),
-            MonitorDirection.Right => Adjacent(other.X, other.X + other.Width, origin.X, origin.X + origin.Width),
-            MonitorDirection.Up => Adjacent(origin.Y, origin.Y + origin.Height, other.Y, other.Y + other.Height),
-            MonitorDirection.Down => Adjacent(other.Y, other.Y + other.Height, origin.Y, origin.Y + origin.Height),
+            Side.Left => Adjacent(origin.X, origin.X + origin.Width, other.X, other.X + other.Width),
+            Side.Right => Adjacent(other.X, other.X + other.Width, origin.X, origin.X + origin.Width),
+            Side.Up => Adjacent(origin.Y, origin.Y + origin.Height, other.Y, other.Y + other.Height),
+            Side.Down => Adjacent(other.Y, other.Y + other.Height, origin.Y, origin.Y + origin.Height),
             _ => false,
         };
 
         overlap = adjacent
-            ? direction is MonitorDirection.Left or MonitorDirection.Right
+            ? direction is Side.Left or Side.Right
                 ? Shared(origin.Y, origin.Height, other.Y, other.Height)
                 : Shared(origin.X, origin.Width, other.X, other.Width)
             : 0;
@@ -201,12 +170,12 @@ internal static class MonitorSelector
         return null;
     }
 
-    private static bool Touches(MonitorTarget origin, MonitorTarget monitor, MonitorDirection direction) => direction switch
+    private static bool Touches(MonitorTarget origin, MonitorTarget monitor, Side direction) => direction switch
     {
-        MonitorDirection.Left => Sticks(origin.X, monitor.X + monitor.Width),
-        MonitorDirection.Right => Sticks(origin.X + origin.Width, monitor.X),
-        MonitorDirection.Up => Sticks(origin.Y, monitor.Y + monitor.Height),
-        MonitorDirection.Down => Sticks(origin.Y + origin.Height, monitor.Y),
+        Side.Left => Sticks(origin.X, monitor.X + monitor.Width),
+        Side.Right => Sticks(origin.X + origin.Width, monitor.X),
+        Side.Up => Sticks(origin.Y, monitor.Y + monitor.Height),
+        Side.Down => Sticks(origin.Y + origin.Height, monitor.Y),
         _ => false,
     };
 
@@ -246,14 +215,6 @@ internal static class MonitorSelector
 
     private static double Shared(int start, int size, int otherStart, int otherSize) =>
         Math.Max(0, Math.Min(start + size, otherStart + otherSize) - Math.Max(start, otherStart));
-}
-
-internal enum MonitorDirection
-{
-    Left,
-    Right,
-    Up,
-    Down,
 }
 
 /// <summary>An enabled Monitor a dispatcher can address.</summary>

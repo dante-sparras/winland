@@ -219,7 +219,7 @@ public sealed partial class WindowManager
 
     private (WindowId Window, LiveWorkspace Desk)? NeighborAcross(LiveWorkspace desk, WindowId window, string direction)
     {
-        if (!_config.BindOptions.MonitorFallback || !MonitorSelector.TryDirection(direction, out var side)
+        if (!_config.BindOptions.MonitorFallback || !Sides.TryParse(direction, out var side)
             || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from
             || MonitorSelector.InDirection(Targets(), from, side) is not MonitorTarget neighbor
             || MonitorOf(neighbor) is not LiveMonitor screen || _workspaces.Shown.Shown(screen.Id) is not WorkspaceId shown
@@ -364,11 +364,11 @@ public sealed partial class WindowManager
         if (!_config.Groups.MoveFocusCyclesGroupFirst || desk.GroupOf(active) is not WindowGroup group)
             return null;
 
-        var word = arguments.Trim();
-        var left = word is "l" or "left";
-        var right = word is "r" or "right";
-        if (!left && !right)
+        if (!Sides.TryParse(arguments.Trim(), out var side) || side is not (Side.Left or Side.Right))
             return null;
+
+        var left = side == Side.Left;
+        var right = !left;
 
         var only = _monitors.Count <= 1 && desk.Layout.Neighbor(active, left ? "l" : "r") is null;
         if (left && (active != group.Members[0] || only))
