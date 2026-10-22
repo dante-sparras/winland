@@ -102,20 +102,15 @@ public sealed partial class WindowManager
     {
         var events = new List<StreamEvent>();
         AddWorkspaceEvents(events, before, after);
-        var previous = ByWindow(before);
-        var next = ByWindow(after);
-        var hiddenBefore = HiddenWindows(before);
-        var hiddenAfter = HiddenWindows(after);
+        var change = StateChange.Between(before, after);
+        var next = change.Is;
         var rulesRead = new HashSet<WindowId>();
-        foreach (var pair in previous)
-        {
-            if (!next.ContainsKey(pair.Key))
-                events.Add(new ClientClosed(pair.Key));
-        }
+        foreach (var window in change.Closed)
+            events.Add(new ClientClosed(window));
 
         foreach (var pair in next)
         {
-            if (!previous.TryGetValue(pair.Key, out var prior))
+            if (!change.Was.TryGetValue(pair.Key, out var prior))
             {
                 events.Add(new ClientOpened(pair.Key, pair.Value.Workspace, pair.Value.Class, pair.Value.Title));
                 if (pair.Value.Fullscreen != FullscreenMode.None)
@@ -144,7 +139,7 @@ public sealed partial class WindowManager
             if (prior.Fullscreen != pair.Value.Fullscreen)
                 events.Add(new FullscreenChanged(pair.Value.Fullscreen != FullscreenMode.None, pair.Key));
 
-            if (RulesAreRead(after, pair.Value) && RulesChanged(prior, pair.Value, before, after, hiddenBefore, hiddenAfter))
+            if (RulesAreRead(after, pair.Value) && RulesChanged(prior, pair.Value, before, after, change.HiddenBefore, change.HiddenAfter))
                 TellRules(events, rulesRead, pair.Key);
         }
 
@@ -330,7 +325,7 @@ public sealed partial class WindowManager
                 told.Add(updated.Window);
         }
 
-        var clients = ByWindow(state);
+        var clients = state.Clients.ToDictionary(client => client.Window);
         foreach (var window in modal)
         {
             if (clients.TryGetValue(window, out var client) && RulesAreRead(state, client))
@@ -338,7 +333,7 @@ public sealed partial class WindowManager
         }
     }
 
-    private static bool RulesChanged(Client prior, Client next, State before, State after, HashSet<WindowId> hiddenBefore, HashSet<WindowId> hiddenAfter)
+    private static bool RulesChanged(Client prior, Client next, State before, State after, IReadOnlySet<WindowId> hiddenBefore, IReadOnlySet<WindowId> hiddenAfter)
     {
         if (prior.Class != next.Class
             || prior.Title != next.Title
@@ -411,16 +406,8 @@ public sealed partial class WindowManager
         return true;
     }
 
-    private static HashSet<WindowId> HiddenWindows(State state)
-    {
-        var hidden = new HashSet<WindowId>(state.Hidden.Count);
-        foreach (var client in state.Hidden)
-            hidden.Add(client.Window);
-        return hidden;
-    }
-
     // The shown member is the one group member that is not hidden. None, when the whole workspace is hidden.
-    private static WindowId? ShownMember(IReadOnlyList<WindowId>? members, HashSet<WindowId> hidden)
+    private static WindowId? ShownMember(IReadOnlyList<WindowId>? members, IReadOnlySet<WindowId> hidden)
     {
         if (members is null)
             return null;
@@ -438,15 +425,6 @@ public sealed partial class WindowManager
         }
 
         return shown;
-    }
-
-    private static Dictionary<WindowId, Client> ByWindow(State state)
-    {
-        var map = new Dictionary<WindowId, Client>(state.Clients.Count);
-        foreach (var client in state.Clients)
-            map[client.Window] = client;
-
-        return map;
     }
 
     // The reason of the focus this input left, as Winland reports the last reason for that window.
