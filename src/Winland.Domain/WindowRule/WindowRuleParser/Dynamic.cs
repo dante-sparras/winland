@@ -109,16 +109,6 @@ internal static partial class WindowRuleParser
     internal static bool ReadsState(WindowRule rule) =>
         rule.Dynamic is { Count: > 0 } || rule.Effect == WindowRuleEffect.Tag;
 
-    /// <summary>True when the rule's effect is one Winland applies again while the window lives.</summary>
-    internal static bool IsDynamicEffect(WindowRule rule) => rule.Effect is WindowRuleEffect.Prop
-        or WindowRuleEffect.NoFocus
-        or WindowRuleEffect.StayFocused
-        or WindowRuleEffect.MinSize
-        or WindowRuleEffect.MaxSize
-        or WindowRuleEffect.NoMaxSize
-        or WindowRuleEffect.Opacity
-        or WindowRuleEffect.Opaque;
-
     // The leading whole number of the text, as std::stoi reads it, or 0 when there is none.
     private static int LeadingInteger(string text)
     {
