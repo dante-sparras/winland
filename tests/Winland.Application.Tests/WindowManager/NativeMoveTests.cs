@@ -234,6 +234,20 @@ public class NativeMoveTests
         Assert.Null(moved.Dispatcher);
     }
 
+    [Fact]
+    public void ABorderPressDuringASystemMoveDoesNotStartAResize()
+    {
+        var core = Flat("general:resize_on_border = true\n");
+        Appear(core, 1);
+        core.Handle(new Dispatch("togglefloating"));
+        var bounds = Client(core.Handle(new Dispatch("no_op")), 1).Bounds;
+        core.Handle(new WindowMoveStarted(new WindowId(1), new Point(bounds.X + 10, bounds.Y + 10)));
+
+        var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(bounds.X + bounds.Width + 5, bounds.Y + 50) });
+
+        Assert.NotEqual("resizewindow", pressed.Dispatcher);
+    }
+
     private static WindowManager Flat(string extra)
     {
         var core = new WindowManager();

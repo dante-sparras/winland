@@ -9,11 +9,9 @@ namespace Winland.Application;
 /// </summary>
 public sealed partial class WindowManager
 {
-    private WindowId? _nativeSize;
-
     private Outcome BeginNativeSize(WindowSizeStarted started)
     {
-        if (_nativeSize is not null || _nativeMove is not null || _gesture is not null)
+        if (_interaction is not null)
             return View([]);
 
         var window = started.Window;
@@ -21,7 +19,7 @@ public sealed partial class WindowManager
             || desk.ClientOf(window) is not { Minimized: false } client)
             return View([]);
 
-        _nativeSize = window;
+        _interaction = new NativeSize(window, client.Floating);
         if (client.Floating)
             return BeginNativeFloating(desk, client);
         _ = desk.Layout.Drag(window, new PointerDrag(true, PointerDragPhase.Begin, started.Pointer));
@@ -30,11 +28,11 @@ public sealed partial class WindowManager
 
     private Outcome ContinueNativeSize(WindowSizing sizing)
     {
-        if (_nativeSize != sizing.Window)
+        if (_interaction is not NativeSize size || size.Window != sizing.Window)
             return View([]);
 
-        if (_nativeFloating)
-            return FollowNativeFloating(sizing.Window, sizing.Bounds, done: false) with { Live = true };
+        if (size.Floating)
+            return FollowNativeFloating(sizing.Window, sizing.Bounds) with { Live = true };
 
         var resized = LayoutWorkspace(sizing.Window).Layout.Drag(sizing.Window, new PointerDrag(true, PointerDragPhase.Move, sizing.Pointer));
         var self = new ClientId(sizing.Window.Value);
@@ -44,12 +42,12 @@ public sealed partial class WindowManager
 
     private Outcome EndNativeSize(WindowSizeEnded ended)
     {
-        if (_nativeSize != ended.Window)
+        if (_interaction is not NativeSize size || size.Window != ended.Window)
             return View([]);
 
-        _nativeSize = null;
-        if (_nativeFloating)
-            return EndNativeFloating(ended.Window, ended.Bounds);
+        _interaction = null;
+        if (size.Floating)
+            return FollowNativeFloating(ended.Window, ended.Bounds);
 
         var layout = LayoutWorkspace(ended.Window).Layout;
         var covering = layout.Visible();
@@ -59,5 +57,11 @@ public sealed partial class WindowManager
         // Whatever the border did to the window, it goes back to the rectangle the Layout holds for it. The end
         // can move the windows again (a scrolling tape recenters), so its placements win over the last step's.
         return View(released.Count > 0 ? released : resized.Count > 0 ? resized : covering);
+    }
+
+    /// <summary>The system resizes this window by its border. A floating one is only followed, a tiled one changes its split.</summary>
+    private sealed class NativeSize(WindowId window, bool floating) : PointerInteraction(window)
+    {
+        public bool Floating { get; } = floating;
     }
 }

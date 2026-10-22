@@ -202,7 +202,8 @@ public class DragConformance
     // The test plugin reads the drag controller: whether a drag holds a window, and whether it has picked it up.
     private static void ExpectDragState(Desk desk, bool active, bool reached)
     {
-        var gesture = typeof(WindowManager).GetField("_gesture", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(desk.WindowManager);
+        var interaction = typeof(WindowManager).GetField("_interaction", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(desk.WindowManager);
+        var gesture = interaction?.GetType().Name == "Gesture" ? interaction : null;
         var pickedUp = gesture is not null && (bool)gesture.GetType().GetProperty("PickedUp")!.GetValue(gesture)!;
         Assert.Equal((active, reached), (gesture is not null, pickedUp));
     }

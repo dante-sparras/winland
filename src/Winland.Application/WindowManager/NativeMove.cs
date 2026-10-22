@@ -8,17 +8,12 @@ namespace Winland.Application;
 /// </summary>
 public sealed partial class WindowManager
 {
-    private WindowId? _nativeMove;
-
-    // The window the system moves or sizes floats, so the core only records where it is left.
-    private bool _nativeFloating;
-
     // Where the system left the window it just moved. The motion that drops it into the Layout starts there.
     private (WindowId Window, Rectangle Bounds)? _released;
 
     private Outcome BeginNativeMove(WindowMoveStarted started)
     {
-        if (_nativeMove is not null || _gesture is not null)
+        if (_interaction is not null)
             return View([]);
 
         var window = started.Window;
@@ -26,7 +21,7 @@ public sealed partial class WindowManager
             || desk.ClientOf(window) is not { Minimized: false } client)
             return View([]);
 
-        _nativeMove = window;
+        _interaction = new NativeMove(window, client.Floating);
         if (client.Floating)
             return BeginNativeFloating(desk, client);
 
@@ -43,14 +38,14 @@ public sealed partial class WindowManager
 
     private Outcome EndNativeMove(WindowMoveEnded ended)
     {
-        if (_nativeMove != ended.Window)
+        if (_interaction is not NativeMove move || move.Window != ended.Window)
             return View([]);
 
-        _nativeMove = null;
-        var drop = GroupDrop(ended.Window, wasTiled: !_nativeFloating, ended.Pointer);
-        if (_nativeFloating)
+        _interaction = null;
+        var drop = GroupDrop(ended.Window, wasTiled: !move.Floating, ended.Pointer);
+        if (move.Floating)
         {
-            var left = EndNativeFloating(ended.Window, ended.Bounds);
+            var left = FollowNativeFloating(ended.Window, ended.Bounds);
             return drop is { } onto ? JoinDragged(ended.Window, onto, dispatcher: null) : left;
         }
 
@@ -68,7 +63,6 @@ public sealed partial class WindowManager
     // does. The system already moves the window, so it is not placed, and the other windows are.
     private Outcome BeginNativeFloating(LiveWorkspace desk, Client client)
     {
-        _nativeFloating = true;
         if (client.Fullscreen == FullscreenMode.None)
             return View([]);
 
@@ -78,11 +72,8 @@ public sealed partial class WindowManager
     }
 
     // Records where the system has the floating Client now, as Winland's own drag puts it there.
-    private Outcome FollowNativeFloating(WindowId window, Rectangle? bounds, bool done)
+    private Outcome FollowNativeFloating(WindowId window, Rectangle? bounds)
     {
-        if (done)
-            _nativeFloating = false;
-
         if (bounds is not Rectangle frame || WorkspaceContaining(window) is not LiveWorkspace desk || desk.ClientOf(window) is not { Floating: true })
             return View([]);
 
@@ -91,5 +82,9 @@ public sealed partial class WindowManager
         return View([.. placements.Where(placement => placement.Client != self)]);
     }
 
-    private Outcome EndNativeFloating(WindowId window, Rectangle? bounds) => FollowNativeFloating(window, bounds, done: true);
+    /// <summary>The system moves this window by its title bar. A floating one is only followed, a tiled one is lifted.</summary>
+    private sealed class NativeMove(WindowId window, bool floating) : PointerInteraction(window)
+    {
+        public bool Floating { get; } = floating;
+    }
 }

@@ -462,7 +462,7 @@ public sealed partial class WindowManager
             return ReasonForClose(closed.Window, after, before.State);
 
         // A pointer move that is not a drag follows the window under it. A drag still has its gesture or border.
-        if (input is PointerMoved && _gesture is null && _border is null)
+        if (input is PointerMoved && _interaction is not (Gesture or BorderDrag))
             return FocusReason.FollowMouse;
 
         if (outcome.Dispatcher is string name)
