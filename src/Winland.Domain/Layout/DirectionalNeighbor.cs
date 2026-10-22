@@ -4,7 +4,7 @@ namespace Winland.Domain;
 /// The Client next to a rectangle in a direction: one that touches or slightly overlaps that side and
 /// shares more than a pixel of its length with it. Among those, <c>binds:focus_preferred_method</c> 0 picks
 /// the one focused most recently and 1 the one that shares the most length. Dwindle and master move focus
-/// and windows this way. A floating Client looks by angle instead.
+/// and windows this way, and so does a move onto the next Monitor. A floating Client looks by angle instead.
 /// </summary>
 internal static class DirectionalNeighbor
 {

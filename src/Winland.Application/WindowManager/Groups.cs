@@ -224,7 +224,7 @@ public sealed partial class WindowManager
             || MonitorSelector.InDirection(Targets(), from, side) is not MonitorTarget neighbor
             || MonitorOf(neighbor) is not LiveMonitor screen || _workspaces.Shown.Shown(screen.Id) is not WorkspaceId shown
             || _workspaces.Find(shown) is not LiveWorkspace there || !desk.Layout.TryBounds(window, out var box)
-            || AdjacentOn(screen, Ideal(desk, window, box), side) is not WindowId found)
+            || AdjacentOn(screen, desk, window, box, side) is not WindowId found)
             return null;
 
         return (found, there);

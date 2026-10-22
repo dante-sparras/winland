@@ -101,25 +101,6 @@ internal static class MonitorSelector
         _ => new Point(box.X, box.Y),
     };
 
-    public static bool Overlaps(Rectangle origin, Rectangle other, Side direction, out double overlap)
-    {
-        var adjacent = direction switch
-        {
-            Side.Left => Adjacent(origin.X, origin.X + origin.Width, other.X, other.X + other.Width),
-            Side.Right => Adjacent(other.X, other.X + other.Width, origin.X, origin.X + origin.Width),
-            Side.Up => Adjacent(origin.Y, origin.Y + origin.Height, other.Y, other.Y + other.Height),
-            Side.Down => Adjacent(other.Y, other.Y + other.Height, origin.Y, origin.Y + origin.Height),
-            _ => false,
-        };
-
-        overlap = adjacent
-            ? direction is Side.Left or Side.Right
-                ? Shared(origin.Y, origin.Height, other.Y, other.Height)
-                : Shared(origin.X, origin.Width, other.X, other.Width)
-            : 0;
-        return overlap > 1;
-    }
-
     private static MonitorTarget? Relative(string text, IReadOnlyList<MonitorTarget> monitors, MonitorTarget? current)
     {
         if (monitors.Count == 1)
@@ -194,23 +175,6 @@ internal static class MonitorSelector
         var dx = (long)x - point.X;
         var dy = (long)y - point.Y;
         return (dx * dx) + (dy * dy);
-    }
-
-    private static bool Adjacent(int aMin, int aMax, int bMin, int bMax)
-    {
-        var delta = aMin - bMax;
-        if (Math.Abs(delta) <= 2)
-            return true;
-        if (delta >= 0)
-            return false;
-
-        var overlap = -delta;
-        var sizeA = aMax - aMin;
-        var sizeB = bMax - bMin;
-        if ((bMin <= aMin && bMax >= aMax) || (aMin <= bMin && aMax >= bMax))
-            return false;
-
-        return overlap <= Math.Min(sizeA, sizeB) * 0.5;
     }
 
     private static double Shared(int start, int size, int otherStart, int otherSize) =>

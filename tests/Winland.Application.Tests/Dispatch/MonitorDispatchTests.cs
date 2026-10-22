@@ -111,6 +111,88 @@ public class MonitorDispatchTests
         Assert.Equal(new WindowId(3), outcome.Focus);
     }
 
+    [Theory]
+    [InlineData(1, 4)]
+    [InlineData(2, 2)]
+    public void MoveFocusCrossesToAClientWithinAOnePixelGapButNotTwo(int gap, long expected)
+    {
+        var core = TwoMonitors();
+        var left = Display(@"\\.\DISPLAY1", "Dell", Left);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", Right);
+        // Window 2 floats clear of the origin's rows, so only window 4 can be next to it.
+        Float(core, 2, new Rectangle(2500, 900, 100, 100));
+        core.Handle(new WindowAppeared(new WindowId(3), left.WorkArea));
+        Float(core, 3, new Rectangle(Right.X - gap - 100, 100, 100, 100));
+        core.Handle(new WindowAppeared(new WindowId(4), right.WorkArea));
+        Float(core, 4, new Rectangle(Right.X, 100, 100, 100));
+        Focus(core, 2);
+        Focus(core, 3);
+
+        var outcome = core.Handle(new Dispatch("movefocus", "r"));
+
+        Assert.Equal(new WindowId(expected), outcome.Focus);
+    }
+
+    [Theory]
+    [InlineData(0, 2)]
+    [InlineData(1, 3)]
+    public void MoveFocusCrossesToTheMostRecentOrTheLongestSharedEdgeAsTheOptionSays(int method, long expected)
+    {
+        // Portrait monitors, the right one 300px higher, so window 1 shares 660px with window 2 and 960px with window 3.
+        var core = new WindowManager();
+        core.Handle(new Configure(ConfigParser.Parse($"general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nbinds:focus_preferred_method = {method}\n")));
+        var left = Display(@"\\.\DISPLAY1", "Dell", new Rectangle(0, 0, 1080, 1920));
+        var right = Display(@"\\.\DISPLAY2", "Samsung", new Rectangle(1080, -300, 1080, 1920));
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
+        var opened = core.Handle(new WindowAppeared(new WindowId(3), right.WorkArea));
+        Assert.Equal(new Rectangle(1080, 660, 1080, 960), Client(opened, 3).Bounds);
+        Focus(core, 3);
+        Focus(core, 2);
+        Focus(core, 1);
+
+        var outcome = core.Handle(new Dispatch("movefocus", "r"));
+
+        Assert.Equal(new WindowId(expected), outcome.Focus);
+    }
+
+    [Fact]
+    public void MoveFocusFromAFloatingClientCrossesToAFloatingClientBeforeATile()
+    {
+        var core = TwoMonitors();
+        var left = Display(@"\\.\DISPLAY1", "Dell", Left);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", Right);
+        core.Handle(new WindowAppeared(new WindowId(3), left.WorkArea));
+        Float(core, 3, new Rectangle(Right.X - 100, 100, 100, 100));
+        core.Handle(new WindowAppeared(new WindowId(4), right.WorkArea));
+        Float(core, 4, new Rectangle(Right.X, 100, 100, 100));
+        // The tile was focused after the floating window, and shares as much of the edge.
+        Focus(core, 4);
+        Focus(core, 2);
+        Focus(core, 3);
+
+        var outcome = core.Handle(new Dispatch("movefocus", "r"));
+
+        Assert.Equal(new WindowId(4), outcome.Focus);
+    }
+
+    // The focus history only moves when the window reports it has the focus.
+    private static void Focus(WindowManager core, long window)
+    {
+        core.Handle(new Dispatch("focuswindow", $"address:0x{window:x}"));
+        core.Handle(new WindowFocused(new WindowId(window)));
+    }
+
+    private static void Float(WindowManager core, long window, Rectangle bounds)
+    {
+        Focus(core, window);
+        core.Handle(new Dispatch("togglefloating"));
+        core.Handle(new Dispatch("resizewindowpixel", $"exact {bounds.Width} {bounds.Height},address:0x{window:x}"));
+        var moved = core.Handle(new Dispatch("movewindowpixel", $"exact {bounds.X} {bounds.Y},address:0x{window:x}"));
+        Assert.Equal(bounds, Client(moved, window).Bounds);
+    }
+
     [Fact]
     public void DwindleMoveWindowCrossesFromATileAtTheEdgeOfTheGaps()
     {
