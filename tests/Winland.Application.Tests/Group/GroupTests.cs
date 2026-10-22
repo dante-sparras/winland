@@ -347,6 +347,22 @@ public class GroupTests
         Assert.Equal([First], Assert.Single(denied.State.Groups));
     }
 
+    [Theory]
+    [InlineData("dispatch no_op", 2)]
+    [InlineData("dispatch lockactivegroup lock", 1)]
+    public void AWindowMovedToAWorkspaceJoinsAnUnlockedSolitaryGroup(string setup, int members)
+    {
+        var core = Opened(auto: false, "group:group_on_movetoworkspace = true\n", First);
+        core.Execute("dispatch togglegroup");
+        core.Execute(setup);
+        core.Execute("dispatch movetoworkspacesilent 2");
+        core.Handle(Appear(Second, "two"));
+
+        var moved = core.Execute("dispatch movetoworkspacesilent 2");
+
+        Assert.Equal(members, Assert.Single(moved.Effect.State.Groups).Count);
+    }
+
     [Fact]
     public void GroupedWindowsUseTheGroupBorderColors()
     {
