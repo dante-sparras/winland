@@ -293,7 +293,6 @@ public sealed partial class WindowManager
         var own = from.GroupOf(dragged);
         return own != target
             && (own is null || _config.Groups.MergeGroupsOnDrag)
-            && !target.Locked
             && GroupAdmission.May(
                 _props.GroupRules(dragged),
                 _groupsLocked,
