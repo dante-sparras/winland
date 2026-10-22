@@ -3,8 +3,6 @@ namespace Winland.Application;
 /// <summary>The pointer: key and mouse binds, focus follows mouse, and resizing by the border.</summary>
 public sealed partial class WindowManager
 {
-    private Gesture? _gesture;
-    private BorderDrag? _border;
     private string? _resizeCursor;
 
     private Outcome RunKey(Input input)
@@ -13,20 +11,20 @@ public sealed partial class WindowManager
 
         // The mouse dispatcher bound to a key drags the window under the pointer while the key is held, as in the pinned
         // release, and the key's release drops it.
-        if (input is KeyPressed pressed && _gesture is null && KeyDrag(match) is { } drag && DragTarget(_pointer) is WindowId window)
+        if (input is KeyPressed pressed && _interaction is null && KeyDrag(match) is { } drag && DragTarget(_pointer) is WindowId window)
         {
             var begun = BeginGesture(window, drag, pressed.Key, _pointer!.Value);
             var ran = RunBind(match) with { Focus = window };
             return begun.Count == 0 ? ran : ran with { Placements = begun };
         }
 
-        if (input is KeyPressed && _gesture is null && KeyDrag(match) is not null && OnlyDrag(match))
+        if (input is KeyPressed && _interaction is null && KeyDrag(match) is not null && OnlyDrag(match))
             return RunBind(match) with { Consumed = false };
 
-        if (input is KeyReleased released && _gesture is not null && _gesture.Button.Equals(released.Key, StringComparison.OrdinalIgnoreCase))
+        if (input is KeyReleased released && _interaction is Gesture gesture && gesture.Button.Equals(released.Key, StringComparison.OrdinalIgnoreCase))
         {
-            var ended = EndGesture(_pointer ?? _gesture.Origin);
-            NoteBorderCursor(_pointer ?? _gesture.Origin);
+            var ended = EndGesture(gesture, _pointer ?? gesture.Origin);
+            NoteBorderCursor(_pointer ?? gesture.Origin);
             var after = RunBind(match);
             return ended.Then(after) with { Consumed = true, Dispatcher = after.Dispatcher };
         }
@@ -50,9 +48,8 @@ public sealed partial class WindowManager
         var match = _keyState.Decide(_config.Binds, pressed);
 
         // A drag already running keeps the pointer. A second drag button does not start another one.
-        if (_gesture is null && TryDragHit(match, out var drag) && (TabUnder(drag, pressed.Position) ?? DragTarget(pressed.Position)) is WindowId target)
+        if (_interaction is null && TryDragHit(match, out var drag) && (TabUnder(drag, pressed.Position) ?? DragTarget(pressed.Position)) is WindowId target)
         {
-            _border = null;
             var tabbed = TakeTabOut(drag, pressed.Position, out var window);
             window ??= target;
             var begun = BeginGesture(window.Value, drag, pressed.Button, pressed.Position);
@@ -61,7 +58,7 @@ public sealed partial class WindowManager
             return begun.Count == 0 ? ran : ran with { Placements = Outcome.Union(ran.Placements, begun, ran.State) };
         }
 
-        if (!match.Consumed && TryBorderTarget(pressed.Position, out var hit, out var bounds, out var floating, out _))
+        if (_interaction is null && !match.Consumed && TryBorderTarget(pressed.Position, out var hit, out var bounds, out var floating, out _))
         {
             Outcome? ran = match.Dispatcher is null && match.Dispatches.Count == 0 ? null : RunBind(match);
             var border = StartBorder(pressed, hit, bounds, floating);
@@ -72,7 +69,7 @@ public sealed partial class WindowManager
         }
 
         NoteBorderCursor(pressed.Position);
-        if (_gesture is null && TryDragHit(match, out _) && OnlyDrag(match))
+        if (_interaction is null && TryDragHit(match, out _) && OnlyDrag(match))
             return RunBind(match) with { Consumed = false };
 
         return RunBind(match);
@@ -81,15 +78,14 @@ public sealed partial class WindowManager
     private Outcome ReleasePointer(PointerButtonReleased released)
     {
         Outcome? ended = null;
-        if (_border is not null && _border.Button.Equals(released.Button, StringComparison.OrdinalIgnoreCase))
+        if (_interaction is BorderDrag border && border.Button.Equals(released.Button, StringComparison.OrdinalIgnoreCase))
         {
-            var border = _border;
-            _border = null;
+            _interaction = null;
             ended = EndBorder(border, released.Position);
         }
-        else if (_gesture is not null && _gesture.Button.Equals(released.Button, StringComparison.OrdinalIgnoreCase))
+        else if (_interaction is Gesture gesture && gesture.Button.Equals(released.Button, StringComparison.OrdinalIgnoreCase))
         {
-            ended = EndGesture(released.Position);
+            ended = EndGesture(gesture, released.Position);
         }
 
         NoteBorderCursor(released.Position);
@@ -113,13 +109,13 @@ public sealed partial class WindowManager
     {
         _ = _keyState.Decide(_config.Binds, moved);
         NoteBorderCursor(moved.Position);
-        if (_border is not null)
-            return MoveBorder(moved.Position);
+        if (_interaction is BorderDrag border)
+            return MoveBorder(border, moved.Position);
 
-        if (_gesture is not null)
+        if (_interaction is Gesture gesture)
         {
             _lastMoveAt = When(moved.TimeMs);
-            return MoveGesture(moved.Position);
+            return MoveGesture(gesture, moved.Position);
         }
 
         return View([], focus: Follow(moved));
@@ -297,7 +293,7 @@ public sealed partial class WindowManager
     {
         var options = ActiveOptions();
         var (left, top) = BorderPointer.GrabbedCorner(options.ResizeCorner, floating, pressed.Position, bounds);
-        _border = new BorderDrag(window, pressed.Button, floating, pressed.Position, bounds, left, top);
+        _interaction = new BorderDrag(window, pressed.Button, floating, pressed.Position, bounds, left, top);
         _active = window;
         var desk = LayoutWorkspace(window);
         desk.Focus = window;
@@ -309,11 +305,8 @@ public sealed partial class WindowManager
         return View(begun, consumed: true, dispatcher: "resizewindow", focus: window);
     }
 
-    private Outcome MoveBorder(Point pointer)
+    private Outcome MoveBorder(BorderDrag border, Point pointer)
     {
-        if (_border is not BorderDrag border)
-            return View([]);
-
         var desk = LayoutWorkspace(border.Window);
         if (border.Floating)
         {
@@ -344,9 +337,9 @@ public sealed partial class WindowManager
 
     private void NoteBorderCursor(Point pointer)
     {
-        if (_gesture is not null)
+        if (_interaction is Gesture gesture)
         {
-            _resizeCursor = _gesture.Cursor;
+            _resizeCursor = gesture.Cursor;
             return;
         }
 
@@ -357,9 +350,9 @@ public sealed partial class WindowManager
             return;
         }
 
-        if (_border is not null)
+        if (_interaction is BorderDrag border)
         {
-            _resizeCursor = BorderPointer.Cursor(BorderPointer.GrabbedSide(_border.Left, _border.Top));
+            _resizeCursor = BorderPointer.Cursor(BorderPointer.GrabbedSide(border.Left, border.Top));
             return;
         }
 
@@ -502,9 +495,8 @@ public sealed partial class WindowManager
     }
 
     private sealed class BorderDrag(WindowId window, string button, bool floating, Point origin, Rectangle start, bool left, bool top)
+        : PointerInteraction(window)
     {
-        public WindowId Window { get; } = window;
-
         public string Button { get; } = button;
 
         public bool Floating { get; } = floating;

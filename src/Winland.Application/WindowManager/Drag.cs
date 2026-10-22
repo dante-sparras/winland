@@ -17,7 +17,7 @@ public sealed partial class WindowManager
             case PointerDragPhase.Begin:
                 // A drag already running keeps the pointer. A second drag button does not start another one.
                 var dispatch = new BindDispatch(gesture.Dispatcher, gesture.Arguments);
-                if (_gesture is not null || (TabUnder(dispatch, gesture.Position) ?? DragTarget(gesture.Position)) is not WindowId target)
+                if (_interaction is not null || (TabUnder(dispatch, gesture.Position) ?? DragTarget(gesture.Position)) is not WindowId target)
                     return View([], consumed: true, dispatcher: gesture.Dispatcher);
 
                 var tabbed = TakeTabOut(dispatch, gesture.Position, out var window);
@@ -25,10 +25,10 @@ public sealed partial class WindowManager
                 var begun = BeginGesture(window.Value, dispatch, gesture.Button, gesture.Position);
                 var view = View(begun, consumed: true, dispatcher: gesture.Dispatcher, focus: window);
                 return tabbed is null ? view : tabbed.Then(view);
-            case PointerDragPhase.Move when _gesture is not null:
-                return MoveGesture(gesture.Position);
-            case PointerDragPhase.End when _gesture is not null && _gesture.Button.Equals(gesture.Button, StringComparison.OrdinalIgnoreCase):
-                return EndGesture(gesture.Position);
+            case PointerDragPhase.Move when _interaction is Gesture held:
+                return MoveGesture(held, gesture.Position);
+            case PointerDragPhase.End when _interaction is Gesture held && held.Button.Equals(gesture.Button, StringComparison.OrdinalIgnoreCase):
+                return EndGesture(held, gesture.Position);
             default:
                 return View([]);
         }
@@ -40,7 +40,7 @@ public sealed partial class WindowManager
         var desk = LayoutWorkspace(window);
         var layout = desk.Layout;
         layout.NoteFocus(window);
-        _gesture = new Gesture(window, button, IsResize(drag.Dispatcher), drag.Dispatcher, pointer)
+        var gesture = new Gesture(window, button, IsResize(drag.Dispatcher), drag.Dispatcher, pointer)
         {
             Cursor = DragCursor(desk, window, IsResize(drag.Dispatcher), pointer),
             WasTiled = LayoutWorkspace(window).ClientOf(window) is { Floating: false },
@@ -49,8 +49,9 @@ public sealed partial class WindowManager
             CenterOnLift = _config.BindOptions.DragCenterWindow,
         };
 
+        _interaction = gesture;
         NoteBorderCursor(pointer);
-        return _gesture.PickedUp ? PickUp(window, _gesture, pointer) : [];
+        return gesture.PickedUp ? PickUp(window, gesture, pointer) : [];
     }
 
     // A Client picked up while fullscreen or maximized leaves that mode first. A floating one
@@ -75,9 +76,8 @@ public sealed partial class WindowManager
         return placements;
     }
 
-    private Outcome MoveGesture(Point pointer)
+    private Outcome MoveGesture(Gesture gesture, Point pointer)
     {
-        var gesture = _gesture!;
         var layout = LayoutWorkspace(gesture.Window).Layout;
         if (!gesture.PickedUp)
         {
@@ -101,10 +101,9 @@ public sealed partial class WindowManager
         return View(moved, consumed: true, dispatcher: gesture.Dispatcher) with { Live = true };
     }
 
-    private Outcome EndGesture(Point pointer)
+    private Outcome EndGesture(Gesture gesture, Point pointer)
     {
-        var gesture = _gesture!;
-        _gesture = null;
+        _interaction = null;
         // The Group under the pointer is found while the dragged window is still lifted.
         var drop = gesture.PickedUp && !gesture.Resize ? GroupDrop(gesture.Window, gesture.WasTiled, pointer) : null;
         if (drop is null && gesture.PickedUp && !gesture.Resize && DropOnMonitor(gesture, pointer) is { } carried)
@@ -377,14 +376,8 @@ public sealed partial class WindowManager
     // A window that closes ends any drag that holds it, as Winland ends its drag target on unmap.
     private void ForgetDrag(WindowId window)
     {
-        if (_nativeMove == window)
-            _nativeMove = null;
-        if (_nativeSize == window)
-            _nativeSize = null;
-        if (_gesture?.Window == window)
-            _gesture = null;
-        if (_border?.Window == window)
-            _border = null;
+        if (_interaction?.Window == window)
+            _interaction = null;
         if (_released?.Window == window)
             _released = null;
     }
@@ -453,9 +446,8 @@ public sealed partial class WindowManager
         Is(dispatcher, "resizewindow");
 
     private sealed class Gesture(WindowId window, string button, bool resize, string dispatcher, Point origin)
+        : PointerInteraction(window)
     {
-        public WindowId Window { get; } = window;
-
         public string Button { get; } = button;
 
         public bool Resize { get; } = resize;
