@@ -16,9 +16,14 @@ public sealed partial class WindowManager
             && focused is WindowId owner
             && owner != window
             && desk.GroupOf(owner) is WindowGroup group
-            && CanJoin(rules, group)
-            && !dialog
-            && !(decision.Floating && desk.ClientOf(owner)?.Floating != true)
+            && GroupAdmission.May(
+                rules,
+                _groupsLocked,
+                group.Locked,
+                targetDenied: false,
+                dialog,
+                floatingIntoTiled: decision.Floating && desk.ClientOf(owner)?.Floating != true,
+                ownLocked: false)
             && desk.Layout.TryTake(window, out var taken))
         {
             var position = _config.Groups.InsertAfterCurrent ? group.Current + 1 : group.Count;
@@ -35,12 +40,6 @@ public sealed partial class WindowManager
 
     /// <summary>True when the window is a Group member hidden behind the shown one.</summary>
     private bool IsWaiting(WindowId window) => WorkspaceContaining(window)?.IsWaiting(window) == true;
-
-    private bool CanJoin(GroupRuleFlags rules, WindowGroup group) =>
-        !_groupsLocked
-        && (rules.HasFlag(GroupRuleFlags.Invade) || !group.Locked)
-        && !rules.HasFlag(GroupRuleFlags.Deny)
-        && !rules.HasFlag(GroupRuleFlags.Barred);
 
     /// <summary>
     /// Closes a member of a Group that keeps other members. The next member takes the tile when the
@@ -125,7 +124,15 @@ public sealed partial class WindowManager
         if (visible.Length != 1 || visible[0] == moving || destination.GroupOf(visible[0]) is not WindowGroup group)
             return null;
 
-        return CanJoin(_props.GroupRules(moving), group) && !group.Locked ? group : null;
+        var admitted = GroupAdmission.May(
+            _props.GroupRules(moving),
+            _groupsLocked,
+            group.Locked,
+            targetDenied: false,
+            dialog: false,
+            floatingIntoTiled: false,
+            ownLocked: false);
+        return admitted && !group.Locked ? group : null;
     }
 
     /// <summary>Joins a window that was just added to <paramref name="destination"/> into <paramref name="group"/>.</summary>
