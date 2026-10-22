@@ -364,6 +364,32 @@ public class GroupTests
     }
 
     [Fact]
+    public void AGroupThatDeniesWindowsTakesNoNewWindow()
+    {
+        var core = Opened(auto: true, First);
+        core.Execute("dispatch togglegroup");
+        core.Execute("dispatch denywindowfromgroup on");
+
+        var opened = core.Handle(Appear(Second, "two"));
+
+        Assert.Equal([First], Assert.Single(opened.State.Groups));
+    }
+
+    [Fact]
+    public void AGroupThatDeniesWindowsTakesNoWindowMovedToItsWorkspace()
+    {
+        var core = Opened(auto: false, "group:group_on_movetoworkspace = true\n", First);
+        core.Execute("dispatch togglegroup");
+        core.Execute("dispatch denywindowfromgroup on");
+        core.Execute("dispatch movetoworkspacesilent 2");
+        core.Handle(Appear(Second, "two"));
+
+        var moved = core.Execute("dispatch movetoworkspacesilent 2");
+
+        Assert.Equal([First], Assert.Single(moved.Effect.State.Groups));
+    }
+
+    [Fact]
     public void GroupedWindowsUseTheGroupBorderColors()
     {
         var core = Grouped("""

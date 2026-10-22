@@ -20,7 +20,7 @@ public sealed partial class WindowManager
                 rules,
                 _groupsLocked,
                 group.Locked,
-                targetDenied: false,
+                targetDenied: group.Denied,
                 dialog,
                 floatingIntoTiled: decision.Floating && desk.ClientOf(owner)?.Floating != true,
                 ownLocked: false)
@@ -128,7 +128,7 @@ public sealed partial class WindowManager
             _props.GroupRules(moving),
             _groupsLocked,
             group.Locked,
-            targetDenied: false,
+            targetDenied: group.Denied,
             dialog: false,
             floatingIntoTiled: false,
             ownLocked: false);
