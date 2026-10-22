@@ -4,18 +4,8 @@ namespace Winland.Application;
 
 public sealed partial class WindowManager
 {
-    // The dispatchers that act on the active window and, after a comma, take another one.
-    private static readonly string[] WindowTakers =
-        [
-            "movecursortocorner", "togglegroup", "changegroupactive", "centerwindow", "fullscreen", "fullscreenstate",
-            "swapwindow", "lockactivegroup", "moveintogroup", "moveintoorcreategroup",
-            "movewindow", "movewindoworgroup", "cyclenext",
-        ];
-
     // The window a dispatcher given a window acts on in place of the active one, while it runs.
     private WindowId? _actingOn;
-
-    private static bool ActsOnAWindow(string name) => WindowTakers.Any(taker => Is(name, taker));
 
     private Outcome ExecuteOn(string name, string arguments, string selector)
     {

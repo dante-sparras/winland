@@ -7,35 +7,6 @@ public sealed partial class WindowManager
     private readonly Dictionary<WindowId, GroupRuleFlags> _groupRules = [];
     private bool _groupsLocked;
 
-    private Outcome? GroupDispatch(string name, string arguments)
-    {
-        var text = arguments.Trim();
-        if (Is(name, "togglegroup"))
-            return ToggleGroup(name);
-        if (Is(name, "changegroupactive"))
-            return ChangeGroupActive(text, name);
-        if (Is(name, "movegroupwindow"))
-            return MoveGroupWindow(text, name);
-        if (Is(name, "lockgroups"))
-            return LockGroups(text, name);
-        if (Is(name, "lockactivegroup"))
-            return LockActiveGroup(text, name);
-        if (Is(name, "denywindowfromgroup"))
-            return DenyWindowFromGroup(text, name);
-        if (Is(name, "moveintogroup"))
-            return MoveIntoGroup(text, create: false, name);
-        if (Is(name, "moveintoorcreategroup"))
-            return MoveIntoGroup(text, create: true, name);
-        if (Is(name, "moveoutofgroup"))
-            return MoveOutOfGroup(text, name);
-        if (Is(name, "movewindoworgroup"))
-            return MoveWindowOrGroup(text, name);
-        if (Is(name, "setignoregrouplock"))
-            return View([], dispatcher: name);
-
-        return null;
-    }
-
     private Outcome ToggleGroup(string name)
     {
         if (ActiveWindow() is not WindowId id || WorkspaceContaining(id) is not LiveWorkspace desk)
