@@ -1,4 +1,3 @@
-
 namespace Winland.Infrastructure;
 
 /// <summary>One finger in a precision touchpad report, in millimetres from the pad's origin.</summary>

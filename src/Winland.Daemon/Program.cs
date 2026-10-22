@@ -1,4 +1,3 @@
-using System.Net.Http;
 using System.Security.Principal;
 using Winland.Daemon;
 using Winland.Install;

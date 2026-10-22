@@ -1,4 +1,3 @@
-
 namespace Winland.Infrastructure.Tests;
 
 public partial class CursorIdleTests

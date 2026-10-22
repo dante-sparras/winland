@@ -1,4 +1,3 @@
-
 namespace Winland.Daemon;
 
 /// <summary>

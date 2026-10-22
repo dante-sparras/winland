@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Winland.Domain;
 
 /// <summary>One Option of a record of options: its name, its value type, and the field of the record it sets.</summary>

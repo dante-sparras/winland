@@ -1,4 +1,3 @@
-
 namespace Winland.Infrastructure.Tests;
 
 public class WarpBackTests

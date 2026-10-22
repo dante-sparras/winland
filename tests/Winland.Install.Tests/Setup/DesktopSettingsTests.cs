@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.Json;
-using Winland.Install;
 
 namespace Winland.Install.Tests;
 

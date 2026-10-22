@@ -1,4 +1,3 @@
-
 namespace Winland.Application.Tests.Conformance;
 
 /// <summary>

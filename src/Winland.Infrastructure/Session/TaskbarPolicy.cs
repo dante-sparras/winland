@@ -1,4 +1,3 @@
-
 namespace Winland.Infrastructure;
 
 /// <summary>What the host does with the taskbars when it reads <c>general:hide_taskbar</c>.</summary>

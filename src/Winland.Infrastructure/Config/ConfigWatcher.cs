@@ -1,4 +1,3 @@
-
 namespace Winland.Infrastructure;
 
 public sealed class ConfigWatcher : IDisposable

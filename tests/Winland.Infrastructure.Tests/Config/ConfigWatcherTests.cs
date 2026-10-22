@@ -1,4 +1,3 @@
-
 namespace Winland.Infrastructure.Tests;
 
 // The watch tests wait out real debounces, so each one is a class of its own and xUnit runs them side by side.

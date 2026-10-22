@@ -1,4 +1,3 @@
-
 namespace Winland.Infrastructure;
 
 /// <summary>The window messages the notification-area icon has to receive from Explorer.</summary>

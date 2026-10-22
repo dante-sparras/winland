@@ -1,4 +1,3 @@
-
 namespace Winland.Application.Tests;
 
 /// <summary>An application's maximize request is maximize mode 1. Asking again leaves it.</summary>

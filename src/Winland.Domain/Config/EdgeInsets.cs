@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Winland.Domain;
 
 public readonly record struct EdgeInsets(int Top, int Right, int Bottom, int Left)

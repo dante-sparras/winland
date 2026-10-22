@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using Winland.Install;
 
 namespace Winland.Install.Tests;
 

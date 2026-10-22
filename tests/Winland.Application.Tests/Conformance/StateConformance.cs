@@ -1,4 +1,3 @@
-
 namespace Winland.Application.Tests.Conformance;
 
 /// <summary>Winland's state case. The test is named after its case, and sends the same commands.</summary>

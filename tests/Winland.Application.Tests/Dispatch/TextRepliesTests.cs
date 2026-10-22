@@ -1,4 +1,3 @@
-
 namespace Winland.Application.Tests;
 
 /// <summary>The text Winland answers clients, activewindow, workspaces, activeworkspace and monitors with without j/.</summary>

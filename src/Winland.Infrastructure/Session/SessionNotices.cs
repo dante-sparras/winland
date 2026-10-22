@@ -1,4 +1,3 @@
-
 namespace Winland.Infrastructure;
 
 internal static class SessionNotices

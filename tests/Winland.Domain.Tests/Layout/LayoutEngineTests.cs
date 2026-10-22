@@ -1,4 +1,3 @@
-
 namespace Winland.Domain.Tests;
 
 /// <summary>Drives each Layout directly, without WindowManager, for the paths WindowManager cannot easily reach.</summary>

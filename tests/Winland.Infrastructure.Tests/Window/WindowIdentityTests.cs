@@ -1,4 +1,3 @@
-
 namespace Winland.Infrastructure.Tests;
 
 // One test opens real windows, so the class runs alone with the other desktop tests.
