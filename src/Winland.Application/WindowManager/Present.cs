@@ -267,10 +267,10 @@ public sealed partial class WindowManager
             screens.Add(new MonitorSnapshot(
                 screen.Id,
                 screen.Effective,
-                screen.Active ?? WorkspaceId.Initial,
+                ShownOn(screen) ?? WorkspaceId.Initial,
                 screen.Id == focused && screen.Effective.Enabled)
             {
-                SpecialWorkspace = screen.Special,
+                SpecialWorkspace = SpecialShownOn(screen),
             });
         }
 
@@ -364,14 +364,14 @@ public sealed partial class WindowManager
 
         foreach (var screen in _monitors)
         {
-            if (!screen.Effective.Enabled || screen.Active is not WorkspaceId active)
+            if (!screen.Effective.Enabled || ShownOn(screen) is not WorkspaceId active)
                 continue;
 
             var desk = FindWorkspace(active);
             if (desk is not null)
                 placements.AddRange(desk.Layout.Visible());
 
-            if (screen.Special is WorkspaceId special && FindWorkspace(special) is LiveWorkspace overlay)
+            if (SpecialShownOn(screen) is WorkspaceId special && FindWorkspace(special) is LiveWorkspace overlay)
                 placements.AddRange(overlay.Layout.Visible());
         }
 

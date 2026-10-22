@@ -153,7 +153,7 @@ public sealed partial class WindowManager
             return true;
 
         var screen = MonitorById(monitor);
-        return screen is { Effective.Enabled: true, Active: not null };
+        return screen is { Effective.Enabled: true } && ShownOn(screen) is not null;
     }
 
     private static (PinAction Action, string Selector) PinRequest(string arguments)

@@ -31,6 +31,7 @@ Nothing in Domain or Application calls Win32. A test drives `WindowManager` with
 | A config option | The `*Options.cs` file of its section in `Domain/Config`, for example `LayoutOptions.cs` for `general:gaps_in`. `AppliedConfig.cs` holds every section. |
 | A window rule | `Domain/WindowRule`, with its parser in `Domain/WindowRule/WindowRuleParser`. |
 | A Layout | `Domain/Layout`: one folder per Layout, such as `DwindleLayout/`. |
+| Which Workspace a Monitor shows, and `workspace previous` | `Domain/Workspace/ShownWorkspaces.cs`. Hotplug decides where Guests go in `Application/WindowManager/Hotplug.cs` and calls it. |
 | Binds and keys | `Domain/Bind`. The hooks that feed them are in `Infrastructure/Input`. |
 | The pointer, scrolling and the touchpad | `Domain/Pointer`. |
 | A query or `keyword` | `Application/WindowManager/Queries.cs`, with the reply text in `Application/Dispatch/CommandProtocol`. |

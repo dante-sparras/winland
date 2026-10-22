@@ -269,8 +269,8 @@ public sealed partial class WindowManager
             return View([], dispatcher: name);
 
         var before = ShowingNow();
-        var deskLeft = WorkspaceFor(left.Active ?? NextFree(left.Id), left.Id);
-        var deskRight = WorkspaceFor(right.Active ?? NextFree(right.Id), right.Id);
+        var deskLeft = WorkspaceFor(ShownOn(left) ?? NextFree(left.Id), left.Id);
+        var deskRight = WorkspaceFor(ShownOn(right) ?? NextFree(right.Id), right.Id);
         var dx = right.Effective.X - left.Effective.X;
         var dy = right.Effective.Y - left.Effective.Y;
         deskLeft.Layout.NudgeFloating(dx, dy);
@@ -285,20 +285,18 @@ public sealed partial class WindowManager
         Rebind(deskLeft, parked);
         Rebind(deskRight, WorkspaceId.FromNumber(rightNumber, left.Id));
         Rebind(deskLeft, WorkspaceId.FromNumber(leftNumber, right.Id));
-        left.Active = deskRight.Id;
-        right.Active = deskLeft.Id;
-        _activeOn[left.Id] = deskRight.Id;
-        _activeOn[right.Id] = deskLeft.Id;
+        _shownWorkspaces.Show(left.Id, deskRight.Id);
+        _shownWorkspaces.Show(right.Id, deskLeft.Id);
         Refit(deskLeft);
         Refit(deskRight);
 
         WindowId? focus = null;
         var focused = left.Focused ? left : right.Focused ? right : null;
         // A swap reports only the Workspace the focused Monitor shows afterwards.
-        if (focused?.Active is WorkspaceId swapped)
+        if (focused is not null && ShownOn(focused) is WorkspaceId swapped)
             NoteWorkspaceActive(swapped);
 
-        if (focused is LiveMonitor screen && screen.Active is WorkspaceId active && FindWorkspace(active) is LiveWorkspace shown)
+        if (focused is LiveMonitor screen && ShownOn(screen) is WorkspaceId active && FindWorkspace(active) is LiveWorkspace shown)
         {
             var next = Accept(shown.Remembered());
             _active = next;
@@ -309,7 +307,6 @@ public sealed partial class WindowManager
             focus = next;
         }
 
-        SyncActive();
         var (show, hide) = VisibilityDelta(before);
         return View(ShownPlacements(), show, hide, dispatcher: name, focus: focus);
     }
@@ -321,7 +318,7 @@ public sealed partial class WindowManager
 
         var before = ShowingNow();
         var origin = MonitorById(desk.Monitor);
-        var wasActive = origin is not null && origin.Active == desk.Id;
+        var wasActive = origin is not null && ShownOn(origin) == desk.Id;
         var follow = wasActive && origin is { Focused: true };
         var dx = destination.Effective.X - (origin?.Effective.X ?? destination.Effective.X);
         var dy = destination.Effective.Y - (origin?.Effective.Y ?? destination.Effective.Y);
@@ -344,8 +341,7 @@ public sealed partial class WindowManager
         WindowId? focus = null;
         if (follow)
         {
-            destination.Active = desk.Id;
-            _activeOn[destination.Id] = desk.Id;
+            _shownWorkspaces.Show(destination.Id, desk.Id);
             var next = Accept(desk.Remembered());
             _active = next;
             desk.Focus = next;
@@ -355,14 +351,13 @@ public sealed partial class WindowManager
             focus = next;
         }
 
-        SyncActive();
         var (show, hide) = VisibilityDelta(before);
         return View(ShownPlacements(), show, hide, dispatcher: dispatcher, focus: focus);
     }
 
     private Outcome MoveActiveOnto(LiveMonitor screen, bool silent, string dispatcher, Point? focal = null)
     {
-        if (screen.Active is not WorkspaceId target)
+        if (ShownOn(screen) is not WorkspaceId target)
             return View([], dispatcher: dispatcher);
 
         return MoveTo(target, silent, consumed: false, dispatcher, focal: focal);
@@ -376,7 +371,7 @@ public sealed partial class WindowManager
         // A monitor with a special workspace open gives the focus to that workspace's window.
         var desk = SpecialOn(screen.Id) is WorkspaceId special && FindWorkspace(special) is LiveWorkspace open
             ? open
-            : screen.Active is WorkspaceId workspace ? FindWorkspace(workspace) : null;
+            : ShownOn(screen) is WorkspaceId workspace ? FindWorkspace(workspace) : null;
         var next = preferred;
         if (next is WindowId wanted && (desk is null || desk.ClientOf(wanted) is null || HasNoFocus(wanted)))
             next = null;
@@ -408,8 +403,7 @@ public sealed partial class WindowManager
         }
 
         replacement ??= WorkspaceFor(NextFree(origin.Id), origin.Id);
-        origin.Active = replacement.Id;
-        _activeOn[origin.Id] = replacement.Id;
+        _shownWorkspaces.Show(origin.Id, replacement.Id);
 
         // Pinned Clients stay on the Monitor, on the Workspace it shows next.
         foreach (var window in PinnedFloating(leaving))
@@ -418,7 +412,7 @@ public sealed partial class WindowManager
 
     private WindowId? AdjacentOn(LiveMonitor screen, Rectangle origin, MonitorDirection direction)
     {
-        if (screen.Active is not WorkspaceId workspace || FindWorkspace(workspace) is not LiveWorkspace desk)
+        if (ShownOn(screen) is not WorkspaceId workspace || FindWorkspace(workspace) is not LiveWorkspace desk)
             return null;
 
         WindowId? best = null;

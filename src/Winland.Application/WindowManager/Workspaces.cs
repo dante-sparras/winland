@@ -239,9 +239,7 @@ public sealed partial class WindowManager
             && ClientOn(sourceId, current) is { Floating: true }
             ? current
             : (WindowId?)null;
-        _activeOn[monitor] = target;
-        if (MonitorById(monitor) is { } owner)
-            owner.Active = target;
+        _shownWorkspaces.Show(monitor, target);
 
         NoteWorkspaceActive(target);
         Remember(target, monitor);
@@ -275,7 +273,7 @@ public sealed partial class WindowManager
             return null;
 
         var owner = MonitorById(desk.Monitor);
-        if (owner is null || !owner.Effective.Enabled || owner.Active != target || owner.Id == FocusedId())
+        if (owner is null || !owner.Effective.Enabled || ShownOn(owner) != target || owner.Id == FocusedId())
             return null;
 
         return owner;
@@ -298,43 +296,9 @@ public sealed partial class WindowManager
         return View([], focus: next, consumed: consumed, dispatcher: dispatcher);
     }
 
-    // The visits are Winland's workspace history: newest first, each with the Monitor it was on. A visit to a
-    // Workspace that was removed since stays, as a gone one, until the history is collected.
-    private void Remember(WorkspaceId workspace, MonitorId monitor)
-    {
-        if (!_config.BindOptions.AllowWorkspaceCycles && _history.Count > 0 && _history[0] is { Gone: false } newest && newest.Workspace == workspace)
-            return;
-
-        _history.RemoveAll(visit => !visit.Gone && visit.Workspace == workspace);
-        _history.Insert(0, new WorkspaceVisit(workspace, monitor));
-    }
-
-    private void ForgetVisits(WorkspaceId workspace)
-    {
-        for (var i = 0; i < _history.Count; i++)
-        {
-            if (_history[i].Workspace == workspace)
-                _history[i] = _history[i] with { Gone = true };
-        }
-    }
-
-    // Drops the visits to removed Workspaces as Winland collects its history: the newest visit on each
-    // Monitor is kept until that Monitor has been seen past the first one in the list, so it can still be gone to.
-    private void CollectVisits()
-    {
-        var seen = new List<MonitorId>();
-        _history.RemoveAll(visit =>
-        {
-            for (var i = 1; i < seen.Count; i++)
-            {
-                if (seen[i] == visit.Monitor)
-                    return visit.Gone;
-            }
-
-            seen.Add(visit.Monitor);
-            return false;
-        });
-    }
+    // A visit to the history workspace previous reads.
+    private void Remember(WorkspaceId workspace, MonitorId monitor) =>
+        _shownWorkspaces.Visit(workspace, monitor, _config.BindOptions.AllowWorkspaceCycles);
 
     // A switch to a Workspace another Monitor shows moves the cursor onto that Monitor, to the
     // middle of the Client it focuses or of the Monitor. cursor:no_warps stops it, as it stops Winland's warp.
@@ -379,22 +343,7 @@ public sealed partial class WindowManager
         return Previous(monitor, perMonitor: _config.BindOptions.BackAndForth == 2) ?? target;
     }
 
-    private WorkspaceId? Previous(MonitorId monitor, bool perMonitor)
-    {
-        CollectVisits();
-        var active = ActiveOn(monitor);
-        var index = _history.FindIndex(visit => !visit.Gone && visit.Workspace == active);
-        if (!perMonitor)
-            return index >= 0 && index + 1 < _history.Count ? _history[index + 1].Workspace : null;
-
-        for (var i = index < 0 ? 0 : index + 1; i < _history.Count; i++)
-        {
-            if (_history[i].Monitor == monitor)
-                return _history[i].Workspace;
-        }
-
-        return null;
-    }
+    private WorkspaceId? Previous(MonitorId monitor, bool perMonitor) => _shownWorkspaces.Previous(monitor, perMonitor);
 
     private WorkspaceAddress.Context Context() => Context(FocusedId());
 
@@ -458,18 +407,7 @@ public sealed partial class WindowManager
     private void RemoveWorkspace(LiveWorkspace desk)
     {
         _workspaces.Remove(desk);
-        ForgetVisits(desk.Id);
-        foreach (var screen in _monitors)
-        {
-            if (screen.Active == desk.Id)
-                screen.Active = null;
-        }
-
-        foreach (var (monitor, active) in _activeOn.ToArray())
-        {
-            if (active == desk.Id)
-                _activeOn.Remove(monitor);
-        }
+        _shownWorkspaces.Remove(desk.Id);
     }
 
     private WorkspaceId NextFree(MonitorId monitor) => WorkspaceId.FromNumber(FirstFree(monitor), monitor);
@@ -555,25 +493,7 @@ public sealed partial class WindowManager
         if (!to.IsSpecial)
             desk.Monitor = new MonitorId(to.Monitor);
 
-        foreach (var screen in _monitors)
-        {
-            if (screen.Active == from)
-                screen.Active = to;
-            if (screen.Special == from)
-                screen.Special = to;
-        }
-
-        foreach (var (monitor, active) in _activeOn.ToArray())
-        {
-            if (active == from)
-                _activeOn[monitor] = to;
-        }
-
-        for (var i = 0; i < _history.Count; i++)
-        {
-            if (!_history[i].Gone && _history[i].Workspace == from)
-                _history[i] = _history[i] with { Workspace = to };
-        }
+        _shownWorkspaces.Rename(from, to);
 
         _initialWorkspaces.Readdress(from, to);
         (_readdressed ??= []).Add((from, to));
@@ -585,5 +505,4 @@ public sealed partial class WindowManager
             DropIfEmpty(desk.Id);
     }
 
-    private readonly record struct WorkspaceVisit(WorkspaceId Workspace, MonitorId Monitor, bool Gone = false);
 }

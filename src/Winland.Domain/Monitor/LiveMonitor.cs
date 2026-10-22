@@ -20,10 +20,6 @@ internal sealed class LiveMonitor(MonitorId id, Monitor reported, Monitor effect
     /// <summary>The Monitor as Winland uses it, after the monitor rules.</summary>
     public Monitor Effective => Arranged;
 
-    public WorkspaceId? Active { get; set; }
-
-    public WorkspaceId? Special { get; set; }
-
     public bool Focused { get; set; }
 
     /// <summary>The effective rectangle of the whole display.</summary>

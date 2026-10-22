@@ -174,7 +174,7 @@ public sealed partial class WindowManager
             return null;
 
         var middle = new Point(box.X + (box.Width / 2), box.Y + (box.Height / 2));
-        if (MonitorAt(middle) is not { } screen || (screen.Special ?? screen.Active) is not WorkspaceId shown
+        if (MonitorAt(middle) is not { } screen || (SpecialShownOn(screen) ?? ShownOn(screen)) is not WorkspaceId shown
             || FindWorkspace(shown) is not LiveWorkspace target || target.Id == source.Id)
         {
             return null;
