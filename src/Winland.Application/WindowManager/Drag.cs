@@ -173,7 +173,7 @@ public sealed partial class WindowManager
             return null;
 
         var middle = new Point(box.X + (box.Width / 2), box.Y + (box.Height / 2));
-        if (MonitorAt(middle) is not { } screen || (SpecialShownOn(screen) ?? ShownOn(screen)) is not WorkspaceId shown
+        if (MonitorAt(middle) is not { } screen || (_workspaces.Shown.SpecialOn(screen.Id) ?? _workspaces.Shown.Shown(screen.Id)) is not WorkspaceId shown
             || _workspaces.Find(shown) is not LiveWorkspace target || target.Id == source.Id)
         {
             return null;
@@ -204,9 +204,9 @@ public sealed partial class WindowManager
         }
 
         var placements = new List<Placement>();
-        if (IsShown(source.Id))
+        if (_workspaces.Shown.IsShown(source.Id))
             placements.AddRange(source.Layout.Visible());
-        if (IsShown(target.Id))
+        if (_workspaces.Shown.IsShown(target.Id))
             placements.AddRange(target.Layout.Visible());
 
         return View(placements, consumed: true, dispatcher: gesture.Dispatcher, focus: settle ? window : null);
@@ -220,7 +220,7 @@ public sealed partial class WindowManager
             return false;
 
         var focused = FocusedId();
-        if (target.Monitor == focused && target.Id == ActiveOn(focused) && SpecialOn(focused) != target.Id)
+        if (target.Monitor == focused && target.Id == _workspaces.Shown.ActiveOn(focused) && _workspaces.Shown.SpecialOn(focused) != target.Id)
             return false;
 
         FocusState.Remember(target, window);
@@ -328,7 +328,7 @@ public sealed partial class WindowManager
         TakeGroupFocus(there, dragged);
         (_extraEvents ??= []).Add(new ClientIntoGroup(dragged));
         var outcome = Present(there, covered, there.Layout.Visible(), dispatcher: dispatcher, focus: dragged) with { Consumed = dispatcher is not null };
-        return from != there && _workspaces.Find(from.Id) is LiveWorkspace left && IsShown(left.Id)
+        return from != there && _workspaces.Find(from.Id) is LiveWorkspace left && _workspaces.Shown.IsShown(left.Id)
             ? outcome with { Placements = [.. left.Layout.Placed(), .. outcome.Placements] }
             : outcome;
     }

@@ -8,6 +8,7 @@ namespace Winland.Domain;
 internal sealed class ShownWorkspaces
 {
     private readonly HashSet<MonitorId> _live = [];
+    private readonly HashSet<MonitorId> _enabled = [];
     private readonly Dictionary<MonitorId, WorkspaceId> _shown = [];
     private readonly Dictionary<MonitorId, WorkspaceId> _lastShown = [];
     private readonly Dictionary<MonitorId, WorkspaceId> _special = [];
@@ -61,13 +62,16 @@ internal sealed class ShownWorkspaces
     }
 
     /// <summary>
-    /// The Monitors Windows reports now. One that was not live before starts with no Shown workspace and no Special
+    /// The Monitors Windows reports now, and of those the <paramref name="enabled"/> ones, which show what they show.
+    /// All are enabled when it is not given. One that was not live before starts with no Shown workspace and no Special
     /// workspace. One that left keeps only what it showed last.
     /// </summary>
-    public void SetLive(IEnumerable<MonitorId> monitors)
+    public void SetLive(IEnumerable<MonitorId> monitors, IEnumerable<MonitorId>? enabled = null)
     {
         ArgumentNullException.ThrowIfNull(monitors);
         var next = new HashSet<MonitorId>(monitors);
+        _enabled.Clear();
+        _enabled.UnionWith(enabled ?? next);
         foreach (var monitor in _live)
         {
             if (!next.Contains(monitor))
@@ -83,6 +87,40 @@ internal sealed class ShownWorkspaces
         _live.Clear();
         _live.UnionWith(next);
     }
+
+    /// <summary>
+    /// True when an enabled Monitor shows <paramref name="workspace"/>, as its Shown workspace or as the Special workspace
+    /// over it. With no Monitor reported, the primary one shows what it showed last.
+    /// </summary>
+    public bool IsShown(WorkspaceId workspace)
+    {
+        if (workspace.IsSpecial)
+            return ShowingSpecial(workspace) is not null;
+
+        if (_live.Count == 0)
+            return workspace == ActiveOn(MonitorId.Primary);
+
+        return _enabled.Any(monitor => Shown(monitor) == workspace);
+    }
+
+    /// <summary>The enabled Monitor <paramref name="special"/> is shown over, or null.</summary>
+    public MonitorId? ShowingSpecial(WorkspaceId special)
+    {
+        if (_live.Count == 0)
+            return SpecialOn(MonitorId.Primary) == special ? MonitorId.Primary : null;
+
+        foreach (var monitor in _enabled)
+        {
+            if (SpecialOn(monitor) == special)
+                return monitor;
+        }
+
+        return null;
+    }
+
+    /// <summary>True when <paramref name="monitor"/> is enabled and shows a Workspace. With no Monitor reported, every one does.</summary>
+    public bool ShowsAWorkspace(MonitorId monitor) =>
+        _live.Count == 0 || (_enabled.Contains(monitor) && Shown(monitor) is not null);
 
     /// <summary>A Workspace took a new id: every Monitor that shows it, showed it last, or visited it follows.</summary>
     public void Rename(WorkspaceId from, WorkspaceId to)

@@ -33,7 +33,7 @@ public sealed partial class WindowManager
         // The system's maximized state is already undone, so the window goes back where its Layout holds it.
         if (_shownMaximized.Remove(window))
         {
-            return IsShown(desk.Id) && !client.Minimized && desk.Layout.TryBounds(window, out var slot)
+            return _workspaces.Shown.IsShown(desk.Id) && !client.Minimized && desk.Layout.TryBounds(window, out var slot)
                 ? View([new Placement(client.Id, PlacedBounds(client, desk, slot))])
                 : View([]);
         }
@@ -50,7 +50,7 @@ public sealed partial class WindowManager
     {
         if (WorkspaceContaining(drifted.Window) is not LiveWorkspace desk
             || desk.ClientOf(drifted.Window) is not { Minimized: false } client
-            || !IsShown(desk.Id)
+            || !_workspaces.Shown.IsShown(desk.Id)
             || !desk.Layout.TryBounds(drifted.Window, out var slot))
             return View([]);
 

@@ -115,7 +115,7 @@ public sealed partial class WindowManager
         var placements = Restamp(desk, desk.Layout.SetFullscreen(window, mode, clientMode, layoutAware));
         if (mode != FullscreenMode.Fullscreen)
             _restoreClientMaximized.Remove(window);
-        if (!IsShown(desk.Id))
+        if (!_workspaces.Shown.IsShown(desk.Id))
             return View([], dispatcher: dispatcher);
 
         return Present(desk, covered, placements, dispatcher: dispatcher);

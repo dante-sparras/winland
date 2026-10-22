@@ -144,7 +144,7 @@ public sealed partial class WindowManager
         List<Placement>? merged = null;
         foreach (var desk in _workspaces)
         {
-            if (!desk.Layout.TakeMoved() || !IsShown(desk.Id))
+            if (!desk.Layout.TakeMoved() || !_workspaces.Shown.IsShown(desk.Id))
                 continue;
 
             merged ??= [.. placements];
@@ -254,7 +254,7 @@ public sealed partial class WindowManager
         var hidden = new List<Client>();
         foreach (var client in clients)
         {
-            if ((!IsShown(client.Workspace) && !StaysVisible(client)) || IsWaiting(client.Window))
+            if ((!_workspaces.Shown.IsShown(client.Workspace) && !StaysVisible(client)) || IsWaiting(client.Window))
                 hidden.Add(client);
         }
 
@@ -267,10 +267,10 @@ public sealed partial class WindowManager
             screens.Add(new MonitorSnapshot(
                 screen.Id,
                 screen.Effective,
-                ShownOn(screen) ?? WorkspaceId.Initial,
+                _workspaces.Shown.Shown(screen.Id) ?? WorkspaceId.Initial,
                 screen.Id == focused && screen.Effective.Enabled)
             {
-                SpecialWorkspace = SpecialShownOn(screen),
+                SpecialWorkspace = _workspaces.Shown.SpecialOn(screen.Id),
             });
         }
 
@@ -278,7 +278,7 @@ public sealed partial class WindowManager
         {
             Workspaces = workspaces,
             ActiveWorkspace = ActiveId(),
-            SpecialWorkspace = SpecialOn(focused),
+            SpecialWorkspace = _workspaces.Shown.SpecialOn(focused),
             ActiveMonitor = focused,
             Hidden = hidden,
             Monitors = monitors,
@@ -346,7 +346,7 @@ public sealed partial class WindowManager
         {
             placements.AddRange(FocusedWorkspace().Layout.Visible());
             WorkspaceId? overlayId = null;
-            if (SpecialOn(MonitorId.Primary) is WorkspaceId primary && _workspaces.Find(primary) is LiveWorkspace overlay)
+            if (_workspaces.Shown.SpecialOn(MonitorId.Primary) is WorkspaceId primary && _workspaces.Find(primary) is LiveWorkspace overlay)
             {
                 overlayId = overlay.Id;
                 placements.AddRange(overlay.Layout.Visible());
@@ -363,20 +363,20 @@ public sealed partial class WindowManager
 
         foreach (var screen in _monitors)
         {
-            if (!screen.Effective.Enabled || ShownOn(screen) is not WorkspaceId active)
+            if (!screen.Effective.Enabled || _workspaces.Shown.Shown(screen.Id) is not WorkspaceId active)
                 continue;
 
             var desk = _workspaces.Find(active);
             if (desk is not null)
                 placements.AddRange(desk.Layout.Visible());
 
-            if (SpecialShownOn(screen) is WorkspaceId special && _workspaces.Find(special) is LiveWorkspace overlay)
+            if (_workspaces.Shown.SpecialOn(screen.Id) is WorkspaceId special && _workspaces.Find(special) is LiveWorkspace overlay)
                 placements.AddRange(overlay.Layout.Visible());
         }
 
         foreach (var desk in _workspaces)
         {
-            if (!IsShown(desk.Id))
+            if (!_workspaces.Shown.IsShown(desk.Id))
                 AddPinnedPlacements(desk, placements);
         }
 
@@ -385,7 +385,7 @@ public sealed partial class WindowManager
 
     private void AddPinnedPlacements(LiveWorkspace desk, List<Placement> placements)
     {
-        if (!MonitorShowing(desk.Monitor))
+        if (!_workspaces.Shown.ShowsAWorkspace(desk.Monitor))
             return;
 
         foreach (var client in desk.Layout.Clients)
@@ -403,13 +403,13 @@ public sealed partial class WindowManager
         var windows = new List<WindowId>();
         foreach (var desk in _workspaces)
         {
-            if (IsShown(desk.Id))
+            if (_workspaces.Shown.IsShown(desk.Id))
             {
                 windows.AddRange(desk.VisibleWindows());
                 continue;
             }
 
-            if (!MonitorShowing(desk.Monitor))
+            if (!_workspaces.Shown.ShowsAWorkspace(desk.Monitor))
                 continue;
 
             foreach (var client in desk.Layout.Clients)
@@ -427,7 +427,7 @@ public sealed partial class WindowManager
         var windows = new List<WindowId>();
         foreach (var desk in _workspaces)
         {
-            if (IsShown(desk.Id))
+            if (_workspaces.Shown.IsShown(desk.Id))
             {
                 var covered = desk.Covered();
                 foreach (var client in desk.Layout.Clients)
@@ -444,7 +444,7 @@ public sealed partial class WindowManager
                 if (client.Minimized)
                     continue;
 
-                if (IsPinned(client.Window) && MonitorShowing(desk.Monitor))
+                if (IsPinned(client.Window) && _workspaces.Shown.ShowsAWorkspace(desk.Monitor))
                     continue;
 
                 windows.Add(client.Window);

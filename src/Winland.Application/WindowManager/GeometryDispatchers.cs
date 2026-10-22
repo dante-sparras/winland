@@ -49,7 +49,7 @@ public sealed partial class WindowManager
         var covered = desk.Covered();
         var delta = string.Create(CultureInfo.InvariantCulture, $"{size.X - box.Width} {size.Y - box.Height}");
         var placements = desk.Layout.ResizeActive(window, delta);
-        return IsShown(desk.Id)
+        return _workspaces.Shown.IsShown(desk.Id)
             ? Present(desk, covered, placements, dispatcher: name)
             : View([], dispatcher: name);
     }
@@ -170,7 +170,7 @@ public sealed partial class WindowManager
         _mapPlaced.Remove(window);
         var covered = desk.Covered();
         var placements = desk.Layout.PlaceFloating(window, bounds);
-        return IsShown(desk.Id)
+        return _workspaces.Shown.IsShown(desk.Id)
             ? Present(desk, covered, placements, dispatcher: name)
             : View([], dispatcher: name);
     }

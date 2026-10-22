@@ -124,7 +124,7 @@ public sealed partial class WindowManager
             "border_size" => desk.Layout.Apply(desk.Options),
             _ => [],
         };
-        return View(IsShown(desk.Id) ? placements : [], dispatcher: dispatcher);
+        return View(_workspaces.Shown.IsShown(desk.Id) ? placements : [], dispatcher: dispatcher);
     }
 
     // The variables a min_size or max_size expression reads, for this window as it is now.

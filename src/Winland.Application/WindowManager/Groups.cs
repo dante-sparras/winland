@@ -93,7 +93,7 @@ public sealed partial class WindowManager
             TakeGroupFocus(desk, group.Shown);
         }
 
-        return IsShown(desk.Id)
+        return _workspaces.Shown.IsShown(desk.Id)
             ? Present(desk, covered, desk.Layout.Visible(), dispatcher: name, focus: focus)
             : View([], dispatcher: name);
     }
@@ -222,7 +222,7 @@ public sealed partial class WindowManager
         if (!_config.BindOptions.MonitorFallback || !MonitorSelector.TryDirection(direction, out var side)
             || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from
             || MonitorSelector.InDirection(Targets(), from, side) is not MonitorTarget neighbor
-            || MonitorOf(neighbor) is not LiveMonitor screen || ShownOn(screen) is not WorkspaceId shown
+            || MonitorOf(neighbor) is not LiveMonitor screen || _workspaces.Shown.Shown(screen.Id) is not WorkspaceId shown
             || _workspaces.Find(shown) is not LiveWorkspace there || !desk.Layout.TryBounds(window, out var box)
             || AdjacentOn(screen, Ideal(desk, window, box), side) is not WindowId found)
             return null;
@@ -260,7 +260,7 @@ public sealed partial class WindowManager
         TakeGroupFocus(there, window);
         (_extraEvents ??= []).Add(new ClientIntoGroup(window));
         var outcome = Present(there, covered, there.Layout.Visible(), dispatcher: name, focus: window);
-        return _workspaces.Find(desk.Id) is LiveWorkspace left && IsShown(left.Id)
+        return _workspaces.Find(desk.Id) is LiveWorkspace left && _workspaces.Shown.IsShown(left.Id)
             ? outcome with { Placements = [.. left.Layout.Placed(), .. outcome.Placements] }
             : outcome;
     }
@@ -311,7 +311,7 @@ public sealed partial class WindowManager
         var focus = _config.Groups.FocusRemovedWindow || exit != GroupExit.Detached ? window : group.Shown;
         TakeGroupFocus(desk, focus);
         (_extraEvents ??= []).Add(new ClientOutOfGroup(window));
-        return IsShown(desk.Id)
+        return _workspaces.Shown.IsShown(desk.Id)
             ? Present(desk, covered, desk.Layout.Visible(), dispatcher: name, focus: focus)
             : View([], dispatcher: name);
     }

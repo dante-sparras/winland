@@ -69,8 +69,8 @@ public sealed partial class WindowManager
 
         if (WorkspaceContaining(window) is { } desk
             && !desk.Id.IsSpecial
-            && IsShown(desk.Id)
-            && SpecialOn(desk.Monitor) is not null
+            && _workspaces.Shown.IsShown(desk.Id)
+            && _workspaces.Shown.SpecialOn(desk.Monitor) is not null
             && !_config.Input.SpecialFallthrough)
         {
             var hidden = ConcealSpecial(desk.Monitor);
@@ -78,7 +78,7 @@ public sealed partial class WindowManager
             return View([], hide: hidden);
         }
 
-        if (WorkspaceContaining(window) is { } owner && IsShown(owner.Id))
+        if (WorkspaceContaining(window) is { } owner && _workspaces.Shown.IsShown(owner.Id))
         {
             var covered = owner.Covered();
             var target = FocusUnderFullscreen(owner, window, out var refit);
@@ -237,7 +237,7 @@ public sealed partial class WindowManager
     private bool IsShownClient(WindowId window)
     {
         var desk = WorkspaceContaining(window);
-        if (desk is null || !IsShown(desk.Id))
+        if (desk is null || !_workspaces.Shown.IsShown(desk.Id))
             return false;
 
         return desk.ClientOf(window) is { Minimized: false };

@@ -242,7 +242,7 @@ public sealed partial class WindowManager
     private WorkspaceId LaunchWorkspace()
     {
         var monitor = FocusedId();
-        return SpecialOn(monitor) ?? ActiveOn(monitor);
+        return _workspaces.Shown.SpecialOn(monitor) ?? _workspaces.Shown.ActiveOn(monitor);
     }
 
     /// <summary>
