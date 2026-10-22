@@ -46,6 +46,7 @@ public sealed partial class WindowManager
 
         _monitors.Clear();
         _monitors.AddRange(next);
+        _shownWorkspaces.SetLive(next.Select(screen => screen.Id));
 
         var enabled = EnabledMonitors();
         LiveMonitor? home = null;
@@ -67,7 +68,6 @@ public sealed partial class WindowManager
         DropEmpty();
         RefitAll();
         EnsureFocus(home);
-        SyncActive();
         var refocus = RefocusShown();
         return View(ShownPlacements(), ShownWindows(), HiddenWindows(), focus: refocus);
     }
@@ -107,7 +107,7 @@ public sealed partial class WindowManager
     private void Depart(LiveMonitor screen, LiveMonitor? host)
     {
         var key = ReturnKey(screen.Reported);
-        if (screen.Active is WorkspaceId active
+        if (_shownWorkspaces.LastShown(screen.Id) is WorkspaceId active
             && FindWorkspace(active) is { Id.IsSpecial: false } shown
             && shown.Id.TryGetNumber(out var shownNumber))
             _rememberedActive[key] = shownNumber;
@@ -169,7 +169,7 @@ public sealed partial class WindowManager
             return;
 
         var shown = WorkspaceFor(WorkspaceId.FromNumber(remembered, screen.Id), screen.Id);
-        screen.Active = shown.Id;
+        _shownWorkspaces.Show(screen.Id, shown.Id);
     }
 
     private static long ShownNumber(LiveWorkspace desk) =>
@@ -180,7 +180,7 @@ public sealed partial class WindowManager
         var claimed = new HashSet<WorkspaceId>();
         foreach (var screen in enabled)
         {
-            if (screen.Active is WorkspaceId active && OnMonitor(screen, active) is not null && claimed.Add(active))
+            if (ShownOn(screen) is WorkspaceId active && OnMonitor(screen, active) is not null && claimed.Add(active))
                 continue;
 
             if (TryDefault(screen, out var preferred) && claimed.Add(preferred))
@@ -188,7 +188,7 @@ public sealed partial class WindowManager
                 var chosen = WorkspaceFor(preferred, screen.Id);
                 if (chosen.Monitor == screen.Id)
                 {
-                    screen.Active = chosen.Id;
+                    _shownWorkspaces.Show(screen.Id, chosen.Id);
                     continue;
                 }
 
@@ -230,14 +230,14 @@ public sealed partial class WindowManager
             else
                 own = empty ?? WorkspaceFor(NextFree(screen.Id), screen.Id);
 
-            screen.Active = own.Id;
+            _shownWorkspaces.Show(screen.Id, own.Id);
             claimed.Add(own.Id);
         }
 
         foreach (var screen in _monitors)
         {
-            if (!screen.Effective.Enabled)
-                screen.Active ??= WorkspaceId.Initial;
+            if (!screen.Effective.Enabled && ShownOn(screen) is null)
+                _shownWorkspaces.Show(screen.Id, WorkspaceId.Initial);
         }
     }
 
@@ -294,15 +294,6 @@ public sealed partial class WindowManager
         }
 
         Remember(ActiveOn(FocusedId()), FocusedId());
-    }
-
-    private void SyncActive()
-    {
-        foreach (var screen in _monitors)
-        {
-            if (screen.Active is WorkspaceId active)
-                _activeOn[screen.Id] = active;
-        }
     }
 
     private LiveMonitor? MonitorFor(WindowAppeared appeared)

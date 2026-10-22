@@ -224,7 +224,7 @@ public sealed partial class WindowManager
         if (!_config.BindOptions.MonitorFallback || !MonitorSelector.TryDirection(direction, out var side)
             || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from
             || MonitorSelector.InDirection(Targets(), from, side) is not MonitorTarget neighbor
-            || MonitorOf(neighbor) is not LiveMonitor screen || screen.Active is not WorkspaceId shown
+            || MonitorOf(neighbor) is not LiveMonitor screen || ShownOn(screen) is not WorkspaceId shown
             || FindWorkspace(shown) is not LiveWorkspace there || !desk.Layout.TryBounds(window, out var box)
             || AdjacentOn(screen, Ideal(desk, window, box), side) is not WindowId found)
             return null;

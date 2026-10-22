@@ -3,26 +3,9 @@ namespace Winland.Application;
 /// <summary>Special Workspaces: <c>togglespecialworkspace</c> and how they show over a Monitor.</summary>
 public sealed partial class WindowManager
 {
-    private readonly Dictionary<MonitorId, WorkspaceId> _specialOn = [];
+    private WorkspaceId? SpecialOn(MonitorId monitor) => _shownWorkspaces.SpecialOn(monitor);
 
-    private WorkspaceId? SpecialOn(MonitorId monitor)
-    {
-        if (MonitorById(monitor) is { } screen)
-            return screen.Special;
-
-        return _specialOn.TryGetValue(monitor, out var stored) ? stored : null;
-    }
-
-    private void SetSpecial(MonitorId monitor, WorkspaceId? workspace)
-    {
-        if (MonitorById(monitor) is { } screen)
-            screen.Special = workspace;
-
-        if (workspace is WorkspaceId id)
-            _specialOn[monitor] = id;
-        else
-            _specialOn.Remove(monitor);
-    }
+    private void SetSpecial(MonitorId monitor, WorkspaceId? workspace) => _shownWorkspaces.ShowSpecial(monitor, workspace);
 
     private MonitorId? MonitorShowing(WorkspaceId workspace)
     {
@@ -31,7 +14,7 @@ public sealed partial class WindowManager
 
         foreach (var screen in _monitors)
         {
-            if (screen.Effective.Enabled && screen.Special == workspace)
+            if (screen.Effective.Enabled && SpecialShownOn(screen) == workspace)
                 return screen.Id;
         }
 

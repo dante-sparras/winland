@@ -132,7 +132,7 @@ public sealed partial class WindowManager
             screen = RuleMonitor(decision.Placement.Monitor, screen);
 
         var monitor = RestoredMonitor(restored, screen);
-        var active = screen is null ? ActiveOn(monitor) : screen.Active ?? ActiveOn(monitor);
+        var active = ActiveOn(monitor);
         var current = SpecialOn(monitor) ?? active;
         // A window rule's Workspace number is the focused Monitor's Workspace of that number.
         var rule = WorkspaceAddress.ParseRule(decision.Workspace, Context());

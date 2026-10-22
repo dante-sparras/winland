@@ -5,8 +5,7 @@ public sealed partial class WindowManager
 {
     private readonly List<LiveWorkspace> _workspaces = [];
     private readonly List<LiveMonitor> _monitors = [];
-    private readonly Dictionary<MonitorId, WorkspaceId> _activeOn = [];
-    private readonly List<WorkspaceVisit> _history = [];
+    private readonly ShownWorkspaces _shownWorkspaces = new();
     private readonly Queue<Launch> _born = new();
     private readonly PidFollowSet _follow = new();
     private readonly InitialWorkspaces _initialWorkspaces = new();
@@ -60,7 +59,7 @@ public sealed partial class WindowManager
         if (config is not null)
             Use(AppliedConfig.From(config, accent: null));
         NoteConfigErrors(config);
-        _activeOn[MonitorId.Primary] = WorkspaceId.Initial;
+        _shownWorkspaces.Show(MonitorId.Primary, WorkspaceId.Initial);
         WorkspaceFor(WorkspaceId.Initial);
         EnsurePersistent();
         Remember(WorkspaceId.Initial, MonitorId.Primary);
@@ -166,6 +165,7 @@ public sealed partial class WindowManager
         try
         {
             var outcome = run();
+            CheckShownWorkspaces();
             if (input is not null)
             {
                 outcome = WakeDisplays(input, outcome);

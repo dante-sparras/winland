@@ -5,12 +5,24 @@ public sealed partial class WindowManager
 {
     private WorkspaceId ActiveId() => ActiveOn(FocusedId());
 
-    private WorkspaceId ActiveOn(MonitorId monitor)
-    {
-        if (MonitorById(monitor) is { Active: WorkspaceId active })
-            return active;
+    private WorkspaceId ActiveOn(MonitorId monitor) => _shownWorkspaces.ActiveOn(monitor);
 
-        return _activeOn.TryGetValue(monitor, out var stored) ? stored : WorkspaceId.Initial;
+    // The Shown workspace of a live Monitor, and the Special workspace over it.
+    private WorkspaceId? ShownOn(LiveMonitor screen) => _shownWorkspaces.Shown(screen.Id);
+
+    private WorkspaceId? SpecialShownOn(LiveMonitor screen) => _shownWorkspaces.SpecialOn(screen.Id);
+
+    // Each enabled Monitor shows a Workspace no other enabled Monitor shows. A step may break this on its way, so it is
+    // checked after each one, in debug builds, where the tests run.
+    [System.Diagnostics.Conditional("DEBUG")]
+    private void CheckShownWorkspaces()
+    {
+        var seen = new HashSet<WorkspaceId>();
+        foreach (var screen in _monitors)
+        {
+            if (screen.Effective.Enabled && ShownOn(screen) is WorkspaceId shown && !seen.Add(shown))
+                throw new InvalidOperationException($"Workspace {shown} is shown on two Monitors.");
+        }
     }
 
     private MonitorId FocusedId()
@@ -43,7 +55,7 @@ public sealed partial class WindowManager
 
         foreach (var screen in _monitors)
         {
-            if (screen.Effective.Enabled && screen.Active == id)
+            if (screen.Effective.Enabled && ShownOn(screen) == id)
                 return true;
         }
 
