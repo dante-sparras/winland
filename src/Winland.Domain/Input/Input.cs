@@ -144,8 +144,6 @@ public sealed record MonitorsChanged(IReadOnlyList<Monitor> Monitors) : Event;
 /// <summary>The Windows accent. The active border follows it unless the config set <c>general:col.active_border</c>.</summary>
 public sealed record AccentChanged(BorderColor Color) : Event;
 
-public sealed record InputInhibited(bool Inhibited) : Event;
-
 public sealed record ConfigLoaded(ConfigDocument Config) : Command;
 
 public sealed record Configure(ConfigDocument Document) : Command;

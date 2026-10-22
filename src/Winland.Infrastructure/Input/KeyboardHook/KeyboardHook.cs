@@ -80,7 +80,6 @@ public sealed partial class KeyboardHook : IDisposable
     private uint _hookThread;
     private volatile KeyLayout _layout = KeyLayout.UnitedStates;
     private volatile nint _layoutHandle = unchecked((nint)(-1));
-    private volatile int _inhibited;
     private bool _listening;
     private volatile bool _disposed;
 
@@ -231,7 +230,7 @@ public sealed partial class KeyboardHook : IDisposable
     /// </summary>
     internal bool Lost()
     {
-        if (_disposed || _hook.IsNull || _inhibited != 0)
+        if (_disposed || _hook.IsNull || _session.Inhibited)
             return false;
 
         var info = new LASTINPUTINFO { cbSize = (uint)Marshal.SizeOf<LASTINPUTINFO>() };

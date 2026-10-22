@@ -1,7 +1,7 @@
 namespace Winland.Domain;
 
 /// <summary>Matches a key or pointer button against a bind table. Takes no lock.</summary>
-public static partial class BindMatcher
+public sealed partial class BindSession
 {
     private static readonly Dictionary<string, Modifier> ModifierKeys = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -20,59 +20,58 @@ public static partial class BindMatcher
         ["ISO_Level3_Shift"] = Modifier.Mod5,
     };
 
-    public static BindDecision Decide(BindTable table, BindSession session, Input input)
+    public BindDecision Decide(BindTable table, Input input)
     {
         ArgumentNullException.ThrowIfNull(table);
-        ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(input);
-        session.EventDevice = null;
-        session.DeviceMatchMask = null;
+        _eventDevice = null;
+        _deviceMatchMask = null;
         return input switch
         {
-            KeyPressed pressed => Shadow(table, session, OnPress(table, session, pressed.Key, pressed.ScanCode, mouse: false, pressed.Device), pressed.Key),
-            KeyReleased released => Shadow(table, session, OnRelease(table, session, released.Key, released.ScanCode, mouse: false, released.Device), excluded: null),
-            PointerButtonPressed button => Shadow(table, session, OnButton(table, session, button.Button, button.Position, up: false), button.Button),
-            PointerButtonReleased button => Shadow(table, session, OnButton(table, session, button.Button, button.Position, up: true), excluded: null),
-            PointerMoved moved => OnMoved(session, moved.Position),
-            WheelTurned wheel => OnWheel(table, session, wheel),
-            LongPressElapsed => OnLongPress(table, session),
+            KeyPressed pressed => Shadow(table, OnPress(table, pressed.Key, pressed.ScanCode, mouse: false, pressed.Device), pressed.Key),
+            KeyReleased released => Shadow(table, OnRelease(table, released.Key, released.ScanCode, mouse: false, released.Device), excluded: null),
+            PointerButtonPressed button => Shadow(table, OnButton(table, button.Button, button.Position, up: false), button.Button),
+            PointerButtonReleased button => Shadow(table, OnButton(table, button.Button, button.Position, up: true), excluded: null),
+            PointerMoved moved => OnMoved(moved.Position),
+            WheelTurned wheel => OnWheel(table, wheel),
+            LongPressElapsed => OnLongPress(table),
             _ => throw new ArgumentOutOfRangeException(nameof(input), input, "No handler for this input."),
         };
     }
 
     /// <summary>Drops held keys whose release the session missed, such as one on the lock screen.</summary>
-    public static void Forget(BindSession session, Func<string, bool> stillDown)
+    public void Forget(Func<string, bool> stillDown)
     {
-        ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(stillDown);
-        Drop(session.DownKeys, session.CaughtKeys, session.PassedKeys, stillDown);
-        Drop(session.DownButtons, session.CaughtButtons, session.PassedButtons, stillDown);
-        session.MaskedKeys.IntersectWith(session.DownKeys);
-        foreach (var key in session.PressedUnder.Keys.ToArray())
+        Drop(_downKeys, _caughtKeys, _passedKeys, stillDown);
+        Drop(_downButtons, _caughtButtons, _passedButtons, stillDown);
+        _buttonsHeld = _downButtons.Count;
+        _maskedKeys.IntersectWith(_downKeys);
+        foreach (var key in _pressedUnder.Keys.ToArray())
         {
-            if (!session.DownKeys.Contains(key) && !session.DownButtons.Contains(key))
+            if (!_downKeys.Contains(key) && !_downButtons.Contains(key))
             {
-                session.PressedUnder.Remove(key);
-                session.ScanCodes.Remove(key);
-                session.Devices.Remove(key);
+                _pressedUnder.Remove(key);
+                _scanCodes.Remove(key);
+                _devices.Remove(key);
             }
         }
 
-        foreach (var (key, _) in session.Order.ToArray())
+        foreach (var (key, _) in Order.ToArray())
         {
-            if (!session.DownKeys.Contains(key))
-                session.Lift(key);
+            if (!_downKeys.Contains(key))
+                Lift(key);
         }
 
-        session.Held = 0;
-        foreach (var key in session.DownKeys)
+        Held = 0;
+        foreach (var key in _downKeys)
         {
             if (ModifierKeys.TryGetValue(key, out var modifier))
-                session.Held |= modifier;
+                Held |= modifier;
         }
 
-        if (session.LongPressKey is string pending && !(session.LongPressMouse ? session.DownButtons : session.DownKeys).Contains(pending))
-            session.LongPressKey = null;
+        if (LongPressKey is string pending && !(_longPressMouse ? _downButtons : _downKeys).Contains(pending))
+            LongPressKey = null;
     }
 
     private static void Drop(HashSet<string> down, HashSet<string> caught, HashSet<string> passed, Func<string, bool> stillDown)
@@ -88,37 +87,40 @@ public static partial class BindMatcher
         }
     }
 
-    private static BindDecision OnButton(BindTable table, BindSession session, string button, Point position, bool up)
+    private BindDecision OnButton(BindTable table, string button, Point position, bool up)
     {
-        session.Pointer = position;
+        Pointer = position;
         return up
-            ? OnRelease(table, session, button, scanCode: 0, mouse: true, device: null)
-            : OnPress(table, session, button, scanCode: 0, mouse: true, device: null);
+            ? OnRelease(table, button, scanCode: 0, mouse: true, device: null)
+            : OnPress(table, button, scanCode: 0, mouse: true, device: null);
     }
 
-    private static BindDecision OnMoved(BindSession session, Point position)
+    private BindDecision OnMoved( Point position)
     {
-        session.Pointer = position;
+        Pointer = position;
         return Passed();
     }
 
-    private static BindDecision OnPress(BindTable table, BindSession session, string key, int scanCode, bool mouse, string? device)
+    private BindDecision OnPress(BindTable table, string key, int scanCode, bool mouse, string? device)
     {
         if (key.Length == 0)
             return Passed();
 
-        var down = mouse ? session.DownButtons : session.DownKeys;
+        var down = mouse ? _downButtons : _downKeys;
         var repeat = !down.Add(key);
+        if (mouse)
+            _buttonsHeld = _downButtons.Count;
+
         if (!mouse && ModifierKeys.TryGetValue(key, out var modifier))
-            session.Held |= modifier;
+            Held |= modifier;
 
-        ApplyDevice(session, key, device, remember: !repeat && !mouse);
+        ApplyDevice(key, device, remember: !repeat && !mouse);
         if (repeat)
-            return OnRepeat(table, session, key, scanCode, mouse);
+            return OnRepeat(table, key, scanCode, mouse);
 
-        session.Remember(key, mouse);
-        session.PressedUnder[key] = MaskFor(session, key, mouse);
-        session.ScanCodes[key] = scanCode;
+        Remember(key, mouse);
+        _pressedUnder[key] = MaskFor(key, mouse);
+        _scanCodes[key] = scanCode;
         var immediate = new List<Bind>();
         var deferred = new List<Bind>();
         var longPress = new List<Bind>();
@@ -127,12 +129,12 @@ public static partial class BindMatcher
         List<Bind> found;
         if (mouse || ModifierKeys.ContainsKey(key))
         {
-            found = Collect(table, session, key, scanCode, mouse, releasing: false, session.Submap);
+            found = Collect(table, key, scanCode, mouse, releasing: false, Submap);
         }
         else
         {
-            session.Order.Add((key, scanCode));
-            var chords = MatchChords(table, session, key, scanCode);
+            Order.Add((key, scanCode));
+            var chords = MatchChords(table, key, scanCode);
             found = chords.Immediate;
             heldBack = chords.HeldBack;
             claims = chords.Claims;
@@ -148,11 +150,11 @@ public static partial class BindMatcher
                 immediate.Add(bind);
         }
 
-        var passed = mouse ? session.PassedButtons : session.PassedKeys;
+        var passed = mouse ? _passedButtons : _passedKeys;
         if (immediate.Count == 0 && deferred.Count == 0 && longPress.Count == 0 && heldBack == 0 && !claims)
         {
             passed.Add(key);
-            return CancelLongPress(session, Passed());
+            return CancelLongPress(Passed());
         }
 
         // A long press has not fired yet, so it does not consume the chord on the way down. A bind held back for a
@@ -168,7 +170,7 @@ public static partial class BindMatcher
         {
             if (!hard && CanFail(immediate))
                 release = [];
-            Catch(session, key, mouse, release);
+            Catch(key, mouse, release);
         }
         else
         {
@@ -177,25 +179,25 @@ public static partial class BindMatcher
 
         if (longPress.Count == 0)
         {
-            session.LongPressKey = null;
-            return WithFailure(MaskHeld(session, Ran(immediate, consumed, trigger)) with { DisarmLongPress = true }, release);
+            LongPressKey = null;
+            return WithFailure(MaskHeld(Ran(immediate, consumed, trigger)) with { DisarmLongPress = true }, release);
         }
 
-        session.LongPressKey = key;
-        session.LongPressCode = scanCode;
-        session.LongPressMouse = mouse;
-        return WithFailure(MaskHeld(session, Ran(immediate, consumed, trigger)) with
+        LongPressKey = key;
+        _longPressCode = scanCode;
+        _longPressMouse = mouse;
+        return WithFailure(MaskHeld(Ran(immediate, consumed, trigger)) with
         {
             ArmLongPressMs = table.LongPressDelay,
             DisarmLongPress = true,
         }, release);
     }
 
-    private static BindDecision OnRepeat(BindTable table, BindSession session, string key, int scanCode, bool mouse)
+    private BindDecision OnRepeat(BindTable table, string key, int scanCode, bool mouse)
     {
-        var caught = mouse ? session.CaughtButtons : session.CaughtKeys;
+        var caught = mouse ? _caughtButtons : _caughtKeys;
         var repeating = new List<Bind>();
-        foreach (var bind in Collect(table, session, key, scanCode, mouse, releasing: false, session.Remembered(key, mouse)))
+        foreach (var bind in Collect(table, key, scanCode, mouse, releasing: false, Remembered(key, mouse)))
         {
             if (bind.Flags.HasFlag(BindFlag.Repeat) && !bind.Flags.HasFlag(BindFlag.Release) && !bind.Flags.HasFlag(BindFlag.LongPress))
                 repeating.Add(bind);
@@ -211,43 +213,46 @@ public static partial class BindMatcher
         if (consumed && !hard && CanFail(repeating))
             release = [];
         if (consumed)
-            Catch(session, key, mouse, release);
+            Catch(key, mouse, release);
 
         // A key already caught stays swallowed. A non-consuming repeat does not catch a key on its own.
         var trigger = new BindTrigger(key, scanCode, Pressed: true);
-        return WithFailure(MaskHeld(session, Ran(repeating, consumed, trigger)), release);
+        return WithFailure(MaskHeld(Ran(repeating, consumed, trigger)), release);
     }
 
-    private static BindDecision OnRelease(BindTable table, BindSession session, string key, int scanCode, bool mouse, string? device)
+    private BindDecision OnRelease(BindTable table, string key, int scanCode, bool mouse, string? device)
     {
-        var down = mouse ? session.DownButtons : session.DownKeys;
+        var down = mouse ? _downButtons : _downKeys;
         if (key.Length == 0 || !down.Remove(key))
             return Passed();
 
-        ApplyDevice(session, key, device, remember: false);
+        if (mouse)
+            _buttonsHeld = _downButtons.Count;
+
+        ApplyDevice(key, device, remember: false);
         if (!mouse)
-            ReleaseModifier(session, key);
+            ReleaseModifier(key);
 
-        var caughtSet = mouse ? session.CaughtButtons : session.CaughtKeys;
+        var caughtSet = mouse ? _caughtButtons : _caughtKeys;
         var caught = caughtSet.Remove(key);
-        var passed = (mouse ? session.PassedButtons : session.PassedKeys).Remove(key);
-        var masked = !mouse && session.MaskedKeys.Remove(key);
+        var passed = (mouse ? _passedButtons : _passedKeys).Remove(key);
+        var masked = !mouse && _maskedKeys.Remove(key);
 
-        var (submap, anchor) = session.Forget(key, mouse);
+        var (submap, anchor) = Forget(key, mouse);
 
         // A bind a longer chord held back runs when its key is released, before the release binds.
         var fire = new List<Bind>();
-        if (!mouse && session.HeldBack.TryGetValue(key, out var heldBack))
+        if (!mouse && _heldBack.TryGetValue(key, out var heldBack))
             fire.AddRange(heldBack);
 
-        fire.AddRange(Collect(table, session, key, scanCode, mouse, releasing: true, submap, anchor));
-        session.PressedUnder.Remove(key);
-        session.ScanCodes.Remove(key);
-        session.Devices.Remove(key);
+        fire.AddRange(Collect(table, key, scanCode, mouse, releasing: true, submap, anchor));
+        _pressedUnder.Remove(key);
+        _scanCodes.Remove(key);
+        _devices.Remove(key);
         if (!mouse)
-            session.Lift(key);
+            Lift(key);
 
-        session.LongPressKey = null;
+        LongPressKey = null;
 
         // The OS saw this press, so it must see the release, or it keeps the key down. An auto-consuming release bind
         // therefore cannot swallow the release: its press was not claimed, so Windows already has the press.
@@ -274,35 +279,35 @@ public static partial class BindMatcher
     // As Winland does after a caught press, which skips the key just pressed, and after every release: a
     // release bind on one key that a held key fully matches is shadowed, so it does not run when that key is released.
     // With "bindr = ALT, Alt_L" and "bind = ALT, P", Alt+P does not also run the release bind.
-    private static BindDecision Shadow(BindTable table, BindSession session, BindDecision decision, string? excluded)
+    private BindDecision Shadow(BindTable table, BindDecision decision, string? excluded)
     {
         if (excluded is not null && !decision.Consumed)
             return decision;
 
-        session.Shadowed.Clear();
-        foreach (var bind in table.Active(session.Submap))
+        _shadowed.Clear();
+        foreach (var bind in table.Active(Submap))
         {
             if (!bind.Flags.HasFlag(BindFlag.Release) || bind.Flags.HasFlag(BindFlag.Transparent) || Parts(bind).Length > 1 || IsMouseBind(bind) || IsCatchAll(bind))
                 continue;
 
-            foreach (var held in session.DownKeys)
+            foreach (var held in _downKeys)
             {
                 if (held.Equals(excluded, StringComparison.OrdinalIgnoreCase))
                     continue;
 
                 // A device bind matches the keyboard that held key went down on, not the key being shadowed now.
-                var savedDevice = session.EventDevice;
+                var savedDevice = _eventDevice;
                 var named = bind.Devices is not null;
                 if (named)
-                    session.EventDevice = session.Devices.TryGetValue(held, out var remembered) ? remembered : null;
+                    _eventDevice = _devices.TryGetValue(held, out var remembered) ? remembered : null;
 
-                var matched = Eligible(bind, session, held, session.ScanCodeOf(held), mouse: false, releasing: true, anyKey: false);
+                var matched = Eligible(bind, held, ScanCodeOf(held), mouse: false, releasing: true, anyKey: false);
                 if (named)
-                    session.EventDevice = savedDevice;
+                    _eventDevice = savedDevice;
 
                 if (matched)
                 {
-                    session.Shadowed.Add(bind);
+                    _shadowed.Add(bind);
                     break;
                 }
             }
@@ -312,62 +317,62 @@ public static partial class BindMatcher
     }
 
     // A swallowed chord under a Super or Alt the OS saw gets one mask per hold.
-    private static BindDecision MaskHeld(BindSession session, BindDecision decision)
+    private BindDecision MaskHeld( BindDecision decision)
     {
         if (!decision.Consumed)
             return decision;
 
         var mask = false;
-        foreach (var key in session.PassedKeys)
+        foreach (var key in _passedKeys)
         {
-            if (ModifierKeys.TryGetValue(key, out var modifier) && modifier is Modifier.Super or Modifier.Alt && session.MaskedKeys.Add(key))
+            if (ModifierKeys.TryGetValue(key, out var modifier) && modifier is Modifier.Super or Modifier.Alt && _maskedKeys.Add(key))
                 mask = true;
         }
 
         return mask ? decision with { Mask = true } : decision;
     }
 
-    private static BindDecision OnWheel(BindTable table, BindSession session, WheelTurned wheel)
+    private BindDecision OnWheel(BindTable table, WheelTurned wheel)
     {
         if (wheel.Key.Length == 0)
             return Passed();
 
-        if (session.ScrollSeen && wheel.TimeMs - session.ScrollAtMs < table.ScrollDelay)
-            return CancelLongPress(session, Passed());
+        if (_scrollSeen && wheel.TimeMs - _scrollAtMs < table.ScrollDelay)
+            return CancelLongPress(Passed());
 
-        session.ScrollSeen = true;
-        session.ScrollAtMs = wheel.TimeMs;
+        _scrollSeen = true;
+        _scrollAtMs = wheel.TimeMs;
         var pressing = new List<Bind>();
-        foreach (var bind in Collect(table, session, wheel.Key, scanCode: 0, mouse: false, releasing: false, session.Submap))
+        foreach (var bind in Collect(table, wheel.Key, scanCode: 0, mouse: false, releasing: false, Submap))
         {
             if (!bind.Flags.HasFlag(BindFlag.Release) && !bind.Flags.HasFlag(BindFlag.LongPress))
                 pressing.Add(bind);
         }
 
         if (pressing.Count == 0)
-            return CancelLongPress(session, Passed());
+            return CancelLongPress(Passed());
 
         var claim = Classify(pressing);
         List<string>? release = null;
         if (!claim.Hard && claim.Conditional && CanFail(pressing))
             release = [];
-        return WithFailure(MaskHeld(session, Ran(pressing, claim.Hard || claim.Conditional, trigger: null)) with { DisarmLongPress = true }, release);
+        return WithFailure(MaskHeld(Ran(pressing, claim.Hard || claim.Conditional, trigger: null)) with { DisarmLongPress = true }, release);
     }
 
-    private static BindDecision OnLongPress(BindTable table, BindSession session)
+    private BindDecision OnLongPress(BindTable table)
     {
-        if (session.LongPressKey is not string key)
+        if (LongPressKey is not string key)
             return Passed();
 
-        ApplyDevice(session, key, device: null, remember: false);
-        var mouse = session.LongPressMouse;
-        session.LongPressKey = null;
-        var down = mouse ? session.DownButtons : session.DownKeys;
+        ApplyDevice(key, device: null, remember: false);
+        var mouse = _longPressMouse;
+        LongPressKey = null;
+        var down = mouse ? _downButtons : _downKeys;
         if (!down.Contains(key))
             return new BindDecision(false, null) { DisarmLongPress = true };
 
         var longPress = new List<Bind>();
-        foreach (var bind in Collect(table, session, key, session.LongPressCode, mouse, releasing: false, session.Remembered(key, mouse)))
+        foreach (var bind in Collect(table, key, _longPressCode, mouse, releasing: false, Remembered(key, mouse)))
         {
             if (bind.Flags.HasFlag(BindFlag.LongPress) && !bind.Flags.HasFlag(BindFlag.Release))
                 longPress.Add(bind);
@@ -380,8 +385,8 @@ public static partial class BindMatcher
         List<string>? release = null;
         if (!claim.Hard && claim.Conditional && CanFail(longPress))
             release = [];
-        var trigger = new BindTrigger(key, session.LongPressCode, Pressed: true);
-        return WithFailure(MaskHeld(session, Ran(longPress, claim.Hard || claim.Conditional, trigger)) with { DisarmLongPress = true }, release);
+        var trigger = new BindTrigger(key, _longPressCode, Pressed: true);
+        return WithFailure(MaskHeld(Ran(longPress, claim.Hard || claim.Conditional, trigger)) with { DisarmLongPress = true }, release);
     }
 
     private static BindDecision WithFailure(BindDecision decision, List<string>? release) =>

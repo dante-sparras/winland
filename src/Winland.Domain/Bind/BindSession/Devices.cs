@@ -1,7 +1,7 @@
 namespace Winland.Domain;
 
 /// <summary>Device binds: binds limited to named keyboards, which a raw input packet runs after the hook has decided the key.</summary>
-public static partial class BindMatcher
+public sealed partial class BindSession
 {
     /// <summary>
     /// Runs non-consuming device binds for one raw packet. The key is already in the session: the hook decided the
@@ -11,9 +11,8 @@ public static partial class BindMatcher
     /// is still held. <paramref name="pressedUnder"/> is the modifier mask from the press, and <paramref name="order"/>
     /// is the keys held then, for a packet that arrives after they have been let go.
     /// </summary>
-    public static BindDecision DispatchDevice(
+    public BindDecision DispatchDevice(
         BindTable table,
-        BindSession session,
         string key,
         int scanCode,
         bool up,
@@ -26,79 +25,78 @@ public static partial class BindMatcher
         (string Key, int ScanCode)[]? order = null)
     {
         ArgumentNullException.ThrowIfNull(table);
-        ArgumentNullException.ThrowIfNull(session);
         if (key.Length == 0 || string.IsNullOrEmpty(device))
         {
-            session.EventDevice = null;
+            _eventDevice = null;
             return Passed();
         }
 
         (string Key, int ScanCode)[]? savedOrder = null;
         if (order is not null)
         {
-            savedOrder = session.Order.ToArray();
-            session.Order.Clear();
-            session.Order.AddRange(order);
+            savedOrder = Order.ToArray();
+            Order.Clear();
+            Order.AddRange(order);
         }
 
-        var savedMask = session.DeviceMatchMask;
+        var savedMask = _deviceMatchMask;
         if (!up)
-            session.DeviceMatchMask = pressedUnder;
+            _deviceMatchMask = pressedUnder;
 
         var restoredUnder = false;
-        if (up && pressedUnder is Modifier under && !session.PressedUnder.ContainsKey(key))
+        if (up && pressedUnder is Modifier under && !_pressedUnder.ContainsKey(key))
         {
-            session.PressedUnder[key] = under;
+            _pressedUnder[key] = under;
             restoredUnder = true;
         }
 
         try
         {
-            ApplyDevice(session, key, device, remember);
-            var map = submap ?? session.Submap;
+            ApplyDevice(key, device, remember);
+            var map = submap ?? Submap;
             if (repeat)
-                return Ran(DeviceRepeats(table, session, key, scanCode, map), consumed: false, new BindTrigger(key, scanCode, Pressed: true));
+                return Ran(DeviceRepeats(table, key, scanCode, map), consumed: false, new BindTrigger(key, scanCode, Pressed: true));
 
             if (up)
             {
-                return Ran(DeviceReleases(table, session, key, scanCode, map, anchor), consumed: false, new BindTrigger(key, scanCode, Pressed: false))
+                return Ran(DeviceReleases(table, key, scanCode, map, anchor), consumed: false, new BindTrigger(key, scanCode, Pressed: false))
                     with
                     { DisarmLongPress = true };
             }
 
-            return DevicePress(table, session, key, scanCode, map);
+            return DevicePress(table, key, scanCode, map);
         }
         finally
         {
             if (savedOrder is not null)
             {
-                session.Order.Clear();
-                session.Order.AddRange(savedOrder);
+                Order.Clear();
+                Order.AddRange(savedOrder);
             }
 
-            session.DeviceMatchMask = savedMask;
-            session.EventDevice = null;
+            _deviceMatchMask = savedMask;
+            _eventDevice = null;
             if (restoredUnder)
-                session.PressedUnder.Remove(key);
+                _pressedUnder.Remove(key);
         }
     }
 
-    private static BindDecision DevicePress(BindTable table, BindSession session, string key, int scanCode, string map)
+    private BindDecision DevicePress(BindTable table, string key, int scanCode, string map)
     {
         var immediate = new List<Bind>();
         var longPress = new List<Bind>();
         var sawFull = false;
         foreach (var bind in table.Active(map))
         {
-            if (!DeviceBind(bind) || IsCatchAll(bind) || !DeviceKey(bind, session, key, scanCode, releasing: false))
+            if (!DeviceBind(bind) || IsCatchAll(bind) || !DeviceKey(bind, key, scanCode, releasing: false))
                 continue;
 
-            var match = MatchKeys(bind, session, key, scanCode);
+            var match = MatchKeys(bind, key, scanCode);
             if (match != KeyMatch.Full)
                 continue;
 
             sawFull = true;
-            TakeDevice(bind, session, key, immediate, longPress);
+            TakeDevice(bind, key, immediate, longPress);
             if (DispatchesNow(bind, releasing: false) && IsSubmapDispatcher(bind))
                 break;
         }
@@ -107,35 +105,35 @@ public static partial class BindMatcher
         {
             foreach (var bind in table.Active(map))
             {
-                if (!DeviceBind(bind) || !IsCatchAll(bind) || !Include(bind, table, session, key, scanCode, mouse: false, releasing: false, anchor: default, catchAll: true))
+                if (!DeviceBind(bind) || !IsCatchAll(bind) || !Include(bind, table, key, scanCode, mouse: false, releasing: false, anchor: default, catchAll: true))
                     continue;
 
-                TakeDevice(bind, session, key, immediate, longPress);
+                TakeDevice(bind, key, immediate, longPress);
                 if (DispatchesNow(bind, releasing: false) && IsSubmapDispatcher(bind))
                     break;
             }
         }
 
         var decision = Ran(immediate, consumed: false, new BindTrigger(key, scanCode, Pressed: true));
-        if (longPress.Count > 0 && session.LongPressKey is null && session.DownKeys.Contains(key))
+        if (longPress.Count > 0 && LongPressKey is null && _downKeys.Contains(key))
         {
-            session.LongPressKey = key;
-            session.LongPressCode = scanCode;
-            session.LongPressMouse = false;
+            LongPressKey = key;
+            _longPressCode = scanCode;
+            _longPressMouse = false;
             decision = decision with { ArmLongPressMs = table.LongPressDelay };
         }
 
         return decision;
     }
 
-    private static List<Bind> DeviceRepeats(BindTable table, BindSession session, string key, int scanCode, string map)
+    private List<Bind> DeviceRepeats(BindTable table, string key, int scanCode, string map)
     {
         var repeating = new List<Bind>();
         foreach (var bind in table.Active(map))
         {
-            if (!DeviceBind(bind) || IsCatchAll(bind) || !Repeating(bind) || !DeviceKey(bind, session, key, scanCode, releasing: false))
+            if (!DeviceBind(bind) || IsCatchAll(bind) || !Repeating(bind) || !DeviceKey(bind, key, scanCode, releasing: false))
                 continue;
-            if (MatchKeys(bind, session, key, scanCode) != KeyMatch.Full)
+            if (MatchKeys(bind, key, scanCode) != KeyMatch.Full)
                 continue;
 
             repeating.Add(bind);
@@ -148,7 +146,7 @@ public static partial class BindMatcher
         {
             if (!DeviceBind(bind) || !IsCatchAll(bind) || !Repeating(bind))
                 continue;
-            if (!Include(bind, table, session, key, scanCode, mouse: false, releasing: false, anchor: default, catchAll: true))
+            if (!Include(bind, table, key, scanCode, mouse: false, releasing: false, anchor: default, catchAll: true))
                 continue;
 
             repeating.Add(bind);
@@ -159,14 +157,14 @@ public static partial class BindMatcher
         return repeating;
     }
 
-    private static List<Bind> DeviceReleases(BindTable table, BindSession session, string key, int scanCode, string map, Point anchor)
+    private List<Bind> DeviceReleases(BindTable table, string key, int scanCode, string map, Point anchor)
     {
         var fire = new List<Bind>();
         foreach (var bind in table.Active(map))
         {
             if (!DeviceBind(bind) || IsCatchAll(bind))
                 continue;
-            if (Include(bind, table, session, key, scanCode, mouse: false, releasing: true, anchor, catchAll: false))
+            if (Include(bind, table, key, scanCode, mouse: false, releasing: true, anchor, catchAll: false))
                 fire.Add(bind);
         }
 
@@ -177,7 +175,7 @@ public static partial class BindMatcher
         {
             if (!DeviceBind(bind) || !IsCatchAll(bind))
                 continue;
-            if (!Include(bind, table, session, key, scanCode, mouse: false, releasing: true, anchor, catchAll: true))
+            if (!Include(bind, table, key, scanCode, mouse: false, releasing: true, anchor, catchAll: true))
                 continue;
 
             fire.Add(bind);
@@ -191,17 +189,17 @@ public static partial class BindMatcher
     private static bool DeviceBind(Bind bind) =>
         bind.Devices is not null && bind.Flags.HasFlag(BindFlag.NonConsuming);
 
-    private static bool DeviceKey(Bind bind, BindSession session, string key, int scanCode, bool releasing) =>
-        Eligible(bind, session, key, scanCode, mouse: false, releasing, anyKey: true);
+    private bool DeviceKey(Bind bind, string key, int scanCode, bool releasing) =>
+        Eligible(bind, key, scanCode, mouse: false, releasing, anyKey: true);
 
     private static bool Repeating(Bind bind) =>
         bind.Flags.HasFlag(BindFlag.Repeat) && !bind.Flags.HasFlag(BindFlag.Release) && !bind.Flags.HasFlag(BindFlag.LongPress);
 
-    private static void TakeDevice(Bind bind, BindSession session, string key, List<Bind> immediate, List<Bind> longPress)
+    private void TakeDevice(Bind bind, string key, List<Bind> immediate, List<Bind> longPress)
     {
         if (bind.Flags.HasFlag(BindFlag.Release) && Parts(bind).Length > 1)
         {
-            Add(BindSession.Of(session.Armed, key), bind);
+            Add(BindSession.Of(_armed, key), bind);
             return;
         }
 
@@ -217,21 +215,21 @@ public static partial class BindMatcher
         immediate.Add(bind);
     }
 
-    private static BindDecision CancelLongPress(BindSession session, BindDecision decision)
+    private BindDecision CancelLongPress( BindDecision decision)
     {
-        session.LongPressKey = null;
+        LongPressKey = null;
         return decision with { DisarmLongPress = true };
     }
 
     // A bind with no device list matches every keyboard. One with a list matches only a named keyboard. An event that
     // names no keyboard matches neither. The keyboard is known only after the key is delivered, so an unknown one must
     // not run an exclusive bind.
-    private static bool MatchesDevice(Bind bind, BindSession session)
+    private bool MatchesDevice(Bind bind)
     {
         if (bind.Devices is null)
             return !bind.Flags.HasFlag(BindFlag.DeviceInclusive);
 
-        var name = session.EventDevice;
+        var name = _eventDevice;
         if (string.IsNullOrEmpty(name))
             return false;
 
@@ -253,18 +251,18 @@ public static partial class BindMatcher
     // The device of this edge, or the one the key went down on when this edge has none. Remembering an unnamed edge
     // forgets the key, so a later packet can store the real keyboard. Storing a null would keep that packet from
     // being remembered.
-    private static void ApplyDevice(BindSession session, string key, string? device, bool remember)
+    private void ApplyDevice( string key, string? device, bool remember)
     {
-        if (string.IsNullOrEmpty(device) && session.Devices.TryGetValue(key, out var remembered))
+        if (string.IsNullOrEmpty(device) && _devices.TryGetValue(key, out var remembered))
             device = remembered;
 
-        session.EventDevice = string.IsNullOrEmpty(device) ? null : device;
+        _eventDevice = string.IsNullOrEmpty(device) ? null : device;
         if (!remember)
             return;
 
-        if (string.IsNullOrEmpty(session.EventDevice))
-            session.Devices.Remove(key);
+        if (string.IsNullOrEmpty(_eventDevice))
+            _devices.Remove(key);
         else
-            session.Devices[key] = session.EventDevice;
+            _devices[key] = _eventDevice;
     }
 }

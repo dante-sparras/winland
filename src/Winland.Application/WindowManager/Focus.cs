@@ -56,7 +56,7 @@ public sealed partial class WindowManager
 
         if (focused.Cause == FocusCause.User
             && _config.Input.FollowMouse == 3
-            && _keyState.DownButtons.Count > 0
+            && _keyState.ButtonsHeld
             && _active != window)
             return Restore(Kept());
 

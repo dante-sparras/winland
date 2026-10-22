@@ -382,9 +382,8 @@ public class DeviceBindTests
         Modifier? pressedUnder = null,
         string? submap = null,
         (string Key, int ScanCode)[]? order = null) =>
-        BindMatcher.DispatchDevice(
+        session.DispatchDevice(
             core.Binds,
-            session,
             key,
             scanCode,
             up,

@@ -9,7 +9,7 @@ public sealed partial class WindowManager
 
     private Outcome RunKey(Input input)
     {
-        var match = BindMatcher.Decide(_config.Binds, _keyState, input);
+        var match = _keyState.Decide(_config.Binds, input);
 
         // The mouse dispatcher bound to a key drags the window under the pointer while the key is held, as in the pinned
         // release, and the key's release drops it.
@@ -47,7 +47,7 @@ public sealed partial class WindowManager
 
     private Outcome PressPointer(PointerButtonPressed pressed)
     {
-        var match = BindMatcher.Decide(_config.Binds, _keyState, pressed);
+        var match = _keyState.Decide(_config.Binds, pressed);
 
         // A drag already running keeps the pointer. A second drag button does not start another one.
         if (_gesture is null && TryDragHit(match, out var drag) && (TabUnder(drag, pressed.Position) ?? DragTarget(pressed.Position)) is WindowId target)
@@ -93,7 +93,7 @@ public sealed partial class WindowManager
         }
 
         NoteBorderCursor(released.Position);
-        var ran = RunBind(BindMatcher.Decide(_config.Binds, _keyState, released));
+        var ran = RunBind(_keyState.Decide(_config.Binds, released));
         if (ended is null)
             return ran;
 
@@ -111,7 +111,7 @@ public sealed partial class WindowManager
 
     private Outcome MovePointer(PointerMoved moved)
     {
-        _ = BindMatcher.Decide(_config.Binds, _keyState, moved);
+        _ = _keyState.Decide(_config.Binds, moved);
         NoteBorderCursor(moved.Position);
         if (_border is not null)
             return MoveBorder(moved.Position);
@@ -138,7 +138,7 @@ public sealed partial class WindowManager
         if (_config.Session.MouseMoveFocusesMonitor)
             FocusMonitorAt(moved.Position);
 
-        if (_keyState.DownButtons.Count > 0)
+        if (_keyState.ButtonsHeld)
             return null;
 
         var under = WindowUnder(moved.Position, shrink: true);

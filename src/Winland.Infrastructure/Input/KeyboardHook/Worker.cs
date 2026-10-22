@@ -42,12 +42,6 @@ public sealed partial class KeyboardHook : IDisposable
         var noted = false;
         try
         {
-            if (queued.Kind == QueuedKind.Inhibit)
-            {
-                _core.Handle(new InputInhibited(queued.Inhibited));
-                return;
-            }
-
             if (queued.Kind == QueuedKind.Gesture)
             {
                 Apply(_core.Handle(new PointerGesture(queued.Dispatcher, queued.Position, queued.Phase, queued.Button) { Arguments = queued.Arguments }));
@@ -140,7 +134,6 @@ public sealed partial class KeyboardHook : IDisposable
             QueuedKind.Dispatch,
             dispatcher,
             arguments,
-            false,
             Trigger: trigger,
             Consumption: batch));
     }
@@ -200,16 +193,16 @@ public sealed partial class KeyboardHook : IDisposable
     internal BindDrag Drag { get; } = new();
 
     internal void PostDispatch(string dispatcher, string arguments, BindTrigger? trigger = null) =>
-        _queued.Post(new Queued(QueuedKind.Dispatch, dispatcher, arguments, false, Trigger: trigger));
+        _queued.Post(new Queued(QueuedKind.Dispatch, dispatcher, arguments, Trigger: trigger));
 
     internal void PostGesture(string dispatcher, string arguments, Point position, PointerDragPhase phase, string button) =>
-        _queued.Post(new Queued(QueuedKind.Gesture, dispatcher, arguments, false, position, phase, button));
+        _queued.Post(new Queued(QueuedKind.Gesture, dispatcher, arguments, position, phase, button));
 
     internal void PostMove(Point position, uint time) =>
-        _queued.Post(new Queued(QueuedKind.Move, "", "", false, position, TimeMs: time, HasTime: true));
+        _queued.Post(new Queued(QueuedKind.Move, "", "", position, TimeMs: time, HasTime: true));
 
     internal void PostInput(Input input) =>
-        _queued.Post(new Queued(QueuedKind.Input, "", "", false, Event: input));
+        _queued.Post(new Queued(QueuedKind.Input, "", "", Event: input));
 
     internal void CheckLongPress()
     {
@@ -243,7 +236,6 @@ public sealed partial class KeyboardHook : IDisposable
     private enum QueuedKind : byte
     {
         Dispatch = 1,
-        Inhibit = 2,
         Gesture = 3,
         Move = 4,
         Input = 5,
@@ -253,7 +245,6 @@ public sealed partial class KeyboardHook : IDisposable
         QueuedKind Kind,
         string Dispatcher,
         string Arguments,
-        bool Inhibited,
         Point Position = default,
         PointerDragPhase Phase = PointerDragPhase.Begin,
         string Button = "",

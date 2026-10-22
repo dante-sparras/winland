@@ -12,7 +12,6 @@ public sealed partial class KeyboardHook : IDisposable
     /// <summary>The hook's decision for one key edge. Every key is decided now. A device bind runs later, from its packet.</summary>
     internal TrackedResult DeliverTracked(KeyEdge edge, bool repeated)
     {
-        _session.Inhibit(_inhibited != 0);
         var vk = edge.VirtualKey;
         if ((uint)vk <= 255 && (edge.Up || !repeated))
             _givenBack[vk] = false;
@@ -99,9 +98,8 @@ public sealed partial class KeyboardHook : IDisposable
 
     private BindDecision RunDevice(in PassedPress slot, string? device, bool up, bool repeat, bool remember)
     {
-        var decision = BindMatcher.DispatchDevice(
+        var decision = _session.DispatchDevice(
             _core.Binds,
-            _session,
             slot.Name,
             slot.Xkb,
             up,
@@ -153,7 +151,6 @@ public sealed partial class KeyboardHook : IDisposable
         Input input = edge.Up
             ? new KeyReleased(edge.Name) { ScanCode = edge.Xkb }
             : new KeyPressed(edge.Name) { ScanCode = edge.Xkb };
-        _session.Inhibit(_inhibited != 0);
 
         // The mouse dispatcher bound to a key drags while the key is held: its repeats are swallowed, and its release
         // drops the window.

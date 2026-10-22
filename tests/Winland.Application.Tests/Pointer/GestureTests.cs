@@ -338,7 +338,7 @@ public class GestureTests
     public void LockedSessionDoesNotSwipe()
     {
         var core = Twin(Horizontal);
-        core.Handle(new InputInhibited(true));
+        core.KeyState.Inhibit(true);
 
         var ended = Swipe(core, 3, Steps(20, -10, 0));
 

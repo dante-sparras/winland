@@ -13,8 +13,7 @@ public sealed partial class KeyboardHook : IDisposable
             return;
 
         var inhibited = e.Reason == Microsoft.Win32.SessionSwitchReason.SessionLock;
-        _inhibited = inhibited ? 1 : 0;
-        _queued.Post(new Queued(QueuedKind.Inhibit, "", "", inhibited));
+        _session.Inhibit(inhibited);
 
         // Keys released on the lock screen were never seen. The session lives on the hook thread.
         if (!inhibited)
@@ -23,7 +22,7 @@ public sealed partial class KeyboardHook : IDisposable
 
     private void Reconcile()
     {
-        BindMatcher.Forget(_session, IsDown);
+        _session.Forget(IsDown);
 
         // A release the hook missed leaves its bit set. A key still held sets it again when it repeats.
         var held = Volatile.Read(ref _held);
@@ -44,7 +43,7 @@ public sealed partial class KeyboardHook : IDisposable
     /// </summary>
     internal void Watch()
     {
-        if (_disposed || _inhibited != 0 || Environment.TickCount64 - _startedAt < SweepDelayMs || !Current())
+        if (_disposed || _session.Inhibited || Environment.TickCount64 - _startedAt < SweepDelayMs || !Current())
             return;
 
         ReleaseStale();
