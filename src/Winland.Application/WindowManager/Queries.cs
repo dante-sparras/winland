@@ -131,7 +131,7 @@ public sealed partial class WindowManager
         if (request.Name.Length == 0 || request.Value.Length == 0)
             return new CommandReply("error: invalid keyword", View([]));
 
-        if (!LiveKeyword(request.Name))
+        if (!ConfigParser.AppliesLive(request.Name))
             return new CommandReply($"error: keyword '{request.Name}' is not applied live", View([]));
 
         var parsed = ConfigParser.Parse(request.Name + " = " + request.Value + "\n");
@@ -143,86 +143,15 @@ public sealed partial class WindowManager
 
         foreach (var setting in parsed.Settings)
         {
-            if (!LiveKeyword(setting.Keyword))
+            if (!ConfigParser.AppliesLive(setting.Keyword))
                 return new CommandReply($"error: keyword '{setting.Keyword}' is not applied live", View([]));
         }
 
         var kept = _configErrors;
         // A live keyword is not a load of the file, so it leaves the notification where the last load put it.
-        var outcome = Apply(MergeLive(_config.Document, parsed), loaded: false);
+        var outcome = Apply((_config.Document ?? ConfigDocument.Empty).Merge(parsed), loaded: false);
         _configErrors = kept;
         return new CommandReply("ok", outcome);
-    }
-
-    // A line that launches a program or loads a file takes effect only when the config is read. Every other line, an
-    // option or a rule, applies at once.
-    private static bool LiveKeyword(string keyword) =>
-        keyword is not ("exec" or "exec-once" or "execr" or "execr-once" or "exec-shutdown" or "source");
-
-    // An option, a keyword with a category such as general:gaps_in, replaces its old value. A keyword that may
-    // repeat, such as monitor, workspace or windowrulev2, adds its line after the ones already read.
-    private static ConfigDocument MergeLive(ConfigDocument? current, ConfigDocument incoming)
-    {
-        var settings = new List<Setting>();
-        if (current is not null)
-        {
-            foreach (var setting in current.Settings)
-            {
-                var replaced = false;
-                foreach (var update in incoming.Settings)
-                {
-                    if (update.Keyword == setting.Keyword && setting.Keyword.Contains(':', StringComparison.Ordinal))
-                    {
-                        replaced = true;
-                        break;
-                    }
-                }
-
-                if (!replaced)
-                    settings.Add(setting);
-            }
-        }
-
-        foreach (var setting in incoming.Settings)
-            settings.Add(setting);
-
-        var binds = new List<BindDirective>();
-        if (current is not null)
-        {
-            foreach (var bind in current.Binds)
-                binds.Add(bind);
-        }
-
-        foreach (var bind in incoming.Binds)
-            binds.Add(bind);
-
-        return new ConfigDocument(settings, binds, [])
-        {
-            WindowRules = IntegrateWindowRules(current?.WindowRules, incoming.WindowRules),
-            WorkspaceRules = MergeWorkspaceRules(current?.WorkspaceRules ?? WorkspaceRule.None, incoming.WorkspaceRules),
-            Sources = current?.Sources ?? [],
-            Gestures = [.. current?.Gestures ?? [], .. incoming.Gestures],
-            Path = current?.Path,
-        };
-    }
-
-    private static List<WindowRule> IntegrateWindowRules(IReadOnlyList<WindowRule>? current, IReadOnlyList<WindowRule> incoming)
-    {
-        var rules = current is null ? [] : new List<WindowRule>(current);
-        foreach (var rule in incoming)
-            rules.Add(rule);
-
-        return rules;
-    }
-
-    // A rule for a Workspace that already has one merges into it, as a second line in the config does.
-    private static List<WorkspaceRule> MergeWorkspaceRules(IReadOnlyList<WorkspaceRule> current, IReadOnlyList<WorkspaceRule> incoming)
-    {
-        var rules = new List<WorkspaceRule>(current);
-        foreach (var rule in incoming)
-            WorkspaceRules.ReplaceOrAdd(rules, rule);
-
-        return rules;
     }
 
     private CommandReply RunBatch(string payload, CommandFlags flags)
