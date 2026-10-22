@@ -3,9 +3,9 @@ namespace Winland.Application;
 /// <summary>Special Workspaces: <c>togglespecialworkspace</c> and how they show over a Monitor.</summary>
 public sealed partial class WindowManager
 {
-    private WorkspaceId? SpecialOn(MonitorId monitor) => _shownWorkspaces.SpecialOn(monitor);
+    private WorkspaceId? SpecialOn(MonitorId monitor) => _workspaces.Shown.SpecialOn(monitor);
 
-    private void SetSpecial(MonitorId monitor, WorkspaceId? workspace) => _shownWorkspaces.ShowSpecial(monitor, workspace);
+    private void SetSpecial(MonitorId monitor, WorkspaceId? workspace) => _workspaces.Shown.ShowSpecial(monitor, workspace);
 
     private MonitorId? MonitorShowing(WorkspaceId workspace)
     {
@@ -24,7 +24,7 @@ public sealed partial class WindowManager
     private LiveWorkspace CurrentWorkspace()
     {
         var monitor = FocusedId();
-        if (SpecialOn(monitor) is WorkspaceId special && FindWorkspace(special) is LiveWorkspace desk)
+        if (SpecialOn(monitor) is WorkspaceId special && _workspaces.Find(special) is LiveWorkspace desk)
             return desk;
 
         return FocusedWorkspace();
@@ -94,7 +94,7 @@ public sealed partial class WindowManager
         {
             if (focus is WindowId requested && ClientOn(target, requested) is { Minimized: false })
             {
-                _focus.Take(requested, FindWorkspace(target));
+                _focus.Take(requested, _workspaces.Find(target));
                 return View([], focus: requested, dispatcher: dispatcher);
             }
 
@@ -169,7 +169,7 @@ public sealed partial class WindowManager
 
         var hidden = VisibleIds(current);
         SetSpecial(monitor, null);
-        var normal = FindWorkspace(ActiveOn(monitor));
+        var normal = _workspaces.Find(ActiveOn(monitor));
         var next = normal is null ? null : _focus.Remembered(normal);
         _focus.Take(next, normal);
 

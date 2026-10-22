@@ -53,12 +53,25 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
     public string? DisplayName { get; set; }
 
     /// <summary>The identity of the Monitor a Guest belongs to. Null when the Workspace is on its own Monitor.</summary>
-    public string? HomeIdentity { get; set; }
+    public string? HomeIdentity { get; private set; }
 
     /// <summary>The number a Guest had on its own Monitor.</summary>
-    public long HomeNumber { get; set; }
+    public long HomeNumber { get; private set; }
 
     public bool IsGuest => HomeIdentity is not null;
+
+    // A Workspace becomes a Guest, and stops being one, only through WorkspaceSet.
+    internal void MarkGuest(string homeIdentity, long homeNumber)
+    {
+        HomeIdentity = homeIdentity;
+        HomeNumber = homeNumber;
+    }
+
+    internal void ClearGuest()
+    {
+        HomeIdentity = null;
+        HomeNumber = 0;
+    }
 
     public LayoutOptions Options { get; set; } = LayoutOptions.Unconfigured;
 

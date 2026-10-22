@@ -224,7 +224,7 @@ public sealed partial class WindowManager
             || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from
             || MonitorSelector.InDirection(Targets(), from, side) is not MonitorTarget neighbor
             || MonitorOf(neighbor) is not LiveMonitor screen || ShownOn(screen) is not WorkspaceId shown
-            || FindWorkspace(shown) is not LiveWorkspace there || !desk.Layout.TryBounds(window, out var box)
+            || _workspaces.Find(shown) is not LiveWorkspace there || !desk.Layout.TryBounds(window, out var box)
             || AdjacentOn(screen, Ideal(desk, window, box), side) is not WindowId found)
             return null;
 
@@ -261,7 +261,7 @@ public sealed partial class WindowManager
         TakeGroupFocus(there, window);
         (_extraEvents ??= []).Add(new ClientIntoGroup(window));
         var outcome = Present(there, covered, there.Layout.Visible(), dispatcher: name, focus: window);
-        return FindWorkspace(desk.Id) is LiveWorkspace left && IsShown(left.Id)
+        return _workspaces.Find(desk.Id) is LiveWorkspace left && IsShown(left.Id)
             ? outcome with { Placements = [.. left.Layout.Placed(), .. outcome.Placements] }
             : outcome;
     }

@@ -86,7 +86,7 @@ public sealed partial class WindowManager
                 continue;
 
             return !client.Floating
-                && FindWorkspace(client.Workspace) is LiveWorkspace desk
+                && _workspaces.Find(client.Workspace) is LiveWorkspace desk
                 && desk.Layout is DwindleLayout;
         }
 
@@ -100,11 +100,11 @@ public sealed partial class WindowManager
 
     // A Workspace's own animation style, from the animation: field of the workspace rule that matches it, or null.
     private string? WorkspaceStyleOf(WorkspaceId workspace) =>
-        FindWorkspace(workspace) is LiveWorkspace desk ? RuleFor(desk)?.Animation : null;
+        _workspaces.Find(workspace) is LiveWorkspace desk ? RuleFor(desk)?.Animation : null;
 
     private Rectangle MonitorRectangle(WorkspaceId workspace)
     {
-        if (FindWorkspace(workspace) is LiveWorkspace desk)
+        if (_workspaces.Find(workspace) is LiveWorkspace desk)
         {
             foreach (var screen in _monitors)
             {
@@ -180,7 +180,7 @@ public sealed partial class WindowManager
                     continue;
 
                 var monitor = _core.MonitorRectangle(client.Workspace);
-                var between = _core.FindWorkspace(client.Workspace)?.Options.GapsWorkspaces ?? 0;
+                var between = _core._workspaces.Find(client.Workspace)?.Options.GapsWorkspaces ?? 0;
                 var style = _core.WorkspaceStyleOf(styled) ?? Options.StyleOf(leaf);
                 var shift = MotionStyles.Workspace(style, entering, left, client.Workspace.IsSpecial, monitor, between);
                 var rest = _placed.TryGetValue(window, out var placed) ? placed : client.Bounds;

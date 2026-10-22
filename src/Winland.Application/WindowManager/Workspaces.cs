@@ -212,7 +212,7 @@ public sealed partial class WindowManager
         }
 
         // A Workspace that lives on another Monitor, but is not the one that Monitor shows, is shown there.
-        if (FindWorkspace(target) is { } located && MonitorById(located.Monitor) is { Effective.Enabled: true } home && home.Id != FocusedId())
+        if (_workspaces.Find(target) is { } located && MonitorById(located.Monitor) is { Effective.Enabled: true } home && home.Id != FocusedId())
             Focus(home.Id);
 
         var monitor = FocusedId();
@@ -235,7 +235,7 @@ public sealed partial class WindowManager
             && ClientOn(sourceId, current) is { Floating: true }
             ? current
             : (WindowId?)null;
-        _shownWorkspaces.Show(monitor, target);
+        _workspaces.Shown.Show(monitor, target);
 
         NoteWorkspaceActive(target);
         Remember(target, monitor);
@@ -265,7 +265,7 @@ public sealed partial class WindowManager
 
     private LiveMonitor? ShownElsewhere(WorkspaceId target)
     {
-        var desk = FindWorkspace(target);
+        var desk = _workspaces.Find(target);
         if (desk is null)
             return null;
 
@@ -279,7 +279,7 @@ public sealed partial class WindowManager
     private Outcome FocusShown(LiveMonitor owner, WorkspaceId target, WindowId? focus, bool consumed, string? dispatcher)
     {
         Focus(owner.Id);
-        var destination = FindWorkspace(target);
+        var destination = _workspaces.Find(target);
         WindowId? next = null;
         if (focus is WindowId requested && ClientOn(target, requested) is not null)
             next = requested;
@@ -293,7 +293,7 @@ public sealed partial class WindowManager
 
     // A visit to the history workspace previous reads.
     private void Remember(WorkspaceId workspace, MonitorId monitor) =>
-        _shownWorkspaces.Visit(workspace, monitor, _config.BindOptions.AllowWorkspaceCycles);
+        _workspaces.Shown.Visit(workspace, monitor, _config.BindOptions.AllowWorkspaceCycles);
 
     // A switch to a Workspace another Monitor shows moves the cursor onto that Monitor, to the
     // middle of the Client it focuses or of the Monitor. cursor:no_warps stops it, as it stops Winland's warp.
@@ -338,7 +338,7 @@ public sealed partial class WindowManager
         return Previous(monitor, perMonitor: _config.BindOptions.BackAndForth == 2) ?? target;
     }
 
-    private WorkspaceId? Previous(MonitorId monitor, bool perMonitor) => _shownWorkspaces.Previous(monitor, perMonitor);
+    private WorkspaceId? Previous(MonitorId monitor, bool perMonitor) => _workspaces.Shown.Previous(monitor, perMonitor);
 
     private WorkspaceAddress.Context Context() => Context(FocusedId());
 
@@ -348,150 +348,34 @@ public sealed partial class WindowManager
         if (!active.IsSpecial && active.Monitor != monitor.Value)
             active = new WorkspaceId(active.Name, monitor.Value);
 
-        var listed = Listed(monitor);
+        var listed = _workspaces.Listed(monitor);
         return new WorkspaceAddress.Context(
             active,
             () => Previous(monitor, perMonitor: false),
             () => Previous(monitor, perMonitor: true),
             listed,
             listed,
-            number => NumberIsEmpty(number, monitor));
+            number => _workspaces.NumberIsEmpty(number, monitor));
     }
 
-    private IReadOnlyList<WorkspaceId> Listed(MonitorId? only)
+    private void DropIfEmpty(WorkspaceId id) => _workspaces.DropIfEmpty(id, IsShown(id));
+
+    private void Rebind(LiveWorkspace desk, WorkspaceId to) => Readdressed(_workspaces.Rebind(desk, to));
+
+    // A renamed Workspace keeps its place in the initial-workspace rules and is reported once the step ends.
+    private void Readdressed(WorkspaceRename? rename)
     {
-        var named = new List<WorkspaceId>();
-        var numbered = new List<(long Number, WorkspaceId Id)>();
-        foreach (var desk in _workspaces)
-        {
-            if (desk.Id.IsSpecial)
-                continue;
-
-            if (only is MonitorId monitor && desk.Monitor != monitor)
-                continue;
-
-            if (desk.Id.TryGetNumber(out var number))
-                numbered.Add((number, desk.Id));
-            else
-                named.Add(desk.Id);
-        }
-
-        named.Reverse();
-        numbered.Sort((left, right) => left.Number.CompareTo(right.Number));
-        foreach (var (_, id) in numbered)
-            named.Add(id);
-
-        return named;
-    }
-
-    private bool NumberIsEmpty(long number, MonitorId monitor) =>
-        FindWorkspace(WorkspaceId.FromNumber(number, monitor)) is not LiveWorkspace desk || desk.Layout.Clients.Count == 0;
-
-    private void DropIfEmpty(WorkspaceId id)
-    {
-        if (IsShown(id))
+        if (rename is not WorkspaceRename (var from, var to))
             return;
-
-        var desk = FindWorkspace(id);
-        if (desk is null || desk.Persistent || desk.Layout.Clients.Count > 0)
-            return;
-
-        RemoveWorkspace(desk);
-    }
-
-    private void RemoveWorkspace(LiveWorkspace desk)
-    {
-        _workspaces.Remove(desk);
-        _shownWorkspaces.Remove(desk.Id);
-    }
-
-    private WorkspaceId NextFree(MonitorId monitor) => WorkspaceId.FromNumber(FirstFree(monitor), monitor);
-
-    // The number a Workspace keeps on a Monitor it moves to: its own when that number is free there,
-    // otherwise the first free one. <paramref name="alsoLeaving"/> does not occupy a number.
-    private long NumberOn(LiveWorkspace desk, MonitorId monitor, LiveWorkspace alsoLeaving)
-    {
-        var preferred = desk.Id.TryGetNumber(out var number) ? number : 1;
-        var occupant = FindWorkspace(WorkspaceId.FromNumber(preferred, monitor));
-        if (occupant is null || occupant == desk || occupant == alsoLeaving)
-            return preferred;
-
-        for (var candidate = 1L; candidate < WorkspaceId.MaxNumber; candidate++)
-        {
-            var found = FindWorkspace(WorkspaceId.FromNumber(candidate, monitor));
-            if (found is null || found == desk || found == alsoLeaving)
-                return candidate;
-        }
-
-        throw new InvalidOperationException("No workspace id remains.");
-    }
-
-    private long FirstFree(MonitorId monitor)
-    {
-        for (var number = 1L; number < WorkspaceId.MaxNumber; number++)
-        {
-            if (FindWorkspace(WorkspaceId.FromNumber(number, monitor)) is null)
-                return number;
-        }
-
-        throw new InvalidOperationException("No workspace id remains.");
-    }
-
-    // The next Guest number is one past the highest number already on the Monitor, and at least 11 when
-    // 1 to 10 are all in use.
-    private long NextGuestNumber(MonitorId monitor)
-    {
-        long highest = 0;
-        var occupied = new HashSet<long>();
-        foreach (var desk in _workspaces)
-        {
-            if (desk.Monitor != monitor || desk.Id.IsSpecial || !desk.Id.TryGetNumber(out var number))
-                continue;
-
-            occupied.Add(number);
-            if (number > highest)
-                highest = number;
-        }
-
-        var candidate = highest + 1;
-        var full = true;
-        for (var number = 1L; number <= 10; number++)
-        {
-            if (occupied.Contains(number))
-                continue;
-
-            full = false;
-            break;
-        }
-
-        if (full && candidate < 11)
-            candidate = 11;
-
-        while (occupied.Contains(candidate))
-            candidate++;
-
-        return candidate;
-    }
-
-    private void Rebind(LiveWorkspace desk, WorkspaceId to)
-    {
-        var from = desk.Id;
-        if (from == to)
-        {
-            if (!to.IsSpecial)
-                desk.Monitor = new MonitorId(to.Monitor);
-
-            return;
-        }
-
-        desk.Readdress(to);
-        if (!to.IsSpecial)
-            desk.Monitor = new MonitorId(to.Monitor);
-
-        _shownWorkspaces.Rename(from, to);
 
         _initialWorkspaces.Readdress(from, to);
         (_readdressed ??= []).Add((from, to));
+    }
+
+    private void Readdressed(IReadOnlyList<WorkspaceRename> renames)
+    {
+        foreach (var rename in renames)
+            Readdressed(rename);
     }
 
     private void DropEmpty()

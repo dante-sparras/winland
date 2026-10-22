@@ -69,7 +69,7 @@ public sealed partial class WindowManager
 
         swipe.Delta = Math.Clamp(swipe.Delta, -distance, distance);
         var beginRank = SwipeRank(begin);
-        var emptyBegin = FindWorkspace(begin) is not { } beginDesk || beginDesk.Layout.Clients.Count == 0;
+        var emptyBegin = _workspaces.Find(begin) is not { } beginDesk || beginDesk.Layout.Clients.Count == 0;
         if ((left == begin && _config.Swipe.CreateNew && swipe.Delta < 0)
             || (swipe.Delta > 0 && emptyBegin && SwipeRank(right) <= beginRank)
             || (swipe.Delta < 0 && beginRank <= SwipeRank(left)))
@@ -89,7 +89,7 @@ public sealed partial class WindowManager
 
         var toward = swipe.Delta < 0 ? left : right;
         var away = swipe.Delta < 0 ? SwipeRank(left) > beginRank : SwipeRank(right) < beginRank;
-        if (away || toward is not WorkspaceId target || FindWorkspace(target) is null)
+        if (away || toward is not WorkspaceId target || _workspaces.Find(target) is null)
         {
             // Past the last Workspace the swipe only continues when it may create one.
             if (!_config.Swipe.CreateNew)
@@ -151,7 +151,7 @@ public sealed partial class WindowManager
         if (workspace.TryGetNumber(out var number))
             return number;
 
-        var listed = Listed(null);
+        var listed = _workspaces.Listed(null);
         var named = 0;
         foreach (var each in listed)
         {
