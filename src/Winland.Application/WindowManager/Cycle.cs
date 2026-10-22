@@ -76,7 +76,7 @@ public sealed partial class WindowManager
             return FocusClient(focus.Value, name);
 
         var laid = Present(desk, covered, placements, dispatcher: name);
-        return Merge(laid, FocusClient(focus.Value, name));
+        return laid.Then(FocusClient(focus.Value, name));
     }
 
     // Monocle does not name a window to focus. The tile it just uncovered was covered before the cycle.

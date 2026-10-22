@@ -181,7 +181,7 @@ public sealed partial class WindowManager
 
         var laid = Present(desk, covered, placements, dispatcher: name);
         if (held is Rectangle old && WindowIn(desk, placements, old) == window)
-            return Merge(laid, FocusClient(window, name));
+            return laid.Then(FocusClient(window, name));
 
         return laid;
     }

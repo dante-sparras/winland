@@ -111,7 +111,7 @@ public sealed partial class WindowManager
         // move, so with input:follow_mouse the window now under the pointer takes the focus.
         _pointer = at with { X = at.X - 1, Y = at.Y - 1 };
         var moved = MovePointer(new PointerMoved(at));
-        return Merge(stacked, moved) with { Dispatcher = name };
+        return stacked.Then(moved) with { Dispatcher = name };
     }
 
     // movecursor X Y: puts the cursor at a point on the desktop and handles it as a pointer move, so focus follows it as

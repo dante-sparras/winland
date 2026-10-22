@@ -110,67 +110,28 @@ public sealed partial class WindowManager
         return OptionTable.Reply(name, value, set);
     }
 
+    // A keyword that changes the layout lays every Workspace out again. The result follows the keyword's own outcome.
     private Outcome Reflow(Outcome current)
     {
+        Outcome laid;
         if (_monitors.Count > 0)
+            laid = SetMonitors(Reported());
+        else
         {
-            var laid = SetMonitors(Reported());
-            return laid with
+            IReadOnlyList<Placement> placements = [];
+            var active = ActiveId();
+            foreach (var desk in _workspaces)
             {
-                Closes = [.. current.Closes, .. laid.Closes],
-                Focus = current.Focus ?? laid.Focus,
-                Launches = [.. current.Launches, .. laid.Launches],
-                Dispatcher = current.Dispatcher,
-                Consumed = current.Consumed,
-                Kills = [.. current.Kills, .. laid.Kills],
-                Exit = current.Exit || laid.Exit,
-                DisplayPower = [.. current.DisplayPower, .. laid.DisplayPower],
-                Events = CombineEvents(current.Events, laid.Events),
-                Relays = current.Relays,
-                ZOrder = current.ZOrder,
-            };
+                Stamp(desk);
+                var placed = desk.Layout.Apply(desk.Options);
+                if (desk.Id == active)
+                    placements = placed;
+            }
+
+            laid = View(placements);
         }
 
-        IReadOnlyList<Placement> placements = [];
-        var active = ActiveId();
-        foreach (var desk in _workspaces)
-        {
-            Stamp(desk);
-            var placed = desk.Layout.Apply(desk.Options);
-            if (desk.Id == active)
-                placements = placed;
-        }
-
-        var shown = View(
-            placements,
-            current.Show,
-            current.Hide,
-            current.Consumed,
-            current.Dispatcher,
-            current.Close,
-            current.Focus);
-        return shown with
-        {
-            Closes = current.Closes,
-            Launches = [.. current.Launches, .. shown.Launches],
-            Kills = current.Kills,
-            Exit = current.Exit,
-            DisplayPower = current.DisplayPower,
-            Events = current.Events,
-            Relays = current.Relays,
-            ZOrder = current.ZOrder,
-        };
-    }
-
-    private static IReadOnlyList<StreamEvent> CombineEvents(
-        IReadOnlyList<StreamEvent> first,
-        IReadOnlyList<StreamEvent> second)
-    {
-        if (first.Count == 0)
-            return second;
-        if (second.Count == 0)
-            return first;
-        return [.. first, .. second];
+        return current.Then(laid) with { Consumed = current.Consumed, Dispatcher = current.Dispatcher };
     }
 
     private void NoteConfigErrors(ConfigDocument? document)
@@ -304,7 +265,7 @@ public sealed partial class WindowManager
         {
             var reply = ExecuteLine(commands[i]);
             parts[i] = reply.Text;
-            effect = effect is null ? reply.Effect : Merge(effect, reply.Effect);
+            effect = effect is null ? reply.Effect : effect.Then(reply.Effect);
         }
 
         return new CommandReply(string.Join("\n\n\n", parts), effect ?? View([]));

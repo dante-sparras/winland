@@ -121,6 +121,66 @@ public sealed record Outcome(
 
     /// <summary>Where this outcome falls among the ones its WindowManager produced. Null for an outcome made outside a WindowManager.</summary>
     public OutcomeOrder? Order { get; init; }
+
+    /// <summary>
+    /// This outcome followed by <paramref name="next"/>, as one: what both ask the adapter to do, in order, and the state
+    /// after the second. Requests are joined. What describes the state after the step is the second's. A value the second
+    /// leaves unset keeps the first's, and the first error wins, so a later step cannot hide an earlier failure.
+    /// A property added to this record needs a rule here; a test counts them.
+    /// </summary>
+    public Outcome Then(Outcome next)
+    {
+        ArgumentNullException.ThrowIfNull(next);
+        return next with
+        {
+            Placements = Union(Placements, next.Placements, next.State),
+            Focus = next.Focus ?? Focus,
+            Closes = [.. Closes, .. next.Closes],
+            Show = [.. Show, .. next.Show],
+            Hide = [.. Hide, .. next.Hide],
+            ShowMinimized = [.. ShowMinimized, .. next.ShowMinimized],
+            Launches = [.. Launches, .. next.Launches],
+            Events = [.. Events, .. next.Events],
+            Tray = next.Tray ?? Tray,
+            Warp = next.Warp ?? Warp,
+            Cursor = next.Cursor ?? Cursor,
+            Error = Error ?? next.Error,
+            Kills = [.. Kills, .. next.Kills],
+            Exit = Exit || next.Exit,
+            DisplayPower = [.. DisplayPower, .. next.DisplayPower],
+            Relays = [.. Relays, .. next.Relays],
+            ZOrder = [.. ZOrder, .. next.ZOrder],
+        };
+    }
+
+    // Every placement of the later outcome, and each earlier one it does not replace, for a Client that is still
+    // open and not hidden. A command that moves one floating window places only that window, so the earlier
+    // command's window would otherwise keep its old rectangle.
+    internal static IReadOnlyList<Placement> Union(IReadOnlyList<Placement> first, IReadOnlyList<Placement> second, State state)
+    {
+        if (first.Count == 0)
+            return second;
+
+        var placed = new HashSet<ClientId>(second.Count);
+        foreach (var placement in second)
+            placed.Add(placement.Client);
+
+        var open = new HashSet<ClientId>(state.Clients.Count);
+        foreach (var client in state.Clients)
+            open.Add(client.Id);
+        foreach (var client in state.Hidden)
+            open.Remove(client.Id);
+
+        var merged = new List<Placement>(first.Count + second.Count);
+        foreach (var placement in first)
+        {
+            if (!placed.Contains(placement.Client) && open.Contains(placement.Client))
+                merged.Add(placement);
+        }
+
+        merged.AddRange(second);
+        return merged;
+    }
 }
 
 /// <summary>

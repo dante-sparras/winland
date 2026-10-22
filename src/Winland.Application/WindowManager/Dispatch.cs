@@ -16,7 +16,7 @@ public sealed partial class WindowManager
 
             var submapBefore = _keyState.Submap;
             var next = ExecuteTriggered(dispatch.Dispatcher, dispatch.Arguments, match.Trigger);
-            outcome = outcome is null ? next : Merge(outcome, next);
+            outcome = outcome is null ? next : outcome.Then(next);
             if (!Is(dispatch.Dispatcher, "submap")
                 && dispatch.SubmapReset is string reset
                 && reset.Length > 0
@@ -38,52 +38,6 @@ public sealed partial class WindowManager
             return [];
 
         return [new BindDispatch(match.Dispatcher, match.Arguments)];
-    }
-
-    private static Outcome Merge(Outcome first, Outcome second) =>
-        second with
-        {
-            Placements = Union(first.Placements, second.Placements, second.State),
-            Closes = [.. first.Closes, .. second.Closes],
-            Focus = second.Focus ?? first.Focus,
-            Launches = [.. first.Launches, .. second.Launches],
-            Kills = [.. first.Kills, .. second.Kills],
-            Exit = second.Exit || first.Exit,
-            DisplayPower = [.. first.DisplayPower, .. second.DisplayPower],
-            Relays = [.. first.Relays, .. second.Relays],
-            ZOrder = [.. first.ZOrder, .. second.ZOrder],
-            Show = [.. first.Show, .. second.Show],
-            Hide = [.. first.Hide, .. second.Hide],
-            ShowMinimized = [.. first.ShowMinimized, .. second.ShowMinimized],
-        };
-
-    // Every placement of the later outcome, and each earlier one it does not replace, for a Client that is still
-    // open and not hidden. A command that moves one floating window places only that window, so the earlier
-    // command's window would otherwise keep its old rectangle.
-    private static IReadOnlyList<Placement> Union(IReadOnlyList<Placement> first, IReadOnlyList<Placement> second, State state)
-    {
-        if (first.Count == 0)
-            return second;
-
-        var placed = new HashSet<ClientId>(second.Count);
-        foreach (var placement in second)
-            placed.Add(placement.Client);
-
-        var open = new HashSet<ClientId>(state.Clients.Count);
-        foreach (var client in state.Clients)
-            open.Add(client.Id);
-        foreach (var client in state.Hidden)
-            open.Remove(client.Id);
-
-        var merged = new List<Placement>(first.Count + second.Count);
-        foreach (var placement in first)
-        {
-            if (!placed.Contains(placement.Client) && open.Contains(placement.Client))
-                merged.Add(placement);
-        }
-
-        merged.AddRange(second);
-        return merged;
     }
 
     private Outcome ExecuteTriggered(string name, string arguments, BindTrigger? trigger)

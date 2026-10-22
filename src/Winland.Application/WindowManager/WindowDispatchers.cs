@@ -37,14 +37,14 @@ public sealed partial class WindowManager
         if (desk.Id.IsSpecial)
         {
             var special = OpenSpecial(desk.Id, id, name);
-            return raised is null ? special : Merge(raised, special);
+            return raised is null ? special : raised.Then(special);
         }
 
         var outcome = SwitchTo(desk.Id, id, consumed: false, dispatcher: name);
         outcome = outcome.Focus is null ? outcome with { Focus = id } : outcome;
         if (refit is not null && IsShown(desk.Id))
-            outcome = Merge(Present(desk, covered, refit), outcome);
-        return raised is null ? outcome : Merge(raised, outcome);
+            outcome = Present(desk, covered, refit).Then(outcome);
+        return raised is null ? outcome : raised.Then(outcome);
     }
 
     private Outcome CloseWindow(string arguments)
@@ -379,7 +379,7 @@ public sealed partial class WindowManager
         // Closing it first shows the Monitor's Workspace. Switching with it still open would leave it on top.
         var concealed = CloseSpecial(monitor, name);
         var shown = SwitchTo(WorkspaceId.FromNumber(1, monitor), focus: null, consumed: false, dispatcher: name);
-        return Merge(concealed, shown) with { Closes = closes, Dispatcher = name, Focus = _active };
+        return concealed.Then(shown) with { Closes = closes, Dispatcher = name, Focus = _active };
     }
 
     // Whether the displays are on, as the last dpms left them, which Winland keeps for every display at once.

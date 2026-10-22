@@ -28,7 +28,7 @@ public sealed partial class WindowManager
             var ended = EndGesture(_pointer ?? _gesture.Origin);
             NoteBorderCursor(_pointer ?? _gesture.Origin);
             var after = RunBind(match);
-            return Merge(ended, after) with { Consumed = true, Dispatcher = after.Dispatcher };
+            return ended.Then(after) with { Consumed = true, Dispatcher = after.Dispatcher };
         }
 
         return RunBind(match);
@@ -57,8 +57,8 @@ public sealed partial class WindowManager
             window ??= target;
             var begun = BeginGesture(window.Value, drag, pressed.Button, pressed.Position);
             var ran = RunBind(match) with { Focus = window };
-            ran = tabbed is null ? ran : Merge(tabbed, ran);
-            return begun.Count == 0 ? ran : ran with { Placements = Union(ran.Placements, begun, ran.State) };
+            ran = tabbed is null ? ran : tabbed.Then(ran);
+            return begun.Count == 0 ? ran : ran with { Placements = Outcome.Union(ran.Placements, begun, ran.State) };
         }
 
         if (!match.Consumed && TryBorderTarget(pressed.Position, out var hit, out var bounds, out var floating, out _))
@@ -97,7 +97,7 @@ public sealed partial class WindowManager
         if (ended is null)
             return ran;
 
-        var merged = Merge(ended, ran);
+        var merged = ended.Then(ran);
         return merged with
         {
             Consumed = ended.Consumed || ran.Consumed,

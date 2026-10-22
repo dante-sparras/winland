@@ -24,7 +24,7 @@ public sealed partial class WindowManager
                 window ??= target;
                 var begun = BeginGesture(window.Value, dispatch, gesture.Button, gesture.Position);
                 var view = View(begun, consumed: true, dispatcher: gesture.Dispatcher, focus: window);
-                return tabbed is null ? view : Merge(tabbed, view);
+                return tabbed is null ? view : tabbed.Then(view);
             case PointerDragPhase.Move when _gesture is not null:
                 return MoveGesture(gesture.Position);
             case PointerDragPhase.End when _gesture is not null && _gesture.Button.Equals(gesture.Button, StringComparison.OrdinalIgnoreCase):
