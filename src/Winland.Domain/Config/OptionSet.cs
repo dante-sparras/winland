@@ -9,7 +9,7 @@ internal sealed class OptionSet<TOptions>
     public OptionSet(IEnumerable<Option<TOptions>> options) =>
         _byName = options.ToDictionary(option => option.Name, StringComparer.Ordinal);
 
-    public IEnumerable<IOption> All => _byName.Values;
+    public IEnumerable<Option<TOptions>> All => _byName.Values;
 
     /// <summary><paramref name="options"/> with every line of <paramref name="document"/> that sets one of these Options, in order.</summary>
     public TOptions From(TOptions options, ConfigDocument document)
@@ -27,14 +27,4 @@ internal sealed class OptionSet<TOptions>
     /// <summary><paramref name="options"/> with one Option set, or null when there is no such Option or the value does not read.</summary>
     public TOptions? Apply(TOptions options, string name, string text) =>
         _byName.TryGetValue(name, out var option) ? option.Apply(options, text) : null;
-
-    public bool TryReply(string name, TOptions applied, out string reply)
-    {
-        reply = "";
-        if (!_byName.TryGetValue(name, out var option))
-            return false;
-
-        reply = option.Reply(applied);
-        return true;
-    }
 }
