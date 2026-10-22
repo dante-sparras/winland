@@ -93,6 +93,108 @@ public class ClientPropsTests
         Assert.Empty(props.Sized);
     }
 
+    [Fact]
+    public void SetpropWinsOverAWindowRuleForTheClientsOwnProps()
+    {
+        var props = new ClientProps();
+        props.Opened(Window, App, [], Decide("windowrulev2 = border_size 3, class:^(app)$\n"));
+
+        props.Set(Window, "border_size", 9L);
+
+        Assert.Equal(9L, props.Own(Window, "border_size"));
+        Assert.Equal(3L, props.RuleProp(Window, "border_size"));
+    }
+
+    [Theory]
+    [InlineData("windowrulev2 = stay_focused, class:^(app)$\n", "stay_focused")]
+    [InlineData("windowrulev2 = opaque, class:^(app)$\n", "opaque")]
+    [InlineData("windowrulev2 = no_max_size, class:^(app)$\n", "no_max_size")]
+    public void ARuleFlagIsTheValueOfItsProp(string rule, string key)
+    {
+        var props = new ClientProps();
+        var decision = Decide(rule);
+        props.Opened(Window, App, [], decision);
+        props.SetSizes(Window, decision.Sizes, null, null);
+
+        Assert.Equal(true, props.Ruled(Window, key, null));
+        Assert.Null(props.Ruled(new WindowId(2), key, null));
+    }
+
+    [Fact]
+    public void EachOpacityOfARuleIsItsOwnProp()
+    {
+        var props = new ClientProps();
+        props.Opened(Window, App, [], Decide("windowrulev2 = opacity 0.9 0.6 0.3, class:^(app)$\n"));
+
+        Assert.Equal(0.9f, ((PropAlpha)props.Ruled(Window, "opacity", null)!).Value);
+        Assert.Equal(0.6f, ((PropAlpha)props.Ruled(Window, "opacity_inactive", null)!).Value);
+        Assert.Equal(0.3f, ((PropAlpha)props.Ruled(Window, "opacity_fullscreen", null)!).Value);
+    }
+
+    [Fact]
+    public void SetpropWinsOverStayFocusedAndTheSizeRules()
+    {
+        var props = new ClientProps();
+        props.Opened(Window, App, [], Decide("windowrulev2 = stay_focused, class:^(app)$\n"));
+        var rule = new SizeRule(new Size(100, 100), new Size(500, 500), NoMax: false);
+
+        props.Set(Window, "stay_focused", false);
+        props.Set(Window, "min_size", new PropSize(200, 150));
+        props.Set(Window, "no_max_size", true);
+
+        Assert.False(props.StaysFocused(Window));
+        var sizes = props.EffectiveSizes(Window, rule);
+        Assert.Equal(new Size(200, 150), sizes.Min);
+        Assert.Equal(new Size(500, 500), sizes.Max);
+        Assert.True(sizes.NoMax);
+        Assert.Equal(rule, props.EffectiveSizes(new WindowId(2), rule));
+    }
+
+    [Fact]
+    public void AnOpacitySetpropThatChangesNothingLeavesNoRule()
+    {
+        var props = new ClientProps();
+        props.Opened(Window, App, [], Decide(""));
+
+        props.Set(Window, "opacity", new PropAlpha(1f, false));
+        Assert.Null(props.Opacity(Window).Rule);
+
+        props.Set(Window, "opaque", true);
+        Assert.True(props.Opacity(Window).Opaque);
+    }
+
+    [Fact]
+    public void AFullscreenStateRuleTurnsSyncFullscreenOffAtTheRuleLayer()
+    {
+        var props = new ClientProps();
+        props.Opened(Window, App, [], Decide("windowrulev2 = border_size 2, class:^(app)$\n") with { StatedFullscreen = true });
+
+        Assert.Equal(false, props.RuleProp(Window, "sync_fullscreen"));
+        Assert.Equal(2L, props.RuleProp(Window, "border_size"));
+
+        props.Rematched(Window, Decide("") with { StatedFullscreen = true }, new SortedSet<string>(StringComparer.Ordinal));
+        Assert.Equal(false, props.RuleProp(Window, "sync_fullscreen"));
+
+        props.Rematched(Window, Decide(""), new SortedSet<string>(StringComparer.Ordinal));
+        Assert.Null(props.RuleProp(Window, "sync_fullscreen"));
+    }
+
+    [Fact]
+    public void TheMatchedTagsAreTheRulesTagsElseTagwindowsElseNone()
+    {
+        var props = new ClientProps();
+        Assert.Null(props.MatchedTags(Window));
+
+        props.Opened(Window, App, [], Decide(""));
+        Assert.Null(props.MatchedTags(Window));
+
+        props.Tag(Window, "static");
+        Assert.Equal(["static"], props.MatchedTags(Window)!);
+
+        props.Rematched(Window, Decide(""), new SortedSet<string>(["ruled*"], StringComparer.Ordinal));
+        Assert.Equal(["ruled*"], props.MatchedTags(Window)!);
+    }
+
     private static WindowDecision Decide(string config) =>
         WindowRuleParser.Decide(App, ConfigParser.Parse(config).WindowRules);
 }

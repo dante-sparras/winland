@@ -117,6 +117,74 @@ public class WorkspaceSetTests
         Assert.Null(set.Find(Number(1, Left)));
     }
 
+    [Fact]
+    public void ARemovedWorkspaceIsNoLongerShown()
+    {
+        var set = new WorkspaceSet();
+        set.Shown.SetLive([Left]);
+        var desk = Add(set, Number(1, Left));
+        set.Shown.Show(Left, desk.Id);
+
+        set.Remove(desk);
+
+        Assert.Null(set.Shown.Shown(Left));
+        Assert.Empty(set);
+    }
+
+    [Fact]
+    public void AGuestMovedOrSwappedByHandIsNoLongerAGuest()
+    {
+        var set = new WorkspaceSet();
+        set.Shown.SetLive([Left, Right]);
+        Add(set, Number(1, Left));
+        var first = Add(set, Number(1, Right), windows: 1);
+        var second = Add(set, Number(2, Right), windows: 1);
+        set.Depart(Right, "DEL-1", Left);
+        Assert.True(first.IsGuest && second.IsGuest);
+
+        set.MoveTo(first, Right);
+        Assert.False(first.IsGuest);
+
+        var host = set.Find(Number(1, Left))!;
+        set.Swap(second, Right, host, Left);
+        Assert.False(second.IsGuest);
+    }
+
+    [Fact]
+    public void GuestsLeaveAndComeHomeInTheOrderOfTheirNumbers()
+    {
+        var set = new WorkspaceSet();
+        set.Shown.SetLive([Left, Right]);
+        Add(set, Number(1, Left));
+        var three = Add(set, Number(3, Right), windows: 1);
+        var two = Add(set, Number(2, Right), windows: 1);
+
+        set.Depart(Right, "DEL-1", Left);
+        Assert.Equal(Number(2, Left), two.Id);
+        Assert.Equal(Number(3, Left), three.Id);
+
+        set.Rebind(two, Number(7, Left));
+        var renames = set.Return(Right, "DEL-1", out _);
+        Assert.Equal([Number(7, Left), Number(3, Left)], renames.Select(rename => rename.From));
+        Assert.Equal(Number(2, Right), two.Id);
+        Assert.Equal(Number(3, Right), three.Id);
+    }
+
+    [Fact]
+    public void NamedWorkspacesAreListedNewestFirstBeforeTheNumberedOnes()
+    {
+        var set = new WorkspaceSet();
+        Add(set, Number(2, Left));
+        Add(set, new WorkspaceId("web", Left.Value));
+        Add(set, Number(1, Left));
+        Add(set, new WorkspaceId("mail", Left.Value));
+        Add(set, Number(1, Right));
+
+        Assert.Equal(
+            [new WorkspaceId("mail", Left.Value), new WorkspaceId("web", Left.Value), Number(1, Left), Number(2, Left)],
+            set.Listed(Left));
+    }
+
     private static long _nextWindow;
 
     private static LiveWorkspace Add(WorkspaceSet set, WorkspaceId id, int windows = 0)

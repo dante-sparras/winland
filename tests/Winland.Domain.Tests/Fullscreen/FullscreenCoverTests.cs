@@ -84,6 +84,67 @@ public class FullscreenCoverTests
         Assert.True(cover.Flag(Window(1)));
     }
 
+    [Fact]
+    public void AClosedWindowIsNoLongerBelow()
+    {
+        var cover = new FullscreenCover(_ => false);
+        var desk = Desk();
+        Tile(desk, 1);
+        Float(desk, 2);
+        cover.Sync([desk], [], _ => true);
+        desk.Layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen, FullscreenMode.Fullscreen);
+        cover.Sync([desk], [], _ => true);
+        Assert.True(cover.IsBelow(Window(2)));
+
+        cover.Forget(Window(2));
+
+        Assert.False(cover.IsBelow(Window(2)));
+    }
+
+    [Fact]
+    public void AFloatingFullscreenThereAtFirstSightKeepsEveryOtherWindowUnder()
+    {
+        var cover = new FullscreenCover(_ => false);
+        var desk = Desk();
+        Float(desk, 1);
+        Tile(desk, 2);
+        Float(desk, 3);
+        desk.Layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen, FullscreenMode.Fullscreen);
+
+        var lowered = cover.Sync([desk], [], window => window == Window(3));
+
+        Assert.False(cover.Flag(Window(2)));
+        Assert.False(cover.Flag(Window(3)));
+        Assert.True(cover.AllowedOver(desk, desk.ClientOf(Window(1))!));
+        Assert.Equal([(Window(3), false)], lowered);
+    }
+
+    [Fact]
+    public void ScrollingHidesTheFloatsOpenWhenATileWentFullscreenAndLetsLaterOnesOver()
+    {
+        var cover = new FullscreenCover(_ => false);
+        var layout = new ScrollingLayout();
+        layout.Fit(Area);
+        var desk = new LiveWorkspace(WorkspaceId.Initial, MonitorId.Primary, layout);
+        Tile(desk, 1);
+        Float(desk, 2);
+        cover.Sync([desk], [], _ => true);
+
+        layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen, FullscreenMode.Fullscreen, layoutAware: true);
+        cover.Sync([desk], [], _ => true);
+        Assert.False(cover.Flag(Window(2)));
+
+        Float(desk, 3);
+        cover.Sync([desk], [], _ => true);
+        Assert.True(cover.Flag(Window(3)));
+        Assert.False(cover.Flag(Window(2)));
+
+        layout.SetFullscreen(Window(1), FullscreenMode.None, FullscreenMode.None, layoutAware: true);
+        cover.Sync([desk], [], _ => true);
+        Assert.True(cover.Flag(Window(2)));
+        Assert.True(cover.Flag(Window(3)));
+    }
+
     private static LiveWorkspace Desk()
     {
         var layout = new DwindleLayout();
