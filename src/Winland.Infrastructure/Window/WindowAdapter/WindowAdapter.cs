@@ -292,52 +292,38 @@ public sealed partial class WindowAdapter : IDisposable
                     AdoptShown(hwnd, window);
                     return;
                 case PInvoke.EVENT_OBJECT_HIDE:
-                    if (PInvoke.IsIconic(hwnd))
-                    {
-                        UndoMinimize((nint)window.Value);
-                        return;
-                    }
-
-                    // An application that hides its own window unmaps it. It is
-                    // adopted again when it is shown. A window shown again before this event arrives stays.
-                    if (!Concealed.ContainsKey(window) && !PInvoke.IsWindowVisible(hwnd) && _core.Manages(window))
-                    {
-                        AbandonDrag(window);
-                        ForgetLimits(window);
-                        Apply(_core.Handle(new WindowClosed(window)));
-                    }
-
-                    return;
                 case PInvoke.EVENT_OBJECT_CLOAKED:
-                    // A virtual desktop switch cloaks hidden Clients too. A hidden window is not adopted again
-                    // when it is uncloaked, so it stays a Client and keeps its Workspace.
-                    if (!PInvoke.IsWindowVisible(hwnd) && _core.Manages(window))
-                        return;
-
-                    AbandonDrag(window);
-                    ForgetLimits(window);
-                    Apply(_core.Handle(new WindowClosed(window)));
-                    return;
                 case PInvoke.EVENT_OBJECT_SHOW:
                 case PInvoke.EVENT_OBJECT_UNCLOAKED:
                 case PInvoke.EVENT_OBJECT_NAMECHANGE:
                 case PInvoke.EVENT_OBJECT_CREATE:
-                    if (PInvoke.IsIconic(hwnd))
-                        return;
-
-                    // A Client's new title goes to the core, which keeps it. Restoring a window the core does not manage
-                    // does nothing, so that is not sent to it.
-                    var managed = _core.Manages(window);
-                    if (managed && @event == PInvoke.EVENT_OBJECT_NAMECHANGE)
+                    var facts = new WindowFacts(
+                        Minimized: PInvoke.IsIconic(hwnd),
+                        Visible: PInvoke.IsWindowVisible(hwnd),
+                        Managed: _core.Manages(window),
+                        Concealed: Concealed.ContainsKey(window));
+                    switch (WindowVisibility.Decide(@event, facts))
                     {
-                        Apply(_core.Handle(new WindowTitleChanged(window, WindowTitle(hwnd))));
-                        return;
+                        case VisibilityAction.UndoMinimize:
+                            UndoMinimize((nint)window.Value);
+                            break;
+                        case VisibilityAction.Close:
+                            AbandonDrag(window);
+                            ForgetLimits(window);
+                            Apply(_core.Handle(new WindowClosed(window)));
+                            break;
+                        case VisibilityAction.Retitle:
+                            Apply(_core.Handle(new WindowTitleChanged(window, WindowTitle(hwnd))));
+                            break;
+                        case VisibilityAction.Restore:
+                            Apply(_core.Handle(new WindowRestored(window)));
+                            AdoptShown(hwnd, window);
+                            break;
+                        case VisibilityAction.Adopt:
+                            AdoptShown(hwnd, window);
+                            break;
                     }
 
-                    if (managed)
-                        Apply(_core.Handle(new WindowRestored(window)));
-
-                    AdoptShown(hwnd, window);
                     return;
             }
         }
