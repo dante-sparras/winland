@@ -191,6 +191,8 @@ public sealed partial class WindowManager
         // A window owned by a pinned Client is pinned too, as Winland pins a child of a pinned parent. A
         // tiled window is never pinned.
         _pins.PinAtOpen(appeared.Window, decision.Floating, decision.Pin, appeared.Owner);
+        if (restored is { PinHeld: true } && decision.Floating)
+            _pins.RestoreHeld(appeared.Window);
         var restore = _awaitingMapFocus.Contains(appeared.Window) ? Kept() : null;
         if (restore == appeared.Window)
             restore = null;

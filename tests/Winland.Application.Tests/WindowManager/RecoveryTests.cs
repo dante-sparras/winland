@@ -287,6 +287,55 @@ public class RecoveryTests
     }
 
     [Fact]
+    public void AClientWhosePinAFullscreenModeHeldIsPinnedAgainWhenItLeavesThatModeAfterARestart()
+    {
+        const string config = "binds:allow_pin_fullscreen = true\nwindowrulev2 = float, class:^(stick)$\n";
+        var prior = new WindowManager(ConfigParser.Parse(config));
+        prior.Handle(new WindowAppeared(new WindowId(1), Area)
+        {
+            Bounds = new Rectangle(0, 0, 400, 300),
+            Traits = WindowTraits.Normal with { Class = "stick" },
+        });
+        prior.Handle(new Dispatch("pin"));
+        prior.Handle(new Dispatch("fullscreen", "1"));
+        Assert.True(RecoverySnapshot.TryParse(prior.Recovery().ToJson(), out var snapshot));
+
+        var recorded = Assert.Single(snapshot.Clients);
+        Assert.False(recorded.Pinned);
+        Assert.True(recorded.PinHeld);
+
+        var core = new WindowManager(ConfigParser.Parse(config));
+        core.Restore(snapshot);
+        var back = core.Handle(new WindowAppeared(new WindowId(1), Area)
+        {
+            Bounds = new Rectangle(5, 5, 50, 50),
+            Traits = WindowTraits.Normal with { Class = "stick" },
+        });
+
+        var held = Assert.Single(back.State.Clients);
+        Assert.Equal(FullscreenMode.Maximized, held.Fullscreen);
+        Assert.False(held.Pinned);
+        Assert.True(held.PinFullscreened);
+
+        var left = Assert.Single(core.Handle(new Dispatch("fullscreen", "1")).State.Clients);
+        Assert.Equal(FullscreenMode.None, left.Fullscreen);
+        Assert.True(left.Pinned);
+        Assert.False(left.PinFullscreened);
+    }
+
+    [Fact]
+    public void ASnapshotWithoutPinHeldReadsAsNotHeld()
+    {
+        const string json = """{"clients":[{"window":5,"workspace":"1","monitor":"","hidden":false,"class":"stick","title":"","process":10,"pinned":true}]}""";
+
+        Assert.True(RecoverySnapshot.TryParse(json, out var snapshot));
+
+        var recorded = Assert.Single(snapshot.Clients);
+        Assert.True(recorded.Pinned);
+        Assert.False(recorded.PinHeld);
+    }
+
+    [Fact]
     public void AFullscreenClientComesBackFullscreen()
     {
         var prior = new WindowManager();

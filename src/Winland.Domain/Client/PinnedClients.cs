@@ -61,6 +61,13 @@ internal sealed class PinnedClients
             Pin(window);
     }
 
+    /// <summary>Gives a recovered Client the Held pin it had when Winland last ran.</summary>
+    public void RestoreHeld(WindowId window)
+    {
+        Pin(window);
+        Hold(window);
+    }
+
     /// <summary>
     /// True for a Pinned Client that is shown on a Workspace that is not shown: it is not minimized and its
     /// Monitor shows a Workspace.
