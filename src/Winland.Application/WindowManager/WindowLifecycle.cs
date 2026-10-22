@@ -293,14 +293,14 @@ public sealed partial class WindowManager
                 SetSpecial(monitor, null);
                 DropIfEmpty(desk.Id);
                 var normal = FindWorkspace(ActiveOn(monitor));
-                var specialFocus = normal is null ? null : normal.Remembered();
+                var specialFocus = normal is null ? null : RememberedOn(normal);
                 _active = specialFocus;
                 if (normal is not null)
                     normal.Focus = specialFocus;
                 return View(normal?.Layout.Visible() ?? [], focus: specialFocus);
             }
 
-            _active = _config.Input.SpecialFallthrough ? (FindWorkspace(ActiveOn(monitor)) ?? FocusedWorkspace()).Remembered() : null;
+            _active = _config.Input.SpecialFallthrough ? RememberedOn(FindWorkspace(ActiveOn(monitor)) ?? FocusedWorkspace()) : null;
             desk.Focus = null;
             return View([], focus: _active);
         }
@@ -324,7 +324,7 @@ public sealed partial class WindowManager
             // takes the focus.
             if (SpecialOn(monitor) is WorkspaceId open && open != desk.Id && FindWorkspace(open) is LiveWorkspace shownSpecial
                 && (next is not WindowId candidate || WorkspaceContaining(candidate)?.Id != open)
-                && (shownSpecial.Remembered() ?? shownSpecial.LastVisible()) is WindowId onSpecial)
+                && RememberedOn(shownSpecial) is WindowId onSpecial)
             {
                 TakeFocus(shownSpecial, onSpecial);
                 return Present(desk, covered, placements, focus: onSpecial);

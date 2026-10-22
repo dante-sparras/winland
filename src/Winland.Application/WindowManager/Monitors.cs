@@ -298,7 +298,7 @@ public sealed partial class WindowManager
 
         if (focused is LiveMonitor screen && ShownOn(screen) is WorkspaceId active && FindWorkspace(active) is LiveWorkspace shown)
         {
-            var next = Accept(shown.Remembered());
+            var next = RememberedOn(shown);
             _active = next;
             shown.Focus = next;
             if (next is WindowId noted)
@@ -342,7 +342,7 @@ public sealed partial class WindowManager
         if (follow)
         {
             _shownWorkspaces.Show(destination.Id, desk.Id);
-            var next = Accept(desk.Remembered());
+            var next = RememberedOn(desk);
             _active = next;
             desk.Focus = next;
             if (next is WindowId noted)
@@ -376,7 +376,7 @@ public sealed partial class WindowManager
         if (next is WindowId wanted && (desk is null || desk.ClientOf(wanted) is null || HasNoFocus(wanted)))
             next = null;
         if (next is null && desk is not null)
-            next = Accept(desk.Remembered());
+            next = RememberedOn(desk);
 
         Focus(screen.Id);
         _active = next;
@@ -468,6 +468,9 @@ public sealed partial class WindowManager
 
     private WindowId? Accept(WindowId? window) =>
         window is WindowId candidate && !HasNoFocus(candidate) ? candidate : null;
+
+    // The Client a Workspace gives focus back to when it is shown again, unless that Client takes no focus.
+    private WindowId? RememberedOn(LiveWorkspace desk) => Accept(desk.Remembered());
 
     private List<MonitorTarget> Targets()
     {
