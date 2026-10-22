@@ -193,23 +193,4 @@ public sealed partial class WindowManager
 
         return false;
     }
-
-    // A min_size or max_size written as an expression is read again from the window as it is now. A later number still wins.
-    private SizeRule ResolvedSizes(LiveWorkspace desk, Client client, WindowDecision decision)
-    {
-        if (decision.MinSizeExpression is null && decision.MaxSizeExpression is null)
-            return decision.Sizes;
-
-        var variables = ExpressionVariables(client, desk);
-        Size? Read(ExpressionPair? expression) =>
-            expression is { } pair && pair.TryEvaluate(variables, out var width, out var height) && width >= 1 && height >= 1
-                ? new Size(Pixels(width), Pixels(height))
-                : null;
-
-        return decision.Sizes with
-        {
-            Min = decision.Sizes.Min ?? Read(decision.MinSizeExpression),
-            Max = decision.Sizes.Max ?? Read(decision.MaxSizeExpression),
-        };
-    }
 }
