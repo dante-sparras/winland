@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Winland.Application.Tests;
 
 public class SpecialWorkspaceTests
@@ -240,21 +238,9 @@ public class SpecialWorkspaceTests
         Traits = windowClass is null ? WindowTraits.Normal : WindowTraits.Normal with { Class = windowClass },
     };
 
-    private static Monitor Display(string name, string description, int x, int y, int width, int height) =>
-        new(name, description, x, y, width, height, 1, true, new Rectangle(x, y, width, height));
-
-    private static Client Client(Outcome outcome, long window) =>
-        Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-
     private static MonitorSnapshot Screen(Outcome outcome, int id) =>
         Assert.Single(outcome.State.Screens, screen => screen.Id == new MonitorId(id));
 
     private static IReadOnlyList<string> Lines(Outcome outcome) =>
         CommandProtocol.FormatStream(outcome.Events, outcome.State);
-
-    private static JsonElement Json(string text)
-    {
-        using var document = JsonDocument.Parse(text);
-        return document.RootElement.Clone();
-    }
 }

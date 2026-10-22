@@ -1143,10 +1143,4 @@ public class ScrollConformance
             Assert.Equal(before[name], desk.ActivePlace());
         }
     }
-
-    private static JsonElement Json(string text)
-    {
-        using var document = JsonDocument.Parse(text);
-        return document.RootElement.Clone();
-    }
 }

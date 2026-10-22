@@ -306,10 +306,4 @@ public class GeometryDispatcherTests
             Traits = WindowTraits.Normal with { Class = "box" },
             Bounds = new Rectangle(5, 7, 200, 150),
         };
-
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-        return Assert.Single(outcome.Placements, placement => placement.Client == client.Id).Bounds;
-    }
 }

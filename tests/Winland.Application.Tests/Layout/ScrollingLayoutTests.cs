@@ -525,13 +525,6 @@ public class ScrollingLayoutTests
         Assert.True(BoundsOf(focused, 2).X >= 800);
     }
 
-    private static WindowManager Configured(string text)
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse(text)));
-        return core;
-    }
-
     private static WindowManager Flat() => Configured("""
         general:layout = scrolling
         general:gaps_in = 0

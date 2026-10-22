@@ -194,10 +194,4 @@ public class IpcJsonTests
 
         Assert.Equal("[" + Monitor + "]", new WindowManager().Execute("j/monitors").Text);
     }
-
-    private static JsonElement Json(string text)
-    {
-        using var document = JsonDocument.Parse(text);
-        return document.RootElement.Clone();
-    }
 }

@@ -81,21 +81,6 @@ public class PseudoLayoutTests
     private static string Flat(string extra) =>
         "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 
-    private static WindowManager Configured(string text)
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse(text)));
-        return core;
-    }
-
     private static WindowAppeared Appeared(long window, Rectangle bounds = default) =>
         new(new WindowId(window), Wide) { Bounds = bounds };
-
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-        var placement = Assert.Single(outcome.Placements, candidate => candidate.Client == client.Id);
-        return placement.Bounds;
-    }
-
 }

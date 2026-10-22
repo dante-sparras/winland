@@ -712,11 +712,4 @@ public class WindowManagerTests
         "overlay" => WindowTraits.Normal with { Overlay = true },
         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "Unknown rejection."),
     };
-
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-        var placement = Assert.Single(outcome.Placements, candidate => candidate.Client == client.Id);
-        return placement.Bounds;
-    }
 }

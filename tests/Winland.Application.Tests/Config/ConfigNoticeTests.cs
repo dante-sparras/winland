@@ -124,9 +124,4 @@ public class ConfigNoticeTests
     }
 
     private static ConfigNotice? Notice(WindowManager core) => core.Execute("dispatch no_op").Effect.ConfigNotice;
-
-    private sealed class MemorySource(IReadOnlyDictionary<string, string> files) : IConfigSource
-    {
-        public string? Read(string path) => files.TryGetValue(path, out var text) ? text : null;
-    }
 }

@@ -292,14 +292,4 @@ public class CursorInputTests
         Assert.True(RecoverySnapshot.TryParse(Older, out var legacy));
         Assert.Equal(snapshot.Clients, legacy.Clients);
     }
-
-    private static WindowManager Load(string text)
-    {
-        var core = new WindowManager();
-        core.Handle(new ConfigLoaded(ConfigParser.Parse(text)));
-        return core;
-    }
-
-    private static Monitor Display(string name, string description, int x, int y, int width, int height) =>
-        new(name, description, x, y, width, height, 1, true, new Rectangle(x, y, width, height));
 }

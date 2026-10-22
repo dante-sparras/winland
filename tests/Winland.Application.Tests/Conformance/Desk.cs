@@ -319,12 +319,6 @@ internal sealed class Desk : IDisposable
     private static string Pair(JsonElement pair) =>
         $"{pair[0].GetInt32()},{pair[1].GetInt32()}";
 
-    private static JsonElement Json(string text)
-    {
-        using var document = JsonDocument.Parse(text);
-        return document.RootElement.Clone();
-    }
-
     /// <summary>A headless monitor at these bounds, with no reserved area.</summary>
     internal static Monitor Monitor(string name, Rectangle bounds) =>
         new(name, name, bounds.X, bounds.Y, bounds.Width, bounds.Height, 1, true, bounds);
