@@ -30,13 +30,18 @@ public class WorkspaceRuleTests
     }
 
     [Fact]
-    public void GapFieldsWarnAndOtherFieldsAreSkipped()
+    public void UnknownFieldsWarnAndTheRestOfTheRuleApplies()
     {
         var document = ConfigParser.Parse("""
             workspace = 1, monitor:DP-1, shadow:1, animation:pop, float_gaps:4, layout:master, banana:1, layoutopt:precise_mouse_move:1, layoutopt:smart_resizing:true, layoutopt:force_split:left
             """);
 
-        Assert.Empty(document.Warnings);
+        Assert.Equal(
+            [
+                new ConfigWarning(1, "Unsupported workspace rule field 'shadow'."),
+                new ConfigWarning(1, "Unsupported workspace rule field 'banana'."),
+            ],
+            document.Warnings);
         var rule = Assert.Single(document.WorkspaceRules);
         Assert.Equal("pop", rule.Animation);
         Assert.Equal("DP-1", rule.Monitor);
