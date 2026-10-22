@@ -238,10 +238,10 @@ public class ExtraCommandTests
         Assert.Equal("[[BATCH]]layouts ; locked", line);
 
         Assert.True(ControlInvocation.TryCreate(["-j", "--batch", "layouts ; locked"], out line, out events));
-        Assert.Equal("[[BATCH]]j/layouts ;j/locked", line);
+        Assert.Equal("j/[[BATCH]]layouts ; locked", line);
 
         Assert.True(ControlInvocation.TryCreate(["-j", "--batch", @"notify a\; b; keyword c\\; clients"], out line, out events));
-        Assert.Equal(@"[[BATCH]]j/notify a\; b;j/keyword c\\;j/clients", line);
+        Assert.Equal(@"j/[[BATCH]]notify a\; b; keyword c\\; clients", line);
 
         Assert.True(ControlInvocation.TryCreate(["-a", "clients"], out line, out events));
         Assert.Equal("a/clients", line);
@@ -266,6 +266,31 @@ public class ExtraCommandTests
         Assert.False(ControlInvocation.TryCreate(["plugin", "list"], out _, out _));
         Assert.False(ControlInvocation.TryCreate(["plugin", "install", "https://example.com/plugins.git"], out _, out _));
         Assert.False(ControlInvocation.TryCreate(["--batch"], out _, out _));
+    }
+
+    [Fact]
+    public void ControlToolTakesEveryVerbThePipeAnswersAndListsIt()
+    {
+        foreach (var form in CommandProtocol.VerbForms)
+        {
+            Assert.Contains(" " + form + "\n", ControlInvocation.Usage, StringComparison.Ordinal);
+            var verb = form.Split(' ')[0];
+            if (!form.Contains('<', StringComparison.Ordinal))
+                Assert.True(ControlInvocation.TryCreate([verb], out _, out _), verb);
+        }
+
+        Assert.False(ControlInvocation.TryCreate(["clients", "extra"], out _, out _));
+    }
+
+    [Fact]
+    public void ABatchGivesItsFlagsToEachCommand()
+    {
+        var core = new WindowManager();
+
+        var parts = core.Execute("j/[[BATCH]]clients;locked").Text.Split("\n\n\n");
+
+        Assert.Equal([core.Execute("j/clients").Text, core.Execute("j/locked").Text], parts);
+        Assert.NotEqual(core.Execute("clients").Text, parts[0]);
     }
 
     [Theory]

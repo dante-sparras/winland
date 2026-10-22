@@ -123,6 +123,8 @@ These talk to the running Winland.
 | `winland monitors [all]` | List the monitors. `all` includes disabled ones |
 | `winland layouts` | List the layouts |
 | `winland binds` | List the hotkeys |
+| `winland submap` | Show the active submap |
+| `winland animations` | List the animations and their curves |
 | `winland configerrors` | List the config's warnings |
 | `winland getprop <window> <property>` | Show a window property |
 | `winland setprop <window> <property> <value>` | Set a window property |

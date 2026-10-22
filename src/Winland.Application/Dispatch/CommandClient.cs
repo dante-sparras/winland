@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.IO.Pipes;
 using System.Text;
 
@@ -26,7 +25,7 @@ public static class CommandClient
         var outbound = Encoding.UTF8.GetBytes(command + "\n");
         pipe.Write(outbound);
         pipe.Flush();
-        return ReadReply(pipe, 1024 * 1024);
+        return ReadReply(pipe);
     }
 
     public static void Follow(string command, Action<string> onLine, string? pipeName = null, int timeoutMs = 2000, CancellationToken cancel = default)
@@ -65,7 +64,7 @@ public static class CommandClient
         pipe.Flush();
         try
         {
-            while (!cancel.IsCancellationRequested && TryReadLine(pipe, 1024 * 1024, out var line))
+            while (!cancel.IsCancellationRequested && TryReadLine(pipe, out var line))
                 onLine(line);
         }
         catch (Exception exception) when (cancel.IsCancellationRequested && exception is IOException or ObjectDisposedException or InvalidOperationException)
@@ -73,81 +72,36 @@ public static class CommandClient
         }
     }
 
-    private static string ReadReply(Stream stream, int maxBytes)
+    private static string ReadReply(Stream stream)
     {
-        if (!TryReadLine(stream, maxBytes, out var first))
-            return "";
-
-        if (first.Length > 1
-            && first[0] == '#'
-            && int.TryParse(first.AsSpan(1), NumberStyles.None, CultureInfo.InvariantCulture, out var length)
-            && length >= 0
-            && length <= maxBytes)
+        try
         {
-            var buffer = new byte[length];
-            var read = 0;
-            while (read < length)
-            {
-                int n;
-                try
-                {
-                    n = stream.Read(buffer, read, length - read);
-                }
-                catch (Exception exception) when (exception is IOException or ObjectDisposedException)
-                {
-                    break;
-                }
-
-                if (n == 0)
-                    break;
-
-                read += n;
-            }
-
-            return Encoding.UTF8.GetString(buffer, 0, read);
+            return PipeFrame.ReadReply(stream);
         }
-
-        return first;
+        catch (InvalidDataException)
+        {
+            throw new InvalidOperationException("The reply is too large.");
+        }
     }
 
-    private static bool TryReadLine(Stream stream, int maxBytes, out string line)
+    private static bool TryReadLine(Stream stream, out string line)
     {
         line = "";
-        using var body = new MemoryStream();
-        var one = new byte[1];
-        while (true)
+        try
         {
-            int read;
-            try
-            {
-                read = stream.Read(one);
-            }
-            catch (Exception exception) when (exception is IOException or ObjectDisposedException)
-            {
+            if (PipeFrame.ReadLineAsync(stream, PipeFrame.ReplyLimit).GetAwaiter().GetResult() is not string read)
                 return false;
-            }
 
-            if (read == 0)
-            {
-                if (body.Length == 0)
-                    return false;
-
-                break;
-            }
-
-            if (one[0] == (byte)'\n')
-                break;
-
-            if (one[0] == (byte)'\r')
-                continue;
-
-            if (body.Length >= maxBytes)
-                throw new InvalidOperationException("The reply is too large.");
-
-            body.Write(one);
+            line = read;
+            return true;
         }
-
-        line = Encoding.UTF8.GetString(body.GetBuffer().AsSpan(0, (int)body.Length));
-        return true;
+        catch (Exception exception) when (exception is IOException or ObjectDisposedException)
+        {
+            return false;
+        }
+        catch (InvalidDataException)
+        {
+            throw new InvalidOperationException("The reply is too large.");
+        }
     }
 }

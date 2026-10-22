@@ -7,48 +7,54 @@ public static partial class CommandProtocol
 
     private const string Unknown = "error: unknown request";
 
-    // Every verb the pipe answers. Each reads the rest of the line after the verb and returns its request, or null
-    // when the rest does not fit.
-    private static readonly Dictionary<string, Func<string, CommandFlags, CommandRequest?>> Verbs =
-        new(StringComparer.OrdinalIgnoreCase)
+    // Every verb the pipe answers, in the order the usage lists them. Each reads the rest of the line after the verb
+    // and returns its request, or null when the rest does not fit.
+    private static readonly Verb[] VerbList =
+    [
+        new("dispatch", "<name> [args]", (rest, _) => Dispatch(rest)),
+        new("clients", "", (rest, flags) => Bare(rest, new ClientsRequest(flags.HasFlag(CommandFlags.All)))),
+        new("workspaces", "", (rest, _) => Bare(rest, new WorkspacesRequest())),
+        new("workspacerules", "", (rest, _) => Bare(rest, new WorkspaceRulesRequest())),
+        new("monitors", "[all]", (rest, _) => rest.Length == 0 ? new MonitorsRequest()
+            : rest.Equals("all", StringComparison.OrdinalIgnoreCase) ? new MonitorsRequest(All: true)
+            : null),
+        new("activeworkspace", "", (rest, _) => Bare(rest, new ActiveWorkspaceRequest())),
+        new("activewindow", "", (rest, _) => Bare(rest, new ActiveWindowRequest())),
+        new("reload", "", (rest, _) => Bare(rest, new ReloadRequest())),
+        new("events", "", (rest, _) => Bare(rest, new EventsRequest())),
+        new("binds", "", (rest, _) => Bare(rest, new BindsRequest())),
+        new("version", "", (rest, _) => Bare(rest, new VersionRequest())),
+        new("cursorpos", "", (rest, _) => Bare(rest, new CursorPosRequest())),
+        new("configerrors", "", (rest, _) => Bare(rest, new ConfigErrorsRequest())),
+        new("getoption", "<name>", (rest, _) => new GetOptionRequest(SplitOnce(rest).First)),
+        new("locked", "", (rest, _) => Bare(rest, new LockedRequest())),
+        new("layouts", "", (rest, _) => Bare(rest, new LayoutsRequest())),
+        new("submap", "", (rest, _) => Bare(rest, new SubmapRequest())),
+        new("animations", "", (rest, _) => Bare(rest, new AnimationsRequest())),
+        new("kill", "", (rest, _) => Bare(rest, new ClickKillRequest())),
+        new("keyword", "<name> <value>", (rest, _) =>
         {
-            ["dispatch"] = (rest, _) => Dispatch(rest),
-            ["monitors"] = (rest, _) => rest.Length == 0 ? new MonitorsRequest()
-                : rest.Equals("all", StringComparison.OrdinalIgnoreCase) ? new MonitorsRequest(All: true)
-                : null,
-            ["clients"] = (rest, flags) => Bare(rest, new ClientsRequest(flags.HasFlag(CommandFlags.All))),
-            ["workspaces"] = (rest, _) => Bare(rest, new WorkspacesRequest()),
-            ["workspacerules"] = (rest, _) => Bare(rest, new WorkspaceRulesRequest()),
-            ["activeworkspace"] = (rest, _) => Bare(rest, new ActiveWorkspaceRequest()),
-            ["activewindow"] = (rest, _) => Bare(rest, new ActiveWindowRequest()),
-            ["events"] = (rest, _) => Bare(rest, new EventsRequest()),
-            ["reload"] = (rest, _) => Bare(rest, new ReloadRequest()),
-            ["binds"] = (rest, _) => Bare(rest, new BindsRequest()),
-            ["version"] = (rest, _) => Bare(rest, new VersionRequest()),
-            ["cursorpos"] = (rest, _) => Bare(rest, new CursorPosRequest()),
-            ["configerrors"] = (rest, _) => Bare(rest, new ConfigErrorsRequest()),
-            ["locked"] = (rest, _) => Bare(rest, new LockedRequest()),
-            ["layouts"] = (rest, _) => Bare(rest, new LayoutsRequest()),
-            ["submap"] = (rest, _) => Bare(rest, new SubmapRequest()),
-            ["animations"] = (rest, _) => Bare(rest, new AnimationsRequest()),
-            ["kill"] = (rest, _) => Bare(rest, new ClickKillRequest()),
-            ["getoption"] = (rest, _) => new GetOptionRequest(SplitOnce(rest).First),
-            ["keyword"] = (rest, _) =>
-            {
-                var (name, value) = SplitOnce(rest);
-                return new KeywordRequest(name, value);
-            },
-            ["getprop"] = (rest, _) =>
-            {
-                var (selector, property, _) = SplitProp(rest);
-                return new GetPropRequest(selector, property);
-            },
-            ["setprop"] = (rest, _) =>
-            {
-                var (selector, property, value) = SplitProp(rest);
-                return new SetPropRequest(selector, property, value);
-            },
-        };
+            var (name, value) = SplitOnce(rest);
+            return new KeywordRequest(name, value);
+        }),
+        new("getprop", "<window> <property>", (rest, _) =>
+        {
+            var (selector, property, _) = SplitProp(rest);
+            return new GetPropRequest(selector, property);
+        }),
+        new("setprop", "<window> <property> <value>", (rest, _) =>
+        {
+            var (selector, property, value) = SplitProp(rest);
+            return new SetPropRequest(selector, property, value);
+        }),
+    ];
+
+    private static readonly Dictionary<string, Verb> Verbs =
+        VerbList.ToDictionary(verb => verb.Name, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Each verb with what follows it, such as <c>getoption &lt;name&gt;</c>, in the order the usage lists them.</summary>
+    public static IEnumerable<string> VerbForms =>
+        VerbList.Select(verb => verb.Arguments.Length == 0 ? verb.Name : verb.Name + " " + verb.Arguments);
 
     public static CommandParse Parse(string? line)
     {
@@ -63,16 +69,18 @@ public static partial class CommandProtocol
         if (text.StartsWith("[[BATCH]]", StringComparison.Ordinal))
             return new CommandParsed(new BatchRequest(text["[[BATCH]]".Length..]) { Flags = flags });
 
-        var (verb, rest) = SplitOnce(text);
-        if (!Verbs.TryGetValue(verb, out var read))
+        var (name, rest) = SplitOnce(text);
+        if (!Verbs.TryGetValue(name, out var verb))
             return new CommandRejected(Unknown);
 
-        return read(rest, flags) is CommandRequest request
+        return verb.Read(rest, flags) is CommandRequest request
             ? new CommandParsed(request with { Flags = flags })
-            : new CommandRejected(rest.Length == 0 && verb.Equals("dispatch", StringComparison.OrdinalIgnoreCase)
+            : new CommandRejected(rest.Length == 0 && name.Equals("dispatch", StringComparison.OrdinalIgnoreCase)
                 ? "error: missing dispatcher"
                 : Unknown);
     }
+
+    private sealed record Verb(string Name, string Arguments, Func<string, CommandFlags, CommandRequest?> Read);
 
     private static DispatchRequest? Dispatch(string rest)
     {

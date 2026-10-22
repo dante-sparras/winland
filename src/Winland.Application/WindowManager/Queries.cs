@@ -7,11 +7,12 @@ public sealed partial class WindowManager
 {
     private string[] _configErrors = [];
 
-    private CommandReply ExecuteLine(string? line) =>
+    // A batch's flags are added to the flags of each of its commands.
+    private CommandReply ExecuteLine(string? line, CommandFlags added = CommandFlags.None) =>
         CommandProtocol.Parse(line) switch
         {
             CommandRejected rejected => new CommandReply(rejected.Error, View([])),
-            CommandParsed parsed => Reply(parsed.Request),
+            CommandParsed parsed => Reply(parsed.Request with { Flags = parsed.Request.Flags | added }),
             _ => throw new InvalidOperationException("No handler for this command."),
         };
 
@@ -50,11 +51,12 @@ public sealed partial class WindowManager
             KeywordRequest keyword => ApplyKeyword(keyword),
             GetPropRequest prop => ReadProp(prop),
             SetPropRequest prop => WriteProp(prop),
-            BatchRequest batch => RunBatch(batch.Payload),
+            BatchRequest batch => RunBatch(batch.Payload, batch.Flags),
             _ => throw new InvalidOperationException("No handler for this command."),
         };
 
-        if (request.Flags.HasFlag(CommandFlags.Relayout))
+        // A batch passes its flags to each of its commands, so it does not lay out again itself.
+        if (request.Flags.HasFlag(CommandFlags.Relayout) && request is not BatchRequest)
             reply = reply with { Effect = Reflow(reply.Effect) };
 
         return reply;
@@ -223,7 +225,7 @@ public sealed partial class WindowManager
         return rules;
     }
 
-    private CommandReply RunBatch(string payload)
+    private CommandReply RunBatch(string payload, CommandFlags flags)
     {
         var commands = CommandProtocol.SplitBatch(payload);
         if (commands.Count == 0)
@@ -233,7 +235,7 @@ public sealed partial class WindowManager
         Outcome? effect = null;
         for (var i = 0; i < commands.Count; i++)
         {
-            var reply = ExecuteLine(commands[i]);
+            var reply = ExecuteLine(commands[i], flags);
             parts[i] = reply.Text;
             effect = effect is null ? reply.Effect : effect.Then(reply.Effect);
         }

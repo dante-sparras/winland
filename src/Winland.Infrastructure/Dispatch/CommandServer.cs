@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
@@ -10,8 +9,6 @@ namespace Winland.Infrastructure;
 
 public sealed class CommandServer : IDisposable
 {
-    private const int MaxCommandBytes = 64 * 1024;
-
     private const int SubscriberQueueCapacity = 256;
 
     private readonly WindowManager _core;
@@ -265,11 +262,11 @@ public sealed class CommandServer : IDisposable
             stopping = _cancel.Token;
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(stopping);
             timeout.CancelAfter(RequestTimeout);
-            command = await Read(server, timeout.Token).ConfigureAwait(false);
+            command = await PipeFrame.ReadLineAsync(server, PipeFrame.RequestLimit, timeout.Token).ConfigureAwait(false) ?? "";
         }
-        catch (RequestTooLargeException exception)
+        catch (InvalidDataException)
         {
-            await Finish(server, exception.Message, CancellationToken.None).ConfigureAwait(false);
+            await Finish(server, "error: request too large", CancellationToken.None).ConfigureAwait(false);
             return;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
@@ -355,7 +352,7 @@ public sealed class CommandServer : IDisposable
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(stopping);
             timeout.CancelAfter(ReplyTimeout);
-            await server.WriteAsync(Frame(text), timeout.Token).ConfigureAwait(false);
+            await server.WriteAsync(PipeFrame.Frame(text), timeout.Token).ConfigureAwait(false);
             var one = new byte[1];
             while (await server.ReadAsync(one, timeout.Token).ConfigureAwait(false) > 0)
                 continue;
@@ -472,41 +469,6 @@ public sealed class CommandServer : IDisposable
         }
     }
 
-    private static async Task<string> Read(NamedPipeServerStream server, CancellationToken cancel)
-    {
-        using var body = new MemoryStream();
-        var one = new byte[1];
-        while (true)
-        {
-            var read = await server.ReadAsync(one, cancel).ConfigureAwait(false);
-            if (read == 0 || one[0] == (byte)'\n')
-                break;
-
-            if (one[0] == (byte)'\r')
-                continue;
-
-            if (body.Length >= MaxCommandBytes)
-                throw new RequestTooLargeException();
-
-            body.Write(one);
-        }
-
-        return Encoding.UTF8.GetString(body.GetBuffer().AsSpan(0, (int)body.Length));
-    }
-
-    private static byte[] Frame(string text)
-    {
-        if (!text.Contains('\n'))
-            return Encoding.UTF8.GetBytes(text + "\n");
-
-        var body = Encoding.UTF8.GetBytes(text);
-        var header = Encoding.UTF8.GetBytes("#" + body.Length.ToString(CultureInfo.InvariantCulture) + "\n");
-        var bytes = new byte[header.Length + body.Length];
-        header.CopyTo(bytes, 0);
-        body.CopyTo(bytes, header.Length);
-        return bytes;
-    }
-
     // The adapter asks the window to close, after its close animation when it has one.
     private static void Apply(Outcome outcome) => WindowAdapter.Apply(outcome);
 
@@ -528,8 +490,6 @@ public sealed class CommandServer : IDisposable
         uint inBufferSize,
         uint defaultTimeout,
         ref PipeSecurityAttributes security);
-
-    private sealed class RequestTooLargeException() : Exception("error: request too large");
 
     private sealed class Subscriber
     {
