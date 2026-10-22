@@ -57,7 +57,7 @@ public sealed partial class WindowManager
     private WarpTo? SwitchWarp(Captured before, Outcome outcome)
     {
         if (!TraitsOf(outcome.Dispatcher).HasFlag(DispatcherTraits.WarpsToFocused)
-            || _active is not WindowId window
+            || _focus.Focused is not WindowId window
             || window == before.Active)
             return null;
 
@@ -130,7 +130,7 @@ public sealed partial class WindowManager
 
     private WarpTo? PlanFocused(State state, int mode)
     {
-        if (mode <= 0 || _active is not WindowId window)
+        if (mode <= 0 || _focus.Focused is not WindowId window)
             return null;
 
         Client? client = null;

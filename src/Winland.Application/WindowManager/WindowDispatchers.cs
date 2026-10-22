@@ -213,9 +213,9 @@ public sealed partial class WindowManager
 
         _ = home.Layout.Substitute(placeholder, other, theirs, out _);
         if (home.Focus == current)
-            home.Focus = other;
+            FocusState.Remember(home, other);
         if (away.Focus == other)
-            away.Focus = current;
+            FocusState.Remember(away, current);
 
         var homeShown = IsShown(home.Id);
         var awayShown = IsShown(away.Id);
@@ -229,9 +229,9 @@ public sealed partial class WindowManager
 
         // The focus stays on a shown Workspace: the window that came onto the focused one takes it there.
         WindowId? focus = null;
-        if (_active == current && !awayShown)
+        if (_focus.Focused == current && !awayShown)
         {
-            _active = other;
+            _focus.Take(other);
             home.Layout.NoteFocus(other);
             focus = other;
         }
@@ -379,7 +379,7 @@ public sealed partial class WindowManager
         // Closing it first shows the Monitor's Workspace. Switching with it still open would leave it on top.
         var concealed = CloseSpecial(monitor, name);
         var shown = SwitchTo(WorkspaceId.FromNumber(1, monitor), focus: null, consumed: false, dispatcher: name);
-        return concealed.Then(shown) with { Closes = closes, Dispatcher = name, Focus = _active };
+        return concealed.Then(shown) with { Closes = closes, Dispatcher = name, Focus = _focus.Focused };
     }
 
     // Whether the displays are on, as the last dpms left them, which Winland keeps for every display at once.

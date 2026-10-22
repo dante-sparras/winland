@@ -21,7 +21,7 @@ public sealed partial class WindowManager
     private readonly Func<ClientId, int?> _clientBorder;
     private BorderColor? _accent;
     private Rectangle _area;
-    private WindowId? _active;
+    private readonly FocusState _focus;
     private List<StreamEvent>? _configEvents;
     private List<StreamEvent>? _noted;
     private readonly HashSet<WindowId> _concealedMinimized = [];
@@ -55,6 +55,7 @@ public sealed partial class WindowManager
     public WindowManager(ConfigDocument? config = null)
     {
         _clientBorder = ClientBorderOf;
+        _focus = new FocusState(window => !HasNoFocus(window));
         TrackWindowState();
         if (config is not null)
             Use(AppliedConfig.From(config, accent: null));

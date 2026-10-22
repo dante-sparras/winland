@@ -146,8 +146,8 @@ public sealed partial class WindowManager
             _config.Input.FollowMouseThreshold,
             under,
             Floats(under),
-            _active,
-            Floats(_active),
+            _focus.Focused,
+            Floats(_focus.Focused),
             _lastMouse);
         if (decision.RememberMouse)
             _lastMouse = decision.LastMouse;
@@ -162,14 +162,14 @@ public sealed partial class WindowManager
 
     private WindowId? TakePointerFocus(WindowId? window)
     {
-        if (window is not WindowId next || next == _active || HeldByStay(next) || HasNoFocus(next))
+        if (window is not WindowId next || next == _focus.Focused || HeldByStay(next) || HasNoFocus(next))
             return null;
 
         if (WorkspaceContaining(next) is not LiveWorkspace desk || !IsShown(desk.Id))
             return null;
 
         NoteFocus(next);
-        if (_active != next)
+        if (_focus.Focused != next)
             return null;
 
         desk.Layout.NotePointerFocus(next);
@@ -212,8 +212,8 @@ public sealed partial class WindowManager
 
         // A special workspace open over the normal one answers first, floating and tiled alike.
         var inset = shrink ? MonitorPixels.Physical(_config.Input.FollowMouseShrink, ScaleOf(at)) : 0;
-        return PointerFocus.At(Targets(at, special: true), at, inset, _active)
-            ?? PointerFocus.At(Targets(at, special: false), at, inset, _active);
+        return PointerFocus.At(Targets(at, special: true), at, inset, _focus.Focused)
+            ?? PointerFocus.At(Targets(at, special: false), at, inset, _focus.Focused);
     }
 
     private List<PointerFocus.Target> Targets(Point point, bool special)
@@ -294,9 +294,8 @@ public sealed partial class WindowManager
         var options = ActiveOptions();
         var (left, top) = BorderPointer.GrabbedCorner(options.ResizeCorner, floating, pressed.Position, bounds);
         _interaction = new BorderDrag(window, pressed.Button, floating, pressed.Position, bounds, left, top);
-        _active = window;
         var desk = LayoutWorkspace(window);
-        desk.Focus = window;
+        _focus.Take(window, desk);
         desk.Layout.NoteFocus(window);
         NoteBorderCursor(pressed.Position);
         IReadOnlyList<Placement> begun = floating

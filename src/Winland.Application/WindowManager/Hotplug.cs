@@ -95,11 +95,11 @@ public sealed partial class WindowManager
     // goes to the Client the focused Monitor shows, so it does not stay on a window out of sight.
     private WindowId? RefocusShown()
     {
-        if (_active is not WindowId current || IsShownClient(current))
+        if (_focus.Focused is not WindowId current || IsShownClient(current))
             return null;
 
         var desk = CurrentWorkspace();
-        var next = RememberedOn(desk);
+        var next = _focus.Remembered(desk);
         TakeFocus(desk, next);
         return next;
     }

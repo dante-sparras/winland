@@ -94,9 +94,7 @@ public sealed partial class WindowManager
         {
             if (focus is WindowId requested && ClientOn(target, requested) is { Minimized: false })
             {
-                _active = requested;
-                if (FindWorkspace(target) is { } open)
-                    open.Focus = requested;
+                _focus.Take(requested, FindWorkspace(target));
                 return View([], focus: requested, dispatcher: dispatcher);
             }
 
@@ -131,12 +129,11 @@ public sealed partial class WindowManager
 
         WindowId? next = focus is WindowId wanted && desk.ClientOf(wanted) is { Minimized: false }
             ? wanted
-            : RememberedOn(desk);
+            : _focus.Remembered(desk);
         if (next is null && _config.Input.SpecialFallthrough)
-            next = RememberedOn(FocusedWorkspace());
+            next = _focus.Remembered(FocusedWorkspace());
 
-        _active = next;
-        desk.Focus = next;
+        _focus.Take(next, desk);
         return View(desk.Layout.Visible(), show, hide, dispatcher: dispatcher, focus: next);
     }
 
@@ -147,7 +144,7 @@ public sealed partial class WindowManager
         return View(
             normal.Layout.Visible(),
             hide: hidden,
-            focus: _active,
+            focus: _focus.Focused,
             dispatcher: dispatcher);
     }
 
@@ -173,10 +170,8 @@ public sealed partial class WindowManager
         var hidden = VisibleIds(current);
         SetSpecial(monitor, null);
         var normal = FindWorkspace(ActiveOn(monitor));
-        var next = normal is null ? null : RememberedOn(normal);
-        _active = next;
-        if (normal is not null)
-            normal.Focus = next;
+        var next = normal is null ? null : _focus.Remembered(normal);
+        _focus.Take(next, normal);
 
         DropIfEmpty(current);
         return hidden;
@@ -238,12 +233,9 @@ public sealed partial class WindowManager
         else if (source.Layout.Clients.Count == 0)
             DropIfEmpty(source.Id);
 
-        if (_active == window)
+        if (_focus.Focused == window)
         {
-            _active = revealed.Count == 1 && source.ClientOf(revealed[0]) is not null
-                ? revealed[0]
-                : source.LastVisible();
-            source.Focus = _active;
+            _focus.Take(FocusState.AfterLeaving(source, revealed), source);
         }
 
         var placed = new List<Placement>();

@@ -1,11 +1,10 @@
 namespace Winland.Application;
 
-/// <summary>Which Client takes focus, the focus history, and the stacking order.</summary>
+/// <summary>When a window may take focus, and the stacking order. <see cref="FocusState"/> holds which Client has it.</summary>
 public sealed partial class WindowManager
 {
     private readonly Dictionary<WindowId, FocusRule> _focusRules = [];
     private readonly HashSet<WindowId> _awaitingMapFocus = [];
-    private readonly List<WindowId> _focusHistory = [];
 
     // The Clients from the bottom of the stacking order to the top. A new Client opens on top, and alterzorder and
     // bringactivetotop move one, as Winland orders its window list.
@@ -19,8 +18,6 @@ public sealed partial class WindowManager
         else
             _stacking.Insert(0, window);
     }
-    private WindowId? _unmanagedFocus;
-    private WindowId? _beforeUnmanaged;
     private List<StreamEvent>? _extraEvents;
 
     // A reason a handler sets when the dispatcher name is not why the focus moved, such as the pointer.
@@ -45,8 +42,7 @@ public sealed partial class WindowManager
             if (focused.Cause == FocusCause.Activated)
                 return Restore(Kept());
 
-            _beforeUnmanaged = _active;
-            _unmanagedFocus = window;
+            _focus.UnmanagedTook(window);
             NoteFocus(window);
             return View([]);
         }
@@ -57,7 +53,7 @@ public sealed partial class WindowManager
         if (focused.Cause == FocusCause.User
             && _config.Input.FollowMouse == 3
             && _keyState.ButtonsHeld
-            && _active != window)
+            && _focus.Focused != window)
             return Restore(Kept());
 
         // Winland rejects an activation without a fresh input serial, and honors one with it only under
@@ -67,7 +63,7 @@ public sealed partial class WindowManager
         var afterInput = ActivatedAfterClick(focused);
         if ((activated || afterInput) && (activated || !(Own(window, WindowProp.FocusOnActivate) ?? _config.Session.FocusOnActivate)))
         {
-            if (_active == window)
+            if (_focus.Focused == window)
                 return View([]);
 
             MarkUrgent(window);
@@ -122,18 +118,8 @@ public sealed partial class WindowManager
     private void RememberFocus(WindowId window, WindowDecision decision)
     {
         _focusRules[window] = new FocusRule(decision.NoInitialFocus, decision.NoFocus, decision.StayFocused);
-        if (_unmanagedFocus == window)
-        {
-            var prior = _beforeUnmanaged;
-            _unmanagedFocus = null;
-            _beforeUnmanaged = null;
-            if (prior is WindowId kept && IsShownClient(kept))
-            {
-                _active = kept;
-                if (WorkspaceContaining(kept) is { } desk)
-                    desk.Focus = kept;
-            }
-        }
+        if (_focus.Adopted(window) is WindowId kept && IsShownClient(kept))
+            _focus.Take(kept, WorkspaceContaining(kept));
 
         if (!SkipsInitialFocus(window))
             return;
@@ -145,29 +131,20 @@ public sealed partial class WindowManager
     {
         if (_lastMouse == window)
             _lastMouse = null;
-        if (_unmanagedFocus == window)
-        {
-            _unmanagedFocus = null;
-            _beforeUnmanaged = null;
-        }
-
-        if (_beforeUnmanaged == window)
-            _beforeUnmanaged = null;
+        _focus.Forget(window);
     }
 
     private void TouchHistory(WindowId window)
     {
         _urgent.Remove(window);
-        _focusHistory.Remove(window);
-        _focusHistory.Insert(0, window);
+        _focus.Confirm(window);
     }
 
     private void Because(FocusReason reason) => _focusReason = reason;
 
     private void TakeFocus(LiveWorkspace desk, WindowId? window)
     {
-        _active = window;
-        desk.Focus = window;
+        _focus.Take(window, desk);
         if (window is WindowId id)
             NoteFocus(id);
     }
@@ -179,7 +156,7 @@ public sealed partial class WindowManager
             return WindowUnder(_pointer ?? Cursor?.Read(), shrink: false);
 
         if (floating || mode == 2)
-            return Recent(desk) ?? desk.LastVisible();
+            return _focus.Recent(desk) ?? desk.LastVisible();
 
         if (desk.Layout.FocusAfterClose() is WindowId layout && Accepts(desk, layout))
             return layout;
@@ -188,17 +165,6 @@ public sealed partial class WindowManager
         var centre = new Point(bounds.X + (bounds.Width / 2), bounds.Y + (bounds.Height / 2));
         if (hadBounds && (Closest(desk, centre, tiledOnly: true) ?? Closest(desk, centre, tiledOnly: false)) is WindowId near)
             return near;
-
-        return null;
-    }
-
-    private WindowId? Recent(LiveWorkspace desk)
-    {
-        foreach (var window in _focusHistory)
-        {
-            if (Accepts(desk, window))
-                return window;
-        }
 
         return null;
     }
@@ -260,7 +226,7 @@ public sealed partial class WindowManager
 
     private bool HeldByStay(WindowId incoming)
     {
-        if (_active is not WindowId current || current == incoming)
+        if (_focus.Focused is not WindowId current || current == incoming)
             return false;
 
         var stays = SetBool(current, "stay_focused") ?? (_focusRules.TryGetValue(current, out var rule) && rule.StayFocused);
@@ -268,7 +234,7 @@ public sealed partial class WindowManager
     }
 
     private WindowId? Kept() =>
-        _active is WindowId current && IsShownClient(current) ? current : null;
+        _focus.Focused is WindowId current && IsShownClient(current) ? current : null;
 
     private Outcome Restore(WindowId? window) =>
         window is WindowId target ? View([]) with { Focus = target } : View([]);

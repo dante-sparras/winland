@@ -46,7 +46,7 @@ public sealed partial class WindowManager
         if (_actingOn is WindowId acting)
             return Find(acting) is null ? null : acting;
 
-        if (_active is not WindowId active)
+        if (_focus.Focused is not WindowId active)
             return null;
 
         if (ClientOn(ActiveId(), active) is not null)
@@ -69,9 +69,9 @@ public sealed partial class WindowManager
                 var current = SpecialOn(appearedWorkspace.Monitor) ?? ActiveOn(appearedWorkspace.Monitor);
                 if (appearedWorkspace.Id == current)
                 {
-                    appearedWorkspace.Focus = appeared.Window;
+                    FocusState.Remember(appearedWorkspace, appeared.Window);
                     if (_monitors.Count == 0 || appearedWorkspace.Monitor == FocusedId())
-                        _active = appeared.Window;
+                        _focus.Take(appeared.Window);
                     TouchHistory(appeared.Window);
                 }
 
@@ -92,8 +92,7 @@ public sealed partial class WindowManager
             var onNormal = owner.Id == ActiveOn(owner.Monitor);
             if (onSpecial || (onNormal && (special is null || _config.Input.SpecialFallthrough)))
             {
-                _active = window;
-                owner.Focus = window;
+                _focus.Take(window, owner);
                 TouchHistory(window);
             }
 
@@ -101,7 +100,7 @@ public sealed partial class WindowManager
         }
 
         if (Find(window) is null)
-            _active = null;
+            _focus.Take(null);
     }
 
     private Outcome Appear(WindowAppeared appeared)
@@ -272,7 +271,7 @@ public sealed partial class WindowManager
             return View([]);
 
         var covered = desk.Covered();
-        var wasActive = _active == window;
+        var wasActive = _focus.Focused == window;
         var mode = desk.ClientOf(window)?.Fullscreen ?? FullscreenMode.None;
 
         if (CloseGroupMember(window, desk, covered, mode) is Outcome grouped)
@@ -293,23 +292,21 @@ public sealed partial class WindowManager
                 SetSpecial(monitor, null);
                 DropIfEmpty(desk.Id);
                 var normal = FindWorkspace(ActiveOn(monitor));
-                var specialFocus = normal is null ? null : RememberedOn(normal);
-                _active = specialFocus;
-                if (normal is not null)
-                    normal.Focus = specialFocus;
+                var specialFocus = normal is null ? null : _focus.Remembered(normal);
+                _focus.Take(specialFocus, normal);
                 return View(normal?.Layout.Visible() ?? [], focus: specialFocus);
             }
 
-            _active = _config.Input.SpecialFallthrough ? RememberedOn(FindWorkspace(ActiveOn(monitor)) ?? FocusedWorkspace()) : null;
-            desk.Focus = null;
-            return View([], focus: _active);
+            _focus.Take(_config.Input.SpecialFallthrough ? _focus.Remembered(FindWorkspace(ActiveOn(monitor)) ?? FocusedWorkspace()) : null);
+            FocusState.Remember(desk, null);
+            return View([], focus: _focus.Focused);
         }
 
         DropIfEmpty(desk.Id);
         if (!IsShown(desk.Id))
         {
             if (wasActive)
-                _active = null;
+                _focus.Take(null);
 
             return View(placements);
         }
@@ -324,7 +321,7 @@ public sealed partial class WindowManager
             // takes the focus.
             if (SpecialOn(monitor) is WorkspaceId open && open != desk.Id && FindWorkspace(open) is LiveWorkspace shownSpecial
                 && (next is not WindowId candidate || WorkspaceContaining(candidate)?.Id != open)
-                && RememberedOn(shownSpecial) is WindowId onSpecial)
+                && _focus.Remembered(shownSpecial) is WindowId onSpecial)
             {
                 TakeFocus(shownSpecial, onSpecial);
                 return Present(desk, covered, placements, focus: onSpecial);
@@ -343,7 +340,7 @@ public sealed partial class WindowManager
         }
 
         var outcome = Present(desk, covered, placements, focus: next, focusRevealed: reveal);
-        if (wasActive && reveal && _active == window)
+        if (wasActive && reveal && _focus.Focused == window)
         {
             var fallback = desk.LastVisible();
             TakeFocus(desk, fallback);
@@ -360,7 +357,7 @@ public sealed partial class WindowManager
             return View([]);
 
         var covered = desk.Covered();
-        var wasActive = _active == window;
+        var wasActive = _focus.Focused == window;
         var placements = desk.Layout.Minimize(window);
         return IsShown(desk.Id)
             ? Present(desk, covered, placements, focusRevealed: wasActive)

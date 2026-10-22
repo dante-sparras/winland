@@ -27,7 +27,7 @@ public sealed partial class WindowManager
         foreach (var (window, taken) in desk.EndGroup(group))
             desk.Receive(window, taken, area);
 
-        desk.Focus = focus;
+        FocusState.Remember(desk, focus);
         if (focus is WindowId kept)
             desk.Layout.NoteFocus(kept);
 
@@ -83,7 +83,7 @@ public sealed partial class WindowManager
     {
         var covered = desk.Covered();
         var shown = group.Shown;
-        var hadFocus = _active == shown;
+        var hadFocus = _focus.Focused == shown;
         if (!desk.Show(group, index))
             return View([], dispatcher: name);
 
@@ -101,8 +101,7 @@ public sealed partial class WindowManager
 
     private void TakeGroupFocus(LiveWorkspace desk, WindowId window)
     {
-        _active = window;
-        desk.Focus = window;
+        _focus.Take(window, desk);
         desk.Layout.NoteFocus(window);
         TouchHistory(window);
     }

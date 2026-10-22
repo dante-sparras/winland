@@ -6,14 +6,13 @@ public sealed partial class WindowManager
     private readonly WindowRegistry _windowState = new();
 
     // Every map, set and list keyed by a window, and every field that names one, is registered here.
-    // _active is left out on purpose: Close moves it to the next Client itself. _painted and
+    // The Focused client is left out on purpose: Close moves it to the next Client itself. _painted and
     // _concealedMinimized are rebuilt from each State and need no forgetting. A test fails when anything
     // else keeps a closed window.
     private void TrackWindowState()
     {
         _windowState.Track(_focusRules);
         _windowState.Track(_awaitingMapFocus);
-        _windowState.Track(_focusHistory);
         _windowState.Track(_urgent);
         _windowState.Track(ForgetFocusMarks);
         _windowState.Track(_opacity);

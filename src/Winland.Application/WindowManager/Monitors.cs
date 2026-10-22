@@ -6,15 +6,7 @@ public sealed partial class WindowManager
     // Where a switch to a Workspace on another Monitor puts the cursor when no cursor option warps it elsewhere.
     private WarpTo? _crossMonitorWarp;
 
-    private void RankFocus(Layout layout) => layout.RankFocus(_config.BindOptions.FocusPreferredMethod == 0 ? Recency : null);
-
-    // How recently a window was focused: the newest is highest. One never focused is 0, below every focused one,
-    // as Winland puts a window that opens at the old end of its history.
-    private int Recency(WindowId window)
-    {
-        var index = _focusHistory.IndexOf(window);
-        return index < 0 ? 0 : _focusHistory.Count - index;
-    }
+    private void RankFocus(Layout layout) => layout.RankFocus(_config.BindOptions.FocusPreferredMethod == 0 ? _focus.Recency : null);
 
     private Outcome MoveFocusDirection(string arguments)
     {
@@ -49,8 +41,7 @@ public sealed partial class WindowManager
                 if (HasNoFocus(chosen))
                     return View([], dispatcher: name);
 
-                _active = chosen;
-                desk.Focus = chosen;
+                _focus.Take(chosen, desk);
                 desk.Layout.NoteFocus(chosen);
                 return Present(desk, covered, [], dispatcher: name, focus: chosen);
             }
@@ -166,7 +157,7 @@ public sealed partial class WindowManager
 
         // In master, swapping another window with the focused one leaves the focus on the tile the focused window held.
         Rectangle? held = null;
-        if (MasterSlotFollows(desk) && _active is WindowId focused && desk.Layout.TryBounds(focused, out var slot))
+        if (MasterSlotFollows(desk) && _focus.Focused is WindowId focused && desk.Layout.TryBounds(focused, out var slot))
             held = slot;
 
         var placements = desk.Layout.MoveWindow(window, arguments);
@@ -187,11 +178,11 @@ public sealed partial class WindowManager
     }
 
     // A named window is followed when it is the focused one, or when the dispatcher names no window.
-    private bool DirectionFollows() => _actingOn is not WindowId acting || _active == acting;
+    private bool DirectionFollows() => _actingOn is not WindowId acting || _focus.Focused == acting;
 
     private bool MasterSlotFollows(LiveWorkspace desk) =>
         _actingOn is WindowId acting
-        && _active is WindowId focused
+        && _focus.Focused is WindowId focused
         && acting != focused
         && LayoutFactory.NameOf(desk.Layout) == "master"
         && WorkspaceContaining(focused) is LiveWorkspace home
@@ -298,9 +289,8 @@ public sealed partial class WindowManager
 
         if (focused is LiveMonitor screen && ShownOn(screen) is WorkspaceId active && FindWorkspace(active) is LiveWorkspace shown)
         {
-            var next = RememberedOn(shown);
-            _active = next;
-            shown.Focus = next;
+            var next = _focus.Remembered(shown);
+            _focus.Take(next, shown);
             if (next is WindowId noted)
                 shown.Layout.NoteFocus(noted);
             Remember(active, screen.Id);
@@ -342,9 +332,8 @@ public sealed partial class WindowManager
         if (follow)
         {
             _shownWorkspaces.Show(destination.Id, desk.Id);
-            var next = RememberedOn(desk);
-            _active = next;
-            desk.Focus = next;
+            var next = _focus.Remembered(desk);
+            _focus.Take(next, desk);
             if (next is WindowId noted)
                 desk.Layout.NoteFocus(noted);
             Focus(destination.Id);
@@ -376,16 +365,12 @@ public sealed partial class WindowManager
         if (next is WindowId wanted && (desk is null || desk.ClientOf(wanted) is null || HasNoFocus(wanted)))
             next = null;
         if (next is null && desk is not null)
-            next = RememberedOn(desk);
+            next = _focus.Remembered(desk);
 
         Focus(screen.Id);
-        _active = next;
-        if (desk is not null)
-        {
-            desk.Focus = next;
-            if (next is WindowId noted)
-                desk.Layout.NoteFocus(noted);
-        }
+        _focus.Take(next, desk);
+        if (desk is not null && next is WindowId noted)
+            desk.Layout.NoteFocus(noted);
 
         return View([], focus: next, dispatcher: dispatcher);
     }
@@ -424,7 +409,7 @@ public sealed partial class WindowManager
             // A tie goes to the Client focused most recently, as binds:focus_preferred_method 0 picks.
             if (!MonitorSelector.Overlaps(origin, Ideal(desk, client.Window, box), direction, out var overlap)
                 || overlap < bestOverlap
-                || (overlap == bestOverlap && (best is not WindowId held || Recency(client.Window) <= Recency(held))))
+                || (overlap == bestOverlap && (best is not WindowId held || _focus.Recency(client.Window) <= _focus.Recency(held))))
                 continue;
 
             bestOverlap = overlap;
@@ -465,12 +450,6 @@ public sealed partial class WindowManager
 
         return new Rectangle(left, top, right - left, bottom - top);
     }
-
-    private WindowId? Accept(WindowId? window) =>
-        window is WindowId candidate && !HasNoFocus(candidate) ? candidate : null;
-
-    // The Client a Workspace gives focus back to when it is shown again, unless that Client takes no focus.
-    private WindowId? RememberedOn(LiveWorkspace desk) => Accept(desk.Remembered());
 
     private List<MonitorTarget> Targets()
     {

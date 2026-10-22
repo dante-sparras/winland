@@ -131,7 +131,7 @@ public sealed partial class WindowManager
                 followedSwitch = followedSwitch with { Placements = [.. source.Layout.Placed(), .. followedSwitch.Placements] };
             }
 
-            return followedSwitch.Focus is null && _active == id
+            return followedSwitch.Focus is null && _focus.Focused == id
                 ? followedSwitch with { Focus = id }
                 : followedSwitch;
         }
@@ -157,12 +157,9 @@ public sealed partial class WindowManager
             }
         }
 
-        if (_active == id)
+        if (_focus.Focused == id)
         {
-            _active = revealed.Count == 1 && source.ClientOf(revealed[0]) is not null
-                ? revealed[0]
-                : source.LastVisible();
-            source.Focus = _active;
+            _focus.Take(FocusState.AfterLeaving(source, revealed), source);
         }
 
         var placements = new List<Placement>();
@@ -227,14 +224,13 @@ public sealed partial class WindowManager
             if (focus is WindowId requested && ClientOn(target, requested) is not null
                 && (SpecialOn(monitor) is null || _config.Input.SpecialFallthrough))
             {
-                _active = requested;
-                FocusedWorkspace().Focus = requested;
+                _focus.Take(requested, FocusedWorkspace());
             }
 
             return View([], hide: concealed, consumed: consumed, dispatcher: dispatcher);
         }
 
-        var keep = _active is WindowId current
+        var keep = _focus.Focused is WindowId current
             && _pinned.Contains(current)
             && ClientOn(sourceId, current) is { Floating: true }
             ? current
@@ -249,12 +245,13 @@ public sealed partial class WindowManager
         var keepSpecial = SpecialOn(monitor) is not null && focus is null;
         if (!keepSpecial)
         {
-            _active = focus is WindowId requestedFocus && ClientOn(target, requestedFocus) is not null
-                ? requestedFocus
-                : keep is WindowId pinnedFocus && ClientOn(target, pinnedFocus) is not null
-                    ? pinnedFocus
-                    : RememberedOn(destination);
-            destination.Focus = _active;
+            _focus.Take(
+                focus is WindowId requestedFocus && ClientOn(target, requestedFocus) is not null
+                    ? requestedFocus
+                    : keep is WindowId pinnedFocus && ClientOn(target, pinnedFocus) is not null
+                        ? pinnedFocus
+                        : _focus.Remembered(destination),
+                destination);
         }
 
         DropIfEmpty(sourceId);
@@ -287,11 +284,9 @@ public sealed partial class WindowManager
         if (focus is WindowId requested && ClientOn(target, requested) is not null)
             next = requested;
         else if (destination is not null)
-            next = RememberedOn(destination);
+            next = _focus.Remembered(destination);
 
-        _active = next;
-        if (destination is not null)
-            destination.Focus = next;
+        _focus.Take(next, destination);
 
         return View([], focus: next, consumed: consumed, dispatcher: dispatcher);
     }
@@ -311,7 +306,7 @@ public sealed partial class WindowManager
             return;
 
         var bounds = screen.Bounds;
-        if (_config.BindOptions.WorkspaceCenterOn == 1 && _active is WindowId window)
+        if (_config.BindOptions.WorkspaceCenterOn == 1 && _focus.Focused is WindowId window)
         {
             foreach (var placement in FocusedWorkspace().Layout.Visible())
             {

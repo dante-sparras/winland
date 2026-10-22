@@ -196,7 +196,7 @@ public sealed partial class WindowManager
         target.Receive(window, taken with { Floating = !tileBack, Bounds = box }, WorkArea(target, _area), monitor, pointer: tileBack ? pointer : null);
         CarryGroup(source, target, window);
         gesture.MovedWorkspace = true;
-        target.Focus = window;
+        FocusState.Remember(target, window);
         if (settle)
         {
             NoteFocus(window);
@@ -223,7 +223,7 @@ public sealed partial class WindowManager
         if (target.Monitor == focused && target.Id == ActiveOn(focused) && SpecialOn(focused) != target.Id)
             return false;
 
-        target.Focus = window;
+        FocusState.Remember(target, window);
         NoteFocus(window);
         target.Layout.NoteFocus(window);
         return true;
