@@ -41,4 +41,4 @@ Nothing in Domain or Application calls Win32. A test drives `WindowManager` with
 
 ## Tests
 
-Each layer has its own test project under `tests/`, with folders that match the source. `tests/Winland.Application.Tests/Conformance` rebuilds the reference test harness's desktop on `WindowManager` and sends it the reference cases' commands. `docs/behavior.md` is the spec ([ADR 0008](adr/0008-the-spec-is-a-pinned-hyprland-release.md)).
+Each layer has its own test project under `tests/`, with folders that match the source. The helpers the Application tests share, such as `Display` for a Monitor and `BoundsOf` for where a window went, are in `tests/Winland.Application.Tests/Support` and need no import. `tests/Winland.Application.Tests/Conformance` rebuilds the reference test harness's desktop on `WindowManager` and sends it the reference cases' commands. `docs/behavior.md` is the spec ([ADR 0008](adr/0008-the-spec-is-a-pinned-hyprland-release.md)).
