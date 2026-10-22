@@ -296,7 +296,7 @@ public sealed partial class WindowManager
             && own?.Locked != true
             && !target.Denied
             && own != target
-            && CanJoin(RulesOf(dragged), target)
+            && CanJoin(_props.GroupRules(dragged), target)
             && (own is null || _config.Groups.MergeGroupsOnDrag);
     }
 
@@ -394,7 +394,7 @@ public sealed partial class WindowManager
     private bool KeepsRatio(WindowId window, string arguments)
     {
         var mode = int.TryParse(arguments.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
-        return mode == 1 || (mode != 2 && Own(window, WindowProp.KeepAspectRatio) == true);
+        return mode == 1 || (mode != 2 && _props.Own(window, WindowProp.KeepAspectRatio) == true);
     }
 
     // The Client a mouse bind takes: the one under the pointer, or else one whose border is under it, as the pinned

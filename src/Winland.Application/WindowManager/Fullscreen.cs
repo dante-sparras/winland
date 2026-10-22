@@ -81,10 +81,7 @@ public sealed partial class WindowManager
         if (outcome.Error is not null || FindClient(outcome, window) is not Client client)
             return outcome;
 
-        if (!_setProps.TryGetValue(window, out var props))
-            _setProps[window] = props = new Dictionary<string, object>(StringComparer.Ordinal);
-
-        props["sync_fullscreen"] = client.Fullscreen == client.FullscreenClient;
+        _props.Set(window, "sync_fullscreen", client.Fullscreen == client.FullscreenClient);
         return outcome;
     }
 

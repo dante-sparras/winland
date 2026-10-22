@@ -11,11 +11,10 @@ public sealed partial class WindowManager
     // else keeps a closed window.
     private void TrackWindowState()
     {
-        _windowState.Track(_focusRules);
+        _windowState.Track(_props.Forget);
         _windowState.Track(_awaitingMapFocus);
         _windowState.Track(_urgent);
         _windowState.Track(ForgetFocusMarks);
-        _windowState.Track(_opacity);
         _windowState.Track(_restored);
         _windowState.Track(_mapPlaced);
         _windowState.Track(_closeableAt);
@@ -25,14 +24,9 @@ public sealed partial class WindowManager
         _windowState.Track(_pinFullscreened);
         _windowState.Track(_restoreClientMaximized);
         _windowState.Track(_cover.Forget);
-        _windowState.Track(_groupRules);
         _windowState.Track(ForgetDrag);
-        _windowState.Track(_setProps);
-        _windowState.Track(_ruleProps);
-        _windowState.Track(_ruleSubjects);
-        _windowState.Track(_staticTags);
-        _windowState.Track(_ruleTags);
-        _windowState.Track(_content);
+        _windowState.Track(ForgetOwner);
         _windowState.Track(_shownMaximized);
+        _windowState.Track(_initialWorkspaces.Closed);
     }
 }

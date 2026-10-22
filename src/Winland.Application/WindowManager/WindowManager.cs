@@ -21,6 +21,7 @@ public sealed partial class WindowManager
     private BorderColor? _accent;
     private Rectangle _area;
     private readonly FocusState _focus;
+    private readonly ClientProps _props = new();
     private List<StreamEvent>? _configEvents;
     private List<StreamEvent>? _noted;
     private readonly HashSet<WindowId> _concealedMinimized = [];

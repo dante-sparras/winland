@@ -26,14 +26,14 @@ public sealed partial class WindowManager
             var borderless = client.Fullscreen == FullscreenMode.Fullscreen;
             var border = BorderOf(client.Window, client.Window == active);
             var corners = CornersFor(client);
-            var choice = PropOpacity(client.Window, OpacityOf(client.Window));
+            var choice = _props.Opacity(client.Window);
             var alpha = DecorationAlpha.Compute(
                 _config.Decoration,
                 new OpacityInput(client.Window == active, Fullscreen: borderless),
                 choice.Rule,
                 choice.Opaque);
             var shape = borderless ? CornerChoice.Square : corners;
-            var noBlur = Own(client.Window, WindowProp.NoBlur) == true;
+            var noBlur = _props.Own(client.Window, WindowProp.NoBlur) == true;
             decorations.Add(new Decoration(
                 client.Id,
                 border,
@@ -213,8 +213,8 @@ public sealed partial class WindowManager
                     Bounds = PlacedBounds(client, desk, slot),
                     Pinned = pinned,
                     PinFullscreened = _pinFullscreened.Contains(client.Window),
-                    Tags = TagsOf(client.Window),
-                    Content = ContentOf(client.Window),
+                    Tags = _props.Tags(client.Window),
+                    Content = _props.Content(client.Window),
                     AllowedOverFullscreen = _cover.Flag(client.Window),
                     BelowFullscreen = _cover.IsBelow(client.Window),
                 });
@@ -461,7 +461,7 @@ public sealed partial class WindowManager
     // window's. A minimized Client, and one with decorate 0, has none.
     private BorderRing? RingFor(Client client, bool active, CornerChoice shape, byte alpha)
     {
-        if (client.Minimized || Own(client.Window, WindowProp.Decorate) == false || _workspaces.Find(client.Workspace) is not LiveWorkspace desk)
+        if (client.Minimized || _props.Own(client.Window, WindowProp.Decorate) == false || _workspaces.Find(client.Workspace) is not LiveWorkspace desk)
             return null;
 
         var thickness = desk.Options.BorderFor(client.Id);
@@ -484,11 +484,11 @@ public sealed partial class WindowManager
     private CornerChoice CornersFor(Client client)
     {
         var desk = _workspaces.Find(client.Workspace);
-        var rounding = Own(client.Window, WindowProp.Rounding) is { } set ? (int)Math.Min(set, int.MaxValue) : _config.Decoration.Rounding;
-        if (Own(client.Window, WindowProp.Rounding) is null && desk is not null && RuleFor(desk)?.Rounding == false)
+        var rounding = _props.Own(client.Window, WindowProp.Rounding) is { } set ? (int)Math.Min(set, int.MaxValue) : _config.Decoration.Rounding;
+        if (_props.Own(client.Window, WindowProp.Rounding) is null && desk is not null && RuleFor(desk)?.Rounding == false)
             return CornerChoice.Square;
 
-        var power = Own(client.Window, WindowProp.RoundingPower) is { } setPower ? Math.Clamp(setPower, 1f, 10f) : _config.Decoration.RoundingPower;
+        var power = _props.Own(client.Window, WindowProp.RoundingPower) is { } setPower ? Math.Clamp(setPower, 1f, 10f) : _config.Decoration.RoundingPower;
         var screen = desk is null ? null : MonitorById(desk.Monitor);
         var scale = screen is { Effective.Enabled: true } ? screen.Effective.Scale : 1;
         return CornerShape.For(rounding, power, scale);

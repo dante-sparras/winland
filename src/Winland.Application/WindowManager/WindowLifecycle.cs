@@ -113,7 +113,7 @@ public sealed partial class WindowManager
         }
 
         var followed = processId > 0 ? _follow.Take(processId, Clock()) : [];
-        var traits = WithInitialClass(WithInitialTitle(appeared.Traits));
+        var traits = appeared.Traits.WithInitialNames();
         var decision = WindowRuleParser.Decide(traits, JoinRules(_config.WindowRules, followed));
         if (!decision.Adopt)
             return View([]);
@@ -184,10 +184,8 @@ public sealed partial class WindowManager
             placements = desk.Layout.Visible();
 
         NotePlaced(appeared.Window, desk, decision, restored is not null);
+        _props.Opened(appeared.Window, traits, followed, decision);
         RememberFocus(appeared.Window, decision);
-        RememberOpacity(appeared.Window, decision);
-        RememberRuleProps(appeared.Window, decision);
-        RememberRuleSubject(appeared.Window, traits, followed, decision);
         NoteOwner(appeared);
         Stack(appeared.Window, top: true);
         // A window owned by a pinned Client is pinned too, as Winland pins a child of a pinned parent. A
@@ -229,27 +227,25 @@ public sealed partial class WindowManager
             return View([]);
 
         // The window's own limits changed. A min_size or max_size rule still wins over them.
-        var rule = _sizes.TryGetValue(changed.Window, out var kept) ? kept.Rule : default;
+        var rule = _props.Sizes(changed.Window)?.Rule ?? default;
         var tiled = RememberSizes(changed.Window, rule, changed.MinSize, changed.MaxSize);
-        var floating = EffectiveSizes(changed.Window, rule).Floating(changed.MinSize, changed.MaxSize);
+        var floating = _props.EffectiveSizes(changed.Window, rule).Floating(changed.MinSize, changed.MaxSize);
         var placements = desk.Layout.UpdateLimits(changed.Window, floating.Min, floating.Max, tiled);
         return IsShown(desk.Id) ? View(placements) : View([]);
     }
 
-    // The size rules and the window's own limits of each Client, so its limits can be worked out again when either
-    // the window or misc:size_limits_tiled changes.
-    private readonly Dictionary<WindowId, (SizeRule Rule, Size? OwnMin, Size? OwnMax)> _sizes = [];
-
+    // The size rules and the window's own limits are kept, so its limits can be worked out again when either the window or
+    // misc:size_limits_tiled changes.
     private TiledLimits RememberSizes(WindowId window, SizeRule rule, Size? ownMin, Size? ownMax)
     {
-        _sizes[window] = (rule, ownMin, ownMax);
-        return EffectiveSizes(window, rule).Tiled(ownMin, ownMax, _config.Session.SizeLimitsTiled);
+        _props.SetSizes(window, rule, ownMin, ownMax);
+        return _props.EffectiveSizes(window, rule).Tiled(ownMin, ownMax, _config.Session.SizeLimitsTiled);
     }
 
     // misc:size_limits_tiled changed, so every tiled Client keeps other limits. The Layouts are laid out again after.
     private void RefreshTiledLimits()
     {
-        foreach (var (window, sizes) in _sizes)
+        foreach (var window in _props.Sized.ToList())
         {
             if (WorkspaceContaining(window) is not LiveWorkspace desk)
                 continue;
@@ -262,10 +258,6 @@ public sealed partial class WindowManager
     {
         RememberPersistentSize(window);
         _windowState.Forget(window);
-        _sizes.Remove(window);
-        _initialWorkspaces.Closed(window);
-        _shownMaximized.Remove(window);
-        ForgetOwner(window);
         var desk = WorkspaceContaining(window);
         if (desk is null)
             return View([]);

@@ -5,30 +5,8 @@ namespace Winland.Application;
 // gains focus, goes fullscreen, joins a Group or moves between Workspaces.
 public sealed partial class WindowManager
 {
-    // What each window was adopted with: its traits and the exec rules that followed its process.
-    private readonly Dictionary<WindowId, (WindowTraits Traits, IReadOnlyList<WindowRule> Followed)> _ruleSubjects = [];
-
-    // The tags tagwindow gave each window, and each window's tags with what its rules give added.
-    private readonly Dictionary<WindowId, SortedSet<string>> _staticTags = [];
-    private readonly Dictionary<WindowId, SortedSet<string>> _ruleTags = [];
-
     // Whether the last pass found a rule that reads state.
     private bool _matchedState;
-
-    private IReadOnlyList<string> TagsOf(WindowId window) =>
-        _ruleTags.TryGetValue(window, out var tags) || _staticTags.TryGetValue(window, out tags) ? [.. tags] : [];
-
-    // The content type a content window rule gave each window when it opened.
-    private readonly Dictionary<WindowId, int> _content = [];
-
-    private int ContentOf(WindowId window) => _content.TryGetValue(window, out var content) ? content : 0;
-
-    private void RememberRuleSubject(WindowId window, WindowTraits traits, IReadOnlyList<WindowRule> followed, WindowDecision decision)
-    {
-        _ruleSubjects[window] = (WithInitialClass(WithInitialTitle(traits)), followed);
-        if (decision.Content != 0)
-            _content[window] = decision.Content;
-    }
 
     // Matches the tag, property, opacity and focus effects of every window's rules against its state now. The placements of each
     // shown Workspace where a window's border changed, laid out again, and whether any window's tags changed.
@@ -49,29 +27,20 @@ public sealed partial class WindowManager
             var changed = false;
             foreach (var client in desk.Layout.Clients)
             {
-                if (!_ruleSubjects.TryGetValue(client.Window, out var kept))
+                if (_props.Subject(client.Window) is not { } kept)
                     continue;
 
                 var traits = kept.Traits with { Class = client.Class, Title = client.Title };
                 var rules = JoinRules(_config.WindowRules, kept.Followed);
-                var tags = _staticTags.TryGetValue(client.Window, out var own)
-                    ? new SortedSet<string>(own, StringComparer.Ordinal)
-                    : new SortedSet<string>(StringComparer.Ordinal);
+                var tags = _props.StaticTags(client.Window);
                 foreach (var tag in WindowRuleParser.TagsFor(traits, rules, SubjectOf(desk, client, active, tags)))
                     _ = WindowTags.Apply(tags, tag, dynamic: true);
 
-                var before = _ruleTags.TryGetValue(client.Window, out var held) ? held : own;
-                tagsChanged |= !(before ?? []).SetEquals(tags);
-                _ruleTags[client.Window] = tags;
-
+                tagsChanged |= !(_props.MatchedTags(client.Window) ?? new HashSet<string>()).SetEquals(tags);
                 var decision = WindowRuleParser.Decide(traits, rules, SubjectOf(desk, client, active, tags));
-                var border = RulePropOf(client.Window, "border_size");
-                RememberRuleProps(client.Window, decision);
-                RememberOpacity(client.Window, decision);
-                if (_focusRules.TryGetValue(client.Window, out var focus))
-                    _focusRules[client.Window] = focus with { NoFocus = decision.NoFocus, StayFocused = decision.StayFocused };
-
-                changed |= !Equals(border, RulePropOf(client.Window, "border_size"));
+                var border = _props.RuleProp(client.Window, "border_size");
+                _props.Rematched(client.Window, decision, tags);
+                changed |= !Equals(border, _props.RuleProp(client.Window, "border_size"));
             }
 
             if (changed && IsShown(desk.Id))
@@ -123,7 +92,7 @@ public sealed partial class WindowManager
             desk.GroupOf(client.Window) is not null,
             selector => WorkspaceRules.MatchesSelector(selector, desk.Id, desk.DisplayName, screen?.Effective, Count, desk.CoveringMode()),
             tag => WindowTags.IsTagged(tags, tag),
-            ContentOf(client.Window),
+            _props.Content(client.Window),
             IsModal(client.Window));
     }
 
@@ -138,12 +107,8 @@ public sealed partial class WindowManager
         if (tag.Length == 0 || Select(selector, emptyMeansActive: true) is not WindowId window)
             return View([], dispatcher: name);
 
-        if (!_staticTags.TryGetValue(window, out var tags))
-            _staticTags[window] = tags = new SortedSet<string>(StringComparer.Ordinal);
-
         // The rules are matched again, with the new tag, when this Outcome is decorated.
-        if (WindowTags.Apply(tags, tag, dynamic: false))
-            _ruleTags.Remove(window);
+        _ = _props.Tag(window, tag);
 
         return View([], dispatcher: name);
     }
@@ -156,21 +121,10 @@ public sealed partial class WindowManager
     {
         const string name = "cleartags";
         if (Select(arguments.Trim(), emptyMeansActive: true) is WindowId window)
-        {
-            _staticTags.Remove(window);
-            _ruleTags.Remove(window);
-        }
+            _props.ClearTags(window);
 
         return View([], dispatcher: name);
     }
-
-    // initialTitle matches the title a window had when it appeared, including an empty one, so a later title does not stand in for it.
-    private static WindowTraits WithInitialTitle(WindowTraits traits) =>
-        traits.InitialTitle is null ? traits with { InitialTitle = traits.Title } : traits;
-
-    // initialClass matches the class a window had when it appeared, including an empty one, so a later class does not stand in for it.
-    private static WindowTraits WithInitialClass(WindowTraits traits) =>
-        traits.InitialClass is null ? traits with { InitialClass = traits.Class } : traits;
 
     private static bool ReadsState(IReadOnlyList<WindowRule> rules)
     {
@@ -185,9 +139,9 @@ public sealed partial class WindowManager
 
     private bool FollowedReadState()
     {
-        foreach (var kept in _ruleSubjects.Values)
+        foreach (var followed in _props.Followed)
         {
-            if (kept.Followed.Count > 0 && ReadsState(kept.Followed))
+            if (followed.Count > 0 && ReadsState(followed))
                 return true;
         }
 

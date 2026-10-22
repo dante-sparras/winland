@@ -3,7 +3,6 @@ namespace Winland.Application;
 /// <summary>When a window may take focus, and the stacking order. <see cref="FocusState"/> holds which Client has it.</summary>
 public sealed partial class WindowManager
 {
-    private readonly Dictionary<WindowId, FocusRule> _focusRules = [];
     private readonly HashSet<WindowId> _awaitingMapFocus = [];
 
     // The Clients from the bottom of the stacking order to the top. A new Client opens on top, and alterzorder and
@@ -22,8 +21,6 @@ public sealed partial class WindowManager
 
     // A reason a handler sets when the dispatcher name is not why the focus moved, such as the pointer.
     private FocusReason _focusReason;
-
-    private readonly record struct FocusRule(bool NoInitialFocus, bool NoFocus, bool StayFocused);
 
     private Outcome Consider(WindowFocused focused)
     {
@@ -61,7 +58,7 @@ public sealed partial class WindowManager
         // key before it has no such serial. One that takes it right after a click in a Client of another program has one.
         var activated = focused.Cause == FocusCause.Activated;
         var afterInput = ActivatedAfterClick(focused);
-        if ((activated || afterInput) && (activated || !(Own(window, WindowProp.FocusOnActivate) ?? _config.Session.FocusOnActivate)))
+        if ((activated || afterInput) && (activated || !(_props.Own(window, WindowProp.FocusOnActivate) ?? _config.Session.FocusOnActivate)))
         {
             if (_focus.Focused == window)
                 return View([]);
@@ -117,7 +114,6 @@ public sealed partial class WindowManager
 
     private void RememberFocus(WindowId window, WindowDecision decision)
     {
-        _focusRules[window] = new FocusRule(decision.NoInitialFocus, decision.NoFocus, decision.StayFocused);
         if (_focus.Adopted(window) is WindowId kept && IsShownClient(kept))
             _focus.Take(kept, WorkspaceContaining(kept));
 
@@ -215,22 +211,21 @@ public sealed partial class WindowManager
 
     private bool SkipsInitialFocus(WindowId window)
     {
-        if (!_focusRules.TryGetValue(window, out var rule))
+        if (_props.FocusRuleOf(window) is not FocusRule rule)
             return false;
 
         return rule.NoInitialFocus || rule.NoFocus || HeldByStay(window);
     }
 
     private bool HasNoFocus(WindowId window) =>
-        BlockedByModal(window) || (SetBool(window, "no_focus") ?? (_focusRules.TryGetValue(window, out var rule) && rule.NoFocus));
+        BlockedByModal(window) || _props.NoFocus(window);
 
     private bool HeldByStay(WindowId incoming)
     {
         if (_focus.Focused is not WindowId current || current == incoming)
             return false;
 
-        var stays = SetBool(current, "stay_focused") ?? (_focusRules.TryGetValue(current, out var rule) && rule.StayFocused);
-        return stays && IsShownClient(current);
+        return _props.StaysFocused(current) && IsShownClient(current);
     }
 
     private WindowId? Kept() =>

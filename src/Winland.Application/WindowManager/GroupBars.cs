@@ -35,7 +35,7 @@ public sealed partial class WindowManager
                     || shown.Minimized
                     || shown.Fullscreen == FullscreenMode.Fullscreen
                     || !showing.Contains(group.Shown)
-                    || (Own(group.Shown, WindowProp.Decorate) ?? RuleFor(desk)?.Decorate) == false)
+                    || (_props.Own(group.Shown, WindowProp.Decorate) ?? RuleFor(desk)?.Decorate) == false)
                     continue;
 
                 var reserved = scaled.ReservedFor(group.Count);
@@ -98,7 +98,7 @@ public sealed partial class WindowManager
 
     private BorderColor BorderOf(WindowId window, bool active, bool honorProps = true)
     {
-        if (honorProps && Own(window, active ? WindowProp.ActiveBorderColor : WindowProp.InactiveBorderColor) is { } set)
+        if (honorProps && _props.Own(window, active ? WindowProp.ActiveBorderColor : WindowProp.InactiveBorderColor) is { } set)
             return set;
 
         if (WorkspaceContaining(window)?.GroupOf(window) is WindowGroup group)
@@ -109,7 +109,7 @@ public sealed partial class WindowManager
                 : locked ? _config.Groups.LockedInactiveBorder : _config.Groups.InactiveBorder;
         }
 
-        if (RulesOf(window).HasFlag(GroupRuleFlags.Deny))
+        if (_props.GroupRules(window).HasFlag(GroupRuleFlags.Deny))
             return active ? _config.Groups.NoGroupActiveBorder : _config.Groups.NoGroupBorder;
 
         return active ? _config.Decoration.ActiveBorder : _config.Decoration.InactiveBorder;

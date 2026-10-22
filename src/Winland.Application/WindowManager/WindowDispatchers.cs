@@ -326,7 +326,7 @@ public sealed partial class WindowManager
         if (text.StartsWith("tag:", StringComparison.Ordinal))
         {
             for (var i = 0; i < clients.Count; i++)
-                clients[i] = clients[i] with { Tags = TagsOf(clients[i].Window) };
+                clients[i] = clients[i] with { Tags = _props.Tags(clients[i].Window) };
         }
 
         return WindowSelector.Find(text, ActiveWindow(), clients);
