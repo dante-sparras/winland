@@ -102,6 +102,23 @@ public class FocusStateTests
     }
 
     [Fact]
+    public void ForgettingAnotherWindowKeepsTheUnmanagedMarks()
+    {
+        var focus = new FocusState(_ => true);
+        focus.Take(Window(1));
+        focus.UnmanagedTook(Window(5));
+
+        focus.Forget(Window(9));
+
+        Assert.Equal(Window(5), focus.Unmanaged);
+        Assert.Equal(Window(1), focus.BeforeUnmanaged);
+
+        focus.Forget(Window(1));
+        Assert.Equal(Window(5), focus.Unmanaged);
+        Assert.Null(focus.BeforeUnmanaged);
+    }
+
+    [Fact]
     public void AfterLeavingTheOneRevealedWindowTakesFocusAndOtherwiseTheLastVisible()
     {
         var desk = Desk(1, 2, 3);
