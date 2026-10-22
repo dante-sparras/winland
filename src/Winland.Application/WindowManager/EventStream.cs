@@ -498,46 +498,28 @@ public sealed partial class WindowManager
         return ClientIn(before, closed) is { Floating: true } ? FocusReason.UnmapFloating : FocusReason.UnmapTiled;
     }
 
-    private FocusReason ReasonForDispatcher(string name, Input? input, Captured before, WindowId? after, State afterState)
-    {
-        if (Is(name, "focuswindow"))
-            return FocusReason.FocusWindow;
+    private FocusReason ReasonForDispatcher(string name, Input? input, Captured before, WindowId? after, State afterState) =>
+        Table.TryGetValue(name, out var dispatcher) && dispatcher.Focus is { } reason
+            ? reason(this, new FocusChange(input, before, after, afterState))
+            : FocusReason.Unknown;
 
-        if (Is(name, "moveintogroup") || Is(name, "moveintoorcreategroup"))
-            return FocusReason.MoveIntoGroup;
+    // workspace: a keybind when the switch moved to another Monitor, the workspace change otherwise.
+    private static FocusReason WorkspaceFocusReason(WindowManager _, FocusChange change) =>
+        change.Before.State.ActiveMonitor != change.AfterState.ActiveMonitor ? FocusReason.Keybind : FocusReason.Workspace;
 
-        if (Is(name, "changegroupactive"))
-            return FocusReason.GroupCurrent;
+    private static FocusReason MoveFocusReason(WindowManager _, FocusChange change) =>
+        ReasonForMoveFocus(change.Before, change.After, change.AfterState);
 
-        if (Is(name, "togglespecialworkspace"))
-            return FocusReason.ToggleSpecial;
+    private static FocusReason SwitchFocusReason(WindowManager _, FocusChange change) =>
+        ReasonForSwitch(change.Before, change.After, change.AfterState);
 
-        if (Is(name, "workspace"))
-            return before.State.ActiveMonitor != afterState.ActiveMonitor ? FocusReason.Keybind : FocusReason.Workspace;
+    private static FocusReason LayoutMessageFocusReason(WindowManager core, FocusChange _) => core.LayoutFocusReason();
 
-        if (Is(name, "movefocus"))
-            return ReasonForMoveFocus(before, after, afterState);
-
-        if (Is(name, "cyclenext") || Is(name, "focuscurrentorlast") || Is(name, "focusurgentorlast"))
-            return ReasonForSwitch(before, after, afterState);
-
-        if (Is(name, "focusmonitor") || Is(name, "movetoworkspace") || Is(name, "movetoworkspacesilent")
-            || Is(name, "moveoutofgroup"))
-            return FocusReason.Keybind;
-
-        if (Is(name, "swapactiveworkspaces") || Is(name, "movegroupwindow"))
-            return FocusReason.DesktopState;
-
-        if (Is(name, "layoutmsg") || Is(name, "layout"))
-            return LayoutFocusReason();
-
-        // A drag begins, moves and ends as the pointer, and reports a desktop-state change. Typing the dispatcher does not.
-        if ((Is(name, "movewindow") || Is(name, "resizewindow"))
-            && input is PointerMoved or PointerButtonPressed or PointerButtonReleased or PointerGesture)
-            return FocusReason.DesktopState;
-
-        return FocusReason.Unknown;
-    }
+    // A drag begins, moves and ends as the pointer, and reports a desktop-state change. Typing the dispatcher does not.
+    private static FocusReason DragFocusReason(WindowManager _, FocusChange change) =>
+        change.Input is PointerMoved or PointerButtonPressed or PointerButtonReleased or PointerGesture
+            ? FocusReason.DesktopState
+            : FocusReason.Unknown;
 
     private static FocusReason ReasonForMoveFocus(Captured before, WindowId? after, State afterState)
     {

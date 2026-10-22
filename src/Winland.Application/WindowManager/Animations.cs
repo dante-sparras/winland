@@ -74,7 +74,7 @@ public sealed partial class WindowManager
     // floating Clients animate, as there.
     private bool InstantResize(Outcome outcome, State before)
     {
-        if (_config.Session.AnimateManualResizes || outcome.Dispatcher is not ("resizeactive" or "resizewindowpixel"))
+        if (_config.Session.AnimateManualResizes || !TraitsOf(outcome.Dispatcher).HasFlag(DispatcherTraits.InstantResize))
             return false;
 
         if (ActiveWindow() is not WindowId active)
