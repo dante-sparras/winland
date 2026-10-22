@@ -104,6 +104,25 @@ public class WorkspaceRuleTests
     }
 
     [Fact]
+    public void ALayoutoptWinlandCannotApplyWarnsAndTheRuleStillLoads()
+    {
+        var document = ConfigParser.Parse("""
+            workspace = 1, layoutopt:presrve_split:true, monitor:DP-1
+            workspace = 2, layoutopt:preserve_split:banana
+            """);
+
+        Assert.Equal(
+            [
+                new ConfigWarning(1, "Unsupported keyword 'dwindle:presrve_split'."),
+                new ConfigWarning(2, "Invalid value 'banana' for dwindle:preserve_split."),
+            ],
+            document.Warnings);
+        Assert.Equal(2, document.WorkspaceRules.Count);
+        Assert.Equal("DP-1", document.WorkspaceRules[0].Monitor);
+        Assert.Empty(document.WorkspaceRules[0].LayoutOpts);
+    }
+
+    [Fact]
     public void ABrokenFieldDropsTheRule()
     {
         var document = ConfigParser.Parse("""

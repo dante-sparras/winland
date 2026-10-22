@@ -225,8 +225,14 @@ internal static partial class WorkspaceRules
 
             var key = layoutOpt[..split];
             var layoutValue = layoutOpt[(split + 1)..];
+            // A layoutopt Winland cannot apply warns, and the rest of the rule still loads.
             if (!LayoutOptions.TryOverrideDwindle(LayoutOptions.Unconfigured, key, layoutValue, out _))
+            {
+                warnings.Add(OptionTable.Find("dwindle:" + key) is null
+                    ? $"Unsupported keyword 'dwindle:{key}'."
+                    : $"Invalid value '{layoutValue}' for dwindle:{key}.");
                 return true;
+            }
 
             var opts = new Dictionary<string, string>(rule.LayoutOpts, StringComparer.Ordinal)
             {
