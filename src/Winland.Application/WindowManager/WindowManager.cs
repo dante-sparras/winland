@@ -55,6 +55,7 @@ public sealed partial class WindowManager
     {
         _clientBorder = ClientBorderOf;
         _focus = new FocusState(window => !HasNoFocus(window));
+        _cover = new FullscreenCover(IsPinned);
         TrackWindowState();
         if (config is not null)
             Use(AppliedConfig.From(config, accent: null));

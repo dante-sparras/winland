@@ -24,9 +24,7 @@ public sealed partial class WindowManager
         _windowState.Track(_stacking);
         _windowState.Track(_pinFullscreened);
         _windowState.Track(_restoreClientMaximized);
-        _windowState.Track(_overFullscreen);
-        _windowState.Track(_hidingSeen);
-        _windowState.Track(_belowFullscreen);
+        _windowState.Track(_cover.Forget);
         _windowState.Track(_groupRules);
         _windowState.Track(ForgetDrag);
         _windowState.Track(_setProps);

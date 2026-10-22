@@ -207,7 +207,7 @@ public sealed partial class WindowManager
             foreach (var client in desk.Layout.Clients)
             {
                 var slot = desk.Layout.TryBounds(client.Window, out var found) ? found : client.Bounds;
-                var pinned = client.Floating && _pinned.Contains(client.Window);
+                var pinned = IsPinned(client.Window);
                 clients.Add(client with
                 {
                     Bounds = PlacedBounds(client, desk, slot),
@@ -215,8 +215,8 @@ public sealed partial class WindowManager
                     PinFullscreened = _pinFullscreened.Contains(client.Window),
                     Tags = TagsOf(client.Window),
                     Content = ContentOf(client.Window),
-                    AllowedOverFullscreen = OverFullscreenFlag(client.Window),
-                    BelowFullscreen = _belowFullscreen.Contains(client.Window),
+                    AllowedOverFullscreen = _cover.Flag(client.Window),
+                    BelowFullscreen = _cover.IsBelow(client.Window),
                 });
             }
 
@@ -297,8 +297,8 @@ public sealed partial class WindowManager
             var client = state.Clients[i];
             clients[i] = client with
             {
-                AllowedOverFullscreen = OverFullscreenFlag(client.Window),
-                BelowFullscreen = _belowFullscreen.Contains(client.Window),
+                AllowedOverFullscreen = _cover.Flag(client.Window),
+                BelowFullscreen = _cover.IsBelow(client.Window),
             };
         }
 
@@ -390,7 +390,7 @@ public sealed partial class WindowManager
 
         foreach (var client in desk.Layout.Clients)
         {
-            if (!client.Floating || client.Minimized || !_pinned.Contains(client.Window))
+            if (client.Minimized || !IsPinned(client.Window))
                 continue;
 
             if (desk.Layout.TryBounds(client.Window, out var bounds))
@@ -414,7 +414,7 @@ public sealed partial class WindowManager
 
             foreach (var client in desk.Layout.Clients)
             {
-                if (client.Floating && !client.Minimized && _pinned.Contains(client.Window))
+                if (!client.Minimized && IsPinned(client.Window))
                     windows.Add(client.Window);
             }
         }
@@ -444,7 +444,7 @@ public sealed partial class WindowManager
                 if (client.Minimized)
                     continue;
 
-                if (client.Floating && _pinned.Contains(client.Window) && MonitorShowing(desk.Monitor))
+                if (IsPinned(client.Window) && MonitorShowing(desk.Monitor))
                     continue;
 
                 windows.Add(client.Window);

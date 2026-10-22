@@ -30,7 +30,7 @@ public sealed partial class WindowManager
 
         foreach (var window in _stacking)
         {
-            if (window != focused && Find(window) is { Floating: true, Minimized: false } && IsShownClient(window) && !_belowFullscreen.Contains(window))
+            if (window != focused && Find(window) is { Floating: true, Minimized: false } && IsShownClient(window) && !_cover.IsBelow(window))
                 requests.Add(new ZOrderRequest(window, Top: true));
         }
 

@@ -27,7 +27,7 @@ public sealed partial class WindowManager
                 : SwitchTo(desk.Id, null, consumed: false, dispatcher: name);
         }
 
-        if (_pinned.Contains(id) && Find(id) is { Floating: true })
+        if (IsPinned(id))
             return FocusPinned(desk, id, name);
 
         var covered = desk.Covered();
@@ -97,7 +97,7 @@ public sealed partial class WindowManager
 
         // A window that floats is raised, and so allowed over a fullscreen one.
         if (want)
-            SetOverFullscreen(id, true);
+            _cover.SetFlag(id, true);
 
         return IsShown(desk.Id)
             ? Present(desk, covered, placements, dispatcher: name)

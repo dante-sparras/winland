@@ -405,7 +405,7 @@ public sealed partial class WindowManager
             if (client.Minimized || !showing.Contains(client.Window))
                 continue;
 
-            if (covering is not null && (!client.Floating || client.Window == covering.Window || !AllowedOverFullscreen(desk, client)))
+            if (covering is not null && (!client.Floating || client.Window == covering.Window || !_cover.AllowedOver(desk, client)))
                 continue;
 
             clients.Add(client);

@@ -5,6 +5,9 @@ public sealed partial class WindowManager
 {
     private readonly HashSet<WindowId> _pinned = [];
 
+    // Only a floating Client is pinned: making a Client tiled takes its pin, and the one a fullscreen mode holds for it.
+    private bool IsPinned(WindowId window) => _pinned.Contains(window);
+
     private enum PinAction
     {
         Toggle,
@@ -23,7 +26,7 @@ public sealed partial class WindowManager
         if (!client.Floating || client.Fullscreen != FullscreenMode.None)
             return Rejected(name, "error: window does not qualify to be pinned");
 
-        var pinned = _pinned.Contains(id);
+        var pinned = IsPinned(id);
         var want = action switch
         {
             PinAction.Enable => true,
@@ -118,7 +121,7 @@ public sealed partial class WindowManager
         var windows = new List<WindowId>();
         foreach (var client in desk.Layout.Clients)
         {
-            if (client.Floating && _pinned.Contains(client.Window))
+            if (IsPinned(client.Window))
                 windows.Add(client.Window);
         }
 
