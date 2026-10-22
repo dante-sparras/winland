@@ -35,7 +35,7 @@ public sealed partial class WindowManager
                     || shown.Minimized
                     || shown.Fullscreen == FullscreenMode.Fullscreen
                     || !showing.Contains(group.Shown)
-                    || (OwnProp(group.Shown, "decorate") as bool? ?? RuleFor(desk)?.Decorate) == false)
+                    || (Own(group.Shown, WindowProp.Decorate) ?? RuleFor(desk)?.Decorate) == false)
                     continue;
 
                 var reserved = scaled.ReservedFor(group.Count);
@@ -98,7 +98,7 @@ public sealed partial class WindowManager
 
     private BorderColor BorderOf(WindowId window, bool active, bool honorProps = true)
     {
-        if (honorProps && OwnProp(window, active ? "active_border_color" : "inactive_border_color") is BorderColor set)
+        if (honorProps && Own(window, active ? WindowProp.ActiveBorderColor : WindowProp.InactiveBorderColor) is { } set)
             return set;
 
         if (WorkspaceContaining(window)?.GroupOf(window) is WindowGroup group)

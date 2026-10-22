@@ -21,6 +21,9 @@ public sealed partial class WindowManager
     // A property setprop or a window rule set, which wins over the workspace rules and the config.
     private object? OwnProp(WindowId window, string key) => SetPropOf(window, key) ?? RulePropOf(window, key);
 
+    // The same, typed: null when neither setprop nor a window rule set it.
+    private T Own<T>(WindowId window, WindowProp<T> prop) => OwnProp(window, prop.Name) is T value ? value : default!;
+
     private void RememberRuleProps(WindowId window, WindowDecision decision)
     {
         var props = decision.Props;
@@ -48,7 +51,7 @@ public sealed partial class WindowManager
 
     // The border a window's own properties give it, which the Layouts read through LayoutOptions.ClientBorder.
     private int? ClientBorderOf(ClientId client) =>
-        OwnProp(new WindowId(client.Value), "border_size") is long border ? (int)Math.Clamp(border, 0, int.MaxValue) : null;
+        Own(new WindowId(client.Value), WindowProp.BorderSize) is { } border ? (int)Math.Clamp(border, 0, int.MaxValue) : null;
 
     private bool? SetBool(WindowId window, string key) => SetPropOf(window, key) as bool?;
 
