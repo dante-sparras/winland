@@ -244,6 +244,23 @@ public class PinTests
         Assert.Equal(new WorkspaceId("3"), ClientOf(normal.Effect, Window).Workspace);
     }
 
+    [Fact]
+    public void AClientMadeTiledWhileFullscreenIsNotPinnedWhenItLeavesFullscreen()
+    {
+        var core = Floating();
+        core.Execute("keyword binds:allow_pin_fullscreen true");
+        core.Execute("dispatch pin");
+        core.Execute("dispatch fullscreen 0");
+        core.Execute("dispatch togglefloating");
+        core.Execute("dispatch fullscreen 0");
+
+        var moved = core.Execute("dispatch movetoworkspacesilent special:side");
+
+        var client = ClientOf(moved.Effect, Window);
+        Assert.False(client.Floating);
+        Assert.True(client.Workspace.IsSpecial);
+    }
+
     private static WindowManager Floating()
     {
         var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\n"));
