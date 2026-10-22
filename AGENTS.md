@@ -9,6 +9,7 @@ Run `pwsh scripts/dev.ps1` once after cloning. It points git at the hooks in `sc
 ## Domain
 
 - `CONTEXT.md` is the glossary and `docs/adr/` holds decisions. See `docs/agents/domain.md`.
+- `docs/architecture.md` maps the layers, the path an input takes, and where to change a dispatcher, an option or a rule.
 - Option and Dispatcher names are Winland's, documented in `docs/behavior.md` (ADR 0002).
 
 ## Workflow
