@@ -56,7 +56,7 @@ public sealed partial class WindowManager
     // Leaving a fullscreen window for another on its Workspace does not, and cursor:no_warps stops it.
     private WarpTo? SwitchWarp(Captured before, Outcome outcome)
     {
-        if (outcome.Dispatcher is not ("movefocus" or "cyclenext" or "focusurgentorlast" or "focuscurrentorlast")
+        if (!TraitsOf(outcome.Dispatcher).HasFlag(DispatcherTraits.WarpsToFocused)
             || _active is not WindowId window
             || window == before.Active)
             return null;
@@ -179,7 +179,7 @@ public sealed partial class WindowManager
     // focus, as Winland does, unless cursor:no_warps is set.
     private WarpTo? EmptyMonitorMiddle(Outcome outcome)
     {
-        if (_config.Cursor.NoWarps || outcome.Dispatcher is not ("focusmonitor" or "movefocus") || FocusedClient(outcome.State) is not null)
+        if (_config.Cursor.NoWarps || !TraitsOf(outcome.Dispatcher).HasFlag(DispatcherTraits.WarpsToEmptyMonitor) || FocusedClient(outcome.State) is not null)
             return null;
 
         foreach (var screen in outcome.State.Screens)
