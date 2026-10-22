@@ -106,6 +106,16 @@ public class GroupTests
     }
 
     [Fact]
+    public void GroupDirectionsAreWholeWordsNotTheirFirstLetter()
+    {
+        var core = Opened(auto: true, First);
+        core.Execute("dispatch togglegroup");
+
+        Assert.Equal("error: unsupported direction: leftover", core.Execute("dispatch moveintogroup leftover").Text);
+        Assert.Equal("error: unsupported direction: leftover", core.Execute("dispatch movewindoworgroup leftover").Text);
+    }
+
+    [Fact]
     public void MoveOutOfGroupGivesTheWindowItsOwnTile()
     {
         var core = Grouped();
@@ -345,6 +355,48 @@ public class GroupTests
 
         Assert.Equal([First], Assert.Single(barred.State.Groups));
         Assert.Equal([First], Assert.Single(denied.State.Groups));
+    }
+
+    [Theory]
+    [InlineData("dispatch no_op", 2)]
+    [InlineData("dispatch lockactivegroup lock", 1)]
+    public void AWindowMovedToAWorkspaceJoinsAnUnlockedSolitaryGroup(string setup, int members)
+    {
+        var core = Opened(auto: false, "group:group_on_movetoworkspace = true\n", First);
+        core.Execute("dispatch togglegroup");
+        core.Execute(setup);
+        core.Execute("dispatch movetoworkspacesilent 2");
+        core.Handle(Appear(Second, "two"));
+
+        var moved = core.Execute("dispatch movetoworkspacesilent 2");
+
+        Assert.Equal(members, Assert.Single(moved.Effect.State.Groups).Count);
+    }
+
+    [Fact]
+    public void AGroupThatDeniesWindowsTakesNoNewWindow()
+    {
+        var core = Opened(auto: true, First);
+        core.Execute("dispatch togglegroup");
+        core.Execute("dispatch denywindowfromgroup on");
+
+        var opened = core.Handle(Appear(Second, "two"));
+
+        Assert.Equal([First], Assert.Single(opened.State.Groups));
+    }
+
+    [Fact]
+    public void AGroupThatDeniesWindowsTakesNoWindowMovedToItsWorkspace()
+    {
+        var core = Opened(auto: false, "group:group_on_movetoworkspace = true\n", First);
+        core.Execute("dispatch togglegroup");
+        core.Execute("dispatch denywindowfromgroup on");
+        core.Execute("dispatch movetoworkspacesilent 2");
+        core.Handle(Appear(Second, "two"));
+
+        var moved = core.Execute("dispatch movetoworkspacesilent 2");
+
+        Assert.Equal([First], Assert.Single(moved.Effect.State.Groups));
     }
 
     [Fact]

@@ -3,10 +3,8 @@ namespace Winland.Application;
 /// <summary>The <c>pin</c> dispatcher: a pinned Client shows on every Workspace of its Monitor.</summary>
 public sealed partial class WindowManager
 {
-    private readonly HashSet<WindowId> _pinned = [];
-
     // Only a floating Client is pinned: making a Client tiled takes its pin, and the one a fullscreen mode holds for it.
-    private bool IsPinned(WindowId window) => _pinned.Contains(window);
+    private readonly PinnedClients _pins = new();
 
     private enum PinAction
     {
@@ -26,7 +24,7 @@ public sealed partial class WindowManager
         if (!client.Floating || client.Fullscreen != FullscreenMode.None)
             return Rejected(name, "error: window does not qualify to be pinned");
 
-        var pinned = IsPinned(id);
+        var pinned = _pins.IsPinned(id);
         var want = action switch
         {
             PinAction.Enable => true,
@@ -37,9 +35,9 @@ public sealed partial class WindowManager
             return View([], dispatcher: name);
 
         if (want)
-            _pinned.Add(id);
+            _pins.Pin(id);
         else
-            _pinned.Remove(id);
+            _pins.Unpin(id);
 
         (_extraEvents ??= []).Add(new ClientPinned(id, want));
         return Settle(desk, id, name);
@@ -112,16 +110,16 @@ public sealed partial class WindowManager
         if (source is null || source.Id == destination.Id)
             return;
 
-        foreach (var window in PinnedFloating(source))
+        foreach (var window in PinnedOn(source))
             Transfer(source, destination, window);
     }
 
-    private List<WindowId> PinnedFloating(LiveWorkspace desk)
+    private List<WindowId> PinnedOn(LiveWorkspace desk)
     {
         var windows = new List<WindowId>();
         foreach (var client in desk.Layout.Clients)
         {
-            if (IsPinned(client.Window))
+            if (_pins.IsPinned(client.Window))
                 windows.Add(client.Window);
         }
 
@@ -142,11 +140,8 @@ public sealed partial class WindowManager
 
     private bool StaysVisible(Client client)
     {
-        if (!client.Pinned || !client.Floating || client.Minimized)
-            return false;
-
         var desk = _workspaces.Find(client.Workspace);
-        return desk is not null && _workspaces.Shown.ShowsAWorkspace(desk.Monitor);
+        return desk is not null && _pins.StaysVisible(client.Window, client.Minimized, _workspaces.Shown.ShowsAWorkspace(desk.Monitor));
     }
 
     private static (PinAction Action, string Selector) PinRequest(string arguments)

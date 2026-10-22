@@ -5,22 +5,6 @@ namespace Winland.Domain;
 
 internal sealed partial class DwindleLayout
 {
-    private static readonly (string Word, PendingSplit Direction)[] Directions =
-    [
-        ("l", PendingSplit.Left),
-        ("left", PendingSplit.Left),
-        ("r", PendingSplit.Right),
-        ("right", PendingSplit.Right),
-        ("u", PendingSplit.Up),
-        ("up", PendingSplit.Up),
-        ("t", PendingSplit.Up),
-        ("top", PendingSplit.Up),
-        ("d", PendingSplit.Down),
-        ("down", PendingSplit.Down),
-        ("b", PendingSplit.Down),
-        ("bottom", PendingSplit.Down),
-    ];
-
     public WindowId? MoveFocus(WindowId active, string arguments)
     {
         if (!TryDirection(First(arguments), out var direction))
@@ -475,17 +459,15 @@ internal sealed partial class DwindleLayout
 
     private static bool TryDirection(string text, out PendingSplit direction)
     {
-        foreach (var (word, parsed) in Directions)
+        var parsed = Sides.TryParse(text, out var side);
+        direction = !parsed ? PendingSplit.None : side switch
         {
-            if (text.Equals(word, StringComparison.OrdinalIgnoreCase))
-            {
-                direction = parsed;
-                return true;
-            }
-        }
-
-        direction = PendingSplit.None;
-        return false;
+            Side.Left => PendingSplit.Left,
+            Side.Right => PendingSplit.Right,
+            Side.Up => PendingSplit.Up,
+            _ => PendingSplit.Down,
+        };
+        return parsed;
     }
 
     private static string First(string arguments)

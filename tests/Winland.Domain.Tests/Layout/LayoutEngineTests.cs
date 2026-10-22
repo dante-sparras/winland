@@ -48,6 +48,55 @@ public class LayoutEngineTests
         Assert.Single(layout.Clients);
     }
 
+    public static TheoryData<string> AllLayouts => new() { "dwindle", "master", "monocle", "scrolling" };
+
+    [Theory]
+    [MemberData(nameof(AllLayouts))]
+    public void SubstituteHandsPseudoNaturalSizeAndLimitsToTheNewWindow(string name)
+    {
+        var layout = Open(name);
+        Tiled(layout, 1);
+        layout.Add(Window(2), Area, null, false, new Rectangle(0, 0, 400, 300), WorkspaceId.Initial, "app", "title", monitor: Area,
+            minSize: new Size(100, 50), maxSize: new Size(2000, 2000));
+        layout.TogglePseudo(Window(2));
+
+        var incoming = new Taken(false, false, new Rectangle(0, 0, 200, 100), "new", "new", MinSize: new Size(10, 20), MaxSize: new Size(1500, 1600));
+        Assert.True(layout.Substitute(Window(2), Window(3), incoming, out _));
+
+        Assert.Equal((200, 100), SizeOf(Bounds(layout.Apply(LayoutOptions.Unconfigured), 3)));
+        Assert.True(layout.TryTake(Window(3), out var taken));
+        Assert.Equal(incoming.Bounds, taken.Bounds);
+        Assert.Equal(incoming.MinSize, taken.MinSize);
+        Assert.Equal(incoming.MaxSize, taken.MaxSize);
+
+        Assert.False(layout.TryTake(Window(2), out _));
+        Tiled(layout, 2);
+        Assert.NotEqual((400, 300), SizeOf(Bounds(layout.Placed(), 2)));
+        Assert.True(layout.TryTake(Window(2), out var fresh));
+        Assert.Equal(new Rectangle(0, 0, 400, 300), fresh.Bounds);
+        Assert.Null(fresh.MinSize);
+        Assert.Null(fresh.MaxSize);
+    }
+
+    [Theory]
+    [MemberData(nameof(AllLayouts))]
+    public void SubstituteHandsAFloatingSlotToTheNewWindow(string name)
+    {
+        var layout = Open(name);
+        Tiled(layout, 1);
+        var box = new Rectangle(100, 100, 300, 200);
+        layout.Add(Window(2), Area, null, true, box, WorkspaceId.Initial, "app", "title", monitor: Area);
+
+        Assert.True(layout.Substitute(Window(2), Window(3), new Taken(false, false, new Rectangle(0, 0, 50, 50), "new", "new"), out _));
+
+        Assert.Equal(box, Bounds(layout.Visible(), 3));
+        Assert.DoesNotContain(layout.Visible(), placement => placement.Client == new ClientId(2));
+        Assert.True(layout.TryTake(Window(3), out var taken));
+        Assert.True(taken.Floating);
+        Assert.Equal(box, taken.Bounds);
+        Assert.False(layout.TryTake(Window(2), out _));
+    }
+
     [Fact]
     public void ScrollingMovesTheCameraAgainAfterTheResizedTileIsHandedOver()
     {
@@ -477,6 +526,8 @@ public class LayoutEngineTests
         layout.Add(Window(window), Area, null, false, new Rectangle(0, 0, 400, 300), WorkspaceId.Initial, "app", "title", monitor: Area);
 
     private static WindowId Window(long id) => new(id);
+
+    private static (int Width, int Height) SizeOf(Rectangle bounds) => (bounds.Width, bounds.Height);
 
     private static Rectangle Bounds(IReadOnlyList<Placement> placements, long window) =>
         Assert.Single(placements, placement => placement.Client == new ClientId(window)).Bounds;

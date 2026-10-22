@@ -199,7 +199,7 @@ internal sealed partial class MonocleLayout : TiledLayout, Layout
 
     public WindowId? MoveFocus(WindowId active, string arguments)
     {
-        if (!TrySide(First(arguments), out var side))
+        if (!Sides.TryParse(First(arguments), out var side))
             return null;
 
         if (_tiled.Count == 0)
@@ -217,7 +217,7 @@ internal sealed partial class MonocleLayout : TiledLayout, Layout
 
     public WindowId? Neighbor(WindowId active, string arguments)
     {
-        if (!TrySide(First(arguments), out var side) || _tiled.Count == 0)
+        if (!Sides.TryParse(First(arguments), out var side) || _tiled.Count == 0)
             return null;
 
         if (_tiled.Count == 1)
@@ -251,7 +251,7 @@ internal sealed partial class MonocleLayout : TiledLayout, Layout
         if (Minimized(id) || !_floating.Contains(id))
             return [];
 
-        if (!TrySide(First(arguments), out var side))
+        if (!Sides.TryParse(First(arguments), out var side))
             return [];
 
         return _floating.MoveToEdge(id, side, _options.FloatingWorkArea(_area), _options.BorderFor(id));
@@ -393,35 +393,6 @@ internal sealed partial class MonocleLayout : TiledLayout, Layout
 
     private static bool Forward(Side side) => side is Side.Right or Side.Down;
 
-    private static bool TrySide(string text, out Side side)
-    {
-        if (Is(text, "l") || Is(text, "left"))
-        {
-            side = Side.Left;
-            return true;
-        }
-
-        if (Is(text, "r") || Is(text, "right"))
-        {
-            side = Side.Right;
-            return true;
-        }
-
-        if (Is(text, "u") || Is(text, "up") || Is(text, "t") || Is(text, "top"))
-        {
-            side = Side.Up;
-            return true;
-        }
-
-        if (Is(text, "d") || Is(text, "down") || Is(text, "b") || Is(text, "bottom"))
-        {
-            side = Side.Down;
-            return true;
-        }
-
-        side = default;
-        return false;
-    }
 
     private static string First(string arguments)
     {

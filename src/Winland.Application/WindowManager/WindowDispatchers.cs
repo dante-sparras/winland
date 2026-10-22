@@ -27,7 +27,7 @@ public sealed partial class WindowManager
                 : SwitchTo(desk.Id, null, consumed: false, dispatcher: name);
         }
 
-        if (IsPinned(id))
+        if (_pins.IsPinned(id))
             return FocusPinned(desk, id, name);
 
         var covered = desk.Covered();
@@ -92,8 +92,7 @@ public sealed partial class WindowManager
         var covered = desk.Covered();
         var placements = desk.Layout.ToggleFloating(id);
         // Only a floating Client is pinned, including one whose pin a fullscreen mode holds.
-        _pinned.Remove(id);
-        _pinFullscreened.Remove(id);
+        _pins.Forget(id);
 
         // A window that floats is raised, and so allowed over a fullscreen one.
         if (want)
@@ -158,7 +157,7 @@ public sealed partial class WindowManager
             return Rejected(name, "error: Can't swap fullscreen window");
 
         WindowId other;
-        if (IsDirection(text))
+        if (Sides.TryParse(text, out _))
         {
             if (home.Layout.Neighbor(current, text) is not WindowId neighbor || neighbor == current)
                 return Rejected(name, "error: No window to swap with in that direction");
@@ -347,10 +346,6 @@ public sealed partial class WindowManager
 
     private Outcome Rejected(string name, string error) =>
         View([], dispatcher: name) with { Error = error };
-
-    private static bool IsDirection(string text) =>
-        text is "l" or "r" or "u" or "d" or "t" or "b"
-            or "left" or "right" or "up" or "down" or "top" or "bottom";
 
     private static bool MonitorMatches(LiveMonitor screen, string token) =>
         screen.Effective.Name.Equals(token, StringComparison.OrdinalIgnoreCase)

@@ -14,7 +14,7 @@ public sealed partial class WindowManager
         var desk = FocusedWorkspace();
         var covered = desk.Covered();
         var active = ActiveWindow();
-        if (!MonitorSelector.TryDirection(FirstToken(arguments), out var direction))
+        if (!Sides.TryParse(FirstToken(arguments), out var direction))
             return View([], dispatcher: name);
 
         if (active is WindowId grouped && CycleGroupFirst(desk, grouped, arguments, name) is Outcome cycled)
@@ -24,7 +24,7 @@ public sealed partial class WindowManager
             && _config.Session.MoveFocusCyclesFullscreen
             && desk.ClientOf(fullscreen) is { Fullscreen: not FullscreenMode.None, LayoutFullscreen: false })
         {
-            var previous = direction is MonitorDirection.Left or MonitorDirection.Up;
+            var previous = direction is Side.Left or Side.Up;
             return CycleFrom(desk, fullscreen, previous) is WindowId next
                 ? FocusClient(next, name)
                 : View([], dispatcher: name);
@@ -56,13 +56,13 @@ public sealed partial class WindowManager
 
         WindowId? adjacent = null;
         if (active is WindowId fromWindow && desk.Layout.TryBounds(fromWindow, out var box))
-            adjacent = AdjacentOn(destination, Ideal(desk, fromWindow, box), direction);
+            adjacent = AdjacentOn(destination, desk, fromWindow, box, direction);
 
         return FocusOnto(destination, name, adjacent);
     }
 
     // general:no_focus_fallback makes a movefocus that finds nothing answer an error.
-    private Outcome NothingToFocus(string name, MonitorDirection direction) =>
+    private Outcome NothingToFocus(string name, Side direction) =>
         _config.Session.NoFocusFallback
             ? Rejected(name, "error: Nothing to focus to in direction " + direction.ToString().ToLowerInvariant())
             : View([], dispatcher: name);
@@ -133,7 +133,7 @@ public sealed partial class WindowManager
         if (active is WindowId shown && Find(shown) is { Fullscreen: not FullscreenMode.None })
             return Rejected(name, "error: can't move fullscreen window");
 
-        if (active is not WindowId window || !MonitorSelector.TryDirection(FirstToken(arguments), out var direction))
+        if (active is not WindowId window || !Sides.TryParse(FirstToken(arguments), out var direction))
         {
             IReadOnlyList<Placement> stayed = active is WindowId id ? desk.Layout.MoveWindow(id, arguments) : [];
             return Present(desk, covered, stayed, dispatcher: name);
@@ -379,32 +379,34 @@ public sealed partial class WindowManager
         _workspaces.Shown.Show(origin.Id, replacement.Id);
 
         // Pinned Clients stay on the Monitor, on the Workspace it shows next.
-        foreach (var window in PinnedFloating(leaving))
+        foreach (var window in PinnedOn(leaving))
             Transfer(leaving, replacement, window);
     }
 
-    private WindowId? AdjacentOn(LiveMonitor screen, Rectangle origin, MonitorDirection direction)
+    // The Client on a Monitor's shown Workspace that a window on another Monitor looks at in a direction. It is
+    // picked the way a Layout picks one, over the Ideal boxes, among the Clients that float as the window does
+    // and then among the others. A fullscreen Client covers its Monitor, so it counts as a tile.
+    private WindowId? AdjacentOn(LiveMonitor screen, LiveWorkspace from, WindowId window, Rectangle box, Side direction)
     {
         if (_workspaces.Shown.Shown(screen.Id) is not WorkspaceId workspace || _workspaces.Find(workspace) is not LiveWorkspace desk)
             return null;
 
-        WindowId? best = null;
-        var bestOverlap = 1.0;
-        foreach (var client in desk.Layout.Clients)
+        var origin = Ideal(from, window, box);
+        var floating = from.ClientOf(window) is { Floating: true } held && !from.IsCovering(held);
+        var clients = desk.Layout.Clients.Select(client => desk.IsCovering(client) ? client with { Floating = false } : client).ToList();
+        var recency = _config.BindOptions.FocusPreferredMethod == 0 ? (Func<WindowId, int>)_focus.Recency : null;
+        bool BoxOf(WindowId other, out Rectangle ideal)
         {
-            if (client.Minimized || HasNoFocus(client.Window) || !desk.Layout.TryBounds(client.Window, out var box))
-                continue;
-            // A tie goes to the Client focused most recently, as binds:focus_preferred_method 0 picks.
-            if (!MonitorSelector.Overlaps(origin, Ideal(desk, client.Window, box), direction, out var overlap)
-                || overlap < bestOverlap
-                || (overlap == bestOverlap && (best is not WindowId held || _focus.Recency(client.Window) <= _focus.Recency(held))))
-                continue;
+            ideal = default;
+            if (HasNoFocus(other) || !desk.Layout.TryBounds(other, out var raw))
+                return false;
 
-            bestOverlap = overlap;
-            best = client.Window;
+            ideal = Ideal(desk, other, raw);
+            return true;
         }
 
-        return best;
+        return DirectionalNeighbor.Find(clients, origin, direction, window, floating, BoxOf, recency)
+            ?? DirectionalNeighbor.Find(clients, origin, direction, window, !floating, BoxOf, recency);
     }
 
     // A tile's box with its border, and with every side that touches the tiling area pushed out to the

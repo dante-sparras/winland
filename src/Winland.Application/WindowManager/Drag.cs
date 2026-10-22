@@ -286,18 +286,21 @@ public sealed partial class WindowManager
         return new DropTarget(home, group, null);
     }
 
-    // Winland's canBeGroupedInto for a drag: no lock on either Group or on all Groups, no rule that denies
-    // the window, and a dragged Group only with group:merge_groups_on_drag.
+    // Winland's canBeGroupedInto for a drag: the Group rule decides, and a dragged Group joins only with
+    // group:merge_groups_on_drag. The callers hold back a floating window, as they know the options for it.
     private bool CanDragInto(LiveWorkspace from, WindowId dragged, WindowGroup target)
     {
         var own = from.GroupOf(dragged);
-        return !_groupsLocked
-            && !target.Locked
-            && own?.Locked != true
-            && !target.Denied
-            && own != target
-            && CanJoin(_props.GroupRules(dragged), target)
-            && (own is null || _config.Groups.MergeGroupsOnDrag);
+        return own != target
+            && (own is null || _config.Groups.MergeGroupsOnDrag)
+            && GroupAdmission.May(
+                _props.GroupRules(dragged),
+                _groupsLocked,
+                target.Locked,
+                target.Denied,
+                dialog: false,
+                floatingIntoTiled: false,
+                ownLocked: own?.Locked == true);
     }
 
     private Outcome JoinDragged(WindowId dragged, DropTarget drop, string? dispatcher)

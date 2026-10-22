@@ -45,7 +45,7 @@ public sealed partial class WindowManager
         // A pinned Client is never moved onto a special workspace, which still opens that special
         // workspace on a move that is not silent and keeps the Client focused.
         var source = WorkspaceContaining(id);
-        if (source is not null && target.IsSpecial && IsPinned(id))
+        if (source is not null && target.IsSpecial && _pins.IsPinned(id))
         {
             if (silent)
                 return View([], consumed: consumed, dispatcher: dispatcher);
@@ -231,7 +231,7 @@ public sealed partial class WindowManager
         }
 
         var keep = _focus.Focused is WindowId current
-            && IsPinned(current)
+            && _pins.IsPinned(current)
             && ClientOn(sourceId, current) is not null
             ? current
             : (WindowId?)null;

@@ -167,7 +167,7 @@ public sealed partial class WindowManager
     private Outcome MoveIntoGroup(string text, bool create, string name)
     {
         if (!TryGroupDirection(text, out var direction))
-            return Rejected(name, "error: unsupported direction: " + (text.Length == 0 ? "" : text[..1]));
+            return Rejected(name, "error: unsupported direction: " + text);
 
         if (!_config.Groups.IgnoreGroupLock && _groupsLocked)
             return View([], dispatcher: name);
@@ -219,12 +219,12 @@ public sealed partial class WindowManager
 
     private (WindowId Window, LiveWorkspace Desk)? NeighborAcross(LiveWorkspace desk, WindowId window, string direction)
     {
-        if (!_config.BindOptions.MonitorFallback || !MonitorSelector.TryDirection(direction, out var side)
+        if (!_config.BindOptions.MonitorFallback || !Sides.TryParse(direction, out var side)
             || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from
             || MonitorSelector.InDirection(Targets(), from, side) is not MonitorTarget neighbor
             || MonitorOf(neighbor) is not LiveMonitor screen || _workspaces.Shown.Shown(screen.Id) is not WorkspaceId shown
             || _workspaces.Find(shown) is not LiveWorkspace there || !desk.Layout.TryBounds(window, out var box)
-            || AdjacentOn(screen, Ideal(desk, window, box), side) is not WindowId found)
+            || AdjacentOn(screen, desk, window, box, side) is not WindowId found)
             return null;
 
         return (found, there);
@@ -319,7 +319,7 @@ public sealed partial class WindowManager
     private Outcome MoveWindowOrGroup(string text, string name)
     {
         if (!TryGroupDirection(text, out var direction))
-            return Rejected(name, "error: unsupported direction: " + (text.Length == 0 ? "" : text[..1]));
+            return Rejected(name, "error: unsupported direction: " + text);
 
         if (ActiveWindow() is not WindowId id || WorkspaceContaining(id) is not LiveWorkspace desk || Find(id) is not Client client)
             return View([], dispatcher: name);
@@ -364,11 +364,11 @@ public sealed partial class WindowManager
         if (!_config.Groups.MoveFocusCyclesGroupFirst || desk.GroupOf(active) is not WindowGroup group)
             return null;
 
-        var word = arguments.Trim();
-        var left = word is "l" or "left";
-        var right = word is "r" or "right";
-        if (!left && !right)
+        if (!Sides.TryParse(arguments.Trim(), out var side) || side is not (Side.Left or Side.Right))
             return null;
+
+        var left = side == Side.Left;
+        var right = !left;
 
         var only = _monitors.Count <= 1 && desk.Layout.Neighbor(active, left ? "l" : "r") is null;
         if (left && (active != group.Members[0] || only))
@@ -384,14 +384,14 @@ public sealed partial class WindowManager
 
     private static bool TryGroupDirection(string text, out string direction)
     {
-        direction = text.Length == 0 ? "" : text[0] switch
+        var parsed = Sides.TryParse(text, out var side);
+        direction = !parsed ? "" : side switch
         {
-            'l' => "l",
-            'r' => "r",
-            'u' or 't' => "u",
-            'd' or 'b' => "d",
-            _ => "",
+            Side.Left => "l",
+            Side.Right => "r",
+            Side.Up => "u",
+            _ => "d",
         };
-        return direction.Length > 0;
+        return parsed;
     }
 }

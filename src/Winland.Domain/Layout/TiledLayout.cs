@@ -62,14 +62,47 @@ internal abstract class TiledLayout
         if (index < 0)
             return false;
 
-        var client = _clients[index];
-        var bounds = _floating.TryGet(id, out var floating)
-            ? floating
-            : _natural.TryGetValue(id, out var natural) ? natural : default;
-        _limits.TryGetValue(id, out var limits);
-        taken = SlotHandover.Describe(client, bounds, limits, TakenWidth(id));
+        taken = Describe(index);
         Remove(window);
         return true;
+    }
+
+    /// <summary>
+    /// Hands the slot of <paramref name="current"/> to <paramref name="next"/>, a Window this Layout does not hold. The
+    /// slot keeps its place, size and floating state, and each Layout renames the Client in its own structure.
+    /// </summary>
+    public bool Substitute(WindowId current, WindowId next, Taken incoming, out Taken outgoing)
+    {
+        outgoing = default;
+        var from = new ClientId(current.Value);
+        var to = new ClientId(next.Value);
+        var index = IndexOf(from);
+        if (index < 0 || from == to || IndexOf(to) >= 0)
+            return false;
+
+        outgoing = Describe(index);
+        _clients[index] = SlotHandover.Rename(_clients[index], next, incoming);
+        Rename(from, to);
+        _floating.Hand(from, to);
+        _pseudo.Hand(from, to);
+        _natural.Remove(from);
+        _natural[to] = incoming.Bounds;
+        _limits.Remove(from);
+        _limits[to] = new SizeLimits(incoming.MinSize, incoming.MaxSize) { Tiled = incoming.TiledLimits };
+        return true;
+    }
+
+    /// <summary>Gives the tile of <paramref name="from"/> to <paramref name="to"/> in what the Layout keeps for its own tiling.</summary>
+    private protected abstract void Rename(ClientId from, ClientId to);
+
+    private Taken Describe(int index)
+    {
+        var client = _clients[index];
+        var bounds = _floating.TryGet(client.Id, out var floating)
+            ? floating
+            : _natural.TryGetValue(client.Id, out var natural) ? natural : default;
+        _limits.TryGetValue(client.Id, out var limits);
+        return SlotHandover.Describe(client, bounds, limits, TakenWidth(client.Id));
     }
 
     /// <summary>The width a Client takes with it to another Workspace, for a Layout that has one.</summary>

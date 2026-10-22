@@ -5,8 +5,6 @@ namespace Winland.Application;
 /// <summary>The <c>fullscreen</c>, <c>fullscreenstate</c> and <c>maximize</c> dispatchers, and what a fullscreen Client covers.</summary>
 public sealed partial class WindowManager
 {
-    private readonly HashSet<WindowId> _pinFullscreened = [];
-
     // Clients asked for client mode 2 while maximized, as Winland's restoreClientMaximized marks them. Asked
     // for client mode 0 after that, such a Client goes back to client mode 1.
     private readonly HashSet<WindowId> _restoreClientMaximized = [];
@@ -108,11 +106,11 @@ public sealed partial class WindowManager
         if (desk is null || desk.ClientOf(window) is not Client client)
             return MissingWindow(dispatcher);
 
-        if (!PinFullscreen(window, client.Fullscreen, ref mode, synced))
+        var covered = desk.Covered();
+        if (SetFullscreen(desk, window, ref mode, clientMode, synced, layoutAware) is not { } set)
             return View([], dispatcher: dispatcher);
 
-        var covered = desk.Covered();
-        var placements = Restamp(desk, desk.Layout.SetFullscreen(window, mode, clientMode, layoutAware));
+        var placements = Restamp(desk, set);
         if (mode != FullscreenMode.Fullscreen)
             _restoreClientMaximized.Remove(window);
         if (!_workspaces.Shown.IsShown(desk.Id))
@@ -121,27 +119,29 @@ public sealed partial class WindowManager
         return Present(desk, covered, placements, dispatcher: dispatcher);
     }
 
+    // Every change of a Client's fullscreen or maximized mode but the end of one goes through here, so the pin is
+    // held in the same way whichever Client's mode it copies. Null when a pin stops the change.
+    private IReadOnlyList<Placement>? SetFullscreen(LiveWorkspace desk, WindowId window, ref FullscreenMode mode, FullscreenMode clientMode, bool synced, bool layoutAware = true)
+    {
+        if (desk.ClientOf(window) is not Client client || !PinFullscreen(window, client.Fullscreen, ref mode, synced))
+            return null;
+
+        return desk.Layout.SetFullscreen(window, mode, clientMode, layoutAware);
+    }
+
     // binds:allow_pin_fullscreen. With it on, a pinned Client that goes fullscreen or
     // maximized loses its pin, and gets it back when it leaves that mode. With it off, a pinned Client stays as it
     // is: a synced request changes nothing, and fullscreenstate sets only the client mode. False when nothing changes.
     private bool PinFullscreen(WindowId window, FullscreenMode old, ref FullscreenMode mode, bool synced)
     {
-        var pinned = IsPinned(window);
-        var held = _pinFullscreened.Contains(window);
-        if (!pinned && !held)
+        if (!_pins.IsPinnedOrHeld(window))
             return true;
 
         var allow = _config.Session.AllowPinFullscreen;
-        if (allow && pinned && !held && old == FullscreenMode.None)
-        {
-            _pinned.Remove(window);
-            _pinFullscreened.Add(window);
-        }
-        else if (allow && held && !pinned && old != FullscreenMode.None && mode == FullscreenMode.None)
-        {
-            _pinned.Add(window);
-            _pinFullscreened.Remove(window);
-        }
+        if (allow && _pins.IsPinned(window) && old == FullscreenMode.None)
+            _pins.Hold(window);
+        else if (allow && _pins.IsHeld(window) && old != FullscreenMode.None && mode == FullscreenMode.None)
+            _pins.Release(window);
         else if (!allow)
         {
             if (synced)
@@ -197,7 +197,8 @@ public sealed partial class WindowManager
                 _awaitingMapFocus.Add(window);
                 return placements;
             case 1:
-                return desk.Layout.SetFullscreen(window, covering.Fullscreen, covering.Fullscreen, covering.LayoutFullscreen);
+                var mode = covering.Fullscreen;
+                return SetFullscreen(desk, window, ref mode, covering.Fullscreen, synced: true, covering.LayoutFullscreen) ?? placements;
             default:
                 return EndFullscreen(desk, covering.Window);
         }
@@ -223,7 +224,8 @@ public sealed partial class WindowManager
             case 0:
                 return covering.Window;
             case 1:
-                placements = desk.Layout.SetFullscreen(window, covering.Fullscreen, covering.Fullscreen);
+                var mode = covering.Fullscreen;
+                placements = SetFullscreen(desk, window, ref mode, covering.Fullscreen, synced: true);
                 return window;
             default:
                 placements = EndFullscreen(desk, covering.Window);
@@ -245,7 +247,7 @@ public sealed partial class WindowManager
         if (!retain || mode == FullscreenMode.None || desk.ClientOf(next) is null)
             return null;
 
-        return desk.Layout.SetFullscreen(next, mode, mode);
+        return SetFullscreen(desk, next, ref mode, mode, synced: true);
     }
 
     private static Client? CoveringOther(LiveWorkspace desk, WindowId window)

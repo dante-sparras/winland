@@ -76,6 +76,23 @@ public class GroupDragTests
         Assert.Equal([new WindowId(1)], Assert.Single(dropped.State.Groups));
     }
 
+    [Fact]
+    public void AnInvadingWindowIsDroppedIntoALockedGroup()
+    {
+        var core = new WindowManager();
+        core.Handle(new Configure(ConfigParser.Parse(
+            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\ngroup:auto_group = false\n"
+            + "bindm = SUPER, mouse:272, movewindow\nwindowrulev2 = group invade, class:^invade$\n")));
+        core.Handle(new WindowAppeared(new WindowId(1), Wide));
+        core.Handle(new Dispatch("togglegroup"));
+        core.Handle(new Dispatch("lockactivegroup", "lock"));
+        core.Handle(new WindowAppeared(new WindowId(2), Wide) { Traits = WindowTraits.Normal with { Class = "invade" } });
+
+        var dropped = Drag(core, 2, Middle(Tile(core, 1)));
+
+        Assert.Equal([new WindowId(1), new WindowId(2)], Assert.Single(dropped.State.Groups));
+    }
+
     // Window 1 is a Group of one on the left, window 2 a tile on the right.
     [Fact]
     public void AMoveStartedOnATabTakesThatMemberOutAndDragsItAlone()
