@@ -16,6 +16,13 @@ public static partial class ConfigParser
         return new Parser(source, layout ?? KeyLayout.UnitedStates).ParseRoot(text, path);
     }
 
+    /// <summary>
+    /// False for a line that launches a program or loads a file, which takes effect only when the config is read.
+    /// Every other line, an option or a rule, can be applied at once with <c>keyword</c>.
+    /// </summary>
+    public static bool AppliesLive(string keyword) =>
+        keyword is not ("exec" or "exec-once" or "execr" or "execr-once" or "exec-shutdown" or "source");
+
     private sealed partial class Parser(IConfigSource? sourceReader, KeyLayout layout)
     {
         private static readonly HashSet<string> KeptHandlers = new(StringComparer.Ordinal)
