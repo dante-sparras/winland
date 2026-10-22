@@ -224,9 +224,10 @@ public class EndToEndSmokeTests
     private static void AssertWorkspaces(string json)
     {
         using var document = JsonDocument.Parse(json);
-        var workspace = document.RootElement.EnumerateArray().Single(item => item.GetProperty("id").GetInt32() == 1);
-        Assert.Equal("1", workspace.GetProperty("name").GetString());
-        Assert.Equal(2, workspace.GetProperty("windows").GetInt32());
+        // Each Monitor has its own Workspace 1. The one the smoke windows open on holds both.
+        var ones = document.RootElement.EnumerateArray().Where(item => item.GetProperty("id").GetInt32() == 1).ToList();
+        Assert.All(ones, workspace => Assert.Equal("1", workspace.GetProperty("name").GetString()));
+        Assert.Single(ones, workspace => workspace.GetProperty("windows").GetInt32() == 2);
     }
 
     private static void AssertEvents(IReadOnlyList<string> lines)
