@@ -10,10 +10,7 @@ public sealed partial class WindowManager
     private bool GroupOnOpen(LiveWorkspace desk, WindowId window, WindowDecision decision, bool dialog, WindowId? focused)
     {
         var rules = decision.Group;
-        if (rules != GroupRuleFlags.None)
-            _groupRules[window] = rules;
-        else
-            _groupRules.Remove(window);
+        _props.SetGroupRules(window, rules);
 
         if (_config.Groups.AutoGroup
             && focused is WindowId owner
@@ -128,7 +125,7 @@ public sealed partial class WindowManager
         if (visible.Length != 1 || visible[0] == moving || destination.GroupOf(visible[0]) is not WindowGroup group)
             return null;
 
-        return CanJoin(RulesOf(moving), group) && !group.Locked ? group : null;
+        return CanJoin(_props.GroupRules(moving), group) && !group.Locked ? group : null;
     }
 
     /// <summary>Joins a window that was just added to <paramref name="destination"/> into <paramref name="group"/>.</summary>

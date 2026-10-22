@@ -6,82 +6,9 @@ namespace Winland.Application;
 /// </summary>
 public sealed partial class WindowManager
 {
-    // What setprop set on each window, by storage key. It wins over the rules and the config.
-    private readonly Dictionary<WindowId, Dictionary<string, object>> _setProps = [];
-
-    // What the property effects of the window rules gave each window when it was adopted.
-    private readonly Dictionary<WindowId, IReadOnlyDictionary<string, object>> _ruleProps = [];
-
-    private object? SetPropOf(WindowId window, string key) =>
-        _setProps.TryGetValue(window, out var props) && props.TryGetValue(key, out var value) ? value : null;
-
-    private object? RulePropOf(WindowId window, string key) =>
-        _ruleProps.TryGetValue(window, out var props) && props.TryGetValue(key, out var value) ? value : null;
-
-    // A property setprop or a window rule set, which wins over the workspace rules and the config.
-    private object? OwnProp(WindowId window, string key) => SetPropOf(window, key) ?? RulePropOf(window, key);
-
-    // The same, typed: null when neither setprop nor a window rule set it.
-    private T Own<T>(WindowId window, WindowProp<T> prop) => OwnProp(window, prop.Name) is T value ? value : default!;
-
-    private void RememberRuleProps(WindowId window, WindowDecision decision)
-    {
-        var props = decision.Props;
-        // Winland turns sync_fullscreen off at the window-rule layer when a fullscreen_state rule maps the
-        // window. Rule props are rebuilt whenever the window's state changes, so the same false is put back while
-        // that rule still matches. setprop is a higher layer and is left alone.
-        if (decision.StatedFullscreen)
-        {
-            var ruled = new Dictionary<string, object>(props?.Count ?? 0, StringComparer.Ordinal);
-            if (props is not null)
-            {
-                foreach (var (key, value) in props)
-                    ruled[key] = value;
-            }
-
-            ruled["sync_fullscreen"] = false;
-            props = ruled;
-        }
-
-        if (props is { Count: > 0 })
-            _ruleProps[window] = props;
-        else
-            _ruleProps.Remove(window);
-    }
-
     // The border a window's own properties give it, which the Layouts read through LayoutOptions.ClientBorder.
     private int? ClientBorderOf(ClientId client) =>
-        Own(new WindowId(client.Value), WindowProp.BorderSize) is { } border ? (int)Math.Clamp(border, 0, int.MaxValue) : null;
-
-    private bool? SetBool(WindowId window, string key) => SetPropOf(window, key) as bool?;
-
-    // What a window rule or workspace rule gives the property, or null when none gives it anything.
-    private object? RuledProp(WindowId window, LiveWorkspace? desk, string key)
-    {
-        var rule = _focusRules.TryGetValue(window, out var focus) ? focus : default;
-        var sizes = _sizes.TryGetValue(window, out var kept) ? kept.Rule : default;
-        var opacity = OpacityOf(window);
-        var workspace = desk is null ? null : RuleFor(desk);
-        if (RulePropOf(window, key) is { } ruled)
-            return ruled;
-
-        return key switch
-        {
-            "no_focus" when rule.NoFocus => true,
-            "stay_focused" when rule.StayFocused => true,
-            "opaque" when opacity.Opaque => true,
-            "no_max_size" when sizes.NoMax => true,
-            "min_size" when sizes.Min is Size min => new PropSize(min.Width, min.Height),
-            "max_size" when sizes.Max is Size max => new PropSize(max.Width, max.Height),
-            "opacity" when opacity.Rule is OpacityRule active => new PropAlpha(active.Active.Value, active.Active.Overridden),
-            "opacity_inactive" when opacity.Rule is OpacityRule inactive => new PropAlpha(inactive.Inactive.Value, inactive.Inactive.Overridden),
-            "opacity_fullscreen" when opacity.Rule is OpacityRule full => new PropAlpha(full.Fullscreen.Value, full.Fullscreen.Overridden),
-            "border_size" when workspace?.BorderSize is int border => (long)border,
-            "rounding" when workspace?.Rounding == false => 0L,
-            "decorate" when workspace?.Decorate is bool decorate => decorate,
-            _ => null,
-        };
-    }
+        _props.Own(new WindowId(client.Value), WindowProp.BorderSize) is { } border ? (int)Math.Clamp(border, 0, int.MaxValue) : null;
 
     private object DefaultProp(WindowId window, string key, PropKind kind) => key switch
     {
@@ -102,10 +29,10 @@ public sealed partial class WindowManager
     };
 
     private object Layered(WindowId window, LiveWorkspace? desk, string key) =>
-        SetPropOf(window, key) ?? RuledProp(window, desk, key)!;
+        _props.Value(window, key, desk is null ? null : RuleFor(desk))!;
 
     private object PropValue(WindowId window, LiveWorkspace? desk, string key, PropKind kind) =>
-        SetPropOf(window, key) ?? RuledProp(window, desk, key) ?? DefaultProp(window, key, kind);
+        _props.Value(window, key, desk is null ? null : RuleFor(desk)) ?? DefaultProp(window, key, kind);
 
     private CommandReply ReadProp(GetPropRequest request)
     {
@@ -121,7 +48,7 @@ public sealed partial class WindowManager
         var key = WindowProps.StorageKey(request.Property);
         var value = PropValue(client.Window, desk, key, kind);
         var json = request.Flags.HasFlag(CommandFlags.Json);
-        var text = WindowProps.Format(request.Property, kind, value, json, animationSet: SetPropOf(client.Window, key) is not null);
+        var text = WindowProps.Format(request.Property, kind, value, json, animationSet: _props.SetProp(client.Window, key) is not null);
         return new CommandReply(text, View([]));
     }
 
@@ -189,17 +116,7 @@ public sealed partial class WindowManager
                 break;
         }
 
-        if (next is null)
-        {
-            if (_setProps.TryGetValue(window, out var props))
-                props.Remove(key);
-        }
-        else
-        {
-            if (!_setProps.TryGetValue(window, out var props))
-                _setProps[window] = props = new Dictionary<string, object>(StringComparer.Ordinal);
-            props[key] = next;
-        }
+        _props.Set(window, key, next);
 
         IReadOnlyList<Placement> placements = key switch
         {
@@ -219,54 +136,13 @@ public sealed partial class WindowManager
         return Variables(monitor, bounds, _pointer ?? default);
     }
 
-    // The size rules of a window with what setprop set on top.
-    private SizeRule EffectiveSizes(WindowId window, SizeRule rule) => rule with
-    {
-        Min = (SetPropOf(window, "min_size") as PropSize?)?.ToLimit() ?? rule.Min,
-        Max = (SetPropOf(window, "max_size") as PropSize?)?.ToLimit() ?? rule.Max,
-        NoMax = SetBool(window, "no_max_size") ?? rule.NoMax,
-    };
-
     private IReadOnlyList<Placement> ApplyLimits(WindowId window, LiveWorkspace desk)
     {
-        if (!_sizes.TryGetValue(window, out var sizes))
+        if (_props.Sizes(window) is not { } sizes)
             return [];
 
-        var rule = EffectiveSizes(window, sizes.Rule);
+        var rule = _props.EffectiveSizes(window, sizes.Rule);
         var floating = rule.Floating(sizes.OwnMin, sizes.OwnMax);
         return desk.Layout.UpdateLimits(window, floating.Min, floating.Max, rule.Tiled(sizes.OwnMin, sizes.OwnMax, _config.Session.SizeLimitsTiled));
     }
-
-    // The opacity a window's props ask for: setprop's fractions over the opacity rule's.
-    private OpacityChoice PropOpacity(WindowId window, OpacityChoice ruled)
-    {
-        if (!_setProps.TryGetValue(window, out var props))
-            return ruled;
-
-        OpacityFactor Factor(string key, OpacityFactor fallback) =>
-            props.TryGetValue(key, out var value) && value is PropAlpha alpha ? new OpacityFactor(alpha.Value, alpha.Overridden) : fallback;
-
-        var rule = ruled.Rule ?? new OpacityRule(OpacityFactor.Identity, OpacityFactor.Identity, OpacityFactor.Identity);
-        var merged = new OpacityRule(Factor("opacity", rule.Active), Factor("opacity_inactive", rule.Inactive), Factor("opacity_fullscreen", rule.Fullscreen));
-        var opaque = props.TryGetValue("opaque", out var held) && held is bool flag ? flag : ruled.Opaque;
-        return new OpacityChoice(ruled.Rule is null && merged == rule ? null : merged, opaque);
-    }
-
-    private readonly Dictionary<WindowId, OpacityChoice> _opacity = [];
-
-    private readonly record struct OpacityChoice(OpacityRule? Rule, bool Opaque);
-
-    private void RememberOpacity(WindowId window, WindowDecision decision)
-    {
-        if (decision.Opacity is null && !decision.Opaque)
-        {
-            _opacity.Remove(window);
-            return;
-        }
-
-        _opacity[window] = new OpacityChoice(decision.Opacity, decision.Opaque);
-    }
-
-    private OpacityChoice OpacityOf(WindowId window) =>
-        _opacity.TryGetValue(window, out var choice) ? choice : default;
 }

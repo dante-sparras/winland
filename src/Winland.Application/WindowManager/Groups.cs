@@ -3,7 +3,6 @@ namespace Winland.Application;
 /// <summary>The group dispatchers, and moving Clients into and out of groups.</summary>
 public sealed partial class WindowManager
 {
-    private readonly Dictionary<WindowId, GroupRuleFlags> _groupRules = [];
     private bool _groupsLocked;
 
     private Outcome ToggleGroup(string name)
@@ -38,7 +37,7 @@ public sealed partial class WindowManager
     private WindowGroup StartGroup(LiveWorkspace desk, WindowId window)
     {
         var group = desk.StartGroup(window);
-        var rules = RulesOf(window);
+        var rules = _props.GroupRules(window);
         group.Locked = rules.HasFlag(GroupRuleFlags.Lock);
         group.Denied = rules.HasFlag(GroupRuleFlags.Deny);
         (_extraEvents ??= []).Add(new GroupToggled(window, true));
@@ -346,7 +345,7 @@ public sealed partial class WindowManager
 
         if (neighbor is not null)
         {
-            var single = own?.Count == 1 && RulesOf(id).HasFlag(GroupRuleFlags.SetAlways);
+            var single = own?.Count == 1 && _props.GroupRules(id).HasFlag(GroupRuleFlags.SetAlways);
             if ((!ignore && ownLocked) || own is null || single)
                 return MoveInstead(direction, name);
 
@@ -382,9 +381,6 @@ public sealed partial class WindowManager
 
     private Outcome MoveInstead(string direction, string name) =>
         MoveWindowDirection(direction) with { Dispatcher = name };
-
-    private GroupRuleFlags RulesOf(WindowId window) =>
-        _groupRules.TryGetValue(window, out var rules) ? rules : GroupRuleFlags.None;
 
     private static bool TryGroupDirection(string text, out string direction)
     {

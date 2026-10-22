@@ -31,4 +31,14 @@ public readonly record struct WindowTraits(
         Cloaked: false,
         Dialog: false,
         Elevated: false);
+
+    /// <summary>
+    /// These traits with the initial class and title set to the current ones when they are not set yet. initialClass and
+    /// initialTitle match what a window had when it appeared, including an empty one, so a later one does not stand in.
+    /// </summary>
+    public WindowTraits WithInitialNames() => this with
+    {
+        InitialClass = InitialClass ?? Class,
+        InitialTitle = InitialTitle ?? Title,
+    };
 }

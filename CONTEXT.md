@@ -15,6 +15,9 @@ _Avoid_: Managed window, tile
 **Managed**:
 The state of a Window that has become a Client. A Window that no rule adopts stays unmanaged and is left alone.
 
+**Prop**:
+A property of a Client, such as opacity, `no_focus` or `border_size`. A window rule sets it, and `setprop` overrides it.
+
 **Layout**:
 The algorithm that places the Clients of a Workspace. Winland ships floating, dwindle, master, monocle and scrolling.
 _Avoid_: Tiling mode, arrangement
