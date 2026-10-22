@@ -30,7 +30,7 @@ Nothing in Domain or Application calls Win32. A test drives `WindowManager` with
 | A config option | The `*Options.cs` file of its section in `Domain/Config`, for example `LayoutOptions.cs` for `general:gaps_in`. `AppliedConfig.cs` holds every section, and a new section gets one line in `OptionTable.cs`, which the parser and `getoption` read. |
 | A window rule | `Domain/WindowRule`, with its parser in `Domain/WindowRule/WindowRuleParser`. |
 | A Client's Props, tags and the rule decision it opened with | `Domain/Client/ClientProps.cs`. `getprop`, `setprop` and the config's defaults are in `Application/WindowManager/Props.cs`, and matching the rules again as state changes in `DynamicRules.cs`. |
-| A Layout | `Domain/Layout`: one folder per Layout, such as `DwindleLayout/`. |
+| A Layout | `Domain/Layout`: one folder per Layout, such as `DwindleLayout/`. What the tiling Layouts keep alike is in `TiledLayout.cs`. |
 | Which Client has focus, what each Workspace gives focus back to, and the focus history | `Domain/Focus/FocusState.cs`. When a window may take focus is in `Application/WindowManager/Focus.cs`. |
 | Which Workspaces there are, their numbers, Guests, and which one a Monitor shows | `Domain/Workspace/WorkspaceSet.cs`, with `ShownWorkspaces.cs` for what each Monitor shows and `workspace previous`. `Application/WindowManager/Hotplug.cs` calls it when Monitors change. |
 | Which windows may stay over a fullscreen or maximized Client | `Domain/Fullscreen/FullscreenCover.cs`. Pinning is in `Application/WindowManager/Pin.cs`. |
