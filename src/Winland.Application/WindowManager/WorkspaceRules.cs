@@ -8,7 +8,7 @@ public sealed partial class WindowManager
         if (!id.IsSpecial && monitor is MonitorId place)
             id = new WorkspaceId(id.Name, place.Value);
 
-        var existing = FindWorkspace(id);
+        var existing = _workspaces.Find(id);
         if (existing is not null)
             return existing;
 
@@ -60,7 +60,7 @@ public sealed partial class WindowManager
                 if (rule.Monitor.Length > 0 && !MonitorRules.Matches(screen.Effective, rule.Monitor))
                     continue;
 
-                if (!WorkspaceRules.TryConcrete(rule.WorkspaceString, screen.Id, out var id) || FindWorkspace(id) is not null)
+                if (!WorkspaceRules.TryConcrete(rule.WorkspaceString, screen.Id, out var id) || _workspaces.Find(id) is not null)
                     continue;
 
                 WorkspaceFor(id, screen.Id);

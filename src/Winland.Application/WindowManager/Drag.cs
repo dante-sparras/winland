@@ -174,7 +174,7 @@ public sealed partial class WindowManager
 
         var middle = new Point(box.X + (box.Width / 2), box.Y + (box.Height / 2));
         if (MonitorAt(middle) is not { } screen || (SpecialShownOn(screen) ?? ShownOn(screen)) is not WorkspaceId shown
-            || FindWorkspace(shown) is not LiveWorkspace target || target.Id == source.Id)
+            || _workspaces.Find(shown) is not LiveWorkspace target || target.Id == source.Id)
         {
             return null;
         }
@@ -328,7 +328,7 @@ public sealed partial class WindowManager
         TakeGroupFocus(there, dragged);
         (_extraEvents ??= []).Add(new ClientIntoGroup(dragged));
         var outcome = Present(there, covered, there.Layout.Visible(), dispatcher: dispatcher, focus: dragged) with { Consumed = dispatcher is not null };
-        return from != there && FindWorkspace(from.Id) is LiveWorkspace left && IsShown(left.Id)
+        return from != there && _workspaces.Find(from.Id) is LiveWorkspace left && IsShown(left.Id)
             ? outcome with { Placements = [.. left.Layout.Placed(), .. outcome.Placements] }
             : outcome;
     }

@@ -3,9 +3,8 @@ namespace Winland.Application;
 /// <summary>The core of Winland. Every input and command runs as one step under one lock and returns an Outcome for the adapter to apply.</summary>
 public sealed partial class WindowManager
 {
-    private readonly List<LiveWorkspace> _workspaces = [];
+    private readonly WorkspaceSet _workspaces = new();
     private readonly List<LiveMonitor> _monitors = [];
-    private readonly ShownWorkspaces _shownWorkspaces = new();
     private readonly Queue<Launch> _born = new();
     private readonly PidFollowSet _follow = new();
     private readonly InitialWorkspaces _initialWorkspaces = new();
@@ -60,7 +59,7 @@ public sealed partial class WindowManager
         if (config is not null)
             Use(AppliedConfig.From(config, accent: null));
         NoteConfigErrors(config);
-        _shownWorkspaces.Show(MonitorId.Primary, WorkspaceId.Initial);
+        _workspaces.Shown.Show(MonitorId.Primary, WorkspaceId.Initial);
         WorkspaceFor(WorkspaceId.Initial);
         EnsurePersistent();
         Remember(WorkspaceId.Initial, MonitorId.Primary);

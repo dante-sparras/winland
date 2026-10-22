@@ -3,9 +3,6 @@ namespace Winland.Application;
 /// <summary>Monitors that are plugged in or out: which Workspaces go where, and which come back.</summary>
 public sealed partial class WindowManager
 {
-    // The number each Monitor was showing when it left, by its identity, or by its Windows name when
-    // it has no model and serial. A Guest keeps its own home on the Workspace.
-    private readonly Dictionary<string, long> _rememberedActive = new(StringComparer.OrdinalIgnoreCase);
     private readonly MonitorIdentity _identity = new();
 
     private Outcome SetMonitors(IReadOnlyList<Monitor> reported)
@@ -46,7 +43,7 @@ public sealed partial class WindowManager
 
         _monitors.Clear();
         _monitors.AddRange(next);
-        _shownWorkspaces.SetLive(next.Select(screen => screen.Id));
+        _workspaces.Shown.SetLive(next.Select(screen => screen.Id));
 
         var enabled = EnabledMonitors();
         LiveMonitor? home = null;
@@ -104,83 +101,26 @@ public sealed partial class WindowManager
         return next;
     }
 
-    private void Depart(LiveMonitor screen, LiveMonitor? host)
-    {
-        var key = ReturnKey(screen.Reported);
-        if (_shownWorkspaces.LastShown(screen.Id) is WorkspaceId active
-            && FindWorkspace(active) is { Id.IsSpecial: false } shown
-            && shown.Id.TryGetNumber(out var shownNumber))
-            _rememberedActive[key] = shownNumber;
-
-        if (host is null)
-            return;
-
-        var leaving = new List<LiveWorkspace>();
-        foreach (var desk in _workspaces)
-        {
-            if (desk.Monitor == screen.Id && !desk.Id.IsSpecial)
-                leaving.Add(desk);
-        }
-
-        leaving.Sort(static (left, right) => ShownNumber(left).CompareTo(ShownNumber(right)));
-        foreach (var desk in leaving)
-        {
-            if (desk.Layout.Clients.Count == 0)
-            {
-                RemoveWorkspace(desk);
-                continue;
-            }
-
-            if (desk.HomeIdentity is null && desk.Id.TryGetNumber(out var home))
-            {
-                desk.HomeIdentity = key;
-                desk.HomeNumber = home;
-            }
-
-            var number = NextGuestNumber(host.Id);
-            Rebind(desk, WorkspaceId.FromNumber(number, host.Id));
-        }
-    }
+    // A Monitor is known again by its identity, or by its Windows name when it has no model and serial.
+    private void Depart(LiveMonitor screen, LiveMonitor? host) =>
+        Readdressed(_workspaces.Depart(screen.Id, ReturnKey(screen.Reported), host?.Id));
 
     private void Return(LiveMonitor screen)
     {
-        var key = ReturnKey(screen.Reported);
-        var guests = new List<LiveWorkspace>();
-        foreach (var desk in _workspaces)
-        {
-            if (desk.HomeIdentity is not null && string.Equals(desk.HomeIdentity, key, StringComparison.OrdinalIgnoreCase))
-                guests.Add(desk);
-        }
-
-        guests.Sort(static (left, right) => left.HomeNumber.CompareTo(right.HomeNumber));
-        foreach (var desk in guests)
-        {
-            var number = desk.HomeNumber > 0 ? desk.HomeNumber : 1;
-            desk.HomeIdentity = null;
-            desk.HomeNumber = 0;
-            var id = WorkspaceId.FromNumber(number, screen.Id);
-            if (FindWorkspace(id) is not null)
-                id = WorkspaceId.FromNumber(FirstFree(screen.Id), screen.Id);
-
-            Rebind(desk, id);
-        }
-
-        if (!_rememberedActive.Remove(key, out var remembered))
+        Readdressed(_workspaces.Return(screen.Id, ReturnKey(screen.Reported), out var shownNumber));
+        if (shownNumber is not long number)
             return;
 
-        var shown = WorkspaceFor(WorkspaceId.FromNumber(remembered, screen.Id), screen.Id);
-        _shownWorkspaces.Show(screen.Id, shown.Id);
+        var shown = WorkspaceFor(WorkspaceId.FromNumber(number, screen.Id), screen.Id);
+        _workspaces.Shown.Show(screen.Id, shown.Id);
     }
-
-    private static long ShownNumber(LiveWorkspace desk) =>
-        desk.Id.TryGetNumber(out var number) ? number : 0;
 
     private void AssignActives(List<LiveMonitor> enabled)
     {
         var claimed = new HashSet<WorkspaceId>();
         foreach (var screen in enabled)
         {
-            if (ShownOn(screen) is WorkspaceId active && OnMonitor(screen, active) is not null && claimed.Add(active))
+            if (ShownOn(screen) is WorkspaceId active && _workspaces.On(screen.Id, active) is not null && claimed.Add(active))
                 continue;
 
             if (TryDefault(screen, out var preferred) && claimed.Add(preferred))
@@ -188,7 +128,7 @@ public sealed partial class WindowManager
                 var chosen = WorkspaceFor(preferred, screen.Id);
                 if (chosen.Monitor == screen.Id)
                 {
-                    _shownWorkspaces.Show(screen.Id, chosen.Id);
+                    _workspaces.Shown.Show(screen.Id, chosen.Id);
                     continue;
                 }
 
@@ -223,21 +163,21 @@ public sealed partial class WindowManager
             LiveWorkspace own;
             if (populated is not null)
                 own = populated;
-            else if (FindWorkspace(one) is LiveWorkspace first && !claimed.Contains(first.Id))
+            else if (_workspaces.Find(one) is LiveWorkspace first && !claimed.Contains(first.Id))
                 own = first;
-            else if (FirstFree(screen.Id) == 1)
+            else if (_workspaces.FirstFree(screen.Id) == 1)
                 own = WorkspaceFor(one, screen.Id);
             else
-                own = empty ?? WorkspaceFor(NextFree(screen.Id), screen.Id);
+                own = empty ?? WorkspaceFor(_workspaces.NextFree(screen.Id), screen.Id);
 
-            _shownWorkspaces.Show(screen.Id, own.Id);
+            _workspaces.Shown.Show(screen.Id, own.Id);
             claimed.Add(own.Id);
         }
 
         foreach (var screen in _monitors)
         {
             if (!screen.Effective.Enabled && ShownOn(screen) is null)
-                _shownWorkspaces.Show(screen.Id, WorkspaceId.Initial);
+                _workspaces.Shown.Show(screen.Id, WorkspaceId.Initial);
         }
     }
 

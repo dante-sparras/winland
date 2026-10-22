@@ -5,12 +5,12 @@ public sealed partial class WindowManager
 {
     private WorkspaceId ActiveId() => ActiveOn(FocusedId());
 
-    private WorkspaceId ActiveOn(MonitorId monitor) => _shownWorkspaces.ActiveOn(monitor);
+    private WorkspaceId ActiveOn(MonitorId monitor) => _workspaces.Shown.ActiveOn(monitor);
 
     // The Shown workspace of a live Monitor, and the Special workspace over it.
-    private WorkspaceId? ShownOn(LiveMonitor screen) => _shownWorkspaces.Shown(screen.Id);
+    private WorkspaceId? ShownOn(LiveMonitor screen) => _workspaces.Shown.Shown(screen.Id);
 
-    private WorkspaceId? SpecialShownOn(LiveMonitor screen) => _shownWorkspaces.SpecialOn(screen.Id);
+    private WorkspaceId? SpecialShownOn(LiveMonitor screen) => _workspaces.Shown.SpecialOn(screen.Id);
 
     // Each enabled Monitor shows a Workspace no other enabled Monitor shows. A step may break this on its way, so it is
     // checked after each one, in debug builds, where the tests run.
@@ -64,23 +64,6 @@ public sealed partial class WindowManager
 
     private LiveWorkspace FocusedWorkspace() => WorkspaceFor(ActiveId(), FocusedId());
 
-    private LiveWorkspace? FindWorkspace(WorkspaceId id)
-    {
-        foreach (var desk in _workspaces)
-        {
-            if (desk.Id == id)
-                return desk;
-        }
-
-        return null;
-    }
-
-    private LiveWorkspace? OnMonitor(LiveMonitor screen, WorkspaceId id)
-    {
-        var desk = FindWorkspace(id);
-        return desk is not null && desk.Monitor == screen.Id ? desk : null;
-    }
-
     private LiveWorkspace? WorkspaceContaining(WindowId window)
     {
         foreach (var desk in _workspaces)
@@ -105,7 +88,7 @@ public sealed partial class WindowManager
 
     private Client? ClientOn(WorkspaceId id, WindowId window)
     {
-        var desk = FindWorkspace(id);
+        var desk = _workspaces.Find(id);
         return desk is null ? null : desk.ClientOf(window);
     }
 

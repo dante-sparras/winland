@@ -80,7 +80,7 @@ public sealed partial class WindowManager
 
         var show = new List<WindowId>();
         var hide = new List<WindowId>();
-        if (wasShown && FindWorkspace(desk.Id) is { } source)
+        if (wasShown && _workspaces.Find(desk.Id) is { } source)
             source.Collect(covered, show, hide);
 
         if (IsShown(destination.Id))
@@ -95,7 +95,7 @@ public sealed partial class WindowManager
 
         DropIfEmpty(desk.Id);
         var placements = new List<Placement>();
-        if (FindWorkspace(desk.Id) is { } left && IsShown(left.Id))
+        if (_workspaces.Find(desk.Id) is { } left && IsShown(left.Id))
             placements.AddRange(left.Layout.Placed());
         if (IsShown(destination.Id))
             placements.AddRange(destination.Layout.Visible());
@@ -105,7 +105,7 @@ public sealed partial class WindowManager
 
     private void CarryPinned(WorkspaceId sourceId, LiveWorkspace destination)
     {
-        var source = FindWorkspace(sourceId);
+        var source = _workspaces.Find(sourceId);
         if (source is null || source.Id == destination.Id)
             return;
 
@@ -142,7 +142,7 @@ public sealed partial class WindowManager
         if (!client.Pinned || !client.Floating || client.Minimized)
             return false;
 
-        var desk = FindWorkspace(client.Workspace);
+        var desk = _workspaces.Find(client.Workspace);
         return desk is not null && MonitorShowing(desk.Monitor);
     }
 

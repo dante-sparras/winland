@@ -32,9 +32,9 @@ public sealed partial class WindowManager
         var from = WorkspaceId.FromNumber(current, monitor);
         var to = WorkspaceId.FromNumber(number, monitor);
         if (!from.TryGetNumber(out var old)
-            || FindWorkspace(from) is not { } desk
+            || _workspaces.Find(from) is not { } desk
             || desk.Id.IsSpecial
-            || (FindWorkspace(to) is { } occupied && occupied != desk))
+            || (_workspaces.Find(to) is { } occupied && occupied != desk))
         {
             return View([], dispatcher: dispatcher) with { Error = "error: bad workspace" };
         }

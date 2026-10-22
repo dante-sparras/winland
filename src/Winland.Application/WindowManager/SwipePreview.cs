@@ -54,7 +54,7 @@ public sealed partial class WindowManager
     private List<WindowId> Offset(WorkspaceId workspace, double offset, bool vertical, SwipePreview preview, List<Motion> motions)
     {
         var moved = new List<WindowId>();
-        if (FindWorkspace(workspace) is not { } desk)
+        if (_workspaces.Find(workspace) is not { } desk)
             return moved;
 
         var shift = Pixels(offset);
@@ -79,7 +79,7 @@ public sealed partial class WindowManager
     {
         var style = _config.Animations.StyleOf("workspaces");
         var vertical = style == "slidevert" || style.StartsWith("slidefadevert", StringComparison.Ordinal);
-        var between = FindWorkspace(workspace)?.Options.GapsWorkspaces ?? 0;
+        var between = _workspaces.Find(workspace)?.Options.GapsWorkspaces ?? 0;
         return (vertical, (vertical ? monitor.Height : monitor.Width) + between);
     }
 

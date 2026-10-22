@@ -364,7 +364,7 @@ public sealed partial class WindowManager
     // the focused one when no Monitor is under it.
     private LiveWorkspace PointerWorkspace(Point pointer)
     {
-        if (MonitorAt(pointer) is { } screen && (SpecialShownOn(screen) ?? ShownOn(screen)) is WorkspaceId shown && FindWorkspace(shown) is LiveWorkspace desk)
+        if (MonitorAt(pointer) is { } screen && (SpecialShownOn(screen) ?? ShownOn(screen)) is WorkspaceId shown && _workspaces.Find(shown) is LiveWorkspace desk)
             return desk;
 
         return CurrentWorkspace();
