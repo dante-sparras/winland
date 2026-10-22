@@ -9,6 +9,8 @@
     <Using Include="Winland.Domain" />
     <Using Include="Winland.Domain.Monitor" Alias="Monitor" />
     <Using Include="Winland.Application" />
+    <Using Include="Winland.Application.Tests.TestMonitors" Static="true" />
+    <Using Include="Winland.Application.Tests.TestOutcomes" Static="true" />
   </ItemGroup>
 
 </Project>

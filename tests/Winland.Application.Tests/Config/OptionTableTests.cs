@@ -82,11 +82,4 @@ public sealed class OptionTableTests
         JsonValueKind.String => value.GetString()!,
         _ => value.GetRawText(),
     };
-
-    private static WindowManager Configured(string text)
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse(text)));
-        return core;
-    }
 }

@@ -289,12 +289,6 @@ public class ExtraCommandTests
         Assert.False(ControlInvocation.TryCreate(["dispatch", "splitratio", arg], out _, out _));
     }
 
-    private static JsonElement Json(string text)
-    {
-        using var document = JsonDocument.Parse(text);
-        return document.RootElement.Clone();
-    }
-
     private sealed class FixedCursor(int x, int y) : ICursorPosition
     {
         public Point Read() => new(x, y);

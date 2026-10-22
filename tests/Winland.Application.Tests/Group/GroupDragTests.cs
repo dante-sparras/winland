@@ -172,9 +172,6 @@ public class GroupDragTests
     private static Rectangle Tile(WindowManager core, long window) =>
         Assert.Single(core.Handle(new Dispatch("no_op")).State.Clients, client => client.Window == new WindowId(window)).Bounds;
 
-    private static Client Client(Outcome outcome, long window) =>
-        Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-
     private static IReadOnlyList<string> MoveLines(Outcome outcome) =>
         [.. CommandProtocol.FormatStream(outcome.Events, outcome.State).Where(line =>
             line.StartsWith("movewindow>>", StringComparison.Ordinal) || line.StartsWith("movewindowv2>>", StringComparison.Ordinal))];

@@ -194,10 +194,4 @@ public class ControlConformance
         element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
 
     private static string Compact(string json) => JsonSerializer.Serialize(Json(json));
-
-    private static JsonElement Json(string text)
-    {
-        using var document = JsonDocument.Parse(text);
-        return document.RootElement.Clone();
-    }
 }

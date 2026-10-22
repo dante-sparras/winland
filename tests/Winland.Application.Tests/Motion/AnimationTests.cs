@@ -530,10 +530,4 @@ public class AnimationTests
         core.Handle(new KeyReleased(key));
         return outcome;
     }
-
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-        return Assert.Single(outcome.Placements, placement => placement.Client == client.Id).Bounds;
-    }
 }

@@ -331,13 +331,6 @@ public class PlacementRuleTests
         Assert.Equal(new Rectangle(40, 50, 300, 200), BoundsOf(outcome, 1));
     }
 
-    private static WindowManager Configured(string text)
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse(text)));
-        return core;
-    }
-
     private static WindowManager Ruled(params string[] effects)
     {
         var text = "windowrulev2 = float, class:^(box)$\n";
@@ -367,13 +360,4 @@ public class PlacementRuleTests
             Traits = WindowTraits.Normal with { Dialog = true },
             Bounds = Own,
         };
-
-    private static Monitor Display(string name, string description, Rectangle area) =>
-        new(name, description, area.X, area.Y, area.Width, area.Height, 1, true, area);
-
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-        return Assert.Single(outcome.Placements, placement => placement.Client == client.Id).Bounds;
-    }
 }

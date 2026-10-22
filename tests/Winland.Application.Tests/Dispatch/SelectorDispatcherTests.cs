@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Winland.Application.Tests;
 
 public class SelectorDispatcherTests
@@ -321,31 +319,6 @@ public class SelectorDispatcherTests
             ProcessId = processId,
         });
 
-    private static Monitor Display(
-        string name,
-        string description,
-        int x,
-        int y,
-        int width,
-        int height,
-        double scale) =>
-        new(name, description, x, y, width, height, scale, true, new Rectangle(x, y, width, height));
-
-    private static Client Client(Outcome outcome, long window) =>
-        Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Client(outcome, window);
-        return Assert.Single(outcome.Placements, placement => placement.Client == client.Id).Bounds;
-    }
-
     private static IReadOnlyList<string> Lines(CommandReply reply) =>
         CommandProtocol.FormatStream(reply.Effect.Events, reply.Effect.State);
-
-    private static JsonElement Json(string text)
-    {
-        using var document = JsonDocument.Parse(text);
-        return document.RootElement.Clone();
-    }
 }

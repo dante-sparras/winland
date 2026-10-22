@@ -240,13 +240,4 @@ public class WorkspaceSelectorTests
 
     private static Workspace Workspace(Outcome outcome, string name) =>
         Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == new WorkspaceId(name));
-
-    private static Client Client(Outcome outcome, long window) =>
-        Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Client(outcome, window);
-        return Assert.Single(outcome.Placements, placement => placement.Client == client.Id).Bounds;
-    }
 }

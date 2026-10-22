@@ -70,13 +70,6 @@ public class AccentBorderTests
         Assert.Contains(new BorderColor(0xFF, 0x40, 0x40, 0x40), borders);
     }
 
-    private static WindowManager Configured(string text)
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse(text)));
-        return core;
-    }
-
     private static WindowAppeared Appeared(long window) => new(new WindowId(window), Area);
 
     private static BorderColor Border(Outcome outcome, long window)

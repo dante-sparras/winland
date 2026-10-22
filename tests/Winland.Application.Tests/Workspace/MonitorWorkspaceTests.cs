@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Winland.Application.Tests;
 
 public class MonitorWorkspaceTests
@@ -392,40 +390,15 @@ public class MonitorWorkspaceTests
             Lines(outcome));
     }
 
-    private static Monitor Display(
-        string name,
-        string description,
-        int x,
-        int y,
-        int width,
-        int height,
-        double scale) =>
-        new(name, description, x, y, width, height, scale, true, new Rectangle(x, y, width, height));
-
     private static Workspace Workspace(Outcome outcome, string name) =>
         Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == new WorkspaceId(name));
 
     private static Workspace On(Outcome outcome, int monitor, string name) =>
         Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == new WorkspaceId(name, monitor));
 
-    private static Client Client(Outcome outcome, long window) =>
-        Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Client(outcome, window);
-        return Assert.Single(outcome.Placements, placement => placement.Client == client.Id).Bounds;
-    }
-
     private static Decoration Border(Outcome outcome, long window) =>
         Assert.Single(outcome.Decorations, decoration => decoration.Client == new ClientId(window));
 
     private static IReadOnlyList<string> Lines(Outcome outcome) =>
         CommandProtocol.FormatStream(outcome.Events, outcome.State);
-
-    private static JsonElement Json(string text)
-    {
-        using var document = JsonDocument.Parse(text);
-        return document.RootElement.Clone();
-    }
 }

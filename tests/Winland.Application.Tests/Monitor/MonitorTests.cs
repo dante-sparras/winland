@@ -512,23 +512,4 @@ public class MonitorTests
         Assert.Equal(0, monitor.Y);
         Assert.Equal(new Rectangle(3, 1, 93, 97), monitor.WorkArea);
     }
-
-    private static Monitor Display(
-        string name,
-        string description,
-        int x,
-        int y,
-        int width,
-        int height,
-        double scale,
-        Rectangle? workArea = null,
-        bool enabled = true) =>
-        new(name, description, x, y, width, height, scale, enabled, workArea ?? new Rectangle(x, y, width, height));
-
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-        var placement = Assert.Single(outcome.Placements, candidate => candidate.Client == client.Id);
-        return placement.Bounds;
-    }
 }

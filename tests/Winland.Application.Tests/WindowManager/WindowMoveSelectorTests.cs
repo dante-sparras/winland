@@ -273,16 +273,4 @@ public class WindowMoveSelectorTests
         core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
         return core;
     }
-
-    private static Monitor Display(string name, string description, Rectangle area) =>
-        new(name, description, area.X, area.Y, area.Width, area.Height, 1, true, area);
-
-    private static Client Client(Outcome outcome, long window) =>
-        Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Client(outcome, window);
-        return Assert.Single(outcome.Placements, placement => placement.Client == client.Id).Bounds;
-    }
 }

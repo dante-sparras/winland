@@ -332,7 +332,4 @@ public class RecoveryTests
         Assert.True(client.Pinned);
         Assert.Equal(new Rectangle(10, 20, 300, 200), client.Bounds);
     }
-
-    private static Monitor Display(string name, int x, int width, int height) =>
-        new(name, name, x, 0, width, height, 1, true, new Rectangle(x, 0, width, height));
 }

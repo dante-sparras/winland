@@ -741,9 +741,4 @@ public class ConfigTests
             new Bind(Modifier.Super, "H", "resizeactive", "10 0", BindFlag.None, null, "resize"),
             Assert.Single(document.Binds));
     }
-
-    private sealed class MemorySource(IReadOnlyDictionary<string, string> files) : IConfigSource
-    {
-        public string? Read(string path) => files.TryGetValue(path, out var text) ? text : null;
-    }
 }

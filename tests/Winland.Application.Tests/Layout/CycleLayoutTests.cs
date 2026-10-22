@@ -144,7 +144,4 @@ public class CycleLayoutTests
 
     private static string LayoutOf(Outcome outcome, string name) =>
         Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == new WorkspaceId(name)).TiledLayout;
-
-    private static Client Client(Outcome outcome, long window) =>
-        Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
 }

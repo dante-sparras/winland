@@ -491,13 +491,6 @@ public class SizeLimitTests
         Assert.Equal(new WindowId(1), core.Handle(new Dispatch("killactive")).Close);
     }
 
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-        var placement = Assert.Single(outcome.Placements, candidate => candidate.Client == client.Id);
-        return placement.Bounds;
-    }
-
     [Fact]
     public void PersistentSizeGivesAFloatingWindowItsLastSizeBack()
     {

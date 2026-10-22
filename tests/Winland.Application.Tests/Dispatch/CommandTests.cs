@@ -388,15 +388,6 @@ public class CommandTests
             workspace => workspace.GetProperty("id").GetInt32() == active);
     }
 
-    private static Client Client(Outcome outcome, long window) =>
-        Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-
-    private static JsonElement Json(string text)
-    {
-        using var document = JsonDocument.Parse(text);
-        return document.RootElement.Clone();
-    }
-
     private static void AssertClient(
         JsonElement client,
         string address,

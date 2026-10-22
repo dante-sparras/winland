@@ -436,14 +436,4 @@ public class BorderResizeTests
 
     private static void Press(WindowManager core, string key) =>
         core.Handle(new KeyPressed(key));
-
-    private static Client Client(Outcome outcome, long window) =>
-        Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Client(outcome, window);
-        var placement = Assert.Single(outcome.Placements, candidate => candidate.Client == client.Id);
-        return placement.Bounds;
-    }
 }

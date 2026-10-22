@@ -287,13 +287,6 @@ public class SubmapTests
             Assert.Single(document.Binds));
     }
 
-    private static WindowManager Load(string text)
-    {
-        var core = new WindowManager();
-        core.Handle(new ConfigLoaded(ConfigParser.Parse(text)));
-        return core;
-    }
-
     private static void Appear(WindowManager core, long window) =>
         core.Handle(new WindowAppeared(new WindowId(window), new Rectangle(0, 0, 1920, 1080)));
 

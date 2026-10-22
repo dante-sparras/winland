@@ -136,13 +136,4 @@ public class NativeResizeTests
 
     private static Outcome Appear(WindowManager core, long window) =>
         core.Handle(new WindowAppeared(new WindowId(window), Wide));
-
-    private static Client Client(Outcome outcome, long window) =>
-        Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Client(outcome, window);
-        return Assert.Single(outcome.Placements, candidate => candidate.Client == client.Id).Bounds;
-    }
 }

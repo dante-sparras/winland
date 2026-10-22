@@ -365,13 +365,6 @@ public class DeviceBindTests
         Assert.Equal("leave", bind.Description);
     }
 
-    private static WindowManager Load(string text)
-    {
-        var core = new WindowManager();
-        core.Handle(new ConfigLoaded(ConfigParser.Parse(text)));
-        return core;
-    }
-
     private static BindDecision Press(WindowManager core, string key, string? device = null) =>
         Decide(core, new BindSession(), new KeyPressed(key) { Device = device });
 

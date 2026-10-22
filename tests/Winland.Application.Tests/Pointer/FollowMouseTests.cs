@@ -387,7 +387,4 @@ public class FollowMouseTests
         Assert.True(at >= 0, text);
         return text[at..(at + "\"address\":\"0x0\"".Length)];
     }
-
-    private static Monitor Display(string name, int x, int width, int height) =>
-        new(name, name, x, 0, width, height, 1, true, new Rectangle(x, 0, width, height));
 }

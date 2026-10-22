@@ -336,19 +336,4 @@ public class ReloadTests
 
     private static IReadOnlyList<string> Lines(CommandReply reply) =>
         Lines(reply.Effect);
-
-    private static Client Client(Outcome outcome, long window) =>
-        Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
-
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Client(outcome, window);
-        var placement = Assert.Single(outcome.Placements, candidate => candidate.Client == client.Id);
-        return placement.Bounds;
-    }
-
-    private sealed class MemorySource(IReadOnlyDictionary<string, string> files) : IConfigSource
-    {
-        public string? Read(string path) => files.TryGetValue(path, out var text) ? text : null;
-    }
 }
