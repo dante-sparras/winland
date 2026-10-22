@@ -48,16 +48,7 @@ public sealed partial class WindowManager
             });
         }
 
-        var present = new HashSet<WindowId>(outcome.State.Clients.Count);
-        foreach (var client in outcome.State.Clients)
-            present.Add(client.Window);
-
-        var reset = new List<WindowId>();
-        foreach (var client in before.Clients)
-        {
-            if (!present.Contains(client.Window))
-                reset.Add(client.Window);
-        }
+        var change = StateChange.Between(before, outcome.State);
 
         // Bars are added here, once per finished Outcome, so every placement passes below them exactly once.
         var bars = GroupBars(outcome.State);
@@ -67,9 +58,9 @@ public sealed partial class WindowManager
                 Placements = WithHiddenMembers(BelowBars(outcome.Placements, outcome.State, bars)),
                 GroupBars = bars,
                 Decorations = decorations,
-                ResetDecorations = reset,
+                ResetDecorations = change.Closed,
             },
-            before);
+            change);
         return outcome with
         {
             Tray = TrayIcon.For(_config.Session.ShowTray, outcome.State.ActiveWorkspace),

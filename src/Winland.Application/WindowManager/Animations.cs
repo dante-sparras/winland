@@ -10,7 +10,7 @@ public sealed partial class WindowManager
 
     // Plans the motions for an outcome by comparing it with the state before it. The placements,
     // shows and hides stay as they are; a motion only says how the adapter gets the window there.
-    private Outcome Animate(Outcome outcome, State before)
+    private Outcome Animate(Outcome outcome, StateChange change)
     {
         var released = _released;
         _released = null;
@@ -35,7 +35,7 @@ public sealed partial class WindowManager
 
         // A live swipe's motions are already planned, and win over anything planned here for their windows.
         var own = outcome.Motions;
-        var plan = new MotionPlan(this, before, after, outcome, released);
+        var plan = new MotionPlan(this, change, outcome, released);
         plan.Workspaces(outcome.Hide, entering: false);
         plan.Workspaces(outcome.Show, entering: true);
         foreach (var closing in outcome.Closes)
@@ -43,7 +43,7 @@ public sealed partial class WindowManager
 
         // A window the pointer drags follows it at once, and the windows its Layout moves to make room for it, when it
         // is lifted out or dropped, animate. A mouse resize moves every window at once.
-        if (_interaction is not (Gesture { Resize: true } or BorderDrag or NativeSize) && !InstantResize(outcome, before))
+        if (_interaction is not (Gesture { Resize: true } or BorderDrag or NativeSize) && !InstantResize(outcome, change.Before))
         {
             var held = (_interaction as Gesture)?.Window;
             foreach (var placement in outcome.Placements)
@@ -119,35 +119,20 @@ public sealed partial class WindowManager
     private sealed class MotionPlan
     {
         private readonly WindowManager _core;
-        private readonly State _before;
-        private readonly State _after;
-        private readonly Dictionary<WindowId, Client> _was = [];
-        private readonly HashSet<WindowId> _wasHidden = [];
-        private readonly Dictionary<WindowId, Client> _is = [];
-        private readonly HashSet<WindowId> _isHidden = [];
+        private readonly StateChange _change;
         private readonly Dictionary<WindowId, Rectangle> _placed = [];
         private readonly Dictionary<WindowId, Motion> _motions = [];
         private readonly (WindowId Window, Rectangle Bounds)? _released;
 
-        public MotionPlan(WindowManager core, State before, State after, Outcome outcome, (WindowId Window, Rectangle Bounds)? released)
+        public MotionPlan(WindowManager core, StateChange change, Outcome outcome, (WindowId Window, Rectangle Bounds)? released)
         {
             _core = core;
             _released = released;
-            _before = before;
-            _after = after;
-            foreach (var client in before.Clients)
-                _was[client.Window] = client;
-            foreach (var client in before.Hidden)
-                _wasHidden.Add(client.Window);
-            var ids = new Dictionary<ClientId, WindowId>(after.Clients.Count);
-            foreach (var client in after.Clients)
-            {
-                _is[client.Window] = client;
+            _change = change;
+            var ids = new Dictionary<ClientId, WindowId>(change.After.Clients.Count);
+            foreach (var client in change.After.Clients)
                 ids[client.Id] = client.Window;
-            }
 
-            foreach (var client in after.Hidden)
-                _isHidden.Add(client.Window);
             foreach (var placement in outcome.Placements)
             {
                 if (ids.TryGetValue(placement.Client, out var window))
@@ -163,13 +148,12 @@ public sealed partial class WindowManager
         {
             foreach (var window in windows)
             {
-                var source = entering ? _is : _was;
+                var source = entering ? _change.Is : _change.Was;
                 if (!source.TryGetValue(window, out var client) || _motions.ContainsKey(window))
                     continue;
 
                 // A window that was already shown is not entering, and one already hidden is not leaving.
-                var wasShown = _was.ContainsKey(window) && !_wasHidden.Contains(window);
-                if (entering == wasShown)
+                if (entering == _change.WasShown(window))
                     continue;
 
                 if (!TrySwitch(client.Workspace, entering, out var leaf, out var left, out var styled))
@@ -209,7 +193,7 @@ public sealed partial class WindowManager
 
         public void Close(WindowId window)
         {
-            if (!_is.TryGetValue(window, out var client) || _isHidden.Contains(window) || client.Fullscreen == FullscreenMode.Fullscreen)
+            if (!_change.Is.TryGetValue(window, out var client) || _change.HiddenAfter.Contains(window) || client.Fullscreen == FullscreenMode.Fullscreen)
                 return;
 
             var move = Options.TimingOf("windowsOut");
@@ -233,10 +217,10 @@ public sealed partial class WindowManager
         public void Place(Client client, Rectangle bounds)
         {
             var window = client.Window;
-            if (_motions.ContainsKey(window) || _isHidden.Contains(window))
+            if (_motions.ContainsKey(window) || _change.HiddenAfter.Contains(window))
                 return;
 
-            if (!_was.TryGetValue(window, out var prior))
+            if (!_change.Was.TryGetValue(window, out var prior))
             {
                 if (client.Fullscreen != FullscreenMode.Fullscreen)
                     Open(client, bounds);
@@ -251,7 +235,7 @@ public sealed partial class WindowManager
 
             // A window the system just moved starts from where it was dropped, not from the tile it was lifted out of.
             var from = _released is { } dropped && dropped.Window == window ? dropped.Bounds : prior.Bounds;
-            if (_wasHidden.Contains(window) || from == bounds)
+            if (_change.HiddenBefore.Contains(window) || from == bounds)
                 return;
 
             if (Options.TimingOf("windowsMove") is Timing move)
@@ -268,7 +252,7 @@ public sealed partial class WindowManager
 
             foreach (var (window, now) in painted)
             {
-                if (!previous.TryGetValue(window, out var was) || _isHidden.Contains(window) || _wasHidden.Contains(window) || !_was.ContainsKey(window))
+                if (!previous.TryGetValue(window, out var was) || _change.HiddenAfter.Contains(window) || _change.HiddenBefore.Contains(window) || !_change.Was.ContainsKey(window))
                     continue;
 
                 var alpha = alphaTiming is not null && was.Opacity != now.Opacity;
@@ -322,7 +306,7 @@ public sealed partial class WindowManager
             if (_placed.TryGetValue(window, out var placed))
                 return placed;
 
-            return _is.TryGetValue(window, out var client) ? client.Bounds : default;
+            return _change.Is.TryGetValue(window, out var client) ? client.Bounds : default;
         }
 
         // The Workspace whose rule style the motion plays: the one switched to, for both the
@@ -335,8 +319,8 @@ public sealed partial class WindowManager
             styled = workspace;
             if (workspace.IsSpecial)
             {
-                var wasShown = SpecialShown(_before, workspace);
-                var isShown = SpecialShown(_after, workspace);
+                var wasShown = SpecialShown(_change.Before, workspace);
+                var isShown = SpecialShown(_change.After, workspace);
                 if (entering ? wasShown || !isShown : !wasShown || isShown)
                     return false;
 
@@ -349,17 +333,17 @@ public sealed partial class WindowManager
 
             WorkspaceId older;
             WorkspaceId newer;
-            if (_before.Screens.Count == 0 || _after.Screens.Count == 0)
+            if (_change.Before.Screens.Count == 0 || _change.After.Screens.Count == 0)
             {
-                older = _before.ActiveWorkspace;
-                newer = _after.ActiveWorkspace;
+                older = _change.Before.ActiveWorkspace;
+                newer = _change.After.ActiveWorkspace;
                 if ((entering ? newer : older) != workspace)
                     return false;
             }
             else
             {
-                var showing = (entering ? _after : _before).Screens.FirstOrDefault(screen => screen.ActiveWorkspace == workspace);
-                var other = showing is null ? null : (entering ? _before : _after).Screens.FirstOrDefault(screen => screen.Id == showing.Id);
+                var showing = (entering ? _change.After : _change.Before).Screens.FirstOrDefault(screen => screen.ActiveWorkspace == workspace);
+                var other = showing is null ? null : (entering ? _change.Before : _change.After).Screens.FirstOrDefault(screen => screen.Id == showing.Id);
                 if (other is null)
                     return false;
 
@@ -379,11 +363,11 @@ public sealed partial class WindowManager
         // The special workspace shown in place of one that hides, on the same Monitor, or null.
         private WorkspaceId? Replacing(WorkspaceId special)
         {
-            if (_before.Screens.Count == 0 || _after.Screens.Count == 0)
-                return _after.SpecialWorkspace;
+            if (_change.Before.Screens.Count == 0 || _change.After.Screens.Count == 0)
+                return _change.After.SpecialWorkspace;
 
-            var screen = _before.Screens.FirstOrDefault(candidate => candidate.SpecialWorkspace == special);
-            return screen is null ? null : _after.Screens.FirstOrDefault(candidate => candidate.Id == screen.Id)?.SpecialWorkspace;
+            var screen = _change.Before.Screens.FirstOrDefault(candidate => candidate.SpecialWorkspace == special);
+            return screen is null ? null : _change.After.Screens.FirstOrDefault(candidate => candidate.Id == screen.Id)?.SpecialWorkspace;
         }
 
         private static bool SpecialShown(State state, WorkspaceId workspace)
@@ -408,7 +392,7 @@ public sealed partial class WindowManager
 
             var lowest = long.MaxValue;
             var highest = long.MinValue;
-            foreach (var workspace in _before.Workspaces.Concat(_after.Workspaces))
+            foreach (var workspace in _change.Before.Workspaces.Concat(_change.After.Workspaces))
             {
                 if (!workspace.Id.TryGetNumber(out var number))
                     continue;
