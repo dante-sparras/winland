@@ -261,6 +261,49 @@ public class PinTests
         Assert.True(client.Workspace.IsSpecial);
     }
 
+    [Fact]
+    public void APinnedClientThatTakesAClosedClientsFullscreenModeHoldsItsPin()
+    {
+        var core = ClosedFullscreenBeforeAPinnedClient("binds:allow_pin_fullscreen = true\n");
+
+        var closed = core.Handle(new WindowClosed(new WindowId(2)));
+
+        var client = ClientOf(closed, Window);
+        Assert.Equal(FullscreenMode.Maximized, client.Fullscreen);
+        Assert.False(client.Pinned);
+        Assert.True(client.PinFullscreened);
+
+        var left = core.Execute("dispatch fullscreen 1");
+
+        Assert.Equal(FullscreenMode.None, ClientOf(left.Effect, Window).Fullscreen);
+        Assert.True(ClientOf(left.Effect, Window).Pinned);
+    }
+
+    [Fact]
+    public void APinnedClientDoesNotTakeAClosedClientsFullscreenModeWhenPinsCannotGoFullscreen()
+    {
+        var core = ClosedFullscreenBeforeAPinnedClient("binds:allow_pin_fullscreen = false\n");
+
+        var closed = core.Handle(new WindowClosed(new WindowId(2)));
+
+        var client = ClientOf(closed, Window);
+        Assert.Equal(FullscreenMode.None, client.Fullscreen);
+        Assert.True(client.Pinned);
+    }
+
+    private static WindowManager ClosedFullscreenBeforeAPinnedClient(string options)
+    {
+        var core = new WindowManager(ConfigParser.Parse(options + "misc:exit_window_retains_fullscreen = true\nwindowrulev2 = float, class:^(stick)$\n"));
+        core.Handle(new WindowAppeared(Window, Area)
+        {
+            Traits = WindowTraits.Normal with { Class = "stick" },
+        });
+        core.Execute("dispatch pin");
+        core.Handle(new WindowAppeared(new WindowId(2), Area));
+        core.Execute("dispatch fullscreen 1");
+        return core;
+    }
+
     private static WindowManager Floating()
     {
         var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\n"));
