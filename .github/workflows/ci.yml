@@ -38,9 +38,11 @@ on:
 permissions:
   contents: read
 
+# A newer run of a pull request or of main cancels the older one, so only the newest commit is built and
+# released as dev. A run started by hand or by a release has a group of its own, and no push cancels it.
 concurrency:
-  group: ci-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
 
 jobs:
   # The ruleset names this check and no other.
