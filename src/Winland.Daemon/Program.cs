@@ -1,6 +1,9 @@
 using Winland.Daemon;
 using Winland.Install;
 
+// An elevated relaunch writes back to the console that started it, before any argument is read.
+args = Elevation.SendOutputBack(args);
+
 // A command for the running Winland is sent down its pipe before anything that starts one, so it never asks for UAC.
 if (ControlInvocation.TryCreate(args, out var line, out var events))
     return ControlCommand.Run(line, events, PipeName());
