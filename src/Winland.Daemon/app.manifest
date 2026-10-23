@@ -5,6 +5,9 @@
     <windowsSettings>
       <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
       <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>
+      <!-- Started from the logon task, the Start menu or Explorer, Winland gets no console window. Started from a
+           terminal, it still writes there and the shell still waits. Windows 11 24H2 and later read this. -->
+      <consoleAllocationPolicy xmlns="http://schemas.microsoft.com/SMI/2024/WindowsSettings">detached</consoleAllocationPolicy>
     </windowsSettings>
   </application>
 </assembly>

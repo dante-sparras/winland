@@ -41,34 +41,22 @@ sealed class DaemonSession : IDaemonSession
 
     public void Start(string executable, IReadOnlyList<string> arguments)
     {
-        // start detaches the Daemon from this console, so it keeps running after install exits.
-        // The parent is already elevated for a machine install, and cmd inherits that token,
+        // The shell starts the Daemon in a console of its own, hidden, so it shows no window and keeps running
+        // after install exits. It inherits no handle, so a caller that reads install's output is not held open.
+        // The parent is already elevated for a machine install, and the Daemon inherits that token,
         // so this does not ask for a second approval. A per-user install passes --no-elevate.
-        var command = Quote(executable);
-        if (arguments.Count > 0)
-            command += " " + string.Join(' ', arguments.Select(Quote));
-
         var start = new ProcessStartInfo
         {
-            FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
-            Arguments = "/d /c start \"Winland\" " + command,
+            FileName = executable,
             WorkingDirectory = Path.GetDirectoryName(executable) ?? Environment.CurrentDirectory,
-            UseShellExecute = false,
-            CreateNoWindow = true,
+            UseShellExecute = true,
+            WindowStyle = ProcessWindowStyle.Hidden,
         };
+        foreach (var argument in arguments)
+            start.ArgumentList.Add(argument);
+
         using var process = Process.Start(start)
             ?? throw new InvalidOperationException("Winland did not start.");
-        process.WaitForExit();
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException("Winland did not start.");
-    }
-
-    private static string Quote(string value)
-    {
-        if (value.Contains('"'))
-            throw new ArgumentException($"Cannot quote '{value}': it contains a quote.", nameof(value));
-
-        return "\"" + value + "\"";
     }
 
     private static string? Pipe()
