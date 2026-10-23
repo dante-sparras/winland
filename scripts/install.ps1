@@ -88,6 +88,16 @@ function Get-SummaryLines([string]$Version, [string]$Folder, [string]$Config, [b
     return @($lines.ToArray())
 }
 
+# The install writes PATH to the registry, which only a new terminal reads. This is the PATH for the terminal that ran the script.
+function Get-SessionPath([string]$Path, [string]$Folder) {
+    $separator = [System.IO.Path]::PathSeparator
+    $entries = @($Path -split [regex]::Escape([string]$separator) | Where-Object { $_ -ne '' })
+    foreach ($entry in $entries) {
+        if ($entry.TrimEnd('\') -eq $Folder.TrimEnd('\')) { return $Path }
+    }
+    return (@($entries) + $Folder) -join $separator
+}
+
 function Get-SumsHash([string]$Sums, [string]$Name) {
     if ([string]::IsNullOrEmpty($Sums)) { return $null }
     $text = $Sums.TrimStart([char]0xFEFF)
@@ -259,7 +269,7 @@ function Update-Winland([string]$Executable, [string]$Channel) {
     $output = @(Invoke-Winland $Executable (Get-UpdateArguments $Channel))
     Write-Done
     Write-Host ''
-    # An update of the Program Files copy runs elevated in its own window, so its line is not here.
+    $env:Path = Get-SessionPath $env:Path (Split-Path -Parent $Executable)
     if ($output.Count -gt 0) {
         foreach ($line in $output) { Write-Host " $line" }
     } else {
@@ -319,6 +329,7 @@ function Install-Winland([string]$Channel, [string]$Temp) {
         Invoke-Winland $copy (Get-UpdateArguments 'dev') | Out-Null
     }
     Write-Done
+    $env:Path = Get-SessionPath $env:Path (Split-Path -Parent $copy)
 
     $config = Join-Path (Join-Path $env:USERPROFILE '.winland') 'winland.conf'
     Write-Host ''

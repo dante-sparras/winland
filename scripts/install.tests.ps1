@@ -155,6 +155,15 @@ Test-Case 'a release without the zip or the version is refused' {
     Assert-Throws { Get-ReleaseDownloads ($releaseJson -replace '"version.json"', '"other.json"') }
 }
 
+Test-Case 'the installed folder is added to the PATH of this terminal once' {
+    $separator = [string][System.IO.Path]::PathSeparator
+    $before = 'C:\Windows' + $separator + 'C:\Tools'
+    Assert-Equal (Get-SessionPath $before 'C:\Program Files\Winland') ($before + $separator + 'C:\Program Files\Winland')
+    $present = $before + $separator + 'c:\program files\winland\'
+    Assert-Equal (Get-SessionPath $present 'C:\Program Files\Winland') $present
+    Assert-Equal (Get-SessionPath '' 'C:\Program Files\Winland') 'C:\Program Files\Winland'
+}
+
 Test-Case 'a download that is not https is refused' {
     Assert-Throws { Get-ReleaseDownloads ($releaseJson -replace 'https://github.com', 'http://github.com') }
 }
