@@ -6,11 +6,11 @@ namespace Winland.Daemon;
 /// <summary>Asks the running Daemon to exit, then starts the installed one.</summary>
 sealed class DaemonSession : IDaemonSession
 {
-    public void Stop()
+    public bool Stop()
     {
         var pipe = Pipe();
         if (PipeServer.ProcessId(pipe ?? CommandProtocol.PipeName) is not int id)
-            return;
+            return false;
 
         Process daemon;
         try
@@ -19,7 +19,7 @@ sealed class DaemonSession : IDaemonSession
         }
         catch (ArgumentException)
         {
-            return;
+            return false;
         }
 
         using (daemon)
@@ -35,6 +35,8 @@ sealed class DaemonSession : IDaemonSession
             if (!daemon.WaitForExit(20_000))
                 throw new InvalidOperationException("Winland did not exit.");
         }
+
+        return true;
     }
 
     public void Start(string executable, IReadOnlyList<string> arguments)

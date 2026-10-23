@@ -100,6 +100,8 @@ Everything Winland keeps for you is in `%USERPROFILE%\.winland`.
 | `winland --config <file>` | Start Winland with that `.conf` file in place of your config |
 | `winland install` | Install for this PC, running as administrator. Asks for one approval |
 | `winland install --user` | Install for you only, without administrator rights |
+| `winland install --no-logon` | Install without starting Winland at logon. Works with `--user` |
+| `winland install --no-start` | Install and leave Winland stopped. Works with `--user` |
 | `winland update` | Update to the newest release |
 | `winland update --channel <stable|dev>` | Follow the stable or dev channel and remember the choice |
 | `winland uninstall` | Remove Winland, turn back on any Windows setting the installer turned off, and keep the `.winland` folder |

@@ -7,11 +7,19 @@ public abstract record InstallCommand
     {
     }
 
-    /// <summary>The elevated install. <paramref name="Account"/> is the user the relaunch carried, when it has happened.</summary>
-    public sealed record Machine(string? Account) : InstallCommand;
+    /// <summary>
+    /// The elevated install. <paramref name="Account"/> is the user the relaunch carried, when it has happened.
+    /// <paramref name="Logon"/> false is <c>--no-logon</c>, and <paramref name="Start"/> false is <c>--no-start</c>.
+    /// </summary>
+    public sealed record Machine(string? Account, bool Logon = true, bool Start = true) : InstallCommand
+    {
+        /// <summary>The arguments the elevated relaunch runs, carrying <paramref name="account"/> and these flags.</summary>
+        public IReadOnlyList<string> Relay(string account) =>
+            ["install", account, .. Flags(Logon, Start)];
+    }
 
     /// <summary>The per-user install. It asks for no UAC approval.</summary>
-    public sealed record ForUser : InstallCommand;
+    public sealed record ForUser(bool Logon = true, bool Start = true) : InstallCommand;
 
     public sealed record Remove(bool Purge) : InstallCommand;
 
@@ -62,20 +70,7 @@ public abstract record InstallCommand
             return null;
 
         if (Is(args[0], "install"))
-        {
-            if (args.Count == 1)
-                return new Machine(null);
-
-            if (args.Count == 2 && Is(args[1], "--user"))
-                return new ForUser();
-
-            // The elevated relaunch carries the account that invoked install. An over-the-shoulder
-            // approval runs as the administrator who approved it, which is not the account that logs on.
-            if (args.Count == 2 && !args[1].StartsWith('-'))
-                return new Machine(args[1]);
-
-            throw new ArgumentException("usage: winland install [--user]");
-        }
+            return ParseInstall(args);
 
         if (args.Count == 1)
             return new Remove(false);
@@ -100,6 +95,42 @@ public abstract record InstallCommand
         Tweaks => false,
         _ => false,
     };
+
+    private static InstallCommand ParseInstall(IReadOnlyList<string> args)
+    {
+        const string usage = "usage: winland install [--user] [--no-logon] [--no-start]";
+        string? account = null;
+        bool user = false, logon = true, start = true;
+        // The elevated relaunch carries the account that invoked install, first after install. An over-the-shoulder
+        // approval runs as the administrator who approved it, which is not the account that logs on.
+        for (var i = 1; i < args.Count; i++)
+        {
+            var arg = args[i];
+            if (Is(arg, "--user") && !user)
+                user = true;
+            else if (Is(arg, "--no-logon") && logon)
+                logon = false;
+            else if (Is(arg, "--no-start") && start)
+                start = false;
+            else if (i == 1 && !arg.StartsWith('-'))
+                account = arg;
+            else
+                throw new ArgumentException(usage);
+        }
+
+        if (user && account is not null)
+            throw new ArgumentException(usage);
+
+        return user ? new ForUser(logon, start) : new Machine(account, logon, start);
+    }
+
+    private static IEnumerable<string> Flags(bool logon, bool start)
+    {
+        if (!logon)
+            yield return "--no-logon";
+        if (!start)
+            yield return "--no-start";
+    }
 
     private static UpdateChannel ParseChannel(string value)
     {

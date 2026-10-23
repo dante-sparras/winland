@@ -116,6 +116,52 @@ public class AppInstallTests
     }
 
     [Fact]
+    public void MachineInstallWithoutLogonRemovesTheTaskAnEarlierInstallMade()
+    {
+        tasks.Seed(LogonTaskDefinition.Build(Path.Combine(Machine, "winland.exe"), @"DESKTOP\dante"));
+
+        install.InstallMachine(Source, @"DESKTOP\dante", "0.1.0", logon: false);
+
+        Assert.False(tasks.Contains(LogonTaskDefinition.TaskName));
+        Assert.Equal([1], files.Read(Path.Combine(Machine, "winland.exe")));
+        Assert.Equal(["stop", "start"], session.Operations);
+    }
+
+    [Fact]
+    public void MachineInstallWithoutStartLeavesWinlandStopped()
+    {
+        install.InstallMachine(Source, @"DESKTOP\dante", "0.1.0", start: false);
+
+        Assert.Equal(["stop"], session.Operations);
+        Assert.Null(session.Started);
+        Assert.Equal(Path.Combine(Machine, "winland.exe"), tasks.Only().Executable);
+    }
+
+    [Fact]
+    public void UserInstallWithoutLogonOrStartLeavesNoRunKeyAndWinlandStopped()
+    {
+        registry.SetString(RegistryRoot.User, InstallLocations.RunKey, InstallLocations.RunValue, "old", expandable: false);
+
+        install.InstallForUser(Source, "0.1.0", logon: false, start: false);
+
+        Assert.Null(registry.GetString(RegistryRoot.User, InstallLocations.RunKey, InstallLocations.RunValue));
+        Assert.Equal([1], files.Read(Path.Combine(User, "winland.exe")));
+        Assert.Equal(["stop"], session.Operations);
+    }
+
+    [Fact]
+    public void ReplaceInstalledLeavesWinlandStoppedWhenItWasNotRunning()
+    {
+        session.Running = false;
+
+        install.ReplaceInstalled(Source, Machine, perUser: false, "0.2.0");
+
+        Assert.Equal([1], files.Read(Path.Combine(Machine, "winland.exe")));
+        Assert.Equal(["stop"], session.Operations);
+        Assert.Null(session.Started);
+    }
+
+    [Fact]
     public void ALinkInTheCopiedFolderIsRefusedBeforeWinlandIsStopped()
     {
         files.Seed(@"C:\Users\me\Downloads\Winland\winland\swapped.exe", [1], reparsePoint: true);

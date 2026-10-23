@@ -22,6 +22,37 @@ public class InstallCommandTests
     }
 
     [Fact]
+    public void InstallCanLeaveOutTheLogonStartAndTheStartNow()
+    {
+        var plain = Assert.IsType<InstallCommand.Machine>(InstallCommand.Parse(["install"]));
+        var both = Assert.IsType<InstallCommand.Machine>(InstallCommand.Parse(["install", "--NO-START", "--no-logon"]));
+        var user = Assert.IsType<InstallCommand.ForUser>(InstallCommand.Parse(["install", "--no-logon", "--user"]));
+
+        Assert.True(plain.Logon);
+        Assert.True(plain.Start);
+        Assert.False(both.Logon);
+        Assert.False(both.Start);
+        Assert.Null(both.Account);
+        Assert.False(user.Logon);
+        Assert.True(user.Start);
+    }
+
+    [Fact]
+    public void TheRelaunchCarriesTheAccountAndTheFlags()
+    {
+        var command = Assert.IsType<InstallCommand.Machine>(InstallCommand.Parse(["install", "--no-start"]));
+
+        var relay = command.Relay(@"DESKTOP\dante");
+        var relayed = Assert.IsType<InstallCommand.Machine>(InstallCommand.Parse(relay));
+
+        Assert.Equal(["install", @"DESKTOP\dante", "--no-start"], relay);
+        Assert.Equal(@"DESKTOP\dante", relayed.Account);
+        Assert.True(relayed.Logon);
+        Assert.False(relayed.Start);
+        Assert.Equal(["install", @"DESKTOP\dante"], new InstallCommand.Machine(null).Relay(@"DESKTOP\dante"));
+    }
+
+    [Fact]
     public void UninstallAsksForAnAdministratorOnlyWhenAMachineInstallIsPresent()
     {
         var command = Assert.IsType<InstallCommand.Remove>(InstallCommand.Parse(["uninstall"]));
@@ -79,6 +110,9 @@ public class InstallCommandTests
     [InlineData("install", "--purge")]
     [InlineData("uninstall", "--user")]
     [InlineData("install", "--user", "extra")]
+    [InlineData("install", "--no-start", "--no-start")]
+    [InlineData("install", "--user", @"DESKTOP\dante")]
+    [InlineData("install", "--no-logon", @"DESKTOP\dante")]
     [InlineData("update", "--user")]
     [InlineData("update", "extra")]
     [InlineData("update", "--channel")]

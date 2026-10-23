@@ -16,7 +16,7 @@ static class MaintenanceCommand
             : command.RequiresAdministrator(machineInstallPresent: false);
         if (needsAdministrator && !Elevation.IsElevated())
         {
-            var relay = command is InstallCommand.Machine { Account: null } ? ["install", CurrentUser()] : args;
+            var relay = command is InstallCommand.Machine { Account: null } machine ? machine.Relay(CurrentUser()) : args;
             return Elevation.Relaunch(relay);
         }
 
@@ -32,12 +32,12 @@ static class MaintenanceCommand
         {
             case InstallCommand.Machine machine:
                 var account = string.IsNullOrWhiteSpace(machine.Account) ? CurrentUser() : machine.Account;
-                app.InstallMachine(executable, account, BuildStamp.Version);
-                Console.WriteLine("Winland is installed and will start at logon.");
+                app.InstallMachine(executable, account, BuildStamp.Version, machine.Logon, machine.Start);
+                Console.WriteLine(Installed("Winland is installed", machine.Logon, machine.Start));
                 return 0;
-            case InstallCommand.ForUser:
-                app.InstallForUser(executable, BuildStamp.Version);
-                Console.WriteLine("Winland is installed for this user and will start at logon.");
+            case InstallCommand.ForUser user:
+                app.InstallForUser(executable, BuildStamp.Version, user.Logon, user.Start);
+                Console.WriteLine(Installed("Winland is installed for this user", user.Logon, user.Start));
                 return 0;
             case InstallCommand.Remove remove:
                 app.Uninstall(remove.Purge, machine: Elevation.IsElevated());
@@ -57,6 +57,14 @@ static class MaintenanceCommand
                 throw new InvalidOperationException("Unexpected install command.");
         }
     }
+
+    private static string Installed(string installed, bool logon, bool start) => (logon, start) switch
+    {
+        (true, true) => installed + ", running, and will start at logon.",
+        (true, false) => installed + " and will start at logon.",
+        (false, true) => installed + " and running.",
+        (false, false) => installed + ".",
+    };
 
     private static int UpdateInstalled(UpdateChannel? requested)
     {
