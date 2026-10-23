@@ -55,6 +55,23 @@ public class FollowMouseTests
         Assert.Contains(followed.Events, item => item is FocusChanged changed && changed.Window == new WindowId(1));
     }
 
+    // A browser's extension panel is a window Winland does not manage. It takes the foreground from the browser, and
+    // the pointer crosses the browser on its way to the panel.
+    [Fact]
+    public void CrossingTheClientAPanelOpenedOverLeavesThePanelTheFocus()
+    {
+        var (core, laid) = Tiled();
+        Move(core, Center(laid, 1), 1_000);
+        core.Handle(new WindowFocused(new WindowId(1), FocusCause.User));
+        core.Handle(new WindowFocused(new WindowId(99), FocusCause.User));
+
+        var crossed = Move(core, Center(laid, 1) with { X = Center(laid, 1).X + 40 }, 1_100);
+        var left = Move(core, Center(laid, 2), 1_200);
+
+        Assert.Null(crossed.Focus);
+        Assert.Equal(new WindowId(2), left.Focus);
+    }
+
     [Fact]
     public void MovingOntoAWindowWithNoFollowMouseLeavesTheFocus()
     {
