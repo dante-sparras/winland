@@ -391,7 +391,7 @@ public sealed partial class WindowAdapter : IDisposable
                 TopLevel: topLevel,
                 Tool: (extended & ToolStyle) != 0,
                 Tooltip: className == "tooltips_class32",
-                Taskbar: className is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd" || ShellFlyouts.Is(identity.Exe),
+                Taskbar: className is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd" || ShellFlyouts.Is(identity.Exe, className),
                 Cloaked: IsCloaked(hwnd),
                 Dialog: className == "#32770" || (extended & DialogStyle) != 0,
                 Elevated: false,
