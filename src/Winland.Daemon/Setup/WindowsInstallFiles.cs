@@ -247,7 +247,10 @@ sealed class WindowsInstallFiles : IFileTree
 
     private static void ScheduleDelete(string directory)
     {
-        var script = "Wait-Process -Id " + Environment.ProcessId + "\r\n"
+        // Every process started from the folder, not only this one. An uninstall that asked for UAC also has the
+        // unelevated winland.exe that relaunched it, which holds its files until this one has exited.
+        var script = "$root = " + Quote(Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory)) + Path.DirectorySeparatorChar) + "\r\n"
+            + "Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($root, [StringComparison]::OrdinalIgnoreCase) } | Wait-Process\r\n"
             + "function Remove-Tree([string]$Path) {\r\n"
             + "  if (-not (Test-Path -LiteralPath $Path)) { return }\r\n"
             + "  $attributes = [IO.File]::GetAttributes($Path)\r\n"
