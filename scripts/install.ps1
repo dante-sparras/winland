@@ -225,11 +225,14 @@ function Get-InstalledExecutable([bool]$User) {
     return (Join-Path $machine 'winland.exe')
 }
 
+# An install has its uninstall record as well as winland.exe. An uninstall that could not delete every file
+# leaves winland.exe behind without the record, and that folder gets a fresh install, not an update.
 function Find-InstalledWinland {
+    $record = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Winland'
     $machine = Get-InstalledExecutable $false
-    if (Test-Path -LiteralPath $machine) { return $machine }
+    if ((Test-Path -LiteralPath $machine) -and (Test-Path -LiteralPath "HKLM:\$record")) { return $machine }
     $user = Get-InstalledExecutable $true
-    if (Test-Path -LiteralPath $user) { return $user }
+    if ((Test-Path -LiteralPath $user) -and (Test-Path -LiteralPath "HKCU:\$record")) { return $user }
     return $null
 }
 
