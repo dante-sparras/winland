@@ -187,6 +187,7 @@ internal static class BorderHost
         }
 
         var touched = new HashSet<WindowId>(moved);
+        List<Entry> gone = [];
         if (wanted is not null)
         {
             lock (Gate)
@@ -196,7 +197,7 @@ internal static class BorderHost
                     if (wanted.ContainsKey(window))
                         continue;
 
-                    Entries[window].Dispose();
+                    gone.Add(Entries[window]);
                     Entries.Remove(window);
                     Tints.Remove(window);
                 }
@@ -214,6 +215,10 @@ internal static class BorderHost
                 }
             }
         }
+
+        // Destroying a border window takes a while. A motion tinting another border waits for the gate meanwhile.
+        foreach (var entry in gone)
+            entry.Dispose();
 
         foreach (var window in touched)
         {
