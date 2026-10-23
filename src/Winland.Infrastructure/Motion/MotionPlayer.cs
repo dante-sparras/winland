@@ -184,7 +184,15 @@ internal sealed class MotionPlayer : IDisposable
 
         foreach (var (frame, stamp) in frames)
         {
-            lock (For(frame.Window))
+            // A window that another thread is changing, as a new motion starts, skips this frame so it does not hold up
+            // the others. Its last frame waits, so it always comes to rest.
+            var window = For(frame.Window);
+            if (frame.Done)
+                window.Enter();
+            else if (!window.TryEnter())
+                continue;
+
+            try
             {
                 lock (_gate)
                 {
@@ -196,6 +204,10 @@ internal sealed class MotionPlayer : IDisposable
                     Rest(frame);
                 else if (!_target.Hung(frame.Window))
                     Show(frame);
+            }
+            finally
+            {
+                window.Exit();
             }
         }
 
