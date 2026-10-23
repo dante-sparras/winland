@@ -9,6 +9,7 @@ namespace Winland.Infrastructure;
 public sealed partial class WindowAdapter : IDisposable
 {
     private const int ChildStyle = 0x40000000;
+    private const int CaptionStyle = 0x00C00000;
     private const int ToolStyle = 0x00000080;
     private const int DialogStyle = 0x00000001;
     private const int LayeredStyle = 0x00080000;
@@ -320,7 +321,10 @@ public sealed partial class WindowAdapter : IDisposable
                             AdoptShown(hwnd, window);
                             break;
                         case VisibilityAction.Adopt:
-                            AdoptShown(hwnd, window);
+                            if (@event is PInvoke.EVENT_OBJECT_SHOW or PInvoke.EVENT_OBJECT_UNCLOAKED && facts.Visible)
+                                AdoptHidden(hwnd, window);
+                            else
+                                AdoptShown(hwnd, window);
                             break;
                     }
 
@@ -329,6 +333,34 @@ public sealed partial class WindowAdapter : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
+        }
+    }
+
+    // A window is on screen where it opened before Winland has read it, so for a frame or two it shows away from its
+    // tile. One that looks like an application window is made transparent first. Once adopted, its opening motion or
+    // its decoration gives it its alpha. One that neither touched, such as a window that was not adopted, is opaque again.
+    private void AdoptHidden(HWND hwnd, WindowId window)
+    {
+        var style = PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE);
+        var extended = PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
+        var held = (style & CaptionStyle) == CaptionStyle && (style & ChildStyle) == 0 && (extended & ToolStyle) == 0;
+        if (held)
+            Opacity.Apply(window, 0);
+
+        try
+        {
+            AdoptShown(hwnd, window);
+        }
+        finally
+        {
+            if (held)
+            {
+                lock (Motions.For(window))
+                {
+                    if (!Motions.Running(window) && Opacity.Wanted(window) == 0)
+                        Opacity.Apply(window, 255);
+                }
+            }
         }
     }
 
