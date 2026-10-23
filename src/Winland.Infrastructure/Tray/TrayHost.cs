@@ -650,16 +650,15 @@ internal static class TrayHost
         var old = PInvoke.SelectObject(memory, color);
         var pixels = new Span<uint>(bits, size * size);
         pixels.Clear();
-        PaintCircle(pixels, size);
         DrawLabel(memory, size, text);
-        // GDI writes the digits with the alpha byte clear. The circle keeps its color and becomes opaque;
-        // everything outside it stays transparent.
-        ForceAlpha(pixels, size);
+        // GDI may still hold the label's drawing back. The pixels are read once it has written them.
+        _ = PInvoke.GdiFlush();
+        TrayBadge.Compose(pixels, size);
         _ = PInvoke.SelectObject(memory, old);
         _ = PInvoke.DeleteDC(memory);
         _ = PInvoke.ReleaseDC(HWND.Null, screen);
 
-        var mask = Mask(size);
+        var mask = Mask(pixels, size);
         if (mask.IsNull)
         {
             _ = PInvoke.DeleteObject(color);
@@ -715,62 +714,23 @@ internal static class TrayHost
         return Math.Max(6, size * percent / 100);
     }
 
-    private static void PaintCircle(Span<uint> pixels, int size)
-    {
-        var center = (size - 1) / 2.0;
-        for (var y = 0; y < size; y++)
-        {
-            for (var x = 0; x < size; x++)
-            {
-                var distance = Distance(x, y, center);
-                if (distance > center + 0.35)
-                    continue;
-
-                pixels[(y * size) + x] = distance > center - 1.15 ? 0xFFFFFFFFu : 0xFF2F6FEDu;
-            }
-        }
-    }
-
-    private static void ForceAlpha(Span<uint> pixels, int size)
-    {
-        var center = (size - 1) / 2.0;
-        for (var y = 0; y < size; y++)
-        {
-            for (var x = 0; x < size; x++)
-            {
-                var index = (y * size) + x;
-                pixels[index] = Distance(x, y, center) > center + 0.35
-                    ? 0
-                    : 0xFF000000 | (pixels[index] & 0x00FFFFFF);
-            }
-        }
-    }
-
     // The mask is bottom-up. A set bit is transparent, which keeps the corners clear where the alpha is not read.
-    private static unsafe HBITMAP Mask(int size)
+    private static unsafe HBITMAP Mask(Span<uint> pixels, int size)
     {
         var stride = ((size + 31) / 32) * 4;
         var bytes = new byte[stride * size];
-        var center = (size - 1) / 2.0;
         for (var y = 0; y < size; y++)
         {
             var row = (size - 1 - y) * stride;
             for (var x = 0; x < size; x++)
             {
-                if (Distance(x, y, center) > center + 0.35)
+                if (TrayBadge.Clear(pixels[(y * size) + x]))
                     bytes[row + (x / 8)] |= (byte)(0x80 >> (x % 8));
             }
         }
 
         fixed (byte* bits = bytes)
             return PInvoke.CreateBitmap(size, size, 1, 1, bits);
-    }
-
-    private static double Distance(int x, int y, double center)
-    {
-        var dx = x - center;
-        var dy = y - center;
-        return Math.Sqrt((dx * dx) + (dy * dy));
     }
 
     private static void Log(string message) =>
