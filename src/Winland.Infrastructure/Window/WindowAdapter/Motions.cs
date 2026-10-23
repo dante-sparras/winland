@@ -8,7 +8,7 @@ public sealed partial class WindowAdapter
 {
     private const uint CloseMessage = 0x0010;
 
-    private static readonly MotionPlayer Motions = new(new Win32MotionTarget());
+    private static readonly MotionPlayer Motions = new(new Win32MotionTarget(), PresentClock.Now);
 
     // Splits an outcome's motions by the step of Apply that starts them.
     private static Dictionary<WindowId, Motion> MotionsOf(Outcome outcome)
@@ -187,6 +187,9 @@ public sealed partial class WindowAdapter
 
         public void Pace()
         {
+            if (PresentClock.WaitForFrame())
+                return;
+
             // DwmFlush returns after the next composition pass. Without composition it fails at once.
             if (PInvoke.DwmFlush().Failed)
                 Thread.Sleep(15);

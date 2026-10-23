@@ -209,3 +209,9 @@ CreateBitmap
 ChangeWindowMessageFilterEx
 DwmGetColorizationColor
 GetNamedPipeServerProcessId
+DwmGetCompositionTimingInfo
+DWM_TIMING_INFO
+CreateWaitableTimerEx
+SetWaitableTimer
+WaitForSingleObject
+CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
