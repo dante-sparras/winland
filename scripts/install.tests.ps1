@@ -19,10 +19,6 @@ function Assert-Equal($Actual, $Expected) {
     if ($Actual -cne $Expected) { throw "expected '$Expected', got '$Actual'" }
 }
 
-function Assert-Null($Actual) {
-    if ($null -ne $Actual) { throw "expected null, got '$Actual'" }
-}
-
 function Assert-True($Actual) {
     if ($Actual -ne $true) { throw "expected true, got '$Actual'" }
 }
@@ -37,93 +33,35 @@ function Assert-Throws([scriptblock]$Body) {
     if (-not $threw) { throw 'expected an error, got none' }
 }
 
-function Get-Plan([bool]$Installed, [bool]$Touchpad, [bool]$Interactive, [string]$Admin, [string]$Settings) {
-    Get-InstallPlan -Installed $Installed -PrecisionTouchpad $Touchpad -Interactive $Interactive -AdministratorAnswer $Admin -SettingsAnswer $Settings
+Test-Case 'the banner is a box of plain ASCII that fits an 80-column window' {
+    $lines = @(Get-Banner)
+    Assert-Equal $lines.Count 9
+    foreach ($line in $lines) {
+        Assert-Equal $line.Length 46
+        if ($line -match '[^\x20-\x7E]') { throw "banner line is not ASCII: $line" }
+    }
 }
 
-Test-Case 'a new install asks two questions' {
-    $lines = @(Get-InstallQuestions $false $true)
-    $questions = @($lines | Where-Object { $_.EndsWith('?') })
-    Assert-Equal $questions.Count 2
-    Assert-Equal $questions[0] 'Run Winland as administrator?'
-    Assert-Equal $questions[1] 'Turn off Snap windows and the three- and four-finger touchpad swipes?'
-    Assert-True ($lines -contains 'It can then arrange administrator windows such as Task Manager.')
-    Assert-True ($lines -contains 'Snap grabs windows dragged to an edge.')
-    Assert-True ($lines -contains 'Windows reads the same swipe Winland uses to switch Workspace.')
+Test-Case 'a yes to both installs with the logon start and starts Winland' {
+    Assert-Equal ((Get-InstallArguments $true $true) -join ' ') 'install'
 }
 
-Test-Case 'the touchpad sentence is omitted when there is no precision touchpad' {
-    $lines = @(Get-InstallQuestions $false $false)
-    $questions = @($lines | Where-Object { $_.EndsWith('?') })
-    Assert-Equal $questions.Count 2
-    Assert-Equal $questions[1] 'Turn off Snap windows?'
-    Assert-False ($lines -contains 'Windows reads the same swipe Winland uses to switch Workspace.')
-    Assert-True ($lines -contains 'Snap grabs windows dragged to an edge.')
+Test-Case 'a no leaves out the logon start or the start now' {
+    Assert-Equal ((Get-InstallArguments $false $true) -join ' ') 'install --no-logon'
+    Assert-Equal ((Get-InstallArguments $true $false) -join ' ') 'install --no-start'
+    Assert-Equal ((Get-InstallArguments $false $false) -join ' ') 'install --no-logon --no-start'
 }
 
-Test-Case 'an installed copy asks nothing' {
-    $lines = @(Get-InstallQuestions $true $true)
-    Assert-Equal $lines.Count 0
+Test-Case 'the settings are always turned off, and the swipes only with a precision touchpad' {
+    Assert-Equal ((Get-TweakArguments $true) -join ' ') 'tweaks --off --touchpad'
+    Assert-Equal ((Get-TweakArguments $false) -join ' ') 'tweaks --off'
 }
 
-Test-Case 'Enter installs elevated and turns every named setting off' {
-    $plan = Get-Plan $false $true $true '' ''
-    Assert-Equal $plan.Action 'install'
-    Assert-False $plan.User
-    Assert-True $plan.TurnOff
-    Assert-True $plan.Touchpad
-    Assert-True $plan.Asked
-    Assert-Equal $plan.SettingsQuestion 'Turn off Snap windows and the three- and four-finger touchpad swipes?'
-}
-
-Test-Case 'no to administrator is a per-user install' {
-    $plan = Get-Plan $false $true $true 'no' 'yes'
-    Assert-True $plan.User
-    Assert-True $plan.TurnOff
-    Assert-True $plan.Touchpad
-}
-
-Test-Case 'n to settings changes nothing and does not ask again' {
-    $plan = Get-Plan $false $true $true '' 'N'
-    Assert-False $plan.User
-    Assert-False $plan.TurnOff
-    Assert-False $plan.Touchpad
-    Assert-True $plan.Asked
-}
-
-Test-Case 'one settings answer covers snap and both swipes' {
-    $plan = Get-Plan $false $true $true 'y' ''
-    Assert-True $plan.TurnOff
-    Assert-True $plan.Touchpad
-}
-
-Test-Case 'without a precision touchpad the same yes leaves the swipes alone' {
-    $plan = Get-Plan $false $false $true '' ''
-    Assert-True $plan.TurnOff
-    Assert-False $plan.Touchpad
-    Assert-Equal $plan.SettingsQuestion 'Turn off Snap windows?'
-}
-
-Test-Case 'a machine that is already installed is only updated' {
-    $plan = Get-Plan $true $true $true 'no' 'no'
-    Assert-Equal $plan.Action 'update'
-    Assert-False $plan.Asked
-    Assert-False $plan.TurnOff
-    Assert-False $plan.Touchpad
-    Assert-Null $plan.SettingsQuestion
-}
-
-Test-Case 'a prompt that is not interactive takes the defaults' {
-    $plan = Get-Plan $false $true $false 'no' 'no'
-    Assert-False $plan.User
-    Assert-True $plan.TurnOff
-    Assert-True $plan.Touchpad
-}
-
-Test-Case 'defaults on a PC without a precision touchpad leave the swipes alone' {
-    $plan = Get-Plan $false $false $false '' ''
-    Assert-True $plan.TurnOff
-    Assert-False $plan.Touchpad
+Test-Case 'the dev channel reads the dev release and saves the channel' {
+    Assert-Equal (Get-ReleaseUrl 'stable') 'https://api.github.com/repos/dante-sparras/winland/releases/latest'
+    Assert-Equal (Get-ReleaseUrl 'dev') 'https://api.github.com/repos/dante-sparras/winland/releases/tags/dev'
+    Assert-Equal ((Get-UpdateArguments 'stable') -join ' ') 'update'
+    Assert-Equal ((Get-UpdateArguments 'dev') -join ' ') 'update --channel dev'
 }
 
 Test-Case 'only n and no mean no' {
@@ -133,6 +71,30 @@ Test-Case 'only n and no mean no' {
     Assert-False (Test-Yes 'n')
     Assert-False (Test-Yes 'No')
     Assert-False (Test-Yes '  no  ')
+}
+
+Test-Case 'a declined UAC prompt has its own message' {
+    Assert-Equal (Get-FailureMessage @('install') 1223 @('Elevation was cancelled.')) 'Administrator approval was declined. Nothing was installed. Run the command again to retry.'
+    Assert-Equal (Get-FailureMessage @('update') 1223 @()) 'Administrator approval was declined. Winland was not updated. Run the command again to retry.'
+}
+
+Test-Case 'another failure shows the last line winland printed' {
+    Assert-Equal (Get-FailureMessage @('install') 1 @('first', 'Winland did not exit.', '')) 'Winland did not exit.'
+    Assert-Equal (Get-FailureMessage @('install', '--no-start') 3 @()) 'winland install --no-start stopped with exit code 3.'
+}
+
+Test-Case 'the summary says Winland is running only when it was started' {
+    $folder = 'C:\Program Files\Winland'
+    $config = 'C:\Users\me\.winland\winland.conf'
+    $running = @(Get-SummaryLines '0.2.1' $folder $config $true)
+    $stopped = @(Get-SummaryLines '0.2.1' $folder $config $false)
+    Assert-Equal $running.Count 3
+    Assert-Equal $running[0] ' Winland 0.2.1 is installed and running.'
+    Assert-Equal $running[1] '    Folder     C:\Program Files\Winland'
+    Assert-Equal $running[2] '    Config     C:\Users\me\.winland\winland.conf'
+    Assert-Equal $stopped.Count 4
+    Assert-Equal $stopped[0] ' Winland 0.2.1 is installed.'
+    Assert-Equal $stopped[3] '    Start      Winland in the Start menu, or run winland'
 }
 
 $hash = 'ab' * 32
@@ -170,18 +132,27 @@ $releaseJson = @'
 }
 '@
 
-Test-Case 'the release names the zip and the checksums' {
+Test-Case 'the release names the zip, the checksums and the version' {
     $downloads = Get-ReleaseDownloads $releaseJson
     Assert-Equal $downloads.Archive 'https://github.com/dante-sparras/winland/releases/download/v0.1.0/Winland-win-x64.zip'
     Assert-Equal $downloads.Sums 'https://github.com/dante-sparras/winland/releases/download/v0.1.0/SHA256SUMS'
+    Assert-Equal $downloads.Version 'https://github.com/dante-sparras/winland/releases/download/v0.1.0/version.json'
 }
 
 Test-Case 'a draft release is refused' {
     Assert-Throws { Get-ReleaseDownloads ($releaseJson -replace '"draft": false', '"draft": true') }
+    Assert-Throws { Get-ReleaseDownloads ($releaseJson -replace '"draft": false', '"draft": true') $true }
 }
 
-Test-Case 'a release without the zip is refused' {
+Test-Case 'a prerelease is refused on stable and read on dev' {
+    $dev = $releaseJson -replace '"prerelease": false', '"prerelease": true'
+    Assert-Throws { Get-ReleaseDownloads $dev }
+    Assert-Equal (Get-ReleaseDownloads $dev $true).Archive 'https://github.com/dante-sparras/winland/releases/download/v0.1.0/Winland-win-x64.zip'
+}
+
+Test-Case 'a release without the zip or the version is refused' {
     Assert-Throws { Get-ReleaseDownloads ($releaseJson -replace 'Winland-win-x64.zip', 'Winland-other.zip') }
+    Assert-Throws { Get-ReleaseDownloads ($releaseJson -replace '"version.json"', '"other.json"') }
 }
 
 Test-Case 'a download that is not https is refused' {
@@ -192,17 +163,6 @@ Test-Case 'the script text has no semicolon and no em dash' {
     $text = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'install.ps1') -Raw
     if ($text.Contains([char]0x2014)) { throw 'em dash in install.ps1' }
     if ($text.Contains(';')) { throw 'semicolon in install.ps1' }
-}
-
-Test-Case 'the answers come back alone, without the question lines' {
-    function Read-Answer([string]$Prompt) { 'n' }
-    $answers = @(Read-InstallAnswers $true $true 6>$null)
-    Assert-Equal $answers.Count 1
-    Assert-Equal $answers[0].Administrator 'n'
-    Assert-Equal $answers[0].Settings 'n'
-    $answers = @(Read-InstallAnswers $false $true 6>$null)
-    Assert-Equal $answers.Count 1
-    Assert-Equal $answers[0].Administrator ''
 }
 
 Test-Case 'Windows PowerShell 5.1 can parse the script' {
