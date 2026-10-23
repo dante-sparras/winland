@@ -70,7 +70,8 @@ public sealed partial class WindowAdapter
         if (sizing)
         {
             _sizing = window;
-            Apply(_core.Handle(new WindowSizeStarted(window, pointer)));
+            var bounds = TryVisible(new HWND((nint)window.Value), out var visible) ? visible : (Rectangle?)null;
+            Apply(_core.Handle(new WindowSizeStarted(window, pointer, bounds)));
             return true;
         }
 

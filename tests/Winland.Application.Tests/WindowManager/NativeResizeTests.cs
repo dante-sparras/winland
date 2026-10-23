@@ -126,6 +126,27 @@ public class NativeResizeTests
         Assert.Equal(Client(ended, 1).Bounds, BoundsOf(ended, 1));
     }
 
+    // A bottom border changes only the height, as on a window Winland does not manage. The pointer drifting sideways
+    // while it is held leaves the split beside the Client where it was.
+    [Fact]
+    public void ABottomBorderChangesOnlyTheHeight()
+    {
+        var core = Flat("");
+        Appear(core, 1);
+        Appear(core, 2);
+        Appear(core, 3);
+        var tile = new Rectangle(960, 0, 960, 540);
+
+        core.Handle(new WindowSizeStarted(new WindowId(2), new Point(1400, 540), tile));
+        var step = core.Handle(new WindowSizing(new WindowId(2), new Point(1200, 640), tile with { Height = 640 }));
+        var ended = core.Handle(new WindowSizeEnded(new WindowId(2), new Point(1200, 640), tile with { Height = 640 }));
+
+        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(step, 1));
+        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(ended, 1));
+        Assert.Equal(new Rectangle(960, 0, 960, 640), BoundsOf(ended, 2));
+        Assert.Equal(new Rectangle(960, 640, 960, 440), BoundsOf(ended, 3));
+    }
+
     private static WindowManager Flat(string extra)
     {
         var core = new WindowManager();

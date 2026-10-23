@@ -104,8 +104,11 @@ public sealed record WindowMoveStarted(WindowId Window, Point Pointer) : Event;
 /// </summary>
 public sealed record WindowMoveEnded(WindowId Window, Point Pointer, Rectangle? Bounds = null) : Event;
 
-/// <summary>The system began resizing a window by its border. <see cref="Pointer"/> is where the pointer is.</summary>
-public sealed record WindowSizeStarted(WindowId Window, Point Pointer) : Event;
+/// <summary>
+/// The system began resizing a window by its border. <see cref="Pointer"/> is where the pointer is, and
+/// <see cref="Bounds"/> the visible frame then.
+/// </summary>
+public sealed record WindowSizeStarted(WindowId Window, Point Pointer, Rectangle? Bounds = null) : Event;
 
 /// <summary>
 /// The border of a window the system is resizing moved. <see cref="Pointer"/> is where the pointer is, and
