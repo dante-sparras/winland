@@ -10,6 +10,7 @@ public sealed partial class WindowAdapter : IDisposable
 {
     private const int ChildStyle = 0x40000000;
     private const int CaptionStyle = 0x00C00000;
+    private const int SizingStyle = 0x00040000;
     private const int ToolStyle = 0x00000080;
     private const int DialogStyle = 0x00000001;
     private const int LayeredStyle = 0x00080000;
@@ -320,8 +321,13 @@ public sealed partial class WindowAdapter : IDisposable
                             Apply(_core.Handle(new WindowRestored(window)));
                             AdoptShown(hwnd, window);
                             break;
+                        // Windows are created, renamed and shown hidden by the thousand, child windows among them. Only a
+                        // shown top-level window can become a Client, and reading the others would hold up the next
+                        // window that opens.
+                        case VisibilityAction.Adopt when !facts.Visible || PInvoke.GetAncestor(hwnd, GET_ANCESTOR_FLAGS.GA_ROOT) != hwnd:
+                            break;
                         case VisibilityAction.Adopt:
-                            if (@event is PInvoke.EVENT_OBJECT_SHOW or PInvoke.EVENT_OBJECT_UNCLOAKED && facts.Visible)
+                            if (@event is PInvoke.EVENT_OBJECT_SHOW or PInvoke.EVENT_OBJECT_UNCLOAKED or PInvoke.EVENT_OBJECT_CREATE)
                                 AdoptHidden(hwnd, window);
                             else
                                 AdoptShown(hwnd, window);
@@ -343,7 +349,12 @@ public sealed partial class WindowAdapter : IDisposable
     {
         var style = PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE);
         var extended = PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
-        var held = (style & CaptionStyle) == CaptionStyle && (style & ChildStyle) == 0 && (extended & ToolStyle) == 0;
+        // An application window has a title bar or a sizing border, and a title. A program that draws its own title bar,
+        // as Windows Terminal does, keeps only the sizing border.
+        var held = ((style & CaptionStyle) == CaptionStyle || (style & SizingStyle) != 0)
+            && (style & ChildStyle) == 0
+            && (extended & ToolStyle) == 0
+            && PInvoke.GetWindowTextLength(hwnd) > 0;
         if (held)
             Opacity.Apply(window, 0);
 

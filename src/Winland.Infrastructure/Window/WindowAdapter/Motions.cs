@@ -37,6 +37,12 @@ public sealed partial class WindowAdapter
         {
             if (motions.Remove(window, out var motion))
             {
+                // A window that fades in is put where its motion starts first, and waited for. Moved without waiting,
+                // a window that just opened takes the move only when its program gets to it, and fades in where it
+                // opened meanwhile.
+                if (motion.FadeFrom == 0)
+                    PlaceFrame(window, motion.From ?? bounds, borderless);
+
                 if (Motions.Begin(motion) && motion.Move is not null)
                     return;
 
