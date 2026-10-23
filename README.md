@@ -10,6 +10,12 @@ Open PowerShell and run:
 irm https://raw.githubusercontent.com/dante-sparras/winland/main/scripts/install.ps1 | iex
 ```
 
+To install the dev release, built from `main` after every change, run:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/dante-sparras/winland/main/scripts/install.ps1))) -Channel dev
+```
+
 To install by hand, download `Winland-win-x64.zip` from [Releases](https://github.com/dante-sparras/winland/releases), unzip it and run `winland\winland.exe install`.
 
 ## Hotkeys
