@@ -157,6 +157,11 @@ public sealed partial class WindowManager
         if (decision.Focus is WindowId found && _props.Own(found, WindowProp.NoFollowMouse) == true)
             return null;
 
+        // A window Winland does not manage, such as a browser's extension panel, took the foreground from the Client
+        // it opened over. The pointer crossing that Client on its way to the panel leaves the panel the focus.
+        if (_focus.Focused is null && _focus.Unmanaged is not null && decision.Focus == _focus.BeforeUnmanaged)
+            return null;
+
         return TakePointerFocus(decision.Focus);
     }
 
