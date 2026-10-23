@@ -208,3 +208,4 @@ DestroyIcon
 CreateBitmap
 ChangeWindowMessageFilterEx
 DwmGetColorizationColor
+GetNamedPipeServerProcessId
