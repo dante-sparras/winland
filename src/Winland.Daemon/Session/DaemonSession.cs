@@ -8,37 +8,32 @@ sealed class DaemonSession : IDaemonSession
 {
     public void Stop()
     {
-        var others = Process.GetProcessesByName("winland")
-            .Where(process => process.Id != Environment.ProcessId)
-            .ToArray();
-        if (others.Length == 0)
+        var pipe = Pipe();
+        if (PipeServer.ProcessId(pipe ?? CommandProtocol.PipeName) is not int id)
             return;
 
+        Process daemon;
         try
+        {
+            daemon = Process.GetProcessById(id);
+        }
+        catch (ArgumentException)
+        {
+            return;
+        }
+
+        using (daemon)
         {
             try
             {
-                CommandClient.Transact("dispatch exit", Pipe());
+                CommandClient.Transact("dispatch exit", pipe);
             }
             catch (InvalidOperationException exception) when (exception.Message == "Winland is not running.")
             {
             }
 
-            var deadline = Environment.TickCount64 + 20_000;
-            while (Environment.TickCount64 < deadline)
-            {
-                if (others.All(Exited))
-                    return;
-
-                Thread.Sleep(200);
-            }
-
-            throw new InvalidOperationException("Winland did not exit.");
-        }
-        finally
-        {
-            foreach (var process in others)
-                process.Dispose();
+            if (!daemon.WaitForExit(20_000))
+                throw new InvalidOperationException("Winland did not exit.");
         }
     }
 
@@ -72,18 +67,6 @@ sealed class DaemonSession : IDaemonSession
             throw new ArgumentException($"Cannot quote '{value}': it contains a quote.", nameof(value));
 
         return "\"" + value + "\"";
-    }
-
-    private static bool Exited(Process process)
-    {
-        try
-        {
-            return process.HasExited;
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
-        {
-            return false;
-        }
     }
 
     private static string? Pipe()
