@@ -50,7 +50,8 @@ public interface IStartMenu
 /// <summary>Stops the running Daemon and starts the installed one.</summary>
 public interface IDaemonSession
 {
-    void Stop();
+    /// <summary>True when a Daemon was running and has exited.</summary>
+    bool Stop();
 
     void Start(string executable, IReadOnlyList<string> arguments);
 }

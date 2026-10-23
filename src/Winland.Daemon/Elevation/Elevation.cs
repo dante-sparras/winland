@@ -53,8 +53,9 @@ static class Elevation
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == 1223) // ERROR_CANCELLED
         {
+            // The exit code says which failure this was, so the install script can name it.
             Console.Error.WriteLine("Elevation was cancelled.");
-            return 1;
+            return ex.NativeErrorCode;
         }
         catch (Win32Exception ex)
         {

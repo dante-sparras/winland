@@ -52,7 +52,9 @@ public sealed class AppInstall
         || tasks.Contains(LogonTaskDefinition.TaskName)
         || registry.GetString(RegistryRoot.Machine, InstallLocations.UninstallKey, "DisplayName") is not null;
 
-    public void InstallMachine(string executable, string account, string version)
+    /// <param name="logon">False leaves out the logon task, and removes one an earlier install made.</param>
+    /// <param name="start">False leaves Winland stopped when install finishes.</param>
+    public void InstallMachine(string executable, string account, string version, bool logon = true, bool start = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(executable);
         ArgumentException.ThrowIfNullOrWhiteSpace(account);
@@ -63,15 +65,21 @@ public sealed class AppInstall
         Apply(plan);
         var installed = plan.InstalledExecutable;
         // The task starts this copy, never the folder install was run from. That folder is one the user can write.
-        new LogonInstall(tasks).Install(installed, account);
+        if (logon)
+            new LogonInstall(tasks).Install(installed, account);
+        else
+            new LogonInstall(tasks).Uninstall();
         Place(installed, layout.CommonPrograms, arguments: "");
         RegisterUninstall(RegistryRoot.Machine, installed, layout.MachineDirectory, version);
         SetPath(RegistryRoot.Machine, InstallLocations.MachinePathKey, layout.MachineDirectory);
         RemoveUser();
-        session.Start(installed, []);
+        if (start)
+            session.Start(installed, []);
     }
 
-    public void InstallForUser(string executable, string version)
+    /// <param name="logon">False leaves out the Run key, and removes one an earlier install made.</param>
+    /// <param name="start">False leaves Winland stopped when install finishes.</param>
+    public void InstallForUser(string executable, string version, bool logon = true, bool start = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(executable);
         ArgumentException.ThrowIfNullOrWhiteSpace(version);
@@ -82,17 +90,21 @@ public sealed class AppInstall
         var installed = plan.InstalledExecutable;
         // No scheduled task. The Run key starts this copy unelevated, and a start from the folder never asks for UAC.
         var command = Quote(installed) + " " + ManualStartElevation.OptOutArgument;
-        registry.SetString(RegistryRoot.User, InstallLocations.RunKey, InstallLocations.RunValue, command, expandable: false);
+        if (logon)
+            registry.SetString(RegistryRoot.User, InstallLocations.RunKey, InstallLocations.RunValue, command, expandable: false);
+        else
+            registry.DeleteValue(RegistryRoot.User, InstallLocations.RunKey, InstallLocations.RunValue);
         Place(installed, layout.UserPrograms, ManualStartElevation.OptOutArgument);
         RegisterUninstall(RegistryRoot.User, installed, layout.UserDirectory, version);
         SetPath(RegistryRoot.User, InstallLocations.UserPathKey, layout.UserDirectory);
-        session.Start(installed, [ManualStartElevation.OptOutArgument]);
+        if (start)
+            session.Start(installed, [ManualStartElevation.OptOutArgument]);
     }
 
     /// <summary>
     /// Stops the running Winland, copies <paramref name="sourceExecutable"/> into <paramref name="destination"/>
-    /// by the same copy install uses, and starts that copy. The recorded version is updated. The config, the
-    /// logon task and the other install are left as they are.
+    /// by the same copy install uses, and starts that copy when Winland was running. The recorded version is
+    /// updated. The config, the logon task and the other install are left as they are.
     /// </summary>
     public void ReplaceInstalled(string sourceExecutable, string destination, bool perUser, string version)
     {
@@ -101,12 +113,13 @@ public sealed class AppInstall
         ArgumentException.ThrowIfNullOrWhiteSpace(version);
 
         var plan = Plan(sourceExecutable, destination);
-        session.Stop();
+        var running = session.Stop();
         Apply(plan);
         var installed = plan.InstalledExecutable;
         var root = perUser ? RegistryRoot.User : RegistryRoot.Machine;
         RegisterUninstall(root, installed, destination, version);
-        session.Start(installed, perUser ? [ManualStartElevation.OptOutArgument] : []);
+        if (running)
+            session.Start(installed, perUser ? [ManualStartElevation.OptOutArgument] : []);
     }
 
     /// <param name="machine">True when this process may change the machine install. A per-user uninstall leaves it.</param>

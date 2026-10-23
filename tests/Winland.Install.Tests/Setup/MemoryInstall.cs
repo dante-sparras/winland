@@ -135,11 +135,21 @@ sealed class MemorySession : IDaemonSession
 
     public IReadOnlyList<string> StartedArguments { get; private set; } = [];
 
-    public void Stop() => operations.Add("stop");
+    /// <summary>Whether a Daemon is running for the next <see cref="Stop"/> to find.</summary>
+    public bool Running { get; set; } = true;
+
+    public bool Stop()
+    {
+        operations.Add("stop");
+        var was = Running;
+        Running = false;
+        return was;
+    }
 
     public void Start(string executable, IReadOnlyList<string> arguments)
     {
         operations.Add("start");
+        Running = true;
         Started = executable;
         StartedArguments = arguments;
     }
