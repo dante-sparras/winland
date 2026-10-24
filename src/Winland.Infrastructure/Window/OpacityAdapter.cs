@@ -191,6 +191,19 @@ internal sealed class OpacityAdapter
         }
     }
 
+    /// <summary>Forgets a window that is gone, without touching it.</summary>
+    internal void Forget(WindowId window)
+    {
+        lock (_gate)
+        {
+            _owned.Remove(window);
+            _failed.Remove(window);
+            _leftAlone.Remove(window);
+            _alphas.Remove(window);
+            _veiled.Remove(window);
+        }
+    }
+
     /// <summary>
     /// Restores every window this made layered, for the exit cleanup. No window is made layered after that
     /// until <see cref="Reopen"/>: an outcome or a motion that arrives late would leave it so for good.

@@ -242,6 +242,8 @@ public sealed partial class WindowAdapter : IDisposable
                     ForgetLimits(window);
                     ForgetProbe(window);
                     Apply(_core.Handle(new WindowClosed(window)));
+                    // A window held when it was created may never have been shown.
+                    Opacity.Forget(window);
                     return;
                 case PInvoke.EVENT_OBJECT_LOCATIONCHANGE:
                     if (Decide(hwnd, window))
@@ -324,7 +326,13 @@ public sealed partial class WindowAdapter : IDisposable
                         // Windows are created, renamed and shown hidden by the thousand, child windows among them. Only a
                         // shown top-level window can become a Client, and reading the others would hold up the next
                         // window that opens.
-                        case VisibilityAction.Adopt when !facts.Visible || PInvoke.GetAncestor(hwnd, GET_ANCESTOR_FLAGS.GA_ROOT) != hwnd:
+                        case VisibilityAction.Adopt when PInvoke.GetAncestor(hwnd, GET_ANCESTOR_FLAGS.GA_ROOT) != hwnd:
+                            break;
+                        // Windows draws a window the moment it is shown, before Winland hears of it. One created hidden is
+                        // made transparent now, while nothing shows it, and is held until it is adopted when shown.
+                        case VisibilityAction.Adopt when !facts.Visible:
+                            if (@event == PInvoke.EVENT_OBJECT_CREATE && Holds(hwnd))
+                                Opacity.Apply(window, 0);
                             break;
                         case VisibilityAction.Adopt:
                             if (@event is PInvoke.EVENT_OBJECT_SHOW or PInvoke.EVENT_OBJECT_UNCLOAKED or PInvoke.EVENT_OBJECT_CREATE)
@@ -347,14 +355,8 @@ public sealed partial class WindowAdapter : IDisposable
     // its decoration gives it its alpha. One that neither touched, such as a window that was not adopted, is opaque again.
     private void AdoptHidden(HWND hwnd, WindowId window)
     {
-        var style = PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE);
-        var extended = PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
-        // An application window has a title bar or a sizing border, and a title. A program that draws its own title bar,
-        // as Windows Terminal does, keeps only the sizing border.
-        var held = ((style & CaptionStyle) == CaptionStyle || (style & SizingStyle) != 0)
-            && (style & ChildStyle) == 0
-            && (extended & ToolStyle) == 0
-            && PInvoke.GetWindowTextLength(hwnd) > 0;
+        // A window held since it was created stays held, even if it no longer looks like one to hold.
+        var held = Opacity.Wanted(window) == 0 || Holds(hwnd);
         if (held)
             Opacity.Apply(window, 0);
 
@@ -373,6 +375,18 @@ public sealed partial class WindowAdapter : IDisposable
                 }
             }
         }
+    }
+
+    // An application window has a title bar or a sizing border, and a title. A program that draws its own title bar,
+    // as Windows Terminal does, keeps only the sizing border.
+    private static bool Holds(HWND hwnd)
+    {
+        var style = PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE);
+        var extended = PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
+        return ((style & CaptionStyle) == CaptionStyle || (style & SizingStyle) != 0)
+            && (style & ChildStyle) == 0
+            && (extended & ToolStyle) == 0
+            && PInvoke.GetWindowTextLength(hwnd) > 0;
     }
 
     // A window's state changes often, as it gains focus or is pressed, so only a change of enabled reaches the core.

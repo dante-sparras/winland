@@ -286,6 +286,23 @@ public class OpacityAdapterTests
     }
 
     [Fact]
+    public void AForgottenWindowIsNotTouchedAndStartsOverIfItComesBack()
+    {
+        var styles = new FakeStyles();
+        var window = new WindowId(11);
+        styles.ExStyle[window] = 0x80;
+        var adapter = new OpacityAdapter(styles);
+        adapter.Apply(window, 0);
+        var writes = styles.Writes;
+
+        adapter.Forget(window);
+
+        Assert.Equal(writes, styles.Writes);
+        Assert.False(adapter.Owns(window));
+        Assert.Equal(255, adapter.Wanted(window));
+    }
+
+    [Fact]
     public void AVeiledWindowIsTransparentAndKeepsTheAlphaItIsGivenForLater()
     {
         var styles = new FakeStyles();
