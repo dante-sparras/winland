@@ -106,7 +106,10 @@ public sealed partial class WindowAdapter
             if (motions.Remove(window, out var motion) && motion.End == MotionEnd.Close && Motions.Begin(motion))
                 return;
 
-            _ = PInvoke.PostMessage(new HWND((nint)window.Value), CloseMessage, default, default);
+            if (TryVisible(new HWND((nint)window.Value), out var rest))
+                Motions.Close(window, rest, Opacity.Wanted(window));
+            else
+                _ = PInvoke.PostMessage(new HWND((nint)window.Value), CloseMessage, default, default);
         }
     }
 

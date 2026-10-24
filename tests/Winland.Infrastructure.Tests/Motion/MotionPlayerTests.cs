@@ -247,6 +247,39 @@ public class MotionPlayerTests
 
     // A closing window counts as running until its grace is over, and is put back only then.
     [Fact]
+    public void AWindowClosedWithoutAMotionGoesTransparentAtOnceAndReturnsIfItStaysOpen()
+    {
+        var target = new RecordingTarget { Open = true };
+        var clock = new Clock();
+        using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+
+        player.Close(Window, Start, 200);
+        var closing = target.Calls.ToArray();
+        var held = player.Paint(Window, 255, new BorderColor(0xFF, 1, 2, 3));
+        clock.Now = MotionPlayer.CloseGrace.TotalMilliseconds;
+        Assert.False(player.Tick());
+
+        Assert.Equal(["alpha 0", "close"], closing);
+        Assert.True(held.Alpha);
+        Assert.Equal(["alpha 0", "close", "place 0", "alpha 200"], target.Calls);
+        Assert.False(player.Running(Window));
+    }
+
+    [Fact]
+    public void AWindowClosedWithoutAMotionThatGoesIsNotPutBack()
+    {
+        var target = new RecordingTarget();
+        var clock = new Clock();
+        using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+
+        player.Close(Window, Start, 255);
+        clock.Now = MotionPlayer.CloseGrace.TotalMilliseconds;
+        player.Tick();
+
+        Assert.Equal(["alpha 0", "close"], target.Calls);
+    }
+
+    [Fact]
     public void AClosingWindowRunsUntilItsGraceIsOver()
     {
         var target = new RecordingTarget { Open = true };

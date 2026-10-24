@@ -112,6 +112,32 @@ internal sealed class MotionPlayer : IDisposable
     }
 
     /// <summary>
+    /// Asks a window to close without a motion. It goes transparent at once, as a closing motion leaves it, so nothing
+    /// it draws while it closes shows, and it is put back on <paramref name="rest"/> at <paramref name="alpha"/> if it
+    /// stays open. The caller holds <see cref="For"/>.
+    /// </summary>
+    internal void Close(WindowId window, Rectangle rest, byte alpha)
+    {
+        if (_stopped)
+        {
+            _target.Close(window);
+            return;
+        }
+
+        lock (_gate)
+        {
+            Touch(window);
+            _animator.Forget(window);
+            _graces.Remove(window);
+            _closing[window] = new Closing(_clock() + CloseGrace.TotalMilliseconds, rest, alpha, Stamp(window));
+        }
+
+        _target.Alpha(window, 0);
+        _target.Close(window);
+        Wake();
+    }
+
+    /// <summary>
     /// Takes a placement that came without a motion. Returns true when a running motion keeps the window.
     /// Otherwise the caller places it while it still holds <see cref="For"/>.
     /// </summary>
@@ -131,8 +157,12 @@ internal sealed class MotionPlayer : IDisposable
 
     internal PaintHold Paint(WindowId window, byte alpha, BorderColor border)
     {
+        // A window asked to close stays transparent while it goes.
         lock (_gate)
-            return _animator.Paint(window, alpha, border, _clock());
+        {
+            var hold = _animator.Paint(window, alpha, border, _clock());
+            return _closing.ContainsKey(window) ? hold with { Alpha = true } : hold;
+        }
     }
 
     /// <summary>Stops any motion on the window. The caller holds <see cref="For"/> and puts the window in place.</summary>
