@@ -107,10 +107,8 @@ public sealed partial class WindowAdapter
         var above = PInvoke.GetWindow(standIn.Window, GET_WINDOW_CMD.GW_HWNDPREV);
         var placed = above == standIn.Overlay ? SET_WINDOW_POS_FLAGS.SWP_NOZORDER : 0;
 
-        // The stand-in's own thread does nothing else, so a move posted to it lands well before the next frame. Waiting
-        // for each one would hold the step up by a fraction of a frame for every window that changes size. It is shown
-        // the first time while the caller waits, before the window it stands in for is made transparent.
-        var posted = standIn.Shown ? SET_WINDOW_POS_FLAGS.SWP_ASYNCWINDOWPOS : 0;
+        // The move is waited for, so the stand-in has its rectangle before the thumbnail is fitted to it below. Posted, it
+        // would land a frame after the thumbnail and show it cut off or out of place.
         _ = PInvoke.SetWindowPos(
             standIn.Overlay,
             above,
@@ -118,8 +116,7 @@ public sealed partial class WindowAdapter
             bounds.Y,
             bounds.Width,
             bounds.Height,
-            SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_SHOWWINDOW | placed | posted);
-        standIn.Shown = true;
+            SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_SHOWWINDOW | placed);
 
         // The border follows what the stand-in shows.
         StandFrames.Set(standIn.Id, bounds, standIn.Overlay);
@@ -259,8 +256,5 @@ public sealed partial class WindowAdapter
 
         // The window's outer size before it was given its size for the motion.
         public Size? Before { get; set; }
-
-        // Whether the stand-in has been shown.
-        public bool Shown { get; set; }
     }
 }
