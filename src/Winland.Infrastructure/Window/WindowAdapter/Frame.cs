@@ -11,6 +11,10 @@ public sealed partial class WindowAdapter
     // DWMWA_BORDER_COLOR, DWMWA_WINDOW_CORNER_PREFERENCE.
     private const DWMWINDOWATTRIBUTE BorderColorAttribute = (DWMWINDOWATTRIBUTE)34;
     private const DWMWINDOWATTRIBUTE CornerAttribute = (DWMWINDOWATTRIBUTE)33;
+    private const DWMWINDOWATTRIBUTE TransitionsOffAttribute = (DWMWINDOWATTRIBUTE)3;
+
+    // The corners each painted window was last given, with its border taken off and DWM's transitions turned off.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, uint> DwmPainted = new();
 
     // DWMWA_COLOR_DEFAULT, DWMWA_COLOR_NONE, DWMWCP_DEFAULT, DWMWCP_DONOTROUND, DWMWCP_ROUND, DWMWCP_ROUNDSMALL.
     private const uint DefaultBorderColor = 0xFFFFFFFFu;
@@ -233,9 +237,7 @@ public sealed partial class WindowAdapter
         var hwnd = new HWND((nint)window.Value);
         lock (Motions.For(window))
         {
-            // Winland draws the border itself, outside the window, so DWM draws none.
             var held = Motions.Paint(window, decoration.Alpha, decoration.Border);
-            SetAttribute(hwnd, BorderColorAttribute, NoneBorderColor);
             if (!held.Border)
                 BorderHost.Tint(window, null);
             var corners = decoration.Corners switch
@@ -244,7 +246,20 @@ public sealed partial class WindowAdapter
                 CornerPreference.RoundSmall => SmallCorners,
                 _ => SquareCorners,
             };
-            SetAttribute(hwnd, CornerAttribute, corners);
+
+            // Every outcome paints every Client, many times a second as windows show and move. Each attribute is a
+            // call into DWM, so a window that has them already is left alone.
+            if (!DwmPainted.TryGetValue(window, out var given) || given != corners)
+            {
+                // Winland draws the border itself, outside the window, so DWM draws none.
+                SetAttribute(hwnd, BorderColorAttribute, NoneBorderColor);
+                SetAttribute(hwnd, CornerAttribute, corners);
+                // Winland animates a Client's showing and hiding itself. DWM's own fade would play on top, and a Client
+                // hidden as its Workspace slides away would fade out on its tile, over the Workspace shown in its place.
+                SetAttribute(hwnd, TransitionsOffAttribute, 1);
+                DwmPainted[window] = corners;
+            }
+
             Effects.Apply(window, decoration);
             if (!held.Alpha)
                 Opacity.Apply(window, decoration.Alpha);
@@ -253,11 +268,26 @@ public sealed partial class WindowAdapter
 
     private static uint ColorRef(BorderColor color) => (uint)(color.R | (color.G << 8) | (color.B << 16));
 
+    private static void ForgetDwmPainted(IEnumerable<WindowId> clients)
+    {
+        if (DwmPainted.IsEmpty)
+            return;
+
+        var live = new HashSet<WindowId>(clients);
+        foreach (var window in DwmPainted.Keys)
+        {
+            if (!live.Contains(window))
+                DwmPainted.TryRemove(window, out _);
+        }
+    }
+
     private static void ResetDecoration(WindowId window)
     {
+        DwmPainted.TryRemove(window, out _);
         var hwnd = new HWND((nint)window.Value);
         SetAttribute(hwnd, BorderColorAttribute, DefaultBorderColor);
         SetAttribute(hwnd, CornerAttribute, DefaultCorners);
+        SetAttribute(hwnd, TransitionsOffAttribute, 0);
         Effects.Reset(window);
         Opacity.Reset(window);
     }
