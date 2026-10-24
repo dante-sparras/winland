@@ -19,6 +19,10 @@ public sealed partial class WindowAdapter
     private static readonly Lock StandInGate = new();
     private static readonly Dictionary<WindowId, StandIn> StandIns = [];
 
+    // How long a window that grew is given to paint the area it gained, when it does not say. Windows Terminal takes
+    // about 25 ms.
+    private static readonly TimeSpan RepaintTime = TimeSpan.FromMilliseconds(50);
+
     private static bool Resizes(Rectangle bounds, Rectangle content) => content.Width != bounds.Width || content.Height != bounds.Height;
 
     // A frame of a motion whose window rests on content. Returns false when the caller moves the window itself.
@@ -60,7 +64,8 @@ public sealed partial class WindowAdapter
         if (standIn is null)
             return null;
 
-        if (TryOuter(hwnd, out var before))
+        // A window that was transparent, such as one that is opening, showed no picture to keep.
+        if (Opacity.Wanted(window) > 0 && TryOuter(hwnd, out var before))
             standIn.Before = new Size(before.Width, before.Height);
 
         // The stand-in shows before the window is veiled, so no frame shows neither. A window its program made
@@ -129,9 +134,15 @@ public sealed partial class WindowAdapter
             : null;
 
         // A window takes its new size at once and paints it a few frames later. Until it has, the area it gained is
-        // unpainted, and only what it had before is its picture.
-        if (painted is Size surface && standIn.Before is Size before && PInvoke.GetUpdateRect(standIn.Window, out _, false))
-            painted = new Size(Math.Min(surface.Width, before.Width), Math.Min(surface.Height, before.Height));
+        // unpainted, and only what it had before is its picture. A window that paints with GDI says when it has. One
+        // that draws with DirectX, as Windows Terminal does, does not, and is given a few frames to.
+        if (painted is Size surface && standIn.Before is Size before && (surface.Width > before.Width || surface.Height > before.Height))
+        {
+            standIn.Grew ??= System.Diagnostics.Stopwatch.GetTimestamp();
+            if (System.Diagnostics.Stopwatch.GetElapsedTime(standIn.Grew.Value) < RepaintTime || PInvoke.GetUpdateRect(standIn.Window, out _, false))
+                painted = new Size(Math.Min(surface.Width, before.Width), Math.Min(surface.Height, before.Height));
+        }
+
         var map = StandInMap.For(bounds, new Size(standIn.Content.Width, standIn.Content.Height), standIn.Insets, painted);
         var source = map.Source;
         var destination = map.Destination;
@@ -256,5 +267,8 @@ public sealed partial class WindowAdapter
 
         // The window's outer size before it was given its size for the motion.
         public Size? Before { get; set; }
+
+        // When the window first had more picture than before, as a Stopwatch timestamp.
+        public long? Grew { get; set; }
     }
 }
