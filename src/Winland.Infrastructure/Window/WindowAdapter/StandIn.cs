@@ -16,11 +16,6 @@ public sealed partial class WindowAdapter
     private const uint ThumbnailParts = 0x1 | 0x2 | 0x4 | 0x8 | 0x10;
     private const uint ThumbnailOpacity = 0x4;
 
-    // DWMWA_USE_IMMERSIVE_DARK_MODE, DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_NONE.
-    private const DWMWINDOWATTRIBUTE DarkAttribute = (DWMWINDOWATTRIBUTE)20;
-    private const DWMWINDOWATTRIBUTE BackdropAttribute = (DWMWINDOWATTRIBUTE)38;
-    private const uint NoBackdrop = 1;
-
     private static readonly Lock StandInGate = new();
     private static readonly Dictionary<WindowId, StandIn> StandIns = [];
 
@@ -65,6 +60,9 @@ public sealed partial class WindowAdapter
         if (standIn is null)
             return null;
 
+        if (TryOuter(hwnd, out var before))
+            standIn.Before = new Size(before.Width, before.Height);
+
         // The stand-in shows before the window is veiled, so no frame shows neither. A window its program made
         // layered cannot be veiled, and is resized on every frame as before.
         if (!Opacity.Veil(window))
@@ -94,8 +92,7 @@ public sealed partial class WindowAdapter
             return null;
         }
 
-        var backdrop = MoveBackdrop(overlay, hwnd);
-        var standIn = new StandIn(window, overlay, thumbnail, content, insets) { Backdrop = backdrop };
+        var standIn = new StandIn(window, overlay, thumbnail, content, insets);
         lock (StandInGate)
             StandIns[window] = standIn;
 
@@ -110,6 +107,10 @@ public sealed partial class WindowAdapter
         var above = PInvoke.GetWindow(standIn.Window, GET_WINDOW_CMD.GW_HWNDPREV);
         var placed = above == standIn.Overlay ? SET_WINDOW_POS_FLAGS.SWP_NOZORDER : 0;
 
+        // The stand-in's own thread does nothing else, so a move posted to it lands well before the next frame. Waiting
+        // for each one would hold the step up by a fraction of a frame for every window that changes size. It is shown
+        // the first time while the caller waits, before the window it stands in for is made transparent.
+        var posted = standIn.Shown ? SET_WINDOW_POS_FLAGS.SWP_ASYNCWINDOWPOS : 0;
         _ = PInvoke.SetWindowPos(
             standIn.Overlay,
             above,
@@ -117,7 +118,8 @@ public sealed partial class WindowAdapter
             bounds.Y,
             bounds.Width,
             bounds.Height,
-            SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_SHOWWINDOW | placed);
+            SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_SHOWWINDOW | placed | posted);
+        standIn.Shown = true;
 
         // The border follows what the stand-in shows.
         StandFrames.Set(standIn.Id, bounds, standIn.Overlay);
@@ -128,6 +130,11 @@ public sealed partial class WindowAdapter
         Size? painted = PInvoke.DwmQueryThumbnailSourceSize(standIn.Thumbnail, out var size).Succeeded
             ? new Size(size.Width, size.Height)
             : null;
+
+        // A window takes its new size at once and paints it a few frames later. Until it has, the area it gained is
+        // unpainted, and only what it had before is its picture.
+        if (painted is Size surface && standIn.Before is Size before && PInvoke.GetUpdateRect(standIn.Window, out _, false))
+            painted = new Size(Math.Min(surface.Width, before.Width), Math.Min(surface.Height, before.Height));
         var map = StandInMap.For(bounds, new Size(standIn.Content.Width, standIn.Content.Height), standIn.Insets, painted);
         var source = map.Source;
         var destination = map.Destination;
@@ -140,25 +147,7 @@ public sealed partial class WindowAdapter
             fVisible = true,
             fSourceClientAreaOnly = false,
         };
-        ShowBackdrop(standIn, properties.opacity);
         _ = PInvoke.DwmUpdateThumbnailProperties(standIn.Thumbnail, in properties);
-    }
-
-    // A thumbnail draws the window's backdrop from the wallpaper, not from the windows behind it. The stand-in
-    // takes the backdrop over, so it blurs what is really behind it, and the thumbnail draws only the window.
-    private static unsafe uint? MoveBackdrop(HWND overlay, HWND window)
-    {
-        if (!TryAttribute(window, BackdropAttribute, out var backdrop) || backdrop <= NoBackdrop)
-            return null;
-
-        if (TryAttribute(window, DarkAttribute, out var dark))
-            _ = PInvoke.DwmSetWindowAttribute(overlay, DarkAttribute, &dark, sizeof(uint));
-
-        var margins = new global::Windows.Win32.UI.Controls.MARGINS { cxLeftWidth = -1, cxRightWidth = -1, cyTopHeight = -1, cyBottomHeight = -1 };
-        _ = PInvoke.DwmExtendFrameIntoClientArea(overlay, in margins);
-        SetBackdrop(overlay, backdrop);
-        SetBackdrop(window, NoBackdrop);
-        return backdrop;
     }
 
     private static unsafe bool TryAttribute(HWND window, DWMWINDOWATTRIBUTE attribute, out uint value)
@@ -170,28 +159,6 @@ public sealed partial class WindowAdapter
 
         value = System.Runtime.InteropServices.MemoryMarshal.Read<uint>(read);
         return true;
-    }
-
-    private static unsafe void SetBackdrop(HWND window, uint backdrop) =>
-        _ = PInvoke.DwmSetWindowAttribute(window, BackdropAttribute, &backdrop, sizeof(uint));
-
-    // The system backdrop is an opaque material that does not fade with the thumbnail, so it shows only while the window
-    // is fully opaque. Otherwise a fading window would leave a gray box behind its picture.
-    private static unsafe void ShowBackdrop(StandIn standIn, byte alpha)
-    {
-        if (standIn.Backdrop is not uint backdrop)
-            return;
-
-        var shown = alpha == 255;
-        if (standIn.BackdropShown == shown)
-            return;
-
-        standIn.BackdropShown = shown;
-        SetBackdrop(standIn.Overlay, shown ? backdrop : NoBackdrop);
-        var margins = shown
-            ? new global::Windows.Win32.UI.Controls.MARGINS { cxLeftWidth = -1, cxRightWidth = -1, cyTopHeight = -1, cyBottomHeight = -1 }
-            : default;
-        _ = PInvoke.DwmExtendFrameIntoClientArea(standIn.Overlay, in margins);
     }
 
     // A veiled window keeps the alpha it is given for later, so the thumbnail shows it meanwhile.
@@ -206,7 +173,6 @@ public sealed partial class WindowAdapter
 
         var properties = new DWM_THUMBNAIL_PROPERTIES { dwFlags = ThumbnailOpacity, opacity = alpha };
         _ = PInvoke.DwmUpdateThumbnailProperties(standIn.Thumbnail, in properties);
-        ShowBackdrop(standIn, alpha);
     }
 
     /// <summary>
@@ -233,8 +199,6 @@ public sealed partial class WindowAdapter
         Opacity.Unveil(window);
         if (standIn.Border is uint border)
             SetAttribute(standIn.Window, BorderColorAttribute, border);
-        if (standIn.Backdrop is uint backdrop)
-            SetBackdrop(standIn.Window, backdrop);
         if (standIn.Thumbnail != 0)
         {
             _ = PInvoke.DwmUnregisterThumbnail(standIn.Thumbnail);
@@ -290,13 +254,13 @@ public sealed partial class WindowAdapter
         // How far the window's outer rectangle extends past its visible frame.
         public FrameInsets Insets { get; } = insets;
 
-        // The backdrop the window had, while the stand-in draws it in its place.
-        public uint? Backdrop { get; init; }
-
-        // Whether the overlay shows that backdrop now.
-        public bool BackdropShown { get; set; } = true;
-
         // The border color the window had, while the stand-in hides the window's border.
         public uint? Border { get; set; }
+
+        // The window's outer size before it was given its size for the motion.
+        public Size? Before { get; set; }
+
+        // Whether the stand-in has been shown.
+        public bool Shown { get; set; }
     }
 }

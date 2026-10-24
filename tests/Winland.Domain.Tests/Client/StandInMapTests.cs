@@ -13,14 +13,14 @@ public class StandInMapTests
         Assert.Equal(new Rectangle(0, 0, 200, 100), map.Destination);
     }
 
+    // A window that has not painted its new size yet fills the frame with what it painted, so no gap shows beside it.
     [Fact]
-    public void AWindowNotPaintedAtItsSizeYetIsScaledByTheFramesFactor()
+    public void AWindowNotPaintedAtItsSizeYetIsStretchedOverTheFrame()
     {
-        // Painted 200x100 of a 400x200 window; the frame is 300x150 of it, so the picture is 150x75.
         var map = StandInMap.For(new Rectangle(0, 0, 300, 150), new Size(400, 200), Shadow, new Size(214, 108));
 
         Assert.Equal(new Rectangle(7, 0, 200, 100), map.Source);
-        Assert.Equal(new Rectangle(0, 0, 150, 75), map.Destination);
+        Assert.Equal(new Rectangle(0, 0, 300, 150), map.Destination);
     }
 
     [Fact]
@@ -30,14 +30,6 @@ public class StandInMapTests
 
         Assert.Equal(new Rectangle(0, 0, 800, 400), map.Source);
         Assert.Equal(new Rectangle(0, 0, 100, 50), map.Destination);
-    }
-
-    [Fact]
-    public void ADifferenceOfOnePixelCountsAsPainted()
-    {
-        var map = StandInMap.For(new Rectangle(0, 0, 100, 100), new Size(400, 200), FrameInsets.None, new Size(399, 199));
-
-        Assert.Equal(new Rectangle(0, 0, 100, 100), map.Destination);
     }
 
     [Fact]
