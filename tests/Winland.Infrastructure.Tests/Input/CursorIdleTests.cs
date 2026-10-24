@@ -89,7 +89,7 @@ public partial class CursorIdleTests
     }
 
     [Fact]
-    public void WarpMovesTheCursorAndShowsIt()
+    public void WarpMovesTheCursorAndKeepsItHiddenUntilTheMouseMoves()
     {
         var cursor = new FakeCursor();
         var idle = new CursorIdle(cursor, new ManualClock());
@@ -97,8 +97,11 @@ public partial class CursorIdleTests
         idle.KeyPressed();
 
         idle.Warp(new Point(12, 34));
+        var hiddenAfterWarp = cursor.Hidden;
+        idle.Moved();
 
         Assert.Equal(new Point(12, 34), cursor.Warped);
+        Assert.True(hiddenAfterWarp);
         Assert.False(cursor.Hidden);
     }
 
