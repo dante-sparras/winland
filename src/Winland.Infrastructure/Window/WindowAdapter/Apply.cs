@@ -109,6 +109,10 @@ public sealed partial class WindowAdapter : IDisposable
                     if (decoration.Ring is BorderRing ring)
                         rings[window] = ring;
                 }
+
+                // A window that is no longer a Client is painted afresh if it becomes one again.
+                if (current)
+                    ForgetDwmPainted(windows.Values);
             }
         }
 
