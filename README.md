@@ -86,6 +86,11 @@ To install by hand, download `Winland-win-x64.zip` from [Releases](https://githu
 | Win+C / Win+V / Win+X / Win+A | Copy / paste / cut / select all |
 | Win+Ctrl+V | Clipboard history |
 
+## Stop and undo
+
+- To quit, right-click the Winland icon in the notification area, which Windows may keep behind the `^` arrow, and choose Quit. Or run `winland dispatch exit`. Either puts every window back.
+- To remove Winland, run `winland uninstall`. It also turns Snap and the touchpad swipes back on, if the install turned them off.
+
 ## Important files
 
 Everything Winland keeps for you is in `%USERPROFILE%\.winland`.
@@ -93,7 +98,7 @@ Everything Winland keeps for you is in `%USERPROFILE%\.winland`.
 | File | What it is |
 | --- | --- |
 | `winland.conf` | Your config, with every hotkey above. Winland writes it the first time it starts, with comments, and reloads it whenever you save. Right-click the tray icon to open it |
-| `winland.log` | What Winland did and any errors. Right-click the tray icon to open it |
+| `winland.log` | What Winland did and any errors. Only there when `debug:disable_logs = false` and Winland is not running as administrator, which it does by default. Right-click the tray icon to open it |
 | `state.json` | The windows Winland hid and the workspace of each, so a crash brings them back |
 | `windows-settings.json` | The Windows settings the installer turned off, so uninstall can turn them back on |
 | `taskbar.marker` | Only there while `general:hide_taskbar` hides the taskbar, so a crash still brings it back |

@@ -88,13 +88,20 @@ Test-Case 'the summary says Winland is running only when it was started' {
     $config = 'C:\Users\me\.winland\winland.conf'
     $running = @(Get-SummaryLines '0.2.1' $folder $config $true)
     $stopped = @(Get-SummaryLines '0.2.1' $folder $config $false)
-    Assert-Equal $running.Count 3
+    Assert-Equal $running.Count 6
     Assert-Equal $running[0] ' Winland 0.2.1 is installed and running.'
     Assert-Equal $running[1] '    Folder     C:\Program Files\Winland'
     Assert-Equal $running[2] '    Config     C:\Users\me\.winland\winland.conf'
-    Assert-Equal $stopped.Count 4
+    Assert-Equal $stopped.Count 7
     Assert-Equal $stopped[0] ' Winland 0.2.1 is installed.'
     Assert-Equal $stopped[3] '    Start      Winland in the Start menu, or run winland'
+}
+
+Test-Case 'the summary says how to quit, where the keys are and how to undo' {
+    $lines = @(Get-SummaryLines '0.2.1' 'C:\Program Files\Winland' 'C:\Users\me\.winland\winland.conf' $true)
+    Assert-Equal $lines[3] '    Quit       right-click the Winland icon in the notification area (behind ^ if hidden), then Quit'
+    Assert-Equal $lines[4] '    Keys       https://github.com/dante-sparras/winland#hotkeys, or the config'
+    Assert-Equal $lines[5] '    Undo       winland uninstall, which also turns back on the Snap and swipes the install turned off'
 }
 
 $hash = 'ab' * 32
