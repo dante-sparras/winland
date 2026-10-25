@@ -32,14 +32,6 @@ public class LaunchTests
     }
 
     [Fact]
-    public void ExecrRequestsTheCommandWithoutAShell()
-    {
-        var outcome = new WindowManager().Handle(new Dispatch("execr", "notepad"));
-
-        Assert.Equal(new Launch("notepad", null) { Raw = true, InitialWorkspace = WorkspaceId.Initial }, outcome.Launch);
-    }
-
-    [Fact]
     public void EmptyExecDoesNotLaunch()
     {
         Assert.Null(new WindowManager().Handle(new Dispatch("exec", "   ")).Launch);
@@ -104,8 +96,6 @@ public class LaunchTests
         var document = ConfigParser.Parse(
             "exec = every\n" +
             "exec-once = once\n" +
-            "execr = raw-every\n" +
-            "execr-once = raw-once\n" +
             "exec-shutdown = bye\n");
         var core = new WindowManager();
 
@@ -117,14 +107,11 @@ public class LaunchTests
             [
                 new Launch("every", null) { InitialWorkspace = WorkspaceId.Initial },
                 new Launch("once", null),
-                new Launch("raw-every", null) { Raw = true, InitialWorkspace = WorkspaceId.Initial },
-                new Launch("raw-once", null) { Raw = true },
             ],
             startup);
         Assert.Equal(
             [
                 new Launch("every", null) { InitialWorkspace = WorkspaceId.Initial },
-                new Launch("raw-every", null) { Raw = true, InitialWorkspace = WorkspaceId.Initial },
             ],
             reload);
         Assert.Equal([new Launch("bye", null)], shutdown);

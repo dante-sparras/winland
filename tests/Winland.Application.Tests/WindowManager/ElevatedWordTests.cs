@@ -51,7 +51,7 @@ public class ElevatedWordTests
 
     [Theory]
     [InlineData("SUPER, X, exec, [elevated] cmd")]
-    [InlineData("SUPER, X, execr, [float; elevated] cmd")]
+    [InlineData("SUPER, X, exec, [float; elevated] cmd")]
     public void AKeywordCanAddABindThatNamesElevated(string value)
     {
         var core = new WindowManager();
@@ -82,10 +82,9 @@ public class ElevatedWordTests
     [Fact]
     public void ALeadingElevatedBlockIsTheRuleBlock()
     {
-        var leading = new WindowManager().Handle(new Dispatch("execr", "[elevated] [tile] notepad"));
+        var leading = new WindowManager().Handle(new Dispatch("exec", "[elevated] [tile] notepad"));
 
         Assert.Equal("[tile] notepad", leading.Launch?.CommandLine);
-        Assert.True(leading.Launch?.Raw);
         Assert.Empty(leading.Launch!.Rules);
         Assert.Equal([Warned], leading.Events.OfType<ConfigWarned>());
     }

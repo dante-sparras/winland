@@ -37,8 +37,6 @@ public class ConfigTests
     [Theory]
     [InlineData("exec")]
     [InlineData("exec-once")]
-    [InlineData("execr")]
-    [InlineData("execr-once")]
     [InlineData("exec-shutdown")]
     [InlineData("monitor")]
     public void HandlersCanRepeat(string keyword)
@@ -177,8 +175,6 @@ public class ConfigTests
         var text = """
             exec = app
             exec-once = app
-            execr = app
-            execr-once = app
             exec-shutdown = app
             monitor = , addreserved, 0, 0, 0, 0
             windowrule = float, class:^(kitty)$
@@ -343,7 +339,7 @@ public class ConfigTests
     [Fact]
     public void UnsupportedKeywordWarnsAndIsSkipped()
     {
-        var text = "general:gaps_in = 5\nghostkeyword = path\nxwayland:enabled = true\ngeneral:border_size = 2\n";
+        var text = "general:gaps_in = 5\nghostkeyword = path\nxwayland:enabled = true\nexecr = app\ngeneral:border_size = 2\n";
 
         var document = ConfigParser.Parse(text);
 
@@ -352,6 +348,7 @@ public class ConfigTests
             {
                 new ConfigWarning(2, "Unsupported keyword 'ghostkeyword'."),
                 new ConfigWarning(3, "Unsupported keyword 'xwayland:enabled'."),
+                new ConfigWarning(4, "Unsupported keyword 'execr'."),
             },
             document.Warnings);
         Assert.Equal(

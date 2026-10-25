@@ -2,7 +2,7 @@ namespace Winland.Domain;
 
 internal static class LaunchParser
 {
-    internal static LaunchParse Parse(string arguments, bool raw)
+    internal static LaunchParse Parse(string arguments)
     {
         var text = arguments.Trim();
         var warnings = new List<string>();
@@ -27,7 +27,6 @@ internal static class LaunchParser
 
         var launch = new Launch(text, null)
         {
-            Raw = raw,
             Rules = rules.Count == 0 ? Launch.NoRules : rules,
         };
         return new LaunchParse(launch, warnings);
@@ -39,7 +38,7 @@ internal static class LaunchParser
         var launches = new List<Launch>();
         foreach (var setting in config.Settings)
         {
-            if (!TryClassify(setting.Keyword, out var once, out var raw, out var shutdown))
+            if (!TryClassify(setting.Keyword, out var once, out var shutdown))
                 continue;
 
             var include = moment switch
@@ -52,7 +51,7 @@ internal static class LaunchParser
             if (!include)
                 continue;
 
-            var parsed = Parse(setting.Value, raw);
+            var parsed = Parse(setting.Value);
             if (parsed.Launch is not { } launch)
                 continue;
 
@@ -87,38 +86,24 @@ internal static class LaunchParser
         return !fatal;
     }
 
-    private static bool TryClassify(string keyword, out bool once, out bool raw, out bool shutdown)
+    private static bool TryClassify(string keyword, out bool once, out bool shutdown)
     {
         switch (keyword)
         {
             case "exec":
                 once = false;
-                raw = false;
                 shutdown = false;
                 return true;
             case "exec-once":
                 once = true;
-                raw = false;
-                shutdown = false;
-                return true;
-            case "execr":
-                once = false;
-                raw = true;
-                shutdown = false;
-                return true;
-            case "execr-once":
-                once = true;
-                raw = true;
                 shutdown = false;
                 return true;
             case "exec-shutdown":
                 once = false;
-                raw = false;
                 shutdown = true;
                 return true;
             default:
                 once = false;
-                raw = false;
                 shutdown = false;
                 return false;
         }

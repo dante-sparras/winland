@@ -4,8 +4,6 @@ public sealed record Launch(string CommandLine, string? WorkingDirectory)
 {
     public static IReadOnlyList<WindowRule> NoRules { get; } = [];
 
-    public bool Raw { get; init; }
-
     public IReadOnlyList<WindowRule> Rules { get; init; } = NoRules;
 
     /// <summary>
