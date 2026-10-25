@@ -121,20 +121,28 @@ public sealed partial class WindowAdapter : IDisposable
     }
 
     /// <summary>
-    /// Shows every hidden Client and puts back every frame, effect and alpha, for a crash. It reads the last
-    /// published snapshot instead of the core, so a thread that died holding the core lock cannot block it.
+    /// Shows every hidden Client and puts back every frame, effect and alpha, for a crash. It reads what this
+    /// adapter hid and the last published snapshot instead of the core, so a thread that died holding the core
+    /// lock cannot block it. The snapshot can be a quarter second old, and a window hidden since is in Concealed.
     /// </summary>
     internal void Salvage()
     {
         Releasing = true;
+        var hidden = new HashSet<WindowId>(Concealed.Keys);
         if (_published is RecoverySnapshot snapshot)
         {
             foreach (var client in snapshot.Clients)
             {
-                var hwnd = new HWND((nint)client.Window.Value);
-                if (client.Hidden && PInvoke.IsWindow(hwnd))
-                    ShowConcealed(hwnd);
+                if (client.Hidden)
+                    hidden.Add(client.Window);
             }
+        }
+
+        foreach (var window in hidden)
+        {
+            var hwnd = new HWND((nint)window.Value);
+            if (PInvoke.IsWindow(hwnd))
+                ShowConcealed(hwnd);
         }
 
         PutBackFrames();
