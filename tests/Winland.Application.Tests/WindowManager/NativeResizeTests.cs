@@ -45,6 +45,24 @@ public class NativeResizeTests
         Assert.Equal(new Rectangle(1100, 0, 820, 1080), BoundsOf(ended, 2));
     }
 
+    // The system sizes the window to the pointer, which would cover a neighbour that cannot shrink any further. The
+    // window is held at the tile the Layout gives it instead, and only while the pointer is past it.
+    [Fact]
+    public void ABorderHeldPastANeighboursMinimumKeepsTheWindowAtItsTile()
+    {
+        var core = Flat("");
+        Appear(core, 1);
+        core.Handle(new WindowAppeared(new WindowId(2), Wide) { Traits = WindowTraits.Normal with { MinSize = new Size(600, 0) } });
+
+        core.Handle(new WindowSizeStarted(new WindowId(1), new Point(960, 540), new Rectangle(0, 0, 960, 1080)));
+        var within = core.Handle(new WindowSizing(new WindowId(1), new Point(1200, 540), new Rectangle(0, 0, 1200, 1080)));
+        var past = core.Handle(new WindowSizing(new WindowId(1), new Point(1500, 540), new Rectangle(0, 0, 1500, 1080)));
+
+        Assert.DoesNotContain(within.Placements, placement => placement.Client == new ClientId(1));
+        Assert.Equal(new Rectangle(0, 0, 1320, 1080), BoundsOf(past, 1));
+        Assert.Equal(new Rectangle(1320, 0, 600, 1080), BoundsOf(past, 2));
+    }
+
     [Fact]
     public void ASizingStepWithoutASizeChangesNothing()
     {

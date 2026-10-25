@@ -3,9 +3,9 @@ namespace Winland.Application;
 /// <summary>
 /// A Client the system resizes by its border. Winland treats the resize request of a client like a
 /// <c>resizewindow</c> drag, so a tiled Client changes its split, live, while the border is held. The system
-/// resizes the window itself, so the core never places that window in between: its neighbours follow the
-/// border, and the window gets the Layout's rectangle when the border is let go. A floating Client keeps the
-/// frame the system gives it.
+/// resizes the window itself, so the core places that window in between only where the Layout stops its border
+/// short of the pointer, as against a neighbour at its minimum: its neighbours follow the border, and the window
+/// gets the Layout's rectangle when the border is let go. A floating Client keeps the frame the system gives it.
 /// </summary>
 public sealed partial class WindowManager
 {
@@ -36,8 +36,13 @@ public sealed partial class WindowManager
 
         var resized = LayoutWorkspace(sizing.Window).Layout.Drag(sizing.Window, new PointerDrag(true, PointerDragPhase.Move, size.Along(sizing.Pointer, sizing.Bounds)));
         var self = new ClientId(sizing.Window.Value);
-        var neighbours = resized.Where(placement => placement.Client != self).ToList();
-        return View(neighbours) with { Live = true };
+        var placements = resized.Where(placement => placement.Client != self).ToList();
+
+        // A border held past where the Layout lets it go would cover the neighbours, so the window is held at its tile.
+        if (resized.FirstOrDefault(placement => placement.Client == self) is { } own && size.Overruns(sizing.Pointer, sizing.Bounds, own.Bounds))
+            placements.Add(own);
+
+        return View(placements) with { Live = true };
     }
 
     private Outcome EndNativeSize(WindowSizeEnded ended)
@@ -75,6 +80,20 @@ public sealed partial class WindowManager
             var across = after.X != before.X || after.Width != before.Width;
             var down = after.Y != before.Y || after.Height != before.Height;
             return new Point(across ? pointer.X : start.X, down ? pointer.Y : start.Y);
+        }
+
+        // Whether the Layout keeps an edge the system moves more than a pixel short of where the pointer takes it.
+        public bool Overruns(Point pointer, Rectangle? now, Rectangle tile)
+        {
+            if (bounds is not Rectangle before || now is not Rectangle after)
+                return false;
+
+            var dx = pointer.X - start.X;
+            var dy = pointer.Y - start.Y;
+            return (after.X != before.X && tile.X > before.X + dx + 1)
+                || (after.Y != before.Y && tile.Y > before.Y + dy + 1)
+                || (after.X + after.Width != before.X + before.Width && tile.X + tile.Width < before.X + before.Width + dx - 1)
+                || (after.Y + after.Height != before.Y + before.Height && tile.Y + tile.Height < before.Y + before.Height + dy - 1);
         }
     }
 }
