@@ -20,6 +20,7 @@ public sealed partial class WindowAdapter
     }
 
     // A Client that resizes itself just after it opens is reported once, so the core can put it back.
+    // Stryker disable once all : handles a window event, which needs a real window.
     private void ReportResize(HWND hwnd, WindowId window)
     {
         if (!_core.AwaitsFirstResize(window) || !TryVisible(window, out var visible))

@@ -5,6 +5,7 @@ namespace Winland.Infrastructure;
 /// <summary>Putting windows back after a crash, and saving what this run changed on each window so the next run can.</summary>
 public sealed partial class WindowAdapter : IDisposable
 {
+    // Stryker disable once all : matches the snapshot to the real processes and windows open now.
     public void Recover(RecoverySnapshot? snapshot)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

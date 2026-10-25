@@ -45,3 +45,5 @@ Nothing in Domain or Application calls Win32. A test drives `WindowManager` with
 ## Tests
 
 Each layer has its own test project under `tests/`, with folders that match the source. The helpers the Application tests share, such as `Display` for a Monitor and `BoundsOf` for where a window went, are in `tests/Winland.Application.Tests/Support` and need no import. `tests/Winland.Application.Tests/Conformance` rebuilds the reference test harness's desktop on `WindowManager` and sends it the reference cases' commands. `docs/behavior.md` is the spec ([ADR 0008](adr/0008-winland-keeps-what-windows-users-need.md)).
+
+The Windows adapter is tested without a desktop. In `tests/Winland.Infrastructure.Tests/Window`, `FakeDesktop` stands in for `IDesktop` and logs every write in order, and `TestWindows` runs a `WindowManager` and a `WindowAdapter` over it with a clock the test moves. The window events the adapter reads still call Win32 directly, and the `Desktop` tests cover them.

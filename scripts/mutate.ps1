@@ -77,9 +77,15 @@ $lanes = @(
         # Each file left out drives Win32 or the shell directly and has no seam a unit test can
         # reach without a real desktop. The logic they call is in files that stay in.
         Exclude = @(
-            # Real top-level windows: WinEvent hooks, SetWindowPos, cloaking, the message loop. Only
-            # the Desktop tests reach them, and the lane cannot run those (see Filter).
-            'WindowAdapter/*.cs'
+            # Real top-level windows: WinEvent hooks, the message loop, and the code that reads a window by
+            # its handle for a drag, its limits, a minimize or maximize, and the windows already open. Only
+            # the Desktop tests reach them, and the lane cannot run those (see Filter). The rest of the
+            # adapter acts on a FakeDesktop and stays in.
+            'WindowAdapter/WindowAdapter.cs'
+            'WindowAdapter/Move.cs'
+            'WindowAdapter/Limits.cs'
+            'WindowAdapter/Buttons.cs'
+            'WindowAdapter/Existing.cs'
             'WindowHost.cs'
             'SessionWindow.cs'
             'SessionRecovery.cs'

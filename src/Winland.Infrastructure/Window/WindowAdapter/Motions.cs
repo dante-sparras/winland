@@ -121,6 +121,7 @@ public sealed partial class WindowAdapter
 
     internal static void ForgetSettings() => ReducedMotionSetting.Forget();
 
+    // Stryker disable once all : asks Windows for the animation setting.
     private static unsafe bool ReadReducedMotion()
     {
         BOOL animate = true;

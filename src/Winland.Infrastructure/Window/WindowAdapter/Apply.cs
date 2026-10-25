@@ -144,6 +144,7 @@ public sealed partial class WindowAdapter : IDisposable
     }
 
     // The owner is read from the window again, because the recorded process can be stale or the frame's host.
+    // Stryker disable once all : reads the real window's process and ends it.
     private static void Kill(KillRequest kill)
     {
         long? live = null;
@@ -205,6 +206,7 @@ public sealed partial class WindowAdapter : IDisposable
             _desktop.Show(window, show);
     }
 
+    // Stryker disable once all : reads a real window's title.
     internal static string WindowTitle(HWND hwnd)
     {
         var length = PInvoke.GetWindowTextLength(hwnd);
@@ -216,12 +218,14 @@ public sealed partial class WindowAdapter : IDisposable
         return written <= 0 ? "" : new string(buffer[..written]);
     }
 
+    // Stryker disable once all : reads a real window's class.
     private static bool IsShellTaskbar(HWND hwnd)
     {
         var name = ClassName(hwnd);
         return name is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd";
     }
 
+    // Stryker disable once all : reads a real window's class.
     internal static string ClassName(HWND hwnd)
     {
         Span<char> buffer = stackalloc char[256];
@@ -234,6 +238,7 @@ public sealed partial class WindowAdapter : IDisposable
     internal static bool IsOverlay(int extended) =>
         (extended & LayeredStyle) != 0 && (extended & ClickThroughStyle) != 0;
 
+    // Stryker disable once all : asks DWM whether a real window is cloaked.
     private static bool IsCloaked(HWND hwnd)
     {
         Span<byte> value = stackalloc byte[sizeof(int)];
@@ -241,6 +246,7 @@ public sealed partial class WindowAdapter : IDisposable
         return result.Succeeded && System.Runtime.InteropServices.MemoryMarshal.Read<int>(value) != 0;
     }
 
+    // Stryker disable once all : converts the rectangle Windows returns for a real window.
     private static Rectangle From(RECT rect) =>
         new(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
 }

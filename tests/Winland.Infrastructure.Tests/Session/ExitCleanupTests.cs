@@ -9,67 +9,6 @@ public class ExitCleanupTests
     private const int StyleIndex = -16;
 
     [DesktopFact]
-    public void ResettingDecorationsPutsBackTheFrameOfAFullscreenClient()
-    {
-        _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));
-        using var probe = new LimitProbeTests.LimitProbe();
-        probe.Open();
-        try
-        {
-            var core = new WindowManager();
-            using var adapter = new WindowAdapter(core);
-            core.ReducedMotion = () => true;
-            var original = GetWindowLong(probe.Anchor, StyleIndex);
-            adapter.AdoptExisting([probe.Anchor]);
-            var window = new WindowId(probe.Anchor.ToInt64());
-            Assert.True(core.Manages(window));
-
-            adapter.Apply(core.Handle(new Dispatch("fullscreen", "2")));
-            Assert.NotEqual(original, GetWindowLong(probe.Anchor, StyleIndex));
-
-            adapter.ResetDecorations();
-
-            Assert.Equal(original, GetWindowLong(probe.Anchor, StyleIndex));
-        }
-        finally
-        {
-            probe.Close();
-        }
-    }
-
-    // The hook worker and the pipe still apply outcomes while the exit cleanup runs. One that arrives after
-    // the frames were put back must not strip a frame again: the process ends next, with the state file gone.
-    [DesktopFact]
-    public void AnOutcomeAfterTheCleanupDoesNotStripTheFrameAgain()
-    {
-        _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));
-        using var probe = new LimitProbeTests.LimitProbe();
-        probe.Open();
-        try
-        {
-            var core = new WindowManager();
-            using var adapter = new WindowAdapter(core);
-            core.ReducedMotion = () => true;
-            var original = GetWindowLong(probe.Anchor, StyleIndex);
-            adapter.AdoptExisting([probe.Anchor]);
-            Assert.True(core.Manages(new WindowId(probe.Anchor.ToInt64())));
-            adapter.Apply(core.Handle(new Dispatch("fullscreen", "2")));
-            adapter.Apply(core.Handle(new Dispatch("fullscreen", "2")));
-            Assert.Equal(original, GetWindowLong(probe.Anchor, StyleIndex));
-
-            adapter.RevealHidden();
-            adapter.ResetDecorations();
-            adapter.Apply(core.Handle(new Dispatch("fullscreen", "2")));
-
-            Assert.Equal(original, GetWindowLong(probe.Anchor, StyleIndex));
-        }
-        finally
-        {
-            probe.Close();
-        }
-    }
-
-    [DesktopFact]
     public void ARestartPutsBackTheFrameACrashedRunLeftStripped()
     {
         _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));
