@@ -5,8 +5,7 @@ namespace Winland.Application;
 /// <summary>The <c>cyclelayout</c> dispatcher.</summary>
 public sealed partial class WindowManager
 {
-    // dwindle, scrolling, then floating. Master and monocle sit outside the cycle, so either direction
-    // enters at dwindle. The choice lives on the Workspace until the config is applied again.
+    // dwindle, scrolling, then floating. The choice lives on the Workspace until the config is applied again.
     private static readonly string[] LayoutCycle = ["dwindle", "scrolling", "floating"];
 
     private Outcome CycleWorkspaceLayout(string arguments)

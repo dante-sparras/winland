@@ -155,11 +155,6 @@ public sealed partial class WindowManager
                 return MoveActiveOnto(across, stay, name, focal);
         }
 
-        // In master, swapping another window with the focused one leaves the focus on the tile the focused window held.
-        Rectangle? held = null;
-        if (MasterSlotFollows(desk) && _focus.Focused is WindowId focused && desk.Layout.TryBounds(focused, out var slot))
-            held = slot;
-
         var placements = desk.Layout.MoveWindow(window, arguments);
         if (_config.BindOptions.MonitorFallback
             && placements.Count == 0
@@ -170,40 +165,11 @@ public sealed partial class WindowManager
             && MonitorOf(neighbor) is LiveMonitor next)
             return MoveActiveOnto(next, stay, name);
 
-        var laid = Present(desk, covered, placements, dispatcher: name);
-        if (held is Rectangle old && WindowIn(desk, placements, old) == window)
-            return laid.Then(FocusClient(window, name));
-
-        return laid;
+        return Present(desk, covered, placements, dispatcher: name);
     }
 
     // A named window is followed when it is the focused one, or when the dispatcher names no window.
     private bool DirectionFollows() => _actingOn is not WindowId acting || _focus.Focused == acting;
-
-    private bool MasterSlotFollows(LiveWorkspace desk) =>
-        _actingOn is WindowId acting
-        && _focus.Focused is WindowId focused
-        && acting != focused
-        && LayoutFactory.NameOf(desk.Layout) == "master"
-        && WorkspaceContaining(focused) is LiveWorkspace home
-        && home.Id == desk.Id;
-
-    private static WindowId? WindowIn(LiveWorkspace desk, IReadOnlyList<Placement> placements, Rectangle slot)
-    {
-        foreach (var placement in placements)
-        {
-            if (placement.Bounds != slot)
-                continue;
-
-            foreach (var client in desk.Layout.Clients)
-            {
-                if (client.Id == placement.Client)
-                    return client.Window;
-            }
-        }
-
-        return null;
-    }
 
     private Outcome FocusMonitorDispatch(string arguments)
     {

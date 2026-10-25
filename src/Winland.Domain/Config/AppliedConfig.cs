@@ -26,7 +26,6 @@ public sealed record AppliedConfig
 
     public ScrollingOptions Scrolling { get; init; } = ScrollingOptions.Defaults;
 
-    public MasterOptions Master { get; init; } = MasterOptions.Documented;
 
     /// <summary>The decoration options, with the system accent color filled in where the config asks for it.</summary>
     public DecorationOptions Decoration { get; init; } = DecorationOptions.Documented;
@@ -56,7 +55,6 @@ public sealed record AppliedConfig
             BindOptions = BindOptions.From(document),
             Layout = LayoutOptions.From(document),
             Scrolling = ScrollingOptions.From(document),
-            Master = MasterOptions.From(document),
             Decoration = DecorationOptions.From(document).WithAccent(accent),
             Groups = GroupOptions.From(document),
             Session = SessionOptions.From(document),

@@ -123,28 +123,6 @@ public class FocusReasonTests
     }
 
     [Fact]
-    public void CycleNextOnMasterIsAKeybind()
-    {
-        var core = Open(Flat("general:layout = master\n"));
-
-        var cycled = core.Handle(new Dispatch("cyclenext", "tiled"));
-
-        Assert.Equal(new WindowId(1), cycled.Focus);
-        Assert.Equal(FocusReason.Keybind, Focus(cycled).Reason);
-    }
-
-    [Fact]
-    public void CycleNextOnMonocleIsADesktopStateChange()
-    {
-        var core = Open(Flat("general:layout = monocle\n"));
-
-        var cycled = core.Handle(new Dispatch("cyclenext", "tiled"));
-
-        Assert.Equal(new WindowId(1), cycled.Focus);
-        Assert.Equal(FocusReason.DesktopState, Focus(cycled).Reason);
-    }
-
-    [Fact]
     public void FocusCurrentOrLastIsASoftSwitch()
     {
         var core = Open(new WindowManager());

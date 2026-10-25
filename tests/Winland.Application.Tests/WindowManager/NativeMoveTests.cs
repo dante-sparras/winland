@@ -76,20 +76,6 @@ public class NativeMoveTests
     }
 
     [Fact]
-    public void AMonocleClientGoesBackToFillingTheArea()
-    {
-        var core = Flat("general:layout = monocle\n");
-        Appear(core, 1);
-        Appear(core, 2);
-
-        core.Handle(new WindowMoveStarted(new WindowId(2), new Point(500, 500)));
-        var dropped = core.Handle(new WindowMoveEnded(new WindowId(2), new Point(100, 900)));
-
-        Assert.Equal(Wide, BoundsOf(dropped, 2));
-        Assert.False(Client(dropped, 2).Floating);
-    }
-
-    [Fact]
     public void MasterDropsTheClientOntoTheMasterWhenThePointerEndsOverIt()
     {
         var core = Flat("general:layout = master\n");

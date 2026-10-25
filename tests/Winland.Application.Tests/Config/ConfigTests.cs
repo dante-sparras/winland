@@ -659,15 +659,6 @@ public class ConfigTests
     }
 
     [Fact]
-    public void MonocleLayoutDoesNotWarn()
-    {
-        var document = ConfigParser.Parse("general:layout = monocle\n");
-
-        Assert.Empty(document.Warnings);
-        Assert.Equal(new Setting("general:layout", "monocle"), Assert.Single(document.Settings));
-    }
-
-    [Fact]
     public void ScrollingLayoutDoesNotWarn()
     {
         var document = ConfigParser.Parse("general:layout = scrolling\nscrolling:column_width = 0.4\n");
@@ -683,20 +674,20 @@ public class ConfigTests
     [InlineData("tabbed")]
     public void OtherLayoutsWarnAndAreSkipped(string name)
     {
-        var document = ConfigParser.Parse($"general {{\n    layout = master\n    layout = {name}\n}}\n");
+        var document = ConfigParser.Parse($"general {{\n    layout = scrolling\n    layout = {name}\n}}\n");
 
-        Assert.Equal(new Setting("general:layout", "master"), Assert.Single(document.Settings));
+        Assert.Equal(new Setting("general:layout", "scrolling"), Assert.Single(document.Settings));
         Assert.Equal(new ConfigWarning(3, $"Invalid value '{name}' for general:layout."), Assert.Single(document.Warnings));
-        Assert.Equal("master", LayoutOptions.From(document).Layout);
+        Assert.Equal("scrolling", LayoutOptions.From(document).Layout);
     }
 
     [Fact]
     public void ALayoutNameReadsInAnyCase()
     {
-        var document = ConfigParser.Parse("general:layout = Master\n");
+        var document = ConfigParser.Parse("general:layout = Scrolling\n");
 
         Assert.Empty(document.Warnings);
-        Assert.Equal("master", LayoutOptions.From(document).Layout);
+        Assert.Equal("scrolling", LayoutOptions.From(document).Layout);
     }
 
     [Fact]

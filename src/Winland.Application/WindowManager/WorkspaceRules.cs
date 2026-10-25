@@ -24,7 +24,6 @@ public sealed partial class WindowManager
         // A rule that matches this number picks the Layout once the Workspace exists.
         MatchLayout(desk);
         layout = desk.Layout;
-        layout.Apply(_config.Master);
         var screen = MonitorById(desk.Monitor);
         if (screen is { Effective.Enabled: true })
         {
@@ -98,15 +97,6 @@ public sealed partial class WindowManager
                 options = options with { GapsOut = gapsOut };
         }
 
-        var scaled = options.ScaledBy(scale);
-        if (screen is not { Effective: { Enabled: true } monitor })
-            return scaled;
-
-        return scaled with
-        {
-            ReservedLeft = Math.Max(0, monitor.WorkArea.X - monitor.X),
-            ReservedRight = Math.Max(0, monitor.X + monitor.Width - (monitor.WorkArea.X + monitor.WorkArea.Width)),
-        };
+        return options.ScaledBy(scale);
     }
-
 }

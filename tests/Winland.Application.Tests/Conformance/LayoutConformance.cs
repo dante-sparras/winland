@@ -55,7 +55,7 @@ public class LayoutConformance
         desk.Ok("workspace", "1");
 
         Assert.Equal(MonitorNotHonored, desk.Send("keyword monitor HEADLESS-5,disable"));
-        desk.Keyword("general:layout", "master");
+        desk.Keyword("general:layout", "scrolling");
 
         Assert.Contains("HEADLESS-5", desk.Send("monitors all"), StringComparison.Ordinal);
     }
@@ -116,14 +116,14 @@ public class LayoutConformance
     [Fact]
     public void FocusPreservedLayoutChange()
     {
-        var desk = new Desk("general:layout = master\n");
+        var desk = new Desk("general:layout = dwindle\n");
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
         desk.Spawn("kitty_C");
         desk.Spawn("kitty_D");
 
         desk.Ok("focuswindow", "class:kitty_C");
-        Assert.Equal("ok", desk.Send("r/keyword general:layout monocle"));
+        Assert.Equal("ok", desk.Send("r/keyword general:layout scrolling"));
 
         Assert.Equal("kitty_C", desk.ActiveClass());
     }

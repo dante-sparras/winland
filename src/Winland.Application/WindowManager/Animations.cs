@@ -70,8 +70,8 @@ public sealed partial class WindowManager
     }
 
     // A dwindle tile resized by resizeactive or resizewindowpixel, and the tiles that make room for it, move at once
-    // unless misc:animate_manual_resizes is on, as Winland's dwindle resize warps them. Master tiles and
-    // floating Clients animate, as there.
+    // unless misc:animate_manual_resizes is on, as Winland's dwindle resize warps them. Floating Clients
+    // animate.
     private bool InstantResize(Outcome outcome, State before)
     {
         if (_config.Session.AnimateManualResizes || !TraitsOf(outcome.Dispatcher).HasFlag(DispatcherTraits.InstantResize))

@@ -98,7 +98,6 @@ public class DispatcherTests
 
     [Theory]
     [InlineData("dwindle")]
-    [InlineData("master")]
     public void MoveFocusFromAFloatingClientLooksByAngle(string layout)
     {
         var core = Floats("general:layout = " + layout + "\n");

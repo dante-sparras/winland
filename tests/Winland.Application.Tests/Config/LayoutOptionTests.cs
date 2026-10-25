@@ -131,8 +131,6 @@ public class LayoutOptionTests
             dwindle:split_width_multiplier = {value}
             dwindle:default_split_ratio = 1.2
             dwindle:default_split_ratio = {value}
-            master:mfact = 0.6
-            master:mfact = {value}
             scrolling:column_width = 0.7
             scrolling:column_width = {value}
             scrolling:follow_min_visible = 0.3
@@ -143,15 +141,13 @@ public class LayoutOptionTests
             """);
 
         var layout = LayoutOptions.From(document);
-        var master = MasterOptions.From(document);
         var scrolling = ScrollingOptions.From(document);
         var cursor = CursorOptions.From(document);
 
-        Assert.Equal([2, 4, 6, 8, 10, 11, 13], document.Warnings.Select(warning => warning.Line));
+        Assert.Equal([2, 4, 6, 8, 9, 11], document.Warnings.Select(warning => warning.Line));
 
         Assert.Equal(1.5, layout.SplitWidthMultiplier);
         Assert.Equal(1.2, layout.DefaultSplitRatio);
-        Assert.Equal(0.6, master.Mfact);
         Assert.Equal(0.7, scrolling.ColumnWidth);
         Assert.Equal(0.3, scrolling.FollowMinVisible);
         Assert.Equal(ScrollingOptions.Defaults.ExplicitColumnWidths, scrolling.ExplicitColumnWidths);
@@ -533,8 +529,6 @@ public class LayoutOptionTests
 
     [Theory]
     [InlineData("dwindle")]
-    [InlineData("master")]
-    [InlineData("monocle")]
     [InlineData("scrolling")]
     public void ALoneTileIsPaddedToTheAspectRatio(string layout)
     {

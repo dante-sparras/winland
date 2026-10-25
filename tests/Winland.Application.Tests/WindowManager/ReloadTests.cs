@@ -12,7 +12,7 @@ public class ReloadTests
             general:gaps_in = 0
             general:gaps_out = 10
             general:border_size = 0
-            general:layout = monocle
+            general:layout = scrolling
             windowrule = float, class:^(kitty)$
             """)));
 
@@ -25,8 +25,9 @@ public class ReloadTests
         var third = core.Handle(new WindowAppeared(new WindowId(3), Area));
 
         Assert.True(Client(opened, 2).Floating);
-        Assert.Equal(new Rectangle(10, 10, 1900, 1060), Client(third, 1).Bounds);
-        Assert.Equal(new Rectangle(10, 10, 1900, 1060), Client(third, 3).Bounds);
+        Assert.Equal("scrolling", Assert.Single(third.State.Workspaces).TiledLayout);
+        Assert.Equal(10, Client(third, 3).Bounds.Y);
+        Assert.Equal(1060, Client(third, 3).Bounds.Height);
     }
 
     [Fact]
@@ -252,31 +253,11 @@ public class ReloadTests
         });
         floated = NewFloat.Centered(area, floated);
 
-        var master = Reload(core, "master");
-        AssertKept(master, floated);
-        Assert.Equal(new Rectangle(0, 0, 1100, 1000), BoundsOf(master, 1));
-        Assert.Equal(new Rectangle(1100, 0, 900, 300), BoundsOf(master, 2));
-        Assert.Equal(new Rectangle(1100, 300, 900, 700), BoundsOf(master, 3));
-
-        var monocle = Reload(core, "monocle");
-        AssertKept(monocle, floated);
-        Assert.Equal(area, BoundsOf(monocle, 3));
-        Assert.DoesNotContain(monocle.Placements, placement => placement.Client == Client(monocle, 1).Id);
-        Assert.DoesNotContain(monocle.Placements, placement => placement.Client == Client(monocle, 2).Id);
-        Assert.Contains(new WindowId(1), monocle.Hide);
-        Assert.Contains(new WindowId(2), monocle.Hide);
-
         var scrolling = Reload(core, "scrolling");
         AssertKept(scrolling, floated);
         Assert.DoesNotContain(scrolling.Placements, placement => placement.Client == Client(scrolling, 1).Id);
         Assert.Equal(new Rectangle(0, 0, 1000, 1000), BoundsOf(scrolling, 2));
         Assert.Equal(new Rectangle(1000, 0, 1000, 1000), BoundsOf(scrolling, 3));
-
-        var again = Reload(core, "master");
-        AssertKept(again, floated);
-        Assert.Equal(new Rectangle(0, 0, 1100, 1000), BoundsOf(again, 1));
-        Assert.Equal(new Rectangle(1100, 0, 900, 300), BoundsOf(again, 2));
-        Assert.Equal(new Rectangle(1100, 300, 900, 700), BoundsOf(again, 3));
 
         var dwindle = Reload(core, "dwindle");
         AssertKept(dwindle, floated);

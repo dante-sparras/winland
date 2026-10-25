@@ -28,19 +28,6 @@ public class CycleNextTests
         Assert.Equal(new WindowId(expected), core.Handle(new Dispatch("cyclenext", arguments)).Focus);
     }
 
-    [Theory]
-    [InlineData("tiled", "cyclenext")]
-    [InlineData("prev tiled", "cycleprev")]
-    public void TiledFromATileInMasterRunsTheLayoutsCycle(string arguments, string message)
-    {
-        var cycled = Opened(new WindowManager(ConfigParser.Parse("general:layout = master\n")), 3);
-        var messaged = Opened(new WindowManager(ConfigParser.Parse("general:layout = master\n")), 3);
-
-        Assert.Equal(
-            messaged.Handle(new Dispatch("layoutmsg", message)).Focus,
-            cycled.Handle(new Dispatch("cyclenext", arguments)).Focus);
-    }
-
     private static WindowManager Opened(WindowManager core, int count)
     {
         for (var window = 1; window <= count; window++)

@@ -129,8 +129,8 @@ internal interface Layout
     IReadOnlyList<Placement> MoveWindow(WindowId window, string arguments);
 
     /// <summary>
-    /// When a directional move stays inside this Workspace, master, monocle and scrolling
-    /// continue onto the Monitor in that direction. Dwindle continues only when the point
+    /// When a directional move stays inside this Workspace, scrolling continues onto the Monitor in that
+    /// direction. Dwindle continues only when the point
     /// just outside the Client already lies on another Monitor.
     /// </summary>
     bool FollowsMonitorWhenUnmoved => false;
@@ -171,11 +171,6 @@ internal interface Layout
 
     /// <summary>Remembers a <c>scrolling_width</c> rule for the next time this Window is added.</summary>
     void NoteScrollingWidth(WindowId window, double width)
-    {
-    }
-
-    /// <summary>Applies master-layout options. Other layouts ignore them.</summary>
-    void Apply(MasterOptions options)
     {
     }
 

@@ -5,7 +5,7 @@ public class LayoutEngineTests
 {
     private static readonly Rectangle Area = new(0, 0, 1000, 800);
 
-    public static TheoryData<string> DraggingLayouts => new() { "dwindle", "master", "scrolling" };
+    public static TheoryData<string> DraggingLayouts => new() { "dwindle", "scrolling" };
 
     [Theory]
     [MemberData(nameof(DraggingLayouts))]
@@ -48,7 +48,7 @@ public class LayoutEngineTests
         Assert.Single(layout.Clients);
     }
 
-    public static TheoryData<string> AllLayouts => new() { "dwindle", "master", "monocle", "scrolling" };
+    public static TheoryData<string> AllLayouts => new() { "dwindle", "scrolling" };
 
     [Theory]
     [MemberData(nameof(AllLayouts))]
@@ -118,8 +118,6 @@ public class LayoutEngineTests
     [Theory]
     [InlineData("dwindle", "splitratio nan exact")]
     [InlineData("dwindle", "splitratio infinity")]
-    [InlineData("master", "mfact exact nan")]
-    [InlineData("master", "mfact -infinity")]
     [InlineData("scrolling", "colresize nan")]
     [InlineData("scrolling", "colresize +nan")]
     public void ALayoutMessageWithANumberThatIsNotFiniteChangesNothing(string name, string message)
@@ -179,24 +177,6 @@ public class LayoutEngineTests
 
         Assert.Equal(before.Height, Bounds(placements, 1).Height);
         Assert.Equal(11, layout.Placed().Count);
-    }
-
-    [Fact]
-    public void MasterSmartResizeNextToALargeMinimumDoesNotThrow()
-    {
-        var layout = Open("master");
-        for (var window = 1; window <= 4; window++)
-            Tiled(layout, window);
-        var stack = Stack(layout.Placed());
-        layout.UpdateLimits(stack[0].Window, new Size(1, 700), null);
-        stack = Stack(layout.Placed());
-        var middle = stack[1];
-
-        var placements = layout.ResizeActive(middle.Window, "0 10");
-
-        // A minimum leaves every other row at least a fifth of an even share, so each keeps a height.
-        Assert.Equal(4, placements.Count);
-        Assert.All(Stack(placements), tile => Assert.True(tile.Bounds.Height > 0, $"{tile.Window} is {tile.Bounds}"));
     }
 
     [Theory]
@@ -307,13 +287,9 @@ public class LayoutEngineTests
 
     [Theory]
     [InlineData("dwindle", false)]
-    [InlineData("master", false)]
     [InlineData("scrolling", false)]
-    [InlineData("monocle", false)]
     [InlineData("dwindle", true)]
-    [InlineData("master", true)]
     [InlineData("scrolling", true)]
-    [InlineData("monocle", true)]
     public void AnAddedClientStartsWithItsClassAndTitleAsTheInitialOnes(string name, bool floating)
     {
         var layout = Open(name);
@@ -327,9 +303,7 @@ public class LayoutEngineTests
 
     [Theory]
     [InlineData("dwindle")]
-    [InlineData("master")]
     [InlineData("scrolling")]
-    [InlineData("monocle")]
     public void FloatingAgainRestoresTheLastFloatingSize(string name)
     {
         var layout = Open(name);
@@ -347,9 +321,7 @@ public class LayoutEngineTests
 
     [Theory]
     [InlineData("dwindle")]
-    [InlineData("master")]
     [InlineData("scrolling")]
-    [InlineData("monocle")]
     public void FloatingClientsKeepToTheirSizeLimits(string name)
     {
         var layout = Open(name);
@@ -363,10 +335,8 @@ public class LayoutEngineTests
 
     [Theory]
     [InlineData("dwindle", false)]
-    [InlineData("master", false)]
     [InlineData("scrolling", false)]
     [InlineData("dwindle", true)]
-    [InlineData("master", true)]
     [InlineData("scrolling", true)]
     public void AFloatingDragIgnoresAClientTiledMidDrag(string name, bool resize)
     {
@@ -390,32 +360,6 @@ public class LayoutEngineTests
     }
 
     [Fact]
-    public void MonocleMovesAFloatingClientToTheFloatingWorkArea()
-    {
-        var layout = Open("monocle", LayoutOptions.Unconfigured with { FloatGaps = EdgeInsets.Uniform(20) });
-        layout.Add(Window(1), Area, null, true, new Rectangle(300, 300, 200, 100), WorkspaceId.Initial, monitor: Area);
-
-        var left = Bounds(layout.MoveWindow(Window(1), "l"), 1);
-        var down = Bounds(layout.MoveWindow(Window(1), "d"), 1);
-
-        Assert.Equal(20, left.X);
-        Assert.Equal(Area.Height - 20 - 100, down.Y);
-    }
-
-    [Fact]
-    public void MasterSnapsToTheWindowsItShowsNotToTheirTiles()
-    {
-        var layout = Open("master", LayoutOptions.Unconfigured with { BorderSize = 5, SnapEnabled = true, SnapMonitorGap = 0 });
-        Tiled(layout, 1);
-        layout.Add(Window(2), Area, null, true, new Rectangle(1003, 300, 100, 100), WorkspaceId.Initial, monitor: Area);
-
-        layout.Drag(Window(2), new PointerDrag(false, PointerDragPhase.Begin, new Point(1050, 350)));
-        var snapped = layout.Drag(Window(2), new PointerDrag(false, PointerDragPhase.Move, new Point(1050, 350)));
-
-        Assert.Equal(new Rectangle(1005, 300, 100, 100), Bounds(snapped, 2));
-    }
-
-    [Fact]
     public void ScrollingDropsAMinimizedTileThatCloses()
     {
         var layout = Open("scrolling");
@@ -427,22 +371,6 @@ public class LayoutEngineTests
 
         Assert.DoesNotContain(layout.Clients, client => client.Window == Window(1));
         Assert.False(layout.TryTake(Window(1), out _));
-    }
-
-    [Fact]
-    public void MasterRestoresAMinimizedMasterToItsPlace()
-    {
-        var layout = Open("master");
-        Tiled(layout, 1);
-        Tiled(layout, 2);
-        var before = Tiled(layout, 3);
-
-        layout.Minimize(Window(1));
-        var restored = layout.Restore(Window(1));
-
-        Assert.Equal(Bounds(before, 1), Bounds(restored, 1));
-        Assert.Equal(Bounds(before, 2), Bounds(restored, 2));
-        Assert.Equal(Bounds(before, 3), Bounds(restored, 3));
     }
 
     [Fact]
@@ -558,10 +486,8 @@ public class LayoutEngineTests
     {
         Layout layout = name switch
         {
-            "dwindle" => new DwindleLayout(),
-            "master" => new MasterLayout(),
             "scrolling" => new ScrollingLayout(),
-            _ => new MonocleLayout(),
+            _ => new DwindleLayout(),
         };
         if (layout is ScrollingLayout)
             layout.Configure(ScrollingOptions.Defaults with { FullscreenOnOneColumn = true });
