@@ -43,7 +43,7 @@ public class DwmEffectsTests
         surface.Frames[Window] = (new Rectangle(93, 100, 214, 207), new Rectangle(100, 100, 200, 200));
         var effects = new DwmEffects(surface);
 
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
 
         var outline = surface.Regions[Window];
         Assert.Equal(new Point(7, 10), outline[0]);
@@ -51,7 +51,7 @@ public class DwmEffectsTests
         Assert.All(outline, point => Assert.InRange(point.Y, 0, 200));
         Assert.True(effects.CutsCorners(Window));
 
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
         Assert.Equal(1, surface.RegionWrites);
 
         effects.Reset(Window);
@@ -65,7 +65,7 @@ public class DwmEffectsTests
         var surface = new FakeSurface();
         surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
         var effects = new DwmEffects(surface);
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
 
         effects.Refit(Window);
         Assert.Equal(1, surface.RegionWrites);
@@ -88,13 +88,13 @@ public class DwmEffectsTests
         surface.Owned.Add(Window);
         var effects = new DwmEffects(surface);
 
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
         effects.Reset(Window);
         Assert.Equal(0, surface.RegionWrites);
 
         var other = new WindowId(7);
         surface.Frames[other] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
-        effects.Apply(other, Decorated(region: new CornerRegion(10, 2f)) with { Borderless = true });
+        effects.Apply(other, Decorated(region: new CornerRegion(10)) with { Borderless = true });
         Assert.Equal(0, surface.RegionWrites);
     }
 
@@ -106,7 +106,7 @@ public class DwmEffectsTests
         surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
         var other = new WindowId(8);
         var effects = new DwmEffects(surface);
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
         effects.Apply(other, Decorated(blur: false));
 
         effects.ResetAll();
@@ -128,14 +128,14 @@ public class DwmEffectsTests
         var effects = new DwmEffects(surface);
         effects.ResetAll();
 
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
 
         Assert.Equal(2u, surface.Backdrops[Window]);
         Assert.Equal(0, surface.RegionWrites);
         Assert.False(effects.CutsCorners(Window));
 
         effects.Reopen();
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
         Assert.True(effects.CutsCorners(Window));
     }
 
@@ -145,7 +145,7 @@ public class DwmEffectsTests
         var surface = new FakeSurface();
         surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
         var effects = new DwmEffects(surface);
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
 
         var stamped = effects.Stamp(new RecoverySnapshot(
         [
@@ -160,7 +160,7 @@ public class DwmEffectsTests
         restarted.DropLeftoverRegion(Window);
         Assert.Empty(surface.Regions[Window]);
 
-        restarted.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        restarted.Apply(Window, Decorated(region: new CornerRegion(10)));
         Assert.True(restarted.CutsCorners(Window));
     }
 
@@ -171,7 +171,7 @@ public class DwmEffectsTests
         surface.Frames[Window] = (new Rectangle(90, 80, 220, 230), new Rectangle(100, 100, 200, 200));
         var effects = new DwmEffects(surface);
 
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
 
         Assert.Equal(new Point(10, 30), surface.Regions[Window][0]);
     }
@@ -185,7 +185,7 @@ public class DwmEffectsTests
         surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, width, height));
         var effects = new DwmEffects(surface);
 
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
 
         Assert.Equal(0, surface.RegionWrites);
         Assert.False(effects.CutsCorners(Window));
@@ -199,9 +199,9 @@ public class DwmEffectsTests
         surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
         var effects = new DwmEffects(surface);
 
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
-        effects.Apply(Window, Decorated(region: new CornerRegion(20, 2f)));
-        effects.Apply(Window, Decorated(region: new CornerRegion(30, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(20)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(30)));
 
         Assert.Equal(3, surface.RegionWrites);
         Assert.Equal(1, surface.RegionChecks);
@@ -217,12 +217,12 @@ public class DwmEffectsTests
         surface.Owned.Add(Window);
         var effects = new DwmEffects(surface);
 
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
         var checks = surface.RegionChecks;
         effects.Reset(Window);
         surface.Owned.Remove(Window);
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
 
         Assert.Equal(1, checks);
         Assert.True(effects.CutsCorners(Window));
@@ -235,12 +235,12 @@ public class DwmEffectsTests
         surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
         surface.Owned.Add(Window);
         var effects = new DwmEffects(surface);
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
 
         effects.ResetAll();
         effects.Reopen();
         surface.Owned.Remove(Window);
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
 
         Assert.True(effects.CutsCorners(Window));
     }
@@ -252,7 +252,7 @@ public class DwmEffectsTests
         var surface = new FakeSurface { SetsBackdrop = false };
         surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
         var effects = new DwmEffects(surface);
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
 
         effects.ResetAll();
 
@@ -269,13 +269,13 @@ public class DwmEffectsTests
         surface.Frames[owned] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
         surface.Owned.Add(owned);
         var effects = new DwmEffects(surface);
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
-        effects.Apply(owned, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
+        effects.Apply(owned, Decorated(region: new CornerRegion(10)));
 
         effects.DropLeftoverRegion(Window);
         effects.DropLeftoverRegion(owned);
         surface.Owned.Remove(owned);
-        effects.Apply(owned, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(owned, Decorated(region: new CornerRegion(10)));
 
         Assert.False(effects.CutsCorners(Window));
         Assert.Empty(surface.Regions[Window]);
@@ -289,7 +289,7 @@ public class DwmEffectsTests
         var surface = new FakeSurface();
         surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
         var effects = new DwmEffects(surface);
-        effects.Apply(Window, Decorated(region: new CornerRegion(10, 2f)));
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
         var right = new RecoverySnapshot(
         [
             new RecoveredClient(Window, WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1) { Region = true },

@@ -184,21 +184,6 @@ public class AnimationTests
     }
 
     [Fact]
-    public void WraparoundTurnsTheSlideBetweenTheEndWorkspaces()
-    {
-        var core = Load("""
-            animations:workspace_wraparound = true
-            bind = SUPER, 2, workspace, 2
-            """);
-        Appear(core, 1);
-        HoldSuper(core);
-
-        var outcome = Press(core, "2");
-
-        Assert.Equal(Area with { X = 1920 }, Assert.Single(outcome.Motions).To);
-    }
-
-    [Fact]
     public void AFadingWorkspaceStaysInPlace()
     {
         var core = Load("""

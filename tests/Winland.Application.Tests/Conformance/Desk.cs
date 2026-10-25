@@ -29,7 +29,6 @@ internal sealed class Desk : IDisposable
         }
         decoration {
             rounding = 10
-            rounding_power = 2
         }
         animations {
             enabled = false

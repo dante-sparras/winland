@@ -49,13 +49,13 @@ public static class BorderPainter
         ArgumentNullException.ThrowIfNull(ring);
         var px = Math.Abs(x + 0.5 - (boxWidth / 2.0));
         var py = Math.Abs(y + 0.5 - (boxHeight / 2.0));
-        var outer = Inside(px, py, boxWidth / 2.0, boxHeight / 2.0, ring.OuterRadius, ring.Power);
-        var inner = Inside(px, py, (boxWidth / 2.0) - ring.Thickness, (boxHeight / 2.0) - ring.Thickness, ring.Radius, ring.Power);
+        var outer = Inside(px, py, boxWidth / 2.0, boxHeight / 2.0, ring.OuterRadius);
+        var inner = Inside(px, py, (boxWidth / 2.0) - ring.Thickness, (boxHeight / 2.0) - ring.Thickness, ring.Radius);
         return Math.Clamp(outer * (1 - inner), 0, 1);
     }
 
     // How much of a pixel at px, py from the middle lies inside a rounded rectangle of these half sizes.
-    internal static double Inside(double px, double py, double halfWidth, double halfHeight, double radius, float power)
+    internal static double Inside(double px, double py, double halfWidth, double halfHeight, double radius)
     {
         if (halfWidth <= 0 || halfHeight <= 0)
             return 0;
@@ -66,8 +66,7 @@ public static class BorderPainter
         {
             var dx = px - (halfWidth - r);
             var dy = py - (halfHeight - r);
-            var p = float.IsFinite(power) ? Math.Clamp(power, 1f, 10f) : 2f;
-            distance = Math.Pow(Math.Pow(dx, p) + Math.Pow(dy, p), 1 / p) - r;
+            distance = Math.Sqrt((dx * dx) + (dy * dy)) - r;
         }
         else
         {

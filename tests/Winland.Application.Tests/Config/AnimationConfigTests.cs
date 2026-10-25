@@ -98,7 +98,6 @@ public class AnimationConfigTests
         var options = AnimationOptions.Documented;
 
         Assert.True(options.Enabled);
-        Assert.False(options.Wraparound);
         Assert.Equal(new Timing(Bezier.Default, 800), options.TimingOf("windowsIn"));
         Assert.Equal(new Timing(Bezier.Default, 800), options.TimingOf("workspacesOut"));
         Assert.Equal(new Timing(Bezier.Default, 800), options.TimingOf("border"));
@@ -109,12 +108,10 @@ public class AnimationConfigTests
     {
         var options = AnimationOptions.From(ConfigParser.Parse("""
             animations:enabled = false
-            animations:workspace_wraparound = true
             animation = windows, 1, 3, default
             """));
 
         Assert.False(options.Enabled);
-        Assert.True(options.Wraparound);
         Assert.Null(options.TimingOf("windows"));
     }
 

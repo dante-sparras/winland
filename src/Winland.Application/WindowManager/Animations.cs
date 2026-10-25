@@ -351,7 +351,7 @@ public sealed partial class WindowManager
                 return false;
 
             leaf = entering ? "workspacesIn" : "workspacesOut";
-            left = Wraps(newer, older) ^ (Compare(newer, older) > 0);
+            left = Compare(newer, older) > 0;
             styled = newer;
             return true;
         }
@@ -378,26 +378,6 @@ public sealed partial class WindowManager
             }
 
             return false;
-        }
-
-        // With workspace_wraparound, the lowest and highest numbered workspaces animate as neighbours.
-        private bool Wraps(WorkspaceId first, WorkspaceId second)
-        {
-            if (!Options.Wraparound || !first.TryGetNumber(out var a) || !second.TryGetNumber(out var b))
-                return false;
-
-            var lowest = long.MaxValue;
-            var highest = long.MinValue;
-            foreach (var workspace in _change.Before.Workspaces.Concat(_change.After.Workspaces))
-            {
-                if (!workspace.Id.TryGetNumber(out var number))
-                    continue;
-
-                lowest = Math.Min(lowest, number);
-                highest = Math.Max(highest, number);
-            }
-
-            return Math.Min(a, b) == lowest && Math.Max(a, b) == highest;
         }
 
         // Named workspaces sort below numbered ones, as their identifiers are negative.

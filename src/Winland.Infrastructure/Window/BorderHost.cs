@@ -284,7 +284,7 @@ internal static class BorderHost
         private byte _alpha = 255;
         private byte _paintedAlpha = 255;
 
-        public BorderRing Ring { get; set; } = new(default, 0, 0, 2, 0);
+        public BorderRing Ring { get; set; } = new(default, 0, 0, 0);
 
         public BorderColor? Tint { get; set; }
 

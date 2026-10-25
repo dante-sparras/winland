@@ -1,7 +1,7 @@
 namespace Winland.Domain;
 
 /// <summary>
-/// <c>animations:enabled</c>, <c>animations:workspace_wraparound</c>, the named <c>bezier</c> curves
+/// <c>animations:enabled</c>, the named <c>bezier</c> curves
 /// and the <c>animation</c> tree, read in config order.
 /// </summary>
 public sealed record AnimationOptions
@@ -16,12 +16,9 @@ public sealed record AnimationOptions
 
     public bool Enabled { get; init; } = true;
 
-    public bool Wraparound { get; init; }
-
     internal static OptionSet<AnimationOptions> Options { get; } = new(
     [
         Option<AnimationOptions>.Of("animations:enabled", OptionValue.Bool, o => o.Enabled, (o, v) => o with { Enabled = v }),
-        Option<AnimationOptions>.Of("animations:workspace_wraparound", OptionValue.Bool, o => o.Wraparound, (o, v) => o with { Wraparound = v }),
     ]);
 
     /// <summary>The animation tree and the curves, as the <c>animations</c> request answers.</summary>

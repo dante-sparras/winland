@@ -291,12 +291,12 @@ static int Usage()
     return 2;
 }
 
-// debug:disable_logs false copies the log to winland.log beside the state file, which is written again at each start,
-// and debug:enable_stdout_logs to standard output. An elevated Winland writes no file: a folder the user can change could
-// send a write by name somewhere only administrators may write.
+// debug:disable_logs false copies the log to winland.log beside the state file, which is written again at each start.
+// An elevated Winland writes no file: a folder the user can change could send a write by name somewhere only
+// administrators may write.
 static void CopyLog(RollingLogWriter log, DebugOptions options, string? file)
 {
-    log.Copy(options, OpenLog, Console.Out);
+    log.Copy(options, OpenLog);
 
     TextWriter? OpenLog()
     {

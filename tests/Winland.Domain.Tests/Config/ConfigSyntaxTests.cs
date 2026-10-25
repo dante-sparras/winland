@@ -376,7 +376,6 @@ public class ConfigSyntaxTests
         Assert.Equal(new BorderColor(0xFF, 0xFF, 0xFF, 0xFF), decoration.ActiveBorder);
         Assert.Equal(new BorderColor(0xFF, 0x40, 0x40, 0x40), decoration.InactiveBorder);
         Assert.Equal(8, decoration.Rounding);
-        Assert.Equal(2f, decoration.RoundingPower);
         Assert.True(decoration.Blur);
     }
 

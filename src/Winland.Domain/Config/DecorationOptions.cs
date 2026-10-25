@@ -24,9 +24,6 @@ public sealed record DecorationOptions
     /// <summary>The corner radius in logical pixels. 0 draws square corners.</summary>
     public int Rounding { get; init; }
 
-    /// <summary>The corner curve: 1 is a straight cut, 2 is a circle, larger values are squarer. Clamped to 1 through 10.</summary>
-    public float RoundingPower { get; init; } = 2;
-
     /// <summary><c>decoration:blur:enabled</c>: DWM's acrylic backdrop. False asks for none.</summary>
     public bool Blur { get; init; } = true;
 
@@ -47,7 +44,6 @@ public sealed record DecorationOptions
         Of("general:col.active_border", OptionValue.Color, o => o.ActiveBorder, (o, v) => o with { ActiveBorder = v, ActiveBorderSet = true }),
         Of("general:col.inactive_border", OptionValue.Color, o => o.InactiveBorder, (o, v) => o with { InactiveBorder = v }),
         Of("decoration:rounding", Radius, o => o.Rounding, (o, v) => o with { Rounding = v }),
-        Of("decoration:rounding_power", OptionValue.Single(1f, 10f), o => o.RoundingPower, (o, v) => o with { RoundingPower = v }),
         Of("decoration:blur:enabled", OptionValue.Bool, o => o.Blur, (o, v) => o with { Blur = v }),
         Of("decoration:active_opacity", OptionValue.Single(0f, 1f), o => o.ActiveOpacity, (o, v) => o with { ActiveOpacity = v }),
         Of("decoration:inactive_opacity", OptionValue.Single(0f, 1f), o => o.InactiveOpacity, (o, v) => o with { InactiveOpacity = v }),

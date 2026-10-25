@@ -1,10 +1,9 @@
 namespace Winland.Domain;
 
 /// <summary>
-/// Picks how one Client's corners are drawn. The radius is <c>rounding * rounding_power / 2</c>
-/// logical pixels, so a squarer curve keeps the same perceived roundness. DWM draws circular
-/// corners of 8 and 4 pixels and scales them with the window's DPI, so a circle of either
-/// radius uses that preference. Any other radius or curve is cut as a region instead.
+/// Picks how one Client's corners are drawn. DWM draws circular corners of 8 and 4 pixels and scales
+/// them with the window's DPI, so a radius of either uses that preference. Any other radius is cut
+/// as a region instead.
 /// </summary>
 public static class CornerShape
 {
@@ -14,29 +13,29 @@ public static class CornerShape
 
     private const int MaxSteps = 32;
 
-    public static CornerChoice For(int rounding, float power, double scale)
+    public static CornerChoice For(int rounding, double scale)
     {
         if (rounding <= 0)
             return CornerChoice.Square;
 
-        if (power == 2f && rounding == Round)
+        if (rounding == Round)
             return new CornerChoice(CornerPreference.Round, null);
 
-        if (power == 2f && rounding == RoundSmall)
+        if (rounding == RoundSmall)
             return new CornerChoice(CornerPreference.RoundSmall, null);
 
         var factor = scale is > 0 and < 1000 && double.IsFinite(scale) ? scale : 1;
-        var radius = Math.Round(rounding * (power / 2.0) * factor, MidpointRounding.AwayFromZero);
+        var radius = Math.Round(rounding * factor, MidpointRounding.AwayFromZero);
         if (radius < 1)
             return CornerChoice.Square;
 
-        return new CornerChoice(CornerPreference.DoNotRound, new CornerRegion((int)Math.Min(radius, int.MaxValue / 2), power));
+        return new CornerChoice(CornerPreference.DoNotRound, new CornerRegion((int)Math.Min(radius, int.MaxValue / 2)));
     }
 
     /// <summary>
     /// The outline of a <paramref name="width"/> by <paramref name="height"/> frame with these corners,
     /// clockwise from the left end of the top left corner. A radius larger than half the shorter
-    /// side is cut to that half. Each corner follows <c>|x|^power + |y|^power = radius^power</c>.
+    /// side is cut to that half. Each corner is a circle.
     /// </summary>
     public static IReadOnlyList<Point> Outline(int width, int height, CornerRegion region)
     {
@@ -47,13 +46,12 @@ public static class CornerShape
         if (radius <= 0)
             return [new Point(0, 0), new Point(width, 0), new Point(width, height), new Point(0, height)];
 
-        var power = float.IsFinite(region.Power) ? Math.Clamp(region.Power, 1f, 10f) : 2f;
         var steps = Math.Clamp(radius, 1, MaxSteps);
         var near = new (double Along, double Across)[steps + 1];
         for (var i = 0; i <= steps; i++)
         {
             var angle = Math.PI / 2 * i / steps;
-            near[i] = (Curve(Math.Cos(angle), power) * radius, Curve(Math.Sin(angle), power) * radius);
+            near[i] = (Math.Max(0, Math.Cos(angle)) * radius, Math.Max(0, Math.Sin(angle)) * radius);
         }
 
         var points = new List<Point>(4 * (steps + 1));
@@ -71,9 +69,6 @@ public static class CornerShape
 
         return points;
     }
-
-    private static double Curve(double value, float power) =>
-        Math.Pow(Math.Max(0, value), 2.0 / power);
 
     private static void Add(List<Point> points, double x, double y)
     {
@@ -97,8 +92,8 @@ public enum Corners
     All = TopLeft | TopRight | BottomLeft | BottomRight,
 }
 
-/// <summary>Corners cut from the window: a radius in physical pixels and the curve of <see cref="DecorationOptions.RoundingPower"/>.</summary>
-public readonly record struct CornerRegion(int Radius, float Power);
+/// <summary>Corners cut from the window: a circular radius in physical pixels.</summary>
+public readonly record struct CornerRegion(int Radius);
 
 /// <summary>The DWM corner preference for one Client, and the region to cut when no preference matches the radius.</summary>
 public readonly record struct CornerChoice(CornerPreference Preference, CornerRegion? Region)
