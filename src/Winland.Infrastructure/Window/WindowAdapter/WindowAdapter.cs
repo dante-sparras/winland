@@ -16,20 +16,18 @@ public sealed partial class WindowAdapter : IDisposable
     private const int LayeredStyle = 0x00080000;
     private const int ClickThroughStyle = 0x00000020;
 
-    private static readonly Lock ShowGate = new();
-    private static volatile bool Releasing;
+    private readonly Lock _showGate = new();
+    private volatile bool _releasing;
 
     // The windows Winland hid, so an application hiding its own window can be told from it.
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> Concealed = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> _concealed = new();
 
     // The windows the core was last told are disabled.
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> Disabled = new();
-    private static Action<Outcome>? Applied;
-    private static WindowManager? Session;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> _disabled = new();
 
     private readonly WindowManager _core;
+    private readonly IDesktop _desktop;
     private readonly Action? _changed;
-    private readonly Action<Outcome>? _publish;
     private readonly WINEVENTPROC _callback;
 
     // The object events OnEvent reads, as the fewest ranges that hold them. A range hooked wide delivers every event
@@ -55,55 +53,65 @@ public sealed partial class WindowAdapter : IDisposable
     private volatile RecoverySnapshot? _published;
     private bool _disposed;
 
-    // Apply is static because the keyboard hook and the command server both call it.
-    private static readonly HashSet<WindowId> Painted = [];
-    private static readonly OpacityAdapter Opacity = new(new Win32WindowStyles());
-    private static readonly BorderlessFrame Borderless = new(new Win32WindowFrame());
-    private static readonly DwmEffects Effects = new(new Win32DwmSurface());
-    private static readonly Lock PaintGate = new();
-    private static readonly ApplyOrder Order = new();
-    private static readonly Dictionary<WindowId, CachedFrame> Frames = [];
-    private static readonly Lock FrameGate = new();
+    private readonly HashSet<WindowId> _painted = [];
+    private readonly OpacityAdapter _opacity;
+    private readonly BorderlessFrame _borderless;
+    private readonly DwmEffects _effects;
+    private readonly Lock _paintGate = new();
+    private readonly ApplyOrder _order = new();
+    private readonly Dictionary<WindowId, CachedFrame> _frames = [];
+    private readonly Lock _frameGate = new();
+    private readonly Func<double> _clock;
+    private readonly MotionPlayer _motions;
 
     // Where Winland last asked each window to be, and the frames sent without waiting.
-    private static readonly QuickMove Quick = new();
+    private readonly QuickMove _quick = new();
 
-    private static int Applying;
+    private int _applying;
 
     private const long SettleMilliseconds = 1500;
 
     // Windows whose maximize request was just answered, and when they stop being watched for drifting off their tile.
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, long> Settling = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, long> _settling = new();
 
     /// <param name="changed">Called after an outcome is applied, to say the recovery snapshot is out of date. <see cref="Capture"/> builds the new one.</param>
     public WindowAdapter(WindowManager core, Action? changed = null)
+        : this(core, new Win32Desktop(), changed, null)
+    {
+    }
+
+    /// <param name="desktop">Where the windows are. Tests pass a stand-in.</param>
+    /// <param name="clock">Milliseconds, for the motions and for how long a window is given to paint what it gained.</param>
+    /// <param name="threaded">False leaves the motions to <see cref="Tick"/>.</param>
+    internal WindowAdapter(WindowManager core, IDesktop desktop, Action? changed, Func<double>? clock, bool threaded = true)
     {
         ArgumentNullException.ThrowIfNull(core);
+        ArgumentNullException.ThrowIfNull(desktop);
         _core = core;
+        _desktop = desktop;
+        _clock = clock ?? PresentClock.Now;
+        _opacity = new OpacityAdapter(desktop);
+        _borderless = new BorderlessFrame(desktop);
+        _effects = new DwmEffects(desktop);
+        _motions = new MotionPlayer(new MotionTarget(this), _clock, threaded);
         _core.ReducedMotion = ReducedMotion;
-        Session = core;
         GroupBarHost.Dispatch = (name, arguments) =>
         {
-            if (Session is WindowManager session)
-                Apply(session.Handle(new Dispatch(name, arguments)));
+            if (!_disposed)
+                Apply(_core.Handle(new Dispatch(name, arguments)));
         };
         GroupBarHost.Close = window =>
         {
-            if (Session is WindowManager session)
-                Apply(session.Handle(new GroupTabClosed(window)));
+            if (!_disposed)
+                Apply(_core.Handle(new GroupTabClosed(window)));
         };
         GroupBarHost.Scroll = (shown, forward) =>
         {
-            if (Session is WindowManager session)
-                Apply(session.Handle(new GroupBarScrolled(shown, forward)));
+            if (!_disposed)
+                Apply(_core.Handle(new GroupBarScrolled(shown, forward)));
         };
         _callback = OnEvent;
         _changed = changed;
-        if (changed is null)
-            return;
-
-        _publish = _ => Publish();
-        Applied = _publish;
     }
 
     public void Start()
@@ -179,20 +187,15 @@ public sealed partial class WindowAdapter : IDisposable
             return;
 
         _disposed = true;
-        if (_publish is not null && ReferenceEquals(Applied, _publish))
-            Applied = null;
-        if (ReferenceEquals(Session, _core))
-            Session = null;
-
         Release();
         LandMotions();
         ClearDecorations();
 
-        // Nothing hooks window events any more, so a later adapter in this process starts unreleased.
-        Releasing = false;
-        Borderless.Reopen();
-        Effects.Reopen();
-        Opacity.Reopen();
+        // Nothing hooks window events any more, so an outcome applied after this changes windows again.
+        _releasing = false;
+        _borderless.Reopen();
+        _effects.Reopen();
+        _opacity.Reopen();
     }
 
     private void OnEvent(
@@ -251,17 +254,17 @@ public sealed partial class WindowAdapter : IDisposable
                     Apply(_core.Handle(new WindowFocused(window, cause) { Clicked = cause == FocusCause.User ? InputClock.Clicked : null }));
                     return;
                 case PInvoke.EVENT_OBJECT_DESTROY:
-                    Concealed.TryRemove(window, out _);
-                    Disabled.TryRemove(window, out _);
-                    Settling.TryRemove(window, out _);
-                    Quick.Forget(window);
+                    _concealed.TryRemove(window, out _);
+                    _disabled.TryRemove(window, out _);
+                    _settling.TryRemove(window, out _);
+                    _quick.Forget(window);
                     AbandonDrag(window);
                     ForgetLimits(window);
                     ForgetProbe(window);
                     _declined.Forget(window);
                     Apply(_core.Handle(new WindowClosed(window)));
                     // A window held when it was created may never have been shown.
-                    Opacity.Forget(window);
+                    _opacity.Forget(window);
                     return;
                 case PInvoke.EVENT_OBJECT_LOCATIONCHANGE:
                     if (Decide(hwnd, window))
@@ -270,7 +273,7 @@ public sealed partial class WindowAdapter : IDisposable
                     if (_sizing == window)
                     {
                         FollowSizing(window);
-                        Effects.Refit(window);
+                        _effects.Refit(window);
                         return;
                     }
 
@@ -280,19 +283,19 @@ public sealed partial class WindowAdapter : IDisposable
                         return;
                     }
 
-                    if (Volatile.Read(ref Applying) == 0)
+                    if (Volatile.Read(ref _applying) == 0)
                     {
                         // A frame or a placement Winland sent arrives here too, often after Apply returned. Asking
                         // the window for its limits again would wait on a window that is busy taking it. A move the
                         // application made itself lands somewhere Winland did not put it, and is still read.
-                        if (!(TryOuter(hwnd, out var now) && Quick.Ours(window, now)))
+                        if (!(TryOuter(window, out var now) && _quick.Ours(window, now)))
                             RereadLimits(hwnd, window);
 
                         ReportResize(hwnd, window);
                         PutBackIfDrifted(hwnd, window);
                     }
 
-                    Effects.Refit(window);
+                    _effects.Refit(window);
                     return;
                 case PInvoke.EVENT_SYSTEM_MOVESIZESTART:
                     BeginMove(hwnd, window);
@@ -323,7 +326,7 @@ public sealed partial class WindowAdapter : IDisposable
                         Minimized: PInvoke.IsIconic(hwnd),
                         Visible: PInvoke.IsWindowVisible(hwnd),
                         Managed: _core.Manages(window),
-                        Concealed: Concealed.ContainsKey(window),
+                        Concealed: _concealed.ContainsKey(window),
                         Declined: @event == PInvoke.EVENT_OBJECT_NAMECHANGE
                             && _declined.Unchanged(window, _core.RulesMatchTitles, _core.RuleRevision, () => RuleClass(hwnd)));
                     switch (WindowVisibility.Decide(@event, facts))
@@ -352,7 +355,7 @@ public sealed partial class WindowAdapter : IDisposable
                         // made transparent now, while nothing shows it, and is held until it is adopted when shown.
                         case VisibilityAction.Adopt when !facts.Visible:
                             if (@event == PInvoke.EVENT_OBJECT_CREATE && Holds(hwnd))
-                                Opacity.Apply(window, 0);
+                                _opacity.Apply(window, 0);
                             break;
                         case VisibilityAction.Adopt:
                             if (@event is PInvoke.EVENT_OBJECT_SHOW or PInvoke.EVENT_OBJECT_UNCLOAKED or PInvoke.EVENT_OBJECT_CREATE)
@@ -376,9 +379,9 @@ public sealed partial class WindowAdapter : IDisposable
     private void AdoptHidden(HWND hwnd, WindowId window)
     {
         // A window held since it was created stays held, even if it no longer looks like one to hold.
-        var held = Opacity.Wanted(window) == 0 || Holds(hwnd);
+        var held = _opacity.Wanted(window) == 0 || Holds(hwnd);
         if (held)
-            Opacity.Apply(window, 0);
+            _opacity.Apply(window, 0);
 
         try
         {
@@ -388,10 +391,10 @@ public sealed partial class WindowAdapter : IDisposable
         {
             if (held)
             {
-                lock (Motions.For(window))
+                lock (_motions.For(window))
                 {
-                    if (!Motions.Running(window) && Opacity.Wanted(window) == 0)
-                        Opacity.Apply(window, 255);
+                    if (!_motions.Running(window) && _opacity.Wanted(window) == 0)
+                        _opacity.Apply(window, 255);
                 }
             }
         }
@@ -413,18 +416,18 @@ public sealed partial class WindowAdapter : IDisposable
     private void NoteEnabled(HWND hwnd, WindowId window)
     {
         var disabled = !PInvoke.IsWindowEnabled(hwnd);
-        if (disabled ? !Disabled.TryAdd(window, 0) : !Disabled.TryRemove(window, out _))
+        if (disabled ? !_disabled.TryAdd(window, 0) : !_disabled.TryRemove(window, out _))
             return;
 
         Apply(_core.Handle(new WindowEnabledChanged(window, !disabled)));
     }
 
-    private static bool Note(WindowId window, bool disabled)
+    private bool Note(WindowId window, bool disabled)
     {
         if (disabled)
-            Disabled[window] = 0;
+            _disabled[window] = 0;
         else
-            Disabled.TryRemove(window, out _);
+            _disabled.TryRemove(window, out _);
 
         return disabled;
     }

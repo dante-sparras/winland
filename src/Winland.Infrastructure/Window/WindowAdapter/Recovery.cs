@@ -1,4 +1,3 @@
-using Windows.Win32;
 using Windows.Win32.Foundation;
 
 namespace Winland.Infrastructure;
@@ -25,7 +24,7 @@ public sealed partial class WindowAdapter : IDisposable
 
             // Nothing minimizes under Winland, so a window that is minimized now was minimized while it was away.
             // It does not rejoin, but one that was hidden is still shown again, minimized.
-            if (PInvoke.IsIconic(new HWND((nint)client.Window.Value)))
+            if (_desktop.Minimized(client.Window))
             {
                 if (client.Hidden)
                     Reveal(client.Window);
@@ -45,8 +44,7 @@ public sealed partial class WindowAdapter : IDisposable
             if (!client.Hidden)
                 continue;
 
-            var hwnd = new HWND((nint)client.Window.Value);
-            if (PInvoke.IsWindow(hwnd))
+            if (_desktop.Exists(client.Window))
                 Reveal(client.Window);
         }
 
@@ -66,16 +64,16 @@ public sealed partial class WindowAdapter : IDisposable
 
     // A previous run that died left its changes on the window. They are put back before anything reads the
     // window, so a stripped frame or a cut region is not taken as the window's own.
-    private static void Repair(RecoveredClient client)
+    private void Repair(RecoveredClient client)
     {
         if (client.FrameStyle is uint style)
-            Borderless.PutBack(client.Window, style);
+            _borderless.PutBack(client.Window, style);
 
         if (client.Region)
-            Effects.DropLeftoverRegion(client.Window);
+            _effects.DropLeftoverRegion(client.Window);
 
         if (client.Layered)
-            Opacity.ReleaseAdded(client.Window);
+            _opacity.ReleaseAdded(client.Window);
     }
 
     public void RevealHidden()
@@ -88,14 +86,13 @@ public sealed partial class WindowAdapter : IDisposable
                 hidden.Add(client.Window);
         }
 
-        lock (ShowGate)
+        lock (_showGate)
         {
-            Releasing = true;
+            _releasing = true;
             foreach (var window in hidden)
             {
-                var hwnd = new HWND((nint)window.Value);
-                if (PInvoke.IsWindow(hwnd))
-                    ShowConcealed(hwnd);
+                if (_desktop.Exists(window))
+                    ShowConcealed(window);
             }
         }
     }
@@ -103,7 +100,7 @@ public sealed partial class WindowAdapter : IDisposable
     // Says the snapshot is out of date. Building it takes the core lock, so its owner does that later, off this thread.
     internal void Publish()
     {
-        if (Releasing)
+        if (_releasing)
             return;
 
         _changed?.Invoke();
@@ -112,7 +109,7 @@ public sealed partial class WindowAdapter : IDisposable
     /// <summary>The newest recovery snapshot, or null once the exit cleanup began.</summary>
     internal RecoverySnapshot? Capture()
     {
-        if (Releasing)
+        if (_releasing)
             return null;
 
         var snapshot = Stamp(_core.Recovery());
@@ -127,8 +124,8 @@ public sealed partial class WindowAdapter : IDisposable
     /// </summary>
     internal void Salvage()
     {
-        Releasing = true;
-        var hidden = new HashSet<WindowId>(Concealed.Keys);
+        _releasing = true;
+        var hidden = new HashSet<WindowId>(_concealed.Keys);
         if (_published is RecoverySnapshot snapshot)
         {
             foreach (var client in snapshot.Clients)
@@ -140,15 +137,14 @@ public sealed partial class WindowAdapter : IDisposable
 
         foreach (var window in hidden)
         {
-            var hwnd = new HWND((nint)window.Value);
-            if (PInvoke.IsWindow(hwnd))
-                ShowConcealed(hwnd);
+            if (_desktop.Exists(window))
+                ShowConcealed(window);
         }
 
         PutBackFrames();
     }
 
     // What this run changed on each Client's window, so a restart after a crash can put it back.
-    private static RecoverySnapshot Stamp(RecoverySnapshot snapshot) =>
-        Effects.Stamp(Borderless.Stamp(Opacity.Stamp(snapshot)));
+    private RecoverySnapshot Stamp(RecoverySnapshot snapshot) =>
+        _effects.Stamp(_borderless.Stamp(_opacity.Stamp(snapshot)));
 }

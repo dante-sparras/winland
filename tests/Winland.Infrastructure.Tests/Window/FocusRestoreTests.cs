@@ -64,7 +64,7 @@ public class FocusRestoreTests
             return "The focus thief was not built at " + exe;
 
         var core = new WindowManager();
-        using var keys = new KeyboardHook(core);
+        using var keys = new KeyboardHook(core, _ => { });
         using var mouse = new MouseHook(core, keys);
         keys.Start();
         mouse.Start();

@@ -120,7 +120,7 @@ public class WindowEventTests
         core.Handle(new WindowAppeared(window, Area) { Traits = WindowTraits.Normal });
         var away = core.Handle(new Dispatch("workspace", "2"));
         Assert.Contains(window, away.Hide);
-        WindowAdapter.Apply(away);
+        adapter.Apply(away);
 
         adapter.Notice(Events.EVENT_OBJECT_HIDE, (nint)window.Value);
 

@@ -46,6 +46,7 @@ public sealed partial class KeyboardHook : IDisposable
     private static int _relayed;
 
     private readonly WindowManager _core;
+    private readonly Action<Outcome> _apply;
     private readonly BindSession _session;
     private readonly HOOKPROC _callback;
     // The callback must return before any dispatcher work, so it only posts here. Moves that pile
@@ -72,16 +73,18 @@ public sealed partial class KeyboardHook : IDisposable
 
     internal BindSession Session => _session;
 
-    public KeyboardHook(WindowManager core)
-        : this(core, core.KeyState)
+    public KeyboardHook(WindowManager core, Action<Outcome> apply)
+        : this(core, core.KeyState, apply)
     {
     }
 
-    public KeyboardHook(WindowManager core, BindSession session)
+    public KeyboardHook(WindowManager core, BindSession session, Action<Outcome> apply)
     {
         ArgumentNullException.ThrowIfNull(core);
         ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(apply);
         _core = core;
+        _apply = apply;
         _session = session;
         _callback = OnKeyboard;
     }

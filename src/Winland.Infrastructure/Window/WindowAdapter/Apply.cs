@@ -1,35 +1,34 @@
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Dwm;
-using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winland.Infrastructure;
 
 /// <summary>Carries out an Outcome: placements, focus, z-order, hiding and showing, closing and killing.</summary>
 public sealed partial class WindowAdapter : IDisposable
 {
-    internal static void Apply(Outcome outcome)
+    internal void Apply(Outcome outcome)
     {
         // The step asked for nothing the last outcome did not already do, so no window, border, bar or snapshot is touched.
         if (outcome.IsEmpty)
             return;
 
-        var admitted = Order.Admit(outcome);
-        Interlocked.Increment(ref Applying);
+        var admitted = _order.Admit(outcome);
+        Interlocked.Increment(ref _applying);
         try
         {
             ApplyCore(admitted.Outcome, admitted.Current);
         }
         finally
         {
-            Interlocked.Decrement(ref Applying);
+            Interlocked.Decrement(ref _applying);
         }
     }
 
     // An outcome that is not current lost its stale parts in Order.Admit. The state every outcome carries
     // whole, the group bars, the input settings and the cursor behavior, is left to the newer outcome that
     // was already applied. Its one-off requests still run.
-    private static void ApplyCore(Outcome outcome, bool current)
+    private void ApplyCore(Outcome outcome, bool current)
     {
         var windows = new Dictionary<ClientId, WindowId>(outcome.State.Clients.Count);
         foreach (var client in outcome.State.Clients)
@@ -37,7 +36,7 @@ public sealed partial class WindowAdapter : IDisposable
 
         // Once the exit cleanup began, nothing starts a motion that would change alpha or the border again.
         // The frame, effects and alpha refuse changes themselves once they were put back.
-        var motions = Releasing ? [] : MotionsOf(outcome);
+        var motions = _releasing ? [] : MotionsOf(outcome);
         foreach (var window in outcome.Hide)
             ConcealOrLeave(window, motions);
 
@@ -57,7 +56,7 @@ public sealed partial class WindowAdapter : IDisposable
                 continue;
 
             var fills = borderless.Contains(window);
-            Borderless.Apply(window, fills);
+            _borderless.Apply(window, fills);
             // A step of a drag moves the dragged window at once, and a window the drag moves out of its way animates.
             if (outcome.Live && !motions.ContainsKey(window))
                 PlaceLive(window, placement.Bounds, fills, motions);
@@ -79,7 +78,7 @@ public sealed partial class WindowAdapter : IDisposable
         // The foreground moves first: Windows brings the window it focuses to the top, and the z-order requests then put
         // the floating Clients back above it.
         if (outcome.Focus is WindowId focus)
-            _ = Foreground.MoveTo(focus);
+            _ = _desktop.Foreground(focus);
 
         Restack(outcome.ZOrder);
 
@@ -87,20 +86,20 @@ public sealed partial class WindowAdapter : IDisposable
         {
             var pid = ProcessLauncher.TryLaunch(launch);
             if (pid is int id)
-                Session?.NoteLaunched(id, launch);
+                _core.NoteLaunched(id, launch);
         }
 
         var rings = new Dictionary<WindowId, BorderRing>();
-        lock (PaintGate)
+        lock (_paintGate)
         {
-            if (!Releasing)
+            if (!_releasing)
             {
                 foreach (var window in outcome.ResetDecorations)
                 {
                     DropMotion(window);
-                    Borderless.Release(window);
+                    _borderless.Release(window);
                     ResetDecoration(window);
-                    Painted.Remove(window);
+                    _painted.Remove(window);
                 }
 
                 foreach (var decoration in outcome.Decorations)
@@ -109,7 +108,7 @@ public sealed partial class WindowAdapter : IDisposable
                         continue;
 
                     Paint(window, decoration);
-                    Painted.Add(window);
+                    _painted.Add(window);
                     if (decoration.Ring is BorderRing ring)
                         rings[window] = ring;
                 }
@@ -120,7 +119,7 @@ public sealed partial class WindowAdapter : IDisposable
             }
         }
 
-        if (!Releasing && current)
+        if (!_releasing && current)
         {
             if (outcome.Decorations.Count > 0 || outcome.ResetDecorations.Count > 0)
                 BorderHost.Update(rings);
@@ -134,7 +133,8 @@ public sealed partial class WindowAdapter : IDisposable
         else
             SessionEffects.ApplyOneOff(outcome);
 
-        Applied?.Invoke(outcome);
+        if (!_disposed)
+            Publish();
 
         foreach (var kill in outcome.Kills)
             Kill(kill);
@@ -164,48 +164,45 @@ public sealed partial class WindowAdapter : IDisposable
     // and the switcher lists visible, uncloaked, ownerless top-level windows.
     // A minimized window stays visible, so it is hidden too. Showing it again uses
     // SW_SHOWMINNOACTIVE while it is iconic, which puts it back without restoring it.
-    private static void Conceal(WindowId window)
+    private void Conceal(WindowId window)
     {
-        lock (ShowGate)
+        lock (_showGate)
         {
-            if (Releasing)
+            if (_releasing)
                 return;
 
             // The hide this causes is reported like an application's own, so it is noted first.
-            Concealed[window] = 0;
-            ShowOrPost(new HWND((nint)window.Value), SHOW_WINDOW_CMD.SW_HIDE);
+            _concealed[window] = 0;
+            ShowOrPost(window, ShowAs.Hide);
         }
     }
 
-    private static void Reveal(WindowId window)
+    private void Reveal(WindowId window)
     {
-        lock (ShowGate)
+        lock (_showGate)
         {
-            if (Releasing)
+            if (_releasing)
                 return;
 
-            ShowConcealed(new HWND((nint)window.Value));
+            ShowConcealed(window);
         }
     }
 
-    private static void ShowConcealed(HWND hwnd)
+    private void ShowConcealed(WindowId window)
     {
-        Concealed.TryRemove(new WindowId(((IntPtr)hwnd).ToInt64()), out _);
-        var command = PInvoke.IsIconic(hwnd)
-            ? SHOW_WINDOW_CMD.SW_SHOWMINNOACTIVE
-            : SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE;
-        ShowOrPost(hwnd, command);
+        _concealed.TryRemove(window, out _);
+        ShowOrPost(window, _desktop.Minimized(window) ? ShowAs.ShowMinimized : ShowAs.Show);
     }
 
     // ShowWindow waits for the window's thread, which a program that has stopped answering does not give. That window is
     // posted the command instead and takes it when the program wakes. A window that answers is waited for, because what
     // follows, such as putting a hidden window back on its Layout rectangle, needs it already hidden.
-    private static void ShowOrPost(HWND hwnd, SHOW_WINDOW_CMD command)
+    private void ShowOrPost(WindowId window, ShowAs show)
     {
-        if (PInvoke.IsHungAppWindow(hwnd))
-            PInvoke.ShowWindowAsync(hwnd, command);
+        if (_desktop.Hung(window))
+            _desktop.ShowAsync(window, show);
         else
-            PInvoke.ShowWindow(hwnd, command);
+            _desktop.Show(window, show);
     }
 
     internal static string WindowTitle(HWND hwnd)

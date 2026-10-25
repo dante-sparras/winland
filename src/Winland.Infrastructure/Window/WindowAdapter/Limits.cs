@@ -17,7 +17,7 @@ public sealed partial class WindowAdapter : IDisposable
         if (!PInvoke.IsWindow(hwnd))
             return;
 
-        var insets = InsetsFor(window, hwnd, (int)PInvoke.GetDpiForWindow(hwnd));
+        var insets = InsetsFor(window, _desktop.Dpi(window));
         if (!WindowLimits.TryRead(hwnd, insets, out var min, out var max))
             return;
 
@@ -48,7 +48,7 @@ public sealed partial class WindowAdapter : IDisposable
 
         Size? min = null;
         Size? max = null;
-        var insets = InsetsFor(window, hwnd, (int)PInvoke.GetDpiForWindow(hwnd));
+        var insets = InsetsFor(window, _desktop.Dpi(window));
         if (WindowLimits.TryRead(hwnd, insets, out var readMin, out var readMax))
         {
             min = readMin;

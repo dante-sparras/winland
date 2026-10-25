@@ -12,6 +12,7 @@ public sealed class CommandServer : IDisposable
     private const int SubscriberQueueCapacity = 256;
 
     private readonly WindowManager _core;
+    private readonly Action<Outcome> _apply;
     private readonly string _pipeName;
     private readonly CancellationTokenSource _cancel = new();
     private readonly object _sync = new();
@@ -40,10 +41,12 @@ public sealed class CommandServer : IDisposable
 
     private static readonly TimeSpan LastRetry = TimeSpan.FromSeconds(2);
 
-    public CommandServer(WindowManager core, string? pipeName = null)
+    public CommandServer(WindowManager core, Action<Outcome> apply, string? pipeName = null)
     {
         ArgumentNullException.ThrowIfNull(core);
+        ArgumentNullException.ThrowIfNull(apply);
         _core = core;
+        _apply = apply;
         _pipeName = pipeName ?? CommandProtocol.PipeName;
         _core.Noticed += OnNoticed;
     }
@@ -469,7 +472,7 @@ public sealed class CommandServer : IDisposable
     }
 
     // The adapter asks the window to close, after its close animation when it has one.
-    private static void Apply(Outcome outcome) => WindowAdapter.Apply(outcome);
+    private void Apply(Outcome outcome) => _apply(outcome);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct PipeSecurityAttributes

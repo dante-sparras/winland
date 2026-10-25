@@ -79,7 +79,7 @@ public sealed partial class KeyboardHook : IDisposable
     }
 
     // The adapter asks the window to close, after its close animation when it has one.
-    private static void Apply(Outcome outcome) => WindowAdapter.Apply(outcome);
+    private void Apply(Outcome outcome) => _apply(outcome);
 
     private LRESULT Next(int code, WPARAM wParam, LPARAM lParam) =>
         PInvoke.CallNextHookEx(_hook, code, wParam, lParam);

@@ -12,6 +12,7 @@ public sealed class SlowWindowTests : IDisposable
     private const int Delay = 60;
 
     private readonly SlowWindow _window = new();
+    private readonly WindowAdapter _adapter = new(new WindowManager());
 
     public SlowWindowTests() => _window.Open();
 
@@ -32,19 +33,23 @@ public sealed class SlowWindowTests : IDisposable
 
         // The first call compiles the path, which is not what this measures.
         var warm = new Rectangle(240, 220, 500, 400);
-        WindowAdapter.QuickPlace(window, warm, borderless: true);
+        _adapter.QuickPlace(window, warm, borderless: true);
         Assert.True(SpinWait.SpinUntil(() => _window.Outer == warm, TimeSpan.FromSeconds(3)), $"the window is at {_window.Outer}");
 
         var target = new Rectangle(300, 260, 520, 410);
         var watch = Stopwatch.StartNew();
-        WindowAdapter.QuickPlace(window, target, borderless: true);
+        _adapter.QuickPlace(window, target, borderless: true);
         var took = watch.ElapsedMilliseconds;
 
         Assert.True(took < Delay / 2, $"took {took} ms");
         Assert.True(SpinWait.SpinUntil(() => _window.Outer == target, TimeSpan.FromSeconds(3)), $"the window is at {_window.Outer}");
     }
 
-    public void Dispose() => _window.Dispose();
+    public void Dispose()
+    {
+        _adapter.Dispose();
+        _window.Dispose();
+    }
 
     private sealed class SlowWindow : IDisposable
     {
