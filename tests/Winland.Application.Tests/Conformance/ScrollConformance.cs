@@ -228,31 +228,14 @@ public class ScrollConformance
         desk.Spawn("fs");
         desk.Spawn("normal2");
 
-        foreach (var cycles in new[] { "false", "true" })
+        desk.Ok("focuswindow", "class:fs");
+        desk.Ok("fullscreen", "0 set");
+        ExpectActiveFullscreen(desk, "fs", 2);
+
+        foreach (var direction in new[] { "r", "l", "u", "d" })
         {
-            Assert.Equal("ok", desk.Send("r/keyword binds:movefocus_cycles_fullscreen " + cycles));
-            desk.Ok("focuswindow", "class:fs");
-            desk.Ok("fullscreen", "0 set");
+            desk.Ok("movefocus", direction);
             ExpectActiveFullscreen(desk, "fs", 2);
-
-            if (cycles == "false")
-            {
-                foreach (var direction in new[] { "r", "l", "u", "d" })
-                {
-                    desk.Ok("movefocus", direction);
-                    ExpectActiveFullscreen(desk, "fs", 2);
-                }
-
-                continue;
-            }
-
-            desk.Ok("movefocus", "l");
-            ExpectActiveFullscreen(desk, "normal1", 0);
-            Assert.Equal("22,22", desk.ActivePlace().At);
-
-            desk.Ok("movefocus", "r");
-            ExpectActiveFullscreen(desk, "fs", 2);
-            Assert.Equal("0,0", desk.ActivePlace().At);
         }
     }
 
@@ -651,39 +634,34 @@ public class ScrollConformance
         var desk = new Desk(Scrolling);
         desk.AddMonitor("HEADLESS-3", Desk.Second);
 
-        foreach (var method in new[] { "0", "1" })
+        desk.Ok("focusmonitor", "HEADLESS-2");
+        desk.Spawn("a");
+
+        desk.Ok("focusmonitor", "HEADLESS-3");
+        foreach (var name in new[] { "b", "c", "d" })
         {
-            desk.Keyword("binds:focus_preferred_method", method);
-
-            desk.Ok("focusmonitor", "HEADLESS-2");
-            desk.Spawn("a");
-
-            desk.Ok("focusmonitor", "HEADLESS-3");
-            foreach (var name in new[] { "b", "c", "d" })
-            {
-                desk.Spawn(name);
-                desk.Ok("focuswindow", "class:" + name);
-            }
-
-            Assert.Equal("d", desk.ActiveClass());
-            foreach (var (direction, expected) in new[] { ("l", "c"), ("l", "b"), ("l", "a"), ("r", "b"), ("r", "c"), ("r", "d"), ("l", "c") })
-            {
-                desk.Ok("movefocus", direction);
-                Assert.Equal(expected, desk.ActiveClass());
-            }
-
-            desk.Ok("focusmonitor", "HEADLESS-2");
-            Assert.Equal("a", desk.ActiveClass());
-
-            desk.Ok("focusmonitor", "HEADLESS-3");
-            Assert.Equal("c", desk.ActiveClass());
-
-            desk.Ok("movefocus", "l");
-            Assert.Equal("b", desk.ActiveClass());
-
-            CloseAll(desk);
-            Assert.Empty(desk.Clients());
+            desk.Spawn(name);
+            desk.Ok("focuswindow", "class:" + name);
         }
+
+        Assert.Equal("d", desk.ActiveClass());
+        foreach (var (direction, expected) in new[] { ("l", "c"), ("l", "b"), ("l", "a"), ("r", "b"), ("r", "c"), ("r", "d"), ("l", "c") })
+        {
+            desk.Ok("movefocus", direction);
+            Assert.Equal(expected, desk.ActiveClass());
+        }
+
+        desk.Ok("focusmonitor", "HEADLESS-2");
+        Assert.Equal("a", desk.ActiveClass());
+
+        desk.Ok("focusmonitor", "HEADLESS-3");
+        Assert.Equal("c", desk.ActiveClass());
+
+        desk.Ok("movefocus", "l");
+        Assert.Equal("b", desk.ActiveClass());
+
+        CloseAll(desk);
+        Assert.Empty(desk.Clients());
     }
 
     // Shared by the layout handled and default handled cases. The default handled one asks for the default fullscreen.
@@ -750,12 +728,6 @@ public class ScrollConformance
     {
         Assert.Equal(windowClass, desk.ActiveClass());
         ExpectFullscreen(desk, mode, mode);
-    }
-
-    private static void ExpectPin(JsonElement client, bool pinned, bool pinFullscreened)
-    {
-        Assert.Equal(pinned, Desk.Pinned(client));
-        Assert.Equal(pinFullscreened, client.GetProperty("pinFullscreened").GetBoolean());
     }
 
     // The fields the reference reads from a client block. A null field is one the reference does not check there.

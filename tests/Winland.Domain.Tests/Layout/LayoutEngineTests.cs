@@ -389,7 +389,7 @@ public class LayoutEngineTests
         {
             box = window == Window(1) ? origin : other;
             return true;
-        });
+        }, _ => 0);
     }
 
     private static Layout ThreeColumns()

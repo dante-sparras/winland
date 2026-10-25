@@ -16,7 +16,7 @@ public class IpcJsonTests
 
         const string Client =
             """
-            {"address":"0x2a","mapped":true,"hidden":false,"visible":true,"acceptsInput":true,"at":[0,0],"size":[800,600],"workspace":{"address":"1","id":1,"type":"normal","name":"1","monitor":""},"floating":false,"monitor":0,"class":"kitty","title":"term","initialClass":"kitty","initialTitle":"term","pid":4242,"pinned":false,"pinFullscreened":false,"fullscreen":0,"fullscreenClient":0,"fullscreenHandler":"default","allowedOverFullscreen":true,"grouped":[],"stableId":"2a"}
+            {"address":"0x2a","mapped":true,"hidden":false,"visible":true,"acceptsInput":true,"at":[0,0],"size":[800,600],"workspace":{"address":"1","id":1,"type":"normal","name":"1","monitor":""},"floating":false,"monitor":0,"class":"kitty","title":"term","initialClass":"kitty","initialTitle":"term","pid":4242,"pinned":false,"fullscreen":0,"fullscreenClient":0,"fullscreenHandler":"default","allowedOverFullscreen":true,"grouped":[],"stableId":"2a"}
             """;
 
         Assert.Equal("[" + Client + "]", core.Execute("j/clients").Text);

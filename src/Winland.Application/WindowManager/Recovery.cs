@@ -119,8 +119,7 @@ public sealed partial class WindowManager
                 Bounds: SlotOf(client),
                 Pinned: client.Pinned,
                 Fullscreen: client.Fullscreen,
-                FullscreenClient: client.FullscreenClient,
-                PinHeld: client.PinFullscreened)
+                FullscreenClient: client.FullscreenClient)
             {
                 MonitorIdentity = identity,
             };

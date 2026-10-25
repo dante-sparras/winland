@@ -87,7 +87,7 @@ public static partial class CommandProtocol
             .Append(CultureInfo.InvariantCulture, $"\tworkspace: {client.Workspace.Address} ({client.Workspace.Name}) on monitor {client.Workspace.Monitor}\n\tfloating: {Bit(client.Floating)}\n")
             .Append(CultureInfo.InvariantCulture, $"\tmonitor: {client.Monitor}\n\tclass: {client.Class}\n\ttitle: {client.Title}\n")
             .Append(CultureInfo.InvariantCulture, $"\tinitialClass: {client.InitialClass}\n\tinitialTitle: {client.InitialTitle}\n\tpid: {client.Pid}\n")
-            .Append(CultureInfo.InvariantCulture, $"\tpinned: {Bit(client.Pinned)}\n\tpinFullscreened: {Bit(client.PinFullscreened)}\n")
+            .Append(CultureInfo.InvariantCulture, $"\tpinned: {Bit(client.Pinned)}\n")
             .Append(CultureInfo.InvariantCulture, $"\tfullscreen: {client.Fullscreen}\n\tfullscreenClient: {client.FullscreenClient}\n\tfullscreenHandler: {client.FullscreenHandler}\n")
             .Append(CultureInfo.InvariantCulture, $"\tallowedOverFullscreen: {Bit(client.AllowedOverFullscreen)}\n\tgrouped: {grouped}\n")
             .Append(CultureInfo.InvariantCulture, $"\tstableID: {client.StableId}\n\n");

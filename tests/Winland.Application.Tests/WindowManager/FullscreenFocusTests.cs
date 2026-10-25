@@ -47,29 +47,6 @@ public class FullscreenFocusTests
         Assert.Equal(new WindowId(1), over.Focus);
     }
 
-    [Theory]
-    [InlineData("", false)]
-    [InlineData("binds:allow_pin_fullscreen = true", true)]
-    [InlineData("binds:allow_pin_fullscreen = 1", true)]
-    [InlineData("binds:allow_pin_fullscreen = no", false)]
-    public void AllowPinFullscreenReadsAFlag(string line, bool expected)
-    {
-        var session = SessionOptions.From(ConfigParser.Parse(line));
-
-        Assert.Equal(expected, session.AllowPinFullscreen);
-    }
-
-    [Theory]
-    [InlineData("", false)]
-    [InlineData("binds:movefocus_cycles_fullscreen = true", true)]
-    [InlineData("binds:movefocus_cycles_fullscreen = 0", false)]
-    public void MoveFocusCyclesFullscreenReadsAFlag(string line, bool expected)
-    {
-        var session = SessionOptions.From(ConfigParser.Parse(line));
-
-        Assert.Equal(expected, session.MoveFocusCyclesFullscreen);
-    }
-
     private static WindowManager Desk()
     {
         var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n"));

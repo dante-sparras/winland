@@ -2,17 +2,16 @@ namespace Winland.Domain;
 
 /// <summary>
 /// The Client next to a rectangle in a direction: one that touches or slightly overlaps that side and
-/// shares more than a pixel of its length with it. Among those, <c>binds:focus_preferred_method</c> 0 picks
-/// the one focused most recently and 1 the one that shares the most length. Dwindle moves focus
-/// and windows this way, and so does a move onto the next Monitor. A floating Client looks by angle instead.
+/// shares more than a pixel of its length with it. Among those, the one focused most recently wins. Dwindle moves
+/// focus and windows this way, and so does a move onto the next Monitor. A floating Client looks by angle instead.
 /// </summary>
 internal static class DirectionalNeighbor
 {
     public delegate bool BoxOf(WindowId window, out Rectangle box);
 
     /// <summary>
-    /// <paramref name="recency"/> ranks a window by how recently it was focused, higher being more recent. With it the
-    /// most recent candidate wins, and the first one wins a tie. Without it the longest shared length wins.
+    /// <paramref name="recency"/> ranks a window by how recently it was focused, higher being more recent. The
+    /// most recent candidate wins, and the first one wins a tie.
     /// </summary>
     public static WindowId? Find(
         IReadOnlyList<Client> clients,
@@ -21,22 +20,22 @@ internal static class DirectionalNeighbor
         WindowId except,
         bool floating,
         BoxOf boxOf,
-        Func<WindowId, int>? recency = null)
+        Func<WindowId, int> recency)
     {
         ArgumentNullException.ThrowIfNull(clients);
         ArgumentNullException.ThrowIfNull(boxOf);
         WindowId? best = null;
-        var leader = recency is null ? 1.0 : -1.0;
+        var leader = -1;
         foreach (var client in clients)
         {
             if (client.Window == except || client.Minimized || client.Floating != floating)
                 continue;
             if (!boxOf(client.Window, out var box))
                 continue;
-            if (!Overlap(origin, box, side, out var overlap))
+            if (!Overlap(origin, box, side))
                 continue;
 
-            var value = recency is null ? overlap : recency(client.Window);
+            var value = recency(client.Window);
             if (value <= leader)
                 continue;
 
@@ -96,7 +95,7 @@ internal static class DirectionalNeighbor
 
     private static double Middle(int start, int size) => start + (size / 2.0);
 
-    private static bool Overlap(Rectangle origin, Rectangle other, Side side, out double overlap)
+    private static bool Overlap(Rectangle origin, Rectangle other, Side side)
     {
         var adjacent = side switch
         {
@@ -107,11 +106,12 @@ internal static class DirectionalNeighbor
             _ => false,
         };
 
-        overlap = adjacent
-            ? side is Side.Left or Side.Right
-                ? Shared(origin.Y, origin.Height, other.Y, other.Height)
-                : Shared(origin.X, origin.Width, other.X, other.Width)
-            : 0;
+        if (!adjacent)
+            return false;
+
+        var overlap = side is Side.Left or Side.Right
+            ? Shared(origin.Y, origin.Height, other.Y, other.Height)
+            : Shared(origin.X, origin.Width, other.X, other.Width);
         return overlap > 1;
     }
 

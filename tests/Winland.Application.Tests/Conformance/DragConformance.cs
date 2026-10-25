@@ -13,7 +13,7 @@ public class DragConformance
     [Fact]
     public void DragTiledCentered()
     {
-        var desk = new Desk("binds {\n    drag_center_window = true\n}\n" + DragOnLeftButton);
+        var desk = new Desk(DragOnLeftButton);
         desk.Spawn("kitty");
         Assert.Single(desk.Clients());
         desk.Ok("focuswindow", "class:kitty");
@@ -33,31 +33,9 @@ public class DragConformance
     }
 
     [Fact]
-    public void DragTiledProportional()
-    {
-        var desk = new Desk("binds {\n    drag_center_window = false\n}\n" + DragOnLeftButton);
-        desk.Spawn("kitty");
-        Assert.Single(desk.Clients());
-        desk.Ok("focuswindow", "class:kitty");
-
-        // Grab three quarters across and down the tiled window.
-        var (grabX, grabY) = Grab(desk);
-        MoveCursor(desk, grabX, grabY);
-        Click(desk, pressed: true);
-        MoveCursor(desk, 700, 500);
-
-        // The window shrinks as it floats, but the cursor still sits three quarters across and down.
-        var moved = Active(desk);
-        Assert.True(Nearly(moved.X + (moved.Width * 3 / 4), 700));
-        Assert.True(Nearly(moved.Y + (moved.Height * 3 / 4), 500));
-
-        Click(desk, pressed: false);
-    }
-
-    [Fact]
     public void DragFullscreenCentered()
     {
-        var desk = new Desk("binds {\n    drag_center_window = true\n}\n" + DragOnLeftButton);
+        var desk = new Desk(DragOnLeftButton);
         desk.Spawn("kitty");
         Assert.Single(desk.Clients());
         desk.Ok("focuswindow", "class:kitty");
@@ -82,33 +60,6 @@ public class DragConformance
     }
 
     [Fact]
-    public void DragFullscreenProportional()
-    {
-        var desk = new Desk("binds {\n    drag_center_window = false\n}\n" + DragOnLeftButton);
-        desk.Spawn("kitty");
-        Assert.Single(desk.Clients());
-        desk.Ok("focuswindow", "class:kitty");
-        desk.Ok("setfloating");
-        desk.Ok("resizewindowpixel", "exact 600 400,class:kitty");
-        desk.Ok("movewindowpixel", "exact 100 100,class:kitty");
-        desk.Ok("fullscreen", "0 set");
-
-        // Grab three quarters across and down the fullscreen surface, far from where the restored window would go.
-        var (grabX, grabY) = Grab(desk);
-        MoveCursor(desk, grabX, grabY);
-        Click(desk, pressed: true);
-        MoveCursor(desk, 700, 500);
-
-        // The window shrinks back to its floating size, but the cursor still sits three quarters across and down.
-        var moved = Active(desk);
-        Assert.Equal(0, Desk.Fullscreen(desk.ActiveWindow()));
-        Assert.True(Nearly(moved.X + (moved.Width * 3 / 4), 700, 8));
-        Assert.True(Nearly(moved.Y + (moved.Height * 3 / 4), 500, 8));
-
-        Click(desk, pressed: false);
-    }
-
-    [Fact]
     public void DragThresholdSurvivesScrollEvents()
     {
         var desk = new Desk("""
@@ -116,9 +67,6 @@ public class DragConformance
                 snap {
                     enabled = false
                 }
-            }
-            binds {
-                scroll_event_delay = 0
             }
             """ + "\n" + DragOnLeftButton);
         desk.Spawn("drag_threshold");

@@ -22,30 +22,10 @@ public partial class CursorIdleTests
         var idle = new CursorIdle(cursor, new ManualClock());
         idle.Configure(new CursorBehavior(false, 0));
 
-        idle.Touched(pen: false);
+        idle.Touched();
         Assert.True(cursor.Hidden);
 
         idle.Moved();
-        Assert.False(cursor.Hidden);
-    }
-
-    [Fact]
-    public void APenHidesTheCursorOnlyWithHideOnTablet()
-    {
-        var cursor = new FakeCursor();
-        var idle = new CursorIdle(cursor, new ManualClock());
-        idle.Configure(new CursorBehavior(false, 0));
-
-        idle.Touched(pen: true);
-        Assert.False(cursor.Hidden);
-
-        idle.Configure(new CursorBehavior(false, 0) { HideOnTablet = true, HideOnTouch = false });
-        idle.Touched(pen: false);
-        Assert.False(cursor.Hidden);
-        idle.Touched(pen: true);
-        Assert.True(cursor.Hidden);
-
-        idle.Configure(new CursorBehavior(false, 0) { HideOnTablet = false, HideOnTouch = false });
         Assert.False(cursor.Hidden);
     }
 }

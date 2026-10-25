@@ -7,15 +7,9 @@ public class CursorInputTests
     {
         var options = CursorOptions.From(ConfigParser.Parse(""));
 
-        Assert.Equal(0, options.WarpOnWorkspace);
-        Assert.Equal(-1, options.WarpOnMonitor);
-        Assert.Equal(0, options.WarpOnSpecial);
         Assert.False(options.NoWarps);
-        Assert.False(options.PersistentWarps);
         Assert.Equal(0, options.InactiveTimeoutSeconds);
         Assert.False(options.HideOnKeyPress);
-        Assert.Equal("", options.DefaultMonitor);
-        Assert.Equal(0, options.MonitorMode());
     }
 
     [Fact]
@@ -23,50 +17,34 @@ public class CursorInputTests
     {
         var document = ConfigParser.Parse("""
             cursor {
-                warp_on_change_workspace = enable
-                warp_on_monitor_change = force
-                warp_on_toggle_special = 1
                 no_warps = true
-                persistent_warps = yes
                 inactive_timeout = 4.5
                 hide_on_key_press = on
-                default_monitor = desc:Dell
             }
             """);
 
         Assert.Empty(document.Warnings);
         var options = CursorOptions.From(document);
-        Assert.Equal(1, options.WarpOnWorkspace);
-        Assert.Equal(2, options.WarpOnMonitor);
-        Assert.Equal(1, options.WarpOnSpecial);
         Assert.True(options.NoWarps);
-        Assert.True(options.PersistentWarps);
         Assert.Equal(4.5, options.InactiveTimeoutSeconds);
         Assert.True(options.HideOnKeyPress);
-        Assert.Equal("desc:Dell", options.DefaultMonitor);
     }
 
     [Fact]
-    public void InactiveTimeoutClampsAndABadModeIsIgnored()
+    public void InactiveTimeoutClamps()
     {
-        var options = CursorOptions.From(ConfigParser.Parse("""
-            cursor:inactive_timeout = 40
-            cursor:warp_on_change_workspace = later
-            cursor:warp_on_monitor_change = same_as_warp_on_change_workspace
-            """));
+        var options = CursorOptions.From(ConfigParser.Parse("cursor:inactive_timeout = 40\n"));
 
         Assert.Equal(20, options.InactiveTimeoutSeconds);
-        Assert.Equal(0, options.WarpOnWorkspace);
-        Assert.Equal(-1, options.WarpOnMonitor);
     }
 
     [Fact]
-    public void UnhonoredCursorKeyStillWarns()
+    public void ACutCursorKeyWarnsAndIsSkipped()
     {
-        var document = ConfigParser.Parse("cursor:min_refresh_rate = 30\n");
+        var document = ConfigParser.Parse("cursor:persistent_warps = true\n");
 
         Assert.Empty(document.Settings);
-        Assert.Equal(new ConfigWarning(1, "Unsupported keyword 'cursor:min_refresh_rate'."), Assert.Single(document.Warnings));
+        Assert.Equal(new ConfigWarning(1, "Unsupported keyword 'cursor:persistent_warps'."), Assert.Single(document.Warnings));
     }
 
     [Fact]
@@ -110,136 +88,6 @@ public class CursorInputTests
 
         Assert.NotEqual("workspace", outcome.Dispatcher);
         Assert.Equal(WorkspaceId.Initial, outcome.State.ActiveWorkspace);
-    }
-
-    [Fact]
-    public void ChangingWorkspaceWarpsToTheMiddleOfTheLastWindow()
-    {
-        var core = Load("cursor:warp_on_change_workspace = 1");
-        var monitor = Display(@"\\.\DISPLAY1", "Main", 0, 0, 800, 600);
-        core.Handle(new MonitorsChanged([monitor]));
-        core.Handle(new WindowAppeared(new WindowId(1), monitor.WorkArea));
-
-        var away = core.Handle(new Dispatch("workspace", "2"));
-        Assert.Null(away.Warp);
-
-        var back = core.Handle(new Dispatch("workspace", "1"));
-
-        Assert.Equal(new WarpTo(new Point(400, 300)), back.Warp);
-    }
-
-    [Fact]
-    public void NoWarpsBlocksANormalWarpAndNotAForcedOne()
-    {
-        var blocked = Load("cursor:warp_on_change_workspace = 1\ncursor:no_warps = true");
-        var monitor = Display(@"\\.\DISPLAY1", "Main", 0, 0, 800, 600);
-        blocked.Handle(new MonitorsChanged([monitor]));
-        blocked.Handle(new WindowAppeared(new WindowId(1), monitor.WorkArea));
-        blocked.Handle(new Dispatch("workspace", "2"));
-
-        Assert.Null(blocked.Handle(new Dispatch("workspace", "1")).Warp);
-
-        var forced = Load("cursor:warp_on_change_workspace = 2\ncursor:no_warps = true");
-        forced.Handle(new MonitorsChanged([monitor]));
-        forced.Handle(new WindowAppeared(new WindowId(1), monitor.WorkArea));
-        forced.Handle(new Dispatch("workspace", "2"));
-
-        Assert.Equal(new WarpTo(new Point(400, 300)), forced.Handle(new Dispatch("workspace", "1")).Warp);
-    }
-
-    [Fact]
-    public void PersistentWarpsReturnToThePointLeftInsideTheWindow()
-    {
-        var core = Load("cursor:warp_on_change_workspace = 1\ncursor:persistent_warps = true");
-        var monitor = Display(@"\\.\DISPLAY1", "Main", 0, 0, 800, 600);
-        core.Handle(new MonitorsChanged([monitor]));
-        core.Handle(new WindowAppeared(new WindowId(1), monitor.WorkArea));
-        core.Handle(new PointerMoved(new Point(40, 50)));
-        core.Handle(new Dispatch("workspace", "2"));
-
-        var back = core.Handle(new Dispatch("workspace", "1"));
-
-        Assert.Equal(new WarpTo(new Point(40, 50)), back.Warp);
-    }
-
-    [Fact]
-    public void PersistentWarpsReturnToThePointLeftWhenASpecialWorkspaceCloses()
-    {
-        var core = Load("cursor:warp_on_toggle_special = 1\ncursor:persistent_warps = true");
-        var monitor = Display(@"\\.\DISPLAY1", "Main", 0, 0, 800, 600);
-        core.Handle(new MonitorsChanged([monitor]));
-        core.Handle(new WindowAppeared(new WindowId(1), monitor.WorkArea));
-        core.Handle(new WindowAppeared(new WindowId(2), monitor.WorkArea));
-        core.Handle(new Dispatch("movetoworkspacesilent", "special"));
-        var focused = core.Handle(new Dispatch("focuswindow", "address:0x1"));
-        var bounds = Assert.Single(focused.State.Clients, client => client.Window == new WindowId(1)).Bounds;
-        Assert.Equal(new WindowId(1), focused.Focus);
-        core.Handle(new PointerMoved(new Point(bounds.X + 40, bounds.Y + 50)));
-
-        core.Handle(new Dispatch("togglespecialworkspace"));
-        var back = core.Handle(new Dispatch("togglespecialworkspace"));
-
-        Assert.Equal(new WarpTo(new Point(bounds.X + 40, bounds.Y + 50)), back.Warp);
-    }
-
-    [Fact]
-    public void AWindowThatReusesAClosedHandleDoesNotInheritItsWarpPoint()
-    {
-        var core = new WindowManager(ConfigParser.Parse("cursor:warp_on_change_workspace = 1\ncursor:persistent_warps = true\nwindowrule = workspace 1 silent, class:^(again)$\n"));
-        var monitor = Display(@"\\.\DISPLAY1", "Main", 0, 0, 800, 600);
-        core.Handle(new MonitorsChanged([monitor]));
-        core.Handle(new WindowAppeared(new WindowId(1), monitor.WorkArea));
-        core.Handle(new PointerMoved(new Point(40, 50)));
-        core.Handle(new Dispatch("workspace", "2"));
-        core.Handle(new WindowClosed(new WindowId(1)));
-        core.Handle(new WindowAppeared(new WindowId(1), monitor.WorkArea) { Traits = WindowTraits.Normal with { Class = "again" } });
-
-        var back = core.Handle(new Dispatch("workspace", "1"));
-
-        Assert.Equal(new WarpTo(new Point(400, 300)), back.Warp);
-    }
-
-    [Fact]
-    public void MonitorChangeUsesItsOwnMode()
-    {
-        var core = Load("cursor:warp_on_change_workspace = 0\ncursor:warp_on_monitor_change = 1");
-        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 800, 600);
-        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024);
-        core.Handle(new MonitorsChanged([left, right]));
-        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
-        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
-
-        var outcome = core.Handle(new Dispatch("focusmonitor", @"\\.\DISPLAY2"));
-
-        Assert.Equal(new MonitorId(1), outcome.State.ActiveMonitor);
-        Assert.Equal(new WarpTo(new Point(2560, 512)), outcome.Warp);
-    }
-
-    [Fact]
-    public void DefaultMonitorWarpsOnceToThatMonitor()
-    {
-        var core = Load("""
-            cursor:default_monitor = \\.\DISPLAY2
-            """);
-        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 800, 600);
-        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024);
-
-        var first = core.Handle(new MonitorsChanged([left, right]));
-        var second = core.Handle(new MonitorsChanged([left, right]));
-
-        Assert.Equal(new WarpTo(new Point(2560, 512)), first.Warp);
-        Assert.Null(second.Warp);
-    }
-
-    [Fact]
-    public void SpecialToggleWarpUsesTheSpecialMode()
-    {
-        var core = Load("cursor:warp_on_toggle_special = 1\ncursor:no_warps = true");
-        Assert.Null(core.SpecialWarp(new Rectangle(10, 20, 100, 80), null));
-
-        var forced = Load("cursor:warp_on_toggle_special = force\ncursor:persistent_warps = true");
-        Assert.Equal(new WarpTo(new Point(40, 60)), forced.SpecialWarp(new Rectangle(10, 20, 100, 80), new Point(30, 40)));
-        Assert.Equal(new WarpTo(new Point(60, 60)), forced.SpecialWarp(new Rectangle(10, 20, 100, 80), new Point(0, 10)));
     }
 
     [Fact]

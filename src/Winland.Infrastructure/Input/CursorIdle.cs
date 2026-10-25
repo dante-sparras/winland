@@ -20,7 +20,7 @@ public interface ICursorSurface
 }
 
 /// <summary>
-/// Hides the cursor after it has been still, on a key press, and always with <c>cursor:invisible</c>. Tests advance
+/// Hides the cursor after it has been still, on a key press, and on touch until the mouse moves. Tests advance
 /// <see cref="IClock"/>.
 /// </summary>
 public sealed class CursorIdle
@@ -31,9 +31,6 @@ public sealed class CursorIdle
     private DateTimeOffset _lastMove;
     private TimeSpan _timeout;
     private bool _hideOnKey;
-    private bool _invisible;
-    private bool _hideOnTouch = true;
-    private bool _hideOnTablet;
     private bool _touchHidden;
     private bool _idleHidden;
     private bool _keyHidden;
@@ -61,11 +58,6 @@ public sealed class CursorIdle
         lock (_gate)
         {
             _hideOnKey = behavior.HideOnKeyPress;
-            _invisible = behavior.Invisible;
-            _hideOnTouch = behavior.HideOnTouch;
-            _hideOnTablet = behavior.HideOnTablet;
-            if (!_hideOnTouch && !_hideOnTablet)
-                _touchHidden = false;
             _timeout = behavior.InactiveTimeoutSeconds > 0
                 ? TimeSpan.FromSeconds(behavior.InactiveTimeoutSeconds)
                 : TimeSpan.Zero;
@@ -96,14 +88,11 @@ public sealed class CursorIdle
         }
     }
 
-    /// <summary>Touch or a pen moved the pointer: with hide_on_touch or hide_on_tablet the cursor hides until the mouse moves.</summary>
-    public void Touched(bool pen)
+    /// <summary>Touch pressed down: the cursor hides until the mouse moves.</summary>
+    public void Touched()
     {
         lock (_gate)
         {
-            if (!(pen ? _hideOnTablet : _hideOnTouch))
-                return;
-
             _touchHidden = true;
             Publish();
         }
@@ -141,14 +130,13 @@ public sealed class CursorIdle
             _idleHidden = false;
             _keyHidden = false;
             _touchHidden = false;
-            _invisible = false;
             Publish();
         }
     }
 
     private void Publish()
     {
-        var hide = _idleHidden || _keyHidden || _touchHidden || _invisible;
+        var hide = _idleHidden || _keyHidden || _touchHidden;
         if (hide == _hidden)
             return;
 

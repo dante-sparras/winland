@@ -32,7 +32,7 @@ public class BindFlagTests
     [Fact]
     public void ScrollBindFiresThenWaitsForTheDelay()
     {
-        var core = Load("binds:scroll_event_delay = 300\nbind = SUPER, mouse_down, killactive\n");
+        var core = Load("bind = SUPER, mouse_down, killactive\n");
         Appear(core, 1);
         Press(core, "Super_L");
 

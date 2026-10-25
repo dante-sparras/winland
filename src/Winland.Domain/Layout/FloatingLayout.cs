@@ -30,7 +30,7 @@ internal sealed class FloatingLayout : Layout, IDragOwner
 
     public void NoteFocus(WindowId window) => _inner.NoteFocus(window);
 
-    public void RankFocus(Func<WindowId, int>? recency) => _inner.RankFocus(recency);
+    public void RankFocus(Func<WindowId, int> recency) => _inner.RankFocus(recency);
 
     public IReadOnlyList<Placement> Add(
         WindowId window,

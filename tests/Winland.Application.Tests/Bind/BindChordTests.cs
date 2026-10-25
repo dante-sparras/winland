@@ -124,7 +124,7 @@ public class BindChordTests
     [Fact]
     public void ScrollBindsOnOneNotchAllFireThenWait()
     {
-        var core = Load("binds:scroll_event_delay = 300\nbind = , mouse_down, killactive\nbind = , mouse_down, workspace, 2\n");
+        var core = Load("bind = , mouse_down, killactive\nbind = , mouse_down, workspace, 2\n");
         Appear(core, 1);
         Appear(core, 2);
 

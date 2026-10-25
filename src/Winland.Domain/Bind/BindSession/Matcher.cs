@@ -240,7 +240,7 @@ public sealed partial class BindSession
         if (wheel.Key.Length == 0)
             return Passed();
 
-        if (_scrollSeen && wheel.TimeMs - _scrollAtMs < table.ScrollDelay)
+        if (_scrollSeen && wheel.TimeMs - _scrollAtMs < BindTable.ScrollDelay)
             return Passed();
 
         _scrollSeen = true;

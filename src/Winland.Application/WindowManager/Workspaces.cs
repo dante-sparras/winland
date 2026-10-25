@@ -203,7 +203,7 @@ public sealed partial class WindowManager
 
         if (ShownElsewhere(target) is { } elsewhere)
         {
-            var away = SpecialHiddenBy(elsewhere.Id, focus);
+            var away = ConcealSpecial(elsewhere.Id);
             var followed = FocusShown(elsewhere, target, focus, consumed, dispatcher);
             return away.Length == 0 ? followed : followed with { Hide = Combine(followed.Hide, away) };
         }
@@ -213,16 +213,13 @@ public sealed partial class WindowManager
             Focus(home.Id);
 
         var monitor = FocusedId();
-        var concealed = SpecialHiddenBy(monitor, focus);
+        var concealed = ConcealSpecial(monitor);
 
         var sourceId = _workspaces.Shown.ActiveOn(monitor);
         if (sourceId == target)
         {
-            if (focus is WindowId requested && ClientOn(target, requested) is not null
-                && _workspaces.Shown.SpecialOn(monitor) is null)
-            {
+            if (focus is WindowId requested && ClientOn(target, requested) is not null)
                 _focus.Take(requested, FocusedWorkspace());
-            }
 
             return View([], hide: concealed, consumed: consumed, dispatcher: dispatcher);
         }
@@ -290,7 +287,7 @@ public sealed partial class WindowManager
 
     // A visit to the history workspace previous reads.
     private void Remember(WorkspaceId workspace, MonitorId monitor) =>
-        _workspaces.Shown.Visit(workspace, monitor, _config.BindOptions.AllowWorkspaceCycles);
+        _workspaces.Shown.Visit(workspace, monitor);
 
     // A switch to a Workspace another Monitor shows moves the cursor onto that Monitor, to the
     // middle of the Client it focuses or of the Monitor. cursor:no_warps stops it, as it stops Winland's warp.
@@ -303,7 +300,7 @@ public sealed partial class WindowManager
             return;
 
         var bounds = screen.Bounds;
-        if (_config.BindOptions.WorkspaceCenterOn == 1 && _focus.Focused is WindowId window)
+        if (_focus.Focused is WindowId window)
         {
             foreach (var placement in FocusedWorkspace().Layout.Visible())
             {
