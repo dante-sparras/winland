@@ -116,7 +116,14 @@ public sealed partial class WindowAdapter
 
     private static void DropMotion(WindowId window) => Motions.Drop(window);
 
-    private static unsafe bool ReducedMotion()
+    // Every step asks, so the setting is read once and again after Windows broadcasts a change to the settings.
+    private static readonly CachedSetting ReducedMotionSetting = new(ReadReducedMotion);
+
+    private static bool ReducedMotion() => ReducedMotionSetting.Value;
+
+    internal static void ForgetSettings() => ReducedMotionSetting.Forget();
+
+    private static unsafe bool ReadReducedMotion()
     {
         BOOL animate = true;
         return PInvoke.SystemParametersInfo(SYSTEM_PARAMETERS_INFO_ACTION.SPI_GETCLIENTAREAANIMATION, 0, &animate, 0)

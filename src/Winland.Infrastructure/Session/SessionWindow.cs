@@ -26,6 +26,7 @@ internal sealed class SessionWindow : IDisposable
     private readonly Action<WindowId>? _onFlash;
     private readonly Action? _onEnd;
     private readonly Action? _onAccent;
+    private readonly Action? _onSettings;
     private readonly List<HPOWERNOTIFY> _power = [];
     private HWND _hwnd;
     private uint _shellMessage;
@@ -33,13 +34,14 @@ internal sealed class SessionWindow : IDisposable
     private bool _sessionNotifications;
     private bool _disposed;
 
-    internal SessionWindow(Action<SessionSignal> onSignal, Action<WindowId>? onFlash = null, Action? onEnd = null, Action? onAccent = null)
+    internal SessionWindow(Action<SessionSignal> onSignal, Action<WindowId>? onFlash = null, Action? onEnd = null, Action? onAccent = null, Action? onSettings = null)
     {
         ArgumentNullException.ThrowIfNull(onSignal);
         _onSignal = onSignal;
         _onFlash = onFlash;
         _onEnd = onEnd;
         _onAccent = onAccent;
+        _onSettings = onSettings;
         Active = this;
         try
         {
@@ -152,6 +154,9 @@ internal sealed class SessionWindow : IDisposable
 
                 return PInvoke.DefWindowProc(hwnd, message, wParam, lParam);
             }
+
+            if (message == AccentNotices.SettingChange)
+                _onSettings?.Invoke();
 
             if (AccentNotices.Changed(message, (nint)lParam))
                 _onAccent?.Invoke();
