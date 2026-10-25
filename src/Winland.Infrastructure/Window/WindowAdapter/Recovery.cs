@@ -100,31 +100,49 @@ public sealed partial class WindowAdapter : IDisposable
         }
     }
 
+    // Says the snapshot is out of date. Building it takes the core lock, so its owner does that later, off this thread.
     internal void Publish()
     {
-        if (Releasing || _changed is null)
+        if (Releasing)
             return;
+
+        _changed?.Invoke();
+    }
+
+    /// <summary>The newest recovery snapshot, or null once the exit cleanup began.</summary>
+    internal RecoverySnapshot? Capture()
+    {
+        if (Releasing)
+            return null;
 
         var snapshot = Stamp(_core.Recovery());
         _published = snapshot;
-        _changed(snapshot);
+        return snapshot;
     }
 
     /// <summary>
-    /// Shows every hidden Client and puts back every frame, effect and alpha, for a crash. It reads the last
-    /// published snapshot instead of the core, so a thread that died holding the core lock cannot block it.
+    /// Shows every hidden Client and puts back every frame, effect and alpha, for a crash. It reads what this
+    /// adapter hid and the last published snapshot instead of the core, so a thread that died holding the core
+    /// lock cannot block it. The snapshot can be a quarter second old, and a window hidden since is in Concealed.
     /// </summary>
     internal void Salvage()
     {
         Releasing = true;
+        var hidden = new HashSet<WindowId>(Concealed.Keys);
         if (_published is RecoverySnapshot snapshot)
         {
             foreach (var client in snapshot.Clients)
             {
-                var hwnd = new HWND((nint)client.Window.Value);
-                if (client.Hidden && PInvoke.IsWindow(hwnd))
-                    ShowConcealed(hwnd);
+                if (client.Hidden)
+                    hidden.Add(client.Window);
             }
+        }
+
+        foreach (var window in hidden)
+        {
+            var hwnd = new HWND((nint)window.Value);
+            if (PInvoke.IsWindow(hwnd))
+                ShowConcealed(hwnd);
         }
 
         PutBackFrames();

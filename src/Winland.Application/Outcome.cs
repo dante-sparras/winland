@@ -121,6 +121,12 @@ public sealed record Outcome(
     public OutcomeOrder? Order { get; init; }
 
     /// <summary>
+    /// True when the step asked for nothing the adapter has not already done, so the adapter returns at once. Its
+    /// <see cref="State"/> and <see cref="Order"/> are still the step's, and every other property is unset.
+    /// </summary>
+    public bool IsEmpty { get; init; }
+
+    /// <summary>
     /// This outcome followed by <paramref name="next"/>, as one: what both ask the adapter to do, in order, and the state
     /// after the second. Requests are joined. What describes the state after the step is the second's. A value the second
     /// leaves unset keeps the first's, and the first error wins, so a later step cannot hide an earlier failure.
@@ -147,8 +153,62 @@ public sealed record Outcome(
             Exit = Exit || next.Exit,
             Relays = [.. Relays, .. next.Relays],
             ZOrder = [.. ZOrder, .. next.ZOrder],
+            IsEmpty = IsEmpty && next.IsEmpty,
         };
     }
+
+    /// <summary>
+    /// Whether applying this outcome after <paramref name="applied"/>, the last one the adapter was given, would change
+    /// nothing. No request may be set. A step also rebuilds the decorations, group bars, tray icon, config notice, cursor
+    /// behavior and resize cursor each time, so those count only when they differ from the last applied ones. A property
+    /// added to this record needs a rule here; a test counts them.
+    /// </summary>
+    internal bool IsEmptyAfter(Outcome? applied) =>
+        applied is not null
+        && Placements.Count == 0
+        && !Consumed
+        && Dispatcher is null
+        && Focus is null
+        && Closes.Count == 0
+        && Show.Count == 0
+        && Hide.Count == 0
+        && ShowMinimized.Count == 0
+        && Launches.Count == 0
+        && Events.Count == 0
+        && Motions.Count == 0
+        && !Live
+        && ResetDecorations.Count == 0
+        && Warp is null
+        && Error is null
+        && Kills.Count == 0
+        && !Exit
+        && Relays.Count == 0
+        && ZOrder.Count == 0
+        && ResizeCursor == applied.ResizeCursor
+        && Cursor == applied.Cursor
+        && Tray == applied.Tray
+        && ConfigNotice == applied.ConfigNotice
+        && Decorations.SequenceEqual(applied.Decorations)
+        && GroupBars.Count == applied.GroupBars.Count
+        && GroupBars.Zip(applied.GroupBars, (bar, last) => bar.SameAs(last)).All(same => same);
+
+    /// <summary>
+    /// What <see cref="IsEmptyAfter"/> compares a later outcome with: the parts a step rebuilds each time, without
+    /// the requests, which name windows that may since have closed.
+    /// </summary>
+    internal Outcome Lasting() =>
+        Empty(State) with
+        {
+            ResizeCursor = ResizeCursor,
+            Cursor = Cursor,
+            Tray = Tray,
+            ConfigNotice = ConfigNotice,
+            Decorations = Decorations,
+            GroupBars = GroupBars,
+        };
+
+    /// <summary>An outcome that asks for nothing, which describes <paramref name="state"/>.</summary>
+    internal static Outcome Empty(State state) => new([], state) { IsEmpty = true };
 
     // Every placement of the later outcome, and each earlier one it does not replace, for a Client that is still
     // open and not hidden. A command that moves one floating window places only that window, so the earlier

@@ -28,7 +28,7 @@ public sealed partial class WindowAdapter : IDisposable
     private static WindowManager? Session;
 
     private readonly WindowManager _core;
-    private readonly Action<RecoverySnapshot>? _changed;
+    private readonly Action? _changed;
     private readonly Action<Outcome>? _publish;
     private readonly WINEVENTPROC _callback;
 
@@ -75,7 +75,8 @@ public sealed partial class WindowAdapter : IDisposable
     // Windows whose maximize request was just answered, and when they stop being watched for drifting off their tile.
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, long> Settling = new();
 
-    public WindowAdapter(WindowManager core, Action<RecoverySnapshot>? changed = null)
+    /// <param name="changed">Called after an outcome is applied, to say the recovery snapshot is out of date. <see cref="Capture"/> builds the new one.</param>
+    public WindowAdapter(WindowManager core, Action? changed = null)
     {
         ArgumentNullException.ThrowIfNull(core);
         _core = core;

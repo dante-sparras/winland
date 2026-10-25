@@ -10,19 +10,20 @@ public sealed partial class WindowManager
 
     // A batch's flags are added to the flags of each of its commands.
     private CommandReply ExecuteLine(string? line, CommandFlags added = CommandFlags.None) =>
-        CommandProtocol.Parse(line) switch
+        ExecuteLine(CommandProtocol.Parse(line), added);
+
+    private CommandReply ExecuteLine(CommandParse parse, CommandFlags added = CommandFlags.None) =>
+        parse switch
         {
             CommandRejected rejected => new CommandReply(rejected.Error, View([])),
             CommandParsed parsed => Reply(parsed.Request with { Flags = parsed.Request.Flags | added }),
             _ => throw new InvalidOperationException("No handler for this command."),
         };
 
-    // Each request's reply. A query answers with the current State and changes nothing.
-    private CommandReply Reply(CommandRequest request)
-    {
-        return request switch
+    // A query's reply, or null for a request that is not one. A query answers from the current State and changes nothing.
+    private string? Read(CommandRequest request) =>
+        request switch
         {
-            DispatchRequest dispatch => DispatchReply(dispatch),
             ClientsRequest clients => Describe(state => Json(clients)
                 ? CommandProtocol.FormatClients(state)
                 : Text(CommandProtocol.FormatClientsText(state), "no open windows")),
@@ -36,19 +37,31 @@ public sealed partial class WindowManager
             ActiveWorkspaceRequest activeWorkspace => Describe(state => Json(activeWorkspace)
                 ? CommandProtocol.FormatActiveWorkspace(state)
                 : CommandProtocol.FormatActiveWorkspaceText(state)),
+            BindsRequest binds => Json(binds)
+                ? CommandProtocol.FormatBinds(_config.Binds.Binds)
+                : Text(CommandProtocol.FormatBindsText(_config.Binds.Binds), "no binds"),
+            VersionRequest version => Json(version) ? CommandProtocol.FormatVersion() : CommandProtocol.FormatVersionText(),
+            ConfigErrorsRequest errors => Json(errors)
+                ? CommandProtocol.FormatErrors(_loaded?.Warnings ?? [])
+                : Text(CommandProtocol.FormatErrorsText(_loaded?.Warnings ?? [], _loaded?.Path), "no config errors"),
+            GetOptionRequest option => OptionTable.Describe(option.Name, _config) ?? "no such option",
+            GetPropRequest prop => ReadProp(prop),
+            _ => null,
+        };
+
+    // Each request's reply.
+    private CommandReply Reply(CommandRequest request)
+    {
+        if (Read(request) is { } text)
+            return Answer(text);
+
+        return request switch
+        {
+            DispatchRequest dispatch => DispatchReply(dispatch),
             EventsRequest => Answer("") with { Stream = true },
             ReloadRequest => ReloadCommand(),
-            BindsRequest binds => Describe(_ => Json(binds)
-                ? CommandProtocol.FormatBinds(_config.Binds.Binds)
-                : Text(CommandProtocol.FormatBindsText(_config.Binds.Binds), "no binds")),
-            VersionRequest version => Answer(Json(version) ? CommandProtocol.FormatVersion() : CommandProtocol.FormatVersionText()),
-            ConfigErrorsRequest errors => Answer(Json(errors)
-                ? CommandProtocol.FormatErrors(_loaded?.Warnings ?? [])
-                : Text(CommandProtocol.FormatErrorsText(_loaded?.Warnings ?? [], _loaded?.Path), "no config errors")),
-            GetOptionRequest option => Answer(OptionTable.Describe(option.Name, _config) ?? "no such option"),
             ClickKillRequest => ArmClickKill(),
             KeywordRequest keyword => ApplyKeyword(keyword),
-            GetPropRequest prop => ReadProp(prop),
             SetPropRequest prop => WriteProp(prop),
             BatchRequest batch => RunBatch(batch.Payload, batch.Flags),
             _ => throw new InvalidOperationException("No handler for this command."),
@@ -69,11 +82,7 @@ public sealed partial class WindowManager
 
     private CommandReply Answer(string text) => new(text, View([]));
 
-    private CommandReply Describe(Func<State, string> format)
-    {
-        var outcome = View([]);
-        return new CommandReply(format(outcome.State), outcome);
-    }
+    private string Describe(Func<State, string> format) => format(Snapshot());
 
     private CommandReply ApplyKeyword(KeywordRequest request)
     {

@@ -18,7 +18,11 @@ public sealed class WindowHost : IDisposable
     private readonly Lock _memory = new();
     private readonly Queue<SessionSignal> _pending = new();
     private readonly LoopInvoker _loop = new();
-    private readonly Coalescer<RecoverySnapshot> _saver;
+    // What the saver is posted: the snapshot is built when it runs, not when it is posted.
+    private static readonly object Changed = new();
+
+    private readonly Coalescer<object> _saver;
+    private readonly Action<RecoverySnapshot>? _onRecovery;
 
     private RecoverySnapshot? _recovered;
     private RecoverySnapshot? _clients;
@@ -37,17 +41,11 @@ public sealed class WindowHost : IDisposable
     {
         ArgumentNullException.ThrowIfNull(core);
         _core = core;
-        // Reading each Client's title and writing the state file happen off the event path, at most a few
-        // times a second, with the newest snapshot.
-        _saver = new Coalescer<RecoverySnapshot>(
-            snapshot =>
-            {
-                Remember(snapshot);
-                onRecovery?.Invoke(snapshot);
-            },
-            TimeSpan.FromMilliseconds(250),
-            "Winland recovery");
-        _windows = new WindowAdapter(core, _saver.Post);
+        // Building the snapshot, reading each Client's title and writing the state file happen off the event path,
+        // at most a few times a second, with the newest state.
+        _onRecovery = onRecovery;
+        _saver = new Coalescer<object>(_ => Save(), TimeSpan.FromMilliseconds(250), "Winland recovery");
+        _windows = new WindowAdapter(core, () => _saver.Post(Changed));
         _keys = new KeyboardHook(core);
         _mouse = new MouseHook(core, _keys);
         _input = new InputThread(StartHooks, ServiceHooks, StopHooks);
@@ -166,7 +164,7 @@ public sealed class WindowHost : IDisposable
 
         // A message-only window does not receive power broadcasts. This hidden
         // top-level window does, and it is the target for session notifications.
-        using var session = new SessionWindow(OnSignal, OnFlash, () => SessionEnding?.Invoke(), NoteAccent);
+        using var session = new SessionWindow(OnSignal, OnFlash, () => SessionEnding?.Invoke(), NoteAccent, WindowAdapter.ForgetSettings);
         var shell = WaitForShell();
         var thread = PInvoke.GetCurrentThreadId();
         SessionHalt.Stop = () => _ = PInvoke.PostThreadMessage(thread, QuitMessage, default, default);
@@ -463,6 +461,15 @@ public sealed class WindowHost : IDisposable
             SessionRecovery.Restore(_windows, snapshot);
 
         ApplyMonitors();
+    }
+
+    private void Save()
+    {
+        if (_windows.Capture() is not RecoverySnapshot snapshot)
+            return;
+
+        Remember(snapshot);
+        _onRecovery?.Invoke(snapshot);
     }
 
     private void Remember(RecoverySnapshot snapshot)
