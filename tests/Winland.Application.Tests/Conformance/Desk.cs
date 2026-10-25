@@ -54,8 +54,8 @@ internal sealed class Desk : IDisposable
         input {
             follow_mouse = 1
         }
-        windowrulev2 = float, class:^(wr_kitty)$
-        windowrulev2 = size 200 200, class:^(wr_kitty)$
+        windowrule = float, class:^(wr_kitty)$
+        windowrule = size 200 200, class:^(wr_kitty)$
         """;
 
     /// <summary>Where the reference harness's one monitor, HEADLESS-2, is.</summary>

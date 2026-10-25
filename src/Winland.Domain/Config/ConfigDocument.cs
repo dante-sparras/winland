@@ -22,7 +22,7 @@ public sealed record ConfigDocument(
     /// <summary>
     /// This document with <paramref name="live"/>'s lines applied, as <c>keyword</c> applies them. An option, a keyword
     /// with a category such as general:gaps_in, replaces its old value. A keyword that may repeat, such as monitor or
-    /// windowrulev2, adds its line after the ones already read, and a rule for a Workspace that already has one merges
+    /// windowrule, adds its line after the ones already read, and a rule for a Workspace that already has one merges
     /// into it. Everything else is kept, and the warnings are left behind.
     /// </summary>
     public ConfigDocument Merge(ConfigDocument live)

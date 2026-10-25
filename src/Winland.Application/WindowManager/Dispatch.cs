@@ -118,9 +118,6 @@ public sealed partial class WindowManager
 
         if (Is(name, "killactive"))
         {
-            if (active is WindowId closing && !Closeable(closing))
-                return Rejected(name, NotCloseable);
-
             close = active;
         }
         else if (Is(name, "resizeactive"))

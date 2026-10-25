@@ -472,7 +472,7 @@ public class ScrollingLayoutTests
             general:gaps_out = 0
             general:border_size = 0
             scrolling:fullscreen_on_one_column = false
-            windowrulev2 = scrolling_width 0.25, class:^(app)$
+            windowrule = scrolling_width 0.25, class:^(app)$
             """);
 
         var outcome = core.Handle(new WindowAppeared(Window(1), Area)

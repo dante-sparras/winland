@@ -390,7 +390,7 @@ public class LayoutOptionTests
 
         var background = Configured(Flat("""
             dwindle:use_active_for_splits = false
-            windowrulev2 = workspace 2 silent, class:^(extra)$
+            windowrule = workspace 2 silent, class:^(extra)$
             """));
         background.Handle(Appeared(1, Wide));
         background.Handle(Appeared(2, Wide));

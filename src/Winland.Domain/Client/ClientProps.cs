@@ -2,8 +2,8 @@ namespace Winland.Domain;
 
 /// <summary>
 /// The Props of each Client and what decides them: the window rules it was adopted with, the property effects its
-/// rules give it now, what <c>setprop</c> set, its tags and content type. A Prop is what setprop set, else what a
-/// window rule gives, else what the Workspace's rule gives. The config's value below that is the caller's.
+/// rules give it now, and what <c>setprop</c> set. A Prop is what setprop set, else what a window rule gives. The
+/// config's value below that is the caller's.
 /// </summary>
 internal sealed class ClientProps
 {
@@ -21,25 +21,23 @@ internal sealed class ClientProps
     {
         ArgumentNullException.ThrowIfNull(followed);
         var entry = Of(window);
-        entry.Focus = new FocusRule(decision.NoInitialFocus, decision.NoFocus, decision.StayFocused);
+        entry.Focus = new FocusRule(decision.NoInitialFocus, decision.NoFocus);
         entry.Opacity = new OpacityChoice(decision.Opacity, decision.Opaque);
         entry.RuleProps = RulePropsOf(decision);
         entry.Subject = (traits.WithInitialNames(), followed);
-        entry.Content = decision.Content;
     }
 
     /// <summary>The group effects a window's rules gave it when it opened.</summary>
     public void SetGroupRules(WindowId window, GroupRuleFlags rules) => Of(window).GroupRules = rules;
 
-    /// <summary>The window's rules were matched again against its state: its property effects and tags follow.</summary>
-    public void Rematched(WindowId window, WindowDecision decision, SortedSet<string> tags)
+    /// <summary>The window's rules were matched again after its class or title changed: its property effects follow.</summary>
+    public void Rematched(WindowId window, WindowDecision decision)
     {
         var entry = Of(window);
         entry.RuleProps = RulePropsOf(decision);
         entry.Opacity = new OpacityChoice(decision.Opacity, decision.Opaque);
         if (entry.Focus is FocusRule focus)
-            entry.Focus = focus with { NoFocus = decision.NoFocus, StayFocused = decision.StayFocused };
-        entry.RuleTags = tags;
+            entry.Focus = focus with { NoFocus = decision.NoFocus };
     }
 
     /// <summary>What setprop set, or with null what it set is dropped.</summary>
@@ -54,28 +52,6 @@ internal sealed class ClientProps
 
     /// <summary>The size rules a window opened with and its own limits, so its limits can be worked out again.</summary>
     public void SetSizes(WindowId window, SizeRule rule, Size? ownMin, Size? ownMax) => Of(window).Sizes = (rule, ownMin, ownMax);
-
-    /// <summary>tagwindow: applies a static tag. True when the tags changed, so the rules give theirs again.</summary>
-    public bool Tag(WindowId window, string tag)
-    {
-        var entry = Of(window);
-        entry.StaticTags ??= new SortedSet<string>(StringComparer.Ordinal);
-        if (!WindowTags.Apply(entry.StaticTags, tag, dynamic: false))
-            return false;
-
-        entry.RuleTags = null;
-        return true;
-    }
-
-    /// <summary>cleartags: every tag goes, and the rules give theirs again when matched.</summary>
-    public void ClearTags(WindowId window)
-    {
-        if (!_entries.TryGetValue(window, out var entry))
-            return;
-
-        entry.StaticTags = null;
-        entry.RuleTags = null;
-    }
 
     public void Forget(WindowId window) => _entries.Remove(window);
 
@@ -99,8 +75,8 @@ internal sealed class ClientProps
         return Own(window, prop.Name) is T value ? value : default!;
     }
 
-    /// <summary>What a window rule, or else <paramref name="workspace"/>'s rule, gives the Prop. Null when neither gives it anything.</summary>
-    public object? Ruled(WindowId window, string key, WorkspaceRule? workspace)
+    /// <summary>What a window rule gives the Prop. Null when it gives it nothing.</summary>
+    public object? Ruled(WindowId window, string key)
     {
         if (RuleProp(window, key) is { } ruled)
             return ruled;
@@ -112,33 +88,24 @@ internal sealed class ClientProps
         return key switch
         {
             "no_focus" when focus.NoFocus => true,
-            "stay_focused" when focus.StayFocused => true,
             "opaque" when opacity.Opaque => true,
-            "no_max_size" when sizes.NoMax => true,
             "min_size" when sizes.Min is Size min => new PropSize(min.Width, min.Height),
             "max_size" when sizes.Max is Size max => new PropSize(max.Width, max.Height),
-            "opacity" when opacity.Rule is OpacityRule active => new PropAlpha(active.Active.Value, active.Active.Overridden),
-            "opacity_inactive" when opacity.Rule is OpacityRule inactive => new PropAlpha(inactive.Inactive.Value, inactive.Inactive.Overridden),
-            "opacity_fullscreen" when opacity.Rule is OpacityRule full => new PropAlpha(full.Fullscreen.Value, full.Fullscreen.Overridden),
-            "border_size" when workspace?.BorderSize is int border => (long)border,
-            "rounding" when workspace?.Rounding == false => 0L,
-            "decorate" when workspace?.Decorate is bool decorate => decorate,
+            "opacity" when opacity.Rule is OpacityRule active => new PropAlpha(active.Active),
+            "opacity_inactive" when opacity.Rule is OpacityRule inactive => new PropAlpha(inactive.Inactive),
             _ => null,
         };
     }
 
     /// <summary>What setprop set, else what the rules give. Null when nothing does, and the config decides.</summary>
-    public object? Value(WindowId window, string key, WorkspaceRule? workspace) =>
-        SetProp(window, key) ?? Ruled(window, key, workspace);
+    public object? Value(WindowId window, string key) =>
+        SetProp(window, key) ?? Ruled(window, key);
 
     /// <summary>The focus effects the window's rules gave it, or null for a window that was never adopted.</summary>
     public FocusRule? FocusRuleOf(WindowId window) => _entries.TryGetValue(window, out var entry) ? entry.Focus : null;
 
     /// <summary>no_focus: what setprop set, else the rule's.</summary>
     public bool NoFocus(WindowId window) => SetBool(window, "no_focus") ?? FocusRuleOf(window)?.NoFocus ?? false;
-
-    /// <summary>stay_focused: what setprop set, else the rule's.</summary>
-    public bool StaysFocused(WindowId window) => SetBool(window, "stay_focused") ?? FocusRuleOf(window)?.StayFocused ?? false;
 
     /// <summary>The opacity a window's Props ask for: setprop's fractions over the opacity rule's.</summary>
     public OpacityChoice Opacity(WindowId window)
@@ -151,11 +118,11 @@ internal sealed class ClientProps
         if (props.Count == 0)
             return ruled;
 
-        OpacityFactor Factor(string key, OpacityFactor fallback) =>
-            props.TryGetValue(key, out var value) && value is PropAlpha alpha ? new OpacityFactor(alpha.Value, alpha.Overridden) : fallback;
+        float Factor(string key, float fallback) =>
+            props.TryGetValue(key, out var value) && value is PropAlpha alpha ? alpha.Value : fallback;
 
-        var rule = ruled.Rule ?? new OpacityRule(OpacityFactor.Identity, OpacityFactor.Identity, OpacityFactor.Identity);
-        var merged = new OpacityRule(Factor("opacity", rule.Active), Factor("opacity_inactive", rule.Inactive), Factor("opacity_fullscreen", rule.Fullscreen));
+        var rule = ruled.Rule ?? new OpacityRule(1f, 1f, 1f);
+        var merged = rule with { Active = Factor("opacity", rule.Active), Inactive = Factor("opacity_inactive", rule.Inactive) };
         var opaque = props.TryGetValue("opaque", out var held) && held is bool flag ? flag : ruled.Opaque;
         return new OpacityChoice(ruled.Rule is null && merged == rule ? null : merged, opaque);
     }
@@ -169,25 +136,7 @@ internal sealed class ClientProps
     {
         Min = (SetProp(window, "min_size") as PropSize?)?.ToLimit() ?? rule.Min,
         Max = (SetProp(window, "max_size") as PropSize?)?.ToLimit() ?? rule.Max,
-        NoMax = SetBool(window, "no_max_size") ?? rule.NoMax,
     };
-
-    /// <summary>The window's tags: tagwindow's and what its rules give, as last matched.</summary>
-    public IReadOnlyList<string> Tags(WindowId window) =>
-        _entries.TryGetValue(window, out var entry) && (entry.RuleTags ?? entry.StaticTags) is { } tags ? [.. tags] : [];
-
-    /// <summary>A copy of the tags tagwindow gave the window, which the rules' tags are matched on top of.</summary>
-    public SortedSet<string> StaticTags(WindowId window) =>
-        _entries.TryGetValue(window, out var entry) && entry.StaticTags is { } tags
-            ? new SortedSet<string>(tags, StringComparer.Ordinal)
-            : new SortedSet<string>(StringComparer.Ordinal);
-
-    /// <summary>The window's tags as last matched, or tagwindow's when it was not matched since.</summary>
-    public IReadOnlySet<string>? MatchedTags(WindowId window) =>
-        _entries.TryGetValue(window, out var entry) ? entry.RuleTags ?? entry.StaticTags : null;
-
-    /// <summary>The content type a content rule gave the window when it opened.</summary>
-    public int Content(WindowId window) => _entries.TryGetValue(window, out var entry) ? entry.Content : 0;
 
     public GroupRuleFlags GroupRules(WindowId window) => _entries.TryGetValue(window, out var entry) ? entry.GroupRules : GroupRuleFlags.None;
 
@@ -203,26 +152,8 @@ internal sealed class ClientProps
         return entry;
     }
 
-    // A fullscreen_state rule turns sync_fullscreen off at the window-rule layer. The rule props are rebuilt whenever the
-    // window's state changes, so the same false is put back while that rule still matches. setprop is a higher layer.
-    private static IReadOnlyDictionary<string, object>? RulePropsOf(WindowDecision decision)
-    {
-        var props = decision.Props;
-        if (decision.StatedFullscreen)
-        {
-            var ruled = new Dictionary<string, object>(props?.Count ?? 0, StringComparer.Ordinal);
-            if (props is not null)
-            {
-                foreach (var (key, value) in props)
-                    ruled[key] = value;
-            }
-
-            ruled["sync_fullscreen"] = false;
-            props = ruled;
-        }
-
-        return props is { Count: > 0 } ? props : null;
-    }
+    private static IReadOnlyDictionary<string, object>? RulePropsOf(WindowDecision decision) =>
+        decision.Props is { Count: > 0 } props ? props : null;
 
     private sealed class Entry
     {
@@ -238,18 +169,12 @@ internal sealed class ClientProps
 
         public (WindowTraits Traits, IReadOnlyList<WindowRule> Followed)? Subject { get; set; }
 
-        public SortedSet<string>? StaticTags { get; set; }
-
-        public SortedSet<string>? RuleTags { get; set; }
-
-        public int Content { get; set; }
-
         public GroupRuleFlags GroupRules { get; set; }
     }
 }
 
 /// <summary>The focus effects a window's rules give it.</summary>
-internal readonly record struct FocusRule(bool NoInitialFocus, bool NoFocus, bool StayFocused);
+internal readonly record struct FocusRule(bool NoInitialFocus, bool NoFocus);
 
 /// <summary>An opacity rule and whether the window is opaque.</summary>
 internal readonly record struct OpacityChoice(OpacityRule? Rule, bool Opaque);

@@ -50,8 +50,7 @@ public class ConfigTests
     }
 
     [Theory]
-    [InlineData("windowrule", "float, ^(one)$", "tile, ^(two)$")]
-    [InlineData("windowrulev2", "float, class:^(one)$", "tile, class:^(two)$")]
+    [InlineData("windowrule", "float, class:^(one)$", "tile, class:^(two)$")]
     public void WindowRulesCanRepeat(string keyword, string first, string second)
     {
         var document = ConfigParser.Parse($"{keyword} = {first}\n{keyword} = {second}\n");
@@ -64,13 +63,13 @@ public class ConfigTests
     [Fact]
     public void MalformedWindowRuleWarnsAndTheConfigStillLoads()
     {
-        var document = ConfigParser.Parse("windowrulev2 = confine_pointer, class:^(kitty)$\nwindowrulev2 = float, class:^(unclosed\ngeneral:gaps_in = 2\n");
+        var document = ConfigParser.Parse("windowrule = confine_pointer, class:^(kitty)$\nwindowrule = float, class:^(unclosed\ngeneral:gaps_in = 2\n");
 
         Assert.Equal(
             new[]
             {
-                new Setting("windowrulev2", "confine_pointer, class:^(kitty)$"),
-                new Setting("windowrulev2", "float, class:^(unclosed"),
+                new Setting("windowrule", "confine_pointer, class:^(kitty)$"),
+                new Setting("windowrule", "float, class:^(unclosed"),
                 new Setting("general:gaps_in", "2"),
             },
             document.Settings);
@@ -87,19 +86,19 @@ public class ConfigTests
     [Fact]
     public void XwaylandWindowRuleWarnsAndIsSkipped()
     {
-        var document = ConfigParser.Parse("windowrulev2 = float, xwayland:1, class:^(kitty)$\n");
+        var document = ConfigParser.Parse("windowrule = float, xwayland:1, class:^(kitty)$\n");
 
         Assert.Empty(document.WindowRules);
         Assert.Equal(
             new ConfigWarning(1, "Window rules that match on xwayland are not honored."),
             Assert.Single(document.Warnings));
-        Assert.Equal(new Setting("windowrulev2", "float, xwayland:1, class:^(kitty)$"), Assert.Single(document.Settings));
+        Assert.Equal(new Setting("windowrule", "float, xwayland:1, class:^(kitty)$"), Assert.Single(document.Settings));
     }
 
     [Fact]
     public void UnsupportedWindowRuleMatchDropsTheRule()
     {
-        var document = ConfigParser.Parse("windowrulev2 = float, class:^(kitty)$, xdg_tag:foo\n");
+        var document = ConfigParser.Parse("windowrule = float, class:^(kitty)$, xdg_tag:foo\n");
 
         Assert.Empty(document.WindowRules);
         Assert.Equal(
@@ -110,7 +109,7 @@ public class ConfigTests
     [Fact]
     public void AWindowRuleWithNoMatchFieldsIsDropped()
     {
-        var document = ConfigParser.Parse("windowrulev2 = float, ,\n");
+        var document = ConfigParser.Parse("windowrule = float, ,\n");
 
         Assert.Empty(document.WindowRules);
         Assert.Equal([new ConfigWarning(1, "Malformed window rule.")], document.Warnings);
@@ -162,7 +161,6 @@ public class ConfigTests
     [InlineData("dwindle")]
     [InlineData("binds")]
     [InlineData("windowrule")]
-    [InlineData("windowrulev2")]
     public void UnhonoredCategoryKeywordWarnsAndIsSkipped(string category)
     {
         var document = ConfigParser.Parse($"{category} {{\n    sample = 1\n}}\n");
@@ -183,8 +181,8 @@ public class ConfigTests
             execr-once = app
             exec-shutdown = app
             monitor = , addreserved, 0, 0, 0, 0
-            windowrule = float, ^(kitty)$
-            windowrulev2 = tile, class:^(kitty)$
+            windowrule = float, class:^(kitty)$
+            windowrule = tile, class:^(kitty)$
             """;
 
         var document = ConfigParser.Parse(text);
@@ -715,7 +713,7 @@ public class ConfigTests
     [Fact]
     public void WorkspaceRulesAreReadAndGapFieldsWarn()
     {
-        var document = ConfigParser.Parse("workspace = 1, monitor:DP-1, default:true, animation:pop\ngeneral:gaps_in = 2\n");
+        var document = ConfigParser.Parse("workspace = 1, monitor:DP-1, default:true\ngeneral:gaps_in = 2\n");
 
         Assert.DoesNotContain(document.Warnings, warning => warning.Message.Contains("'workspace'", StringComparison.Ordinal));
         Assert.Empty(document.Warnings);

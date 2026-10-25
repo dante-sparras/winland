@@ -7,29 +7,6 @@ public class MonocleConformance
     private const string Monocle = "general:layout = monocle\n";
 
     [Fact]
-    public void MonocleWorkspaceRule()
-    {
-        // Monocle shows one tiled Client at a time, so w[tv1] matches whichever is shown.
-        var desk = new Desk(Monocle + "workspace = w[tv1], gapsout:40\n");
-
-        foreach (var name in new[] { "neutral_cat", "happy_cat", "angry_cat" })
-        {
-            desk.Spawn(name);
-            ExpectCat(desk, name);
-        }
-
-        desk.Close("angry_cat");
-        ExpectCat(desk, "happy_cat");
-
-        desk.Spawn("angry_cat");
-        ExpectCat(desk, "angry_cat");
-
-        desk.Close("angry_cat");
-        desk.Close("happy_cat");
-        ExpectCat(desk, "neutral_cat");
-    }
-
-    [Fact]
     public void MonocleFullscreenMaximiseDispatchers()
     {
         var desk = new Desk(Monocle);
@@ -48,18 +25,6 @@ public class MonocleConformance
 
         desk.Ok("fullscreen", "1 toggle");
         ExpectFullscreen(desk, 0, 0);
-
-        desk.Ok("fullscreenstate", "2 2 set");
-        ExpectFullscreen(desk, 2, 2);
-
-        desk.Ok("fullscreenstate", "2 2 set");
-        ExpectFullscreen(desk, 2, 2);
-
-        desk.Ok("fullscreenstate", "2 2 toggle");
-        ExpectFullscreen(desk, 0, 0);
-
-        desk.Ok("fullscreenstate", "2 2 toggle");
-        ExpectFullscreen(desk, 2, 2);
     }
 
     [Fact]
@@ -141,72 +106,6 @@ public class MonocleConformance
 
         desk.CloseActive();
         ExpectFullscreen(desk, 2, 2);
-    }
-
-    [Fact]
-    public void MonocleFullscreenPinnedWindows()
-    {
-        var desk = new Desk(Monocle);
-        desk.Spawn("cake");
-        desk.Ok("setfloating", "class:cake");
-        desk.Ok("resizewindowpixel", "exact 200 200,class:cake");
-        desk.Ok("workspace", "1");
-        Assert.Equal("ok", desk.Send("r/dispatch pin class:cake"));
-
-        Assert.Equal("ok", desk.Send("r/keyword binds:allow_pin_fullscreen false"));
-        desk.Ok("focuswindow", "class:cake");
-        foreach (var mode in new[] { "0", "1" })
-        {
-            desk.Ok("fullscreen", mode);
-            Assert.True(Desk.Pinned(desk.ActiveWindow()));
-            ExpectFullscreen(desk, 0, 0);
-            Assert.Equal("200,200", desk.ActivePlace().Size);
-        }
-
-        desk.Ok("workspace", "2");
-        Assert.Equal(2, Desk.WorkspaceId(desk.Client("cake")));
-        desk.Ok("workspace", "1");
-
-        desk.Ok("fullscreenstate", "2 2 set");
-        Assert.Equal(0, Desk.Fullscreen(desk.Client("cake")));
-        Assert.Equal(2, Desk.FullscreenClient(desk.Client("cake")));
-
-        desk.Ok("fullscreenstate", "1 1 set");
-        Assert.Equal(0, Desk.Fullscreen(desk.Client("cake")));
-        Assert.Equal(1, Desk.FullscreenClient(desk.Client("cake")));
-
-        desk.Ok("fullscreenstate", "0 0 set");
-        Assert.Equal("ok", desk.Send("r/keyword binds:allow_pin_fullscreen true"));
-        desk.Ok("focuswindow", "class:cake");
-
-        desk.Ok("fullscreen", "0");
-        Assert.False(Desk.Pinned(desk.ActiveWindow()));
-        ExpectFullscreen(desk, 2, 2);
-        desk.ExpectActive("0,0", "1920,1080");
-
-        desk.Ok("fullscreen", "1");
-        ExpectFullscreen(desk, 1, 1);
-        desk.ExpectActive("2,2", "1916,1076");
-
-        desk.Ok("fullscreenstate", "0 0 set");
-        desk.Ok("workspace", "2");
-        var cake = desk.Client("cake");
-        Assert.True(Desk.Pinned(cake));
-        Assert.Equal(0, Desk.Fullscreen(cake));
-        Assert.Equal("200,200", desk.PlaceOf("cake").Size);
-        Assert.Equal(2, Desk.WorkspaceId(cake));
-
-        Assert.Equal("ok", desk.Send("r/keyword binds:allow_pin_fullscreen false"));
-        Assert.Equal("ok", desk.Send("r/dispatch pin class:cake"));
-
-        desk.Ok("fullscreen", "0");
-        Assert.False(Desk.Pinned(desk.ActiveWindow()));
-        ExpectFullscreen(desk, 2, 2);
-        desk.ExpectActive("0,0", "1920,1080");
-
-        desk.Ok("fullscreen", "1");
-        ExpectFullscreen(desk, 1, 1);
-        desk.ExpectActive("2,2", "1916,1076");
     }
 
     [Fact]

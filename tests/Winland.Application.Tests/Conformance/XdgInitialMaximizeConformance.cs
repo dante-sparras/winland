@@ -23,7 +23,6 @@ public class XdgInitialMaximizeConformance
         var client = Assert.Single(desk.Clients());
         Assert.Equal("xdg-initial-maximize", Desk.ClassOf(client));
         Assert.True(client.GetProperty("mapped").GetBoolean());
-        Assert.False(client.GetProperty("xwayland").GetBoolean());
         Assert.Equal(0, Desk.Fullscreen(client));
         Assert.Equal(0, Desk.FullscreenClient(client));
     }

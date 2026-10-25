@@ -306,7 +306,7 @@ public class MonitorDispatchTests
     [Fact]
     public void MovingTheActiveWorkspaceLeavesAPinnedClientOnTheSourceMonitor()
     {
-        var core = TwoMonitors("windowrulev2 = float, class:^(stick)$\n");
+        var core = TwoMonitors("windowrule = float, class:^(stick)$\n");
         core.Handle(new WindowAppeared(new WindowId(4), Left) { Traits = WindowTraits.Normal with { Class = "stick" } });
         core.Handle(new Dispatch("pin"));
 

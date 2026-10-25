@@ -395,7 +395,7 @@ public class BorderResizeTests
     [Fact]
     public void AFloatingWindowAllowedOverAFullscreenOneKeepsItsRing()
     {
-        var core = CoreWith("general:resize_on_border = true\ngeneral:extend_border_grab_area = 30\nwindowrulev2 = float, class:^(box)$\n");
+        var core = CoreWith("general:resize_on_border = true\ngeneral:extend_border_grab_area = 30\nwindowrule = float, class:^(box)$\n");
         Appear(core, 1);
         core.Handle(new Dispatch("fullscreen", "0"));
         core.Handle(new WindowAppeared(new WindowId(2), Wide)

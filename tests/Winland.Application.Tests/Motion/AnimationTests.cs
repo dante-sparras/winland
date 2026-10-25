@@ -127,40 +127,6 @@ public class AnimationTests
     }
 
     [Fact]
-    public void TheWorkspaceSwitchedToPlaysItsRuleStyleForBothWorkspaces()
-    {
-        var core = Load("""
-            workspace = 2, animation:slidevert
-            bind = SUPER, 1, workspace, 1
-            bind = SUPER, 2, workspace, 2
-            """);
-        Appear(core, 1);
-        HoldSuper(core);
-
-        var there = Press(core, "2");
-        Assert.Equal(Area with { Y = -1080 }, Assert.Single(there.Motions, motion => motion.Window == new WindowId(1)).To);
-
-        Appear(core, 2);
-        var back = Press(core, "1");
-        Assert.Equal(Area with { X = 1920 }, Assert.Single(back.Motions, motion => motion.Window == new WindowId(2)).To);
-    }
-
-    [Fact]
-    public void ASpecialWorkspaceHidesWithItsOwnRuleStyle()
-    {
-        var core = Load("workspace = special:a, animation:slidevert top\n");
-        Appear(core, 1);
-        core.Handle(new Dispatch("movetoworkspace", "special:a"));
-
-        var hidden = core.Handle(new Dispatch("togglespecialworkspace", "a"));
-
-        var leaving = Assert.Single(hidden.Motions, motion => motion.Window == new WindowId(1));
-        Assert.Equal(MotionEnd.Hide, leaving.End);
-        Assert.Equal(leaving.Rest.X, leaving.To.X);
-        Assert.NotEqual(leaving.Rest.Y, leaving.To.Y);
-    }
-
-    [Fact]
     public void AClientGoingIntoFullscreenMovesFromItsTileToTheMonitor()
     {
         var core = Load("");
@@ -285,7 +251,7 @@ public class AnimationTests
     [Fact]
     public void AWindowsOwnAnimationStyleReplacesTheOpenStyle()
     {
-        var core = Load("windowrulev2 = animation slide left, class:.*\n");
+        var core = Load("windowrule = animation slide left, class:.*\n");
 
         var motion = Assert.Single(Appear(core, 1).Motions);
 

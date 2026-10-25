@@ -43,17 +43,6 @@ public class ControlConformance
         SetProp(desk, "opacity_inactive", "0.5");
         ExpectProp(desk, "opacity_inactive", "0.5", """{"opacity_inactive": 0.5}""");
 
-        ExpectProp(desk, "opacity_fullscreen", "1", """{"opacity_fullscreen": 1}""");
-        SetProp(desk, "opacity_fullscreen", "0.75");
-        ExpectProp(desk, "opacity_fullscreen", "0.75", """{"opacity_fullscreen": 0.75}""");
-
-        foreach (var name in new[] { "opacity_override", "opacity_inactive_override", "opacity_fullscreen_override", "allows_input" })
-        {
-            ExpectProp(desk, name, "false", $$"""{"{{name}}": false}""");
-            SetProp(desk, name, "true");
-            ExpectProp(desk, name, "true", $$"""{"{{name}}": true}""");
-        }
-
         ExpectProp(desk, "active_border_color", "ee33ccff", """{"active_border_color": "ee33ccff"}""");
         SetProp(desk, "active_border_color", "rgb(abcdef)");
         ExpectProp(desk, "active_border_color", "ffabcdef", """{"active_border_color": "ffabcdef"}""");
@@ -61,10 +50,6 @@ public class ControlConformance
         ExpectProp(desk, "rounding", "10", """{"rounding": 10}""");
         SetProp(desk, "rounding", "4");
         ExpectProp(desk, "rounding", "4", """{"rounding": 4}""");
-
-        ExpectProp(desk, "rounding_power", "2", """{"rounding_power": 2}""");
-        SetProp(desk, "rounding_power", "1.25");
-        ExpectProp(desk, "rounding_power", "1.25", """{"rounding_power": 1.25}""");
 
         Assert.Equal("not enough args", desk.Send("getprop"));
         Assert.Equal("not enough args", desk.Send("getprop class:kitty"));
@@ -132,30 +117,6 @@ public class ControlConformance
         Assert.True(described.GetProperty("repeat").GetBoolean());
 
         Assert.Equal("ok", desk.Send("keyword unbind SUPER, F12"));
-    }
-
-    [Fact]
-    public void HyprctlWorkspaceJson()
-    {
-        const string name = "hyprctl_workspace_json";
-        const string special = "special:hyprctl_workspace_json_special";
-        var desk = new Desk($"workspace = 4201, defaultName:{name}\n");
-
-        desk.Ok("focusmonitor", "HEADLESS-2");
-        desk.Ok("workspace", "4201");
-        desk.Ok("workspace", special);
-
-        var monitor = Json(desk.Send("j/monitors")).EnumerateArray()
-            .Single(item => item.GetProperty("name").GetString() == "HEADLESS-2");
-        ExpectNormal(monitor.GetProperty("activeWorkspace"), 4201, name);
-        ExpectSpecial(monitor.GetProperty("specialWorkspace"), special);
-
-        var workspaces = desk.Workspaces();
-        Assert.Contains(workspaces, workspace =>
-            workspace.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.Number && id.GetInt32() == 4201
-            && Text(workspace, "name") == name && Text(workspace, "type") == "normal");
-        Assert.Contains(workspaces, workspace =>
-            !workspace.TryGetProperty("id", out _) && Text(workspace, "name") == special && Text(workspace, "type") == "special");
     }
 
     private static void SetProp(Desk desk, string prop, string value) =>

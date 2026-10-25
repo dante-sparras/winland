@@ -108,27 +108,6 @@ public class BlurShadowRoundingTests
     }
 
     [Fact]
-    public void FullscreenAndAWorkspaceRuleWithoutRoundingCutNoCorners()
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse("decoration:rounding = 10\nworkspace = 2, rounding:0\n")));
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
-
-        var entered = core.Handle(new Dispatch("fullscreen", "0"));
-
-        Assert.Null(For(entered, 2).Region);
-        Assert.Equal(CornerPreference.DoNotRound, For(entered, 2).Corners);
-        Assert.Equal(new CornerRegion(10, 2f), For(entered, 1).Region);
-
-        core.Handle(new Dispatch("fullscreen", "0"));
-        var moved = core.Execute("dispatch movetoworkspace 2").Effect;
-
-        Assert.Null(For(moved, 2).Region);
-        Assert.Equal(new CornerRegion(10, 2f), For(moved, 1).Region);
-    }
-
-    [Fact]
     public void ACircularOutlineStaysInsideTheFrameAndTouchesEveryEdge()
     {
         var outline = CornerShape.Outline(100, 60, new CornerRegion(10, 2f));

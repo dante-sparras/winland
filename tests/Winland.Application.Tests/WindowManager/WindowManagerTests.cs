@@ -271,7 +271,7 @@ public class WindowManagerTests
     [Fact]
     public void ClassRuleFloatsTheWindowAndLeavesTheTilesAlone()
     {
-        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrulev2 = float, class:^(kitty)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrule = float, class:^(kitty)$\n"));
         var area = new Rectangle(0, 0, 1920, 1080);
         var bounds = new Rectangle(40, 50, 320, 200);
         core.Handle(new WindowAppeared(new WindowId(1), area));
@@ -299,7 +299,7 @@ public class WindowManagerTests
     [InlineData("initial_class:^(kitty)$")]
     public void InitialClassNamesMatchTheClass(string match)
     {
-        var core = new WindowManager(ConfigParser.Parse($"windowrulev2 = float, {match}\n"));
+        var core = new WindowManager(ConfigParser.Parse($"windowrule = float, {match}\n"));
         var bounds = new Rectangle(8, 9, 10, 11);
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 400, 300))
@@ -318,7 +318,7 @@ public class WindowManagerTests
     [InlineData("initial_title:^Editor$")]
     public void TitleRuleFloatsAMatchingWindow(string match)
     {
-        var core = new WindowManager(ConfigParser.Parse($"windowrulev2 = float, {match}\n"));
+        var core = new WindowManager(ConfigParser.Parse($"windowrule = float, {match}\n"));
         var bounds = new Rectangle(1, 2, 3, 4);
         var area = new Rectangle(0, 0, 800, 600);
 
@@ -343,7 +343,7 @@ public class WindowManagerTests
     [Fact]
     public void AumidRuleFloatsTheMatchingWindow()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, aumid:^(Microsoft\\.WindowsCalculator_8wekyb3d8bbwe!App)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = float, aumid:^(Microsoft\\.WindowsCalculator_8wekyb3d8bbwe!App)$\n"));
         var bounds = new Rectangle(12, 16, 240, 180);
         var area = new Rectangle(0, 0, 1920, 1080);
 
@@ -373,7 +373,7 @@ public class WindowManagerTests
     [Fact]
     public void AumidRuleRequiresTheOtherFieldsToo()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 4, class:^(Windows\\.UI\\.Core\\.CoreWindow)$, title:^(Calculator)$, exe:^(CalculatorApp\\.exe)$, aumid:^(Microsoft\\.WindowsCalculator_8wekyb3d8bbwe!App)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = workspace 4, class:^(Windows\\.UI\\.Core\\.CoreWindow)$, title:^(Calculator)$, exe:^(CalculatorApp\\.exe)$, aumid:^(Microsoft\\.WindowsCalculator_8wekyb3d8bbwe!App)$\n"));
         var area = new Rectangle(0, 0, 1000, 800);
         var hosted = WindowTraits.Normal with
         {
@@ -421,7 +421,7 @@ public class WindowManagerTests
     [Fact]
     public void ExeRuleIgnoresTheWindow()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = ignore, exe:^(notepad\\.exe)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = ignore, exe:^(notepad\\.exe)$\n"));
         var area = new Rectangle(0, 0, 1920, 1080);
         core.Handle(new WindowAppeared(new WindowId(1), area));
 
@@ -438,7 +438,7 @@ public class WindowManagerTests
     [Fact]
     public void RuleMatchesOnlyWhenClassTitleAndExeAllMatch()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 4, class:^(code)$, title:^(Editor)$, exe:^(code\\.exe)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = workspace 4, class:^(code)$, title:^(Editor)$, exe:^(code\\.exe)$\n"));
         var area = new Rectangle(0, 0, 1000, 800);
 
         var missed = core.Handle(new WindowAppeared(new WindowId(1), area)
@@ -459,7 +459,7 @@ public class WindowManagerTests
     [Fact]
     public void VersionOneRuleMatchesClassOnly()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrule = float, ^(kitty)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = float, class:^(kitty)$\n"));
         var area = new Rectangle(0, 0, 200, 100);
         var bounds = new Rectangle(5, 5, 20, 20);
 
@@ -483,7 +483,7 @@ public class WindowManagerTests
     [Fact]
     public void TileRuleAdoptsAWindowTheFilterWouldLeaveAlone()
     {
-        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrulev2 = tile, class:^(toolwindow)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrule = tile, class:^(toolwindow)$\n"));
         var area = new Rectangle(0, 0, 1920, 1080);
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(7), area)
@@ -499,7 +499,7 @@ public class WindowManagerTests
     [Fact]
     public void TileRuleTilesADialog()
     {
-        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrulev2 = tile, class:^(dialog)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrule = tile, class:^(dialog)$\n"));
         var area = new Rectangle(0, 0, 1920, 1080);
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), area)
@@ -515,7 +515,7 @@ public class WindowManagerTests
     [Fact]
     public void FloatAndWorkspaceBothApply()
     {
-        var text = "windowrulev2 = workspace 4, class:^(kitty)$\nwindowrulev2 = float, class:^(kitty)$\n";
+        var text = "windowrule = workspace 4, class:^(kitty)$\nwindowrule = float, class:^(kitty)$\n";
         var core = new WindowManager(ConfigParser.Parse(text));
         var bounds = new Rectangle(10, 20, 30, 40);
 
@@ -535,7 +535,7 @@ public class WindowManagerTests
     [Fact]
     public void WorkspaceRuleOnADialogKeepsItFloating()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 3, class:^(dialog)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = workspace 3, class:^(dialog)$\n"));
         var bounds = new Rectangle(4, 5, 6, 7);
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 900, 700))
@@ -553,7 +553,7 @@ public class WindowManagerTests
     [Fact]
     public void SilentWorkspaceRuleDoesNotSwitch()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 2 silent, class:^(kitty)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = workspace 2 silent, class:^(kitty)$\n"));
         var area = new Rectangle(0, 0, 640, 480);
         core.Handle(new WindowAppeared(new WindowId(1), area));
 
@@ -576,9 +576,9 @@ public class WindowManagerTests
     public void LaterRuleWinsAndDifferentEffectsCombine()
     {
         var text =
-            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrulev2 = float, class:^(kitty)$\n" +
-            "windowrulev2 = workspace 9, class:^(kitty)$\n" +
-            "windowrulev2 = tile, class:^(kitty)$\n";
+            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrule = float, class:^(kitty)$\n" +
+            "windowrule = workspace 9, class:^(kitty)$\n" +
+            "windowrule = tile, class:^(kitty)$\n";
         var core = new WindowManager(ConfigParser.Parse(text));
         var area = new Rectangle(0, 0, 1920, 1080);
         core.Handle(new WindowAppeared(new WindowId(1), area));
@@ -599,7 +599,7 @@ public class WindowManagerTests
     [Fact]
     public void LaterIgnoreLeavesTheWindowUnmanaged()
     {
-        var text = "windowrulev2 = workspace 2, class:^(kitty)$\nwindowrulev2 = ignore, class:^(kitty)$\n";
+        var text = "windowrule = workspace 2, class:^(kitty)$\nwindowrule = ignore, class:^(kitty)$\n";
         var core = new WindowManager(ConfigParser.Parse(text));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 100, 100))
@@ -614,7 +614,7 @@ public class WindowManagerTests
     [Fact]
     public void XwaylandMatchIsNotApplied()
     {
-        var document = ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrulev2 = float, class:^(kitty)$, xwayland:1\n");
+        var document = ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrule = float, class:^(kitty)$, xwayland:1\n");
         var core = new WindowManager(document);
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 100, 100))
@@ -630,7 +630,7 @@ public class WindowManagerTests
     [Fact]
     public void PatternMustMatchTheWholeField()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, title:Notes\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = float, title:Notes\n"));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 300, 200))
         {
@@ -642,13 +642,13 @@ public class WindowManagerTests
     }
 
     [Theory]
-    [InlineData("windowrulev2 = float, title:Notes|Release Notes\n")]
-    [InlineData("windowrulev2 = float, title:Release.*\n")]
-    [InlineData("windowrule = float, Release.*\n")]
+    [InlineData("windowrule = float, title:Notes|Release Notes\n")]
+    [InlineData("windowrule = float, title:Release.*\n")]
+    [InlineData("windowrule = float, class:Release.*\n")]
     public void PatternThatMatchesTheWholeFieldApplies(string config)
     {
         var core = new WindowManager(ConfigParser.Parse(config));
-        var traits = config.StartsWith("windowrule ", StringComparison.Ordinal)
+        var traits = config.Contains("class:", StringComparison.Ordinal)
             ? WindowTraits.Normal with { Class = "Release Notes" }
             : WindowTraits.Normal with { Title = "Release Notes" };
 
@@ -667,7 +667,7 @@ public class WindowManagerTests
     [InlineData("kitty2", true)]
     public void NegativePatternAppliesWhenThePatternDoesNotMatch(string windowClass, bool floats)
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:negative:kitty\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = float, class:negative:kitty\n"));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 300, 200))
         {
@@ -681,7 +681,7 @@ public class WindowManagerTests
     [Fact]
     public void NegativePrefixWithAnInvalidPatternWarns()
     {
-        var document = ConfigParser.Parse("windowrulev2 = float, class:negative:(kitty\n");
+        var document = ConfigParser.Parse("windowrule = float, class:negative:(kitty\n");
 
         Assert.Empty(document.WindowRules);
         Assert.Contains(document.Warnings, warning => warning.Message == "Invalid window rule pattern.");

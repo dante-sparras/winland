@@ -6,7 +6,7 @@ public class FloatingLayerTests
 
     private static WindowManager Desk()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, title:^(float.*)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = float, title:^(float.*)$\n"));
         core.Handle(new MonitorsChanged([new Monitor("DISPLAY1", "", 0, 0, 1920, 1080, 1, true, Area)]));
         return core;
     }

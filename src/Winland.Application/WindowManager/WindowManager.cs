@@ -5,7 +5,6 @@ public sealed partial class WindowManager
 {
     private readonly WorkspaceSet _workspaces = new();
     private readonly List<LiveMonitor> _monitors = [];
-    private readonly Queue<Launch> _born = new();
     private readonly PidFollowSet _follow = new();
     private readonly InitialWorkspaces _initialWorkspaces = new();
     private readonly BindSession _keyState = new();
@@ -183,7 +182,6 @@ public sealed partial class WindowManager
             _configEvents = null;
             _extraEvents = null;
             _noted = null;
-            _modalRules = null;
             _activated = null;
         }
     }

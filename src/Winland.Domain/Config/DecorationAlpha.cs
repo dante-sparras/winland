@@ -1,7 +1,7 @@
 namespace Winland.Domain;
 
 /// <summary>
-/// Alpha for one Client. Rule and configured fractions multiply unless the rule value is overridden.
+/// Alpha for one Client. A rule's fraction multiplies the configured one.
 /// The result is the window's alpha, from 0 to 255. A translucent Client shows what is behind it.
 /// </summary>
 public static class DecorationAlpha
@@ -13,11 +13,11 @@ public static class DecorationAlpha
             : input.Active ? options.ActiveOpacity
             : options.InactiveOpacity;
         var factor = rule is null
-            ? OpacityFactor.Identity
+            ? 1f
             : input.Fullscreen ? rule.Value.Fullscreen
             : input.Active ? rule.Value.Active
             : rule.Value.Inactive;
-        return ToByte(opaque ? 1f : factor.Apply(configured));
+        return ToByte(opaque ? 1f : factor * configured);
     }
 
     private static byte ToByte(float fraction)
@@ -34,15 +34,7 @@ public static class DecorationAlpha
 }
 
 /// <summary>Active, inactive and fullscreen fractions from one <c>opacity</c> rule.</summary>
-public readonly record struct OpacityRule(OpacityFactor Active, OpacityFactor Inactive, OpacityFactor Fullscreen);
-
-/// <summary>One opacity fraction from a window rule. <see cref="Overridden"/> replaces the configured fraction; otherwise the two multiply.</summary>
-public readonly record struct OpacityFactor(float Value, bool Overridden)
-{
-    public static OpacityFactor Identity { get; } = new(1f, false);
-
-    public float Apply(float configured) => Overridden ? Value : Value * configured;
-}
+public readonly record struct OpacityRule(float Active, float Inactive, float Fullscreen);
 
 /// <summary>Which opacity applies to one Client. Fullscreen wins over active and inactive.</summary>
 public readonly record struct OpacityInput(bool Active, bool Fullscreen = false);

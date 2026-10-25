@@ -73,23 +73,6 @@ public class FollowMouseTests
     }
 
     [Fact]
-    public void MovingOntoAWindowWithNoFollowMouseLeavesTheFocus()
-    {
-        var (core, laid) = Tiled();
-        core.Execute("setprop address:0x1 no_follow_mouse 1");
-
-        Move(core, Center(laid, 2), 1_000);
-        var followed = Move(core, Center(laid, 1), 1_100);
-
-        Assert.Null(followed.Focus);
-        Assert.DoesNotContain(followed.Events, item => item is FocusChanged);
-
-        core.Execute("setprop address:0x1 no_follow_mouse 0");
-        Move(core, Center(laid, 2), 1_200);
-        Assert.Equal(new WindowId(1), Move(core, Center(laid, 1), 1_300).Focus);
-    }
-
-    [Fact]
     public void DisabledFollowLeavesTheFocusedClient()
     {
         var (core, laid) = Tiled("input:follow_mouse = disabled\n");
@@ -379,7 +362,7 @@ public class FollowMouseTests
         "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 
     private static WindowManager Floats(string extra) =>
-        new(ConfigParser.Parse(Flat(extra) + "windowrulev2 = float, class:^(box)$\nwindowrulev2 = move window_x window_y, class:^(box)$\n"));
+        new(ConfigParser.Parse(Flat(extra) + "windowrule = float, class:^(box)$\nwindowrule = move window_x window_y, class:^(box)$\n"));
 
     private static WindowAppeared Box(long window, int x, int y, int width = 100, int height = 100) =>
         new(new WindowId(window), Area)

@@ -7,7 +7,7 @@ public class SelectorDispatcherTests
     [Fact]
     public void FocusWindowSwitchesToTheClientsWorkspace()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 2 silent, title:^(away)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = workspace 2 silent, title:^(away)$\n"));
         Appear(core, 1, "app", "here");
         Appear(core, 2, "app", "away");
 
@@ -197,7 +197,7 @@ public class SelectorDispatcherTests
     public void SwapWindowExchangesATileAndAFloatingClient()
     {
         var core = new WindowManager(ConfigParser.Parse(
-            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrulev2 = float, class:^(Float)$\n"));
+            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrule = float, class:^(Float)$\n"));
         Appear(core, 1, "Tile", "a");
         Appear(core, 2, "Float", "b");
         var before = core.Handle(new Dispatch("focuswindow", "class:Tile"));

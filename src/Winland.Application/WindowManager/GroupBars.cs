@@ -35,7 +35,7 @@ public sealed partial class WindowManager
                     || shown.Minimized
                     || shown.Fullscreen == FullscreenMode.Fullscreen
                     || !showing.Contains(group.Shown)
-                    || (_props.Own(group.Shown, WindowProp.Decorate) ?? RuleFor(desk)?.Decorate) == false)
+                    || _props.Own(group.Shown, WindowProp.Decorate) == false)
                     continue;
 
                 var reserved = scaled.ReservedFor(group.Count);

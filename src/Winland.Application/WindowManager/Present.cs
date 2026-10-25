@@ -5,8 +5,8 @@ public sealed partial class WindowManager
 {
     private Outcome Decorate(Outcome outcome, State before)
     {
-        var refit = MatchRulesAgain(out var tagsChanged);
-        if (refit.Count > 0 || tagsChanged)
+        var refit = MatchRulesAgain();
+        if (refit.Count > 0)
             outcome = outcome with { Placements = Outcome.Union(outcome.Placements, refit, outcome.State), State = Snapshot() };
 
         var restack = SyncFullscreenHiding();
@@ -124,7 +124,6 @@ public sealed partial class WindowManager
             Show = show ?? [],
             Hide = Combine(hide, minimized.Hide),
             ShowMinimized = minimized.Show,
-            Launches = TakeBorn(),
         };
     }
 
@@ -203,8 +202,6 @@ public sealed partial class WindowManager
                     Bounds = PlacedBounds(client, desk, slot),
                     Pinned = _pins.IsPinned(client.Window),
                     PinFullscreened = _pins.IsHeld(client.Window),
-                    Tags = _props.Tags(client.Window),
-                    Content = _props.Content(client.Window),
                     AllowedOverFullscreen = _cover.Flag(client.Window),
                     BelowFullscreen = _cover.IsBelow(client.Window),
                 });
@@ -229,7 +226,6 @@ public sealed partial class WindowManager
             {
                 LastWindow = desk.Focus,
                 Persistent = desk.Persistent,
-                DisplayName = desk.DisplayName,
                 TiledLayout = LayoutFactory.NameOf(desk.Layout),
             });
         }
@@ -469,10 +465,7 @@ public sealed partial class WindowManager
     {
         var desk = _workspaces.Find(client.Workspace);
         var rounding = _props.Own(client.Window, WindowProp.Rounding) is { } set ? (int)Math.Min(set, int.MaxValue) : _config.Decoration.Rounding;
-        if (_props.Own(client.Window, WindowProp.Rounding) is null && desk is not null && RuleFor(desk)?.Rounding == false)
-            return CornerChoice.Square;
-
-        var power = _props.Own(client.Window, WindowProp.RoundingPower) is { } setPower ? Math.Clamp(setPower, 1f, 10f) : _config.Decoration.RoundingPower;
+        var power = _config.Decoration.RoundingPower;
         var screen = desk is null ? null : MonitorById(desk.Monitor);
         var scale = screen is { Effective.Enabled: true } ? screen.Effective.Scale : 1;
         return CornerShape.For(rounding, power, scale);

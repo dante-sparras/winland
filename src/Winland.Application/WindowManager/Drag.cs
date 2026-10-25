@@ -44,7 +44,7 @@ public sealed partial class WindowManager
         {
             Cursor = DragCursor(desk, window, IsResize(drag.Dispatcher), pointer),
             WasTiled = LayoutWorkspace(window).ClientOf(window) is { Floating: false },
-            KeepRatio = IsResize(drag.Dispatcher) && KeepsRatio(window, drag.Arguments),
+            KeepRatio = IsResize(drag.Dispatcher) && KeepsRatio(drag.Arguments),
             PickedUp = _config.Binds.DragThreshold <= 0,
             CenterOnLift = _config.BindOptions.DragCenterWindow,
         };
@@ -392,13 +392,9 @@ public sealed partial class WindowManager
         return (dx * dx) + (dy * dy) > (long)threshold * threshold;
     }
 
-    // resizewindow 1 keeps the aspect ratio and 2 never keeps it. Without either, the window's keep_aspect_ratio rule or
-    // property decides.
-    private bool KeepsRatio(WindowId window, string arguments)
-    {
-        var mode = int.TryParse(arguments.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
-        return mode == 1 || (mode != 2 && _props.Own(window, WindowProp.KeepAspectRatio) == true);
-    }
+    // resizewindow 1 keeps the aspect ratio.
+    private static bool KeepsRatio(string arguments) =>
+        int.TryParse(arguments.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var mode) && mode == 1;
 
     // The Client a mouse bind takes: the one under the pointer, or else one whose border is under it, as the pinned
     // release finds the window with its reserved extents.

@@ -330,7 +330,7 @@ public class ExtraCommandTests
     [Fact]
     public void ABatchKeepsThePlacementOfEveryMovedFloatingWindow()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = float, class:^(box)$\n"));
         foreach (var window in new long[] { 1, 2 })
         {
             core.Handle(new WindowAppeared(new WindowId(window), new Rectangle(0, 0, 1920, 1080))
@@ -374,26 +374,13 @@ public class ExtraCommandTests
     public void KeywordAddsAWindowRuleAndKeepsTheOnesAlreadyRead()
     {
         var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse("windowrulev2 = float, class:^(first)$\n")));
+        core.Handle(new Configure(ConfigParser.Parse("windowrule = float, class:^(first)$\n")));
 
-        Assert.Equal("ok", core.Execute("keyword windowrulev2 float, class:^(second)$").Text);
+        Assert.Equal("ok", core.Execute("keyword windowrule float, class:^(second)$").Text);
         core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = WindowTraits.Normal with { Class = "first" } });
         var opened = core.Handle(new WindowAppeared(new WindowId(2), Area) { Traits = WindowTraits.Normal with { Class = "second" } });
 
         Assert.All(opened.State.Clients, client => Assert.True(client.Floating));
-    }
-
-    [Fact]
-    public void KeywordAddsAWorkspaceRuleAndKeepsTheOnesAlreadyRead()
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse("workspace = 1, gapsout:0\n")));
-
-        Assert.Equal("ok", core.Execute("keyword workspace 2, gapsout:7").Text);
-
-        var rules = core.Execute("j/workspacerules").Text;
-        Assert.Contains("\"workspaceString\":\"1\"", rules, StringComparison.Ordinal);
-        Assert.Contains("\"workspaceString\":\"2\"", rules, StringComparison.Ordinal);
     }
 
     [Theory]

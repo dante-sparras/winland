@@ -7,13 +7,10 @@ public sealed partial class WindowManager
     // Electron windows restore their saved bounds just after they are shown.
     internal const long ReapplyMilliseconds = 2000;
 
-    private const string NotCloseable = "error: can't close window, it's not closeable yet (noclosefor)";
     private const int DefaultFloatWidth = 640;
     private const int DefaultFloatHeight = 400;
 
     private readonly Dictionary<WindowId, MapPlaced> _mapPlaced = [];
-    private readonly Dictionary<WindowId, long> _closeableAt = [];
-
     /// <summary>True while a Client's first resize of itself would be undone. Lets the adapter skip other moves.</summary>
     public bool AwaitsFirstResize(WindowId window)
     {
@@ -59,8 +56,6 @@ public sealed partial class WindowManager
         var sized = desired.Width > 2 && desired.Height > 2;
         var width = sized || !decision.Floating ? desired.Width : DefaultFloatWidth;
         var height = sized || !decision.Floating ? desired.Height : DefaultFloatHeight;
-        if (decision.Floating && PersistentSize(appeared.Traits, decision) is Size stored)
-            (width, height) = (stored.Width, stored.Height);
         var pointer = appeared.Pointer ?? Cursor?.Read() ?? new Point(monitor.X + (monitor.Width / 2), monitor.Y + (monitor.Height / 2));
         if (placement.Size is { } size
             && size.TryEvaluate(Variables(monitor, desired with { Width = width, Height = height }, pointer), out var sizedWidth, out var sizedHeight)
@@ -108,27 +103,6 @@ public sealed partial class WindowManager
             ? bounds
             : null;
 
-    // persistent_size: a floating window that closes leaves its size behind for its initial
-    // class and title, and a window of that class and title that opens floating with the rule takes it back.
-    private readonly Dictionary<(string Class, string Title), Size> _persistentSizes = [];
-
-    private void RememberPersistentSize(WindowId window)
-    {
-        if (WorkspaceContaining(window) is not LiveWorkspace desk
-            || desk.ClientOf(window) is not { Floating: true } client
-            || _props.Own(window, WindowProp.PersistentSize) != true
-            || !desk.Layout.TryBounds(window, out var bounds))
-            return;
-
-        var key = (client.InitialClass.Length == 0 ? client.Class : client.InitialClass, client.InitialTitle.Length == 0 ? client.Title : client.InitialTitle);
-        _persistentSizes[key] = new Size(bounds.Width, bounds.Height);
-    }
-
-    private Size? PersistentSize(WindowTraits traits, WindowDecision decision) =>
-        decision.Props?.GetValueOrDefault("persistent_size") is true && _persistentSizes.TryGetValue((traits.Class, traits.Title), out var size)
-            ? size
-            : null;
-
     // A min_size or max_size rule written as an expression is read once the window's Monitor is known, as the pinned
     // release reads it when the window opens. A size below 1 leaves the limit unset, and a later number wins.
     private WindowDecision EvaluateSizeRules(WindowAppeared appeared, WindowDecision decision, LiveWorkspace desk, Rectangle area)
@@ -156,15 +130,9 @@ public sealed partial class WindowManager
     private void NotePlaced(WindowId window, LiveWorkspace desk, WindowDecision decision, bool restored)
     {
         var now = Clock();
-        if (decision.Placement.NoCloseFor > 0)
-            _closeableAt[window] = now + decision.Placement.NoCloseFor;
-
         if (!restored && desk.ClientOf(window) is { Floating: true, Fullscreen: FullscreenMode.None } && desk.Layout.TryBounds(window, out var bounds))
             _mapPlaced[window] = new MapPlaced(bounds, now + ReapplyMilliseconds);
     }
-
-    private bool Closeable(WindowId window) =>
-        !_closeableAt.TryGetValue(window, out var at) || Clock() >= at;
 
     // Puts a floating Client back at its rule placement the first time it changes its own size.
     private Outcome Reapply(WindowResized resized)

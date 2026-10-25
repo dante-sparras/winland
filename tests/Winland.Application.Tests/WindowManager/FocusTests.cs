@@ -93,11 +93,10 @@ public class FocusTests
     }
 
     [Theory]
-    [InlineData("noinitialfocus")]
     [InlineData("no_initial_focus")]
     public void ANewClientWithNoInitialFocusDoesNotTakeFocus(string effect)
     {
-        var core = new WindowManager(ConfigParser.Parse($"windowrulev2 = {effect}, class:^(popup)$\n"));
+        var core = new WindowManager(ConfigParser.Parse($"windowrule = {effect}, class:^(popup)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var opened = core.Handle(new WindowAppeared(new WindowId(2), Area)
@@ -119,11 +118,10 @@ public class FocusTests
     }
 
     [Theory]
-    [InlineData("nofocus")]
     [InlineData("no_focus")]
     public void NoFocusRefusesTheClient(string effect)
     {
-        var core = new WindowManager(ConfigParser.Parse($"windowrulev2 = {effect}, class:^(bar)$\n"));
+        var core = new WindowManager(ConfigParser.Parse($"windowrule = {effect}, class:^(bar)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         var opened = core.Handle(new WindowAppeared(new WindowId(2), Area)
         {
@@ -142,8 +140,8 @@ public class FocusTests
     public void ALaterRuleCanAllowFocusAgain()
     {
         var core = new WindowManager(ConfigParser.Parse(
-            "windowrulev2 = nofocus, class:^(bar)$\n" +
-            "windowrulev2 = nofocus 0, class:^(bar)$\n"));
+            "windowrule = no_focus, class:^(bar)$\n" +
+            "windowrule = no_focus 0, class:^(bar)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var opened = core.Handle(new WindowAppeared(new WindowId(2), Area)
@@ -155,34 +153,10 @@ public class FocusTests
         Assert.Equal(new WindowId(2), Active(core));
     }
 
-    [Theory]
-    [InlineData("stayfocused")]
-    [InlineData("stay_focused")]
-    public void StayFocusedKeepsTheClient(string effect)
-    {
-        var core = new WindowManager(ConfigParser.Parse($"windowrulev2 = {effect}, class:^(pin)$\n"));
-        core.Handle(new WindowAppeared(new WindowId(1), Area)
-        {
-            Traits = WindowTraits.Normal with { Class = "pin" },
-        });
-
-        var opened = core.Handle(new WindowAppeared(new WindowId(2), Area));
-        Assert.Equal(new WindowId(1), opened.Focus);
-        Assert.Contains(opened.State.Clients, client => client.Window == new WindowId(2));
-
-        var clicked = core.Handle(new WindowFocused(new WindowId(2), FocusCause.User));
-        Assert.Equal(new WindowId(1), clicked.Focus);
-        Assert.Equal(new WindowId(1), Active(core));
-
-        var moved = core.Handle(new Dispatch("movefocus", "r"));
-        Assert.Equal(new WindowId(2), moved.Focus);
-        Assert.Equal(new WindowId(2), Active(core));
-    }
-
     [Fact]
     public void OurOwnForegroundRequestIsAccepted()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = stayfocused, class:^(pin)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = stayfocused, class:^(pin)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
             Traits = WindowTraits.Normal with { Class = "pin" },
@@ -198,7 +172,7 @@ public class FocusTests
     [Fact]
     public void MoveFocusSkipsAClientThatRefusesFocus()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = nofocus, class:^(bar)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = no_focus, class:^(bar)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area)
         {

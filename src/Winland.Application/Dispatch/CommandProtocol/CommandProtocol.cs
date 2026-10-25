@@ -14,7 +14,6 @@ public static partial class CommandProtocol
         new("dispatch", "<name> [args]", (rest, _) => Dispatch(rest)),
         new("clients", "", (rest, flags) => Bare(rest, new ClientsRequest(flags.HasFlag(CommandFlags.All)))),
         new("workspaces", "", (rest, _) => Bare(rest, new WorkspacesRequest())),
-        new("workspacerules", "", (rest, _) => Bare(rest, new WorkspaceRulesRequest())),
         new("monitors", "[all]", (rest, _) => rest.Length == 0 ? new MonitorsRequest()
             : rest.Equals("all", StringComparison.OrdinalIgnoreCase) ? new MonitorsRequest(All: true)
             : null),
@@ -131,7 +130,6 @@ public sealed record ClientsRequest(bool All = false) : CommandRequest;
 
 public sealed record WorkspacesRequest : CommandRequest;
 
-public sealed record WorkspaceRulesRequest : CommandRequest;
 
 public sealed record MonitorsRequest(bool All = false) : CommandRequest;
 

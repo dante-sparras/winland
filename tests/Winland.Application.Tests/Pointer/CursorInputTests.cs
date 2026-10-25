@@ -199,7 +199,7 @@ public class CursorInputTests
     [Fact]
     public void AWindowThatReusesAClosedHandleDoesNotInheritItsWarpPoint()
     {
-        var core = new WindowManager(ConfigParser.Parse("cursor:warp_on_change_workspace = 1\ncursor:persistent_warps = true\nwindowrulev2 = workspace 1 silent, class:^(again)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("cursor:warp_on_change_workspace = 1\ncursor:persistent_warps = true\nwindowrule = workspace 1 silent, class:^(again)$\n"));
         var monitor = Display(@"\\.\DISPLAY1", "Main", 0, 0, 800, 600);
         core.Handle(new MonitorsChanged([monitor]));
         core.Handle(new WindowAppeared(new WindowId(1), monitor.WorkArea));

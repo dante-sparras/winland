@@ -174,65 +174,6 @@ public class DwindleConformance
 
         desk.Ok("fullscreen", "1 toggle");
         ExpectFullscreen(desk, 0, 0);
-
-        desk.Ok("fullscreenstate", "2 2 set");
-        ExpectFullscreen(desk, 2, 2);
-
-        desk.Ok("fullscreenstate", "2 2 set");
-        ExpectFullscreen(desk, 2, 2);
-
-        desk.Ok("fullscreenstate", "2 2 toggle");
-        ExpectFullscreen(desk, 0, 0);
-
-        desk.Ok("fullscreenstate", "2 2 toggle");
-        ExpectFullscreen(desk, 2, 2);
-    }
-
-    [Fact]
-    public void DwindleTestFsingGroupedWindows()
-    {
-        var desk = new Desk("""
-            group:auto_group = true
-            general:gaps_out = 10
-            general:border_size = 10
-            workspace = f[1], gapsout:0, bordersize:0
-            """);
-
-        desk.Spawn("kitten1");
-        desk.Ok("togglegroup");
-        desk.Spawn("kitten2");
-        Assert.Equal(2, desk.Clients().Length);
-
-        foreach (var (mode, at, size) in new[] { ("0", "0,0", "1920,1080"), ("1", "0,21", "1920,1059") })
-        {
-            desk.Ok("fullscreen", mode + " set");
-            Assert.Equal("kitten2", desk.ActiveClass());
-            desk.ExpectActive(at, size);
-            Assert.Equal((at, size), desk.PlaceOf("kitten1"));
-
-            desk.Ok("changegroupactive", "f");
-            Assert.Equal("kitten1", desk.ActiveClass());
-            desk.ExpectActive(at, size);
-            Assert.Equal((at, size), desk.PlaceOf("kitten2"));
-
-            desk.Ok("changegroupactive", "b");
-            desk.Ok("fullscreen", mode + " unset");
-
-            desk.Ok("setfloating");
-            desk.Ok("fullscreen", mode + " set");
-            Assert.Equal("kitten2", desk.ActiveClass());
-            desk.ExpectActive(at, size);
-            Assert.Equal((at, size), desk.PlaceOf("kitten1"));
-
-            desk.Ok("changegroupactive", "f");
-            Assert.Equal("kitten1", desk.ActiveClass());
-            desk.ExpectActive(at, size);
-            Assert.Equal((at, size), desk.PlaceOf("kitten2"));
-
-            desk.Ok("changegroupactive", "b");
-            desk.Ok("settiled");
-            desk.Ok("fullscreen", mode + " unset");
-        }
     }
 
     [Fact]
@@ -317,73 +258,6 @@ public class DwindleConformance
     }
 
     [Fact]
-    public void DwindleFullscreenPinnedWindows()
-    {
-        var desk = new Desk();
-        desk.Spawn("cake");
-        desk.Ok("setfloating", "class:cake");
-        desk.Ok("resizewindowpixel", "exact 200 200,class:cake");
-        desk.Ok("workspace", "1");
-        Assert.Equal("ok", desk.Send("r/dispatch pin class:cake"));
-
-        Assert.Equal("ok", desk.Send("r/keyword binds:allow_pin_fullscreen false"));
-        desk.Ok("focuswindow", "class:cake");
-        foreach (var mode in new[] { "0", "1" })
-        {
-            desk.Ok("fullscreen", mode);
-            var active = desk.ActiveWindow();
-            Assert.True(Desk.Pinned(active));
-            ExpectFullscreen(desk, 0, 0);
-            Assert.Equal("200,200", desk.ActivePlace().Size);
-        }
-
-        desk.Ok("workspace", "2");
-        Assert.Equal(2, Desk.WorkspaceId(desk.Client("cake")));
-        desk.Ok("workspace", "1");
-
-        desk.Ok("fullscreenstate", "2 2 set");
-        Assert.Equal(0, Desk.Fullscreen(desk.Client("cake")));
-        Assert.Equal(2, Desk.FullscreenClient(desk.Client("cake")));
-
-        desk.Ok("fullscreenstate", "1 1 set");
-        Assert.Equal(0, Desk.Fullscreen(desk.Client("cake")));
-        Assert.Equal(1, Desk.FullscreenClient(desk.Client("cake")));
-
-        desk.Ok("fullscreenstate", "0 0 set");
-        Assert.Equal("ok", desk.Send("r/keyword binds:allow_pin_fullscreen true"));
-        desk.Ok("focuswindow", "class:cake");
-
-        desk.Ok("fullscreen", "0");
-        Assert.False(Desk.Pinned(desk.ActiveWindow()));
-        ExpectFullscreen(desk, 2, 2);
-        desk.ExpectActive("0,0", "1920,1080");
-
-        desk.Ok("fullscreen", "1");
-        ExpectFullscreen(desk, 1, 1);
-        desk.ExpectActive("2,2", "1916,1076");
-
-        desk.Ok("fullscreenstate", "0 0 set");
-        desk.Ok("workspace", "2");
-        var cake = desk.Client("cake");
-        Assert.True(Desk.Pinned(cake));
-        Assert.Equal(0, Desk.Fullscreen(cake));
-        Assert.Equal("200,200", desk.PlaceOf("cake").Size);
-        Assert.Equal(2, Desk.WorkspaceId(cake));
-
-        Assert.Equal("ok", desk.Send("r/keyword binds:allow_pin_fullscreen false"));
-        Assert.Equal("ok", desk.Send("r/dispatch pin class:cake"));
-
-        desk.Ok("fullscreen", "0");
-        Assert.False(Desk.Pinned(desk.ActiveWindow()));
-        ExpectFullscreen(desk, 2, 2);
-        desk.ExpectActive("0,0", "1920,1080");
-
-        desk.Ok("fullscreen", "1");
-        ExpectFullscreen(desk, 1, 1);
-        desk.ExpectActive("2,2", "1916,1076");
-    }
-
-    [Fact]
     public void DwindleFullscreenNonInterference()
     {
         var desk = new Desk();
@@ -438,7 +312,7 @@ public class DwindleConformance
     {
         foreach (var mode in new[] { "0", "1" })
         {
-            var desk = new Desk("windowrulev2 = float, class:^(kitty_floated)$\n");
+            var desk = new Desk("windowrule = float, class:^(kitty_floated)$\n");
             desk.Ok("workspace", "1");
             desk.Spawn("kitty_tiled");
 

@@ -1,6 +1,4 @@
 using System.Globalization;
-using System.Text.Json.Serialization;
-using System.Text.Json;
 
 namespace Winland.Domain;
 
@@ -35,17 +33,14 @@ internal static partial class WorkspaceRules
             return null;
         }
 
-        if (WorkspaceAddress.IsNamed(ident))
+        // A workspace rule names a Workspace by its number.
+        if (!IsPositive(ident, out _))
         {
-            warnings.Add("Named workspaces are not supported.");
+            warnings.Add($"A workspace rule names a Workspace by its number, not '{ident}'.");
             return null;
         }
 
-        var rule = new WorkspaceRule
-        {
-            WorkspaceString = ident,
-            WorkspaceName = NameOf(ident),
-        };
+        var rule = new WorkspaceRule { WorkspaceString = ident };
         if (comma < 0)
             return rule;
 
@@ -65,28 +60,13 @@ internal static partial class WorkspaceRules
         return fatal ? null : rule;
     }
 
-    /// <summary>True when the Workspace matches the selector, as a window rule's workspace match reads it.</summary>
-    internal static bool MatchesSelector(
-        string selector,
-        WorkspaceId id,
-        string? displayName,
-        Monitor? monitor,
-        Func<WindowCount, int>? count,
-        FullscreenMode fullscreen) => Matches(selector, id, displayName, monitor, count, fullscreen);
-
-    internal static WorkspaceRule? For(
-        IReadOnlyList<WorkspaceRule> rules,
-        WorkspaceId id,
-        string? displayName,
-        Monitor? monitor,
-        Func<WindowCount, int>? count = null,
-        FullscreenMode fullscreen = FullscreenMode.None)
+    internal static WorkspaceRule? For(IReadOnlyList<WorkspaceRule> rules, WorkspaceId id, Monitor? monitor)
     {
         ArgumentNullException.ThrowIfNull(rules);
         WorkspaceRule? merged = null;
         foreach (var rule in rules)
         {
-            if (!Matches(rule.WorkspaceString, id, displayName, monitor, count, fullscreen))
+            if (!id.TryGetNumber(out var number) || !IsPositive(rule.WorkspaceString, out var wanted) || number != wanted)
                 continue;
 
             if (rule.Monitor.Length > 0 && (monitor is null || !MonitorRules.Matches(monitor, rule.Monitor)))
@@ -130,16 +110,6 @@ internal static partial class WorkspaceRules
         return true;
     }
 
-    internal static string Format(IReadOnlyList<WorkspaceRule> rules)
-    {
-        ArgumentNullException.ThrowIfNull(rules);
-        var views = new RuleJson[rules.Count];
-        for (var i = 0; i < rules.Count; i++)
-            views[i] = Describe(rules[i]);
-
-        return JsonSerializer.Serialize(views);
-    }
-
     private static bool Apply(WorkspaceRule rule, string field, List<string> warnings, out WorkspaceRule updated, out bool failed)
     {
         updated = rule;
@@ -150,37 +120,9 @@ internal static partial class WorkspaceRules
         if (Take(field, "gapsout:", out var gapsOut))
             return TryGaps(rule, gapsOut, warnings, static (current, gaps) => current with { GapsOut = gaps }, out updated, out failed);
 
-        if (Take(field, "bordersize:", out var borderSize))
-        {
-            if (!int.TryParse(borderSize.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var size))
-            {
-                warnings.Add("Error parsing workspace rule bordersize: " + borderSize.Trim());
-                failed = true;
-                return false;
-            }
-
-            updated = rule with { BorderSize = size };
-            return true;
-        }
-
-        if (Take(field, "border:", out var border))
-            return TryFlag(rule, border, warnings, static (current, value) => current with { Border = value }, out updated, out failed);
-
-        if (Take(field, "rounding:", out var rounding))
-            return TryFlag(rule, rounding, warnings, static (current, value) => current with { Rounding = value }, out updated, out failed);
-
-        if (Take(field, "decorate:", out var decorate))
-            return TryFlag(rule, decorate, warnings, static (current, value) => current with { Decorate = value }, out updated, out failed);
-
         if (Take(field, "monitor:", out var monitor))
         {
             updated = rule with { Monitor = monitor.Trim() };
-            return true;
-        }
-
-        if (Take(field, "defaultName:", out var defaultName))
-        {
-            updated = rule with { DefaultName = defaultName.Trim() };
             return true;
         }
 
@@ -189,19 +131,6 @@ internal static partial class WorkspaceRules
 
         if (Take(field, "persistent:", out var persistent))
             return TryFlag(rule, persistent, warnings, static (current, value) => current with { Persistent = value }, out updated, out failed);
-
-        if (Take(field, "on-created-empty:", out var command))
-        {
-            if (!TryClean(rule.WorkspaceName.Length > 0 ? rule.WorkspaceName : rule.WorkspaceString, command, out var cleaned))
-            {
-                warnings.Add("Failed parsing a workspace rule");
-                failed = true;
-                return false;
-            }
-
-            updated = rule with { OnCreatedEmpty = cleaned };
-            return true;
-        }
 
         if (Take(field, "layout:", out var layout))
         {
@@ -212,45 +141,6 @@ internal static partial class WorkspaceRules
             updated = rule with { Layout = name };
             return true;
         }
-
-        if (Take(field, "layoutopt:", out var layoutOpt))
-        {
-            var split = layoutOpt.IndexOf(':');
-            if (split <= 0)
-            {
-                warnings.Add("Invalid workspace rule found: " + field.Trim());
-                failed = true;
-                return false;
-            }
-
-            var key = layoutOpt[..split];
-            var layoutValue = layoutOpt[(split + 1)..];
-            // A layoutopt Winland cannot apply warns, and the rest of the rule still loads.
-            if (!LayoutOptions.TryOverrideDwindle(LayoutOptions.Unconfigured, key, layoutValue, out _))
-            {
-                warnings.Add(OptionTable.Find("dwindle:" + key) is null
-                    ? $"Unsupported keyword 'dwindle:{key}'."
-                    : $"Invalid value '{layoutValue}' for dwindle:{key}.");
-                return true;
-            }
-
-            var opts = new Dictionary<string, string>(rule.LayoutOpts, StringComparer.Ordinal)
-            {
-                [key] = layoutValue,
-            };
-            updated = rule with { LayoutOpts = opts };
-            return true;
-        }
-
-        if (Take(field, "animation:", out var animation))
-        {
-            if (animation.Trim() is { Length: > 0 } style)
-                updated = rule with { Animation = style };
-            return true;
-        }
-
-        if (Take(field, "floatgaps:", out var floatGaps) || Take(field, "float_gaps:", out floatGaps))
-            return TryGaps(rule, floatGaps, warnings, static (current, gaps) => current with { FloatGaps = gaps }, out updated, out failed);
 
         // A field Winland does not read warns, and the rest of the rule still applies.
         var colon = field.IndexOf(':', StringComparison.Ordinal);
@@ -350,42 +240,6 @@ internal static partial class WorkspaceRules
         return true;
     }
 
-    private static bool TryClean(string workspaceName, string dirty, out string cleaned)
-    {
-        cleaned = "";
-        var cmd = dirty.Trim();
-        if (cmd.Length == 0)
-            return false;
-
-        var workspaceRule = "workspace " + workspaceName;
-        if (cmd[0] != '[')
-        {
-            cleaned = "[" + workspaceRule + "] " + cmd;
-            return true;
-        }
-
-        var end = cmd.LastIndexOf(']');
-        if (end < 1)
-            return false;
-
-        var parts = cmd[1..end].Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
-        var had = false;
-        for (var i = 0; i < parts.Count; i++)
-        {
-            if (parts[i].StartsWith("workspace", StringComparison.Ordinal))
-            {
-                parts[i] = workspaceRule;
-                had = true;
-            }
-        }
-
-        if (!had)
-            parts.Add(workspaceRule);
-
-        cleaned = "[" + string.Join(';', parts) + "]" + cmd[(end + 1)..];
-        return true;
-    }
-
     private static bool Take(string field, string prefix, out string value)
     {
         if (field.StartsWith(prefix, StringComparison.Ordinal))
@@ -408,43 +262,4 @@ internal static partial class WorkspaceRules
             && number > 0
             && number.ToString(CultureInfo.InvariantCulture) == text;
     }
-
-    private static RuleJson Describe(WorkspaceRule rule) => new(
-        rule.WorkspaceString,
-        true,
-        rule.Monitor.Length == 0 ? null : rule.Monitor,
-        rule.Default,
-        rule.Persistent,
-        Gaps(rule.GapsIn),
-        Gaps(rule.GapsOut),
-        rule.BorderSize,
-        rule.Border,
-        rule.Rounding,
-        rule.Decorate,
-        rule.DefaultName,
-        rule.OnCreatedEmpty);
-
-    private static int[]? Gaps(EdgeInsets? gaps) =>
-        gaps is EdgeInsets value ? [value.Top, value.Right, value.Bottom, value.Left] : null;
-
-    private sealed record RuleJson(
-        [property: JsonPropertyName("workspaceString")] string WorkspaceString,
-        [property: JsonPropertyName("enabled")] bool Enabled,
-        [property: JsonPropertyName("monitor"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Monitor,
-        [property: JsonPropertyName("default"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Default,
-        [property: JsonPropertyName("persistent"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Persistent,
-        [property: JsonPropertyName("gapsIn"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int[]? GapsIn,
-        [property: JsonPropertyName("gapsOut"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int[]? GapsOut,
-        [property: JsonPropertyName("borderSize"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? BorderSize,
-        [property: JsonPropertyName("border"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Border,
-        [property: JsonPropertyName("rounding"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Rounding,
-        [property: JsonPropertyName("decorate"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Decorate,
-        [property: JsonPropertyName("defaultName"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? DefaultName,
-        [property: JsonPropertyName("onCreatedEmpty"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? OnCreatedEmpty);
 }
-
-/// <summary>
-/// What a <c>w[]</c> workspace selector counts: only tiled or only floating Clients when <see cref="Tiled"/>
-/// is set, only pinned ones, Groups in place of Clients, and only the ones shown.
-/// </summary>
-internal readonly record struct WindowCount(bool? Tiled, bool Pinned, bool Groups, bool Visible);

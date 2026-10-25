@@ -7,22 +7,6 @@ namespace Winland.Application.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class WindowConformance
 {
-    // Smart gaps on Workspace 2: no gaps and no border while one tile shows.
-    private const string SmartGaps = """
-        workspace = r[2-2] w[tv1], gapsout:0, gapsin:0
-        workspace = r[2-2] f[1], gapsout:0, gapsin:0
-        windowrulev2 = border_size 0, float:0, workspace:r[2-2] w[tv1]
-        windowrulev2 = rounding 0, float:0, workspace:r[2-2] w[tv1]
-        windowrulev2 = border_size 0, float:0, workspace:r[2-2] f[1]
-        windowrulev2 = rounding 0, float:0, workspace:r[2-2] f[1]
-        """;
-
-    // The reference config's tag rules.
-    private const string TagRules = """
-        windowrulev2 = float, tag:tag_kitty
-        windowrulev2 = tag +tag_kitty, class:tag_kitty
-        """;
-
     [Fact]
     public void SwapWindow()
     {
@@ -66,39 +50,6 @@ public class WindowConformance
     }
 
     [Fact]
-    public void WindowGroupRules()
-    {
-        var desk = new Desk("""
-            general:border_size = 8
-            workspace = w[tv1], bordersize:0
-            workspace = f[1], bordersize:0
-            windowrulev2 = border_size 0, workspace:w[tv1]
-            windowrulev2 = border_size 0, workspace:f[1]
-            """);
-
-        desk.Spawn("kitty_A");
-        Assert.Contains("0", desk.Send("getprop active border_size"), StringComparison.Ordinal);
-
-        desk.Spawn("kitty_B");
-        Assert.Contains("8", desk.Send("getprop active border_size"), StringComparison.Ordinal);
-
-        desk.Ok("focuswindow", "class:kitty_A");
-        desk.Ok("togglegroup");
-        desk.Ok("focuswindow", "class:kitty_B");
-        desk.Ok("moveintogroup", "l");
-        Assert.Contains("0", desk.Send("getprop active border_size"), StringComparison.Ordinal);
-
-        desk.Ok("changegroupactive", "f");
-        Assert.Contains("0", desk.Send("getprop active border_size"), StringComparison.Ordinal);
-
-        desk.Spawn("kitty_C");
-
-        // The line form of moveoutofgroup takes no direction.
-        desk.Ok("moveoutofgroup");
-        Assert.Contains("8", desk.Send("getprop active border_size"), StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void WindowFocusOnFullscreenConflict()
     {
         var desk = new Desk();
@@ -139,7 +90,7 @@ public class WindowConformance
 
         desk.Ok("focuswindow", "class:kitty_B");
         ExpectFocused(desk, "kitty_B", 2);
-        desk.Ok("fullscreenstate", "0 0 set");
+        desk.Ok("fullscreen", "0 unset");
 
         activating = desk.Spawn("kitty_activating");
         desk.Ok("focuswindow", "class:kitty_A");
@@ -272,7 +223,7 @@ public class WindowConformance
 
         // focus_on_activate off on the rule wins.
         desk.Keyword("misc:focus_on_activate", "true");
-        Assert.Equal("ok", desk.Send("keyword windowrulev2 focus_on_activate 0, class:kitty_antifocus"));
+        Assert.Equal("ok", desk.Send("keyword windowrule focus_on_activate 0, class:kitty_antifocus"));
 
         var antifocus = desk.Spawn("kitty_antifocus");
         ExpectFocused(desk, "kitty_antifocus", 0);
@@ -284,7 +235,7 @@ public class WindowConformance
 
         // focus_on_activate on on the rule wins.
         desk.Keyword("misc:focus_on_activate", "false");
-        Assert.Equal("ok", desk.Send("keyword windowrulev2 focus_on_activate 1, class:kitty_superfocus"));
+        Assert.Equal("ok", desk.Send("keyword windowrule focus_on_activate 1, class:kitty_superfocus"));
 
         var superfocus = desk.Spawn("kitty_superfocus");
         ExpectFocused(desk, "kitty_superfocus", 0);
@@ -326,8 +277,8 @@ public class WindowConformance
     public void WindowruleWorkspaceEmpty()
     {
         var desk = new Desk("""
-            windowrulev2 = workspace empty, class:kitty_A
-            windowrulev2 = workspace emptyn, class:kitty_B
+            windowrule = workspace empty, class:kitty_A
+            windowrule = workspace emptyn, class:kitty_B
             """);
 
         desk.Dispatch("workspace", "3");
@@ -340,27 +291,6 @@ public class WindowConformance
         desk.Dispatch("workspace", "3");
         desk.Spawn("kitty_B");
         Assert.Equal(4, Desk.WorkspaceId(desk.ActiveWindow()));
-    }
-
-    [Fact]
-    public void ContentWindowRules()
-    {
-        var desk = new Desk("""
-            windowrulev2 = content game, class:kitty_content_string
-            windowrulev2 = content 3, class:kitty_content_numbers
-            windowrulev2 = border_size 10, content:game
-            windowrulev2 = opacity 0.5, content:3
-            """);
-
-        desk.Spawn("kitty_content_string");
-        ExpectContentProps(desk);
-        CloseAll(desk);
-        Assert.Empty(desk.Clients());
-
-        desk.Spawn("kitty_content_numbers");
-        ExpectContentProps(desk);
-        CloseAll(desk);
-        Assert.Empty(desk.Clients());
     }
 
     [Fact]
@@ -447,227 +377,6 @@ public class WindowConformance
     }
 
     [Fact]
-    public void Windows()
-    {
-        var desk = new Desk(SmartGaps + "\n" + TagRules);
-        desk.Ok("focusmonitor", "HEADLESS-2");
-        desk.Ok("workspace", "2");
-
-        desk.Spawn("kitty_A");
-
-        // One kitty takes the whole screen: smart gaps.
-        Assert.Equal(("0,0", "1920,1080"), desk.PlaceOf("kitty_A"));
-        Assert.Equal(0, Desk.Fullscreen(desk.Client("kitty_A")));
-
-        // Split ratios.
-        const double gapsIn = 5;
-        const double gapsOut = 20;
-        const double borders = 4;
-        const double available = 1920 - (gapsOut * 2) - gapsIn;
-        var height = (int)Math.Floor(1080 - (gapsOut * 2)) - (int)borders;
-        int Width(double box, bool left) => (int)Math.Floor(box - (left ? gapsOut : gapsIn) - (left ? gapsIn : gapsOut) - borders);
-
-        var boxA1 = (available * 1.25 / 2.0) + gapsOut + (gapsIn / 2.0);
-        var width1 = Width(1920 - boxA1, left: false);
-        var boxA2 = (available * 0.75 / 2.0) + gapsOut + (gapsIn / 2.0);
-        var width2 = Width(1920 - boxA2, left: false);
-        var widthA = Width(boxA2, left: true);
-
-        desk.Keyword("dwindle:default_split_ratio", "1.25");
-        desk.Spawn("kitty_B");
-        Assert.Equal($"{width1},{height}", desk.ActivePlace().Size);
-
-        desk.CloseActive();
-        Assert.Single(desk.Clients());
-
-        desk.Keyword("dwindle:default_split_ratio", "0.75");
-        desk.Spawn("kitty_B");
-        ExpectNear(desk.ActivePlace().Size, width2, height, 2);
-
-        desk.Ok("focuswindow", "class:kitty_A");
-        ExpectNear(desk.ActivePlace().Size, widthA, height, 2);
-
-        desk.Keyword("dwindle:default_split_ratio", "1");
-
-        // xeyes opens as a window with class XEyes.
-        desk.Dispatch("exec", "xeyes");
-        desk.Spawn("XEyes");
-        Assert.Equal(3, desk.Clients().Length);
-
-        Assert.DoesNotContain(desk.Clients(), Desk.Floating);
-        desk.Dispatch("setfloating", "class:XEyes");
-        Assert.Contains(desk.Clients(), Desk.Floating);
-
-        CloseAll(desk);
-        Assert.Empty(desk.Clients());
-
-        desk.Dispatch("workspace", "1");
-
-        // A floating window over a fullscreen one.
-        desk.Spawn("kitty_A");
-        desk.Ok("fullscreen", "0 set");
-        Assert.Single(desk.Clients());
-
-        // kitty is the sixth window opened.
-        Launch(desk, "[float] kitty", pid: Pid(6));
-        ExpectProcess(desk.Spawn("kitty"), Pid(6));
-        Assert.Equal(2, desk.Clients().Length);
-
-        desk.Ok("focuswindow", "class:^kitty$");
-        Assert.Equal("kitty", desk.ActiveClass());
-
-        desk.CloseActive();
-        Assert.Single(desk.Clients());
-        Assert.Equal("kitty_A", desk.ActiveClass());
-
-        CloseAll(desk);
-
-        // Minimum and maximum size rules on tiles.
-        desk.Keyword("misc:size_limits_tiled", "1");
-        desk.Keyword("windowrulev2", "max_size 1500 500, class:kitty_maxsize");
-        Assert.Equal("ok", desk.Send("r/keyword windowrulev2 min_size 1200 500, class:kitty_maxsize"));
-        desk.Spawn("kitty_maxsize");
-        desk.ExpectActive("210,290", "1500,500");
-
-        CloseAll(desk);
-        Assert.Empty(desk.Clients());
-
-        Assert.Equal("ok", desk.Send("r/keyword general:layout master"));
-        desk.Spawn("kitty_maxsize");
-        desk.ExpectActive("210,290", "1500,500");
-
-        desk.Spawn("kitty_maxsize");
-        desk.Ok("focuswindow", "class:kitty_maxsize");
-
-        Assert.Equal("ok", desk.Send("reload"));
-        CloseAll(desk);
-        Assert.Empty(desk.Clients());
-
-        // Minimum and maximum size rules without size_limits_tiled.
-        desk.Keyword("misc:size_limits_tiled", "0");
-        desk.Keyword("windowrulev2", "max_size 1500 500, class:kitty_maxsize");
-        Assert.Equal("ok", desk.Send("r/keyword windowrulev2 min_size 1200 500, class:kitty_maxsize"));
-        desk.Spawn("kitty_maxsize");
-
-        var max = desk.Send("getprop active max_size");
-        Assert.Contains("1500", max, StringComparison.Ordinal);
-        Assert.Contains("500", max, StringComparison.Ordinal);
-        var min = desk.Send("getprop active min_size");
-        Assert.Contains("1200", min, StringComparison.Ordinal);
-        Assert.Contains("500", min, StringComparison.Ordinal);
-
-        Assert.Equal("ok", desk.Send("reload"));
-        CloseAll(desk);
-        Assert.Empty(desk.Clients());
-
-        // The same rules on a floating window.
-        desk.Keyword("windowrulev2", "max_size 1200 500, class:kitty_maxsize");
-        Assert.Equal("ok", desk.Send("r/keyword windowrulev2 min_size 1200 500, class:kitty_maxsize"));
-        Assert.Equal("ok", desk.Send("r/keyword windowrulev2 float, class:kitty_maxsize"));
-        desk.Spawn("kitty_maxsize");
-
-        max = desk.Send("getprop active max_size");
-        Assert.Contains("1200", max, StringComparison.Ordinal);
-        Assert.Contains("500", max, StringComparison.Ordinal);
-        min = desk.Send("getprop active min_size");
-        Assert.Contains("1200", min, StringComparison.Ordinal);
-        Assert.Contains("500", min, StringComparison.Ordinal);
-        Assert.Equal("1200,500", desk.ActivePlace().Size);
-
-        Assert.Equal("ok", desk.Send("reload"));
-        CloseAll(desk);
-        Assert.Empty(desk.Clients());
-
-        // Window rules.
-        desk.Spawn("wr_kitty");
-        var active = desk.ActiveWindow();
-        Assert.True(Desk.Floating(active));
-        Assert.Equal("200,200", desk.ActivePlace().Size);
-        Assert.False(Desk.Pinned(active));
-
-        desk.Keyword("windowrulev2", "opacity 0.5 0.5 override, class:wr_kitty");
-        Assert.Contains("0.5", desk.Send("getprop active opacity"), StringComparison.Ordinal);
-
-        desk.Keyword("windowrulev2", "workspace special:magic, class:magic_kitty");
-        desk.Spawn("magic_kitty");
-        Assert.Equal("special:magic", WorkspaceName(desk.ActiveWindow()));
-        Assert.NotEqual(9, Desk.WorkspaceId(desk.ActiveWindow()));
-
-        if (desk.Send("monitors").Contains("magic)", StringComparison.Ordinal))
-            desk.Ok("togglespecialworkspace", "magic");
-
-        CloseAll(desk);
-
-        desk.Spawn("tag_kitty");
-        Assert.True(Desk.Floating(desk.ActiveWindow()));
-
-        Assert.Equal("ok", desk.Send("reload"));
-        CloseAll(desk);
-
-        // Rules whose effects overlap but whose props do not.
-        desk.Keyword("windowrulev2", "border_size 0, class:overlap_kitty");
-        desk.Keyword("windowrulev2", "border_size 10, fullscreen:0");
-        desk.Spawn("overlap_kitty");
-        Assert.Contains("10", desk.Send("getprop active border_size"), StringComparison.Ordinal);
-
-        Assert.Equal("ok", desk.Send("reload"));
-        CloseAll(desk);
-
-        // persistent_size between floating launches.
-        desk.Keyword("windowrulev2", "persistent_size, class:persistent_size_kitty");
-        desk.Keyword("windowrulev2", "float, class:persistent_size_kitty");
-        desk.Spawn("persistent_size_kitty");
-        desk.Ok("resizewindowpixel", "exact 600 400,activewindow");
-        Assert.Equal("600,400", desk.ActivePlace().Size);
-        Assert.True(Desk.Floating(desk.ActiveWindow()));
-
-        CloseAll(desk);
-
-        desk.Spawn("persistent_size_kitty");
-        Assert.Equal("600,400", desk.ActivePlace().Size);
-        Assert.True(Desk.Floating(desk.ActiveWindow()));
-
-        Assert.Equal("ok", desk.Send("reload"));
-        CloseAll(desk);
-
-        desk.Keyword("general:border_size", "0");
-        desk.Keyword("windowrulev2", "border_size 10, float:1");
-        desk.Spawn("border_kitty");
-        Assert.Contains("0", desk.Send("getprop active border_size"), StringComparison.Ordinal);
-
-        desk.Ok("togglefloating");
-        Assert.Contains("10", desk.Send("getprop active border_size"), StringComparison.Ordinal);
-
-        desk.Ok("togglefloating");
-        Assert.Contains("0", desk.Send("getprop active border_size"), StringComparison.Ordinal);
-
-        Assert.Equal("ok", desk.Send("reload"));
-        CloseAll(desk);
-
-        // Expression rules.
-        desk.Keyword("windowrulev2", "float, class:expr_kitty");
-        desk.Keyword("windowrulev2", "size monitor_w*0.5 monitor_h*0.5, class:expr_kitty");
-        desk.Keyword("windowrulev2", "min_size monitor_w*0.25 monitor_h*0.25, class:expr_kitty");
-        desk.Keyword("windowrulev2", "max_size monitor_w*0.75 monitor_h*0.75, class:expr_kitty");
-        desk.Keyword("windowrulev2", "move 20+(monitor_w*0.1) monitor_h*0.5, class:expr_kitty");
-        desk.Spawn("expr_kitty");
-
-        Assert.True(Desk.Floating(desk.ActiveWindow()));
-        desk.ExpectActive("212,540", "960,540");
-        min = desk.Send("getprop active min_size");
-        Assert.Contains("480", min, StringComparison.Ordinal);
-        Assert.Contains("270", min, StringComparison.Ordinal);
-        max = desk.Send("getprop active max_size");
-        Assert.Contains("1440", max, StringComparison.Ordinal);
-        Assert.Contains("810", max, StringComparison.Ordinal);
-
-        Assert.Equal("ok", desk.Send("reload"));
-        CloseAll(desk);
-
-        // The rest of the case checks a window rule registered by the test plugin, which a core test cannot load.
-    }
-
-    [Fact]
     public void CycleNextTiled()
     {
         var desk = new Desk();
@@ -710,35 +419,9 @@ public class WindowConformance
     }
 
     [Fact]
-    public void Discussion14233()
-    {
-        var desk = new Desk("""
-            workspace = w[tv1], gapsout:0, gapsin:0
-            workspace = f[1], gapsout:0, gapsin:0
-            windowrulev2 = border_size 0, float:0, workspace:w[tv1]
-            windowrulev2 = rounding 0, float:0, workspace:w[tv1]
-            windowrulev2 = border_size 0, float:0, workspace:f[1]
-            windowrulev2 = rounding 0, float:0, workspace:f[1]
-            """);
-
-        var first = desk.Spawn("a");
-
-        // Smart gaps work.
-        Assert.Equal(("0,0", "1920,1080"), Place(desk, first));
-
-        var second = desk.Spawn("a");
-        ExpectSideBySide(desk, first, second);
-
-        desk.Ok("fullscreen", "0");
-        desk.Ok("fullscreen", "0");
-
-        ExpectSideBySide(desk, first, second);
-    }
-
-    [Fact]
     public void ExecRulesWorkspaceOverride()
     {
-        var desk = new Desk("windowrulev2 = workspace 2, class:kitty_exec_override\n");
+        var desk = new Desk("windowrule = workspace 2, class:kitty_exec_override\n");
 
         Launch(desk, "[workspace 3] kitty --class kitty_exec_override", pid: Pid(1));
         ExpectProcess(desk.Spawn("kitty_exec_override"), Pid(1));
@@ -755,8 +438,8 @@ public class WindowConformance
     public void ExecRulesTagMutation()
     {
         var desk = new Desk("""
-            windowrulev2 = workspace 2, class:kitty_tag_mutate
-            windowrulev2 = tag test_tag, class:kitty_tag_mutate
+            windowrule = workspace 2, class:kitty_tag_mutate
+            windowrule = tag test_tag, class:kitty_tag_mutate
             """);
 
         Launch(desk, "[workspace 3] kitty --class kitty_tag_mutate", pid: Pid(1));
@@ -874,7 +557,7 @@ public class WindowConformance
     [Fact]
     public void Monitorrule()
     {
-        var desk = new Desk("windowrulev2 = monitor HEADLESS-3, class:monitor_kitty\n");
+        var desk = new Desk("windowrule = monitor HEADLESS-3, class:monitor_kitty\n");
         desk.AddMonitor("HEADLESS-3", Desk.Second);
         var third = MonitorId(desk, "HEADLESS-3");
 
@@ -888,7 +571,7 @@ public class WindowConformance
         Assert.Equal("ok", desk.Send("reload"));
 
         desk.Ok("focusmonitor", "HEADLESS-2");
-        desk.Keyword("windowrulev2", "monitor HEADLESS-3 silent, class:silent_kitty");
+        desk.Keyword("windowrule", "monitor HEADLESS-3 silent, class:silent_kitty");
 
         desk.Spawn("silent_kitty");
         Assert.Equal(third, desk.Clients()[0].GetProperty("monitor").GetInt32());
@@ -898,7 +581,7 @@ public class WindowConformance
     [Fact]
     public void MouseResize()
     {
-        var desk = new Desk("windowrulev2 = float, class:kitty\n");
+        var desk = new Desk("windowrule = float, class:kitty\n");
         desk.Spawn("kitty");
         Assert.Single(desk.Clients());
         desk.Ok("focuswindow", "class:kitty");
@@ -916,14 +599,6 @@ public class WindowConformance
         desk.Ok("movecursor", "1280 100");
         Release(desk, "mouse:273");
         Assert.Equal("1280,800", desk.PlaceOf("kitty").Size);
-
-        ResetWindow(desk);
-        desk.Keyword("windowrulev2", "keep_aspect_ratio, class:kitty");
-        Assert.Equal("ok", desk.Send("r/keyword bindm , mouse:273, resizewindow 2"));
-        Press(desk, "mouse:273");
-        desk.Ok("movecursor", "700 200");
-        Release(desk, "mouse:273");
-        Assert.Equal("700,200", desk.PlaceOf("kitty").Size);
     }
 
     [Fact]
@@ -960,143 +635,6 @@ public class WindowConformance
         desk.Ok("fullscreen", "0");
         Assert.Equal("scrolling", Handler(desk));
         desk.Ok("fullscreen", "0");
-    }
-
-    [Fact]
-    public void SendFsWindowToAnotherWorkspace()
-    {
-        var desk = new Desk("""
-            workspace = 1, layout:dwindle
-            workspace = 2, layout:master
-            workspace = 3, layout:monocle
-            workspace = 4, layout:scrolling
-            workspace = 5, layout:scrolling
-            general:gaps_out = 20
-            workspace = f[1], gapsout:0
-            """);
-
-        desk.Ok("workspace", "1");
-        desk.Spawn("traveller_1");
-
-        // A tile in fullscreen, default handled.
-        desk.Ok("fullscreen", "0");
-        ExpectTraveller(desk, Full, 1, 2, "default");
-
-        desk.Ok("movetoworkspacesilent", "2");
-        desk.Ok("workspace", "2");
-        ExpectTraveller(desk, Full, 2, 2, "default");
-
-        desk.Ok("movetoworkspace", "3");
-        ExpectTraveller(desk, Full, 3, 2, "default");
-
-        desk.Ok("movetoworkspace", "4");
-        ExpectTraveller(desk, Full, 4, 2, "default");
-
-        desk.Ok("movetoworkspace", "3");
-        ExpectTraveller(desk, Full, 3, 2, "default");
-
-        desk.Ok("movetoworkspacesilent", "4");
-        desk.Ok("workspace", "4");
-        ExpectTraveller(desk, Full, 4, 2, "default");
-
-        CloseAll(desk);
-
-        desk.Ok("workspace", "1");
-        desk.Spawn("traveller_2");
-
-        // A tile maximized, default handled.
-        desk.Ok("fullscreen", "1");
-        ExpectTraveller(desk, Maximized, 1, 1, "default");
-
-        desk.Ok("movetoworkspacesilent", "2");
-        desk.Ok("workspace", "2");
-        ExpectTraveller(desk, Maximized, 2, 1, "default");
-
-        desk.Ok("movetoworkspace", "3");
-        ExpectTraveller(desk, Maximized, 3, 1, "default");
-
-        desk.Ok("movetoworkspace", "4");
-        ExpectTraveller(desk, Maximized, 4, 1, "default");
-
-        desk.Ok("movetoworkspace", "3");
-        ExpectTraveller(desk, Maximized, 3, 1, "default");
-
-        desk.Ok("movetoworkspacesilent", "4");
-        desk.Ok("workspace", "4");
-        ExpectTraveller(desk, Maximized, 4, 1, "default");
-
-        CloseAll(desk);
-
-        desk.Ok("workspace", "1");
-        desk.Spawn("traveller_3");
-
-        // Layout handled fullscreen, between scrolling and dwindle.
-        desk.Ok("movetoworkspace", "4");
-
-        desk.Ok("fullscreen", "0");
-        ExpectTraveller(desk, Full, 4, 2, "scrolling");
-
-        desk.Ok("movetoworkspace", "5");
-        ExpectTraveller(desk, Full, 5, 2, "scrolling");
-
-        desk.Ok("movetoworkspace", "1");
-        ExpectTraveller(desk, Full, 1, 2, "default");
-
-        desk.Ok("movetoworkspacesilent", "4");
-        desk.Ok("workspace", "4");
-        ExpectTraveller(desk, Full, 4, 2, "default");
-
-        desk.Ok("fullscreen", "1");
-        ExpectTraveller(desk, Maximized, 4, 1, "scrolling");
-
-        desk.Ok("movetoworkspace", "5");
-        ExpectTraveller(desk, Maximized, 5, 1, "scrolling");
-
-        desk.Ok("movetoworkspace", "1");
-        ExpectTraveller(desk, Maximized, 1, 1, "default");
-
-        desk.Ok("movetoworkspacesilent", "4");
-        desk.Ok("workspace", "4");
-        ExpectTraveller(desk, Maximized, 4, 1, "default");
-
-        // A floating window, which has no layout handled fullscreen.
-        CloseAll(desk);
-
-        desk.Ok("workspace", "1");
-        desk.Spawn("traveller_float");
-        desk.Ok("setfloating", "class:traveller_float");
-
-        desk.Ok("fullscreen", "0");
-        ExpectTraveller(desk, Full, 1, 2, "default", floating: true);
-
-        desk.Ok("movetoworkspace", "2");
-        ExpectTraveller(desk, Full, 2, 2, "default", floating: true);
-
-        desk.Ok("fullscreen", "1");
-        ExpectTraveller(desk, Maximized, 2, 1, "default", floating: true);
-
-        desk.Ok("movetoworkspace", "3");
-        ExpectTraveller(desk, Maximized, 3, 1, "default", floating: true);
-
-        desk.Ok("fullscreen", "0");
-        ExpectTraveller(desk, Full, 3, 2, "default", floating: true);
-
-        desk.Ok("movetoworkspace", "4");
-        ExpectTraveller(desk, Full, 4, 2, "default", floating: true);
-
-        desk.Ok("fullscreen", "1");
-        ExpectTraveller(desk, Maximized, 4, 1, "default", floating: true);
-
-        desk.Ok("movetoworkspacesilent", "5");
-        desk.Ok("workspace", "5");
-        ExpectTraveller(desk, Maximized, 5, 1, "default", floating: true);
-
-        desk.Ok("fullscreen", "0");
-        ExpectTraveller(desk, Full, 5, 2, "default", floating: true);
-
-        desk.Ok("movetoworkspacesilent", "1");
-        desk.Ok("workspace", "1");
-        ExpectTraveller(desk, Full, 1, 2, "default", floating: true);
     }
 
     [Fact]
@@ -1180,7 +718,7 @@ public class WindowConformance
         var desk = new Desk("""
             general:col.active_border = rgba(00ff00ff)
             general:col.inactive_border = rgba(ff0000ff)
-            windowrulev2 = border_color rgba(ffff00ff) rgba(000000ff), class:border_color_kitty
+            windowrule = border_color rgba(ffff00ff) rgba(000000ff), class:border_color_kitty
             """);
 
         // Both colors.
@@ -1191,33 +729,8 @@ public class WindowConformance
 
         CloseAll(desk);
 
-        // Only the active border.
-        desk.Keyword("windowrulev2", "border_color rgba(ffff00ff), class:active_border_kitty, focus:1");
-        desk.Spawn("active_border_kitty");
-        desk.Ok("focuswindow", "class:active_border_kitty");
-        ExpectColor(desk.Send("getprop active active_border_color"), "ffffff00");
-
-        // The inactive color is the global one.
-        ExpectColor(desk.Send("getprop active inactive_border_color"), "ffff0000");
-
-        CloseAll(desk);
-
-        // Only the inactive border. A focus:0 rule with one color gives it to the inactive border.
-        desk.Keyword("windowrulev2", "border_color rgba(ffff00ff), class:inactive_border_kitty, focus:0");
-        desk.Spawn("inactive_border_kitty");
-        desk.Spawn("dummy_kitty");
-
-        // The active color is the global one.
-        desk.Ok("focuswindow", "class:inactive_border_kitty");
-        ExpectColor(desk.Send("getprop active active_border_color"), "ff00ff00");
-
-        desk.Ok("focuswindow", "class:dummy_kitty");
-        ExpectColor(desk.Send("getprop class:inactive_border_kitty inactive_border_color"), "ffffff00");
-
-        CloseAll(desk);
-
         // Both colors, a later rule.
-        desk.Keyword("windowrulev2", "border_color rgba(ffff00ff) rgba(0000ffff), class:border_color_kitty");
+        desk.Keyword("windowrule", "border_color rgba(ffff00ff) rgba(0000ffff), class:border_color_kitty");
         desk.Spawn("border_color_kitty");
         desk.Ok("focuswindow", "class:border_color_kitty");
         ExpectColor(desk.Send("getprop active active_border_color"), "ffffff00");
@@ -1225,46 +738,12 @@ public class WindowConformance
     }
 
     [Fact]
-    public void WindowRuleBorderColorsFocus()
-    {
-        var desk = new Desk("""
-            general:col.active_border = rgba(00ff00ff)
-            general:col.inactive_border = rgba(ff0000ff)
-            windowrulev2 = border_color rgba(ff00ffff), class:active_border_kitty, focus:1
-            """);
-
-        // Only the active border.
-        desk.Spawn("active_border_kitty");
-        desk.Ok("focuswindow", "class:active_border_kitty");
-        ExpectColor(desk.Send("getprop active active_border_color"), "ffff00ff");
-
-        // The inactive color is the global one.
-        ExpectColor(desk.Send("getprop active inactive_border_color"), "ffff0000");
-
-        CloseAll(desk);
-
-        // Only the inactive border.
-        desk.Keyword("windowrulev2", "border_color rgba(ffff00ff), class:inactive_border_kitty, focus:0");
-        desk.Spawn("inactive_border_kitty");
-        desk.Spawn("dummy_kitty");
-
-        // The active color is the global one.
-        desk.Ok("focuswindow", "class:inactive_border_kitty");
-        ExpectColor(desk.Send("getprop active active_border_color"), "ff00ff00");
-
-        desk.Ok("focuswindow", "class:dummy_kitty");
-        ExpectColor(desk.Send("getprop class:inactive_border_kitty inactive_border_color"), "ffffff00");
-
-        CloseAll(desk);
-    }
-
-    [Fact]
     public void FloatingMoveExpression()
     {
         var desk = new Desk("""
-            windowrulev2 = float, class:kitty_floatingmove
-            windowrulev2 = size 800 600, class:kitty_floatingmove
-            windowrulev2 = move (monitor_w-window_w-10) (monitor_h-window_h-10), class:kitty_floatingmove
+            windowrule = float, class:kitty_floatingmove
+            windowrule = size 800 600, class:kitty_floatingmove
+            windowrule = move (monitor_w-window_w-10) (monitor_h-window_h-10), class:kitty_floatingmove
             """);
 
         desk.Spawn("kitty_floatingmove");
@@ -1278,10 +757,6 @@ public class WindowConformance
 
         CloseAll(desk);
     }
-
-    private static readonly (string At, string Size) Full = ("0,0", "1920,1080");
-
-    private static readonly (string At, string Size) Maximized = ("2,2", "1916,1076");
 
     private static string Address(JsonElement client) => client.GetProperty("address").GetString() ?? "";
 
@@ -1396,15 +871,4 @@ public class WindowConformance
             Assert.Contains(part, reply, StringComparison.Ordinal);
     }
 
-    private static void ExpectTraveller(Desk desk, (string At, string Size) place, int workspace, int mode, string handler, bool floating = false)
-    {
-        var active = desk.ActiveWindow();
-        Assert.Equal(place, desk.ActivePlace());
-        Assert.Equal(workspace, Desk.WorkspaceId(active));
-        Assert.Equal(mode, Desk.Fullscreen(active));
-        Assert.Equal(mode, Desk.FullscreenClient(active));
-        Assert.Equal(handler, active.GetProperty("fullscreenHandler").GetString());
-        if (floating)
-            Assert.True(Desk.Floating(active));
-    }
 }

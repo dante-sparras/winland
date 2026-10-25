@@ -127,7 +127,6 @@ public static partial class CommandProtocol
             client.InitialClass.Length == 0 ? client.Class : client.InitialClass,
             client.InitialTitle.Length == 0 ? client.Title : client.InitialTitle,
             client.ProcessId,
-            false,
             client.Pinned,
             client.PinFullscreened,
             (int)client.Fullscreen,
@@ -135,12 +134,6 @@ public static partial class CommandProtocol
             FullscreenHandlerOf(state, client),
             client.AllowedOverFullscreen,
             GroupedOf(state, client.Window),
-            client.Tags is { Count: > 0 } tags ? [.. tags] : NoStrings,
-            0,
-            "",
-            "",
-            ContentTypes.Name(client.Content),
-            false,
             client.Id.Value.ToString("x", CultureInfo.InvariantCulture));
     }
 
@@ -346,7 +339,7 @@ public static partial class CommandProtocol
         var tiledLayouts = new Dictionary<WorkspaceId, string>();
         foreach (var workspace in state.Workspaces)
         {
-            names[workspace.Id] = workspace.DisplayName ?? workspace.Id.Name;
+            names[workspace.Id] = workspace.Id.Name;
             persistent[workspace.Id] = workspace.Persistent;
             tiledLayouts[workspace.Id] = workspace.TiledLayout;
         }
@@ -497,7 +490,6 @@ public static partial class CommandProtocol
         [property: JsonPropertyName("initialClass")] string InitialClass,
         [property: JsonPropertyName("initialTitle")] string InitialTitle,
         [property: JsonPropertyName("pid")] long Pid,
-        [property: JsonPropertyName("xwayland")] bool Xwayland,
         [property: JsonPropertyName("pinned")] bool Pinned,
         [property: JsonPropertyName("pinFullscreened")] bool PinFullscreened,
         [property: JsonPropertyName("fullscreen")] int Fullscreen,
@@ -505,12 +497,6 @@ public static partial class CommandProtocol
         [property: JsonPropertyName("fullscreenHandler")] string FullscreenHandler,
         [property: JsonPropertyName("allowedOverFullscreen")] bool AllowedOverFullscreen,
         [property: JsonPropertyName("grouped")] string[] Grouped,
-        [property: JsonPropertyName("tags")] string[] Tags,
-        [property: JsonPropertyName("focusHistoryID")] int FocusHistoryId,
-        [property: JsonPropertyName("xdgTag")] string XdgTag,
-        [property: JsonPropertyName("xdgDescription")] string XdgDescription,
-        [property: JsonPropertyName("contentType")] string ContentType,
-        [property: JsonPropertyName("tearingHint")] bool TearingHint,
         [property: JsonPropertyName("stableId")] string StableId);
 
     // A Workspace as Winland writes one: its address, an id only when it is numbered, its type, its

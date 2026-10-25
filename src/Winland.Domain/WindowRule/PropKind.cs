@@ -5,10 +5,8 @@ internal enum PropKind
 {
     Bool,
     Int,
-    Float,
     Text,
     Size,
     Alpha,
-    AlphaOverride,
     Color,
 }

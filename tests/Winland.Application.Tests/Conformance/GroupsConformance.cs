@@ -164,7 +164,7 @@ public class GroupsConformance
         KillAll(desk);
         Assert.Empty(desk.Clients());
 
-        desk.Keyword("windowrulev2", "group set always lock invade, class:^locked|invade$");
+        desk.Keyword("windowrule", "group set always lock invade, class:^locked|invade$");
         desk.Spawn("locked");
         desk.Spawn("invade");
         Assert.Equal(2, CountAt(desk, "22,22"));
@@ -229,8 +229,8 @@ public class GroupsConformance
     public void AutoGroupFloatedIntoTiled()
     {
         var desk = new Desk("""
-            windowrulev2 = tile, class:kitty_tiled
-            windowrulev2 = float, class:kitty_floated
+            windowrule = tile, class:kitty_tiled
+            windowrule = float, class:kitty_floated
             """);
         desk.Spawn("kitty_tiled");
         desk.Ok("togglegroup");
@@ -246,8 +246,8 @@ public class GroupsConformance
     public void AutoGroupFloatedintoFloated()
     {
         var desk = new Desk("""
-            windowrulev2 = float, class:kitty_floated_A
-            windowrulev2 = float, class:kitty_floated_B
+            windowrule = float, class:kitty_floated_A
+            windowrule = float, class:kitty_floated_B
             """);
         desk.Spawn("kitty_floated_A");
         desk.Ok("togglegroup");
@@ -263,8 +263,8 @@ public class GroupsConformance
     public void AutoGroupTiledIntoFloated()
     {
         var desk = new Desk("""
-            windowrulev2 = float, class:kitty_floated_A
-            windowrulev2 = tile, class:kitty_tiled_B
+            windowrule = float, class:kitty_floated_A
+            windowrule = tile, class:kitty_tiled_B
             """);
         desk.Spawn("kitty_floated_A");
         Assert.True(Desk.Floating(desk.ActiveWindow()));

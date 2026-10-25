@@ -152,7 +152,7 @@ public class GeometryDispatcherTests
     [Fact]
     public void WithFollowMouseOffTheFocusStaysAfterAZOrderChange()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\ninput:follow_mouse = 0\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = float, class:^(box)$\ninput:follow_mouse = 0\n"));
         core.Handle(Box(1));
         core.Handle(Box(2));
         core.Handle(new PointerMoved(new Point(960, 540)));
@@ -198,7 +198,7 @@ public class GeometryDispatcherTests
     {
         var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("""
-            windowrulev2 = float, class:^(box)$
+            windowrule = float, class:^(box)$
             bind = SUPER, Z, alterzorder, bottom,address:0x1
             bind = SUPER, Z, bringactivetotop
             """)));
@@ -274,7 +274,7 @@ public class GeometryDispatcherTests
     {
         var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("""
-            windowrulev2 = float, class:^(box)$
+            windowrule = float, class:^(box)$
             bind = SUPER, Z, togglegroup, ,address:0x1
             """)));
         core.Handle(Box(1));
@@ -288,7 +288,7 @@ public class GeometryDispatcherTests
 
     private static WindowManager OneFloat()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = float, class:^(box)$\n"));
         core.Handle(Box(1));
         return core;
     }

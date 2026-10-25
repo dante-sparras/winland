@@ -34,7 +34,6 @@ public static partial class ConfigParser
             "exec-shutdown",
             "monitor",
             "windowrule",
-            "windowrulev2",
         };
 
         private readonly List<Setting> _settings = [];
@@ -227,8 +226,8 @@ public static partial class ConfigParser
             if (KeptHandlers.Contains(lhs))
             {
                 _settings.Add(new Setting(lhs, rhs));
-                if (lhs is "windowrule" or "windowrulev2")
-                    RememberRule(lhs, rhs, lineNumber);
+                if (lhs == "windowrule")
+                    RememberRule(rhs, lineNumber);
                 else if (IsLaunchKeyword(lhs))
                 {
                     foreach (var warning in LaunchParser.Parse(rhs, raw: false).Warnings)
@@ -344,9 +343,9 @@ public static partial class ConfigParser
                 WorkspaceRules.ReplaceOrAdd(_workspaceRules, rule);
         }
 
-        private void RememberRule(string keyword, string value, int lineNumber)
+        private void RememberRule(string value, int lineNumber)
         {
-            if (!WindowRuleParser.TryParse(keyword, value, out var rule, out var error) || rule is null)
+            if (!WindowRuleParser.TryParse(value, out var rule, out var error) || rule is null)
                 Warn(lineNumber, error);
             else
                 _windowRules.Add(rule);

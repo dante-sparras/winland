@@ -72,8 +72,8 @@ public class SpecialWorkspaceTests
     public void AddressesRulesAndEventsCoverSpecial()
     {
         var core = new WindowManager(ConfigParser.Parse("""
-            windowrulev2 = workspace special:scratch silent, class:^(quiet)$
-            windowrulev2 = workspace special, class:^(loud)$
+            windowrule = workspace special:scratch silent, class:^(quiet)$
+            windowrule = workspace special, class:^(loud)$
             """));
         var display = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 800, 600);
         core.Handle(new MonitorsChanged([display]));

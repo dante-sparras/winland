@@ -329,8 +329,7 @@ public sealed class MouseHook : IDisposable
         return decision.Consumed;
     }
 
-    // A window's scroll_mouse and scroll_touchpad: the wheel turn is taken and sent again multiplied. True when it
-    // was taken. A factor of 1 leaves a mouse wheel to discrete scroll and scroll_points.
+    // A mouse wheel turn goes to discrete scroll and scroll_points. True when it was taken.
     private bool ScaleWheel(uint message, uint mouseData, Point position, PointerSource source, uint time)
     {
         if (source != PointerSource.Mouse)
@@ -338,16 +337,7 @@ public sealed class MouseHook : IDisposable
 
         var delta = (short)(mouseData >> 16);
         var touchpad = TouchpadFingers.Scrolls(Environment.TickCount64, delta);
-        var scale = _core.ScrollOverrideAt(position).Factor(touchpad);
-        if (scale == 1)
-            return !touchpad && (DiscreteWheel(message, delta, time) || (_core.ScrollCurve is ScrollCurve curve && CurveWheel(curve, message, delta, time)));
-
-        var horizontal = message == HorizontalWheel;
-        var scaled = _touchpadWheel.Scale(delta, scale, horizontal);
-        if (scaled != 0)
-            InputInjector.Post(Mouse(horizontal ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL : MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, scaled));
-
-        return true;
+        return !touchpad && (DiscreteWheel(message, delta, time) || (_core.ScrollCurve is ScrollCurve curve && CurveWheel(curve, message, delta, time)));
     }
 
     // input:scroll_points: a mouse wheel turn is taken and sent again at the factor its speed asks for. Always taken.

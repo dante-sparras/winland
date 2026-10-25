@@ -127,7 +127,6 @@ These talk to the running Winland.
 | `winland activewindow` | Show the focused window |
 | `winland workspaces` | List the workspaces |
 | `winland activeworkspace` | Show the focused workspace |
-| `winland workspacerules` | List the workspace rules |
 | `winland monitors [all]` | List the monitors. `all` includes disabled ones |
 | `winland layouts` | List the layouts |
 | `winland binds` | List the hotkeys |

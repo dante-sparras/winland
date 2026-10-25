@@ -2,7 +2,7 @@ namespace Winland.Application;
 
 /// <summary>
 /// Window properties, as Winland's <c>getprop</c> and <c>setprop</c> reach them. A property's value is what
-/// <c>setprop</c> set, else what a window rule or workspace rule gives, else the config's value.
+/// <c>setprop</c> set, else what a window rule gives, else the config's value.
 /// </summary>
 public sealed partial class WindowManager
 {
@@ -15,40 +15,34 @@ public sealed partial class WindowManager
         "animation" => "",
         "max_size" => PropSize.Unbounded,
         "min_size" => new PropSize(20, 20),
-        "opacity" or "opacity_inactive" or "opacity_fullscreen" => PropAlpha.Identity,
+        "opacity" or "opacity_inactive" => PropAlpha.Identity,
         "active_border_color" => BorderOf(window, active: true, honorProps: false),
         "inactive_border_color" => BorderOf(window, active: false, honorProps: false),
-        "decorate" or "sync_fullscreen" => true,
+        "decorate" => true,
         "border_size" => (long)_config.Layout.BorderSize,
         "rounding" => (long)_config.Decoration.Rounding,
-        "rounding_power" => _config.Decoration.RoundingPower,
-        "scroll_mouse" => 1f,
-        "scroll_touchpad" => 1f,
         _ when kind == PropKind.Bool => false,
         _ => throw new ArgumentOutOfRangeException(nameof(key), key, "No default for this property."),
     };
 
-    private object Layered(WindowId window, LiveWorkspace? desk, string key) =>
-        _props.Value(window, key, desk is null ? null : RuleFor(desk))!;
-
-    private object PropValue(WindowId window, LiveWorkspace? desk, string key, PropKind kind) =>
-        _props.Value(window, key, desk is null ? null : RuleFor(desk)) ?? DefaultProp(window, key, kind);
+    private object PropValue(WindowId window, string key, PropKind kind) =>
+        _props.Value(window, key) ?? DefaultProp(window, key, kind);
 
     private CommandReply ReadProp(GetPropRequest request)
     {
         if (request.Selector.Length == 0 || request.Property.Length == 0)
             return new CommandReply("not enough args", View([]));
 
-        if (!TrySelect(request.Selector, out var client, out var desk))
+        if (!TrySelect(request.Selector, out var client, out _))
             return new CommandReply("window not found", View([]));
 
         if (!WindowProps.TryKind(request.Property, out var kind))
             return new CommandReply("prop not found", View([]));
 
-        var key = WindowProps.StorageKey(request.Property);
-        var value = PropValue(client.Window, desk, key, kind);
+        var key = request.Property;
+        var value = PropValue(client.Window, key, kind);
         var json = request.Flags.HasFlag(CommandFlags.Json);
-        var text = WindowProps.Format(request.Property, kind, value, json, animationSet: _props.SetProp(client.Window, key) is not null);
+        var text = WindowProps.Format(key, kind, value, json, animationSet: _props.SetProp(client.Window, key) is not null);
         return new CommandReply(text, View([]));
     }
 
@@ -85,7 +79,7 @@ public sealed partial class WindowManager
             return Refused("error: invalid prop name");
 
         var window = client.Window;
-        var key = WindowProps.StorageKey(property);
+        var key = property;
         object? next;
         switch (kind)
         {
@@ -98,11 +92,7 @@ public sealed partial class WindowManager
             case PropKind.Alpha:
                 if (!WindowProps.TryFloat(value, out var alpha))
                     return Refused("error: invalid opacity");
-                next = new PropAlpha(alpha, ((PropAlpha)PropValue(window, desk, key, kind)).Overridden);
-                break;
-            case PropKind.AlphaOverride:
-                var flag = WindowProps.TryInteger(value, out var number) && number != 0;
-                next = ((PropAlpha)PropValue(window, desk, key, PropKind.Alpha)) with { Overridden = flag };
+                next = new PropAlpha(alpha);
                 break;
             case PropKind.Color:
                 if (!WindowProps.TryReadColor(value, out var color))
@@ -111,7 +101,7 @@ public sealed partial class WindowManager
                 break;
             default:
                 // A value that does not parse changes nothing.
-                if (!WindowProps.TryTrivial(key, kind, value, Layered(window, desk, key), PropValue(window, desk, key, kind), out next))
+                if (!WindowProps.TryTrivial(key, kind, value, _props.Value(window, key), PropValue(window, key, kind), out next))
                     return View([], dispatcher: dispatcher);
                 break;
         }
@@ -120,7 +110,7 @@ public sealed partial class WindowManager
 
         IReadOnlyList<Placement> placements = key switch
         {
-            "min_size" or "max_size" or "no_max_size" => ApplyLimits(window, desk),
+            "min_size" or "max_size" => ApplyLimits(window, desk),
             "border_size" => desk.Layout.Apply(desk.Options),
             _ => [],
         };
