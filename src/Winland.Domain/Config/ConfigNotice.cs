@@ -26,15 +26,25 @@ public sealed record ConfigNotice(string Title, string Text, string? File, int G
         if (count == 0 || first is null)
             return null;
 
-        var file = string.IsNullOrEmpty(first.Source) ? configPath : first.Source;
-        if (string.IsNullOrEmpty(file))
-            file = null;
-
+        var file = FileOf(first, configPath);
         return new ConfigNotice(
             string.Create(CultureInfo.InvariantCulture, $"Winland: {count} config errors"),
             Body(first, file),
             file,
             generation);
+    }
+
+    /// <summary>One warning as the notification words it: <c>file:line: message</c>, with whatever of the file and line is known.</summary>
+    public static string Describe(ConfigWarning warning, string? configPath)
+    {
+        ArgumentNullException.ThrowIfNull(warning);
+        return Body(warning, FileOf(warning, configPath));
+    }
+
+    private static string? FileOf(ConfigWarning warning, string? configPath)
+    {
+        var file = string.IsNullOrEmpty(warning.Source) ? configPath : warning.Source;
+        return string.IsNullOrEmpty(file) ? null : file;
     }
 
     private static string Body(ConfigWarning warning, string? file)

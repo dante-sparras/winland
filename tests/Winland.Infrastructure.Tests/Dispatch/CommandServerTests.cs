@@ -271,7 +271,7 @@ public class CommandServerTests
         using var server = new CommandServer(core, name);
         server.Start();
 
-        var batch = CommandClient.Transact("[[BATCH]]binds;configerrors", name);
+        var batch = CommandClient.Transact("j/[[BATCH]]binds;configerrors", name);
         Assert.Equal("[]\n\n\n[]", batch);
     }
 

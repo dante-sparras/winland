@@ -129,6 +129,17 @@ public class DefaultConfigTests
     }
 
     [Fact]
+    public void EveryDefaultBindReadsBackFromTheLineBindsPrints()
+    {
+        var binds = ConfigParser.Parse(DefaultConfig.Text).Binds.OfType<Bind>().ToArray();
+
+        var again = ConfigParser.Parse(CommandProtocol.FormatBindsText(binds));
+
+        Assert.Empty(again.Warnings);
+        Assert.Equal(binds, again.Binds);
+    }
+
+    [Fact]
     public void TheDefaultIsWrittenOnlyWhenTheFileIsMissing()
     {
         var root = Path.Combine(Path.GetTempPath(), "winland-default-config-" + Guid.NewGuid().ToString("N"));

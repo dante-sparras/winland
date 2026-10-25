@@ -98,11 +98,7 @@ public class ControlConformance
             && bind.GetProperty("has_description").GetBoolean()
             && bind.GetProperty("description").GetString() == description);
 
-        // The reference reads the flags of that bind from the text reply as "locked, repeat".
-        var described = Json(desk.Send("binds")).EnumerateArray()
-            .Single(bind => bind.GetProperty("description").GetString() == description);
-        Assert.True(described.GetProperty("locked").GetBoolean());
-        Assert.True(described.GetProperty("repeat").GetBoolean());
+        Assert.Contains($"bindled = SUPER, F12, {description}, exec, true", desk.Send("binds").Split('\n'));
 
         Assert.Equal("ok", desk.Send("keyword unbind SUPER, F12"));
     }

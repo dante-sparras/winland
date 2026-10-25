@@ -64,14 +64,16 @@ public sealed partial class WindowManager
         _config = config;
     }
 
-    // loaded is false for a live keyword. That is not a read of the file, so the notification stays.
+    // loaded is false for a live keyword. That is not a read of the file, so the notification and configerrors stay.
     private Outcome Apply(ConfigDocument document, bool loaded = true)
     {
         ArgumentNullException.ThrowIfNull(document);
         Use(AppliedConfig.From(document, _accent));
-        NoteConfigErrors(document);
         if (loaded)
+        {
+            _loaded = document;
             ShowConfigErrors(document);
+        }
 
         var active = FocusedWorkspace();
         var covered = active.Covered();

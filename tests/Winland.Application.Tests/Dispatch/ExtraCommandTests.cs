@@ -30,24 +30,23 @@ public class ExtraCommandTests
     public void BindsReportModifierBitsDescriptionsAndKeycodes()
     {
         var core = new WindowManager();
-        Assert.Equal("[]", core.Execute("binds").Text);
         Assert.Equal("[]", core.Execute("j/binds").Text);
 
         Assert.Equal("ok", core.Execute("keyword bind SUPER, Q, killactive").Text);
-        Assert.Equal(SuperKill, core.Execute("binds").Text);
+        Assert.Equal(SuperKill, core.Execute("j/binds").Text);
 
         Assert.Equal("ok", core.Execute("keyword bind SUPER SHIFT, E, killactive").Text);
-        var second = Json(core.Execute("binds").Text)[1];
+        var second = Json(core.Execute("j/binds").Text)[1];
         Assert.Equal(65, second.GetProperty("modmask").GetInt32());
         Assert.Equal("E", second.GetProperty("key").GetString());
 
         Assert.Equal("ok", core.Execute("keyword bindd SUPER, F, Close, killactive").Text);
-        var described = Json(core.Execute("binds").Text)[2];
+        var described = Json(core.Execute("j/binds").Text)[2];
         Assert.True(described.GetProperty("has_description").GetBoolean());
         Assert.Equal("Close", described.GetProperty("description").GetString());
 
         Assert.Equal("ok", core.Execute("keyword bind SUPER, code:42, killactive").Text);
-        var coded = Json(core.Execute("binds").Text)[3];
+        var coded = Json(core.Execute("j/binds").Text)[3];
         Assert.Equal("", coded.GetProperty("key").GetString());
         Assert.Equal(42, coded.GetProperty("keycode").GetInt32());
     }
@@ -56,12 +55,12 @@ public class ExtraCommandTests
     public void VersionHasItsShape()
     {
         var core = new WindowManager();
-        var version = Json(core.Execute("version").Text);
+        var version = Json(core.Execute("j/version").Text);
         Assert.Equal(BuildStamp.Version, version.GetProperty("version").GetString());
         Assert.Equal(BuildStamp.Commit, version.GetProperty("commit").GetString());
         Assert.Equal(BuildStamp.Tag, version.GetProperty("tag").GetString());
         Assert.Equal(JsonValueKind.Array, version.GetProperty("flags").ValueKind);
-        Assert.StartsWith("{\"branch\":", core.Execute("version").Text, StringComparison.Ordinal);
+        Assert.StartsWith("{\"branch\":", core.Execute("j/version").Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -83,7 +82,7 @@ public class ExtraCommandTests
     {
         var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("blur = on\n")));
-        Assert.Equal("[\"line 1: Unsupported keyword 'blur'.\"]", core.Execute("configerrors").Text);
+        Assert.Equal("[\"line 1: Unsupported keyword 'blur'.\"]", core.Execute("j/configerrors").Text);
         Assert.Equal("{\"option\":\"general:border_size\",\"int\":2,\"set\":false}", core.Execute("getoption general:border_size").Text);
         Assert.Equal("{\"option\":\"dwindle:preserve_split\",\"bool\":false,\"set\":false}", core.Execute("getoption dwindle:preserve_split").Text);
         Assert.Equal("{\"option\":\"general:gaps_in\",\"css\":\"4 4 4 4\",\"set\":false}", core.Execute("getoption general:gaps_in").Text);
@@ -91,7 +90,7 @@ public class ExtraCommandTests
 
         Assert.Equal("ok", core.Execute("keyword general:border_size 4").Text);
         Assert.Equal("{\"option\":\"general:border_size\",\"int\":4,\"set\":true}", core.Execute("getoption general:border_size").Text);
-        Assert.Equal("[\"line 1: Unsupported keyword 'blur'.\"]", core.Execute("configerrors").Text);
+        Assert.Equal("[\"line 1: Unsupported keyword 'blur'.\"]", core.Execute("j/configerrors").Text);
         Assert.Equal("ok", core.Execute("keyword misc:focus_on_activate true").Text);
         Assert.Equal("{\"option\":\"misc:focus_on_activate\",\"bool\":true,\"set\":true}", core.Execute("getoption misc:focus_on_activate").Text);
         Assert.Equal("error: Unsupported keyword 'blur'.", core.Execute("keyword blur on").Text);
@@ -143,10 +142,11 @@ public class ExtraCommandTests
     {
         var core = new WindowManager();
         var joined = core.Execute("[[BATCH]]binds;configerrors").Text;
-        Assert.Equal("[]\n\n\n[]", joined);
+        Assert.Equal("no binds\n\n\nno config errors", joined);
+        Assert.Equal("[]\n\n\n[]", core.Execute("j/[[BATCH]]binds;configerrors").Text);
 
         var escaped = core.Execute(@"[[BATCH]]keyword bind SUPER, Q, exec, [float\; tile] notepad;configerrors").Text;
-        Assert.Equal("ok\n\n\n[]", escaped);
+        Assert.Equal("ok\n\n\nno config errors", escaped);
         Assert.Contains("[float; tile] notepad", core.Execute("binds").Text, StringComparison.Ordinal);
     }
 

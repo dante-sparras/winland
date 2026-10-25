@@ -45,6 +45,17 @@ public static partial class CommandProtocol
         return JsonSerializer.Serialize(views);
     }
 
+    /// <summary>One config line per bind, as the config would write it.</summary>
+    public static string FormatBindsText(IReadOnlyList<Bind> binds)
+    {
+        ArgumentNullException.ThrowIfNull(binds);
+        var lines = new string[binds.Count];
+        for (var i = 0; i < binds.Count; i++)
+            lines[i] = BindText.Line(binds[i]);
+
+        return string.Join('\n', lines);
+    }
+
     public static string FormatVersion() =>
         JsonSerializer.Serialize(new VersionJson(
             "",
@@ -57,10 +68,42 @@ public static partial class CommandProtocol
             "",
             []));
 
-    public static string FormatErrors(IReadOnlyList<string> errors)
+    public static string FormatVersionText()
     {
-        ArgumentNullException.ThrowIfNull(errors);
+        var details = new List<string>();
+        if (BuildStamp.Commit.Length > 0)
+            details.Add(BuildStamp.Commit.Length > 7 ? BuildStamp.Commit[..7] : BuildStamp.Commit);
+
+        if (BuildStamp.Dirty)
+            details.Add("dirty");
+
+        var version = "winland " + BuildStamp.Version;
+        return details.Count == 0 ? version : version + " (" + string.Join(", ", details) + ")";
+    }
+
+    public static string FormatErrors(IReadOnlyList<ConfigWarning> warnings)
+    {
+        ArgumentNullException.ThrowIfNull(warnings);
+        var errors = new string[warnings.Count];
+        for (var i = 0; i < warnings.Count; i++)
+        {
+            errors[i] = warnings[i].Line > 0
+                ? string.Create(CultureInfo.InvariantCulture, $"line {warnings[i].Line}: {warnings[i].Message}")
+                : warnings[i].Message;
+        }
+
         return JsonSerializer.Serialize(errors, Relaxed);
+    }
+
+    /// <summary>One warning per line, worded as the config notification words it. <paramref name="configPath"/> names the file a warning with no source was read from.</summary>
+    public static string FormatErrorsText(IReadOnlyList<ConfigWarning> warnings, string? configPath)
+    {
+        ArgumentNullException.ThrowIfNull(warnings);
+        var lines = new string[warnings.Count];
+        for (var i = 0; i < warnings.Count; i++)
+            lines[i] = ConfigNotice.Describe(warnings[i], configPath);
+
+        return string.Join('\n', lines);
     }
 
     internal static int ModMask(Modifier modifiers)

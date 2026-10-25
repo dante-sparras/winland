@@ -5,7 +5,8 @@ namespace Winland.Application;
 /// <summary>The pipe's requests: queries, <c>keyword</c> and <c>--batch</c>.</summary>
 public sealed partial class WindowManager
 {
-    private string[] _configErrors = [];
+    // The last config Winland read. A live keyword leaves it, so configerrors keeps the errors of the file.
+    private ConfigDocument? _loaded;
 
     // A batch's flags are added to the flags of each of its commands.
     private CommandReply ExecuteLine(string? line, CommandFlags added = CommandFlags.None) =>
@@ -37,9 +38,13 @@ public sealed partial class WindowManager
                 : CommandProtocol.FormatActiveWorkspaceText(state)),
             EventsRequest => Answer("") with { Stream = true },
             ReloadRequest => ReloadCommand(),
-            BindsRequest => Describe(_ => CommandProtocol.FormatBinds(_config.Binds.Binds)),
-            VersionRequest => Answer(CommandProtocol.FormatVersion()),
-            ConfigErrorsRequest => Answer(CommandProtocol.FormatErrors(_configErrors)),
+            BindsRequest binds => Describe(_ => Json(binds)
+                ? CommandProtocol.FormatBinds(_config.Binds.Binds)
+                : Text(CommandProtocol.FormatBindsText(_config.Binds.Binds), "no binds")),
+            VersionRequest version => Answer(Json(version) ? CommandProtocol.FormatVersion() : CommandProtocol.FormatVersionText()),
+            ConfigErrorsRequest errors => Answer(Json(errors)
+                ? CommandProtocol.FormatErrors(_loaded?.Warnings ?? [])
+                : Text(CommandProtocol.FormatErrorsText(_loaded?.Warnings ?? [], _loaded?.Path), "no config errors")),
             GetOptionRequest option => Answer(OptionTable.Describe(option.Name, _config) ?? "no such option"),
             ClickKillRequest => ArmClickKill(),
             KeywordRequest keyword => ApplyKeyword(keyword),
@@ -70,26 +75,6 @@ public sealed partial class WindowManager
         return new CommandReply(format(outcome.State), outcome);
     }
 
-    private void NoteConfigErrors(ConfigDocument? document)
-    {
-        if (document is null || document.Warnings.Count == 0)
-        {
-            _configErrors = [];
-            return;
-        }
-
-        var errors = new string[document.Warnings.Count];
-        for (var i = 0; i < document.Warnings.Count; i++)
-        {
-            var warning = document.Warnings[i];
-            errors[i] = warning.Line > 0
-                ? string.Create(CultureInfo.InvariantCulture, $"line {warning.Line}: {warning.Message}")
-                : warning.Message;
-        }
-
-        _configErrors = errors;
-    }
-
     private CommandReply ApplyKeyword(KeywordRequest request)
     {
         if (request.Name.Length == 0 || request.Value.Length == 0)
@@ -111,10 +96,7 @@ public sealed partial class WindowManager
                 return new CommandReply($"error: keyword '{setting.Keyword}' is not applied live", View([]));
         }
 
-        var kept = _configErrors;
-        // A live keyword is not a load of the file, so it leaves the notification where the last load put it.
         var outcome = Apply((_config.Document ?? ConfigDocument.Empty).Merge(parsed), loaded: false);
-        _configErrors = kept;
         return new CommandReply("ok", outcome);
     }
 

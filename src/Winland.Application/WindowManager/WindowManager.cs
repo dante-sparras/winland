@@ -56,7 +56,7 @@ public sealed partial class WindowManager
         TrackWindowState();
         if (config is not null)
             Use(AppliedConfig.From(config, accent: null));
-        NoteConfigErrors(config);
+        _loaded = config;
         _workspaces.Shown.Show(MonitorId.Primary, WorkspaceId.Initial);
         WorkspaceFor(WorkspaceId.Initial);
         EnsurePersistent();
