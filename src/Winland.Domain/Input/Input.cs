@@ -188,6 +188,12 @@ public sealed record WindowAppeared(WindowId Window, Rectangle WorkArea) : Event
     /// <summary>The window that owns this one, as a dialog's owner, or null.</summary>
     public WindowId? Owner { get; init; }
 
+    /// <summary>
+    /// The window opened while Winland runs, so it opens on the focused Monitor, or on its owner's. False for a window
+    /// that was already open when Winland started, which stays on the Monitor it is on.
+    /// </summary>
+    public bool Opened { get; init; }
+
     /// <summary>Windows has disabled the window, as it does the owner of an open modal dialog.</summary>
     public bool Disabled { get; init; }
 

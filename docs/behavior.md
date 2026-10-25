@@ -82,6 +82,8 @@ A console program started by `execr` gets a console window of its own. One start
 
 Every program Winland starts runs as the normal user. An elevated Winland drops its administrator rights for the launch, so `exec`, `exec-once`, `execr`, `execr-once`, `exec-shutdown`, a bind's `exec` or `execr`, a workspace rule's `on-created-empty`, and a command on the pipe all start the program de-elevated. A program that needs administrator rights asks for them itself.
 
+A window that opens while Winland runs opens on the focused Monitor, wherever its program put it, so a Windows Terminal window opens on the Monitor with the focus and not where Terminal's last window was. A window with an owner that is a Client, such as a dialog, opens on its owner's Monitor. A window that was already open when Winland started stays on the Monitor it is on. A window rule's `monitor` or `workspace`, and the Workspace below, win over this.
+
 `misc:initial_workspace_tracking` defaults to 1. A program `exec`, `execr`, a config `exec` line or a workspace rule's `on-created-empty` starts opens its window on the Workspace it was started on, without switching to it. That is the special workspace the focused Monitor shows, or its Workspace, and for `on-created-empty` the new Workspace. `exec-once` and `exec-shutdown` start programs without it. Every process the program starts holds the same Workspace. With 1 the first window that opens uses it up, and it lapses after `misc:initial_workspace_token_timeout` seconds, 10 by default. With 2 every window of those processes opens where the first one is now, until the first one closes. 0 turns it off. A window rule's `workspace` wins over it, and a window that comes back after a restart keeps its own Workspace.
 
 ## Window placement

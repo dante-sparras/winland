@@ -28,7 +28,7 @@ public sealed partial class WindowAdapter
 
         // A window that opens maximized asked for it before it mapped, which the core ignores. A window that was
         // maximized before Winland started is adopted elsewhere, and stays maximized.
-        appeared = appeared with { ShownMaximized = PInvoke.IsZoomed(hwnd) };
+        appeared = appeared with { ShownMaximized = PInvoke.IsZoomed(hwnd), Opened = true };
         var outcome = _core.Handle(appeared);
         NoteManaged(window, outcome, appeared);
         Apply(outcome);
