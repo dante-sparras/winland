@@ -73,8 +73,6 @@ public sealed partial class WindowManager
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(session);
-        if (input is WheelTurned wheel)
-            input = NaturalScroll.Apply(_config.Input, wheel);
         var decision = session.Decide(_config.Binds, input);
 
         // binds:pass_mouse_when_bound: a button that runs a bind is not swallowed, so the window
@@ -192,7 +190,7 @@ public sealed partial class WindowManager
             PointerButtonPressed pressed => PressPointer(pressed),
             PointerButtonReleased released => ReleasePointer(released),
             PointerMoved moved => MovePointer(moved),
-            WheelTurned wheel => RunKey(NaturalScroll.Apply(_config.Input, wheel)),
+            WheelTurned wheel => RunKey(wheel),
             PointerGesture gesture => ApplyGesture(gesture),
             GroupBarScrolled scrolled => ScrollGroupBar(scrolled),
             WindowMaximizeRequested requested => MaximizeRequest(requested.Window),

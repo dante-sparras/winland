@@ -70,8 +70,7 @@ public sealed partial class WindowManager
         if (WorkspaceContaining(window) is { } desk
             && !desk.Id.IsSpecial
             && _workspaces.Shown.IsShown(desk.Id)
-            && _workspaces.Shown.SpecialOn(desk.Monitor) is not null
-            && !_config.Input.SpecialFallthrough)
+            && _workspaces.Shown.SpecialOn(desk.Monitor) is not null)
         {
             var hidden = ConcealSpecial(desk.Monitor);
             NoteFocus(window);
@@ -147,11 +146,7 @@ public sealed partial class WindowManager
 
     private WindowId? FocusAfter(LiveWorkspace desk, bool floating, Rectangle bounds, bool hadBounds)
     {
-        var mode = _config.Input.FocusOnClose;
-        if (mode == 1)
-            return WindowUnder(_pointer ?? Cursor?.Read(), shrink: false);
-
-        if (floating || mode == 2)
+        if (floating)
             return _focus.Recent(desk) ?? desk.LastVisible();
 
         if (desk.Layout.FocusAfterClose() is WindowId layout && Accepts(desk, layout))

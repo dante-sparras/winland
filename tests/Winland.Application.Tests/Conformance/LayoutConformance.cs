@@ -92,28 +92,6 @@ public class LayoutConformance
     }
 
     [Fact]
-    public void FocusMRUAfterClose()
-    {
-        var desk = new Desk("""
-            dwindle:default_split_ratio = 1.25
-            input:focus_on_close = 2
-            """);
-        desk.Spawn("kitty_A");
-        desk.Spawn("kitty_B");
-        desk.Spawn("kitty_C");
-
-        desk.Ok("focuswindow", "class:kitty_A");
-        desk.Ok("focuswindow", "class:kitty_B");
-        desk.Ok("focuswindow", "class:kitty_C");
-
-        desk.CloseActive();
-        Assert.Equal("kitty_B", desk.ActiveClass());
-
-        desk.CloseActive();
-        Assert.Equal("kitty_A", desk.ActiveClass());
-    }
-
-    [Fact]
     public void FocusPreservedLayoutChange()
     {
         var desk = new Desk("general:layout = dwindle\n");

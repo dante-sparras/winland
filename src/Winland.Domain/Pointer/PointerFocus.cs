@@ -9,7 +9,7 @@ internal static class PointerFocus
 
     internal readonly record struct Decision(WindowId? Focus, WindowId? LastMouse, bool RememberMouse);
 
-    internal static WindowId? At(IReadOnlyList<Target> targets, Point point, int shrink, WindowId? focused)
+    internal static WindowId? At(IReadOnlyList<Target> targets, Point point)
     {
         ArgumentNullException.ThrowIfNull(targets);
         for (var i = targets.Count - 1; i >= 0; i--)
@@ -17,7 +17,7 @@ internal static class PointerFocus
             if (!targets[i].Floating)
                 continue;
 
-            if (Hits(targets[i], point, shrink, focused))
+            if (Hits(targets[i], point))
                 return targets[i].Window;
         }
 
@@ -26,7 +26,7 @@ internal static class PointerFocus
             if (targets[i].Floating)
                 continue;
 
-            if (Hits(targets[i], point, shrink, focused))
+            if (Hits(targets[i], point))
                 return targets[i].Window;
         }
 
@@ -35,10 +35,7 @@ internal static class PointerFocus
 
     internal static Decision Choose(
         int mode,
-        bool mouseRefocus,
-        int floatSwitch,
         double traveled,
-        double threshold,
         WindowId? under,
         bool underFloats,
         WindowId? keyboard,
@@ -53,32 +50,25 @@ internal static class PointerFocus
             var switches = mode != 3
                 && keyboard is not null
                 && under != keyboard
-                && ((underFloats && floatSwitch == 2) || (keyboardFloats != underFloats && floatSwitch != 0));
+                && keyboardFloats != underFloats;
             return new Decision(switches ? under : null, lastMouse, false);
         }
-
-        if (!mouseRefocus && lastMouse == under)
-            return new Decision(null, lastMouse, false);
 
         if (lastMouse == under && keyboard == under)
             return new Decision(null, lastMouse, false);
 
-        if (keyboard != under && traveled > threshold)
+        if (keyboard != under && traveled > 0)
             return new Decision(under, under, true);
 
         return new Decision(null, under, true);
     }
 
-    private static bool Hits(Target target, Point point, int shrink, WindowId? focused)
+    private static bool Hits(Target target, Point point)
     {
-        var inset = target.Window == focused ? 0 : shrink;
-        var x = target.Bounds.X + inset;
-        var y = target.Bounds.Y + inset;
-        var width = target.Bounds.Width - (2 * inset);
-        var height = target.Bounds.Height - (2 * inset);
-        if (width <= 0 || height <= 0)
+        var bounds = target.Bounds;
+        if (bounds.Width <= 0 || bounds.Height <= 0)
             return false;
 
-        return point.X >= x && point.Y >= y && point.X < x + width && point.Y < y + height;
+        return point.X >= bounds.X && point.Y >= bounds.Y && point.X < bounds.X + bounds.Width && point.Y < bounds.Y + bounds.Height;
     }
 }

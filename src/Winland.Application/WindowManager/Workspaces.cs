@@ -220,7 +220,7 @@ public sealed partial class WindowManager
         if (sourceId == target)
         {
             if (focus is WindowId requested && ClientOn(target, requested) is not null
-                && (_workspaces.Shown.SpecialOn(monitor) is null || _config.Input.SpecialFallthrough))
+                && _workspaces.Shown.SpecialOn(monitor) is null)
             {
                 _focus.Take(requested, FocusedWorkspace());
             }

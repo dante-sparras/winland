@@ -73,7 +73,7 @@ public class CursorInputTests
     public void ASystemInputKeyWarnsAndIsNotApplied()
     {
         var document = ConfigParser.Parse("""
-            input:natural_scroll = true
+            input:follow_mouse = 1
             input:repeat_rate = 25
             input:sensitivity = 0
             input:left_handed = true
@@ -86,8 +86,7 @@ public class CursorInputTests
                 new ConfigWarning(4, "Unsupported keyword 'input:left_handed'."),
             ],
             document.Warnings);
-        Assert.True(InputOptions.From(document).InvertsScroll);
-        Assert.Equal([new Setting("input:natural_scroll", "true")], document.Settings);
+        Assert.Equal([new Setting("input:follow_mouse", "1")], document.Settings);
     }
 
     [Fact]
@@ -101,20 +100,7 @@ public class CursorInputTests
     }
 
     [Fact]
-    public void NaturalScrollReversesTheWheelBeforeTheBind()
-    {
-        var core = new WindowManager();
-        core.Handle(new ConfigLoaded(ConfigParser.Parse("input:natural_scroll = true\nbind = , mouse_down, workspace, 2\n")));
-        core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
-
-        var outcome = core.Handle(new WheelTurned("mouse_up", 1_000));
-
-        Assert.Equal("workspace", outcome.Dispatcher);
-        Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
-    }
-
-    [Fact]
-    public void WheelDirectionIsUnchangedWhenNaturalScrollIsUnset()
+    public void WheelDirectionIsNotReversed()
     {
         var core = new WindowManager();
         core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = , mouse_down, workspace, 2\n")));

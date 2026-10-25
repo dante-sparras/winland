@@ -329,7 +329,7 @@ public sealed partial class WindowManager
         {
             var targets = Targets(point, special);
             targets.RemoveAll(target => target.Window == except);
-            if (PointerFocus.At(targets, point, 0, null) is WindowId found)
+            if (PointerFocus.At(targets, point) is WindowId found)
                 return found;
         }
 
@@ -389,7 +389,7 @@ public sealed partial class WindowManager
         if (point is not Point at)
             return null;
 
-        if (WindowUnder(at, shrink: false) is WindowId inside)
+        if (WindowUnder(at) is WindowId inside)
             return inside;
 
         foreach (var special in new[] { true, false })
@@ -402,7 +402,7 @@ public sealed partial class WindowManager
                 grown.Add(target with { Bounds = new Rectangle(bounds.X - border, bounds.Y - border, bounds.Width + (2 * border), bounds.Height + (2 * border)) });
             }
 
-            if (PointerFocus.At(grown, at, 0, null) is WindowId edge)
+            if (PointerFocus.At(grown, at) is WindowId edge)
                 return edge;
         }
 

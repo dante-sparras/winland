@@ -183,16 +183,6 @@ public class SpecialWorkspaceTests
         Assert.Null(closed.State.SpecialWorkspace);
         Assert.Equal(new WindowId(1), closed.Focus);
         Assert.Contains(closed.State.Hidden, client => client.Window == new WindowId(2));
-
-        var through = new WindowManager(ConfigParser.Parse("input:special_fallthrough = true\n"));
-        through.Handle(Appeared(1));
-        through.Handle(Appeared(2));
-        through.Handle(new Dispatch("movetoworkspace", "special"));
-        var stayed = through.Handle(new Dispatch("focuswindow", "address:0x1"));
-
-        Assert.Equal(WorkspaceId.DefaultSpecial, stayed.State.SpecialWorkspace);
-        Assert.Equal(new WindowId(1), stayed.Focus);
-        Assert.DoesNotContain(stayed.State.Hidden, client => client.Window == new WindowId(2));
     }
 
     [Fact]
@@ -213,11 +203,10 @@ public class SpecialWorkspaceTests
         var document = ConfigParser.Parse("""
             misc:close_special_on_empty = false
             binds:hide_special_on_workspace_change = true
-            input:special_fallthrough = true
             """);
 
         Assert.Empty(document.Warnings);
-        Assert.Equal(3, document.Settings.Count);
+        Assert.Equal(2, document.Settings.Count);
     }
 
     [Fact]

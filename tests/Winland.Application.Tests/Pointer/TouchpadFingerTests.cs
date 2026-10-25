@@ -23,16 +23,4 @@ public class TouchpadFingerTests
     {
         Assert.Equal(scrolls, TouchpadPointer.Scrolls(fingers, sinceReport, sinceTwo, delta));
     }
-
-    [Fact]
-    public void ScaledWheelTurnsKeepWhatRoundingLeavesOnEachAxis()
-    {
-        var pointer = new TouchpadPointer();
-
-        Assert.Equal(0, pointer.Scale(1, 0.4, horizontal: false));
-        Assert.Equal(1, pointer.Scale(1, 0.4, horizontal: false));
-        Assert.Equal(0, pointer.Scale(1, 0.4, horizontal: true));
-        Assert.Equal(240, pointer.Scale(120, 2, horizontal: false));
-        Assert.Equal(short.MaxValue, pointer.Scale(30000, 100, horizontal: false));
-    }
 }

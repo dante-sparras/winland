@@ -188,7 +188,6 @@ public class WindowConformance
     {
         var desk = new Desk("""
             input:follow_mouse = 2
-            input:float_switch_override_focus = 0
             """);
 
         desk.Spawn("a");

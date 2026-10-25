@@ -137,13 +137,10 @@ public sealed partial class WindowManager
         if (_keyState.ButtonsHeld)
             return null;
 
-        var under = WindowUnder(moved.Position, shrink: true);
+        var under = WindowUnder(moved.Position);
         var decision = PointerFocus.Choose(
             _config.Input.FollowMouse,
-            _config.Input.MouseRefocus,
-            _config.Input.FloatSwitchOverrideFocus,
             traveled,
-            _config.Input.FollowMouseThreshold,
             under,
             Floats(under),
             _focus.Focused,
@@ -205,15 +202,14 @@ public sealed partial class WindowManager
         Focus(screen.Id);
     }
 
-    private WindowId? WindowUnder(Point? point, bool shrink)
+    private WindowId? WindowUnder(Point? point)
     {
         if (point is not Point at)
             return null;
 
         // A special workspace open over the normal one answers first, floating and tiled alike.
-        var inset = shrink ? MonitorPixels.Physical(_config.Input.FollowMouseShrink, ScaleOf(at)) : 0;
-        return PointerFocus.At(Targets(at, special: true), at, inset, _focus.Focused)
-            ?? PointerFocus.At(Targets(at, special: false), at, inset, _focus.Focused);
+        return PointerFocus.At(Targets(at, special: true), at)
+            ?? PointerFocus.At(Targets(at, special: false), at);
     }
 
     private List<PointerFocus.Target> Targets(Point point, bool special)
