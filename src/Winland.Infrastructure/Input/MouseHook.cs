@@ -235,7 +235,7 @@ public sealed class MouseHook : IDisposable
         return decision.Consumed;
     }
 
-    // input:emulate_discrete_scroll: a mouse wheel turn that is part of a notch is taken, and the whole notches it adds up
+    // A mouse wheel turn that is part of a notch is taken, and the whole notches it adds up
     // to are sent in its place. True when the turn was taken.
     private bool DiscreteWheel(uint message, uint mouseData, PointerSource source, uint time)
     {

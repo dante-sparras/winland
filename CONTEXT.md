@@ -52,9 +52,6 @@ _Avoid_: Tabbed container, stack
 **Pinned**:
 The state of a floating Client that shows on every Workspace of its Monitor. A child window that opens while its owner is pinned is pinned too.
 
-**Held pin**:
-A pin that `binds:allow_pin_fullscreen` takes from a Client while it is fullscreen or maximized. The Client is not Pinned while the pin is held, and is Pinned again when that mode ends.
-
 **Dispatcher**:
 A named action with an argument, such as `workspace 2`, that a bind, a gesture or the IPC pipe runs.
 _Avoid_: Action
