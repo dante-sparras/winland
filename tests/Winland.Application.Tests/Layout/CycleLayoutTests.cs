@@ -60,7 +60,7 @@ public class CycleLayoutTests
     {
         var core = new WindowManager();
         core.Handle(Appeared(1));
-        core.Handle(new Dispatch("setfloating", ""));
+        core.Handle(new Dispatch("togglefloating", ""));
 
         core.Handle(new Dispatch("cyclelayout", ""));
         core.Handle(new Dispatch("cyclelayout", ""));
@@ -71,13 +71,13 @@ public class CycleLayoutTests
     }
 
     [Fact]
-    public void SettiledDoesNotTileInsideTheFloatingLayout()
+    public void TogglefloatingDoesNotTileInsideTheFloatingLayout()
     {
         var core = new WindowManager();
         core.Handle(Appeared(1));
         core.Handle(new Dispatch("cyclelayout", "back"));
 
-        var tiled = core.Handle(new Dispatch("settiled", ""));
+        var tiled = core.Handle(new Dispatch("togglefloating", ""));
 
         Assert.Equal("floating", Layout(tiled));
         Assert.True(Client(tiled, 1).Floating);

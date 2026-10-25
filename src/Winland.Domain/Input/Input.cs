@@ -158,6 +158,9 @@ public sealed record Pseudo(WindowId Window) : Command;
 /// <summary>The wheel turned over the tab bar of the Group <paramref name="Shown"/> shows, towards its next member or back.</summary>
 public sealed record GroupBarScrolled(WindowId Shown, bool Forward) : Command;
 
+/// <summary>A middle click on the tab of <paramref name="Window"/> asked to close it.</summary>
+public sealed record GroupTabClosed(WindowId Window) : Command;
+
 /// <summary>
 /// A mouse bind already matched on the hook thread. The worker applies the drag under the core lock.
 /// </summary>

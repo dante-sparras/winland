@@ -106,20 +106,20 @@ internal sealed class WorkspaceSet : IReadOnlyCollection<LiveWorkspace>
 
     /// <summary>
     /// The number <paramref name="desk"/> keeps on <paramref name="monitor"/>: its own when that number is free there,
-    /// otherwise the first free one. <paramref name="alsoLeaving"/> does not occupy a number.
+    /// otherwise the first free one.
     /// </summary>
-    public long NumberOn(LiveWorkspace desk, MonitorId monitor, LiveWorkspace alsoLeaving)
+    public long NumberOn(LiveWorkspace desk, MonitorId monitor)
     {
         ArgumentNullException.ThrowIfNull(desk);
         var preferred = desk.Id.TryGetNumber(out var number) ? number : 1;
         var occupant = Find(WorkspaceId.FromNumber(preferred, monitor));
-        if (occupant is null || occupant == desk || occupant == alsoLeaving)
+        if (occupant is null || occupant == desk)
             return preferred;
 
         for (var candidate = 1L; candidate < WorkspaceId.MaxNumber; candidate++)
         {
             var found = Find(WorkspaceId.FromNumber(candidate, monitor));
-            if (found is null || found == desk || found == alsoLeaving)
+            if (found is null || found == desk)
                 return candidate;
         }
 
@@ -187,25 +187,7 @@ internal sealed class WorkspaceSet : IReadOnlyCollection<LiveWorkspace>
     {
         ArgumentNullException.ThrowIfNull(desk);
         desk.ClearGuest();
-        return Rebind(desk, WorkspaceId.FromNumber(NumberOn(desk, destination, desk), destination));
-    }
-
-    /// <summary>Puts <paramref name="left"/> on <paramref name="leftTo"/> and <paramref name="right"/> on <paramref name="rightTo"/>, each keeping its number when it can.</summary>
-    public IReadOnlyList<WorkspaceRename> Swap(LiveWorkspace left, MonitorId leftTo, LiveWorkspace right, MonitorId rightTo)
-    {
-        ArgumentNullException.ThrowIfNull(left);
-        ArgumentNullException.ThrowIfNull(right);
-        var leftNumber = NumberOn(left, leftTo, right);
-        var rightNumber = NumberOn(right, rightTo, left);
-        left.ClearGuest();
-        right.ClearGuest();
-
-        // The left Workspace is parked under an id no Workspace has, so the right one can take its number.
-        var renames = new List<WorkspaceRename>();
-        Collect(renames, Rebind(left, new WorkspaceId("\0", int.MinValue)));
-        Collect(renames, Rebind(right, WorkspaceId.FromNumber(rightNumber, rightTo)));
-        Collect(renames, Rebind(left, WorkspaceId.FromNumber(leftNumber, leftTo)));
-        return renames;
+        return Rebind(desk, WorkspaceId.FromNumber(NumberOn(desk, destination), destination));
     }
 
     /// <summary>

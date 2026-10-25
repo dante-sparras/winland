@@ -126,6 +126,30 @@ internal sealed class Desk : IDisposable
         Handle(new PointerMoved(Pointer));
     }
 
+    /// <summary>Puts a floating window at a frame, as the system does when the user drags it there.</summary>
+    internal void Place(string windowClass, int x, int y, int width, int height) =>
+        Place(_windows[windowClass], x, y, width, height);
+
+    internal void Place(WindowId window, int x, int y, int width, int height)
+    {
+        var bounds = new Rectangle(x, y, width, height);
+        Handle(new WindowMoveStarted(window, Pointer));
+        Handle(new WindowMoveEnded(window, Pointer, bounds));
+
+        // The core may have kept the window on screen, so the frame is read back.
+        var client = Clients().Single(candidate => IdOf(candidate) == window);
+        var at = client.GetProperty("at");
+        var size = client.GetProperty("size");
+        _placed[window] = new Rectangle(at[0].GetInt32(), at[1].GetInt32(), size[0].GetInt32(), size[1].GetInt32());
+    }
+
+    /// <summary>Moves a floating window to this position and keeps its size.</summary>
+    internal void MoveTo(WindowId window, int x, int y)
+    {
+        var size = Placed(window);
+        Place(window, x, y, size.Width, size.Height);
+    }
+
     /// <summary>Presses and releases a mouse button where the pointer is.</summary>
     internal void Click(string button = "mouse:272")
     {

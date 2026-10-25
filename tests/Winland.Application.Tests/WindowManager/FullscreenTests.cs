@@ -302,7 +302,7 @@ public class FullscreenTests
     {
         var core = Desk("general:gaps_out = 20\ngeneral:border_size = 2\n");
         Appear(core, 1);
-        core.Handle(new Dispatch("setfloating"));
+        core.Handle(new Dispatch("togglefloating"));
 
         var maximized = core.Handle(new Dispatch("fullscreen", "1"));
 
@@ -319,7 +319,7 @@ public class FullscreenTests
         core.Handle(new Dispatch("togglegroup"));
         core.Handle(new WindowAppeared(new WindowId(2), Work));
         if (floating)
-            core.Handle(new Dispatch("setfloating"));
+            core.Handle(new Dispatch("togglefloating"));
 
         var maximized = core.Handle(new Dispatch("fullscreen", "1"));
 
@@ -381,7 +381,7 @@ public class FullscreenTests
         var core = Desk();
         Appear(core, 2);
         core.Handle(new Dispatch("focuswindow", "address:0x1"));
-        core.Handle(new Dispatch("setfloating"));
+        core.Handle(new Dispatch("togglefloating"));
         core.Handle(new Dispatch("focuswindow", "address:0x2"));
 
         var covered = core.Handle(new Dispatch("fullscreen", "0"));
@@ -408,7 +408,7 @@ public class FullscreenTests
     {
         var core = Desk("general:gaps_out = 20\nworkspace = f[1], gapsout:0\n");
         Appear(core, 1);
-        core.Handle(new Dispatch("setfloating"));
+        core.Handle(new Dispatch("togglefloating"));
 
         var maximized = core.Handle(new Dispatch("fullscreen", "1"));
 
@@ -452,7 +452,7 @@ public class FullscreenTests
     }
 
     private static Rectangle Bounds(WindowManager core, long window) =>
-        ClientOf(core.Handle(new Dispatch("no_op")), window).Bounds;
+        ClientOf(core.Handle(new Dispatch("resizewindow")), window).Bounds;
 
     private static Decoration DecorationOf(Outcome outcome, long window)
     {

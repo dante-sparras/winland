@@ -187,7 +187,7 @@ public class BorderResizeTests
             Bounds = new Rectangle(0, 0, 640, 400),
         });
 
-        var box = Client(core.Handle(new Dispatch("no_op")), 2).Bounds;
+        var box = Client(core.Handle(new Dispatch("resizewindow")), 2).Bounds;
 
         Assert.Equal("right_side", core.Handle(new PointerMoved(new Point(box.X + box.Width + 10, box.Y + (box.Height / 2)))).ResizeCursor);
     }

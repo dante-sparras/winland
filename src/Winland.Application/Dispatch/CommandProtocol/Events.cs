@@ -92,9 +92,6 @@ public static partial class CommandProtocol
                 lines.Add($"moveworkspace>>{WorkspaceNameText(movedWorkspace.Workspace, indexed)},{Clean(movedWorkspace.Monitor)}");
                 lines.Add($"moveworkspacev2>>{WorkspaceIdText(movedWorkspace.Workspace, indexed)},{WorkspaceNameText(movedWorkspace.Workspace, indexed)},{Clean(movedWorkspace.Monitor)}");
                 break;
-            case WorkspaceIdChanged changed:
-                lines.Add($"changeworkspaceid>>{changed.From.ToString(CultureInfo.InvariantCulture)},{changed.To.ToString(CultureInfo.InvariantCulture)},{Clean(changed.Monitor)}");
-                break;
             case MonitorFocused focusedMonitor:
                 lines.Add($"focusedmon>>{Clean(focusedMonitor.Name)},{WorkspaceNameText(focusedMonitor.Workspace, indexed)}");
                 lines.Add($"focusedmonv2>>{Clean(focusedMonitor.Name)},{WorkspaceIdText(focusedMonitor.Workspace, indexed)}");
@@ -131,9 +128,6 @@ public static partial class CommandProtocol
                 break;
             case MonitorRemovedV2 removed:
                 lines.Add($"monitorremovedv2>>{removed.Id.ToString(CultureInfo.InvariantCulture)},{Clean(removed.Name)},{Clean(removed.Description)}");
-                break;
-            case CustomEvent custom:
-                lines.Add("custom>>" + Clean(custom.Text));
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(streamEvent), streamEvent, "No format for this event.");

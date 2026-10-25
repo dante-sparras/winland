@@ -60,56 +60,21 @@ public class SelectorDispatcherTests
     }
 
     [Fact]
-    public void CloseWindowClosesTheAddressFromTheClientList()
-    {
-        var core = new WindowManager();
-        Appear(core, 1, "keep", "a");
-        Appear(core, 42, "go", "b", processId: 7);
-        var clients = Json(core.Execute("j/clients").Text).EnumerateArray().ToArray();
-        var address = clients.Single(client => client.GetProperty("class").GetString() == "go").GetProperty("address").GetString();
-
-        var outcome = core.Handle(new Dispatch("closewindow", "address:" + address));
-
-        Assert.Equal(new WindowId(42), outcome.Close);
-        Assert.Null(outcome.Kill);
-        Assert.Equal("ok", core.Execute("dispatch closewindow").Text);
-        Assert.Null(core.Handle(new Dispatch("closewindow")).Close);
-    }
-
-    [Fact]
-    public void KillWindowRequestsTheProcessAndDoesNotCloseTheWindow()
-    {
-        var core = new WindowManager();
-        Appear(core, 1, "app", "term", processId: 4242);
-
-        var outcome = core.Handle(new Dispatch("killwindow", "pid:4242"));
-
-        Assert.Equal(new KillRequest(4242) { Window = new WindowId(1) }, outcome.Kill);
-        Assert.Null(outcome.Close);
-        Assert.Equal("killwindow", outcome.Dispatcher);
-        Assert.Null(core.Handle(new Dispatch("killwindow", "pid:1")).Kill);
-    }
-
-    [Fact]
-    public void FloatingDispatchersHonorASelectorAndDoNotRepeatTheSameState()
+    public void ToggleFloatingHonorsASelector()
     {
         var core = Flat();
         Appear(core, 1, "keep", "a");
         Appear(core, 2, "go", "b");
 
-        var floated = core.Handle(new Dispatch("setfloating", "class:go"));
+        var floated = core.Handle(new Dispatch("togglefloating", "class:go"));
 
         Assert.True(Client(floated, 2).Floating);
         Assert.False(Client(floated, 1).Floating);
 
-        var again = core.Handle(new Dispatch("setfloating", "class:go"));
-        Assert.Empty(again.Placements);
-        Assert.True(Client(again, 2).Floating);
-
-        var missed = core.Handle(new Dispatch("settiled", "class:missing"));
+        var missed = core.Handle(new Dispatch("togglefloating", "class:missing"));
         Assert.True(Client(missed, 2).Floating);
 
-        var tiled = core.Handle(new Dispatch("settiled", "class:go"));
+        var tiled = core.Handle(new Dispatch("togglefloating", "class:go"));
         Assert.False(Client(tiled, 2).Floating);
 
         var toggled = core.Handle(new Dispatch("togglefloating", "class:keep"));
@@ -214,7 +179,7 @@ public class SelectorDispatcherTests
     }
 
     [Fact]
-    public void ExitEventNoOpAndRendererReload()
+    public void ExitStopsTheDaemon()
     {
         var core = new WindowManager();
         Appear(core, 1, "app", "term");
@@ -223,59 +188,6 @@ public class SelectorDispatcherTests
         Assert.Equal("ok", exit.Text);
         Assert.True(exit.Effect.Exit);
         Assert.Single(exit.Effect.State.Clients);
-
-        var custom = core.Execute("dispatch event hello world");
-        Assert.Equal("ok", custom.Text);
-        Assert.Contains("custom>>hello world", Lines(custom));
-
-        Assert.Equal("ok", core.Execute("dispatch no_op").Text);
-        Assert.Null(core.Execute("dispatch no_op").Effect.Close);
-        Assert.False(core.Execute("dispatch no_op").Effect.Exit);
-
-        var reload = core.Execute("dispatch forcerendererreload");
-        Assert.Equal("ok", reload.Text);
-        Assert.Empty(reload.Effect.Placements);
-        Assert.False(reload.Effect.Exit);
-    }
-
-    private static DisplayPowerRequest[] Unfaded(IReadOnlyList<DisplayPowerRequest> requests) => [.. requests];
-
-    [Fact]
-    public void DpmsRequestsPowerForTheNamedMonitorOrEveryMonitor()
-    {
-        var bare = new WindowManager().Handle(new Dispatch("dpms", "off"));
-        Assert.Equal([new DisplayPowerRequest("", false)], Unfaded(bare.DisplayPower));
-
-        var core = new WindowManager();
-        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
-        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
-        core.Handle(new MonitorsChanged([left, right]));
-
-        var one = core.Handle(new Dispatch("dpms", @"off \\.\DISPLAY2"));
-        Assert.Equal([new DisplayPowerRequest(@"\\.\DISPLAY2", false)], Unfaded(one.DisplayPower));
-
-        var back = core.Handle(new Dispatch("dpms", "toggle Samsung"));
-        Assert.Equal([new DisplayPowerRequest(@"\\.\DISPLAY2", true)], Unfaded(back.DisplayPower));
-
-        var all = core.Handle(new Dispatch("dpms", "off nosuch"));
-        Assert.Equal(
-            [
-                new DisplayPowerRequest(@"\\.\DISPLAY1", false),
-                new DisplayPowerRequest(@"\\.\DISPLAY2", false),
-            ],
-            Unfaded(all.DisplayPower));
-
-        Assert.Equal("ok", core.Execute("dispatch dpms on").Text);
-    }
-
-    [Fact]
-    public void MouseMoveDoesNotWakeDisplays()
-    {
-        var core = new WindowManager();
-        core.Handle(new MonitorsChanged([Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1)]));
-        core.Handle(new Dispatch("dpms", "off"));
-        Assert.Empty(core.Handle(new PointerMoved(new Point(5, 5))).DisplayPower);
-        Assert.Empty(core.Handle(new SwipeBegan(3)).DisplayPower);
     }
 
     private static WindowManager Flat()

@@ -135,9 +135,6 @@ public sealed partial class WindowAdapter : IDisposable
         foreach (var kill in outcome.Kills)
             Kill(kill);
 
-        foreach (var power in outcome.DisplayPower)
-            DisplayPowerAdapter.TryApplyToSystem(power);
-
         if (outcome.Exit)
             SessionHalt.Request();
     }

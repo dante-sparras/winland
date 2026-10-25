@@ -137,7 +137,7 @@ public class ScrollConformance
     {
         var desk = new Desk(Scrolling);
         desk.Spawn("under");
-        desk.Ok("setfloating", "class:under");
+        desk.Ok("togglefloating", "class:under");
 
         desk.Spawn("tiledOne");
         desk.Ok("fullscreen", "0");
@@ -292,7 +292,7 @@ public class ScrollConformance
         desk.Ok("focuswindow", "class:red");
         ExpectUnmovedByMaximize(desk, names);
 
-        desk.Ok("setfloating", "class:red");
+        desk.Ok("togglefloating", "class:red");
         ExpectUnmovedByMaximize(desk, names);
     }
 
@@ -402,8 +402,10 @@ public class ScrollConformance
 
         desk.Spawn("b");
         desk.Spawn("c");
-        desk.Ok("resizewindowpixel", "exact 100 500,class:a");
-        desk.Ok("resizewindowpixel", "exact 100 500,class:c");
+        desk.Ok("focuswindow", "class:a");
+        desk.Ok("resizeactive", "exact 100 500");
+        desk.Ok("focuswindow", "class:c");
+        desk.Ok("resizeactive", "exact 100 500");
         desk.Ok("focuswindow", "class:b");
         desk.Ok("layoutmsg", "fit expand");
 

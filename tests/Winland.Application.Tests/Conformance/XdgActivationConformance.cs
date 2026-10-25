@@ -51,6 +51,6 @@ public class XdgActivationConformance
     private static void MoveCursorToSource(Desk desk)
     {
         var bounds = desk.Placed(desk.ActiveId());
-        desk.Ok("movecursor", $"{bounds.X + (bounds.Width / 2)} {bounds.Y + (bounds.Height / 2)}");
+        desk.MovePointer(bounds.X + (bounds.Width / 2), bounds.Y + (bounds.Height / 2));
     }
 }

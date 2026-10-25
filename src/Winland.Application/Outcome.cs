@@ -111,8 +111,6 @@ public sealed record Outcome(
     /// <summary>Stop the daemon after the command reply is written.</summary>
     public bool Exit { get; init; }
 
-    public IReadOnlyList<DisplayPowerRequest> DisplayPower { get; init; } = [];
-
     /// <summary>Keys to send on to a window. The adapter sends them; tests read them.</summary>
     public IReadOnlyList<KeyRelay> Relays { get; init; } = [];
 
@@ -147,7 +145,6 @@ public sealed record Outcome(
             Error = Error ?? next.Error,
             Kills = [.. Kills, .. next.Kills],
             Exit = Exit || next.Exit,
-            DisplayPower = [.. DisplayPower, .. next.DisplayPower],
             Relays = [.. Relays, .. next.Relays],
             ZOrder = [.. ZOrder, .. next.ZOrder],
         };
@@ -197,6 +194,3 @@ public readonly record struct KillRequest(long ProcessId)
 
 /// <summary>A request to raise a Client to the top of the z-order, or lower it to the bottom.</summary>
 public readonly record struct ZOrderRequest(WindowId Window, bool Top);
-
-/// <summary>A request to turn one display, or every display when <see cref="Device"/> is empty, on or off.</summary>
-public readonly record struct DisplayPowerRequest(string Device, bool On);

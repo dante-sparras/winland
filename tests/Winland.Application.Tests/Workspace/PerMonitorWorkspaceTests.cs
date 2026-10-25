@@ -99,7 +99,7 @@ public class PerMonitorWorkspaceTests
         core.Handle(new Dispatch("workspace", "3"));
         core.Handle(new WindowAppeared(new WindowId(3), left.WorkArea));
 
-        var moved = core.Handle(new Dispatch("moveworkspacetomonitor", @"3 \\.\DISPLAY2"));
+        var moved = core.Handle(new Dispatch("movecurrentworkspacetomonitor", @"\\.\DISPLAY2"));
 
         var destination = Assert.Single(moved.State.Screens, screen => screen.Monitor.Name == right.Name);
         Assert.Equal(WorkspaceId.FromNumber(3, destination.Id), ClientOf(moved, 3).Workspace);
@@ -121,32 +121,11 @@ public class PerMonitorWorkspaceTests
         core.Handle(new WindowAppeared(new WindowId(8), right.WorkArea));
         core.Handle(new Dispatch("focusmonitor", left.Name));
 
-        var moved = core.Handle(new Dispatch("moveworkspacetomonitor", @"3 \\.\DISPLAY2"));
+        var moved = core.Handle(new Dispatch("movecurrentworkspacetomonitor", @"\\.\DISPLAY2"));
 
         var destination = Assert.Single(moved.State.Screens, screen => screen.Monitor.Name == right.Name);
         Assert.Equal(WorkspaceId.FromNumber(1, destination.Id), ClientOf(moved, 3).Workspace);
         Assert.Equal(WorkspaceId.FromNumber(3, destination.Id), ClientOf(moved, 8).Workspace);
-    }
-
-    [Fact]
-    public void SwappingWorkspacesNumbered3Keeps3OnBothMonitors()
-    {
-        var core = new WindowManager();
-        var left = Screen(@"\\.\DISPLAY1", "Dell", "P2415Q", "A", 0);
-        var right = Screen(@"\\.\DISPLAY2", "Samsung", "S27", "B", 1920);
-        core.Handle(new MonitorsChanged([left, right]));
-        core.Handle(new Dispatch("workspace", "3"));
-        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
-        core.Handle(new Dispatch("focusmonitor", right.Name));
-        core.Handle(new Dispatch("workspace", "3"));
-        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
-
-        var swapped = core.Handle(new Dispatch("swapactiveworkspaces", @"\\.\DISPLAY1 \\.\DISPLAY2"));
-
-        var leftScreen = Assert.Single(swapped.State.Screens, screen => screen.Monitor.Name == left.Name);
-        var rightScreen = Assert.Single(swapped.State.Screens, screen => screen.Monitor.Name == right.Name);
-        Assert.Equal(WorkspaceId.FromNumber(3, leftScreen.Id), ClientOf(swapped, 2).Workspace);
-        Assert.Equal(WorkspaceId.FromNumber(3, rightScreen.Id), ClientOf(swapped, 1).Workspace);
     }
 
     private static Monitor Screen(string name, string make, string model, string serial, int x) =>

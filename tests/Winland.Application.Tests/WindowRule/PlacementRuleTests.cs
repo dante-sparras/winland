@@ -99,9 +99,9 @@ public class PlacementRuleTests
             """);
         core.Handle(Box(1));
 
-        var moved = core.Execute("dispatch movewindowpixel exact -500 -500,class:box").Effect;
+        var moved = Place(core, 1, new Rectangle(-500, -500, 200, 150));
 
-        Assert.Equal(new Rectangle(0, 0, 200, 150), BoundsOf(moved, 1));
+        Assert.Equal(new Rectangle(0, 0, 200, 150), Client(moved, 1).Bounds);
     }
 
     [Fact]

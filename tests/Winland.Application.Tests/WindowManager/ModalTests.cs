@@ -43,7 +43,7 @@ public class ModalTests
         var core = new WindowManager(ConfigParser.Parse("windowrule = float, class:^(float)$\n"));
         var traits = WindowTraits.Normal with { Class = "float" };
         core.Handle(new WindowAppeared(Owner, Area) { Traits = traits, Bounds = new Rectangle(0, 0, 400, 300) });
-        core.Handle(new Dispatch("movewindowpixel", "exact 100 100,address:0x1"));
+        Place(core, Owner.Value, new Rectangle(100, 100, 400, 300));
 
         var dialog = core.Handle(new WindowAppeared(Dialog, Area) { Owner = Owner, Traits = traits, Bounds = new Rectangle(0, 0, 200, 100) });
         var lone = core.Handle(new WindowAppeared(new WindowId(3), Area) { Traits = traits, Bounds = new Rectangle(0, 0, 200, 100) });

@@ -181,6 +181,7 @@ public sealed partial class WindowManager
             WheelTurned wheel => RunKey(wheel),
             PointerGesture gesture => ApplyGesture(gesture),
             GroupBarScrolled scrolled => ScrollGroupBar(scrolled),
+            GroupTabClosed closed => View([], close: closed.Window),
             WindowMaximizeRequested requested => MaximizeRequest(requested.Window),
             WindowDrifted drifted => PutBack(drifted),
             WindowSizeStarted sizing => BeginNativeSize(sizing),

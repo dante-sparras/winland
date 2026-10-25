@@ -12,10 +12,10 @@ public class DwindleConformance
             desk.Spawn(name);
 
         desk.Ok("focuswindow", "class:c");
-        desk.Ok("setfloating", "class:c");
-        desk.Ok("resizewindowpixel", "exact 1200 900,class:c");
-        desk.Ok("settiled", "class:c");
-        desk.Ok("setfloating", "class:c");
+        desk.Ok("togglefloating", "class:c");
+        desk.Place("c", 360, 90, 1200, 900);
+        desk.Ok("togglefloating", "class:c");
+        desk.Ok("togglefloating", "class:c");
 
         Assert.Equal("1200,900", desk.PlaceOf("c").Size);
     }
@@ -197,7 +197,7 @@ public class DwindleConformance
         desk.Ok("focuswindow", "class:red");
         ExpectUnmovedByMaximize(desk, names);
 
-        desk.Ok("setfloating", "class:red");
+        desk.Ok("togglefloating", "class:red");
         ExpectUnmovedByMaximize(desk, names);
     }
 

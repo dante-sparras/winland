@@ -39,9 +39,8 @@ public class DragConformance
         desk.Spawn("kitty");
         Assert.Single(desk.Clients());
         desk.Ok("focuswindow", "class:kitty");
-        desk.Ok("setfloating");
-        desk.Ok("resizewindowpixel", "exact 600 400,class:kitty");
-        desk.Ok("movewindowpixel", "exact 100 100,class:kitty");
+        desk.Ok("togglefloating");
+        desk.Place("kitty", 100, 100, 600, 400);
         desk.Ok("fullscreen", "0 set");
 
         // Grab well away from the center, so centering is observable.
@@ -66,13 +65,13 @@ public class DragConformance
         desk.Spawn("drag_threshold");
         Assert.Single(desk.Clients());
         desk.Ok("focuswindow", "class:drag_threshold");
-        desk.Ok("setfloating");
-        desk.Ok("resizewindowpixel", "exact 300 200,class:drag_threshold");
+        desk.Ok("togglefloating");
+        desk.Place("drag_threshold", 200, 200, 300, 200);
 
         foreach (var threshold in new[] { 0, 40 })
         {
             desk.Keyword("binds:drag_threshold", threshold.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            desk.Ok("movewindowpixel", "exact 200 200,class:drag_threshold");
+            desk.Place("drag_threshold", 200, 200, 300, 200);
             MoveCursor(desk, 350, 300);
             Click(desk, pressed: true);
             ExpectDragState(desk, active: true, reached: threshold == 0);
@@ -121,10 +120,8 @@ public class DragConformance
         return (bounds.X + (bounds.Width * 3 / 4), bounds.Y + (bounds.Height * 3 / 4));
     }
 
-    // The reference warps the cursor with a dispatcher, which then moves the pointer there.
     private static void MoveCursor(Desk desk, int x, int y)
     {
-        desk.Ok("movecursor", $"{x} {y}");
         desk.MovePointer(x, y);
     }
 

@@ -16,7 +16,7 @@ internal interface Layout
     /// <summary>Fits this Layout to a Monitor's work area.</summary>
     void Fit(Rectangle area);
 
-    /// <summary>Gives every Client the Workspace's new id, after <c>changeworkspaceid</c>.</summary>
+    /// <summary>Gives every Client the Workspace's new id, after a move to another Monitor.</summary>
     void Readdress(WorkspaceId workspace);
 
     /// <summary>Gives the Client its window's new title.</summary>

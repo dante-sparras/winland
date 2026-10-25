@@ -22,7 +22,7 @@ public class CycleNextTests
     public void TiledOrFloatingAloneTakesOnlyThatKind(string arguments, long expected)
     {
         var core = Opened(new WindowManager(), 4);
-        core.Handle(new Dispatch("setfloating", "address:0x2"));
+        core.Handle(new Dispatch("togglefloating", "address:0x2"));
         core.Handle(new Dispatch("focuswindow", "address:0x1"));
 
         Assert.Equal(new WindowId(expected), core.Handle(new Dispatch("cyclenext", arguments)).Focus);

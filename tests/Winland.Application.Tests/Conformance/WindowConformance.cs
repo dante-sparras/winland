@@ -89,7 +89,7 @@ public class WindowConformance
         desk.Spawn("kitty_b");
 
         ExpectFocused(desk, "kitty_b", 0);
-        desk.Ok("setfloating");
+        desk.Ok("togglefloating");
 
         // A floating window over a fullscreen tile.
         desk.Ok("focuswindow", "class:kitty_a");
@@ -144,37 +144,6 @@ public class WindowConformance
     }
 
     [Fact]
-    public void BringActiveToTopMouseMovement()
-    {
-        var desk = new Desk("""
-            input:follow_mouse = 2
-            """);
-
-        desk.Spawn("a");
-        desk.Ok("setfloating");
-        desk.Ok("movewindowpixel", "exact 500 300,activewindow");
-        desk.Ok("resizewindowpixel", "exact 400 400,activewindow");
-
-        desk.Spawn("b");
-        desk.Ok("setfloating");
-        desk.Ok("movewindowpixel", "exact 500 300,activewindow");
-        desk.Ok("resizewindowpixel", "exact 400 400,activewindow");
-
-        Assert.Equal("b", TopWindow(desk));
-        desk.Ok("movecursor", "700 500");
-
-        desk.Ok("focuswindow", "class:a");
-        Assert.Equal("a", desk.ActiveClass());
-
-        desk.Ok("bringactivetotop");
-        Assert.Equal("a", TopWindow(desk));
-
-        desk.Click("mouse:272");
-
-        Assert.Equal("a", TopWindow(desk));
-    }
-
-    [Fact]
     public void WindowRuleFocusOnActivate()
     {
         var desk = new Desk();
@@ -212,7 +181,7 @@ public class WindowConformance
         desk.Dispatch("workspace", "1337");
         desk.Spawn("kitty");
 
-        desk.Ok("setfloating", "class:kitty");
+        desk.Ok("togglefloating", "class:kitty");
         desk.Ok("pin", "class:kitty");
 
         var active = desk.ActiveWindow();
@@ -225,7 +194,7 @@ public class WindowConformance
         Assert.Equal(1338, Desk.WorkspaceId(active));
         Assert.True(Desk.Pinned(active));
 
-        desk.Ok("settiled", "class:kitty");
+        desk.Ok("togglefloating", "class:kitty");
 
         active = desk.ActiveWindow();
         Assert.Equal(1338, Desk.WorkspaceId(active));
@@ -320,9 +289,9 @@ public class WindowConformance
         foreach (var name in new[] { "a", "b", "c", "d" })
             desk.Spawn(name);
 
-        desk.Ok("setfloating", "class:a");
-        desk.Ok("setfloating", "class:c");
-        desk.Ok("setfloating", "class:d");
+        desk.Ok("togglefloating", "class:a");
+        desk.Ok("togglefloating", "class:c");
+        desk.Ok("togglefloating", "class:d");
 
         // Focus history: b is the only tile.
         desk.Ok("focuswindow", "class:a");
@@ -342,7 +311,7 @@ public class WindowConformance
         foreach (var name in new[] { "a", "b", "c", "d" })
             desk.Spawn(name);
 
-        desk.Ok("setfloating", "class:b");
+        desk.Ok("togglefloating", "class:b");
 
         // Focus history: b is the only floating window.
         desk.Ok("focuswindow", "class:a");
@@ -475,11 +444,11 @@ public class WindowConformance
         desk.Spawn("a");
 
         desk.Ok("workspace", "1");
-        desk.Ok("setfloating");
+        desk.Ok("togglefloating");
         desk.Ok("pin");
         Assert.Contains(desk.Clients(), Desk.Pinned);
 
-        desk.Ok("movewindowpixel", "exact 500 300,activewindow");
+        desk.MoveTo(desk.ActiveId(), 500, 300);
 
         desk.Ok("workspace", "2");
         Assert.Contains(desk.Workspaces(), workspace => workspace.GetProperty("id").GetInt32() == 2);
@@ -526,14 +495,14 @@ public class WindowConformance
         ResetWindow(desk);
         Assert.Equal("ok", desk.Send("keyword bindm , mouse:273, resizewindow"));
         Press(desk, "mouse:273");
-        desk.Ok("movecursor", "700 200");
+        desk.MovePointer(700, 200);
         Release(desk, "mouse:273");
         Assert.Equal("700,200", desk.PlaceOf("kitty").Size);
 
         ResetWindow(desk);
         Assert.Equal("ok", desk.Send("keyword bindm , mouse:273, resizewindow 1"));
         Press(desk, "mouse:273");
-        desk.Ok("movecursor", "1280 100");
+        desk.MovePointer(1280, 100);
         Release(desk, "mouse:273");
         Assert.Equal("1280,800", desk.PlaceOf("kitty").Size);
     }
@@ -550,7 +519,7 @@ public class WindowConformance
         Assert.Equal("default", Handler(desk));
         desk.Ok("fullscreen", "0");
 
-        desk.Ok("setfloating");
+        desk.Ok("togglefloating");
 
         desk.Ok("fullscreen", "0");
         Assert.Equal("default", Handler(desk));
@@ -562,7 +531,7 @@ public class WindowConformance
         Assert.Equal("default", Handler(desk));
         desk.Ok("fullscreen", "0");
 
-        desk.Ok("settiled");
+        desk.Ok("togglefloating");
 
         // The reference turns layout_aware off here.
         desk.Ok("fullscreen", "0 default");
@@ -579,11 +548,9 @@ public class WindowConformance
     {
         var desk = new Desk();
         desk.Spawn("a");
-        desk.Ok("setfloating");
-        desk.Ok("resizewindowpixel", "exact 100 100,activewindow");
-
+        desk.Ok("togglefloating");
         // Fully on screen.
-        desk.Ok("movewindowpixel", "exact -10 0,activewindow");
+        desk.Place(desk.ActiveId(), -10, 0, 100, 100);
         Assert.Equal("2,2", desk.ActivePlace().At);
 
         desk.CloseActive();
@@ -606,7 +573,7 @@ public class WindowConformance
         desk.Spawn("kitty_normal");
 
         desk.Spawn("kitty_pinned");
-        desk.Ok("setfloating", "class:kitty_pinned");
+        desk.Ok("togglefloating", "class:kitty_pinned");
         desk.Ok("pin", "enable class:kitty_pinned");
 
         desk.Ok("togglespecialworkspace", "fallback");
@@ -738,21 +705,13 @@ public class WindowConformance
             .GetProperty("id").GetInt32();
     }
 
-    // The reference reads the clients list from the bottom of the stack up, so the later of a and b is on top.
-    private static string TopWindow(Desk desk)
-    {
-        var classes = desk.Clients().Select(Desk.ClassOf).ToList();
-        return classes.LastIndexOf("a") > classes.LastIndexOf("b") ? "a" : "b";
-    }
-
     // Reloads, unbinds the button and puts the window back, as the reference's RESET_WINDOW does.
     private static void ResetWindow(Desk desk)
     {
         Assert.Equal("ok", desk.Send("reload"));
         Assert.Equal("ok", desk.Send("keyword unbind , mouse:273"));
-        desk.Ok("resizewindowpixel", "exact 640 400,class:kitty");
-        desk.Ok("movewindowpixel", "exact 0 0,class:kitty");
-        desk.Ok("movecursor", "640 400");
+        desk.Place("kitty", 0, 0, 640, 400);
+        desk.MovePointer(640, 400);
         Assert.Equal(("2,2", "640,400"), desk.PlaceOf("kitty"));
     }
 

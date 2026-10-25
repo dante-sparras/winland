@@ -5,18 +5,16 @@ public sealed partial class WindowManager
 {
     private readonly HashSet<WindowId> _awaitingMapFocus = [];
 
-    // The Clients from the bottom of the stacking order to the top. A new Client opens on top, and alterzorder and
-    // bringactivetotop move one, as Winland orders its window list.
+    // The Clients from the bottom of the stacking order to the top. A new Client opens on top, and a floating
+    // Client that takes the focus moves to the top.
     private readonly List<WindowId> _stacking = [];
 
-    private void Stack(WindowId window, bool top)
+    private void Stack(WindowId window)
     {
         _stacking.Remove(window);
-        if (top)
-            _stacking.Add(window);
-        else
-            _stacking.Insert(0, window);
+        _stacking.Add(window);
     }
+
     private List<StreamEvent>? _extraEvents;
 
     // A reason a handler sets when the dispatcher name is not why the focus moved, such as the pointer.

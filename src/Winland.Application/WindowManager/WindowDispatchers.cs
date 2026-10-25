@@ -1,10 +1,8 @@
 namespace Winland.Application;
 
-/// <summary>Dispatchers that act on one window and the daemon: focus, close, kill, float, swap, move to a Workspace, <c>exit</c>, <c>event</c> and <c>dpms</c>.</summary>
+/// <summary>Dispatchers that act on one window and the daemon: focus, float, swap, move to a Workspace, <c>closeall</c> and <c>exit</c>.</summary>
 public sealed partial class WindowManager
 {
-    private readonly Dictionary<string, bool> _powered = new(StringComparer.OrdinalIgnoreCase);
-
     private Outcome FocusWindow(string arguments)
     {
         const string name = "focuswindow";
@@ -47,43 +45,11 @@ public sealed partial class WindowManager
         return raised is null ? outcome : raised.Then(outcome);
     }
 
-    private Outcome CloseWindow(string arguments)
+    private Outcome FloatWindow(string arguments)
     {
-        const string name = "closewindow";
-        var window = Select(arguments, emptyMeansActive: false);
-        if (window is not WindowId id)
-            return View([], dispatcher: name);
-
-        return View([], dispatcher: name, close: id);
-    }
-
-    private Outcome KillWindow(string arguments)
-    {
-        const string name = "killwindow";
-        var window = Select(arguments, emptyMeansActive: false);
-        if (window is not WindowId id || (Find(id) ?? EveryClient().Find(client => client.Window == id)) is not Client client || client.ProcessId <= 0)
-            return View([], dispatcher: name);
-
-        return View([], dispatcher: name) with
-        {
-            Kill = new KillRequest(client.ProcessId) { Window = id },
-        };
-    }
-
-    private Outcome FloatWindow(string arguments, bool? floating)
-    {
-        var name = floating switch
-        {
-            true => "setfloating",
-            false => "settiled",
-            _ => "togglefloating",
-        };
+        const string name = "togglefloating";
         var window = Select(arguments, emptyMeansActive: true);
         if (window is not WindowId id || Find(id) is not Client client || WorkspaceContaining(id) is not LiveWorkspace desk)
-            return View([], dispatcher: name);
-
-        var want = floating ?? !client.Floating;
-        if (want == client.Floating)
             return View([], dispatcher: name);
 
         var covered = desk.Covered();
@@ -92,7 +58,7 @@ public sealed partial class WindowManager
         _pins.Forget(id);
 
         // A window that floats is raised, and so allowed over a fullscreen one.
-        if (want)
+        if (!client.Floating)
             _cover.SetFlag(id, true);
 
         return _workspaces.Shown.IsShown(desk.Id)
@@ -120,26 +86,6 @@ public sealed partial class WindowManager
         var workspace = arguments[..comma];
         var window = Select(arguments[(comma + 1)..], emptyMeansActive: false);
         return MoveTo(workspace, silent, consumed: false, name, window, windowChosen: true);
-    }
-
-    private Outcome MoveRoot(string arguments)
-    {
-        const string name = "movetoroot";
-        var tokens = arguments.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-        var window = ActiveWindow();
-        if (tokens.Length > 0 && WindowSelector.Find(tokens[0], window, EveryClient()) is WindowId found)
-            window = found;
-
-        var desk = window is WindowId id ? WorkspaceContaining(id) ?? FocusedWorkspace() : FocusedWorkspace();
-        var covered = desk.Covered();
-        var message = arguments.Length == 0 ? name : string.Concat(name, " ", arguments);
-        var placements = desk.Layout.LayoutMessage(window, message);
-        if (desk.Layout.LayoutMessageError is string error)
-            return View(placements, dispatcher: name) with { Error = error };
-
-        return _workspaces.Shown.IsShown(desk.Id)
-            ? Present(desk, covered, placements, dispatcher: name)
-            : View([], dispatcher: name);
     }
 
     private Outcome SwapWindow(string arguments)
@@ -246,68 +192,6 @@ public sealed partial class WindowManager
     private Outcome ExitDaemon() =>
         View([], dispatcher: "exit") with { Exit = true };
 
-    private Outcome EmitCustom(string arguments)
-    {
-        (_extraEvents ??= []).Add(new CustomEvent(arguments));
-        return View([], dispatcher: "event");
-    }
-
-    private Outcome Dpms(string arguments)
-    {
-        var text = arguments.Trim();
-        var toggle = text.StartsWith("toggle", StringComparison.Ordinal);
-        var turnOn = text.StartsWith("on", StringComparison.Ordinal);
-        string? token = null;
-        var space = text.IndexOf(' ', StringComparison.Ordinal);
-        if (space >= 0)
-            token = text[(space + 1)..].Trim();
-
-        var chosen = new List<LiveMonitor>();
-        if (_monitors.Count == 0)
-        {
-            var on = PowerAfter("", turnOn, toggle);
-            return View([], dispatcher: "dpms") with
-            {
-                DisplayPower = [new DisplayPowerRequest("", on)],
-            };
-        }
-
-        foreach (var screen in _monitors)
-        {
-            if (!screen.Effective.Enabled)
-                continue;
-
-            if (token is not { Length: > 0 } || MonitorMatches(screen, token))
-                chosen.Add(screen);
-        }
-
-        if (token is { Length: > 0 } && chosen.Count == 0)
-        {
-            foreach (var screen in _monitors)
-            {
-                if (screen.Effective.Enabled)
-                    chosen.Add(screen);
-            }
-        }
-
-        var requests = new DisplayPowerRequest[chosen.Count];
-        for (var i = 0; i < chosen.Count; i++)
-        {
-            var device = chosen[i].Effective.Name;
-            requests[i] = new DisplayPowerRequest(device, PowerAfter(device, turnOn, toggle));
-        }
-
-        return View([], dispatcher: "dpms") with { DisplayPower = requests };
-    }
-
-    private bool PowerAfter(string device, bool turnOn, bool toggle)
-    {
-        var current = _powered.TryGetValue(device, out var stored) ? stored : true;
-        var next = toggle ? !current : turnOn;
-        _powered[device] = next;
-        return next;
-    }
-
     private WindowId? Select(string arguments, bool emptyMeansActive)
     {
         var text = arguments.Trim();
@@ -333,13 +217,7 @@ public sealed partial class WindowManager
     private Outcome Rejected(string name, string error) =>
         View([], dispatcher: name) with { Error = error };
 
-    private static bool MonitorMatches(LiveMonitor screen, string token) =>
-        screen.Effective.Name.Equals(token, StringComparison.OrdinalIgnoreCase)
-        || screen.Reported.Name.Equals(token, StringComparison.OrdinalIgnoreCase)
-        || screen.Effective.Description.Equals(token, StringComparison.OrdinalIgnoreCase)
-        || screen.Reported.Description.Equals(token, StringComparison.OrdinalIgnoreCase);
-
-    // The same request closewindow makes, so the application can still ask to save, for every Client.
+    // The same request killactive makes, so the application can still ask to save, for every Client.
     // Workspace 1 of the focused Monitor is what shows
     // afterwards, which closes a Special workspace open on that Monitor.
     private Outcome CloseAll()

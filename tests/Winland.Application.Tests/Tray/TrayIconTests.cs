@@ -49,14 +49,6 @@ public class TrayIconTests
     }
 
     [Fact]
-    public void ChangingTheWorkspaceIdChangesTheNumber()
-    {
-        var changed = new WindowManager().Execute("dispatch changeworkspaceid 1 12").Effect;
-
-        Assert.Equal("12", changed.Tray!.Number);
-    }
-
-    [Fact]
     public void TheFocusedMonitorsWorkspaceIsTheNumber()
     {
         var core = TwoMonitors();

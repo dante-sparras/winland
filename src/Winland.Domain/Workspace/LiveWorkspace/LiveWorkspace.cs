@@ -28,7 +28,7 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
             _waiting[window] = waiting with { Client = waiting.Client with { Class = windowClass } };
     }
 
-    /// <summary>Takes a new id, with every Client and waiting Group member, as <c>changeworkspaceid</c> asks.</summary>
+    /// <summary>Takes a new id, with every Client and waiting Group member, as a move to another Monitor does.</summary>
     public void Readdress(WorkspaceId id)
     {
         Id = id;

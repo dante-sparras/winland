@@ -21,9 +21,9 @@ public class FontNamesTests
         core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
         core.Execute("dispatch togglegroup");
 
-        Assert.Equal("Consolas", Assert.Single(core.Execute("dispatch no_op").Effect.GroupBars).Style.FontFamily);
+        Assert.Equal("Consolas", Assert.Single(core.Execute("dispatch resizewindow").Effect.GroupBars).Style.FontFamily);
 
         core.Execute("keyword group:groupbar:font_family Fira Code");
-        Assert.Equal("Fira Code", Assert.Single(core.Execute("dispatch no_op").Effect.GroupBars).Style.FontFamily);
+        Assert.Equal("Fira Code", Assert.Single(core.Execute("dispatch resizewindow").Effect.GroupBars).Style.FontFamily);
     }
 }
