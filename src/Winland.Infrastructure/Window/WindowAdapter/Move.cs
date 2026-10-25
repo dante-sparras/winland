@@ -31,7 +31,7 @@ public sealed partial class WindowAdapter
 
         // A window that snaps its size to a grid, as a terminal does, draws its edge out from under the pointer
         // as the sizing begins, so the hit test misses the border it was grabbed by.
-        if (TryOuter(hwnd, out var outer))
+        if (TryOuter(window, out var outer))
             _undecided = new UndecidedDrag(window, outer, pointer);
         else
             _ = StartDrag(window, sizing: false, pointer);
@@ -43,7 +43,7 @@ public sealed partial class WindowAdapter
         if (_undecided is not { } drag || drag.Window != window)
             return false;
 
-        if (!TryOuter(hwnd, out var now))
+        if (!TryOuter(window, out var now))
             return true;
 
         var kind = SizingGrab.Resolve(drag.Outer, now);
@@ -70,7 +70,7 @@ public sealed partial class WindowAdapter
         if (sizing)
         {
             _sizing = window;
-            var bounds = TryVisible(new HWND((nint)window.Value), out var visible) ? visible : (Rectangle?)null;
+            var bounds = TryVisible(window, out var visible) ? visible : (Rectangle?)null;
             Apply(_core.Handle(new WindowSizeStarted(window, pointer, bounds)));
             return true;
         }
@@ -85,7 +85,7 @@ public sealed partial class WindowAdapter
     {
         if (PInvoke.GetCursorPos(out var cursor))
         {
-            var bounds = TryVisible(new HWND((nint)window.Value), out var visible) ? visible : (Rectangle?)null;
+            var bounds = TryVisible(window, out var visible) ? visible : (Rectangle?)null;
             Apply(_core.Handle(new WindowSizing(window, new Point(cursor.X, cursor.Y), bounds)));
         }
     }
@@ -97,7 +97,7 @@ public sealed partial class WindowAdapter
             _undecided = null;
 
         var pointer = PInvoke.GetCursorPos(out var cursor) ? new Point(cursor.X, cursor.Y) : default;
-        EndDrag(window, pointer, TryVisible(new HWND((nint)window.Value), out var dropped) ? dropped : null);
+        EndDrag(window, pointer, TryVisible(window, out var dropped) ? dropped : null);
     }
 
     private void EndDrag(WindowId window, Point pointer, Rectangle? dropped)

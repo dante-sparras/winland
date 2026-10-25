@@ -29,8 +29,10 @@ public class LimitProbeTests
             var anchorId = probe.Anchor.ToInt64();
             var wideId = probe.Wide.ToInt64();
             var smallId = probe.Small.ToInt64();
+            var core = new WindowManager();
+            using var adapter = new WindowAdapter(core);
             // The probe reads where each placement lands, so nothing animates on the way.
-            var core = new WindowManager { ReducedMotion = () => true };
+            core.ReducedMotion = () => true;
             core.Handle(new WindowAppeared(new WindowId(anchorId), area)
             {
                 Traits = WindowTraits.Normal with { MinSize = anchorLimits.Min, MaxSize = anchorLimits.Max },
@@ -44,7 +46,7 @@ public class LimitProbeTests
             Assert.True(wideBox.Width >= wideLimits.Min.Value.Width);
             Assert.Equal(area.Width - wideBox.Width, anchorBox.Width);
             Assert.True(anchorBox.Width < wideBox.Width);
-            WindowAdapter.Apply(tiled);
+            adapter.Apply(tiled);
             AssertClose(ProbeNative.Visible(probe.Wide), wideBox, "wide");
             AssertClose(ProbeNative.Visible(probe.Anchor), anchorBox, "anchor");
 
@@ -59,7 +61,7 @@ public class LimitProbeTests
             });
             Assert.True(Assert.Single(floated.State.Clients, client => client.Window == new WindowId(smallId)).Floating);
             Assert.Equal(centered, BoundsOf(floated, smallId));
-            WindowAdapter.Apply(floated);
+            adapter.Apply(floated);
             var smallVisible = ProbeNative.Visible(probe.Small);
             AssertClose(smallVisible, centered, "small");
             Assert.True(smallVisible.Width < area.Width / 2, $"The small window filled a tile: {smallVisible.Width}");
@@ -71,7 +73,7 @@ public class LimitProbeTests
             var grownBox = BoundsOf(updated, wideId);
             Assert.True(grownBox.Width >= grown.Min.Value.Width);
             Assert.True(grownBox.Width > wideBox.Width);
-            WindowAdapter.Apply(updated);
+            adapter.Apply(updated);
             AssertClose(ProbeNative.Visible(probe.Wide), grownBox, "grown");
             Assert.True(ProbeNative.Visible(probe.Anchor).Width < anchorBox.Width);
         }

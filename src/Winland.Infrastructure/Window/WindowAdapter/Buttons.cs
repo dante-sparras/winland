@@ -47,7 +47,7 @@ public sealed partial class WindowAdapter
 
         var outcome = _core.Handle(new WindowMaximizeRequested(window));
         Apply(outcome);
-        Settling[window] = Environment.TickCount64 + SettleMilliseconds;
+        _settling[window] = Environment.TickCount64 + SettleMilliseconds;
         return outcome;
     }
 
@@ -56,16 +56,16 @@ public sealed partial class WindowAdapter
     // the Layout holds the window is put back.
     private void PutBackIfDrifted(HWND hwnd, WindowId window)
     {
-        if (!Settling.TryGetValue(window, out var until))
+        if (!_settling.TryGetValue(window, out var until))
             return;
 
         if (Environment.TickCount64 > until)
         {
-            _ = Settling.TryRemove(window, out _);
+            _ = _settling.TryRemove(window, out _);
             return;
         }
 
-        if (_moving == window || _sizing == window || PInvoke.IsIconic(hwnd) || !TryVisible(hwnd, out var visible))
+        if (_moving == window || _sizing == window || PInvoke.IsIconic(hwnd) || !TryVisible(window, out var visible))
             return;
 
         Apply(_core.Handle(new WindowDrifted(window, visible)));

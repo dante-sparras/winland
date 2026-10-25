@@ -46,12 +46,12 @@ public sealed class WindowHost : IDisposable
         _onRecovery = onRecovery;
         _saver = new Coalescer<object>(_ => Save(), TimeSpan.FromMilliseconds(250), "Winland recovery");
         _windows = new WindowAdapter(core, () => _saver.Post(Changed));
-        _keys = new KeyboardHook(core);
+        _keys = new KeyboardHook(core, _windows.Apply);
         _mouse = new MouseHook(core, _keys);
         _input = new InputThread(StartHooks, ServiceHooks, StopHooks);
         _touchpad = new TouchpadInput(_keys.PostInput);
         _core.SessionLock = _phase;
-        _commands = new CommandServer(core, pipeName);
+        _commands = new CommandServer(core, _windows.Apply, pipeName);
         _commands.AfterCommand = FollowTaskbar;
         _taskbar = TaskbarControl.Current;
     }
@@ -91,7 +91,7 @@ public sealed class WindowHost : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var reply = _core.Execute(line);
-        WindowAdapter.Apply(reply.Effect);
+        _windows.Apply(reply.Effect);
         FollowTaskbar();
         return reply.Text;
     }
@@ -100,7 +100,7 @@ public sealed class WindowHost : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var reply = _core.Execute("reload");
-        WindowAdapter.Apply(reply.Effect);
+        _windows.Apply(reply.Effect);
         FollowTaskbar();
         return reply;
     }
@@ -251,9 +251,9 @@ public sealed class WindowHost : IDisposable
         RestoreTaskbar();
     }
 
-    private void OnFlash(WindowId window) => WindowAdapter.Apply(_core.Handle(new WindowFlashed(window)));
+    private void OnFlash(WindowId window) => _windows.Apply(_core.Handle(new WindowFlashed(window)));
 
-    public static void ResetDecorations() => WindowAdapter.ResetDecorations();
+    public void ResetDecorations() => _windows.ResetDecorations();
 
     public void RestoreTaskbar()
     {
@@ -370,7 +370,7 @@ public sealed class WindowHost : IDisposable
             return;
 
         _accent = color;
-        WindowAdapter.Apply(_core.Handle(new AccentChanged(color)));
+        _windows.Apply(_core.Handle(new AccentChanged(color)));
     }
 
     private void OnSignal(SessionSignal signal)
@@ -491,7 +491,7 @@ public sealed class WindowHost : IDisposable
 
     private void ApplyMonitors()
     {
-        WindowAdapter.Apply(_core.Handle(new MonitorsChanged(MonitorAdapter.Read())));
+        _windows.Apply(_core.Handle(new MonitorsChanged(MonitorAdapter.Read())));
         Taskbar.Conceal();
     }
 

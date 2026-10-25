@@ -53,7 +53,7 @@ public class CommandServerTests
             NamedPipeServerStream.MaxAllowedServerInstances,
             PipeTransmissionMode.Byte,
             PipeOptions.Asynchronous);
-        using var server = new CommandServer(new WindowManager(), name);
+        using var server = new CommandServer(new WindowManager(), _ => { }, name);
 
         var error = Assert.Throws<InvalidOperationException>(server.Start);
 
@@ -64,9 +64,9 @@ public class CommandServerTests
     public void ASecondServerCannotTakeAPipeNameInUse()
     {
         var name = PipeName();
-        using var first = new CommandServer(new WindowManager(), name);
+        using var first = new CommandServer(new WindowManager(), _ => { }, name);
         first.Start();
-        using var second = new CommandServer(new WindowManager(), name);
+        using var second = new CommandServer(new WindowManager(), _ => { }, name);
 
         Assert.Throws<InvalidOperationException>(second.Start);
         Assert.Equal("ok", CommandClient.Transact("dispatch workspace 1", name));
@@ -78,7 +78,7 @@ public class CommandServerTests
         var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 10, 10)));
         var name = "winland-" + Guid.NewGuid().ToString("N");
-        using var server = new CommandServer(core, name);
+        using var server = new CommandServer(core, _ => { }, name);
         server.Start();
 
         var clients = JsonDocument.Parse(CommandClient.Transact("j/clients", name)).RootElement;
@@ -93,7 +93,7 @@ public class CommandServerTests
     {
         var core = new WindowManager();
         var name = PipeName();
-        using var server = new CommandServer(core, name);
+        using var server = new CommandServer(core, _ => { }, name);
         server.Start();
         using var first = new Listener(name);
         using var second = new Listener(name);
@@ -144,7 +144,7 @@ public class CommandServerTests
     {
         var core = new WindowManager();
         var name = PipeName();
-        using var server = new CommandServer(core, name);
+        using var server = new CommandServer(core, _ => { }, name);
         server.Start();
         using var idle = Connect(name);
         Send(idle, "events");
@@ -167,7 +167,7 @@ public class CommandServerTests
     {
         var core = new WindowManager();
         var name = PipeName();
-        using var server = new CommandServer(core, name);
+        using var server = new CommandServer(core, _ => { }, name);
         server.Start();
         var idle = Connect(name);
         Send(idle, "events");
@@ -189,7 +189,7 @@ public class CommandServerTests
     {
         var core = new WindowManager();
         var name = PipeName();
-        using var server = new CommandServer(core, name) { MaxInstances = 2, RequestTimeout = TimeSpan.FromMilliseconds(300) };
+        using var server = new CommandServer(core, _ => { }, name) { MaxInstances = 2, RequestTimeout = TimeSpan.FromMilliseconds(300) };
         server.Start();
         using (Connect(name))
         using (Connect(name))
@@ -205,7 +205,7 @@ public class CommandServerTests
     {
         var core = new WindowManager();
         var name = PipeName();
-        using var server = new CommandServer(core, name);
+        using var server = new CommandServer(core, _ => { }, name);
         server.Start();
         using var silent = Connect(name);
 
@@ -218,7 +218,7 @@ public class CommandServerTests
     {
         var core = new WindowManager();
         var name = PipeName();
-        using var server = new CommandServer(core, name) { RequestTimeout = TimeSpan.FromMilliseconds(200) };
+        using var server = new CommandServer(core, _ => { }, name) { RequestTimeout = TimeSpan.FromMilliseconds(200) };
         server.Start();
         using var silent = Connect(name);
 
@@ -236,7 +236,7 @@ public class CommandServerTests
     {
         var core = new WindowManager();
         var name = PipeName();
-        using var server = new CommandServer(core, name);
+        using var server = new CommandServer(core, _ => { }, name);
         server.Start();
         ThreadPool.GetMinThreads(out var workers, out _);
         var count = Math.Clamp(workers * 3, 48, 200);
@@ -268,7 +268,7 @@ public class CommandServerTests
     {
         var core = new WindowManager();
         var name = PipeName();
-        using var server = new CommandServer(core, name);
+        using var server = new CommandServer(core, _ => { }, name);
         server.Start();
 
         var batch = CommandClient.Transact("j/[[BATCH]]binds;configerrors", name);

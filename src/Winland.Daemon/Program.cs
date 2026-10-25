@@ -206,7 +206,7 @@ static void Stop(WindowHost host, RecoveryStore store, WindowManager core)
     // on its Workspace and in its place.
     var final = WindowIdentity.Annotate(core.Recovery());
     host.RevealHidden();
-    WindowHost.ResetDecorations();
+    host.ResetDecorations();
     host.RestoreTaskbar();
     SessionEffects.Restore();
     store.Keep(final);
