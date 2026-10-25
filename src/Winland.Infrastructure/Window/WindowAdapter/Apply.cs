@@ -10,6 +10,10 @@ public sealed partial class WindowAdapter : IDisposable
 {
     internal static void Apply(Outcome outcome)
     {
+        // The step asked for nothing the last outcome did not already do, so no window, border, bar or snapshot is touched.
+        if (outcome.IsEmpty)
+            return;
+
         var admitted = Order.Admit(outcome);
         Interlocked.Increment(ref Applying);
         try

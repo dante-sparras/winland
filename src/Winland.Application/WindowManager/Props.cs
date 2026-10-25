@@ -28,22 +28,21 @@ public sealed partial class WindowManager
     private object PropValue(WindowId window, string key, PropKind kind) =>
         _props.Value(window, key) ?? DefaultProp(window, key, kind);
 
-    private CommandReply ReadProp(GetPropRequest request)
+    private string ReadProp(GetPropRequest request)
     {
         if (request.Selector.Length == 0 || request.Property.Length == 0)
-            return new CommandReply("not enough args", View([]));
+            return "not enough args";
 
         if (!TrySelect(request.Selector, out var client, out _))
-            return new CommandReply("window not found", View([]));
+            return "window not found";
 
         if (!WindowProps.TryKind(request.Property, out var kind))
-            return new CommandReply("prop not found", View([]));
+            return "prop not found";
 
         var key = request.Property;
         var value = PropValue(client.Window, key, kind);
         var json = request.Flags.HasFlag(CommandFlags.Json);
-        var text = WindowProps.Format(key, kind, value, json, animationSet: _props.SetProp(client.Window, key) is not null);
-        return new CommandReply(text, View([]));
+        return WindowProps.Format(key, kind, value, json, animationSet: _props.SetProp(client.Window, key) is not null);
     }
 
     private CommandReply WriteProp(SetPropRequest request)

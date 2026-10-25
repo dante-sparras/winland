@@ -29,6 +29,9 @@ public sealed partial class WindowManager
     private readonly long _id = Interlocked.Increment(ref Cores);
     private long _sequence;
 
+    // The last outcome a step returned with something to apply. The next step is empty when it asks for nothing more.
+    private Outcome? _applied;
+
     public event Action<Outcome>? Noticed;
 
     public Func<ConfigRead>? ReadConfig { get; set; }
@@ -135,10 +138,15 @@ public sealed partial class WindowManager
 
     public CommandReply Execute(string? line)
     {
+        var parsed = CommandProtocol.Parse(line);
         lock (_gate)
         {
+            // A query reads the State and changes nothing, so it runs no step and has nothing to apply.
+            if (parsed is CommandParsed { Request: var request } && Read(request) is { } text)
+                return new CommandReply(text, Outcome.Empty(Snapshot()));
+
             var reply = default(CommandReply);
-            var outcome = Step(null, () => (reply = ExecuteLine(line)).Effect);
+            var outcome = Step(null, () => (reply = ExecuteLine(parsed)).Effect);
             return reply with { Effect = outcome };
         }
     }
@@ -150,6 +158,7 @@ public sealed partial class WindowManager
     {
         var before = Capture();
         var wasClient = input is WindowAppeared appeared && Find(appeared.Window) is not null;
+        var config = _config;
         try
         {
             var outcome = run();
@@ -158,6 +167,14 @@ public sealed partial class WindowManager
                 Note(input, wasClient);
 
             outcome = Ordered(WithEvents(Decorate(outcome, before.State), before, input));
+
+            // A step that loads a config is not remembered: its caller may not apply it, so the next step applies
+            // everything again.
+            var loaded = !ReferenceEquals(config, _config);
+            if (!loaded && outcome.IsEmptyAfter(_applied))
+                return Outcome.Empty(outcome.State) with { Order = outcome.Order };
+
+            _applied = loaded ? null : outcome;
             Emit(outcome);
             return outcome;
         }
