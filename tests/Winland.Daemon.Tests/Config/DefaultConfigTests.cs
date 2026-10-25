@@ -108,6 +108,8 @@ public class DefaultConfigTests
         SUPER|X|sendshortcut|CTRL, X|
         SUPER|A|sendshortcut|CTRL, A|
         SUPER CTRL|V|sendshortcut|SUPER, V|
+        SUPER CTRL|X|sendshortcut|SUPER, X|
+        SUPER CTRL|A|sendshortcut|SUPER, A|
         SUPER|Return|exec|wt|
         SUPER SHIFT|Return|exec|start https://|
         SUPER SHIFT|B|exec|start https://|
