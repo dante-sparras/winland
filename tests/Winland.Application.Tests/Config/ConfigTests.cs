@@ -82,13 +82,13 @@ public class ConfigTests
     }
 
     [Fact]
-    public void XwaylandWindowRuleWarnsAndIsSkipped()
+    public void XwaylandWindowRuleMatchIsAnUnsupportedMatch()
     {
         var document = ConfigParser.Parse("windowrule = float, xwayland:1, class:^(kitty)$\n");
 
         Assert.Empty(document.WindowRules);
         Assert.Equal(
-            new ConfigWarning(1, "Window rules that match on xwayland are not honored."),
+            new ConfigWarning(1, "Unsupported window rule match 'xwayland'."),
             Assert.Single(document.Warnings));
         Assert.Equal(new Setting("windowrule", "float, xwayland:1, class:^(kitty)$"), Assert.Single(document.Settings));
     }
@@ -354,6 +354,95 @@ public class ConfigTests
         Assert.Equal(
             new[] { new Setting("general:gaps_in", "5"), new Setting("general:border_size", "2") },
             document.Settings);
+    }
+
+    [Fact]
+    public void MistypedOptionWarnsWithTheOneOptionItIsCloseTo()
+    {
+        var document = ConfigParser.Parse("general:gap_in = 5\n");
+
+        Assert.Equal(
+            new ConfigWarning(1, "Unsupported keyword 'general:gap_in'. Did you mean 'general:gaps_in'?"),
+            Assert.Single(document.Warnings));
+    }
+
+    [Fact]
+    public void MistypedOptionInACategoryBlockWarnsWithTheQualifiedOption()
+    {
+        var document = ConfigParser.Parse("general {\n    gaps_outt = 5\n}\n");
+
+        Assert.Equal(
+            new ConfigWarning(2, "Unsupported keyword 'general:gaps_outt'. Did you mean 'general:gaps_out'?"),
+            Assert.Single(document.Warnings));
+    }
+
+    [Fact]
+    public void MistypedDispatcherWarnsWithTheOneDispatcherItIsCloseTo()
+    {
+        var document = ConfigParser.Parse("bind = SUPER, Q, killactiv\n");
+
+        Assert.Equal(
+            new ConfigWarning(1, "Unknown dispatcher 'killactiv'. Did you mean 'killactive'?"),
+            Assert.Single(document.Warnings));
+    }
+
+    [Fact]
+    public void MistypedWindowRuleEffectWarnsWithTheOneEffectItIsCloseTo()
+    {
+        var document = ConfigParser.Parse("windowrule = floot, class:^(kitty)$\n");
+
+        Assert.Equal(
+            new ConfigWarning(1, "Unsupported window rule 'floot'. Did you mean 'float'?"),
+            Assert.Single(document.Warnings));
+    }
+
+    [Fact]
+    public void MistypedWindowRuleMatchFieldWarnsWithTheOneFieldItIsCloseTo()
+    {
+        var document = ConfigParser.Parse("windowrule = float, clas:^(kitty)$\n");
+
+        Assert.Equal(
+            new ConfigWarning(1, "Unsupported window rule match 'clas'. Did you mean 'class'?"),
+            Assert.Single(document.Warnings));
+    }
+
+    [Fact]
+    public void EveryWindowRuleEffectTheHintOffersParses()
+    {
+        foreach (var name in WindowRuleParser.EffectNames)
+        {
+            var document = ConfigParser.Parse($"windowrule = {name}, class:kitty\n");
+            Assert.DoesNotContain(document.Warnings, warning => warning.Message.StartsWith("Unsupported window rule '", StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void ANameCloseToTwoNamesGetsNoHint()
+    {
+        var document = ConfigParser.Parse("general:gaps_ou = 5\nbind = SUPER, Q, ex\nwindowrule = pize, class:^(kitty)$\n");
+
+        Assert.Equal(
+            new[]
+            {
+                new ConfigWarning(1, "Unsupported keyword 'general:gaps_ou'."),
+                new ConfigWarning(2, "Unknown dispatcher 'ex'."),
+                new ConfigWarning(3, "Unsupported window rule 'pize'."),
+            },
+            document.Warnings);
+    }
+
+    [Fact]
+    public void ANameFarFromEveryNameGetsNoHint()
+    {
+        var document = ConfigParser.Parse("ghostkeyword = path\nbind = SUPER, Q, teleportwindow\n");
+
+        Assert.Equal(
+            new[]
+            {
+                new ConfigWarning(1, "Unsupported keyword 'ghostkeyword'."),
+                new ConfigWarning(2, "Unknown dispatcher 'teleportwindow'."),
+            },
+            document.Warnings);
     }
 
     [Fact]

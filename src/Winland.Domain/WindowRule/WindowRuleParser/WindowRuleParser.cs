@@ -7,6 +7,19 @@ internal static partial class WindowRuleParser
 {
     private static readonly TimeSpan MatchTimeout = TimeSpan.FromMilliseconds(250);
 
+    // The effects TryParseEffect and its helpers read, for the hint a mistyped one gets. A test keeps every name parsing.
+    internal static readonly string[] EffectNames =
+    [
+        "float", "tile", "ignore", "no_initial_focus", "no_focus", "opaque", "pin", "workspace", "min_size",
+        "max_size", "scrolling_width", "opacity", "fullscreen", "maximize", "move", "size", "center", "monitor",
+        "border_size", "rounding", "animation", "border_color",
+        .. WindowProp.All.Where(prop => prop.IsRuleEffect).Select(prop => prop.Name),
+    ];
+
+    // The fields TryParseMatch reads.
+    private static readonly string[] MatchFields =
+        ["class", "initialClass", "initial_class", "title", "initialTitle", "initial_title", "exe", "aumid"];
+
     internal static bool TryParse(string value, out WindowRule? rule, out string error)
     {
         rule = null;
@@ -310,7 +323,7 @@ internal static partial class WindowRuleParser
                     return true;
 
                 if (error.Length == 0)
-                    error = $"Unsupported window rule '{name}'.";
+                    error = $"Unsupported window rule '{name}'.{DidYouMean.For(name, EffectNames)}";
                 return false;
         }
 
@@ -441,12 +454,6 @@ internal static partial class WindowRuleParser
 
         var key = text[..colon];
         var value = text[(colon + 1)..];
-        if (key == "xwayland")
-        {
-            error = "Window rules that match on xwayland are not honored.";
-            return false;
-        }
-
         if (value.Length == 0 || !IsPattern(value))
         {
             error = value.Length == 0 ? "Malformed window rule." : "Invalid window rule pattern.";
@@ -476,7 +483,7 @@ internal static partial class WindowRuleParser
                 aumidPattern = value;
                 break;
             default:
-                error = $"Unsupported window rule match '{key}'.";
+                error = $"Unsupported window rule match '{key}'.{DidYouMean.For(key, MatchFields)}";
                 return false;
         }
 

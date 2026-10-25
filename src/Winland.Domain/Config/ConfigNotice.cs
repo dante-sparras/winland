@@ -39,7 +39,7 @@ public sealed record ConfigNotice(string Title, string Text, string? File, int G
 
         var file = FileOf(first, configPath);
         return new ConfigNotice(
-            string.Create(CultureInfo.InvariantCulture, $"Winland: {count} config errors"),
+            string.Create(CultureInfo.InvariantCulture, $"Winland: {count} config {(count == 1 ? "error" : "errors")}"),
             Body(first, file),
             file,
             generation);

@@ -78,7 +78,7 @@ public static partial class ConfigParser
 
             if (dispatcher.Length > 0 && !Dispatchers.IsKnown(dispatcher))
             {
-                Warn(lineNumber, $"Unknown dispatcher '{dispatcher}'.");
+                Warn(lineNumber, $"Unknown dispatcher '{dispatcher}'.{DidYouMean.For(dispatcher, Dispatchers.Names)}");
                 return;
             }
 
