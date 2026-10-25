@@ -36,28 +36,29 @@ public sealed partial class WindowAdapter
         if (!trails && TryVisible(hwnd, out var shown) && shown == target)
             return;
 
-        PlaceDirectly(window, hwnd, target);
-
         // A frame sent without waiting may still be on its way, and the window would take it after this.
-        if (trails && TryOuter(hwnd, out var landed))
+        if (PlaceDirectly(window, hwnd, target) && trails && TryOuter(hwnd, out var landed))
             SendQuick(hwnd, landed, keepSize: false);
     }
 
-    private static void PlaceDirectly(WindowId window, HWND hwnd, Rectangle target)
+    // Returns false when the window was only sent its frame, because its program has stopped answering.
+    private static bool PlaceDirectly(WindowId window, HWND hwnd, Rectangle target)
     {
         var dpi = (int)PInvoke.GetDpiForWindow(hwnd);
         var insets = InsetsFor(window, hwnd, dpi);
         var requested = insets.OuterFor(target);
-        Move(hwnd, requested);
+        if (!Move(hwnd, requested))
+            return false;
+
         if (!TryOuter(hwnd, out var landedOuter) || !TryVisible(hwnd, out var landedVisible))
         {
             Remember(window, dpi, insets);
-            return;
+            return true;
         }
 
         var correction = FrameInsets.Correct(target, requested, landedOuter, landedVisible);
-        if (correction.Outer != landedOuter)
-            Move(hwnd, correction.Outer);
+        if (correction.Outer != landedOuter && !Move(hwnd, correction.Outer))
+            return false;
 
         if (correction.Clamped)
         {
@@ -74,6 +75,8 @@ public sealed partial class WindowAdapter
             Remember(window, dpi, FrameInsets.Between(finalOuter, finalVisible));
         else
             Remember(window, dpi, insets);
+
+        return true;
     }
 
     private static FrameInsets InsetsFor(WindowId window, HWND hwnd, int dpi)
@@ -159,8 +162,16 @@ public sealed partial class WindowAdapter
         return true;
     }
 
-    private static void Move(HWND hwnd, Rectangle bounds)
+    // A call that waits for the window waits as long as its program does not answer. The frame of a program that has
+    // stopped answering is sent without waiting, so it lands when the program wakes. Returns whether the window took it.
+    private static bool Move(HWND hwnd, Rectangle bounds)
     {
+        if (PInvoke.IsHungAppWindow(hwnd))
+        {
+            SendQuick(hwnd, bounds, keepSize: false);
+            return false;
+        }
+
         _ = PInvoke.SetWindowPos(
             hwnd,
             HWND.Null,
@@ -170,6 +181,7 @@ public sealed partial class WindowAdapter
             bounds.Height,
             SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
         Quick.Note(new WindowId(((IntPtr)hwnd).ToInt64()), bounds, waiting: false);
+        return true;
     }
 
     // A frame of a motion or a step of a drag. The window takes it when its thread gets to it, and a later
@@ -180,9 +192,19 @@ public sealed partial class WindowAdapter
         if (!TryOuter(hwnd, out var current))
             return;
 
-        var outer = borderless ? target : InsetsFor(window, hwnd, (int)PInvoke.GetDpiForWindow(hwnd)).OuterFor(target);
-        _ = Quick.Request(window, outer, current, (bounds, keepSize) => SendQuick(hwnd, bounds, keepSize));
+        _ = Quick.Request(window, OuterOf(window, hwnd, target, borderless), current, (bounds, keepSize) => SendQuick(hwnd, bounds, keepSize));
     }
+
+    // The Layout rectangle of a window whose program has stopped answering, sent without waiting. Unlike a frame of a
+    // motion it is never skipped, because nothing after it puts the window there.
+    internal static void PlaceAsync(WindowId window, Rectangle target, bool borderless)
+    {
+        var hwnd = new HWND((nint)window.Value);
+        SendQuick(hwnd, OuterOf(window, hwnd, target, borderless), keepSize: false);
+    }
+
+    private static Rectangle OuterOf(WindowId window, HWND hwnd, Rectangle target, bool borderless) =>
+        borderless ? target : InsetsFor(window, hwnd, (int)PInvoke.GetDpiForWindow(hwnd)).OuterFor(target);
 
     private static void SendQuick(HWND hwnd, Rectangle bounds, bool keepSize)
     {

@@ -14,14 +14,13 @@ public sealed partial class WindowAdapter
     {
         foreach (var request in requests)
         {
-            _ = PInvoke.SetWindowPos(
-                new HWND((nint)request.Window.Value),
-                request.Top ? Top : Bottom,
-                0,
-                0,
-                0,
-                0,
-                SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
+            // A program that has stopped answering is sent the request without waiting, and takes it when it wakes.
+            var hwnd = new HWND((nint)request.Window.Value);
+            var flags = SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE;
+            if (PInvoke.IsHungAppWindow(hwnd))
+                flags |= SET_WINDOW_POS_FLAGS.SWP_ASYNCWINDOWPOS;
+
+            _ = PInvoke.SetWindowPos(hwnd, request.Top ? Top : Bottom, 0, 0, 0, 0, flags);
 
             // A change of z-order moves nothing, so the window's border is told to follow it there.
             BorderHost.Follow(request.Window);
