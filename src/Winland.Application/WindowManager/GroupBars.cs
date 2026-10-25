@@ -51,7 +51,7 @@ public sealed partial class WindowManager
                     tabs[i] = new GroupTab(member, title, member == active);
                 }
 
-                bars.Add(new GroupBar(group.Shown, strip, tabs, group.Locked || _groupsLocked, scaled));
+                bars.Add(new GroupBar(group.Shown, strip, tabs, scaled));
             }
         }
 
@@ -101,16 +101,8 @@ public sealed partial class WindowManager
         if (honorProps && _props.Own(window, active ? WindowProp.ActiveBorderColor : WindowProp.InactiveBorderColor) is { } set)
             return set;
 
-        if (WorkspaceContaining(window)?.GroupOf(window) is WindowGroup group)
-        {
-            var locked = group.Locked || _groupsLocked;
-            return active
-                ? locked ? _config.Groups.LockedActiveBorder : _config.Groups.ActiveBorder
-                : locked ? _config.Groups.LockedInactiveBorder : _config.Groups.InactiveBorder;
-        }
-
-        if (_props.GroupRules(window).HasFlag(GroupRuleFlags.Deny))
-            return active ? _config.Groups.NoGroupActiveBorder : _config.Groups.NoGroupBorder;
+        if (WorkspaceContaining(window)?.GroupOf(window) is not null)
+            return active ? _config.Groups.ActiveBorder : _config.Groups.InactiveBorder;
 
         return active ? _config.Decoration.ActiveBorder : _config.Decoration.InactiveBorder;
     }

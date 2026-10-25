@@ -27,9 +27,6 @@ internal sealed class ClientProps
         entry.Subject = (traits.WithInitialNames(), followed);
     }
 
-    /// <summary>The group effects a window's rules gave it when it opened.</summary>
-    public void SetGroupRules(WindowId window, GroupRuleFlags rules) => Of(window).GroupRules = rules;
-
     /// <summary>The window's rules were matched again after its class or title changed: its property effects follow.</summary>
     public void Rematched(WindowId window, WindowDecision decision)
     {
@@ -138,8 +135,6 @@ internal sealed class ClientProps
         Max = (SetProp(window, "max_size") as PropSize?)?.ToLimit() ?? rule.Max,
     };
 
-    public GroupRuleFlags GroupRules(WindowId window) => _entries.TryGetValue(window, out var entry) ? entry.GroupRules : GroupRuleFlags.None;
-
     /// <summary>The traits and exec rules a window was adopted with, which its rules are matched against again.</summary>
     public (WindowTraits Traits, IReadOnlyList<WindowRule> Followed)? Subject(WindowId window) =>
         _entries.TryGetValue(window, out var entry) ? entry.Subject : null;
@@ -169,7 +164,6 @@ internal sealed class ClientProps
 
         public (WindowTraits Traits, IReadOnlyList<WindowRule> Followed)? Subject { get; set; }
 
-        public GroupRuleFlags GroupRules { get; set; }
     }
 }
 

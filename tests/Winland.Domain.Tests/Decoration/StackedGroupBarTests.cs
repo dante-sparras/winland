@@ -10,7 +10,6 @@ public class StackedGroupBarTests
             new WindowId(1),
             new Rectangle(100, 50, 600, height),
             [new GroupTab(new WindowId(1), "a", true), new GroupTab(new WindowId(2), "b", false), new GroupTab(new WindowId(3), "c", false)],
-            false,
             style);
 
     [Fact]

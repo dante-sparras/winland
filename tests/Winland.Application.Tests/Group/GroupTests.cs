@@ -15,7 +15,7 @@ public class GroupTests
     [Fact]
     public void ToggleGroupMakesAGroupOfOneWithABar()
     {
-        var core = Opened(auto: true, First);
+        var core = Opened(First);
 
         var made = core.Execute("dispatch togglegroup");
 
@@ -35,7 +35,7 @@ public class GroupTests
     [Fact]
     public void AGroupWhoseShownMemberIsNotDecoratedHasNoBarAndKeepsItsTile()
     {
-        var core = Opened(auto: true, First);
+        var core = Opened(First);
         var tile = ClientOf(core.Execute("dispatch no_op").Effect, First).Bounds;
         core.Execute("dispatch togglegroup");
 
@@ -49,7 +49,7 @@ public class GroupTests
     [Fact]
     public void AGroupIsOneTileWithSeveralClients()
     {
-        var core = Opened(auto: true, First);
+        var core = Opened(First);
         var alone = ClientOf(core.Execute("dispatch togglegroup").Effect, First).Bounds;
 
         var joined = core.Handle(Appear(Second, "two"));
@@ -93,11 +93,10 @@ public class GroupTests
     [Fact]
     public void GroupDispatchersRejectAWindowThatIsNotGrouped()
     {
-        var core = Opened(auto: true, First);
+        var core = Opened(First);
 
         Assert.Equal("error: window is not in a group", core.Execute("dispatch changegroupactive f").Text);
         Assert.Equal("error: window not in a group", core.Execute("dispatch moveoutofgroup").Text);
-        Assert.Equal("error: window not in a group", core.Execute("dispatch lockactivegroup lock").Text);
         Assert.Equal("error: window not in a group", core.Execute("dispatch movegroupwindow").Text);
 
         core.Execute("dispatch togglegroup");
@@ -108,11 +107,10 @@ public class GroupTests
     [Fact]
     public void GroupDirectionsAreWholeWordsNotTheirFirstLetter()
     {
-        var core = Opened(auto: true, First);
+        var core = Opened(First);
         core.Execute("dispatch togglegroup");
 
         Assert.Equal("error: unsupported direction: leftover", core.Execute("dispatch moveintogroup leftover").Text);
-        Assert.Equal("error: unsupported direction: leftover", core.Execute("dispatch movewindoworgroup leftover").Text);
     }
 
     [Fact]
@@ -132,19 +130,9 @@ public class GroupTests
     }
 
     [Fact]
-    public void FocusRemovedWindowOffFocusesTheGroup()
-    {
-        var core = Grouped("group:focus_removed_window = false\n");
-
-        var left = core.Execute("dispatch moveoutofgroup");
-
-        Assert.Equal(First, left.Effect.Focus);
-    }
-
-    [Fact]
     public void MoveIntoGroupJoinsTheGroupInThatDirection()
     {
-        var core = Opened(auto: false, First, Second);
+        var core = Opened(First, Second);
         core.Execute("dispatch focuswindow address:0x1");
         core.Execute("dispatch togglegroup");
         core.Execute("dispatch focuswindow address:0x2");
@@ -158,53 +146,6 @@ public class GroupTests
         Assert.Contains(First, moved.Effect.Hide);
         Assert.Equal(2, moved.Effect.Placements.Count);
         Assert.Single(moved.Effect.Placements.Select(placement => placement.Bounds).Distinct());
-    }
-
-    [Fact]
-    public void MoveIntoOrCreateGroupMakesTheGroupFirst()
-    {
-        var core = Opened(auto: false, First, Second);
-
-        var moved = core.Execute("dispatch moveintoorcreategroup l");
-
-        Assert.Equal(["togglegroup>>1,1", "moveintogroup>>2"], Lines(moved));
-        Assert.Equal([First, Second], Assert.Single(moved.Effect.State.Groups));
-    }
-
-    [Fact]
-    public void ALockedGroupRefusesNewMembers()
-    {
-        var core = Opened(auto: false, First, Second);
-        core.Execute("dispatch focuswindow address:0x1");
-        core.Execute("dispatch togglegroup");
-        core.Execute("dispatch lockactivegroup lock");
-        core.Execute("dispatch focuswindow address:0x2");
-
-        var refused = core.Execute("dispatch moveintogroup l");
-        Assert.Equal([First], Assert.Single(refused.Effect.State.Groups));
-        Assert.Contains(Assert.Single(refused.Effect.GroupBars).Tabs, tab => tab.Window == First);
-
-        var ignored = Opened(auto: false, "binds:ignore_group_lock = true\n", First, Second);
-        ignored.Execute("dispatch focuswindow address:0x1");
-        ignored.Execute("dispatch togglegroup");
-        ignored.Execute("dispatch lockactivegroup lock");
-        ignored.Execute("dispatch focuswindow address:0x2");
-        Assert.Equal([First, Second], Assert.Single(ignored.Execute("dispatch moveintogroup l").Effect.State.Groups));
-    }
-
-    [Fact]
-    public void LockGroupsEmitsTheEventAndStopsAutoGroup()
-    {
-        var core = Opened(auto: true, First);
-        core.Execute("dispatch togglegroup");
-
-        var locked = core.Execute("dispatch lockgroups lock");
-        var opened = core.Handle(Appear(Second, "two"));
-        var toggled = core.Execute("dispatch lockgroups toggle");
-
-        Assert.Equal(["lockgroups>>1"], Lines(locked));
-        Assert.Equal([First], Assert.Single(opened.State.Groups));
-        Assert.Equal(["lockgroups>>0"], Lines(toggled));
     }
 
     [Fact]
@@ -258,18 +199,6 @@ public class GroupTests
         Assert.Empty(ended.Effect.State.Hidden);
         Assert.Equal(3, ended.Effect.Placements.Count);
         Assert.Equal(3, ended.Effect.Placements.Select(placement => placement.Bounds).Distinct().Count());
-    }
-
-    [Fact]
-    public void InsertAfterCurrentPlacesNewMembers()
-    {
-        var after = Grouped();
-        after.Execute("dispatch changegroupactive 1");
-        Assert.Equal([First, Third, Second], after.Handle(Appear(Third, "three")).State.Groups.Single());
-
-        var tail = Grouped("group:insert_after_current = false\n");
-        tail.Execute("dispatch changegroupactive 1");
-        Assert.Equal([First, Second, Third], tail.Handle(Appear(Third, "three")).State.Groups.Single());
     }
 
     [Fact]
@@ -328,96 +257,20 @@ public class GroupTests
     }
 
     [Fact]
-    public void GroupRuleOpensTheWindowAsAGroup()
-    {
-        var core = new WindowManager(ConfigParser.Parse("windowrule = group set lock, class:^(tabs)$\n"));
-
-        var opened = core.Handle(new WindowAppeared(First, Area) { Traits = WindowTraits.Normal with { Class = "tabs", Title = "one" } });
-
-        Assert.Equal([First], Assert.Single(opened.State.Groups));
-        Assert.True(Assert.Single(opened.GroupBars).Locked);
-        Assert.Contains(opened.Events, stream => stream is GroupToggled { Created: true });
-    }
-
-    [Fact]
-    public void BarredAndDeniedWindowsDoNotJoinTheFocusedGroup()
-    {
-        var core = new WindowManager(ConfigParser.Parse("""
-            windowrule = group barred, class:^(alone)$
-            windowrule = group deny, class:^(never)$
-            """));
-        core.Handle(Appear(First, "one"));
-        core.Execute("dispatch togglegroup");
-
-        var barred = core.Handle(new WindowAppeared(Second, Area) { Traits = WindowTraits.Normal with { Class = "alone" } });
-        core.Execute("dispatch focuswindow address:0x1");
-        var denied = core.Handle(new WindowAppeared(Third, Area) { Traits = WindowTraits.Normal with { Class = "never" } });
-
-        Assert.Equal([First], Assert.Single(barred.State.Groups));
-        Assert.Equal([First], Assert.Single(denied.State.Groups));
-    }
-
-    [Theory]
-    [InlineData("dispatch no_op", 2)]
-    [InlineData("dispatch lockactivegroup lock", 1)]
-    public void AWindowMovedToAWorkspaceJoinsAnUnlockedSolitaryGroup(string setup, int members)
-    {
-        var core = Opened(auto: false, "group:group_on_movetoworkspace = true\n", First);
-        core.Execute("dispatch togglegroup");
-        core.Execute(setup);
-        core.Execute("dispatch movetoworkspacesilent 2");
-        core.Handle(Appear(Second, "two"));
-
-        var moved = core.Execute("dispatch movetoworkspacesilent 2");
-
-        Assert.Equal(members, Assert.Single(moved.Effect.State.Groups).Count);
-    }
-
-    [Fact]
-    public void AGroupThatDeniesWindowsTakesNoNewWindow()
-    {
-        var core = Opened(auto: true, First);
-        core.Execute("dispatch togglegroup");
-        core.Execute("dispatch denywindowfromgroup on");
-
-        var opened = core.Handle(Appear(Second, "two"));
-
-        Assert.Equal([First], Assert.Single(opened.State.Groups));
-    }
-
-    [Fact]
-    public void AGroupThatDeniesWindowsTakesNoWindowMovedToItsWorkspace()
-    {
-        var core = Opened(auto: false, "group:group_on_movetoworkspace = true\n", First);
-        core.Execute("dispatch togglegroup");
-        core.Execute("dispatch denywindowfromgroup on");
-        core.Execute("dispatch movetoworkspacesilent 2");
-        core.Handle(Appear(Second, "two"));
-
-        var moved = core.Execute("dispatch movetoworkspacesilent 2");
-
-        Assert.Equal([First], Assert.Single(moved.Effect.State.Groups));
-    }
-
-    [Fact]
     public void GroupedWindowsUseTheGroupBorderColors()
     {
         var core = Grouped("""
             group:col.border_active = rgb(102030)
-            group:col.border_locked_active = rgb(405060)
             """);
 
         var grouped = core.Execute("dispatch changegroupactive 2");
         Assert.Equal(new BorderColor(0xFF, 0x10, 0x20, 0x30), Decoration(grouped.Effect, Second).Border);
-
-        var locked = core.Execute("dispatch lockactivegroup lock");
-        Assert.Equal(new BorderColor(0xFF, 0x40, 0x50, 0x60), Decoration(locked.Effect, Second).Border);
     }
 
     [Fact]
     public void DisabledGroupBarTakesNoSpace()
     {
-        var core = Opened(auto: true, "group:groupbar:enabled = false\n", First);
+        var core = Opened("group:groupbar:enabled = false\n", First);
         var tile = ClientOf(core.Execute("dispatch workspace 1").Effect, First).Bounds;
 
         var made = core.Execute("dispatch togglegroup");
@@ -429,7 +282,7 @@ public class GroupTests
     [Fact]
     public void GroupBarOptionsShapeTheBar()
     {
-        var core = Opened(auto: true, """
+        var core = Opened("""
             group:groupbar:height = 20
             group:groupbar:indicator_height = 4
             group:groupbar:keep_upper_gap = false
@@ -458,7 +311,6 @@ public class GroupTests
             First,
             new Rectangle(100, 100, 302, 21),
             [new GroupTab(First, "a", false), new GroupTab(Second, "b", true)],
-            Locked: false,
             GroupBarStyle.Documented);
 
         Assert.Equal(150, bar.TabWidth);
@@ -482,39 +334,9 @@ public class GroupTests
     }
 
     [Fact]
-    public void MoveFocusCyclesTheGroupFirstWhenAsked()
-    {
-        var plain = Grouped();
-        Assert.DoesNotContain(plain.Execute("dispatch movefocus l").Effect.Show, window => window == First);
-
-        var cycling = Grouped("binds:movefocus_cycles_groupfirst = true\n");
-        var back = cycling.Execute("dispatch movefocus l");
-        Assert.Equal(First, back.Effect.Focus);
-        Assert.Contains(First, back.Effect.Show);
-
-        var around = cycling.Execute("dispatch movefocus l");
-        Assert.Equal(Second, around.Effect.Focus);
-    }
-
-    [Fact]
-    public void MoveWindowOrGroupLeavesTheGroupWhenANeighborIsThere()
-    {
-        var core = Opened(auto: false, First, Second);
-        core.Execute("dispatch moveintoorcreategroup l");
-        core.Handle(Appear(Third, "three"));
-        core.Execute("dispatch focuswindow address:0x2");
-
-        var left = core.Execute("dispatch movewindoworgroup r");
-
-        Assert.Equal(["moveoutofgroup>>2"], Lines(left));
-        Assert.Equal([First], Assert.Single(left.Effect.State.Groups));
-    }
-
-    [Fact]
     public void GroupKeywordsAreHonored()
     {
         var document = ConfigParser.Parse("""
-            group:auto_group = false
             group:groupbar:font_size = 10
             group:drag_into_group = 2
             group:groupbar:priority = 2
@@ -522,7 +344,6 @@ public class GroupTests
 
         Assert.Empty(document.Warnings);
         var options = GroupOptions.From(document);
-        Assert.False(options.AutoGroup);
         Assert.Equal(10, options.Bar.FontSize);
         Assert.Equal(2, options.DragIntoGroup);
         Assert.Equal(2, options.Bar.Priority);
@@ -560,7 +381,7 @@ public class GroupTests
         Assert.Equal(First, Assert.Single(followed.GroupBars).Shown);
         Assert.Equal(First, followed.Focus);
 
-        var core = Opened(auto: false, First, Second, Third);
+        var core = Opened(First, Second, Third);
         core.Execute("dispatch focuswindow address:0x1");
         core.Execute("dispatch togglegroup");
         core.Execute("dispatch focuswindow address:0x2");
@@ -577,18 +398,17 @@ public class GroupTests
 
     private static WindowManager Grouped(string config = "")
     {
-        var core = Opened(auto: true, config, First);
+        var core = Opened(config, First);
         core.Execute("dispatch togglegroup");
         core.Handle(Appear(Second, "two"));
         return core;
     }
 
-    private static WindowManager Opened(bool auto, params WindowId[] windows) => Opened(auto, "", windows);
+    private static WindowManager Opened(params WindowId[] windows) => Opened("", windows);
 
-    private static WindowManager Opened(bool auto, string config, params WindowId[] windows)
+    private static WindowManager Opened(string config, params WindowId[] windows)
     {
-        var text = (auto ? "" : "group:auto_group = false\n") + config;
-        var core = new WindowManager(ConfigParser.Parse(text));
+        var core = new WindowManager(ConfigParser.Parse(config));
         string[] titles = ["", "one", "two", "three"];
         foreach (var window in windows)
             core.Handle(Appear(window, titles[window.Value]));

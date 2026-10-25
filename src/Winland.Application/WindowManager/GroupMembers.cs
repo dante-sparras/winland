@@ -4,38 +4,23 @@ namespace Winland.Application;
 public sealed partial class WindowManager
 {
     /// <summary>
-    /// Puts a window that just opened into the focused Group when <c>group:auto_group</c> allows it, or
-    /// makes it a Group when a <c>group</c> rule says so. True when the Layout changed.
+    /// Puts a window that just opened into the focused Group, after the shown member. A dialog, and a floating window
+    /// opened over a tiled Group, open on their own. True when the Layout changed.
     /// </summary>
-    private bool GroupOnOpen(LiveWorkspace desk, WindowId window, WindowDecision decision, bool dialog, WindowId? focused)
+    private static bool GroupOnOpen(LiveWorkspace desk, WindowId window, WindowDecision decision, bool dialog, WindowId? focused)
     {
-        var rules = decision.Group;
-        _props.SetGroupRules(window, rules);
+        if (focused is not WindowId owner
+            || owner == window
+            || desk.GroupOf(owner) is not WindowGroup group
+            || dialog
+            || (decision.Floating && desk.ClientOf(owner)?.Floating != true)
+            || !desk.Layout.TryTake(window, out var taken))
+            return false;
 
-        if (_config.Groups.AutoGroup
-            && focused is WindowId owner
-            && owner != window
-            && desk.GroupOf(owner) is WindowGroup group
-            && GroupAdmission.May(
-                rules,
-                _groupsLocked,
-                group.Locked,
-                targetDenied: group.Denied,
-                dialog,
-                floatingIntoTiled: decision.Floating && desk.ClientOf(owner)?.Floating != true,
-                ownLocked: false)
-            && desk.Layout.TryTake(window, out var taken))
-        {
-            var position = _config.Groups.InsertAfterCurrent ? group.Current + 1 : group.Count;
-            desk.Join(group, window, taken, position);
-            desk.Show(group, position);
-            return true;
-        }
-
-        if (rules.HasFlag(GroupRuleFlags.Set) && desk.GroupOf(window) is null)
-            StartGroup(desk, window);
-
-        return false;
+        var position = group.Current + 1;
+        desk.Join(group, window, taken, position);
+        desk.Show(group, position);
+        return true;
     }
 
     /// <summary>True when the window is a Group member hidden behind the shown one.</summary>
@@ -111,38 +96,4 @@ public sealed partial class WindowManager
             source.HandGroup(group, destination);
     }
 
-    /// <summary>
-    /// The solitary unlocked Group on a Workspace that a moved window joins under
-    /// <c>group:group_on_movetoworkspace</c>, or null.
-    /// </summary>
-    private WindowGroup? SolitaryGroup(LiveWorkspace destination, WindowId moving)
-    {
-        if (!_config.Groups.GroupOnMoveToWorkspace)
-            return null;
-
-        var visible = destination.VisibleWindows();
-        if (visible.Length != 1 || visible[0] == moving || destination.GroupOf(visible[0]) is not WindowGroup group)
-            return null;
-
-        var admitted = GroupAdmission.May(
-            _props.GroupRules(moving),
-            _groupsLocked,
-            group.Locked,
-            targetDenied: group.Denied,
-            dialog: false,
-            floatingIntoTiled: false,
-            ownLocked: false);
-        return admitted && !group.Locked ? group : null;
-    }
-
-    /// <summary>Joins a window that was just added to <paramref name="destination"/> into <paramref name="group"/>.</summary>
-    private void JoinOnMove(LiveWorkspace destination, WindowGroup? group, WindowId window)
-    {
-        if (group is null || destination.GroupOf(window) is not null || !destination.Layout.TryTake(window, out var taken))
-            return;
-
-        var position = _config.Groups.InsertAfterCurrent ? group.Current + 1 : group.Count;
-        destination.Join(group, window, taken, position);
-        destination.Show(group, position);
-    }
 }

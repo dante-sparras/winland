@@ -114,5 +114,3 @@ public sealed record ClientIntoGroup(WindowId Window) : StreamEvent;
 /// <summary>A window was moved out of a Group.</summary>
 public sealed record ClientOutOfGroup(WindowId Window) : StreamEvent;
 
-/// <summary>Every Group was locked or unlocked. <paramref name="Locked"/> is the state after the change.</summary>
-public sealed record GroupsLocked(bool Locked) : StreamEvent;

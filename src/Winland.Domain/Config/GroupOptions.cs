@@ -5,38 +5,12 @@ public sealed record GroupOptions
 {
     public static GroupOptions Documented { get; } = new();
 
-    public bool AutoGroup { get; init; } = true;
-
-    public bool InsertAfterCurrent { get; init; } = true;
-
-    public bool FocusRemovedWindow { get; init; } = true;
-
-    public bool GroupOnMoveToWorkspace { get; init; }
-
-    public bool IgnoreGroupLock { get; init; }
-
-    public bool MoveFocusCyclesGroupFirst { get; init; }
-
     /// <summary><c>group:drag_into_group</c>: 0 never, 1 onto a member or its tab bar, 2 only onto the tab bar.</summary>
     public int DragIntoGroup { get; init; } = 1;
-
-    public bool MergeGroupsOnDrag { get; init; } = true;
-
-    public bool MergeGroupsOnGroupbar { get; init; } = true;
-
-    public bool MergeFloatedIntoTiledOnGroupbar { get; init; }
 
     public BorderColor ActiveBorder { get; init; } = new(0x66, 0xFF, 0xFF, 0x00);
 
     public BorderColor InactiveBorder { get; init; } = new(0x66, 0x77, 0x77, 0x00);
-
-    public BorderColor LockedActiveBorder { get; init; } = new(0x66, 0x77, 0x55, 0x00);
-
-    public BorderColor LockedInactiveBorder { get; init; } = new(0x66, 0xFF, 0x55, 0x00);
-
-    public BorderColor NoGroupBorder { get; init; } = new(0xFF, 0xFF, 0xFF, 0xAA);
-
-    public BorderColor NoGroupActiveBorder { get; init; } = new(0xFF, 0xFF, 0x00, 0xFF);
 
     public GroupBarStyle Bar { get; init; } = GroupBarStyle.Documented;
 
@@ -65,22 +39,9 @@ public sealed record GroupOptions
 
     internal static OptionSet<GroupOptions> Options { get; } = new(
     [
-        Of("group:auto_group", OptionValue.Bool, o => o.AutoGroup, (o, v) => o with { AutoGroup = v }),
-        Of("group:insert_after_current", OptionValue.Bool, o => o.InsertAfterCurrent, (o, v) => o with { InsertAfterCurrent = v }),
-        Of("group:focus_removed_window", OptionValue.Bool, o => o.FocusRemovedWindow, (o, v) => o with { FocusRemovedWindow = v }),
-        Of("group:group_on_movetoworkspace", OptionValue.Bool, o => o.GroupOnMoveToWorkspace, (o, v) => o with { GroupOnMoveToWorkspace = v }),
-        Of("binds:ignore_group_lock", OptionValue.Bool, o => o.IgnoreGroupLock, (o, v) => o with { IgnoreGroupLock = v }),
-        Of("binds:movefocus_cycles_groupfirst", OptionValue.Bool, o => o.MoveFocusCyclesGroupFirst, (o, v) => o with { MoveFocusCyclesGroupFirst = v }),
         Of("group:drag_into_group", OptionValue.Int(0, 2, DragIntoGroupNames), o => o.DragIntoGroup, (o, v) => o with { DragIntoGroup = v }),
-        Of("group:merge_groups_on_drag", OptionValue.Bool, o => o.MergeGroupsOnDrag, (o, v) => o with { MergeGroupsOnDrag = v }),
-        Of("group:merge_groups_on_groupbar", OptionValue.Bool, o => o.MergeGroupsOnGroupbar, (o, v) => o with { MergeGroupsOnGroupbar = v }),
-        Of("group:merge_floated_into_tiled_on_groupbar", OptionValue.Bool, o => o.MergeFloatedIntoTiledOnGroupbar, (o, v) => o with { MergeFloatedIntoTiledOnGroupbar = v }),
         Of("group:col.border_active", OptionValue.Color, o => o.ActiveBorder, (o, v) => o with { ActiveBorder = v }),
         Of("group:col.border_inactive", OptionValue.Color, o => o.InactiveBorder, (o, v) => o with { InactiveBorder = v }),
-        Of("group:col.border_locked_active", OptionValue.Color, o => o.LockedActiveBorder, (o, v) => o with { LockedActiveBorder = v }),
-        Of("group:col.border_locked_inactive", OptionValue.Color, o => o.LockedInactiveBorder, (o, v) => o with { LockedInactiveBorder = v }),
-        Of("general:col.nogroup_border", OptionValue.Color, o => o.NoGroupBorder, (o, v) => o with { NoGroupBorder = v }),
-        Of("general:col.nogroup_border_active", OptionValue.Color, o => o.NoGroupActiveBorder, (o, v) => o with { NoGroupActiveBorder = v }),
         OfBar("enabled", OptionValue.Bool, b => b.Enabled, (b, v) => b with { Enabled = v }),
         OfBar("disable_when_only", OptionValue.Bool, b => b.DisableWhenOnly, (b, v) => b with { DisableWhenOnly = v }),
         OfBar("render_titles", OptionValue.Bool, b => b.RenderTitles, (b, v) => b with { RenderTitles = v }),
@@ -100,13 +61,9 @@ public sealed record GroupOptions
         OfBar("text_offset", OptionValue.Int(-20, 20), b => b.TextOffset, (b, v) => b with { TextOffset = v }),
         OfBar("text_padding", OptionValue.Int(0, 22), b => b.TextPadding, (b, v) => b with { TextPadding = v }),
         OfBar("text_color", OptionValue.Color, b => b.TextColor, (b, v) => b with { TextColor = v }),
-        OfBar("text_color_inactive", OptionValue.Color, b => b.TitleColor(active: false, locked: false), (b, v) => b with { TextColorInactive = v }),
-        OfBar("text_color_locked_active", OptionValue.Color, b => b.TitleColor(active: true, locked: true), (b, v) => b with { TextColorLockedActive = v }),
-        OfBar("text_color_locked_inactive", OptionValue.Color, b => b.TitleColor(active: false, locked: true), (b, v) => b with { TextColorLockedInactive = v }),
-        OfBar("col.active", OptionValue.Colors, b => [.. b.GradientColors(active: true, locked: false)], (b, v) => b with { Active = v[0], ActiveGradient = new BarGradient(v) }),
-        OfBar("col.inactive", OptionValue.Colors, b => [.. b.GradientColors(active: false, locked: false)], (b, v) => b with { Inactive = v[0], InactiveGradient = new BarGradient(v) }),
-        OfBar("col.locked_active", OptionValue.Colors, b => [.. b.GradientColors(active: true, locked: true)], (b, v) => b with { LockedActive = v[0], LockedActiveGradient = new BarGradient(v) }),
-        OfBar("col.locked_inactive", OptionValue.Colors, b => [.. b.GradientColors(active: false, locked: true)], (b, v) => b with { LockedInactive = v[0], LockedInactiveGradient = new BarGradient(v) }),
+        OfBar("text_color_inactive", OptionValue.Color, b => b.TitleColor(active: false), (b, v) => b with { TextColorInactive = v }),
+        OfBar("col.active", OptionValue.Colors, b => [.. b.GradientColors(active: true)], (b, v) => b with { Active = v[0], ActiveGradient = new BarGradient(v) }),
+        OfBar("col.inactive", OptionValue.Colors, b => [.. b.GradientColors(active: false)], (b, v) => b with { Inactive = v[0], InactiveGradient = new BarGradient(v) }),
         OfBar("stacked", OptionValue.Bool, b => b.Stacked, (b, v) => b with { Stacked = v }),
         OfBar("gradients", OptionValue.Bool, b => b.Gradients, (b, v) => b with { Gradients = v }),
         OfBar("rounding", OptionValue.Int(0, 40), b => b.Rounding, (b, v) => b with { Rounding = v }),

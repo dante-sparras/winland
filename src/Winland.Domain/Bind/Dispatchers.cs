@@ -64,14 +64,8 @@ public static class Dispatchers
             "togglegroup",
             "changegroupactive",
             "movegroupwindow",
-            "lockgroups",
-            "lockactivegroup",
-            "denywindowfromgroup",
             "moveintogroup",
-            "moveintoorcreategroup",
             "moveoutofgroup",
-            "movewindoworgroup",
-            "setignoregrouplock",
         }
         .Concat(DwindleMessages.Names)
         .ToFrozenSet(StringComparer.OrdinalIgnoreCase);

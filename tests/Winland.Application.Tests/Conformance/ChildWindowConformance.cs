@@ -31,10 +31,9 @@ public class ChildWindowConformance
         desk.Close("child-test-parent");
         Assert.Empty(desk.Clients());
 
-        // A child that names a parent floats, so group:auto_group does not take it into the focused Group.
+        // A child that names a parent floats, so it does not join the focused Group.
         desk.Spawn("a");
         desk.Ok("togglegroup");
-        desk.Keyword("group:auto_group", "true");
 
         var second = desk.Spawn("child-test-parent");
         Assert.Equal(2, desk.Clients().Length);

@@ -67,11 +67,9 @@ public sealed partial class WindowManager
         var elsewhere = target.IsSpecial ? null : ShownElsewhere(target);
 
         var destinationCovered = destination.Covered();
-        var solitary = source.GroupOf(id) is null ? SolitaryGroup(destination, id) : null;
         var area = WorkArea(destination, _area);
         destination.Receive(id, OntoMonitor(taken, source.Monitor, destination.Monitor), area, pointer: focal);
         CarryGroup(source, destination, id);
-        JoinOnMove(destination, solitary, id);
         Restamp(source, []);
         Restamp(destination, []);
 
