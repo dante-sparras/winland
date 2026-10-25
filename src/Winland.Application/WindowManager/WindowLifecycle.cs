@@ -136,11 +136,11 @@ public sealed partial class WindowManager
         // A window rule's Workspace number is the focused Monitor's Workspace of that number.
         var rule = WorkspaceAddress.ParseRule(decision.Workspace, Context());
 
-        // misc:initial_workspace_tracking: a program Winland started opens its window, silently, on the Workspace it was
-        // started on. A workspace rule still wins, and a window that comes back after a restart keeps its own.
-        if (restored is null && _config.Session.InitialWorkspaceTracking > 0 && processId > 0)
+        // A program Winland started opens its window, silently, on the Workspace it was started on. A workspace rule
+        // still wins, and a window that comes back after a restart keeps its own.
+        if (restored is null && processId > 0)
         {
-            var started = _initialWorkspaces.Take(processId, appeared.Window, _config.Session.InitialWorkspaceTracking == 2, Clock(), window => Find(window)?.Workspace);
+            var started = _initialWorkspaces.Take(processId, Clock());
             if (rule.Id is null && started is WorkspaceId origin && origin != current)
                 rule = new WorkspaceAddress.Rule(origin, Silent: true);
         }
@@ -232,24 +232,11 @@ public sealed partial class WindowManager
         return _workspaces.Shown.IsShown(desk.Id) ? View(placements) : View([]);
     }
 
-    // The size rules and the window's own limits are kept, so its limits can be worked out again when either the window or
-    // misc:size_limits_tiled changes.
+    // The size rules and the window's own limits are kept, so its limits can be worked out again when the window changes.
     private TiledLimits RememberSizes(WindowId window, SizeRule rule, Size? ownMin, Size? ownMax)
     {
         _props.SetSizes(window, rule, ownMin, ownMax);
-        return _props.EffectiveSizes(window, rule).Tiled(ownMin, ownMax, _config.Session.SizeLimitsTiled);
-    }
-
-    // misc:size_limits_tiled changed, so every tiled Client keeps other limits. The Layouts are laid out again after.
-    private void RefreshTiledLimits()
-    {
-        foreach (var window in _props.Sized.ToList())
-        {
-            if (WorkspaceContaining(window) is not LiveWorkspace desk)
-                continue;
-
-            ApplyLimits(window, desk);
-        }
+        return new TiledLimits(ownMin, ownMax);
     }
 
     private Outcome Close(WindowId window)
@@ -276,19 +263,12 @@ public sealed partial class WindowManager
 
         if (special && desk.Layout.Clients.Count == 0)
         {
-            if (_config.Session.CloseSpecialOnEmpty)
-            {
-                _workspaces.Shown.ShowSpecial(monitor, null);
-                DropIfEmpty(desk.Id);
-                var normal = _workspaces.Find(_workspaces.Shown.ActiveOn(monitor));
-                var specialFocus = normal is null ? null : _focus.Remembered(normal);
-                _focus.Take(specialFocus, normal);
-                return View(normal?.Layout.Visible() ?? [], focus: specialFocus);
-            }
-
-            _focus.Take(null);
-            FocusState.Remember(desk, null);
-            return View([], focus: _focus.Focused);
+            _workspaces.Shown.ShowSpecial(monitor, null);
+            DropIfEmpty(desk.Id);
+            var normal = _workspaces.Find(_workspaces.Shown.ActiveOn(monitor));
+            var specialFocus = normal is null ? null : _focus.Remembered(normal);
+            _focus.Take(specialFocus, normal);
+            return View(normal?.Layout.Visible() ?? [], focus: specialFocus);
         }
 
         DropIfEmpty(desk.Id);
@@ -319,8 +299,6 @@ public sealed partial class WindowManager
             if (next is WindowId chosen)
             {
                 TakeFocus(desk, chosen);
-                if (RetainFullscreen(desk, chosen, mode, grouped: false) is { } retained)
-                    placements = retained;
             }
             else
                 reveal = true;

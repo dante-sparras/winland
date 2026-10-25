@@ -25,6 +25,5 @@ public sealed partial class WindowManager
         _windowState.Track(ForgetDrag);
         _windowState.Track(ForgetOwner);
         _windowState.Track(_shownMaximized);
-        _windowState.Track(_initialWorkspaces.Closed);
     }
 }

@@ -188,19 +188,6 @@ public class DwindleConformance
         desk.ExpectActive("22,22", "1876,1036");
         Assert.Equal("one", desk.ActiveClass());
 
-        desk.Keyword("misc:on_focus_under_fullscreen", "1");
-        desk.Spawn("four");
-        desk.ExpectActive("22,22", "1876,1036");
-        Assert.Equal("four", desk.ActiveClass());
-        Assert.Equal(1, Desk.Fullscreen(desk.ActiveWindow()));
-
-        desk.Keyword("misc:on_focus_under_fullscreen", "0");
-        desk.Spawn("ignored");
-        desk.ExpectActive("22,22", "1876,1036");
-        Assert.Equal("four", desk.ActiveClass());
-        Assert.Equal(1, Desk.Fullscreen(desk.ActiveWindow()));
-
-        desk.Keyword("misc:on_focus_under_fullscreen", "2");
         desk.Spawn("erstarrwashere");
         Assert.Equal("erstarrwashere", desk.ActiveClass());
         Assert.Equal(0, Desk.Fullscreen(desk.ActiveWindow()));
@@ -210,36 +197,20 @@ public class DwindleConformance
     public void DwindleNewWindowTakesOverFullscreen()
     {
         var desk = new Desk();
-        desk.Keyword("misc:on_focus_under_fullscreen", "0");
         desk.Spawn("kitty_A");
         desk.Ok("fullscreen", "0");
         ExpectFullscreen(desk, 2, 2);
         Assert.Equal("kitty_A", desk.ActiveClass());
 
         desk.Spawn("kitty_B");
-        ExpectFullscreen(desk, 2, 2);
-        Assert.Equal("kitty_A", desk.ActiveClass());
-
-        desk.Ok("focuswindow", "class:kitty_B");
-        ExpectFullscreen(desk, 2, 2);
-        Assert.Equal("kitty_A", desk.ActiveClass());
-
-        desk.Keyword("misc:on_focus_under_fullscreen", "1");
-        desk.Spawn("kitty_C");
-        ExpectFullscreen(desk, 2, 2);
-        Assert.Equal("kitty_C", desk.ActiveClass());
-
-        desk.Keyword("misc:on_focus_under_fullscreen", "2");
-        desk.Spawn("kitty_D");
         ExpectFullscreen(desk, 0, 0);
-        Assert.Equal("kitty_D", desk.ActiveClass());
+        Assert.Equal("kitty_B", desk.ActiveClass());
     }
 
     [Fact]
-    public void DwindleExitWindowRetainsFullscreen()
+    public void DwindleExitWindowDoesNotRetainFullscreen()
     {
         var desk = new Desk();
-        desk.Keyword("misc:exit_window_retains_fullscreen", "false");
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
 
@@ -248,13 +219,6 @@ public class DwindleConformance
 
         desk.CloseActive();
         ExpectFullscreen(desk, 0, 0);
-
-        desk.Spawn("kitty_B");
-        desk.Ok("fullscreen", "0");
-        desk.Keyword("misc:exit_window_retains_fullscreen", "true");
-
-        desk.CloseActive();
-        ExpectFullscreen(desk, 2, 2);
     }
 
     [Fact]
@@ -283,7 +247,6 @@ public class DwindleConformance
         Assert.Equal("ok", desk.Send("r/keyword binds:movefocus_cycles_fullscreen false"));
         desk.Ok("focuswindow", "class:fs");
         desk.Ok("fullscreen", "0 set");
-        Assert.Equal("ok", desk.Send("r/keyword misc:on_focus_under_fullscreen 0"));
 
         foreach (var direction in new[] { "r", "l", "u", "d" })
         {
@@ -293,15 +256,6 @@ public class DwindleConformance
         }
 
         Assert.Equal("ok", desk.Send("r/keyword binds:movefocus_cycles_fullscreen true"));
-        Assert.Equal("ok", desk.Send("r/keyword misc:on_focus_under_fullscreen 1"));
-        desk.Ok("movefocus", "l");
-        Assert.Equal("normal1", desk.ActiveClass());
-        ExpectFullscreen(desk, 2, 2);
-
-        desk.Ok("movefocus", "r");
-        Assert.Equal("fs", desk.ActiveClass());
-
-        Assert.Equal("ok", desk.Send("r/keyword misc:on_focus_under_fullscreen 2"));
         desk.Ok("movefocus", "l");
         Assert.Equal("normal1", desk.ActiveClass());
         ExpectFullscreen(desk, 0, 0);

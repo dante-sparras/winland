@@ -213,7 +213,7 @@ public sealed partial class WindowManager
     }
 
     private bool HasNoFocus(WindowId window) =>
-        BlockedByModal(window) || _props.NoFocus(window);
+        ShadowedByModal(window) || _props.NoFocus(window);
 
     private WindowId? Kept() =>
         _focus.Focused is WindowId current && IsShownClient(current) ? current : null;

@@ -38,19 +38,6 @@ public class ModalTests
     }
 
     [Fact]
-    public void BlockingCanBeTurnedOff()
-    {
-        var core = new WindowManager(ConfigParser.Parse("general:modal_parent_blocking = false\n"));
-        core.Handle(new WindowAppeared(Owner, Area) { Disabled = true });
-        core.Handle(new WindowAppeared(Dialog, Area) { Owner = Owner });
-
-        var clicked = core.Handle(new WindowFocused(Owner, FocusCause.User));
-        Assert.Equal(Owner, core.Handle(new Dispatch("killactive")).Close);
-        Assert.Equal(255, AlphaOf(clicked, Owner));
-        Assert.Equal("{\"option\":\"general:modal_parent_blocking\",\"bool\":false,\"set\":true}", core.Execute("getoption general:modal_parent_blocking").Text);
-    }
-
-    [Fact]
     public void AFloatingWindowWithAnOwnerOpensOverTheMiddleOfItsOwner()
     {
         var core = new WindowManager(ConfigParser.Parse("windowrule = float, class:^(float)$\n"));

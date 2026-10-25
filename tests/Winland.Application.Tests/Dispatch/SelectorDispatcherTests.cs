@@ -269,39 +269,13 @@ public class SelectorDispatcherTests
     }
 
     [Fact]
-    public void MouseMoveWakesDisplaysOnlyWithTheOption()
+    public void MouseMoveDoesNotWakeDisplays()
     {
-        const string Name = @"\\.\DISPLAY1";
-        var plain = new WindowManager();
-        plain.Handle(new MonitorsChanged([Display(Name, "Dell", 0, 0, 1920, 1080, 1)]));
-        plain.Handle(new Dispatch("dpms", "off"));
-        Assert.Empty(plain.Handle(new PointerMoved(new Point(5, 5))).DisplayPower);
-
-        var core = new WindowManager(ConfigParser.Parse("misc:mouse_move_enables_dpms = true\n"));
-        core.Handle(new MonitorsChanged([Display(Name, "Dell", 0, 0, 1920, 1080, 1)]));
+        var core = new WindowManager();
+        core.Handle(new MonitorsChanged([Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1)]));
+        core.Handle(new Dispatch("dpms", "off"));
         Assert.Empty(core.Handle(new PointerMoved(new Point(5, 5))).DisplayPower);
-
-        core.Handle(new Dispatch("dpms", "off"));
-        Assert.Equal([new DisplayPowerRequest(Name, true)], Unfaded(core.Handle(new PointerMoved(new Point(6, 6))).DisplayPower));
-        Assert.Empty(core.Handle(new PointerMoved(new Point(7, 7))).DisplayPower);
-
-        core.Handle(new Dispatch("dpms", "off"));
-        Assert.Equal([new DisplayPowerRequest(Name, true)], Unfaded(core.Handle(new SwipeBegan(3)).DisplayPower));
-    }
-
-    [Fact]
-    public void KeyWakesDisplaysOnlyWithTheOptionAfterDpmsOff()
-    {
-        var plain = new WindowManager();
-        plain.Handle(new Dispatch("dpms", "off"));
-        Assert.False(plain.KeyWakesDisplays);
-
-        var core = new WindowManager(ConfigParser.Parse("misc:key_press_enables_dpms = true\n"));
-        Assert.False(core.KeyWakesDisplays);
-        core.Handle(new Dispatch("dpms", "off"));
-        Assert.True(core.KeyWakesDisplays);
-        core.Handle(new Dispatch("dpms", "on"));
-        Assert.False(core.KeyWakesDisplays);
+        Assert.Empty(core.Handle(new SwipeBegan(3)).DisplayPower);
     }
 
     private static WindowManager Flat()

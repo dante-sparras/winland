@@ -9,9 +9,6 @@ internal sealed class ClientProps
 {
     private readonly Dictionary<WindowId, Entry> _entries = [];
 
-    /// <summary>The windows that have size rules or limits recorded.</summary>
-    public IEnumerable<WindowId> Sized => _entries.Where(pair => pair.Value.Sizes is not null).Select(pair => pair.Key);
-
     /// <summary>The exec rules each adopted window follows, for the windows that follow any.</summary>
     public IEnumerable<IReadOnlyList<WindowRule>> Followed =>
         _entries.Values.Select(entry => entry.Subject?.Followed).OfType<IReadOnlyList<WindowRule>>();

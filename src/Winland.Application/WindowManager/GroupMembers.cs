@@ -54,7 +54,6 @@ public sealed partial class WindowManager
             return View([]);
 
         WindowId? focus = null;
-        IReadOnlyList<Placement>? retained = null;
         if (wasActive)
         {
             // the member focused most recently takes the focus, and so is shown.
@@ -63,10 +62,9 @@ public sealed partial class WindowManager
                 _ = desk.Show(group, index);
 
             TakeGroupFocus(desk, focus.Value);
-            retained = RetainFullscreen(desk, focus.Value, mode, grouped: true);
         }
 
-        return Present(desk, covered, retained ?? desk.Layout.Visible(), focus: focus);
+        return Present(desk, covered, desk.Layout.Visible(), focus: focus);
     }
 
     private WindowId? RecentMember(WindowGroup group)

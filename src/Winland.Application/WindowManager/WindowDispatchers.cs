@@ -20,7 +20,7 @@ public sealed partial class WindowManager
             return Rejected(name, "error: no such window");
 
         // A window shadowed by a modal refuses the focus, though its Workspace is still shown.
-        if (BlockedByModal(id))
+        if (ShadowedByModal(id))
         {
             return _workspaces.Shown.IsShown(desk.Id)
                 ? View([], dispatcher: name)
@@ -266,7 +266,6 @@ public sealed partial class WindowManager
         if (_monitors.Count == 0)
         {
             var on = PowerAfter("", turnOn, toggle);
-            Volatile.Write(ref _displaysOn, on);
             return View([], dispatcher: "dpms") with
             {
                 DisplayPower = [new DisplayPowerRequest("", on)],
@@ -297,9 +296,6 @@ public sealed partial class WindowManager
             var device = chosen[i].Effective.Name;
             requests[i] = new DisplayPowerRequest(device, PowerAfter(device, turnOn, toggle));
         }
-
-        if (requests.Length > 0)
-            Volatile.Write(ref _displaysOn, requests[^1].On);
 
         return View([], dispatcher: "dpms") with { DisplayPower = requests };
     }
@@ -362,25 +358,5 @@ public sealed partial class WindowManager
         var concealed = CloseSpecial(monitor, name);
         var shown = SwitchTo(WorkspaceId.FromNumber(1, monitor), focus: null, consumed: false, dispatcher: name);
         return concealed.Then(shown) with { Closes = closes, Dispatcher = name, Focus = _focus.Focused };
-    }
-
-    // Whether the displays are on, as the last dpms left them, which Winland keeps for every display at once.
-    private bool _displaysOn = true;
-
-    /// <summary>
-    /// Whether a key press or release should turn the displays back on: <c>misc:key_press_enables_dpms</c> is set and
-    /// dpms turned them off. The keyboard hook reads it with no lock and sends <c>dpms on</c>.
-    /// </summary>
-    public bool KeyWakesDisplays => _config.Session.KeyPressEnablesDpms && !Volatile.Read(ref _displaysOn);
-
-    // misc:mouse_move_enables_dpms: a pointer move, or the start of a swipe, after dpms off turns every display on, as
-    // in Winland.
-    private Outcome WakeDisplays(Input input, Outcome outcome)
-    {
-        if (input is not (PointerMoved or SwipeBegan) || !_config.Session.MouseMoveEnablesDpms || Volatile.Read(ref _displaysOn))
-            return outcome;
-
-        var woken = Dpms("on");
-        return outcome with { DisplayPower = [.. outcome.DisplayPower, .. woken.DisplayPower] };
     }
 }

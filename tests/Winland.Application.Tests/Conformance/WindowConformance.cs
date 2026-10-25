@@ -59,7 +59,6 @@ public class WindowConformance
         desk.Keyword("misc:focus_on_activate", "true");
 
         // Unfullscreen on conflict.
-        desk.Keyword("misc:on_focus_under_fullscreen", "2");
         desk.Ok("focuswindow", "class:kitty_A");
         desk.Ok("fullscreen", "0 set");
         ExpectFocused(desk, "kitty_A", 2);
@@ -78,44 +77,6 @@ public class WindowConformance
         ExpectFocused(desk, "kitty_activating", 0);
         desk.CloseActive();
         Assert.Equal(2, desk.Clients().Length);
-
-        // Take over on conflict.
-        desk.Keyword("misc:on_focus_under_fullscreen", "1");
-        desk.Ok("focuswindow", "class:kitty_A");
-        desk.Ok("fullscreen", "0 set");
-        ExpectFocused(desk, "kitty_A", 2);
-
-        desk.Ok("focuswindow", "class:kitty_A");
-        ExpectFocused(desk, "kitty_A", 2);
-
-        desk.Ok("focuswindow", "class:kitty_B");
-        ExpectFocused(desk, "kitty_B", 2);
-        desk.Ok("fullscreen", "0 unset");
-
-        activating = desk.Spawn("kitty_activating");
-        desk.Ok("focuswindow", "class:kitty_A");
-        desk.Ok("fullscreen", "0 set");
-        ExpectFocused(desk, "kitty_A", 2);
-        Activate(desk, activating);
-        ExpectFocused(desk, "kitty_activating", 2);
-        desk.CloseActive();
-        Assert.Equal(2, desk.Clients().Length);
-
-        // Keep the old focus on conflict.
-        desk.Keyword("misc:on_focus_under_fullscreen", "0");
-        desk.Ok("focuswindow", "class:kitty_A");
-        desk.Ok("fullscreen", "0 set");
-        ExpectFocused(desk, "kitty_A", 2);
-
-        desk.Ok("focuswindow", "class:kitty_A");
-        ExpectFocused(desk, "kitty_A", 2);
-
-        activating = desk.Spawn("kitty_activating");
-        desk.Ok("focuswindow", "class:kitty_A");
-        desk.Ok("fullscreen", "0 set");
-        ExpectFocused(desk, "kitty_A", 2);
-        Activate(desk, activating);
-        ExpectFocused(desk, "kitty_A", 2);
     }
 
     [Fact]
@@ -123,7 +84,6 @@ public class WindowConformance
     {
         var desk = new Desk("""
             misc:focus_on_activate = true
-            misc:on_focus_under_fullscreen = 2
             """);
         desk.Spawn("kitty_a");
         desk.Spawn("kitty_b");

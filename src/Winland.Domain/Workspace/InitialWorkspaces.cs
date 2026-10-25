@@ -1,10 +1,8 @@
 namespace Winland.Domain;
 
 /// <summary>
-/// <c>misc:initial_workspace_tracking</c>: the Workspace each program Winland starts was started on, so its window opens
-/// there, as Winland's initial workspace token does. A token is held by the started process and every process
-/// it starts. With tracking 1 the first window that opens uses the token up. With 2 every window of the process tree
-/// opens where the first one is now, until that first window closes.
+/// The Workspace each program Winland starts was started on, so its window opens there. A token is held by the
+/// started process and every process it starts. The first window that opens uses the token up.
 /// </summary>
 internal sealed class InitialWorkspaces
 {
@@ -54,11 +52,8 @@ internal sealed class InitialWorkspaces
             Note(chain[i - 1], chain[i]);
     }
 
-    /// <summary>
-    /// The Workspace a window of this process opens on, or null. <paramref name="whereNow"/> finds where a window is now,
-    /// which is where a persistent token sends the windows after its first one.
-    /// </summary>
-    internal WorkspaceId? Take(int pid, WindowId window, bool persistent, long now, Func<WindowId, WorkspaceId?> whereNow)
+    /// <summary>The Workspace a window of this process opens on, or null.</summary>
+    internal WorkspaceId? Take(int pid, long now)
     {
         _tokens.RemoveAll(token => now > token.ExpiresAt);
         if (pid <= 0)
@@ -70,25 +65,12 @@ internal sealed class InitialWorkspaces
             if (!token.Pids.Contains(pid))
                 continue;
 
-            if (!persistent)
-            {
-                _tokens.RemoveAt(i);
-                return token.Workspace;
-            }
-
-            if (token.Owner is WindowId owner && whereNow(owner) is WorkspaceId moved)
-                return moved;
-
-            token.Owner ??= window;
+            _tokens.RemoveAt(i);
             return token.Workspace;
         }
 
         return null;
     }
-
-    /// <summary>A persistent token goes when the first window that used it closes.</summary>
-    internal void Closed(WindowId window) =>
-        _tokens.RemoveAll(token => token.Owner == window);
 
     private sealed class Token(int pid, WorkspaceId workspace, long expiresAt)
     {
@@ -97,7 +79,5 @@ internal sealed class InitialWorkspaces
         public WorkspaceId Workspace { get; set; } = workspace;
 
         public long ExpiresAt { get; } = expiresAt;
-
-        public WindowId? Owner { get; set; }
     }
 }

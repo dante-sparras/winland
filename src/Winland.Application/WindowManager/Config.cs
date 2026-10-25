@@ -68,13 +68,10 @@ public sealed partial class WindowManager
     private Outcome Apply(ConfigDocument document, bool loaded = true)
     {
         ArgumentNullException.ThrowIfNull(document);
-        var tiledBefore = _config.Session.SizeLimitsTiled;
         Use(AppliedConfig.From(document, _accent));
         NoteConfigErrors(document);
         if (loaded)
             ShowConfigErrors(document);
-        if (_config.Session.SizeLimitsTiled != tiledBefore)
-            RefreshTiledLimits();
 
         var active = FocusedWorkspace();
         var covered = active.Covered();

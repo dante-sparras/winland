@@ -18,19 +18,6 @@ public class InitialWorkspaceTests
     }
 
     [Fact]
-    public void TrackingOffOpensOnTheWorkspaceShownNow()
-    {
-        var core = Loaded("misc:initial_workspace_tracking = 0\n");
-        Start(core, pid: 500);
-        core.Execute("dispatch workspace 2");
-
-        var opened = Open(core, window: 1, pid: 500);
-
-        Assert.Equal(new WorkspaceId("2"), WorkspaceOf(opened, 1));
-        Assert.Equal("{\"option\":\"misc:initial_workspace_tracking\",\"int\":0,\"set\":true}", core.Execute("getoption misc:initial_workspace_tracking").Text);
-    }
-
-    [Fact]
     public void TheFirstWindowUsesTheTokenUp()
     {
         var core = Loaded("");
@@ -44,14 +31,14 @@ public class InitialWorkspaceTests
     }
 
     [Fact]
-    public void ATokenExpiresAfterTheTimeout()
+    public void ATokenExpiresAfterTenSeconds()
     {
         var now = 0L;
-        var core = Loaded("misc:initial_workspace_token_timeout = 3\n");
+        var core = Loaded("");
         core.Clock = () => now;
         Start(core, pid: 500);
         core.Execute("dispatch workspace 2");
-        now = 3_001;
+        now = 10_001;
 
         var opened = Open(core, window: 1, pid: 500);
 
@@ -68,35 +55,6 @@ public class InitialWorkspaceTests
         var opened = core.Handle(new WindowAppeared(new WindowId(1), Area) { ProcessId = 600, AncestorProcessIds = [500] });
 
         Assert.Equal(new WorkspaceId("1"), WorkspaceOf(opened, 1));
-    }
-
-    [Fact]
-    public void PersistentTrackingSendsEveryWindowWhereTheFirstOneIsNow()
-    {
-        var core = Loaded("misc:initial_workspace_tracking = 2\n");
-        Start(core, pid: 500);
-        core.Execute("dispatch workspace 2");
-        Open(core, window: 1, pid: 500);
-        Assert.Equal(new WorkspaceId("1"), WorkspaceOf(Open(core, window: 2, pid: 500), 2));
-
-        core.Execute("dispatch movetoworkspacesilent 3,address:0x1");
-        var third = Open(core, window: 3, pid: 500);
-
-        Assert.Equal(new WorkspaceId("3"), WorkspaceOf(third, 3));
-    }
-
-    [Fact]
-    public void PersistentTrackingEndsWhenTheFirstWindowCloses()
-    {
-        var core = Loaded("misc:initial_workspace_tracking = 2\n");
-        Start(core, pid: 500);
-        core.Execute("dispatch workspace 2");
-        Open(core, window: 1, pid: 500);
-        core.Handle(new WindowClosed(new WindowId(1)));
-
-        var opened = Open(core, window: 2, pid: 500);
-
-        Assert.Equal(new WorkspaceId("2"), WorkspaceOf(opened, 2));
     }
 
     [Fact]

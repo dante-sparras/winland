@@ -9,7 +9,7 @@ public sealed record Launch(string CommandLine, string? WorkingDirectory)
     public IReadOnlyList<WindowRule> Rules { get; init; } = NoRules;
 
     /// <summary>
-    /// The Workspace this program was started on, which its window opens on under <c>misc:initial_workspace_tracking</c>.
+    /// The Workspace this program was started on, which its window opens on.
     /// Null for <c>exec-once</c> and <c>exec-shutdown</c>, which Winland starts without a token.
     /// </summary>
     public WorkspaceId? InitialWorkspace { get; init; }
