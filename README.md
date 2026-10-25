@@ -128,8 +128,8 @@ These talk to the running Winland.
 | `winland workspaces` | List the workspaces |
 | `winland activeworkspace` | Show the focused workspace |
 | `winland monitors [all]` | List the monitors. `all` includes disabled ones |
-| `winland binds` | List the hotkeys |
-| `winland configerrors` | List the config's warnings |
+| `winland binds` | List the hotkeys, one config line each |
+| `winland configerrors` | List the config's warnings, each with its file and line |
 | `winland getprop <window> <property>` | Show a window property |
 | `winland setprop <window> <property> <value>` | Set a window property |
 | `winland kill` | Click a window to end its program. Escape cancels |
