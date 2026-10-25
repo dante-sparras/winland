@@ -186,7 +186,7 @@ public sealed partial class WindowManager
 
         if (!_workspaces.Shown.IsShown(target))
         {
-            if (_pins.StaysVisible(appeared.Window, minimized: false, _workspaces.Shown.ShowsAWorkspace(desk.Monitor)))
+            if (StaysVisible(desk, appeared.Window, minimized: false))
                 return Offering(View(placements, show: [appeared.Window]), restore);
 
             return Offering(View([], hide: [appeared.Window]), restore);
