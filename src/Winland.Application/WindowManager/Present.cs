@@ -190,13 +190,21 @@ public sealed partial class WindowManager
     private State Snapshot()
     {
         var clients = new List<Client>();
+        var hidden = new List<Client>();
+        void Add(LiveWorkspace desk, Client client)
+        {
+            clients.Add(client);
+            if (Concealed(desk, client))
+                hidden.Add(client);
+        }
+
         var workspaces = new List<Workspace>(_workspaces.Count);
         foreach (var desk in _workspaces)
         {
             foreach (var client in desk.Layout.Clients)
             {
                 var slot = desk.Layout.TryBounds(client.Window, out var found) ? found : client.Bounds;
-                clients.Add(client with
+                Add(desk, client with
                 {
                     Bounds = PlacedBounds(client, desk, slot),
                     Pinned = _pins.IsPinned(client.Window),
@@ -212,7 +220,7 @@ public sealed partial class WindowManager
                 foreach (var member in group.Members)
                 {
                     if (desk.IsWaiting(member) && desk.ClientOf(member) is { } waiting)
-                        clients.Add(waiting with
+                        Add(desk, waiting with
                         {
                             Bounds = tile,
                             Floating = floating,
@@ -233,13 +241,6 @@ public sealed partial class WindowManager
         {
             foreach (var group in desk.Groups)
                 groups.Add(group.Members.ToArray());
-        }
-
-        var hidden = new List<Client>();
-        foreach (var client in clients)
-        {
-            if ((!_workspaces.Shown.IsShown(client.Workspace) && !StaysVisible(client)) || IsWaiting(client.Window))
-                hidden.Add(client);
         }
 
         var monitors = new List<Monitor>(_monitors.Count);
@@ -366,16 +367,20 @@ public sealed partial class WindowManager
 
     private void AddPinnedPlacements(LiveWorkspace desk, List<Placement> placements)
     {
-        var shows = _workspaces.Shown.ShowsAWorkspace(desk.Monitor);
         foreach (var client in desk.Layout.Clients)
         {
-            if (!_pins.StaysVisible(client.Window, client.Minimized, shows))
+            if (!StaysVisible(desk, client.Window, client.Minimized))
                 continue;
 
             if (desk.Layout.TryBounds(client.Window, out var bounds))
                 placements.Add(new Placement(client.Id, bounds));
         }
     }
+
+    // The one rule for a hidden Client: it waits behind its Group's shown member, or its Workspace is not shown and it is
+    // not Pinned there. A Client the Layout covers on a shown Workspace is hidden by Covered, not by this.
+    private bool Concealed(LiveWorkspace desk, Client client) =>
+        desk.IsWaiting(client.Window) || (!_workspaces.Shown.IsShown(desk.Id) && !StaysVisible(desk, client.Window, client.Minimized));
 
     private WindowId[] ShownWindows()
     {
@@ -388,10 +393,9 @@ public sealed partial class WindowManager
                 continue;
             }
 
-            var shows = _workspaces.Shown.ShowsAWorkspace(desk.Monitor);
             foreach (var client in desk.Layout.Clients)
             {
-                if (_pins.StaysVisible(client.Window, client.Minimized, shows))
+                if (!Concealed(desk, client))
                     windows.Add(client.Window);
             }
         }
@@ -416,13 +420,10 @@ public sealed partial class WindowManager
                 continue;
             }
 
-            var shows = _workspaces.Shown.ShowsAWorkspace(desk.Monitor);
             foreach (var client in desk.Layout.Clients)
             {
-                if (client.Minimized || _pins.StaysVisible(client.Window, client.Minimized, shows))
-                    continue;
-
-                windows.Add(client.Window);
+                if (!client.Minimized && Concealed(desk, client))
+                    windows.Add(client.Window);
             }
 
             foreach (var waiting in desk.WaitingClients)

@@ -136,11 +136,8 @@ public sealed partial class WindowManager
         return true;
     }
 
-    private bool StaysVisible(Client client)
-    {
-        var desk = _workspaces.Find(client.Workspace);
-        return desk is not null && _pins.StaysVisible(client.Window, client.Minimized, _workspaces.Shown.ShowsAWorkspace(desk.Monitor));
-    }
+    private bool StaysVisible(LiveWorkspace desk, WindowId window, bool minimized) =>
+        _pins.StaysVisible(window, minimized, _workspaces.Shown.ShowsAWorkspace(desk.Monitor));
 
     private static (PinAction Action, string Selector) PinRequest(string arguments)
     {
