@@ -9,7 +9,7 @@ internal static class MotionStyles
 
     /// <summary>
     /// The rectangle a window opens from, or closes to, for a <c>windows</c> style:
-    /// <c>slide [top|bottom|left|right]</c>, <c>gnomed</c>, or <c>popin [N%]</c>, which is also the default.
+    /// <c>slide [top|bottom|left|right]</c>, or <c>popin [N%]</c>, which is also the default.
     /// </summary>
     internal static Rectangle Window(string style, Rectangle goal, Rectangle monitor)
     {
@@ -17,8 +17,6 @@ internal static class MotionStyles
         var first = words.Length > 0 ? words[0] : "";
         if (first == "slide")
             return Slide(goal, monitor, words.Length > 1 ? words[1] : "");
-        if (first is "gnomed" or "gnome")
-            return new Rectangle(goal.X, goal.Y + (goal.Height / 2), goal.Width, 0);
 
         return Popin(goal, PopinFraction(style));
     }

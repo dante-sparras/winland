@@ -176,7 +176,7 @@ internal sealed class AnimationBook
         var bad = $"Style '{style}' is not valid for animation '{name}'.";
         if (name.StartsWith("window", StringComparison.Ordinal))
         {
-            if (style.StartsWith("slide", StringComparison.Ordinal) || style is "gnome" or "gnomed")
+            if (style.StartsWith("slide", StringComparison.Ordinal))
                 return null;
 
             if (style.StartsWith("popin", StringComparison.Ordinal))
@@ -195,9 +195,6 @@ internal sealed class AnimationBook
 
             return bad;
         }
-
-        if (name.EndsWith("angle", StringComparison.Ordinal))
-            return style is "once" or "loop" ? null : bad;
 
         return $"Animation '{name}' has no styles.";
     }

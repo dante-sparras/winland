@@ -131,6 +131,8 @@ public class AnimationConfigTests
             bezier = long, 0, 0, 1, 1, 2
             animation = layers, 1, 3, default
             animation = fadeDpms, 1, 3, default
+            animation = windowsIn, 1, 3, default, gnomed
+            animation = windowsIn, 1, 3, default, gnome
             """);
 
         Assert.Equal(
@@ -146,6 +148,8 @@ public class AnimationConfigTests
                 new ConfigWarning(10, "Bezier has too many arguments."),
                 new ConfigWarning(11, "Animation 'layers' does not exist."),
                 new ConfigWarning(12, "Animation 'fadeDpms' does not exist."),
+                new ConfigWarning(13, "Style 'gnomed' is not valid for animation 'windowsIn'."),
+                new ConfigWarning(14, "Style 'gnome' is not valid for animation 'windowsIn'."),
             ],
             document.Warnings);
     }

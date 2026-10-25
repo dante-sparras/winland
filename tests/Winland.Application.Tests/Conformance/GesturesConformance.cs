@@ -1,13 +1,13 @@
 namespace Winland.Application.Tests.Conformance;
 
 /// <summary>
-/// Workspace swipe cases. One swipe is 300 pixels along one axis in a single update. Alt is held on the keyboard.
+/// Workspace swipe cases. One swipe is 300 pixels along one axis in a single update.
 /// </summary>
 [Trait("Category", "Conformance")]
 public class GesturesConformance
 {
     private const string ConfigGestures = """
-        gesture = 3, horizontal, mod: ALT, workspace
+        gesture = 3, horizontal, workspace
         """;
 
     private static string Config(string extra = "") =>
@@ -21,7 +21,6 @@ public class GesturesConformance
         desk.Spawn("a");
         Assert.Single(desk.Clients());
 
-        touchpad.Alt(true);
 
         touchpad.Swipe("left", 3);
         Assert.True(HasWorkspace(desk, 2));
@@ -42,7 +41,6 @@ public class GesturesConformance
         Assert.False(HasWorkspace(desk, 2));
 
         desk.Keyword("gestures:workspace_swipe_invert", "1");
-        touchpad.Alt(false);
 
         // workspace previous after a workspace gesture.
         desk.Keyword("gestures:workspace_swipe_invert", "0");
@@ -54,9 +52,7 @@ public class GesturesConformance
 
         // A swipe from 1 to 5 makes 5 remember 1 instead.
         desk.Ok("workspace", "1");
-        touchpad.Alt(true);
         touchpad.Swipe("right", 3);
-        touchpad.Alt(false);
         Assert.Equal(5, desk.ActiveWorkspace().GetProperty("id").GetInt32());
 
         desk.Ok("workspace", "previous");
@@ -88,8 +84,5 @@ public class GesturesConformance
             _ = desk.Handle(new SwipeUpdated(fingers, x, y));
             _ = desk.Handle(new SwipeEnded());
         }
-
-        internal void Alt(bool held) =>
-            _ = desk.Handle(held ? new KeyPressed("Alt_L") : new KeyReleased("Alt_L"));
     }
 }

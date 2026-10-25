@@ -125,8 +125,7 @@ public class DefaultConfigTests
             string.Join('\n', document.Warnings.Select(warning => $"{warning.Line}: {warning.Message}")));
         Assert.Equal(Lines(Binds), document.Binds.Select(Describe));
         var gesture = Assert.Single(document.Gestures);
-        Assert.Equal(3, gesture.Fingers);
-        Assert.True(gesture.IsWorkspace);
+        Assert.Equal(new TrackpadGesture(3, GestureAxis.Horizontal), gesture);
     }
 
     [Fact]

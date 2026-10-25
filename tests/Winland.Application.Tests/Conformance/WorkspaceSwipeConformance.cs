@@ -61,7 +61,7 @@ public class WorkspaceSwipeConformance
                 workspace_swipe_distance = 300
                 workspace_swipe_invert = false
             }
-            gesturep = 9, horizontal, workspace
+            gesture = 9, horizontal, workspace
 
             """;
 

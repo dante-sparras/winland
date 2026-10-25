@@ -2,7 +2,7 @@ namespace Winland.Domain;
 
 /// <summary>
 /// Picks the <c>gesture</c> a touchpad swipe makes. The swipe picks one once it has moved
-/// <see cref="PickDistance"/> on one axis, by its fingers, its direction and the modifiers held. A swipe that matches no
+/// <see cref="PickDistance"/> on one axis, by its fingers and the axis it moved most along. A swipe that matches no
 /// gesture then is ignored until the next one begins.
 /// </summary>
 public sealed class SwipeRecognizer
@@ -28,11 +28,8 @@ public sealed class SwipeRecognizer
         _totalY = 0;
     }
 
-    /// <summary>
-    /// Reads one update. <paramref name="held"/> is the modifiers held now. The update that picks the gesture is also
-    /// its first step.
-    /// </summary>
-    public SwipeStep Update(SwipeUpdated updated, IReadOnlyList<TrackpadGesture> gestures, Modifier held)
+    /// <summary>Reads one update. The update that picks the gesture is also its first step.</summary>
+    public SwipeStep Update(SwipeUpdated updated, IReadOnlyList<TrackpadGesture> gestures)
     {
         ArgumentNullException.ThrowIfNull(updated);
         ArgumentNullException.ThrowIfNull(gestures);
@@ -47,7 +44,7 @@ public sealed class SwipeRecognizer
             if (Math.Abs(_totalX) < PickDistance && Math.Abs(_totalY) < PickDistance)
                 return default;
 
-            Active = Pick(updated.Fingers, gestures, held);
+            Active = Pick(updated.Fingers, gestures);
             if (Active is null)
             {
                 _failed = true;
@@ -57,8 +54,7 @@ public sealed class SwipeRecognizer
             picked = true;
         }
 
-        var along = Active.Scale * TrackpadGesture.Along(Active.Direction, updated.DeltaX, updated.DeltaY);
-        return new SwipeStep(picked, along);
+        return new SwipeStep(picked, Active.Axis == GestureAxis.Horizontal ? updated.DeltaX : updated.DeltaY);
     }
 
     /// <summary>Ends the swipe and returns the gesture it had picked. An update after this belongs to no swipe.</summary>
@@ -70,18 +66,12 @@ public sealed class SwipeRecognizer
         return gesture;
     }
 
-    private TrackpadGesture? Pick(int fingers, IReadOnlyList<TrackpadGesture> gestures, Modifier held)
+    private TrackpadGesture? Pick(int fingers, IReadOnlyList<TrackpadGesture> gestures)
     {
-        var axis = Math.Abs(_totalX) > Math.Abs(_totalY) ? GestureDirection.Horizontal : GestureDirection.Vertical;
-        var direction = axis == GestureDirection.Horizontal
-            ? _totalX < 0 ? GestureDirection.Left : GestureDirection.Right
-            : _totalY < 0 ? GestureDirection.Up : GestureDirection.Down;
+        var axis = Math.Abs(_totalX) > Math.Abs(_totalY) ? GestureAxis.Horizontal : GestureAxis.Vertical;
         foreach (var gesture in gestures)
         {
-            if (gesture.Direction != axis && gesture.Direction != direction && gesture.Direction != GestureDirection.Swipe)
-                continue;
-
-            if (gesture.Fingers == fingers && gesture.Modifiers == held)
+            if (gesture.Axis == axis && gesture.Fingers == fingers)
                 return gesture;
         }
 
@@ -91,6 +81,6 @@ public sealed class SwipeRecognizer
 
 /// <summary>
 /// What one update did. <paramref name="Picked"/> when it picked the gesture, and <paramref name="Along"/> how far it
-/// moved along the gesture's direction, scaled, or null when it belongs to no gesture.
+/// moved along the gesture's axis, or null when it belongs to no gesture.
 /// </summary>
 public readonly record struct SwipeStep(bool Picked, double? Along);
