@@ -6,9 +6,10 @@ using Windows.Win32.UI.WindowsAndMessaging;
 namespace Winland.Infrastructure;
 
 // A window whose size changes during a motion is given the size it rests at once, at the start, and made
-// transparent. A window of Winland's own shows a DWM thumbnail of it, scaled onto each frame's rectangle, until
-// the motion ends (StandInMap has the mapping). Resized on every frame instead, a growing window shows the area
-// it has not painted yet along its growing edges on almost every frame, because it takes several frames to lay
+// transparent. A window that shrinks keeps its larger size across or down until the motion ends, so its picture is
+// cut off rather than enlarged. A window of Winland's own shows a DWM thumbnail of it, scaled evenly onto each
+// frame's rectangle, until the motion ends (StandInMap has the mapping). Resized on every frame instead, a growing
+// window shows the area it has not painted yet along its growing edges on almost every frame, because it takes several frames to lay
 // itself out and paint a new size, and a shrinking one lays itself out again on every frame.
 public sealed partial class WindowAdapter
 {
@@ -59,13 +60,18 @@ public sealed partial class WindowAdapter
         if (!PInvoke.IsWindowVisible(hwnd) || !TryVisible(hwnd, out var visible))
             return null;
 
+        // A window that was transparent, such as one that is opening, showed no picture to keep.
+        var showed = Opacity.Wanted(window) > 0;
+        var given = showed
+            ? content with { Width = Math.Max(content.Width, visible.Width), Height = Math.Max(content.Height, visible.Height) }
+            : content;
+
         var insets = InsetsFor(window, hwnd, (int)PInvoke.GetDpiForWindow(hwnd));
-        var standIn = BeginThumbnailStandIn(window, hwnd, content, insets, visible);
+        var standIn = BeginThumbnailStandIn(window, hwnd, content, given, insets, visible);
         if (standIn is null)
             return null;
 
-        // A window that was transparent, such as one that is opening, showed no picture to keep.
-        if (Opacity.Wanted(window) > 0 && TryOuter(hwnd, out var before))
+        if (showed && TryOuter(hwnd, out var before))
             standIn.Before = new Size(before.Width, before.Height);
 
         // The stand-in shows before the window is veiled, so no frame shows neither. A window its program made
@@ -81,11 +87,11 @@ public sealed partial class WindowAdapter
         standIn.Border = TryAttribute(hwnd, BorderColorAttribute, out var border) ? border : DefaultBorderColor;
         SetAttribute(hwnd, BorderColorAttribute, NoneBorderColor);
 
-        SendQuick(hwnd, insets.OuterFor(content), keepSize: false);
+        SendQuick(hwnd, insets.OuterFor(given), keepSize: false);
         return standIn;
     }
 
-    private static StandIn? BeginThumbnailStandIn(WindowId window, HWND hwnd, Rectangle content, FrameInsets insets, Rectangle visible)
+    private static StandIn? BeginThumbnailStandIn(WindowId window, HWND hwnd, Rectangle content, Rectangle given, FrameInsets insets, Rectangle visible)
     {
         var overlay = StandInHost.Create();
         if (overlay.IsNull)
@@ -97,7 +103,7 @@ public sealed partial class WindowAdapter
             return null;
         }
 
-        var standIn = new StandIn(window, overlay, thumbnail, content, insets);
+        var standIn = new StandIn(window, overlay, thumbnail, content, new Size(given.Width, given.Height), insets);
         lock (StandInGate)
             StandIns[window] = standIn;
 
@@ -127,15 +133,16 @@ public sealed partial class WindowAdapter
         StandFrames.Set(standIn.Id, bounds, standIn.Overlay);
         StandFrames.Follow(standIn.Id);
 
-        // The window's picture scaled onto the rectangle, the way a window that animates its size is drawn: the
-        // window has its final size, and what it has painted of it is stretched to the frame.
+        // The window's picture scaled onto the rectangle: the window has its size for the motion, and what it has
+        // painted of it is scaled evenly and cut off to fit the frame.
         Size? painted = PInvoke.DwmQueryThumbnailSourceSize(standIn.Thumbnail, out var size).Succeeded
             ? new Size(size.Width, size.Height)
             : null;
 
         // A window takes its new size at once and paints it a few frames later. Until it has, the area it gained is
-        // unpainted, and only what it had before is its picture. A window that paints with GDI says when it has. One
-        // that draws with DirectX, as Windows Terminal does, does not, and is given a few frames to.
+        // unpainted, so only what it had before is its picture and its edges fill the rest. A window that paints with
+        // GDI says when it has. One that draws with DirectX, as Windows Terminal does, does not, and is given a few
+        // frames to.
         if (painted is Size surface && standIn.Before is Size before && (surface.Width > before.Width || surface.Height > before.Height))
         {
             standIn.Grew ??= System.Diagnostics.Stopwatch.GetTimestamp();
@@ -143,19 +150,40 @@ public sealed partial class WindowAdapter
                 painted = new Size(Math.Min(surface.Width, before.Width), Math.Min(surface.Height, before.Height));
         }
 
-        var map = StandInMap.For(bounds, new Size(standIn.Content.Width, standIn.Content.Height), standIn.Insets, painted);
-        var source = map.Source;
-        var destination = map.Destination;
+        var map = StandInMap.For(bounds, standIn.Given, standIn.Insets, painted);
+        var alpha = Opacity.Wanted(standIn.Id);
+        ShowPiece(standIn.Thumbnail, map.Picture, alpha);
+
+        // The edges show only while the window has not painted the area it gained, and their thumbnails are made the
+        // first time they are needed.
+        if (map.Right is StandInPiece right && standIn.Right == 0)
+            standIn.Right = EdgeThumbnail(standIn);
+        if (map.Bottom is StandInPiece bottom && standIn.Bottom == 0)
+            standIn.Bottom = EdgeThumbnail(standIn);
+        ShowPiece(standIn.Right, map.Right, alpha);
+        ShowPiece(standIn.Bottom, map.Bottom, alpha);
+    }
+
+    private static nint EdgeThumbnail(StandIn standIn) =>
+        PInvoke.DwmRegisterThumbnail(standIn.Overlay, standIn.Window, out var thumbnail).Succeeded ? thumbnail : 0;
+
+    private static void ShowPiece(nint thumbnail, StandInPiece? piece, byte alpha)
+    {
+        if (thumbnail == 0)
+            return;
+
+        var source = piece?.Source ?? default;
+        var destination = piece?.Destination ?? default;
         var properties = new DWM_THUMBNAIL_PROPERTIES
         {
             dwFlags = ThumbnailParts,
             rcDestination = new RECT(destination.X, destination.Y, destination.X + destination.Width, destination.Y + destination.Height),
             rcSource = new RECT(source.X, source.Y, source.X + source.Width, source.Y + source.Height),
-            opacity = Opacity.Wanted(standIn.Id),
-            fVisible = true,
+            opacity = alpha,
+            fVisible = piece is not null,
             fSourceClientAreaOnly = false,
         };
-        _ = PInvoke.DwmUpdateThumbnailProperties(standIn.Thumbnail, in properties);
+        _ = PInvoke.DwmUpdateThumbnailProperties(thumbnail, in properties);
     }
 
     private static unsafe bool TryAttribute(HWND window, DWMWINDOWATTRIBUTE attribute, out uint value)
@@ -180,7 +208,11 @@ public sealed partial class WindowAdapter
             return;
 
         var properties = new DWM_THUMBNAIL_PROPERTIES { dwFlags = ThumbnailOpacity, opacity = alpha };
-        _ = PInvoke.DwmUpdateThumbnailProperties(standIn.Thumbnail, in properties);
+        foreach (var thumbnail in (ReadOnlySpan<nint>)[standIn.Thumbnail, standIn.Right, standIn.Bottom])
+        {
+            if (thumbnail != 0)
+                _ = PInvoke.DwmUpdateThumbnailProperties(thumbnail, in properties);
+        }
     }
 
     /// <summary>
@@ -209,7 +241,12 @@ public sealed partial class WindowAdapter
             SetAttribute(standIn.Window, BorderColorAttribute, border);
         if (standIn.Thumbnail != 0)
         {
-            _ = PInvoke.DwmUnregisterThumbnail(standIn.Thumbnail);
+            foreach (var thumbnail in (ReadOnlySpan<nint>)[standIn.Thumbnail, standIn.Right, standIn.Bottom])
+            {
+                if (thumbnail != 0)
+                    _ = PInvoke.DwmUnregisterThumbnail(thumbnail);
+            }
+
             StandInHost.Close(standIn.Overlay);
         }
     }
@@ -244,7 +281,7 @@ public sealed partial class WindowAdapter
             EndStandIn(window, null);
     }
 
-    private sealed class StandIn(WindowId id, HWND overlay, nint thumbnail, Rectangle content, FrameInsets insets)
+    private sealed class StandIn(WindowId id, HWND overlay, nint thumbnail, Rectangle content, Size given, FrameInsets insets)
     {
         public WindowId Id { get; } = id;
 
@@ -256,8 +293,17 @@ public sealed partial class WindowAdapter
         // The DWM thumbnail of the window.
         public nint Thumbnail { get; } = thumbnail;
 
-        // The rectangle the window rests on, which it was given at the start.
+        // The thumbnails that fill the area the window gained along its right and bottom edges before it has painted
+        // it, or 0 before one was needed.
+        public nint Right { get; set; }
+
+        public nint Bottom { get; set; }
+
+        // The rectangle the window rests on.
         public Rectangle Content { get; } = content;
+
+        // The visible size the window has during the motion: the size it rests at, or larger where it shrinks.
+        public Size Given { get; } = given;
 
         // How far the window's outer rectangle extends past its visible frame.
         public FrameInsets Insets { get; } = insets;
