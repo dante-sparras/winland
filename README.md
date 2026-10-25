@@ -84,7 +84,7 @@ To install by hand, download `Winland-win-x64.zip` from [Releases](https://githu
 | Win+Shift+F | Open File Explorer |
 | Win+Shift+N | Open Notepad |
 | Win+C / Win+V / Win+X / Win+A | Copy / paste / cut / select all |
-| Win+Ctrl+V | Clipboard history |
+| Win+Ctrl+V / Win+Ctrl+X / Win+Ctrl+A | Clipboard history / Quick Link menu / Quick Settings |
 
 ## Important files
 
