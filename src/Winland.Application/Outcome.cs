@@ -132,7 +132,7 @@ public sealed record Outcome(
     /// This outcome followed by <paramref name="next"/>, as one: what both ask the adapter to do, in order, and the state
     /// after the second. Requests are joined. What describes the state after the step is the second's. A value the second
     /// leaves unset keeps the first's, and the first error wins, so a later step cannot hide an earlier failure.
-    /// The first Dispatcher's traits stay, so a bind's traits are those of its first Dispatcher.
+    /// The traits of both are kept, so a bind that moves focus warps the cursor even when a later Dispatcher in it does not.
     /// A property added to this record needs a rule here; a test counts them.
     /// </summary>
     public Outcome Then(Outcome next)
@@ -149,7 +149,7 @@ public sealed record Outcome(
             Launches = [.. Launches, .. next.Launches],
             Events = [.. Events, .. next.Events],
             Tray = next.Tray ?? Tray,
-            Traits = Traits ?? next.Traits,
+            Traits = Traits is { } mine ? mine | (next.Traits ?? DispatcherTraits.None) : next.Traits,
             Warp = next.Warp ?? Warp,
             Cursor = next.Cursor ?? Cursor,
             Error = Error ?? next.Error,

@@ -30,6 +30,18 @@ public class OutcomeThenTests
     }
 
     [Fact]
+    public void TheTraitsOfBothAreKept()
+    {
+        var first = new Outcome([], Empty) { Traits = DispatcherTraits.WarpsToFocused };
+        var second = new Outcome([], Empty) { Traits = DispatcherTraits.InstantResize };
+
+        Assert.Equal(DispatcherTraits.WarpsToFocused | DispatcherTraits.InstantResize, first.Then(second).Traits);
+        Assert.Equal(DispatcherTraits.WarpsToFocused, first.Then(new Outcome([], Empty)).Traits);
+        Assert.Equal(DispatcherTraits.InstantResize, new Outcome([], Empty).Then(second).Traits);
+        Assert.Null(new Outcome([], Empty).Then(new Outcome([], Empty)).Traits);
+    }
+
+    [Fact]
     public void TheFirstErrorWins()
     {
         var failed = new Outcome([], Empty) { Error = "error: no such workspace" };

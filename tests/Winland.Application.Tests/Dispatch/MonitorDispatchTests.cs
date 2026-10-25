@@ -325,6 +325,20 @@ public class MonitorDispatchTests
         Assert.Null(moved.Warp);
     }
 
+    [Theory]
+    [InlineData("bind = SUPER, K, exec, notepad\nbind = SUPER, K, movefocus, r\n")]
+    [InlineData("bind = SUPER, K, movefocus, r\nbind = SUPER, K, exec, notepad\n")]
+    public void ABindThatMovesFocusMovesTheCursorWhateverOtherDispatchersItRuns(string config)
+    {
+        var core = TwoMonitors(config);
+        core.Handle(new KeyPressed("Super_L"));
+
+        var moved = core.Handle(new KeyPressed("K"));
+
+        var target = Client(moved, 2).Bounds;
+        Assert.Equal(new WarpTo(new Point(target.X + (target.Width / 2), target.Y + (target.Height / 2))), moved.Warp);
+    }
+
     [Fact]
     public void MoveFocusAnswersNoErrorWhenNothingTakesTheFocus()
     {
