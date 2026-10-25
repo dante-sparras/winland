@@ -27,19 +27,6 @@ public class MonitorDispatchTests
     }
 
     [Fact]
-    public void MoveFocusStopsAtTheMonitorEdgeWhenFallbackIsOff()
-    {
-        var core = TwoMonitors("binds:window_direction_monitor_fallback = false\n");
-
-        var outcome = core.Handle(new Dispatch("movefocus", "right"));
-
-        Assert.Null(outcome.Focus);
-        Assert.Null(outcome.Error);
-        Assert.Equal(new MonitorId(0), outcome.State.ActiveMonitor);
-        Assert.Equal(new WindowId(1), core.Handle(new Dispatch("killactive")).Close);
-    }
-
-    [Fact]
     public void MoveWindowCrossesOntoTheNeighbouringMonitor()
     {
         var core = TwoMonitors();
@@ -63,19 +50,6 @@ public class MonitorDispatchTests
                 @"focusedmonv2>>\\.\DISPLAY2,1",
             ],
             Lines(outcome));
-    }
-
-    [Fact]
-    public void MoveWindowStopsAtTheMonitorEdgeWhenFallbackIsOff()
-    {
-        var core = TwoMonitors("binds:window_direction_monitor_fallback = false\n");
-
-        var outcome = core.Handle(new Dispatch("movewindow", "r"));
-
-        Assert.Null(outcome.Error);
-        Assert.Equal(new WorkspaceId("1"), Client(outcome, 1).Workspace);
-        Assert.Equal(new MonitorId(0), outcome.State.ActiveMonitor);
-        Assert.Equal(new WindowId(1), core.Handle(new Dispatch("killactive")).Close);
     }
 
     [Fact]
@@ -133,14 +107,12 @@ public class MonitorDispatchTests
         Assert.Equal(new WindowId(expected), outcome.Focus);
     }
 
-    [Theory]
-    [InlineData(0, 2)]
-    [InlineData(1, 3)]
-    public void MoveFocusCrossesToTheMostRecentOrTheLongestSharedEdgeAsTheOptionSays(int method, long expected)
+    [Fact]
+    public void MoveFocusCrossesToTheMostRecentNeighbor()
     {
         // Portrait monitors, the right one 300px higher, so window 1 shares 660px with window 2 and 960px with window 3.
         var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse($"general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nbinds:focus_preferred_method = {method}\n")));
+        core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n")));
         var left = Display(@"\\.\DISPLAY1", "Dell", new Rectangle(0, 0, 1080, 1920));
         var right = Display(@"\\.\DISPLAY2", "Samsung", new Rectangle(1080, -300, 1080, 1920));
         core.Handle(new MonitorsChanged([left, right]));
@@ -154,7 +126,7 @@ public class MonitorDispatchTests
 
         var outcome = core.Handle(new Dispatch("movefocus", "r"));
 
-        Assert.Equal(new WindowId(expected), outcome.Focus);
+        Assert.Equal(new WindowId(2), outcome.Focus);
     }
 
     [Fact]
@@ -450,26 +422,6 @@ public class MonitorDispatchTests
         Assert.Equal(new WindowId(1), outcome.Focus);
         Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), Client(outcome, 1).Workspace);
         Assert.Equal(new MonitorId(1), outcome.State.ActiveMonitor);
-    }
-
-    [Fact]
-    public void WindowDirectionMonitorFallbackIsHonored()
-    {
-        var document = ConfigParser.Parse("binds:window_direction_monitor_fallback = false\n");
-
-        Assert.Empty(document.Warnings);
-        Assert.Equal(
-            new Setting("binds:window_direction_monitor_fallback", "false"),
-            Assert.Single(document.Settings));
-
-        var core = new WindowManager();
-        Assert.Equal(
-            "{\"option\":\"binds:window_direction_monitor_fallback\",\"bool\":true,\"set\":false}",
-            core.Execute("getoption binds:window_direction_monitor_fallback").Text);
-        core.Handle(new Configure(document));
-        Assert.Equal(
-            "{\"option\":\"binds:window_direction_monitor_fallback\",\"bool\":false,\"set\":true}",
-            core.Execute("getoption binds:window_direction_monitor_fallback").Text);
     }
 
     private static readonly Rectangle Left = new(0, 0, 1920, 1080);

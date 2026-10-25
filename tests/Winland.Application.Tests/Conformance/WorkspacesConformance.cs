@@ -84,30 +84,13 @@ public class WorkspacesConformance
         Assert.Equal("3 (3)", ActiveLabel(desk));
         desk.Keyword("binds:workspace_back_and_forth", "false");
 
-        desk.Keyword("binds:hide_special_on_workspace_change", "true");
         desk.Ok("workspace", "special:HELLO");
         Assert.Contains("special:HELLO", Monitors(desk).Select(SpecialOn));
 
         // The reference does not check this reply either.
         desk.Dispatch("workspace", "3");
         Assert.Equal(2, Monitors(desk).Count(monitor => SpecialOn(monitor).Length == 0));
-        desk.Keyword("binds:hide_special_on_workspace_change", "false");
 
-        desk.Keyword("binds:allow_workspace_cycles", "true");
-        desk.Ok("workspace", "1");
-        desk.Ok("workspace", "3");
-        desk.Ok("workspace", "1");
-
-        desk.Ok("workspace", "previous");
-        Assert.Equal("3 (3)", ActiveLabel(desk));
-
-        desk.Ok("workspace", "previous");
-        Assert.Equal("1 (1)", ActiveLabel(desk));
-
-        desk.Ok("workspace", "previous");
-        Assert.Equal("3 (3)", ActiveLabel(desk));
-
-        desk.Keyword("binds:allow_workspace_cycles", "false");
         desk.Ok("workspace", "1");
         KillAll(desk);
 
@@ -120,16 +103,10 @@ public class WorkspacesConformance
         desk.Ok("focuswindow", "class:kitty_B");
         desk.Ok("resizeactive", "20 20");
 
-        desk.Keyword("binds:focus_preferred_method", "0");
         desk.Ok("focuswindow", "class:kitty_C");
         desk.Ok("focuswindow", "class:kitty_A");
         desk.Ok("movefocus", "r");
         Assert.Equal("kitty_C", desk.ActiveClass());
-
-        desk.Ok("focuswindow", "class:kitty_A");
-        desk.Keyword("binds:focus_preferred_method", "1");
-        desk.Ok("movefocus", "r");
-        Assert.Equal("kitty_B", desk.ActiveClass());
 
         desk.Ok("focuswindow", "class:kitty_A");
         desk.Ok("focusmonitor", "HEADLESS-3");
@@ -139,17 +116,9 @@ public class WorkspacesConformance
         desk.Ok("focusmonitor", "l");
         Assert.Equal("kitty_A", desk.ActiveClass());
 
-        desk.Keyword("binds:movefocus_cycles_fullscreen", "false");
         desk.Ok("fullscreen", "0");
         desk.Ok("movefocus", "r");
         Assert.Equal("kitty_D", desk.ActiveClass());
-
-        desk.Ok("focusmonitor", "l");
-        Assert.Equal("kitty_A", desk.ActiveClass());
-
-        desk.Keyword("binds:movefocus_cycles_fullscreen", "true");
-        desk.Ok("movefocus", "r");
-        Assert.Equal("kitty_B", desk.ActiveClass());
 
         KillAll(desk);
 
@@ -315,16 +284,6 @@ public class WorkspacesConformance
         Assert.Equal("8 (8)", ActiveLabel(desk));
 
         desk.Ok("movefocus", "l");
-
-        desk.Keyword("binds:window_direction_monitor_fallback", "false");
-
-        Assert.Equal("ok", desk.Dispatch("movefocus", "l"));
-        Assert.Equal("b", desk.ActiveClass());
-        Assert.Equal("8 (8)", ActiveLabel(desk));
-
-        desk.Ok("movewindow", "l");
-        Assert.Equal("b", desk.ActiveClass());
-        Assert.Equal("8 (8)", ActiveLabel(desk));
 
         Assert.Equal("ok", desk.Send("reload"));
         KillAll(desk);

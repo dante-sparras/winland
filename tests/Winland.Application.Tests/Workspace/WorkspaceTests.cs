@@ -418,24 +418,20 @@ public class WorkspaceTests
         Assert.Equal(WorkspaceId.FromNumber(workspace, new MonitorId(monitor)), again.State.ActiveWorkspace);
     }
 
-    [Theory]
-    [InlineData("1", 2880, 540)]
-    [InlineData("0", 2880, 540)]
-    public void SwitchingToAnEmptyWorkspaceOnAnotherMonitorMovesTheCursorThere(string centerOn, int x, int y)
+    [Fact]
+    public void SwitchingToAnEmptyWorkspaceOnAnotherMonitorMovesTheCursorThere()
     {
-        var core = TwoMonitors($"binds:workspace_center_on = {centerOn}\n");
+        var core = TwoMonitors("");
 
         var switched = ShowTheRightsWorkspace(core);
 
-        Assert.Equal(new WarpTo(new Point(x, y)), switched.Warp);
+        Assert.Equal(new WarpTo(new Point(2880, 540)), switched.Warp);
     }
 
-    [Theory]
-    [InlineData("1", 2400, 540)]
-    [InlineData("0", 2880, 540)]
-    public void WorkspaceCenterOnPicksTheFocusedClientOrTheMonitor(string centerOn, int x, int y)
+    [Fact]
+    public void SwitchingToAWorkspaceOnAnotherMonitorMovesTheCursorToItsFocusedClient()
     {
-        var core = TwoMonitors($"binds:workspace_center_on = {centerOn}\n");
+        var core = TwoMonitors("");
         core.Execute("dispatch focusmonitor RIGHT");
         core.Execute("dispatch workspace 2");
         core.Handle(new WindowAppeared(new WindowId(1), Right));
@@ -445,7 +441,7 @@ public class WorkspaceTests
 
         var switched = core.Execute("dispatch workspace previous").Effect;
 
-        Assert.Equal(new WarpTo(new Point(x, y)), switched.Warp);
+        Assert.Equal(new WarpTo(new Point(2400, 540)), switched.Warp);
     }
 
     [Fact]
@@ -454,20 +450,6 @@ public class WorkspaceTests
         var core = TwoMonitors("cursor:no_warps = true\n");
 
         var switched = ShowTheRightsWorkspace(core);
-
-        Assert.Null(switched.Warp);
-    }
-
-    [Fact]
-    public void ASwitchOntoAnotherMonitorFollowsWarpOnMonitorChange()
-    {
-        var core = TwoMonitors("cursor:no_warps = true\ncursor:warp_on_change_workspace = 2\ncursor:warp_on_monitor_change = 0\n");
-        core.Execute("dispatch focusmonitor RIGHT");
-        core.Execute("dispatch workspace 2");
-        core.Handle(new WindowAppeared(new WindowId(1), Right));
-        core.Execute("dispatch focusmonitor LEFT");
-
-        var switched = core.Execute("dispatch workspace previous").Effect;
 
         Assert.Null(switched.Warp);
     }

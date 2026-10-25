@@ -245,43 +245,6 @@ public class PinTests
     }
 
     [Fact]
-    public void AClientMadeTiledWhileFullscreenIsNotPinnedWhenItLeavesFullscreen()
-    {
-        var core = Floating();
-        core.Execute("keyword binds:allow_pin_fullscreen true");
-        core.Execute("dispatch pin");
-        core.Execute("dispatch fullscreen 0");
-        core.Execute("dispatch togglefloating");
-        core.Execute("dispatch fullscreen 0");
-
-        var moved = core.Execute("dispatch movetoworkspacesilent special:side");
-
-        var client = ClientOf(moved.Effect, Window);
-        Assert.False(client.Floating);
-        Assert.True(client.Workspace.IsSpecial);
-    }
-
-    [Fact]
-    public void APinnedClientThatGoesFullscreenHoldsItsPin()
-    {
-        var core = Floating();
-        core.Execute("keyword binds:allow_pin_fullscreen true");
-        core.Execute("dispatch pin");
-
-        var fullscreen = core.Execute("dispatch fullscreen 1");
-
-        var client = ClientOf(fullscreen.Effect, Window);
-        Assert.Equal(FullscreenMode.Maximized, client.Fullscreen);
-        Assert.False(client.Pinned);
-        Assert.True(client.PinFullscreened);
-
-        var left = core.Execute("dispatch fullscreen 1");
-
-        Assert.Equal(FullscreenMode.None, ClientOf(left.Effect, Window).Fullscreen);
-        Assert.True(ClientOf(left.Effect, Window).Pinned);
-    }
-
-    [Fact]
     public void APinnedClientDoesNotGoFullscreenWhenPinsCannotGoFullscreen()
     {
         var core = Floating();

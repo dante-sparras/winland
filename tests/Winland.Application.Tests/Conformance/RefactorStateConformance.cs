@@ -146,60 +146,6 @@ public class RefactorStateConformance
         Assert.NotEqual(original, CursorPos(desk));
     }
 
-    [Fact]
-    public void CursorWarpFocusOnMonitorChange()
-    {
-        var desk = Prepare(new Desk());
-
-        desk.Ok("focusmonitor", Right);
-        desk.Ok("workspace", "301");
-        desk.Spawn("kitty301");
-        desk.Ok("focusmonitor", Left);
-        desk.Spawn("kitty300");
-        desk.Ok("workspace", "300");
-
-        // no_warps, warp_on_change_workspace, warp_on_monitor_change, and whether the cursor moves. The
-        // reference leaves out the combinations it marks as failing.
-        CheckCursorWarpWhenSwitchingMonitor(desk, false, 0, 1, true);
-        CheckCursorWarpWhenSwitchingMonitor(desk, false, 0, 2, true);
-        CheckCursorWarpWhenSwitchingMonitor(desk, false, 1, -1, true);
-        CheckCursorWarpWhenSwitchingMonitor(desk, false, 1, 1, true);
-        CheckCursorWarpWhenSwitchingMonitor(desk, false, 1, 2, true);
-        CheckCursorWarpWhenSwitchingMonitor(desk, false, 2, -1, true);
-        CheckCursorWarpWhenSwitchingMonitor(desk, false, 2, 1, true);
-        CheckCursorWarpWhenSwitchingMonitor(desk, false, 2, 2, true);
-        CheckCursorWarpWhenSwitchingMonitor(desk, true, 0, -1, false);
-        CheckCursorWarpWhenSwitchingMonitor(desk, true, 0, 0, false);
-        CheckCursorWarpWhenSwitchingMonitor(desk, true, 0, 1, false);
-        CheckCursorWarpWhenSwitchingMonitor(desk, true, 0, 2, true);
-        CheckCursorWarpWhenSwitchingMonitor(desk, true, 1, -1, false);
-        CheckCursorWarpWhenSwitchingMonitor(desk, true, 1, 0, false);
-        CheckCursorWarpWhenSwitchingMonitor(desk, true, 1, 1, false);
-        CheckCursorWarpWhenSwitchingMonitor(desk, true, 1, 2, true);
-        CheckCursorWarpWhenSwitchingMonitor(desk, true, 2, -1, true);
-        CheckCursorWarpWhenSwitchingMonitor(desk, true, 2, 0, false);
-        CheckCursorWarpWhenSwitchingMonitor(desk, true, 2, 1, false);
-        CheckCursorWarpWhenSwitchingMonitor(desk, true, 2, 2, true);
-    }
-
-    private static void CheckCursorWarpWhenSwitchingMonitor(Desk desk, bool noWarps, int onWorkspace, int onMonitor, bool expectMove)
-    {
-        desk.Keyword("cursor:no_warps", noWarps ? "true" : "false");
-        desk.Keyword("cursor:warp_on_change_workspace", $"{onWorkspace}");
-        desk.Keyword("cursor:warp_on_monitor_change", $"{onMonitor}");
-
-        desk.Ok("focusmonitor", Left);
-        desk.Ok("workspace", "300");
-        desk.Ok("movecursor", "5 5");
-        Assert.Equal("5, 5", CursorPos(desk));
-
-        desk.Ok("focusmonitor", Right);
-        if (expectMove)
-            Assert.NotEqual("5, 5", CursorPos(desk));
-        else
-            Assert.Equal("5, 5", CursorPos(desk));
-    }
-
     // The reference creates the right monitor, as output create headless does, at 1920,0.
     private static Desk Prepare(Desk desk)
     {

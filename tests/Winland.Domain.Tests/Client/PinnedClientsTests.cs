@@ -15,62 +15,17 @@ public class PinnedClientsTests
 
         pins.Unpin(Window);
         Assert.False(pins.IsPinned(Window));
-        Assert.False(pins.IsPinnedOrHeld(Window));
     }
 
     [Fact]
-    public void AHeldPinIsNotPinnedAndComesBackOnRelease()
+    public void ForgettingAClientTakesItsPin()
     {
         var pins = new PinnedClients();
         pins.Pin(Window);
-
-        pins.Hold(Window);
-        Assert.False(pins.IsPinned(Window));
-        Assert.True(pins.IsHeld(Window));
-        Assert.True(pins.IsPinnedOrHeld(Window));
-
-        pins.Release(Window);
-        Assert.True(pins.IsPinned(Window));
-        Assert.False(pins.IsHeld(Window));
-    }
-
-    [Fact]
-    public void AClientThatIsNotPinnedHoldsNothingAndReleasesNothing()
-    {
-        var pins = new PinnedClients();
-
-        pins.Hold(Window);
-        pins.Release(Window);
-
-        Assert.False(pins.IsPinnedOrHeld(Window));
-    }
-
-    [Fact]
-    public void PinningAClientWithAHeldPinTakesTheHold()
-    {
-        var pins = new PinnedClients();
-        pins.Pin(Window);
-        pins.Hold(Window);
-
-        pins.Pin(Window);
-
-        Assert.True(pins.IsPinned(Window));
-        Assert.False(pins.IsHeld(Window));
-    }
-
-    [Fact]
-    public void ForgettingAClientTakesBothItsPinAndItsHeldPin()
-    {
-        var pins = new PinnedClients();
-        pins.Pin(Window);
-        pins.Pin(Child);
-        pins.Hold(Child);
 
         pins.Forget(Window);
-        pins.Forget(Child);
 
-        Assert.False(pins.IsPinnedOrHeld(Window));
-        Assert.False(pins.IsPinnedOrHeld(Child));
+        Assert.False(pins.IsPinned(Window));
     }
 
     [Theory]
@@ -89,18 +44,6 @@ public class PinnedClientsTests
         Assert.Equal(expected, pins.IsPinned(Child));
     }
 
-    [Fact]
-    public void AnOwnerWithAHeldPinDoesNotPinItsChild()
-    {
-        var pins = new PinnedClients();
-        pins.Pin(Window);
-        pins.Hold(Window);
-
-        pins.PinAtOpen(Child, floating: true, ruled: false, owner: Window);
-
-        Assert.False(pins.IsPinned(Child));
-    }
-
     [Theory]
     [InlineData(true, false, true, true)]
     [InlineData(true, true, true, false)]
@@ -113,15 +56,5 @@ public class PinnedClientsTests
             pins.Pin(Window);
 
         Assert.Equal(expected, pins.StaysVisible(Window, minimized, monitorShows));
-    }
-
-    [Fact]
-    public void AClientWithAHeldPinDoesNotStayVisible()
-    {
-        var pins = new PinnedClients();
-        pins.Pin(Window);
-        pins.Hold(Window);
-
-        Assert.False(pins.StaysVisible(Window, minimized: false, monitorShowsAWorkspace: true));
     }
 }

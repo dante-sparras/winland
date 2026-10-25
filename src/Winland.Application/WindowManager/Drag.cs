@@ -46,7 +46,6 @@ public sealed partial class WindowManager
             WasTiled = LayoutWorkspace(window).ClientOf(window) is { Floating: false },
             KeepRatio = IsResize(drag.Dispatcher) && KeepsRatio(drag.Arguments),
             PickedUp = _config.BindOptions.DragThreshold <= 0,
-            CenterOnLift = _config.BindOptions.DragCenterWindow,
         };
 
         _interaction = gesture;
@@ -55,21 +54,17 @@ public sealed partial class WindowManager
     }
 
     // A Client picked up while fullscreen or maximized leaves that mode first. A floating one
-    // is then put under the pointer: by its middle with binds:drag_center_window, and otherwise at the same fraction
-    // of the window as where the fullscreen surface was grabbed. The drag starts from there.
+    // is then put under the pointer by its middle. The drag starts from there.
     private IReadOnlyList<Placement> PickUp(WindowId window, Gesture gesture, Point pointer)
     {
         var desk = LayoutWorkspace(window);
         if (desk.ClientOf(window) is not { Fullscreen: not FullscreenMode.None } client)
             return desk.Layout.Drag(window, gesture.Step(PointerDragPhase.Begin, pointer));
 
-        var before = PlacedBounds(client, desk, desk.Layout.TryBounds(window, out var slot) ? slot : client.Bounds);
         var placements = new List<Placement>(Restamp(desk, EndFullscreen(desk, window)));
         if (client.Floating && desk.Layout.TryBounds(window, out var restored))
         {
-            var hotX = gesture.CenterOnLift || before.Width <= 0 ? restored.Width / 2 : (int)Math.Round(Math.Clamp((pointer.X - before.X) / (double)before.Width, 0, 1) * restored.Width);
-            var hotY = gesture.CenterOnLift || before.Height <= 0 ? restored.Height / 2 : (int)Math.Round(Math.Clamp((pointer.Y - before.Y) / (double)before.Height, 0, 1) * restored.Height);
-            placements.AddRange(desk.Layout.PlaceFloating(window, restored with { X = pointer.X - hotX, Y = pointer.Y - hotY }));
+            placements.AddRange(desk.Layout.PlaceFloating(window, restored with { X = pointer.X - (restored.Width / 2), Y = pointer.Y - (restored.Height / 2) }));
         }
 
         placements.AddRange(desk.Layout.Drag(window, gesture.Step(PointerDragPhase.Begin, pointer)));
@@ -447,14 +442,12 @@ public sealed partial class WindowManager
 
         public bool PickedUp { get; set; }
 
-        public bool CenterOnLift { get; init; } = true;
-
         /// <summary>The window joined another Workspace while this drag held it.</summary>
         public bool MovedWorkspace { get; set; }
 
         /// <summary>The pointer shape while the drag holds the window.</summary>
         public string Cursor { get; init; } = "grabbing";
 
-        public PointerDrag Step(PointerDragPhase phase, Point pointer) => new(Resize, phase, pointer, KeepRatio, CenterOnLift);
+        public PointerDrag Step(PointerDragPhase phase, Point pointer) => new(Resize, phase, pointer, KeepRatio);
     }
 }

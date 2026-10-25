@@ -66,30 +66,6 @@ public class FocusReasonTests
     }
 
     [Fact]
-    public void MoveFocusFromFullscreenIsAHardSwitch()
-    {
-        var core = Open(Flat("binds:movefocus_cycles_fullscreen = true\n"));
-        core.Handle(new Dispatch("fullscreen", "0"));
-
-        var moved = core.Handle(new Dispatch("movefocus", "l"));
-
-        Assert.Equal(new WindowId(1), moved.Focus);
-        Assert.Equal(FocusReason.SwitchHard, Focus(moved).Reason);
-    }
-
-    [Fact]
-    public void MoveFocusFromAMaximizedWindowIsASoftSwitch()
-    {
-        var core = Open(Flat("binds:movefocus_cycles_fullscreen = true\n"));
-        core.Handle(new Dispatch("fullscreen", "1"));
-
-        var moved = core.Handle(new Dispatch("movefocus", "l"));
-
-        Assert.Equal(new WindowId(1), moved.Focus);
-        Assert.Equal(FocusReason.SwitchSoft, Focus(moved).Reason);
-    }
-
-    [Fact]
     public void MoveFocusOntoAnotherMonitorIsAKeybind()
     {
         var core = TwoMonitors();

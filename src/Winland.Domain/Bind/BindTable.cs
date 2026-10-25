@@ -5,17 +5,17 @@ namespace Winland.Domain;
 /// <summary>One consistent bind table. Published as a whole on config load and reload.</summary>
 public sealed class BindTable
 {
-    public static BindTable Empty { get; } = new([], scrollDelay: 300);
+    public static BindTable Empty { get; } = new([]);
 
-    private BindTable(Bind[] entries, int scrollDelay)
+    private BindTable(Bind[] entries)
     {
         Binds = Array.AsReadOnly(entries);
-        ScrollDelay = scrollDelay;
     }
 
     public IReadOnlyList<Bind> Binds { get; }
 
-    internal int ScrollDelay { get; }
+    /// <summary>Milliseconds after a wheel bind runs before the next wheel turn can run one.</summary>
+    internal const int ScrollDelay = 300;
 
     internal static BindTable From(ConfigDocument config)
     {
@@ -37,6 +37,6 @@ public sealed class BindTable
             }
         }
 
-        return new BindTable([.. binds], BindOptions.From(config).ScrollEventDelay);
+        return new BindTable([.. binds]);
     }
 }

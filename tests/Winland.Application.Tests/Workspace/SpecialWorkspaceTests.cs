@@ -150,9 +150,9 @@ public class SpecialWorkspaceTests
     }
 
     [Fact]
-    public void ChangingWorkspaceHidesTheSpecialWorkspaceWhenAsked()
+    public void ChangingWorkspaceHidesTheSpecialWorkspace()
     {
-        var core = new WindowManager(ConfigParser.Parse("binds:hide_special_on_workspace_change = true\n"));
+        var core = new WindowManager();
         core.Handle(Appeared(1));
         core.Handle(new Dispatch("movetoworkspace", "special:scratch"));
         var changed = core.Handle(new Dispatch("workspace", "2"));
@@ -175,29 +175,6 @@ public class SpecialWorkspaceTests
         Assert.Null(closed.State.SpecialWorkspace);
         Assert.Equal(new WindowId(1), closed.Focus);
         Assert.Contains(closed.State.Hidden, client => client.Window == new WindowId(2));
-    }
-
-    [Fact]
-    public void TogglingASpecialWorkspaceWarpsToItsClient()
-    {
-        var core = new WindowManager(ConfigParser.Parse("cursor:warp_on_toggle_special = 1\n"));
-        core.Handle(Appeared(1));
-        core.Handle(new Dispatch("movetoworkspacesilent", "special"));
-
-        var opened = core.Handle(new Dispatch("togglespecialworkspace", ""));
-
-        Assert.Equal(new WarpTo(new Point(400, 300)), opened.Warp);
-    }
-
-    [Fact]
-    public void SpecialKeywordsAreHonored()
-    {
-        var document = ConfigParser.Parse("""
-            binds:hide_special_on_workspace_change = true
-            """);
-
-        Assert.Empty(document.Warnings);
-        Assert.Equal(2, document.Settings.Count);
     }
 
     [Fact]

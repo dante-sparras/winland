@@ -40,25 +40,6 @@ public partial class CursorIdleTests
     }
 
     [Fact]
-    public void InvisibleCursorStaysHiddenUntilRevealed()
-    {
-        var cursor = new FakeCursor();
-        var idle = new CursorIdle(cursor, new ManualClock());
-        idle.Configure(new CursorBehavior(false, 0) { Invisible = true });
-        Assert.True(cursor.Hidden);
-
-        idle.Moved();
-        Assert.True(cursor.Hidden);
-
-        idle.Configure(new CursorBehavior(false, 0));
-        Assert.False(cursor.Hidden);
-
-        idle.Configure(new CursorBehavior(false, 0) { Invisible = true });
-        idle.Reveal();
-        Assert.False(cursor.Hidden);
-    }
-
-    [Fact]
     public void KeyPressDoesNothingWhenHidingIsOff()
     {
         var cursor = new FakeCursor();

@@ -116,8 +116,8 @@ public sealed class MouseHook : IDisposable
 
             if (TryButton(message, info.mouseData, out var button, out var up))
             {
-                if (!up && source is PointerSource.Touch or PointerSource.Pen)
-                    SessionEffects.NoteTouch(source == PointerSource.Pen);
+                if (!up && source == PointerSource.Touch)
+                    SessionEffects.NoteTouch();
 
                 if (!up && (info.flags & 0x1) == 0)
                     InputClock.NoteClickOrKey(info.time, ClickedWindow(info.pt));
@@ -154,30 +154,6 @@ public sealed class MouseHook : IDisposable
 
     private LRESULT OnMove(int code, WPARAM wParam, LPARAM lParam, Point position, uint time, PointerSource source)
     {
-        var redirected = false;
-        if (source != PointerSource.Mouse)
-        {
-            SessionEffects.NoteNonMouse();
-        }
-        else if (PInvoke.GetCursorPos(out var from))
-        {
-            if (SessionEffects.MouseMoved(new Point(from.X, from.Y), position) is Point back)
-            {
-                // cursor:warp_back_after_non_mouse_input: the move starts where the mouse left the cursor instead.
-                _ = PInvoke.SetCursorPos(back.X, back.Y);
-                position = PInvoke.GetCursorPos(out var landed) ? new Point(landed.X, landed.Y) : back;
-                redirected = true;
-            }
-        }
-
-        // cursor:hotspot_padding: the cursor stops short of the monitors' outer edges.
-        if (SessionEffects.Padded(position) is var padded && padded != position)
-        {
-            _ = PInvoke.SetCursorPos(padded.X, padded.Y);
-            position = padded;
-            redirected = true;
-        }
-
         _ = _core.Decide(new PointerMoved(position), _keys.Session);
         SessionEffects.NoteMove(position, source);
         if (_keys.Drag.Current is BindDrag.Active drag)
@@ -185,7 +161,7 @@ public sealed class MouseHook : IDisposable
         else
             _keys.PostMove(position, time);
 
-        return redirected ? new LRESULT(1) : Next(code, wParam, lParam);
+        return Next(code, wParam, lParam);
     }
 
     private bool OnButton(string button, bool up, Point position)

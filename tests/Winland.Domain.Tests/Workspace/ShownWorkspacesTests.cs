@@ -67,8 +67,8 @@ public class ShownWorkspacesTests
         var shown = new ShownWorkspaces();
         shown.SetLive([Left]);
         shown.Show(Left, Number(1, Left));
-        shown.Visit(Number(2, Left), Left, allowCycles: false);
-        shown.Visit(Number(1, Left), Left, allowCycles: false);
+        shown.Visit(Number(2, Left), Left);
+        shown.Visit(Number(1, Left), Left);
 
         shown.Rename(Number(2, Left), Number(7, Left));
 
@@ -80,8 +80,8 @@ public class ShownWorkspacesTests
     {
         var shown = new ShownWorkspaces();
         shown.SetLive([Left]);
-        shown.Visit(Number(2, Left), Left, allowCycles: false);
-        shown.Visit(Number(1, Left), Left, allowCycles: false);
+        shown.Visit(Number(2, Left), Left);
+        shown.Visit(Number(1, Left), Left);
         shown.Show(Left, Number(1, Left));
 
         shown.Remove(Number(1, Left));
@@ -95,9 +95,9 @@ public class ShownWorkspacesTests
     {
         var shown = new ShownWorkspaces();
         shown.SetLive([Left, Right]);
-        shown.Visit(Number(5, Left), Left, allowCycles: false);
-        shown.Visit(Number(1, Right), Right, allowCycles: false);
-        shown.Visit(Number(1, Left), Left, allowCycles: false);
+        shown.Visit(Number(5, Left), Left);
+        shown.Visit(Number(1, Right), Right);
+        shown.Visit(Number(1, Left), Left);
         shown.Show(Left, Number(1, Left));
 
         Assert.Equal(Number(1, Right), shown.Previous(Left, perMonitor: false));
@@ -109,9 +109,9 @@ public class ShownWorkspacesTests
     {
         var shown = new ShownWorkspaces();
         shown.SetLive([Left]);
-        shown.Visit(Number(2, Left), Left, allowCycles: false);
-        shown.Visit(Number(1, Left), Left, allowCycles: false);
-        shown.Visit(Number(1, Left), Left, allowCycles: false);
+        shown.Visit(Number(2, Left), Left);
+        shown.Visit(Number(1, Left), Left);
+        shown.Visit(Number(1, Left), Left);
         shown.Show(Left, Number(1, Left));
 
         Assert.Equal(Number(2, Left), shown.Previous(Left, perMonitor: false));

@@ -82,7 +82,6 @@ public class LayoutConformance
         desk.Ok("fullscreen", "0");
         desk.ExpectActive("581,420", "1337,69");
 
-        desk.Keyword("binds:allow_pin_fullscreen", "true");
         desk.Ok("workspace", "1");
         desk.Ok("pin", "enable class:kitty");
         desk.Ok("workspace", "2");

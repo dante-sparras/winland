@@ -128,20 +128,6 @@ public sealed partial class WindowManager
             dispatcher: dispatcher);
     }
 
-    private WindowId[] SpecialHiddenBy(MonitorId monitor, WindowId? focus)
-    {
-        if (_workspaces.Shown.SpecialOn(monitor) is null)
-            return [];
-
-        if (focus is not null)
-            return ConcealSpecial(monitor);
-
-        if (_config.Session.HideSpecialOnWorkspaceChange)
-            return ConcealSpecial(monitor);
-
-        return [];
-    }
-
     private WindowId[] ConcealSpecial(MonitorId monitor)
     {
         if (_workspaces.Shown.SpecialOn(monitor) is not WorkspaceId current)

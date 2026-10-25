@@ -175,27 +175,6 @@ public class MouseDragTests
     }
 
     [Fact]
-    public void WithoutDragCenterWindowALiftedTileKeepsThePointGrabbed()
-    {
-        var core = Flat("binds:drag_center_window = false\nbindm = SUPER, mouse:272, movewindow\n");
-        Appear(core, 1);
-        Appear(core, 2);
-        Press(core, "Super_L");
-        core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(1000, 100) });
-
-        // The drag began at (1000, 100), 40 pixels into the tile and 100 down, and the lifted tile keeps that point.
-        var lifted = core.Handle(new PointerMoved(new Point(1200, 300)));
-
-        Assert.Equal(new Rectangle(1160, 200, 960, 1080), BoundsOf(lifted, 2));
-        Assert.True(Client(lifted, 2).Floating);
-
-        var moved = core.Handle(new PointerMoved(new Point(1300, 350)));
-
-        Assert.Equal(new Rectangle(1260, 250, 960, 1080), BoundsOf(moved, 2));
-        Assert.Equal("{\"option\":\"binds:drag_center_window\",\"bool\":false,\"set\":true}", core.Execute("getoption binds:drag_center_window").Text);
-    }
-
-    [Fact]
     public void ADropFollowsThePointerEvenWhenTheSplitIsForced()
     {
         var core = Flat("dwindle:force_split = 2\nbindm = SUPER, mouse:272, movewindow\n");

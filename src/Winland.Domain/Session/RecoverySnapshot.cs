@@ -32,8 +32,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 client.Fullscreen is FullscreenMode internalMode ? (int)internalMode : null,
                 client.FullscreenClient is FullscreenMode clientMode ? (int)clientMode : null,
                 client.FrameStyle,
-                client.Region,
-                client.PinHeld);
+                client.Region);
         }
 
         return JsonSerializer.Serialize(new FileBody(rows), Json);
@@ -70,8 +69,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                     row.Bounds?.ToRectangle(),
                     row.Pinned,
                     Mode(row.Fullscreen),
-                    Mode(row.FullscreenClient),
-                    row.PinHeld)
+                    Mode(row.FullscreenClient))
                 {
                     FrameStyle = row.FrameStyle,
                     Region = row.Region,
@@ -108,8 +106,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
         [property: JsonPropertyName("fullscreen")] int? Fullscreen = null,
         [property: JsonPropertyName("fullscreenClient")] int? FullscreenClient = null,
         [property: JsonPropertyName("frameStyle")] uint? FrameStyle = null,
-        [property: JsonPropertyName("region")] bool Region = false,
-        [property: JsonPropertyName("pinHeld")] bool PinHeld = false);
+        [property: JsonPropertyName("region")] bool Region = false);
 
     private sealed record BoundsBody(
         [property: JsonPropertyName("x")] int X,

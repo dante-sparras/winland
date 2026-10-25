@@ -55,43 +55,19 @@ public sealed partial class WindowManager
         return Present(desk, covered, placements, dispatcher: dispatcher);
     }
 
-    // Every change of a Client's fullscreen or maximized mode but the end of one goes through here, so the pin is
-    // held in the same way whichever Client's mode it copies. Null when a pin stops the change.
+    // Every change of a Client's fullscreen or maximized mode but the end of one goes through here. A Pinned Client
+    // stays as it is, and the request changes nothing: null.
     private IReadOnlyList<Placement>? SetFullscreen(LiveWorkspace desk, WindowId window, FullscreenMode mode, bool layoutAware = true)
     {
-        if (desk.ClientOf(window) is not Client client || !PinFullscreen(window, client.Fullscreen, mode))
+        if (desk.ClientOf(window) is null || _pins.IsPinned(window))
             return null;
 
         return desk.Layout.SetFullscreen(window, mode, mode, layoutAware);
     }
 
-    // binds:allow_pin_fullscreen. With it on, a pinned Client that goes fullscreen or
-    // maximized loses its pin, and gets it back when it leaves that mode. With it off, a pinned Client stays as it
-    // is, and the request changes nothing. False when nothing changes.
-    private bool PinFullscreen(WindowId window, FullscreenMode old, FullscreenMode mode)
-    {
-        if (!_pins.IsPinnedOrHeld(window))
-            return true;
-
-        var allow = _config.Session.AllowPinFullscreen;
-        if (allow && _pins.IsPinned(window) && old == FullscreenMode.None)
-            _pins.Hold(window);
-        else if (allow && _pins.IsHeld(window) && old != FullscreenMode.None && mode == FullscreenMode.None)
-            _pins.Release(window);
-        else if (!allow)
-            return false;
-
-        return true;
-    }
-
-    // Ends a Client's fullscreen or maximized mode, and gives back a pin binds:allow_pin_fullscreen took from it.
-    private IReadOnlyList<Placement> EndFullscreen(LiveWorkspace desk, WindowId window)
-    {
-        if (desk.ClientOf(window) is Client client && _config.Session.AllowPinFullscreen)
-            _ = PinFullscreen(window, client.Fullscreen, FullscreenMode.None);
-
-        return desk.Layout.SetFullscreen(window, FullscreenMode.None, FullscreenMode.None);
-    }
+    // Ends a Client's fullscreen or maximized mode.
+    private static IReadOnlyList<Placement> EndFullscreen(LiveWorkspace desk, WindowId window) =>
+        desk.Layout.SetFullscreen(window, FullscreenMode.None, FullscreenMode.None);
 
     // Reads the Workspace's options again. The Layout's placements when the options changed, with the given ones for the
     // Clients those leave out, such as a floating one, or the ones given.
@@ -114,7 +90,7 @@ public sealed partial class WindowManager
     }
 
     // A tiled window that opens on a Workspace with a fullscreen Client ends that mode.
-    private IReadOnlyList<Placement> OpenUnderFullscreen(LiveWorkspace desk, WindowId window, IReadOnlyList<Placement> placements)
+    private static IReadOnlyList<Placement> OpenUnderFullscreen(LiveWorkspace desk, WindowId window, IReadOnlyList<Placement> placements)
     {
         if (desk.ClientOf(window) is not { Floating: false } || CoveringOther(desk, window) is not Client covering)
             return placements;

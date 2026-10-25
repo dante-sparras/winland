@@ -3,10 +3,10 @@ namespace Winland.Application;
 /// <summary>Directional focus and moves, <c>movefocus</c> and <c>movewindow</c>, and the dispatchers that focus and move Monitors and their Workspaces.</summary>
 public sealed partial class WindowManager
 {
-    // Where a switch to a Workspace on another Monitor puts the cursor when no cursor option warps it elsewhere.
+    // Where a switch to a Workspace on another Monitor puts the cursor.
     private WarpTo? _crossMonitorWarp;
 
-    private void RankFocus(Layout layout) => layout.RankFocus(_config.BindOptions.FocusPreferredMethod == 0 ? _focus.Recency : null);
+    private void RankFocus(Layout layout) => layout.RankFocus(_focus.Recency);
 
     private Outcome MoveFocusDirection(string arguments)
     {
@@ -17,19 +17,8 @@ public sealed partial class WindowManager
         if (!Sides.TryParse(FirstToken(arguments), out var direction))
             return View([], dispatcher: name);
 
-        if (active is WindowId fullscreen
-            && _config.Session.MoveFocusCyclesFullscreen
-            && desk.ClientOf(fullscreen) is { Fullscreen: not FullscreenMode.None, LayoutFullscreen: false })
-        {
-            var previous = direction is Side.Left or Side.Up;
-            return CycleFrom(desk, fullscreen, previous) is WindowId next
-                ? FocusClient(next, name)
-                : View([], dispatcher: name);
-        }
-
         // A Workspace with a fullscreen or maximized Client offers no window in a direction, as in the pinned
-        // release, so focus moves on to the next Monitor. One its Layout holds fullscreen lets focus move on the
-        // Workspace when binds:movefocus_cycles_fullscreen is on.
+        // release, so focus moves on to the next Monitor.
         if (active is WindowId current && !HasFullscreen(desk))
         {
             var focus = desk.Layout.MoveFocus(current, arguments);
@@ -44,7 +33,7 @@ public sealed partial class WindowManager
             }
         }
 
-        if (!_config.BindOptions.MonitorFallback || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from)
+        if (MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from)
             return View([], dispatcher: name);
 
         if (MonitorSelector.InDirection(Targets(), from, direction) is not MonitorTarget neighbor
@@ -58,14 +47,11 @@ public sealed partial class WindowManager
         return FocusOnto(destination, name, adjacent);
     }
 
-    private bool HasFullscreen(LiveWorkspace desk)
+    private static bool HasFullscreen(LiveWorkspace desk)
     {
         foreach (var client in desk.Layout.Clients)
         {
-            if (!desk.IsCovering(client))
-                continue;
-
-            if (!client.LayoutFullscreen || !_config.Session.MoveFocusCyclesFullscreen)
+            if (desk.IsCovering(client))
                 return true;
         }
 
@@ -133,8 +119,7 @@ public sealed partial class WindowManager
         // A direction onto the neighbouring Monitor follows only for the focused window. Another window is assigned
         // there and the focus stays.
         var stay = !DirectionFollows();
-        if (_config.BindOptions.MonitorFallback
-            && MonitorHolding(desk) is LiveMonitor origin
+        if (MonitorHolding(desk) is LiveMonitor origin
             && desk.Layout.TryBounds(window, out var box))
         {
             // the focal point is taken from the window's ideal box, which reaches the
@@ -147,8 +132,7 @@ public sealed partial class WindowManager
         }
 
         var placements = desk.Layout.MoveWindow(window, arguments);
-        if (_config.BindOptions.MonitorFallback
-            && placements.Count == 0
+        if (placements.Count == 0
             && desk.Layout.FollowsMonitorWhenUnmoved
             && MonitorHolding(desk) is LiveMonitor home
             && TargetOf(home) is MonitorTarget from
@@ -351,7 +335,6 @@ public sealed partial class WindowManager
         var origin = Ideal(from, window, box);
         var floating = from.ClientOf(window) is { Floating: true } held && !from.IsCovering(held);
         var clients = desk.Layout.Clients.Select(client => desk.IsCovering(client) ? client with { Floating = false } : client).ToList();
-        var recency = _config.BindOptions.FocusPreferredMethod == 0 ? (Func<WindowId, int>)_focus.Recency : null;
         bool BoxOf(WindowId other, out Rectangle ideal)
         {
             ideal = default;
@@ -362,8 +345,8 @@ public sealed partial class WindowManager
             return true;
         }
 
-        return DirectionalNeighbor.Find(clients, origin, direction, window, floating, BoxOf, recency)
-            ?? DirectionalNeighbor.Find(clients, origin, direction, window, !floating, BoxOf, recency);
+        return DirectionalNeighbor.Find(clients, origin, direction, window, floating, BoxOf, _focus.Recency)
+            ?? DirectionalNeighbor.Find(clients, origin, direction, window, !floating, BoxOf, _focus.Recency);
     }
 
     // A tile's box with its border, and with every side that touches the tiling area pushed out to the

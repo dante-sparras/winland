@@ -201,7 +201,6 @@ public sealed partial class WindowManager
                 {
                     Bounds = PlacedBounds(client, desk, slot),
                     Pinned = _pins.IsPinned(client.Window),
-                    PinFullscreened = _pins.IsHeld(client.Window),
                     AllowedOverFullscreen = _cover.Flag(client.Window),
                     BelowFullscreen = _cover.IsBelow(client.Window),
                 });

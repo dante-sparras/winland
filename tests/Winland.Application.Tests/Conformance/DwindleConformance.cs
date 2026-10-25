@@ -244,7 +244,6 @@ public class DwindleConformance
         desk.Spawn("fs");
         desk.Spawn("normal2");
 
-        Assert.Equal("ok", desk.Send("r/keyword binds:movefocus_cycles_fullscreen false"));
         desk.Ok("focuswindow", "class:fs");
         desk.Ok("fullscreen", "0 set");
 
@@ -254,11 +253,6 @@ public class DwindleConformance
             Assert.Equal("fs", desk.ActiveClass());
             ExpectFullscreen(desk, 2, 2);
         }
-
-        Assert.Equal("ok", desk.Send("r/keyword binds:movefocus_cycles_fullscreen true"));
-        desk.Ok("movefocus", "l");
-        Assert.Equal("normal1", desk.ActiveClass());
-        ExpectFullscreen(desk, 0, 0);
     }
 
     [Fact]

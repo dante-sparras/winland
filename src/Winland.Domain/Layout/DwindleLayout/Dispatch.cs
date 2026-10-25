@@ -21,9 +21,9 @@ internal sealed partial class DwindleLayout
             ?? Neighbor(origin, direction, active, true);
     }
 
-    private Func<WindowId, int>? _recency;
+    private Func<WindowId, int> _recency = static _ => 0;
 
-    public void RankFocus(Func<WindowId, int>? recency) => _recency = recency;
+    public void RankFocus(Func<WindowId, int> recency) => _recency = recency;
 
     private WindowId? Neighbor(Rectangle origin, PendingSplit direction, WindowId except, bool floating) =>
         ToSide(direction) is Side side

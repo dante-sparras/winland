@@ -12,8 +12,6 @@ public class WindowStateTests
     public void ClosingAWindowLeavesNoPerWindowStateBehind()
     {
         var core = new WindowManager(ConfigParser.Parse("""
-            cursor:warp_on_change_workspace = 1
-            cursor:persistent_warps = true
             windowrule = float, class:^(stick)$
             windowrule = pin, class:^(stick)$
             windowrule = opacity 0.8, class:^(stick)$

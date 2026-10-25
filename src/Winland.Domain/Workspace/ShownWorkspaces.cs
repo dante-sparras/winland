@@ -149,12 +149,12 @@ internal sealed class ShownWorkspaces
     }
 
     /// <summary>
-    /// Records a visit to <paramref name="workspace"/> on <paramref name="monitor"/>. Without
-    /// <paramref name="allowCycles"/>, a visit to the newest visited Workspace again is not recorded.
+    /// Records a visit to <paramref name="workspace"/> on <paramref name="monitor"/>. A visit to the newest visited
+    /// Workspace again is not recorded.
     /// </summary>
-    public void Visit(WorkspaceId workspace, MonitorId monitor, bool allowCycles)
+    public void Visit(WorkspaceId workspace, MonitorId monitor)
     {
-        if (!allowCycles && _visits.Count > 0 && _visits[0] is { Gone: false } newest && newest.Workspace == workspace)
+        if (_visits.Count > 0 && _visits[0] is { Gone: false } newest && newest.Workspace == workspace)
             return;
 
         _visits.RemoveAll(visit => !visit.Gone && visit.Workspace == workspace);
