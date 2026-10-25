@@ -30,7 +30,7 @@ public class GroupDragTests
     public void ATileDroppedOnTheFirstTabGoesInFrontOfIt()
     {
         var core = Grouped("group:drag_into_group = 2\n");
-        var bar = Assert.Single(core.Handle(new Dispatch("no_op")).GroupBars);
+        var bar = Assert.Single(core.Handle(new Dispatch("resizewindow")).GroupBars);
 
         var dropped = Drag(core, 2, new Point(bar.Bounds.X + 2, bar.Bounds.Y + (bar.Bounds.Height / 2)));
 
@@ -52,8 +52,8 @@ public class GroupDragTests
     {
         var core = Grouped("");
         core.Handle(new Dispatch("focuswindow", "address:0x2"));
-        core.Handle(new Dispatch("setfloating"));
-        var bar = Assert.Single(core.Handle(new Dispatch("no_op")).GroupBars);
+        core.Handle(new Dispatch("togglefloating"));
+        var bar = Assert.Single(core.Handle(new Dispatch("resizewindow")).GroupBars);
 
         var onMember = Drag(core, 2, Middle(Tile(core, 1)));
         Assert.Single(Assert.Single(onMember.State.Groups));
@@ -69,7 +69,7 @@ public class GroupDragTests
         var core = Grouped("group:drag_into_group = 0\n");
         core.Handle(new Dispatch("focuswindow", "address:0x2"));
         core.Handle(new Dispatch("moveintogroup", "l"));
-        var bar = Assert.Single(core.Handle(new Dispatch("no_op")).GroupBars);
+        var bar = Assert.Single(core.Handle(new Dispatch("resizewindow")).GroupBars);
         var tab = new Point(bar.Bounds.X + bar.TabWidth + bar.Style.GapsIn + 5, bar.Bounds.Y + (bar.Bounds.Height / 2));
         core.Handle(new KeyPressed("Super_L"));
 
@@ -87,7 +87,7 @@ public class GroupDragTests
     public void AMoveStartedOnTheTabOfAGroupOfOneDragsTheWholeGroup()
     {
         var core = Grouped("");
-        var bar = Assert.Single(core.Handle(new Dispatch("no_op")).GroupBars);
+        var bar = Assert.Single(core.Handle(new Dispatch("resizewindow")).GroupBars);
         core.Handle(new KeyPressed("Super_L"));
 
         var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(bar.Bounds.X + 5, bar.Bounds.Y + (bar.Bounds.Height / 2)) });
@@ -157,7 +157,7 @@ public class GroupDragTests
     }
 
     private static Rectangle Tile(WindowManager core, long window) =>
-        Assert.Single(core.Handle(new Dispatch("no_op")).State.Clients, client => client.Window == new WindowId(window)).Bounds;
+        Assert.Single(core.Handle(new Dispatch("resizewindow")).State.Clients, client => client.Window == new WindowId(window)).Bounds;
 
     private static IReadOnlyList<string> MoveLines(Outcome outcome) =>
         [.. CommandProtocol.FormatStream(outcome.Events, outcome.State).Where(line =>

@@ -184,7 +184,7 @@ public sealed partial class WindowManager
         _props.Opened(appeared.Window, traits, followed, decision);
         RememberFocus(appeared.Window, decision);
         NoteOwner(appeared);
-        Stack(appeared.Window, top: true);
+        Stack(appeared.Window);
         // A window owned by a pinned Client is pinned too, as Winland pins a child of a pinned parent. A
         // tiled window is never pinned.
         _pins.PinAtOpen(appeared.Window, decision.Floating, decision.Pin, appeared.Owner);

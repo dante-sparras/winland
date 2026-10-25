@@ -24,7 +24,7 @@ public sealed partial class WindowManager
         // both raise it, so the order kept here matches the screen.
         if (client.Floating)
         {
-            Stack(focused, top: true);
+            Stack(focused);
             return requests;
         }
 

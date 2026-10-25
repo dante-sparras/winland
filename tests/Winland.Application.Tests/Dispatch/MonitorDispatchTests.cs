@@ -160,8 +160,7 @@ public class MonitorDispatchTests
     {
         Focus(core, window);
         core.Handle(new Dispatch("togglefloating"));
-        core.Handle(new Dispatch("resizewindowpixel", $"exact {bounds.Width} {bounds.Height},address:0x{window:x}"));
-        var moved = core.Handle(new Dispatch("movewindowpixel", $"exact {bounds.X} {bounds.Y},address:0x{window:x}"));
+        var moved = Place(core, window, bounds);
         Assert.Equal(bounds, Client(moved, window).Bounds);
     }
 
@@ -291,125 +290,6 @@ public class MonitorDispatchTests
         Assert.DoesNotContain(outcome.State.Hidden, client => client.Window == new WindowId(4));
         Assert.Equal(WorkspaceId.FromNumber(2, new MonitorId(1)), Client(outcome, 1).Workspace);
         Assert.Equal(new MonitorId(1), Workspace(outcome, WorkspaceId.FromNumber(2, new MonitorId(1))).Monitor);
-    }
-
-    [Fact]
-    public void MoveWorkspaceParksAnUnfocusedMonitorWorkspaceWithoutFollowing()
-    {
-        var core = TwoMonitors();
-        core.Handle(new Dispatch("focusmonitor", @"\\.\DISPLAY2"));
-        core.Handle(new Dispatch("focusmonitor", @"\\.\DISPLAY1"));
-
-        var outcome = core.Handle(new Dispatch("moveworkspacetomonitor", @"previous \\.\DISPLAY1"));
-
-        Assert.Equal("moveworkspacetomonitor", outcome.Dispatcher);
-        Assert.Null(outcome.Focus);
-        Assert.Equal(new MonitorId(0), outcome.State.ActiveMonitor);
-        Assert.Equal(new WorkspaceId("1"), outcome.State.ActiveWorkspace);
-        Assert.Equal(new WorkspaceId("2"), Client(outcome, 2).Workspace);
-        Assert.Equal(new MonitorId(0), Workspace(outcome, new WorkspaceId("2")).Monitor);
-        Assert.Equal(new MonitorId(1), Workspace(outcome, WorkspaceId.FromNumber(2, new MonitorId(1))).Monitor);
-        Assert.Equal(
-            WorkspaceId.FromNumber(2, new MonitorId(1)),
-            Assert.Single(outcome.State.Screens, screen => screen.Id == new MonitorId(1)).ActiveWorkspace);
-        Assert.Contains(outcome.State.Hidden, client => client.Window == new WindowId(2));
-        Assert.Equal(
-            [
-                @"createworkspace>>2,\\.\DISPLAY2",
-                @"createworkspacev2>>2,2,\\.\DISPLAY2",
-                @"moveworkspace>>2,\\.\DISPLAY1",
-                @"moveworkspacev2>>2,2,\\.\DISPLAY1",
-            ],
-            Lines(outcome));
-    }
-
-    [Fact]
-    public void MoveWorkspaceRejectsAMissingPair()
-    {
-        var core = TwoMonitors();
-
-        Assert.Equal(
-            "error: expected workspace and monitor",
-            core.Handle(new Dispatch("moveworkspacetomonitor", "2")).Error);
-        Assert.Equal(
-            "error: workspace not found",
-            core.Handle(new Dispatch("moveworkspacetomonitor", @"9 \\.\DISPLAY2")).Error);
-        Assert.Equal(
-            "error: monitor not found",
-            core.Handle(new Dispatch("moveworkspacetomonitor", "1 missing")).Error);
-    }
-
-    [Fact]
-    public void SwapActiveWorkspacesExchangesTheTwoMonitors()
-    {
-        var core = TwoMonitors();
-
-        var outcome = core.Handle(new Dispatch("swapactiveworkspaces", @"\\.\DISPLAY1 \\.\DISPLAY2"));
-
-        Assert.Equal("swapactiveworkspaces", outcome.Dispatcher);
-        Assert.Equal(new WindowId(2), outcome.Focus);
-        Assert.Equal(new MonitorId(0), outcome.State.ActiveMonitor);
-        Assert.Equal(new WorkspaceId("1"), outcome.State.ActiveWorkspace);
-        Assert.Equal(new MonitorId(0), Workspace(outcome, new WorkspaceId("1")).Monitor);
-        Assert.Equal(new MonitorId(1), Workspace(outcome, WorkspaceId.FromNumber(1, new MonitorId(1))).Monitor);
-        Assert.Equal(Left, BoundsOf(outcome, 2));
-        Assert.Equal(Right, BoundsOf(outcome, 1));
-        Assert.Empty(outcome.Hide);
-        Assert.Equal(new WorkspaceId("1"), Client(outcome, 2).Workspace);
-        Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), Client(outcome, 1).Workspace);
-        Assert.Equal(new WorkspaceId("1"), Assert.Single(outcome.State.Screens, screen => screen.Id == new MonitorId(0)).ActiveWorkspace);
-        Assert.Equal(
-            WorkspaceId.FromNumber(1, new MonitorId(1)),
-            Assert.Single(outcome.State.Screens, screen => screen.Id == new MonitorId(1)).ActiveWorkspace);
-        Assert.Equal(
-            [
-                @"moveworkspace>>1,\\.\DISPLAY2",
-                @"moveworkspacev2>>1,1,\\.\DISPLAY2",
-                @"moveworkspace>>1,\\.\DISPLAY1",
-                @"moveworkspacev2>>1,1,\\.\DISPLAY1",
-                @"workspace>>1,\\.\DISPLAY1",
-                @"workspacev2>>1,1,\\.\DISPLAY1",
-                "activewindow>>,",
-                "activewindowv2>>2",
-            ],
-            Lines(outcome));
-
-        var same = core.Handle(new Dispatch("swapactiveworkspaces", "current current"));
-        Assert.Null(same.Error);
-        Assert.Equal(new WorkspaceId("1"), same.State.ActiveWorkspace);
-        Assert.Empty(same.Events);
-    }
-
-    [Fact]
-    public void SwapActiveWorkspacesOfTwoUnfocusedMonitorsReportsNoWorkspace()
-    {
-        var core = new WindowManager();
-        var left = Display(@"\\.\DISPLAY1", "Dell", new Rectangle(0, 0, 800, 600));
-        var middle = Display(@"\\.\DISPLAY2", "Samsung", new Rectangle(800, 0, 800, 600));
-        var right = Display(@"\\.\DISPLAY3", "LG", new Rectangle(1600, 0, 800, 600));
-        core.Handle(new MonitorsChanged([left, middle, right]));
-        core.Handle(new Dispatch("focusmonitor", @"\\.\DISPLAY2"));
-        core.Handle(new Dispatch("workspace", "3"));
-        core.Handle(new Dispatch("focusmonitor", @"\\.\DISPLAY3"));
-        core.Handle(new Dispatch("workspace", "4"));
-        core.Handle(new Dispatch("focusmonitor", @"\\.\DISPLAY1"));
-
-        var outcome = core.Handle(new Dispatch("swapactiveworkspaces", @"\\.\DISPLAY2 \\.\DISPLAY3"));
-
-        var middleScreen = Assert.Single(outcome.State.Screens, screen => screen.Monitor.Name == middle.Name);
-        var rightScreen = Assert.Single(outcome.State.Screens, screen => screen.Monitor.Name == right.Name);
-        Assert.Equal(new MonitorId(0), outcome.State.ActiveMonitor);
-        Assert.Equal(new WorkspaceId("1"), outcome.State.ActiveWorkspace);
-        Assert.Equal(WorkspaceId.FromNumber(4, middleScreen.Id), middleScreen.ActiveWorkspace);
-        Assert.Equal(WorkspaceId.FromNumber(3, rightScreen.Id), rightScreen.ActiveWorkspace);
-        Assert.Equal(
-            [
-                @"moveworkspace>>3,\\.\DISPLAY3",
-                @"moveworkspacev2>>3,3,\\.\DISPLAY3",
-                @"moveworkspace>>4,\\.\DISPLAY2",
-                @"moveworkspacev2>>4,4,\\.\DISPLAY2",
-            ],
-            Lines(outcome));
     }
 
     [Fact]

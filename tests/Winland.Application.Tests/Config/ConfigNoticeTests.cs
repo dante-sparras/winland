@@ -123,5 +123,5 @@ public class ConfigNoticeTests
         return core;
     }
 
-    private static ConfigNotice? Notice(WindowManager core) => core.Execute("dispatch no_op").Effect.ConfigNotice;
+    private static ConfigNotice? Notice(WindowManager core) => core.Execute("dispatch resizewindow").Effect.ConfigNotice;
 }

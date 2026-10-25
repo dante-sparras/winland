@@ -28,31 +28,6 @@ public class DispatcherTests
         Assert.Null(FocusToward(stacked, "l"));
     }
 
-    [Fact]
-    public void MoveCursorWarpsAndFocusFollowsIt()
-    {
-        var core = TwoWindows();
-        core.Handle(new PointerMoved(new Point(1500, 500)));
-        Assert.Equal(new WindowId(2), Active(core));
-
-        var moved = core.Handle(new Dispatch("movecursor", "300 400"));
-
-        Assert.Equal(new WarpTo(new Point(300, 400)), moved.Warp);
-        Assert.Equal("movecursor", moved.Dispatcher);
-        Assert.Equal(new WindowId(1), Active(core));
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData("300")]
-    [InlineData("a b")]
-    public void MoveCursorNeedsTwoCoordinates(string arguments)
-    {
-        var reply = new WindowManager().Execute($"dispatch movecursor {arguments}");
-
-        Assert.Equal("error: movecursor takes two coordinates", reply.Text);
-    }
-
     private static WindowId? Active(WindowManager core)
     {
         var address = System.Text.Json.JsonDocument.Parse(core.Execute("j/activewindow").Text).RootElement.GetProperty("address").GetString() ?? "";
@@ -378,7 +353,7 @@ public class DispatcherTests
     {
         var core = ThreeWindows();
 
-        var stable = core.Handle(new Dispatch("movetoroot"));
+        var stable = core.Handle(new Dispatch("layoutmsg", "movetoroot"));
 
         Assert.Equal(new Rectangle(0, 0, 960, 540), BoundsOf(stable, 2));
         Assert.Equal(new Rectangle(0, 540, 960, 540), BoundsOf(stable, 1));

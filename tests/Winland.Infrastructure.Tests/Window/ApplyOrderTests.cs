@@ -75,7 +75,7 @@ public class ApplyOrderTests
         Assert.Equal(new KillRequest(7), admitted.Outcome.Kill);
     }
 
-    // bringactivetotop and alterzorder are one-off requests. An older one loses only the windows a
+    // Z-order requests are one-off requests. An older one loses only the windows a
     // newer outcome restacked.
     [Fact]
     public void AnOlderZOrderRequestLosesOnlyTheWindowsANewerOneRestacked()
@@ -89,7 +89,7 @@ public class ApplyOrderTests
         Assert.Equal([new ZOrderRequest(Second, Top: true)], admitted.Outcome.ZOrder);
     }
 
-    // movecursor is a one-off request too. An older warp loses only to a newer warp.
+    // A warp is a one-off request too. An older warp loses only to a newer warp.
     [Fact]
     public void AnOlderWarpLosesOnlyToANewerWarp()
     {

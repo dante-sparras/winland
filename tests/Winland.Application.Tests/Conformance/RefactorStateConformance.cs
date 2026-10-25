@@ -28,7 +28,7 @@ public class RefactorStateConformance
         desk.Ok("focusmonitor", Left);
         desk.Ok("workspace", "270");
 
-        desk.Ok("moveworkspacetomonitor", $"270 {Right}");
+        desk.Ok("movecurrentworkspacetomonitor", Right);
 
         desk.Ok("focusmonitor", Right);
         ExpectActiveWorkspace(desk, 270, Right);
@@ -47,18 +47,17 @@ public class RefactorStateConformance
         desk.Ok("workspace", "280");
 
         desk.Spawn("workspace_move_pinned");
-        desk.Ok("setfloating");
+        desk.Ok("togglefloating");
         desk.Ok("pin");
 
         desk.Spawn("workspace_move_float");
-        desk.Ok("setfloating");
-        desk.Ok("resizewindowpixel", "exact 400 300,activewindow");
-        desk.Ok("movewindowpixel", "exact 200 200,activewindow");
+        desk.Ok("togglefloating");
+        desk.Place(desk.ActiveId(), 200, 200, 400, 300);
 
         desk.Spawn("workspace_move_fullscreen");
         desk.Ok("fullscreen", "0 set");
 
-        desk.Ok("moveworkspacetomonitor", $"280 {Right}");
+        desk.Ok("movecurrentworkspacetomonitor", Right);
 
         desk.Ok("focusmonitor", Left);
         var pinned = desk.Client("workspace_move_pinned");
@@ -101,9 +100,8 @@ public class RefactorStateConformance
         desk.Ok("focusmonitor", Left);
         desk.Ok("workspace", "292");
         desk.Spawn("global_move_float");
-        desk.Ok("setfloating");
-        desk.Ok("resizewindowpixel", "exact 400 300,activewindow");
-        desk.Ok("movewindowpixel", "exact 200 200,activewindow");
+        desk.Ok("togglefloating");
+        desk.Place(desk.ActiveId(), 200, 200, 400, 300);
 
         desk.Ok("movewindow", $"mon:{Right}");
         Assert.Equal("global_move_float", desk.ActiveClass());
@@ -135,14 +133,14 @@ public class RefactorStateConformance
         desk.Ok("focusmonitor", Left);
         desk.Ok("workspace", "300");
 
-        desk.Ok("movecursor", "100 100");
+        desk.MovePointer(100, 100);
         var original = CursorPos(desk);
 
         desk.Ok("focusmonitor", Right);
         Assert.Equal(original, CursorPos(desk));
         ExpectActiveWorkspace(desk, 301, Right);
 
-        desk.Ok("movecursor", "2000 10");
+        desk.MovePointer(2000, 10);
         Assert.NotEqual(original, CursorPos(desk));
     }
 

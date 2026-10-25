@@ -1,6 +1,6 @@
 namespace Winland.Application;
 
-/// <summary>Urgent Clients, and <c>focusurgentorlast</c> and <c>focuscurrentorlast</c>.</summary>
+/// <summary>Urgent Clients, and <c>focusurgentorlast</c>.</summary>
 public sealed partial class WindowManager
 {
     // Clients that asked for attention and have not been focused since, oldest first.
@@ -31,17 +31,6 @@ public sealed partial class WindowManager
 
         _urgent.Remove(target);
         return FocusClient(target, name);
-    }
-
-    // focuscurrentorlast focuses the Client focused before the newest one in the focus history.
-    private Outcome FocusCurrentOrLast()
-    {
-        const string name = "focuscurrentorlast";
-        var live = _focus.History.Where(window => Find(window) is not null).ToList();
-        if (live.Count <= 1)
-            return Rejected(name, "error: History too short");
-
-        return FocusClient(live[1], name);
     }
 
     private WindowId? UrgentClient()

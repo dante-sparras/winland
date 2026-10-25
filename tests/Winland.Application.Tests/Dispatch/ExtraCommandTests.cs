@@ -279,38 +279,15 @@ public class ExtraCommandTests
             core.Handle(new WindowAppeared(new WindowId(window), new Rectangle(0, 0, 1920, 1080))
             {
                 Traits = WindowTraits.Normal with { Class = "box" },
-                Bounds = new Rectangle(5, 7, 200, 150),
+                Bounds = new Rectangle(5, 7, 100 + (100 * (int)window), 150),
             });
         }
 
         var effect = core.Execute(
-            "[[BATCH]]dispatch movewindowpixel exact 10 20,address:0x1 ; dispatch movewindowpixel exact 300 400,address:0x2").Effect;
+            "[[BATCH]]dispatch centerwindow ,address:0x1 ; dispatch centerwindow ,address:0x2").Effect;
 
-        Assert.Equal(new Rectangle(10, 20, 200, 150), PlacedAt(effect, 1));
-        Assert.Equal(new Rectangle(300, 400, 200, 150), PlacedAt(effect, 2));
-    }
-
-    private static DisplayPowerRequest[] Unfaded(IReadOnlyList<DisplayPowerRequest> requests) => [.. requests];
-
-    [Fact]
-    public void ABatchKeepsEveryDisplayPowerRequest()
-    {
-        var core = new WindowManager();
-        core.Handle(new MonitorsChanged(
-        [
-            new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080)),
-            new Monitor(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1, true, new Rectangle(1920, 0, 1280, 1024)),
-        ]));
-
-        // In a batch a backslash is written \\.
-        var effect = core.Execute(@"[[BATCH]]dispatch dpms off \\\\.\\DISPLAY1 ; dispatch dpms on \\\\.\\DISPLAY2").Effect;
-
-        Assert.Equal(
-            [
-                new DisplayPowerRequest(@"\\.\DISPLAY1", false),
-                new DisplayPowerRequest(@"\\.\DISPLAY2", true),
-            ],
-            Unfaded(effect.DisplayPower));
+        Assert.Equal(new Rectangle(860, 465, 200, 150), PlacedAt(effect, 1));
+        Assert.Equal(new Rectangle(810, 465, 300, 150), PlacedAt(effect, 2));
     }
 
     [Fact]

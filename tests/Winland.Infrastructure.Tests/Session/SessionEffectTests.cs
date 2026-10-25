@@ -31,37 +31,6 @@ public class SessionEffectTests
     }
 
     [Fact]
-    public void DisplayPowerUsesTheStandIn()
-    {
-        var fake = new FakePower();
-
-        Assert.True(DisplayPowerAdapter.TryApply(new DisplayPowerRequest(@"\\.\DISPLAY1", false), fake));
-        Assert.False(DisplayPowerAdapter.TryApply(new DisplayPowerRequest("", true), new FakePower { Accepts = false }));
-
-        Assert.Equal([false], fake.States);
-    }
-
-    [Fact]
-    public void DisplayPowerOffPostsTheCommandAndOnAlsoNudgesInput()
-    {
-        var posted = new List<nint>();
-        var nudges = 0;
-        var power = new MonitorPowerSignals(state =>
-        {
-            posted.Add(state);
-            return true;
-        }, () => nudges++);
-
-        Assert.True(power.TrySet(false));
-        Assert.Equal([MonitorPowerSignals.Off], posted);
-        Assert.Equal(0, nudges);
-
-        Assert.True(power.TrySet(true));
-        Assert.Equal([MonitorPowerSignals.Off, MonitorPowerSignals.On], posted);
-        Assert.Equal(1, nudges);
-    }
-
-    [Fact]
     public void HaltInvokesTheInstalledStop()
     {
         var stopped = 0;
@@ -88,19 +57,4 @@ public class SessionEffectTests
         }
     }
 
-    private sealed class FakePower : IMonitorPower
-    {
-        public bool Accepts { get; init; } = true;
-
-        public List<bool> States { get; } = [];
-
-        public bool TrySet(bool on)
-        {
-            if (!Accepts)
-                return false;
-
-            States.Add(on);
-            return true;
-        }
-    }
 }

@@ -75,6 +75,11 @@ public sealed partial class WindowAdapter : IDisposable
             if (Session is WindowManager session)
                 Apply(session.Handle(new Dispatch(name, arguments)));
         };
+        GroupBarHost.Close = window =>
+        {
+            if (Session is WindowManager session)
+                Apply(session.Handle(new GroupTabClosed(window)));
+        };
         GroupBarHost.Scroll = (shown, forward) =>
         {
             if (Session is WindowManager session)

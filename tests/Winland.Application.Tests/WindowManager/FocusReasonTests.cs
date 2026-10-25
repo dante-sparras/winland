@@ -88,30 +88,6 @@ public class FocusReasonTests
     }
 
     [Fact]
-    public void FocusCurrentOrLastIsASoftSwitch()
-    {
-        var core = Open(new WindowManager());
-
-        var focused = core.Handle(new Dispatch("focuscurrentorlast"));
-
-        Assert.Equal(new WindowId(1), focused.Focus);
-        Assert.Equal(FocusReason.SwitchSoft, Focus(focused).Reason);
-    }
-
-    [Fact]
-    public void FocusCurrentOrLastOnAnotherWorkspaceReportsWorkspace()
-    {
-        var core = Open(new WindowManager());
-        core.Handle(new Dispatch("movetoworkspacesilent", "2,address:0x1"));
-
-        var focused = core.Handle(new Dispatch("focuscurrentorlast"));
-
-        Assert.Equal(new WindowId(1), focused.Focus);
-        Assert.Equal(new WorkspaceId("2"), focused.State.ActiveWorkspace);
-        Assert.Equal(FocusReason.Workspace, Focus(focused).Reason);
-    }
-
-    [Fact]
     public void FocusUrgentOrLastIsASoftSwitch()
     {
         var core = Open(new WindowManager());
@@ -200,7 +176,7 @@ public class FocusReasonTests
     public void ClosingAFloatingWindowReportsUnmapFloating()
     {
         var core = Open(new WindowManager());
-        core.Handle(new Dispatch("setfloating"));
+        core.Handle(new Dispatch("togglefloating"));
 
         var closed = core.Handle(new WindowClosed(new WindowId(2)));
 

@@ -66,9 +66,8 @@ public class LayoutConformance
         var desk = new Desk();
         desk.Spawn("kitty");
 
-        desk.Ok("setfloating", "class:kitty");
-        desk.Ok("resizewindowpixel", "exact 1337 69,class:kitty");
-        desk.Ok("movewindowpixel", "exact 420 420,class:kitty");
+        desk.Ok("togglefloating", "class:kitty");
+        desk.Place("kitty", 420, 420, 1337, 69);
         desk.ExpectActive("420,420", "1337,69");
 
         desk.Ok("fullscreen", "0");

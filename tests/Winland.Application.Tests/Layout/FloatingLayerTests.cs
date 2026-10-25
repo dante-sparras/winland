@@ -53,7 +53,7 @@ public class FloatingLayerTests
         core.Handle(new WindowFocused(new WindowId(1)));
 
         Assert.Empty(core.Handle(new WindowFocused(new WindowId(1))).ZOrder);
-        Assert.Empty(core.Execute("dispatch no_op").Effect.ZOrder);
+        Assert.Empty(core.Execute("dispatch resizewindow").Effect.ZOrder);
     }
 
     [Fact]

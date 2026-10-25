@@ -45,6 +45,9 @@ internal static class GroupBarHost
     /// <summary>Tells the core the wheel turned over a bar: the Group's shown window, and whether towards the next member.</summary>
     internal static Action<WindowId, bool>? Scroll { get; set; }
 
+    /// <summary>Tells the core a tab was middle clicked to close its window.</summary>
+    internal static Action<WindowId>? Close { get; set; }
+
     /// <summary>Replaces every bar with <paramref name="bars"/>. Starts the bar thread the first time a bar is needed.</summary>
     internal static void Update(IReadOnlyList<GroupBar> bars)
     {
@@ -297,7 +300,7 @@ internal static class GroupBarHost
             case MiddleUpMessage:
                 var closed = bar.Spec.TabAt(x, y);
                 if (bar.Spec.Style.MiddleClickClose && closed >= 0 && bar.Pressed == (x, y))
-                    Run("closewindow", bar.Spec.Tabs[closed].Window);
+                    Close?.Invoke(bar.Spec.Tabs[closed].Window);
                 bar.Pressed = null;
                 return default;
             case WheelMessage when bar.Spec.Style.Scrolling:

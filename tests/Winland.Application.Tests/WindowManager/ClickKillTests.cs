@@ -28,7 +28,7 @@ public class ClickKillTests
         var core = new WindowManager();
         core.Handle(new MonitorsChanged([new Monitor("DISPLAY1", "", 0, 0, 1920, 1080, 1, true, Area)]));
         core.Handle(new WindowAppeared(new WindowId(7), new Rectangle(0, 0, 100, 100)) { ProcessId = 42 });
-        core.Execute("dispatch setfloating");
+        core.Execute("dispatch togglefloating");
 
         core.Execute("kill");
         Assert.Null(core.Handle(new ClickKillChosen(null)).Kill);

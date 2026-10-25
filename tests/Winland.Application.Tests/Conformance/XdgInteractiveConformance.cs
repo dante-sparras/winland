@@ -23,10 +23,10 @@ public class XdgInteractiveConformance
 
         // xdg_toplevel.move
         var startMove = ActiveGeometry(desk);
-        desk.Ok("movecursor", $"{startMove.X + 100} {startMove.Y + 100}");
+        desk.MovePointer(startMove.X + 100, startMove.Y + 100);
         Press(desk);
         desk.Handle(new WindowMoveStarted(client, desk.Pointer));
-        desk.Ok("movecursor", $"{startMove.X + 220} {startMove.Y + 180}");
+        desk.MovePointer(startMove.X + 220, startMove.Y + 180);
         Release(desk);
         desk.Handle(new WindowMoveEnded(client, desk.Pointer, startMove with { X = startMove.X + 120, Y = startMove.Y + 80 }));
 
@@ -40,10 +40,10 @@ public class XdgInteractiveConformance
         SetClientGeometry(desk, pid, new Rectangle(400, 300, 500, 400));
         Assert.True(Desk.Floating(desk.ActiveWindow()));
         var startResize = ActiveGeometry(desk);
-        desk.Ok("movecursor", $"{startResize.X + 250} {startResize.Y + 200}");
+        desk.MovePointer(startResize.X + 250, startResize.Y + 200);
         Press(desk);
         desk.Handle(new WindowSizeStarted(client, desk.Pointer));
-        desk.Ok("movecursor", $"{startResize.X + 410} {startResize.Y + 200}");
+        desk.MovePointer(startResize.X + 410, startResize.Y + 200);
         desk.Handle(new WindowSizing(client, desk.Pointer, startResize with { Width = startResize.Width + 160 }));
         Assert.True(ActiveGeometry(desk).Width >= startResize.Width + 150, "The resize did not change the frame before the release.");
 
@@ -59,9 +59,9 @@ public class XdgInteractiveConformance
         // A stale resize serial is ignored: the button is up, so no drag starts.
         SetClientGeometry(desk, pid, new Rectangle(500, 300, 500, 400));
         var stale = ActiveGeometry(desk);
-        desk.Ok("movecursor", $"{stale.X + 250} {stale.Y + 200}");
+        desk.MovePointer(stale.X + 250, stale.Y + 200);
         desk.Click();
-        desk.Ok("movecursor", $"{stale.X + 380} {stale.Y + 200}");
+        desk.MovePointer(stale.X + 380, stale.Y + 200);
 
         var afterStale = ActiveGeometry(desk);
         Near(stale.X, afterStale.X, 2);
@@ -70,7 +70,7 @@ public class XdgInteractiveConformance
         Near(stale.Height, afterStale.Height, 2);
 
         // An invalid resize edge disconnects the client in the reference. The compositor keeps answering.
-        desk.Ok("movecursor", $"{afterStale.X + 250} {afterStale.Y + 200}");
+        desk.MovePointer(afterStale.X + 250, afterStale.Y + 200);
         desk.Click();
         Assert.NotEqual("", desk.Send("clients"));
     }
@@ -78,9 +78,10 @@ public class XdgInteractiveConformance
     private static void SetClientGeometry(Desk desk, long pid, Rectangle geometry)
     {
         desk.Ok("focuswindow", $"pid:{pid}");
-        desk.Ok("setfloating", $"pid:{pid}");
-        desk.Ok("resizewindowpixel", $"exact {geometry.Width} {geometry.Height},pid:{pid}");
-        desk.Ok("movewindowpixel", $"exact {geometry.X} {geometry.Y},pid:{pid}");
+        if (!Desk.Floating(desk.ActiveWindow()))
+            desk.Ok("togglefloating", $"pid:{pid}");
+
+        desk.Place(desk.ActiveId(), geometry.X, geometry.Y, geometry.Width, geometry.Height);
         desk.Ok("focuswindow", $"pid:{pid}");
         Assert.Equal(geometry, ActiveGeometry(desk));
     }

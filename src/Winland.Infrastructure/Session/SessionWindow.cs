@@ -57,16 +57,6 @@ internal sealed class SessionWindow : IDisposable
         }
     }
 
-    /// <summary>Posts a message to the session window. False when there is none.</summary>
-    internal static bool TryPost(uint message, nuint wParam, nint lParam)
-    {
-        var active = Active;
-        if (active is null || active._disposed || active._hwnd.IsNull)
-            return false;
-
-        return PInvoke.PostMessage(active._hwnd, message, new WPARAM(wParam), new LPARAM(lParam));
-    }
-
     internal void WatchForShell()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

@@ -69,7 +69,7 @@ public sealed partial class WindowManager
         return outcome with { Motions = [.. own, .. planned.Where(motion => !mine.Contains(motion.Window))] };
     }
 
-    // A dwindle tile resized by resizeactive or resizewindowpixel, and the tiles that make room for it, move at once
+    // A dwindle tile resized by resizeactive, and the tiles that make room for it, move at once
     // as Winland's dwindle resize warps them. Floating Clients animate.
     private bool InstantResize(Outcome outcome, State before)
     {

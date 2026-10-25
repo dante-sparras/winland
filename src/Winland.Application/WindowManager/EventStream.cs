@@ -9,7 +9,7 @@ public sealed partial class WindowManager
 
     private Captured Capture() => new(Snapshot(), ActiveWindow());
 
-    // Workspaces changeworkspaceid gave a new id during this input, oldest first.
+    // Workspaces that moved to another Monitor and so got a new id during this input, oldest first.
     private List<(WorkspaceId From, WorkspaceId To)>? _readdressed;
 
     // Workspaces reported as active for this input, oldest first. A report is a Monitor's shown Workspace

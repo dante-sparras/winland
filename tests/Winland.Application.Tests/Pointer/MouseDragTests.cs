@@ -268,7 +268,7 @@ public class MouseDragTests
             "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 2\nbindm = SUPER, mouse:273, resizewindow\n")));
         Appear(core, 1);
         core.Handle(new Dispatch("togglefloating"));
-        var frame = Client(core.Handle(new Dispatch("no_op")), 1).Bounds;
+        var frame = Client(core.Handle(new Dispatch("resizewindow")), 1).Bounds;
         Press(core, "Super_L");
 
         // One pixel past the frame's bottom right corner, on the border.
@@ -501,8 +501,8 @@ public class MouseDragTests
     {
         var core = TwoMonitors("bindm = SUPER, mouse:273, resizewindow\n");
         Appear(core, 1);
-        core.Handle(new Dispatch("togglefloating"));
-        core.Handle(new Dispatch("movewindowpixel", "exact 1280 300,address:0x1"));
+        var floated = core.Handle(new Dispatch("togglefloating"));
+        Place(core, 1, Client(floated, 1).Bounds with { X = 1280, Y = 300 });
         Press(core, "Super_L");
         // The bottom right corner lies on the other Monitor, which does not own the window, so the press is on the
         // bottom right and still on this Monitor. Growing the right edge by 700 puts the middle on the other one.

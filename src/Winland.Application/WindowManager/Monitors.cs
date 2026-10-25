@@ -167,72 +167,6 @@ public sealed partial class WindowManager
         return MoveWorkspaceTo(desk, destination, name);
     }
 
-    private Outcome MoveWorkspace(string arguments)
-    {
-        const string name = "moveworkspacetomonitor";
-        if (!SplitPair(arguments, out var workspaceText, out var monitorText))
-            return Rejected(name, "error: expected workspace and monitor");
-
-        if (!WorkspaceAddress.TryResolve(workspaceText, Context(), out var id))
-            return Rejected(name, "error: invalid workspace");
-
-        if (_workspaces.Find(id) is not LiveWorkspace desk)
-            return Rejected(name, "error: workspace not found");
-
-        if (MonitorOf(MonitorSelector.Resolve(monitorText, Targets(), TargetOf(FocusedMonitor()))) is not LiveMonitor destination)
-            return Rejected(name, "error: monitor not found");
-
-        return MoveWorkspaceTo(desk, destination, name);
-    }
-
-    private Outcome SwapActiveWorkspaces(string arguments)
-    {
-        const string name = "swapactiveworkspaces";
-        if (!SplitPair(arguments, out var first, out var second))
-            return Rejected(name, "error: monitor not found");
-
-        var targets = Targets();
-        var current = TargetOf(FocusedMonitor());
-        if (MonitorOf(MonitorSelector.Resolve(first, targets, current)) is not LiveMonitor left
-            || MonitorOf(MonitorSelector.Resolve(second, targets, current)) is not LiveMonitor right)
-            return Rejected(name, "error: monitor not found");
-
-        if (left.Id == right.Id)
-            return View([], dispatcher: name);
-
-        var before = ShowingNow();
-        var deskLeft = WorkspaceFor(_workspaces.Shown.Shown(left.Id) ?? _workspaces.NextFree(left.Id), left.Id);
-        var deskRight = WorkspaceFor(_workspaces.Shown.Shown(right.Id) ?? _workspaces.NextFree(right.Id), right.Id);
-        var dx = right.Effective.X - left.Effective.X;
-        var dy = right.Effective.Y - left.Effective.Y;
-        deskLeft.Layout.NudgeFloating(dx, dy);
-        deskRight.Layout.NudgeFloating(-dx, -dy);
-        Readdressed(_workspaces.Swap(deskLeft, right.Id, deskRight, left.Id));
-        _workspaces.Shown.Show(left.Id, deskRight.Id);
-        _workspaces.Shown.Show(right.Id, deskLeft.Id);
-        Refit(deskLeft);
-        Refit(deskRight);
-
-        WindowId? focus = null;
-        var focused = left.Focused ? left : right.Focused ? right : null;
-        // A swap reports only the Workspace the focused Monitor shows afterwards.
-        if (focused is not null && _workspaces.Shown.Shown(focused.Id) is WorkspaceId swapped)
-            NoteWorkspaceActive(swapped);
-
-        if (focused is LiveMonitor screen && _workspaces.Shown.Shown(screen.Id) is WorkspaceId active && _workspaces.Find(active) is LiveWorkspace shown)
-        {
-            var next = _focus.Remembered(shown);
-            _focus.Take(next, shown);
-            if (next is WindowId noted)
-                shown.Layout.NoteFocus(noted);
-            Remember(active, screen.Id);
-            focus = next;
-        }
-
-        var (show, hide) = VisibilityDelta(before);
-        return View(ShownPlacements(), show, hide, dispatcher: name, focus: focus);
-    }
-
     private Outcome MoveWorkspaceTo(LiveWorkspace desk, LiveMonitor destination, string dispatcher)
     {
         if (desk.Monitor == destination.Id)
@@ -481,22 +415,6 @@ public sealed partial class WindowManager
 
         monitor = text[4..].Trim();
         return true;
-    }
-
-    private static bool SplitPair(string arguments, out string first, out string second)
-    {
-        var text = arguments.Trim();
-        var space = text.IndexOf(' ');
-        if (space < 0)
-        {
-            first = text;
-            second = "";
-            return false;
-        }
-
-        first = text[..space].Trim();
-        second = text[(space + 1)..].Trim();
-        return first.Length > 0 && second.Length > 0;
     }
 
     private static string FirstToken(string arguments)

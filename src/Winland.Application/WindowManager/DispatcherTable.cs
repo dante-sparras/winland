@@ -56,8 +56,6 @@ public sealed partial class WindowManager
             // Programs and the daemon
             ["exec"] = new(static (m, n, a) => m.Exec(n, a)),
             ["exit"] = new(static (m, _, _) => m.ExitDaemon()),
-            ["event"] = new(static (m, _, a) => m.EmitCustom(a)),
-            ["dpms"] = new(static (m, _, a) => m.Dpms(a)),
             ["sendshortcut"] = new(static (m, _, a) => m.SendShortcut(a)),
 
             // Workspaces and Monitors
@@ -67,48 +65,31 @@ public sealed partial class WindowManager
             ["movetoworkspacesilent"] = new(static (m, _, a) => m.MoveWindowToWorkspace(a, silent: true), Focus: Fixed(FocusReason.Keybind)),
             ["focusmonitor"] = new(static (m, _, a) => m.FocusMonitorDispatch(a), Traits: DispatcherTraits.WarpsToEmptyMonitor, Focus: Fixed(FocusReason.Keybind)),
             ["movecurrentworkspacetomonitor"] = new(static (m, _, a) => m.MoveCurrentWorkspace(a)),
-            ["moveworkspacetomonitor"] = new(static (m, _, a) => m.MoveWorkspace(a)),
-            ["swapactiveworkspaces"] = new(static (m, _, a) => m.SwapActiveWorkspaces(a), Focus: Fixed(FocusReason.DesktopState)),
-            ["changeworkspaceid"] = new(static (m, _, a) => m.ChangeWorkspaceId(a)),
 
             // Focus
             ["movefocus"] = new(static (m, _, a) => m.MoveFocusDirection(a), Traits: DispatcherTraits.WarpsToFocused | DispatcherTraits.WarpsToEmptyMonitor, Focus: MoveFocusReason),
             ["focuswindow"] = new(static (m, _, a) => m.FocusWindow(a), Focus: Fixed(FocusReason.FocusWindow)),
             ["cyclenext"] = new(static (m, _, a) => m.CycleNext(a), TakesWindow: true, Traits: DispatcherTraits.WarpsToFocused, Focus: SwitchFocusReason),
-            ["focuscurrentorlast"] = new(static (m, _, _) => m.FocusCurrentOrLast(), Traits: DispatcherTraits.WarpsToFocused, Focus: SwitchFocusReason),
             ["focusurgentorlast"] = new(static (m, _, _) => m.FocusUrgentOrLast(), Traits: DispatcherTraits.WarpsToFocused, Focus: SwitchFocusReason),
 
             // Windows
             ["killactive"] = new(static (m, n, a) => m.LayoutDispatch(n, a)),
-            ["closewindow"] = new(static (m, _, a) => m.CloseWindow(a)),
             ["closeall"] = new(static (m, _, _) => m.CloseAll()),
-            ["killwindow"] = new(static (m, _, a) => m.KillWindow(a)),
             ["movewindow"] = new(static (m, _, a) => m.MoveWindowDirection(a), TakesWindow: true, Focus: DragFocusReason),
             ["swapwindow"] = new(static (m, _, a) => m.SwapWindow(a), TakesWindow: true),
             ["centerwindow"] = new(static (m, _, _) => m.CenterWindow(), TakesWindow: true),
-            ["togglefloating"] = new(static (m, _, a) => m.FloatWindow(a, floating: null)),
-            ["setfloating"] = new(static (m, _, a) => m.FloatWindow(a, floating: true)),
-            ["settiled"] = new(static (m, _, a) => m.FloatWindow(a, floating: false)),
+            ["togglefloating"] = new(static (m, _, a) => m.FloatWindow(a)),
             ["pin"] = new(static (m, _, a) => m.PinWindow(a)),
             ["pseudo"] = new(static (m, _, a) => m.PseudoWindow(a)),
             ["fullscreen"] = new(static (m, n, a) => m.FullscreenDispatcher(n, a), TakesWindow: true),
             ["maximize"] = new(static (m, n, a) => m.FullscreenDispatcher(n, a)),
-            ["movewindowpixel"] = new(static (m, _, a) => m.MoveWindowPixel(a)),
-            ["resizewindowpixel"] = new(static (m, _, a) => m.ResizeWindowPixel(a), Traits: DispatcherTraits.InstantResize),
             ["resizeactive"] = new(static (m, n, a) => m.LayoutDispatch(n, a), Traits: DispatcherTraits.InstantResize),
-            ["alterzorder"] = new(static (m, _, a) => m.AlterZOrder(a, bringToTop: false)),
-            ["bringactivetotop"] = new(static (m, _, a) => m.AlterZOrder(a, bringToTop: true)),
             ["setprop"] = new(static (m, _, a) => m.SetPropDispatch(a)),
-
-            // The cursor
-            ["movecursor"] = new(static (m, _, a) => m.MoveCursor(a)),
-            ["movecursortocorner"] = new(static (m, _, a) => m.MoveCursorToCorner(a), TakesWindow: true),
 
             // Layouts
             ["layoutmsg"] = new(static (m, n, a) => m.LayoutDispatch(n, a), Focus: LayoutMessageFocusReason),
             ["layout"] = new(static (m, n, a) => m.LayoutDispatch(n, a), Focus: LayoutMessageFocusReason),
             ["cyclelayout"] = new(static (m, _, a) => m.CycleWorkspaceLayout(a)),
-            ["movetoroot"] = new(static (m, _, a) => m.MoveRoot(a)),
 
             // Groups
             ["togglegroup"] = new(static (m, n, _) => m.ToggleGroup(n), TakesWindow: true),
@@ -119,8 +100,6 @@ public sealed partial class WindowManager
 
             // Accepted with no effect. A mouse bind's resizewindow runs in the drag code, not here.
             ["resizewindow"] = new(static (m, n, _) => m.View([], dispatcher: n), Focus: DragFocusReason),
-            ["no_op"] = new(static (m, n, _) => m.View([], dispatcher: n)),
-            ["forcerendererreload"] = new(static (m, n, _) => m.View([], dispatcher: n)),
         };
 
         // A dwindle layout message is also a dispatcher of its own name.

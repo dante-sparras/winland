@@ -16,6 +16,15 @@ internal static class TestOutcomes
         return Assert.Single(outcome.Placements, placement => placement.Client == client.Id).Bounds;
     }
 
+    /// <summary>Puts a floating window at <paramref name="bounds"/>, as the system does when the user drags it there.</summary>
+    public static Outcome Place(WindowManager core, long window, Rectangle bounds)
+    {
+        var id = new WindowId(window);
+        var pointer = new Point(bounds.X + (bounds.Width / 2), bounds.Y + (bounds.Height / 2));
+        core.Handle(new WindowMoveStarted(id, pointer));
+        return core.Handle(new WindowMoveEnded(id, pointer, bounds));
+    }
+
     /// <summary>A JSON reply, parsed.</summary>
     public static JsonElement Json(string text)
     {

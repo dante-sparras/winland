@@ -73,9 +73,6 @@ public sealed record WorkspaceDestroyed(WorkspaceId Workspace, long Id, string N
 
 public sealed record WorkspaceMoved(WorkspaceId Workspace, string Monitor) : StreamEvent;
 
-/// <summary><c>changeworkspaceid</c> gave the workspace numbered <paramref name="From"/> the number <paramref name="To"/> on <paramref name="Monitor"/>.</summary>
-public sealed record WorkspaceIdChanged(long From, long To, string Monitor) : StreamEvent;
-
 public sealed record MonitorFocused(string Name, WorkspaceId Workspace) : StreamEvent;
 
 /// <summary>The special workspace shown on a Monitor. Null when it closes.</summary>
@@ -92,9 +89,6 @@ public sealed record MonitorAddedV2(int Id, string Name, string Description) : S
 public sealed record MonitorRemoved(string Name) : StreamEvent;
 
 public sealed record MonitorRemovedV2(int Id, string Name, string Description) : StreamEvent;
-
-/// <summary>A custom event line, <c>custom&gt;&gt;text</c>.</summary>
-public sealed record CustomEvent(string Text) : StreamEvent;
 
 /// <summary>
 /// A Client entered or left a covering fullscreen mode. The data is <c>1</c> or <c>0</c>. <paramref name="Window"/> is

@@ -132,60 +132,6 @@ public class WorkspacesConformance
         Assert.Empty(desk.Clients());
     }
 
-    // The reference changes a Workspace's id with its change_id dispatcher, which has no line-based name.
-    // changeworkspaceid stands for it here.
-    [Fact]
-    public void WorkspaceRenameChangeID()
-    {
-        var desk = new Desk();
-        desk.Ok("workspace", "150");
-        desk.Spawn("a");
-
-        desk.Ok("workspace", "100");
-        Assert.Equal("100 (100)", ActiveLabel(desk));
-
-        desk.Ok("changeworkspaceid", "100 101");
-        Assert.Equal("101 (101)", ActiveLabel(desk));
-
-        foreach (var bad in new[] { "101 -1", "101 abc", "101", "102 200", "101 150", "name:coce 105" })
-            Assert.NotEqual("ok", desk.Dispatch("changeworkspaceid", bad));
-        Assert.Equal("101 (101)", ActiveLabel(desk));
-
-        desk.Ok("changeworkspaceid", "101 102");
-        Assert.Equal("102 (102)", ActiveLabel(desk));
-    }
-
-    [Fact]
-    public void WorkspaceChangeIdEmitsTheMonitor()
-    {
-        var desk = new Desk();
-        desk.Ok("workspace", "5201");
-        desk.Spawn("workspace_rename_event");
-
-        var reply = desk.WindowManager.Execute("dispatch changeworkspaceid 5201 5202");
-        Assert.Equal("ok", reply.Text);
-        var events = CommandProtocol.FormatStream(reply.Effect.Events, reply.Effect.State);
-        Assert.Equal(["changeworkspaceid>>5201,5202,HEADLESS-2"], events.Where(line => line.StartsWith("changeworkspaceid>>", StringComparison.Ordinal)));
-        Assert.Equal("5202 (5202)", ActiveLabel(desk));
-
-        desk.Close("workspace_rename_event");
-        desk.Ok("workspace", "1");
-    }
-
-    [Fact]
-    public void WorkspaceChangeIDUpdatesRules()
-    {
-        var desk = new Desk("workspace = 201, gapsout:40 40 40 40\n");
-        desk.Ok("workspace", "200");
-        Assert.Equal("200 (200)", ActiveLabel(desk));
-
-        desk.Spawn("a");
-        Assert.Equal("22,22", desk.ActivePlace().At);
-
-        desk.Ok("changeworkspaceid", "200 201");
-        Assert.Equal("42,42", desk.ActivePlace().At);
-    }
-
     [Fact]
     public void WorkspaceSwitchUnfocusesWindowFromOldWorkspace()
     {

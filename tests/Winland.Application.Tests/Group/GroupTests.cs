@@ -36,7 +36,7 @@ public class GroupTests
     public void AGroupWhoseShownMemberIsNotDecoratedHasNoBarAndKeepsItsTile()
     {
         var core = Opened(First);
-        var tile = ClientOf(core.Execute("dispatch no_op").Effect, First).Bounds;
+        var tile = ClientOf(core.Execute("dispatch resizewindow").Effect, First).Bounds;
         core.Execute("dispatch togglegroup");
 
         var plain = core.Execute("setprop address:0x1 decorate 0").Effect;
@@ -369,6 +369,14 @@ public class GroupTests
         Assert.Equal(slot, kept);
         Assert.False(layout.TryBounds(Second, out _));
         Assert.False(layout.Substitute(First, Third, default, out _));
+    }
+
+    [Fact]
+    public void AMiddleClickOnATabClosesItsWindow()
+    {
+        var core = Grouped();
+
+        Assert.Equal(Second, core.Handle(new GroupTabClosed(Second)).Close);
     }
 
     [Fact]

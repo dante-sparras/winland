@@ -11,7 +11,7 @@ public sealed partial class WindowManager
             _pointer = moved.Position;
 
         var monitorChanged = outcome.State.ActiveMonitor != before.State.ActiveMonitor;
-        var warp = TakeRequestedWarp() ?? SwitchWarp(before, outcome);
+        var warp = SwitchWarp(before, outcome);
         if (warp is null && monitorChanged)
             warp = EmptyMonitorMiddle(outcome);
         if (warp is null && _crossMonitorWarp is WarpTo crossed && !_config.Cursor.NoWarps)
@@ -30,7 +30,7 @@ public sealed partial class WindowManager
         };
     }
 
-    // movefocus, cyclenext, focusurgentorlast and focuscurrentorlast move the cursor to the middle of the window they
+    // movefocus, cyclenext and focusurgentorlast move the cursor to the middle of the window they
     // focus, as Winland's switch to a window does.
     // Leaving a fullscreen window for another on its Workspace does not, and cursor:no_warps stops it.
     private WarpTo? SwitchWarp(Captured before, Outcome outcome)

@@ -17,7 +17,7 @@ public class ChildWindowConformance
         var desk = new Desk();
         var parent = desk.Spawn("child-test-parent");
 
-        desk.Ok("setfloating", "class:child-test-parent");
+        desk.Ok("togglefloating", "class:child-test-parent");
         desk.Ok("pin", "enable class:child-test-parent");
 
         // The reference's child names its parent, as a Windows dialog names its owner.

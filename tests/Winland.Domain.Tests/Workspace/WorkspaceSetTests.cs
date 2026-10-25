@@ -89,20 +89,6 @@ public class WorkspaceSetTests
     }
 
     [Fact]
-    public void ASwapKeepsEachNumberWhenItIsFreeOnTheOtherMonitor()
-    {
-        var set = new WorkspaceSet();
-        var left = Add(set, Number(1, Left));
-        var right = Add(set, Number(3, Right));
-
-        set.Swap(left, Right, right, Left);
-
-        Assert.Equal(Number(1, Right), left.Id);
-        Assert.Equal(Number(3, Left), right.Id);
-        Assert.Equal(Right, left.Monitor);
-    }
-
-    [Fact]
     public void OnlyAnEmptyWorkspaceThatIsNotShownOrPersistentIsDropped()
     {
         var set = new WorkspaceSet();
@@ -132,22 +118,17 @@ public class WorkspaceSetTests
     }
 
     [Fact]
-    public void AGuestMovedOrSwappedByHandIsNoLongerAGuest()
+    public void AGuestMovedByHandIsNoLongerAGuest()
     {
         var set = new WorkspaceSet();
         set.Shown.SetLive([Left, Right]);
         Add(set, Number(1, Left));
         var first = Add(set, Number(1, Right), windows: 1);
-        var second = Add(set, Number(2, Right), windows: 1);
         set.Depart(Right, "DEL-1", Left);
-        Assert.True(first.IsGuest && second.IsGuest);
+        Assert.True(first.IsGuest);
 
         set.MoveTo(first, Right);
         Assert.False(first.IsGuest);
-
-        var host = set.Find(Number(1, Left))!;
-        set.Swap(second, Right, host, Left);
-        Assert.False(second.IsGuest);
     }
 
     [Fact]
