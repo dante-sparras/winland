@@ -2,7 +2,7 @@ namespace Winland.Application;
 
 // Modal windows. Windows disables a window while a modal window it owns is open, as a dialog box does, so a disabled
 // window that owns a Client is shadowed by a modal, and that Client is modal. Winland dims the shadowed
-// window with decoration:dim_modal, and with general:modal_parent_blocking it takes no focus.
+// window with decoration:dim_modal, and it takes no focus.
 public sealed partial class WindowManager
 {
     // The owner each Client was adopted with, and the windows Windows has disabled.
@@ -12,9 +12,6 @@ public sealed partial class WindowManager
     private bool ShadowedByModal(WindowId window) => _disabled.Contains(window) && _owners.ContainsValue(window);
 
     private bool IsModal(WindowId window) => _owners.TryGetValue(window, out var owner) && _disabled.Contains(owner);
-
-    // A window shadowed by a modal takes no focus with general:modal_parent_blocking.
-    private bool BlockedByModal(WindowId window) => _config.Session.ModalParentBlocking && ShadowedByModal(window);
 
     private void NoteOwner(WindowAppeared appeared)
     {

@@ -262,13 +262,15 @@ public class PinTests
     }
 
     [Fact]
-    public void APinnedClientThatTakesAClosedClientsFullscreenModeHoldsItsPin()
+    public void APinnedClientThatGoesFullscreenHoldsItsPin()
     {
-        var core = ClosedFullscreenBeforeAPinnedClient("binds:allow_pin_fullscreen = true\n");
+        var core = Floating();
+        core.Execute("keyword binds:allow_pin_fullscreen true");
+        core.Execute("dispatch pin");
 
-        var closed = core.Handle(new WindowClosed(new WindowId(2)));
+        var fullscreen = core.Execute("dispatch fullscreen 1");
 
-        var client = ClientOf(closed, Window);
+        var client = ClientOf(fullscreen.Effect, Window);
         Assert.Equal(FullscreenMode.Maximized, client.Fullscreen);
         Assert.False(client.Pinned);
         Assert.True(client.PinFullscreened);
@@ -280,28 +282,16 @@ public class PinTests
     }
 
     [Fact]
-    public void APinnedClientDoesNotTakeAClosedClientsFullscreenModeWhenPinsCannotGoFullscreen()
+    public void APinnedClientDoesNotGoFullscreenWhenPinsCannotGoFullscreen()
     {
-        var core = ClosedFullscreenBeforeAPinnedClient("binds:allow_pin_fullscreen = false\n");
+        var core = Floating();
+        core.Execute("dispatch pin");
 
-        var closed = core.Handle(new WindowClosed(new WindowId(2)));
+        var fullscreen = core.Execute("dispatch fullscreen 1");
 
-        var client = ClientOf(closed, Window);
+        var client = ClientOf(fullscreen.Effect, Window);
         Assert.Equal(FullscreenMode.None, client.Fullscreen);
         Assert.True(client.Pinned);
-    }
-
-    private static WindowManager ClosedFullscreenBeforeAPinnedClient(string options)
-    {
-        var core = new WindowManager(ConfigParser.Parse(options + "misc:exit_window_retains_fullscreen = true\nwindowrule = float, class:^(stick)$\n"));
-        core.Handle(new WindowAppeared(Window, Area)
-        {
-            Traits = WindowTraits.Normal with { Class = "stick" },
-        });
-        core.Execute("dispatch pin");
-        core.Handle(new WindowAppeared(new WindowId(2), Area));
-        core.Execute("dispatch fullscreen 1");
-        return core;
     }
 
     private static WindowManager Floating()

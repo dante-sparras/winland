@@ -194,9 +194,9 @@ public class GroupsConformance
     }
 
     [Fact]
-    public void GroupedExitWindowRetainsFullscreen()
+    public void GroupedExitWindowDoesNotRetainFullscreen()
     {
-        var desk = new Desk("misc:exit_window_retains_fullscreen = 3\n");
+        var desk = new Desk();
         desk.Spawn("kitty_A");
         desk.Ok("togglegroup");
         desk.Spawn("kitty_B");
@@ -207,14 +207,6 @@ public class GroupsConformance
         desk.CloseActive();
         Assert.Single(desk.Clients());
         ExpectFullscreen(desk, 0, 0);
-
-        desk.Spawn("kitty_B");
-        desk.Ok("fullscreen", "0");
-        desk.Keyword("misc:exit_window_retains_fullscreen", "2");
-
-        desk.CloseActive();
-        Assert.Single(desk.Clients());
-        ExpectFullscreen(desk, 2, 2);
     }
 
     // How many clients are placed at x,y, as the reference counts "at: x,y" in its clients reply.

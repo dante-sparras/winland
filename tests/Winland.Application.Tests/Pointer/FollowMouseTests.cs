@@ -8,10 +8,8 @@ public class FollowMouseTests
     public void FollowMouseDefaultsToTheManual()
     {
         var input = InputOptions.From(ConfigParser.Parse(""));
-        var session = SessionOptions.From(ConfigParser.Parse(""));
 
         Assert.Equal(1, input.FollowMouse);
-        Assert.True(session.MouseMoveFocusesMonitor);
     }
 
     [Fact]
@@ -19,12 +17,9 @@ public class FollowMouseTests
     {
         var input = InputOptions.From(ConfigParser.Parse("""
             input:follow_mouse = separate
-            misc:mouse_move_focuses_monitor = false
             """));
-        var session = SessionOptions.From(ConfigParser.Parse("misc:mouse_move_focuses_monitor = off\n"));
 
         Assert.Equal(3, input.FollowMouse);
-        Assert.False(session.MouseMoveFocusesMonitor);
     }
 
     [Fact]
@@ -122,24 +117,6 @@ public class FollowMouseTests
         Assert.Equal(new MonitorId(1), moved.State.ActiveMonitor);
         Assert.Null(moved.Focus);
         Assert.DoesNotContain(moved.Events, item => item is FocusChanged);
-    }
-
-    [Fact]
-    public void AMonitorStaysPutWhenMouseFocusIsOff()
-    {
-        var core = new WindowManager(ConfigParser.Parse("""
-            input:follow_mouse = 0
-            misc:mouse_move_focuses_monitor = false
-            """));
-        var left = Display(@"\\.\DISPLAY1", 0, 800, 600);
-        var right = Display(@"\\.\DISPLAY2", 800, 800, 600);
-        core.Handle(new MonitorsChanged([left, right]));
-        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
-        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
-
-        var moved = Move(core, new Point(1_000, 100), 1_000);
-
-        Assert.Equal(new MonitorId(0), moved.State.ActiveMonitor);
     }
 
     [Fact]

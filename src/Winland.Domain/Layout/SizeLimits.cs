@@ -5,7 +5,7 @@ internal readonly record struct SizeLimits(Size? Min, Size? Max)
 {
     /// <summary>
     /// The limits a tiled Client keeps when they differ from <see cref="Min"/> and <see cref="Max"/>, which a floating
-    /// Client keeps. Without <c>misc:size_limits_tiled</c> a tiled Client keeps only the window's own limits, and the
+    /// Client keeps. A tiled Client keeps only the window's own limits, and the
     /// minimum and maximum size window rules apply to it only while it floats.
     /// </summary>
     public TiledLimits? Tiled { get; init; }

@@ -48,34 +48,6 @@ public class FullscreenFocusTests
     }
 
     [Theory]
-    [InlineData("", 2)]
-    [InlineData("misc:on_focus_under_fullscreen = ignore", 0)]
-    [InlineData("misc:on_focus_under_fullscreen = take_over", 1)]
-    [InlineData("misc:on_focus_under_fullscreen = exit_fullscreen", 2)]
-    [InlineData("misc:on_focus_under_fullscreen = 1", 1)]
-    [InlineData("misc:on_focus_under_fullscreen = 3", 2)]
-    public void OnFocusUnderFullscreenReadsANumberOrAName(string line, int expected)
-    {
-        var session = SessionOptions.From(ConfigParser.Parse(line));
-
-        Assert.Equal(expected, session.OnFocusUnderFullscreen);
-    }
-
-    [Theory]
-    [InlineData("", 0)]
-    [InlineData("misc:exit_window_retains_fullscreen = true", 1)]
-    [InlineData("misc:exit_window_retains_fullscreen = false", 0)]
-    [InlineData("misc:exit_window_retains_fullscreen = only_when_grouped", 2)]
-    [InlineData("misc:exit_window_retains_fullscreen = only_when_nongrouped", 3)]
-    [InlineData("misc:exit_window_retains_fullscreen = 4", 3)]
-    public void ExitWindowRetainsFullscreenReadsANumberAFlagOrAName(string line, int expected)
-    {
-        var session = SessionOptions.From(ConfigParser.Parse(line));
-
-        Assert.Equal(expected, session.ExitWindowRetainsFullscreen);
-    }
-
-    [Theory]
     [InlineData("", false)]
     [InlineData("binds:allow_pin_fullscreen = true", true)]
     [InlineData("binds:allow_pin_fullscreen = 1", true)]

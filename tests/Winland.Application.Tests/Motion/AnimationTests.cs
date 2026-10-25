@@ -86,19 +86,17 @@ public class AnimationTests
         Assert.Contains(outcome.Motions, motion => motion.Window == new WindowId(2) && motion.FadeFrom == 0);
     }
 
-    [Theory]
-    [InlineData("", false)]
-    [InlineData("misc:animate_manual_resizes = true\n", true)]
-    public void ResizingADwindleTileMovesAtOnceUnlessManualResizesAnimate(string config, bool animates)
+    [Fact]
+    public void ResizingADwindleTileMovesAtOnce()
     {
-        var core = Load(config);
+        var core = Load("");
         Appear(core, 1);
         Appear(core, 2);
 
         var resized = core.Handle(new Dispatch("resizeactive", "-100 0"));
 
         Assert.NotEmpty(resized.Placements);
-        Assert.Equal(animates, resized.Motions.Any(motion => !motion.Warp && motion.Move is not null));
+        Assert.DoesNotContain(resized.Motions, motion => !motion.Warp && motion.Move is not null);
     }
 
     [Fact]

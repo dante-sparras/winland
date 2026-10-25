@@ -497,16 +497,14 @@ public class MonitorDispatchTests
         Assert.Null(moved.Warp);
     }
 
-    [Theory]
-    [InlineData("true", "error: Nothing to focus to in direction left")]
-    [InlineData("false", null)]
-    public void NoFocusFallbackAnswersAnErrorWhenNothingTakesTheFocus(string value, string? error)
+    [Fact]
+    public void MoveFocusAnswersNoErrorWhenNothingTakesTheFocus()
     {
-        var core = TwoMonitors($"general:no_focus_fallback = {value}\n");
+        var core = TwoMonitors();
 
         var moved = core.Handle(new Dispatch("movefocus", "l"));
 
-        Assert.Equal(error, moved.Error);
+        Assert.Null(moved.Error);
     }
 
     private static WindowManager TwoMonitors(string? config = null)

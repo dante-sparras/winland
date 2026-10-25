@@ -138,7 +138,7 @@ public class SpecialWorkspaceTests
     }
 
     [Fact]
-    public void CloseOnEmptyHidesTheSpecialWorkspaceUnlessToldNotTo()
+    public void TheSpecialWorkspaceHidesWhenItsLastClientLeaves()
     {
         var core = new WindowManager();
         core.Handle(Appeared(1));
@@ -147,14 +147,6 @@ public class SpecialWorkspaceTests
 
         Assert.Null(closed.State.SpecialWorkspace);
         Assert.Empty(closed.State.Clients);
-
-        var kept = new WindowManager(ConfigParser.Parse("misc:close_special_on_empty = false\n"));
-        kept.Handle(Appeared(1));
-        kept.Handle(new Dispatch("movetoworkspace", "special"));
-        var stayed = kept.Handle(new WindowClosed(new WindowId(1)));
-
-        Assert.Equal(WorkspaceId.DefaultSpecial, stayed.State.SpecialWorkspace);
-        Assert.Empty(stayed.State.Clients);
     }
 
     [Fact]
@@ -201,7 +193,6 @@ public class SpecialWorkspaceTests
     public void SpecialKeywordsAreHonored()
     {
         var document = ConfigParser.Parse("""
-            misc:close_special_on_empty = false
             binds:hide_special_on_workspace_change = true
             """);
 

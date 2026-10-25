@@ -201,7 +201,6 @@ public sealed partial class WindowManager
 
         if (source.Id.IsSpecial
             && source.Layout.Clients.Count == 0
-            && _config.Session.CloseSpecialOnEmpty
             && _workspaces.Shown.SpecialOn(source.Monitor) == source.Id)
         {
             foreach (var concealed in ConcealSpecial(source.Monitor))

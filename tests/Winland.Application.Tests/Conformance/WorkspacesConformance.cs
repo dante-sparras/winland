@@ -316,10 +316,9 @@ public class WorkspacesConformance
 
         desk.Ok("movefocus", "l");
 
-        desk.Keyword("general:no_focus_fallback", "true");
         desk.Keyword("binds:window_direction_monitor_fallback", "false");
 
-        Assert.NotEqual("ok", desk.Dispatch("movefocus", "l"));
+        Assert.Equal("ok", desk.Dispatch("movefocus", "l"));
         Assert.Equal("b", desk.ActiveClass());
         Assert.Equal("8 (8)", ActiveLabel(desk));
 

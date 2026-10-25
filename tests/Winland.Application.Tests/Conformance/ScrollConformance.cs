@@ -233,41 +233,26 @@ public class ScrollConformance
             Assert.Equal("ok", desk.Send("r/keyword binds:movefocus_cycles_fullscreen " + cycles));
             desk.Ok("focuswindow", "class:fs");
             desk.Ok("fullscreen", "0 set");
-            Assert.Equal("ok", desk.Send("r/keyword misc:on_focus_under_fullscreen 0"));
             ExpectActiveFullscreen(desk, "fs", 2);
 
-            foreach (var direction in new[] { "r", "l", "u", "d" })
-            {
-                desk.Ok("movefocus", direction);
-                ExpectActiveFullscreen(desk, "fs", 2);
-            }
-
-            Assert.Equal("ok", desk.Send("r/keyword misc:on_focus_under_fullscreen 1"));
             if (cycles == "false")
             {
-                desk.Ok("movefocus", "l");
-                ExpectActiveFullscreen(desk, "fs", 2);
+                foreach (var direction in new[] { "r", "l", "u", "d" })
+                {
+                    desk.Ok("movefocus", direction);
+                    ExpectActiveFullscreen(desk, "fs", 2);
+                }
 
-                desk.Ok("movefocus", "r");
-                ExpectActiveFullscreen(desk, "fs", 2);
-
-                Assert.Equal("ok", desk.Send("r/keyword misc:on_focus_under_fullscreen 2"));
-                desk.Ok("movefocus", "l");
-                ExpectActiveFullscreen(desk, "fs", 2);
                 continue;
             }
 
-            foreach (var mode in new[] { "1", "2" })
-            {
-                Assert.Equal("ok", desk.Send("r/keyword misc:on_focus_under_fullscreen " + mode));
-                desk.Ok("movefocus", "l");
-                ExpectActiveFullscreen(desk, "normal1", 0);
-                Assert.Equal("22,22", desk.ActivePlace().At);
+            desk.Ok("movefocus", "l");
+            ExpectActiveFullscreen(desk, "normal1", 0);
+            Assert.Equal("22,22", desk.ActivePlace().At);
 
-                desk.Ok("movefocus", "r");
-                ExpectActiveFullscreen(desk, "fs", 2);
-                Assert.Equal("0,0", desk.ActivePlace().At);
-            }
+            desk.Ok("movefocus", "r");
+            ExpectActiveFullscreen(desk, "fs", 2);
+            Assert.Equal("0,0", desk.ActivePlace().At);
         }
     }
 
@@ -328,19 +313,6 @@ public class ScrollConformance
         desk.ExpectActive("22,22", "1876,1036");
         Assert.Equal("one", desk.ActiveClass());
 
-        desk.Keyword("misc:on_focus_under_fullscreen", "1");
-        desk.Spawn("four");
-        desk.ExpectActive("22,22", "1876,1036");
-        Assert.Equal("four", desk.ActiveClass());
-        Assert.Equal(1, Desk.Fullscreen(desk.ActiveWindow()));
-
-        desk.Keyword("misc:on_focus_under_fullscreen", "0");
-        desk.Spawn("ignored");
-        desk.ExpectActive("22,22", "1876,1036");
-        Assert.Equal("four", desk.ActiveClass());
-        Assert.Equal(1, Desk.Fullscreen(desk.ActiveWindow()));
-
-        desk.Keyword("misc:on_focus_under_fullscreen", "2");
         desk.Spawn("erstarrwashere");
         Assert.Equal("erstarrwashere", desk.ActiveClass());
         Assert.Equal(0, Desk.Fullscreen(desk.ActiveWindow()));
@@ -349,30 +321,19 @@ public class ScrollConformance
     [Fact]
     public void ScrollDEFAULTHANDLEDNewWindowTakesOverFullscreen()
     {
-        var desk = new Desk(Scrolling + "misc:on_focus_under_fullscreen = 0\n");
+        var desk = new Desk(Scrolling);
         desk.Spawn("kitty_A");
         desk.Ok("fullscreen", "0 default");
         ExpectActiveFullscreen(desk, "kitty_A", 2);
 
         desk.Spawn("kitty_B");
-        ExpectActiveFullscreen(desk, "kitty_A", 2);
-
-        desk.Ok("focuswindow", "class:kitty_B");
-        ExpectActiveFullscreen(desk, "kitty_A", 2);
-
-        desk.Keyword("misc:on_focus_under_fullscreen", "1");
-        desk.Spawn("kitty_C");
-        ExpectActiveFullscreen(desk, "kitty_C", 2);
-
-        desk.Keyword("misc:on_focus_under_fullscreen", "2");
-        desk.Spawn("kitty_D");
-        ExpectActiveFullscreen(desk, "kitty_D", 0);
+        ExpectActiveFullscreen(desk, "kitty_B", 0);
     }
 
     [Fact]
-    public void ScrollDEFAULTHANDLEDExitWindowRetainsFullscreen()
+    public void ScrollDEFAULTHANDLEDExitWindowDoesNotRetainFullscreen()
     {
-        var desk = new Desk(Scrolling + "misc:exit_window_retains_fullscreen = false\n");
+        var desk = new Desk(Scrolling);
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
 
@@ -381,13 +342,6 @@ public class ScrollConformance
 
         desk.CloseActive();
         ExpectFullscreen(desk, 0, 0);
-
-        desk.Spawn("kitty_B");
-        desk.Ok("fullscreen", "0 default");
-        desk.Keyword("misc:exit_window_retains_fullscreen", "true");
-
-        desk.CloseActive();
-        ExpectFullscreen(desk, 2, 2);
     }
 
     [Fact]

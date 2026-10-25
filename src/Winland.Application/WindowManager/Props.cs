@@ -133,6 +133,6 @@ public sealed partial class WindowManager
 
         var rule = _props.EffectiveSizes(window, sizes.Rule);
         var floating = rule.Floating(sizes.OwnMin, sizes.OwnMax);
-        return desk.Layout.UpdateLimits(window, floating.Min, floating.Max, rule.Tiled(sizes.OwnMin, sizes.OwnMax, _config.Session.SizeLimitsTiled));
+        return desk.Layout.UpdateLimits(window, floating.Min, floating.Max, new TiledLimits(sizes.OwnMin, sizes.OwnMax));
     }
 }

@@ -113,27 +113,16 @@ public sealed partial class WindowManager
         return merged;
     }
 
-    // misc:on_focus_under_fullscreen for a tiled window that opens on a Workspace with a fullscreen Client, as in the
-    // Winland: 0 opens it without focus, 1 gives it the fullscreen Client's mode, and 2 ends that mode.
+    // A tiled window that opens on a Workspace with a fullscreen Client ends that mode.
     private IReadOnlyList<Placement> OpenUnderFullscreen(LiveWorkspace desk, WindowId window, IReadOnlyList<Placement> placements)
     {
         if (desk.ClientOf(window) is not { Floating: false } || CoveringOther(desk, window) is not Client covering)
             return placements;
 
-        switch (_config.Session.OnFocusUnderFullscreen)
-        {
-            case 0:
-                _awaitingMapFocus.Add(window);
-                return placements;
-            case 1:
-                return SetFullscreen(desk, window, covering.Fullscreen, covering.LayoutFullscreen) ?? placements;
-            default:
-                return EndFullscreen(desk, covering.Window);
-        }
+        return EndFullscreen(desk, covering.Window);
     }
 
-    // misc:on_focus_under_fullscreen for a request to focus a tiled Client under another fullscreen one, as in the
-    // Winland: 0 focuses the fullscreen Client instead, 1 moves its mode to the Client asked for, and 2 ends it.
+    // A request to focus a tiled Client under another fullscreen one ends that mode.
     // A floating Client is focused over it. The Client to focus, and the Layout's placements when a mode changed.
     // A Client its Layout holds fullscreen is left alone, and the Layout scrolls to the Client asked for.
     private WindowId FocusUnderFullscreen(LiveWorkspace desk, WindowId window, out IReadOnlyList<Placement>? placements)
@@ -147,34 +136,8 @@ public sealed partial class WindowManager
         if (desk.ClientOf(window) is not { Floating: false } || CoveringOther(desk, window) is not { LayoutFullscreen: false } covering)
             return window;
 
-        switch (_config.Session.OnFocusUnderFullscreen)
-        {
-            case 0:
-                return covering.Window;
-            case 1:
-                placements = SetFullscreen(desk, window, covering.Fullscreen);
-                return window;
-            default:
-                placements = EndFullscreen(desk, covering.Window);
-                return window;
-        }
-    }
-
-    // misc:exit_window_retains_fullscreen: the Client that takes the focus from a closed
-    // fullscreen or maximized one takes its mode. 1 always, 2 only for the next member of its Group, 3 only otherwise.
-    private IReadOnlyList<Placement>? RetainFullscreen(LiveWorkspace desk, WindowId next, FullscreenMode mode, bool grouped)
-    {
-        var retain = _config.Session.ExitWindowRetainsFullscreen switch
-        {
-            1 => true,
-            2 => grouped,
-            3 => !grouped,
-            _ => false,
-        };
-        if (!retain || mode == FullscreenMode.None || desk.ClientOf(next) is null)
-            return null;
-
-        return SetFullscreen(desk, next, mode);
+        placements = EndFullscreen(desk, covering.Window);
+        return window;
     }
 
     private static Client? CoveringOther(LiveWorkspace desk, WindowId window)

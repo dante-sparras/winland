@@ -123,13 +123,9 @@ public sealed partial class WindowManager
             if (launch.Rules.Count > 0)
                 _follow.Track(processId, launch.Rules, Clock());
 
-            // misc:initial_workspace_tracking 2 keeps the token for good, as Winland gives it a very long life.
-            var tracking = _config.Session.InitialWorkspaceTracking;
-            if (tracking > 0 && launch.InitialWorkspace is WorkspaceId workspace)
-            {
-                var expires = tracking == 2 ? long.MaxValue : Clock() + (_config.Session.InitialWorkspaceTokenTimeout * 1000L);
-                _initialWorkspaces.Track(processId, workspace, expires);
-            }
+            // A started program has ten seconds to open its window.
+            if (launch.InitialWorkspace is WorkspaceId workspace)
+                _initialWorkspaces.Track(processId, workspace, Clock() + 10_000);
         }
     }
 
@@ -163,10 +159,7 @@ public sealed partial class WindowManager
             var outcome = run();
             CheckShownWorkspaces();
             if (input is not null)
-            {
-                outcome = WakeDisplays(input, outcome);
                 Note(input);
-            }
 
             outcome = Ordered(WithEvents(Decorate(outcome, before.State), before, input));
             Emit(outcome);

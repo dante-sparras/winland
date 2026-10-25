@@ -29,7 +29,7 @@ public sealed partial class WindowManager
 
         // A Workspace with a fullscreen or maximized Client offers no window in a direction, as in the pinned
         // release, so focus moves on to the next Monitor. One its Layout holds fullscreen lets focus move on the
-        // Workspace when binds:movefocus_cycles_fullscreen is on and misc:on_focus_under_fullscreen is not 0.
+        // Workspace when binds:movefocus_cycles_fullscreen is on.
         if (active is WindowId current && !HasFullscreen(desk))
         {
             var focus = desk.Layout.MoveFocus(current, arguments);
@@ -45,11 +45,11 @@ public sealed partial class WindowManager
         }
 
         if (!_config.BindOptions.MonitorFallback || MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from)
-            return NothingToFocus(name, direction);
+            return View([], dispatcher: name);
 
         if (MonitorSelector.InDirection(Targets(), from, direction) is not MonitorTarget neighbor
             || MonitorOf(neighbor) is not LiveMonitor destination)
-            return NothingToFocus(name, direction);
+            return View([], dispatcher: name);
 
         WindowId? adjacent = null;
         if (active is WindowId fromWindow && desk.Layout.TryBounds(fromWindow, out var box))
@@ -58,12 +58,6 @@ public sealed partial class WindowManager
         return FocusOnto(destination, name, adjacent);
     }
 
-    // general:no_focus_fallback makes a movefocus that finds nothing answer an error.
-    private Outcome NothingToFocus(string name, Side direction) =>
-        _config.Session.NoFocusFallback
-            ? Rejected(name, "error: Nothing to focus to in direction " + direction.ToString().ToLowerInvariant())
-            : View([], dispatcher: name);
-
     private bool HasFullscreen(LiveWorkspace desk)
     {
         foreach (var client in desk.Layout.Clients)
@@ -71,7 +65,7 @@ public sealed partial class WindowManager
             if (!desk.IsCovering(client))
                 continue;
 
-            if (!client.LayoutFullscreen || !_config.Session.MoveFocusCyclesFullscreen || _config.Session.OnFocusUnderFullscreen == 0)
+            if (!client.LayoutFullscreen || !_config.Session.MoveFocusCyclesFullscreen)
                 return true;
         }
 

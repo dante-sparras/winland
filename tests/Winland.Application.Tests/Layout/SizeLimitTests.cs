@@ -250,22 +250,7 @@ public class SizeLimitTests
     }
 
     [Fact]
-    public void MinSizeRuleRaisesTheTileWithSizeLimitsTiled()
-    {
-        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nmisc:size_limits_tiled = true\nwindowrule = min_size 1400 100, class:^(wide)$\n"));
-        core.Handle(new WindowAppeared(new WindowId(1), Area));
-
-        var outcome = core.Handle(new WindowAppeared(new WindowId(2), Area)
-        {
-            Traits = WindowTraits.Normal with { Class = "wide" },
-        });
-
-        Assert.Equal(new Rectangle(0, 0, 520, 1080), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(520, 0, 1400, 1080), BoundsOf(outcome, 2));
-    }
-
-    [Fact]
-    public void MinSizeRuleLeavesATileAloneByDefault()
+    public void MinSizeRuleLeavesATileAlone()
     {
         var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrule = min_size 1400 100, class:^(wide)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
@@ -277,20 +262,6 @@ public class SizeLimitTests
 
         Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(outcome, 1));
         Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(outcome, 2));
-    }
-
-    [Fact]
-    public void TurningSizeLimitsTiledOnRaisesTheTile()
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrule = min_size 1400 100, class:^(wide)$\n")));
-        core.Handle(new WindowAppeared(new WindowId(1), Area));
-        core.Handle(new WindowAppeared(new WindowId(2), Area) { Traits = WindowTraits.Normal with { Class = "wide" } });
-
-        var reply = core.Execute("keyword misc:size_limits_tiled true");
-
-        Assert.Equal("ok", reply.Text);
-        Assert.Equal(new Rectangle(520, 0, 1400, 1080), BoundsOf(reply.Effect, 2));
     }
 
     [Fact]
@@ -366,22 +337,18 @@ public class SizeLimitTests
     public void LaterMinSizeReplacesAnEarlierOne()
     {
         var core = new WindowManager(ConfigParser.Parse("""
-            general:gaps_in = 0
-            general:gaps_out = 0
-            general:border_size = 0
-            misc:size_limits_tiled = true
+            windowrule = float, class:^(wide)$
             windowrule = min_size 1400 100, class:^(wide)$
             windowrule = min_size 100 100, class:^(wide)$
             """));
-        core.Handle(new WindowAppeared(new WindowId(1), Area));
 
-        var outcome = core.Handle(new WindowAppeared(new WindowId(2), Area)
+        var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
             Traits = WindowTraits.Normal with { Class = "wide", MinSize = new Size(1400, 100) },
+            Bounds = new Rectangle(100, 100, 300, 200),
         });
 
-        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(outcome, 2));
+        Assert.Equal(new Size(300, 200), SizeOf(BoundsOf(outcome, 1)));
     }
 
     [Fact]

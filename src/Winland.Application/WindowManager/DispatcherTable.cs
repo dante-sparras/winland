@@ -32,7 +32,7 @@ public sealed partial class WindowManager
         /// <summary>Puts the cursor in the middle of a Monitor it leaves with nothing to focus.</summary>
         WarpsToEmptyMonitor = 2,
 
-        /// <summary>A dwindle resize that moves the tiles at once unless <c>misc:animate_manual_resizes</c> is on.</summary>
+        /// <summary>A dwindle resize that moves the tiles at once.</summary>
         InstantResize = 4,
     }
 

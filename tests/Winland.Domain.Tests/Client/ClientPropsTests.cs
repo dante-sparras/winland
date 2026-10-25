@@ -70,7 +70,6 @@ public class ClientPropsTests
 
         Assert.Null(props.Value(Window, "border_size"));
         Assert.Null(props.Sizes(Window));
-        Assert.Empty(props.Sized);
     }
 
     [Fact]

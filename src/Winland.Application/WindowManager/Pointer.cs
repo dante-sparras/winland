@@ -131,8 +131,7 @@ public sealed partial class WindowManager
         }
 
         var traveled = Advance(moved.Position, now);
-        if (_config.Session.MouseMoveFocusesMonitor)
-            FocusMonitorAt(moved.Position);
+        FocusMonitorAt(moved.Position);
 
         if (_keyState.ButtonsHeld)
             return null;
