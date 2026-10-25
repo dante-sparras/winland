@@ -5,36 +5,6 @@ public class OffWindowAxisTests
     private static readonly Rectangle Wide = new(0, 0, 1920, 1080);
 
     [Theory]
-    [InlineData("ignore", 0)]
-    [InlineData("send", 1)]
-    [InlineData("clamp", 2)]
-    [InlineData("warp", 3)]
-    [InlineData("WARP", 3)]
-    [InlineData("0", 0)]
-    [InlineData("3", 3)]
-    [InlineData("8", 3)]
-    [InlineData("-1", 0)]
-    public void TheModeTakesItsNamesAndClampsItsNumber(string value, int mode) =>
-        Assert.Equal(mode, InputOptions.From(ConfigParser.Parse($"input:off_window_axis_events = {value}\n")).OffWindowAxisEvents);
-
-    [Fact]
-    public void SendIsTheDefaultAndAnUnreadableValueKeepsIt()
-    {
-        Assert.Equal(1, InputOptions.Documented.OffWindowAxisEvents);
-        Assert.Equal(1, InputOptions.From(ConfigParser.Parse("input:off_window_axis_events = never\n")).OffWindowAxisEvents);
-        Assert.Equal(1, new WindowManager().OffWindowAxisMode);
-    }
-
-    [Fact]
-    public void TheModeReachesTheCore()
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse("input:off_window_axis_events = clamp\n")));
-
-        Assert.Equal(2, core.OffWindowAxisMode);
-    }
-
-    [Theory]
     [InlineData(0, 0, 0, 0)]
     [InlineData(100, 50, 100, 50)]
     [InlineData(-30, 50, 0, 50)]

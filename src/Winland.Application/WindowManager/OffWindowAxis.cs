@@ -6,12 +6,6 @@ public readonly record struct OffWindowScroll(WindowId Window, Point Inside);
 public sealed partial class WindowManager
 {
     /// <summary>
-    /// <c>input:off_window_axis_events</c>: 0 drops a wheel turn over the ring around a window, 1 and 2 send it to the
-    /// window at the nearest point inside it, and 3 also moves the cursor there. The mouse hook reads it with no lock.
-    /// </summary>
-    public int OffWindowAxisMode => _config.Input.OffWindowAxisEvents;
-
-    /// <summary>
     /// The window a wheel turn at <paramref name="pointer"/> is meant for when the pointer is not inside it but within
     /// its ring (the border, and with <c>resize_on_border</c> the grab area around it), or null when the pointer is inside
     /// a window or over none. It runs on the mouse hook for every wheel turn, so it never waits: with a ring of no size

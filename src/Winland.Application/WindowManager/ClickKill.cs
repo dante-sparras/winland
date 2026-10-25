@@ -25,7 +25,7 @@ public sealed partial class WindowManager
     {
         Volatile.Write(ref _clickKill, 0);
         if (chosen.Position is not Point at
-            || WindowUnder(at, shrink: false) is not WindowId window
+            || WindowUnder(at) is not WindowId window
             || Find(window) is not Client client
             || client.ProcessId <= 0)
             return View([]);

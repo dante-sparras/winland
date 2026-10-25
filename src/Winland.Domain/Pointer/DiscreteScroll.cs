@@ -1,14 +1,13 @@
 namespace Winland.Domain;
 
 /// <summary>
-/// <c>input:emulate_discrete_scroll</c>: turns the wheel turns of a high resolution wheel, which Windows sends in
-/// parts of a notch, into whole notches, as Winland does for a wheel's smooth events. 0 leaves every turn
-/// alone. 1 emulates only the turns that are not whole notches. 2 emulates every turn, whole notches too.
+/// Turns the wheel turns of a high resolution wheel, which Windows sends in parts of a notch, into whole notches, as
+/// Winland does for a wheel's smooth events. Turns that are already whole notches are left alone.
 /// </summary>
 /// <remarks>
 /// The first turn of a run, a run being the same axis and direction with under <see cref="IdleMs"/> between turns, sends
-/// a notch at once so the wheel answers. After that a notch is sent for every <c>120 / factor</c> units the turns add
-/// up to. The mouse hook passes a factor of 1, so a notch is 120 units. Used on the hook thread.
+/// a notch at once so the wheel answers. After that a notch is sent for every 120 units the turns add
+/// up to. Used on the hook thread.
 /// </remarks>
 public sealed class DiscreteScroll
 {
@@ -21,20 +20,14 @@ public sealed class DiscreteScroll
     private long _timeMs = long.MinValue;
     private bool _started;
 
-    /// <summary>Whether <paramref name="delta"/> is a turn <paramref name="mode"/> emulates: not whole notches for 1, any for 2.</summary>
-    public static bool Emulates(int mode, int delta) =>
-        delta != 0 && mode switch
-        {
-            >= 2 => true,
-            1 => delta % TouchpadPointer.Notch != 0,
-            _ => false,
-        };
+    /// <summary>Whether <paramref name="delta"/> is a turn that is not whole notches.</summary>
+    public static bool Emulates(int delta) => delta % TouchpadPointer.Notch != 0;
 
     /// <summary>
     /// The notches, as a wheel delta, to send instead of the turn <paramref name="delta"/>: a signed multiple of 120, or
     /// 0 to send none for now. Call it only for a turn <see cref="Emulates"/> accepted.
     /// </summary>
-    public int Emulate(int delta, bool horizontal, double factor, long timeMs)
+    public int Emulate(int delta, bool horizontal, long timeMs)
     {
         var sign = Math.Sign(delta);
         var notches = 0;
@@ -45,12 +38,10 @@ public sealed class DiscreteScroll
             notches = 1;
         }
 
-        var interval = factor > 0 ? (int)Math.Round(TouchpadPointer.Notch / factor, MidpointRounding.ToEven) : TouchpadPointer.Notch;
-        interval = Math.Max(interval, 1);
-        while (_sum >= interval)
+        while (_sum >= TouchpadPointer.Notch)
         {
             notches++;
-            _sum -= interval;
+            _sum -= TouchpadPointer.Notch;
         }
 
         _started = true;

@@ -11,11 +11,6 @@ public class FollowMouseTests
         var session = SessionOptions.From(ConfigParser.Parse(""));
 
         Assert.Equal(1, input.FollowMouse);
-        Assert.Equal(0, input.FollowMouseThreshold);
-        Assert.Equal(0, input.FollowMouseShrink);
-        Assert.True(input.MouseRefocus);
-        Assert.Equal(1, input.FloatSwitchOverrideFocus);
-        Assert.Equal(0, input.FocusOnClose);
         Assert.True(session.MouseMoveFocusesMonitor);
     }
 
@@ -24,21 +19,11 @@ public class FollowMouseTests
     {
         var input = InputOptions.From(ConfigParser.Parse("""
             input:follow_mouse = separate
-            input:follow_mouse_threshold = 12.5
-            input:follow_mouse_shrink = 400
-            input:mouse_refocus = false
-            input:float_switch_override_focus = 2
-            input:focus_on_close = cursor
             misc:mouse_move_focuses_monitor = false
             """));
         var session = SessionOptions.From(ConfigParser.Parse("misc:mouse_move_focuses_monitor = off\n"));
 
         Assert.Equal(3, input.FollowMouse);
-        Assert.Equal(12.5, input.FollowMouseThreshold);
-        Assert.Equal(300, input.FollowMouseShrink);
-        Assert.False(input.MouseRefocus);
-        Assert.Equal(2, input.FloatSwitchOverrideFocus);
-        Assert.Equal(1, input.FocusOnClose);
         Assert.False(session.MouseMoveFocusesMonitor);
     }
 
@@ -85,29 +70,13 @@ public class FollowMouseTests
     }
 
     [Fact]
-    public void ThresholdHoldsFocusUntilThePointerHasTraveledFarEnough()
+    public void APauseBeforeCrossingLeavesTheFocus()
     {
-        var core = Floats("input:follow_mouse_threshold = 50\n");
+        var core = Floats("");
         core.Handle(Box(1, 0, 0));
         core.Handle(Box(2, 100, 0));
 
         Move(core, new Point(101, 50), 0);
-        var blocked = Move(core, new Point(70, 50), 100);
-        var followed = Move(core, new Point(40, 50), 200);
-
-        Assert.Null(blocked.Focus);
-        Assert.Equal(new WindowId(1), followed.Focus);
-    }
-
-    [Fact]
-    public void APauseResetsTheThreshold()
-    {
-        var core = Floats("input:follow_mouse_threshold = 50\n");
-        core.Handle(Box(1, 0, 0));
-        core.Handle(Box(2, 100, 0));
-
-        Move(core, new Point(101, 50), 0);
-        Move(core, new Point(70, 50), 100);
         var paused = Move(core, new Point(40, 50), 700);
 
         Assert.Null(paused.Focus);
@@ -115,94 +84,14 @@ public class FollowMouseTests
     }
 
     [Fact]
-    public void ShrinkLeavesADeadZoneAroundAnUnfocusedClient()
-    {
-        var core = Floats("input:follow_mouse_shrink = 20\n");
-        core.Handle(Box(1, 100, 100, 400, 400));
-        core.Handle(Box(2, 520, 100, 400, 400));
-        core.Handle(new Dispatch("focuswindow", "address:0x1"));
-
-        Move(core, new Point(300, 300), 1_000);
-        var dead = Move(core, new Point(530, 300), 1_100);
-        var entered = Move(core, new Point(720, 300), 1_200);
-
-        Assert.Null(dead.Focus);
-        Assert.Equal(new WindowId(2), entered.Focus);
-
-        core.Handle(new Dispatch("focuswindow", "address:0x1"));
-        Move(core, new Point(300, 300), 2_000);
-        var ownEdge = Move(core, new Point(490, 300), 2_100);
-
-        Assert.Null(ownEdge.Focus);
-        Assert.Equal("\"address\":\"0x1\"", Address(core));
-
-        core.Handle(new Dispatch("focuswindow", "address:0x2"));
-        Move(core, new Point(720, 300), 3_000);
-        var otherEdge = Move(core, new Point(490, 300), 3_100);
-
-        Assert.Null(otherEdge.Focus);
-        Assert.Equal("\"address\":\"0x2\"", Address(core));
-    }
-
-    [Fact]
-    public void RefocusWaitsForABoundaryWhenItIsOff()
-    {
-        var (core, laid) = Tiled("input:mouse_refocus = false\n");
-        var right = Center(laid, 2);
-        var left = Center(laid, 1);
-
-        Move(core, right, 1_000);
-        core.Handle(new Dispatch("movefocus", "l"));
-        var stayed = Move(core, new Point(right.X - 30, right.Y), 1_100);
-        Move(core, left, 1_200);
-        var crossed = Move(core, right, 1_300);
-
-        Assert.Null(stayed.Focus);
-        Assert.Equal(new WindowId(2), crossed.Focus);
-    }
-
-    [Fact]
-    public void AWindowThatReusesAClosedHandleIsNotTakenForTheWindowLastHovered()
-    {
-        var (core, laid) = Tiled("input:mouse_refocus = false\n");
-        var right = Center(laid, 2);
-        Move(core, right, 1_000);
-        core.Handle(new WindowClosed(new WindowId(2)));
-        core.Handle(new WindowAppeared(new WindowId(2), Area));
-        core.Handle(new Dispatch("movefocus", "l"));
-
-        var hovered = Move(core, new Point(right.X - 30, right.Y), 1_100);
-
-        Assert.Equal(new WindowId(2), hovered.Focus);
-    }
-
-    [Fact]
     public void FloatSwitchFocusesAcrossTiledAndFloating()
     {
-        var off = Floats("input:follow_mouse = 0\ninput:float_switch_override_focus = 0\n");
-        off.Handle(new WindowAppeared(new WindowId(1), Area));
-        off.Handle(Box(2, 100, 100, 200, 200));
-        var kept = Move(off, new Point(700, 700), 1_000);
+        var core = Floats("input:follow_mouse = 0\n");
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        core.Handle(Box(2, 100, 100, 200, 200));
+        var switched = Move(core, new Point(700, 700), 1_000);
 
-        var on = Floats("input:follow_mouse = 0\ninput:float_switch_override_focus = 1\n");
-        on.Handle(new WindowAppeared(new WindowId(1), Area));
-        on.Handle(Box(2, 100, 100, 200, 200));
-        var switched = Move(on, new Point(700, 700), 1_000);
-
-        Assert.Null(kept.Focus);
         Assert.Equal(new WindowId(1), switched.Focus);
-    }
-
-    [Fact]
-    public void FloatSwitchTwoFollowsBetweenFloats()
-    {
-        var core = Floats("input:follow_mouse = 0\ninput:float_switch_override_focus = 2\n");
-        core.Handle(Box(1, 0, 0));
-        core.Handle(Box(2, 200, 0));
-
-        var followed = Move(core, new Point(40, 50), 1_000);
-
-        Assert.Equal(new WindowId(1), followed.Focus);
     }
 
     [Fact]
@@ -271,30 +160,19 @@ public class FollowMouseTests
     }
 
     [Fact]
-    public void FocusOnCloseUsesTheNearestClientThePointerOrTheRecentOne()
+    public void ClosingFocusesTheNearestClient()
     {
-        var nearest = TiledThree("input:focus_on_close = 0\n");
+        var nearest = TiledThree("");
         var next = nearest.Handle(new WindowClosed(new WindowId(3)));
 
-        var cursor = TiledThree("input:follow_mouse = 0\ninput:focus_on_close = 1\n");
-        Move(cursor, new Point(480, 540), 1_000);
-        var under = cursor.Handle(new WindowClosed(new WindowId(3)));
-
-        var recent = TiledThree("input:focus_on_close = mru\n");
-        var first = recent.Handle(new WindowClosed(new WindowId(3)));
-        var older = recent.Handle(new WindowClosed(new WindowId(2)));
-
         Assert.Equal(new WindowId(2), next.Focus);
-        Assert.Equal(new WindowId(1), under.Focus);
-        Assert.Equal(new WindowId(2), first.Focus);
-        Assert.Equal(new WindowId(1), older.Focus);
     }
 
     [Fact]
-    public void FocusOnCloseZeroPrefersATileOverAFloatOnTop()
+    public void ClosingPrefersATileOverAFloatOnTop()
     {
         // The float opens first, so it comes before both tiles and would win a tie on distance.
-        var core = Floats("input:focus_on_close = 0\n");
+        var core = Floats("");
         core.Handle(Box(3, 1390, 490));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));

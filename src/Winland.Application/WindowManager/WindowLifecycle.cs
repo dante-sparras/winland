@@ -90,7 +90,7 @@ public sealed partial class WindowManager
             var special = _workspaces.Shown.SpecialOn(owner.Monitor);
             var onSpecial = special == owner.Id;
             var onNormal = owner.Id == _workspaces.Shown.ActiveOn(owner.Monitor);
-            if (onSpecial || (onNormal && (special is null || _config.Input.SpecialFallthrough)))
+            if (onSpecial || (onNormal && special is null))
             {
                 _focus.Take(window, owner);
                 TouchHistory(window);
@@ -286,7 +286,7 @@ public sealed partial class WindowManager
                 return View(normal?.Layout.Visible() ?? [], focus: specialFocus);
             }
 
-            _focus.Take(_config.Input.SpecialFallthrough ? _focus.Remembered(_workspaces.Find(_workspaces.Shown.ActiveOn(monitor)) ?? FocusedWorkspace()) : null);
+            _focus.Take(null);
             FocusState.Remember(desk, null);
             return View([], focus: _focus.Focused);
         }
@@ -322,10 +322,8 @@ public sealed partial class WindowManager
                 if (RetainFullscreen(desk, chosen, mode, grouped: false) is { } retained)
                     placements = retained;
             }
-            else if (_config.Input.FocusOnClose == 0)
-                reveal = true;
             else
-                TakeFocus(desk, null);
+                reveal = true;
         }
 
         var outcome = Present(desk, covered, placements, focus: next, focusRevealed: reveal);

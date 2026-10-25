@@ -30,10 +30,6 @@ public sealed class MouseHook : IDisposable
     private HHOOK _hook;
     // Buttons whose press a drag bind let through, with no window to drag, so their release goes through too.
     private readonly HashSet<string> _passed = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ButtonScroller _scroller = new();
-    private readonly PointerRotation _rotation = new();
-    private readonly TouchpadPointer _touchpadWheel = new();
-    private readonly ScrollAccelerator _curveWheel = new();
     private readonly DiscreteScroll _discreteWheel = new();
     private readonly HashSet<string> _killed = new(StringComparer.Ordinal);
     private bool _disposed;
@@ -115,9 +111,6 @@ public sealed class MouseHook : IDisposable
             var position = new Point(info.pt.X, info.pt.Y);
             var message = (uint)wParam.Value;
             var source = PointerSources.Of(info.flags, (ulong)info.dwExtraInfo);
-            if (ButtonScroll(message, info.mouseData, position))
-                return new LRESULT(1);
-
             if (message == MoveMessage)
                 return OnMove(code, wParam, lParam, position, info.time, source);
 
@@ -133,7 +126,7 @@ public sealed class MouseHook : IDisposable
             }
 
             if (TryWheel(message, info.mouseData, out var key))
-                return OnWheel(key, position) || OffWindowWheel(message, info.mouseData, position, source, info.time) || ScaleWheel(message, info.mouseData, position, source, info.time) ? new LRESULT(1) : Next(code, wParam, lParam);
+                return OnWheel(key, position) || OffWindowWheel(message, info.mouseData, position) || DiscreteWheel(message, info.mouseData, source, info.time) ? new LRESULT(1) : Next(code, wParam, lParam);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -149,45 +142,6 @@ public sealed class MouseHook : IDisposable
         return under.IsNull ? 0 : (nint)PInvoke.GetAncestor(under, GET_ANCESTOR_FLAGS.GA_ROOT).Value;
     }
 
-    // input:scroll_method on_button_down: the scroll button is held back, and moving the pointer while it is down turns
-    // the wheel instead. True when the event was taken.
-    private bool ButtonScroll(uint message, uint mouseData, Point position)
-    {
-        _scroller.Configure(_core.ButtonScroll);
-        if (message == MoveMessage)
-        {
-            if (!_scroller.Scrolling || !PInvoke.GetCursorPos(out var from))
-                return false;
-
-            var step = _scroller.Move(position.X - from.X, position.Y - from.Y);
-            if (step.WheelY != 0)
-                InputInjector.Post(Mouse(MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, step.WheelY));
-            if (step.WheelX != 0)
-                InputInjector.Post(Mouse(MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL, step.WheelX));
-
-            return step.Swallow;
-        }
-
-        if (!TryButton(message, mouseData, out var button, out var up))
-            return false;
-
-        var result = up ? _scroller.Release(button) : _scroller.Press(button);
-        if (result.Click && Buttons(button) is var (press, release, data))
-            InputInjector.Post(Mouse(press, data), Mouse(release, data));
-
-        return result.Swallow;
-    }
-
-    private static (MOUSE_EVENT_FLAGS Press, MOUSE_EVENT_FLAGS Release, int Data)? Buttons(string button) => button switch
-    {
-        "mouse:272" => (MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTDOWN, MOUSE_EVENT_FLAGS.MOUSEEVENTF_LEFTUP, 0),
-        "mouse:273" => (MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTDOWN, MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTUP, 0),
-        "mouse:274" => (MOUSE_EVENT_FLAGS.MOUSEEVENTF_MIDDLEDOWN, MOUSE_EVENT_FLAGS.MOUSEEVENTF_MIDDLEUP, 0),
-        "mouse:275" => (MOUSE_EVENT_FLAGS.MOUSEEVENTF_XDOWN, MOUSE_EVENT_FLAGS.MOUSEEVENTF_XUP, 1),
-        "mouse:276" => (MOUSE_EVENT_FLAGS.MOUSEEVENTF_XDOWN, MOUSE_EVENT_FLAGS.MOUSEEVENTF_XUP, 2),
-        _ => null,
-    };
-
     // Sent with Winland's tag, so this hook passes it on and the window under the pointer gets it.
     private static INPUT Mouse(MOUSE_EVENT_FLAGS flags, int data)
     {
@@ -201,38 +155,17 @@ public sealed class MouseHook : IDisposable
     private LRESULT OnMove(int code, WPARAM wParam, LPARAM lParam, Point position, uint time, PointerSource source)
     {
         var redirected = false;
-        var moveX = 0;
-        var moveY = 0;
-        var haveMove = false;
         if (source != PointerSource.Mouse)
         {
             SessionEffects.NoteNonMouse();
         }
         else if (PInvoke.GetCursorPos(out var from))
         {
-            moveX = position.X - from.X;
-            moveY = position.Y - from.Y;
-            haveMove = moveX != 0 || moveY != 0;
             if (SessionEffects.MouseMoved(new Point(from.X, from.Y), position) is Point back)
             {
                 // cursor:warp_back_after_non_mouse_input: the move starts where the mouse left the cursor instead.
                 _ = PInvoke.SetCursorPos(back.X, back.Y);
                 position = PInvoke.GetCursorPos(out var landed) ? new Point(landed.X, landed.Y) : back;
-                redirected = true;
-            }
-        }
-
-        // input:rotation turns a mouse move about where the cursor is. A touchpad move is not turned.
-        var fingers = TouchpadFingers.Moves(Environment.TickCount64);
-        var degrees = source == PointerSource.Mouse && !fingers ? _core.PointerRotation : 0;
-        if (!redirected && haveMove && degrees != 0 && PInvoke.GetCursorPos(out var at))
-        {
-            var (dx, dy) = _rotation.Turn(moveX, moveY, degrees);
-            var turned = new Point(at.X + dx, at.Y + dy);
-            if (turned != position)
-            {
-                _ = PInvoke.SetCursorPos(turned.X, turned.Y);
-                position = PInvoke.GetCursorPos(out var moved) ? new Point(moved.X, moved.Y) : turned;
                 redirected = true;
             }
         }
@@ -326,73 +259,38 @@ public sealed class MouseHook : IDisposable
         return decision.Consumed;
     }
 
-    // A mouse wheel turn goes to discrete scroll and scroll_points. True when it was taken.
-    private bool ScaleWheel(uint message, uint mouseData, Point position, PointerSource source, uint time)
+    // input:emulate_discrete_scroll: a mouse wheel turn that is part of a notch is taken, and the whole notches it adds up
+    // to are sent in its place. True when the turn was taken.
+    private bool DiscreteWheel(uint message, uint mouseData, PointerSource source, uint time)
     {
         if (source != PointerSource.Mouse)
             return false;
 
         var delta = (short)(mouseData >> 16);
-        var touchpad = TouchpadFingers.Scrolls(Environment.TickCount64, delta);
-        return !touchpad && (DiscreteWheel(message, delta, time) || (_core.ScrollCurve is ScrollCurve curve && CurveWheel(curve, message, delta, time)));
-    }
-
-    // input:scroll_points: a mouse wheel turn is taken and sent again at the factor its speed asks for. Always taken.
-    private bool CurveWheel(ScrollCurve curve, uint message, int delta, uint time)
-    {
-        var horizontal = message == HorizontalWheel;
-        var accelerated = _curveWheel.Accelerate(curve, delta, horizontal, time);
-        if (accelerated != 0)
-            InputInjector.Post(Mouse(horizontal ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL : MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, accelerated));
-
-        return true;
-    }
-
-    // input:emulate_discrete_scroll: a wheel turn that is part of a notch (or any turn, for force_all) is taken, and the
-    // whole notches it adds up to are sent in its place. True when the turn was taken. A turn it takes skips scroll_points.
-    private bool DiscreteWheel(uint message, int delta, uint time)
-    {
-        if (!DiscreteScroll.Emulates(_core.DiscreteScrollMode, delta))
+        if (delta == 0 || TouchpadFingers.Scrolls(Environment.TickCount64, delta) || !DiscreteScroll.Emulates(delta))
             return false;
 
         var horizontal = message == HorizontalWheel;
-        var notches = _discreteWheel.Emulate(delta, horizontal, 1, time);
+        var notches = _discreteWheel.Emulate(delta, horizontal, time);
         if (notches != 0)
             InputInjector.Post(Mouse(horizontal ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL : MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, notches));
         return true;
     }
 
-    // input:off_window_axis_events: a wheel turn over the ring around a window, not inside it. 0 drops it. 1, the default, and 2
-    // post it to the window as a wheel message at the nearest point inside the window, as Windows apps cannot take the
-    // reference's coordinates outside their window. 3 moves the cursor there first and sends the turn again, so Windows
-    // delivers it as it would any turn there. The lookup never waits on the core: a busy core leaves the turn to Windows.
-    // True when the turn was taken.
-    private bool OffWindowWheel(uint message, uint mouseData, Point position, PointerSource source, uint time)
+    // A wheel turn over the ring around a window, not inside it, is posted to the window as a wheel message at the nearest
+    // point inside the window, as Windows apps cannot take the reference's coordinates outside their window. The lookup
+    // never waits on the core: a busy core leaves the turn to Windows. True when the turn was taken.
+    private bool OffWindowWheel(uint message, uint mouseData, Point position)
     {
-        var mode = _core.OffWindowAxisMode;
         if (_core.OffWindowTarget(position) is not OffWindowScroll target)
             return false;
 
-        if (mode == 0)
-            return true;
-
         var delta = (short)(mouseData >> 16);
-        if (mode is 1 or 2)
-        {
-            var keys = ((PInvoke.GetAsyncKeyState((int)VIRTUAL_KEY.VK_SHIFT) & 0x8000) != 0 ? 0x4u : 0u)
-                | ((PInvoke.GetAsyncKeyState((int)VIRTUAL_KEY.VK_CONTROL) & 0x8000) != 0 ? 0x8u : 0u);
-            var wParam = (nuint)(((uint)(ushort)delta << 16) | keys);
-            var lParam = (nint)(int)(((uint)(ushort)target.Inside.Y << 16) | (ushort)target.Inside.X);
-            _ = PInvoke.PostMessage(new HWND((nint)target.Window.Value), message, new WPARAM(wParam), new LPARAM(lParam));
-            return true;
-        }
-
-        _ = PInvoke.SetCursorPos(target.Inside.X, target.Inside.Y);
-        if (ScaleWheel(message, mouseData, target.Inside, source, time))
-            return true;
-
-        InputInjector.Post(Mouse(message == HorizontalWheel ? MOUSE_EVENT_FLAGS.MOUSEEVENTF_HWHEEL : MOUSE_EVENT_FLAGS.MOUSEEVENTF_WHEEL, delta));
-
+        var keys = ((PInvoke.GetAsyncKeyState((int)VIRTUAL_KEY.VK_SHIFT) & 0x8000) != 0 ? 0x4u : 0u)
+            | ((PInvoke.GetAsyncKeyState((int)VIRTUAL_KEY.VK_CONTROL) & 0x8000) != 0 ? 0x8u : 0u);
+        var wParam = (nuint)(((uint)(ushort)delta << 16) | keys);
+        var lParam = (nint)(int)(((uint)(ushort)target.Inside.Y << 16) | (ushort)target.Inside.X);
+        _ = PInvoke.PostMessage(new HWND((nint)target.Window.Value), message, new WPARAM(wParam), new LPARAM(lParam));
         return true;
     }
 
