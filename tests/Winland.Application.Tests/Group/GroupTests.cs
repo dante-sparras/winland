@@ -330,7 +330,7 @@ public class GroupTests
     [Fact]
     public void GroupRuleOpensTheWindowAsAGroup()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = group set lock, class:^(tabs)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = group set lock, class:^(tabs)$\n"));
 
         var opened = core.Handle(new WindowAppeared(First, Area) { Traits = WindowTraits.Normal with { Class = "tabs", Title = "one" } });
 
@@ -343,8 +343,8 @@ public class GroupTests
     public void BarredAndDeniedWindowsDoNotJoinTheFocusedGroup()
     {
         var core = new WindowManager(ConfigParser.Parse("""
-            windowrulev2 = group barred, class:^(alone)$
-            windowrulev2 = group deny, class:^(never)$
+            windowrule = group barred, class:^(alone)$
+            windowrule = group deny, class:^(never)$
             """));
         core.Handle(Appear(First, "one"));
         core.Execute("dispatch togglegroup");
@@ -550,19 +550,6 @@ public class GroupTests
         Assert.Equal(slot, kept);
         Assert.False(layout.TryBounds(Second, out _));
         Assert.False(layout.Substitute(First, Third, default, out _));
-    }
-
-    [Fact]
-    public void ToggleGroupOnAMaximizedClientReadsTheWorkspaceRulesAgain()
-    {
-        var core = Opened(auto: true, "workspace = f[1], defaultName:Covered\n", First);
-        var maximized = core.Handle(new Dispatch("fullscreen", "1"));
-        Assert.Equal("Covered", maximized.State.Workspaces.Single(workspace => workspace.Id == new WorkspaceId("1")).DisplayName);
-
-        var grouped = core.Execute("dispatch togglegroup").Effect;
-
-        Assert.Equal(FullscreenMode.None, ClientOf(grouped, First).Fullscreen);
-        Assert.Null(grouped.State.Workspaces.Single(workspace => workspace.Id == new WorkspaceId("1")).DisplayName);
     }
 
     [Fact]

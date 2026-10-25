@@ -51,21 +51,9 @@ public class ModalTests
     }
 
     [Fact]
-    public void TheModalRuleMatchesTheDialogOfADisabledOwner()
-    {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, modal:1\n"));
-        core.Handle(new WindowAppeared(Owner, Area) { Disabled = true });
-        var opened = core.Handle(new WindowAppeared(Dialog, Area) { Owner = Owner });
-        var free = core.Handle(new WindowAppeared(new WindowId(3), Area) { Owner = new WindowId(9) });
-
-        Assert.True(Assert.Single(opened.State.Clients, client => client.Window == Dialog).Floating);
-        Assert.False(Assert.Single(free.State.Clients, client => client.Window == new WindowId(3)).Floating);
-    }
-
-    [Fact]
     public void AFloatingWindowWithAnOwnerOpensOverTheMiddleOfItsOwner()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(float)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = float, class:^(float)$\n"));
         var traits = WindowTraits.Normal with { Class = "float" };
         core.Handle(new WindowAppeared(Owner, Area) { Traits = traits, Bounds = new Rectangle(0, 0, 400, 300) });
         core.Handle(new Dispatch("movewindowpixel", "exact 100 100,address:0x1"));

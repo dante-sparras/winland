@@ -26,7 +26,6 @@ public sealed partial class WindowManager
                 ? CommandProtocol.FormatClients(state, clients.All)
                 : Text(CommandProtocol.FormatClientsText(state, clients.All), "no open windows")),
             WorkspacesRequest workspaces => Describe(state => Json(workspaces) ? CommandProtocol.FormatWorkspaces(state) : CommandProtocol.FormatWorkspacesText(state)),
-            WorkspaceRulesRequest => Answer(WorkspaceRules.Format(_config.WorkspaceRules)),
             MonitorsRequest monitors => Describe(state => Json(monitors)
                 ? CommandProtocol.FormatMonitors(state, monitors.All)
                 : CommandProtocol.FormatMonitorsText(state, monitors.All)),

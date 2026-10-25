@@ -61,7 +61,7 @@ public class EventTests
     [Fact]
     public void SilentWorkspaceOpenDoesNotChangeFocus()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 2 silent, class:^(kitty)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = workspace 2 silent, class:^(kitty)$\n"));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
@@ -76,7 +76,7 @@ public class EventTests
     [Fact]
     public void WorkspaceRuleOpenSwitchesThenFocuses()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 2, class:^(kitty)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = workspace 2, class:^(kitty)$\n"));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
@@ -132,18 +132,6 @@ public class EventTests
         var closed = core.Handle(new WindowClosed(new WindowId(7)));
 
         Assert.Equal(["destroyworkspace>>1,", "destroyworkspacev2>>1,1,", "closewindow>>7"], Lines(closed));
-    }
-
-    [Fact]
-    public void ADestroyedWorkspaceIsReportedByItsDefaultName()
-    {
-        var core = new WindowManager(ConfigParser.Parse("workspace = 1, defaultName:code"));
-        core.Handle(new WindowAppeared(new WindowId(7), Area));
-        core.Execute("dispatch workspace 2");
-
-        var closed = core.Handle(new WindowClosed(new WindowId(7)));
-
-        Assert.Equal(["destroyworkspace>>code,", "destroyworkspacev2>>1,code,", "closewindow>>7"], Lines(closed));
     }
 
     [Fact]

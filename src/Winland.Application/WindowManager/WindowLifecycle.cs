@@ -150,8 +150,6 @@ public sealed partial class WindowManager
         var desk = WorkspaceFor(target, ruledHere ? null : target.IsSpecial ? FocusedId() : monitor);
         // WorkspaceFor may place the number on another Monitor. The Client keeps that Workspace.
         target = desk.Id;
-        if (restored is null)
-            decision = DecideAtOpen(traits, JoinRules(_config.WindowRules, followed), decision, desk, appeared.Owner is WindowId owner && _disabled.Contains(owner));
         var area = WorkArea(desk, appeared.WorkArea);
         _area = area;
         decision = EvaluateSizeRules(appeared, decision, desk, area);
@@ -256,7 +254,6 @@ public sealed partial class WindowManager
 
     private Outcome Close(WindowId window)
     {
-        RememberPersistentSize(window);
         _windowState.Forget(window);
         var desk = WorkspaceContaining(window);
         if (desk is null)
@@ -390,8 +387,8 @@ public sealed partial class WindowManager
 
         desk.Reclass(reclassed.Window, reclassed.Class);
 
-        // A rule that matches the class may now match or stop matching, so the next pass reads every rule again.
-        _matchedState = true;
+        // A rule that matches the class may now match or stop matching, so its rules are read again.
+        _renamed.Add(reclassed.Window);
         return View([]);
     }
 
@@ -404,8 +401,8 @@ public sealed partial class WindowManager
 
         desk.Retitle(retitled.Window, retitled.Title);
 
-        // A rule that matches the title may now match or stop matching, so the next pass reads every rule again.
-        _matchedState = true;
+        // A rule that matches the title may now match or stop matching, so its rules are read again.
+        _renamed.Add(retitled.Window);
         return View([]);
     }
 }

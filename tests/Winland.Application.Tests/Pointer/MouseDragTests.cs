@@ -304,23 +304,6 @@ public class MouseDragTests
         Assert.Equal(new Rectangle(640, 340, 740, 463), BoundsOf(resized, 1));
     }
 
-    [Theory]
-    [InlineData("resizewindow", 463)]
-    [InlineData("resizewindow 2", 410)]
-    public void TheKeepAspectRatioPropertyKeepsTheRatioUnlessTheBindSaysTwo(string dispatch, int height)
-    {
-        var core = Flat($"bindm = SUPER, mouse:273, {dispatch}\n");
-        Appear(core, 1);
-        core.Handle(new Dispatch("togglefloating"));
-        core.Handle(new Dispatch("setprop", "address:0x1 keep_aspect_ratio 1"));
-        Press(core, "Super_L");
-        core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(1270, 730) });
-
-        var resized = core.Handle(new PointerMoved(new Point(1370, 740)));
-
-        Assert.Equal(new Rectangle(640, 340, 740, height), BoundsOf(resized, 1));
-    }
-
     [Fact]
     public void AMouseBindPressedOnTheBorderTakesTheClient()
     {

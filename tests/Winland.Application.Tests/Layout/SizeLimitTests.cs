@@ -252,7 +252,7 @@ public class SizeLimitTests
     [Fact]
     public void MinSizeRuleRaisesTheTileWithSizeLimitsTiled()
     {
-        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nmisc:size_limits_tiled = true\nwindowrulev2 = min_size 1400 100, class:^(wide)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nmisc:size_limits_tiled = true\nwindowrule = min_size 1400 100, class:^(wide)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(2), Area)
@@ -267,7 +267,7 @@ public class SizeLimitTests
     [Fact]
     public void MinSizeRuleLeavesATileAloneByDefault()
     {
-        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrulev2 = min_size 1400 100, class:^(wide)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrule = min_size 1400 100, class:^(wide)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(2), Area)
@@ -283,7 +283,7 @@ public class SizeLimitTests
     public void TurningSizeLimitsTiledOnRaisesTheTile()
     {
         var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrulev2 = min_size 1400 100, class:^(wide)$\n")));
+        core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrule = min_size 1400 100, class:^(wide)$\n")));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area) { Traits = WindowTraits.Normal with { Class = "wide" } });
 
@@ -310,7 +310,7 @@ public class SizeLimitTests
     [Fact]
     public void AMinSizeRuleOutlastsTheWindowChangingItsOwnLimits()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(note)$\nwindowrulev2 = min_size 500 400, class:^(note)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = float, class:^(note)$\nwindowrule = min_size 500 400, class:^(note)$\n"));
         core.Handle(new WindowAppeared(new WindowId(1), Area)
         {
             Traits = WindowTraits.Normal with { Class = "note" },
@@ -329,7 +329,7 @@ public class SizeLimitTests
     [Fact]
     public void MaxSizeRuleFloatsTheWindow()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrule = max_size 400 300, ^(small)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = max_size 400 300, class:^(small)$\n"));
         var bounds = new Rectangle(12, 16, 200, 120);
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
@@ -344,25 +344,11 @@ public class SizeLimitTests
     }
 
     [Fact]
-    public void NoMaxSizeKeepsTheWindowsOwnMaximumFromFloatingIt()
-    {
-        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrulev2 = no_max_size, class:^(free)$\n"));
-
-        var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area)
-        {
-            Traits = WindowTraits.Normal with { Class = "free", MaxSize = SmallMax },
-        });
-
-        Assert.False(Assert.Single(outcome.State.Clients).Floating);
-        Assert.Equal(Area, BoundsOf(outcome, 1));
-    }
-
-    [Fact]
     public void MaxSizeRuleWinsOverNoMaxSize()
     {
         var core = new WindowManager(ConfigParser.Parse("""
-            windowrulev2 = max_size 400 300, class:^(small)$
-            windowrulev2 = no_max_size, class:^(small)$
+            windowrule = max_size 400 300, class:^(small)$
+            windowrule = no_max_size, class:^(small)$
             """));
         var bounds = new Rectangle(8, 8, 100, 80);
 
@@ -384,8 +370,8 @@ public class SizeLimitTests
             general:gaps_out = 0
             general:border_size = 0
             misc:size_limits_tiled = true
-            windowrulev2 = min_size 1400 100, class:^(wide)$
-            windowrulev2 = min_size 100 100, class:^(wide)$
+            windowrule = min_size 1400 100, class:^(wide)$
+            windowrule = min_size 100 100, class:^(wide)$
             """));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
@@ -401,7 +387,7 @@ public class SizeLimitTests
     [Fact]
     public void MalformedSizeRuleWarnsAndTheConfigStillLoads()
     {
-        var document = ConfigParser.Parse("windowrulev2 = min_size 400, class:^(wide)$\ngeneral:gaps_in = 0\n");
+        var document = ConfigParser.Parse("windowrule = min_size 400, class:^(wide)$\ngeneral:gaps_in = 0\n");
 
         Assert.Empty(document.WindowRules);
         Assert.Contains(document.Warnings, warning => warning.Line == 1 && warning.Message == "Malformed window rule.");
@@ -472,8 +458,8 @@ public class SizeLimitTests
     public void MaxSizeAndNoInitialFocusApplyTogether()
     {
         var core = new WindowManager(ConfigParser.Parse("""
-            windowrulev2 = max_size 400 300, class:^(small)$
-            windowrulev2 = noinitialfocus, class:^(small)$
+            windowrule = max_size 400 300, class:^(small)$
+            windowrule = no_initial_focus, class:^(small)$
             """));
         var bounds = new Rectangle(12, 16, 200, 120);
         core.Handle(new WindowAppeared(new WindowId(1), Area));
@@ -492,24 +478,9 @@ public class SizeLimitTests
     }
 
     [Fact]
-    public void PersistentSizeGivesAFloatingWindowItsLastSizeBack()
-    {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(notes)$\nwindowrulev2 = persistent_size, class:^(notes)$\n"));
-        var notes = WindowTraits.Normal with { Class = "notes", Title = "Notes" };
-        core.Handle(new WindowAppeared(new WindowId(1), Area) { Traits = notes, Bounds = new Rectangle(0, 0, 640, 480) });
-        core.Execute("dispatch resizewindowpixel exact 600 400,address:0x1");
-        core.Handle(new WindowClosed(new WindowId(1)));
-
-        var reopened = core.Handle(new WindowAppeared(new WindowId(2), Area) { Traits = notes, Bounds = new Rectangle(0, 0, 640, 480) });
-
-        var bounds = BoundsOf(reopened, 2);
-        Assert.Equal((600, 400), (bounds.Width, bounds.Height));
-    }
-
-    [Fact]
     public void ASizeLimitRuleTakesExpressions()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:.*\nwindowrulev2 = min_size monitor_w*0.5 monitor_h*0.5, class:.*\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = float, class:.*\nwindowrule = min_size monitor_w*0.5 monitor_h*0.5, class:.*\n"));
 
         var outcome = core.Handle(new WindowAppeared(new WindowId(1), Area) { Bounds = new Rectangle(0, 0, 200, 100) });
 

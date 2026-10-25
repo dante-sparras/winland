@@ -134,7 +134,7 @@ public class MonitorWorkspaceTests
     [Fact]
     public void UnpluggingKeepsAGroupAndAPinnedClientWithTheirWorkspace()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(box)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = float, class:^(box)$\n"));
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
         var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
         core.Handle(new MonitorsChanged([left, right]));

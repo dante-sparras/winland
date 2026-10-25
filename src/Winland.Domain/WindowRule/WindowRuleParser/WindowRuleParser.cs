@@ -7,7 +7,7 @@ internal static partial class WindowRuleParser
 {
     private static readonly TimeSpan MatchTimeout = TimeSpan.FromMilliseconds(250);
 
-    internal static bool TryParse(string keyword, string value, out WindowRule? rule, out string error)
+    internal static bool TryParse(string value, out WindowRule? rule, out string error)
     {
         rule = null;
         var comma = value.IndexOf(',');
@@ -26,42 +26,20 @@ internal static partial class WindowRuleParser
         string? initialClassPattern = null;
         string? exePattern = null;
         string? aumidPattern = null;
-        List<RuleMatch>? dynamic = null;
-        if (keyword == "windowrule")
+        foreach (var part in value[(comma + 1)..].Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
         {
-            var pattern = value[(comma + 1)..].Trim();
-            if (pattern.Length == 0 || !IsPattern(pattern))
-            {
-                error = pattern.Length == 0 ? "Malformed window rule." : "Invalid window rule pattern.";
+            if (!TryParseMatch(part, ref classPattern, ref titlePattern, ref initialTitlePattern, ref initialClassPattern, ref exePattern, ref aumidPattern, out error))
                 return false;
-            }
-
-            classPattern = pattern;
-        }
-        else
-        {
-            foreach (var split in value[(comma + 1)..].Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
-            {
-                var part = split;
-                if (TryParseDynamicMatch(part, out var match))
-                {
-                    (dynamic ??= []).Add(match);
-                    continue;
-                }
-
-                if (!TryParseMatch(part, ref classPattern, ref titlePattern, ref initialTitlePattern, ref initialClassPattern, ref exePattern, ref aumidPattern, out error))
-                    return false;
-            }
-
-            // Winland never applies a rule that has nothing to match on.
-            if (classPattern is null && titlePattern is null && initialTitlePattern is null && initialClassPattern is null && exePattern is null && aumidPattern is null && dynamic is null)
-            {
-                error = "Malformed window rule.";
-                return false;
-            }
         }
 
-        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, placement, TextOr(effect, group, out var ruleText), props, dynamic, ruleText, initialTitlePattern, initialClassPattern);
+        // Winland never applies a rule that has nothing to match on.
+        if (classPattern is null && titlePattern is null && initialTitlePattern is null && initialClassPattern is null && exePattern is null && aumidPattern is null)
+        {
+            error = "Malformed window rule.";
+            return false;
+        }
+
+        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, placement, group, props, initialTitlePattern, initialClassPattern);
         return true;
     }
 
@@ -71,44 +49,33 @@ internal static partial class WindowRuleParser
         if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var placement, out var group, out var props, out error))
             return false;
 
-        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, ScrollingWidth: scrollingWidth, Opacity: opacity, Fullscreen: fullscreen, Placement: placement, Group: TextOr(effect, group, out var ruleText), Props: props, Text: ruleText);
+        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, ScrollingWidth: scrollingWidth, Opacity: opacity, Fullscreen: fullscreen, Placement: placement, Group: group, Props: props);
         return true;
     }
 
-    // A tag or content rule's argument is its text, and any other rule's is its group options.
-    private static string? TextOr(WindowRuleEffect effect, string? argument, out string? text)
-    {
-        text = effect is WindowRuleEffect.Tag or WindowRuleEffect.Content ? argument : null;
-        return text is null ? argument : null;
-    }
-
-    internal static WindowDecision Decide(WindowTraits traits, IReadOnlyList<WindowRule> rules, RuleSubject? subject = null)
+    internal static WindowDecision Decide(WindowTraits traits, IReadOnlyList<WindowRule> rules)
     {
         bool? adopt = null;
         bool? floating = null;
         string? workspace = null;
         bool? noInitialFocus = null;
         bool? noFocus = null;
-        bool? stayFocused = null;
         Size? ruleMin = null;
         Size? ruleMax = null;
         ExpressionPair? minExpression = null;
         ExpressionPair? maxExpression = null;
-        var suppressMax = false;
         double? scrollingWidth = null;
         OpacityRule? opacity = null;
         bool? opaque = null;
         bool? fullscreen = null;
         bool? maximize = null;
-        FullscreenRule? fullscreenState = null;
         bool? pin = null;
         var placement = default(MapPlacement);
         var group = GroupRuleFlags.None;
         Dictionary<string, object>? props = null;
-        var content = 0;
         foreach (var rule in rules)
         {
-            if (!Matches(rule, traits) || !MatchesState(rule, subject))
+            if (!Matches(rule, traits))
                 continue;
 
             if (rule.Effect == WindowRuleEffect.Prop && rule.Props is not null)
@@ -116,7 +83,6 @@ internal static partial class WindowRuleParser
                 props ??= new Dictionary<string, object>(StringComparer.Ordinal);
                 foreach (var (key, value) in rule.Props)
                     props[key] = value;
-                FocusBorderColor(rule, props);
                 continue;
             }
 
@@ -143,9 +109,6 @@ internal static partial class WindowRuleParser
                 case WindowRuleEffect.NoFocus:
                     noFocus = rule.Enabled;
                     break;
-                case WindowRuleEffect.StayFocused:
-                    stayFocused = rule.Enabled;
-                    break;
                 case WindowRuleEffect.MinSize:
                     ruleMin = rule.Size;
                     minExpression = rule.Size is null ? rule.Placement?.Expression : null;
@@ -153,9 +116,6 @@ internal static partial class WindowRuleParser
                 case WindowRuleEffect.MaxSize:
                     ruleMax = rule.Size;
                     maxExpression = rule.Size is null ? rule.Placement?.Expression : null;
-                    break;
-                case WindowRuleEffect.NoMaxSize:
-                    suppressMax = rule.Enabled;
                     break;
                 case WindowRuleEffect.ScrollingWidth:
                     scrollingWidth = rule.ScrollingWidth;
@@ -172,17 +132,11 @@ internal static partial class WindowRuleParser
                 case WindowRuleEffect.Maximize:
                     maximize = rule.Enabled;
                     break;
-                case WindowRuleEffect.FullscreenState:
-                    fullscreenState = rule.Fullscreen;
-                    break;
                 case WindowRuleEffect.Pin:
                     pin = rule.Enabled;
                     break;
                 case WindowRuleEffect.Group:
                     group = GroupRules.Parse(rule.Group);
-                    break;
-                case WindowRuleEffect.Content:
-                    content = ContentTypes.FromString(rule.Text ?? "");
                     break;
                 default:
                     placement = Place(placement, rule);
@@ -190,17 +144,8 @@ internal static partial class WindowRuleParser
             }
         }
 
-        var sizes = new SizeRule(ruleMin, ruleMax, suppressMax);
+        var sizes = new SizeRule(ruleMin, ruleMax);
         var limits = sizes.Floating(traits.MinSize, traits.MaxSize);
-        // A fullscreen or maximize rule names the internal mode, and the client mode copies it. sync_fullscreen false
-        // leaves the client mode at none. A fullscreen_state rule names both modes and is left as parsed.
-        var requested = RequestedFullscreen(fullscreen, maximize, fullscreenState);
-        if (fullscreenState is null
-            && requested is FullscreenRule open
-            && props is not null
-            && props.TryGetValue("sync_fullscreen", out var sync)
-            && sync is false)
-            requested = open with { Client = FullscreenMode.None };
 
         return new WindowDecision(
             adopt ?? Adopts(traits),
@@ -208,22 +153,19 @@ internal static partial class WindowRuleParser
             workspace,
             noInitialFocus ?? false,
             noFocus ?? false,
-            stayFocused ?? false,
             limits.Min,
             limits.Max,
             scrollingWidth,
             opacity,
             opaque ?? false,
-            requested,
+            RequestedFullscreen(fullscreen, maximize),
             pin ?? false,
             placement,
             group,
             sizes,
             props,
-            content,
             minExpression,
-            maxExpression,
-            fullscreenState is not null);
+            maxExpression);
     }
 
     private static bool TryParseEffect(
@@ -273,17 +215,11 @@ internal static partial class WindowRuleParser
             case "ignore":
                 effect = WindowRuleEffect.Ignore;
                 break;
-            case "noinitialfocus":
             case "no_initial_focus":
                 effect = WindowRuleEffect.NoInitialFocus;
                 break;
-            case "nofocus":
             case "no_focus":
                 effect = WindowRuleEffect.NoFocus;
-                break;
-            case "stayfocused":
-            case "stay_focused":
-                effect = WindowRuleEffect.StayFocused;
                 break;
             case "opaque":
                 effect = WindowRuleEffect.Opaque;
@@ -300,19 +236,6 @@ internal static partial class WindowRuleParser
 
                 effect = WindowRuleEffect.Group;
                 group = argument ?? "";
-                error = "";
-                return true;
-            case "tag":
-            case "content":
-                if (argument is null)
-                {
-                    error = "Malformed window rule.";
-                    return false;
-                }
-
-                // The tag or content type rides in the group argument until the rule is built.
-                effect = name == "tag" ? WindowRuleEffect.Tag : WindowRuleEffect.Content;
-                group = argument;
                 error = "";
                 return true;
             case "workspace":
@@ -351,18 +274,6 @@ internal static partial class WindowRuleParser
 
                 error = "Malformed window rule.";
                 return false;
-            case "no_max_size":
-                if (argument is null)
-                    enabled = true;
-                else if (!TryParseEnabled(argument, out enabled))
-                {
-                    error = "Malformed window rule.";
-                    return false;
-                }
-
-                effect = WindowRuleEffect.NoMaxSize;
-                error = "";
-                return true;
             case "scrolling_width":
                 if (argument is null
                     || !double.TryParse(argument, NumberStyles.Float, CultureInfo.InvariantCulture, out var width)
@@ -403,16 +314,6 @@ internal static partial class WindowRuleParser
 
                 error = "";
                 return true;
-            case "fullscreen_state":
-                if (argument is null || !TryParseFullscreenState(argument, out fullscreen))
-                {
-                    error = "Malformed window rule.";
-                    return false;
-                }
-
-                effect = WindowRuleEffect.FullscreenState;
-                error = "";
-                return true;
             default:
                 if (TryParsePropRule(name, argument, out props, out error))
                 {
@@ -431,7 +332,7 @@ internal static partial class WindowRuleParser
                 return false;
         }
 
-        if (effect is WindowRuleEffect.NoInitialFocus or WindowRuleEffect.NoFocus or WindowRuleEffect.StayFocused or WindowRuleEffect.Opaque or WindowRuleEffect.Pin)
+        if (effect is WindowRuleEffect.NoInitialFocus or WindowRuleEffect.NoFocus or WindowRuleEffect.Opaque or WindowRuleEffect.Pin)
         {
             if (argument is null)
             {
@@ -459,68 +360,38 @@ internal static partial class WindowRuleParser
         return true;
     }
 
+    // One fraction is used for every state. Two set the active and the inactive fractions, and leave fullscreen at 1.
+    // Each multiplies the configured fraction.
     private static bool TryParseOpacity(string? text, out OpacityRule rule, out string error)
     {
-        var active = OpacityFactor.Identity;
-        var inactive = OpacityFactor.Identity;
-        var fullscreen = OpacityFactor.Identity;
-        var index = 0;
         var tokens = string.IsNullOrWhiteSpace(text)
             ? []
             : text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-        foreach (var token in tokens)
+        var fractions = new float[tokens.Length];
+        for (var i = 0; i < tokens.Length; i++)
         {
-            if (token == "opacity")
-                continue;
-
-            if (token == "override")
-            {
-                if (index == 1)
-                    active = active with { Overridden = true };
-                else if (index == 2)
-                    inactive = inactive with { Overridden = true };
-                else if (index == 3)
-                    fullscreen = fullscreen with { Overridden = true };
-
-                continue;
-            }
-
-            if (index >= 3
-                || !float.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
-                || !float.IsFinite(value))
+            if (tokens.Length > 2
+                || !float.TryParse(tokens[i], NumberStyles.Float, CultureInfo.InvariantCulture, out fractions[i])
+                || !float.IsFinite(fractions[i]))
             {
                 rule = default;
                 error = "Malformed window rule.";
                 return false;
             }
-
-            var factor = new OpacityFactor(value, false);
-            if (index == 0)
-                active = factor;
-            else if (index == 1)
-                inactive = factor;
-            else
-                fullscreen = factor;
-
-            index++;
         }
 
-        if (index == 1)
+        rule = fractions.Length switch
         {
-            inactive = active;
-            fullscreen = active;
-        }
-
-        rule = new OpacityRule(active, inactive, fullscreen);
+            0 => new OpacityRule(1f, 1f, 1f),
+            1 => new OpacityRule(fractions[0], fractions[0], fractions[0]),
+            _ => new OpacityRule(fractions[0], fractions[1], 1f),
+        };
         error = "";
         return true;
     }
 
-    private static FullscreenRule? RequestedFullscreen(bool? fullscreen, bool? maximize, FullscreenRule? state)
+    private static FullscreenRule? RequestedFullscreen(bool? fullscreen, bool? maximize)
     {
-        if (state is FullscreenRule requested)
-            return requested;
-
         if (maximize == true)
             return new FullscreenRule(FullscreenMode.Maximized, FullscreenMode.Maximized);
 
@@ -528,32 +399,6 @@ internal static partial class WindowRuleParser
             return new FullscreenRule(FullscreenMode.Fullscreen, FullscreenMode.Fullscreen);
 
         return null;
-    }
-
-    private static bool TryParseFullscreenState(string text, out FullscreenRule? rule)
-    {
-        rule = null;
-        var parts = text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length is < 1 or > 2
-            || !int.TryParse(parts[0], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var internalMode))
-            return false;
-
-        var clientMode = 0;
-        if (parts.Length == 2
-            && !int.TryParse(parts[1], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out clientMode))
-            return false;
-
-        rule = new FullscreenRule(ClampMode(internalMode), ClampMode(clientMode));
-        return true;
-    }
-
-    private static FullscreenMode ClampMode(int mode)
-    {
-        if (mode < 0)
-            return FullscreenMode.None;
-        if (mode > 2)
-            return FullscreenMode.Fullscreen;
-        return (FullscreenMode)mode;
     }
 
     private static bool TryParseSize(string text, out Size size)

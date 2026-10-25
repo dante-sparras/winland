@@ -18,8 +18,6 @@ public sealed record Client(
     FullscreenMode FullscreenClient = FullscreenMode.None,
     bool Pinned = false,
     bool PinFullscreened = false,
-    IReadOnlyList<string>? Tags = null,
-    int Content = 0,
     bool LayoutFullscreen = false,
     bool AllowedOverFullscreen = true,
     bool BelowFullscreen = false);

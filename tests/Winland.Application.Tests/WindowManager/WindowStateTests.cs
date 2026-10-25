@@ -15,12 +15,12 @@ public class WindowStateTests
             input:mouse_refocus = false
             cursor:warp_on_change_workspace = 1
             cursor:persistent_warps = true
-            windowrulev2 = float, class:^(stick)$
-            windowrulev2 = pin, class:^(stick)$
-            windowrulev2 = opacity 0.8, class:^(stick)$
-            windowrulev2 = no_close_for 60000, class:^(stick)$
-            windowrulev2 = group deny, class:^(stick)$
-            windowrulev2 = noinitialfocus, class:^(quiet)$
+            windowrule = float, class:^(stick)$
+            windowrule = pin, class:^(stick)$
+            windowrule = opacity 0.8, class:^(stick)$
+            windowrule = no_close_for 60000, class:^(stick)$
+            windowrule = group deny, class:^(stick)$
+            windowrule = noinitialfocus, class:^(quiet)$
             """));
         core.Restore(new RecoverySnapshot(
         [

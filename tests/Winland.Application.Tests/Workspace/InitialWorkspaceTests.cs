@@ -102,7 +102,7 @@ public class InitialWorkspaceTests
     [Fact]
     public void AWorkspaceRuleWinsOverTheToken()
     {
-        var core = Loaded("windowrulev2 = workspace 4 silent, class:^(ruled)$\n");
+        var core = Loaded("windowrule = workspace 4 silent, class:^(ruled)$\n");
         Start(core, pid: 500);
         core.Execute("dispatch workspace 2");
 

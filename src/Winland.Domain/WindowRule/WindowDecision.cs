@@ -6,7 +6,6 @@ internal readonly record struct WindowDecision(
     string? Workspace,
     bool NoInitialFocus = false,
     bool NoFocus = false,
-    bool StayFocused = false,
     Size? MinSize = null,
     Size? MaxSize = null,
     double? ScrollingWidth = null,
@@ -18,8 +17,5 @@ internal readonly record struct WindowDecision(
     GroupRuleFlags Group = GroupRuleFlags.None,
     SizeRule Sizes = default,
     IReadOnlyDictionary<string, object>? Props = null,
-    int Content = 0,
     ExpressionPair? MinSizeExpression = null,
-    ExpressionPair? MaxSizeExpression = null,
-    // A fullscreen_state rule matched. While it matches, the window-rule layer of sync_fullscreen is false.
-    bool StatedFullscreen = false);
+    ExpressionPair? MaxSizeExpression = null);

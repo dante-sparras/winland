@@ -33,21 +33,6 @@ public class CloseAllTests
     }
 
     [Fact]
-    public void NoCloseForLeavesThatClientOpen()
-    {
-        long now = 1_000;
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = no_close_for 500, class:^(stick)$\n")) { Clock = () => now };
-        core.Handle(Appeared(1, "stick"));
-        core.Handle(Appeared(2, "box"));
-
-        var closed = core.Handle(new Dispatch("closeall", ""));
-
-        Assert.Null(closed.Error);
-        Assert.Equal([new WindowId(2)], closed.Closes);
-        Assert.Equal(WorkspaceId.Initial, closed.State.ActiveWorkspace);
-    }
-
-    [Fact]
     public void CloseAllShowsWorkspaceOneOfTheFocusedMonitor()
     {
         var core = new WindowManager();

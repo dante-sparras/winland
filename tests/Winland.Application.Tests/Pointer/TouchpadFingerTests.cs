@@ -2,16 +2,6 @@ namespace Winland.Application.Tests;
 
 public class TouchpadFingerTests
 {
-    [Fact]
-    public void AWindowFactorReplacesTheUnsetOne()
-    {
-        Assert.Equal(0.5, new ScrollOverride(null, 0.5).Factor(true));
-        Assert.Equal(1, new ScrollOverride(4, null).Factor(true));
-        Assert.Equal(4, new ScrollOverride(4, 0.5).Factor(false));
-        Assert.Equal(1, new ScrollOverride(null, 0.5).Factor(false));
-        Assert.Equal(0, new ScrollOverride(0, null).Factor(false));
-    }
-
     [Theory]
     [InlineData(1, 0, true)]
     [InlineData(2, 100, true)]

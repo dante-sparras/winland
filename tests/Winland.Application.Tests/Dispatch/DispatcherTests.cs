@@ -670,7 +670,7 @@ public class DispatcherTests
     }
 
     private static WindowManager Floats(string extra) =>
-        new(ConfigParser.Parse(Gapless + extra + "windowrulev2 = float, class:^(box)$\nwindowrulev2 = move window_x window_y, class:^(box)$\n"));
+        new(ConfigParser.Parse(Gapless + extra + "windowrule = float, class:^(box)$\nwindowrule = move window_x window_y, class:^(box)$\n"));
 
     private static WindowAppeared FloatingAt(long window, int x, int y) =>
         new(new WindowId(window), Wide)

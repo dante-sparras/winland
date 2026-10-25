@@ -54,9 +54,6 @@ public sealed partial class WindowManager
         if (window is not WindowId id)
             return View([], dispatcher: name);
 
-        if (!Closeable(id))
-            return Rejected(name, NotCloseable);
-
         return View([], dispatcher: name, close: id);
     }
 
@@ -321,14 +318,7 @@ public sealed partial class WindowManager
         if (text.Length == 0)
             return emptyMeansActive ? ActiveWindow() : null;
 
-        var clients = EveryClient();
-        if (text.StartsWith("tag:", StringComparison.Ordinal))
-        {
-            for (var i = 0; i < clients.Count; i++)
-                clients[i] = clients[i] with { Tags = _props.Tags(clients[i].Window) };
-        }
-
-        return WindowSelector.Find(text, ActiveWindow(), clients);
+        return WindowSelector.Find(text, ActiveWindow(), EveryClient());
     }
 
     // Every Client a window selector can find, including one waiting in a Group.
@@ -354,17 +344,12 @@ public sealed partial class WindowManager
         || screen.Reported.Description.Equals(token, StringComparison.OrdinalIgnoreCase);
 
     // The same request closewindow makes, so the application can still ask to save, for every Client.
-    // A Client no_close_for still protects is left open. Workspace 1 of the focused Monitor is what shows
+    // Workspace 1 of the focused Monitor is what shows
     // afterwards, which closes a Special workspace open on that Monitor.
     private Outcome CloseAll()
     {
         const string name = "closeall";
-        var closes = new List<WindowId>();
-        foreach (var client in EveryClient())
-        {
-            if (Closeable(client.Window))
-                closes.Add(client.Window);
-        }
+        var closes = EveryClient().ConvertAll(client => client.Window);
 
         var monitor = FocusedId();
         if (_workspaces.Shown.SpecialOn(monitor) is null)

@@ -44,7 +44,7 @@ public sealed partial class WindowManager
             return View([]);
         }
 
-        if (HeldByStay(window) || HasNoFocus(window))
+        if (HasNoFocus(window))
             return Restore(Kept());
 
         if (focused.Cause == FocusCause.User
@@ -214,19 +214,11 @@ public sealed partial class WindowManager
         if (_props.FocusRuleOf(window) is not FocusRule rule)
             return false;
 
-        return rule.NoInitialFocus || rule.NoFocus || HeldByStay(window);
+        return rule.NoInitialFocus || rule.NoFocus;
     }
 
     private bool HasNoFocus(WindowId window) =>
         BlockedByModal(window) || _props.NoFocus(window);
-
-    private bool HeldByStay(WindowId incoming)
-    {
-        if (_focus.Focused is not WindowId current || current == incoming)
-            return false;
-
-        return _props.StaysFocused(current) && IsShownClient(current);
-    }
 
     private WindowId? Kept() =>
         _focus.Focused is WindowId current && IsShownClient(current) ? current : null;

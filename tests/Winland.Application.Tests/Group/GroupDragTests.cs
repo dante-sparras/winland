@@ -82,7 +82,7 @@ public class GroupDragTests
         var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(
             "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\ngroup:auto_group = false\n"
-            + "bindm = SUPER, mouse:272, movewindow\nwindowrulev2 = group invade, class:^invade$\n")));
+            + "bindm = SUPER, mouse:272, movewindow\nwindowrule = group invade, class:^invade$\n")));
         core.Handle(new WindowAppeared(new WindowId(1), Wide));
         core.Handle(new Dispatch("togglegroup"));
         core.Handle(new Dispatch("lockactivegroup", "lock"));

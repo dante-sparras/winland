@@ -45,9 +45,8 @@ public static partial class CommandProtocol
                 if (reclassed.Active)
                     AppendFocus(lines, new FocusChanged(reclassed.Window), state);
                 break;
-            case ClientRulesUpdated:
             case MonitorLayoutChanged:
-                // Winland tells window.update_rules and monitor.layout_changed to the config only.
+                // Winland tells monitor.layout_changed to the config only.
                 break;
             case ClientKilled killed:
                 lines.Add("kill>>" + EventAddress(killed.Window));

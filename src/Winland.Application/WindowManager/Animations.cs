@@ -98,10 +98,6 @@ public sealed partial class WindowManager
     private string WindowStyleOf(WindowId window, string node) =>
         _props.Own(window, WindowProp.Animation) is { Length: > 0 } own ? own : _config.Animations.StyleOf(node);
 
-    // A Workspace's own animation style, from the animation: field of the workspace rule that matches it, or null.
-    private string? WorkspaceStyleOf(WorkspaceId workspace) =>
-        _workspaces.Find(workspace) is LiveWorkspace desk ? RuleFor(desk)?.Animation : null;
-
     private Rectangle MonitorRectangle(WorkspaceId workspace)
     {
         if (_workspaces.Find(workspace) is LiveWorkspace desk)
@@ -165,7 +161,7 @@ public sealed partial class WindowManager
 
                 var monitor = _core.MonitorRectangle(client.Workspace);
                 var between = _core._workspaces.Find(client.Workspace)?.Options.GapsWorkspaces ?? 0;
-                var style = _core.WorkspaceStyleOf(styled) ?? Options.StyleOf(leaf);
+                var style = Options.StyleOf(leaf);
                 var shift = MotionStyles.Workspace(style, entering, left, client.Workspace.IsSpecial, monitor, between);
                 var rest = _placed.TryGetValue(window, out var placed) ? placed : client.Bounds;
                 var away = rest with { X = rest.X + shift.Dx, Y = rest.Y + shift.Dy };

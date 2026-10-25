@@ -18,8 +18,8 @@ public class ConfigDocumentTests
     [Fact]
     public void ARuleIsAddedAfterTheOnesRead()
     {
-        var current = ConfigParser.Parse("windowrulev2 = float, class:^(a)$\n");
-        var live = ConfigParser.Parse("windowrulev2 = float, class:^(b)$\n");
+        var current = ConfigParser.Parse("windowrule = float, class:^(a)$\n");
+        var live = ConfigParser.Parse("windowrule = float, class:^(b)$\n");
 
         var merged = current.Merge(live);
 
@@ -54,7 +54,7 @@ public class ConfigDocumentTests
     [InlineData("exec-once", false)]
     [InlineData("source", false)]
     [InlineData("general:gaps_in", true)]
-    [InlineData("windowrulev2", true)]
+    [InlineData("windowrule", true)]
     public void OnlyALineThatLaunchesOrLoadsWaitsForTheConfigToBeRead(string keyword, bool live)
     {
         Assert.Equal(live, ConfigParser.AppliesLive(keyword));

@@ -70,12 +70,6 @@ public sealed partial class WindowManager
             _noted = null;
         }
 
-        if (_modalRules is { Count: > 0 } modal)
-        {
-            _modalRules = null;
-            AddModalRules(events, modal, outcome.State);
-        }
-
         return events.Count == 0 ? outcome : outcome with { Events = events };
     }
 
@@ -104,7 +98,6 @@ public sealed partial class WindowManager
         AddWorkspaceEvents(events, before, after);
         var change = StateChange.Between(before, after);
         var next = change.Is;
-        var rulesRead = new HashSet<WindowId>();
         foreach (var window in change.Closed)
             events.Add(new ClientClosed(window));
 
@@ -115,9 +108,6 @@ public sealed partial class WindowManager
                 events.Add(new ClientOpened(pair.Key, pair.Value.Workspace, pair.Value.Class, pair.Value.Title));
                 if (pair.Value.Fullscreen != FullscreenMode.None)
                     events.Add(new FullscreenChanged(true, pair.Key));
-                // A window that has just mapped has its rules read, unless the workspace it mapped on is hidden.
-                if (RulesAreRead(after, pair.Value))
-                    TellRules(events, rulesRead, pair.Key);
                 continue;
             }
 
@@ -139,8 +129,6 @@ public sealed partial class WindowManager
             if (prior.Fullscreen != pair.Value.Fullscreen)
                 events.Add(new FullscreenChanged(pair.Value.Fullscreen != FullscreenMode.None, pair.Key));
 
-            if (RulesAreRead(after, pair.Value) && RulesChanged(prior, pair.Value, before, after, change.HiddenBefore, change.HiddenAfter))
-                TellRules(events, rulesRead, pair.Key);
         }
 
         if (after.ActiveMonitor != before.ActiveMonitor)
@@ -158,11 +146,6 @@ public sealed partial class WindowManager
 
         if (activeAfter != activeBefore)
         {
-            // Focus is a rule match. The window that lost it and the window that gained it are both read again.
-            if (activeBefore is WindowId lost && next.TryGetValue(lost, out var loser) && RulesAreRead(after, loser))
-                TellRules(events, rulesRead, lost);
-            if (activeAfter is WindowId gained && next.TryGetValue(gained, out var winner) && RulesAreRead(after, winner))
-                TellRules(events, rulesRead, gained);
             events.Add(new FocusChanged(activeAfter) { Reason = reason });
         }
 
@@ -196,7 +179,7 @@ public sealed partial class WindowManager
             events.Add(new WorkspaceDestroyed(
                 workspace.Id,
                 CommandProtocol.WorkspaceNumber(before, workspace.Id),
-                workspace.DisplayName ?? workspace.Id.Name,
+                workspace.Id.Name,
                 MonitorName(before, workspace.Monitor)));
         }
 
@@ -289,90 +272,6 @@ public sealed partial class WindowManager
             events.Add(new MonitorAdded(screen.Monitor.Name));
             events.Add(new MonitorAddedV2(screen.Id.Value, screen.Monitor.Name, screen.Monitor.Description));
         }
-    }
-
-    // A hidden workspace is not read, as Winland skips a hidden window. A member waiting in a group is
-    // still on the shown workspace, so it is read. A pinned Client stays shown on every workspace of its monitor.
-    private static bool RulesAreRead(State state, Client client)
-    {
-        if (client.Pinned)
-            return true;
-
-        if (client.Workspace == state.ActiveWorkspace || client.Workspace == state.SpecialWorkspace)
-            return true;
-
-        foreach (var screen in state.Screens)
-        {
-            if (client.Workspace == screen.ActiveWorkspace || client.Workspace == screen.SpecialWorkspace)
-                return true;
-        }
-
-        return false;
-    }
-
-    private static void TellRules(List<StreamEvent> events, HashSet<WindowId> told, WindowId window)
-    {
-        if (told.Add(window))
-            events.Add(new ClientRulesUpdated(window));
-    }
-
-    private static void AddModalRules(List<StreamEvent> events, List<WindowId> modal, State state)
-    {
-        var told = new HashSet<WindowId>();
-        foreach (var streamEvent in events)
-        {
-            if (streamEvent is ClientRulesUpdated updated)
-                told.Add(updated.Window);
-        }
-
-        var clients = state.Clients.ToDictionary(client => client.Window);
-        foreach (var window in modal)
-        {
-            if (clients.TryGetValue(window, out var client) && RulesAreRead(state, client))
-                TellRules(events, told, window);
-        }
-    }
-
-    private static bool RulesChanged(Client prior, Client next, State before, State after, IReadOnlySet<WindowId> hiddenBefore, IReadOnlySet<WindowId> hiddenAfter)
-    {
-        if (prior.Class != next.Class
-            || prior.Title != next.Title
-            || prior.Floating != next.Floating
-            || prior.Fullscreen != next.Fullscreen
-            || prior.FullscreenClient != next.FullscreenClient
-            || prior.Workspace != next.Workspace
-            || prior.Pinned != next.Pinned
-            || prior.Content != next.Content
-            || !SameTags(prior.Tags, next.Tags))
-            return true;
-
-        var membersBefore = MembersOf(before, prior.Window);
-        var membersAfter = MembersOf(after, next.Window);
-        if (!SameMembers(membersBefore, membersAfter))
-            return true;
-
-        if (membersAfter is null)
-            return false;
-
-        var shownBefore = ShownMember(membersBefore, hiddenBefore);
-        var shownAfter = ShownMember(membersAfter, hiddenAfter);
-        return shownBefore != shownAfter && next.Window == shownAfter;
-    }
-
-    private static bool SameTags(IReadOnlyList<string>? left, IReadOnlyList<string>? right)
-    {
-        var leftCount = left?.Count ?? 0;
-        var rightCount = right?.Count ?? 0;
-        if (leftCount != rightCount)
-            return false;
-
-        for (var i = 0; i < leftCount; i++)
-        {
-            if (!string.Equals(left![i], right![i], StringComparison.Ordinal))
-                return false;
-        }
-
-        return true;
     }
 
     private static IReadOnlyList<WindowId>? MembersOf(State state, WindowId window)

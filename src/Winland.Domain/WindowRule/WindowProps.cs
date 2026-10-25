@@ -25,10 +25,6 @@ internal static class WindowProps
     public static bool IsRuleEffect(string name, PropKind kind) =>
         ByName.TryGetValue(name, out var prop) && prop.IsRuleEffect && prop.Kind == kind;
 
-    /// <summary>The key a property is stored under. An <c>_override</c> flag lives in the opacity it belongs to.</summary>
-    public static string StorageKey(string name) =>
-        name.EndsWith("_override", StringComparison.Ordinal) ? name[..^"_override".Length] : name;
-
     /// <summary>Winland's truthy: <c>1</c>, or text starting with <c>true</c>, <c>yes</c> or <c>on</c>.</summary>
     public static bool Truthy(string text)
     {
@@ -71,19 +67,6 @@ internal static class WindowProps
                 if (!long.TryParse(text.Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var whole))
                     return false;
                 next = Clamp(name, whole);
-                return true;
-            case PropKind.Float:
-                if (text.StartsWith("relative", StringComparison.Ordinal))
-                {
-                    if (!TryFloat(After(text), out var change))
-                        return false;
-                    next = (float)effective + change;
-                    return true;
-                }
-
-                if (!TryFloat(text, out var value))
-                    return false;
-                next = value;
                 return true;
             case PropKind.Text:
                 next = text;
@@ -136,11 +119,9 @@ internal static class WindowProps
         PropKind.Text => $"{{\"{name}\": \"{Escape((string)value)}\"}}",
         PropKind.Size => FormatSize(name, (PropSize)value, json),
         PropKind.Alpha => Wrap(name, Number(((PropAlpha)value).Value), json),
-        PropKind.AlphaOverride => Wrap(name, ((PropAlpha)value).Overridden ? "true" : "false", json),
         PropKind.Color => json ? $"{{\"{name}\": \"{Hex((BorderColor)value)}\"}}" : Hex((BorderColor)value),
         PropKind.Bool => Wrap(name, (bool)value ? "true" : "false", json),
         PropKind.Int => Wrap(name, ((long)value).ToString(CultureInfo.InvariantCulture), json),
-        PropKind.Float => Wrap(name, Number((float)value), json),
         _ => "",
     };
 
@@ -179,10 +160,10 @@ internal static class WindowProps
     private static long Clamp(string name, long value) => NonNegative.Contains(name) ? Math.Max(0, value) : value;
 }
 
-/// <summary>One opacity fraction and whether it replaces the configured one, as a window's opacity props hold it.</summary>
-internal readonly record struct PropAlpha(float Value, bool Overridden)
+/// <summary>One opacity fraction, as a window's opacity props hold it.</summary>
+internal readonly record struct PropAlpha(float Value)
 {
-    public static PropAlpha Identity { get; } = new(1f, false);
+    public static PropAlpha Identity { get; } = new(1f);
 }
 
 /// <summary>A min_size or max_size: a width and height in pixels, either of them infinite.</summary>

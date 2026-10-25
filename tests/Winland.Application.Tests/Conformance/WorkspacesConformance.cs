@@ -161,67 +161,8 @@ public class WorkspacesConformance
 
         SpecialWorkspaceFullscreen(desk);
         AsymmetricGaps(desk);
-        DynamicWsEffects(desk);
 
         Assert.Empty(desk.Clients());
-    }
-
-    [Fact]
-    public void WorkspacesFollowProperNoGaps()
-    {
-        var desk = new Desk("""
-            workspace = w[tv1], gapsout:0, gapsin:0
-            workspace = f[1], gapsout:0, gapsin:0
-            windowrulev2 = border_size 0, float:0, workspace:w[tv1]
-            windowrulev2 = rounding 0, float:0, workspace:w[tv1]
-            windowrulev2 = border_size 0, float:0, workspace:f[1]
-            windowrulev2 = rounding 0, float:0, workspace:f[1]
-            """);
-        desk.Ok("workspace", "100");
-
-        desk.Spawn("a");
-        Assert.Equal("1920,1080", desk.ActivePlace().Size);
-
-        desk.Spawn("a");
-        desk.Ok("movetoworkspace", "101");
-        Assert.Equal("1920,1080", desk.ActivePlace().Size);
-        Assert.Equal("101 (101)", ActiveLabel(desk));
-    }
-
-    [Fact]
-    public void WorkspacesSmartGapsDirectionalMoveAcrossMonitors()
-    {
-        var desk = new Desk("""
-            binds:window_direction_monitor_fallback = true
-            workspace = w[tv1], gapsout:0, gapsin:0
-            windowrulev2 = border_size 0, float:0, workspace:w[tv1]
-            windowrulev2 = rounding 0, float:0, workspace:w[tv1]
-            """);
-        desk.AddMonitor("HSG-L", new Rectangle(20000, 0, 1920, 1080));
-        desk.AddMonitor("HSG-R", new Rectangle(21920, 0, 1920, 1080));
-
-        desk.Ok("focusmonitor", "HSG-L");
-        desk.Ok("workspace", "230");
-        desk.Spawn("smart_gaps_src_a");
-        desk.Spawn("smart_gaps_src_b");
-        Assert.Equal("smart_gaps_src_b", desk.ActiveClass());
-        Assert.Equal("931,1036", desk.ActivePlace().Size);
-
-        desk.Ok("focusmonitor", "HSG-R");
-        desk.Ok("workspace", "231");
-        desk.Spawn("smart_gaps_dst");
-        Assert.Equal("smart_gaps_dst", desk.ActiveClass());
-        Assert.Equal("1920,1080", desk.ActivePlace().Size);
-
-        desk.Ok("focuswindow", "class:smart_gaps_src_b");
-        desk.Ok("movewindow", "r");
-        Assert.Equal("smart_gaps_src_b", desk.ActiveClass());
-        Assert.Equal("931,1036", desk.ActivePlace().Size);
-
-        desk.Ok("focusmonitor", "HSG-L");
-        desk.Ok("focuswindow", "class:smart_gaps_src_a");
-        Assert.Equal("smart_gaps_src_a", desk.ActiveClass());
-        Assert.Equal("1920,1080", desk.ActivePlace().Size);
     }
 
     // The reference changes a Workspace's id with its change_id dispatcher, which has no line-based name.
@@ -276,23 +217,6 @@ public class WorkspacesConformance
 
         desk.Ok("changeworkspaceid", "200 201");
         Assert.Equal("42,42", desk.ActivePlace().At);
-    }
-
-    [Fact]
-    public void WorkspacesDistinctTiledAndFloatGaps()
-    {
-        var desk = new Desk("""
-            workspace = 8, gapsout:200, float_gaps:10, border:false
-            windowrulev2 = float, workspace:8, class:workspacesDistinctTiledAndFloatGaps
-            """);
-        desk.Ok("workspace", "8");
-
-        desk.Spawn("kitty");
-        Assert.Equal(200, X(desk));
-
-        desk.Spawn("workspacesDistinctTiledAndFloatGaps");
-        desk.Ok("movewindow", "l");
-        Assert.Equal(10, X(desk));
     }
 
     [Fact]
@@ -529,21 +453,6 @@ public class WorkspacesConformance
         desk.Ok("focuswindow", "class:gaps_kitty_C");
         Assert.Equal("460,0", desk.ActivePlace().At);
 
-        KillAll(desk);
-    }
-
-    private static void DynamicWsEffects(Desk desk)
-    {
-        desk.Ok("workspace", "69");
-        desk.Spawn("bitch");
-
-        Assert.Equal("ok", desk.Send("r/keyword workspace 69, bordersize:20"));
-        Assert.Equal("ok", desk.Send("r/keyword workspace 69, rounding:false"));
-
-        Assert.Equal("20", desk.Send("getprop class:bitch border_size"));
-        Assert.Equal("0", desk.Send("getprop class:bitch rounding"));
-
-        Assert.Equal("ok", desk.Send("reload"));
         KillAll(desk);
     }
 

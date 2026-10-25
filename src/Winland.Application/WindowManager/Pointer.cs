@@ -152,11 +152,6 @@ public sealed partial class WindowManager
         if (decision.RememberMouse)
             _lastMouse = decision.LastMouse;
 
-        // A window with no_follow_mouse is still remembered as the one under the pointer, but moving onto it does not
-        // focus it. A refocus, after a window closes or moves, still does.
-        if (decision.Focus is WindowId found && _props.Own(found, WindowProp.NoFollowMouse) == true)
-            return null;
-
         // A window Winland does not manage, such as a browser's extension panel, took the foreground from the Client
         // it opened over. The pointer crossing that Client on its way to the panel leaves the panel the focus.
         if (_focus.Focused is null && _focus.Unmanaged is not null && decision.Focus == _focus.BeforeUnmanaged)
@@ -167,7 +162,7 @@ public sealed partial class WindowManager
 
     private WindowId? TakePointerFocus(WindowId? window)
     {
-        if (window is not WindowId next || next == _focus.Focused || HeldByStay(next) || HasNoFocus(next))
+        if (window is not WindowId next || next == _focus.Focused || HasNoFocus(next))
             return null;
 
         if (WorkspaceContaining(next) is not LiveWorkspace desk || !_workspaces.Shown.IsShown(desk.Id))

@@ -94,7 +94,6 @@ public sealed partial class WindowManager
             ["pin"] = new(static (m, _, a) => m.PinWindow(a)),
             ["pseudo"] = new(static (m, _, a) => m.PseudoWindow(a)),
             ["fullscreen"] = new(static (m, n, a) => m.FullscreenDispatcher(n, a), TakesWindow: true),
-            ["fullscreenstate"] = new(static (m, n, a) => m.FullscreenDispatcher(n, a), TakesWindow: true),
             ["maximize"] = new(static (m, n, a) => m.FullscreenDispatcher(n, a)),
             ["movewindowpixel"] = new(static (m, _, a) => m.MoveWindowPixel(a)),
             ["resizewindowpixel"] = new(static (m, _, a) => m.ResizeWindowPixel(a), Traits: DispatcherTraits.InstantResize),
@@ -102,8 +101,6 @@ public sealed partial class WindowManager
             ["alterzorder"] = new(static (m, _, a) => m.AlterZOrder(a, bringToTop: false)),
             ["bringactivetotop"] = new(static (m, _, a) => m.AlterZOrder(a, bringToTop: true)),
             ["setprop"] = new(static (m, _, a) => m.SetPropDispatch(a)),
-            ["tagwindow"] = new(static (m, _, a) => m.TagWindow(a)),
-            ["cleartags"] = new(static (m, _, a) => m.ClearTags(a)),
 
             // The cursor
             ["movecursor"] = new(static (m, _, a) => m.MoveCursor(a)),

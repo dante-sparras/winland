@@ -86,8 +86,8 @@ public class PinTests
     public void PinRuleKeepsAFloatingClientAndSkipsATiledOne()
     {
         var pinned = new WindowManager(ConfigParser.Parse("""
-            windowrulev2 = float, class:^(stick)$
-            windowrulev2 = pin, class:^(stick)$
+            windowrule = float, class:^(stick)$
+            windowrule = pin, class:^(stick)$
             """));
         var opened = pinned.Handle(new WindowAppeared(Window, Area)
         {
@@ -100,7 +100,7 @@ public class PinTests
         Assert.DoesNotContain(stayed.Effect.Hide, window => window == Window);
         Assert.True(ClientOf(stayed.Effect, Window).Pinned);
 
-        var tiled = new WindowManager(ConfigParser.Parse("windowrulev2 = pin, class:^(stick)$\n"));
+        var tiled = new WindowManager(ConfigParser.Parse("windowrule = pin, class:^(stick)$\n"));
         var plain = tiled.Handle(new WindowAppeared(Window, Area)
         {
             Traits = WindowTraits.Normal with { Class = "stick" },
@@ -112,7 +112,7 @@ public class PinTests
     [Fact]
     public void TrailingZeroClearsThePinRule()
     {
-        var document = ConfigParser.Parse("windowrulev2 = pin 0, class:^(kitty)$\nwindowrulev2 = pin maybe, class:^(kitty)$\n");
+        var document = ConfigParser.Parse("windowrule = pin 0, class:^(kitty)$\nwindowrule = pin maybe, class:^(kitty)$\n");
 
         Assert.Equal(WindowRuleEffect.Pin, Assert.Single(document.WindowRules).Effect);
         Assert.False(document.WindowRules[0].Enabled);
@@ -123,9 +123,9 @@ public class PinTests
     public void SilentPinnedClientIsShownOnTheCurrentWorkspace()
     {
         var core = new WindowManager(ConfigParser.Parse("""
-            windowrulev2 = float, class:^(stick)$
-            windowrulev2 = pin, class:^(stick)$
-            windowrulev2 = workspace 2 silent, class:^(stick)$
+            windowrule = float, class:^(stick)$
+            windowrule = pin, class:^(stick)$
+            windowrule = workspace 2 silent, class:^(stick)$
             """));
 
         var opened = core.Handle(new WindowAppeared(Window, Area)
@@ -143,7 +143,7 @@ public class PinTests
     [Fact]
     public void FocusStaysOnAPinnedClient()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = float, class:^(stick)$\n"));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
         core.Handle(new WindowAppeared(Window, Area)
         {
@@ -293,7 +293,7 @@ public class PinTests
 
     private static WindowManager ClosedFullscreenBeforeAPinnedClient(string options)
     {
-        var core = new WindowManager(ConfigParser.Parse(options + "misc:exit_window_retains_fullscreen = true\nwindowrulev2 = float, class:^(stick)$\n"));
+        var core = new WindowManager(ConfigParser.Parse(options + "misc:exit_window_retains_fullscreen = true\nwindowrule = float, class:^(stick)$\n"));
         core.Handle(new WindowAppeared(Window, Area)
         {
             Traits = WindowTraits.Normal with { Class = "stick" },
@@ -306,7 +306,7 @@ public class PinTests
 
     private static WindowManager Floating()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = float, class:^(stick)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = float, class:^(stick)$\n"));
         core.Handle(new WindowAppeared(Window, Area)
         {
             Traits = WindowTraits.Normal with { Class = "stick" },

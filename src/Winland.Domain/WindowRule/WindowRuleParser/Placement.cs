@@ -1,11 +1,9 @@
-using System.Globalization;
-
 namespace Winland.Domain;
 
 internal static partial class WindowRuleParser
 {
     /// <summary>
-    /// Parses <c>move</c>, <c>size</c>, <c>center</c>, <c>monitor</c> and <c>no_close_for</c>.
+    /// Parses <c>move</c>, <c>size</c>, <c>center</c> and <c>monitor</c>.
     /// The error is empty when the name is none of them.
     /// </summary>
     private static bool TryParsePlacement(
@@ -43,15 +41,6 @@ internal static partial class WindowRuleParser
                 effect = WindowRuleEffect.Monitor;
                 placement = new RulePlacement(Monitor: argument);
                 return true;
-            case "no_close_for":
-                if (argument is null
-                    || !long.TryParse(argument, NumberStyles.Integer, CultureInfo.InvariantCulture, out var milliseconds)
-                    || milliseconds < 0)
-                    break;
-
-                effect = WindowRuleEffect.NoCloseFor;
-                placement = new RulePlacement(Milliseconds: milliseconds);
-                return true;
             default:
                 return false;
         }
@@ -67,7 +56,6 @@ internal static partial class WindowRuleParser
         WindowRuleEffect.Size => current with { Size = rule.Placement?.Expression },
         WindowRuleEffect.Center => current with { Center = rule.Enabled, Move = null },
         WindowRuleEffect.Monitor => current with { Monitor = rule.Placement?.Monitor },
-        WindowRuleEffect.NoCloseFor => current with { NoCloseFor = rule.Placement?.Milliseconds ?? 0 },
         _ => current,
     };
 }

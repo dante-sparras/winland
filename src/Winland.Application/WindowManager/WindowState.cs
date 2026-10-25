@@ -12,16 +12,15 @@ public sealed partial class WindowManager
     private void TrackWindowState()
     {
         _windowState.Track(_props.Forget);
+        _windowState.Track(_renamed);
         _windowState.Track(_awaitingMapFocus);
         _windowState.Track(_urgent);
         _windowState.Track(ForgetFocusMarks);
         _windowState.Track(_restored);
         _windowState.Track(_mapPlaced);
-        _windowState.Track(_closeableAt);
         _windowState.Track(_cursorOnWindow);
         _windowState.Track(_pins.Forget);
         _windowState.Track(_stacking);
-        _windowState.Track(_restoreClientMaximized);
         _windowState.Track(_cover.Forget);
         _windowState.Track(ForgetDrag);
         _windowState.Track(ForgetOwner);

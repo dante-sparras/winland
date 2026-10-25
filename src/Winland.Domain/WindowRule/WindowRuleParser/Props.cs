@@ -30,18 +30,6 @@ internal static partial class WindowRuleParser
             return true;
         }
 
-        if (WindowProps.IsRuleEffect(name, PropKind.Float))
-        {
-            if (argument is null || !WindowProps.TryFloat(argument, out var value))
-            {
-                error = $"{name} rule \"{argument}\" failed with: bad input";
-                return false;
-            }
-
-            props = new Dictionary<string, object>(StringComparer.Ordinal) { [name] = value };
-            return true;
-        }
-
         if (name == "animation")
         {
             if (argument is null)

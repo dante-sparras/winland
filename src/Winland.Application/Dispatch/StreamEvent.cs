@@ -51,9 +51,6 @@ public sealed record ClientRetitled(WindowId Window, string Title, bool Active) 
 /// <summary>A Client's window changed its class. <paramref name="Active"/> when it is the focused Client.</summary>
 public sealed record ClientReclassed(WindowId Window, string Class, bool Active) : StreamEvent;
 
-/// <summary>A Client's rules were read again. The config hears this as <c>window.update_rules</c>.</summary>
-public sealed record ClientRulesUpdated(WindowId Window) : StreamEvent;
-
 /// <summary>
 /// The monitors were laid out again: one came or went, one's mode, position, scale, orientation or mirror changed, or a
 /// reload applied the monitor rules. The config hears this as <c>monitor.layout_changed</c>.

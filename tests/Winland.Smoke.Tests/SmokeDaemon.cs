@@ -355,9 +355,9 @@ internal sealed class SmokeDaemon : IDisposable
         general:border_size = 0
         animations:enabled = false
         dwindle:split_width_multiplier = 0.1
-        windowrulev2 = ignore, class:.*
-        windowrulev2 = tile, class:^(WinlandSmokeWindow)$, title:^(WinlandSmoke [12])$
-        windowrulev2 = workspace 1, class:^(WinlandSmokeWindow)$, title:^(WinlandSmoke [12])$
+        windowrule = ignore, class:.*
+        windowrule = tile, class:^(WinlandSmokeWindow)$, title:^(WinlandSmoke [12])$
+        windowrule = workspace 1, class:^(WinlandSmokeWindow)$, title:^(WinlandSmoke [12])$
         """;
 
     private static bool HasRuntime(string? root) =>

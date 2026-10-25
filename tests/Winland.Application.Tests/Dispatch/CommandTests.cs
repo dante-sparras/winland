@@ -148,7 +148,7 @@ public class CommandTests
     [Fact]
     public void ClientWorkspaceFollowsTheStoredWorkspace()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 2 silent, class:^(kitty)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = workspace 2 silent, class:^(kitty)$\n"));
         core.Handle(new WindowAppeared(new WindowId(9), new Rectangle(0, 0, 100, 100))
         {
             Traits = WindowTraits.Normal with { Class = "kitty" },
@@ -174,7 +174,7 @@ public class CommandTests
     [Fact]
     public void WorkspacesReplyCountsClientsAndKeepsTheDefault()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 2, class:^(kitty)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = workspace 2, class:^(kitty)$\n"));
         var area = new Rectangle(0, 0, 100, 100);
         core.Handle(new WindowAppeared(new WindowId(1), area));
         core.Handle(new WindowAppeared(new WindowId(2), area)
@@ -194,7 +194,7 @@ public class CommandTests
     [Fact]
     public void MonitorsReplyIsTheDefaultMonitorOnTheActiveWorkspace()
     {
-        var core = new WindowManager(ConfigParser.Parse("windowrulev2 = workspace 4, class:^(kitty)$\n"));
+        var core = new WindowManager(ConfigParser.Parse("windowrule = workspace 4, class:^(kitty)$\n"));
         core.Handle(new WindowAppeared(new WindowId(3), new Rectangle(0, 0, 100, 100))
         {
             Traits = WindowTraits.Normal with { Class = "kitty" },

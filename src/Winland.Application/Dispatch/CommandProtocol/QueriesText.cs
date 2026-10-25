@@ -87,12 +87,10 @@ public static partial class CommandProtocol
             .Append(CultureInfo.InvariantCulture, $"\tworkspace: {client.Workspace.Address} ({client.Workspace.Name}) on monitor {client.Workspace.Monitor}\n\tfloating: {Bit(client.Floating)}\n")
             .Append(CultureInfo.InvariantCulture, $"\tmonitor: {client.Monitor}\n\tclass: {client.Class}\n\ttitle: {client.Title}\n")
             .Append(CultureInfo.InvariantCulture, $"\tinitialClass: {client.InitialClass}\n\tinitialTitle: {client.InitialTitle}\n\tpid: {client.Pid}\n")
-            .Append(CultureInfo.InvariantCulture, $"\txwayland: {Bit(client.Xwayland)}\n\tpinned: {Bit(client.Pinned)}\n\tpinFullscreened: {Bit(client.PinFullscreened)}\n")
+            .Append(CultureInfo.InvariantCulture, $"\tpinned: {Bit(client.Pinned)}\n\tpinFullscreened: {Bit(client.PinFullscreened)}\n")
             .Append(CultureInfo.InvariantCulture, $"\tfullscreen: {client.Fullscreen}\n\tfullscreenClient: {client.FullscreenClient}\n\tfullscreenHandler: {client.FullscreenHandler}\n")
-            .Append(CultureInfo.InvariantCulture, $"\tallowedOverFullscreen: {Bit(client.AllowedOverFullscreen)}\n\tgrouped: {grouped}\n\ttags: {string.Join(", ", client.Tags)}\n")
-            .Append(CultureInfo.InvariantCulture, $"\tfocusHistoryID: {client.FocusHistoryId}\n")
-            .Append(CultureInfo.InvariantCulture, $"\txdgTag: {client.XdgTag}\n\txdgDescription: {client.XdgDescription}\n\tcontentType: {client.ContentType}\n")
-            .Append(CultureInfo.InvariantCulture, $"\ttearingHint: {Bit(client.TearingHint)}\n\tstableID: {client.StableId}\n\n");
+            .Append(CultureInfo.InvariantCulture, $"\tallowedOverFullscreen: {Bit(client.AllowedOverFullscreen)}\n\tgrouped: {grouped}\n")
+            .Append(CultureInfo.InvariantCulture, $"\tstableID: {client.StableId}\n\n");
     }
 
     private static void AppendWorkspace(StringBuilder text, WorkspaceEntryJson workspace) =>

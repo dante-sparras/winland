@@ -13,7 +13,7 @@ public sealed partial class WindowManager
             return existing;
 
         var owner = id.IsSpecial ? monitor ?? FocusedId() : new MonitorId(id.Monitor);
-        var hinted = WorkspaceRules.For(_config.WorkspaceRules, id, null, MonitorById(owner)?.Effective);
+        var hinted = WorkspaceRules.For(_config.WorkspaceRules, id, MonitorById(owner)?.Effective);
         var layout = LayoutFactory.Create(_config.Document, hinted?.Layout);
         layout.Configure(_config.Scrolling);
         RankFocus(layout);
@@ -37,7 +37,6 @@ public sealed partial class WindowManager
             layout.Apply(desk.Options);
         }
 
-        NoteCreated(desk);
         return desk;
     }
 
@@ -75,7 +74,6 @@ public sealed partial class WindowManager
     {
         var rule = RuleFor(desk);
         desk.Persistent = PersistentBy(desk, rule);
-        desk.DisplayName = rule?.DefaultName;
         desk.Options = OptionsFor(desk, rule);
     }
 
@@ -83,30 +81,8 @@ public sealed partial class WindowManager
     private static bool PersistentBy(LiveWorkspace desk, WorkspaceRule? rule) =>
         rule?.Persistent == true && !desk.Id.IsSpecial;
 
-    private WorkspaceRule? RuleFor(LiveWorkspace desk)
-    {
-        var screen = MonitorById(desk.Monitor);
-        int Count(WindowCount wanted) => desk.CountWindows(wanted, _pins.IsPinned);
-        var fullscreen = desk.CoveringMode();
-        var first = WorkspaceRules.For(
-            _config.WorkspaceRules,
-            desk.Id,
-            desk.DisplayName,
-            screen?.Effective,
-            Count,
-            fullscreen);
-        var name = first?.DefaultName ?? desk.DisplayName;
-        if (name == desk.DisplayName)
-            return first;
-
-        return WorkspaceRules.For(
-            _config.WorkspaceRules,
-            desk.Id,
-            name,
-            screen?.Effective,
-            Count,
-            fullscreen);
-    }
+    private WorkspaceRule? RuleFor(LiveWorkspace desk) =>
+        WorkspaceRules.For(_config.WorkspaceRules, desk.Id, MonitorById(desk.Monitor)?.Effective);
 
     private LayoutOptions OptionsFor(LiveWorkspace desk, WorkspaceRule? rule)
     {
@@ -120,17 +96,6 @@ public sealed partial class WindowManager
                 options = options with { GapsIn = gapsIn };
             if (rule.GapsOut is EdgeInsets gapsOut)
                 options = options with { GapsOut = gapsOut };
-            if (rule.FloatGaps is EdgeInsets floatGaps)
-                options = options with { FloatGaps = floatGaps };
-
-            var border = options.BorderSize;
-            if (rule.BorderSize is int size)
-                border = Math.Clamp(size, 0, 20);
-            if (rule.Border == false || rule.Decorate == false)
-                border = 0;
-            options = options with { BorderSize = border };
-            foreach (var pair in rule.LayoutOpts)
-                LayoutOptions.TryOverrideDwindle(options, pair.Key, pair.Value, out options);
         }
 
         var scaled = options.ScaledBy(scale);
@@ -144,26 +109,4 @@ public sealed partial class WindowManager
         };
     }
 
-    private void NoteCreated(LiveWorkspace desk)
-    {
-        var command = RuleFor(desk)?.OnCreatedEmpty;
-        if (string.IsNullOrEmpty(command))
-            return;
-
-        var parsed = LaunchParser.Parse(command, raw: false);
-        // Winland starts on-created-empty with the new Workspace as its initial workspace.
-        if (parsed.Launch is Launch launch)
-            _born.Enqueue(launch with { InitialWorkspace = desk.Id });
-    }
-
-    // Every workspace created since the last outcome runs its command, so all of them leave together.
-    private Launch[] TakeBorn()
-    {
-        if (_born.Count == 0)
-            return [];
-
-        var all = _born.ToArray();
-        _born.Clear();
-        return all;
-    }
 }

@@ -31,30 +31,14 @@ public sealed partial class WindowManager
         _disabled.Remove(window);
     }
 
-    // Windows whose modal state changed during this input. The rules event is added with the others.
-    private List<WindowId>? _modalRules;
-
     // Every outcome is decorated again, so the dim follows the change. A dialog whose owner was enabled or disabled
-    // is modal or stops being modal, and its rules are read again.
+    // is modal or stops being modal.
     private Outcome ChangeEnabled(WindowEnabledChanged changed)
     {
-        var before = ModalClients();
         if (changed.Enabled)
             _disabled.Remove(changed.Window);
         else
             _disabled.Add(changed.Window);
-
-        foreach (var window in ModalClients())
-        {
-            if (!before.Contains(window))
-                (_modalRules ??= []).Add(window);
-        }
-
-        foreach (var window in before)
-        {
-            if (!IsModal(window))
-                (_modalRules ??= []).Add(window);
-        }
 
         return View([]);
     }

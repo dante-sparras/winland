@@ -62,70 +62,6 @@ public class FullscreenTests
     }
 
     [Fact]
-    public void FullscreenStateZeroReturnsTheClientToItsSlot()
-    {
-        var core = Desk();
-        var before = Appear(core, 2);
-        var right = BoundsOf(before, 2);
-        core.Handle(new Dispatch("fullscreen"));
-
-        var back = core.Handle(new Dispatch("fullscreenstate", "0 0"));
-
-        Assert.Equal(right, BoundsOf(back, 2));
-        Assert.Equal(FullscreenMode.None, ClientOf(back, 2).Fullscreen);
-        Assert.Equal(FullscreenMode.None, ClientOf(back, 2).FullscreenClient);
-    }
-
-    [Fact]
-    public void FullscreenStateKeepsAClientModeWithoutMovingTheClient()
-    {
-        var core = Desk();
-        var before = Appear(core, 1);
-        var slot = BoundsOf(before, 1);
-
-        var outcome = core.Handle(new Dispatch("fullscreenstate", "-1 2"));
-
-        Assert.Equal(slot, BoundsOf(outcome, 1));
-        Assert.Equal(FullscreenMode.None, ClientOf(outcome, 1).Fullscreen);
-        Assert.Equal(FullscreenMode.Fullscreen, ClientOf(outcome, 1).FullscreenClient);
-        Assert.DoesNotContain(outcome.Events, static item => item is FullscreenChanged);
-    }
-
-    // -1 takes the current mode before the pair is compared, so naming the current
-    // client mode with -1 is the same pair and turns both modes off.
-    [Theory]
-    [InlineData("1 0", "-1 0")]
-    [InlineData("2 2", "-1 2")]
-    [InlineData("1 2", "1 -1")]
-    [InlineData("2 1", "-1 -1")]
-    public void FullscreenStateKeepingAModeComparesTheCurrentMode(string set, string again)
-    {
-        var core = Desk();
-        var before = Appear(core, 2);
-        var slot = BoundsOf(before, 2);
-        core.Handle(new Dispatch("fullscreenstate", set));
-
-        var outcome = core.Handle(new Dispatch("fullscreenstate", again));
-
-        Assert.Equal(FullscreenMode.None, ClientOf(outcome, 2).Fullscreen);
-        Assert.Equal(FullscreenMode.None, ClientOf(outcome, 2).FullscreenClient);
-        Assert.Equal(slot, BoundsOf(outcome, 2));
-    }
-
-    [Fact]
-    public void FullscreenStateKeepingTheInternalModeChangesOnlyTheClientMode()
-    {
-        var core = Desk();
-        Appear(core, 2);
-        core.Handle(new Dispatch("fullscreenstate", "1 0"));
-
-        var outcome = core.Handle(new Dispatch("fullscreenstate", "-1 2"));
-
-        Assert.Equal(FullscreenMode.Maximized, ClientOf(outcome, 2).Fullscreen);
-        Assert.Equal(FullscreenMode.Fullscreen, ClientOf(outcome, 2).FullscreenClient);
-    }
-
-    [Fact]
     public void TheTreeStaysPutWhileFullscreenAndASplitDoesNotMoveTheNeighbor()
     {
         var core = Desk();
@@ -167,7 +103,8 @@ public class FullscreenTests
         Appear(core, 2);
         core.Handle(new Dispatch("fullscreen", "1 set"));
 
-        var outcome = core.Handle(new Dispatch("fullscreenstate", "2 2 set address:0x1"));
+        core.Handle(new Dispatch("focuswindow", "address:0x1"));
+        var outcome = core.Handle(new Dispatch("fullscreen", "0 set"));
 
         Assert.Equal(MonitorBounds, BoundsOf(outcome, 1));
         Assert.Equal(FullscreenMode.None, ClientOf(outcome, 2).Fullscreen);
@@ -181,9 +118,8 @@ public class FullscreenTests
             general:gaps_in = 0
             general:gaps_out = 0
             general:border_size = 0
-            windowrulev2 = fullscreen, class:^(game)$
-            windowrulev2 = maximize, class:^(edit)$
-            windowrulev2 = fullscreen_state 2 0, class:^(browser)$
+            windowrule = fullscreen, class:^(game)$
+            windowrule = maximize, class:^(edit)$
             """));
         core.Handle(new MonitorsChanged([Screen()]));
 
@@ -200,14 +136,6 @@ public class FullscreenTests
         });
         Assert.Equal(Work, BoundsOf(edit, 2));
         Assert.Equal(FullscreenMode.Maximized, ClientOf(edit, 2).Fullscreen);
-
-        var browser = core.Handle(new WindowAppeared(new WindowId(3), Work)
-        {
-            Traits = WindowTraits.Normal with { Class = "browser" },
-        });
-        Assert.Equal(MonitorBounds, BoundsOf(browser, 3));
-        Assert.Equal(FullscreenMode.Fullscreen, ClientOf(browser, 3).Fullscreen);
-        Assert.Equal(FullscreenMode.None, ClientOf(browser, 3).FullscreenClient);
     }
 
     [Fact]
@@ -229,12 +157,12 @@ public class FullscreenTests
     {
         var core = Desk();
         Appear(core, 1);
-        core.Handle(new Dispatch("fullscreenstate", "1 0"));
+        core.Handle(new Dispatch("fullscreen", "1"));
 
         using var clients = JsonDocument.Parse(core.Execute("j/clients").Text);
         var client = clients.RootElement[0];
         Assert.Equal(1, client.GetProperty("fullscreen").GetInt32());
-        Assert.Equal(0, client.GetProperty("fullscreenClient").GetInt32());
+        Assert.Equal(1, client.GetProperty("fullscreenClient").GetInt32());
         Assert.Equal("default", client.GetProperty("fullscreenHandler").GetString());
 
         using var workspaces = JsonDocument.Parse(core.Execute("j/workspaces").Text);
@@ -358,39 +286,6 @@ public class FullscreenTests
         Assert.Equal(MonitorBounds, Bounds(core, 2));
     }
 
-    [Theory]
-    [InlineData("2 2 set", FullscreenMode.Fullscreen, FullscreenMode.Fullscreen)]
-    [InlineData("2 2 toggle", FullscreenMode.None, FullscreenMode.None)]
-    [InlineData("2 0 toggle", FullscreenMode.None, FullscreenMode.None)]
-    [InlineData("1 1 toggle", FullscreenMode.Maximized, FullscreenMode.Maximized)]
-    [InlineData("-1 1 toggle", FullscreenMode.Fullscreen, FullscreenMode.Maximized)]
-    [InlineData("2 2 unset", FullscreenMode.None, FullscreenMode.None)]
-    [InlineData("1 1 unset", FullscreenMode.Fullscreen, FullscreenMode.Fullscreen)]
-    [InlineData("2 2", FullscreenMode.None, FullscreenMode.None)]
-    public void FullscreenStateActionsStartingFromFullscreen(string arguments, FullscreenMode internalMode, FullscreenMode clientMode)
-    {
-        var core = Desk();
-        Appear(core, 1);
-        core.Handle(new Dispatch("fullscreenstate", "2 2"));
-
-        var changed = core.Handle(new Dispatch("fullscreenstate", arguments));
-
-        Assert.Equal(internalMode, ClientOf(changed, 1).Fullscreen);
-        Assert.Equal(clientMode, ClientOf(changed, 1).FullscreenClient);
-    }
-
-    [Fact]
-    public void FullscreenStateTakesAWindowSelector()
-    {
-        var core = Desk();
-        Appear(core, 2);
-
-        var changed = core.Handle(new Dispatch("fullscreenstate", "1 1 set address:0x1"));
-
-        Assert.Equal(FullscreenMode.Maximized, ClientOf(changed, 1).Fullscreen);
-        Assert.Equal(FullscreenMode.None, ClientOf(changed, 2).Fullscreen);
-    }
-
     [Fact]
     public void MaximizeLeavesGapsOutAndTheBorder()
     {
@@ -444,15 +339,6 @@ public class FullscreenTests
         Assert.Equal(mode, parsed.Mode);
         Assert.Equal(action, parsed.Action.ToString());
         Assert.Equal(layoutAware, parsed.LayoutAware);
-    }
-
-    [Fact]
-    public void FullscreenStateReadsDefaultAfterTheAction()
-    {
-        Assert.False(FullscreenCommands.StateLayoutAware("2 0 set default class:kitty"));
-        Assert.Equal("class:kitty", FullscreenCommands.StateSelector("2 0 set default class:kitty"));
-        Assert.True(FullscreenCommands.StateLayoutAware("2 0 set class:kitty"));
-        Assert.Equal("class:kitty", FullscreenCommands.StateSelector("2 0 set class:kitty"));
     }
 
     [Fact]
@@ -515,23 +401,6 @@ public class FullscreenTests
         Assert.Contains(new ZOrderRequest(new WindowId(1), Top: true), ended.ZOrder);
         Assert.True(ClientOf(ended, 1).AllowedOverFullscreen);
         Assert.False(ClientOf(ended, 1).BelowFullscreen);
-    }
-
-    [Fact]
-    public void AMaximizedClientAskedForClientFullscreenGoesBackToClientMaximized()
-    {
-        var core = Desk();
-        Appear(core, 1);
-        core.Handle(new Dispatch("fullscreenstate", "1 1 set"));
-        core.Handle(new Dispatch("fullscreenstate", "2 2 set"));
-
-        var left = core.Handle(new Dispatch("fullscreenstate", "0 0 set"));
-
-        Assert.Equal(FullscreenMode.None, ClientOf(left, 1).Fullscreen);
-        Assert.Equal(FullscreenMode.Maximized, ClientOf(left, 1).FullscreenClient);
-
-        var again = core.Handle(new Dispatch("fullscreenstate", "0 0 set"));
-        Assert.Equal(FullscreenMode.None, ClientOf(again, 1).FullscreenClient);
     }
 
     [Fact]

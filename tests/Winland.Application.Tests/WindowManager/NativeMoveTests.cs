@@ -23,21 +23,6 @@ public class NativeMoveTests
         Assert.False(Client(dropped, 2).Floating);
     }
 
-    // Leaving maximize by the title bar changes the Workspace's fullscreen state, so f[] rules are matched again.
-    [Fact]
-    public void TakingAMaximizedClientByItsTitleMatchesTheWorkspaceRulesAgain()
-    {
-        var core = Flat("workspace = f[-1], gapsout:30\n");
-        Appear(core, 1);
-        Appear(core, 2);
-        core.Handle(new Dispatch("fullscreen", "1"));
-
-        var started = core.Handle(new WindowMoveStarted(new WindowId(2), new Point(1000, 100)));
-
-        Assert.Equal(FullscreenMode.None, Client(started, 2).Fullscreen);
-        Assert.Equal(new Rectangle(30, 30, 1860, 1020), BoundsOf(started, 1));
-    }
-
     [Fact]
     public void DroppingWhereItWasSendsTheClientBackToItsPlace()
     {

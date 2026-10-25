@@ -13,7 +13,7 @@ public class ReloadTests
             general:gaps_out = 10
             general:border_size = 0
             general:layout = monocle
-            windowrulev2 = float, class:^(kitty)$
+            windowrule = float, class:^(kitty)$
             """)));
 
         core.Handle(new WindowAppeared(new WindowId(1), Area));
@@ -51,7 +51,7 @@ public class ReloadTests
             general:gaps_out = 10
             general:border_size = 0
             bind = SUPER, W, killactive
-            windowrulev2 = float, class:^(kitty)$
+            windowrule = float, class:^(kitty)$
             """)));
 
         Assert.Equal(new WorkspaceId("2"), reloaded.State.ActiveWorkspace);

@@ -100,7 +100,7 @@ public class ScrollConformance
     [Fact]
     public void ScrollWindowRule()
     {
-        var desk = new Desk(Scrolling + "windowrulev2 = scrolling_width 0.1, class:^(kitty_scroll)$\n");
+        var desk = new Desk(Scrolling + "windowrule = scrolling_width 0.1, class:^(kitty_scroll)$\n");
         desk.Spawn("kitty_scroll");
         desk.Spawn("kitty_scroll");
 
@@ -159,158 +159,6 @@ public class ScrollConformance
     }
 
     [Fact]
-    public void ScrollLAYOUTHANDLEDTestFsingGroupedWindows()
-    {
-        var desk = new Desk(Scrolling + """
-            group:auto_group = true
-            scrolling:follow_focus = false
-            scrolling:wrap_swapcol = false
-            general:gaps_out = 10
-            general:border_size = 10
-            workspace = f[1], gapsout:0, bordersize:0
-            """);
-
-        Assert.Empty(desk.Clients());
-        desk.Spawn("kitten1");
-        desk.Ok("togglegroup");
-        desk.Spawn("kitten2");
-        desk.Keyword("group:auto_group", "false");
-        desk.Spawn("kitten3");
-        Assert.Equal(3, desk.Clients().Length);
-        desk.Ok("focuswindow", "class:kitten2");
-
-        // Fullscreen, tiled.
-        desk.Ok("fullscreen", "0 set");
-        ExpectActive(desk, "kitten2", "0,0", "1920,1080");
-        ExpectPlace(desk, "kitten1", "0,0", "1920,1080");
-
-        desk.Ok("changegroupactive", "f");
-        ExpectActive(desk, "kitten1", "0,0", "1920,1080");
-        ExpectPlace(desk, "kitten2", "0,0", "1920,1080");
-
-        desk.Ok("changegroupactive", "b");
-        desk.Ok("layoutmsg", "focus r");
-        desk.Ok("focuswindow", "class:kitten2");
-        ExpectActive(desk, "kitten2", "-960,0", "1920,1080");
-        ExpectPlace(desk, "kitten1", "-960,0", "1920,1080");
-        Assert.Equal(0, Desk.Fullscreen(desk.Client("kitten1")));
-
-        desk.Ok("layoutmsg", "inhibit_scroll 1");
-        desk.Ok("changegroupactive", "f");
-        desk.Ok("layoutmsg", "inhibit_scroll 0");
-        ExpectActive(desk, "kitten1", "-960,0", "1920,1080");
-        ExpectPlace(desk, "kitten2", "-960,0", "1920,1080");
-        Assert.Equal(0, Desk.Fullscreen(desk.Client("kitten2")));
-
-        desk.Ok("changegroupactive", "b");
-        desk.Keyword("scrolling:follow_focus", "true");
-        desk.Ok("focuswindow", "class:kitten2");
-        desk.Keyword("scrolling:follow_focus", "false");
-        desk.Ok("fullscreen", "0 unset");
-
-        // Fullscreen, floating.
-        desk.Ok("setfloating");
-        desk.Ok("fullscreen", "0 set");
-        ExpectActive(desk, "kitten2", "0,0", "1920,1080");
-        ExpectPlace(desk, "kitten1", "0,0", "1920,1080");
-
-        desk.Ok("changegroupactive", "f");
-        ExpectActive(desk, "kitten1", "0,0", "1920,1080");
-        ExpectPlace(desk, "kitten2", "0,0", "1920,1080");
-
-        desk.Ok("changegroupactive", "b");
-        desk.Ok("settiled");
-        desk.Ok("fullscreen", "0 unset");
-        desk.Ok("focuswindow", "class:kitten2");
-        desk.Ok("layoutmsg", "swapcol l");
-
-        // Maximized, tiled.
-        desk.Ok("fullscreen", "1 set");
-        ExpectActive(desk, "kitten2", "0,21", "1915,1059");
-        ExpectPlace(desk, "kitten1", "0,21", "1915,1059");
-
-        desk.Ok("changegroupactive", "f");
-        ExpectActive(desk, "kitten1", "0,21", "1915,1059");
-        ExpectPlace(desk, "kitten2", "0,21", "1915,1059");
-
-        desk.Ok("changegroupactive", "b");
-        desk.Ok("layoutmsg", "focus r");
-        desk.Ok("focuswindow", "class:kitten2");
-        ExpectActive(desk, "kitten2", "-940,41", "1875,1019");
-        Assert.Equal(1, Desk.Fullscreen(desk.ActiveWindow()));
-        ExpectPlace(desk, "kitten1", "-940,41", "1875,1019");
-        Assert.Equal(0, Desk.Fullscreen(desk.Client("kitten1")));
-
-        desk.Ok("layoutmsg", "inhibit_scroll 1");
-        desk.Ok("changegroupactive", "f");
-        desk.Ok("layoutmsg", "inhibit_scroll 0");
-        ExpectActive(desk, "kitten1", "-940,41", "1875,1019");
-        Assert.Equal(1, Desk.Fullscreen(desk.ActiveWindow()));
-        ExpectPlace(desk, "kitten2", "-940,41", "1875,1019");
-        Assert.Equal(0, Desk.Fullscreen(desk.Client("kitten2")));
-
-        desk.Ok("changegroupactive", "b");
-        desk.Keyword("scrolling:follow_focus", "true");
-        desk.Ok("focuswindow", "class:kitten2");
-        desk.Keyword("scrolling:follow_focus", "false");
-        desk.Ok("fullscreen", "1 unset");
-
-        // Maximized, floating.
-        desk.Ok("setfloating");
-        desk.Ok("fullscreen", "1 set");
-        ExpectActive(desk, "kitten2", "0,21", "1920,1059");
-        ExpectPlace(desk, "kitten1", "0,21", "1920,1059");
-
-        desk.Ok("changegroupactive", "f");
-        ExpectActive(desk, "kitten1", "0,21", "1920,1059");
-        ExpectPlace(desk, "kitten2", "0,21", "1920,1059");
-    }
-
-    [Fact]
-    public void ScrollLAYOUTHANDLEDFullscreenRetainsGeometryWhileScrolling()
-    {
-        var desk = new Desk(Scrolling);
-        foreach (var name in new[] { "kitty_scroll_A", "kitty_scroll_B", "kitty_scroll_C" })
-            desk.Spawn(name);
-
-        desk.Ok("focuswindow", "class:kitty_scroll_B");
-        var regularSize = desk.ActivePlace().Size;
-
-        desk.Ok("fullscreenstate", "2 0 set");
-        var fullscreenAt = desk.ActivePlace().At;
-
-        desk.Ok("focuswindow", "class:kitty_scroll_A");
-        var b = desk.Client("kitty_scroll_B");
-        Assert.Equal(2, Desk.Fullscreen(b));
-        Assert.Equal(0, Desk.FullscreenClient(b));
-        Assert.Equal("scrolling", b.GetProperty("fullscreenHandler").GetString());
-        Assert.Equal("1920,1080", desk.PlaceOf("kitty_scroll_B").Size);
-        Assert.NotEqual(fullscreenAt, desk.PlaceOf("kitty_scroll_B").At);
-
-        desk.Ok("fullscreenstate", "0 0 set class:kitty_scroll_B");
-        Assert.Equal(0, Desk.Fullscreen(desk.Client("kitty_scroll_B")));
-        Assert.Equal(regularSize, desk.PlaceOf("kitty_scroll_B").Size);
-
-        desk.Ok("focuswindow", "class:kitty_scroll_B");
-        desk.Ok("fullscreenstate", "1 0 set");
-        var (maximizedAt, maximizedSize) = desk.ActivePlace();
-
-        desk.Ok("focuswindow", "class:kitty_scroll_C");
-        b = desk.Client("kitty_scroll_B");
-        Assert.Equal(1, Desk.Fullscreen(b));
-        Assert.Equal(0, Desk.FullscreenClient(b));
-        Assert.Equal("scrolling", b.GetProperty("fullscreenHandler").GetString());
-        Assert.Equal(maximizedSize, desk.PlaceOf("kitty_scroll_B").Size);
-        Assert.NotEqual(maximizedAt, desk.PlaceOf("kitty_scroll_B").At);
-
-        desk.Ok("focuswindow", "class:kitty_scroll_B");
-        desk.Ok("layoutmsg", "consume");
-        b = desk.Client("kitty_scroll_B");
-        Assert.Equal(0, Desk.Fullscreen(b));
-        Assert.Equal(0, Desk.FullscreenClient(b));
-    }
-
-    [Fact]
     public void ScrollLAYOUTHANDLEDFloatingWindowHiding()
     {
         var desk = new Desk(Scrolling);
@@ -328,8 +176,8 @@ public class ScrollConformance
         ExpectClient(desk, "tiledOne", floating: false, acceptsInput: true, fullscreen: 2, visible: true);
         ExpectClient(desk, "under", floating: true, acceptsInput: false, fullscreen: 0, over: false);
 
-        desk.Keyword("windowrulev2", "float, class:^(floating.*)$");
-        desk.Keyword("windowrulev2", "size 950 500, class:^(floating.*)$");
+        desk.Keyword("windowrule", "float, class:^(floating.*)$");
+        desk.Keyword("windowrule", "size 950 500, class:^(floating.*)$");
         desk.Spawn("floatingOne");
         desk.Spawn("floatingTwo");
         ExpectClient(desk, "floatingOne", floating: true, acceptsInput: true, fullscreen: 0, over: true);
@@ -347,7 +195,7 @@ public class ScrollConformance
         ExpectClient(desk, "floatingThree", floating: true, acceptsInput: true, fullscreen: 0, over: true);
 
         desk.Ok("focuswindow", "class:floatingOne");
-        desk.Ok("fullscreenstate", "0 0 set");
+        desk.Ok("fullscreen", "1 unset");
         ExpectClient(desk, "floatingOne", floating: true, acceptsInput: true, fullscreen: 0, over: true);
         ExpectClient(desk, "floatingTwo", floating: true, acceptsInput: true, fullscreen: 0, over: true);
         ExpectClient(desk, "floatingThree", floating: true, acceptsInput: true, fullscreen: 0, over: true);
@@ -466,65 +314,6 @@ public class ScrollConformance
 
         desk.Ok("fullscreen", "1 toggle");
         ExpectFullscreen(desk, 0, 0);
-
-        desk.Ok("fullscreenstate", "2 2 set");
-        ExpectFullscreen(desk, 2, 2);
-
-        desk.Ok("fullscreenstate", "2 2 set");
-        ExpectFullscreen(desk, 2, 2);
-
-        desk.Ok("fullscreenstate", "2 2 toggle");
-        ExpectFullscreen(desk, 0, 0);
-
-        desk.Ok("fullscreenstate", "2 2 toggle");
-        ExpectFullscreen(desk, 2, 2);
-    }
-
-    [Fact]
-    public void ScrollDEFAULTHANDLEDTestFsingGroupedWindows()
-    {
-        var desk = new Desk(Scrolling + """
-            group:auto_group = true
-            general:gaps_out = 10
-            general:border_size = 10
-            workspace = f[1], gapsout:0, bordersize:0
-            """);
-
-        Assert.Empty(desk.Clients());
-        desk.Spawn("kitten1");
-        desk.Ok("togglegroup");
-        desk.Spawn("kitten2");
-        Assert.Equal(2, desk.Clients().Length);
-
-        foreach (var (mode, at, size) in new[] { ("0", "0,0", "1920,1080"), ("1", "0,21", "1920,1059") })
-        {
-            desk.Ok("fullscreen", mode + " set default");
-            ExpectActive(desk, "kitten2", at, size);
-            ExpectPlace(desk, "kitten1", at, size);
-
-            desk.Ok("changegroupactive", "f");
-            ExpectActive(desk, "kitten1", at, size);
-            ExpectPlace(desk, "kitten2", at, size);
-
-            desk.Ok("changegroupactive", "b");
-            desk.Ok("fullscreen", mode + " unset default");
-
-            desk.Ok("setfloating");
-            desk.Ok("fullscreen", mode + " set default");
-            ExpectActive(desk, "kitten2", at, size);
-            ExpectPlace(desk, "kitten1", at, size);
-
-            desk.Ok("changegroupactive", "f");
-            ExpectActive(desk, "kitten1", at, size);
-            ExpectPlace(desk, "kitten2", at, size);
-
-            if (mode == "1")
-                break;
-
-            desk.Ok("changegroupactive", "b");
-            desk.Ok("settiled");
-            desk.Ok("fullscreen", mode + " unset default");
-        }
     }
 
     [Fact]
@@ -599,85 +388,6 @@ public class ScrollConformance
 
         desk.CloseActive();
         ExpectFullscreen(desk, 2, 2);
-    }
-
-    [Fact]
-    public void ScrollDEFAULTHANDLEDFullscreenPinnedWindows()
-    {
-        var desk = new Desk(Scrolling);
-        desk.Spawn("cake");
-        desk.Ok("setfloating", "class:cake");
-        desk.Ok("resizewindowpixel", "exact 200 200,class:cake");
-        desk.Ok("workspace", "1");
-        Assert.Equal("ok", desk.Send("r/dispatch pin class:cake"));
-
-        Assert.Equal("ok", desk.Send("r/keyword binds:allow_pin_fullscreen false"));
-        desk.Ok("focuswindow", "class:cake");
-        foreach (var mode in new[] { "0", "1" })
-        {
-            desk.Ok("fullscreen", mode + " default");
-            var active = desk.ActiveWindow();
-            Assert.Equal("cake", Desk.ClassOf(active));
-            ExpectPin(active, pinned: true, pinFullscreened: false);
-            ExpectFullscreen(desk, 0, 0);
-            Assert.Equal("200,200", desk.ActivePlace().Size);
-        }
-
-        desk.Ok("workspace", "2");
-        var cake = desk.Client("cake");
-        ExpectPin(cake, pinned: true, pinFullscreened: false);
-        Assert.Equal(0, Desk.Fullscreen(cake));
-        Assert.Equal(0, Desk.FullscreenClient(cake));
-        Assert.Equal("200,200", desk.PlaceOf("cake").Size);
-        Assert.Equal(2, Desk.WorkspaceId(cake));
-
-        desk.Ok("workspace", "1");
-        foreach (var mode in new[] { 2, 1 })
-        {
-            desk.Ok("fullscreenstate", $"{mode} {mode} set default");
-            cake = desk.Client("cake");
-            ExpectPin(cake, pinned: true, pinFullscreened: false);
-            Assert.Equal(0, Desk.Fullscreen(cake));
-            Assert.Equal(mode, Desk.FullscreenClient(cake));
-            Assert.Equal("200,200", desk.PlaceOf("cake").Size);
-            Assert.Equal(1, Desk.WorkspaceId(cake));
-        }
-
-        desk.Ok("fullscreenstate", "0 0 set default");
-        Assert.Equal("ok", desk.Send("r/keyword binds:allow_pin_fullscreen true"));
-        desk.Ok("focuswindow", "class:cake");
-
-        desk.Ok("fullscreen", "0 default");
-        ExpectPin(desk.ActiveWindow(), pinned: false, pinFullscreened: true);
-        ExpectFullscreen(desk, 2, 2);
-        desk.ExpectActive("0,0", "1920,1080");
-
-        desk.Ok("fullscreen", "1 default");
-        ExpectPin(desk.ActiveWindow(), pinned: false, pinFullscreened: true);
-        ExpectFullscreen(desk, 1, 1);
-        desk.ExpectActive("2,2", "1916,1076");
-
-        desk.Ok("fullscreenstate", "0 0 set default");
-        desk.Ok("workspace", "2");
-        cake = desk.Client("cake");
-        ExpectPin(cake, pinned: true, pinFullscreened: false);
-        Assert.Equal(0, Desk.Fullscreen(cake));
-        Assert.Equal(0, Desk.FullscreenClient(cake));
-        Assert.Equal("200,200", desk.PlaceOf("cake").Size);
-        Assert.Equal(2, Desk.WorkspaceId(cake));
-
-        Assert.Equal("ok", desk.Send("r/keyword binds:allow_pin_fullscreen false"));
-        Assert.Equal("ok", desk.Send("r/dispatch pin class:cake"));
-
-        desk.Ok("fullscreen", "0 default");
-        ExpectPin(desk.ActiveWindow(), pinned: false, pinFullscreened: false);
-        ExpectFullscreen(desk, 2, 2);
-        desk.ExpectActive("0,0", "1920,1080");
-
-        desk.Ok("fullscreen", "1 default");
-        ExpectPin(desk.ActiveWindow(), pinned: false, pinFullscreened: false);
-        ExpectFullscreen(desk, 1, 1);
-        desk.ExpectActive("2,2", "1916,1076");
     }
 
     [Fact]
@@ -939,10 +649,6 @@ public class ScrollConformance
         desk.Keyword("workspace", "1, gapsin:0");
         desk.Ok("layoutmsg", "inhibit_scroll false");
 
-        var rules = Json(desk.Send("j/workspacerules"));
-        Assert.Contains(rules.EnumerateArray(), rule =>
-            rule.TryGetProperty("gapsIn", out var gaps) && gaps.EnumerateArray().All(side => side.GetInt32() == 0));
-
         Assert.True(ActiveX(desk) <= 0);
     }
 
@@ -1041,7 +747,7 @@ public class ScrollConformance
     // Shared by the layout handled and default handled cases. The default handled one asks for the default fullscreen.
     private static void FloatingOntopFullscreenWorkspaceFocusRetention(string handler)
     {
-        var desk = new Desk(Scrolling + "windowrulev2 = float, class:^(kitty_floated)$\n");
+        var desk = new Desk(Scrolling + "windowrule = float, class:^(kitty_floated)$\n");
         desk.Ok("workspace", "1");
 
         foreach (var mode in new[] { "0", "1" })
