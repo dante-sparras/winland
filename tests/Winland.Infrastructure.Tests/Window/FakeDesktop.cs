@@ -13,8 +13,6 @@ internal sealed class FakeDesktop(Func<double> clock) : IDesktop
     internal const int Inset = 8;
 
     private const uint LayeredStyle = 0x00080000;
-    private const uint DefaultBorder = 0xFFFFFFFF;
-
     private readonly Dictionary<WindowId, FakeWindow> _windows = [];
 
     internal List<string> Calls { get; } = [];
@@ -175,16 +173,6 @@ internal sealed class FakeDesktop(Func<double> clock) : IDesktop
             return false;
 
         visible = found.Visible;
-        return true;
-    }
-
-    public bool TryAttribute(WindowId window, int attribute, out uint value)
-    {
-        value = 0;
-        if (!_windows.TryGetValue(window, out var found))
-            return false;
-
-        value = found.Attributes.TryGetValue(attribute, out var set) ? set : attribute == 34 ? DefaultBorder : 0;
         return true;
     }
 
