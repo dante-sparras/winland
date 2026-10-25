@@ -135,13 +135,14 @@ public class NativeResizeTests
     [Fact]
     public void TheEndPlacesTheClientWhereTheLayoutHoldsItAfterTheRelease()
     {
-        var core = Flat("general:layout = scrolling\nscrolling:fullscreen_on_one_column = false\n");
+        var core = Flat("general:layout = scrolling\nscrolling:column_width = 0.3\n");
         Appear(core, 1);
+        Appear(core, 2);
 
-        core.Handle(new WindowSizeStarted(new WindowId(1), new Point(1439, 540)));
-        var ended = core.Handle(new WindowSizeEnded(new WindowId(1), new Point(1339, 540)));
+        core.Handle(new WindowSizeStarted(new WindowId(2), new Point(1535, 540)));
+        var ended = core.Handle(new WindowSizeEnded(new WindowId(2), new Point(1435, 540)));
 
-        Assert.Equal(Client(ended, 1).Bounds, BoundsOf(ended, 1));
+        Assert.Equal(Client(ended, 2).Bounds, BoundsOf(ended, 2));
     }
 
     // A bottom border changes only the height, as on a window Winland does not manage. The pointer drifting sideways

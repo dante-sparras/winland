@@ -288,28 +288,6 @@ public class WindowConformance
     }
 
     [Fact]
-    public void SpecialFloatRecenters()
-    {
-        var desk = new Desk();
-        desk.Spawn("kitty_special_float_recenter");
-
-        desk.Ok("setfloating", "class:kitty_special_float_recenter");
-        desk.Ok("resizewindowpixel", "exact 10 10,class:kitty_special_float_recenter");
-        desk.Ok("movetoworkspacesilent", "special:recenter,class:kitty_special_float_recenter");
-        desk.Ok("movewindowpixel", "exact 50000 50000,class:kitty_special_float_recenter");
-
-        desk.Ok("togglespecialworkspace", "recenter");
-        desk.Ok("focuswindow", "class:kitty_special_float_recenter");
-
-        Assert.Equal("kitty_special_float_recenter", desk.ActiveClass());
-        desk.ExpectActive("955,535", "10,10");
-
-        desk.Ok("togglespecialworkspace", "recenter");
-        CloseAll(desk);
-        Assert.Empty(desk.Clients());
-    }
-
-    [Fact]
     public void ExactWindowSelectors()
     {
         var desk = new Desk();
@@ -501,7 +479,7 @@ public class WindowConformance
         desk.Ok("pin");
         Assert.Contains(desk.Clients(), Desk.Pinned);
 
-        desk.Ok("movewindowpixel", "exact 1900 1000,activewindow");
+        desk.Ok("movewindowpixel", "exact 500 300,activewindow");
 
         desk.Ok("workspace", "2");
         Assert.Contains(desk.Workspaces(), workspace => workspace.GetProperty("id").GetInt32() == 2);
@@ -510,7 +488,7 @@ public class WindowConformance
         Assert.Contains(desk.Workspaces(), workspace => workspace.GetProperty("id").GetInt32() == 1);
 
         Assert.Contains(desk.Clients(), Desk.Pinned);
-        Assert.Equal("1900,1000", desk.PlaceOf("a").At);
+        Assert.Equal("500,300", desk.PlaceOf("a").At);
     }
 
     [Fact]
@@ -604,40 +582,15 @@ public class WindowConformance
         desk.Ok("setfloating");
         desk.Ok("resizewindowpixel", "exact 100 100,activewindow");
 
-        // No constraints.
-        desk.Keyword("misc:float_force_onscreen", "0");
-        desk.Ok("movewindowpixel", "exact -110 0,activewindow");
-        Assert.Equal("-110,0", desk.ActivePlace().At);
-
-        // Partly on screen.
-        desk.Keyword("misc:float_force_onscreen", "1");
-        desk.Ok("movewindowpixel", "exact -110 0,activewindow");
-        Assert.Equal("-50,0", desk.ActivePlace().At);
-
         // Fully on screen.
-        desk.Keyword("misc:float_force_onscreen", "2");
         desk.Ok("movewindowpixel", "exact -10 0,activewindow");
         Assert.Equal("2,2", desk.ActivePlace().At);
 
         desk.CloseActive();
 
-        // New floating windows open where their rules put them, whatever float_force_onscreen says.
-        desk.Keyword("misc:new_float_force_onscreen", "0");
-        Launch(desk, "[float; size 100 100; move -110 0] kitty", pid: Pid(2));
+        // The reference places a new floating window at 0,0 rather than 2,2: the border is not known yet when the rules run.
+        Launch(desk, "[float; size 100 100; move -10 0] kitty", pid: Pid(2));
         ExpectProcess(desk.Spawn("kitty"), Pid(2));
-        Assert.Equal("-110,0", desk.ActivePlace().At);
-        desk.CloseActive();
-
-        desk.Keyword("misc:new_float_force_onscreen", "1");
-        Launch(desk, "[float; size 100 100; move -110 0] kitty", pid: Pid(3));
-        ExpectProcess(desk.Spawn("kitty"), Pid(3));
-        Assert.Equal("-50,0", desk.ActivePlace().At);
-        desk.CloseActive();
-
-        // The reference places it at 0,0 rather than 2,2: the border is not known yet when the rules run.
-        desk.Keyword("misc:new_float_force_onscreen", "2");
-        Launch(desk, "[float; size 100 100; move -10 0] kitty", pid: Pid(4));
-        ExpectProcess(desk.Spawn("kitty"), Pid(4));
         Assert.Equal("0,0", desk.ActivePlace().At);
         desk.CloseActive();
     }
@@ -800,7 +753,7 @@ public class WindowConformance
         desk.Ok("resizewindowpixel", "exact 640 400,class:kitty");
         desk.Ok("movewindowpixel", "exact 0 0,class:kitty");
         desk.Ok("movecursor", "640 400");
-        Assert.Equal(("0,0", "640,400"), desk.PlaceOf("kitty"));
+        Assert.Equal(("2,2", "640,400"), desk.PlaceOf("kitty"));
     }
 
     private static void ExpectNear(string size, int width, int height, int delta)
@@ -829,5 +782,4 @@ public class WindowConformance
         foreach (var part in parts)
             Assert.Contains(part, reply, StringComparison.Ordinal);
     }
-
 }

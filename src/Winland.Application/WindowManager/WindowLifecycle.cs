@@ -166,7 +166,6 @@ public sealed partial class WindowManager
             target,
             appeared.Traits.Class,
             appeared.Traits.Title,
-            _workspaces.Shown.IsShown(target),
             FocusedMonitorBounds(),
             appeared.ProcessId,
             minSize: decision.MinSize,

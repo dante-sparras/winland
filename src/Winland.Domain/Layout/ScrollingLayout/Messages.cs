@@ -37,7 +37,7 @@ internal sealed partial class ScrollingLayout
             return Placements();
         }
 
-        CenterOrFit(neighbor);
+        FitColumn(neighbor);
         Recalculate();
         if (neighbor.Cells.Count > 0)
             Focus(forward ? neighbor.Cells[0] : neighbor.Cells[^1]);
@@ -76,7 +76,7 @@ internal sealed partial class ScrollingLayout
         }
 
         column.Width = Math.Clamp(column.Width, ScrollingOptions.MinColumnWidth, ScrollingOptions.MaxColumnWidth);
-        CenterOrFit(column);
+        FitColumn(column);
         Recalculate();
         return Placements();
     }
@@ -140,11 +140,10 @@ internal sealed partial class ScrollingLayout
             return false;
 
         var token = char.ToLowerInvariant(direction[0]);
-        var vertical = !IsHorizontal();
-        var previousInColumn = (!vertical && token is 'u' or 't') || (vertical && token == 'l');
-        var nextInColumn = (!vertical && token is 'b' or 'd') || (vertical && token == 'r');
-        var previousColumn = (!vertical && token == 'l') || (vertical && token is 'u' or 't');
-        var nextColumn = (!vertical && token == 'r') || (vertical && token is 'b' or 'd');
+        var previousInColumn = token is 'u' or 't';
+        var nextInColumn = token is 'b' or 'd';
+        var previousColumn = token == 'l';
+        var nextColumn = token == 'r';
         if (previousInColumn)
         {
             if (!wrap && PreviousCell(column, cell) is null)
@@ -170,13 +169,7 @@ internal sealed partial class ScrollingLayout
         if (neighbor is null && !wrap)
             return false;
 
-        if (neighbor is null)
-        {
-            if (_scrolling.WrapFocus)
-                neighbor = previousColumn ? _columns[^1] : _columns[0];
-            else
-                neighbor = previousColumn ? _columns[0] : _columns[^1];
-        }
+        neighbor ??= previousColumn ? _columns[^1] : _columns[0];
 
         var target = BestNeighbor(cell, neighbor);
         if (target is null)
@@ -188,13 +181,9 @@ internal sealed partial class ScrollingLayout
             return next is not null;
         }
 
-        // movefocus scrolls to the column only with scrolling:follow_focus. layoutmsg focus always does.
-        if (wrap || _scrolling.FollowFocus)
-        {
-            CenterOrFit(neighbor);
-            Recalculate();
-            _moved = true;
-        }
+        FitColumn(neighbor);
+        Recalculate();
+        _moved = true;
 
         next = Remember(neighbor, target);
         return next is not null;
@@ -275,7 +264,7 @@ internal sealed partial class ScrollingLayout
             var taken = next.Cells[0];
             RemoveCell(taken);
             AddCell(column, taken);
-            CenterOrFit(column);
+            FitColumn(column);
         }
         else if (Is(name, "consume_or_expel"))
         {
@@ -308,7 +297,7 @@ internal sealed partial class ScrollingLayout
 
                 RemoveCell(cell);
                 AddCell(adjacent, cell);
-                CenterOrFit(adjacent);
+                FitColumn(adjacent);
             }
         }
 
@@ -322,7 +311,7 @@ internal sealed partial class ScrollingLayout
         var created = InsertAt(index, null);
         RemoveCell(cell);
         AddCell(created, cell);
-        CenterOrFit(created);
+        FitColumn(created);
     }
 
     private IReadOnlyList<Placement> SwapColumns(WindowId? active, string[] tokens)
@@ -354,11 +343,9 @@ internal sealed partial class ScrollingLayout
 
         int target;
         if (Is(At(tokens, 1), "l"))
-            target = _scrolling.WrapSwapCol ? (index == 0 ? _columns.Count - 1 : index - 1) : index == 0 ? 0 : index - 1;
+            target = index == 0 ? _columns.Count - 1 : index - 1;
         else if (Is(At(tokens, 1), "r"))
-            target = _scrolling.WrapSwapCol
-                ? (index == _columns.Count - 1 ? 0 : index + 1)
-                : index == _columns.Count - 1 ? _columns.Count - 1 : index + 1;
+            target = index == _columns.Count - 1 ? 0 : index + 1;
         else
         {
             Fail("no target (invalid direction?)");
@@ -366,7 +353,7 @@ internal sealed partial class ScrollingLayout
         }
 
         (_columns[index], _columns[target]) = (_columns[target], _columns[index]);
-        CenterOrFit(column);
+        FitColumn(column);
         Recalculate();
         return Placements();
     }
@@ -388,12 +375,12 @@ internal sealed partial class ScrollingLayout
             {
                 var created = InsertAt(0, null);
                 AddCell(created, cell);
-                CenterOrFit(created);
+                FitColumn(created);
             }
             else
             {
                 AddCell(previous, cell, IndexForHeight(previous, cell.Logical.Y));
-                CenterOrFit(previous);
+                FitColumn(previous);
             }
 
             return true;
@@ -410,12 +397,12 @@ internal sealed partial class ScrollingLayout
             {
                 var created = Append(null);
                 AddCell(created, cell);
-                CenterOrFit(created);
+                FitColumn(created);
             }
             else
             {
                 AddCell(next, cell, IndexForHeight(next, cell.Logical.Y));
-                CenterOrFit(next);
+                FitColumn(next);
             }
 
             return true;
@@ -506,33 +493,6 @@ internal sealed partial class ScrollingLayout
         upper.Size = Math.Clamp(upper.Size + adjust, MinRow, MaxRow);
         lower.Size = Math.Clamp(lower.Size - adjust, MinRow, MaxRow);
     }
-
-    private Side Rotate(Side side) => _scrolling.Direction switch
-    {
-        ScrollingDirection.Left => side switch
-        {
-            Side.Left => Side.Right,
-            Side.Right => Side.Left,
-            _ => side,
-        },
-        ScrollingDirection.Up => side switch
-        {
-            Side.Up => Side.Right,
-            Side.Down => Side.Left,
-            Side.Left => Side.Up,
-            Side.Right => Side.Down,
-            _ => side,
-        },
-        ScrollingDirection.Down => side switch
-        {
-            Side.Up => Side.Left,
-            Side.Down => Side.Right,
-            Side.Left => Side.Up,
-            Side.Right => Side.Down,
-            _ => side,
-        },
-        _ => side,
-    };
 
     private IReadOnlyList<Placement> Tile(ClientId id, WindowId window)
     {

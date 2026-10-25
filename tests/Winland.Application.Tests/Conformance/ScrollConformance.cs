@@ -40,22 +40,12 @@ public class ScrollConformance
         foreach (var name in new[] { "a", "b", "c", "d" })
             desk.Spawn(name);
 
-        desk.Keyword("scrolling:wrap_focus", "true");
         desk.Ok("focuswindow", "class:a");
         desk.Ok("layoutmsg", "focus l");
         Assert.Equal("d", desk.ActiveClass());
 
         desk.Ok("layoutmsg", "focus r");
         Assert.Equal("a", desk.ActiveClass());
-
-        desk.Keyword("scrolling:wrap_focus", "false");
-        desk.Ok("focuswindow", "class:a");
-        desk.Ok("layoutmsg", "focus l");
-        Assert.Equal("a", desk.ActiveClass());
-
-        desk.Ok("focuswindow", "class:d");
-        desk.Ok("layoutmsg", "focus r");
-        Assert.Equal("d", desk.ActiveClass());
     }
 
     [Fact]
@@ -66,7 +56,6 @@ public class ScrollConformance
         foreach (var name in names)
             desk.Spawn(name);
 
-        desk.Keyword("scrolling:wrap_swapcol", "true");
         desk.Ok("focuswindow", "class:a");
         desk.Ok("layoutmsg", "swapcol l");
         desk.Ok("layoutmsg", "focus l");
@@ -80,21 +69,6 @@ public class ScrollConformance
         desk.Ok("layoutmsg", "swapcol r");
         desk.Ok("layoutmsg", "focus r");
         Assert.Equal("b", desk.ActiveClass());
-
-        CloseAll(desk);
-        foreach (var name in names)
-            desk.Spawn(name);
-
-        desk.Keyword("scrolling:wrap_swapcol", "false");
-        desk.Ok("focuswindow", "class:a");
-        desk.Ok("layoutmsg", "swapcol l");
-        desk.Ok("layoutmsg", "focus r");
-        Assert.Equal("b", desk.ActiveClass());
-
-        desk.Ok("focuswindow", "class:d");
-        desk.Ok("layoutmsg", "swapcol r");
-        desk.Ok("layoutmsg", "focus l");
-        Assert.Equal("c", desk.ActiveClass());
     }
 
     [Fact]
@@ -240,26 +214,6 @@ public class ScrollConformance
     }
 
     [Fact]
-    public void ScrollLAYOUTHANDLEDRespectFocusFitMethodOnUnFs()
-    {
-        var desk = new Desk(Scrolling);
-        desk.Spawn("kitty_A");
-        desk.Spawn("kitty_B");
-
-        foreach (var mode in new[] { "0", "1" })
-        {
-            foreach (var (fit, at) in new[] { ("0", "497,22"), ("1", "27,22") })
-            {
-                desk.Keyword("scrolling:focus_fit_method", fit);
-                desk.Ok("fullscreen", mode + " set");
-                desk.Ok("fullscreen", mode + " unset");
-                ExpectActiveFullscreen(desk, "kitty_B", 0);
-                Assert.Equal(at, desk.ActivePlace().At);
-            }
-        }
-    }
-
-    [Fact]
     public void ScrollLAYOUTHANDLEDFloatingOntopFullscreenWorkspaceFocusRetention() =>
         FloatingOntopFullscreenWorkspaceFocusRetention("");
 
@@ -347,19 +301,6 @@ public class ScrollConformance
         FloatingOntopFullscreenWorkspaceFocusRetention(" default");
 
     [Fact]
-    public void TestScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse()
-    {
-        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
-        desk.Spawn("a");
-        desk.Ok("layoutmsg", "colresize 0.8");
-        desk.Spawn("b");
-
-        desk.Ok("focuswindow", "class:a");
-
-        Assert.True(ActiveX(desk) < 0);
-    }
-
-    [Fact]
     public void TestScrollingViewBehaviourDispatchFocusWindowFollowFocustrue()
     {
         var desk = new Desk(Scrolling);
@@ -370,135 +311,6 @@ public class ScrollConformance
         desk.Ok("focuswindow", "class:a");
 
         Assert.True(ActiveX(desk) >= 0);
-    }
-
-    [Fact]
-    public void TestScrollingViewBehaviourFocusFallback()
-    {
-        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
-        desk.Spawn("a");
-        desk.Ok("layoutmsg", "colresize 0.8");
-        desk.Spawn("b");
-        desk.Spawn("c");
-
-        desk.Ok("setfloating", "class:c");
-        desk.Ok("focuswindow", "class:c");
-        desk.Ok("focuswindow", "class:a");
-        desk.Ok("focuswindow", "class:c");
-
-        desk.Close("c");
-        Assert.Equal(2, desk.Clients().Length);
-
-        Assert.True(ActiveX(desk) < 0);
-    }
-
-    [Fact]
-    public void TestScrollingViewBehaviourFocusFallbackWithGroups()
-    {
-        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
-        desk.Spawn("a");
-        desk.Ok("layoutmsg", "colresize 0.8");
-        desk.Spawn("b");
-        desk.Spawn("c");
-        desk.Ok("focuswindow", "class:a");
-        desk.Ok("togglegroup");
-
-        desk.Ok("setfloating", "class:c");
-        desk.Ok("focuswindow", "class:c");
-        desk.Ok("focuswindow", "class:a");
-        desk.Ok("focuswindow", "class:c");
-
-        desk.Close("c");
-        Assert.Equal(2, desk.Clients().Length);
-
-        Assert.True(ActiveX(desk) < 0);
-    }
-
-    [Fact]
-    public void TestScrollingViewBehaviourWorkspaceChange()
-    {
-        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
-        desk.Ok("workspace", "1");
-        desk.Spawn("a");
-        desk.Ok("layoutmsg", "colresize 0.8");
-        desk.Spawn("b");
-        desk.Ok("focuswindow", "class:a");
-
-        desk.Ok("workspace", "2");
-        desk.Ok("workspace", "1");
-
-        Assert.True(ActiveX(desk) <= 0);
-    }
-
-    [Fact]
-    public void TestScrollingViewBehaviourSpecialWorkspaceChange()
-    {
-        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
-        desk.Ok("togglespecialworkspace", "name:scroll_S");
-        desk.Spawn("a");
-        desk.Ok("layoutmsg", "colresize 0.8");
-        desk.Spawn("b");
-        desk.Ok("focuswindow", "class:a");
-
-        desk.Ok("workspace", "2");
-        desk.Ok("togglespecialworkspace", "name:scroll_S");
-        desk.Ok("focuswindow", "class:a");
-
-        Assert.True(ActiveX(desk) <= 0);
-    }
-
-    [Fact]
-    public void TestScrollingViewBehaviourSpecialToSpecialWorkspaceChange()
-    {
-        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
-        desk.Ok("togglespecialworkspace", "name:scroll_S");
-        desk.Spawn("a");
-        desk.Ok("layoutmsg", "colresize 0.8");
-        desk.Spawn("b");
-        desk.Ok("focuswindow", "class:a");
-
-        desk.Ok("togglespecialworkspace", "name:scroll_F");
-        desk.Ok("togglespecialworkspace", "name:scroll_S");
-        desk.Ok("focuswindow", "class:a");
-
-        Assert.True(ActiveX(desk) <= 0);
-    }
-
-    [Fact]
-    public void TestScrollingViewBehaviourCloseWindowInGroup()
-    {
-        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
-        desk.Spawn("a");
-        desk.Ok("layoutmsg", "colresize 0.8");
-        desk.Spawn("b");
-        desk.Spawn("c");
-        desk.Ok("focuswindow", "class:a");
-        desk.Ok("togglegroup");
-        desk.Ok("focuswindow", "class:b");
-        desk.Ok("moveintogroup", "l");
-
-        desk.Ok("focuswindow", "class:b");
-        desk.Close("b");
-        Assert.Equal(2, desk.Clients().Length);
-
-        Assert.True(ActiveX(desk) <= 0);
-    }
-
-    [Fact]
-    public void TestScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse()
-    {
-        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
-        desk.Spawn("a");
-        desk.Ok("layoutmsg", "colresize 0.8");
-        desk.Spawn("b");
-        desk.Spawn("c");
-        desk.Ok("focuswindow", "class:a");
-        desk.Ok("togglegroup");
-
-        desk.Ok("focuswindow", "class:b");
-        desk.Ok("moveintogroup", "l");
-
-        Assert.True(ActiveX(desk) <= 0);
     }
 
     [Fact]
@@ -516,19 +328,6 @@ public class ScrollConformance
         desk.Ok("moveintogroup", "l");
 
         Assert.True(ActiveX(desk) >= 0);
-    }
-
-    [Fact]
-    public void TestScrollingViewBehaviourMoveFocusFollowFocusFalse()
-    {
-        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
-        desk.Spawn("a");
-        desk.Ok("layoutmsg", "colresize 0.8");
-        desk.Spawn("b");
-
-        desk.Ok("movefocus", "l");
-
-        Assert.True(ActiveX(desk) <= 0);
     }
 
     [Fact]
@@ -562,22 +361,6 @@ public class ScrollConformance
     }
 
     [Fact]
-    public void TestScrollingViewBehaviourScheduledPropRefresh()
-    {
-        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
-        desk.Spawn("a");
-        desk.Ok("layoutmsg", "colresize 0.8");
-        desk.Spawn("b");
-        desk.Ok("focuswindow", "class:a");
-
-        desk.Ok("layoutmsg", "inhibit_scroll true");
-        desk.Keyword("workspace", "1, gapsin:0");
-        desk.Ok("layoutmsg", "inhibit_scroll false");
-
-        Assert.True(ActiveX(desk) <= 0);
-    }
-
-    [Fact]
     public void TestScrollInhibitor()
     {
         var desk = new Desk(Scrolling);
@@ -594,7 +377,7 @@ public class ScrollConformance
     [Fact]
     public void LayoutmsgFitIntoView()
     {
-        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
+        var desk = new Desk(Scrolling);
         desk.Spawn("a");
         desk.Ok("layoutmsg", "colresize 0.8");
         desk.Spawn("b");
@@ -613,7 +396,6 @@ public class ScrollConformance
             general:border_size = 0
             general:gaps_out = 0
             scrolling:column_width = 0.5
-            scrolling:fullscreen_on_one_column = true
             """);
         desk.Spawn("a");
         var single = X(desk.ActivePlace().Size);

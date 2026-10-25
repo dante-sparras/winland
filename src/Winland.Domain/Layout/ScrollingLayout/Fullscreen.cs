@@ -52,7 +52,7 @@ internal sealed partial class ScrollingLayout
             column.Width = width;
 
         if (held != mode)
-            CenterOrFit(column);
+            FitColumn(column);
 
         Recalculate();
         return Visible();
@@ -106,9 +106,7 @@ internal sealed partial class ScrollingLayout
     {
         var usable = Usable();
         var monitor = Viewport();
-        var view = IsHorizontal() ? usable.Width : usable.Height;
-        var screen = IsHorizontal() ? monitor.Width : monitor.Height;
-        return view <= 0 ? 1 : Math.Max(1, screen / (double)view);
+        return usable.Width <= 0 ? 1 : Math.Max(1, monitor.Width / (double)usable.Width);
     }
 
     // A held tile covering the view fills the Monitor, or the work area when maximized. Scrolled away, it keeps that
@@ -117,28 +115,19 @@ internal sealed partial class ScrollingLayout
     {
         var usable = Usable();
         var cover = mode == FullscreenMode.Fullscreen ? Viewport() : usable;
-        var horizontal = IsHorizontal();
         double x = cover.X;
         double y = cover.Y;
         double width = cover.Width;
         double height = cover.Height;
         if (!Covers(start, size))
         {
-            if (horizontal)
-            {
-                x = usable.X + primaryPos;
-                width = size;
-            }
-            else
-            {
-                y = usable.Y + primaryPos;
-                height = size;
-            }
+            x = usable.X + primaryPos;
+            width = size;
         }
 
         if (mode == FullscreenMode.Maximized)
         {
-            var gaps = GapsFor(index, 0, 1, horizontal);
+            var gaps = GapsFor(index, 0, 1);
             var border = _layoutOptions.BorderFor(cell.Id);
             x += gaps.Left + border;
             y += gaps.Top + border;

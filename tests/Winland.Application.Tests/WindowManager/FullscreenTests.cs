@@ -298,15 +298,15 @@ public class FullscreenTests
     }
 
     [Fact]
-    public void AFloatingClientMaximizesInsideTheFloatGaps()
+    public void AFloatingClientMaximizesInsideTheWorkAreaWithoutGapsOut()
     {
-        var core = Desk("general:gaps_out = 20\ngeneral:border_size = 2\ngeneral:float_gaps = 10\n");
+        var core = Desk("general:gaps_out = 20\ngeneral:border_size = 2\n");
         Appear(core, 1);
         core.Handle(new Dispatch("setfloating"));
 
         var maximized = core.Handle(new Dispatch("fullscreen", "1"));
 
-        Assert.Equal(new Rectangle(12, 52, 1896, 1016), BoundsOf(maximized, 1));
+        Assert.Equal(new Rectangle(2, 42, 1916, 1036), BoundsOf(maximized, 1));
     }
 
     [Theory]

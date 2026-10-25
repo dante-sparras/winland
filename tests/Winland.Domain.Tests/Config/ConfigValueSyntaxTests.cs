@@ -89,20 +89,13 @@ public class ConfigValueSyntaxTests
     }
 
     [Fact]
-    public void DwindleBoolAndNamedIntUseTheSharedWords()
+    public void DwindleBoolUsesTheSharedWords()
     {
         var document = ConfigParser.Parse("""
             dwindle:preserve_split = off
-            dwindle:smart_split = 1
-            dwindle:force_split = right
-            dwindle:split_bias = current
             """);
 
-        var options = LayoutOptions.From(document);
-
-        Assert.False(options.PreserveSplit);
-        Assert.True(options.SmartSplit);
-        Assert.Equal(2, options.ForceSplit);
-        Assert.Equal(1, options.SplitBias);
+        Assert.False(LayoutOptions.From(document).PreserveSplit);
+        Assert.True(LayoutOptions.From(ConfigParser.Parse("dwindle:preserve_split = 1\n")).PreserveSplit);
     }
 }

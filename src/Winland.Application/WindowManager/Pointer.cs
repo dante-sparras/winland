@@ -286,8 +286,7 @@ public sealed partial class WindowManager
 
     private Outcome StartBorder(PointerButtonPressed pressed, WindowId window, Rectangle bounds, bool floating)
     {
-        var options = ActiveOptions();
-        var (left, top) = BorderPointer.GrabbedCorner(options.ResizeCorner, floating, pressed.Position, bounds);
+        var (left, top) = BorderPointer.GrabbedCorner(pressed.Position, bounds);
         _interaction = new BorderDrag(window, pressed.Button, floating, pressed.Position, bounds, left, top);
         var desk = LayoutWorkspace(window);
         _focus.Take(window, desk);
@@ -305,7 +304,6 @@ public sealed partial class WindowManager
         if (border.Floating)
         {
             var next = BorderPointer.Resize(border.Start, border.Origin, pointer, border.Left, border.Top);
-            next = SnapBox(border.Window, next, SnapEdges.FromGrab(border.Left, border.Top), resize: true);
             return View(desk.Layout.PlaceFloating(border.Window, next), consumed: true, dispatcher: "resizewindow") with { Live = true };
         }
 
@@ -337,8 +335,7 @@ public sealed partial class WindowManager
             return;
         }
 
-        var options = ActiveOptions();
-        if (!options.ResizeOnBorder || !options.HoverIconOnBorder)
+        if (!ActiveOptions().ResizeOnBorder)
         {
             _resizeCursor = null;
             return;
@@ -460,23 +457,6 @@ public sealed partial class WindowManager
         bounds = default;
         side = BorderSide.None;
         return false;
-    }
-
-    private Rectangle SnapBox(WindowId self, Rectangle proposed, SnapEdges edges, bool resize)
-    {
-        var options = ActiveOptions();
-        var desk = LayoutWorkspace(self);
-        var others = new List<Rectangle>();
-        foreach (var client in desk.Layout.Clients)
-        {
-            if (client.Minimized || client.Window == self)
-                continue;
-
-            if (desk.Layout.TryBounds(client.Window, out var bounds))
-                others.Add(bounds);
-        }
-
-        return FloatingSnap.Apply(proposed, edges, resize, others, WorkArea(desk, _area), FocusedMonitorBounds(), options);
     }
 
     private LayoutOptions ActiveOptions()

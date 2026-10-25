@@ -62,13 +62,7 @@ public class DragConformance
     [Fact]
     public void DragThresholdSurvivesScrollEvents()
     {
-        var desk = new Desk("""
-            general {
-                snap {
-                    enabled = false
-                }
-            }
-            """ + "\n" + DragOnLeftButton);
+        var desk = new Desk(DragOnLeftButton);
         desk.Spawn("drag_threshold");
         Assert.Single(desk.Clients());
         desk.Ok("focuswindow", "class:drag_threshold");

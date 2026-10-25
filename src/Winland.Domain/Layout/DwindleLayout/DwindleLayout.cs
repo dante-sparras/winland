@@ -10,7 +10,6 @@ internal sealed partial class DwindleLayout : TiledLayout, Layout
     private ClientId? _splitTarget;
     private Rectangle _area;
     private Rectangle _monitor;
-    private bool _activeWorkspace = true;
 
     public IReadOnlyList<Placement> Apply(LayoutOptions options)
     {
@@ -89,7 +88,6 @@ internal sealed partial class DwindleLayout : TiledLayout, Layout
         WorkspaceId workspace,
         string windowClass = "",
         string title = "",
-        bool activeWorkspace = true,
         Rectangle monitor = default,
         long processId = 0,
         string initialClass = "",
@@ -100,7 +98,6 @@ internal sealed partial class DwindleLayout : TiledLayout, Layout
     {
         _area = area;
         _monitor = monitor;
-        _activeWorkspace = activeWorkspace;
         var id = new ClientId(window.Value);
         if (_nodes.ContainsKey(id) || _suspended.ContainsKey(id) || _floating.Contains(id))
             return [];
@@ -108,9 +105,9 @@ internal sealed partial class DwindleLayout : TiledLayout, Layout
         _limits[id] = new SizeLimits(minSize, maxSize) { Tiled = tiledLimits };
         _natural[id] = bounds;
         var placed = new SizeLimits(minSize, maxSize).Clamp(bounds);
-        var overflows = !floating && CannotFill(maxSize, pointer);
+        var overflows = !floating && CannotFill(maxSize);
         if (overflows)
-            placed = FloatedFromTile(new SizeLimits(minSize, maxSize), pointer);
+            placed = FloatedFromTile(new SizeLimits(minSize, maxSize));
 
         _floating.Remember(id, placed);
         var floats = floating || overflows;
@@ -126,7 +123,7 @@ internal sealed partial class DwindleLayout : TiledLayout, Layout
         _clients.Add(client);
         _nodes.Add(client.Id, node);
 
-        var opening = Opening(pointer);
+        var opening = Opening();
         if (opening is null && _root is null)
         {
             node.Box = TilingArea();
@@ -230,45 +227,8 @@ internal sealed partial class DwindleLayout : TiledLayout, Layout
 
     public override IReadOnlyList<Placement> Placed() => Placements();
 
-    private Node? Opening(Point? pointer)
-    {
-        if (!_options.UseActiveForSplits)
-        {
-            if (!_activeWorkspace)
-                return FirstLeaf();
-
-            if (pointer is { } point)
-            {
-                var hit = LeafContaining(point);
-                if (hit is not null)
-                    return hit;
-
-                if (OnReserved(point))
-                    return ClosestLeaf(point);
-            }
-
-            return FirstLeaf();
-        }
-
-        return SplitTarget() ?? (_root is null ? null : Leaf(_root));
-    }
-
-    private bool OnReserved(Point point)
-    {
-        if (_monitor.Width <= 0 || _monitor.Height <= 0)
-            return false;
-
-        if (point.X < _monitor.X - 1
-            || point.Y < _monitor.Y - 1
-            || point.X >= _monitor.X + _monitor.Width + 1
-            || point.Y >= _monitor.Y + _monitor.Height + 1)
-            return false;
-
-        return point.X < _area.X
-            || point.Y < _area.Y
-            || point.X >= _area.X + _area.Width
-            || point.Y >= _area.Y + _area.Height;
-    }
+    private Node? Opening() =>
+        SplitTarget() ?? (_root is null ? null : Leaf(_root));
 
     private Placement[] Placements()
     {
@@ -311,7 +271,7 @@ internal sealed partial class DwindleLayout : TiledLayout, Layout
         if (node.First is null || node.Second is null)
             return;
 
-        if (!keepDirection && !_options.PreserveSplit && !_options.SmartSplit && !_options.PreciseMouseMove)
+        if (!keepDirection && !_options.PreserveSplit)
             node.SplitTop = SplitsTop(node.Box);
 
         if (node.SplitTop)
@@ -331,8 +291,8 @@ internal sealed partial class DwindleLayout : TiledLayout, Layout
         Recalculate(node.Second);
     }
 
-    private bool SplitsTop(Rectangle box) =>
-        box.Height * _options.SplitWidthMultiplier > box.Width;
+    private static bool SplitsTop(Rectangle box) =>
+        box.Height > box.Width;
 
     // The epsilon keeps a ratio set from a whole pixel delta, such as 1.614 of 500, from truncating to the pixel below.
     private static int FirstShare(int size, double splitRatio) => (int)((size / 2.0 * splitRatio) + 1e-6);

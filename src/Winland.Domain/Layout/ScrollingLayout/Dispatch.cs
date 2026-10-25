@@ -5,7 +5,7 @@ namespace Winland.Domain;
 internal sealed partial class ScrollingLayout
 {
     // movefocus and the dispatchers that look for a neighbour do not wrap around the strip, as Winland
-    // looks in a direction across Monitors there. Only layoutmsg focus follows scrolling:wrap_focus.
+    // looks in a direction across Monitors there. Only layoutmsg focus wraps.
     public WindowId? MoveFocus(WindowId active, string arguments)
     {
         if (!Sides.TryParse(First(arguments), out _) || !FocusToward(active, arguments, out var next, wrap: false))
@@ -27,12 +27,12 @@ internal sealed partial class ScrollingLayout
             return [];
 
         if (_floating.Contains(id))
-            return _floating.MoveToEdge(id, side, _layoutOptions.FloatingWorkArea(_area), _layoutOptions.BorderFor(id));
+            return _floating.MoveToEdge(id, side, _area, _layoutOptions.BorderFor(id));
 
         if (CellFor(window) is not Cell cell || cell.Column is null)
             return [];
 
-        if (!MoveCell(cell, Rotate(side)))
+        if (!MoveCell(cell, side))
             return [];
 
         _focus = window;
@@ -76,18 +76,15 @@ internal sealed partial class ScrollingLayout
         if (cell.Column is not Column column || !TryStrip(column, out var start, out var size, out var primary))
             return [];
 
-        var horizontal = IsHorizontal();
-        var primaryDelta = horizontal ? deltaX : deltaY;
-        var secondaryDelta = horizontal ? deltaY : deltaX;
         var onScreenStart = start - _offset;
         var onScreenEnd = start + size - _offset;
         SetOffset(_offset);
 
         var old = column.Width;
-        var nearEdge = horizontal ? corner is { Left: true } : corner is { Top: true };
+        var nearEdge = corner is { Left: true };
         if (nearEdge)
         {
-            var actual = Math.Clamp(old - (primaryDelta / primary), ScrollingOptions.MinColumnWidth, ScrollingOptions.MaxColumnWidth) - old;
+            var actual = Math.Clamp(old - (deltaX / primary), ScrollingOptions.MinColumnWidth, ScrollingOptions.MaxColumnWidth) - old;
             if (actual * primary > onScreenStart)
                 actual = onScreenStart / primary;
 
@@ -99,7 +96,7 @@ internal sealed partial class ScrollingLayout
         }
         else
         {
-            var actual = Math.Clamp(old + (primaryDelta / primary), ScrollingOptions.MinColumnWidth, ScrollingOptions.MaxColumnWidth) - old;
+            var actual = Math.Clamp(old + (deltaX / primary), ScrollingOptions.MinColumnWidth, ScrollingOptions.MaxColumnWidth) - old;
             if (onScreenEnd + (actual * primary) > primary)
                 actual = (primary - onScreenEnd) / primary;
 
@@ -107,7 +104,7 @@ internal sealed partial class ScrollingLayout
                 column.Width = old + actual;
         }
 
-        ResizeRow(cell, secondaryDelta, corner);
+        ResizeRow(cell, deltaY, corner);
         Recalculate();
         return Placements();
     }

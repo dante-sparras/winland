@@ -84,7 +84,7 @@ public sealed partial class WindowManager
         }
         else
         {
-            var floating = desk.Options.FloatingWorkArea(area);
+            var floating = area;
             placed = new Rectangle(
                 floating.X + ((floating.Width - width) / 2),
                 floating.Y + ((floating.Height - height) / 2),
@@ -92,8 +92,8 @@ public sealed partial class WindowManager
                 height);
         }
 
-        // misc:new_float_force_onscreen keeps a Client that opens floating on screen, a moved one too.
-        return decision.Floating ? desk.Options.NewFloatingOnScreen(area).Keep(placed) : placed;
+        // A Client that opens floating is kept on screen, a moved one too.
+        return decision.Floating ? LayoutOptions.NewFloatingOnScreen(area).Keep(placed) : placed;
     }
 
     // Where the Client that owns a new window is now, or null when it has no owner that is a Client.

@@ -14,14 +14,14 @@ internal static class BorderPointer
         && point.Y < box.Y + box.Height;
 
     public static int Reach(LayoutOptions options) =>
-        options.ResizeOnBorder ? Math.Max(0, options.BorderSize) + Math.Max(0, options.ExtendBorderGrabArea) : 0;
+        options.ResizeOnBorder ? Math.Max(0, options.BorderSize) + options.GrabArea : 0;
 
     /// <summary>
     /// How far around a window a wheel turn still counts as meant for it: the border, and the grab area around it when
     /// <c>resize_on_border</c> is on, as Winland extends a window's input past its surface by its decorations.
     /// </summary>
     public static int AxisReach(LayoutOptions options) =>
-        Math.Max(0, options.BorderSize) + (options.ResizeOnBorder ? Math.Max(0, options.ExtendBorderGrabArea) : 0);
+        Math.Max(0, options.BorderSize) + (options.ResizeOnBorder ? options.GrabArea : 0);
 
     /// <summary>The point of <paramref name="box"/> nearest <paramref name="point"/>, one pixel in from the far edges.</summary>
     public static Point Clamp(Rectangle box, Point point) => new(
@@ -93,27 +93,10 @@ internal static class BorderPointer
             _ => BorderSide.BottomLeft,
         };
 
-    public static (bool Left, bool Top) GrabbedCorner(int resizeCorner, bool floating, Point pointer, Rectangle bounds)
-    {
-        if (floating)
-        {
-            switch (resizeCorner)
-            {
-                case 1:
-                    return (true, true);
-                case 2:
-                    return (false, true);
-                case 3:
-                    return (false, false);
-                case 4:
-                    return (true, false);
-            }
-        }
-
-        return (
+    public static (bool Left, bool Top) GrabbedCorner(Point pointer, Rectangle bounds) =>
+        (
             pointer.X < bounds.X + (bounds.Width / 2.0),
             pointer.Y < bounds.Y + (bounds.Height / 2.0));
-    }
 
     /// <summary>
     /// Resizes from the grabbed corner. With <paramref name="keepRatio"/> the larger of the two

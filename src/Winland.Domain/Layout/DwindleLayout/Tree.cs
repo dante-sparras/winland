@@ -2,37 +2,21 @@ namespace Winland.Domain;
 
 internal sealed partial class DwindleLayout
 {
-    // A drop from a mouse drag follows the pointer even under force_split, and with precise_mouse_move it picks the side as smart_split does.
-    private void Split(Node opening, Node node, Point? pointer, bool focal = false, bool dropped = false)
+    private void Split(Node opening, Node node, Point? pointer)
     {
         var parent = new Node
         {
             Box = opening.Box,
             Parent = opening.Parent,
-            SplitRatio = _options.DefaultSplitRatio,
+            SplitRatio = 1,
             SplitTop = SplitsTop(opening.Box),
         };
 
         var direction = TakePreselect();
         if (direction != PendingSplit.None)
             AssignDirection(parent, opening, node, direction);
-        else if ((_options.SmartSplit || (_options.PreciseMouseMove && dropped)) && pointer is { } point)
-            AssignSmart(parent, opening, node, point);
-        else if (!focal && !dropped && _options.ForceSplit == 1)
-        {
-            parent.First = node;
-            parent.Second = opening;
-        }
-        else if (!focal && !dropped && _options.ForceSplit == 2)
-        {
-            parent.First = opening;
-            parent.Second = node;
-        }
         else
             AssignByPointer(parent, opening, node, pointer);
-
-        if (_options.SplitBias == 1 && ReferenceEquals(parent.First, node))
-            parent.SplitRatio = 2 - parent.SplitRatio;
 
         Replace(opening, parent);
         opening.Parent = parent;
@@ -43,7 +27,7 @@ internal sealed partial class DwindleLayout
     private PendingSplit TakePreselect()
     {
         var direction = _preselect;
-        if (direction != PendingSplit.None && !_options.PermanentDirectionOverride)
+        if (direction != PendingSplit.None)
             _preselect = PendingSplit.None;
         return direction;
     }
@@ -63,50 +47,9 @@ internal sealed partial class DwindleLayout
         }
     }
 
-    private static void AssignSmart(Node parent, Node opening, Node node, Point point)
+    private static void AssignByPointer(Node parent, Node opening, Node node, Point? pointer)
     {
-        var centerX = parent.Box.X + (parent.Box.Width / 2.0);
-        var centerY = parent.Box.Y + (parent.Box.Height / 2.0);
-        var dx = point.X - centerX;
-        var dy = point.Y - centerY;
-        var proportions = parent.Box.Width == 0
-            ? double.PositiveInfinity
-            : parent.Box.Height / (double)parent.Box.Width;
-        var slope = dx == 0 ? double.PositiveInfinity : dy / dx;
-
-        if (Math.Abs(slope) < proportions)
-        {
-            parent.SplitTop = false;
-            if (dx > 0)
-            {
-                parent.First = opening;
-                parent.Second = node;
-            }
-            else
-            {
-                parent.First = node;
-                parent.Second = opening;
-            }
-        }
-        else
-        {
-            parent.SplitTop = true;
-            if (dy > 0)
-            {
-                parent.First = opening;
-                parent.Second = node;
-            }
-            else
-            {
-                parent.First = node;
-                parent.Second = opening;
-            }
-        }
-    }
-
-    private void AssignByPointer(Node parent, Node opening, Node node, Point? pointer)
-    {
-        var sideBySide = parent.Box.Width > parent.Box.Height * _options.SplitWidthMultiplier;
+        var sideBySide = parent.Box.Width > parent.Box.Height;
         var inFirst = pointer is { } point && (sideBySide
             ? point.X < parent.Box.X + (parent.Box.Width / 2.0)
             : point.Y < parent.Box.Y + (parent.Box.Height / 2.0));
@@ -229,17 +172,6 @@ internal sealed partial class DwindleLayout
         }
 
         return best;
-    }
-
-    private Node? FirstLeaf()
-    {
-        foreach (var client in _clients)
-        {
-            if (_nodes.TryGetValue(client.Id, out var node) && InTree(node))
-                return node;
-        }
-
-        return null;
     }
 
     private bool InTree(Node target) => _root is not null && Contains(_root, target);

@@ -80,7 +80,7 @@ internal sealed partial class DwindleLayout
         if (towardSibling)
             _preselect = direction;
 
-        Split(opening, node, focal, focal: true);
+        Split(opening, node, focal);
         _splitTarget = id;
         return Placements();
     }
@@ -215,7 +215,7 @@ internal sealed partial class DwindleLayout
         }
 
         // A refit resets the direction unless one of these keeps it, so the flip would not last.
-        if (!_options.PreserveSplit && !_options.SmartSplit && !_options.PreciseMouseMove)
+        if (!_options.PreserveSplit)
             return [];
 
         node.Parent.SplitTop = !node.Parent.SplitTop;
@@ -389,7 +389,7 @@ internal sealed partial class DwindleLayout
     }
 
     private IReadOnlyList<Placement> MoveFloating(ClientId id, PendingSplit direction) =>
-        ToSide(direction) is Side side ? _floating.MoveToEdge(id, side, _options.FloatingWorkArea(_area), _options.BorderFor(id)) : [];
+        ToSide(direction) is Side side ? _floating.MoveToEdge(id, side, _area, _options.BorderFor(id)) : [];
 
     private bool TryGeometry(WindowId window, out Rectangle box, out bool floating)
     {

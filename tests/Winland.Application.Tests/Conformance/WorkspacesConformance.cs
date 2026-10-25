@@ -94,11 +94,9 @@ public class WorkspacesConformance
         desk.Ok("workspace", "1");
         KillAll(desk);
 
-        desk.Keyword("dwindle:force_split", "2");
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
         desk.Spawn("kitty_C");
-        desk.Keyword("dwindle:force_split", "0");
 
         desk.Ok("focuswindow", "class:kitty_B");
         desk.Ok("resizeactive", "20 20");
@@ -356,11 +354,9 @@ public class WorkspacesConformance
         desk.Ok("workspace", "8");
         Assert.Equal("ok", desk.Send("r/keyword general:gaps_in 0"));
         Assert.Equal("ok", desk.Send("r/keyword general:border_size 0"));
-        Assert.Equal("ok", desk.Send("r/keyword dwindle:split_width_multiplier 1.0"));
         Assert.Equal("ok", desk.Send("r/keyword workspace 8, gapsout:0 1000 0 0"));
 
-        // The default split, force_split 0, puts B below A.
-        Assert.Equal("ok", desk.Send("r/keyword dwindle:force_split 0"));
+        // The default split puts B below A.
         desk.Spawn("gaps_kitty_A");
         desk.Spawn("gaps_kitty_B");
 
@@ -371,45 +367,6 @@ public class WorkspacesConformance
 
         KillAll(desk);
         Assert.Empty(desk.Clients());
-
-        // force_split 1 puts B above A, and then C left of B.
-        Assert.Equal("ok", desk.Send("r/keyword dwindle:force_split 1"));
-        desk.Spawn("gaps_kitty_A");
-        desk.Spawn("gaps_kitty_B");
-
-        desk.Ok("focuswindow", "class:gaps_kitty_B");
-        Assert.Equal("0,0", desk.ActivePlace().At);
-        desk.Ok("focuswindow", "class:gaps_kitty_A");
-        Assert.Equal("0,540", desk.ActivePlace().At);
-
-        desk.Ok("focuswindow", "class:gaps_kitty_B");
-        desk.Spawn("gaps_kitty_C");
-
-        desk.Ok("focuswindow", "class:gaps_kitty_C");
-        Assert.Equal("0,0", desk.ActivePlace().At);
-        desk.Ok("focuswindow", "class:gaps_kitty_B");
-        Assert.Equal("460,0", desk.ActivePlace().At);
-
-        KillAll(desk);
-        Assert.Empty(desk.Clients());
-
-        // force_split 2 puts B below A, and then C right of A.
-        Assert.Equal("ok", desk.Send("r/keyword dwindle:force_split 2"));
-        desk.Spawn("gaps_kitty_A");
-        desk.Spawn("gaps_kitty_B");
-
-        desk.Ok("focuswindow", "class:gaps_kitty_A");
-        Assert.Equal("0,0", desk.ActivePlace().At);
-        desk.Ok("focuswindow", "class:gaps_kitty_B");
-        Assert.Equal("0,540", desk.ActivePlace().At);
-
-        desk.Ok("focuswindow", "class:gaps_kitty_A");
-        desk.Spawn("gaps_kitty_C");
-
-        desk.Ok("focuswindow", "class:gaps_kitty_A");
-        Assert.Equal("0,0", desk.ActivePlace().At);
-        desk.Ok("focuswindow", "class:gaps_kitty_C");
-        Assert.Equal("460,0", desk.ActivePlace().At);
 
         KillAll(desk);
     }

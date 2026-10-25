@@ -19,13 +19,6 @@ internal sealed class Desk : IDisposable
             col.inactive_border = rgba(595959aa)
             resize_on_border = false
             layout = dwindle
-            snap {
-                enabled = true
-                window_gap = 8
-                monitor_gap = 10
-                respect_gaps = false
-                border_overlap = false
-            }
         }
         decoration {
             rounding = 10
@@ -35,20 +28,13 @@ internal sealed class Desk : IDisposable
         }
         dwindle {
             preserve_split = true
-            split_bias = 1
         }
         master {
             new_status = master
         }
         scrolling {
-            fullscreen_on_one_column = true
             column_width = 0.5
-            focus_fit_method = 1
-            follow_focus = true
-            follow_min_visible = 1
             explicit_column_widths = 0.25, 0.333, 0.5, 0.667, 0.75, 1.0
-            wrap_focus = true
-            wrap_swapcol = true
         }
         input {
             follow_mouse = 1

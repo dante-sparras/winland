@@ -47,7 +47,7 @@ internal sealed class FloatingClients
 
     /// <summary>
     /// Where a tiled Client floats: around the middle of its tile, at the size it last floated at
-    /// or 640 by 400, kept on screen as <c>misc:float_force_onscreen</c> asks. A size that would barely differ
+    /// or 640 by 400, kept on screen. A size that would barely differ
     /// from the tile grows by 10.
     /// </summary>
     public Rectangle Around(ClientId id, Rectangle tile, OnScreen onScreen)

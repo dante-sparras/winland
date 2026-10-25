@@ -8,8 +8,6 @@ internal sealed partial class ScrollingLayout : IMouseDragHost, IDragOwner
 
     FloatingClients IMouseDragHost.Floating => _floating;
 
-    int IMouseDragHost.ResizeCorner => _layoutOptions.ResizeCorner;
-
     public IReadOnlyList<Placement> Drag(WindowId window, PointerDrag drag)
     {
         if (drag.Phase == PointerDragPhase.End)
@@ -23,9 +21,6 @@ internal sealed partial class ScrollingLayout : IMouseDragHost, IDragOwner
         var id = new ClientId(window.Value);
         return _floating.Place(id, bounds, _layoutOptions.FloatingOnScreen(_area)) ? WithFloating(id) : [];
     }
-
-    Rectangle IMouseDragHost.SnapFloating(ClientId self, Rectangle proposed, SnapEdges edges, bool resize) =>
-        FloatingSnap.AmongClients(this, self, proposed, edges, resize, _area, _monitor, _layoutOptions);
 
     bool IMouseDragHost.LiftTile(ClientId id, out Rectangle box)
     {
@@ -122,34 +117,18 @@ internal sealed partial class ScrollingLayout : IMouseDragHost, IDragOwner
         return closest;
     }
 
-    private bool OnEdge(Column column, Point pointer, out bool before)
+    private static bool OnEdge(Column column, Point pointer, out bool before)
     {
         before = false;
         if (column.Cells.Count == 0)
             return false;
 
         var box = column.Cells[0].Logical;
-        double origin;
-        double size;
-        double point;
-        if (IsHorizontal())
-        {
-            origin = box.X;
-            size = box.Width;
-            point = pointer.X;
-        }
-        else
-        {
-            origin = box.Y;
-            size = box.Height;
-            point = pointer.Y;
-        }
-
-        if (size <= 0)
+        if (box.Width <= 0)
             return false;
 
-        before = point <= origin + (size * 0.3);
-        return before || point >= origin + (size * 0.7);
+        before = pointer.X <= box.X + (box.Width * 0.3);
+        return before || pointer.X >= box.X + (box.Width * 0.7);
     }
 
     bool IMouseDragHost.TryDragBounds(ClientId id, out Rectangle bounds, out bool floating)

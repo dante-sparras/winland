@@ -30,44 +30,6 @@ public class ScrollingLayoutTests
     }
 
     [Fact]
-    public void ANarrowColumnIsCenteredWhenItDoesNotCoverTheMonitor()
-    {
-        var layout = Open();
-        layout.Configure(ScrollingOptions.Defaults with { FullscreenOnOneColumn = false });
-
-        var placed = layout.Add(Window(1), Area, null, false, default, WorkspaceId.Initial, monitor: Area);
-
-        Assert.Equal(new Rectangle(250, 0, 500, 800), Box(placed, 1));
-    }
-
-    [Fact]
-    public void LeftDirectionPlacesTheNewerColumnOnTheLeft()
-    {
-        var layout = Open();
-        layout.Configure(ScrollingOptions.Defaults with { Direction = ScrollingDirection.Left });
-        layout.Add(Window(1), Area, null, false, default, WorkspaceId.Initial, monitor: Area);
-
-        var placed = layout.Add(Window(2), Area, null, false, default, WorkspaceId.Initial, monitor: Area);
-
-        Assert.Equal(new Rectangle(500, 0, 500, 800), Box(placed, 1));
-        Assert.Equal(new Rectangle(0, 0, 500, 800), Box(placed, 2));
-    }
-
-    [Fact]
-    public void DownDirectionStacksColumnsAlongTheHeight()
-    {
-        var tall = new Rectangle(0, 0, 800, 1000);
-        var layout = Open(tall);
-        layout.Configure(ScrollingOptions.Defaults with { Direction = ScrollingDirection.Down });
-        layout.Add(Window(1), tall, null, false, default, WorkspaceId.Initial, monitor: tall);
-
-        var placed = layout.Add(Window(2), tall, null, false, default, WorkspaceId.Initial, monitor: tall);
-
-        Assert.Equal(new Rectangle(0, 0, 800, 500), Box(placed, 1));
-        Assert.Equal(new Rectangle(0, 500, 800, 500), Box(placed, 2));
-    }
-
-    [Fact]
     public void InnerGapsOpenBetweenColumns()
     {
         var layout = Open();
@@ -155,7 +117,7 @@ public class ScrollingLayoutTests
     }
 
     [Fact]
-    public void FocusAtTheEndWrapsWhenWrapFocusIsOn()
+    public void FocusAtTheEndWraps()
     {
         var layout = Tape();
         layout.LayoutMessage(Window(3), "focus l");
@@ -321,12 +283,6 @@ public class ScrollingLayoutTests
         layout.NoteFocus(Window(1));
 
         Assert.Equal(new Rectangle(0, 0, 500, 800), Box(layout.Visible(), 1));
-
-        var steady = Tape();
-        steady.Configure(ScrollingOptions.Defaults with { FollowFocus = false });
-        steady.LayoutMessage(Window(3), "move +450");
-        steady.NoteFocus(Window(1));
-        Assert.Equal(-50, Box(steady.Visible(), 1).X);
     }
 
     [Fact]
@@ -334,41 +290,20 @@ public class ScrollingLayoutTests
     {
         var options = ScrollingOptions.From(ConfigParser.Parse(""));
 
-        Assert.True(options.FullscreenOnOneColumn);
         Assert.Equal(0.5, options.ColumnWidth);
-        Assert.Equal(ScrollingFit.Fit, options.FocusFitMethod);
-        Assert.True(options.FollowFocus);
-        Assert.Equal(0.4, options.FollowMinVisible);
         Assert.Equal(DefaultColumnWidths, options.ExplicitColumnWidths);
-        Assert.Equal(ScrollingDirection.Right, options.Direction);
-        Assert.True(options.WrapFocus);
-        Assert.True(options.WrapSwapCol);
     }
 
     [Fact]
     public void ScrollingOptionsParseAndClamp()
     {
         var options = ScrollingOptions.From(ConfigParser.Parse("""
-            scrolling:fullscreen_on_one_column = false
             scrolling:column_width = 2
-            scrolling:focus_fit_method = center
-            scrolling:follow_focus = 0
-            scrolling:follow_min_visible = 0.2
             scrolling:explicit_column_widths = 0.2, 0.4
-            scrolling:direction = up
-            scrolling:wrap_focus = false
-            scrolling:wrap_swapcol = no
             """));
 
-        Assert.False(options.FullscreenOnOneColumn);
         Assert.Equal(1, options.ColumnWidth);
-        Assert.Equal(ScrollingFit.Center, options.FocusFitMethod);
-        Assert.False(options.FollowFocus);
-        Assert.Equal(0.2, options.FollowMinVisible);
         Assert.Equal(ParsedColumnWidths, options.ExplicitColumnWidths);
-        Assert.Equal(ScrollingDirection.Up, options.Direction);
-        Assert.False(options.WrapFocus);
-        Assert.False(options.WrapSwapCol);
 
         var narrow = ScrollingOptions.From(ConfigParser.Parse("scrolling:column_width = 0.01\n"));
         Assert.Equal(0.1, narrow.ColumnWidth);
@@ -471,16 +406,16 @@ public class ScrollingLayoutTests
             general:gaps_in = 0
             general:gaps_out = 0
             general:border_size = 0
-            scrolling:fullscreen_on_one_column = false
             windowrule = scrolling_width 0.25, class:^(app)$
             """);
+        core.Handle(Appeared(1));
 
-        var outcome = core.Handle(new WindowAppeared(Window(1), Area)
+        var outcome = core.Handle(new WindowAppeared(Window(2), Area)
         {
             Traits = WindowTraits.Normal with { Class = "app" },
         });
 
-        Assert.Equal(new Rectangle(375, 0, 250, 800), BoundsOf(outcome, 1));
+        Assert.Equal(new Rectangle(625, 0, 250, 800), BoundsOf(outcome, 2));
     }
 
     private static ScrollingLayout Open() => Open(Area);
