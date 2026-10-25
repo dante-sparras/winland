@@ -136,7 +136,7 @@ public class MotionPlayerTests
     [Fact]
     public void AHungWindowSkipsTheFramesInBetween()
     {
-        var target = new RecordingTarget { Frozen = true };
+        var target = new RecordingTarget { Frozen = Window };
         var clock = new Clock();
         using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
         player.Begin(new Motion(Window, Goal) { From = Start, Move = Linear });
@@ -147,7 +147,55 @@ public class MotionPlayerTests
         clock.Now = 100;
         player.Tick();
 
-        Assert.Equal(["place 100"], target.Calls);
+        Assert.Equal(["place async 100"], target.Calls);
+    }
+
+    [Fact]
+    public void AHungWindowIsPlacedWithoutWaitingAndTheOthersStillFinish()
+    {
+        var other = new WindowId(8);
+        var target = new RecordingTarget { Frozen = Window };
+        var clock = new Clock();
+        using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+        player.Begin(new Motion(Window, Goal) { From = Start, Move = Linear });
+        player.Begin(new Motion(other, Goal) { From = Start, Move = Linear });
+        target.Clear();
+
+        clock.Now = 100;
+        Assert.False(player.Tick());
+
+        Assert.Contains("place async 100", target.Calls);
+        Assert.Contains("place 100", target.Calls);
+    }
+
+    [Fact]
+    public void AHungWindowThatLeavesIsPlacedWithoutWaitingAfterItIsHidden()
+    {
+        var target = new RecordingTarget { Frozen = Window };
+        var clock = new Clock();
+        using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+        player.Begin(new Motion(Window, Start with { X = -1920 }) { From = Start, Move = Linear, End = MotionEnd.Hide, Rest = Start });
+        target.Clear();
+
+        clock.Now = 100;
+        player.Tick();
+
+        Assert.Equal(["hide", "place async 0", "alpha 255"], target.Calls);
+    }
+
+    [Fact]
+    public void LandingPlacesAHungWindowWithoutWaiting()
+    {
+        var target = new RecordingTarget { Frozen = Window };
+        var clock = new Clock();
+        var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+        player.Begin(new Motion(Window, Goal) { From = Start, Move = Linear });
+        target.Clear();
+
+        player.Land();
+
+        Assert.Contains("place async 100", target.Calls);
+        Assert.DoesNotContain("place 100", target.Calls);
     }
 
     [Fact]
@@ -454,6 +502,10 @@ public class MotionPlayerTests
         {
         }
 
+        public void PlaceAsync(WindowId window, Rectangle bounds)
+        {
+        }
+
         public void Alpha(WindowId window, byte alpha)
         {
         }
@@ -483,9 +535,9 @@ public class MotionPlayerTests
 
         public bool Open { get; init; }
 
-        public bool Frozen { get; init; }
+        public WindowId? Frozen { get; init; }
 
-        public bool Hung(WindowId window) => Frozen;
+        public bool Hung(WindowId window) => window == Frozen;
 
         public List<Rectangle> Goals { get; } = [];
 
@@ -500,6 +552,8 @@ public class MotionPlayerTests
         public void Release(WindowId window) => Released.Add(window);
 
         public void Place(WindowId window, Rectangle bounds) => Add($"place {bounds.X}");
+
+        public void PlaceAsync(WindowId window, Rectangle bounds) => Add($"place async {bounds.X}");
 
         public void Alpha(WindowId window, byte alpha) => Add($"alpha {alpha}");
 

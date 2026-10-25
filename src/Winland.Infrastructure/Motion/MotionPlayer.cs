@@ -20,6 +20,9 @@ internal interface IMotionTarget
     /// <summary>The Layout rectangle, applied the way every other placement is.</summary>
     void Place(WindowId window, Rectangle bounds);
 
+    /// <summary>The Layout rectangle of a window that has stopped answering, sent without waiting for it.</summary>
+    void PlaceAsync(WindowId window, Rectangle bounds);
+
     void Alpha(WindowId window, byte alpha);
 
     void Border(WindowId window, BorderColor color);
@@ -254,7 +257,7 @@ internal sealed class MotionPlayer : IDisposable
                 // The window refused to close, so it goes back where its Layout put it.
                 if (_target.Shown(window))
                 {
-                    _target.Place(window, closing.Rest);
+                    Place(window, closing.Rest);
                     _target.Alpha(window, closing.Alpha);
                 }
             }
@@ -295,7 +298,7 @@ internal sealed class MotionPlayer : IDisposable
 
                 if (frame.Border is BorderColor border)
                     _target.Border(frame.Window, border);
-                _target.Place(frame.Window, frame.Rest);
+                Place(frame.Window, frame.Rest);
                 _target.Alpha(frame.Window, frame.RestAlpha);
             }
         }
@@ -306,7 +309,7 @@ internal sealed class MotionPlayer : IDisposable
             {
                 if (_target.Shown(window))
                 {
-                    _target.Place(window, pending.Rest);
+                    Place(window, pending.Rest);
                     _target.Alpha(window, pending.Alpha);
                 }
             }
@@ -336,6 +339,15 @@ internal sealed class MotionPlayer : IDisposable
             _target.Border(frame.Window, border);
     }
 
+    // A window that has stopped answering is sent its rectangle without waiting, so it does not hold up the others.
+    private void Place(WindowId window, Rectangle bounds)
+    {
+        if (_target.Hung(window))
+            _target.PlaceAsync(window, bounds);
+        else
+            _target.Place(window, bounds);
+    }
+
     private void Rest(Frame frame)
     {
         if (frame.Border is BorderColor border)
@@ -345,7 +357,7 @@ internal sealed class MotionPlayer : IDisposable
         {
             case MotionEnd.Hide:
                 _target.Hide(frame.Window);
-                _target.Place(frame.Window, frame.Rest);
+                Place(frame.Window, frame.Rest);
                 _target.Alpha(frame.Window, frame.RestAlpha);
                 return;
             case MotionEnd.Close:
@@ -363,7 +375,7 @@ internal sealed class MotionPlayer : IDisposable
                 return;
             default:
                 if (frame.Bounds is Rectangle bounds)
-                    _target.Place(frame.Window, bounds);
+                    Place(frame.Window, bounds);
                 else
                     _target.Release(frame.Window);
                 if (frame.Alpha is byte alpha)

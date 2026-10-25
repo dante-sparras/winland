@@ -83,8 +83,7 @@ public sealed partial class WindowAdapter
 
         var hwnd = new HWND((nint)window.Value);
         var trails = TryOuter(hwnd, out var before) && Quick.Trails(window, before);
-        Move(hwnd, bounds);
-        if (trails)
+        if (Move(hwnd, bounds) && trails)
             SendQuick(hwnd, bounds, keepSize: false);
     }
 
@@ -133,6 +132,12 @@ public sealed partial class WindowAdapter
         {
             if (!StandFor(window, bounds, content))
                 QuickPlace(window, bounds, Borderless.Owns(window));
+        }
+
+        public void PlaceAsync(WindowId window, Rectangle bounds)
+        {
+            WindowAdapter.PlaceAsync(window, bounds, Borderless.Owns(window));
+            EndStandIn(window, null);
         }
 
         public void Place(WindowId window, Rectangle bounds)

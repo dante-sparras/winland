@@ -169,7 +169,7 @@ public sealed partial class WindowAdapter : IDisposable
 
             // The hide this causes is reported like an application's own, so it is noted first.
             Concealed[window] = 0;
-            PInvoke.ShowWindow(new HWND((nint)window.Value), SHOW_WINDOW_CMD.SW_HIDE);
+            ShowOrPost(new HWND((nint)window.Value), SHOW_WINDOW_CMD.SW_HIDE);
         }
     }
 
@@ -190,7 +190,18 @@ public sealed partial class WindowAdapter : IDisposable
         var command = PInvoke.IsIconic(hwnd)
             ? SHOW_WINDOW_CMD.SW_SHOWMINNOACTIVE
             : SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE;
-        PInvoke.ShowWindow(hwnd, command);
+        ShowOrPost(hwnd, command);
+    }
+
+    // ShowWindow waits for the window's thread, which a program that has stopped answering does not give. That window is
+    // posted the command instead and takes it when the program wakes. A window that answers is waited for, because what
+    // follows, such as putting a hidden window back on its Layout rectangle, needs it already hidden.
+    private static void ShowOrPost(HWND hwnd, SHOW_WINDOW_CMD command)
+    {
+        if (PInvoke.IsHungAppWindow(hwnd))
+            PInvoke.ShowWindowAsync(hwnd, command);
+        else
+            PInvoke.ShowWindow(hwnd, command);
     }
 
     internal static string WindowTitle(HWND hwnd)
