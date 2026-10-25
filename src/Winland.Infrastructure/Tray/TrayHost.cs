@@ -44,6 +44,7 @@ internal static class TrayHost
     private static ConfigNotice? _shownNotice;
     private static Action<TrayCommand>? _onCommand;
     private static Action<string>? _onOpen;
+    private static Func<bool>? _logExists;
     private static HWND _window;
     private static HICON _icon;
     private static uint _thread;
@@ -58,14 +59,18 @@ internal static class TrayHost
     private static long _menuAt;
     private static Thread? _worker;
 
-    /// <summary>Lets later updates add the icon, and remembers where a chosen command or a balloon click is posted.</summary>
-    internal static void Start(Action<TrayCommand> onCommand, Action<string>? onOpen = null)
+    /// <summary>
+    /// Lets later updates add the icon, and remembers where a chosen command or a balloon click is posted.
+    /// <paramref name="logExists"/> says, each time the menu opens, whether the log file is there to open.
+    /// </summary>
+    internal static void Start(Action<TrayCommand> onCommand, Action<string>? onOpen = null, Func<bool>? logExists = null)
     {
         ArgumentNullException.ThrowIfNull(onCommand);
         lock (Gate)
         {
             _onCommand = onCommand;
             _onOpen = onOpen;
+            _logExists = logExists;
             _armed = 1;
         }
     }
@@ -120,6 +125,7 @@ internal static class TrayHost
             _pending = null;
             _pendingNotice = null;
             _onOpen = null;
+            _logExists = null;
             _posted = false;
         }
 
@@ -386,7 +392,7 @@ internal static class TrayHost
         data.uFlags = NOTIFY_ICON_DATA_FLAGS.NIF_INFO;
         WriteTitle(ref data, notice.Title);
         WriteBody(ref data, notice.Text);
-        data.dwInfoFlags = NOTIFY_ICON_INFOTIP_FLAGS.NIIF_ERROR;
+        data.dwInfoFlags = notice.Informational ? NOTIFY_ICON_INFOTIP_FLAGS.NIIF_INFO : NOTIFY_ICON_INFOTIP_FLAGS.NIIF_ERROR;
         _swallowHides = 1;
         if (!Tell(NOTIFY_ICON_MESSAGE.NIM_MODIFY, ref data))
             Log("The config notification was not shown");
@@ -553,9 +559,14 @@ internal static class TrayHost
 
         try
         {
-            for (var i = 0; i < TrayIcon.Menu.Count; i++)
+            Func<bool>? logExists;
+            lock (Gate)
+                logExists = _logExists;
+
+            var items = TrayIcon.MenuFor(logExists?.Invoke() ?? false);
+            for (var i = 0; i < items.Count; i++)
             {
-                var label = TrayIcon.Menu[i].Label;
+                var label = items[i].Label;
                 fixed (char* chars = label)
                 {
                     if (!PInvoke.AppendMenu(menu, MENU_ITEM_FLAGS.MF_STRING, (nuint)(i + 1), chars))
@@ -574,14 +585,14 @@ internal static class TrayHost
                 null);
             _ = PInvoke.PostMessage(hwnd, 0, default, default);
             var id = chosen.Value;
-            if (id < 1 || id > TrayIcon.Menu.Count)
+            if (id < 1 || id > items.Count)
                 return;
 
             Action<TrayCommand>? command;
             lock (Gate)
                 command = _onCommand;
 
-            command?.Invoke(TrayIcon.Menu[id - 1].Command);
+            command?.Invoke(items[id - 1].Command);
         }
         finally
         {

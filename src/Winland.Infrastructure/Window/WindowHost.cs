@@ -78,6 +78,9 @@ public sealed class WindowHost : IDisposable
     /// <summary>Runs on the message-loop thread when the config notification is clicked.</summary>
     public Action<string>? OnOpenFile { get; set; }
 
+    /// <summary>Whether the log file is there, which the notification-area menu asks each time it opens.</summary>
+    public Func<bool>? LogExists { get; set; }
+
     /// <summary>
     /// Runs <paramref name="action"/> on the message-loop thread and waits for it, or here when the loop does not
     /// answer. Windows ends a process five seconds after its console is closed, so an action the loop took is
@@ -191,7 +194,8 @@ public sealed class WindowHost : IDisposable
                 {
                     Console.Error.WriteLine(exception.Message);
                 }
-            }));
+            }),
+            () => LogExists?.Invoke() ?? false);
         try
         {
             Start();

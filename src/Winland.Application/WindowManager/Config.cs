@@ -10,6 +10,12 @@ public sealed partial class WindowManager
     private ConfigNotice? _notice;
     private int _noticeGeneration;
 
+    /// <summary>
+    /// Whether this start wrote the default config. The first load, when it has no errors, then shows the welcome
+    /// notification.
+    /// </summary>
+    public bool FirstStart { get; set; }
+
     // A loaded config goes through the same path as a reload, so it applies every part of the config.
     private Outcome Load(ConfigLoaded loaded) => Apply(loaded.Config);
 
@@ -115,7 +121,11 @@ public sealed partial class WindowManager
     // including a reload of the same warnings. A load with none takes the notification away.
     private void ShowConfigErrors(ConfigDocument document)
     {
-        var next = ConfigNotice.For(document.Warnings, document.Path, _noticeGeneration + 1);
+        var generation = _noticeGeneration + 1;
+        var next = ConfigNotice.For(document.Warnings, document.Path, generation);
+        if (next is null && FirstStart && _noticeGeneration == 0)
+            next = ConfigNotice.Welcome(document.Path, generation);
+
         if (next is null)
         {
             _notice = null;

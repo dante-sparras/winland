@@ -111,6 +111,48 @@ public class ConfigNoticeTests
     }
 
     [Fact]
+    public void TheFirstStartWelcomesTheUserAndAClickOpensTheConfig()
+    {
+        var core = new WindowManager { FirstStart = true };
+        core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 4\n", path: Path)));
+        var notice = Notice(core);
+
+        Assert.NotNull(notice);
+        Assert.Equal("Winland", notice.Title);
+        Assert.Equal("Winland is tiling your windows. Right-click its icon to edit the config or quit.", notice.Text);
+        Assert.Equal(Path, notice.File);
+        Assert.True(notice.Informational);
+        Assert.True(notice.Generation > 0);
+    }
+
+    [Fact]
+    public void AStartThatWroteNoConfigShowsNoWelcome() =>
+        Assert.Null(Load("general:gaps_in = 4\n"));
+
+    [Fact]
+    public void ALaterLoadTakesTheWelcomeAwayAndDoesNotShowItAgain()
+    {
+        var core = new WindowManager { FirstStart = true };
+        core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 4\n", path: Path)));
+
+        core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 5\n", path: Path)));
+
+        Assert.Null(Notice(core));
+    }
+
+    [Fact]
+    public void ErrorsOnTheFirstStartAreShownInsteadOfTheWelcome()
+    {
+        var core = new WindowManager { FirstStart = true };
+        core.Handle(new Configure(ConfigParser.Parse("blur = on\n", path: Path)));
+        var notice = Notice(core);
+
+        Assert.NotNull(notice);
+        Assert.Equal("Winland: 1 config errors", notice.Title);
+        Assert.False(notice.Informational);
+    }
+
+    [Fact]
     public void SetErrorIsNotARequest() =>
         Assert.Equal("error: unknown request", new WindowManager().Execute("seterror rgb(ff0000) broke").Text);
 

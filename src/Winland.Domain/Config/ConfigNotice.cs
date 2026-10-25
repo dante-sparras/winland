@@ -4,11 +4,22 @@ namespace Winland.Domain;
 
 /// <summary>
 /// The one config notification a load shows: the count of config errors, then the first error with its file and
-/// line. A later load replaces it. <see cref="Generation"/> changes even when the text does not, so a dismissed
-/// notification is shown again.
+/// line. The very first start shows <see cref="Welcome"/> instead when there are no errors. A later load replaces
+/// it. <see cref="Generation"/> changes even when the text does not, so a dismissed notification is shown again.
 /// </summary>
-public sealed record ConfigNotice(string Title, string Text, string? File, int Generation)
+public sealed record ConfigNotice(string Title, string Text, string? File, int Generation, bool Informational = false)
 {
+    /// <summary>
+    /// The notification for the first start, which wrote the default config at <paramref name="configPath"/>.
+    /// It says what Winland is doing and what the menu offers, and a click opens the config.
+    /// </summary>
+    public static ConfigNotice Welcome(string? configPath, int generation) => new(
+        "Winland",
+        "Winland is tiling your windows. Right-click its icon to edit the config or quit.",
+        string.IsNullOrEmpty(configPath) ? null : configPath,
+        generation,
+        Informational: true);
+
     /// <summary>
     /// The notification for <paramref name="warnings"/>, or null when there are none. <paramref name="configPath"/> names the file a warning with no source was read from.
     /// </summary>

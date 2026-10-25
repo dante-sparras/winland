@@ -10,16 +10,26 @@ public sealed record TrayIcon(bool Shown, string Number)
 {
     public const string Keyword = "general:tray_icon";
 
-    public static IReadOnlyList<TrayMenuItem> Menu { get; } =
-    [
-        new(TrayCommand.Reload, "Reload"),
-        new(TrayCommand.EditConfig, "Edit config"),
-        new(TrayCommand.OpenLog, "Open log"),
-        new(TrayCommand.Quit, "Quit"),
-    ];
+    /// <summary>
+    /// The menu. Open log is there only when <paramref name="logExists"/>: Winland writes the log file only with
+    /// <c>debug:disable_logs</c> false and no elevation, so most of the time there is nothing to open.
+    /// </summary>
+    public static IReadOnlyList<TrayMenuItem> MenuFor(bool logExists)
+    {
+        List<TrayMenuItem> menu =
+        [
+            new(TrayCommand.Reload, "Reload"),
+            new(TrayCommand.EditConfig, "Edit config"),
+        ];
+        if (logExists)
+            menu.Add(new(TrayCommand.OpenLog, "Open log"));
 
-    /// <summary>The tooltip: the Workspace the icon is showing.</summary>
-    public string Tip => "Workspace " + Number;
+        menu.Add(new(TrayCommand.Quit, "Quit"));
+        return menu;
+    }
+
+    /// <summary>The tooltip: the program, which a lone number in the overflow does not say, and the Workspace the icon is showing.</summary>
+    public string Tip => "Winland, Workspace " + Number;
 
     /// <summary>The icon for <paramref name="shown"/> and the Workspace the focused Monitor is showing.</summary>
     public static TrayIcon For(bool shown, WorkspaceId workspace) => new(shown, Text(workspace));
