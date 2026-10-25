@@ -71,38 +71,14 @@ public sealed partial class WindowManager
                 var current = _workspaces.Shown.SpecialOn(appearedWorkspace.Monitor) ?? _workspaces.Shown.ActiveOn(appearedWorkspace.Monitor);
                 if (appearedWorkspace.Id == current)
                 {
-                    FocusState.Remember(appearedWorkspace, appeared.Window);
                     if (_monitors.Count == 0 || appearedWorkspace.Monitor == FocusedId())
-                        _focus.Take(appeared.Window);
-                    TouchHistory(appeared.Window);
+                        Give(appeared.Window, appearedWorkspace);
+                    else
+                        FocusState.Remember(appearedWorkspace, appeared.Window);
                 }
 
                 break;
         }
-    }
-
-    private void NoteFocus(WindowId window)
-    {
-        var owner = WorkspaceContaining(window);
-        if (owner is not null && _workspaces.Shown.IsShown(owner.Id))
-        {
-            if (_monitors.Count > 0)
-                Focus(owner.Monitor);
-
-            var special = _workspaces.Shown.SpecialOn(owner.Monitor);
-            var onSpecial = special == owner.Id;
-            var onNormal = owner.Id == _workspaces.Shown.ActiveOn(owner.Monitor);
-            if (onSpecial || (onNormal && special is null))
-            {
-                _focus.Take(window, owner);
-                TouchHistory(window);
-            }
-
-            return;
-        }
-
-        if (Find(window) is null)
-            _focus.Take(null);
     }
 
     private Outcome Appear(WindowAppeared appeared)
@@ -268,7 +244,7 @@ public sealed partial class WindowManager
             DropIfEmpty(desk.Id);
             var normal = _workspaces.Find(_workspaces.Shown.ActiveOn(monitor));
             var specialFocus = normal is null ? null : _focus.Remembered(normal);
-            _focus.Take(specialFocus, normal);
+            Give(specialFocus, normal);
             return View(normal?.Layout.Visible() ?? [], focus: specialFocus);
         }
 
@@ -276,7 +252,7 @@ public sealed partial class WindowManager
         if (!_workspaces.Shown.IsShown(desk.Id))
         {
             if (wasActive)
-                _focus.Take(null);
+                Give(null, null);
 
             return View(placements);
         }
@@ -293,14 +269,12 @@ public sealed partial class WindowManager
                 && (next is not WindowId candidate || WorkspaceContaining(candidate)?.Id != open)
                 && _focus.Remembered(shownSpecial) is WindowId onSpecial)
             {
-                TakeFocus(shownSpecial, onSpecial);
+                Give(onSpecial, shownSpecial);
                 return Present(desk, covered, placements, focus: onSpecial);
             }
 
             if (next is WindowId chosen)
-            {
-                TakeFocus(desk, chosen);
-            }
+                Give(chosen, desk);
             else
                 reveal = true;
         }
@@ -309,7 +283,7 @@ public sealed partial class WindowManager
         if (wasActive && reveal && _focus.Focused == window)
         {
             var fallback = desk.LastVisible();
-            TakeFocus(desk, fallback);
+            Give(fallback, desk);
             outcome = outcome with { Focus = fallback };
         }
 

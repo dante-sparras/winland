@@ -69,7 +69,24 @@ public class UrgencyTests
 
         Assert.Equal(new WindowId(1), outcome.Focus);
         core.Handle(new WindowFocused(new WindowId(2), FocusCause.User));
-        Assert.Equal(new WindowId(3), core.Handle(new Dispatch("focusurgentorlast")).Focus);
+        core.Handle(new WindowFocused(new WindowId(3), FocusCause.User));
+        Assert.Equal(new WindowId(2), core.Handle(new Dispatch("focusurgentorlast")).Focus);
+    }
+
+    [Fact]
+    public void ASwitchToAWorkspaceClearsTheUrgencyOfTheClientItFocuses()
+    {
+        var core = ThreeClients();
+        core.Handle(new Dispatch("movetoworkspacesilent", "2,address:0x3"));
+        core.Handle(new WindowFlashed(new WindowId(3)));
+        core.Handle(new Dispatch("workspace", "2"));
+        core.Handle(new Dispatch("workspace", "1"));
+        core.Handle(new WindowFocused(new WindowId(1), FocusCause.User));
+
+        var outcome = core.Handle(new Dispatch("focusurgentorlast"));
+
+        // Client 3 is no longer urgent, so the history gives the Client focused before the one focused just now.
+        Assert.Equal(new WindowId(2), outcome.Focus);
     }
 
     [Fact]

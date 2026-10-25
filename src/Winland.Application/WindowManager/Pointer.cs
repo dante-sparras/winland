@@ -164,12 +164,8 @@ public sealed partial class WindowManager
         if (WorkspaceContaining(next) is not LiveWorkspace desk || !_workspaces.Shown.IsShown(desk.Id))
             return null;
 
-        NoteFocus(next);
-        if (_focus.Focused != next)
-            return null;
-
-        desk.Layout.NotePointerFocus(next);
-        return next;
+        Foreground(next, pointer: true);
+        return _focus.Focused == next ? next : null;
     }
 
     private double Advance(Point position, long now)
@@ -288,8 +284,7 @@ public sealed partial class WindowManager
         var (left, top) = BorderPointer.GrabbedCorner(pressed.Position, bounds);
         _interaction = new BorderDrag(window, pressed.Button, floating, pressed.Position, bounds, left, top);
         var desk = LayoutWorkspace(window);
-        _focus.Take(window, desk);
-        desk.Layout.NoteFocus(window);
+        Give(window, desk);
         NoteBorderCursor(pressed.Position);
         IReadOnlyList<Placement> begun = floating
             ? []

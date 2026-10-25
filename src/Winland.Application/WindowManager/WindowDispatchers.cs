@@ -175,8 +175,7 @@ public sealed partial class WindowManager
         WindowId? focus = null;
         if (_focus.Focused == current && !awayShown)
         {
-            _focus.Take(other);
-            home.Layout.NoteFocus(other);
+            Give(other, home);
             focus = other;
         }
 

@@ -36,10 +36,9 @@ public sealed partial class WindowManager
 
     private IReadOnlyList<Placement> BeginGesture(WindowId window, BindDispatch drag, string button, Point pointer)
     {
-        NoteFocus(window);
         var desk = LayoutWorkspace(window);
         var layout = desk.Layout;
-        layout.NoteFocus(window);
+        Give(window, desk);
         var gesture = new Gesture(window, button, IsResize(drag.Dispatcher), drag.Dispatcher, pointer)
         {
             Cursor = DragCursor(desk, window, IsResize(drag.Dispatcher), pointer),
@@ -193,10 +192,7 @@ public sealed partial class WindowManager
         gesture.MovedWorkspace = true;
         FocusState.Remember(target, window);
         if (settle)
-        {
-            NoteFocus(window);
-            target.Layout.NoteFocus(window);
-        }
+            Give(window, target);
 
         var placements = new List<Placement>();
         if (_workspaces.Shown.IsShown(source.Id))
@@ -218,9 +214,7 @@ public sealed partial class WindowManager
         if (target.Monitor == focused && target.Id == _workspaces.Shown.ActiveOn(focused) && _workspaces.Shown.SpecialOn(focused) != target.Id)
             return false;
 
-        FocusState.Remember(target, window);
-        NoteFocus(window);
-        target.Layout.NoteFocus(window);
+        Give(window, target);
         return true;
     }
 
@@ -308,7 +302,7 @@ public sealed partial class WindowManager
         }
 
         Restamp(there, []);
-        TakeGroupFocus(there, dragged);
+        Give(dragged, there);
         (_extraEvents ??= []).Add(new ClientIntoGroup(dragged));
         var outcome = Present(there, covered, there.Layout.Visible(), dispatcher: dispatcher, focus: dragged) with { Consumed = dispatcher is not null };
         return from != there && _workspaces.Find(from.Id) is LiveWorkspace left && _workspaces.Shown.IsShown(left.Id)

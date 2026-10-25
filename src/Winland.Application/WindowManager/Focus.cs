@@ -1,6 +1,6 @@
 namespace Winland.Application;
 
-/// <summary>When a window may take focus, and the stacking order. <see cref="FocusState"/> holds which Client has it.</summary>
+/// <summary>When a window may take focus, how focus is given, and the stacking order. <see cref="FocusState"/> holds which Client has it.</summary>
 public sealed partial class WindowManager
 {
     private readonly HashSet<WindowId> _awaitingMapFocus = [];
@@ -25,7 +25,7 @@ public sealed partial class WindowManager
 
         if (focused.Cause == FocusCause.Requested)
         {
-            NoteFocus(window);
+            Foreground(window);
             return View([]);
         }
 
@@ -35,7 +35,7 @@ public sealed partial class WindowManager
                 return Restore(Kept());
 
             _focus.UnmanagedTook(window);
-            NoteFocus(window);
+            Foreground(window);
             return View([]);
         }
 
@@ -68,7 +68,7 @@ public sealed partial class WindowManager
             && _workspaces.Shown.SpecialOn(desk.Monitor) is not null)
         {
             var hidden = ConcealSpecial(desk.Monitor);
-            NoteFocus(window);
+            Foreground(window);
             return View([], hide: hidden);
         }
 
@@ -81,12 +81,12 @@ public sealed partial class WindowManager
 
             if (refit is not null)
             {
-                NoteFocus(window);
+                Foreground(window);
                 return Present(owner, covered, refit);
             }
         }
 
-        NoteFocus(window);
+        Foreground(window);
         return View([]);
     }
 
@@ -109,7 +109,7 @@ public sealed partial class WindowManager
     private void RememberFocus(WindowId window, WindowDecision decision)
     {
         if (_focus.Adopted(window) is WindowId kept && IsShownClient(kept))
-            _focus.Take(kept, WorkspaceContaining(kept));
+            Give(kept, WorkspaceContaining(kept));
 
         if (!SkipsInitialFocus(window))
             return;
@@ -129,17 +129,49 @@ public sealed partial class WindowManager
         }
     }
 
-    private void TouchHistory(WindowId window)
-    {
-        _urgent.Remove(window);
-        _focus.Confirm(window);
-    }
-
-    private void TakeFocus(LiveWorkspace desk, WindowId? window)
+    // Gives focus to a window, or to none, and does all of it: the Workspace remembers the window, and a window on the
+    // Workspace its Monitor gives the keyboard to focuses that Monitor, tells its Layout, and goes first in the focus
+    // history with its urgency cleared.
+    private void Give(WindowId? window, LiveWorkspace? desk, bool pointer = false)
     {
         _focus.Take(window, desk);
-        if (window is WindowId id)
-            NoteFocus(id);
+        if (window is not WindowId given || desk is null || !_workspaces.Shown.IsShown(desk.Id) || !IsCurrent(desk))
+            return;
+
+        if (_monitors.Count > 0)
+            Focus(desk.Monitor);
+
+        if (pointer)
+            desk.Layout.NotePointerFocus(given);
+        else
+            desk.Layout.NoteFocus(given);
+
+        _urgent.Remove(given);
+        _focus.Confirm(given);
+    }
+
+    // The Workspace a Monitor gives the keyboard to: its special workspace when one is open, else the one it shows.
+    private bool IsCurrent(LiveWorkspace desk) =>
+        (_workspaces.Shown.SpecialOn(desk.Monitor) ?? _workspaces.Shown.ActiveOn(desk.Monitor)) == desk.Id;
+
+    // Windows says this window has the foreground. The Client that already has focus is given nothing more, as it is when
+    // Windows reports a focus Winland gave. A Client the Monitor gives the keyboard to takes the focus. One on a
+    // Workspace that is shown behind a special workspace only focuses its Monitor. A window Winland does not manage
+    // leaves nothing focused.
+    private void Foreground(WindowId window, bool pointer = false)
+    {
+        if (_focus.Focused == window)
+            return;
+
+        if (WorkspaceContaining(window) is { } owner && _workspaces.Shown.IsShown(owner.Id))
+        {
+            if (IsCurrent(owner))
+                Give(window, owner, pointer);
+            else if (_monitors.Count > 0)
+                Focus(owner.Monitor);
+        }
+        else if (Find(window) is null)
+            Give(null, null);
     }
 
     private WindowId? FocusAfter(LiveWorkspace desk, bool floating, Rectangle bounds, bool hadBounds)

@@ -128,10 +128,7 @@ public sealed partial class WindowManager
         if (focus is WindowId next && HasNoFocus(next))
             focus = null;
         else if (focus is WindowId accepted)
-        {
-            _focus.Take(accepted, desk);
-            desk.Layout.NoteFocus(accepted);
-        }
+            Give(accepted, desk);
 
         return Present(
             desk,

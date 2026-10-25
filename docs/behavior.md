@@ -14,6 +14,8 @@ A line that ends with a backslash is joined to the next line, so a value that en
 
 `general:layout` is honored for `dwindle` and `scrolling`, written in any case. Any other value warns with its line number and is skipped.
 
+With dwindle, the next split goes next to the window that has focus, however it got focus, including a click.
+
 `general:gaps_in` defaults to 4 and `general:gaps_out` to 8.
 
 A tiled Client's minimum size moves a dwindle split where the minimums fit, and the neighbour takes what remains. Each side keeps at least the share the smallest split ratio leaves it. Where they do not fit, the side that needs more takes all of that but the other side's share, so no tile leaves the Monitor. A window cannot be smaller than its minimum, so a window below it grows around the middle of its tile and moves to stay inside the work area, over its neighbours. A minimum larger than the work area starts at its top left corner.

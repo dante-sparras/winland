@@ -27,8 +27,7 @@ public sealed partial class WindowManager
                 if (HasNoFocus(chosen))
                     return View([], dispatcher: name);
 
-                _focus.Take(chosen, desk);
-                desk.Layout.NoteFocus(chosen);
+                Give(chosen, desk);
                 return Present(desk, covered, [], dispatcher: name, focus: chosen);
             }
         }
@@ -196,10 +195,8 @@ public sealed partial class WindowManager
         {
             _workspaces.Shown.Show(destination.Id, desk.Id);
             var next = _focus.Remembered(desk);
-            _focus.Take(next, desk);
-            if (next is WindowId noted)
-                desk.Layout.NoteFocus(noted);
             Focus(destination.Id);
+            Give(next, desk);
             focus = next;
         }
 
@@ -231,9 +228,7 @@ public sealed partial class WindowManager
             next = _focus.Remembered(desk);
 
         Focus(screen.Id);
-        _focus.Take(next, desk);
-        if (desk is not null && next is WindowId noted)
-            desk.Layout.NoteFocus(noted);
+        Give(next, desk);
 
         return View([], focus: next, dispatcher: dispatcher);
     }

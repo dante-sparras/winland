@@ -85,19 +85,12 @@ public sealed partial class WindowManager
         if (hadFocus)
         {
             focus = group.Shown;
-            TakeGroupFocus(desk, group.Shown);
+            Give(group.Shown, desk);
         }
 
         return _workspaces.Shown.IsShown(desk.Id)
             ? Present(desk, covered, desk.Layout.Visible(), dispatcher: name, focus: focus)
             : View([], dispatcher: name);
-    }
-
-    private void TakeGroupFocus(LiveWorkspace desk, WindowId window)
-    {
-        _focus.Take(window, desk);
-        desk.Layout.NoteFocus(window);
-        TouchHistory(window);
     }
 
     private Outcome MoveGroupWindow(string text, string name)
@@ -150,7 +143,7 @@ public sealed partial class WindowManager
         var position = target.Current + 1;
         desk.Join(target, window, taken, position);
         desk.Show(target, position);
-        TakeGroupFocus(desk, window);
+        Give(window, desk);
         (_extraEvents ??= []).Add(new ClientIntoGroup(window));
         return Present(desk, covered, desk.Layout.Visible(), dispatcher: name, focus: window);
     }
@@ -186,7 +179,7 @@ public sealed partial class WindowManager
         Restamp(there, []);
         DropIfEmpty(desk.Id);
         Focus(there.Monitor);
-        TakeGroupFocus(there, window);
+        Give(window, there);
         (_extraEvents ??= []).Add(new ClientIntoGroup(window));
         var outcome = Present(there, covered, there.Layout.Visible(), dispatcher: name, focus: window);
         return _workspaces.Find(desk.Id) is LiveWorkspace left && _workspaces.Shown.IsShown(left.Id)
@@ -234,7 +227,7 @@ public sealed partial class WindowManager
             desk.Receive(window, taken, WorkArea(desk, _area));
         }
 
-        TakeGroupFocus(desk, window);
+        Give(window, desk);
         (_extraEvents ??= []).Add(new ClientOutOfGroup(window));
         return _workspaces.Shown.IsShown(desk.Id)
             ? Present(desk, covered, desk.Layout.Visible(), dispatcher: name, focus: window)

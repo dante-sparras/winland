@@ -61,7 +61,7 @@ public sealed partial class WindowManager
             if (focus != group.Shown && group.IndexOf(focus.Value) is var index and >= 0)
                 _ = desk.Show(group, index);
 
-            TakeGroupFocus(desk, focus.Value);
+            Give(focus.Value, desk);
         }
 
         return Present(desk, covered, desk.Layout.Visible(), focus: focus);

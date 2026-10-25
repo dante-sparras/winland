@@ -51,7 +51,7 @@ public sealed partial class WindowManager
                 return View([], consumed: consumed, dispatcher: dispatcher);
 
             var opened = OpenSpecial(target, null, dispatcher);
-            TakeFocus(source, id);
+            Give(id, source);
             return opened with { Focus = id, Consumed = consumed };
         }
 
@@ -155,9 +155,7 @@ public sealed partial class WindowManager
         }
 
         if (_focus.Focused == id)
-        {
-            _focus.Take(FocusState.AfterLeaving(source, revealed), source);
-        }
+            Give(FocusState.AfterLeaving(source, revealed), source);
 
         var placements = new List<Placement>();
         if (_workspaces.Shown.IsShown(source.Id))
@@ -219,7 +217,7 @@ public sealed partial class WindowManager
         if (sourceId == target)
         {
             if (focus is WindowId requested && ClientOn(target, requested) is not null)
-                _focus.Take(requested, FocusedWorkspace());
+                Give(requested, FocusedWorkspace());
 
             return View([], hide: concealed, consumed: consumed, dispatcher: dispatcher);
         }
@@ -239,7 +237,7 @@ public sealed partial class WindowManager
         var keepSpecial = _workspaces.Shown.SpecialOn(monitor) is not null && focus is null;
         if (!keepSpecial)
         {
-            _focus.Take(
+            Give(
                 focus is WindowId requestedFocus && ClientOn(target, requestedFocus) is not null
                     ? requestedFocus
                     : keep is WindowId pinnedFocus && ClientOn(target, pinnedFocus) is not null
@@ -280,7 +278,7 @@ public sealed partial class WindowManager
         else if (destination is not null)
             next = _focus.Remembered(destination);
 
-        _focus.Take(next, destination);
+        Give(next, destination);
 
         return View([], focus: next, consumed: consumed, dispatcher: dispatcher);
     }
