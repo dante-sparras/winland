@@ -89,7 +89,8 @@ static int Run(string? path, RollingLogWriter log)
 
     var configPath = path ?? ConfigPaths.Default(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
     // The default is written only when Winland was not given --config and the file is not there yet.
-    if (path is null && !File.Exists(configPath) && DefaultConfig.WriteIfMissing(configPath))
+    var firstStart = path is null && !File.Exists(configPath) && DefaultConfig.WriteIfMissing(configPath);
+    if (firstStart)
         Console.Error.WriteLine($"Wrote the default config to {configPath}.");
 
     if (!File.Exists(configPath))
@@ -103,7 +104,7 @@ static int Run(string? path, RollingLogWriter log)
         Console.Error.WriteLine($"{where}:{warning.Line}: {warning.Message}");
     }
 
-    var core = new WindowManager { Cursor = new SystemCursor() };
+    var core = new WindowManager { Cursor = new SystemCursor(), FirstStart = firstStart };
     core.ReadConfig = () => ConfigFile.TryRead(configPath);
     ConfigWatcher? watcher = null;
     string? logFile = null;
@@ -155,6 +156,7 @@ static int Run(string? path, RollingLogWriter log)
         LaunchConfigured(core, core.StartupLaunches(current));
 
         host.OnOpenFile = TrayFiles.Open;
+        host.LogExists = () => logFile is not null && File.Exists(logFile);
         host.OnTray = command =>
         {
             switch (command)

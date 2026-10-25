@@ -10,7 +10,7 @@ public class TrayIconTests
         Assert.NotNull(outcome.Tray);
         Assert.True(outcome.Tray.Shown);
         Assert.Equal("1", outcome.Tray.Number);
-        Assert.Equal("Workspace 1", outcome.Tray.Tip);
+        Assert.Equal("Winland, Workspace 1", outcome.Tray.Tip);
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public class TrayIconTests
     }
 
     [Fact]
-    public void TheMenuIsReloadEditConfigOpenLogAndQuit()
+    public void TheMenuIsReloadEditConfigOpenLogAndQuitWhenTheLogExists()
     {
         Assert.Equal(
             [
@@ -135,7 +135,19 @@ public class TrayIconTests
                 new TrayMenuItem(TrayCommand.OpenLog, "Open log"),
                 new TrayMenuItem(TrayCommand.Quit, "Quit"),
             ],
-            TrayIcon.Menu);
+            TrayIcon.MenuFor(logExists: true));
+    }
+
+    [Fact]
+    public void TheMenuLeavesOutOpenLogWhenThereIsNoLogFile()
+    {
+        Assert.Equal(
+            [
+                new TrayMenuItem(TrayCommand.Reload, "Reload"),
+                new TrayMenuItem(TrayCommand.EditConfig, "Edit config"),
+                new TrayMenuItem(TrayCommand.Quit, "Quit"),
+            ],
+            TrayIcon.MenuFor(logExists: false));
     }
 
     [Theory]

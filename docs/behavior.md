@@ -349,7 +349,7 @@ An event that names a Workspace also names its Monitor, in the field just after 
 
 `misc:font_family`, default `Sans`, is the font of the text Winland draws: the tab bar when `group:groupbar:font_family` is empty. The generic names `Sans`, `sans-serif` and `system-ui` are Segoe UI, `Serif` is Cambria and `Monospace` is Consolas; any other name is used as it is.
 
-`debug:disable_logs` false, true by default, also writes the log to `winland.log` beside the state file, emptied at each start. Winland's standard error is written whatever this says, since it is where Windows tools and the run script find its errors, and an elevated Winland writes no log file, since a folder the user can change could send a write by name where only administrators may write.
+`debug:disable_logs` false, true by default, also writes the log to `winland.log` beside the state file, emptied at each start. With the default there is no `winland.log`. Winland's standard error is written whatever this says, since it is where Windows tools and the run script find its errors, and an elevated Winland writes no log file, since a folder the user can change could send a write by name where only administrators may write.
 
 `kill` waits for a click: the next press of any mouse button ends the program of the Client under the pointer, emits `kill>>ADDRESS`, and goes to neither window, nor does its release. Escape gives up instead and goes no further. A click on no Client ends nothing. Either way the wait is over. The pointer keeps its shape while it waits.
 
@@ -369,11 +369,13 @@ Winland's Workspaces are not Windows virtual desktops. A shown Client that a vir
 
 ## Notification area
 
-Winland shows an icon in the notification area with the number of the Workspace the focused Monitor is showing, including the number a Guest is showing there. Switching Workspace changes that number. A special workspace has no number, and the icon keeps the number of the Workspace underneath. The tooltip names the Workspace. `general:tray_icon` defaults to true. False removes the icon, and a reload or `keyword` applies the change at once.
+Winland shows an icon in the notification area with the number of the Workspace the focused Monitor is showing, including the number a Guest is showing there. Switching Workspace changes that number. A special workspace has no number, and the icon keeps the number of the Workspace underneath. The tooltip reads `Winland, Workspace N`, so the icon is known when Windows keeps it in the overflow. `general:tray_icon` defaults to true. False removes the icon, and a reload or `keyword` applies the change at once.
 
 The icon also carries that notification as a balloon. `general:tray_icon` false adds an icon only for the balloon and removes it once the balloon is dismissed or clicked. A click on the balloon opens the file, as Edit config does.
 
-A click or a right-click on the icon opens its menu: Reload, Edit config, Open log and Quit. Reload reads the config again, as `winland reload` does. Edit config opens the config Winland is reading in the program Windows opens that file's type with, or in Notepad when the type has none. For `winland.conf` that program is the editor for `.conf`. Open log opens `winland.log` beside the state file the same way. Quit runs `exit`, which stops Winland and puts its windows back.
+The first start, the one that writes the default config, shows a balloon of its own when the config has no errors: `Winland is tiling your windows. Right-click its icon to edit the config or quit.` A click on it opens the config. Later starts and reloads do not show it.
+
+A click or a right-click on the icon opens its menu: Reload, Edit config, Open log and Quit. Open log is there only while `winland.log` exists. Reload reads the config again, as `winland reload` does. Edit config opens the config Winland is reading in the program Windows opens that file's type with, or in Notepad when the type has none. For `winland.conf` that program is the editor for `.conf`. Open log opens `winland.log` beside the state file the same way. Winland writes that file only when `debug:disable_logs` is false and it is not elevated. Quit runs `exit`, which stops Winland and puts its windows back.
 
 The icon comes back when Explorer starts again. Winland runs elevated and Explorer does not, so the icon's callback and the `TaskbarCreated` message are let through the window's message filter. Without that, Windows drops them and the icon never answers a click or a restart of Explorer.
 
