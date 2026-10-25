@@ -225,6 +225,7 @@ public sealed partial class WindowManager
             WindowClassChanged reclassed => Reclass(reclassed),
             Configure configure => Apply(configure.Document),
             AccentChanged accent => NoteAccent(accent),
+            RestoredAdopted => ArrangeRestored(),
             Preselect preselect => View(CurrentWorkspace().Layout.Preselect(preselect.Direction)),
             Pseudo pseudo => ChangePseudo(pseudo.Window),
             MonitorsChanged changed => SetMonitors(changed.Monitors),

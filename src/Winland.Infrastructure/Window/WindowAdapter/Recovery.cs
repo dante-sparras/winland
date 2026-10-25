@@ -60,6 +60,8 @@ public sealed partial class WindowAdapter : IDisposable
                 Apply(outcome);
             }
         }
+
+        Apply(_core.Handle(new RestoredAdopted()));
     }
 
     // A previous run that died left its changes on the window. They are put back before anything reads the

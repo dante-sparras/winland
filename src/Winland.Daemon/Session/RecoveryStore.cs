@@ -99,6 +99,30 @@ sealed class RecoveryStore
         }
     }
 
+    /// <summary>Writes the last snapshot of a clean exit, and nothing after it.</summary>
+    public void Keep(RecoverySnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        var json = snapshot.ToJson();
+        lock (_gate)
+        {
+            if (_closed)
+                return;
+
+            _closed = true;
+            _armed = false;
+            try
+            {
+                WriteAtomic(json);
+                _written = json;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                Report($"Could not write '{_path}': {exception.Message}");
+            }
+        }
+    }
+
     public void Delete()
     {
         lock (_gate)
