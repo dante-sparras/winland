@@ -316,9 +316,7 @@ public sealed partial class WindowManager
         if (focusRevealed && focus is null && showList.Count == 1)
         {
             focus = showList[0];
-            _focus.Take(focus, desk);
-            desk.Layout.NoteFocus(showList[0]);
-            TouchHistory(showList[0]);
+            Give(focus, desk);
         }
 
         return View(placements, showList, hideList, consumed, dispatcher, close, focus);

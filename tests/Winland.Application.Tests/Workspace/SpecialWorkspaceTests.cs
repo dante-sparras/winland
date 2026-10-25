@@ -178,6 +178,26 @@ public class SpecialWorkspaceTests
     }
 
     [Fact]
+    public void OpeningASpecialWorkspaceClearsTheUrgencyOfTheClientItFocuses()
+    {
+        var core = new WindowManager();
+        core.Handle(Appeared(1));
+        core.Handle(Appeared(2));
+        core.Handle(Appeared(3));
+        core.Handle(new Dispatch("movetoworkspace", "special:scratch"));
+        core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
+        core.Handle(new WindowFlashed(new WindowId(3)));
+        core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
+        core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
+        core.Handle(new WindowFocused(new WindowId(1), FocusCause.User));
+
+        var outcome = core.Handle(new Dispatch("focusurgentorlast"));
+
+        // Client 3 is no longer urgent, so the history gives the Client focused before the one focused just now.
+        Assert.Equal(new WindowId(2), outcome.Focus);
+    }
+
+    [Fact]
     public void ASilentMoveDoesNotShowTheSpecialWorkspace()
     {
         var core = new WindowManager();

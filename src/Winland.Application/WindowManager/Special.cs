@@ -76,7 +76,7 @@ public sealed partial class WindowManager
         {
             if (focus is WindowId requested && ClientOn(target, requested) is { Minimized: false })
             {
-                _focus.Take(requested, _workspaces.Find(target));
+                Give(requested, _workspaces.Find(target));
                 return View([], focus: requested, dispatcher: dispatcher);
             }
 
@@ -113,7 +113,7 @@ public sealed partial class WindowManager
             ? wanted
             : _focus.Remembered(desk);
 
-        _focus.Take(next, desk);
+        Give(next, desk);
         return View(desk.Layout.Visible(), show, hide, dispatcher: dispatcher, focus: next);
     }
 
@@ -137,7 +137,7 @@ public sealed partial class WindowManager
         _workspaces.Shown.ShowSpecial(monitor, null);
         var normal = _workspaces.Find(_workspaces.Shown.ActiveOn(monitor));
         var next = normal is null ? null : _focus.Remembered(normal);
-        _focus.Take(next, normal);
+        Give(next, normal);
 
         DropIfEmpty(current);
         return hidden;
@@ -199,9 +199,7 @@ public sealed partial class WindowManager
             DropIfEmpty(source.Id);
 
         if (_focus.Focused == window)
-        {
-            _focus.Take(FocusState.AfterLeaving(source, revealed), source);
-        }
+            Give(FocusState.AfterLeaving(source, revealed), source);
 
         var placed = new List<Placement>();
         if (_workspaces.Shown.IsShown(source.Id))
