@@ -100,14 +100,24 @@ public sealed partial class WindowAdapter : IDisposable
         }
     }
 
+    // Says the snapshot is out of date. Building it takes the core lock, so its owner does that later, off this thread.
     internal void Publish()
     {
-        if (Releasing || _changed is null)
+        if (Releasing)
             return;
+
+        _changed?.Invoke();
+    }
+
+    /// <summary>The newest recovery snapshot, or null once the exit cleanup began.</summary>
+    internal RecoverySnapshot? Capture()
+    {
+        if (Releasing)
+            return null;
 
         var snapshot = Stamp(_core.Recovery());
         _published = snapshot;
-        _changed(snapshot);
+        return snapshot;
     }
 
     /// <summary>
