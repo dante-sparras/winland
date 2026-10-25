@@ -39,7 +39,7 @@ public sealed partial class WindowManager
         }
 
         var next = client.Fullscreen == FullscreenMode.Maximized ? FullscreenMode.None : FullscreenMode.Maximized;
-        return CommitFullscreen(window, next, dispatcher: null);
+        return CommitFullscreen(window, next);
     }
 
     // A window that left the system's maximized state may restore a size of its own afterwards. It is put back

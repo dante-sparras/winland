@@ -18,29 +18,27 @@ public sealed partial class WindowManager
         string argument,
         bool silent,
         bool consumed,
-        string dispatcher,
         WindowId? chosen = null,
         bool windowChosen = false,
         Point? focal = null)
     {
         if (!WorkspaceAddress.TryResolve(argument, Context(), out var resolved))
-            return View([], consumed: consumed, dispatcher: dispatcher);
+            return View([], consumed: consumed);
 
-        return MoveTo(resolved, silent, consumed, dispatcher, chosen, windowChosen, focal);
+        return MoveTo(resolved, silent, consumed, chosen, windowChosen, focal);
     }
 
     private Outcome MoveTo(
         WorkspaceId target,
         bool silent,
         bool consumed,
-        string dispatcher,
         WindowId? chosen = null,
         bool windowChosen = false,
         Point? focal = null)
     {
         var window = windowChosen ? chosen : ActiveWindow();
         if (window is not WindowId id)
-            return View([], consumed: consumed, dispatcher: dispatcher);
+            return View([], consumed: consumed);
 
         // A pinned Client is never moved onto a special workspace, which still opens that special
         // workspace on a move that is not silent and keeps the Client focused.
@@ -48,20 +46,20 @@ public sealed partial class WindowManager
         if (source is not null && target.IsSpecial && _pins.IsPinned(id))
         {
             if (silent)
-                return View([], consumed: consumed, dispatcher: dispatcher);
+                return View([], consumed: consumed);
 
-            var opened = OpenSpecial(target, null, dispatcher);
+            var opened = OpenSpecial(target, null);
             Give(id, source);
             return opened with { Focus = id, Consumed = consumed };
         }
 
         if (source is null || source.Id == target)
-            return View([], consumed: consumed, dispatcher: dispatcher);
+            return View([], consumed: consumed);
 
         var sourceCovered = source.Covered();
         var wasHidden = !_workspaces.Shown.IsShown(source.Id) || sourceCovered.Contains(id);
         if (!source.Take(id, out var taken))
-            return View([], consumed: consumed, dispatcher: dispatcher);
+            return View([], consumed: consumed);
 
         var destination = WorkspaceFor(target, target.IsSpecial ? FocusedId() : null);
         var elsewhere = target.IsSpecial ? null : ShownElsewhere(target);
@@ -74,17 +72,17 @@ public sealed partial class WindowManager
         Restamp(destination, []);
 
         if (target.IsSpecial)
-            return FinishSpecialMove(source, destination, id, silent, consumed, dispatcher, sourceCovered, destinationCovered);
+            return FinishSpecialMove(source, destination, id, silent, consumed, sourceCovered, destinationCovered);
 
         if (!silent && source.Id.IsSpecial && _workspaces.Shown.SpecialOn(source.Monitor) == source.Id)
         {
             var concealed = ConcealSpecial(source.Monitor);
-            return FollowMove(SwitchTo(target, id, consumed, dispatcher), id, concealed, destination);
+            return FollowMove(SwitchTo(target, id, consumed), id, concealed, destination);
         }
 
         if (!silent && elsewhere is { } owner)
         {
-            var followed = FocusShown(owner, target, id, consumed, dispatcher);
+            var followed = FocusShown(owner, target, id, consumed);
             var show = new List<WindowId>();
             var conceal = new List<WindowId>();
             if (_workspaces.Shown.IsShown(source.Id))
@@ -109,7 +107,7 @@ public sealed partial class WindowManager
             // Switching to the Workspace already shown here changes nothing on screen, so the reflow
             // and the arriving window are added to what the switch returns.
             var here = _workspaces.Shown.ActiveOn(FocusedId()) == target;
-            var followedSwitch = SwitchTo(target, id, consumed, dispatcher);
+            var followedSwitch = SwitchTo(target, id, consumed);
             if (here)
             {
                 var show = new List<WindowId>(followedSwitch.Show);
@@ -163,7 +161,7 @@ public sealed partial class WindowManager
         if (_workspaces.Shown.IsShown(destination.Id))
             placements.AddRange(destination.Layout.Visible());
 
-        return View(placements, revealed, hidden, consumed, dispatcher);
+        return View(placements, revealed, hidden, consumed);
 
         // The moved window was not in the destination's covered set, so Collect alone never shows it. When
         // it was hidden where it was, it is shown here unless the destination's Layout covers it.
@@ -194,15 +192,15 @@ public sealed partial class WindowManager
         };
     }
 
-    private Outcome SwitchTo(WorkspaceId target, WindowId? focus, bool consumed, string? dispatcher)
+    private Outcome SwitchTo(WorkspaceId target, WindowId? focus, bool consumed)
     {
         if (target.IsSpecial)
-            return OpenSpecial(target, focus, dispatcher);
+            return OpenSpecial(target, focus);
 
         if (ShownElsewhere(target) is { } elsewhere)
         {
             var away = ConcealSpecial(elsewhere.Id);
-            var followed = FocusShown(elsewhere, target, focus, consumed, dispatcher);
+            var followed = FocusShown(elsewhere, target, focus, consumed);
             return away.Length == 0 ? followed : followed with { Hide = Combine(followed.Hide, away) };
         }
 
@@ -219,7 +217,7 @@ public sealed partial class WindowManager
             if (focus is WindowId requested && ClientOn(target, requested) is not null)
                 Give(requested, FocusedWorkspace());
 
-            return View([], hide: concealed, consumed: consumed, dispatcher: dispatcher);
+            return View([], hide: concealed, consumed: consumed);
         }
 
         var keep = _focus.Focused is WindowId current
@@ -251,8 +249,7 @@ public sealed partial class WindowManager
             destination.Layout.Visible(),
             VisibleIds(target),
             Combine(hide, concealed),
-            consumed,
-            dispatcher);
+            consumed);
     }
 
     private LiveMonitor? ShownElsewhere(WorkspaceId target)
@@ -268,7 +265,7 @@ public sealed partial class WindowManager
         return owner;
     }
 
-    private Outcome FocusShown(LiveMonitor owner, WorkspaceId target, WindowId? focus, bool consumed, string? dispatcher)
+    private Outcome FocusShown(LiveMonitor owner, WorkspaceId target, WindowId? focus, bool consumed)
     {
         Focus(owner.Id);
         var destination = _workspaces.Find(target);
@@ -280,7 +277,7 @@ public sealed partial class WindowManager
 
         Give(next, destination);
 
-        return View([], focus: next, consumed: consumed, dispatcher: dispatcher);
+        return View([], focus: next, consumed: consumed);
     }
 
     // A visit to the history workspace previous reads.

@@ -184,7 +184,6 @@ public class NativeMoveTests
         var started = core.Handle(new WindowMoveStarted(new WindowId(1), new Point(500, 100)));
 
         Assert.Empty(moved.Placements);
-        Assert.Null(moved.Dispatcher);
         Assert.Equal(new WindowId(1), Assert.Single(started.State.Clients).Window);
         Assert.False(Assert.Single(core.Handle(new WindowMoveEnded(new WindowId(1), new Point(500, 100))).State.Clients).Floating);
     }
@@ -202,7 +201,6 @@ public class NativeMoveTests
         var moved = core.Handle(new PointerMoved(new Point(bounds.X + bounds.Width + 40, bounds.Y + 60)));
 
         Assert.False(moved.Consumed);
-        Assert.Null(moved.Dispatcher);
     }
 
     [Fact]
@@ -216,7 +214,6 @@ public class NativeMoveTests
 
         var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(bounds.X + bounds.Width + 5, bounds.Y + 50) });
 
-        Assert.NotEqual("resizewindow", pressed.Dispatcher);
     }
 
     private static WindowManager Flat(string extra)

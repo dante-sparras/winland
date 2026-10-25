@@ -12,7 +12,7 @@ public sealed partial class WindowManager
             return Execute(name, arguments);
 
         if (WindowSelector.Find(selector, ActiveWindow(), EveryClient()) is not WindowId target)
-            return Rejected(name, "error: window not found");
+            return Rejected("error: window not found");
 
         var outer = _actingOn;
         _actingOn = target;
@@ -179,9 +179,9 @@ public sealed partial class WindowManager
                 Focus(owner.Id);
 
             if (target.IsSpecial)
-                return OpenSpecial(target, appeared.Window, null);
+                return OpenSpecial(target, appeared.Window);
 
-            return SwitchTo(target, appeared.Window, consumed: false, dispatcher: null);
+            return SwitchTo(target, appeared.Window, consumed: false);
         }
 
         if (!_workspaces.Shown.IsShown(target))

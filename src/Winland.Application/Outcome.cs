@@ -33,9 +33,11 @@ public sealed record Outcome(
     IReadOnlyList<Placement> Placements,
     State State,
     bool Consumed = false,
-    string? Dispatcher = null,
     WindowId? Focus = null)
 {
+    /// <summary>What the Dispatcher that produced this outcome does beyond the outcome itself, or null when no Dispatcher ran.</summary>
+    public DispatcherTraits? Traits { get; init; }
+
     /// <summary>Clients to close, in order. A bind or batch that runs several commands can close several.</summary>
     public IReadOnlyList<WindowId> Closes { get; init; } = [];
 
@@ -130,6 +132,7 @@ public sealed record Outcome(
     /// This outcome followed by <paramref name="next"/>, as one: what both ask the adapter to do, in order, and the state
     /// after the second. Requests are joined. What describes the state after the step is the second's. A value the second
     /// leaves unset keeps the first's, and the first error wins, so a later step cannot hide an earlier failure.
+    /// The first Dispatcher's traits stay, so a bind's traits are those of its first Dispatcher.
     /// A property added to this record needs a rule here; a test counts them.
     /// </summary>
     public Outcome Then(Outcome next)
@@ -146,6 +149,7 @@ public sealed record Outcome(
             Launches = [.. Launches, .. next.Launches],
             Events = [.. Events, .. next.Events],
             Tray = next.Tray ?? Tray,
+            Traits = Traits ?? next.Traits,
             Warp = next.Warp ?? Warp,
             Cursor = next.Cursor ?? Cursor,
             Error = Error ?? next.Error,
@@ -167,7 +171,7 @@ public sealed record Outcome(
         applied is not null
         && Placements.Count == 0
         && !Consumed
-        && Dispatcher is null
+        && Traits is null
         && Focus is null
         && Closes.Count == 0
         && Show.Count == 0
@@ -238,6 +242,22 @@ public sealed record Outcome(
         merged.AddRange(second);
         return merged;
     }
+}
+
+/// <summary>What else a Dispatcher's outcome does, beyond what it runs.</summary>
+[Flags]
+public enum DispatcherTraits
+{
+    None = 0,
+
+    /// <summary>Moves the cursor to the window it focuses, under the <c>cursor</c> options.</summary>
+    WarpsToFocused = 1,
+
+    /// <summary>Puts the cursor in the middle of a Monitor it leaves with nothing to focus.</summary>
+    WarpsToEmptyMonitor = 2,
+
+    /// <summary>A dwindle resize that moves the tiles at once.</summary>
+    InstantResize = 4,
 }
 
 /// <summary>

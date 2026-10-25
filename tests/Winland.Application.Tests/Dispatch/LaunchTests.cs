@@ -7,7 +7,6 @@ public class LaunchTests
     {
         var outcome = new WindowManager().Handle(new Dispatch("exec", "notepad --title hello"));
 
-        Assert.Equal("exec", outcome.Dispatcher);
         Assert.Equal(new Launch("notepad --title hello", null) { InitialWorkspace = WorkspaceId.Initial }, outcome.Launch);
     }
 
@@ -45,7 +44,6 @@ public class LaunchTests
     {
         var outcome = new WindowManager().Handle(new Dispatch("exec", "[float; workspace 2] kitty"));
 
-        Assert.Equal("exec", outcome.Dispatcher);
         Assert.NotNull(outcome.Launch);
         Assert.Equal("kitty", outcome.Launch.CommandLine);
         Assert.Equal(

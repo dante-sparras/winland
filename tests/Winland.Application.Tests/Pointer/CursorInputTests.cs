@@ -86,7 +86,6 @@ public class CursorInputTests
 
         var outcome = core.Handle(new WheelTurned("mouse_up", 1_000));
 
-        Assert.NotEqual("workspace", outcome.Dispatcher);
         Assert.Equal(WorkspaceId.Initial, outcome.State.ActiveWorkspace);
     }
 

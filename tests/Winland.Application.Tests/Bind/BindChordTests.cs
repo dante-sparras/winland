@@ -11,10 +11,8 @@ public class BindChordTests
         var super = Press(core, "Super_L");
         var button = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(500, 400) });
 
-        Assert.Equal("exec", super.Dispatcher);
         Assert.Equal("menu", super.Launch?.CommandLine);
         Assert.True(super.Consumed);
-        Assert.Equal("movewindow", button.Dispatcher);
         Assert.True(button.Consumed);
     }
 
@@ -33,9 +31,7 @@ public class BindChordTests
         var keyed = Press(core, "Q");
         var button = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(1, 2) });
 
-        Assert.Equal("killactive", keyed.Dispatcher);
         Assert.Equal(new WindowId(1), keyed.Close);
-        Assert.Equal("movewindow", button.Dispatcher);
         Assert.False(Release(core, "Super_L").Consumed);
     }
 
@@ -48,7 +44,6 @@ public class BindChordTests
         var pressed = Press(core, "Q");
 
         Assert.True(pressed.Consumed);
-        Assert.Equal("exec", pressed.Dispatcher);
         Assert.Equal("notepad", pressed.Launch?.CommandLine);
         Assert.Null(pressed.Close);
         Assert.True(Release(core, "Q").Consumed);
@@ -66,7 +61,6 @@ public class BindChordTests
         var released = Release(core, "V");
 
         Assert.True(released.Consumed);
-        Assert.Null(released.Dispatcher);
         Assert.Null(released.Close);
     }
 
@@ -84,7 +78,6 @@ public class BindChordTests
 
         var released = Release(core, "V");
 
-        Assert.Null(released.Dispatcher);
         Assert.Null(released.Close);
     }
 
@@ -97,10 +90,8 @@ public class BindChordTests
         var first = Press(core, "Q");
         var second = Press(core, "Q");
 
-        Assert.Equal("exec", first.Dispatcher);
         Assert.Equal("notepad", first.Launch?.CommandLine);
         Assert.Equal(new WindowId(1), first.Close);
-        Assert.Equal("killactive", second.Dispatcher);
         Assert.Null(second.Launch);
         Assert.Equal(new WindowId(1), second.Close);
     }
@@ -133,12 +124,9 @@ public class BindChordTests
         var later = core.Handle(new WheelTurned("mouse_down", 1_300));
 
         Assert.True(first.Consumed);
-        Assert.Equal("killactive", first.Dispatcher);
         Assert.Equal(new WindowId(2), first.Close);
         Assert.Equal(new WorkspaceId("2"), first.State.ActiveWorkspace);
         Assert.False(blocked.Consumed);
-        Assert.Null(blocked.Dispatcher);
-        Assert.Equal("killactive", later.Dispatcher);
         Assert.Equal(new WorkspaceId("2"), later.State.ActiveWorkspace);
     }
 
@@ -151,7 +139,6 @@ public class BindChordTests
         var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(500, 400) });
 
         Assert.True(pressed.Consumed);
-        Assert.Equal("movewindow", pressed.Dispatcher);
     }
 
     private static void Appear(WindowManager core, long window) =>

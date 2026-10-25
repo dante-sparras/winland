@@ -9,7 +9,6 @@ public class MonitorDispatchTests
 
         var outcome = core.Handle(new Dispatch("movefocus", "r"));
 
-        Assert.Equal("movefocus", outcome.Dispatcher);
         Assert.Equal(new WindowId(2), outcome.Focus);
         Assert.Equal(new MonitorId(1), outcome.State.ActiveMonitor);
         Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), outcome.State.ActiveWorkspace);
@@ -33,7 +32,6 @@ public class MonitorDispatchTests
 
         var outcome = core.Handle(new Dispatch("movewindow", "r"));
 
-        Assert.Equal("movewindow", outcome.Dispatcher);
         Assert.Equal(new WindowId(1), outcome.Focus);
         Assert.Equal(new MonitorId(1), outcome.State.ActiveMonitor);
         Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), outcome.State.ActiveWorkspace);
@@ -200,7 +198,6 @@ public class MonitorDispatchTests
         var core = TwoMonitors();
 
         var right = core.Handle(new Dispatch("focusmonitor", "r"));
-        Assert.Equal("focusmonitor", right.Dispatcher);
         Assert.Equal(new WindowId(2), right.Focus);
         Assert.Equal(new MonitorId(1), right.State.ActiveMonitor);
         Assert.Equal(
@@ -243,7 +240,6 @@ public class MonitorDispatchTests
 
         var outcome = core.Handle(new Dispatch("movecurrentworkspacetomonitor", "right"));
 
-        Assert.Equal("movecurrentworkspacetomonitor", outcome.Dispatcher);
         Assert.Equal(new WindowId(1), outcome.Focus);
         Assert.Equal(new MonitorId(1), outcome.State.ActiveMonitor);
         Assert.Equal(WorkspaceId.FromNumber(2, new MonitorId(1)), outcome.State.ActiveWorkspace);

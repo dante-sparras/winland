@@ -15,14 +15,13 @@ public sealed partial class WindowManager
 
     private Outcome PinWindow(string arguments)
     {
-        const string name = "pin";
         var (action, selector) = PinRequest(arguments);
         var window = Select(selector, emptyMeansActive: true);
         if (window is not WindowId id || Find(id) is not Client client || WorkspaceContaining(id) is not LiveWorkspace desk)
-            return View([], dispatcher: name);
+            return View([]);
 
         if (!client.Floating || client.Fullscreen != FullscreenMode.None)
-            return Rejected(name, "error: window does not qualify to be pinned");
+            return Rejected("error: window does not qualify to be pinned");
 
         var pinned = _pins.IsPinned(id);
         var want = action switch
@@ -32,7 +31,7 @@ public sealed partial class WindowManager
             _ => !pinned,
         };
         if (want == pinned)
-            return View([], dispatcher: name);
+            return View([]);
 
         if (want)
             _pins.Pin(id);
@@ -40,10 +39,10 @@ public sealed partial class WindowManager
             _pins.Unpin(id);
 
         (_extraEvents ??= []).Add(new ClientPinned(id, want));
-        return Settle(desk, id, name);
+        return Settle(desk, id);
     }
 
-    private Outcome FocusPinned(LiveWorkspace desk, WindowId id, string name)
+    private Outcome FocusPinned(LiveWorkspace desk, WindowId id)
     {
         var fromShown = _workspaces.Shown.IsShown(desk.Id);
         var monitor = FocusedId();
@@ -52,7 +51,7 @@ public sealed partial class WindowManager
         {
             var destination = WorkspaceFor(active, monitor);
             if (!Transfer(desk, destination, id))
-                return View([], dispatcher: name);
+                return View([]);
 
             DropIfEmpty(desk.Id);
             desk = destination;
@@ -63,20 +62,20 @@ public sealed partial class WindowManager
         var show = !fromShown && _workspaces.Shown.IsShown(desk.Id) && desk.ClientOf(id) is { Minimized: false }
             ? new[] { id }
             : null;
-        return View(placements, show, dispatcher: name, focus: id);
+        return View(placements, show, focus: id);
     }
 
-    private Outcome Settle(LiveWorkspace desk, WindowId id, string name)
+    private Outcome Settle(LiveWorkspace desk, WindowId id)
     {
         var active = _workspaces.Shown.ActiveOn(desk.Monitor);
         if (desk.Id == active)
-            return View([], dispatcher: name);
+            return View([]);
 
         var destination = WorkspaceFor(active, desk.Monitor);
         var wasShown = _workspaces.Shown.IsShown(desk.Id);
         HashSet<WindowId> covered = wasShown ? desk.Covered() : [];
         if (!Transfer(desk, destination, id))
-            return View([], dispatcher: name);
+            return View([]);
 
         var show = new List<WindowId>();
         var hide = new List<WindowId>();
@@ -100,7 +99,7 @@ public sealed partial class WindowManager
         if (_workspaces.Shown.IsShown(destination.Id))
             placements.AddRange(destination.Layout.Visible());
 
-        return View(placements, show, hide, dispatcher: name);
+        return View(placements, show, hide);
     }
 
     private void CarryPinned(WorkspaceId sourceId, LiveWorkspace destination)

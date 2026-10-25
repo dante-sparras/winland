@@ -79,12 +79,12 @@ public sealed partial class WindowManager
     }
 
     /// <summary>Shows a hidden member before it is focused. Null when the window is not hidden in a Group.</summary>
-    private Outcome? RaiseMember(LiveWorkspace desk, WindowId window, string name)
+    private Outcome? RaiseMember(LiveWorkspace desk, WindowId window)
     {
         if (!desk.IsWaiting(window) || desk.GroupOf(window) is not WindowGroup group)
             return null;
 
-        return ShowMember(desk, group, group.IndexOf(window), name);
+        return ShowMember(desk, group, group.IndexOf(window));
     }
 
     /// <summary>Moves the Group of a shown member that just moved from <paramref name="source"/> to <paramref name="destination"/>.</summary>

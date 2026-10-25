@@ -76,9 +76,9 @@ public static partial class ConfigParser
                 flags |= BindFlag.Mouse;
             }
 
-            if (dispatcher.Length > 0 && !Dispatchers.IsKnown(dispatcher))
+            if (dispatcher.Length > 0 && dispatchers is not null && !dispatchers.Contains(dispatcher, StringComparer.OrdinalIgnoreCase))
             {
-                Warn(lineNumber, $"Unknown dispatcher '{dispatcher}'.{DidYouMean.For(dispatcher, Dispatchers.Names)}");
+                Warn(lineNumber, $"Unknown dispatcher '{dispatcher}'.{DidYouMean.For(dispatcher, dispatchers)}");
                 return;
             }
 

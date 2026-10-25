@@ -25,12 +25,11 @@ public sealed partial class WindowManager
 
     private Outcome FocusUrgentOrLast()
     {
-        const string name = "focusurgentorlast";
         if ((UrgentClient() ?? LastClient()) is not WindowId target)
-            return Rejected(name, "error: window not found");
+            return Rejected("error: window not found");
 
         _urgent.Remove(target);
-        return FocusClient(target, name);
+        return FocusClient(target);
     }
 
     private WindowId? UrgentClient()

@@ -26,7 +26,7 @@ Nothing in Domain or Application calls Win32. A test drives `WindowManager` with
 
 | To change | Look in |
 | --- | --- |
-| A dispatcher | `Application/WindowManager/DispatcherTable.cs` for the entry, `Domain/Bind/Dispatchers.cs` for the name. A test keeps the two equal. |
+| A dispatcher | `Application/WindowManager/DispatcherTable.cs`. The entry is also the name the config parser accepts, which `Daemon/Config/ConfigFile.cs` passes to it. |
 | A config option | The `*Options.cs` file of its section in `Domain/Config`, for example `LayoutOptions.cs` for `general:gaps_in`. `AppliedConfig.cs` holds every section, and a new section gets one line in `OptionTable.cs`, which the parser and `getoption` read. |
 | A window rule | `Domain/WindowRule`, with its parser in `Domain/WindowRule/WindowRuleParser`. |
 | A Client's Props and the rule decision it opened with | `Domain/Client/ClientProps.cs`. `getprop`, `setprop` and the config's defaults are in `Application/WindowManager/Props.cs`, and matching the rules again when a window's class or title changes in `DynamicRules.cs`. |

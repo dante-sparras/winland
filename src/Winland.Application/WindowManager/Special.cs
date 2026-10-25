@@ -16,13 +16,12 @@ public sealed partial class WindowManager
 
     private Outcome ToggleSpecial(string arguments)
     {
-        const string name = "togglespecialworkspace";
         var target = SpecialName(arguments);
         var monitor = FocusedId();
         if (_workspaces.Shown.SpecialOn(monitor) == target)
-            return CloseSpecial(monitor, name);
+            return CloseSpecial(monitor);
 
-        return OpenSpecial(target, null, name);
+        return OpenSpecial(target, null);
     }
 
     private static WorkspaceId SpecialName(string arguments)
@@ -69,7 +68,7 @@ public sealed partial class WindowManager
     private static bool Holds(Rectangle bounds, Point point) =>
         point.X >= bounds.X && point.X <= bounds.X + bounds.Width && point.Y >= bounds.Y && point.Y <= bounds.Y + bounds.Height;
 
-    private Outcome OpenSpecial(WorkspaceId target, WindowId? focus, string? dispatcher)
+    private Outcome OpenSpecial(WorkspaceId target, WindowId? focus)
     {
         var monitor = FocusedId();
         if (_workspaces.Shown.SpecialOn(monitor) == target)
@@ -77,10 +76,10 @@ public sealed partial class WindowManager
             if (focus is WindowId requested && ClientOn(target, requested) is { Minimized: false })
             {
                 Give(requested, _workspaces.Find(target));
-                return View([], focus: requested, dispatcher: dispatcher);
+                return View([], focus: requested);
             }
 
-            return View([], dispatcher: dispatcher);
+            return View([]);
         }
 
         var show = new List<WindowId>();
@@ -114,18 +113,17 @@ public sealed partial class WindowManager
             : _focus.Remembered(desk);
 
         Give(next, desk);
-        return View(desk.Layout.Visible(), show, hide, dispatcher: dispatcher, focus: next);
+        return View(desk.Layout.Visible(), show, hide, focus: next);
     }
 
-    private Outcome CloseSpecial(MonitorId monitor, string? dispatcher)
+    private Outcome CloseSpecial(MonitorId monitor)
     {
         var hidden = ConcealSpecial(monitor);
         var normal = FocusedWorkspace();
         return View(
             normal.Layout.Visible(),
             hide: hidden,
-            focus: _focus.Focused,
-            dispatcher: dispatcher);
+            focus: _focus.Focused);
     }
 
     private WindowId[] ConcealSpecial(MonitorId monitor)
@@ -149,13 +147,12 @@ public sealed partial class WindowManager
         WindowId window,
         bool silent,
         bool consumed,
-        string dispatcher,
         HashSet<WindowId> sourceCovered,
         HashSet<WindowId> destinationCovered)
     {
         if (!silent)
         {
-            var opened = OpenSpecial(destination.Id, window, dispatcher);
+            var opened = OpenSpecial(destination.Id, window);
             if (source.Id.IsSpecial && source.Layout.Clients.Count == 0)
                 DropIfEmpty(source.Id);
 
@@ -207,7 +204,7 @@ public sealed partial class WindowManager
         if (_workspaces.Shown.IsShown(destination.Id))
             placed.AddRange(destination.Layout.Visible());
 
-        return View(placed, revealed, hidden, consumed, dispatcher);
+        return View(placed, revealed, hidden, consumed);
     }
 
     private void RehomeSpecials(LiveMonitor? home, List<LiveMonitor> enabled)

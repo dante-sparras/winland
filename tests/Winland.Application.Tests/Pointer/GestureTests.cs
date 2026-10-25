@@ -102,7 +102,6 @@ public class GestureTests
         var ended = Swipe(core, 3, Steps(20, -10, 0));
 
         Assert.Equal(new WorkspaceId("2"), ended.State.ActiveWorkspace);
-        Assert.Equal("workspace", ended.Dispatcher);
     }
 
     [Fact]

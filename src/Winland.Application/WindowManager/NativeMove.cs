@@ -46,14 +46,14 @@ public sealed partial class WindowManager
         if (move.Floating)
         {
             var left = FollowNativeFloating(ended.Window, ended.Bounds);
-            return drop is { } onto ? JoinDragged(ended.Window, onto, dispatcher: null) : left;
+            return drop is { } onto ? JoinDragged(ended.Window, onto, consumed: false) : left;
         }
 
         _released = ended.Bounds is Rectangle frame ? (ended.Window, frame) : null;
         var layout = LayoutWorkspace(ended.Window).Layout;
         var dropped = layout.Drag(ended.Window, new PointerDrag(false, PointerDragPhase.End, ended.Pointer));
         if (drop is { } into)
-            return JoinDragged(ended.Window, into, dispatcher: null);
+            return JoinDragged(ended.Window, into, consumed: false);
 
         // A Layout that has no drop of its own still has to take the window back from where it was left.
         return View(dropped.Count > 0 ? dropped : layout.Placed());

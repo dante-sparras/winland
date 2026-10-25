@@ -10,15 +10,15 @@ public sealed partial class WindowManager
         var text = Is(name, "maximize") ? Join("1", arguments) : arguments;
         var parsed = FullscreenCommands.Parse(text);
         if (parsed.Ignored)
-            return View([], dispatcher: name);
+            return View([]);
 
         if (ActiveWindow() is not WindowId window || WorkspaceContaining(window) is not LiveWorkspace desk || desk.ClientOf(window) is not Client client)
-            return MissingWindow(name);
+            return MissingWindow();
 
         if (!FullscreenCommands.Changed(client.Fullscreen, parsed.Mode, parsed.Action, out var next))
-            return View([], dispatcher: name);
+            return View([]);
 
-        return CommitFullscreen(window, next, name, parsed.LayoutAware);
+        return CommitFullscreen(window, next, parsed.LayoutAware);
     }
 
     private static Client? FindClient(Outcome outcome, WindowId window)
@@ -38,21 +38,21 @@ public sealed partial class WindowManager
         return null;
     }
 
-    private Outcome CommitFullscreen(WindowId window, FullscreenMode mode, string? dispatcher, bool layoutAware = true)
+    private Outcome CommitFullscreen(WindowId window, FullscreenMode mode, bool layoutAware = true)
     {
         var desk = WorkspaceContaining(window);
         if (desk is null || desk.ClientOf(window) is not Client client)
-            return MissingWindow(dispatcher);
+            return MissingWindow();
 
         var covered = desk.Covered();
         if (SetFullscreen(desk, window, mode, layoutAware) is not { } set)
-            return View([], dispatcher: dispatcher);
+            return View([]);
 
         var placements = Restamp(desk, set);
         if (!_workspaces.Shown.IsShown(desk.Id))
-            return View([], dispatcher: dispatcher);
+            return View([]);
 
-        return Present(desk, covered, placements, dispatcher: dispatcher);
+        return Present(desk, covered, placements);
     }
 
     // Every change of a Client's fullscreen or maximized mode but the end of one goes through here. A Pinned Client
@@ -127,8 +127,8 @@ public sealed partial class WindowManager
         return null;
     }
 
-    private Outcome MissingWindow(string? dispatcher) =>
-        View([], dispatcher: dispatcher) with { Error = "error: window not found" };
+    private Outcome MissingWindow() =>
+        View([]) with { Error = "error: window not found" };
 
     private Rectangle CoveringBounds(LiveWorkspace desk)
     {

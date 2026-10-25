@@ -21,7 +21,7 @@ public sealed partial class WindowManager
         if (outcome is null)
             return View([], consumed: match.Consumed);
 
-        return outcome with { Consumed = match.Consumed, Dispatcher = match.Dispatcher ?? outcome.Dispatcher };
+        return outcome with { Consumed = match.Consumed };
     }
 
     private static IReadOnlyList<BindDispatch> DispatchesOf(BindDecision match)
@@ -47,36 +47,37 @@ public sealed partial class WindowManager
         }
     }
 
-    // Runs a dispatcher from the table. One that takes a window and is given one after a comma runs on that window.
+    // Runs a dispatcher from the table and stamps its outcome with the entry's traits. One that takes a window and is given
+    // one after a comma runs on that window.
     private Outcome Execute(string name, string arguments)
     {
         ArgumentNullException.ThrowIfNull(name);
         arguments ??= "";
 
         if (!Table.TryGetValue(name, out var dispatcher))
-            return View([], dispatcher: name) with { Error = "error: unknown dispatcher '" + name + "'" };
+            return View([]) with { Error = "error: unknown dispatcher '" + name + "'" };
 
-        if (dispatcher.TakesWindow && arguments.IndexOf(',', StringComparison.Ordinal) is var comma and >= 0)
-            return ExecuteOn(name, arguments[..comma], arguments[(comma + 1)..].Trim());
-
-        return dispatcher.Run(this, name, arguments);
+        var outcome = dispatcher.TakesWindow && arguments.IndexOf(',', StringComparison.Ordinal) is var comma and >= 0
+            ? ExecuteOn(name, arguments[..comma], arguments[(comma + 1)..].Trim())
+            : dispatcher.Run(this, name, arguments);
+        return outcome with { Traits = dispatcher.Traits };
     }
 
-    private Outcome WorkspaceDispatch(string name, string arguments)
+    private Outcome WorkspaceDispatch(string arguments)
     {
         if (!WorkspaceAddress.TryResolve(arguments, Context(), out var target))
-            return View([], dispatcher: name) with { Error = WorkspaceAddress.IsNamed(arguments) ? "error: no such workspace" : null };
+            return View([]) with { Error = WorkspaceAddress.IsNamed(arguments) ? "error: no such workspace" : null };
 
         if (target.IsSpecial)
-            return OpenSpecial(target, null, name);
+            return OpenSpecial(target, null);
 
         var from = FocusedId();
-        var switched = SwitchTo(BackAndForth(target), focus: null, consumed: false, dispatcher: name);
+        var switched = SwitchTo(BackAndForth(target), focus: null, consumed: false);
         NoteCrossMonitorWarp(from, switched);
         return switched;
     }
 
-    private Outcome Exec(string name, string arguments)
+    private Outcome Exec(string arguments)
     {
         var parsed = LaunchParser.Parse(arguments);
         if (parsed.Warnings.Count > 0)
@@ -87,7 +88,7 @@ public sealed partial class WindowManager
             _configEvents = warnings;
         }
 
-        var launched = View([], dispatcher: name);
+        var launched = View([]);
         return parsed.Launch is Launch launch
             ? launched with { Launches = [.. launched.Launches, launch with { InitialWorkspace = LaunchWorkspace() }] }
             : launched;
@@ -120,7 +121,7 @@ public sealed partial class WindowManager
         }
 
         if (message && layout.LayoutMessageError is string layoutError)
-            return View(placements, dispatcher: name) with { Error = layoutError };
+            return View(placements) with { Error = layoutError };
 
         if (layout.LayoutMessageFocus is WindowId requested)
             focus = requested;
@@ -134,7 +135,6 @@ public sealed partial class WindowManager
             desk,
             covered,
             placements,
-            dispatcher: name,
             close: close,
             focus: focus,
             focusRevealed: message && focus is null);

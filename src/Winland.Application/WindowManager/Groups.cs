@@ -3,10 +3,10 @@ namespace Winland.Application;
 /// <summary>The group dispatchers, and moving Clients into and out of groups.</summary>
 public sealed partial class WindowManager
 {
-    private Outcome ToggleGroup(string name)
+    private Outcome ToggleGroup()
     {
         if (ActiveWindow() is not WindowId id || WorkspaceContaining(id) is not LiveWorkspace desk)
-            return View([], dispatcher: name);
+            return View([]);
 
         var covered = desk.Covered();
         if (Find(id) is { Fullscreen: not FullscreenMode.None })
@@ -15,7 +15,7 @@ public sealed partial class WindowManager
         if (desk.GroupOf(id) is not WindowGroup group)
         {
             StartGroup(desk, id);
-            return Present(desk, covered, desk.Layout.Visible(), dispatcher: name);
+            return Present(desk, covered, desk.Layout.Visible());
         }
 
         var head = group.Members[0];
@@ -29,7 +29,7 @@ public sealed partial class WindowManager
             desk.Layout.NoteFocus(kept);
 
         (_extraEvents ??= []).Add(new GroupToggled(head, false));
-        return Present(desk, covered, desk.Layout.Visible(), dispatcher: name);
+        return Present(desk, covered, desk.Layout.Visible());
     }
 
     private WindowGroup StartGroup(LiveWorkspace desk, WindowId window)
@@ -39,16 +39,16 @@ public sealed partial class WindowManager
         return group;
     }
 
-    private Outcome ChangeGroupActive(string text, string name)
+    private Outcome ChangeGroupActive(string text)
     {
         if (ActiveWindow() is not WindowId id || WorkspaceContaining(id) is not LiveWorkspace desk)
-            return Rejected(name, "error: no window found");
+            return Rejected("error: no window found");
 
         if (desk.GroupOf(id) is not WindowGroup group)
-            return Rejected(name, "error: window is not in a group");
+            return Rejected("error: window is not in a group");
 
         if (group.Count == 1)
-            return Rejected(name, "error: only one window in group");
+            return Rejected("error: only one window in group");
 
         int index;
         if (int.TryParse(text, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out var number))
@@ -56,7 +56,7 @@ public sealed partial class WindowManager
         else
             index = text is "b" or "prev" ? (group.Current + group.Count - 1) % group.Count : (group.Current + 1) % group.Count;
 
-        return ShowMember(desk, group, index, name);
+        return ShowMember(desk, group, index);
     }
 
     // The wheel over a Group's tab bar shows the next or previous member, with group:groupbar:scrolling, and moves the focus
@@ -70,16 +70,16 @@ public sealed partial class WindowManager
         }
 
         var index = scrolled.Forward ? (group.Current + 1) % group.Count : (group.Current + group.Count - 1) % group.Count;
-        return ShowMember(desk, group, index, "changegroupactive");
+        return ShowMember(desk, group, index);
     }
 
-    private Outcome ShowMember(LiveWorkspace desk, WindowGroup group, int index, string name)
+    private Outcome ShowMember(LiveWorkspace desk, WindowGroup group, int index)
     {
         var covered = desk.Covered();
         var shown = group.Shown;
         var hadFocus = _focus.Focused == shown;
         if (!desk.Show(group, index))
-            return View([], dispatcher: name);
+            return View([]);
 
         WindowId? focus = null;
         if (hadFocus)
@@ -89,63 +89,63 @@ public sealed partial class WindowManager
         }
 
         return _workspaces.Shown.IsShown(desk.Id)
-            ? Present(desk, covered, desk.Layout.Visible(), dispatcher: name, focus: focus)
-            : View([], dispatcher: name);
+            ? Present(desk, covered, desk.Layout.Visible(), focus: focus)
+            : View([]);
     }
 
-    private Outcome MoveGroupWindow(string text, string name)
+    private Outcome MoveGroupWindow(string text)
     {
         if (ActiveWindow() is not WindowId id || WorkspaceContaining(id) is not LiveWorkspace desk)
-            return Rejected(name, "error: no window found");
+            return Rejected("error: no window found");
 
         if (desk.GroupOf(id) is not WindowGroup group)
-            return Rejected(name, "error: window not in a group");
+            return Rejected("error: window not in a group");
 
         var other = text is "b" or "prev"
             ? (group.Current == 0 ? group.Count - 1 : group.Current - 1)
             : (group.Current + 1 >= group.Count ? 0 : group.Current + 1);
         group.MoveShownTo(other);
-        return View([], dispatcher: name);
+        return View([]);
     }
 
-    private Outcome MoveIntoGroup(string text, string name)
+    private Outcome MoveIntoGroup(string text)
     {
         if (!TryGroupDirection(text, out var direction))
-            return Rejected(name, "error: unsupported direction: " + text);
+            return Rejected("error: unsupported direction: " + text);
 
         if (ActiveWindow() is not WindowId id || WorkspaceContaining(id) is not LiveWorkspace desk)
-            return View([], dispatcher: name);
+            return View([]);
 
         // With nothing beside it on its Workspace, the window looks onto the Monitor in that direction, as the pinned
         // release finds the neighbour across Monitors.
         if (desk.Layout.Neighbor(id, direction) is not WindowId neighbor || neighbor == id)
         {
             if (NeighborAcross(desk, id, direction) is not (WindowId across, LiveWorkspace there))
-                return View([], dispatcher: name);
+                return View([]);
 
-            return IntoGroupAcross(desk, there, id, across, name);
+            return IntoGroupAcross(desk, there, id, across);
         }
 
         if (desk.GroupOf(neighbor) is not WindowGroup target)
-            return View([], dispatcher: name);
+            return View([]);
 
-        return IntoGroup(desk, desk.Covered(), id, target, name);
+        return IntoGroup(desk, desk.Covered(), id, target);
     }
 
-    private Outcome IntoGroup(LiveWorkspace desk, HashSet<WindowId> covered, WindowId window, WindowGroup target, string name)
+    private Outcome IntoGroup(LiveWorkspace desk, HashSet<WindowId> covered, WindowId window, WindowGroup target)
     {
         if (target.Contains(window))
-            return Present(desk, covered, desk.Layout.Visible(), dispatcher: name);
+            return Present(desk, covered, desk.Layout.Visible());
 
         if (!TakeForGroup(desk, window, out var taken))
-            return View([], dispatcher: name);
+            return View([]);
 
         var position = target.Current + 1;
         desk.Join(target, window, taken, position);
         desk.Show(target, position);
         Give(window, desk);
         (_extraEvents ??= []).Add(new ClientIntoGroup(window));
-        return Present(desk, covered, desk.Layout.Visible(), dispatcher: name, focus: window);
+        return Present(desk, covered, desk.Layout.Visible(), focus: window);
     }
 
     private (WindowId Window, LiveWorkspace Desk)? NeighborAcross(LiveWorkspace desk, WindowId window, string direction)
@@ -163,14 +163,14 @@ public sealed partial class WindowManager
 
     // Moves a window into the Group of a window on another Monitor's Workspace, and focuses it
     // there. The Workspace it left is laid out again.
-    private Outcome IntoGroupAcross(LiveWorkspace desk, LiveWorkspace there, WindowId window, WindowId neighbor, string name)
+    private Outcome IntoGroupAcross(LiveWorkspace desk, LiveWorkspace there, WindowId window, WindowId neighbor)
     {
         if (there.GroupOf(neighbor) is not WindowGroup target)
-            return View([], dispatcher: name);
+            return View([]);
 
         var covered = there.Covered();
         if (!TakeForGroup(desk, window, out var taken))
-            return View([], dispatcher: name);
+            return View([]);
 
         var position = target.Current + 1;
         there.Join(target, window, taken, position);
@@ -181,7 +181,7 @@ public sealed partial class WindowManager
         Focus(there.Monitor);
         Give(window, there);
         (_extraEvents ??= []).Add(new ClientIntoGroup(window));
-        var outcome = Present(there, covered, there.Layout.Visible(), dispatcher: name, focus: window);
+        var outcome = Present(there, covered, there.Layout.Visible(), focus: window);
         return _workspaces.Find(desk.Id) is LiveWorkspace left && _workspaces.Shown.IsShown(left.Id)
             ? outcome with { Placements = [.. left.Layout.Placed(), .. outcome.Placements] }
             : outcome;
@@ -203,19 +203,19 @@ public sealed partial class WindowManager
         return desk.Layout.TryTake(window, out taken);
     }
 
-    private Outcome MoveOutOfGroup(string text, string name)
+    private Outcome MoveOutOfGroup(string text)
     {
         var window = text != "active" && text.Length > 1 ? Select(text, emptyMeansActive: false) : ActiveWindow();
         if (window is not WindowId id || WorkspaceContaining(id) is not LiveWorkspace desk)
-            return View([], dispatcher: name);
+            return View([]);
 
         if (desk.GroupOf(id) is not WindowGroup group)
-            return Rejected(name, "error: window not in a group");
+            return Rejected("error: window not in a group");
 
-        return OutOfGroup(desk, group, id, direction: null, name);
+        return OutOfGroup(desk, group, id, direction: null);
     }
 
-    private Outcome OutOfGroup(LiveWorkspace desk, WindowGroup group, WindowId window, string? direction, string name)
+    private Outcome OutOfGroup(LiveWorkspace desk, WindowGroup group, WindowId window, string? direction)
     {
         var covered = desk.Covered();
         var exit = desk.Leave(group, window, out var taken);
@@ -230,8 +230,8 @@ public sealed partial class WindowManager
         Give(window, desk);
         (_extraEvents ??= []).Add(new ClientOutOfGroup(window));
         return _workspaces.Shown.IsShown(desk.Id)
-            ? Present(desk, covered, desk.Layout.Visible(), dispatcher: name, focus: window)
-            : View([], dispatcher: name);
+            ? Present(desk, covered, desk.Layout.Visible(), focus: window)
+            : View([]);
     }
 
     private static bool TryGroupDirection(string text, out string direction)

@@ -160,7 +160,7 @@ public class KeyNameTests
         Press(core, "Control_L");
         Press(core, "Alt_L");
 
-        AssertRan(Press(core, "Q"), "killactive");
+        AssertRan(Press(core, "Q"));
     }
 
     [Fact]
@@ -235,7 +235,7 @@ public class KeyNameTests
 
         AssertPassed(Press(core, "Return"));
         core.Handle(new KeyReleased("Return"));
-        AssertRan(Press(core, "Return", 36), "killactive");
+        AssertRan(Press(core, "Return", 36));
     }
 
     [Fact]
@@ -245,7 +245,7 @@ public class KeyNameTests
         Appear(core);
         Press(core, "Super_L");
 
-        AssertRan(Press(core, "Return", 36), "killactive");
+        AssertRan(Press(core, "Return", 36));
     }
 
     [Theory]
@@ -294,7 +294,7 @@ public class KeyNameTests
         Press(core, "Super_L");
 
         var name = KeyNames.Name(0xBA, 0x27, false, german, default);
-        AssertRan(Press(core, name), "killactive");
+        AssertRan(Press(core, name));
     }
 
     private static KeyLayout German() => KeyLayout.From(
@@ -329,12 +329,11 @@ public class KeyNameTests
     private static void AssertPassed(Outcome outcome)
     {
         Assert.False(outcome.Consumed);
-        Assert.Null(outcome.Dispatcher);
     }
 
-    private static void AssertRan(Outcome outcome, string dispatcher)
+    private static void AssertRan(Outcome outcome)
     {
         Assert.True(outcome.Consumed);
-        Assert.Equal(dispatcher, outcome.Dispatcher);
+        Assert.Equal(new WindowId(1), outcome.Close);
     }
 }

@@ -92,10 +92,10 @@ public class PassTests
     [Fact]
     public void TheDispatchersAreKnown()
     {
-        Assert.True(Dispatchers.IsKnown("sendshortcut"));
-        Assert.False(Dispatchers.IsKnown("pass"));
-        Assert.False(Dispatchers.IsKnown("sendkeystate"));
-        Assert.False(Dispatchers.IsKnown("toggleswallow"));
+        Assert.Contains("sendshortcut", WindowManager.DispatcherNames);
+        Assert.DoesNotContain("pass", WindowManager.DispatcherNames);
+        Assert.DoesNotContain("sendkeystate", WindowManager.DispatcherNames);
+        Assert.DoesNotContain("toggleswallow", WindowManager.DispatcherNames);
     }
 
     private static WindowManager WithObs(string config)

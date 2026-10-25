@@ -5,7 +5,7 @@ public class CycleLayoutTests
     private static readonly Rectangle Area = new(0, 0, 800, 600);
 
     [Fact]
-    public void CycleLayoutIsKnown() => Assert.True(Dispatchers.IsKnown("cyclelayout"));
+    public void CycleLayoutIsKnown() => Assert.Contains("cyclelayout", WindowManager.DispatcherNames);
 
     [Fact]
     public void CycleLayoutWalksDwindleScrollingAndFloating()
@@ -17,7 +17,6 @@ public class CycleLayoutTests
         var floating = core.Handle(new Dispatch("cyclelayout", ""));
         var dwindle = core.Handle(new Dispatch("cyclelayout", ""));
 
-        Assert.Equal("cyclelayout", scrolling.Dispatcher);
         Assert.Equal("scrolling", Layout(scrolling));
         Assert.False(Client(scrolling, 1).Floating);
         Assert.Equal("floating", Layout(floating));

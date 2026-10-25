@@ -21,7 +21,6 @@ public class SelectorDispatcherTests
 
         Assert.Equal(new WindowId(2), followed.Focus);
         Assert.Equal(new WorkspaceId("2"), followed.State.ActiveWorkspace);
-        Assert.Equal("focuswindow", followed.Dispatcher);
     }
 
     [Fact]
@@ -95,7 +94,6 @@ public class SelectorDispatcherTests
 
         var outcome = core.Handle(new Dispatch("pseudo", "class:Left"));
 
-        Assert.Equal("pseudo", outcome.Dispatcher);
         Assert.Equal(new Rectangle(80, 240, 800, 600), BoundsOf(outcome, 1));
     }
 

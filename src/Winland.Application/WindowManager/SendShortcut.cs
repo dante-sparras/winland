@@ -12,7 +12,7 @@ public sealed partial class WindowManager
     {
         const string name = "sendshortcut";
         if (!TryReadShortcut(name, arguments, parts: 3, out var shortcut, out var error))
-            return Rejected(name, error);
+            return Rejected(error);
 
         var phase = _trigger switch
         {
@@ -20,11 +20,11 @@ public sealed partial class WindowManager
             BindTrigger { Pressed: false } => KeyRelayPhase.Release,
             _ => KeyRelayPhase.Tap,
         };
-        return Relayed(name, shortcut.Relay(phase));
+        return Relayed(shortcut.Relay(phase));
     }
 
-    private Outcome Relayed(string name, KeyRelay relay) =>
-        View([], dispatcher: name) with { Relays = [relay] };
+    private Outcome Relayed(KeyRelay relay) =>
+        View([]) with { Relays = [relay] };
 
     private bool TryReadShortcut(string name, string arguments, int parts, out Shortcut shortcut, out string error)
     {

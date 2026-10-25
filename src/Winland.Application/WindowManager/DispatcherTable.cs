@@ -3,9 +3,9 @@ using System.Collections.Frozen;
 namespace Winland.Application;
 
 /// <summary>
-/// Every dispatcher Winland runs, in one table: what it runs, and whether it takes a window after a comma in place of
-/// the active one. <see cref="Dispatchers"/> lists the same names for the config parser, and a test keeps the two
-/// equal. To add a dispatcher, add its name there and its entry here.
+/// Every dispatcher Winland runs, in one table: what it runs, whether it takes a window after a comma in place of the
+/// active one, and its <see cref="DispatcherTraits"/>. The table is also the list of names the config parser accepts.
+/// To add a dispatcher, add its entry here.
 /// </summary>
 public sealed partial class WindowManager
 {
@@ -18,41 +18,22 @@ public sealed partial class WindowManager
         bool TakesWindow = false,
         DispatcherTraits Traits = DispatcherTraits.None);
 
-    /// <summary>What else a dispatcher's outcome does, beyond what it runs.</summary>
-    [Flags]
-    private enum DispatcherTraits
-    {
-        None = 0,
-
-        /// <summary>Moves the cursor to the window it focuses, under the <c>cursor</c> options.</summary>
-        WarpsToFocused = 1,
-
-        /// <summary>Puts the cursor in the middle of a Monitor it leaves with nothing to focus.</summary>
-        WarpsToEmptyMonitor = 2,
-
-        /// <summary>A dwindle resize that moves the tiles at once.</summary>
-        InstantResize = 4,
-    }
-
-    private static DispatcherTraits TraitsOf(string? name) =>
-        name is not null && Table.TryGetValue(name, out var dispatcher) ? dispatcher.Traits : DispatcherTraits.None;
-
     private static readonly FrozenDictionary<string, Dispatcher> Table = BuildTable();
 
-    /// <summary>The names the table runs.</summary>
-    internal static IEnumerable<string> DispatcherNames => Table.Keys;
+    /// <summary>The names the table runs, which the config parser accepts for a bind.</summary>
+    public static IReadOnlyCollection<string> DispatcherNames => Table.Keys;
 
     private static FrozenDictionary<string, Dispatcher> BuildTable()
     {
         var table = new Dictionary<string, Dispatcher>(StringComparer.OrdinalIgnoreCase)
         {
             // Programs and the daemon
-            ["exec"] = new(static (m, n, a) => m.Exec(n, a)),
+            ["exec"] = new(static (m, _, a) => m.Exec(a)),
             ["exit"] = new(static (m, _, _) => m.ExitDaemon()),
             ["sendshortcut"] = new(static (m, _, a) => m.SendShortcut(a)),
 
             // Workspaces and Monitors
-            ["workspace"] = new(static (m, n, a) => m.WorkspaceDispatch(n, a)),
+            ["workspace"] = new(static (m, _, a) => m.WorkspaceDispatch(a)),
             ["togglespecialworkspace"] = new(static (m, _, a) => m.ToggleSpecial(a)),
             ["movetoworkspace"] = new(static (m, _, a) => m.MoveWindowToWorkspace(a, silent: false)),
             ["movetoworkspacesilent"] = new(static (m, _, a) => m.MoveWindowToWorkspace(a, silent: true)),
@@ -85,14 +66,14 @@ public sealed partial class WindowManager
             ["cyclelayout"] = new(static (m, _, a) => m.CycleWorkspaceLayout(a)),
 
             // Groups
-            ["togglegroup"] = new(static (m, n, _) => m.ToggleGroup(n), TakesWindow: true),
-            ["changegroupactive"] = new(static (m, n, a) => m.ChangeGroupActive(a.Trim(), n), TakesWindow: true),
-            ["movegroupwindow"] = new(static (m, n, a) => m.MoveGroupWindow(a.Trim(), n)),
-            ["moveintogroup"] = new(static (m, n, a) => m.MoveIntoGroup(a.Trim(), n), TakesWindow: true),
-            ["moveoutofgroup"] = new(static (m, n, a) => m.MoveOutOfGroup(a.Trim(), n)),
+            ["togglegroup"] = new(static (m, _, _) => m.ToggleGroup(), TakesWindow: true),
+            ["changegroupactive"] = new(static (m, _, a) => m.ChangeGroupActive(a.Trim()), TakesWindow: true),
+            ["movegroupwindow"] = new(static (m, _, a) => m.MoveGroupWindow(a.Trim())),
+            ["moveintogroup"] = new(static (m, _, a) => m.MoveIntoGroup(a.Trim()), TakesWindow: true),
+            ["moveoutofgroup"] = new(static (m, _, a) => m.MoveOutOfGroup(a.Trim())),
 
             // Accepted with no effect. A mouse bind's resizewindow runs in the drag code, not here.
-            ["resizewindow"] = new(static (m, n, _) => m.View([], dispatcher: n)),
+            ["resizewindow"] = new(static (m, _, _) => m.View([])),
         };
 
         // A dwindle layout message is also a dispatcher of its own name.

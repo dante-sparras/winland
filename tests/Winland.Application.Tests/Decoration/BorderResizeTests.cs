@@ -16,7 +16,6 @@ public class BorderResizeTests
 
         var resized = core.Handle(new PointerMoved(new Point(1320, 570)));
 
-        Assert.Equal("resizewindow", resized.Dispatcher);
         Assert.True(resized.Consumed);
         Assert.Equal(new Rectangle(640, 340, 680, 430), BoundsOf(resized, 1));
         Assert.True(resized.Live);
@@ -36,7 +35,6 @@ public class BorderResizeTests
 
         var resized = core.Handle(new PointerMoved(new Point(1805, 570)));
 
-        Assert.Equal("resizewindow", resized.Dispatcher);
         Assert.True(resized.Consumed);
         Assert.Equal(new Rectangle(1120, 340, 680, 430), BoundsOf(resized, 2));
     }
@@ -124,7 +122,6 @@ public class BorderResizeTests
         var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = gap });
 
         Assert.False(pressed.Consumed);
-        Assert.NotEqual("resizewindow", pressed.Dispatcher);
         Assert.NotEqual(new WindowId(1), pressed.Focus);
         Assert.Null(core.Handle(new PointerMoved(gap)).ResizeCursor);
     }
@@ -140,7 +137,6 @@ public class BorderResizeTests
         var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = gap });
 
         Assert.True(pressed.Consumed);
-        Assert.Equal("resizewindow", pressed.Dispatcher);
         Assert.Equal(new WindowId(1), pressed.Focus);
     }
 
@@ -157,7 +153,6 @@ public class BorderResizeTests
         var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = gap });
 
         Assert.False(pressed.Consumed);
-        Assert.NotEqual("resizewindow", pressed.Dispatcher);
     }
 
     [Fact]
