@@ -11,14 +11,12 @@ public sealed partial class WindowManager
 {
     /// <summary>
     /// What a dispatcher runs, given the Window Manager, the name it was called by and its arguments.
-    /// <paramref name="TakesWindow"/> when <c>name window,arguments</c> runs it on that window. <paramref name="Focus"/>
-    /// is the reason the Event stream gives when it moves focus; without one the reason is unknown.
+    /// <paramref name="TakesWindow"/> when <c>name window,arguments</c> runs it on that window.
     /// </summary>
     private sealed record Dispatcher(
         Func<WindowManager, string, string, Outcome> Run,
         bool TakesWindow = false,
-        DispatcherTraits Traits = DispatcherTraits.None,
-        Func<WindowManager, FocusChange, FocusReason>? Focus = null);
+        DispatcherTraits Traits = DispatcherTraits.None);
 
     /// <summary>What else a dispatcher's outcome does, beyond what it runs.</summary>
     [Flags]
@@ -35,11 +33,6 @@ public sealed partial class WindowManager
         /// <summary>A dwindle resize that moves the tiles at once.</summary>
         InstantResize = 4,
     }
-
-    /// <summary>A focus change a dispatcher made: the input that ran it, and the state before and after.</summary>
-    private readonly record struct FocusChange(Input? Input, Captured Before, WindowId? After, State AfterState);
-
-    private static Func<WindowManager, FocusChange, FocusReason> Fixed(FocusReason reason) => (_, _) => reason;
 
     private static DispatcherTraits TraitsOf(string? name) =>
         name is not null && Table.TryGetValue(name, out var dispatcher) ? dispatcher.Traits : DispatcherTraits.None;
@@ -59,23 +52,23 @@ public sealed partial class WindowManager
             ["sendshortcut"] = new(static (m, _, a) => m.SendShortcut(a)),
 
             // Workspaces and Monitors
-            ["workspace"] = new(static (m, n, a) => m.WorkspaceDispatch(n, a), Focus: WorkspaceFocusReason),
-            ["togglespecialworkspace"] = new(static (m, _, a) => m.ToggleSpecial(a), Focus: Fixed(FocusReason.ToggleSpecial)),
-            ["movetoworkspace"] = new(static (m, _, a) => m.MoveWindowToWorkspace(a, silent: false), Focus: Fixed(FocusReason.Keybind)),
-            ["movetoworkspacesilent"] = new(static (m, _, a) => m.MoveWindowToWorkspace(a, silent: true), Focus: Fixed(FocusReason.Keybind)),
-            ["focusmonitor"] = new(static (m, _, a) => m.FocusMonitorDispatch(a), Traits: DispatcherTraits.WarpsToEmptyMonitor, Focus: Fixed(FocusReason.Keybind)),
+            ["workspace"] = new(static (m, n, a) => m.WorkspaceDispatch(n, a)),
+            ["togglespecialworkspace"] = new(static (m, _, a) => m.ToggleSpecial(a)),
+            ["movetoworkspace"] = new(static (m, _, a) => m.MoveWindowToWorkspace(a, silent: false)),
+            ["movetoworkspacesilent"] = new(static (m, _, a) => m.MoveWindowToWorkspace(a, silent: true)),
+            ["focusmonitor"] = new(static (m, _, a) => m.FocusMonitorDispatch(a), Traits: DispatcherTraits.WarpsToEmptyMonitor),
             ["movecurrentworkspacetomonitor"] = new(static (m, _, a) => m.MoveCurrentWorkspace(a)),
 
             // Focus
-            ["movefocus"] = new(static (m, _, a) => m.MoveFocusDirection(a), Traits: DispatcherTraits.WarpsToFocused | DispatcherTraits.WarpsToEmptyMonitor, Focus: MoveFocusReason),
-            ["focuswindow"] = new(static (m, _, a) => m.FocusWindow(a), Focus: Fixed(FocusReason.FocusWindow)),
-            ["cyclenext"] = new(static (m, _, a) => m.CycleNext(a), TakesWindow: true, Traits: DispatcherTraits.WarpsToFocused, Focus: SwitchFocusReason),
-            ["focusurgentorlast"] = new(static (m, _, _) => m.FocusUrgentOrLast(), Traits: DispatcherTraits.WarpsToFocused, Focus: SwitchFocusReason),
+            ["movefocus"] = new(static (m, _, a) => m.MoveFocusDirection(a), Traits: DispatcherTraits.WarpsToFocused | DispatcherTraits.WarpsToEmptyMonitor),
+            ["focuswindow"] = new(static (m, _, a) => m.FocusWindow(a)),
+            ["cyclenext"] = new(static (m, _, a) => m.CycleNext(a), TakesWindow: true, Traits: DispatcherTraits.WarpsToFocused),
+            ["focusurgentorlast"] = new(static (m, _, _) => m.FocusUrgentOrLast(), Traits: DispatcherTraits.WarpsToFocused),
 
             // Windows
             ["killactive"] = new(static (m, n, a) => m.LayoutDispatch(n, a)),
             ["closeall"] = new(static (m, _, _) => m.CloseAll()),
-            ["movewindow"] = new(static (m, _, a) => m.MoveWindowDirection(a), TakesWindow: true, Focus: DragFocusReason),
+            ["movewindow"] = new(static (m, _, a) => m.MoveWindowDirection(a), TakesWindow: true),
             ["swapwindow"] = new(static (m, _, a) => m.SwapWindow(a), TakesWindow: true),
             ["centerwindow"] = new(static (m, _, _) => m.CenterWindow(), TakesWindow: true),
             ["togglefloating"] = new(static (m, _, a) => m.FloatWindow(a)),
@@ -87,19 +80,19 @@ public sealed partial class WindowManager
             ["setprop"] = new(static (m, _, a) => m.SetPropDispatch(a)),
 
             // Layouts
-            ["layoutmsg"] = new(static (m, n, a) => m.LayoutDispatch(n, a), Focus: LayoutMessageFocusReason),
-            ["layout"] = new(static (m, n, a) => m.LayoutDispatch(n, a), Focus: LayoutMessageFocusReason),
+            ["layoutmsg"] = new(static (m, n, a) => m.LayoutDispatch(n, a)),
+            ["layout"] = new(static (m, n, a) => m.LayoutDispatch(n, a)),
             ["cyclelayout"] = new(static (m, _, a) => m.CycleWorkspaceLayout(a)),
 
             // Groups
             ["togglegroup"] = new(static (m, n, _) => m.ToggleGroup(n), TakesWindow: true),
-            ["changegroupactive"] = new(static (m, n, a) => m.ChangeGroupActive(a.Trim(), n), TakesWindow: true, Focus: Fixed(FocusReason.GroupCurrent)),
-            ["movegroupwindow"] = new(static (m, n, a) => m.MoveGroupWindow(a.Trim(), n), Focus: Fixed(FocusReason.DesktopState)),
-            ["moveintogroup"] = new(static (m, n, a) => m.MoveIntoGroup(a.Trim(), n), TakesWindow: true, Focus: Fixed(FocusReason.MoveIntoGroup)),
-            ["moveoutofgroup"] = new(static (m, n, a) => m.MoveOutOfGroup(a.Trim(), n), Focus: Fixed(FocusReason.Keybind)),
+            ["changegroupactive"] = new(static (m, n, a) => m.ChangeGroupActive(a.Trim(), n), TakesWindow: true),
+            ["movegroupwindow"] = new(static (m, n, a) => m.MoveGroupWindow(a.Trim(), n)),
+            ["moveintogroup"] = new(static (m, n, a) => m.MoveIntoGroup(a.Trim(), n), TakesWindow: true),
+            ["moveoutofgroup"] = new(static (m, n, a) => m.MoveOutOfGroup(a.Trim(), n)),
 
             // Accepted with no effect. A mouse bind's resizewindow runs in the drag code, not here.
-            ["resizewindow"] = new(static (m, n, _) => m.View([], dispatcher: n), Focus: DragFocusReason),
+            ["resizewindow"] = new(static (m, n, _) => m.View([], dispatcher: n)),
         };
 
         // A dwindle layout message is also a dispatcher of its own name.
