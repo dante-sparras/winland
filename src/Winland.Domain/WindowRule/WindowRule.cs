@@ -13,7 +13,6 @@ public sealed record WindowRule(
     OpacityRule? Opacity = null,
     FullscreenRule? Fullscreen = null,
     RulePlacement? Placement = null,
-    string? Group = null,
     IReadOnlyDictionary<string, object>? Props = null,
     string? InitialTitlePattern = null,
     string? InitialClassPattern = null);

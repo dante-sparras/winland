@@ -267,9 +267,7 @@ public sealed partial class WindowManager
                 break;
 
             var floatedIntoTiled = there.ClientOf(bar.Shown) is { Floating: false } && !wasTiled;
-            if (!CanDragInto(from, dragged, target)
-                || (floatedIntoTiled && !_config.Groups.MergeFloatedIntoTiledOnGroupbar)
-                || (own is not null && !_config.Groups.MergeGroupsOnGroupbar))
+            if (!CanDragInto(from, dragged, target) || floatedIntoTiled)
                 break;
 
             return new DropTarget(there, target, bar.DropIndex(pointer));
@@ -286,22 +284,10 @@ public sealed partial class WindowManager
         return new DropTarget(home, group, null);
     }
 
-    // Winland's canBeGroupedInto for a drag: the Group rule decides, and a dragged Group joins only with
-    // group:merge_groups_on_drag. The callers hold back a floating window, as they know the options for it.
-    private bool CanDragInto(LiveWorkspace from, WindowId dragged, WindowGroup target)
-    {
-        var own = from.GroupOf(dragged);
-        return own != target
-            && (own is null || _config.Groups.MergeGroupsOnDrag)
-            && GroupAdmission.May(
-                _props.GroupRules(dragged),
-                _groupsLocked,
-                target.Locked,
-                target.Denied,
-                dialog: false,
-                floatingIntoTiled: false,
-                ownLocked: own?.Locked == true);
-    }
+    // A dragged window, or the whole Group it is in, joins any other Group. The callers hold back a floating window
+    // over a tiled Group.
+    private static bool CanDragInto(LiveWorkspace from, WindowId dragged, WindowGroup target) =>
+        from.GroupOf(dragged) != target;
 
     private Outcome JoinDragged(WindowId dragged, DropTarget drop, string? dispatcher)
     {
@@ -314,7 +300,7 @@ public sealed partial class WindowManager
             if (!TakeForGroup(from, members[i], out var taken))
                 continue;
 
-            var position = index is int at ? at + i : _config.Groups.InsertAfterCurrent ? target.Current + 1 : target.Count;
+            var position = index is int at ? at + i : target.Current + 1;
             position = Math.Clamp(position, 0, target.Count);
             there.Join(target, members[i], taken, position);
             there.Show(target, position);

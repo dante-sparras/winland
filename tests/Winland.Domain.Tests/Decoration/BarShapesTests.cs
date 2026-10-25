@@ -49,8 +49,8 @@ public class BarShapesTests
         Assert.Equal(3, set.GradientRoundingPower);
         Assert.False(set.GradientRoundOnlyEdges);
         Assert.Equal(Red, set.Active);
-        Assert.Equal([Red, Blue], set.GradientColors(active: true, locked: false));
-        Assert.Equal([set.Inactive], set.GradientColors(active: false, locked: false));
+        Assert.Equal([Red, Blue], set.GradientColors(active: true));
+        Assert.Equal([set.Inactive], set.GradientColors(active: false));
 
         // The title row stays for the gradient with titles off.
         Assert.Equal(set.Height, set.Reserved - ((set.GapsOut * 2) + set.IndicatorHeight + set.IndicatorGap));

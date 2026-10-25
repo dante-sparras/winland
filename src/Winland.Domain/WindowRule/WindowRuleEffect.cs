@@ -20,6 +20,5 @@ public enum WindowRuleEffect
     Size,
     Center,
     Monitor,
-    Group,
     Prop,
 }

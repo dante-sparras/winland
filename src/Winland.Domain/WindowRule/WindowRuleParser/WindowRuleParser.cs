@@ -17,7 +17,7 @@ internal static partial class WindowRuleParser
             return false;
         }
 
-        if (!TryParseEffect(value[..comma].Trim(), out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var placement, out var group, out var props, out error))
+        if (!TryParseEffect(value[..comma].Trim(), out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var placement, out var props, out error))
             return false;
 
         string? classPattern = null;
@@ -39,17 +39,17 @@ internal static partial class WindowRuleParser
             return false;
         }
 
-        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, placement, group, props, initialTitlePattern, initialClassPattern);
+        rule = new WindowRule(effect, workspace, classPattern, titlePattern, exePattern, aumidPattern, enabled, size, scrollingWidth, opacity, fullscreen, placement, props, initialTitlePattern, initialClassPattern);
         return true;
     }
 
     internal static bool TryParseBare(string text, out WindowRule? rule, out string error)
     {
         rule = null;
-        if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var placement, out var group, out var props, out error))
+        if (!TryParseEffect(text, out var effect, out var workspace, out var enabled, out var size, out var scrollingWidth, out var opacity, out var fullscreen, out var placement, out var props, out error))
             return false;
 
-        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, ScrollingWidth: scrollingWidth, Opacity: opacity, Fullscreen: fullscreen, Placement: placement, Group: group, Props: props);
+        rule = new WindowRule(effect, workspace, null, null, null, Enabled: enabled, Size: size, ScrollingWidth: scrollingWidth, Opacity: opacity, Fullscreen: fullscreen, Placement: placement, Props: props);
         return true;
     }
 
@@ -71,7 +71,6 @@ internal static partial class WindowRuleParser
         bool? maximize = null;
         bool? pin = null;
         var placement = default(MapPlacement);
-        var group = GroupRuleFlags.None;
         Dictionary<string, object>? props = null;
         foreach (var rule in rules)
         {
@@ -135,9 +134,6 @@ internal static partial class WindowRuleParser
                 case WindowRuleEffect.Pin:
                     pin = rule.Enabled;
                     break;
-                case WindowRuleEffect.Group:
-                    group = GroupRules.Parse(rule.Group);
-                    break;
                 default:
                     placement = Place(placement, rule);
                     break;
@@ -161,7 +157,6 @@ internal static partial class WindowRuleParser
             RequestedFullscreen(fullscreen, maximize),
             pin ?? false,
             placement,
-            group,
             sizes,
             props,
             minExpression,
@@ -178,7 +173,6 @@ internal static partial class WindowRuleParser
         out OpacityRule? opacity,
         out FullscreenRule? fullscreen,
         out RulePlacement? placement,
-        out string? group,
         out IReadOnlyDictionary<string, object>? props,
         out string error)
     {
@@ -191,7 +185,6 @@ internal static partial class WindowRuleParser
         opacity = null;
         fullscreen = null;
         placement = null;
-        group = null;
         var space = text.IndexOfAny([' ', '\t']);
         var name = space < 0 ? text : text[..space];
         var argument = space < 0 ? null : text[(space + 1)..].Trim();
@@ -227,17 +220,6 @@ internal static partial class WindowRuleParser
             case "pin":
                 effect = WindowRuleEffect.Pin;
                 break;
-            case "group":
-                if (!GroupRules.IsValid(argument))
-                {
-                    error = "Malformed window rule.";
-                    return false;
-                }
-
-                effect = WindowRuleEffect.Group;
-                group = argument ?? "";
-                error = "";
-                return true;
             case "workspace":
                 if (argument is null)
                 {

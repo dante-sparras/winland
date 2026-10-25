@@ -314,7 +314,7 @@ public class FullscreenTests
     [InlineData(true)]
     public void AMaximizedGroupMemberLeavesRoomForTheBar(bool floating)
     {
-        var core = Desk("general:gaps_out = 0\ngeneral:border_size = 0\ngroup:auto_group = true\n");
+        var core = Desk("general:gaps_out = 0\ngeneral:border_size = 0\n");
         Appear(core, 1);
         core.Handle(new Dispatch("togglegroup"));
         core.Handle(new WindowAppeared(new WindowId(2), Work));

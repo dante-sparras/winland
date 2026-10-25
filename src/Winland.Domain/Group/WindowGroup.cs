@@ -13,11 +13,6 @@ internal sealed class WindowGroup(WindowId first)
     /// <summary>The index of the shown member. It always points at a member.</summary>
     public int Current { get; private set; }
 
-    public bool Locked { get; set; }
-
-    /// <summary>Set when no other window may join this Group.</summary>
-    public bool Denied { get; set; }
-
     public WindowId Shown => _members[Current];
 
     public int Count => _members.Count;

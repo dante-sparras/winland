@@ -90,17 +90,6 @@ public class FocusReasonTests
     }
 
     [Fact]
-    public void MoveFocusInsideAGroupStaysOnTheGroup()
-    {
-        var core = Grouped("binds:movefocus_cycles_groupfirst = true\n");
-
-        var moved = core.Handle(new Dispatch("movefocus", "l"));
-
-        Assert.Equal(new WindowId(1), moved.Focus);
-        Assert.Equal(FocusReason.GroupCurrent, Focus(moved).Reason);
-    }
-
-    [Fact]
     public void MoveFocusOntoAnotherMonitorIsAKeybind()
     {
         var core = TwoMonitors();
@@ -218,17 +207,6 @@ public class FocusReasonTests
 
         Assert.Equal(new WindowId(1), changed.Focus);
         Assert.Equal(FocusReason.GroupCurrent, Focus(changed).Reason);
-    }
-
-    [Fact]
-    public void MoveIntoOrCreateGroupReportsTheMove()
-    {
-        var core = Open(Flat("group:auto_group = false\n"));
-
-        var moved = core.Handle(new Dispatch("moveintoorcreategroup", "r,address:0x1"));
-
-        Assert.Equal(new WindowId(1), moved.Focus);
-        Assert.Equal(FocusReason.MoveIntoGroup, Focus(moved).Reason);
     }
 
     [Fact]
@@ -351,7 +329,7 @@ public class FocusReasonTests
 
     private static WindowManager Grouped(string extra = "")
     {
-        var core = Flat("group:auto_group = true\n" + extra);
+        var core = Flat("" + extra);
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new Dispatch("togglegroup"));
         core.Handle(new WindowAppeared(new WindowId(2), Area));

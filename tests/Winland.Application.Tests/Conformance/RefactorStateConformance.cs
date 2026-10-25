@@ -80,11 +80,7 @@ public class RefactorStateConformance
     [Fact]
     public void GlobalWindowMoveState()
     {
-        var desk = Prepare(new Desk("""
-            group {
-                group_on_movetoworkspace = true
-            }
-            """));
+        var desk = Prepare(new Desk());
 
         desk.Ok("focusmonitor", Right);
         desk.Ok("workspace", "291");
@@ -122,9 +118,6 @@ public class RefactorStateConformance
         desk.Spawn("global_move_group_member");
         desk.Ok("movewindow", $"mon:{Right}");
         Assert.Equal("global_move_group_member", desk.ActiveClass());
-
-        desk.Ok("changegroupactive", "f");
-        Assert.Equal("global_move_group_anchor", desk.ActiveClass());
     }
 
     [Fact]

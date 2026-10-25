@@ -14,7 +14,6 @@ internal readonly record struct WindowDecision(
     FullscreenRule? FullscreenRequest = null,
     bool Pin = false,
     MapPlacement Placement = default,
-    GroupRuleFlags Group = GroupRuleFlags.None,
     SizeRule Sizes = default,
     IReadOnlyDictionary<string, object>? Props = null,
     ExpressionPair? MinSizeExpression = null,

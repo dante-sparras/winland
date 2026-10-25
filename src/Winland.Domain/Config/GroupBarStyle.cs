@@ -43,26 +43,14 @@ public sealed record GroupBarStyle
 
     public BorderColor? TextColorInactive { get; init; }
 
-    public BorderColor? TextColorLockedActive { get; init; }
-
-    public BorderColor? TextColorLockedInactive { get; init; }
-
     public BorderColor Active { get; init; } = new(0x66, 0xFF, 0xFF, 0x00);
 
     public BorderColor Inactive { get; init; } = new(0x66, 0x77, 0x77, 0x00);
-
-    public BorderColor LockedActive { get; init; } = new(0x66, 0xFF, 0x55, 0x00);
-
-    public BorderColor LockedInactive { get; init; } = new(0x66, 0x77, 0x55, 0x00);
 
     /// <summary>Every color <c>col.active</c> lists, which a gradient runs through. Null for the one default color.</summary>
     public BarGradient? ActiveGradient { get; init; }
 
     public BarGradient? InactiveGradient { get; init; }
-
-    public BarGradient? LockedActiveGradient { get; init; }
-
-    public BarGradient? LockedInactiveGradient { get; init; }
 
     /// <summary><c>stacked</c>: the tabs are rows, one above the other, instead of side by side.</summary>
     public bool Stacked { get; init; }
@@ -122,25 +110,14 @@ public sealed record GroupBarStyle
         Stacked ? (OneBarHeight * Math.Max(1, tabs)) + (KeepUpperGap ? GapsOut : 0) : Reserved;
 
     /// <summary>The title color of one tab.</summary>
-    public BorderColor TitleColor(bool active, bool locked)
-    {
-        var inactive = TextColorInactive ?? TextColor;
-        if (locked)
-            return active ? TextColorLockedActive ?? TextColor : TextColorLockedInactive ?? inactive;
-
-        return active ? TextColor : inactive;
-    }
+    public BorderColor TitleColor(bool active) => active ? TextColor : TextColorInactive ?? TextColor;
 
     /// <summary>The indicator color of one tab.</summary>
-    public BorderColor IndicatorColor(bool active, bool locked) =>
-        locked ? (active ? LockedActive : LockedInactive) : (active ? Active : Inactive);
+    public BorderColor IndicatorColor(bool active) => active ? Active : Inactive;
 
     /// <summary>The colors the gradient of one tab runs through.</summary>
-    public IReadOnlyList<BorderColor> GradientColors(bool active, bool locked)
-    {
-        var gradient = locked ? (active ? LockedActiveGradient : LockedInactiveGradient) : (active ? ActiveGradient : InactiveGradient);
-        return gradient?.Colors ?? [IndicatorColor(active, locked)];
-    }
+    public IReadOnlyList<BorderColor> GradientColors(bool active) =>
+        (active ? ActiveGradient : InactiveGradient)?.Colors ?? [IndicatorColor(active)];
 }
 
 /// <summary>The colors of a tab bar gradient, as the config lists them. Two are equal when their colors are.</summary>

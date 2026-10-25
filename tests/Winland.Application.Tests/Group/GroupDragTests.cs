@@ -1,6 +1,6 @@
 namespace Winland.Application.Tests;
 
-/// <summary>A window dragged onto a Group joins it, as <c>group:drag_into_group</c> and its options decide.</summary>
+/// <summary>A window dragged onto a Group joins it, as <c>group:drag_into_group</c> decides.</summary>
 public class GroupDragTests
 {
     private static readonly Rectangle Wide = new(0, 0, 1920, 1080);
@@ -47,12 +47,10 @@ public class GroupDragTests
         Assert.Equal([new WindowId(1)], Assert.Single(dropped.State.Groups));
     }
 
-    [Theory]
-    [InlineData("", 1)]
-    [InlineData("group:merge_floated_into_tiled_on_groupbar = true\n", 2)]
-    public void AFloatingWindowJoinsATiledGroupOnlyOnItsBarWithTheOption(string config, int members)
+    [Fact]
+    public void AFloatingWindowDoesNotJoinATiledGroup()
     {
-        var core = Grouped(config);
+        var core = Grouped("");
         core.Handle(new Dispatch("focuswindow", "address:0x2"));
         core.Handle(new Dispatch("setfloating"));
         var bar = Assert.Single(core.Handle(new Dispatch("no_op")).GroupBars);
@@ -61,36 +59,7 @@ public class GroupDragTests
         Assert.Single(Assert.Single(onMember.State.Groups));
 
         var onBar = Drag(core, 2, new Point(bar.Bounds.X + 2, bar.Bounds.Y + (bar.Bounds.Height / 2)));
-        Assert.Equal(members, Assert.Single(onBar.State.Groups).Count);
-    }
-
-    [Fact]
-    public void ALockedGroupTakesNoDraggedWindow()
-    {
-        var core = Grouped("");
-        core.Handle(new Dispatch("focuswindow", "address:0x1"));
-        core.Handle(new Dispatch("lockactivegroup", "lock"));
-
-        var dropped = Drag(core, 2, Middle(Tile(core, 1)));
-
-        Assert.Equal([new WindowId(1)], Assert.Single(dropped.State.Groups));
-    }
-
-    [Fact]
-    public void AnInvadingWindowIsDroppedIntoALockedGroup()
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse(
-            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\ngroup:auto_group = false\n"
-            + "bindm = SUPER, mouse:272, movewindow\nwindowrule = group invade, class:^invade$\n")));
-        core.Handle(new WindowAppeared(new WindowId(1), Wide));
-        core.Handle(new Dispatch("togglegroup"));
-        core.Handle(new Dispatch("lockactivegroup", "lock"));
-        core.Handle(new WindowAppeared(new WindowId(2), Wide) { Traits = WindowTraits.Normal with { Class = "invade" } });
-
-        var dropped = Drag(core, 2, Middle(Tile(core, 1)));
-
-        Assert.Equal([new WindowId(1), new WindowId(2)], Assert.Single(dropped.State.Groups));
+        Assert.Single(Assert.Single(onBar.State.Groups));
     }
 
     // Window 1 is a Group of one on the left, window 2 a tile on the right.
@@ -132,7 +101,7 @@ public class GroupDragTests
     {
         var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(
-            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\ngroup:auto_group = false\n"
+            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n"
             + "bindm = SUPER, mouse:272, movewindow\n")));
         var right = new Rectangle(1920, 0, 1920, 1080);
         core.Handle(new MonitorsChanged(
@@ -167,11 +136,12 @@ public class GroupDragTests
     {
         var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse(
-            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\ngroup:auto_group = false\n"
+            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n"
             + "bindm = SUPER, mouse:272, movewindow\n" + extra)));
         core.Handle(new WindowAppeared(new WindowId(1), Wide));
-        core.Handle(new Dispatch("togglegroup"));
         core.Handle(new WindowAppeared(new WindowId(2), Wide));
+        core.Handle(new Dispatch("focuswindow", "address:0x1"));
+        core.Handle(new Dispatch("togglegroup"));
         return core;
     }
 

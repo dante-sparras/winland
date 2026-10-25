@@ -76,9 +76,6 @@ public static partial class CommandProtocol
             case ClientOutOfGroup outOf:
                 lines.Add("moveoutofgroup>>" + EventAddress(outOf.Window));
                 break;
-            case GroupsLocked locked:
-                lines.Add("lockgroups>>" + (locked.Locked ? "1" : "0"));
-                break;
             case WorkspaceActivated activated:
                 lines.Add($"workspace>>{WorkspaceNameText(activated.Workspace, indexed)},{EventMonitor(state, activated.Workspace)}");
                 lines.Add($"workspacev2>>{WorkspaceIdText(activated.Workspace, indexed)},{WorkspaceNameText(activated.Workspace, indexed)},{EventMonitor(state, activated.Workspace)}");

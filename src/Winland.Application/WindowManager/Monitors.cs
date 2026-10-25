@@ -17,9 +17,6 @@ public sealed partial class WindowManager
         if (!Sides.TryParse(FirstToken(arguments), out var direction))
             return View([], dispatcher: name);
 
-        if (active is WindowId grouped && CycleGroupFirst(desk, grouped, arguments, name) is Outcome cycled)
-            return cycled;
-
         if (active is WindowId fullscreen
             && _config.Session.MoveFocusCyclesFullscreen
             && desk.ClientOf(fullscreen) is { Fullscreen: not FullscreenMode.None, LayoutFullscreen: false })

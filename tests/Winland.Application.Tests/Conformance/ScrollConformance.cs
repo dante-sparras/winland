@@ -458,12 +458,13 @@ public class ScrollConformance
     [Fact]
     public void TestScrollingViewBehaviourFocusFallbackWithGroups()
     {
-        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\ngroup:auto_group = false\n");
+        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
         desk.Spawn("a");
-        desk.Ok("togglegroup");
         desk.Ok("layoutmsg", "colresize 0.8");
         desk.Spawn("b");
         desk.Spawn("c");
+        desk.Ok("focuswindow", "class:a");
+        desk.Ok("togglegroup");
 
         desk.Ok("setfloating", "class:c");
         desk.Ok("focuswindow", "class:c");
@@ -529,13 +530,15 @@ public class ScrollConformance
     [Fact]
     public void TestScrollingViewBehaviourCloseWindowInGroup()
     {
-        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\ngroup:auto_group = false\n");
+        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
         desk.Spawn("a");
         desk.Ok("layoutmsg", "colresize 0.8");
-        desk.Ok("togglegroup");
         desk.Spawn("b");
-        desk.Ok("moveintogroup", "l");
         desk.Spawn("c");
+        desk.Ok("focuswindow", "class:a");
+        desk.Ok("togglegroup");
+        desk.Ok("focuswindow", "class:b");
+        desk.Ok("moveintogroup", "l");
 
         desk.Ok("focuswindow", "class:b");
         desk.Close("b");
@@ -547,12 +550,13 @@ public class ScrollConformance
     [Fact]
     public void TestScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse()
     {
-        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\ngroup:auto_group = false\n");
+        var desk = new Desk(Scrolling + "scrolling:follow_focus = false\n");
         desk.Spawn("a");
         desk.Ok("layoutmsg", "colresize 0.8");
-        desk.Ok("togglegroup");
         desk.Spawn("b");
         desk.Spawn("c");
+        desk.Ok("focuswindow", "class:a");
+        desk.Ok("togglegroup");
 
         desk.Ok("focuswindow", "class:b");
         desk.Ok("moveintogroup", "l");
@@ -563,12 +567,13 @@ public class ScrollConformance
     [Fact]
     public void TestScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue()
     {
-        var desk = new Desk(Scrolling + "group:auto_group = false\n");
+        var desk = new Desk(Scrolling + "");
         desk.Spawn("a");
         desk.Ok("layoutmsg", "colresize 0.8");
-        desk.Ok("togglegroup");
         desk.Spawn("b");
         desk.Spawn("c");
+        desk.Ok("focuswindow", "class:a");
+        desk.Ok("togglegroup");
 
         desk.Ok("focuswindow", "class:b");
         desk.Ok("moveintogroup", "l");
@@ -603,26 +608,9 @@ public class ScrollConformance
     }
 
     [Fact]
-    public void TestScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse()
-    {
-        var desk = new Desk(Scrolling + "binds:movefocus_cycles_groupfirst = true\ngroup:auto_group = false\nscrolling:follow_focus = false\n");
-        desk.Spawn("a");
-        desk.Ok("togglegroup");
-        desk.Ok("layoutmsg", "colresize 0.8");
-        desk.Spawn("b");
-        desk.Spawn("c");
-
-        desk.Ok("focuswindow", "class:b");
-        desk.Ok("moveintogroup", "l");
-        desk.Ok("movefocus", "l");
-
-        Assert.True(ActiveX(desk) <= 0);
-    }
-
-    [Fact]
     public void TestScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue()
     {
-        var desk = new Desk(Scrolling + "binds:movefocus_cycles_groupfirst = true\ngroup:auto_group = false\n");
+        var desk = new Desk(Scrolling + "binds:movefocus_cycles_groupfirst = true\n");
         desk.Spawn("a");
         desk.Ok("togglegroup");
         desk.Ok("layoutmsg", "colresize 0.8");

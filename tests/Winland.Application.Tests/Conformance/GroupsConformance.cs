@@ -30,10 +30,6 @@ public class GroupsConformance
         Assert.Equal("931,1015", desk.ActivePlace().Size);
         Assert.Equal(0, Desk.Fullscreen(desk.ActiveWindow()));
 
-        desk.Ok("movewindoworgroup", "r");
-        Assert.Equal("931,1015", desk.ActivePlace().Size);
-        Assert.Equal(0, Desk.Fullscreen(desk.ActiveWindow()));
-
         KillAll(desk);
         desk.Spawn("a");
         Assert.Single(desk.Clients());
@@ -87,87 +83,6 @@ public class GroupsConformance
         before = desk.ActiveId();
         desk.Ok("movegroupwindow", "b");
         Assert.Equal(before, desk.ActiveId());
-    }
-
-    [Fact]
-    public void AutoGroupInsertAfterCurrent()
-    {
-        var desk = new Desk("group:groupbar:enabled = false\n");
-        desk.Spawn("a");
-        desk.Ok("togglegroup");
-        desk.Spawn("b");
-        Assert.Equal(2, desk.Clients().Length);
-
-        desk.Keyword("group:auto_group", "false");
-        desk.Keyword("dwindle:force_split", "2");
-        desk.Spawn("c");
-        Assert.Equal(3, desk.Clients().Length);
-        Assert.Equal(2, CountAt(desk, "22,22"));
-
-        desk.Keyword("dwindle:force_split", "0");
-        desk.Ok("movefocus", "l");
-        desk.Ok("changegroupactive", "1");
-        desk.Keyword("group:auto_group", "true");
-        desk.Keyword("group:insert_after_current", "false");
-        var d = desk.Spawn("d");
-        Assert.Equal(4, desk.Clients().Length);
-
-        desk.Ok("changegroupactive", "3");
-        Assert.Equal(d, desk.ActiveId());
-    }
-
-    [Fact]
-    public void MoveWindowOrGroup()
-    {
-        var desk = new Desk("group:groupbar:enabled = false\n");
-        desk.Spawn("e");
-        desk.Ok("togglegroup");
-        desk.Spawn("f");
-        Assert.Equal(2, desk.Clients().Length);
-        Assert.Equal(2, CountAt(desk, "22,22"));
-
-        desk.Ok("movewindoworgroup", "r");
-        Assert.Equal(1, CountAt(desk, "22,22"));
-
-        desk.Ok("moveintogroup", "l");
-        desk.Ok("movewindoworgroup", "d");
-        Assert.Equal(1, CountAt(desk, "22,22"));
-    }
-
-    [Fact]
-    public void GroupLock()
-    {
-        var desk = new Desk("group:groupbar:enabled = false\n");
-        desk.Spawn("unlocked");
-        desk.Ok("togglegroup");
-        desk.Spawn("top");
-        Assert.Equal(2, CountAt(desk, "22,22"));
-
-        KillAll(desk);
-        Assert.Empty(desk.Clients());
-
-        desk.Spawn("locked");
-        desk.Ok("togglegroup");
-        desk.Ok("focuswindow", $"pid:{desk.Client("locked").GetProperty("pid").GetInt64()}");
-        desk.Ok("lockactivegroup", "lock");
-        desk.Spawn("top");
-        Assert.Equal(1, CountAt(desk, "22,22"));
-
-        desk.CloseActive();
-        Assert.Single(desk.Clients());
-
-        desk.Ok("lockactivegroup", "unlock");
-        desk.Ok("lockactivegroup", "lock");
-        desk.Spawn("top");
-        Assert.Equal(1, CountAt(desk, "22,22"));
-
-        KillAll(desk);
-        Assert.Empty(desk.Clients());
-
-        desk.Keyword("windowrule", "group set always lock invade, class:^locked|invade$");
-        desk.Spawn("locked");
-        desk.Spawn("invade");
-        Assert.Equal(2, CountAt(desk, "22,22"));
     }
 
     [Fact]

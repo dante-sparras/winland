@@ -6,14 +6,13 @@ namespace Winland.Domain;
 /// the indicator, the indicator gap, the title row and, with <c>keep_upper_gap</c>, a top gap. A stacked bar
 /// (<c>stacked</c>) gives each member such a row across the whole width, the first member at the top.
 /// </summary>
-public sealed record GroupBar(WindowId Shown, Rectangle Bounds, IReadOnlyList<GroupTab> Tabs, bool Locked, GroupBarStyle Style)
+public sealed record GroupBar(WindowId Shown, Rectangle Bounds, IReadOnlyList<GroupTab> Tabs, GroupBarStyle Style)
 {
     /// <summary>True when both bars draw the same pixels.</summary>
     public bool SameAs(GroupBar? other) =>
         other is not null
         && other.Shown == Shown
         && other.Bounds == Bounds
-        && other.Locked == Locked
         && other.Style == Style
         && other.Tabs.SequenceEqual(Tabs);
 

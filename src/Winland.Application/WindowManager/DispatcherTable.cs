@@ -116,16 +116,10 @@ public sealed partial class WindowManager
             ["togglegroup"] = new(static (m, n, _) => m.ToggleGroup(n), TakesWindow: true),
             ["changegroupactive"] = new(static (m, n, a) => m.ChangeGroupActive(a.Trim(), n), TakesWindow: true, Focus: Fixed(FocusReason.GroupCurrent)),
             ["movegroupwindow"] = new(static (m, n, a) => m.MoveGroupWindow(a.Trim(), n), Focus: Fixed(FocusReason.DesktopState)),
-            ["lockgroups"] = new(static (m, n, a) => m.LockGroups(a.Trim(), n)),
-            ["lockactivegroup"] = new(static (m, n, a) => m.LockActiveGroup(a.Trim(), n), TakesWindow: true),
-            ["denywindowfromgroup"] = new(static (m, n, a) => m.DenyWindowFromGroup(a.Trim(), n)),
-            ["moveintogroup"] = new(static (m, n, a) => m.MoveIntoGroup(a.Trim(), create: false, n), TakesWindow: true, Focus: Fixed(FocusReason.MoveIntoGroup)),
-            ["moveintoorcreategroup"] = new(static (m, n, a) => m.MoveIntoGroup(a.Trim(), create: true, n), TakesWindow: true, Focus: Fixed(FocusReason.MoveIntoGroup)),
+            ["moveintogroup"] = new(static (m, n, a) => m.MoveIntoGroup(a.Trim(), n), TakesWindow: true, Focus: Fixed(FocusReason.MoveIntoGroup)),
             ["moveoutofgroup"] = new(static (m, n, a) => m.MoveOutOfGroup(a.Trim(), n), Focus: Fixed(FocusReason.Keybind)),
-            ["movewindoworgroup"] = new(static (m, n, a) => m.MoveWindowOrGroup(a.Trim(), n), TakesWindow: true),
 
             // Accepted with no effect. A mouse bind's resizewindow runs in the drag code, not here.
-            ["setignoregrouplock"] = new(static (m, n, _) => m.View([], dispatcher: n)),
             ["resizewindow"] = new(static (m, n, _) => m.View([], dispatcher: n), Focus: DragFocusReason),
             ["no_op"] = new(static (m, n, _) => m.View([], dispatcher: n)),
             ["forcerendererreload"] = new(static (m, n, _) => m.View([], dispatcher: n)),

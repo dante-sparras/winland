@@ -67,7 +67,7 @@ internal static class GroupBarPainter
             var order = bar.DrawOrder(i);
             var corners = BarShapes.Rounded(order, count, style.Rounding, style.RoundOnlyEdges);
             var indicator = bar.IndicatorBounds(i);
-            var color = style.IndicatorColor(active, bar.Locked);
+            var color = style.IndicatorColor(active);
             Fill(pixels, width, height, indicator, (x, y) => Shaded(color, BarShapes.Coverage(x, y, indicator, style.Rounding, style.RoundingPower, corners)));
 
             if (!style.Gradients)
@@ -75,7 +75,7 @@ internal static class GroupBarPainter
 
             // Winland fills the title row with a vertical gradient of the tab's colors, rounded on its own.
             var row = bar.TitleBounds(i);
-            var colors = style.GradientColors(active, bar.Locked);
+            var colors = style.GradientColors(active);
             var rowCorners = BarShapes.Rounded(order, count, style.GradientRounding, style.GradientRoundOnlyEdges);
             Fill(pixels, width, height, row, (x, y) =>
             {
@@ -151,7 +151,7 @@ internal static class GroupBarPainter
 
             _ = PInvoke.SelectObject(maskDc, previous);
             _ = PInvoke.GdiFlush();
-            ComposeText(pixels, mask, width, height, row with { Y = row.Y + bar.Style.TextOffset }, bar.Style.TitleColor(tab.Focused, bar.Locked));
+            ComposeText(pixels, mask, width, height, row with { Y = row.Y + bar.Style.TextOffset }, bar.Style.TitleColor(tab.Focused));
         }
 
         _ = PInvoke.SelectObject(maskDc, oldMask);

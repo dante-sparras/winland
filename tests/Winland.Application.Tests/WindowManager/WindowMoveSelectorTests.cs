@@ -198,18 +198,6 @@ public class WindowMoveSelectorTests
         Assert.Equal(new WorkspaceId("2"), cycled.State.ActiveWorkspace);
     }
 
-    [Fact]
-    public void MoveWindowOrGroupJoinsTheNamedWindowAndFocusesIt()
-    {
-        var core = Opened(new WindowManager(ConfigParser.Parse("group:auto_group = false\n")), 2);
-        core.Handle(new Dispatch("togglegroup", ",address:0x2"));
-
-        var joined = core.Handle(new Dispatch("movewindoworgroup", "r,address:0x1"));
-
-        Assert.Equal(new WindowId(1), joined.Focus);
-        Assert.Contains(joined.State.Groups, group => group.Contains(new WindowId(1)) && group.Contains(new WindowId(2)));
-    }
-
     private static WindowManager Master() => new(ConfigParser.Parse("general:layout = master\n"));
 
     private static WindowManager Opened(WindowManager core, int count)
