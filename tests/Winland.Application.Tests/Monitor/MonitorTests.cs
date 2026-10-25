@@ -148,6 +148,38 @@ public class MonitorTests
         Assert.DoesNotContain(second.Placements, placement => placement.Client == first.State.Clients[0].Id);
     }
 
+    // A program such as Windows Terminal puts its new window where its last one was. The window still opens on the
+    // focused Monitor, as a window that was open before Winland started stays on the one it is on.
+    [Fact]
+    public void AWindowThatOpensGoesToTheFocusedMonitorWhereverItsProgramPutIt()
+    {
+        var core = new WindowManager();
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+        core.Handle(new Dispatch("focusmonitor", @"\\.\DISPLAY2"));
+
+        var opened = core.Handle(new WindowAppeared(new WindowId(2), left.WorkArea) { Bounds = new Rectangle(100, 100, 800, 600), Opened = true });
+
+        Assert.Equal(right.WorkArea, BoundsOf(opened, 2));
+    }
+
+    [Fact]
+    public void AWindowWithAnOwnerOpensOnItsOwnersMonitor()
+    {
+        var core = new WindowManager();
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), right.WorkArea));
+        core.Handle(new Dispatch("focusmonitor", @"\\.\DISPLAY1"));
+
+        var opened = core.Handle(new WindowAppeared(new WindowId(2), left.WorkArea) { Owner = new WindowId(1), Opened = true });
+
+        Assert.True(BoundsOf(opened, 2).X >= right.WorkArea.X);
+    }
+
     [Fact]
     public void TwoClientsOnOneMonitorStillSplit()
     {
