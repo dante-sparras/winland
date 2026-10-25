@@ -22,9 +22,13 @@ public sealed partial class WindowManager
             _disabled.Add(appeared.Window);
     }
 
+    // A dialog whose owner closed has no owner left, and so is no longer modal.
     private void ForgetOwner(WindowId window)
     {
         _owners.Remove(window);
+        foreach (var owned in _owners.Where(pair => pair.Value == window).Select(pair => pair.Key).ToArray())
+            _owners.Remove(owned);
+
         _disabled.Remove(window);
     }
 
