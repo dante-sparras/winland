@@ -47,4 +47,14 @@ public class WindowVisibilityTests
         Assert.Equal(VisibilityAction.Retitle, WindowVisibility.Decide(Events.EVENT_OBJECT_NAMECHANGE, ShownClient));
         Assert.Equal(VisibilityAction.Adopt, WindowVisibility.Decide(Events.EVENT_OBJECT_NAMECHANGE, ShownClient with { Managed = false }));
     }
+
+    [Fact]
+    public void ADeclinedWindowIsOfferedAgainOnlyWhenTheRenameCouldChangeTheAnswer()
+    {
+        var declined = ShownClient with { Managed = false, Declined = true };
+
+        Assert.Equal(VisibilityAction.None, WindowVisibility.Decide(Events.EVENT_OBJECT_NAMECHANGE, declined));
+        Assert.Equal(VisibilityAction.Adopt, WindowVisibility.Decide(Events.EVENT_OBJECT_NAMECHANGE, declined with { Declined = false }));
+        Assert.Equal(VisibilityAction.Adopt, WindowVisibility.Decide(Events.EVENT_OBJECT_SHOW, declined));
+    }
 }

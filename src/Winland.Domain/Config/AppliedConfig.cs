@@ -14,6 +14,9 @@ public sealed record AppliedConfig
 
     public IReadOnlyList<WindowRule> WindowRules => Document?.WindowRules ?? [];
 
+    /// <summary>Whether a window rule matches on <c>title</c>. <c>initial_title</c> cannot change, so it does not count.</summary>
+    public bool TitleRules { get; init; }
+
     public IReadOnlyList<WorkspaceRule> WorkspaceRules => Document?.WorkspaceRules ?? WorkspaceRule.None;
 
     public IReadOnlyList<TrackpadGesture> Gestures => Document?.Gestures ?? [];
@@ -51,6 +54,7 @@ public sealed record AppliedConfig
         return new AppliedConfig
         {
             Document = document,
+            TitleRules = document.WindowRules.Any(rule => rule.TitlePattern is not null),
             Binds = BindTable.From(document),
             BindOptions = BindOptions.From(document),
             Layout = LayoutOptions.From(document),
