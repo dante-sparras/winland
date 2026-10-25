@@ -5,6 +5,12 @@ public sealed partial class WindowManager
 {
     private readonly Dictionary<WindowId, RecoveredClient> _restored = [];
 
+    // Where each tile a restart found was, until the tiles are arranged as they were.
+    private readonly Dictionary<WindowId, Rectangle> _restoredTiles = [];
+
+    // The Workspaces a restart found shown, from the Clients that were not hidden.
+    private readonly HashSet<WorkspaceId> _restoredShown = [];
+
     public RecoverySnapshot Recovery()
     {
         lock (_gate)
@@ -17,6 +23,8 @@ public sealed partial class WindowManager
         lock (_gate)
         {
             _restored.Clear();
+            _restoredTiles.Clear();
+            _restoredShown.Clear();
             foreach (var client in snapshot.Clients)
             {
                 ArgumentNullException.ThrowIfNull(client);
@@ -24,8 +32,53 @@ public sealed partial class WindowManager
                     continue;
 
                 _restored[client.Window] = client;
+                if (client is { Floating: false, Bounds: Rectangle tile })
+                    _restoredTiles[client.Window] = tile;
+                if (!client.Hidden && !client.Workspace.IsSpecial)
+                    _restoredShown.Add(client.Workspace);
             }
         }
+    }
+
+    // Each Monitor shows the Workspace it showed, and each Workspace's tiles go back where they were. A hidden
+    // Workspace is placed when it is shown. The focus stays on the Monitor that has it.
+    private Outcome ArrangeRestored()
+    {
+        var placements = new List<Placement>();
+        var show = new List<WindowId>();
+        var hide = new List<WindowId>();
+        var focused = FocusedId();
+        foreach (var workspace in _restoredShown)
+        {
+            if (_workspaces.Find(workspace) is null || _workspaces.Shown.IsShown(workspace))
+                continue;
+
+            var switched = SwitchTo(workspace, focus: null, consumed: false, dispatcher: null);
+            placements.AddRange(switched.Placements);
+            show.AddRange(switched.Show);
+            hide.AddRange(switched.Hide);
+        }
+
+        Focus(focused);
+        _restoredShown.Clear();
+        foreach (var desk in _workspaces)
+        {
+            var arranged = desk.Layout.Arrange(_restoredTiles);
+            if (_workspaces.Shown.IsShown(desk.Id))
+                placements.AddRange(arranged);
+        }
+
+        _restoredTiles.Clear();
+
+        // A tile the switch placed and the arrangement placed again goes where it was arranged.
+        var last = new Dictionary<ClientId, Placement>();
+        foreach (var placement in placements)
+        {
+            last.Remove(placement.Client);
+            last[placement.Client] = placement;
+        }
+
+        return View([.. last.Values], show, [.. hide.Except(show)]);
     }
 
     private RecoverySnapshot CaptureRecovery()

@@ -130,8 +130,8 @@ static int Run(string? path, RollingLogWriter log)
     using var host = new WindowHost(core, snapshot => Persist(store, snapshot), PipeName());
     // Log off and shut down clean up from WM_ENDSESSION, on the loop thread. Closing the console calls in from
     // a thread of its own, so the cleanup is handed to the loop thread there too.
-    host.SessionEnding = () => Stop(host, store);
-    using var exit = new ExitWatch(() => host.OnLoop(() => Stop(host, store)));
+    host.SessionEnding = () => Stop(host, store, core);
+    using var exit = new ExitWatch(() => host.OnLoop(() => Stop(host, store, core)));
     UnhandledExceptionEventHandler onCrash = (_, _) => Salvage(host);
     AppDomain.CurrentDomain.UnhandledException += onCrash;
     using var watching = new ConfigWatcher(() =>
@@ -184,7 +184,7 @@ static int Run(string? path, RollingLogWriter log)
     }
     finally
     {
-        Stop(host, store);
+        Stop(host, store, core);
         AppDomain.CurrentDomain.UnhandledException -= onCrash;
         LaunchConfigured(core, WindowManager.ShutdownLaunches(current));
 
@@ -198,13 +198,16 @@ static void Persist(RecoveryStore store, RecoverySnapshot snapshot)
     store.Save(WindowIdentity.Annotate(snapshot));
 }
 
-static void Stop(WindowHost host, RecoveryStore store)
+static void Stop(WindowHost host, RecoveryStore store, WindowManager core)
 {
+    // The state file is kept, without the changes the cleanup puts back, so the next start puts every Client back
+    // on its Workspace and in its place.
+    var final = WindowIdentity.Annotate(core.Recovery());
     host.RevealHidden();
     WindowHost.ResetDecorations();
     host.RestoreTaskbar();
     SessionEffects.Restore();
-    store.Delete();
+    store.Keep(final);
 }
 
 // An exception on another thread ends the process without Stop. This puts back what it can, and keeps the

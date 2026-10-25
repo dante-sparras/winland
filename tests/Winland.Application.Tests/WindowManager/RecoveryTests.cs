@@ -185,6 +185,36 @@ public class RecoveryTests
         Assert.Equal([new WindowId(5)], outcome.Hide);
     }
 
+    // A restart puts each Monitor back on the Workspace it showed and each tile back where it was, as the tiles
+    // would split differently when they are added one by one.
+    [Fact]
+    public void ARestartShowsTheWorkspaceThatWasShownWithItsTilesWhereTheyWere()
+    {
+        var snapshot = new RecoverySnapshot(
+        [
+            new RecoveredClient(new WindowId(1), WorkspaceId.Initial, MonitorId.Primary, true, "App", "One", 10, Floating: false, Bounds: new Rectangle(0, 0, 1920, 1080)),
+            new RecoveredClient(new WindowId(2), new WorkspaceId("4"), MonitorId.Primary, false, "App", "Two", 10, Floating: false, Bounds: new Rectangle(0, 0, 600, 1080)),
+            new RecoveredClient(new WindowId(3), new WorkspaceId("4"), MonitorId.Primary, false, "App", "Three", 10, Floating: false, Bounds: new Rectangle(600, 0, 1320, 1080)),
+        ]);
+        var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n"));
+        core.Restore(snapshot);
+        foreach (var client in snapshot.Clients)
+        {
+            core.Handle(new WindowAppeared(client.Window, Area)
+            {
+                Traits = WindowTraits.Normal with { Class = client.Class, Title = client.Title },
+                ProcessId = client.ProcessId,
+            });
+        }
+
+        var arranged = core.Handle(new RestoredAdopted());
+
+        Assert.Equal(new WorkspaceId("4"), arranged.State.ActiveWorkspace);
+        Assert.Equal(new Rectangle(0, 0, 600, 1080), BoundsOf(arranged, 2));
+        Assert.Equal(new Rectangle(600, 0, 1320, 1080), BoundsOf(arranged, 3));
+        Assert.Contains(new WindowId(1), arranged.Hide);
+    }
+
     [Fact]
     public void RestoreKeepsTheClientUntilALaterAppearanceCanAdoptIt()
     {
@@ -381,4 +411,7 @@ public class RecoveryTests
         Assert.True(client.Pinned);
         Assert.Equal(new Rectangle(10, 20, 300, 200), client.Bounds);
     }
+
+    private static Rectangle BoundsOf(Outcome outcome, long window) =>
+        Assert.Single(outcome.Placements, placement => placement.Client == new ClientId(window)).Bounds;
 }

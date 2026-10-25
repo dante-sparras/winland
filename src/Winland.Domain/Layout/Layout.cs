@@ -79,6 +79,12 @@ internal interface Layout
     /// <summary>Placements of the tiled Clients this Layout is showing.</summary>
     IReadOnlyList<Placement> Placed();
 
+    /// <summary>
+    /// Puts the tiles back on the rectangles a restart found in the state file, where this Layout can tell its
+    /// arrangement from them. Changes nothing otherwise.
+    /// </summary>
+    IReadOnlyList<Placement> Arrange(IReadOnlyDictionary<WindowId, Rectangle> tiles) => [];
+
     /// <summary>Sets the direction of the next split on this Workspace.</summary>
     IReadOnlyList<Placement> Preselect(string direction);
 

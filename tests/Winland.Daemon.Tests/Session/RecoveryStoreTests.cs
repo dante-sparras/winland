@@ -23,6 +23,21 @@ public sealed class RecoveryStoreTests : IDisposable
         Assert.False(File.Exists(path + ".tmp"));
     }
 
+    // A clean exit keeps its last snapshot, so a restart puts the Clients back, and a save still on its way is dropped.
+    [Fact]
+    public void ACleanExitKeepsItsLastSnapshotAndNothingAfter()
+    {
+        var path = Path.Combine(_root, "state.json");
+        var store = new RecoveryStore(path);
+        store.Arm();
+        store.Save(Snapshot(1));
+
+        store.Keep(Snapshot(2));
+        store.Save(Snapshot(3));
+
+        Assert.Equal(2, Assert.Single(new RecoveryStore(path).Read()!.Clients).Window.Value);
+    }
+
     [Fact]
     public void ASecondSaveReplacesTheFirst()
     {

@@ -503,6 +503,55 @@ public class LayoutEngineTests
             .ToList();
     }
 
+    // A restart adds the tiles back one by one, which splits them its own way. The rectangles they had make the tree
+    // again, splits and ratios.
+    [Fact]
+    public void DwindleArrangesItsTilesOnTheRectanglesTheyHad()
+    {
+        var layout = Open("dwindle");
+        Tiled(layout, 1);
+        Tiled(layout, 2);
+        Tiled(layout, 3);
+
+        var arranged = layout.Arrange(new Dictionary<WindowId, Rectangle>
+        {
+            [Window(1)] = new(0, 0, 300, 800),
+            [Window(2)] = new(300, 0, 700, 200),
+            [Window(3)] = new(300, 200, 700, 600),
+        });
+
+        Assert.Equal(new Rectangle(0, 0, 300, 800), Bounds(arranged, 1));
+        Assert.Equal(new Rectangle(300, 0, 700, 200), Bounds(arranged, 2));
+        Assert.Equal(new Rectangle(300, 200, 700, 600), Bounds(arranged, 3));
+    }
+
+    [Fact]
+    public void DwindleArrangedFromItsOwnPlacementsStaysAsItIs()
+    {
+        var layout = Open("dwindle", LayoutOptions.Unconfigured with { GapsIn = EdgeInsets.Uniform(5), GapsOut = EdgeInsets.Uniform(10) });
+        for (var window = 1; window <= 5; window++)
+            Tiled(layout, window);
+
+        var before = layout.Placed();
+        layout.Arrange(before.ToDictionary(placement => new WindowId(placement.Client.Value), placement => placement.Bounds));
+
+        Assert.Equal(before.OrderBy(placement => placement.Client.Value), layout.Placed().OrderBy(placement => placement.Client.Value));
+    }
+
+    [Fact]
+    public void DwindleKeepsItsTreeWhenATileHasNoRectangle()
+    {
+        var layout = Open("dwindle");
+        Tiled(layout, 1);
+        Tiled(layout, 2);
+        var before = layout.Placed();
+
+        var arranged = layout.Arrange(new Dictionary<WindowId, Rectangle> { [Window(1)] = new(0, 0, 300, 800) });
+
+        Assert.Empty(arranged);
+        Assert.Equal(before, layout.Placed());
+    }
+
     private static Layout Open(string name) => Open(name, LayoutOptions.Unconfigured);
 
     private static Layout Open(string name, LayoutOptions options)

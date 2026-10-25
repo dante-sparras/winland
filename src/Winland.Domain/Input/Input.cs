@@ -147,6 +147,9 @@ public sealed record MonitorsChanged(IReadOnlyList<Monitor> Monitors) : Event;
 /// <summary>The Windows accent. The active border follows it unless the config set <c>general:col.active_border</c>.</summary>
 public sealed record AccentChanged(BorderColor Color) : Event;
 
+/// <summary>The Clients a restart found in the state file have been adopted again, so their tiles can be arranged as they were.</summary>
+public sealed record RestoredAdopted : Event;
+
 public sealed record ConfigLoaded(ConfigDocument Config) : Command;
 
 public sealed record Configure(ConfigDocument Document) : Command;
