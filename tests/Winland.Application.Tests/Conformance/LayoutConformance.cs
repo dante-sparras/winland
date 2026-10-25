@@ -100,7 +100,7 @@ public class LayoutConformance
         desk.Spawn("kitty_D");
 
         desk.Ok("focuswindow", "class:kitty_C");
-        Assert.Equal("ok", desk.Send("r/keyword general:layout scrolling"));
+        Assert.Equal("ok", desk.Send("keyword general:layout scrolling"));
 
         Assert.Equal("kitty_C", desk.ActiveClass());
     }

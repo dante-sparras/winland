@@ -373,8 +373,6 @@ A batch, `[[BATCH]]` or `winland --batch`, splits: at every `;`, brackets or not
 
 With no window, `clients` replies `no open windows` and `activewindow` replies `Invalid`. With `j/` they reply `[]` and `{}`.
 
-`animations` lists every node of the animation tree, with whether a line set it, its curve, whether it is on, its speed and its style, and then every curve with its two control points, in Winland's text and JSON forms. The nodes follow the tree, and the curves come newest first.
-
 `getoption NAME` answers one Option Winland reads, with the value Winland applied. The reply is a JSON object with `option`, the value under its type (`int`, `bool`, `float`, `str`, `vec2`, `css` or `gradient`) and `set`, true when a line the config applied set that Option. A color is a `str` in the form `0xAARRGGBB`, and the value is always one the config reads. An unknown name answers `no such option`.
 
 ## Virtual desktops

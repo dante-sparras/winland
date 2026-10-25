@@ -524,14 +524,14 @@ public class WindowConformance
         desk.Ok("focuswindow", "class:kitty");
 
         ResetWindow(desk);
-        Assert.Equal("ok", desk.Send("r/keyword bindm , mouse:273, resizewindow"));
+        Assert.Equal("ok", desk.Send("keyword bindm , mouse:273, resizewindow"));
         Press(desk, "mouse:273");
         desk.Ok("movecursor", "700 200");
         Release(desk, "mouse:273");
         Assert.Equal("700,200", desk.PlaceOf("kitty").Size);
 
         ResetWindow(desk);
-        Assert.Equal("ok", desk.Send("r/keyword bindm , mouse:273, resizewindow 1"));
+        Assert.Equal("ok", desk.Send("keyword bindm , mouse:273, resizewindow 1"));
         Press(desk, "mouse:273");
         desk.Ok("movecursor", "1280 100");
         Release(desk, "mouse:273");
@@ -542,7 +542,7 @@ public class WindowConformance
     public void GetFullscreenHandler()
     {
         var desk = new Desk();
-        Assert.Equal("ok", desk.Send("r/keyword general:layout dwindle"));
+        Assert.Equal("ok", desk.Send("keyword general:layout dwindle"));
 
         desk.Spawn("cat");
 
@@ -556,7 +556,7 @@ public class WindowConformance
         Assert.Equal("default", Handler(desk));
         desk.Ok("fullscreen", "0");
 
-        Assert.Equal("ok", desk.Send("r/keyword general:layout scrolling"));
+        Assert.Equal("ok", desk.Send("keyword general:layout scrolling"));
 
         desk.Ok("fullscreen", "0");
         Assert.Equal("default", Handler(desk));
@@ -748,8 +748,8 @@ public class WindowConformance
     // Reloads, unbinds the button and puts the window back, as the reference's RESET_WINDOW does.
     private static void ResetWindow(Desk desk)
     {
-        Assert.Equal("ok", desk.Send("r/reload"));
-        Assert.Equal("ok", desk.Send("r/keyword unbind , mouse:273"));
+        Assert.Equal("ok", desk.Send("reload"));
+        Assert.Equal("ok", desk.Send("keyword unbind , mouse:273"));
         desk.Ok("resizewindowpixel", "exact 640 400,class:kitty");
         desk.Ok("movewindowpixel", "exact 0 0,class:kitty");
         desk.Ok("movecursor", "640 400");

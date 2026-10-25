@@ -352,9 +352,9 @@ public class WorkspacesConformance
         desk.Send("reload");
 
         desk.Ok("workspace", "8");
-        Assert.Equal("ok", desk.Send("r/keyword general:gaps_in 0"));
-        Assert.Equal("ok", desk.Send("r/keyword general:border_size 0"));
-        Assert.Equal("ok", desk.Send("r/keyword workspace 8, gapsout:0 1000 0 0"));
+        Assert.Equal("ok", desk.Send("keyword general:gaps_in 0"));
+        Assert.Equal("ok", desk.Send("keyword general:border_size 0"));
+        Assert.Equal("ok", desk.Send("keyword workspace 8, gapsout:0 1000 0 0"));
 
         // The default split puts B below A.
         desk.Spawn("gaps_kitty_A");

@@ -21,9 +21,6 @@ public sealed record AnimationOptions
         Option<AnimationOptions>.Of("animations:enabled", OptionValue.Bool, o => o.Enabled, (o, v) => o with { Enabled = v }),
     ]);
 
-    /// <summary>The animation tree and the curves, as the <c>animations</c> request answers.</summary>
-    internal string Describe(bool json) => Book.Describe(json);
-
     public static AnimationOptions From(ConfigDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);

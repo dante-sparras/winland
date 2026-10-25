@@ -5,8 +5,8 @@ public static class ControlInvocation
 {
     // The verbs come from CommandProtocol, so a verb the pipe answers is one winland takes.
     public static string Usage { get; } =
-        string.Concat(CommandProtocol.VerbForms.Select(form => "       winland " + (form == "events" ? "" : "[-j] [-r] [-a] ") + form + "\n"))
-        + "       winland [-j] [-r] [-a] --batch <commands>\n";
+        string.Concat(CommandProtocol.VerbForms.Select(form => "       winland " + (form == "events" ? "" : "[-j] ") + form + "\n"))
+        + "       winland [-j] --batch <commands>\n";
 
     /// <summary>
     /// The line for <paramref name="args"/>: flags such as <c>-j</c> become <c>j/</c>, and the rest is joined with
@@ -36,7 +36,7 @@ public static class ControlInvocation
                 continue;
             }
 
-            if (arg is "-j" or "-r" or "-a")
+            if (arg is "-j")
             {
                 if (!flags.Contains(arg[1], StringComparison.Ordinal))
                     flags += arg[1];

@@ -156,9 +156,6 @@ public class AnimationConfigTests
         var document = ConfigParser.Parse("animation = monitorAdded, 1, 3, default\n");
 
         Assert.Equal(new ConfigWarning(1, "Animation 'monitorAdded' does not exist."), Assert.Single(document.Warnings));
-
-        var text = new WindowManager(document).Execute("animations").Text;
-        Assert.DoesNotContain("monitorAdded", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -167,18 +164,5 @@ public class AnimationConfigTests
         var options = AnimationOptions.From(ConfigParser.Parse("animation = global, 1, 4, default, slide"));
 
         Assert.Equal("slide", options.StyleOf("windowsIn"));
-    }
-
-    [Fact]
-    public void TheAnimationsRequestListsTheTreeAndTheCurves()
-    {
-        var core = new WindowManager(ConfigParser.Parse("bezier = quick, 0.15, 0, 0.1, 1\nanimation = windows, 1, 3, quick, popin\n"));
-
-        var text = core.Execute("animations").Text;
-        Assert.StartsWith("animations:", text, StringComparison.Ordinal);
-        Assert.Contains("name: windows\n\t\toverridden: 1\n\t\tbezier: quick\n\t\tenabled: true\n\t\tspeed: 3.00\n\t\tstyle: popin", text, StringComparison.Ordinal);
-
-        using var json = System.Text.Json.JsonDocument.Parse(core.Execute("j/animations").Text);
-        Assert.Contains(json.RootElement[1].EnumerateArray(), curve => curve.GetProperty("name").GetString() == "quick" && curve.GetProperty("X0").GetDouble() == 0.15);
     }
 }

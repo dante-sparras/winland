@@ -12,24 +12,11 @@ public class ExtraCommandTests
         """;
 
     [Fact]
-    public void FlagPrefixSelectsJsonRelayoutAndUnmappedClients()
+    public void FlagPrefixSelectsJson()
     {
         var json = Assert.IsType<CommandParsed>(CommandProtocol.Parse("j/binds"));
         Assert.IsType<BindsRequest>(json.Request);
         Assert.Equal(CommandFlags.Json, json.Request.Flags);
-
-        var relayout = Assert.IsType<CommandParsed>(CommandProtocol.Parse("r/dispatch workspace 2"));
-        var dispatch = Assert.IsType<DispatchRequest>(relayout.Request);
-        Assert.Equal("workspace", dispatch.Name);
-        Assert.Equal("2", dispatch.Arguments);
-        Assert.Equal(CommandFlags.Relayout, dispatch.Flags);
-
-        var all = Assert.IsType<CommandParsed>(CommandProtocol.Parse("a/clients"));
-        Assert.True(Assert.IsType<ClientsRequest>(all.Request).All);
-
-        var plain = Assert.IsType<CommandParsed>(CommandProtocol.Parse("clients"));
-        Assert.False(Assert.IsType<ClientsRequest>(plain.Request).All);
-        Assert.Equal("clients", ((CommandParsed)CommandProtocol.Parse("ja/clients")).Request is ClientsRequest request && request.All ? "clients" : "");
     }
 
     [Fact]
@@ -66,25 +53,15 @@ public class ExtraCommandTests
     }
 
     [Fact]
-    public void VersionCursorLockedAndLayoutsHaveTheirShapes()
+    public void VersionHasItsShape()
     {
         var core = new WindowManager();
-        core.Cursor = new FixedCursor(4, 9);
-        core.SessionLock = new FixedLock(false);
-
         var version = Json(core.Execute("version").Text);
         Assert.Equal(BuildStamp.Version, version.GetProperty("version").GetString());
         Assert.Equal(BuildStamp.Commit, version.GetProperty("commit").GetString());
         Assert.Equal(BuildStamp.Tag, version.GetProperty("tag").GetString());
         Assert.Equal(JsonValueKind.Array, version.GetProperty("flags").ValueKind);
         Assert.StartsWith("{\"branch\":", core.Execute("version").Text, StringComparison.Ordinal);
-
-        Assert.Equal("4, 9", core.Execute("cursorpos").Text);
-        Assert.Equal("{\"x\":4,\"y\":9}", core.Execute("j/cursorpos").Text);
-        Assert.Equal("{\"locked\":false}", core.Execute("locked").Text);
-        core.SessionLock = new FixedLock(true);
-        Assert.Equal("{\"locked\":true}", core.Execute("locked").Text);
-        Assert.Equal("[\"dwindle\",\"scrolling\"]", core.Execute("layouts").Text);
     }
 
     [Fact]
@@ -165,48 +142,25 @@ public class ExtraCommandTests
     public void BatchJoinsRepliesAndKeepsEscapedSemicolons()
     {
         var core = new WindowManager();
-        var joined = core.Execute("[[BATCH]]layouts;locked").Text;
-        Assert.Equal("[\"dwindle\",\"scrolling\"]\n\n\n{\"locked\":false}", joined);
+        var joined = core.Execute("[[BATCH]]binds;configerrors").Text;
+        Assert.Equal("[]\n\n\n[]", joined);
 
-        var escaped = core.Execute(@"[[BATCH]]keyword bind SUPER, Q, exec, [float\; tile] notepad;layouts").Text;
-        Assert.Equal("ok\n\n\n[\"dwindle\",\"scrolling\"]", escaped);
+        var escaped = core.Execute(@"[[BATCH]]keyword bind SUPER, Q, exec, [float\; tile] notepad;configerrors").Text;
+        Assert.Equal("ok\n\n\n[]", escaped);
         Assert.Contains("[float; tile] notepad", core.Execute("binds").Text, StringComparison.Ordinal);
     }
 
     [Fact]
     public void ABatchSplitsAtEverySemicolonAsThePinnedReleaseDoes()
     {
-        Assert.Equal(["dispatch exec [float", "tile] a", "layouts"], CommandProtocol.SplitBatch("dispatch exec [float; tile] a;layouts"));
+        Assert.Equal(["dispatch exec [float", "tile] a", "binds"], CommandProtocol.SplitBatch("dispatch exec [float; tile] a;binds"));
         Assert.Equal([@"a\b;c", @"d\.e", ""], CommandProtocol.SplitBatch(@" a\\b\;c ; d\.e ;"));
         Assert.Equal([@"x\"], CommandProtocol.SplitBatch(@"x\"));
         Assert.Equal([""], CommandProtocol.SplitBatch(""));
     }
 
     [Fact]
-    public void RelayoutFlagStillRunsTheCommand()
-    {
-        var core = new WindowManager();
-        core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
-
-        var reply = core.Execute("r/dispatch workspace 2");
-
-        Assert.Equal("ok", reply.Text);
-        Assert.Equal(new WorkspaceId("2"), reply.Effect.State.ActiveWorkspace);
-    }
-
-    [Fact]
-    public void RelayoutFlagKeepsTheZOrderRequest()
-    {
-        var core = new WindowManager();
-        core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
-
-        var reply = core.Execute("r/dispatch alterzorder top,address:0x1");
-
-        Assert.Equal([new ZOrderRequest(new WindowId(1), true)], reply.Effect.ZOrder);
-    }
-
-    [Fact]
-    public void ClientsOmitMinimizedWindowsUntilAllIsRequested()
+    public void ClientsOmitMinimizedWindows()
     {
         var core = new WindowManager();
         var area = new Rectangle(0, 0, 400, 300);
@@ -220,11 +174,6 @@ public class ExtraCommandTests
         Assert.Equal(2, shown.Length);
         Assert.Equal("0x1", shown[0].GetProperty("address").GetString());
         Assert.Equal("0x3", shown[1].GetProperty("address").GetString());
-
-        var all = Json(core.Execute("ja/clients").Text).EnumerateArray().ToArray();
-        Assert.Equal(3, all.Length);
-        Assert.Equal("0x2", all[1].GetProperty("address").GetString());
-        Assert.True(all[1].GetProperty("hidden").GetBoolean());
     }
 
     [Fact]
@@ -234,17 +183,14 @@ public class ExtraCommandTests
         Assert.False(events);
         Assert.Equal("j/binds", line);
 
-        Assert.True(ControlInvocation.TryCreate(["--batch", "layouts ; locked"], out line, out events));
-        Assert.Equal("[[BATCH]]layouts ; locked", line);
+        Assert.True(ControlInvocation.TryCreate(["--batch", "binds ; configerrors"], out line, out events));
+        Assert.Equal("[[BATCH]]binds ; configerrors", line);
 
-        Assert.True(ControlInvocation.TryCreate(["-j", "--batch", "layouts ; locked"], out line, out events));
-        Assert.Equal("j/[[BATCH]]layouts ; locked", line);
+        Assert.True(ControlInvocation.TryCreate(["-j", "--batch", "binds ; configerrors"], out line, out events));
+        Assert.Equal("j/[[BATCH]]binds ; configerrors", line);
 
         Assert.True(ControlInvocation.TryCreate(["-j", "--batch", @"notify a\; b; keyword c\\; clients"], out line, out events));
         Assert.Equal(@"j/[[BATCH]]notify a\; b; keyword c\\; clients", line);
-
-        Assert.True(ControlInvocation.TryCreate(["-a", "clients"], out line, out events));
-        Assert.Equal("a/clients", line);
 
         Assert.True(ControlInvocation.TryCreate(["getoption", "general:border_size"], out line, out events));
         Assert.Equal("getoption general:border_size", line);
@@ -261,6 +207,8 @@ public class ExtraCommandTests
         Assert.True(ControlInvocation.TryCreate(["events"], out line, out events));
         Assert.True(events);
         Assert.False(ControlInvocation.TryCreate(["nope"], out _, out _));
+        Assert.False(ControlInvocation.TryCreate(["-r", "clients"], out _, out _));
+        Assert.False(ControlInvocation.TryCreate(["-a", "clients"], out _, out _));
         Assert.False(ControlInvocation.TryCreate(["eval", "1"], out _, out _));
         Assert.False(ControlInvocation.TryCreate(["repl"], out _, out _));
         Assert.False(ControlInvocation.TryCreate(["plugin", "list"], out _, out _));
@@ -287,9 +235,9 @@ public class ExtraCommandTests
     {
         var core = new WindowManager();
 
-        var parts = core.Execute("j/[[BATCH]]clients;locked").Text.Split("\n\n\n");
+        var parts = core.Execute("j/[[BATCH]]clients;binds").Text.Split("\n\n\n");
 
-        Assert.Equal([core.Execute("j/clients").Text, core.Execute("j/locked").Text], parts);
+        Assert.Equal([core.Execute("j/clients").Text, core.Execute("j/binds").Text], parts);
         Assert.NotEqual(core.Execute("clients").Text, parts[0]);
     }
 
@@ -312,11 +260,6 @@ public class ExtraCommandTests
     public void ControlToolRefusesAFlagThatIsNotANumber(string arg)
     {
         Assert.False(ControlInvocation.TryCreate(["dispatch", "splitratio", arg], out _, out _));
-    }
-
-    private sealed class FixedCursor(int x, int y) : ICursorPosition
-    {
-        public Point Read() => new(x, y);
     }
 
     [Fact]
@@ -399,10 +342,5 @@ public class ExtraCommandTests
     {
         var client = Assert.Single(outcome.State.Clients, candidate => candidate.Window == new WindowId(window));
         return Assert.Single(outcome.Placements, placement => placement.Client == client.Id).Bounds;
-    }
-
-    private sealed class FixedLock(bool locked) : ISessionLock
-    {
-        public bool Locked { get; } = locked;
     }
 }

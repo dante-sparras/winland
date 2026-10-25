@@ -161,9 +161,5 @@ public class RefactorStateConformance
     }
 
     // The cursor position, written as the reference's text reply writes it: "x, y".
-    private static string CursorPos(Desk desk)
-    {
-        using var position = JsonDocument.Parse(desk.Send("j/cursorpos"));
-        return $"{position.RootElement.GetProperty("x").GetInt32()}, {position.RootElement.GetProperty("y").GetInt32()}";
-    }
+    private static string CursorPos(Desk desk) => $"{desk.Pointer.X}, {desk.Pointer.Y}";
 }

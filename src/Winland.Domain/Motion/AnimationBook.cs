@@ -55,58 +55,6 @@ internal sealed class AnimationBook
 
     internal static bool Exists(string node) => Parents.ContainsKey(node);
 
-    /// <summary>
-    /// The tree and the curves, as Winland answers <c>animations</c>. Its maps list them in no fixed order;
-    /// here the nodes follow the tree and the curves come newest first.
-    /// </summary>
-    internal string Describe(bool json)
-    {
-        var curves = new List<string>(_curveOrder);
-        curves.Reverse();
-        var text = new System.Text.StringBuilder();
-        if (!json)
-        {
-            text.Append("animations:\n");
-            foreach (var node in Parents.Keys)
-            {
-                var leaf = Effective(node);
-                text.Append(CultureInfo.InvariantCulture, $"\n\tname: {node}\n\t\toverridden: {(_overridden.Contains(node) ? 1 : 0)}\n\t\tbezier: {leaf.Curve}\n\t\tenabled: {(leaf.Enabled ? "true" : "false")}\n\t\tspeed: {leaf.Speed:0.00}\n\t\tstyle: {leaf.Style}\n");
-            }
-
-            text.Append("beziers:\n");
-            foreach (var name in curves)
-            {
-                var curve = _curves[name];
-                text.Append(CultureInfo.InvariantCulture, $"\n\tname: {name}\n\t\tX0: {curve.X1:0.00}\n\t\tY0: {curve.Y1:0.00}\n\t\tX1: {curve.X2:0.00}\n\t\tY1: {curve.Y2:0.00}");
-            }
-
-            return text.ToString();
-        }
-
-        var tree = Parents.Keys.Select(node =>
-        {
-            var leaf = Effective(node);
-            return new Dictionary<string, object>
-            {
-                ["name"] = node,
-                ["overridden"] = _overridden.Contains(node),
-                ["bezier"] = leaf.Curve,
-                ["enabled"] = leaf.Enabled,
-                ["speed"] = Math.Round(leaf.Speed, 2),
-                ["style"] = leaf.Style,
-            };
-        });
-        var points = curves.Select(name => new Dictionary<string, object>
-        {
-            ["name"] = name,
-            ["X0"] = Math.Round(_curves[name].X1, 2),
-            ["Y0"] = Math.Round(_curves[name].Y1, 2),
-            ["X1"] = Math.Round(_curves[name].X2, 2),
-            ["Y1"] = Math.Round(_curves[name].Y2, 2),
-        });
-        return System.Text.Json.JsonSerializer.Serialize(new object[] { tree.ToArray(), points.ToArray() });
-    }
-
     internal bool TryCurve(string name, out Easing curve)
     {
         if (_curves.TryGetValue(name, out var bezier))

@@ -7,7 +7,7 @@ namespace Winland.Application;
 // the request has no j/. They are written from the same records as the JSON forms, so the two agree.
 public static partial class CommandProtocol
 {
-    internal static string FormatClientsText(State state, bool includeUnmapped = false)
+    internal static string FormatClientsText(State state)
     {
         var indexed = Index(state);
         var stacked = new Dictionary<WindowId, int>(state.Stacking.Count);
@@ -17,7 +17,7 @@ public static partial class CommandProtocol
         var text = new StringBuilder();
         foreach (var client in state.Clients.OrderBy(client => stacked.TryGetValue(client.Window, out var at) ? at : -1))
         {
-            if (!includeUnmapped && client.Minimized)
+            if (client.Minimized)
                 continue;
 
             AppendClient(text, ClientOf(client, state, indexed));

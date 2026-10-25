@@ -57,16 +57,6 @@ public static partial class CommandProtocol
             "",
             []));
 
-    // The plain form is "x, y".
-    public static string FormatCursor(Point point, bool json) => json
-        ? string.Create(CultureInfo.InvariantCulture, $"{{\"x\":{point.X},\"y\":{point.Y}}}")
-        : string.Create(CultureInfo.InvariantCulture, $"{point.X}, {point.Y}");
-
-    public static string FormatLocked(bool locked) =>
-        locked ? "{\"locked\":true}" : "{\"locked\":false}";
-
-    public static string FormatLayouts() => JsonSerializer.Serialize(LayoutFactory.Names);
-
     public static string FormatErrors(IReadOnlyList<string> errors)
     {
         ArgumentNullException.ThrowIfNull(errors);
