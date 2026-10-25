@@ -26,7 +26,7 @@ public sealed partial class WindowManager
             var ended = EndGesture(gesture, _pointer ?? gesture.Origin);
             NoteBorderCursor(_pointer ?? gesture.Origin);
             var after = RunBind(match);
-            return ended.Then(after) with { Consumed = true, Dispatcher = after.Dispatcher };
+            return ended.Then(after) with { Consumed = true };
         }
 
         return RunBind(match);
@@ -93,12 +93,7 @@ public sealed partial class WindowManager
         if (ended is null)
             return ran;
 
-        var merged = ended.Then(ran);
-        return merged with
-        {
-            Consumed = ended.Consumed || ran.Consumed,
-            Dispatcher = ran.Dispatcher,
-        };
+        return ended.Then(ran) with { Consumed = ended.Consumed || ran.Consumed };
     }
 
     private long? _lastMoveAt;
@@ -289,7 +284,7 @@ public sealed partial class WindowManager
         IReadOnlyList<Placement> begun = floating
             ? []
             : desk.Layout.Drag(window, new PointerDrag(true, PointerDragPhase.Begin, pressed.Position));
-        return View(begun, consumed: true, dispatcher: "resizewindow", focus: window);
+        return View(begun, consumed: true, focus: window);
     }
 
     private Outcome MoveBorder(BorderDrag border, Point pointer)
@@ -298,13 +293,12 @@ public sealed partial class WindowManager
         if (border.Floating)
         {
             var next = BorderPointer.Resize(border.Start, border.Origin, pointer, border.Left, border.Top);
-            return View(desk.Layout.PlaceFloating(border.Window, next), consumed: true, dispatcher: "resizewindow") with { Live = true };
+            return View(desk.Layout.PlaceFloating(border.Window, next), consumed: true) with { Live = true };
         }
 
         return View(
             desk.Layout.Drag(border.Window, new PointerDrag(true, PointerDragPhase.Move, pointer)),
-            consumed: true,
-            dispatcher: "resizewindow") with { Live = true };
+            consumed: true) with { Live = true };
     }
 
     private Outcome EndBorder(BorderDrag border, Point pointer)
@@ -314,11 +308,10 @@ public sealed partial class WindowManager
         {
             return View(
                 desk.Layout.Drag(border.Window, new PointerDrag(true, PointerDragPhase.End, pointer)),
-                consumed: true,
-                dispatcher: "resizewindow");
+                consumed: true);
         }
 
-        return View(desk.Layout.Visible(), consumed: true, dispatcher: "resizewindow");
+        return View(desk.Layout.Visible(), consumed: true);
     }
 
     private void NoteBorderCursor(Point pointer)

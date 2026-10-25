@@ -17,7 +17,6 @@ public class MouseDragTests
 
         var moved = core.Handle(new PointerMoved(new Point(750, 430)));
 
-        Assert.Equal("movewindow", moved.Dispatcher);
         Assert.True(moved.Live);
         // The float toggle recenters the 640x400 default, then the pointer moves it by (+50, +30).
         Assert.Equal(new Rectangle(690, 370, 640, 400), BoundsOf(moved, 1));
@@ -88,7 +87,6 @@ public class MouseDragTests
 
         var resized = core.Handle(new PointerMoved(new Point(1310, 760)));
 
-        Assert.Equal("resizewindow", resized.Dispatcher);
         // The recentered 640x400 float grows by the pointer delta (+40, +30).
         Assert.Equal(new Rectangle(640, 340, 680, 430), BoundsOf(resized, 1));
     }
@@ -135,7 +133,6 @@ public class MouseDragTests
 
         var moved = core.Handle(new PointerMoved(new Point(60, 50)));
 
-        Assert.Null(moved.Dispatcher);
         Assert.Empty(moved.Placements);
     }
 
@@ -152,7 +149,6 @@ public class MouseDragTests
         core.Handle(new PointerMoved(new Point(720, 400)));
         var moved = core.Handle(new PointerMoved(new Point(750, 430)));
 
-        Assert.Equal("movewindow", held.Dispatcher);
         Assert.Empty(held.Placements);
         // The drag starts at (720, 400), where the pointer passed 10 pixels, so the float moves by (+30, +30).
         Assert.Equal(new Rectangle(670, 370, 640, 400), BoundsOf(moved, 1));

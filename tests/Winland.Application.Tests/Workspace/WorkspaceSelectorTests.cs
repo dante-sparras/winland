@@ -164,14 +164,13 @@ public class WorkspaceSelectorTests
 
         var reply = core.Execute("dispatch nosuch");
         Assert.Equal("error: unknown dispatcher 'nosuch'", reply.Text);
-        Assert.Equal("nosuch", reply.Effect.Dispatcher);
         Assert.Equal(new WorkspaceId("1"), reply.Effect.State.ActiveWorkspace);
         Assert.Null(reply.Effect.Close);
 
         var cased = core.Execute("dispatch NoSuch");
         Assert.Equal("error: unknown dispatcher 'NoSuch'", cased.Text);
 
-        var loaded = core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, Q, madeup\n")));
+        var loaded = core.Handle(new ConfigLoaded(ConfigParser.Parse("bind = SUPER, Q, madeup\n", dispatchers: WindowManager.DispatcherNames)));
         var warned = Assert.Single(loaded.Events.OfType<ConfigWarned>());
         Assert.Equal(1, warned.Line);
         Assert.Equal("Unknown dispatcher 'madeup'.", warned.Message);

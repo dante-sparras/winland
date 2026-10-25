@@ -6,7 +6,7 @@ public class GeometryDispatcherTests
     private static readonly Rectangle Centered = new(860, 465, 200, 150);
 
     [Fact]
-    public void TheDispatcherIsKnown() => Assert.True(Dispatchers.IsKnown("centerwindow"));
+    public void TheDispatcherIsKnown() => Assert.Contains("centerwindow", WindowManager.DispatcherNames);
 
     [Fact]
     public void CenterWindowPutsTheActiveFloatBackInTheMiddleOfTheWorkArea()

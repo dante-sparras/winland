@@ -11,7 +11,6 @@ public sealed partial class WindowManager
     /// </summary>
     private Outcome CycleNext(string arguments)
     {
-        const string name = "cyclenext";
         var previous = false;
         var tiled = false;
         var floating = false;
@@ -34,16 +33,16 @@ public sealed partial class WindowManager
             foreach (var client in shown.Layout.Clients)
             {
                 if (!client.Minimized)
-                    return FocusClient(client.Window, name);
+                    return FocusClient(client.Window);
             }
 
-            return View([], dispatcher: name);
+            return View([]);
         }
 
         bool? only = tiled != floating ? floating : null;
         return CycleFrom(desk, current, previous, only) is WindowId next
-            ? FocusClient(next, name)
-            : View([], dispatcher: name);
+            ? FocusClient(next)
+            : View([]);
     }
 
 }

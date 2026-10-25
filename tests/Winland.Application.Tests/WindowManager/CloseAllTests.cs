@@ -5,7 +5,7 @@ public class CloseAllTests
     private static readonly Rectangle Area = new(0, 0, 800, 600);
 
     [Fact]
-    public void CloseAllIsKnown() => Assert.True(Dispatchers.IsKnown("closeall"));
+    public void CloseAllIsKnown() => Assert.Contains("closeall", WindowManager.DispatcherNames);
 
     [Fact]
     public void CloseAllAsksEveryClientToCloseAndShowsWorkspaceOne()
@@ -20,7 +20,6 @@ public class CloseAllTests
 
         var closed = core.Handle(new Dispatch("closeall", ""));
 
-        Assert.Equal("closeall", closed.Dispatcher);
         Assert.Null(closed.Error);
         Assert.Empty(closed.Kills);
         Assert.Equal(

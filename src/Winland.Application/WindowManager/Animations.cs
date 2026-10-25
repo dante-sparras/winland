@@ -73,7 +73,7 @@ public sealed partial class WindowManager
     // as Winland's dwindle resize warps them. Floating Clients animate.
     private bool InstantResize(Outcome outcome, State before)
     {
-        if (!TraitsOf(outcome.Dispatcher).HasFlag(DispatcherTraits.InstantResize))
+        if (outcome.Traits?.HasFlag(DispatcherTraits.InstantResize) != true)
             return false;
 
         if (ActiveWindow() is not WindowId active)

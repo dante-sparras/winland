@@ -12,7 +12,6 @@ public class BindFlagTests
         var outcome = Press(core, "Q");
 
         Assert.False(outcome.Consumed);
-        Assert.Equal("killactive", outcome.Dispatcher);
         Assert.Equal(new WindowId(1), outcome.Close);
         Assert.False(Release(core, "Q").Consumed);
         Assert.False(Release(core, "Super_L").Consumed);
@@ -36,13 +35,12 @@ public class BindFlagTests
         Appear(core, 1);
         Press(core, "Super_L");
 
-        Assert.Equal("killactive", core.Handle(new WheelTurned("mouse_down", 1_000)).Dispatcher);
+        Assert.Equal(new WindowId(1), core.Handle(new WheelTurned("mouse_down", 1_000)).Close);
 
         var blocked = core.Handle(new WheelTurned("mouse_down", 1_200));
-        Assert.Null(blocked.Dispatcher);
         Assert.False(blocked.Consumed);
 
-        Assert.Equal("killactive", core.Handle(new WheelTurned("mouse_down", 1_300)).Dispatcher);
+        Assert.Equal(new WindowId(1), core.Handle(new WheelTurned("mouse_down", 1_300)).Close);
     }
 
     [Fact]
@@ -54,7 +52,6 @@ public class BindFlagTests
 
         var outcome = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(4, 5) });
 
-        Assert.Equal("killactive", outcome.Dispatcher);
         Assert.Equal(new WindowId(1), outcome.Close);
     }
 

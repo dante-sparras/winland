@@ -389,7 +389,7 @@ public class ConfigTests
     [Fact]
     public void MistypedDispatcherWarnsWithTheOneDispatcherItIsCloseTo()
     {
-        var document = ConfigParser.Parse("bind = SUPER, Q, killactiv\n");
+        var document = ConfigParser.Parse("bind = SUPER, Q, killactiv\n", dispatchers: WindowManager.DispatcherNames);
 
         Assert.Equal(
             new ConfigWarning(1, "Unknown dispatcher 'killactiv'. Did you mean 'killactive'?"),
@@ -429,7 +429,7 @@ public class ConfigTests
     [Fact]
     public void ANameCloseToTwoNamesGetsNoHint()
     {
-        var document = ConfigParser.Parse("general:gaps_ou = 5\nbind = SUPER, Q, ex\nwindowrule = pize, class:^(kitty)$\n");
+        var document = ConfigParser.Parse("general:gaps_ou = 5\nbind = SUPER, Q, ex\nwindowrule = pize, class:^(kitty)$\n", dispatchers: WindowManager.DispatcherNames);
 
         Assert.Equal(
             new[]
@@ -444,7 +444,7 @@ public class ConfigTests
     [Fact]
     public void ANameFarFromEveryNameGetsNoHint()
     {
-        var document = ConfigParser.Parse("ghostkeyword = path\nbind = SUPER, Q, teleportwindow\n");
+        var document = ConfigParser.Parse("ghostkeyword = path\nbind = SUPER, Q, teleportwindow\n", dispatchers: WindowManager.DispatcherNames);
 
         Assert.Equal(
             new[]

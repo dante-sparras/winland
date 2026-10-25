@@ -101,7 +101,7 @@ public sealed partial class WindowManager
             Focus(swipe.Monitor);
 
         LandSwipe();
-        return SwitchTo(target, focus: null, consumed: false, dispatcher: "workspace");
+        return SwitchTo(target, focus: null, consumed: false);
     }
 
     private (WorkspaceId? Left, WorkspaceId? Right) Neighbours(MonitorId monitor)

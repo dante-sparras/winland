@@ -5,40 +5,39 @@ public sealed partial class WindowManager
 {
     private Outcome FocusWindow(string arguments)
     {
-        const string name = "focuswindow";
         if (Select(arguments, emptyMeansActive: false) is not WindowId id)
-            return Rejected(name, "error: no such window");
+            return Rejected("error: no such window");
 
-        return FocusClient(id, name);
+        return FocusClient(id);
     }
 
-    private Outcome FocusClient(WindowId id, string name)
+    private Outcome FocusClient(WindowId id)
     {
         if (WorkspaceContaining(id) is not LiveWorkspace desk)
-            return Rejected(name, "error: no such window");
+            return Rejected("error: no such window");
 
         // A window shadowed by a modal refuses the focus, though its Workspace is still shown.
         if (ShadowedByModal(id))
         {
             return _workspaces.Shown.IsShown(desk.Id)
-                ? View([], dispatcher: name)
-                : SwitchTo(desk.Id, null, consumed: false, dispatcher: name);
+                ? View([])
+                : SwitchTo(desk.Id, null, consumed: false);
         }
 
         if (_pins.IsPinned(id))
-            return FocusPinned(desk, id, name);
+            return FocusPinned(desk, id);
 
         var covered = desk.Covered();
         id = FocusUnderFullscreen(desk, id, out var refit);
-        var raised = RaiseMember(desk, id, name);
+        var raised = RaiseMember(desk, id);
         desk.Layout.NoteFocus(id);
         if (desk.Id.IsSpecial)
         {
-            var special = OpenSpecial(desk.Id, id, name);
+            var special = OpenSpecial(desk.Id, id);
             return raised is null ? special : raised.Then(special);
         }
 
-        var outcome = SwitchTo(desk.Id, id, consumed: false, dispatcher: name);
+        var outcome = SwitchTo(desk.Id, id, consumed: false);
         outcome = outcome.Focus is null ? outcome with { Focus = id } : outcome;
         if (refit is not null && _workspaces.Shown.IsShown(desk.Id))
             outcome = Present(desk, covered, refit).Then(outcome);
@@ -47,10 +46,9 @@ public sealed partial class WindowManager
 
     private Outcome FloatWindow(string arguments)
     {
-        const string name = "togglefloating";
         var window = Select(arguments, emptyMeansActive: true);
         if (window is not WindowId id || Find(id) is not Client client || WorkspaceContaining(id) is not LiveWorkspace desk)
-            return View([], dispatcher: name);
+            return View([]);
 
         var covered = desk.Covered();
         var placements = desk.Layout.ToggleFloating(id);
@@ -62,58 +60,55 @@ public sealed partial class WindowManager
             _cover.SetFlag(id, true);
 
         return _workspaces.Shown.IsShown(desk.Id)
-            ? Present(desk, covered, placements, dispatcher: name)
-            : View([], dispatcher: name);
+            ? Present(desk, covered, placements)
+            : View([]);
     }
 
     private Outcome PseudoWindow(string arguments)
     {
-        const string name = "pseudo";
         var window = Select(arguments, emptyMeansActive: true);
         if (window is not WindowId id)
-            return View([], dispatcher: name);
+            return View([]);
 
-        return ChangePseudo(id) with { Dispatcher = name };
+        return ChangePseudo(id);
     }
 
     private Outcome MoveWindowToWorkspace(string arguments, bool silent)
     {
-        var name = silent ? "movetoworkspacesilent" : "movetoworkspace";
         var comma = arguments.LastIndexOf(',');
         if (comma < 0)
-            return MoveTo(arguments, silent, consumed: false, name);
+            return MoveTo(arguments, silent, consumed: false);
 
         var workspace = arguments[..comma];
         var window = Select(arguments[(comma + 1)..], emptyMeansActive: false);
-        return MoveTo(workspace, silent, consumed: false, name, window, windowChosen: true);
+        return MoveTo(workspace, silent, consumed: false, window, windowChosen: true);
     }
 
     private Outcome SwapWindow(string arguments)
     {
-        const string name = "swapwindow";
         var text = arguments.Trim();
         if (ActiveWindow() is not WindowId current || WorkspaceContaining(current) is not LiveWorkspace home)
-            return Rejected(name, "error: No window to swap with");
+            return Rejected("error: No window to swap with");
 
         // Winland's answers, in its order.
         if (Find(current) is { Fullscreen: not FullscreenMode.None })
-            return Rejected(name, "error: Can't swap fullscreen window");
+            return Rejected("error: Can't swap fullscreen window");
 
         WindowId other;
         if (Sides.TryParse(text, out _))
         {
             if (home.Layout.Neighbor(current, text) is not WindowId neighbor || neighbor == current)
-                return Rejected(name, "error: No window to swap with in that direction");
+                return Rejected("error: No window to swap with in that direction");
 
             other = neighbor;
         }
         else if (WindowSelector.Find(text, current, EveryClient()) is not WindowId selected)
         {
-            return Rejected(name, "error: No window to swap with");
+            return Rejected("error: No window to swap with");
         }
         else if (selected == current)
         {
-            return Rejected(name, "error: Can't swap a window with itself");
+            return Rejected("error: Can't swap a window with itself");
         }
         else
         {
@@ -121,38 +116,38 @@ public sealed partial class WindowManager
         }
 
         if (WorkspaceContaining(other) is not LiveWorkspace away)
-            return Rejected(name, "error: No window to swap with");
+            return Rejected("error: No window to swap with");
         if (Find(other) is { Fullscreen: not FullscreenMode.None })
-            return Rejected(name, "error: Can't swap fullscreen window");
+            return Rejected("error: Can't swap fullscreen window");
         if (away.Id != home.Id)
-            return SwapAcross(current, other, home, away, name);
+            return SwapAcross(current, other, home, away);
 
         var covered = home.Covered();
         var placements = home.Layout.Swap(current, other);
         if (placements.Count == 0)
-            return Rejected(name, "error: No window to swap with");
+            return Rejected("error: No window to swap with");
 
         return _workspaces.Shown.IsShown(home.Id)
-            ? Present(home, covered, placements, dispatcher: name)
-            : View(placements, dispatcher: name);
+            ? Present(home, covered, placements)
+            : View(placements);
     }
 
     // Two windows on different Workspaces trade places, each taking the other's slot and Workspace, as the pinned
     // release switches their targets. A window in a Group is not swapped across Workspaces.
-    private Outcome SwapAcross(WindowId current, WindowId other, LiveWorkspace home, LiveWorkspace away, string name)
+    private Outcome SwapAcross(WindowId current, WindowId other, LiveWorkspace home, LiveWorkspace away)
     {
         if (home.GroupOf(current) is not null || away.GroupOf(other) is not null)
-            return Rejected(name, "error: No window to swap with");
+            return Rejected("error: No window to swap with");
 
         // The first slot is held by a placeholder while the second changes hands.
         var placeholder = new WindowId(long.MinValue);
         if (!home.Layout.Substitute(current, placeholder, new Taken(Floating: false, Minimized: false, Bounds: default), out var mine))
-            return Rejected(name, "error: No window to swap with");
+            return Rejected("error: No window to swap with");
 
         if (!away.Layout.Substitute(other, current, mine, out var theirs))
         {
             _ = home.Layout.Substitute(placeholder, current, mine, out _);
-            return Rejected(name, "error: No window to swap with");
+            return Rejected("error: No window to swap with");
         }
 
         _ = home.Layout.Substitute(placeholder, other, theirs, out _);
@@ -185,11 +180,11 @@ public sealed partial class WindowManager
         if (awayShown)
             placements.AddRange(away.Layout.Visible());
 
-        return View(placements, show, hide, dispatcher: name, focus: focus);
+        return View(placements, show, hide, focus: focus);
     }
 
     private Outcome ExitDaemon() =>
-        View([], dispatcher: "exit") with { Exit = true };
+        View([]) with { Exit = true };
 
     private WindowId? Select(string arguments, bool emptyMeansActive)
     {
@@ -213,27 +208,26 @@ public sealed partial class WindowManager
         return clients;
     }
 
-    private Outcome Rejected(string name, string error) =>
-        View([], dispatcher: name) with { Error = error };
+    private Outcome Rejected(string error) =>
+        View([]) with { Error = error };
 
     // The same request killactive makes, so the application can still ask to save, for every Client.
     // Workspace 1 of the focused Monitor is what shows
     // afterwards, which closes a Special workspace open on that Monitor.
     private Outcome CloseAll()
     {
-        const string name = "closeall";
         var closes = EveryClient().ConvertAll(client => client.Window);
 
         var monitor = FocusedId();
         if (_workspaces.Shown.SpecialOn(monitor) is null)
         {
-            return SwitchTo(WorkspaceId.FromNumber(1, monitor), focus: null, consumed: false, dispatcher: name)
+            return SwitchTo(WorkspaceId.FromNumber(1, monitor), focus: null, consumed: false)
                 with { Closes = closes };
         }
 
         // Closing it first shows the Monitor's Workspace. Switching with it still open would leave it on top.
-        var concealed = CloseSpecial(monitor, name);
-        var shown = SwitchTo(WorkspaceId.FromNumber(1, monitor), focus: null, consumed: false, dispatcher: name);
-        return concealed.Then(shown) with { Closes = closes, Dispatcher = name, Focus = _focus.Focused };
+        var concealed = CloseSpecial(monitor);
+        var shown = SwitchTo(WorkspaceId.FromNumber(1, monitor), focus: null, consumed: false);
+        return concealed.Then(shown) with { Closes = closes, Focus = _focus.Focused };
     }
 }

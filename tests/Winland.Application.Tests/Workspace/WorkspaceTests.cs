@@ -18,7 +18,6 @@ public class WorkspaceTests
         var outcome = Press(core, "2");
 
         Assert.True(outcome.Consumed);
-        Assert.Equal("workspace", outcome.Dispatcher);
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
         Assert.Equal(MonitorId.Primary, outcome.State.ActiveMonitor);
         Assert.Empty(outcome.Placements);
@@ -67,7 +66,6 @@ public class WorkspaceTests
 
         var outcome = Press(core, "2");
 
-        Assert.Equal("movetoworkspace", outcome.Dispatcher);
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
         Assert.Equal(Area, BoundsOf(outcome, 2));
         Assert.Equal(new WorkspaceId("2"), Client(outcome, 2).Workspace);
@@ -88,7 +86,6 @@ public class WorkspaceTests
 
         var outcome = Press(core, "2");
 
-        Assert.Equal("movetoworkspacesilent", outcome.Dispatcher);
         Assert.Equal(WorkspaceId.Initial, outcome.State.ActiveWorkspace);
         Assert.Equal(Area, BoundsOf(outcome, 1));
         Assert.Equal(new WorkspaceId("2"), Client(outcome, 2).Workspace);
@@ -220,7 +217,6 @@ public class WorkspaceTests
         var outcome = core.Handle(new Dispatch("workspace", "2"));
 
         Assert.False(outcome.Consumed);
-        Assert.Equal("workspace", outcome.Dispatcher);
         Assert.Null(outcome.Close);
         Assert.Null(outcome.Focus);
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
@@ -239,7 +235,6 @@ public class WorkspaceTests
         var moved = core.Handle(new Dispatch("movetoworkspacesilent", "3"));
 
         Assert.False(moved.Consumed);
-        Assert.Equal("movetoworkspacesilent", moved.Dispatcher);
         Assert.Equal(WorkspaceId.Initial, moved.State.ActiveWorkspace);
         Assert.Equal(new WorkspaceId("3"), Client(moved, 2).Workspace);
         Assert.Equal([new WindowId(2)], moved.Hide);
@@ -247,7 +242,6 @@ public class WorkspaceTests
 
         var followed = core.Handle(new Dispatch("movetoworkspace", "3"));
 
-        Assert.Equal("movetoworkspace", followed.Dispatcher);
         Assert.Equal(new WorkspaceId("3"), followed.State.ActiveWorkspace);
         Assert.Equal(new WorkspaceId("3"), Client(followed, 1).Workspace);
         Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(followed, 2));
@@ -293,7 +287,6 @@ public class WorkspaceTests
         var focused = Press(core, "H");
 
         Assert.True(focused.Consumed);
-        Assert.Equal("movefocus", focused.Dispatcher);
         Assert.Equal(new WindowId(3), focused.Focus);
         Assert.Equal(new WorkspaceId("2"), focused.State.ActiveWorkspace);
         Assert.Contains(focused.State.Hidden, client => client.Window == new WindowId(1));
@@ -326,7 +319,6 @@ public class WorkspaceTests
         var floating = Press(core, "Space");
 
         Assert.True(floating.Consumed);
-        Assert.Equal("togglefloating", floating.Dispatcher);
         Assert.Equal(new WorkspaceId("2"), floating.State.ActiveWorkspace);
         Assert.True(Client(floating, 3).Floating);
         Assert.False(Client(floating, 1).Floating);
@@ -353,7 +345,6 @@ public class WorkspaceTests
         HoldSuper(core);
 
         var zero = Press(core, "Z");
-        Assert.Equal("workspace", zero.Dispatcher);
         Assert.Equal(WorkspaceId.Initial, zero.State.ActiveWorkspace);
         Assert.Empty(zero.Hide);
 

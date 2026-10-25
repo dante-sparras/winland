@@ -53,7 +53,7 @@ public sealed partial class WindowManager
             if (_workspaces.Find(workspace) is null || _workspaces.Shown.IsShown(workspace))
                 continue;
 
-            var switched = SwitchTo(workspace, focus: null, consumed: false, dispatcher: null);
+            var switched = SwitchTo(workspace, focus: null, consumed: false);
             placements.AddRange(switched.Placements);
             show.AddRange(switched.Show);
             hide.AddRange(switched.Hide);

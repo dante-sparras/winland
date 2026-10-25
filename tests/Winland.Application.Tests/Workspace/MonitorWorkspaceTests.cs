@@ -300,7 +300,6 @@ public class MonitorWorkspaceTests
 
         var outcome = core.Handle(new Dispatch("workspace", "2"));
 
-        Assert.Equal("workspace", outcome.Dispatcher);
         Assert.Null(outcome.Focus);
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
         Assert.Equal(new MonitorId(0), outcome.State.ActiveMonitor);
@@ -335,7 +334,6 @@ public class MonitorWorkspaceTests
 
         var outcome = core.Handle(new Dispatch("movetoworkspace", "2"));
 
-        Assert.Equal("movetoworkspace", outcome.Dispatcher);
         Assert.Equal(new WindowId(1), outcome.Focus);
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
         Assert.Equal(new MonitorId(0), outcome.State.ActiveMonitor);
@@ -368,7 +366,6 @@ public class MonitorWorkspaceTests
 
         var outcome = core.Handle(new Dispatch("movetoworkspacesilent", "2"));
 
-        Assert.Equal("movetoworkspacesilent", outcome.Dispatcher);
         Assert.Null(outcome.Focus);
         Assert.Equal(new WorkspaceId("1"), outcome.State.ActiveWorkspace);
         Assert.Equal(new MonitorId(0), outcome.State.ActiveMonitor);

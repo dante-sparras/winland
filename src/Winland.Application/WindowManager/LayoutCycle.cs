@@ -10,15 +10,14 @@ public sealed partial class WindowManager
 
     private Outcome CycleWorkspaceLayout(string arguments)
     {
-        const string name = "cyclelayout";
         var desk = CurrentWorkspace();
         var covered = desk.Covered();
         var created = LayoutNamed(NextLayout(LayoutFactory.NameOf(desk.Layout), GoesBack(arguments)));
         AdoptLayout(desk, created);
         Refit(desk);
         return _workspaces.Shown.IsShown(desk.Id)
-            ? Present(desk, covered, desk.Layout.Visible(), dispatcher: name)
-            : View([], dispatcher: name);
+            ? Present(desk, covered, desk.Layout.Visible())
+            : View([]);
     }
 
     private static bool GoesBack(string arguments)

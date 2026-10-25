@@ -111,14 +111,13 @@ public sealed partial class WindowManager
         IReadOnlyList<WindowId>? show = null,
         IReadOnlyList<WindowId>? hide = null,
         bool consumed = false,
-        string? dispatcher = null,
         WindowId? close = null,
         WindowId? focus = null)
     {
         var snapshot = Snapshot();
         placements = Cover(WithMoved(placements), snapshot);
         var minimized = PlanMinimized(snapshot);
-        return new(placements, snapshot, consumed, dispatcher, focus)
+        return new(placements, snapshot, consumed, focus)
         {
             Close = close,
             Show = show ?? [],
@@ -299,7 +298,6 @@ public sealed partial class WindowManager
         IReadOnlyList<WindowId>? show = null,
         IReadOnlyList<WindowId>? hide = null,
         bool consumed = false,
-        string? dispatcher = null,
         WindowId? close = null,
         WindowId? focus = null,
         bool focusRevealed = false)
@@ -319,7 +317,7 @@ public sealed partial class WindowManager
             Give(focus, desk);
         }
 
-        return View(placements, showList, hideList, consumed, dispatcher, close, focus);
+        return View(placements, showList, hideList, consumed, close, focus);
     }
 
     private List<Placement> ShownPlacements()

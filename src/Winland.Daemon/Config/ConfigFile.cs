@@ -11,7 +11,7 @@ static class ConfigFile
         var text = source.Read(full)
             ?? throw new InvalidOperationException($"Could not read config '{full}'.");
 
-        return ConfigParser.Parse(text, source, KeyboardLayout.Active(), full);
+        return ConfigParser.Parse(text, source, KeyboardLayout.Active(), full, WindowManager.DispatcherNames);
     }
 
     /// <summary>A reload's read. A file that is gone or does not read keeps the config in force, and the warning says why.</summary>

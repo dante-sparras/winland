@@ -18,12 +18,12 @@ public sealed partial class WindowManager
                 // A drag already running keeps the pointer. A second drag button does not start another one.
                 var dispatch = new BindDispatch(gesture.Dispatcher, gesture.Arguments);
                 if (_interaction is not null || (TabUnder(dispatch, gesture.Position) ?? DragTarget(gesture.Position)) is not WindowId target)
-                    return View([], consumed: true, dispatcher: gesture.Dispatcher);
+                    return View([], consumed: true);
 
                 var tabbed = TakeTabOut(dispatch, gesture.Position, out var window);
                 window ??= target;
                 var begun = BeginGesture(window.Value, dispatch, gesture.Button, gesture.Position);
-                var view = View(begun, consumed: true, dispatcher: gesture.Dispatcher, focus: window);
+                var view = View(begun, consumed: true, focus: window);
                 return tabbed is null ? view : tabbed.Then(view);
             case PointerDragPhase.Move when _interaction is Gesture held:
                 return MoveGesture(held, gesture.Position);
@@ -76,7 +76,7 @@ public sealed partial class WindowManager
         if (!gesture.PickedUp)
         {
             if (!PastThreshold(gesture.Origin, pointer, _config.BindOptions.DragThreshold))
-                return View([], consumed: true, dispatcher: gesture.Dispatcher);
+                return View([], consumed: true);
 
             // The drag starts where the pointer crossed the threshold, so the Client does not jump.
             gesture.PickedUp = true;
@@ -85,14 +85,14 @@ public sealed partial class WindowManager
             if (FollowDraggedMonitor(gesture) is { } carried)
                 return carried with { Placements = [.. lifted, .. carried.Placements], Live = true };
 
-            return View([.. lifted, .. dragged], consumed: true, dispatcher: gesture.Dispatcher) with { Live = true };
+            return View([.. lifted, .. dragged], consumed: true) with { Live = true };
         }
 
         var moved = layout.Drag(gesture.Window, gesture.Step(PointerDragPhase.Move, pointer));
         if (FollowDraggedMonitor(gesture) is { } crossed)
             return crossed with { Live = true };
 
-        return View(moved, consumed: true, dispatcher: gesture.Dispatcher) with { Live = true };
+        return View(moved, consumed: true) with { Live = true };
     }
 
     private Outcome EndGesture(Gesture gesture, Point pointer)
@@ -110,9 +110,9 @@ public sealed partial class WindowManager
         // onto that Monitor did. A resize leaves the focused Monitor where it was.
         var followed = gesture.MovedWorkspace && !gesture.Resize && FocusDragged(gesture.Window);
         if (drop is { } into)
-            return JoinDragged(gesture.Window, into, gesture.Dispatcher);
+            return JoinDragged(gesture.Window, into, consumed: true);
 
-        return View(ended, consumed: true, dispatcher: gesture.Dispatcher, focus: followed ? gesture.Window : null);
+        return View(ended, consumed: true, focus: followed ? gesture.Window : null);
     }
 
     private readonly record struct DropTarget(LiveWorkspace Desk, WindowGroup Group, int? Index);
@@ -129,7 +129,7 @@ public sealed partial class WindowManager
             return null;
         }
 
-        return OutOfGroup(desk, group, window, direction: null, drag.Dispatcher);
+        return OutOfGroup(desk, group, window, direction: null);
     }
 
     // The member whose tab a move drag starts on, in a Group of more than one, or null.
@@ -200,7 +200,7 @@ public sealed partial class WindowManager
         if (_workspaces.Shown.IsShown(target.Id))
             placements.AddRange(target.Layout.Visible());
 
-        return View(placements, consumed: true, dispatcher: gesture.Dispatcher, focus: settle ? window : null);
+        return View(placements, consumed: true, focus: settle ? window : null);
     }
 
     // The monitor focus follows at the drop, not while the pointer is still dragging. True when this window is on a
@@ -277,7 +277,7 @@ public sealed partial class WindowManager
     private static bool CanDragInto(LiveWorkspace from, WindowId dragged, WindowGroup target) =>
         from.GroupOf(dragged) != target;
 
-    private Outcome JoinDragged(WindowId dragged, DropTarget drop, string? dispatcher)
+    private Outcome JoinDragged(WindowId dragged, DropTarget drop, bool consumed)
     {
         var from = LayoutWorkspace(dragged);
         var (there, target, index) = (drop.Desk, drop.Group, drop.Index);
@@ -304,7 +304,7 @@ public sealed partial class WindowManager
         Restamp(there, []);
         Give(dragged, there);
         (_extraEvents ??= []).Add(new ClientIntoGroup(dragged));
-        var outcome = Present(there, covered, there.Layout.Visible(), dispatcher: dispatcher, focus: dragged) with { Consumed = dispatcher is not null };
+        var outcome = Present(there, covered, there.Layout.Visible(), focus: dragged) with { Consumed = consumed };
         return from != there && _workspaces.Find(from.Id) is LiveWorkspace left && _workspaces.Shown.IsShown(left.Id)
             ? outcome with { Placements = [.. left.Layout.Placed(), .. outcome.Placements] }
             : outcome;

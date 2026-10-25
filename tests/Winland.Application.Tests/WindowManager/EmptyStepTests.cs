@@ -30,7 +30,7 @@ public class EmptyStepTests
         [nameof(Outcome.Placements)] = (o => o with { Placements = [new Placement(One, Tile)] }, false),
         [nameof(Outcome.State)] = (o => o with { State = new State([]) { ActiveWorkspace = new WorkspaceId("2") } }, true),
         [nameof(Outcome.Consumed)] = (o => o with { Consumed = true }, false),
-        [nameof(Outcome.Dispatcher)] = (o => o with { Dispatcher = "focus" }, false),
+        [nameof(Outcome.Traits)] = (o => o with { Traits = DispatcherTraits.None }, false),
         [nameof(Outcome.Focus)] = (o => o with { Focus = OneWindow }, false),
         [nameof(Outcome.Closes)] = (o => o with { Closes = [OneWindow] }, false),
         [nameof(Outcome.Close)] = (o => o with { Close = OneWindow }, false),

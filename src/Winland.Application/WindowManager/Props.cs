@@ -47,7 +47,7 @@ public sealed partial class WindowManager
 
     private CommandReply WriteProp(SetPropRequest request)
     {
-        var outcome = SetProp(request.Selector, request.Property, request.Value, "setprop");
+        var outcome = SetProp(request.Selector, request.Property, request.Value);
         return new CommandReply(outcome.Error ?? "ok", outcome);
     }
 
@@ -61,12 +61,12 @@ public sealed partial class WindowManager
         var second = rest.IndexOfAny([' ', '\t']);
         var property = second < 0 ? rest : rest[..second];
         var value = second < 0 ? "" : rest[(second + 1)..].Trim();
-        return SetProp(selector, property, value, "setprop");
+        return SetProp(selector, property, value);
     }
 
-    private Outcome SetProp(string selector, string property, string value, string dispatcher)
+    private Outcome SetProp(string selector, string property, string value)
     {
-        Outcome Refused(string error) => View([], dispatcher: dispatcher) with { Error = error };
+        Outcome Refused(string error) => View([]) with { Error = error };
 
         if (selector.Length == 0 || property.Length == 0 || value.Length == 0)
             return Refused("error: not enough args");
@@ -95,13 +95,13 @@ public sealed partial class WindowManager
                 break;
             case PropKind.Color:
                 if (!WindowProps.TryReadColor(value, out var color))
-                    return View([], dispatcher: dispatcher);
+                    return View([]);
                 next = color;
                 break;
             default:
                 // A value that does not parse changes nothing.
                 if (!WindowProps.TryTrivial(key, kind, value, _props.Value(window, key), PropValue(window, key, kind), out next))
-                    return View([], dispatcher: dispatcher);
+                    return View([]);
                 break;
         }
 
@@ -113,7 +113,7 @@ public sealed partial class WindowManager
             "border_size" => desk.Layout.Apply(desk.Options),
             _ => [],
         };
-        return View(_workspaces.Shown.IsShown(desk.Id) ? placements : [], dispatcher: dispatcher);
+        return View(_workspaces.Shown.IsShown(desk.Id) ? placements : []);
     }
 
     // The variables a min_size or max_size expression reads, for this window as it is now.

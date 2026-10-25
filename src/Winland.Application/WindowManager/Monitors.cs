@@ -10,12 +10,11 @@ public sealed partial class WindowManager
 
     private Outcome MoveFocusDirection(string arguments)
     {
-        const string name = "movefocus";
         var desk = FocusedWorkspace();
         var covered = desk.Covered();
         var active = ActiveWindow();
         if (!Sides.TryParse(FirstToken(arguments), out var direction))
-            return View([], dispatcher: name);
+            return View([]);
 
         // A Workspace with a fullscreen or maximized Client offers no window in a direction, as in the pinned
         // release, so focus moves on to the next Monitor.
@@ -25,25 +24,25 @@ public sealed partial class WindowManager
             if (focus is WindowId chosen)
             {
                 if (HasNoFocus(chosen))
-                    return View([], dispatcher: name);
+                    return View([]);
 
                 Give(chosen, desk);
-                return Present(desk, covered, [], dispatcher: name, focus: chosen);
+                return Present(desk, covered, [], focus: chosen);
             }
         }
 
         if (MonitorHolding(desk) is not LiveMonitor origin || TargetOf(origin) is not MonitorTarget from)
-            return View([], dispatcher: name);
+            return View([]);
 
         if (MonitorSelector.InDirection(Targets(), from, direction) is not MonitorTarget neighbor
             || MonitorOf(neighbor) is not LiveMonitor destination)
-            return View([], dispatcher: name);
+            return View([]);
 
         WindowId? adjacent = null;
         if (active is WindowId fromWindow && desk.Layout.TryBounds(fromWindow, out var box))
             adjacent = AdjacentOn(destination, desk, fromWindow, box, direction);
 
-        return FocusOnto(destination, name, adjacent);
+        return FocusOnto(destination, adjacent);
     }
 
     private static bool HasFullscreen(LiveWorkspace desk)
@@ -94,25 +93,24 @@ public sealed partial class WindowManager
 
     private Outcome MoveWindowDirection(string arguments)
     {
-        const string name = "movewindow";
         if (TryMonitorArgument(arguments, out var monitorText, out var silent))
         {
             if (MonitorOf(MonitorSelector.Resolve(monitorText, Targets(), TargetOf(FocusedMonitor()))) is not LiveMonitor chosen)
-                return Rejected(name, "error: monitor not found");
+                return Rejected("error: monitor not found");
 
-            return MoveActiveOnto(chosen, silent, name);
+            return MoveActiveOnto(chosen, silent);
         }
 
         var active = ActiveWindow();
         var desk = active is WindowId owned && WorkspaceContaining(owned) is LiveWorkspace own ? own : FocusedWorkspace();
         var covered = desk.Covered();
         if (active is WindowId shown && Find(shown) is { Fullscreen: not FullscreenMode.None })
-            return Rejected(name, "error: can't move fullscreen window");
+            return Rejected("error: can't move fullscreen window");
 
         if (active is not WindowId window || !Sides.TryParse(FirstToken(arguments), out var direction))
         {
             IReadOnlyList<Placement> stayed = active is WindowId id ? desk.Layout.MoveWindow(id, arguments) : [];
-            return Present(desk, covered, stayed, dispatcher: name);
+            return Present(desk, covered, stayed);
         }
 
         // A direction onto the neighbouring Monitor follows only for the focused window. Another window is assigned
@@ -127,7 +125,7 @@ public sealed partial class WindowManager
             var focal = MonitorSelector.Focal(Ideal(desk, window, box), direction);
             var hit = MonitorSelector.At(Targets(), focal);
             if (hit is MonitorTarget other && other.Id != origin.Id && MonitorOf(other) is LiveMonitor across)
-                return MoveActiveOnto(across, stay, name, focal);
+                return MoveActiveOnto(across, stay, focal);
         }
 
         var placements = desk.Layout.MoveWindow(window, arguments);
@@ -137,9 +135,9 @@ public sealed partial class WindowManager
             && TargetOf(home) is MonitorTarget from
             && MonitorSelector.InDirection(Targets(), from, direction) is MonitorTarget neighbor
             && MonitorOf(neighbor) is LiveMonitor next)
-            return MoveActiveOnto(next, stay, name);
+            return MoveActiveOnto(next, stay);
 
-        return Present(desk, covered, placements, dispatcher: name);
+        return Present(desk, covered, placements);
     }
 
     // A named window is followed when it is the focused one, or when the dispatcher names no window.
@@ -147,29 +145,27 @@ public sealed partial class WindowManager
 
     private Outcome FocusMonitorDispatch(string arguments)
     {
-        const string name = "focusmonitor";
         if (MonitorOf(MonitorSelector.Resolve(arguments, Targets(), TargetOf(FocusedMonitor()))) is not LiveMonitor screen)
-            return Rejected(name, "error: monitor not found");
+            return Rejected("error: monitor not found");
 
-        return FocusOnto(screen, name, preferred: null);
+        return FocusOnto(screen, preferred: null);
     }
 
     private Outcome MoveCurrentWorkspace(string arguments)
     {
-        const string name = "movecurrentworkspacetomonitor";
         if (MonitorOf(MonitorSelector.Resolve(arguments, Targets(), TargetOf(FocusedMonitor()))) is not LiveMonitor destination)
-            return Rejected(name, "error: monitor not found");
+            return Rejected("error: monitor not found");
 
         if (_workspaces.Find(ActiveId()) is not LiveWorkspace desk)
-            return Rejected(name, "error: invalid workspace");
+            return Rejected("error: invalid workspace");
 
-        return MoveWorkspaceTo(desk, destination, name);
+        return MoveWorkspaceTo(desk, destination);
     }
 
-    private Outcome MoveWorkspaceTo(LiveWorkspace desk, LiveMonitor destination, string dispatcher)
+    private Outcome MoveWorkspaceTo(LiveWorkspace desk, LiveMonitor destination)
     {
         if (desk.Monitor == destination.Id)
-            return View([], dispatcher: dispatcher);
+            return View([]);
 
         var before = ShowingNow();
         var origin = MonitorById(desk.Monitor);
@@ -201,21 +197,21 @@ public sealed partial class WindowManager
         }
 
         var (show, hide) = VisibilityDelta(before);
-        return View(ShownPlacements(), show, hide, dispatcher: dispatcher, focus: focus);
+        return View(ShownPlacements(), show, hide, focus: focus);
     }
 
-    private Outcome MoveActiveOnto(LiveMonitor screen, bool silent, string dispatcher, Point? focal = null)
+    private Outcome MoveActiveOnto(LiveMonitor screen, bool silent, Point? focal = null)
     {
         if (_workspaces.Shown.Shown(screen.Id) is not WorkspaceId target)
-            return View([], dispatcher: dispatcher);
+            return View([]);
 
-        return MoveTo(target, silent, consumed: false, dispatcher, focal: focal);
+        return MoveTo(target, silent, consumed: false, focal: focal);
     }
 
-    private Outcome FocusOnto(LiveMonitor screen, string dispatcher, WindowId? preferred)
+    private Outcome FocusOnto(LiveMonitor screen, WindowId? preferred)
     {
         if (screen.Focused && preferred is null)
-            return View([], dispatcher: dispatcher);
+            return View([]);
 
         // A monitor with a special workspace open gives the focus to that workspace's window.
         var desk = _workspaces.Shown.SpecialOn(screen.Id) is WorkspaceId special && _workspaces.Find(special) is LiveWorkspace open
@@ -230,7 +226,7 @@ public sealed partial class WindowManager
         Focus(screen.Id);
         Give(next, desk);
 
-        return View([], focus: next, dispatcher: dispatcher);
+        return View([], focus: next);
     }
 
     private void Plug(LiveMonitor origin, LiveWorkspace leaving)

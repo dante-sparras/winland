@@ -21,7 +21,7 @@ public class BindTests
 
         var outcome = Press(core, "Q");
 
-        AssertRan(outcome, "killactive", 2);
+        AssertRan(outcome, 2);
         Assert.Equal(2, outcome.State.Clients.Count);
         Assert.Contains(outcome.State.Clients, client => client.Window == new WindowId(2));
     }
@@ -39,7 +39,7 @@ public class BindTests
         var closed = core.Handle(new WindowClosed(new WindowId(2)));
 
         Assert.DoesNotContain(closed.State.Clients, client => client.Window == new WindowId(2));
-        AssertRan(Press(core, "Q"), "killactive", 1);
+        AssertRan(Press(core, "Q"), 1);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class BindTests
         core.Handle(new WindowFocused(new WindowId(1)));
         Press(core, "Super_L");
 
-        AssertRan(Press(core, "Q"), "killactive", 1);
+        AssertRan(Press(core, "Q"), 1);
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class BindTests
 
         var outcome = Press(core, "Q");
 
-        AssertRan(outcome, "killactive", null);
+        AssertRan(outcome, null);
         Assert.Empty(outcome.State.Clients);
     }
 
@@ -74,7 +74,7 @@ public class BindTests
         core.Handle(new WindowFocused(new WindowId(99)));
         Press(core, "Super_L");
 
-        AssertRan(Press(core, "Q"), "killactive", null);
+        AssertRan(Press(core, "Q"), null);
         Assert.Contains(core.Handle(new KeyReleased("Q")).State.Clients, client => client.Window == new WindowId(1));
     }
 
@@ -113,7 +113,7 @@ public class BindTests
         Appear(core, 1);
         Press(core, key);
 
-        AssertRan(Press(core, "Q"), "killactive", 1);
+        AssertRan(Press(core, "Q"), 1);
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class BindTests
         Release(core, "Q");
 
         Press(core, "Shift_R");
-        AssertRan(Press(core, "Q"), "killactive", 1);
+        AssertRan(Press(core, "Q"), 1);
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public class BindTests
         var core = Load("bind = , Q, killactive");
         Appear(core, 1);
 
-        AssertRan(Press(core, "Q"), "killactive", 1);
+        AssertRan(Press(core, "Q"), 1);
 
         Release(core, "Q");
         Press(core, "Super_L");
@@ -151,7 +151,7 @@ public class BindTests
         Appear(core, 1);
         Press(core, "Super_L");
 
-        AssertRan(Press(core, "L"), "killactive", 1);
+        AssertRan(Press(core, "L"), 1);
         AssertCaught(Release(core, "L"));
         AssertPassed(Release(core, "Super_L"));
     }
@@ -183,13 +183,13 @@ public class BindTests
         Appear(core, 1);
         Press(core, "Super_L");
 
-        AssertRan(Press(core, "Q"), "killactive", 1);
+        AssertRan(Press(core, "Q"), 1);
         AssertCaught(Press(core, "Q"));
         AssertCaught(Release(core, "Q"));
         AssertPassed(Release(core, "Super_L"));
 
         Press(core, "Super_L");
-        AssertRan(Press(core, "Q"), "killactive", 1);
+        AssertRan(Press(core, "Q"), 1);
     }
 
     [Fact]
@@ -199,8 +199,8 @@ public class BindTests
         Appear(core, 1);
         Press(core, "Super_L");
 
-        AssertRan(Press(core, "Q"), "killactive", 1);
-        AssertRan(Press(core, "Q"), "killactive", 1);
+        AssertRan(Press(core, "Q"), 1);
+        AssertRan(Press(core, "Q"), 1);
         AssertCaught(Release(core, "Q"));
     }
 
@@ -212,7 +212,7 @@ public class BindTests
         Press(core, "Super_L");
 
         AssertCaught(Press(core, "Q"));
-        AssertRan(Release(core, "Q"), "killactive", 1);
+        AssertRan(Release(core, "Q"), 1);
         AssertPassed(Release(core, "Super_L"));
     }
 
@@ -252,7 +252,7 @@ public class BindTests
         var core = Load("bindr = ALT, Alt_L, exec, notepad\nbind = ALT, P, killactive\n");
         Appear(core, 1);
         Press(core, "Alt_L");
-        AssertRan(Press(core, "P"), "killactive", 1);
+        AssertRan(Press(core, "P"), 1);
         Release(core, "P");
 
         var outcome = Release(core, "Alt_L");
@@ -270,11 +270,11 @@ public class BindTests
 
         AssertPassed(Press(core, "Q"));
         Release(core, "Q");
-        AssertRan(Press(core, "M"), "killactive", 1);
+        AssertRan(Press(core, "M"), 1);
 
         Release(core, "M");
         core.KeyState.Inhibit(false);
-        AssertRan(Press(core, "Q"), "killactive", 1);
+        AssertRan(Press(core, "Q"), 1);
     }
 
     [Fact]
@@ -283,7 +283,7 @@ public class BindTests
         var core = Load("bindl = , M, killactive");
         Appear(core, 1);
 
-        AssertRan(Press(core, "M"), "killactive", 1);
+        AssertRan(Press(core, "M"), 1);
     }
 
     [Fact]
@@ -294,11 +294,11 @@ public class BindTests
         Press(core, "Super_L");
 
         var button = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(500, 400) });
-        AssertRan(button, "movewindow", null);
+        AssertRan(button, null);
         Assert.Contains(button.State.Clients, client => client.Window == new WindowId(1));
 
         AssertPassed(Press(core, "mouse:272"));
-        AssertRan(Press(core, "Q"), "killactive", 1);
+        AssertRan(Press(core, "Q"), 1);
         AssertCaught(core.Handle(new PointerButtonReleased("mouse:272")));
         AssertPassed(Release(core, "Super_L"));
     }
@@ -322,7 +322,8 @@ public class BindTests
 
         var outcome = Press(core, "E");
 
-        AssertRan(outcome, "exec", null);
+        AssertRan(outcome, null);
+        Assert.NotNull(outcome.Launch);
         Assert.Contains(outcome.State.Clients, client => client.Window == new WindowId(1));
     }
 
@@ -344,7 +345,7 @@ public class BindTests
         Appear(core, 1);
         Press(core, "Super_R");
 
-        AssertRan(Press(core, "Q"), "killactive", 1);
+        AssertRan(Press(core, "Q"), 1);
     }
 
     [Fact]
@@ -356,7 +357,7 @@ public class BindTests
 
         AssertPassed(Press(core, "Return"));
         Release(core, "Return");
-        AssertRan(Press(core, "Return", 28), "killactive", 1);
+        AssertRan(Press(core, "Return", 28), 1);
     }
 
     [Fact]
@@ -367,7 +368,7 @@ public class BindTests
         Press(core, "Super_L");
 
         AssertPassed(Press(core, "Q"));
-        AssertRan(Press(core, "R"), "killactive", 1);
+        AssertRan(Press(core, "R"), 1);
     }
 
     [Fact]
@@ -390,7 +391,6 @@ public class BindTests
         var outcome = Press(core, "Q");
 
         Assert.True(outcome.Consumed);
-        Assert.Equal("killactive", outcome.Dispatcher);
         Assert.Equal(new WindowId(2), outcome.Close);
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
     }
@@ -414,7 +414,7 @@ public class BindTests
         var core = Load("bind = , Super_L, killactive");
         Appear(core, 1);
 
-        AssertRan(Press(core, "Super_L"), "killactive", 1);
+        AssertRan(Press(core, "Super_L"), 1);
     }
 
     [Fact]
@@ -440,7 +440,6 @@ public class BindTests
     private static void AssertPassed(Outcome outcome)
     {
         Assert.False(outcome.Consumed);
-        Assert.Null(outcome.Dispatcher);
         Assert.Null(outcome.Close);
         Assert.Empty(outcome.Placements);
     }
@@ -448,15 +447,13 @@ public class BindTests
     private static void AssertCaught(Outcome outcome)
     {
         Assert.True(outcome.Consumed);
-        Assert.Null(outcome.Dispatcher);
         Assert.Null(outcome.Close);
         Assert.Empty(outcome.Placements);
     }
 
-    private static void AssertRan(Outcome outcome, string dispatcher, long? close)
+    private static void AssertRan(Outcome outcome, long? close)
     {
         Assert.True(outcome.Consumed);
-        Assert.Equal(dispatcher, outcome.Dispatcher);
         Assert.Empty(outcome.Placements);
         if (close is long id)
             Assert.Equal(new WindowId(id), outcome.Close);

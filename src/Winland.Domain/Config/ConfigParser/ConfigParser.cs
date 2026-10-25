@@ -4,10 +4,17 @@ public static partial class ConfigParser
 {
     /// <param name="path">The full path of the config file <paramref name="text"/> was read from, when there is one.
     /// A <c>source</c> line that leads back to it is then skipped, and a relative source is compared against its folder.</param>
-    public static ConfigDocument Parse(string text, IConfigSource? source = null, KeyLayout? layout = null, string? path = null)
+    /// <param name="dispatchers">The names of the Dispatchers a bind may run, which the Application knows. A bind for any
+    /// other name warns, with the name it is close to. With none given, a bind's Dispatcher is not checked.</param>
+    public static ConfigDocument Parse(
+        string text,
+        IConfigSource? source = null,
+        KeyLayout? layout = null,
+        string? path = null,
+        IReadOnlyCollection<string>? dispatchers = null)
     {
         ArgumentNullException.ThrowIfNull(text);
-        return new Parser(source, layout ?? KeyLayout.UnitedStates).ParseRoot(text, path);
+        return new Parser(source, layout ?? KeyLayout.UnitedStates, dispatchers).ParseRoot(text, path);
     }
 
     /// <summary>
@@ -17,7 +24,7 @@ public static partial class ConfigParser
     public static bool AppliesLive(string keyword) =>
         keyword is not ("exec" or "exec-once" or "exec-shutdown" or "source");
 
-    private sealed partial class Parser(IConfigSource? sourceReader, KeyLayout layout)
+    private sealed partial class Parser(IConfigSource? sourceReader, KeyLayout layout, IReadOnlyCollection<string>? dispatchers)
     {
         private static readonly HashSet<string> KeptHandlers = new(StringComparer.Ordinal)
         {

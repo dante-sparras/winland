@@ -9,7 +9,6 @@ public class MonitorDispatchTests
 
         var outcome = core.Handle(new Dispatch("movefocus", "r"));
 
-        Assert.Equal("movefocus", outcome.Dispatcher);
         Assert.Equal(new WindowId(2), outcome.Focus);
         Assert.Equal(new MonitorId(1), outcome.State.ActiveMonitor);
         Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), outcome.State.ActiveWorkspace);
@@ -33,7 +32,6 @@ public class MonitorDispatchTests
 
         var outcome = core.Handle(new Dispatch("movewindow", "r"));
 
-        Assert.Equal("movewindow", outcome.Dispatcher);
         Assert.Equal(new WindowId(1), outcome.Focus);
         Assert.Equal(new MonitorId(1), outcome.State.ActiveMonitor);
         Assert.Equal(WorkspaceId.FromNumber(1, new MonitorId(1)), outcome.State.ActiveWorkspace);
@@ -200,7 +198,6 @@ public class MonitorDispatchTests
         var core = TwoMonitors();
 
         var right = core.Handle(new Dispatch("focusmonitor", "r"));
-        Assert.Equal("focusmonitor", right.Dispatcher);
         Assert.Equal(new WindowId(2), right.Focus);
         Assert.Equal(new MonitorId(1), right.State.ActiveMonitor);
         Assert.Equal(
@@ -243,7 +240,6 @@ public class MonitorDispatchTests
 
         var outcome = core.Handle(new Dispatch("movecurrentworkspacetomonitor", "right"));
 
-        Assert.Equal("movecurrentworkspacetomonitor", outcome.Dispatcher);
         Assert.Equal(new WindowId(1), outcome.Focus);
         Assert.Equal(new MonitorId(1), outcome.State.ActiveMonitor);
         Assert.Equal(WorkspaceId.FromNumber(2, new MonitorId(1)), outcome.State.ActiveWorkspace);
@@ -327,6 +323,20 @@ public class MonitorDispatchTests
         var moved = core.Handle(new Dispatch("movefocus", "r"));
 
         Assert.Null(moved.Warp);
+    }
+
+    [Theory]
+    [InlineData("bind = SUPER, K, exec, notepad\nbind = SUPER, K, movefocus, r\n")]
+    [InlineData("bind = SUPER, K, movefocus, r\nbind = SUPER, K, exec, notepad\n")]
+    public void ABindThatMovesFocusMovesTheCursorWhateverOtherDispatchersItRuns(string config)
+    {
+        var core = TwoMonitors(config);
+        core.Handle(new KeyPressed("Super_L"));
+
+        var moved = core.Handle(new KeyPressed("K"));
+
+        var target = Client(moved, 2).Bounds;
+        Assert.Equal(new WarpTo(new Point(target.X + (target.Width / 2), target.Y + (target.Height / 2))), moved.Warp);
     }
 
     [Fact]

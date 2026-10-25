@@ -12,7 +12,7 @@ public class OutcomeConsumerTests
             nameof(Outcome.Placements), // WindowAdapter.ApplyCore
             nameof(Outcome.State), // WindowAdapter.ApplyCore, SessionEffects, queries
             nameof(Outcome.Consumed), // the hooks swallow consumed input
-            nameof(Outcome.Dispatcher), // events and command replies
+            nameof(Outcome.Traits), // Animations.InstantResize and Cursor, before the outcome leaves the core
             nameof(Outcome.Closes), // WindowAdapter.ApplyCore
             nameof(Outcome.Close), // shorthand for Closes
             nameof(Outcome.Focus), // WindowAdapter.ApplyCore

@@ -120,7 +120,7 @@ public class DefaultConfigTests
     [Fact]
     public void TheEmbeddedDefaultParsesWithNoWarnings()
     {
-        var document = ConfigParser.Parse(DefaultConfig.Text);
+        var document = ConfigParser.Parse(DefaultConfig.Text, dispatchers: WindowManager.DispatcherNames);
 
         Assert.True(
             document.Warnings.Count == 0,
@@ -168,7 +168,7 @@ public class DefaultConfigTests
     private static string Describe(BindDirective directive)
     {
         var bind = Assert.IsType<Bind>(directive);
-        Assert.True(Dispatchers.IsKnown(bind.Dispatcher), bind.Dispatcher);
+        Assert.Contains(bind.Dispatcher, WindowManager.DispatcherNames, StringComparer.OrdinalIgnoreCase);
         return $"{Modifiers(bind.Modifiers)}|{bind.Key}|{bind.Dispatcher}|{bind.Arguments}|{Flags(bind.Flags)}";
     }
 

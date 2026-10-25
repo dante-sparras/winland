@@ -13,7 +13,6 @@ public class DispatcherTests
         var left = core.Handle(new Dispatch("movefocus", "l"));
 
         Assert.Equal(new WindowId(1), left.Focus);
-        Assert.Equal("movefocus", left.Dispatcher);
         Assert.Empty(left.Placements);
 
         var right = core.Handle(new Dispatch("movefocus", "right"));
@@ -91,7 +90,6 @@ public class DispatcherTests
         var focused = Press(core, "H");
 
         Assert.True(focused.Consumed);
-        Assert.Equal("movefocus", focused.Dispatcher);
         Assert.Equal(new WindowId(1), focused.Focus);
         Assert.Equal(new WindowId(1), Press(core, "Q").Close);
     }
@@ -116,7 +114,6 @@ public class DispatcherTests
 
         var outcome = core.Handle(new Dispatch("movewindow", "l"));
 
-        Assert.Equal("movewindow", outcome.Dispatcher);
         Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(outcome, 1));
         Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(outcome, 2));
     }
@@ -144,7 +141,6 @@ public class DispatcherTests
         var outcome = Press(core, "L");
 
         Assert.True(outcome.Consumed);
-        Assert.Equal("movewindow", outcome.Dispatcher);
         Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(outcome, 1));
         Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(outcome, 2));
     }
@@ -184,7 +180,6 @@ public class DispatcherTests
 
         var wider = sideBySide.Handle(new Dispatch("resizeactive", "480 0"));
 
-        Assert.Equal("resizeactive", wider.Dispatcher);
         Assert.Equal(new Rectangle(0, 0, 1440, 1080), BoundsOf(wider, 1));
         Assert.Equal(new Rectangle(1440, 0, 480, 1080), BoundsOf(wider, 2));
 
@@ -236,7 +231,6 @@ public class DispatcherTests
 
         var floating = core.Handle(new Dispatch("togglefloating"));
 
-        Assert.Equal("togglefloating", floating.Dispatcher);
         Assert.True(Client(floating, 2).Floating);
         Assert.False(Client(floating, 1).Floating);
         Assert.Equal(new Rectangle(0, 0, 1920, 1080), BoundsOf(floating, 1));
@@ -299,7 +293,6 @@ public class DispatcherTests
 
         var outcome = core.Handle(new Dispatch("layoutmsg", "togglesplit"));
 
-        Assert.Equal("layoutmsg", outcome.Dispatcher);
         Assert.Empty(outcome.Placements);
     }
 
@@ -312,7 +305,6 @@ public class DispatcherTests
 
         var outcome = core.Handle(new Dispatch("layoutmsg", "togglesplit"));
 
-        Assert.Equal("layoutmsg", outcome.Dispatcher);
         Assert.Equal(new Rectangle(0, 0, 1920, 540), BoundsOf(outcome, 1));
         Assert.Equal(new Rectangle(0, 540, 1920, 540), BoundsOf(outcome, 2));
     }
@@ -324,7 +316,6 @@ public class DispatcherTests
 
         var outcome = core.Handle(new Dispatch("swapsplit"));
 
-        Assert.Equal("swapsplit", outcome.Dispatcher);
         Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(outcome, 1));
         Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(outcome, 2));
     }
@@ -343,7 +334,6 @@ public class DispatcherTests
 
         var back = core.Handle(new Dispatch("layout", "rotatesplit -90"));
 
-        Assert.Equal("layout", back.Dispatcher);
         Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(back, 1));
         Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(back, 2));
     }
@@ -465,7 +455,6 @@ public class DispatcherTests
         var outcome = Press(core, "T");
 
         Assert.True(outcome.Consumed);
-        Assert.Equal("layoutmsg", outcome.Dispatcher);
         Assert.Equal(new Rectangle(0, 0, 1920, 540), BoundsOf(outcome, 1));
         Assert.Equal(new Rectangle(0, 540, 1920, 540), BoundsOf(outcome, 2));
     }
@@ -493,13 +482,11 @@ public class DispatcherTests
         var fromPipe = core.Execute("dispatch pseudo");
 
         Assert.Equal("ok", fromPipe.Text);
-        Assert.Equal("pseudo", fromPipe.Effect.Dispatcher);
         Assert.Equal(new Rectangle(140, 660, 800, 600), BoundsOf(fromPipe.Effect, 1));
 
         var fromBind = Press(core, "P");
 
         Assert.True(fromBind.Consumed);
-        Assert.Equal("pseudo", fromBind.Dispatcher);
         Assert.Equal(Tall, BoundsOf(fromBind, 1));
 
         var directed = core.Execute("dispatch layoutmsg preselect l");
@@ -524,7 +511,6 @@ public class DispatcherTests
 
         var outcome = core.Handle(new Dispatch("killactive"));
 
-        Assert.Equal("killactive", outcome.Dispatcher);
         Assert.Equal(new WindowId(2), outcome.Close);
         Assert.Contains(outcome.State.Clients, client => client.Window == new WindowId(2));
         Assert.Null(outcome.Focus);
@@ -537,7 +523,6 @@ public class DispatcherTests
 
         var outcome = core.Handle(new Dispatch("nosuch", "notepad"));
 
-        Assert.Equal("nosuch", outcome.Dispatcher);
         Assert.False(outcome.Consumed);
         Assert.Null(outcome.Close);
         Assert.Null(outcome.Focus);

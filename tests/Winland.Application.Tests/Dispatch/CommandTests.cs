@@ -33,7 +33,6 @@ public class CommandTests
         var reply = core.Execute("dispatch exec elevated notepad");
 
         Assert.Equal("ok", reply.Text);
-        Assert.Equal("exec", reply.Effect.Dispatcher);
         Assert.Null(reply.Effect.Close);
         Assert.Empty(reply.Effect.Placements);
     }
@@ -47,7 +46,6 @@ public class CommandTests
 
         var outcome = core.Handle(new KeyPressed("E"));
 
-        Assert.Equal("exec", outcome.Dispatcher);
         Assert.Null(outcome.Close);
     }
 
@@ -77,7 +75,6 @@ public class CommandTests
 
         Assert.Equal("error: missing dispatcher", reply.Text);
         Assert.Null(reply.Effect.Close);
-        Assert.Null(reply.Effect.Dispatcher);
     }
 
     [Fact]
@@ -240,7 +237,6 @@ public class CommandTests
         thread.Join();
 
         Assert.Equal("ok", reply.Text);
-        Assert.Equal("workspace", reply.Effect.Dispatcher);
         Assert.Equal(new WorkspaceId("2"), reply.Effect.State.ActiveWorkspace);
         Assert.Equal([new WindowId(1), new WindowId(2)], reply.Effect.Hide);
         Assert.Empty(reply.Effect.Show);
@@ -292,18 +288,15 @@ public class CommandTests
         var focus = core.Execute("dispatch movefocus l");
 
         Assert.Equal("ok", focus.Text);
-        Assert.Equal("movefocus", focus.Effect.Dispatcher);
         Assert.Equal(new WindowId(1), focus.Effect.Focus);
 
         var floating = core.Execute("dispatch togglefloating");
 
-        Assert.Equal("togglefloating", floating.Effect.Dispatcher);
         Assert.True(Client(floating.Effect, 1).Floating);
         Assert.False(Client(floating.Effect, 2).Floating);
 
         var moved = core.Execute("dispatch movetoworkspace 3");
 
-        Assert.Equal("movetoworkspace", moved.Effect.Dispatcher);
         Assert.Equal(new WorkspaceId("3"), moved.Effect.State.ActiveWorkspace);
         Assert.Equal(new WorkspaceId("3"), Client(moved.Effect, 1).Workspace);
         Assert.Equal(new WorkspaceId("1"), Client(moved.Effect, 2).Workspace);
@@ -320,7 +313,6 @@ public class CommandTests
 
         var outcome = core.Handle(new KeyPressed("2"));
 
-        Assert.Equal("workspace", outcome.Dispatcher);
         Assert.True(outcome.Consumed);
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
         Assert.Equal([new WindowId(1)], outcome.Hide);

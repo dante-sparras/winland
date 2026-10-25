@@ -92,7 +92,7 @@ public sealed partial class WindowManager
         if (!ConfigParser.AppliesLive(request.Name))
             return new CommandReply($"error: keyword '{request.Name}' is not applied live", View([]));
 
-        var parsed = ConfigParser.Parse(request.Name + " = " + request.Value + "\n");
+        var parsed = ConfigParser.Parse(request.Name + " = " + request.Value + "\n", dispatchers: DispatcherNames);
         if (parsed.Warnings.Count > 0)
             return new CommandReply("error: " + parsed.Warnings[0].Message, View([]));
 
