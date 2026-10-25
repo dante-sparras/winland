@@ -8,14 +8,14 @@ public static partial class ConfigParser
     {
         private void HandleBind(string lhs, string rhs, int lineNumber)
         {
-            if (!TryParseFlags(lhs["bind".Length..], out var flags, out var hasDescription, out var hasDevice, out var flagError))
+            if (!TryParseFlags(lhs["bind".Length..], out var flags, out var hasDescription, out var flagError))
             {
                 Warn(lineNumber, flagError);
                 return;
             }
 
             var mouse = flags.HasFlag(BindFlag.Mouse);
-            var minimum = 3 + (hasDescription ? 1 : 0) + (hasDevice ? 1 : 0);
+            var minimum = 3 + (hasDescription ? 1 : 0);
             var parts = mouse ? SplitArgs(rhs, null) : SplitArgs(rhs, minimum + 1);
             if (parts.Count < minimum)
             {
@@ -50,21 +50,6 @@ public static partial class ConfigParser
                 index = 3;
             }
 
-            IReadOnlyList<string>? devices = null;
-            if (hasDevice)
-            {
-                if (!DeviceField.TryRead(parts[index], out var inclusive, out var names))
-                {
-                    Warn(lineNumber, "Bind device is invalid.");
-                    return;
-                }
-
-                if (inclusive)
-                    flags |= BindFlag.DeviceInclusive;
-                devices = names;
-                index++;
-            }
-
             var dispatcher = parts[index];
             var arguments = !mouse && parts.Count > index + 1 ? parts[index + 1] : "";
             if (mouse)
@@ -97,32 +82,7 @@ public static partial class ConfigParser
                 return;
             }
 
-            if (key.Equals("catchall", StringComparison.Ordinal) && _submap is null)
-            {
-                Warn(lineNumber, "Catchall binds are only allowed in a submap.");
-                return;
-            }
-
-            if (flags.HasFlag(BindFlag.DontInhibit))
-            {
-                Warn(lineNumber, "Bind flag 'p' is not honored.");
-                flags &= ~BindFlag.DontInhibit;
-            }
-
-            // A name in the device list may be a keyboard or a device:tags tag. Either way the bind would have to
-            // swallow the key before Windows names the keyboard, which it cannot.
-            if (devices is not null && !flags.HasFlag(BindFlag.NonConsuming))
-            {
-                if (!_warnedConsumingDevice)
-                {
-                    Warn(lineNumber, ConsumingDeviceBind);
-                    _warnedConsumingDevice = true;
-                }
-
-                return;
-            }
-
-            _binds.Add(new Bind(modifiers, key, dispatcher, arguments, flags, description, _submap, _submapReset, devices));
+            _binds.Add(new Bind(modifiers, key, dispatcher, arguments, flags, description));
         }
 
         private static (string Dispatcher, string Arguments) SplitAction(string action)
@@ -155,11 +115,10 @@ public static partial class ConfigParser
             _binds.Add(new Unbind(modifiers, KeyNames.Resolve(parts[1], layout)));
         }
 
-        private static bool TryParseFlags(string flags, out BindFlag parsed, out bool hasDescription, out bool hasDevice, out string error)
+        private static bool TryParseFlags(string flags, out BindFlag parsed, out bool hasDescription, out string error)
         {
             parsed = BindFlag.None;
             hasDescription = false;
-            hasDevice = false;
             foreach (var flag in flags)
             {
                 switch (flag)
@@ -179,38 +138,8 @@ public static partial class ConfigParser
                     case 'n':
                         parsed |= BindFlag.NonConsuming;
                         break;
-                    case 't':
-                        parsed |= BindFlag.Transparent;
-                        break;
-                    case 'i':
-                        parsed |= BindFlag.IgnoreModifiers;
-                        break;
-                    case 's':
-                        parsed |= BindFlag.MultiKey;
-                        break;
-                    case 'o':
-                        parsed |= BindFlag.LongPress;
-                        break;
                     case 'd':
                         hasDescription = true;
-                        break;
-                    case 'p':
-                        parsed |= BindFlag.DontInhibit;
-                        break;
-                    case 'c':
-                        parsed |= BindFlag.Click | BindFlag.Release;
-                        break;
-                    case 'g':
-                        parsed |= BindFlag.Drag | BindFlag.Release;
-                        break;
-                    case 'u':
-                        parsed |= BindFlag.SubmapUniversal;
-                        break;
-                    case 'a':
-                        parsed |= BindFlag.AutoConsuming;
-                        break;
-                    case 'k':
-                        hasDevice = true;
                         break;
                     default:
                         error = $"Invalid bind flag '{flag}'.";
@@ -220,19 +149,13 @@ public static partial class ConfigParser
 
             var release = parsed.HasFlag(BindFlag.Release);
             var repeat = parsed.HasFlag(BindFlag.Repeat);
-            if ((parsed.HasFlag(BindFlag.LongPress) || release) && repeat)
+            if (release && repeat)
             {
                 error = "Bind flags conflict.";
                 return false;
             }
 
             if (parsed.HasFlag(BindFlag.Mouse) && (repeat || release || parsed.HasFlag(BindFlag.Locked)))
-            {
-                error = "Bind flags conflict.";
-                return false;
-            }
-
-            if (parsed.HasFlag(BindFlag.Click) && parsed.HasFlag(BindFlag.Drag))
             {
                 error = "Bind flags conflict.";
                 return false;

@@ -46,9 +46,6 @@ public sealed partial class WindowManager
 
     public ISessionLock? SessionLock { get; set; }
 
-    /// <summary>The keyboards and pointers Raw Input lists. A device-name bind matches these names. Without it there is one of each, named <c>keyboard</c> and <c>mouse</c>.</summary>
-    public IInputDevices? Devices { get; set; }
-
     public Action<ConfigDocument>? AfterReload { get; set; }
 
     public WindowManager(ConfigDocument? config = null)
@@ -68,7 +65,7 @@ public sealed partial class WindowManager
 
     public BindTable Binds => _config.Binds;
 
-    /// <summary>Bind state the hook matches against. The active submap is read here with no lock.</summary>
+    /// <summary>Bind state the hook matches against.</summary>
     public BindSession KeyState => _keyState;
 
     /// <summary>Matches input against the published bind table. Does not take the core lock.</summary>
@@ -83,7 +80,7 @@ public sealed partial class WindowManager
         // binds:pass_mouse_when_bound: a button that runs a bind is not swallowed, so the window
         // under the pointer gets its press and release. A wheel notch is not a button and stays swallowed.
         if (_config.BindOptions.PassMouseWhenBound && decision.Consumed && input is PointerButtonPressed or PointerButtonReleased)
-            decision = decision with { Consumed = false, PassesOnFailure = false, ReleaseOnFailure = [] };
+            decision = decision with { Consumed = false };
 
         return decision;
     }
@@ -196,7 +193,6 @@ public sealed partial class WindowManager
             PointerButtonReleased released => ReleasePointer(released),
             PointerMoved moved => MovePointer(moved),
             WheelTurned wheel => RunKey(NaturalScroll.Apply(_config.Input, wheel)),
-            LongPressElapsed => RunKey(input),
             PointerGesture gesture => ApplyGesture(gesture),
             GroupBarScrolled scrolled => ScrollGroupBar(scrolled),
             WindowMaximizeRequested requested => MaximizeRequest(requested.Window),

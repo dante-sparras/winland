@@ -8,7 +8,7 @@ public class ExtraCommandTests
 
     private const string SuperKill =
         """
-        [{"locked":false,"mouse":false,"release":false,"repeat":false,"longPress":false,"non_consuming":false,"auto_consuming":false,"has_description":false,"modmask":64,"submap":"","submap_universal":"false","key":"Q","keycode":0,"catch_all":false,"description":"","allow_input_capture":false,"dispatcher":"killactive","arg":""}]
+        [{"locked":false,"mouse":false,"release":false,"repeat":false,"non_consuming":false,"has_description":false,"modmask":64,"key":"Q","keycode":0,"description":"","dispatcher":"killactive","arg":""}]
         """;
 
     [Fact]

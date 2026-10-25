@@ -134,7 +134,7 @@ A drag that picks up a fullscreen or maximized Client ends that mode first. A fl
 
 While a `movewindow` drag moves a Client, as soon as the Client's middle lies on a Monitor whose shown Workspace is not the Client's, the Client joins that Workspace, or the special workspace when one is open there, and `movewindow` is told each time. The drag continues on that Workspace. A tile the drag lifted stays floating until release, then drops into that Workspace's Layout at the pointer, and a floating Client keeps its rectangle. A floating `resizewindow` joins the same way when its middle crosses. A tiled resize does not. A release with no move, whose middle is already on another Monitor, still joins the Workspace that Monitor shows.
 
-`binds:drag_threshold` defaults to 0. Above 0, the Client is not picked up until the pointer has moved farther than that many pixels from the press. The drag then starts from that point, so the Client does not jump. The same distance separates the `c` and `g` bind flags.
+`binds:drag_threshold` defaults to 0. Above 0, the Client is not picked up until the pointer has moved farther than that many pixels from the press. The drag then starts from that point, so the Client does not jump.
 
 `movewindow` moves a floating Client with the pointer. A tiled Client is lifted out of the Layout and floats at its tiled size, centered on the pointer. With `binds:drag_center_window` false it is held instead by the point the pointer grabbed, at the same fraction of its size. On release it drops back into the Layout at the pointer. A Client that closes while it is dragged ends the drag, and nothing is dropped on release. The same happens when a dispatcher moves it to another Workspace during the drag. In dwindle it splits the tile under the pointer, or the nearest tile, and goes on the half the pointer is over. `dwindle:force_split` does not apply to a drop. `dwindle:precise_mouse_move` defaults to false. When it is on, a drop picks the side of the tile nearest the pointer, as `dwindle:smart_split` does, and splits keep their direction when the tree is refit.
 
@@ -170,8 +170,6 @@ These input keys are honored: `natural_scroll`, `scroll_points`, `rotation`, `em
 
 A `device[name]` line, and every field inside a `device[name]` block, warns `Unsupported keyword` and is not applied. Nothing is stored for that device.
 
-A long-press bind, with the `o` flag, runs once its key has been held for 600 ms. That wait does not follow a Windows setting, and `repeat_delay` is not read.
-
 `input:follow_mouse` defaults to 1. 0 leaves keyboard focus where it is when the pointer moves. 1 moves it to the Client under the pointer once the pointer has traveled farther than `input:follow_mouse_threshold` logical pixels. That distance accumulates while the pointer keeps moving and resets after the pointer has been still for half a second. 2 and 3 do not move keyboard focus when the pointer moves. 3 also keeps the focused Client when a click would take it. The names `disabled`, `follow`, `detached`, and `separate` are 0, 1, 2, and 3.
 
 `input:follow_mouse_shrink` insets every Client except the focused one by that many logical pixels. The pointer in the inset does not move keyboard focus. The window under the pointer still receives pointer input.
@@ -189,10 +187,6 @@ On a Workspace with a maximized or fullscreen Client, that Client owns the point
 Modes 2 and 3 cannot choose which window receives pointer input. The window under the pointer still receives it. Those modes only decide keyboard focus.
 
 The keyboard and mouse hooks run on a thread of their own. It only decides whether a key or button is swallowed and hands everything else to the bind worker, so a window that stops answering, or a reload, never holds up the keyboard or the mouse, or makes Windows drop the hooks for being slow. Pointer moves that arrive while the bind worker is busy collapse into the newest one.
-
-A key's device is the keyboard raw input names for that press. Windows names that keyboard only after the key is delivered, and swallowing the key produces no raw input, so a bind that would consume the key cannot depend on the device. The config warns once and does not register that bind, when the list names a keyboard. A non-consuming device bind (flag `n`) is honored. The key goes on to the window, and the bind runs when the raw packet arrives on the input thread. `+` matches only the listed names and `-` matches every other named keyboard. A keyboard that is not named yet matches neither. A name is matched as written, in the spelling raw input uses. The press runs from the packet for the key going down. Repeats run from the hook after that packet, and repeats that arrived before it, at most eight, run with the packet. The release runs when the key goes up, on the keyboard of the press. If the key is already up when the packet arrives, the press and the release both run from that packet, and the packet for the key going up does not run them again. A pointer button and a wheel turn have no device, so a device bind on them does not run. A chord runs from the packet when the keys were held together as the triggering key went down.
-
-`auto_consuming` swallows the key and runs the dispatcher. When every such dispatcher fails, the hook injects the key so the focused window receives it. The injection is the trigger key, after the dispatcher has returned, and a key that is still held is injected as a press. A release bind that is auto-consuming does not swallow the press, and its release is not swallowed either, because Windows must see the release of a press it saw. A pointer button, a wheel turn and a long press that only an auto-consuming bind takes stay swallowed. A dispatcher that reports no error consumes the key even when it changes nothing. A key whose bind drags is swallowed for the drag and is not given back.
 
 
 ## Touchpad swipe
@@ -323,12 +317,6 @@ A bind on a modifier key, such as `Super_L`, is matched on its press without tha
 
 A release bind matches the modifiers its key went down under, so `bindr = SUPER, Q` does not run for a Q pressed before Super. A release bind on one key is skipped when, while its key is held, a bind catches another key or any other key is let go: `bindr = ALT, Alt_L` does not run after Alt+P ran `bind = ALT, P`, and `bindr = SUPER, Q` does not run when Super is let go before Q.
 
-## Several keys
-
-A bind with the `s` flag and its keys joined by `&`, such as `binds = , Tab&T, exec, kitty`, runs once its keys are held in that order, with no other key held, when the last one goes down. The keys are matched in the order they went down, so `B`, `A`, `C` does not run `A&B&C`. A press that starts or extends the chord is swallowed unless the bind has the `n` or `r` flag. A key that does not extend it reaches the window. A bind on one key that a longer chord starts with waits: `bind = SUPER, Q` beside `binds = SUPER, Q&K` runs when Q is released alone, and not at all once K completes the chord. A completed chord stops the shorter binds inside it from running on the release of its keys. With the `r` flag the chord is armed when its last key completes it in order, and runs when that key is released.
-
-While a key with a bind is held, another key pressed under the same modifiers is swallowed: with `bind = SUPER, Q` held, Super+H reaches no window.
-
 ## Sending keys
 
 `sendshortcut` takes modifiers, a key, and a window selector. It sends the key with exactly those modifiers down. A modifier the user holds that is not named is let go around the key and pressed again after it, if the user still holds it then. A `sendshortcut` bind presses the key on the press and releases it on the release. From the pipe it presses and releases at once. A number above 9 and `code:N` are keycodes, `mouse:272` to `mouse:276` are the left, right, middle, side and extra buttons, and anything else is a key name in the focused window's keyboard layout. An empty selector sends to the focused window. A bad argument answers `invalid args`, `invalid modifiers`, `invalid mouse button`, `invalid key`, `key not found`, or `window not found`, after the dispatcher name.
@@ -404,8 +392,6 @@ A config that is read or reloaded with warnings shows one notification: `Winland
 A batch, `[[BATCH]]` or `winland --batch`, splits: at every `;`, brackets or not, and each command is trimmed. `\;` puts a `;` in a command and `\\` a backslash, and a backslash before anything else stays as it is. So a Windows display name in a batch is written `\\\\.\\DISPLAY1`, and a rule block with more than one rule `[float\; tile]`. The replies are joined by two empty lines, and a command left empty, as after a last `;`, replies as an unknown command does. Flags before the batch, such as `j/[[BATCH]]` or `winland -j --batch`, apply to each command it splits into.
 
 With no window, `clients` replies `no open windows` and `activewindow` replies `Invalid`. With `j/` they reply `[]` and `{}`.
-
-`submap` answers the submap binds run in, or `default` outside one. With `j/` the name is a JSON string.
 
 `animations` lists every node of the animation tree, with whether a line set it, its curve, whether it is on, its speed and its style, and then every curve with its two control points, in Winland's text and JSON forms. The nodes follow the tree, and the curves come newest first.
 

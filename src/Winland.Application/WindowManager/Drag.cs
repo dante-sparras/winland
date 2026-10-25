@@ -45,7 +45,7 @@ public sealed partial class WindowManager
             Cursor = DragCursor(desk, window, IsResize(drag.Dispatcher), pointer),
             WasTiled = LayoutWorkspace(window).ClientOf(window) is { Floating: false },
             KeepRatio = IsResize(drag.Dispatcher) && KeepsRatio(drag.Arguments),
-            PickedUp = _config.Binds.DragThreshold <= 0,
+            PickedUp = _config.BindOptions.DragThreshold <= 0,
             CenterOnLift = _config.BindOptions.DragCenterWindow,
         };
 
@@ -81,7 +81,7 @@ public sealed partial class WindowManager
         var layout = LayoutWorkspace(gesture.Window).Layout;
         if (!gesture.PickedUp)
         {
-            if (!PastThreshold(gesture.Origin, pointer, _config.Binds.DragThreshold))
+            if (!PastThreshold(gesture.Origin, pointer, _config.BindOptions.DragThreshold))
                 return View([], consumed: true, dispatcher: gesture.Dispatcher);
 
             // The drag starts where the pointer crossed the threshold, so the Client does not jump.

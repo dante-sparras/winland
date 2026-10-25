@@ -14,14 +14,8 @@ public sealed partial class WindowManager
             if (dispatch.Dispatcher.Length == 0)
                 continue;
 
-            var submapBefore = _keyState.Submap;
             var next = ExecuteTriggered(dispatch.Dispatcher, dispatch.Arguments, match.Trigger);
             outcome = outcome is null ? next : outcome.Then(next);
-            if (!Is(dispatch.Dispatcher, "submap")
-                && dispatch.SubmapReset is string reset
-                && reset.Length > 0
-                && _keyState.Submap == submapBefore)
-                TryEnterSubmap(reset, out _);
         }
 
         if (outcome is null)
@@ -99,11 +93,6 @@ public sealed partial class WindowManager
             : launched;
     }
 
-    private Outcome SubmapDispatch(string name, string arguments) =>
-        TryEnterSubmap(arguments, out var error)
-            ? View([], dispatcher: name)
-            : View([], dispatcher: name) with { Error = error };
-
     // The dispatchers the active Workspace's Layout answers: killactive, resizeactive, and the layout messages.
     private Outcome LayoutDispatch(string name, string arguments)
     {
@@ -157,31 +146,4 @@ public sealed partial class WindowManager
     private static string Join(string name, string arguments) =>
         arguments.Length == 0 ? name : string.Concat(name, " ", arguments);
 
-    private bool TryEnterSubmap(string arguments, out string? error)
-    {
-        var name = arguments.Trim();
-        if (name.Length == 0 || name == "reset")
-        {
-            EnterSubmap("");
-            error = null;
-            return true;
-        }
-
-        if (!_config.Binds.HasSubmap(name))
-        {
-            error = "error: submap '" + name + "' does not exist";
-            return false;
-        }
-
-        EnterSubmap(name);
-        error = null;
-        return true;
-    }
-
-    private void EnterSubmap(string name)
-    {
-        _keyState.Submap = name;
-        _noted ??= [];
-        _noted.Add(new SubmapChanged(name));
-    }
 }

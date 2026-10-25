@@ -35,7 +35,6 @@ public static class Dispatchers
             "layout",
             "cyclelayout",
             "movetoroot",
-            "submap",
             "focuswindow",
             "closewindow",
             "closeall",

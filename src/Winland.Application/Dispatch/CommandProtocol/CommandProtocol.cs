@@ -28,7 +28,6 @@ public static partial class CommandProtocol
         new("getoption", "<name>", (rest, _) => new GetOptionRequest(SplitOnce(rest).First)),
         new("locked", "", (rest, _) => Bare(rest, new LockedRequest())),
         new("layouts", "", (rest, _) => Bare(rest, new LayoutsRequest())),
-        new("submap", "", (rest, _) => Bare(rest, new SubmapRequest())),
         new("animations", "", (rest, _) => Bare(rest, new AnimationsRequest())),
         new("kill", "", (rest, _) => Bare(rest, new ClickKillRequest())),
         new("keyword", "<name> <value>", (rest, _) =>
@@ -155,7 +154,6 @@ public sealed record LockedRequest : CommandRequest;
 
 public sealed record LayoutsRequest : CommandRequest;
 
-public sealed record SubmapRequest : CommandRequest;
 
 public sealed record AnimationsRequest : CommandRequest;
 

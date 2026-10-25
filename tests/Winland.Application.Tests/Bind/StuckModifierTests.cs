@@ -219,23 +219,6 @@ public class StuckModifierTests
     }
 
     [Fact]
-    public void LongPressWithSuperPassesTheSuperRelease()
-    {
-        var (core, session) = Load("bindo = SUPER, T, killactive");
-        core.Decide(new KeyPressed("Super_L"), session);
-        var down = core.Decide(new KeyPressed("T"), session);
-        var fired = core.Decide(new LongPressElapsed(), session);
-        var tUp = core.Decide(new KeyReleased("T"), session);
-        var superUp = core.Decide(new KeyReleased("Super_L"), session);
-
-        // The shell saw T while Super was down, so it does not open Start.
-        Assert.False(down.Consumed);
-        Assert.Equal("killactive", fired.Dispatcher);
-        Assert.False(tUp.Consumed);
-        Assert.False(superUp.Consumed);
-    }
-
-    [Fact]
     public void NonConsumingChordDoesNotMaskSuper()
     {
         var (core, session) = Load("bindn = SUPER, T, killactive");
@@ -289,7 +272,6 @@ public class StuckModifierTests
     }
 
     [Theory]
-    [InlineData("bindt")]
     [InlineData("bindn")]
     public void ChordWithAConsumingAndASecondBindRunsBothMasksOnceAndPassesSuper(string second)
     {
@@ -328,96 +310,6 @@ public class StuckModifierTests
     }
 
     [Fact]
-    public void SubmapChordUnderSuperPassesTheSuperReleaseInsideTheSubmap()
-    {
-        var core = Submaps(
-            "bind = SUPER, R, submap, resize\n" +
-            "submap = resize\n" +
-            "bind = , L, killactive\n" +
-            "bind = , catchall, submap, reset\n" +
-            "submap = reset\n");
-        var session = core.KeyState;
-
-        core.Decide(new KeyPressed("Super_L"), session);
-        var entered = Run(core, core.Decide(new KeyPressed("R"), session));
-        var rUp = core.Decide(new KeyReleased("R"), session);
-        var superUp = core.Decide(new KeyReleased("Super_L"), session);
-
-        Assert.Equal("resize", session.Submap);
-        Assert.True(entered.Consumed);
-        Assert.True(entered.Mask);
-        Assert.True(rUp.Consumed);
-        Assert.False(superUp.Consumed);
-
-        // The catchall swallows the next Super press, so the OS sees neither edge.
-        var again = Run(core, core.Decide(new KeyPressed("Super_L"), session));
-        var againUp = core.Decide(new KeyReleased("Super_L"), session);
-
-        Assert.True(again.Consumed);
-        Assert.False(again.Mask);
-        Assert.True(againUp.Consumed);
-        Assert.Equal("", session.Submap);
-    }
-
-    [Fact]
-    public void ModifiersPressedBeforeASubmapPassTheirReleasesInsideIt()
-    {
-        var core = Submaps(
-            "bind = SUPER SHIFT, R, submap, resize\n" +
-            "submap = resize\n" +
-            "bindr = , catchall, submap, reset\n" +
-            "submap = reset\n");
-        var session = core.KeyState;
-
-        core.Decide(new KeyPressed("Super_L"), session);
-        core.Decide(new KeyPressed("Shift_L"), session);
-        var entered = Run(core, core.Decide(new KeyPressed("R"), session));
-
-        Assert.Equal("resize", session.Submap);
-        Assert.True(entered.Mask);
-        Assert.True(core.Decide(new KeyReleased("R"), session).Consumed);
-        Assert.False(core.Decide(new KeyReleased("Shift_L"), session).Consumed);
-        Assert.False(core.Decide(new KeyReleased("Super_L"), session).Consumed);
-    }
-
-    [Fact]
-    public void LongPressAndTapOnOneSuperChordMaskOnceAndPassSuper()
-    {
-        var (core, session) = Load("bind = SUPER, F23, exec, tap\nbindo = SUPER, F23, killactive\n");
-        core.Decide(new KeyPressed("Super_L"), session);
-
-        var down = core.Decide(new KeyPressed("F23"), session);
-        var fired = core.Decide(new LongPressElapsed(), session);
-        var up = core.Decide(new KeyReleased("F23"), session);
-        var superUp = core.Decide(new KeyReleased("Super_L"), session);
-
-        Assert.Equal("exec", down.Dispatcher);
-        Assert.True(down.Consumed);
-        Assert.True(down.Mask);
-        Assert.NotNull(down.ArmLongPressMs);
-        Assert.Equal("killactive", fired.Dispatcher);
-        Assert.False(fired.Mask);
-        Assert.True(up.Consumed);
-        Assert.False(superUp.Consumed);
-    }
-
-    [Fact]
-    public void LongPressOnlySuperChordMasksWhenItFires()
-    {
-        var (core, session) = Load("bindo = SUPER, F23, killactive");
-        core.Decide(new KeyPressed("Super_L"), session);
-
-        var down = core.Decide(new KeyPressed("F23"), session);
-        var fired = core.Decide(new LongPressElapsed(), session);
-
-        Assert.False(down.Consumed);
-        Assert.False(down.Mask);
-        Assert.True(fired.Mask);
-        Assert.False(core.Decide(new KeyReleased("F23"), session).Consumed);
-        Assert.False(core.Decide(new KeyReleased("Super_L"), session).Consumed);
-    }
-
-    [Fact]
     public void NonConsumingSuperDragPassesTheButtonAndSuper()
     {
         var (core, session) = Load("bindmn = SUPER, mouse:272, movewindow");
@@ -432,26 +324,6 @@ public class StuckModifierTests
         Assert.False(down.Consumed);
         Assert.False(down.Mask);
         Assert.False(up.Consumed);
-        Assert.False(superUp.Consumed);
-    }
-
-    [Theory]
-    [InlineData(0, "killactive")]
-    [InlineData(200, "togglefloating")]
-    public void SuperClickAndDragBindsOnOneButtonMaskSuperAndPassItsRelease(int moved, string expected)
-    {
-        var (core, session) = Load("bindc = SUPER, mouse:272, killactive\nbindg = SUPER, mouse:272, togglefloating\n");
-        core.Decide(new KeyPressed("Super_L"), session);
-
-        var down = core.Decide(new PointerButtonPressed("mouse:272") { Position = new Point(0, 0) }, session);
-        core.Decide(new PointerMoved(new Point(moved, moved)), session);
-        var up = core.Decide(new PointerButtonReleased("mouse:272") { Position = new Point(moved, moved) }, session);
-        var superUp = core.Decide(new KeyReleased("Super_L"), session);
-
-        Assert.True(down.Consumed);
-        Assert.True(down.Mask);
-        Assert.Equal(expected, up.Dispatcher);
-        Assert.True(up.Consumed);
         Assert.False(superUp.Consumed);
     }
 
@@ -502,22 +374,6 @@ public class StuckModifierTests
 
         Assert.Equal("exec", down.Dispatcher);
         Assert.False(down.Consumed);
-        Assert.False(up.Consumed);
-    }
-
-    [Fact]
-    public void LongPressModifierOnlyBindMasksSuperAndPassesItsRelease()
-    {
-        var (core, session) = Load("bindo = , Super_L, exec, menu");
-
-        var down = core.Decide(new KeyPressed("Super_L"), session);
-        var fired = core.Decide(new LongPressElapsed(), session);
-        var up = core.Decide(new KeyReleased("Super_L"), session);
-
-        // The OS holds this Super, so the fire masks it and Start stays closed on release.
-        Assert.False(down.Consumed);
-        Assert.Equal("exec", fired.Dispatcher);
-        Assert.True(fired.Mask);
         Assert.False(up.Consumed);
     }
 

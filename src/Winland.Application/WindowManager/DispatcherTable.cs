@@ -59,7 +59,6 @@ public sealed partial class WindowManager
             ["exit"] = new(static (m, _, _) => m.ExitDaemon()),
             ["event"] = new(static (m, _, a) => m.EmitCustom(a)),
             ["dpms"] = new(static (m, _, a) => m.Dpms(a)),
-            ["submap"] = new(static (m, n, a) => m.SubmapDispatch(n, a)),
             ["sendshortcut"] = new(static (m, _, a) => m.SendShortcut(a)),
 
             // Workspaces and Monitors

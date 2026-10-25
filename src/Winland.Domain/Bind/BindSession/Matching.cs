@@ -1,76 +1,46 @@
 namespace Winland.Domain;
 
-/// <summary>Which binds an edge matches: the key, the modifiers, the submap, the flags, and whether a bind consumes the edge.</summary>
+/// <summary>Which binds an edge matches: the key, the modifiers, the flags, and whether a bind consumes the edge.</summary>
 public sealed partial class BindSession
 {
-    // The anchor is where the released key went down. Only a release reads it.
-    private List<Bind> Collect(BindTable table, string key, int scanCode, bool mouse, bool releasing, string submap, Point anchor = default)
+    private List<Bind> Collect(BindTable table, string key, int scanCode, bool mouse, bool releasing)
     {
         var matches = new List<Bind>();
-        foreach (var bind in table.Active(submap))
+        foreach (var bind in table.Binds)
         {
-            if (IsCatchAll(bind) || !Include(bind, table, key, scanCode, mouse, releasing, anchor, catchAll: false))
-                continue;
-
-            matches.Add(bind);
-            if (DispatchesNow(bind, releasing) && IsSubmapDispatcher(bind))
-                break;
-        }
-
-        if (matches.Count == 0 && submap == Submap)
-        {
-            foreach (var bind in table.Active(submap))
-            {
-                if (!IsCatchAll(bind) || !Include(bind, table, key, scanCode, mouse, releasing, anchor, catchAll: true))
-                    continue;
-
+            if (Include(bind, key, scanCode, mouse, releasing))
                 matches.Add(bind);
-                if (DispatchesNow(bind, releasing) && IsSubmapDispatcher(bind))
-                    break;
-            }
         }
 
         return matches;
     }
 
-    private bool Include(Bind bind, BindTable table, string key, int scanCode, bool mouse, bool releasing, Point anchor, bool catchAll)
+    private bool Include(Bind bind, string key, int scanCode, bool mouse, bool releasing)
     {
-        if (!Eligible(bind, key, scanCode, mouse, releasing, anyKey: catchAll))
+        if (!Eligible(bind, key, scanCode, mouse, releasing))
             return false;
 
         if (releasing)
         {
             if (!bind.Flags.HasFlag(BindFlag.Release) && !SendsBothEdges(bind))
                 return false;
-            if (!mouse && Listed(_suppressed, key, bind))
-                return false;
             if (_shadowed.Contains(bind))
-                return false;
-            if (!mouse && bind.Flags.HasFlag(BindFlag.Release) && Parts(bind).Length > 1 && !Listed(_armed, key, bind))
-                return false;
-            if (!WithinGesture(table, bind, anchor))
                 return false;
         }
 
         return true;
     }
 
-    // Mouse, modifiers, the key unless any key will do, the locked flag, and the gesture flags.
-    private bool Eligible(Bind bind, string key, int scanCode, bool mouse, bool releasing, bool anyKey)
+    // Mouse, modifiers, the key and the locked flag.
+    private bool Eligible(Bind bind, string key, int scanCode, bool mouse, bool releasing)
     {
         if (IsMouseBind(bind) != mouse)
             return false;
-        // A release chord armed on this key matched the modifiers held when the key went down.
-        var armed = releasing && !mouse && Listed(_armed, key, bind);
-        if (!bind.Flags.HasFlag(BindFlag.IgnoreModifiers) && !armed && !ModifiersMatch(bind, key, mouse, releasing))
+        if (!ModifiersMatch(bind, key, mouse, releasing))
             return false;
-        if (!anyKey && !KeyMatches(bind, key, scanCode))
-            return false;
-        if (!MatchesDevice(bind))
+        if (!KeyEquals(bind.Key, key, scanCode))
             return false;
         if (Inhibited && !bind.Flags.HasFlag(BindFlag.Locked))
-            return false;
-        if (!releasing && bind.Flags.HasFlag(BindFlag.Release) && bind.Flags.HasFlag(BindFlag.LongPress))
             return false;
 
         return true;
@@ -80,101 +50,26 @@ public sealed partial class BindSession
     private static bool IsMouseBind(Bind bind) =>
         bind.Key.StartsWith("mouse:", StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsCatchAll(Bind bind) =>
-        bind.Key.Equals("catchall", StringComparison.Ordinal);
-
-    private static bool IsSubmapDispatcher(Bind bind) =>
-        bind.Dispatcher.Equals("submap", StringComparison.OrdinalIgnoreCase);
-
     // A sendshortcut bind runs on the press and again on the release, so the window it
     // sends to sees both edges.
     private static bool SendsBothEdges(Bind bind) =>
-        !bind.Flags.HasFlag(BindFlag.LongPress)
-        && bind.Dispatcher.Equals("sendshortcut", StringComparison.OrdinalIgnoreCase);
+        bind.Dispatcher.Equals("sendshortcut", StringComparison.OrdinalIgnoreCase);
 
-    private static bool DispatchesNow(Bind bind, bool releasing)
+    // A non-consuming bind never consumes. Any other bind does.
+    private static bool Consumes(List<Bind> binds) =>
+        binds.Exists(bind => !bind.Flags.HasFlag(BindFlag.NonConsuming));
+
+    private void Catch(string key, bool mouse)
     {
-        var release = bind.Flags.HasFlag(BindFlag.Release);
-        var longPress = bind.Flags.HasFlag(BindFlag.LongPress);
-        if (releasing)
-            return release;
-
-        return !release && !longPress;
-    }
-
-    private bool WithinGesture(BindTable table, Bind bind, Point anchor)
-    {
-        var click = bind.Flags.HasFlag(BindFlag.Click);
-        var drag = bind.Flags.HasFlag(BindFlag.Drag);
-        if (!click && !drag)
-            return true;
-
-        var past = PastThreshold(table, anchor);
-        if (click && past)
-            return false;
-        if (drag && !past)
-            return false;
-
-        return true;
-    }
-
-    private bool PastThreshold(BindTable table, Point anchor)
-    {
-        var dx = (long)Pointer.X - anchor.X;
-        var dy = (long)Pointer.Y - anchor.Y;
-        var limit = (long)table.DragThreshold * table.DragThreshold;
-        return (dx * dx) + (dy * dy) > limit;
-    }
-
-    private readonly record struct Claim(bool Hard, bool Conditional);
-
-    // A non-consuming bind never consumes. An auto-consuming bind consumes only when its dispatcher succeeds, so the
-    // press is swallowed now and given back on failure. Any other bind consumes outright.
-    private static Claim Classify(List<Bind> binds)
-    {
-        var hard = false;
-        var conditional = false;
-        foreach (var bind in binds)
-        {
-            if (bind.Flags.HasFlag(BindFlag.NonConsuming))
-                continue;
-            if (bind.Flags.HasFlag(BindFlag.AutoConsuming))
-                conditional = true;
-            else
-                hard = true;
-        }
-
-        return new Claim(hard, conditional);
-    }
-
-    private static bool CanFail(List<Bind> binds)
-    {
-        foreach (var bind in binds)
-        {
-            if (bind.Dispatcher.Length > 0 && bind.Flags.HasFlag(BindFlag.AutoConsuming) && !bind.Flags.HasFlag(BindFlag.NonConsuming))
-                return true;
-        }
-
-        return false;
-    }
-
-    private void Catch( string key, bool mouse, List<string>? added)
-    {
-        NoteCaught(mouse ? _caughtButtons : _caughtKeys, key, added);
+        (mouse ? _caughtButtons : _caughtKeys).Add(key);
         foreach (var held in _downKeys)
         {
             if (ModifierKeys.ContainsKey(held))
-                NoteCaught(_caughtKeys, held, added);
+                _caughtKeys.Add(held);
         }
     }
 
-    private static void NoteCaught(HashSet<string> caught, string key, List<string>? added)
-    {
-        if (caught.Add(key) && added is not null)
-            added.Add(key);
-    }
-
-    private void ReleaseModifier( string key)
+    private void ReleaseModifier(string key)
     {
         if (!ModifierKeys.TryGetValue(key, out var modifier))
             return;
@@ -193,9 +88,6 @@ public sealed partial class BindSession
     // "bindr = SUPER, K" runs when Super is let go before K.
     private bool ModifiersMatch(Bind bind, string key, bool mouse, bool releasing)
     {
-        if (!releasing && _deviceMatchMask is Modifier forced)
-            return bind.Modifiers == forced;
-
         var mask = releasing && _pressedUnder.TryGetValue(key, out var under) ? under : MaskFor(key, mouse);
         if (releasing && !mouse && ModifierKeys.TryGetValue(key, out var own))
             mask |= own;
@@ -205,7 +97,7 @@ public sealed partial class BindSession
 
     // A modifier keysym is matched against the mask without that key folded in,
     // unless the other side of the same modifier is already held.
-    private Modifier MaskFor( string key, bool mouse)
+    private Modifier MaskFor(string key, bool mouse)
     {
         if (mouse || !ModifierKeys.TryGetValue(key, out var modifier))
             return Held;
@@ -221,27 +113,14 @@ public sealed partial class BindSession
         return Held & ~modifier;
     }
 
-    // A bind on several keys is triggered by its last key.
-    private static bool KeyMatches(Bind bind, string key, int scanCode)
+    // A bound key matches by name, or by scan code when it is written as code:N.
+    private static bool KeyEquals(string bound, string key, int scanCode)
     {
-        var parts = Parts(bind);
-        return KeyEquals(parts[^1], key, scanCode);
+        if (bound.Length == 0)
+            return false;
+        if (bound.Equals(key, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return scanCode > 0 && bound.Equals($"code:{scanCode}", StringComparison.OrdinalIgnoreCase);
     }
-
-    private static string[] Parts(Bind bind) =>
-        bind.Flags.HasFlag(BindFlag.MultiKey) ? bind.Key.Split('&', StringSplitOptions.TrimEntries) : [bind.Key];
-
-    private static bool Contains(Bind bind, string key, int scanCode)
-    {
-        foreach (var part in Parts(bind))
-        {
-            if (KeyEquals(part, key, scanCode))
-                return true;
-        }
-
-        return false;
-    }
-
-    private static bool Listed(Dictionary<string, List<Bind>> perKey, string key, Bind bind) =>
-        perKey.TryGetValue(key, out var binds) && binds.Exists(listed => ReferenceEquals(listed, bind));
 }

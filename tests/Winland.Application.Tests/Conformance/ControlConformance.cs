@@ -58,15 +58,6 @@ public class ControlConformance
     }
 
     [Fact]
-    public void HyprctlSubmap()
-    {
-        var desk = new Desk();
-
-        Assert.Equal("default", desk.Send("submap").TrimEnd('\n'));
-        Assert.Equal("default", Json(desk.Send("j/submap")).GetString());
-    }
-
-    [Fact]
     public void HyprctlJsonErrors()
     {
         var desk = new Desk();
@@ -105,8 +96,7 @@ public class ControlConformance
         Assert.Contains(binds, bind =>
             bind.GetProperty("key").GetString() == "F12"
             && bind.GetProperty("has_description").GetBoolean()
-            && bind.GetProperty("description").GetString() == description
-            && bind.GetProperty("allow_input_capture").ValueKind == JsonValueKind.False);
+            && bind.GetProperty("description").GetString() == description);
 
         // The reference reads the flags of that bind from the text reply as "locked, repeat".
         var described = Json(desk.Send("binds")).EnumerateArray()

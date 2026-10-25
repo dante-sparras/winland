@@ -9,21 +9,12 @@ public abstract record Command : Input;
 public sealed record KeyPressed(string Key) : Event
 {
     public int ScanCode { get; init; }
-
-    /// <summary>The keyboard raw input names for this press, when it could be attributed. Null when it could not.</summary>
-    public string? Device { get; init; }
 }
 
 public sealed record KeyReleased(string Key) : Event
 {
     public int ScanCode { get; init; }
-
-    /// <summary>The keyboard raw input names for this release, when it could be attributed. Null when it could not.</summary>
-    public string? Device { get; init; }
 }
-
-/// <summary>The armed long press has reached its delay. Matching reads the session and takes no lock.</summary>
-public sealed record LongPressElapsed : Event;
 
 public sealed record PointerMoved(Point Position) : Event
 {
