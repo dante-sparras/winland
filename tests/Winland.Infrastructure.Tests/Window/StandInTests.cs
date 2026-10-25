@@ -115,9 +115,9 @@ public class StandInTests
     }
 
     [Fact]
-    public void AStandInGivesTheWindowItsBorderAndItsAlphaBackWhenTheMotionEnds()
+    public void AStandInGivesTheWindowItsAlphaBackAndNoBorderWhenTheMotionEnds()
     {
-        using var windows = Grow(out _, desktop => desktop[1].Attributes[34] = 0x00112233);
+        using var windows = Grow(out _);
         var window = windows.Desktop[1];
         Assert.Equal(0, window.Alpha);
         Assert.Equal(0xFFFFFFFEu, window.Attributes[34]);
@@ -126,7 +126,20 @@ public class StandInTests
 
         Assert.True(windows.Desktop.StandInOf(1).Closed);
         Assert.Equal(0u, window.ExStyle & Layered);
-        Assert.Equal(0x00112233u, window.Attributes[34]);
+        Assert.Equal(0xFFFFFFFEu, window.Attributes[34]);
+    }
+
+    [Fact]
+    public void AWindowThatOpensKeepsTheBorderWinlandTookOffWhenItsStandInEnds()
+    {
+        using var windows = new TestWindows(Fast);
+        windows.Open(1);
+        Assert.Contains("standin open 1", windows.Desktop.Calls);
+
+        windows.Settle();
+
+        Assert.True(windows.Desktop.StandInOf(1).Closed);
+        Assert.Equal(0xFFFFFFFEu, windows.Desktop[1].Attributes[34]);
     }
 
     [Fact]

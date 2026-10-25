@@ -72,17 +72,6 @@ internal sealed class Win32Desktop : IDesktop
         return true;
     }
 
-    public unsafe bool TryAttribute(WindowId window, int attribute, out uint value)
-    {
-        value = 0;
-        Span<byte> read = stackalloc byte[sizeof(uint)];
-        if (PInvoke.DwmGetWindowAttribute(Handle(window), (DWMWINDOWATTRIBUTE)attribute, read).Failed)
-            return false;
-
-        value = System.Runtime.InteropServices.MemoryMarshal.Read<uint>(read);
-        return true;
-    }
-
     public unsafe void SetAttribute(WindowId window, int attribute, uint value) =>
         _ = PInvoke.DwmSetWindowAttribute(Handle(window), (DWMWINDOWATTRIBUTE)attribute, &value, sizeof(uint));
 

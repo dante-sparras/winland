@@ -74,7 +74,7 @@ public sealed partial class WindowAdapter
 
         // A veiled window still has the border DWM draws around its frame, which would outline the goal size around
         // a smaller stand-in. It is taken off until the stand-in ends.
-        standIn.Border = _desktop.TryAttribute(window, BorderColorAttribute, out var border) ? border : DefaultBorderColor;
+        standIn.BorderOff = true;
         _desktop.SetAttribute(window, BorderColorAttribute, NoneBorderColor);
 
         SendQuick(window, insets.OuterFor(given), keepSize: false);
@@ -161,8 +161,9 @@ public sealed partial class WindowAdapter
         StandFrames.Remove(window);
         StandFrames.Follow(window);
         _opacity.Unveil(window);
-        if (standIn.Border is uint border)
-            _desktop.SetAttribute(window, BorderColorAttribute, border);
+        // DWM does not say what border a window has, so it gets the one Winland gives it: none once it is painted.
+        if (standIn.BorderOff)
+            _desktop.SetAttribute(window, BorderColorAttribute, _dwmPainted.ContainsKey(window) ? NoneBorderColor : DefaultBorderColor);
 
         standIn.Surface.Close();
     }
@@ -213,8 +214,8 @@ public sealed partial class WindowAdapter
         // How far the window's outer rectangle extends past its visible frame.
         public FrameInsets Insets { get; } = insets;
 
-        // The border color the window had, while the stand-in hides the window's border.
-        public uint? Border { get; set; }
+        // Whether the stand-in took the window's border off.
+        public bool BorderOff { get; set; }
 
         // The window's outer size before it was given its size for the motion.
         public Size? Before { get; set; }

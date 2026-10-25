@@ -48,8 +48,6 @@ internal interface IDesktop : IWindowStyles, IWindowFrame, IDwmSurface
     /// <summary>The frame the window shows.</summary>
     bool TryVisible(WindowId window, out Rectangle visible);
 
-    bool TryAttribute(WindowId window, int attribute, out uint value);
-
     void SetAttribute(WindowId window, int attribute, uint value);
 
     /// <summary>Moves and sizes the window by its outer rectangle, without changing its place in the z-order or activating it.</summary>
