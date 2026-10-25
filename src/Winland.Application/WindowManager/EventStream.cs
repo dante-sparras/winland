@@ -39,19 +39,7 @@ public sealed partial class WindowManager
             _activated = null;
         }
 
-        var activeAfter = ActiveWindow();
-        var reason = FocusReason.Unknown;
-        if (activeAfter != before.Active)
-        {
-            // One input emits one focus event, for the window that ends focused. A handler that knows a reason the
-            // dispatcher name does not say, such as the pointer, records it. Otherwise the input and the dispatcher do.
-            reason = _focusReason == FocusReason.Unknown
-                ? ReasonFor(input, outcome, before, activeAfter)
-                : _focusReason;
-        }
-
-        _focusReason = FocusReason.Unknown;
-        var events = Diff(before.State, outcome.State, before.Active, activeAfter, reason, activated);
+        var events = Diff(before.State, outcome.State, before.Active, ActiveWindow(), activated);
         if (_configEvents is not null)
         {
             events.AddRange(_configEvents);
@@ -92,7 +80,7 @@ public sealed partial class WindowManager
         };
     }
 
-    private static List<StreamEvent> Diff(State before, State after, WindowId? activeBefore, WindowId? activeAfter, FocusReason reason, IReadOnlyList<WorkspaceId>? activated)
+    private static List<StreamEvent> Diff(State before, State after, WindowId? activeBefore, WindowId? activeAfter, IReadOnlyList<WorkspaceId>? activated)
     {
         var events = new List<StreamEvent>();
         AddWorkspaceEvents(events, before, after);
@@ -145,9 +133,7 @@ public sealed partial class WindowManager
         }
 
         if (activeAfter != activeBefore)
-        {
-            events.Add(new FocusChanged(activeAfter) { Reason = reason });
-        }
+            events.Add(new FocusChanged(activeAfter));
 
         AddSpecialEvents(events, before, after);
         AddMonitorEvents(events, before, after);
@@ -324,148 +310,5 @@ public sealed partial class WindowManager
         }
 
         return shown;
-    }
-
-    // The reason of the focus this input left, as Winland reports the last reason for that window.
-    private FocusReason ReasonFor(Input? input, Outcome outcome, Captured before, WindowId? after)
-    {
-        if (input is WindowFocused focused)
-            return ReasonForOs(focused);
-
-        if (input is WindowAppeared)
-            return FocusReason.NewWindow;
-
-        if (input is WindowClosed closed)
-            return ReasonForClose(closed.Window, after, before.State);
-
-        // A pointer move that is not a drag follows the window under it. A drag still has its gesture or border.
-        if (input is PointerMoved && _interaction is not (Gesture or BorderDrag))
-            return FocusReason.FollowMouse;
-
-        if (outcome.Dispatcher is string name)
-            return ReasonForDispatcher(name, input, before, after, outcome.State);
-
-        if (input is PointerMoved or PointerButtonPressed or PointerButtonReleased or PointerGesture)
-            return FocusReason.DesktopState;
-
-        return FocusReason.Unknown;
-    }
-
-    // A click on the window is a click. An activation Windows accepted, after a click in another program, is a
-    // desktop-state change. A confirmation Winland asked for, or a change with no equivalent, is unknown.
-    private FocusReason ReasonForOs(WindowFocused focused)
-    {
-        if (ActivatedAfterClick(focused))
-            return FocusReason.DesktopState;
-
-        if (focused.Cause == FocusCause.User && focused.Clicked is not null)
-            return FocusReason.Click;
-
-        return FocusReason.Unknown;
-    }
-
-    private static FocusReason ReasonForClose(WindowId closed, WindowId? after, State before)
-    {
-        if (after is null)
-            return FocusReason.Other;
-
-        if (SameGroup(before, closed, after.Value))
-            return FocusReason.UnmapGrouped;
-
-        return ClientIn(before, closed) is { Floating: true } ? FocusReason.UnmapFloating : FocusReason.UnmapTiled;
-    }
-
-    private FocusReason ReasonForDispatcher(string name, Input? input, Captured before, WindowId? after, State afterState) =>
-        Table.TryGetValue(name, out var dispatcher) && dispatcher.Focus is { } reason
-            ? reason(this, new FocusChange(input, before, after, afterState))
-            : FocusReason.Unknown;
-
-    // workspace: a keybind when the switch moved to another Monitor, the workspace change otherwise.
-    private static FocusReason WorkspaceFocusReason(WindowManager _, FocusChange change) =>
-        change.Before.State.ActiveMonitor != change.AfterState.ActiveMonitor ? FocusReason.Keybind : FocusReason.Workspace;
-
-    private static FocusReason MoveFocusReason(WindowManager _, FocusChange change) =>
-        ReasonForMoveFocus(change.Before, change.After, change.AfterState);
-
-    private static FocusReason SwitchFocusReason(WindowManager _, FocusChange change) =>
-        ReasonForSwitch(change.Before, change.After, change.AfterState);
-
-    private static FocusReason LayoutMessageFocusReason(WindowManager _, FocusChange __) => FocusReason.Unknown;
-
-    // A drag begins, moves and ends as the pointer, and reports a desktop-state change. Typing the dispatcher does not.
-    private static FocusReason DragFocusReason(WindowManager _, FocusChange change) =>
-        change.Input is PointerMoved or PointerButtonPressed or PointerButtonReleased or PointerGesture
-            ? FocusReason.DesktopState
-            : FocusReason.Unknown;
-
-    private static FocusReason ReasonForMoveFocus(Captured before, WindowId? after, State afterState)
-    {
-        if (SameGroup(before.State, before.Active, after))
-            return FocusReason.GroupCurrent;
-
-        if (before.State.ActiveMonitor != afterState.ActiveMonitor)
-            return FocusReason.Keybind;
-
-        return ReasonForSwitch(before, after, afterState);
-    }
-
-    // A switch on one workspace is hard when the window left fills the monitor and the layout does not hold that
-    // fullscreen. Maximized is soft. One onto a workspace that was not shown is the workspace change, or a keybind
-    // when that workspace is on another monitor, because the original switch is not what gets reported.
-    private static FocusReason ReasonForSwitch(Captured before, WindowId? after, State afterState)
-    {
-        if (before.Active is not WindowId from || after is not WindowId to
-            || ClientIn(before.State, from) is not { } left
-            || ClientIn(afterState, to) is not { } right)
-            return FocusReason.SwitchSoft;
-
-        if (left.Workspace != right.Workspace)
-            return before.State.ActiveMonitor != afterState.ActiveMonitor ? FocusReason.Keybind : FocusReason.Workspace;
-
-        if (left.Fullscreen == FullscreenMode.Fullscreen && !left.LayoutFullscreen)
-            return FocusReason.SwitchHard;
-
-        return FocusReason.SwitchSoft;
-    }
-
-    private static bool SameGroup(State state, WindowId? left, WindowId? right)
-    {
-        if (left is not WindowId first || right is not WindowId second || first == second)
-            return false;
-
-        foreach (var group in state.Groups)
-        {
-            var hasFirst = false;
-            var hasSecond = false;
-            foreach (var member in group)
-            {
-                if (member == first)
-                    hasFirst = true;
-                if (member == second)
-                    hasSecond = true;
-            }
-
-            if (hasFirst && hasSecond)
-                return true;
-        }
-
-        return false;
-    }
-
-    private static Client? ClientIn(State state, WindowId window)
-    {
-        foreach (var client in state.Clients)
-        {
-            if (client.Window == window)
-                return client;
-        }
-
-        foreach (var client in state.Hidden)
-        {
-            if (client.Window == window)
-                return client;
-        }
-
-        return null;
     }
 }

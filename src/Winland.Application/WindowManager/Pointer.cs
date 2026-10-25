@@ -169,7 +169,6 @@ public sealed partial class WindowManager
             return null;
 
         desk.Layout.NotePointerFocus(next);
-        Because(FocusReason.FollowMouse);
         return next;
     }
 

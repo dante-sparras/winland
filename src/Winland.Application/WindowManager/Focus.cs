@@ -17,9 +17,6 @@ public sealed partial class WindowManager
 
     private List<StreamEvent>? _extraEvents;
 
-    // A reason a handler sets when the dispatcher name is not why the focus moved, such as the pointer.
-    private FocusReason _focusReason;
-
     private Outcome Consider(WindowFocused focused)
     {
         var window = focused.Window;
@@ -132,8 +129,6 @@ public sealed partial class WindowManager
         _urgent.Remove(window);
         _focus.Confirm(window);
     }
-
-    private void Because(FocusReason reason) => _focusReason = reason;
 
     private void TakeFocus(LiveWorkspace desk, WindowId? window)
     {
