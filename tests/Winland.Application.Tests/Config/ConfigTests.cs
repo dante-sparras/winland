@@ -348,7 +348,7 @@ public class ConfigTests
             {
                 new ConfigWarning(2, "Unsupported keyword 'ghostkeyword'."),
                 new ConfigWarning(3, "Unsupported keyword 'xwayland:enabled'."),
-                new ConfigWarning(4, "Unsupported keyword 'execr'."),
+                new ConfigWarning(4, "Unsupported keyword 'execr'. Did you mean 'exec'?"),
             },
             document.Warnings);
         Assert.Equal(
@@ -363,6 +363,16 @@ public class ConfigTests
 
         Assert.Equal(
             new ConfigWarning(1, "Unsupported keyword 'general:gap_in'. Did you mean 'general:gaps_in'?"),
+            Assert.Single(document.Warnings));
+    }
+
+    [Fact]
+    public void MistypedKeywordWarnsWithTheOneKeywordItIsCloseTo()
+    {
+        var document = ConfigParser.Parse("windowrul = float, class:kitty\n");
+
+        Assert.Equal(
+            new ConfigWarning(1, "Unsupported keyword 'windowrul'. Did you mean 'windowrule'?"),
             Assert.Single(document.Warnings));
     }
 
