@@ -16,6 +16,7 @@ An ADR without a Status line is accepted and true against the code. `Status: Pro
 - [0007](0007-elevation-does-not-leak-to-launched-programs-or-ipc.md): launched programs are always de-elevated, the pipe is limited to the current user, and the config is an ordinary user file.
 - [0014](0014-winland-manages-windows-and-leaves-the-desktop-to-windows.md): Winland manages windows and leaves settings, notifications, effects and the taskbar to Windows. The installer may turn off Snap and touchpad swipes, with consent.
 - [0015](0015-install-and-update-from-published-releases.md): one PowerShell line installs the newest release, and `winland update` follows the stable or the dev channel.
+- [0016](0016-per-window-state-stays-with-the-code-that-uses-it.md): what Winland knows about a window stays in the module that uses it, with no single record per Client; a guard test checks that closing a window leaves nothing behind.
 
 ## Config and names
 
