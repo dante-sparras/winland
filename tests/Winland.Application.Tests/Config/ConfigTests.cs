@@ -233,7 +233,7 @@ public class ConfigTests
 
         Assert.Empty(document.Warnings);
         Assert.Equal(
-            new Bind(Modifier.Alt, "Q", "killactive", "", BindFlag.None, null, null),
+            new Bind(Modifier.Alt, "Q", "killactive", "", BindFlag.None, null),
             Assert.Single(document.Binds));
     }
 
@@ -449,8 +449,8 @@ public class ConfigTests
         Assert.Equal(
             new BindDirective[]
             {
-                new Bind(Modifier.Super, "Q", "", "", BindFlag.None, null, null),
-                new Bind(Modifier.None, "Super_L", "", "", BindFlag.None, "Menu", null),
+                new Bind(Modifier.Super, "Q", "", "", BindFlag.None, null),
+                new Bind(Modifier.None, "Super_L", "", "", BindFlag.None, "Menu"),
             },
             document.Binds);
     }
@@ -466,8 +466,8 @@ public class ConfigTests
         Assert.Equal(
             new BindDirective[]
             {
-                new Bind(Modifier.Super, "Q", "killactive", "", BindFlag.None, null, null),
-                new Bind(Modifier.Super | Modifier.Shift, "code:28", "exec", "notepad --title hello", BindFlag.None, null, null),
+                new Bind(Modifier.Super, "Q", "killactive", "", BindFlag.None, null),
+                new Bind(Modifier.Super | Modifier.Shift, "code:28", "exec", "notepad --title hello", BindFlag.None, null),
             },
             document.Binds);
     }
@@ -480,10 +480,7 @@ public class ConfigTests
             "bindl = , XF86AudioMute, exec, wpctl set-mute\n" +
             "bindm = SUPER, mouse:272, movewindow\n" +
             "bindd = SUPER, Return, Open a terminal, exec, kitty\n" +
-            "bindc = SUPER, V, exec, notepad\n" +
-            "bindg = SUPER, G, exec, notepad\n" +
-            "bindel = SUPER SHIFT, E, exec, notepad\n" +
-            "binds = SUPER, A&B, exec, notepad\n";
+            "bindel = SUPER SHIFT, E, exec, notepad\n";
 
         var document = ConfigParser.Parse(text);
 
@@ -491,14 +488,11 @@ public class ConfigTests
         Assert.Equal(
             new BindDirective[]
             {
-                new Bind(Modifier.Super, "H", "movefocus", "l", BindFlag.Repeat, null, null),
-                new Bind(Modifier.None, "XF86AudioMute", "exec", "wpctl set-mute", BindFlag.Locked, null, null),
-                new Bind(Modifier.Super, "mouse:272", "movewindow", "", BindFlag.Mouse, null, null),
-                new Bind(Modifier.Super, "Return", "exec", "kitty", BindFlag.None, "Open a terminal", null),
-                new Bind(Modifier.Super, "V", "exec", "notepad", BindFlag.Click | BindFlag.Release, null, null),
-                new Bind(Modifier.Super, "G", "exec", "notepad", BindFlag.Drag | BindFlag.Release, null, null),
-                new Bind(Modifier.Super | Modifier.Shift, "E", "exec", "notepad", BindFlag.Repeat | BindFlag.Locked, null, null),
-                new Bind(Modifier.Super, "A&B", "exec", "notepad", BindFlag.MultiKey, null, null),
+                new Bind(Modifier.Super, "H", "movefocus", "l", BindFlag.Repeat, null),
+                new Bind(Modifier.None, "XF86AudioMute", "exec", "wpctl set-mute", BindFlag.Locked, null),
+                new Bind(Modifier.Super, "mouse:272", "movewindow", "", BindFlag.Mouse, null),
+                new Bind(Modifier.Super, "Return", "exec", "kitty", BindFlag.None, "Open a terminal"),
+                new Bind(Modifier.Super | Modifier.Shift, "E", "exec", "notepad", BindFlag.Repeat | BindFlag.Locked, null),
             },
             document.Binds);
     }
@@ -526,7 +520,7 @@ public class ConfigTests
         var document = ConfigParser.Parse($"bind = {name}, Q, killactive\n");
 
         Assert.Equal(
-            new Bind(expected, "Q", "killactive", "", BindFlag.None, null, null),
+            new Bind(expected, "Q", "killactive", "", BindFlag.None, null),
             Assert.Single(document.Binds));
     }
 
@@ -537,7 +531,7 @@ public class ConfigTests
 
         Assert.Empty(document.Warnings);
         Assert.Equal(
-            new Bind(Modifier.Super | Modifier.Shift, "Q", "killactive", "", BindFlag.None, null, null),
+            new Bind(Modifier.Super | Modifier.Shift, "Q", "killactive", "", BindFlag.None, null),
             Assert.Single(document.Binds));
     }
 
@@ -601,7 +595,7 @@ public class ConfigTests
             },
             document.Warnings);
         Assert.Equal(
-            new Bind(Modifier.Super, "Q", "killactive", "", BindFlag.None, null, null),
+            new Bind(Modifier.Super, "Q", "killactive", "", BindFlag.None, null),
             Assert.Single(document.Binds));
     }
 
@@ -620,31 +614,10 @@ public class ConfigTests
         Assert.Equal(
             new BindDirective[]
             {
-                new Bind(Modifier.Super, "Q", "killactive", "", BindFlag.None, null, null),
+                new Bind(Modifier.Super, "Q", "killactive", "", BindFlag.None, null),
                 new Unbind(Modifier.Super, "Q"),
-                new Bind(Modifier.Super, "R", "killactive", "", BindFlag.None, null, null),
+                new Bind(Modifier.Super, "R", "killactive", "", BindFlag.None, null),
                 new UnbindAll(),
-            },
-            document.Binds);
-    }
-
-    [Fact]
-    public void SubmapIsAttachedUntilReset()
-    {
-        var text =
-            "submap = resize\n" +
-            "bind = SUPER, H, resizeactive, 10 0\n" +
-            "submap = reset\n" +
-            "bind = SUPER, Q, killactive\n";
-
-        var document = ConfigParser.Parse(text);
-
-        Assert.Empty(document.Warnings);
-        Assert.Equal(
-            new BindDirective[]
-            {
-                new Bind(Modifier.Super, "H", "resizeactive", "10 0", BindFlag.None, null, "resize"),
-                new Bind(Modifier.Super, "Q", "killactive", "", BindFlag.None, null, null),
             },
             document.Binds);
     }
@@ -713,21 +686,5 @@ public class ConfigTests
         var rule = Assert.Single(document.WorkspaceRules);
         Assert.Equal("DP-1", rule.Monitor);
         Assert.True(rule.Default);
-    }
-
-    [Fact]
-    public void SubmapBindInASourceIsKept()
-    {
-        var source = new MemorySource(new Dictionary<string, string>
-        {
-            ["keys.conf"] = "submap = resize\nbind = SUPER, H, resizeactive, 10 0\n",
-        });
-
-        var document = ConfigParser.Parse("source = keys.conf\n", source);
-
-        Assert.Empty(document.Warnings);
-        Assert.Equal(
-            new Bind(Modifier.Super, "H", "resizeactive", "10 0", BindFlag.None, null, "resize"),
-            Assert.Single(document.Binds));
     }
 }

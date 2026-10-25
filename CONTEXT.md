@@ -72,10 +72,7 @@ The named pipe `winland` that the Daemon listens on. The `winland` command and s
 _Avoid_: Plugin API
 
 **Event stream**:
-The lines the Daemon writes to a client that sends `events` on the IPC pipe, one event per line in the form `name>>data`. Window, Workspace and Monitor events, config warnings and Submap changes are reported in it.
-
-**Submap**:
-A named set of binds that is active only while that Submap is selected. A `submap` line in the config opens one for the binds that follow, and the `submap` Dispatcher selects it. `reset` or an empty name selects the default binds. Each change emits a `submap` event.
+The lines the Daemon writes to a client that sends `events` on the IPC pipe, one event per line in the form `name>>data`. Window, Workspace and Monitor events and config warnings are reported in it.
 
 **Motion**:
 One window's animation toward its Layout rectangle, or out of sight before it is hidden or closed. The window manager plans it from the animation tree, and the Windows adapter steps it. A Motion always ends on the newest Layout rectangle.

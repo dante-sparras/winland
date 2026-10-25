@@ -85,9 +85,6 @@ public sealed record ConfigWarned(int Line, string Message, string? Source = nul
 
 public sealed record ConfigReloaded : StreamEvent;
 
-/// <summary>The active bind submap changed. <paramref name="Name"/> is empty on the default map.</summary>
-public sealed record SubmapChanged(string Name) : StreamEvent;
-
 public sealed record MonitorAdded(string Name) : StreamEvent;
 
 public sealed record MonitorAddedV2(int Id, string Name, string Description) : StreamEvent;

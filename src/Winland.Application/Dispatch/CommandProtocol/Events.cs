@@ -120,9 +120,6 @@ public static partial class CommandProtocol
             case ConfigReloaded:
                 lines.Add("configreloaded>>");
                 break;
-            case SubmapChanged changed:
-                lines.Add("submap>>" + Clean(changed.Name));
-                break;
             case MonitorAdded added:
                 lines.Add($"monitoradded>>{Clean(added.Name)}");
                 break;

@@ -2,12 +2,6 @@ namespace Winland.Domain;
 
 public static partial class ConfigParser
 {
-    /// <summary>
-    /// A device bind that would consume the key. Windows names the keyboard only after the key is delivered, and
-    /// swallowing it produces no raw packet, so the bind is not registered. One warning per config.
-    /// </summary>
-    internal const string ConsumingDeviceBind = "A bind that names a device cannot consume the key. Windows names the keyboard only after the key is delivered, so the bind is not registered. Mark it non-consuming (flag n) to run it without consuming the key.";
-
     /// <param name="path">The full path of the config file <paramref name="text"/> was read from, when there is one.
     /// A <c>source</c> line that leads back to it is then skipped, and a relative source is compared against its folder.</param>
     public static ConfigDocument Parse(string text, IConfigSource? source = null, KeyLayout? layout = null, string? path = null)
@@ -49,10 +43,7 @@ public static partial class ConfigParser
         private readonly List<bool> _ifFailed = [];
         private string? _source;
         private string? _rootFolder;
-        private string? _submap;
-        private string? _submapReset;
         private bool _suppressWarnings;
-        private bool _warnedConsumingDevice;
 
         public ConfigDocument ParseRoot(string text, string? path)
         {
@@ -175,16 +166,6 @@ public static partial class ConfigParser
             if (lhs == "source")
             {
                 HandleSource(rhs, lineNumber);
-                return;
-            }
-
-            if (lhs == "submap")
-            {
-                var parts = SplitArgs(rhs, null);
-                var name = parts.Count > 0 ? parts[0] : "";
-                var reset = parts.Count > 1 ? parts[1] : "";
-                _submap = name.Length == 0 || name == "reset" ? null : name;
-                _submapReset = reset.Length == 0 ? null : reset;
                 return;
             }
 

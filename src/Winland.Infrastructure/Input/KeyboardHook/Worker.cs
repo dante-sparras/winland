@@ -4,7 +4,7 @@ using Windows.Win32.UI.Input.KeyboardAndMouse;
 
 namespace Winland.Infrastructure;
 
-/// <summary>The worker that runs dispatchers off the hook thread, the keys it gives back when a bind fails, and the long press timer.</summary>
+/// <summary>The worker that runs dispatchers off the hook thread.</summary>
 public sealed partial class KeyboardHook : IDisposable
 {
     private void Post(uint message)
@@ -39,7 +39,6 @@ public sealed partial class KeyboardHook : IDisposable
 
     private void Perform(Queued queued)
     {
-        var noted = false;
         try
         {
             if (queued.Kind == QueuedKind.Gesture)
@@ -64,25 +63,12 @@ public sealed partial class KeyboardHook : IDisposable
                 return;
             }
 
-            var outcome = _core.Handle(new Dispatch(queued.Dispatcher, queued.Arguments) { Trigger = queued.Trigger });
-            Apply(outcome);
-            noted = NoteConsumption(queued, outcome.Error is null);
+            Apply(_core.Handle(new Dispatch(queued.Dispatcher, queued.Arguments) { Trigger = queued.Trigger }));
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
             Console.Error.WriteLine(exception.Message);
-            if (!noted)
-                NoteConsumption(queued, false);
         }
-    }
-
-    private static bool NoteConsumption(Queued queued, bool succeeded)
-    {
-        if (queued.Consumption is not { } note)
-            return true;
-
-        note.Note(succeeded);
-        return true;
     }
 
     private void StopWorker()
@@ -98,102 +84,28 @@ public sealed partial class KeyboardHook : IDisposable
     private LRESULT Next(int code, WPARAM wParam, LPARAM lParam) =>
         PInvoke.CallNextHookEx(_hook, code, wParam, lParam);
 
-    internal void NoteTiming(BindDecision decision)
+    internal void Enqueue(BindDecision decision)
     {
-        if (decision.DisarmLongPress)
-            DisarmLongPress();
-        if (decision.ArmLongPressMs is int delay)
-            ArmLongPress(delay);
-    }
-
-    internal void Enqueue(BindDecision decision, SwallowedKey? replay = null)
-    {
-        BindConsumption? batch = null;
-        if (decision.PassesOnFailure && replay is SwallowedKey key)
-            batch = new BindConsumption(() => PostReplay(key, decision.ReleaseOnFailure));
-
         if (decision.Dispatches.Count > 0)
         {
             foreach (var dispatch in decision.Dispatches)
-                PostConsumed(dispatch.Dispatcher, dispatch.Arguments, decision.Trigger, batch);
+                PostDispatch(dispatch.Dispatcher, dispatch.Arguments, decision.Trigger);
 
             return;
         }
 
         if (!string.IsNullOrEmpty(decision.Dispatcher))
-            PostConsumed(decision.Dispatcher, decision.Arguments, decision.Trigger, batch);
-    }
-
-    private void PostConsumed(string dispatcher, string arguments, BindTrigger? trigger, BindConsumption? batch)
-    {
-        if (dispatcher.Length == 0)
-            return;
-
-        batch?.Expect();
-        _queued.Post(new Queued(
-            QueuedKind.Dispatch,
-            dispatcher,
-            arguments,
-            Trigger: trigger,
-            Consumption: batch));
-    }
-
-    private void PostReplay(SwallowedKey key, IReadOnlyList<string> release, bool? stillDown = null)
-    {
-        lock (_replayGate)
-            _replays.Enqueue((key, release, stillDown));
-
-        Post(ReplayMessage);
-    }
-
-    // On the hook thread. Keys caught for the failed bind are let go, then the key is injected from the injector's
-    // thread so this hook is not re-entered while it decides.
-    private void ReplayPending()
-    {
-        while (true)
-        {
-            (SwallowedKey Key, IReadOnlyList<string> Release, bool? StillDown) next;
-            lock (_replayGate)
-            {
-                if (_replays.Count == 0)
-                    return;
-
-                next = _replays.Dequeue();
-            }
-
-            _session.ForgetCaught(next.Key.Name);
-            foreach (var name in next.Release)
-                _session.ForgetCaught(name);
-
-            var stillDown = next.StillDown ?? IsDown((int)next.Key.VirtualKey);
-            if (next.Key.Pressed && stillDown && next.Key.VirtualKey <= 255)
-                _givenBack[next.Key.VirtualKey] = true;
-
-            InputInjector.Post(ReplayInputs(next.Key, stillDown));
-        }
-    }
-
-    /// <summary>
-    /// The input that gives a swallowed key back. A press the user still holds is a press. One they have already
-    /// released is a press and a release together. A release edge is the release.
-    /// </summary>
-    internal static INPUT[] ReplayInputs(SwallowedKey key, bool stillDown)
-    {
-        if (!key.Pressed)
-            return [Key(key.VirtualKey, up: true, key.Scan, key.Extended)];
-
-        var down = Key(key.VirtualKey, up: false, key.Scan, key.Extended);
-        if (stillDown)
-            return [down];
-
-        return [down, Key(key.VirtualKey, up: true, key.Scan, key.Extended)];
+            PostDispatch(decision.Dispatcher, decision.Arguments, decision.Trigger);
     }
 
     /// <summary>The drag a mouse bind started, from a mouse button or a key, which pointer moves carry on.</summary>
     internal BindDrag Drag { get; } = new();
 
-    internal void PostDispatch(string dispatcher, string arguments, BindTrigger? trigger = null) =>
-        _queued.Post(new Queued(QueuedKind.Dispatch, dispatcher, arguments, Trigger: trigger));
+    internal void PostDispatch(string dispatcher, string arguments, BindTrigger? trigger = null)
+    {
+        if (dispatcher.Length > 0)
+            _queued.Post(new Queued(QueuedKind.Dispatch, dispatcher, arguments, Trigger: trigger));
+    }
 
     internal void PostGesture(string dispatcher, string arguments, Point position, PointerDragPhase phase, string button) =>
         _queued.Post(new Queued(QueuedKind.Gesture, dispatcher, arguments, position, phase, button));
@@ -203,35 +115,6 @@ public sealed partial class KeyboardHook : IDisposable
 
     internal void PostInput(Input input) =>
         _queued.Post(new Queued(QueuedKind.Input, "", "", Event: input));
-
-    internal void CheckLongPress()
-    {
-        if (_disposed)
-            return;
-
-        DisarmLongPress();
-        Enqueue(_core.Decide(new LongPressElapsed(), _session));
-    }
-
-    private void ArmLongPress(int delay)
-    {
-        lock (_timerGate)
-        {
-            _longPressTimer?.Dispose();
-            _longPressTimer = new Timer(OnLongPressDue, null, delay, Timeout.Infinite);
-        }
-    }
-
-    private void DisarmLongPress()
-    {
-        lock (_timerGate)
-        {
-            _longPressTimer?.Dispose();
-            _longPressTimer = null;
-        }
-    }
-
-    private void OnLongPressDue(object? _) => Post(LongPressMessage);
 
     private enum QueuedKind : byte
     {
@@ -251,6 +134,5 @@ public sealed partial class KeyboardHook : IDisposable
         long TimeMs = 0,
         bool HasTime = false,
         Input? Event = null,
-        BindTrigger? Trigger = null,
-        BindConsumption? Consumption = null);
+        BindTrigger? Trigger = null);
 }

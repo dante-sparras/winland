@@ -25,14 +25,6 @@ public sealed partial class KeyboardHook : IDisposable
     // Input this much newer than the last the hook saw means the hook may have missed a key.
     private const int CurrentSlackMs = 100;
 
-    // Presses the hook let through while a non-consuming device bind might still match them. The raw packet arrives
-    // after the hook returns, on this thread, and pairs with the oldest of these. An older press is dropped once eight
-    // are waiting. The key already reached the window, so dropping it does not swallow it.
-    internal const int PassedCapacity = 8;
-
-    // Repeats that arrive before the packet that names the keyboard. Later repeats are the hook's.
-    internal const int DeviceRepeatCap = 8;
-
     private static readonly (string Name, ushort Vk)[] Modifiers =
     [
         ("Super_L", 0x5B), ("Super_R", 0x5C),
@@ -59,20 +51,10 @@ public sealed partial class KeyboardHook : IDisposable
     // The callback must return before any dispatcher work, so it only posts here. Moves that pile
     // up while the worker is busy collapse into the newest, so they never delay a key bind.
     private readonly InputQueue<Queued> _queued = new(Replaces);
-    private readonly KeyDeviceSource _devices;
-    private readonly PassedPress[] _passed = new PassedPress[PassedCapacity];
-    private int _passedSeq;
-
-    // A press this hook swallowed and then injected, still held. Its physical repeats are swallowed: Windows repeats
-    // the injected press, and passing the hardware repeats as well would deliver the key twice.
-    private readonly bool[] _givenBack = new bool[256];
-    private readonly Queue<(SwallowedKey Key, IReadOnlyList<string> Release, bool? StillDown)> _replays = new();
-    private readonly Lock _replayGate = new();
 
     private readonly object _timerGate = new();
     private HHOOK _hook;
     private Thread? _worker;
-    private Timer? _longPressTimer;
     private Timer? _sweepTimer;
     private Timer? _watchTimer;
     private int _lastSeen;
@@ -83,12 +65,9 @@ public sealed partial class KeyboardHook : IDisposable
     private bool _listening;
     private volatile bool _disposed;
 
-    internal const uint LongPressMessage = 0x8000 + 24;
     internal const uint SweepMessage = 0x8000 + 25;
     internal const uint WatchMessage = 0x8000 + 26;
     internal const uint ReconcileMessage = 0x8000 + 27;
-    internal const uint ReplayMessage = 0x8000 + 28;
-    internal const uint DeviceRefreshMessage = 0x8000 + 29;
     internal const uint InputLanguageMessage = 0x0051;
 
     internal BindSession Session => _session;
@@ -105,7 +84,6 @@ public sealed partial class KeyboardHook : IDisposable
         _core = core;
         _session = session;
         _callback = OnKeyboard;
-        _devices = new KeyDeviceSource(() => Post(DeviceRefreshMessage), (vk, scan, up, handle) => DeliverPacket(vk, scan, up, handle, out _));
     }
 
     public void Start()
@@ -135,7 +113,6 @@ public sealed partial class KeyboardHook : IDisposable
         _startedAt = Environment.TickCount64;
         ArmSweep();
         _watchTimer = new Timer(_ => Post(WatchMessage), null, WatchPeriodMs, WatchPeriodMs);
-        _devices.Start(_core.Devices);
 
         try
         {
@@ -179,17 +156,7 @@ public sealed partial class KeyboardHook : IDisposable
         }
 
         DisarmSweep();
-        DisarmLongPress();
-
-        // The message loop has exited, so a posted replay would never be pumped. Inject what was swallowed directly.
-        if (_hookThread != 0 && _hookThread == PInvoke.GetCurrentThreadId())
-        {
-            DisarmLongPress();
-            ReplayPending();
-        }
-
         StopWorker();
-        _devices.Dispose();
     }
 
     /// <summary>Handles a thread message this hook posted. Call on the thread that started it.</summary>
@@ -197,9 +164,6 @@ public sealed partial class KeyboardHook : IDisposable
     {
         switch (message)
         {
-            case LongPressMessage:
-                CheckLongPress();
-                return true;
             case SweepMessage:
                 if (!_disposed)
                     ReleaseStale();
@@ -207,14 +171,6 @@ public sealed partial class KeyboardHook : IDisposable
             case ReconcileMessage:
                 if (!_disposed)
                     Reconcile();
-                return true;
-            case ReplayMessage:
-                if (!_disposed)
-                    ReplayPending();
-                return true;
-            case DeviceRefreshMessage:
-                if (!_disposed)
-                    _devices.Refresh();
                 return true;
             default:
                 return false;
@@ -283,7 +239,6 @@ public sealed partial class KeyboardHook : IDisposable
             var extended = info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_EXTENDED);
             var scan = info.scanCode > int.MaxValue ? 0 : (int)info.scanCode;
 
-            var repeated = !up && IsDown((int)info.vkCode);
             NoteHeld(info.vkCode, up);
 
             // misc:key_press_enables_dpms: any key turns the displays back on after dpms turned them off.
@@ -309,7 +264,7 @@ public sealed partial class KeyboardHook : IDisposable
                 SessionEffects.NoteKey();
 
             var edge = new KeyEdge(vk, scan, extended, up, name, xkb);
-            if (!DeliverTracked(edge, repeated).Passes)
+            if (!Deliver(edge).Passes)
                 return new LRESULT(1);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)

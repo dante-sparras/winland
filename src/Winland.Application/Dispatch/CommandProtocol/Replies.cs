@@ -65,13 +65,6 @@ public static partial class CommandProtocol
     public static string FormatLocked(bool locked) =>
         locked ? "{\"locked\":true}" : "{\"locked\":false}";
 
-    /// <summary>The submap binds run in, as Winland answers <c>submap</c>: <c>default</c> outside one.</summary>
-    public static string FormatSubmap(string submap, bool json)
-    {
-        var name = submap.Length == 0 ? "default" : submap;
-        return (json ? JsonSerializer.Serialize(name, Relaxed) : name) + "\n";
-    }
-
     public static string FormatLayouts() => JsonSerializer.Serialize(LayoutFactory.Names);
 
     public static string FormatErrors(IReadOnlyList<string> errors)
@@ -121,18 +114,12 @@ public static partial class CommandProtocol
             mouse,
             bind.Flags.HasFlag(BindFlag.Release),
             bind.Flags.HasFlag(BindFlag.Repeat),
-            bind.Flags.HasFlag(BindFlag.LongPress),
             bind.Flags.HasFlag(BindFlag.NonConsuming),
-            bind.Flags.HasFlag(BindFlag.AutoConsuming),
             bind.Description is not null,
             ModMask(bind.Modifiers),
-            bind.Submap ?? "",
-            bind.Flags.HasFlag(BindFlag.SubmapUniversal) ? "true" : "false",
             key,
             keycode,
-            bind.Key.Equals("catchall", StringComparison.Ordinal),
             bind.Description ?? "",
-            false,
             bind.Dispatcher,
             bind.Arguments);
     }
@@ -147,18 +134,12 @@ public static partial class CommandProtocol
         [property: JsonPropertyName("mouse")] bool Mouse,
         [property: JsonPropertyName("release")] bool Release,
         [property: JsonPropertyName("repeat")] bool Repeat,
-        [property: JsonPropertyName("longPress")] bool LongPress,
         [property: JsonPropertyName("non_consuming")] bool NonConsuming,
-        [property: JsonPropertyName("auto_consuming")] bool AutoConsuming,
         [property: JsonPropertyName("has_description")] bool HasDescription,
         [property: JsonPropertyName("modmask")] int Modmask,
-        [property: JsonPropertyName("submap")] string Submap,
-        [property: JsonPropertyName("submap_universal")] string SubmapUniversal,
         [property: JsonPropertyName("key")] string Key,
         [property: JsonPropertyName("keycode")] int Keycode,
-        [property: JsonPropertyName("catch_all")] bool CatchAll,
         [property: JsonPropertyName("description")] string Description,
-        [property: JsonPropertyName("allow_input_capture")] bool AllowInputCapture,
         [property: JsonPropertyName("dispatcher")] string Dispatcher,
         [property: JsonPropertyName("arg")] string Arg);
 

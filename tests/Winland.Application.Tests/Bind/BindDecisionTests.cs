@@ -164,7 +164,7 @@ public class BindDecisionTests
         {
             while (Volatile.Read(ref stop) == 0)
             {
-                var entries = core.Binds.Entries;
+                var entries = core.Binds.Binds;
                 var q = false;
                 var w = false;
                 foreach (var bind in entries)

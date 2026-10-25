@@ -78,44 +78,6 @@ public class KeybindsConformance
         """;
 
     [Fact]
-    public void OrderedSubChordDeferral()
-    {
-        var desk = new Desk(ConfigBinds);
-        var keys = new Keyboard(desk);
-        string Counts() => $"{keys.Count("overlap-x")}:{keys.Count("overlap-d")}:{keys.Count("overlap-long")}";
-
-        Assert.Equal("ok", desk.Send("keyword bind SUPER, X, exec, overlap-x"));
-        Assert.Equal("ok", desk.Send("keyword bind SUPER, D, exec, overlap-d"));
-        Assert.Equal("ok", desk.Send("keyword binds SUPER, X&D&F, exec, overlap-long"));
-
-        keys.Key(true, Modifier.Super, "X");
-        Assert.Equal("0:0:0", Counts());
-        keys.Key(false, Modifier.None, "X");
-        Assert.Equal("1:0:0", Counts());
-
-        // Without X held first, D cannot extend the longer chord and runs at once.
-        keys.Key(true, Modifier.Super, "D");
-        Assert.Equal("1:1:0", Counts());
-        keys.Key(false, Modifier.None, "D");
-        Assert.Equal("1:1:0", Counts());
-
-        keys.Key(true, Modifier.Super, "X");
-        Assert.Equal("1:1:0", Counts());
-        keys.Key(true, Modifier.Super, "D");
-        Assert.Equal("1:1:0", Counts());
-        keys.Key(true, Modifier.Super, "F");
-        Assert.Equal("1:1:1", Counts());
-        keys.Key(false, Modifier.Super, "F");
-        keys.Key(false, Modifier.Super, "D");
-        keys.Key(false, Modifier.None, "X");
-        Assert.Equal("1:1:1", Counts());
-
-        Assert.Equal("ok", desk.Send("keyword unbind SUPER, X"));
-        Assert.Equal("ok", desk.Send("keyword unbind SUPER, D"));
-        Assert.Equal("ok", desk.Send("keyword unbind SUPER, X&D&F"));
-    }
-
-    [Fact]
     public void ModifierReleaseBindShadowing()
     {
         var desk = new Desk(ConfigBinds);
@@ -175,7 +137,6 @@ public class KeybindsConformance
         private readonly List<WindowId> _windows = [];
         private readonly StringBuilder _typed = new();
         private long _now = 1_000;
-        private long? _armedAt;
         private string? _repeating;
         private long _nextRepeat;
 
@@ -223,23 +184,12 @@ public class KeybindsConformance
             var end = _now + milliseconds;
             while (true)
             {
-                long? longPress = _armedAt is long armed ? armed + RepeatDelay : null;
-                long? repeat = _repeating is not null && RepeatRate > 0 ? _nextRepeat : null;
-                var next = Math.Min(longPress ?? long.MaxValue, repeat ?? long.MaxValue);
-                if (next >= end)
+                if (_repeating is null || RepeatRate <= 0 || _nextRepeat >= end)
                     break;
 
-                _now = next;
-                if (longPress == next)
-                {
-                    _armedAt = null;
-                    Feed(new LongPressElapsed(), fresh: false);
-                }
-                else
-                {
-                    _nextRepeat += 1000 / RepeatRate;
-                    Feed(new KeyPressed(_repeating!), fresh: false);
-                }
+                _now = _nextRepeat;
+                _nextRepeat += 1000 / RepeatRate;
+                Feed(new KeyPressed(_repeating), fresh: false);
             }
 
             _now = end;
@@ -310,11 +260,6 @@ public class KeybindsConformance
                 if (relay.Phase != KeyRelayPhase.Release)
                     _typed.Append(relay.Key.Equals("return", StringComparison.OrdinalIgnoreCase) ? "\n" : relay.Key);
             }
-
-            if (desk.WindowManager.KeyState.LongPressKey is null)
-                _armedAt = null;
-            else if (fresh || _armedAt is null)
-                _armedAt = _now;
 
             return outcome;
         }

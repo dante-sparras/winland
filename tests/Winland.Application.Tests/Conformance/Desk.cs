@@ -82,7 +82,7 @@ internal sealed class Desk : IDisposable
     internal Desk(string extra = "")
     {
         var text = Config + "\n" + extra;
-        WindowManager = new WindowManager { Cursor = new PointerReader(this), Devices = new TestDevices() };
+        WindowManager = new WindowManager { Cursor = new PointerReader(this) };
         WindowManager.ReadConfig = () => new ConfigRead(ConfigParser.Parse(text));
         Handle(new Configure(ConfigParser.Parse(text)));
         Pointer = new Point(960, 540);
@@ -326,20 +326,5 @@ internal sealed class Desk : IDisposable
     private sealed class PointerReader(Desk desk) : ICursorPosition
     {
         public Point Read() => desk.Pointer;
-    }
-
-    // The devices the reference's test plugin plugs in when it loads: a mouse and two keyboards. Each is named
-    // test-mouse or test-keyboard before it is plugged in, so the compositor numbers them all, as it numbers a name
-    // another device has.
-    private sealed class TestDevices : IInputDevices
-    {
-        private static readonly InputDevice[] Plugged =
-        [
-            new(InputDeviceKind.Pointer, 0x5e5e1000, "test-mouse-1"),
-            new(InputDeviceKind.Keyboard, 0x5e5e2000, "test-keyboard-1"),
-            new(InputDeviceKind.Keyboard, 0x5e5e3000, "test-keyboard-2"),
-        ];
-
-        public IReadOnlyList<InputDevice> Read() => Plugged;
     }
 }

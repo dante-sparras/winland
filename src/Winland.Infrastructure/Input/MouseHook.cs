@@ -275,7 +275,6 @@ public sealed class MouseHook : IDisposable
                 _keys.PostGesture(drag.Dispatcher, drag.Arguments, position, PointerDragPhase.End, button);
 
             var released = _core.Decide(new PointerButtonReleased(button) { Position = position }, _keys.Session);
-            _keys.NoteTiming(released);
             _keys.Enqueue(released);
             return !passed && released.Consumed;
         }
@@ -284,7 +283,6 @@ public sealed class MouseHook : IDisposable
         if (decision.Mask)
             KeyboardHook.Mask();
 
-        _keys.NoteTiming(decision);
         if (TryDrag(decision, out var dispatcher, out var arguments))
         {
             // With no window under the pointer the press goes on to whatever is there, as Winland lets it
@@ -324,7 +322,6 @@ public sealed class MouseHook : IDisposable
         if (decision.Mask)
             KeyboardHook.Mask();
 
-        _keys.NoteTiming(decision);
         _keys.Enqueue(decision);
         return decision.Consumed;
     }

@@ -381,17 +381,6 @@ public class BindTests
     }
 
     [Fact]
-    public void SubmapBindDoesNotFireOnTheBaseMap()
-    {
-        var core = Load("submap = resize\nbind = SUPER, H, killactive\nsubmap = reset\nbind = SUPER, Q, killactive\n");
-        Appear(core, 1);
-        Press(core, "Super_L");
-
-        AssertPassed(Press(core, "H"));
-        AssertRan(Press(core, "Q"), "killactive", 1);
-    }
-
-    [Fact]
     public void EveryBindOnAChordRunsInConfigOrder()
     {
         var core = Load("bind = , Q, killactive\nbind = , Q, workspace, 2\n");
