@@ -31,13 +31,23 @@ public sealed partial class WindowAdapter : IDisposable
     private readonly Action<RecoverySnapshot>? _changed;
     private readonly Action<Outcome>? _publish;
     private readonly WINEVENTPROC _callback;
+
+    // The object events OnEvent reads, as the fewest ranges that hold them. A range hooked wide delivers every event
+    // inside it across processes, and browsers and editors raise focus, selection and value changes constantly.
+    internal static readonly (uint First, uint Last)[] ObjectEvents =
+    [
+        (PInvoke.EVENT_OBJECT_CREATE, PInvoke.EVENT_OBJECT_REORDER),
+        (PInvoke.EVENT_OBJECT_STATECHANGE, PInvoke.EVENT_OBJECT_NAMECHANGE),
+        (PInvoke.EVENT_OBJECT_CLOAKED, PInvoke.EVENT_OBJECT_UNCLOAKED),
+    ];
+
     private const long ProbeMilliseconds = 2000;
     private const int ProbeLimit = 1024;
 
     private readonly Dictionary<WindowId, (Size? Min, Size? Max)> _limits = [];
     private readonly Dictionary<WindowId, (Size? Min, Size? Max, long At)> _probed = [];
     private readonly Lock _limitGate = new();
-    private HWINEVENTHOOK _objects;
+    private HWINEVENTHOOK[] _objects = [];
     private HWINEVENTHOOK _minimize;
     private HWINEVENTHOOK _foreground;
     private HWINEVENTHOOK _moveSize;
@@ -97,18 +107,18 @@ public sealed partial class WindowAdapter : IDisposable
     public void Start()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (!_objects.IsNull)
+        if (_objects.Length > 0)
             return;
 
         var flags = PInvoke.WINEVENT_OUTOFCONTEXT | PInvoke.WINEVENT_SKIPOWNPROCESS;
-        _objects = PInvoke.SetWinEventHook(
-            PInvoke.EVENT_OBJECT_CREATE,
-            PInvoke.EVENT_OBJECT_UNCLOAKED,
+        _objects = [.. ObjectEvents.Select(range => PInvoke.SetWinEventHook(
+            range.First,
+            range.Last,
             default(HMODULE),
             _callback,
             0,
             0,
-            flags);
+            flags))];
         _minimize = PInvoke.SetWinEventHook(
             PInvoke.EVENT_SYSTEM_MINIMIZESTART,
             PInvoke.EVENT_SYSTEM_MINIMIZEEND,
@@ -136,7 +146,7 @@ public sealed partial class WindowAdapter : IDisposable
             0,
             flags);
 
-        if (_objects.IsNull || _minimize.IsNull || _foreground.IsNull || _moveSize.IsNull)
+        if (_objects.Any(hook => hook.IsNull) || _minimize.IsNull || _foreground.IsNull || _moveSize.IsNull)
         {
             Release();
             throw new InvalidOperationException("Window events were not hooked.");
@@ -504,8 +514,12 @@ public sealed partial class WindowAdapter : IDisposable
 
     private void Release()
     {
-        if (!_objects.IsNull)
-            PInvoke.UnhookWinEvent(_objects);
+        foreach (var hook in _objects)
+        {
+            if (!hook.IsNull)
+                PInvoke.UnhookWinEvent(hook);
+        }
+
         if (!_minimize.IsNull)
             PInvoke.UnhookWinEvent(_minimize);
         if (!_foreground.IsNull)
@@ -514,7 +528,7 @@ public sealed partial class WindowAdapter : IDisposable
         if (!_moveSize.IsNull)
             PInvoke.UnhookWinEvent(_moveSize);
 
-        _objects = default;
+        _objects = [];
         _moveSize = default;
         _minimize = default;
         _foreground = default;

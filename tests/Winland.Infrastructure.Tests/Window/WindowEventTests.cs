@@ -7,6 +7,27 @@ public class WindowEventTests
 {
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);
 
+    // The events the adapter reads. A hook range that holds any other object event delivers it across processes for nothing.
+    [Fact]
+    public void TheObjectEventHooksHoldTheEventsTheAdapterReadsAndNoOthers()
+    {
+        uint[] read =
+        [
+            Events.EVENT_OBJECT_CREATE, Events.EVENT_OBJECT_DESTROY, Events.EVENT_OBJECT_SHOW, Events.EVENT_OBJECT_HIDE,
+            Events.EVENT_OBJECT_REORDER, Events.EVENT_OBJECT_STATECHANGE, Events.EVENT_OBJECT_LOCATIONCHANGE,
+            Events.EVENT_OBJECT_NAMECHANGE, Events.EVENT_OBJECT_CLOAKED, Events.EVENT_OBJECT_UNCLOAKED,
+        ];
+
+        var hooked = new List<uint>();
+        foreach (var (first, last) in WindowAdapter.ObjectEvents)
+        {
+            for (var @event = first; @event <= last; @event++)
+                hooked.Add(@event);
+        }
+
+        Assert.Equal(read.Order(), hooked.Order());
+    }
+
     [Fact]
     public void AWindowDestroyedMidDragLetsTheNextDragStart()
     {
