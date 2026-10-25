@@ -700,6 +700,65 @@ public class WindowManagerTests
         Assert.Empty(outcome.Placements);
     }
 
+    [Fact]
+    public void AClientShownAgainLeavesTheFocusWhereItWas()
+    {
+        var core = new WindowManager();
+        var area = new Rectangle(0, 0, 1920, 1080);
+        core.Handle(new WindowAppeared(new WindowId(1), area));
+        core.Handle(new WindowAppeared(new WindowId(2), area));
+        core.Handle(new WindowFocused(new WindowId(1)));
+
+        var echo = Echo(core, 2, area);
+
+        Assert.All(echo, outcome => Assert.Null(outcome.Focus));
+        Assert.Equal("0x1", Json(core.Execute("j/activewindow").Text).GetProperty("address").GetString());
+    }
+
+    [Fact]
+    public void AClientShownAgainChangesNoPlacement()
+    {
+        var core = new WindowManager();
+        var area = new Rectangle(0, 0, 1920, 1080);
+        core.Handle(new WindowAppeared(new WindowId(1), area));
+        core.Handle(new WindowAppeared(new WindowId(2), area));
+
+        var echo = Echo(core, 1, area);
+
+        Assert.All(echo, outcome =>
+        {
+            Assert.Empty(outcome.Placements);
+            Assert.Empty(outcome.Show);
+            Assert.Empty(outcome.Hide);
+        });
+        Assert.Equal(2, echo[^1].State.Clients.Count);
+    }
+
+    [Fact]
+    public void AClientThatShowsItselfOnAHiddenWorkspaceIsHiddenAgain()
+    {
+        var core = new WindowManager();
+        var area = new Rectangle(0, 0, 1920, 1080);
+        core.Handle(new WindowAppeared(new WindowId(1), area));
+        core.Handle(new Dispatch("workspace", "2"));
+
+        var echo = Echo(core, 1, area);
+
+        Assert.Equal([new WindowId(1)], echo[^1].Hide);
+    }
+
+    // What the adapter sends when the system shows a window Winland hid, which it asks the core for as three steps.
+    private static Outcome[] Echo(WindowManager core, long window, Rectangle area)
+    {
+        var id = new WindowId(window);
+        return
+        [
+            core.Handle(new WindowRestored(id)),
+            core.Handle(new WindowClassChanged(id, WindowTraits.Normal.Class)),
+            core.Handle(new WindowAppeared(id, area)),
+        ];
+    }
+
     private static WindowTraits Rejected(string reason) => reason switch
     {
         "tool" => WindowTraits.Normal with { Tool = true },

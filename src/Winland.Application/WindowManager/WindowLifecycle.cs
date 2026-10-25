@@ -59,11 +59,13 @@ public sealed partial class WindowManager
         return desk.ClientOf(active) is { Minimized: false } ? active : null;
     }
 
-    private void Note(Input input)
+    // A Client took its focus when it first appeared. Appearing again, as it does when Winland shows it after hiding it,
+    // leaves the focus where it is.
+    private void Note(Input input, bool wasClient)
     {
         switch (input)
         {
-            case WindowAppeared appeared when WorkspaceContaining(appeared.Window) is { } appearedWorkspace
+            case WindowAppeared appeared when !wasClient && WorkspaceContaining(appeared.Window) is { } appearedWorkspace
                 && _workspaces.Shown.IsShown(appearedWorkspace.Id)
                 && !_awaitingMapFocus.Contains(appeared.Window):
                 var current = _workspaces.Shown.SpecialOn(appearedWorkspace.Monitor) ?? _workspaces.Shown.ActiveOn(appearedWorkspace.Monitor);
@@ -112,14 +114,16 @@ public sealed partial class WindowManager
             _initialWorkspaces.NoteLineage(processId, appeared.AncestorProcessIds);
         }
 
+        // A Client shown again changes nothing, and uses up no rules of a started program. One that showed itself
+        // while its Workspace is hidden is hidden again.
+        if (Find(appeared.Window) is { } existing)
+            return _workspaces.Shown.IsShown(existing.Workspace) && !IsWaiting(appeared.Window) ? View([]) : View([], hide: [appeared.Window]);
+
         var followed = processId > 0 ? _follow.Take(processId, Clock()) : [];
         var traits = appeared.Traits.WithInitialNames();
         var decision = WindowRuleParser.Decide(traits, JoinRules(_config.WindowRules, followed));
         if (!decision.Adopt)
             return View([]);
-
-        if (Find(appeared.Window) is { } existing)
-            return _workspaces.Shown.IsShown(existing.Workspace) && !IsWaiting(appeared.Window) ? View([]) : View([], hide: [appeared.Window]);
 
         var restored = FindRestored(appeared.Window);
         decision = Recovered(decision, restored);
