@@ -135,7 +135,6 @@ public sealed partial class WindowManager
         var created = LayoutFactory.Create(_config.Document, RuleFor(desk)?.Layout);
         if (created.GetType() == desk.Layout.GetType() && LayoutFactory.NameOf(created) == LayoutFactory.NameOf(desk.Layout))
         {
-            desk.Layout.Apply(_config.Master);
             desk.Layout.Configure(_config.Scrolling);
             RankFocus(desk.Layout);
             return;
@@ -151,7 +150,6 @@ public sealed partial class WindowManager
         if (desk.Layout.Clients.Count == 0)
         {
             desk.Replace(created);
-            created.Apply(_config.Master);
             created.Configure(_config.Scrolling);
             return;
         }
@@ -165,7 +163,6 @@ public sealed partial class WindowManager
 
         var focus = desk.Focus;
         desk.Replace(created);
-        created.Apply(_config.Master);
         created.Configure(_config.Scrolling);
         Stamp(desk);
         var screen = MonitorById(desk.Monitor);

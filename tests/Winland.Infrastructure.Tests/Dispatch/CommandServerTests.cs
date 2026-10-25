@@ -276,7 +276,7 @@ public class CommandServerTests
         Assert.Equal(JsonValueKind.Number, cursor.RootElement.GetProperty("y").ValueKind);
 
         var batch = CommandClient.Transact("[[BATCH]]layouts;locked", name);
-        Assert.Equal("[\"dwindle\",\"master\",\"scrolling\",\"monocle\"]\n\n\n{\"locked\":false}", batch);
+        Assert.Equal("[\"dwindle\",\"scrolling\"]\n\n\n{\"locked\":false}", batch);
     }
 
     private static string PipeName() => "winland-" + Guid.NewGuid().ToString("N");

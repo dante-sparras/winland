@@ -55,18 +55,6 @@ public class CycleLayoutTests
         Assert.False(Client(scrolling, 1).Floating);
     }
 
-    [Theory]
-    [InlineData("master")]
-    [InlineData("monocle")]
-    public void MasterAndMonocleEnterAtDwindle(string layout)
-    {
-        var forward = new WindowManager(ConfigParser.Parse("general:layout = " + layout + "\n"));
-        var backward = new WindowManager(ConfigParser.Parse("general:layout = " + layout + "\n"));
-
-        Assert.Equal("dwindle", Layout(forward.Handle(new Dispatch("cyclelayout", ""))));
-        Assert.Equal("dwindle", Layout(backward.Handle(new Dispatch("cyclelayout", "back"))));
-    }
-
     [Fact]
     public void AClientThatWasFloatingStaysFloating()
     {
@@ -125,15 +113,15 @@ public class CycleLayoutTests
     [Fact]
     public void AReloadReturnsToTheConfigLayout()
     {
-        var config = ConfigParser.Parse("general:layout = master\n");
+        var config = ConfigParser.Parse("general:layout = scrolling\n");
         var core = new WindowManager(config);
         core.Handle(Appeared(1));
         var cycled = core.Handle(new Dispatch("cyclelayout", ""));
-        Assert.Equal("dwindle", Layout(cycled));
+        Assert.Equal("floating", Layout(cycled));
 
         var reloaded = core.Handle(new Configure(config));
 
-        Assert.Equal("master", Layout(reloaded));
+        Assert.Equal("scrolling", Layout(reloaded));
         Assert.False(Client(reloaded, 1).Floating);
     }
 

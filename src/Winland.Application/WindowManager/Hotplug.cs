@@ -194,7 +194,6 @@ public sealed partial class WindowManager
         if (screen is not { Effective.Enabled: true })
             return;
 
-        desk.Layout.Apply(_config.Master);
         desk.Layout.Apply(desk.Options);
         desk.Layout.Fit(screen.Effective.WorkArea);
     }

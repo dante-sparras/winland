@@ -83,12 +83,10 @@ public class ControlConformance
 
         desk.Keyword("general:border_size", "7");
         desk.Keyword("general:snap:enabled", "false");
-        desk.Keyword("master:new_status", "inherit");
         desk.Keyword("scrolling:follow_min_visible", "0.625");
 
         Assert.Equal("""{"option":"general:border_size","int":7,"set":true}""", desk.Send("getoption general:border_size"));
         Assert.Equal("""{"option":"general:snap:enabled","bool":false,"set":true}""", desk.Send("getoption general:snap:enabled"));
-        Assert.Equal("""{"option":"master:new_status","str":"inherit","set":true}""", desk.Send("getoption master:new_status"));
         Assert.Equal("""{"option":"scrolling:follow_min_visible","float":0.625,"set":true}""", desk.Send("getoption scrolling:follow_min_visible"));
 
         Assert.Equal("ok", desk.Send("reload"));
@@ -133,7 +131,6 @@ public class ControlConformance
         Assert.Equal("""{"option":"general:border_size","int":2,"set":true}""", desk.Send("getoption general:border_size"));
         Assert.Equal("""{"option":"general:snap:enabled","bool":true,"set":true}""", desk.Send("getoption general:snap:enabled"));
         Assert.Equal("""{"option":"decoration:rounding","int":10,"set":true}""", desk.Send("getoption decoration:rounding"));
-        Assert.Equal("""{"option":"master:new_status","str":"master","set":true}""", desk.Send("getoption master:new_status"));
         Assert.Equal("""{"option":"scrolling:follow_min_visible","float":1,"set":true}""", desk.Send("getoption scrolling:follow_min_visible"));
     }
 

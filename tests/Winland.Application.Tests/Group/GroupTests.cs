@@ -530,8 +530,6 @@ public class GroupTests
 
     [Theory]
     [InlineData("dwindle")]
-    [InlineData("master")]
-    [InlineData("monocle")]
     [InlineData("scrolling")]
     public void SubstituteKeepsTheSlot(string name)
     {

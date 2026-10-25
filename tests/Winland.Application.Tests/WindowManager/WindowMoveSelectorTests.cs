@@ -37,24 +37,6 @@ public class WindowMoveSelectorTests
     }
 
     [Fact]
-    public void AMasterSwapWithTheFocusedWindowLeavesFocusOnItsTile()
-    {
-        var core = Master();
-        core.Handle(new WindowAppeared(new WindowId(1), Area));
-        var opened = core.Handle(new WindowAppeared(new WindowId(2), Area));
-        var master = BoundsOf(opened, 1);
-        var slave = BoundsOf(opened, 2);
-        core.Handle(new Dispatch("focuswindow", "address:0x1"));
-
-        var moved = core.Handle(new Dispatch("movewindow", "l,address:0x2"));
-
-        Assert.Equal(new WindowId(2), moved.Focus);
-        Assert.Equal(master, BoundsOf(moved, 2));
-        Assert.Equal(slave, BoundsOf(moved, 1));
-        Assert.Equal(new WindowId(2), core.Handle(new Dispatch("killactive")).Close);
-    }
-
-    [Fact]
     public void ADirectionOntoAnotherMonitorDoesNotFollow()
     {
         var core = TwoMonitors();
@@ -202,17 +184,6 @@ public class WindowMoveSelectorTests
     }
 
     [Fact]
-    public void TiledCycleOnTheCurrentMasterWorkspaceUsesTheNamedWindow()
-    {
-        var messaged = Opened(Master(), 3);
-        messaged.Handle(new Dispatch("focuswindow", "address:0x1"));
-        var expected = messaged.Handle(new Dispatch("layoutmsg", "cyclenext")).Focus;
-        var cycled = Opened(Master(), 3);
-
-        Assert.Equal(expected, cycled.Handle(new Dispatch("cyclenext", "tiled,address:0x1")).Focus);
-    }
-
-    [Fact]
     public void TiledCycleOnAHiddenMasterWorkspaceUsesThatWorkspace()
     {
         var core = Opened(Master(), 2);
@@ -225,20 +196,6 @@ public class WindowMoveSelectorTests
 
         Assert.Equal(new WindowId(4), cycled.Focus);
         Assert.Equal(new WorkspaceId("2"), cycled.State.ActiveWorkspace);
-    }
-
-    [Fact]
-    public void TiledCycleOnAShownMonocleMonitorRevealsTheNextTile()
-    {
-        var core = TwoMonitors("general:layout = monocle\n");
-        core.Handle(new WindowAppeared(new WindowId(3), Right));
-
-        var cycled = core.Handle(new Dispatch("cyclenext", "tiled,address:0x3"));
-
-        Assert.Equal(new WindowId(2), cycled.Focus);
-        Assert.Equal(new MonitorId(1), cycled.State.ActiveMonitor);
-        Assert.Contains(new WindowId(2), cycled.Show);
-        Assert.Contains(new WindowId(3), cycled.Hide);
     }
 
     [Fact]

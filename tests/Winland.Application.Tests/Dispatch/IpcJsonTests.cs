@@ -82,9 +82,7 @@ public class IpcJsonTests
     }
 
     [Theory]
-    [InlineData("master")]
     [InlineData("scrolling")]
-    [InlineData("monocle")]
     [InlineData("dwindle")]
     public void WorkspacesReportTheirTiledLayout(string layout)
     {

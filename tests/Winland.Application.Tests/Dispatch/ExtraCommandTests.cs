@@ -84,7 +84,7 @@ public class ExtraCommandTests
         Assert.Equal("{\"locked\":false}", core.Execute("locked").Text);
         core.SessionLock = new FixedLock(true);
         Assert.Equal("{\"locked\":true}", core.Execute("locked").Text);
-        Assert.Equal("[\"dwindle\",\"master\",\"scrolling\",\"monocle\"]", core.Execute("layouts").Text);
+        Assert.Equal("[\"dwindle\",\"scrolling\"]", core.Execute("layouts").Text);
     }
 
     [Fact]
@@ -166,10 +166,10 @@ public class ExtraCommandTests
     {
         var core = new WindowManager();
         var joined = core.Execute("[[BATCH]]layouts;locked").Text;
-        Assert.Equal("[\"dwindle\",\"master\",\"scrolling\",\"monocle\"]\n\n\n{\"locked\":false}", joined);
+        Assert.Equal("[\"dwindle\",\"scrolling\"]\n\n\n{\"locked\":false}", joined);
 
         var escaped = core.Execute(@"[[BATCH]]keyword bind SUPER, Q, exec, [float\; tile] notepad;layouts").Text;
-        Assert.Equal("ok\n\n\n[\"dwindle\",\"master\",\"scrolling\",\"monocle\"]", escaped);
+        Assert.Equal("ok\n\n\n[\"dwindle\",\"scrolling\"]", escaped);
         Assert.Contains("[float; tile] notepad", core.Execute("binds").Text, StringComparison.Ordinal);
     }
 

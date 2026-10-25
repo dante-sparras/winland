@@ -41,12 +41,12 @@ public sealed class OptionTableTests
         var core = Configured("""
             group:col.border_active = rgb(255,0,0)
             general:border_size = 50
-            general:layout = Master
+            general:layout = Scrolling
             """);
 
         Assert.Equal("{\"option\":\"group:col.border_active\",\"str\":\"0x66FFFF00\",\"set\":false}", core.Execute("getoption group:col.border_active").Text);
         Assert.Equal("{\"option\":\"general:border_size\",\"int\":20,\"set\":true}", core.Execute("getoption general:border_size").Text);
-        Assert.Equal("{\"option\":\"general:layout\",\"str\":\"master\",\"set\":true}", core.Execute("getoption general:layout").Text);
+        Assert.Equal("{\"option\":\"general:layout\",\"str\":\"scrolling\",\"set\":true}", core.Execute("getoption general:layout").Text);
     }
 
     [Fact]

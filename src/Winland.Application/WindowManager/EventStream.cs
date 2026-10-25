@@ -390,7 +390,7 @@ public sealed partial class WindowManager
     private static FocusReason SwitchFocusReason(WindowManager _, FocusChange change) =>
         ReasonForSwitch(change.Before, change.After, change.AfterState);
 
-    private static FocusReason LayoutMessageFocusReason(WindowManager core, FocusChange _) => core.LayoutFocusReason();
+    private static FocusReason LayoutMessageFocusReason(WindowManager _, FocusChange __) => FocusReason.Unknown;
 
     // A drag begins, moves and ends as the pointer, and reports a desktop-state change. Typing the dispatcher does not.
     private static FocusReason DragFocusReason(WindowManager _, FocusChange change) =>
@@ -426,19 +426,6 @@ public sealed partial class WindowManager
             return FocusReason.SwitchHard;
 
         return FocusReason.SwitchSoft;
-    }
-
-    // Master cycles with a keybind. Monocle reveals the next tile as a desktop-state change.
-    private FocusReason LayoutFocusReason()
-    {
-        var layout = LayoutFactory.NameOf(CurrentWorkspace().Layout);
-        if (layout == "monocle")
-            return FocusReason.DesktopState;
-
-        if (layout == "master")
-            return FocusReason.Keybind;
-
-        return FocusReason.Unknown;
     }
 
     private static bool SameGroup(State state, WindowId? left, WindowId? right)

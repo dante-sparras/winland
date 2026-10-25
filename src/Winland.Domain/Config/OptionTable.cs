@@ -6,7 +6,6 @@ internal static class OptionTable
     private static readonly Dictionary<string, Entry> ByName = Build(
         Section(LayoutOptions.Options, config => config.Layout),
         Section(ScrollingOptions.Options, config => config.Scrolling),
-        Section(MasterOptions.Options, config => config.Master),
         Section(DecorationOptions.Options, config => config.Decoration),
         Section(GroupOptions.Options, config => config.Groups),
         Section(SessionOptions.Options, config => config.Session),
