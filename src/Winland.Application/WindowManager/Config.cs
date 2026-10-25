@@ -6,6 +6,14 @@ public sealed partial class WindowManager
     /// <summary>The <c>debug</c> options of the config read last, which say where Winland's log goes.</summary>
     public DebugOptions Debug => _config.Debug;
 
+    /// <summary>Whether a window rule matches on <c>title</c>, so a window's new title can change what the rules say of it.</summary>
+    public bool RulesMatchTitles => _config.TitleRules;
+
+    /// <summary>Counts the configs put in force, so a reader can tell that the rules were replaced.</summary>
+    public int RuleRevision => Volatile.Read(ref _revision);
+
+    private int _revision;
+
     // The notification the last load with config errors showed. A clean load clears it. A live keyword leaves it.
     private ConfigNotice? _notice;
     private int _noticeGeneration;
@@ -68,6 +76,7 @@ public sealed partial class WindowManager
     private void Use(AppliedConfig config)
     {
         _config = config;
+        Interlocked.Increment(ref _revision);
     }
 
     // loaded is false for a live keyword. That is not a read of the file, so the notification and configerrors stay.

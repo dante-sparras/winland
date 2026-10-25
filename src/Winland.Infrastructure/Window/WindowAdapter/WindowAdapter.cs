@@ -47,6 +47,7 @@ public sealed partial class WindowAdapter : IDisposable
     private readonly Dictionary<WindowId, (Size? Min, Size? Max)> _limits = [];
     private readonly Dictionary<WindowId, (Size? Min, Size? Max, long At)> _probed = [];
     private readonly Lock _limitGate = new();
+    private readonly DeclinedWindows _declined = new();
     private HWINEVENTHOOK[] _objects = [];
     private HWINEVENTHOOK _minimize;
     private HWINEVENTHOOK _foreground;
@@ -256,6 +257,7 @@ public sealed partial class WindowAdapter : IDisposable
                     AbandonDrag(window);
                     ForgetLimits(window);
                     ForgetProbe(window);
+                    _declined.Forget(window);
                     Apply(_core.Handle(new WindowClosed(window)));
                     // A window held when it was created may never have been shown.
                     Opacity.Forget(window);
@@ -320,7 +322,9 @@ public sealed partial class WindowAdapter : IDisposable
                         Minimized: PInvoke.IsIconic(hwnd),
                         Visible: PInvoke.IsWindowVisible(hwnd),
                         Managed: _core.Manages(window),
-                        Concealed: Concealed.ContainsKey(window));
+                        Concealed: Concealed.ContainsKey(window),
+                        Declined: @event == PInvoke.EVENT_OBJECT_NAMECHANGE
+                            && _declined.Unchanged(window, _core.RulesMatchTitles, _core.RuleRevision, () => RuleClass(hwnd)));
                     switch (WindowVisibility.Decide(@event, facts))
                     {
                         case VisibilityAction.UndoMinimize:
@@ -479,6 +483,13 @@ public sealed partial class WindowAdapter : IDisposable
         return true;
     }
 
+    // The class window rules match: a Store frame's is its hosted app's once the frame hosts one.
+    private static string RuleClass(HWND hwnd)
+    {
+        var owner = PInvoke.GetWindowThreadProcessId(hwnd, out var pid) == 0 ? 0 : pid;
+        return PackagedIdentity.Resolve(hwnd, ClassName(hwnd), ProcessFacts.Shared.For(owner).Exe).Class;
+    }
+
     private void NoteManaged(WindowId window, Outcome outcome, WindowAppeared appeared)
     {
         var adopted = false;
@@ -494,8 +505,11 @@ public sealed partial class WindowAdapter : IDisposable
         if (!adopted)
         {
             ForgetLimits(window);
+            _declined.Note(window, appeared.Traits, _core.RuleRevision);
             return;
         }
+
+        _declined.Forget(window);
 
         var min = appeared.Traits.MinSize;
         var max = appeared.Traits.MaxSize;

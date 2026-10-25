@@ -28,14 +28,19 @@ internal static class WindowVisibility
         PInvoke.EVENT_OBJECT_NAMECHANGE when facts.Managed => VisibilityAction.Retitle,
         PInvoke.EVENT_OBJECT_SHOW or PInvoke.EVENT_OBJECT_UNCLOAKED or PInvoke.EVENT_OBJECT_NAMECHANGE or PInvoke.EVENT_OBJECT_CREATE
             when facts.Managed => VisibilityAction.Restore,
+        // A window the core declined has no new answer in a new title, unless a rule reads titles or its class changed.
+        PInvoke.EVENT_OBJECT_NAMECHANGE when facts.Declined => VisibilityAction.None,
         PInvoke.EVENT_OBJECT_SHOW or PInvoke.EVENT_OBJECT_UNCLOAKED or PInvoke.EVENT_OBJECT_NAMECHANGE or PInvoke.EVENT_OBJECT_CREATE
             => VisibilityAction.Adopt,
         _ => VisibilityAction.None,
     };
 }
 
-/// <summary>What a window says about itself: minimized, visible, a Client, and hidden by Winland.</summary>
-internal readonly record struct WindowFacts(bool Minimized, bool Visible, bool Managed, bool Concealed);
+/// <summary>
+/// What a window says about itself: minimized, visible, a Client, and hidden by Winland. Declined is a window the core
+/// declined whose new title cannot change that.
+/// </summary>
+internal readonly record struct WindowFacts(bool Minimized, bool Visible, bool Managed, bool Concealed, bool Declined = false);
 
 internal enum VisibilityAction
 {
