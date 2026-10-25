@@ -148,7 +148,7 @@ public class ConfigNoticeTests
         var notice = Notice(core);
 
         Assert.NotNull(notice);
-        Assert.Equal("Winland: 1 config errors", notice.Title);
+        Assert.Equal("Winland: 1 config error", notice.Title);
         Assert.False(notice.Informational);
     }
 
