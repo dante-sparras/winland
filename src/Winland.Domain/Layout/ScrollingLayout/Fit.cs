@@ -91,7 +91,7 @@ internal sealed partial class ScrollingLayout
 
         current.Width = remaining;
         SetOffset(0);
-        CenterOrFit(used);
+        FitColumn(used);
     }
 
     private bool FitRange(Cell cell, bool toEnd)
@@ -238,7 +238,7 @@ internal sealed partial class ScrollingLayout
             return [];
         }
 
-        CenterOrFit(cell.Column);
+        FitColumn(cell.Column);
         Recalculate();
         return Placements();
     }

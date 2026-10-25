@@ -73,7 +73,6 @@ internal sealed partial class ScrollingLayout : TiledLayout, Layout
         WorkspaceId workspace,
         string windowClass = "",
         string title = "",
-        bool activeWorkspace = true,
         Rectangle monitor = default,
         long processId = 0,
         string initialClass = "",
@@ -85,7 +84,6 @@ internal sealed partial class ScrollingLayout : TiledLayout, Layout
         _ = pointer;
         _ = minSize;
         _ = maxSize;
-        _ = activeWorkspace;
         _area = area;
         if (monitor.Width > 0 && monitor.Height > 0)
             _monitor = monitor;
@@ -255,8 +253,8 @@ internal sealed partial class ScrollingLayout : TiledLayout, Layout
 
     public void NotePointerFocus(WindowId window) => Follow(window, pointer: true);
 
-    // The strip follows the focus with scrolling:follow_focus. scrolling:follow_min_visible
-    // holds it back only for focus the pointer gives, so a dispatcher, a click or a Group change always follows.
+    // The strip follows the focus. A column with under 0.4 of its width in view holds it back
+    // only for focus the pointer gives, so a dispatcher, a click or a Group change always follows.
     private void Follow(WindowId window, bool pointer)
     {
         if (CellFor(window) is not Cell cell || cell.Column is not Column column)
@@ -264,15 +262,13 @@ internal sealed partial class ScrollingLayout : TiledLayout, Layout
 
         _focus = window;
         column.LastFocused = cell;
-        if (!_scrolling.FollowFocus || ColumnVisible(column, full: true))
+        if (ColumnVisible(column, full: true))
             return;
 
-        var view = Viewport();
-        var span = IsHorizontal() ? view.Width : view.Height;
-        if (pointer && _scrolling.FollowMinVisible > 0 && VisibleLength(cell) < span * _scrolling.FollowMinVisible)
+        if (pointer && VisibleLength(cell) < Viewport().Width * 0.4)
             return;
 
-        CenterOrFit(column);
+        FitColumn(column);
         Recalculate();
         _moved = true;
     }

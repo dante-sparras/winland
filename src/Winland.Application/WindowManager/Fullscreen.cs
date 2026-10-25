@@ -199,12 +199,12 @@ public sealed partial class WindowManager
         return FullscreenGeometry.Cover(client.Fullscreen, work, monitor);
     }
 
-    // A maximized Client fills its Workspace's work area as Winland lays it out: less gaps_out, or
-    // general:float_gaps for a floating Client, and less its border.
+    // A maximized Client fills its Workspace's work area as Winland lays it out: less gaps_out for a tiled Client,
+    // and less its border.
     private static Rectangle Maximized(Client client, LiveWorkspace desk, Rectangle work)
     {
         var options = desk.Options;
-        var area = client.Floating ? options.FloatingWorkArea(work) : options.GapsOut.Apply(work);
+        var area = client.Floating ? work : options.GapsOut.Apply(work);
         var border = options.BorderSize;
         return new Rectangle(
             area.X + border,

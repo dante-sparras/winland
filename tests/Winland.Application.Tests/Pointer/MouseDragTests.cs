@@ -175,9 +175,9 @@ public class MouseDragTests
     }
 
     [Fact]
-    public void ADropFollowsThePointerEvenWhenTheSplitIsForced()
+    public void ADropFollowsThePointer()
     {
-        var core = Flat("dwindle:force_split = 2\nbindm = SUPER, mouse:272, movewindow\n");
+        var core = Flat("bindm = SUPER, mouse:272, movewindow\n");
         Appear(core, 1);
         Appear(core, 2);
         Press(core, "Super_L");
@@ -190,12 +190,10 @@ public class MouseDragTests
         Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(dropped, 1));
     }
 
-    [Theory]
-    [InlineData("true")]
-    [InlineData("false")]
-    public void PreciseMouseMoveDropsOnTheSideNearestThePointer(string precise)
+    [Fact]
+    public void ADropSplitsAlongTheLongerSideOfTheTile()
     {
-        var core = Flat("dwindle:precise_mouse_move = " + precise + "\nbindm = SUPER, mouse:272, movewindow\n");
+        var core = Flat("bindm = SUPER, mouse:272, movewindow\n");
         Appear(core, 1);
         Appear(core, 2);
         Press(core, "Super_L");
@@ -205,20 +203,12 @@ public class MouseDragTests
         // Client 1 fills the screen while 2 is lifted. The pointer is below its center.
         var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(960, 1000) });
 
-        if (precise == "true")
-        {
-            Assert.Equal(new Rectangle(0, 0, 1920, 540), BoundsOf(dropped, 1));
-            Assert.Equal(new Rectangle(0, 540, 1920, 540), BoundsOf(dropped, 2));
-        }
-        else
-        {
-            Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(dropped, 1));
-            Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(dropped, 2));
-        }
+        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(dropped, 1));
+        Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(dropped, 2));
     }
 
     [Fact]
-    public void SmartResizingMovesTheGrabbedEdgeAndKeepsTheOtherOne()
+    public void ResizingMovesTheGrabbedEdgeAndKeepsTheOtherOne()
     {
         var core = FourTiles("");
         core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(1000, 600) });
@@ -230,19 +220,6 @@ public class MouseDragTests
         Assert.Equal(new Rectangle(860, 0, 1060, 540), BoundsOf(resized, 2));
         Assert.Equal(new Rectangle(860, 540, 580, 540), BoundsOf(resized, 3));
         Assert.Equal(new Rectangle(1440, 540, 480, 540), BoundsOf(resized, 4));
-    }
-
-    [Fact]
-    public void WithoutSmartResizingTheNearestSplitMoves()
-    {
-        var core = FourTiles("dwindle:smart_resizing = false\n");
-        core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(1000, 600) });
-
-        var resized = core.Handle(new PointerMoved(new Point(900, 600)));
-
-        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(resized, 1));
-        Assert.Equal(new Rectangle(960, 540, 380, 540), BoundsOf(resized, 3));
-        Assert.Equal(new Rectangle(1340, 540, 580, 540), BoundsOf(resized, 4));
     }
 
     [Fact]
@@ -525,24 +502,24 @@ public class MouseDragTests
         var core = TwoMonitors("bindm = SUPER, mouse:273, resizewindow\n");
         Appear(core, 1);
         core.Handle(new Dispatch("togglefloating"));
-        core.Handle(new Dispatch("movewindowpixel", "exact 1500 300,address:0x1"));
+        core.Handle(new Dispatch("movewindowpixel", "exact 1280 300,address:0x1"));
         Press(core, "Super_L");
         // The bottom right corner lies on the other Monitor, which does not own the window, so the press is on the
-        // bottom right and still on this Monitor. Growing the right edge by 200 puts the middle on the other one.
+        // bottom right and still on this Monitor. Growing the right edge by 700 puts the middle on the other one.
         core.Handle(new PointerButtonPressed("mouse:273") { Position = new Point(1900, 690) });
 
-        var crossed = core.Handle(new PointerMoved(new Point(2100, 690)));
-        Assert.Equal(new Rectangle(1500, 300, 840, 400), BoundsOf(crossed, 1));
+        var crossed = core.Handle(new PointerMoved(new Point(2600, 690)));
+        Assert.Equal(new Rectangle(1280, 300, 1340, 400), BoundsOf(crossed, 1));
         Assert.Equal(RightWorkspace, Client(crossed, 1).Workspace);
         Assert.Equal(new MonitorId(0), crossed.State.ActiveMonitor);
         Assert.Equal([@"movewindow>>1,1,\\.\DISPLAY2", @"movewindowv2>>1,1,1,\\.\DISPLAY2"], MoveLines(crossed));
 
-        var grown = core.Handle(new PointerMoved(new Point(2200, 690)));
-        Assert.Equal(new Rectangle(1500, 300, 940, 400), BoundsOf(grown, 1));
+        var grown = core.Handle(new PointerMoved(new Point(2700, 690)));
+        Assert.Equal(new Rectangle(1280, 300, 1440, 400), BoundsOf(grown, 1));
         Assert.Equal(RightWorkspace, Client(grown, 1).Workspace);
         Assert.Empty(MoveLines(grown));
 
-        var dropped = core.Handle(new PointerButtonReleased("mouse:273") { Position = new Point(2200, 690) });
+        var dropped = core.Handle(new PointerButtonReleased("mouse:273") { Position = new Point(2700, 690) });
         Assert.Equal(RightWorkspace, Client(dropped, 1).Workspace);
         Assert.True(Client(dropped, 1).Floating);
         Assert.Equal(new MonitorId(0), dropped.State.ActiveMonitor);

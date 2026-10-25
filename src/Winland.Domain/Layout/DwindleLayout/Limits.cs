@@ -41,24 +41,24 @@ internal sealed partial class DwindleLayout
         return placements;
     }
 
-    private bool CannotFill(Size? max, Point? pointer)
+    private bool CannotFill(Size? max)
     {
         if (max is not { } limit)
             return false;
 
-        var tile = PredictedTile(pointer);
+        var tile = PredictedTile();
         return limit.Width < tile.Width || limit.Height < tile.Height;
     }
 
     // A window whose maximum cannot fill the tile it would open in floats instead. It would
     // have been sized for that tile, half the tile it splits or the whole Monitor, so it floats at that size kept
     // inside its limits, in the middle of the work area.
-    private Rectangle FloatedFromTile(SizeLimits limits, Point? pointer)
+    private Rectangle FloatedFromTile(SizeLimits limits)
     {
-        var tile = PredictedTile(pointer);
-        if (Opening(pointer) is not null)
+        var tile = PredictedTile();
+        if (Opening() is not null)
         {
-            tile = tile.Height * _options.SplitWidthMultiplier > tile.Width
+            tile = tile.Height > tile.Width
                 ? tile with { Height = tile.Height / 2 }
                 : tile with { Width = tile.Width / 2 };
         }
@@ -66,9 +66,9 @@ internal sealed partial class DwindleLayout
         return FloatedLimits.Centered(limits, tile, _area);
     }
 
-    private Rectangle PredictedTile(Point? pointer)
+    private Rectangle PredictedTile()
     {
-        var opening = Opening(pointer);
+        var opening = Opening();
         if (opening is not null)
             return opening.Box;
 

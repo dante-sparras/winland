@@ -11,7 +11,6 @@ public class DwindleConformance
         foreach (var name in new[] { "a", "b", "c" })
             desk.Spawn(name);
 
-        desk.Keyword("dwindle:force_split", "2");
         desk.Ok("focuswindow", "class:c");
         desk.Ok("setfloating", "class:c");
         desk.Ok("resizewindowpixel", "exact 1200 900,class:c");
@@ -106,28 +105,9 @@ public class DwindleConformance
     }
 
     [Fact]
-    public void DwindleForceSplitOnMoveToWorkspace()
-    {
-        var desk = new Desk();
-        desk.Ok("workspace", "2");
-        desk.Spawn("kitty");
-
-        desk.Ok("workspace", "1");
-        desk.Spawn("kitty2");
-        var before = desk.ActivePlace().At;
-
-        desk.Keyword("dwindle:force_split", "2");
-        desk.Ok("movecursortocorner", "3");
-        desk.Ok("movetoworkspace", "2");
-
-        Assert.NotEqual(before, desk.ActivePlace().At);
-    }
-
-    [Fact]
     public void DwindleMoveAcrossToggledSplit()
     {
         var desk = new Desk();
-        desk.Keyword("dwindle:force_split", "2");
         desk.Spawn("a");
         desk.Spawn("b");
         desk.Ok("layoutmsg", "togglesplit");
@@ -137,21 +117,6 @@ public class DwindleConformance
         desk.Ok("movewindow", "d");
 
         Assert.Equal(b, desk.ActivePlace());
-    }
-
-    [Fact]
-    public void DwindleMoveSmallWindowAcrossSplit()
-    {
-        var desk = new Desk();
-        desk.Keyword("dwindle:force_split", "1");
-        desk.Keyword("dwindle:default_split_ratio", "1.2");
-        desk.Spawn("a");
-        desk.Spawn("b");
-
-        var before = desk.ActivePlace().At;
-        desk.Ok("movewindow", "r");
-
-        Assert.NotEqual(before, desk.ActivePlace().At);
     }
 
     [Fact]

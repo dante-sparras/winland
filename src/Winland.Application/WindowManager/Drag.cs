@@ -231,15 +231,14 @@ public sealed partial class WindowManager
     }
 
     // The pointer shape while a drag holds a window, as Winland overrides it: grabbing for a move, and for a
-    // resize the corner that is grabbed, which general:resize_corner forces on a floating window.
-    private string DragCursor(LiveWorkspace desk, WindowId window, bool resize, Point pointer)
+    // resize the corner that is grabbed.
+    private static string DragCursor(LiveWorkspace desk, WindowId window, bool resize, Point pointer)
     {
         if (!resize)
             return "grabbing";
 
         var bounds = desk.Layout.TryBounds(window, out var found) ? found : default;
-        var floating = desk.ClientOf(window) is { Floating: true };
-        var (left, top) = BorderPointer.GrabbedCorner(ActiveOptions().ResizeCorner, floating, pointer, bounds);
+        var (left, top) = BorderPointer.GrabbedCorner(pointer, bounds);
         return BorderPointer.Cursor(BorderPointer.GrabbedSide(left, top))!;
     }
 

@@ -9,14 +9,14 @@ internal sealed partial class ScrollingLayout
 
         if (max < primary)
             SetOffset(Math.Round((max - primary) / 2.0, MidpointRounding.AwayFromZero));
-        if (max > primary && _offset < 0 && _scrolling.FocusFitMethod != ScrollingFit.Center)
+        if (max > primary && _offset < 0)
             SetOffset(0);
         return _offset;
     }
 
-    private void FitColumn(Column column)
+    private void FitColumn(Column? column)
     {
-        if (!TryStrip(column, out var start, out var size, out var primary))
+        if (column is null || !TryStrip(column, out var start, out var size, out var primary))
             return;
 
         var lo = start - primary + size;
@@ -33,17 +33,6 @@ internal sealed partial class ScrollingLayout
             return;
 
         SetOffset(start - ((primary - size) / 2.0));
-    }
-
-    private void CenterOrFit(Column? column)
-    {
-        if (column is null)
-            return;
-
-        if (_scrolling.FocusFitMethod == ScrollingFit.Fit)
-            FitColumn(column);
-        else
-            CenterColumn(column);
     }
 
     private bool TryStrip(Column column, out double start, out double size, out double primary)
@@ -65,7 +54,7 @@ internal sealed partial class ScrollingLayout
     private double StripSize(int index, double primary, bool fullscreen) =>
         fullscreen ? primary : primary * _columns[index].Width;
 
-    private bool OneColumn() => _scrolling.FullscreenOnOneColumn && _columns.Count == 1;
+    private bool OneColumn() => _columns.Count == 1;
 
     private double MaxExtent() => MaxExtent(PrimaryLength(), OneColumn());
 
@@ -134,26 +123,19 @@ internal sealed partial class ScrollingLayout
 
     private double PrimaryLength()
     {
-        var usable = Usable();
-        return IsHorizontal() ? usable.Width : usable.Height;
+        return Usable().Width;
     }
 
     private double SecondaryLength()
     {
-        var usable = Usable();
-        return IsHorizontal() ? usable.Height : usable.Width;
+        return Usable().Height;
     }
 
     private double VisibleLength(Cell cell)
     {
         var view = Viewport();
         var box = cell.Logical;
-        var horizontal = IsHorizontal();
-        var start = horizontal ? Math.Max(view.X, box.X) : Math.Max(view.Y, box.Y);
-        var end = horizontal
-            ? Math.Min(view.X + view.Width, box.X + box.Width)
-            : Math.Min(view.Y + view.Height, box.Y + box.Height);
-        return Math.Max(0, end - start);
+        return Math.Max(0, Math.Min(view.X + view.Width, box.X + box.Width) - Math.Max(view.X, box.X));
     }
 
     private Rectangle Usable()
@@ -167,9 +149,4 @@ internal sealed partial class ScrollingLayout
     private Rectangle Viewport() =>
         _monitor.Width > 0 && _monitor.Height > 0 ? _monitor : _area;
 
-    private bool IsHorizontal() =>
-        _scrolling.Direction is ScrollingDirection.Right or ScrollingDirection.Left;
-
-    private bool IsReversed() =>
-        _scrolling.Direction is ScrollingDirection.Left or ScrollingDirection.Up;
 }

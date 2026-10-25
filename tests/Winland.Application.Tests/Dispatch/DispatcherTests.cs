@@ -159,25 +159,6 @@ public class DispatcherTests
     }
 
     [Fact]
-    public void MoveWindowRightKeepsTheClientOnTheRightWhenTheSplitIsForcedLeft()
-    {
-        var core = Flat("");
-        Appear(core, 1);
-        Appear(core, 2);
-        core.Handle(new Configure(ConfigParser.Parse("""
-            general:gaps_in = 0
-            general:gaps_out = 0
-            general:border_size = 0
-            dwindle:force_split = 1
-            """)));
-
-        var outcome = core.Handle(new Dispatch("movewindow", "r"));
-
-        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(outcome, 2));
-    }
-
-    [Fact]
     public void BoundMoveWindowRearrangesTheTree()
     {
         var core = Load("bind = SUPER, L, movewindow, l");
@@ -315,8 +296,8 @@ public class DispatcherTests
 
         var grown = same.Handle(new Dispatch("togglefloating"));
 
-        // misc:float_force_onscreen 0 leaves it around the middle of the tile, partly off the Monitor.
-        Assert.Equal(new Rectangle(-5, -5, 1930, 1090), BoundsOf(grown, 1));
+        // It is kept on screen, so it lines up with the right and bottom edges.
+        Assert.Equal(new Rectangle(-10, -10, 1930, 1090), BoundsOf(grown, 1));
     }
 
     [Fact]
@@ -357,21 +338,6 @@ public class DispatcherTests
         var outcome = core.Handle(new Dispatch("layoutmsg", "togglesplit"));
 
         Assert.Equal("layoutmsg", outcome.Dispatcher);
-        Assert.Equal(new Rectangle(0, 0, 1920, 540), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(0, 540, 1920, 540), BoundsOf(outcome, 2));
-    }
-
-    [Theory]
-    [InlineData("dwindle:smart_split = true")]
-    [InlineData("dwindle:precise_mouse_move = true")]
-    public void ToggleSplitFlipsTheSplitWhenAnotherOptionKeepsSplits(string option)
-    {
-        var core = Flat(option);
-        Appear(core, 1);
-        Appear(core, 2);
-
-        var outcome = core.Handle(new Dispatch("layoutmsg", "togglesplit"));
-
         Assert.Equal(new Rectangle(0, 0, 1920, 540), BoundsOf(outcome, 1));
         Assert.Equal(new Rectangle(0, 540, 1920, 540), BoundsOf(outcome, 2));
     }

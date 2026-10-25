@@ -16,7 +16,7 @@ public class GeometryDispatcherTests
 
     [Theory]
     [InlineData("10 -20,address:0x1", 870, 445)]
-    [InlineData("exact 0 0,address:0x1", 0, 0)]
+    [InlineData("exact 0 0,address:0x1", 2, 2)]
     [InlineData("exact 50% 25%,address:0x1", 960, 270)]
     [InlineData("10% 0,address:0x1", 946, 465)]
     [InlineData("left 0,address:0x1", 860, 465)]

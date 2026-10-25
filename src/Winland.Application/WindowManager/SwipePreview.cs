@@ -21,7 +21,7 @@ public sealed partial class WindowManager
             return View([]);
 
         var preview = _swipePreview ??= new SwipePreview(swipe.Begin);
-        var (vertical, span) = SwipeSpan(swipe.Begin, screen?.Bounds ?? _area);
+        var (vertical, span) = SwipeSpan(screen?.Bounds ?? _area);
         var offset = -swipe.Delta / Math.Max(1, _config.Swipe.Distance) * span;
         var motions = new List<Motion>();
         Offset(swipe.Begin, offset, vertical, preview, motions);
@@ -73,14 +73,12 @@ public sealed partial class WindowManager
         return moved;
     }
 
-    // Whether the swipe runs vertically, and how far a whole swipe moves a Workspace: the monitor's width or height
-    // and the gap between Workspaces.
-    private (bool Vertical, double Span) SwipeSpan(WorkspaceId workspace, Rectangle monitor)
+    // Whether the swipe runs vertically, and how far a whole swipe moves a Workspace: the monitor's width or height.
+    private (bool Vertical, double Span) SwipeSpan(Rectangle monitor)
     {
         var style = _config.Animations.StyleOf("workspaces");
         var vertical = style == "slidevert" || style.StartsWith("slidefadevert", StringComparison.Ordinal);
-        var between = _workspaces.Find(workspace)?.Options.GapsWorkspaces ?? 0;
-        return (vertical, (vertical ? monitor.Height : monitor.Width) + between);
+        return (vertical, vertical ? monitor.Height : monitor.Width);
     }
 
     // The swipe ended without a switch: the Workspace swiped from slides back and the neighbour slides away and hides.
@@ -89,7 +87,7 @@ public sealed partial class WindowManager
         if (TakePreview() is not { } preview)
             return View([]);
 
-        var (vertical, span) = SwipeSpan(swipe.Begin, MonitorById(swipe.Monitor)?.Bounds ?? _area);
+        var (vertical, span) = SwipeSpan(MonitorById(swipe.Monitor)?.Bounds ?? _area);
         var back = _config.Animations.Enabled && ReducedMotion?.Invoke() != true ? _config.Animations.TimingOf("workspacesIn") : null;
         var away = _config.Animations.Enabled && ReducedMotion?.Invoke() != true ? _config.Animations.TimingOf("workspacesOut") : null;
         var motions = new List<Motion>();

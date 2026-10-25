@@ -53,7 +53,7 @@ internal sealed class MouseDrag
             return [];
         }
 
-        var (left, top) = BorderPointer.GrabbedCorner(host.ResizeCorner, floating, drag.Pointer, bounds);
+        var (left, top) = BorderPointer.GrabbedCorner(drag.Pointer, bounds);
         _grab = new Grab(id, drag.Resize, floating, drag.Pointer, bounds, left, top, drag.KeepRatio);
         return [];
     }
@@ -77,7 +77,7 @@ internal sealed class MouseDrag
                 return host.ResizeTile(grab.Id, dx, dy, (grab.Left, grab.Top));
 
             var resized = BorderPointer.Resize(grab.Start, grab.Pressed, pointer, grab.Left, grab.Top, grab.KeepRatio);
-            floating.Set(grab.Id, host.SnapFloating(grab.Id, resized, SnapEdges.FromGrab(grab.Left, grab.Top), resize: true));
+            floating.Set(grab.Id, resized);
             return host.ShowFloating(grab.Id);
         }
 
@@ -93,7 +93,7 @@ internal sealed class MouseDrag
         }
 
         var next = new Rectangle(pointer.X - grab.HotX, pointer.Y - grab.HotY, grab.Start.Width, grab.Start.Height);
-        floating.Set(grab.Id, host.SnapFloating(grab.Id, next, SnapEdges.All, resize: false));
+        floating.Set(grab.Id, next);
         return host.ShowFloating(grab.Id);
     }
 
@@ -149,14 +149,8 @@ internal interface IMouseDragHost
 {
     FloatingClients Floating { get; }
 
-    /// <summary><c>general:resize_corner</c>, which forces the grabbed corner of a floating Client.</summary>
-    int ResizeCorner { get; }
-
     /// <summary>The rectangle a drag of this Client starts from. False when it cannot be dragged.</summary>
     bool TryDragBounds(ClientId id, out Rectangle bounds, out bool floating);
-
-    /// <summary>A floating rectangle snapped to the other Clients and the monitor.</summary>
-    Rectangle SnapFloating(ClientId self, Rectangle proposed, SnapEdges edges, bool resize);
 
     /// <summary>Takes a tile out of the Layout and floats it at its tiled rectangle. False when it is not tiled.</summary>
     bool LiftTile(ClientId id, out Rectangle box);
@@ -188,11 +182,4 @@ public enum PointerDragPhase
     Begin,
     Move,
     End,
-}
-
-internal readonly record struct SnapEdges(bool Left, bool Top, bool Right, bool Bottom)
-{
-    public static SnapEdges All { get; } = new(true, true, true, true);
-
-    public static SnapEdges FromGrab(bool left, bool top) => new(left, top, !left, !top);
 }

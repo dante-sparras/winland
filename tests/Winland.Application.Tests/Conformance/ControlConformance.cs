@@ -73,12 +73,12 @@ public class ControlConformance
         ExpectConfigured(desk);
 
         desk.Keyword("general:border_size", "7");
-        desk.Keyword("general:snap:enabled", "false");
-        desk.Keyword("scrolling:follow_min_visible", "0.625");
+        desk.Keyword("dwindle:preserve_split", "false");
+        desk.Keyword("scrolling:column_width", "0.625");
 
         Assert.Equal("""{"option":"general:border_size","int":7,"set":true}""", desk.Send("getoption general:border_size"));
-        Assert.Equal("""{"option":"general:snap:enabled","bool":false,"set":true}""", desk.Send("getoption general:snap:enabled"));
-        Assert.Equal("""{"option":"scrolling:follow_min_visible","float":0.625,"set":true}""", desk.Send("getoption scrolling:follow_min_visible"));
+        Assert.Equal("""{"option":"dwindle:preserve_split","bool":false,"set":true}""", desk.Send("getoption dwindle:preserve_split"));
+        Assert.Equal("""{"option":"scrolling:column_width","float":0.625,"set":true}""", desk.Send("getoption scrolling:column_width"));
 
         Assert.Equal("ok", desk.Send("reload"));
         ExpectConfigured(desk);
@@ -119,9 +119,9 @@ public class ControlConformance
     private static void ExpectConfigured(Desk desk)
     {
         Assert.Equal("""{"option":"general:border_size","int":2,"set":true}""", desk.Send("getoption general:border_size"));
-        Assert.Equal("""{"option":"general:snap:enabled","bool":true,"set":true}""", desk.Send("getoption general:snap:enabled"));
+        Assert.Equal("""{"option":"dwindle:preserve_split","bool":true,"set":true}""", desk.Send("getoption dwindle:preserve_split"));
         Assert.Equal("""{"option":"decoration:rounding","int":10,"set":true}""", desk.Send("getoption decoration:rounding"));
-        Assert.Equal("""{"option":"scrolling:follow_min_visible","float":1,"set":true}""", desk.Send("getoption scrolling:follow_min_visible"));
+        Assert.Equal("""{"option":"scrolling:column_width","float":0.5,"set":true}""", desk.Send("getoption scrolling:column_width"));
     }
 
     private static void ExpectNormal(JsonElement workspace, int id, string name)

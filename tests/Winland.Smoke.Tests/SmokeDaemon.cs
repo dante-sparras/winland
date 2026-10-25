@@ -354,7 +354,6 @@ internal sealed class SmokeDaemon : IDisposable
         general:gaps_out = 0
         general:border_size = 0
         animations:enabled = false
-        dwindle:split_width_multiplier = 0.1
         windowrule = ignore, class:.*
         windowrule = tile, class:^(WinlandSmokeWindow)$, title:^(WinlandSmoke [12])$
         windowrule = workspace 1, class:^(WinlandSmokeWindow)$, title:^(WinlandSmoke [12])$

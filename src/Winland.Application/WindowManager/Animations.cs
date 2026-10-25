@@ -159,9 +159,8 @@ public sealed partial class WindowManager
                     continue;
 
                 var monitor = _core.MonitorRectangle(client.Workspace);
-                var between = _core._workspaces.Find(client.Workspace)?.Options.GapsWorkspaces ?? 0;
                 var style = Options.StyleOf(leaf);
-                var shift = MotionStyles.Workspace(style, entering, left, client.Workspace.IsSpecial, monitor, between);
+                var shift = MotionStyles.Workspace(style, entering, left, client.Workspace.IsSpecial, monitor);
                 var rest = _placed.TryGetValue(window, out var placed) ? placed : client.Bounds;
                 var away = rest with { X = rest.X + shift.Dx, Y = rest.Y + shift.Dy };
                 var moves = shift.Dx != 0 || shift.Dy != 0;

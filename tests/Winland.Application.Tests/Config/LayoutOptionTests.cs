@@ -127,29 +127,19 @@ public class LayoutOptionTests
     public void ANumberThatIsNotFiniteWarnsAndIsSkipped(string value)
     {
         var document = ConfigParser.Parse($"""
-            dwindle:split_width_multiplier = 1.5
-            dwindle:split_width_multiplier = {value}
-            dwindle:default_split_ratio = 1.2
-            dwindle:default_split_ratio = {value}
             scrolling:column_width = 0.7
             scrolling:column_width = {value}
-            scrolling:follow_min_visible = 0.3
-            scrolling:follow_min_visible = {value}
             scrolling:explicit_column_widths = 0.5, {value}
             cursor:inactive_timeout = 3
             cursor:inactive_timeout = {value}
             """);
 
-        var layout = LayoutOptions.From(document);
         var scrolling = ScrollingOptions.From(document);
         var cursor = CursorOptions.From(document);
 
-        Assert.Equal([2, 4, 6, 8, 9, 11], document.Warnings.Select(warning => warning.Line));
+        Assert.Equal([2, 3, 5], document.Warnings.Select(warning => warning.Line));
 
-        Assert.Equal(1.5, layout.SplitWidthMultiplier);
-        Assert.Equal(1.2, layout.DefaultSplitRatio);
         Assert.Equal(0.7, scrolling.ColumnWidth);
-        Assert.Equal(0.3, scrolling.FollowMinVisible);
         Assert.Equal(ScrollingOptions.Defaults.ExplicitColumnWidths, scrolling.ExplicitColumnWidths);
         Assert.Equal(3, cursor.InactiveTimeoutSeconds);
     }
@@ -182,42 +172,6 @@ public class LayoutOptionTests
             """)));
 
         Assert.Equal(new Rectangle(10, 10, 1900, 1060), BoundsOf(outcome, 1));
-    }
-
-    [Fact]
-    public void ForceSplitPutsTheNewClientOnTheNamedSide()
-    {
-        var left = Configured(Flat("""
-            dwindle:force_split = left
-            """));
-        left.Handle(Appeared(1, Wide));
-        var forcedLeft = left.Handle(Appeared(2, Wide, new Point(1800, 500)));
-
-        Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(forcedLeft, 1));
-        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(forcedLeft, 2));
-
-        var right = Configured(Flat("""
-            dwindle:force_split = 2
-            """));
-        right.Handle(Appeared(1, Wide));
-        var forcedRight = right.Handle(Appeared(2, Wide, new Point(10, 500)));
-
-        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(forcedRight, 1));
-        Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(forcedRight, 2));
-    }
-
-    [Fact]
-    public void FollowMouseKeepsThePointerSide()
-    {
-        var core = Configured(Flat("""
-            dwindle:force_split = follow_mouse
-            """));
-        core.Handle(Appeared(1, Wide));
-
-        var outcome = core.Handle(Appeared(2, Wide, new Point(10, 500)));
-
-        Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(outcome, 2));
     }
 
     [Fact]
@@ -255,157 +209,6 @@ public class LayoutOptionTests
     }
 
     [Fact]
-    public void SmartSplitUsesThePointerTriangleAndKeepsThatDirection()
-    {
-        var aimed = Configured(Flat("""
-            dwindle:smart_split = true
-            """));
-        aimed.Handle(Appeared(1, Wide));
-        var split = aimed.Handle(Appeared(2, Wide, new Point(960, 10)));
-
-        Assert.Equal(new Rectangle(0, 540, 1920, 540), BoundsOf(split, 1));
-        Assert.Equal(new Rectangle(0, 0, 1920, 540), BoundsOf(split, 2));
-
-        var kept = Configured(Flat("""
-            dwindle:smart_split = on
-            """));
-        kept.Handle(Appeared(1, Wide));
-        kept.Handle(Appeared(2, Wide));
-        kept.Handle(Appeared(3, Wide));
-        var closed = kept.Handle(new WindowClosed(new WindowId(1)));
-
-        Assert.Equal(new Rectangle(0, 0, 1920, 540), BoundsOf(closed, 2));
-        Assert.Equal(new Rectangle(0, 540, 1920, 540), BoundsOf(closed, 3));
-    }
-
-    [Fact]
-    public void SplitWidthMultiplierChangesWhenASplitIsSideBySide()
-    {
-        var area = new Rectangle(0, 0, 1200, 1000);
-        var core = Configured(Flat("""
-            dwindle:split_width_multiplier = 2
-            """));
-        core.Handle(Appeared(1, area));
-
-        var outcome = core.Handle(Appeared(2, area));
-
-        Assert.Equal(new Rectangle(0, 0, 1200, 500), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(0, 500, 1200, 500), BoundsOf(outcome, 2));
-    }
-
-    [Fact]
-    public void DefaultSplitRatioSetsTheShareOfTheFirstSide()
-    {
-        var core = Configured(Flat("""
-            dwindle:default_split_ratio = 1.5
-            """));
-        core.Handle(Appeared(1, Wide));
-
-        var outcome = core.Handle(Appeared(2, Wide));
-
-        Assert.Equal(new Rectangle(0, 0, 1440, 1080), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(1440, 0, 480, 1080), BoundsOf(outcome, 2));
-    }
-
-    [Fact]
-    public void SplitBiasGivesTheRatioToTheCurrentClient()
-    {
-        var core = Configured(Flat("""
-            dwindle:default_split_ratio = 1.5
-            dwindle:split_bias = current
-            dwindle:force_split = 1
-            """));
-        core.Handle(Appeared(1, Wide));
-
-        var outcome = core.Handle(Appeared(2, Wide));
-
-        Assert.Equal(new Rectangle(480, 0, 1440, 1080), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(0, 0, 480, 1080), BoundsOf(outcome, 2));
-    }
-
-    [Fact]
-    public void UseActiveForSplitsCanPreferTheClientUnderThePointer()
-    {
-        var core = Configured(Flat("""
-            dwindle:use_active_for_splits = false
-            """));
-        core.Handle(Appeared(1, Wide));
-        core.Handle(Appeared(2, Wide, new Point(1500, 500)));
-        core.Handle(Appeared(3, Wide, new Point(1500, 800)));
-
-        var outcome = core.Handle(Appeared(4, Wide, new Point(100, 100)));
-
-        Assert.Equal(new Rectangle(0, 540, 960, 540), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(960, 0, 960, 540), BoundsOf(outcome, 2));
-        Assert.Equal(new Rectangle(960, 540, 960, 540), BoundsOf(outcome, 3));
-        Assert.Equal(new Rectangle(0, 0, 960, 540), BoundsOf(outcome, 4));
-    }
-
-    [Fact]
-    public void ClosestLeafIsUsedOnlyOnAReservedAreaOfTheActiveWorkspace()
-    {
-        var missed = Configured(Flat("""
-            dwindle:use_active_for_splits = false
-            general:gaps_out = 40
-            """));
-        missed.Handle(Appeared(1, Wide));
-        missed.Handle(Appeared(2, Wide, new Point(1500, 540)));
-
-        var beside = missed.Handle(Appeared(3, Wide, new Point(1900, 540)));
-
-        Assert.Equal(new Rectangle(40, 40, 920, 500), BoundsOf(beside, 1));
-        Assert.Equal(new Rectangle(960, 40, 920, 1000), BoundsOf(beside, 2));
-        Assert.Equal(new Rectangle(40, 540, 920, 500), BoundsOf(beside, 3));
-
-        var reserved = Configured(Flat("""
-            dwindle:use_active_for_splits = false
-            """));
-        var display = new Monitor(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1040));
-        reserved.Handle(new MonitorsChanged([display]));
-        reserved.Handle(Appeared(1, display.WorkArea));
-        reserved.Handle(Appeared(2, display.WorkArea, new Point(1500, 500)));
-
-        var onBar = reserved.Handle(Appeared(3, display.WorkArea, new Point(1500, 1060)));
-
-        Assert.Equal(new Rectangle(0, 0, 960, 1040), BoundsOf(onBar, 1));
-        Assert.Equal(new Rectangle(960, 0, 960, 520), BoundsOf(onBar, 2));
-        Assert.Equal(new Rectangle(960, 520, 960, 520), BoundsOf(onBar, 3));
-
-        var outside = Configured(Flat("""
-            dwindle:use_active_for_splits = false
-            """));
-        outside.Handle(new MonitorsChanged([display]));
-        outside.Handle(Appeared(1, display.WorkArea));
-        outside.Handle(Appeared(2, display.WorkArea, new Point(1500, 500)));
-
-        var offScreen = outside.Handle(Appeared(3, display.WorkArea, new Point(2000, 500)));
-
-        Assert.Equal(new Rectangle(0, 520, 960, 520), BoundsOf(offScreen, 1));
-        Assert.Equal(new Rectangle(960, 0, 960, 1040), BoundsOf(offScreen, 2));
-        Assert.Equal(new Rectangle(0, 0, 960, 520), BoundsOf(offScreen, 3));
-
-        var background = Configured(Flat("""
-            dwindle:use_active_for_splits = false
-            windowrule = workspace 2 silent, class:^(extra)$
-            """));
-        background.Handle(Appeared(1, Wide));
-        background.Handle(Appeared(2, Wide));
-        background.Handle(new Dispatch("movetoworkspacesilent", "2"));
-        background.Handle(new Dispatch("movetoworkspacesilent", "2"));
-        background.Handle(new WindowAppeared(new WindowId(3), Wide)
-        {
-            Pointer = new Point(1500, 500),
-            Traits = WindowTraits.Normal with { Class = "extra" },
-        });
-
-        var shown = background.Handle(new Dispatch("workspace", "2"));
-
-        Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(shown, 1));
-        Assert.Equal(new Rectangle(0, 540, 960, 540), BoundsOf(shown, 2));
-        Assert.Equal(new Rectangle(0, 0, 960, 540), BoundsOf(shown, 3));
-    }
-
-    [Fact]
     public void PreselectOverridesTheNextSplitDirectionWhilePreserveKeepsIt()
     {
         var core = Configured(Flat("""
@@ -421,28 +224,9 @@ public class LayoutOptionTests
     }
 
     [Fact]
-    public void PermanentDirectionOverrideKeepsPreselectForLaterClients()
-    {
-        var core = Configured(Flat("""
-            dwindle:permanent_direction_override = true
-            """));
-        core.Handle(Appeared(1, Tall));
-        core.Handle(new Preselect("l"));
-        core.Handle(Appeared(2, Tall));
-
-        var outcome = core.Handle(Appeared(3, Tall));
-
-        Assert.Equal(new Rectangle(0, 960, 1080, 960), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(540, 0, 540, 960), BoundsOf(outcome, 2));
-        Assert.Equal(new Rectangle(0, 0, 540, 960), BoundsOf(outcome, 3));
-    }
-
-    [Fact]
     public void ANonDirectionClearsPreselect()
     {
-        var core = Configured(Flat("""
-            dwindle:permanent_direction_override = true
-            """));
+        var core = Configured(Flat(""));
         core.Handle(Appeared(1, Tall));
         core.Handle(new Preselect("l"));
         core.Handle(new Preselect("x"));
@@ -545,10 +329,9 @@ public class LayoutOptionTests
     [Fact]
     public void PaddingWithinTheToleranceIsNotAdded()
     {
-        var core = Configured(Flat("layout:single_window_aspect_ratio = 4 3\nlayout:single_window_aspect_ratio_tolerance = 0.2\n"));
+        var core = Configured(Flat("layout:single_window_aspect_ratio = 19 10\n"));
 
         Assert.Equal(new Rectangle(0, 0, 1920, 1080), BoundsOf(core.Handle(Appeared(1, Wide)), 1));
-        Assert.Equal("{\"option\":\"layout:single_window_aspect_ratio_tolerance\",\"float\":0.2,\"set\":true}", core.Execute("getoption layout:single_window_aspect_ratio_tolerance").Text);
     }
 
     [Fact]

@@ -8,8 +8,6 @@ internal sealed partial class DwindleLayout : IMouseDragHost, IDragOwner
 
     FloatingClients IMouseDragHost.Floating => _floating;
 
-    int IMouseDragHost.ResizeCorner => _options.ResizeCorner;
-
     public IReadOnlyList<Placement> Drag(WindowId window, PointerDrag drag) => _drag.Step(this, window, drag);
 
     public IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds)
@@ -40,9 +38,6 @@ internal sealed partial class DwindleLayout : IMouseDragHost, IDragOwner
 
         return false;
     }
-
-    Rectangle IMouseDragHost.SnapFloating(ClientId self, Rectangle proposed, SnapEdges edges, bool resize) =>
-        FloatingSnap.AmongClients(this, self, proposed, edges, resize, _area, _monitor, _options);
 
     bool IMouseDragHost.LiftTile(ClientId id, out Rectangle box)
     {
@@ -91,7 +86,7 @@ internal sealed partial class DwindleLayout : IMouseDragHost, IDragOwner
             return Placements();
         }
 
-        Split(target, node, pointer, dropped: true);
+        Split(target, node, pointer);
         _splitTarget = id;
         return Placements();
     }

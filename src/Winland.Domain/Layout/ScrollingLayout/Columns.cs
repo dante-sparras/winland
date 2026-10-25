@@ -106,12 +106,10 @@ internal sealed partial class ScrollingLayout
 
         SyncFullscreen();
 
-        var horizontal = IsHorizontal();
-        var primary = horizontal ? usable.Width : usable.Height;
-        var secondary = horizontal ? usable.Height : usable.Width;
+        var primary = usable.Width;
+        var secondary = usable.Height;
         var fullscreen = OneColumn();
         var camera = Camera(primary, MaxExtent(primary, fullscreen));
-        var reversed = IsReversed();
 
         for (var i = 0; i < _columns.Count; i++)
         {
@@ -121,7 +119,7 @@ internal sealed partial class ScrollingLayout
                 start += StripSize(earlier, primary, fullscreen);
 
             var size = StripSize(i, primary, fullscreen);
-            var primaryPos = reversed ? primary - start - size + camera : start - camera;
+            var primaryPos = start - camera;
             if (column.Cells.Count == 1 && HeldFullscreen(column.Cells[0].Id) is FullscreenMode held)
             {
                 PlaceFullscreen(column.Cells[0], held, i, start, size, primaryPos);
@@ -133,30 +131,11 @@ internal sealed partial class ScrollingLayout
             {
                 var cell = column.Cells[j];
                 var span = cell.Size * secondary;
-                double x;
-                double y;
-                double width;
-                double height;
-                if (horizontal)
-                {
-                    x = usable.X + primaryPos;
-                    y = usable.Y + cursor;
-                    width = size;
-                    height = span;
-                }
-                else
-                {
-                    x = usable.X + cursor;
-                    y = usable.Y + primaryPos;
-                    width = span;
-                    height = size;
-                }
-
-                var gaps = GapsFor(i, j, column.Cells.Count, horizontal);
-                x += gaps.Left;
-                y += gaps.Top;
-                width = Math.Max(1, width - gaps.Left - gaps.Right);
-                height = Math.Max(1, height - gaps.Top - gaps.Bottom);
+                var gaps = GapsFor(i, j, column.Cells.Count);
+                var x = usable.X + primaryPos + gaps.Left;
+                var y = usable.Y + cursor + gaps.Top;
+                var width = Math.Max(1, size - gaps.Left - gaps.Right);
+                var height = Math.Max(1, span - gaps.Top - gaps.Bottom);
                 var box = CellBox(cell.Id, x, y, width, height);
                 cell.Logical = box;
                 cell.Box = box;
@@ -194,18 +173,13 @@ internal sealed partial class ScrollingLayout
         return count;
     }
 
-    private (int Left, int Top, int Right, int Bottom) GapsFor(int column, int cell, int cells, bool horizontal)
+    private (int Left, int Top, int Right, int Bottom) GapsFor(int column, int cell, int cells)
     {
         var gaps = _layoutOptions.GapsIn;
-        var reversed = IsReversed();
-        var notBefore = reversed ? column + 1 < _columns.Count : column > 0;
-        var notAfter = reversed ? column > 0 : column + 1 < _columns.Count;
-        var notAbove = reversed ? cell + 1 < cells : cell > 0;
-        var notBelow = reversed ? cell > 0 : cell + 1 < cells;
-        var left = horizontal ? notBefore : notAbove;
-        var right = horizontal ? notAfter : notBelow;
-        var top = horizontal ? notAbove : notBefore;
-        var bottom = horizontal ? notBelow : notAfter;
-        return (left ? gaps.Left : 0, top ? gaps.Top : 0, right ? gaps.Right : 0, bottom ? gaps.Bottom : 0);
+        return (
+            column > 0 ? gaps.Left : 0,
+            cell > 0 ? gaps.Top : 0,
+            column + 1 < _columns.Count ? gaps.Right : 0,
+            cell + 1 < cells ? gaps.Bottom : 0);
     }
 }

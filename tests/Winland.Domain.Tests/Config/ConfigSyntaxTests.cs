@@ -164,7 +164,7 @@ public class ConfigSyntaxTests
             $VAR1 = 2
             $VAR2 = {{VAR1 + 3}}
             general:gaps_in = {{VAR2 * 2}}
-            dwindle:split_width_multiplier = {{10 / 4}}
+            scrolling:column_width = {{1 / 4}}
             """);
 
         Assert.Empty(document.Warnings);
@@ -172,7 +172,7 @@ public class ConfigSyntaxTests
             new[]
             {
                 new Setting("general:gaps_in", "10"),
-                new Setting("dwindle:split_width_multiplier", "2.5"),
+                new Setting("scrolling:column_width", "0.25"),
             },
             document.Settings);
     }
@@ -365,14 +365,7 @@ public class ConfigSyntaxTests
         Assert.Equal(EdgeInsets.Uniform(4), layout.GapsIn);
         Assert.Equal(EdgeInsets.Uniform(8), layout.GapsOut);
         Assert.Equal(2, layout.BorderSize);
-        Assert.Equal(0, layout.ForceSplit);
         Assert.False(layout.PreserveSplit);
-        Assert.False(layout.SmartSplit);
-        Assert.False(layout.PermanentDirectionOverride);
-        Assert.Equal(1, layout.SplitWidthMultiplier);
-        Assert.True(layout.UseActiveForSplits);
-        Assert.Equal(1, layout.DefaultSplitRatio);
-        Assert.Equal(0, layout.SplitBias);
         Assert.Equal(new BorderColor(0xFF, 0xFF, 0xFF, 0xFF), decoration.ActiveBorder);
         Assert.Equal(new BorderColor(0xFF, 0x40, 0x40, 0x40), decoration.InactiveBorder);
         Assert.Equal(8, decoration.Rounding);

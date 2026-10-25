@@ -108,7 +108,7 @@ public class ExtraCommandTests
         core.Handle(new Configure(ConfigParser.Parse("blur = on\n")));
         Assert.Equal("[\"line 1: Unsupported keyword 'blur'.\"]", core.Execute("configerrors").Text);
         Assert.Equal("{\"option\":\"general:border_size\",\"int\":2,\"set\":false}", core.Execute("getoption general:border_size").Text);
-        Assert.Equal("{\"option\":\"dwindle:use_active_for_splits\",\"bool\":true,\"set\":false}", core.Execute("getoption dwindle:use_active_for_splits").Text);
+        Assert.Equal("{\"option\":\"dwindle:preserve_split\",\"bool\":false,\"set\":false}", core.Execute("getoption dwindle:preserve_split").Text);
         Assert.Equal("{\"option\":\"general:gaps_in\",\"css\":\"4 4 4 4\",\"set\":false}", core.Execute("getoption general:gaps_in").Text);
         Assert.Equal("no such option", core.Execute("getoption no:such").Text);
 

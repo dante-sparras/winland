@@ -35,7 +35,6 @@ internal interface Layout
         WorkspaceId workspace,
         string windowClass = "",
         string title = "",
-        bool activeWorkspace = true,
         Rectangle monitor = default,
         long processId = 0,
         string initialClass = "",
@@ -105,7 +104,7 @@ internal interface Layout
 
     /// <summary>
     /// Records that the pointer gave a Client the focus. The scrolling Layout follows it there only when enough of the
-    /// Client shows, by scrolling:follow_min_visible. Other Layouts take no note of it.
+    /// Client shows. Other Layouts take no note of it.
     /// </summary>
     void NotePointerFocus(WindowId window)
     {

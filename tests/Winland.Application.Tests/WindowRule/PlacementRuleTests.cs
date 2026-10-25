@@ -11,13 +11,12 @@ public class PlacementRuleTests
     public void ANewFloatOpensCenteredInTheFloatingWorkArea()
     {
         var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse("general:float_gaps = 20 40 60 80\n")));
         var area = new Rectangle(100, 0, 1820, 1040);
 
         var outcome = core.Handle(Dialog(1, area));
 
-        // The floating work area is 180..1880 by 20..980, so its center is (1030, 500).
-        Assert.Equal(new Rectangle(930, 425, 200, 150), BoundsOf(outcome, 1));
+        // The work area is 100..1920 by 0..1040, so its center is (1010, 520).
+        Assert.Equal(new Rectangle(910, 445, 200, 150), BoundsOf(outcome, 1));
     }
 
     [Fact]
@@ -56,17 +55,15 @@ public class PlacementRuleTests
     [Fact]
     public void MoveIsMonitorLocalAndAcceptsMinusValues()
     {
-        // Without misc:new_float_force_onscreen the rule's position stands, even partly off the Monitor.
         var core = Configured("""
-            misc:new_float_force_onscreen = 0
             windowrule = float, class:^(box)$
-            windowrule = move monitor_w-window_w-10 -5, class:^(box)$
+            windowrule = move monitor_w-window_w-10 5, class:^(box)$
             """);
         core.Handle(new MonitorsChanged([Display(@"\\.\DISPLAY1", "Dell", Left), Display(@"\\.\DISPLAY2", "Samsung", Right)]));
 
         var outcome = core.Handle(Box(1, Right));
 
-        Assert.Equal(new Rectangle(1920 + 1920 - 200 - 10, -5, 200, 150), BoundsOf(outcome, 1));
+        Assert.Equal(new Rectangle(1920 + 1920 - 200 - 10, 5, 200, 150), BoundsOf(outcome, 1));
     }
 
     [Fact]
@@ -93,23 +90,18 @@ public class PlacementRuleTests
         Assert.Equal(new Rectangle(1920 - 200, 1080 - 150, 200, 150), BoundsOf(outcome, 1));
     }
 
-    [Theory]
-    [InlineData(0, -500, -500)]
-    [InlineData(1, -100, -75)]
-    [InlineData(2, 0, 0)]
-    public void FloatForceOnscreenKeepsAMovedFloatOnScreen(int mode, int x, int y)
+    [Fact]
+    public void AMovedFloatIsKeptOnScreen()
     {
-        var core = Configured($"""
+        var core = Configured("""
             general:border_size = 0
-            misc:float_force_onscreen = {mode}
             windowrule = float, class:^(box)$
             """);
         core.Handle(Box(1));
 
         var moved = core.Execute("dispatch movewindowpixel exact -500 -500,class:box").Effect;
 
-        Assert.Equal(new Rectangle(x, y, 200, 150), BoundsOf(moved, 1));
-        Assert.Equal($"{{\"option\":\"misc:float_force_onscreen\",\"int\":{mode},\"set\":true}}", core.Execute("getoption misc:float_force_onscreen").Text);
+        Assert.Equal(new Rectangle(0, 0, 200, 150), BoundsOf(moved, 1));
     }
 
     [Fact]

@@ -87,8 +87,7 @@ public sealed partial class WindowManager
     {
         var screen = MonitorById(desk.Monitor);
         var scale = screen is { Effective.Enabled: true } ? screen.Effective.Scale : 1;
-        // A negative general:float_gaps side takes general:gaps_out, not the rule's.
-        var options = _config.Layout with { ClientBorder = _clientBorder, FloatGaps = _config.Layout.EffectiveFloatGaps };
+        var options = _config.Layout with { ClientBorder = _clientBorder };
         if (rule is not null)
         {
             if (rule.GapsIn is EdgeInsets gapsIn)

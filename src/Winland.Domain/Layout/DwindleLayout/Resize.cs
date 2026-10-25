@@ -24,7 +24,7 @@ internal sealed partial class DwindleLayout
 
     /// <summary>
     /// Moves the split edges of a tile by a pixel delta. A mouse resize names the grabbed corner;
-    /// a dispatcher resize names none. With smart_resizing the corner picks which edges move.
+    /// a dispatcher resize names none. The corner picks which edges move.
     /// </summary>
     private IReadOnlyList<Placement> ResizeTile(Node node, int deltaX, int deltaY, (bool Left, bool Top)? corner)
     {
@@ -43,36 +43,10 @@ internal sealed partial class DwindleLayout
         if (edges.Top && edges.Bottom)
             deltaY = 0;
 
-        if (_options.SmartResizing)
-            SmartResize(node, deltaX, deltaY, corner, edges);
-        else
-            ResizeByParents(node, deltaX, deltaY);
+        SmartResize(node, deltaX, deltaY, corner, edges);
 
         Refit();
         return Placements();
-    }
-
-    private static void ResizeByParents(Node node, int deltaX, int deltaY)
-    {
-        var parent = node.Parent!;
-        var sideBySide = !parent.SplitTop;
-        var other = parent.Parent;
-        while (other is not null && other.SplitTop == !sideBySide)
-            other = other.Parent;
-
-        if (other is null)
-        {
-            if (sideBySide)
-                Grow(parent, deltaX, horizontal: true);
-            else
-                Grow(parent, deltaY, horizontal: false);
-            return;
-        }
-
-        var side = sideBySide ? parent : other;
-        var top = sideBySide ? other : parent;
-        Grow(side, deltaX, horizontal: true);
-        Grow(top, deltaY, horizontal: false);
     }
 
     // The outer split on each axis is the one whose divider is the grabbed edge. The inner split
