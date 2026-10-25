@@ -125,6 +125,11 @@ public sealed partial class WindowManager
         if (_lastMouse == window)
             _lastMouse = null;
         _focus.Forget(window);
+        foreach (var desk in _workspaces)
+        {
+            if (desk.Focus == window)
+                FocusState.Remember(desk, null);
+        }
     }
 
     private void TouchHistory(WindowId window)
