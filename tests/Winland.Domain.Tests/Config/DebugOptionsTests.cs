@@ -3,38 +3,27 @@ namespace Winland.Domain.Tests;
 public class DebugOptionsTests
 {
     [Fact]
-    public void TheDefaultsAreThePinnedReleases()
+    public void LogsAreOffByDefault()
     {
-        var options = DebugOptions.From(ConfigParser.Parse(""));
-
-        Assert.True(options.DisableLogs);
-        Assert.True(options.DisableTime);
-        Assert.False(options.EnableStdoutLogs);
-        Assert.True(options.ColoredStdoutLogs);
+        Assert.True(DebugOptions.From(ConfigParser.Parse("")).DisableLogs);
     }
 
     [Fact]
-    public void TheLogOptionsAreReadWithoutAWarningAndTheOldBarOptionsWarn()
+    public void DisableLogsIsReadWithoutAWarningAndTheOtherDebugOptionsWarn()
     {
         var document = ConfigParser.Parse("""
             debug:disable_logs = false
             debug:disable_time = false
             debug:enable_stdout_logs = true
             debug:colored_stdout_logs = false
-            debug:suppress_errors = true
-            debug:error_limit = 40
-            debug:error_position = bottom
             debug:overlay = true
             """);
         var options = DebugOptions.From(document);
 
         Assert.False(options.DisableLogs);
-        Assert.False(options.DisableTime);
-        Assert.True(options.EnableStdoutLogs);
-        Assert.False(options.ColoredStdoutLogs);
-        Assert.Contains(document.Warnings, warning => warning.Message == "Unsupported keyword 'debug:suppress_errors'.");
-        Assert.Contains(document.Warnings, warning => warning.Message == "Unsupported keyword 'debug:error_limit'.");
-        Assert.Contains(document.Warnings, warning => warning.Message == "Unsupported keyword 'debug:error_position'.");
+        Assert.Contains(document.Warnings, warning => warning.Message == "Unsupported keyword 'debug:disable_time'.");
+        Assert.Contains(document.Warnings, warning => warning.Message == "Unsupported keyword 'debug:enable_stdout_logs'.");
+        Assert.Contains(document.Warnings, warning => warning.Message == "Unsupported keyword 'debug:colored_stdout_logs'.");
         Assert.Contains(document.Warnings, warning => warning.Message == "Unsupported keyword 'debug:overlay'.");
     }
 }

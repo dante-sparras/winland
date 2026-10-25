@@ -3,6 +3,10 @@ namespace Winland.Application;
 /// <summary>The workspace swipe: a touchpad gesture that slides between Workspaces.</summary>
 public sealed partial class WindowManager
 {
+    // Pixels of travel before a swipe locks to a direction, and the speed that forces a switch short of half the distance.
+    private const int DirectionLockThreshold = 10;
+    private const int MinSpeedToForce = 30;
+
     private readonly SwipeRecognizer _swipeGesture = new();
     private WorkspaceSwipe? _workspaceSwipe;
 
@@ -34,22 +38,8 @@ public sealed partial class WindowManager
             return;
 
         var monitor = FocusedId();
-        var onMonitor = 0;
-        foreach (var desk in _workspaces)
-        {
-            if (desk.Monitor == monitor && !desk.Id.IsSpecial)
-                onMonitor++;
-        }
-
-        // One Workspace on the Monitor has nowhere to go unless the swipe may create one.
-        if (onMonitor < 2 && !_config.Swipe.CreateNew)
-            return;
-
-        BeginWorkspaceSwipe(monitor);
-    }
-
-    private void BeginWorkspaceSwipe(MonitorId monitor) =>
         _workspaceSwipe = new WorkspaceSwipe(_workspaces.Shown.ActiveOn(monitor), monitor);
+    }
 
     private Outcome StepWorkspaceSwipe(WorkspaceSwipe swipe, double delta)
     {
@@ -61,16 +51,10 @@ public sealed partial class WindowManager
 
         var (left, right) = Neighbours(swipe.Monitor);
         var begin = swipe.Begin;
-        if ((left is null || right is null || left == begin) && !_config.Swipe.CreateNew)
-        {
-            _workspaceSwipe = null;
-            return ReturnSwipe(swipe);
-        }
-
         swipe.Delta = Math.Clamp(swipe.Delta, -distance, distance);
         var beginRank = SwipeRank(begin);
         var emptyBegin = _workspaces.Find(begin) is not { } beginDesk || beginDesk.Layout.Clients.Count == 0;
-        if ((left == begin && _config.Swipe.CreateNew && swipe.Delta < 0)
+        if ((left == begin && swipe.Delta < 0)
             || (swipe.Delta > 0 && emptyBegin && SwipeRank(right) <= beginRank)
             || (swipe.Delta < 0 && beginRank <= SwipeRank(left)))
         {
@@ -78,31 +62,19 @@ public sealed partial class WindowManager
             return PreviewSwipe(swipe, null);
         }
 
-        if (_config.Swipe.DirectionLock)
-        {
-            var sign = swipe.Delta < 0 ? -1 : 1;
-            if (swipe.LockedSign != 0 && swipe.LockedSign != sign)
-                swipe.Delta = 0;
-            else if (swipe.LockedSign == 0 && Math.Abs(swipe.Delta) > _config.Swipe.DirectionLockThreshold)
-                swipe.LockedSign = sign;
-        }
+        // Once the swipe has gone far enough one way, the other way is ignored.
+        var sign = swipe.Delta < 0 ? -1 : 1;
+        if (swipe.LockedSign != 0 && swipe.LockedSign != sign)
+            swipe.Delta = 0;
+        else if (swipe.LockedSign == 0 && Math.Abs(swipe.Delta) > DirectionLockThreshold)
+            swipe.LockedSign = sign;
 
         var toward = swipe.Delta < 0 ? left : right;
         var away = swipe.Delta < 0 ? SwipeRank(left) > beginRank : SwipeRank(right) < beginRank;
         if (away || toward is not WorkspaceId target || _workspaces.Find(target) is null)
-        {
-            // Past the last Workspace the swipe only continues when it may create one.
-            if (!_config.Swipe.CreateNew)
-                swipe.Delta = 0;
             return PreviewSwipe(swipe, null);
-        }
 
-        if (!_config.Swipe.Forever || Math.Abs(swipe.Delta) < distance)
-            return PreviewSwipe(swipe, target);
-
-        var switched = FinishWorkspaceSwipe(swipe);
-        BeginWorkspaceSwipe(swipe.Monitor);
-        return switched;
+        return PreviewSwipe(swipe, target);
     }
 
     private Outcome FinishWorkspaceSwipe(WorkspaceSwipe swipe)
@@ -111,15 +83,15 @@ public sealed partial class WindowManager
         var (left, right) = Neighbours(swipe.Monitor);
         var begin = swipe.Begin;
 
-        // Swiping off the right end with create_new picks the id of a new Workspace now.
-        if (SwipeRank(right) <= SwipeRank(begin) && _config.Swipe.CreateNew)
+        // Swiping off the right end picks the id of a new Workspace now.
+        if (SwipeRank(right) <= SwipeRank(begin))
             right = Resolve("r+1", swipe.Monitor);
 
         _workspaceSwipe = null;
 
         var magnitude = Math.Abs(swipe.Delta);
-        var slow = _config.Swipe.MinSpeedToForce == 0 || swipe.AverageSpeed < _config.Swipe.MinSpeedToForce;
-        if ((magnitude < distance * _config.Swipe.CancelRatio && slow) || magnitude < 2)
+        var slow = swipe.AverageSpeed < MinSpeedToForce;
+        if ((magnitude < distance * 0.5 && slow) || magnitude < 2)
             return ReturnSwipe(swipe);
 
         if ((swipe.Delta < 0 ? left : right) is not WorkspaceId target)
@@ -134,8 +106,7 @@ public sealed partial class WindowManager
 
     private (WorkspaceId? Left, WorkspaceId? Right) Neighbours(MonitorId monitor)
     {
-        var prefix = _config.Swipe.UseRelative ? "r" : "m";
-        return (Resolve(prefix + "-1", monitor), Resolve(prefix + "+1", monitor));
+        return (Resolve("m-1", monitor), Resolve("m+1", monitor));
     }
 
     private WorkspaceId? Resolve(string address, MonitorId monitor) =>
@@ -184,7 +155,7 @@ public sealed partial class WindowManager
 
         public int SpeedPoints { get; set; }
 
-        /// <summary>With <c>gestures:workspace_swipe_direction_lock</c>, the sign of the way the swipe first went far enough.</summary>
+        /// <summary>The sign of the way the swipe first went far enough.</summary>
         public int LockedSign { get; set; }
     }
 }

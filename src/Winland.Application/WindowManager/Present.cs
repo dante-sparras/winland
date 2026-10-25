@@ -449,25 +449,24 @@ public sealed partial class WindowManager
             return null;
 
         var scale = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Effective.Scale : 1;
-        var (radius, power) = CornerRadius(shape, scale);
-        return new BorderRing(BorderOf(client.Window, active), thickness, radius, power, alpha);
+        var radius = CornerRadius(shape, scale);
+        return new BorderRing(BorderOf(client.Window, active), thickness, radius, alpha);
     }
 
-    private static (int Radius, float Power) CornerRadius(CornerChoice shape, double scale) => shape switch
+    private static int CornerRadius(CornerChoice shape, double scale) => shape switch
     {
-        { Region: CornerRegion region } => (region.Radius, region.Power),
-        { Preference: CornerPreference.Round } => ((int)Math.Round(CornerShape.Round * scale), 2f),
-        { Preference: CornerPreference.RoundSmall } => ((int)Math.Round(CornerShape.RoundSmall * scale), 2f),
-        _ => (0, 2f),
+        { Region: CornerRegion region } => region.Radius,
+        { Preference: CornerPreference.Round } => (int)Math.Round(CornerShape.Round * scale),
+        { Preference: CornerPreference.RoundSmall } => (int)Math.Round(CornerShape.RoundSmall * scale),
+        _ => 0,
     };
 
     private CornerChoice CornersFor(Client client)
     {
         var desk = _workspaces.Find(client.Workspace);
         var rounding = _props.Own(client.Window, WindowProp.Rounding) is { } set ? (int)Math.Min(set, int.MaxValue) : _config.Decoration.Rounding;
-        var power = _config.Decoration.RoundingPower;
         var screen = desk is null ? null : MonitorById(desk.Monitor);
         var scale = screen is { Effective.Enabled: true } ? screen.Effective.Scale : 1;
-        return CornerShape.For(rounding, power, scale);
+        return CornerShape.For(rounding, scale);
     }
 }

@@ -8,7 +8,7 @@ public class BorderRingTests
     [Fact]
     public void TheRingCoversOnlyTheBandAroundTheWindow()
     {
-        var ring = new BorderRing(Cyan, 4, 0, 2, 255);
+        var ring = new BorderRing(Cyan, 4, 0, 255);
 
         Assert.Equal(1, BorderPainter.Coverage(0, 50, 100, 100, ring));
         Assert.Equal(1, BorderPainter.Coverage(3, 50, 100, 100, ring));
@@ -20,20 +20,17 @@ public class BorderRingTests
     [Fact]
     public void RoundCornersLeaveTheOuterCornerClear()
     {
-        var ring = new BorderRing(Cyan, 4, 10, 2, 255);
+        var ring = new BorderRing(Cyan, 4, 10, 255);
 
         Assert.Equal(0, BorderPainter.Coverage(0, 0, 100, 100, ring));
         Assert.Equal(1, BorderPainter.Coverage(50, 1, 100, 100, ring));
         Assert.Equal(14, ring.OuterRadius, 6);
-
-        // A flatter corner gives some of the outer radius back, as Winland's correction does.
-        Assert.True(new BorderRing(Cyan, 4, 10, 1, 255).OuterRadius < 14);
     }
 
     [Fact]
     public void PaintingWritesPremultipliedPixelsOnTheRingOnly()
     {
-        var ring = new BorderRing(new BorderColor(0x80, 0xFF, 0, 0), 2, 0, 2, 255);
+        var ring = new BorderRing(new BorderColor(0x80, 0xFF, 0, 0), 2, 0, 255);
         var pixels = new uint[10 * 10];
 
         BorderPainter.Paint(pixels, ring, 10, 10, new Rectangle(0, 0, 10, 10));

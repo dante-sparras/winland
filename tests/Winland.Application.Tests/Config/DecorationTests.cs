@@ -43,7 +43,6 @@ public class DecorationTests
         Assert.Equal(new BorderColor(0xFF, 0x40, 0x40, 0x40), options.InactiveBorder);
         Assert.False(options.ActiveBorderSet);
         Assert.Equal(8, options.Rounding);
-        Assert.Equal(2f, options.RoundingPower);
         Assert.True(options.Blur);
         Assert.Equal(1f, options.ActiveOpacity);
         Assert.Equal(1f, options.InactiveOpacity);
@@ -70,15 +69,11 @@ public class DecorationTests
     }
 
     [Fact]
-    public void RoundingRejectsANegativeRadiusAndPowerIsClampedToOneThroughTen()
+    public void RoundingRejectsANegativeRadius()
     {
-        var options = DecorationOptions.From(ConfigParser.Parse(
-            "decoration:rounding = 10\ndecoration:rounding = -1\ndecoration:rounding_power = 0.5\n"));
-        var steep = DecorationOptions.From(ConfigParser.Parse("decoration:rounding_power = 12\n"));
+        var options = DecorationOptions.From(ConfigParser.Parse("decoration:rounding = 10\ndecoration:rounding = -1\n"));
 
         Assert.Equal(10, options.Rounding);
-        Assert.Equal(1f, options.RoundingPower);
-        Assert.Equal(10f, steep.RoundingPower);
     }
 
     [Fact]

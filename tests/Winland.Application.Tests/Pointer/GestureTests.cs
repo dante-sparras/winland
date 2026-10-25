@@ -120,13 +120,6 @@ public class GestureTests
             gestures {
                 workspace_swipe_distance = 5000
                 workspace_swipe_invert = false
-                workspace_swipe_min_speed_to_force = 0
-                workspace_swipe_cancel_ratio = 0.7
-                workspace_swipe_create_new = false
-                workspace_swipe_direction_lock = false
-                workspace_swipe_direction_lock_threshold = 20
-                workspace_swipe_forever = true
-                workspace_swipe_use_r = true
             }
             """);
 
@@ -136,13 +129,6 @@ public class GestureTests
             {
                 Distance = 2000,
                 Invert = false,
-                MinSpeedToForce = 0,
-                CancelRatio = 0.7,
-                CreateNew = false,
-                DirectionLock = false,
-                DirectionLockThreshold = 20,
-                Forever = true,
-                UseRelative = true,
             },
             GestureOptions.From(document));
     }
@@ -179,21 +165,19 @@ public class GestureTests
     }
 
     [Fact]
-    public void FastSwipeForcesTheChangeUnlessForcingIsOff()
+    public void FastSwipeForcesTheChange()
     {
-        var forced = Twin(Horizontal);
-        var off = Twin(Horizontal + "gestures:workspace_swipe_min_speed_to_force = 0\n");
+        var core = Twin(Horizontal);
 
-        Assert.Equal(new WorkspaceId("2"), Swipe(forced, 3, Steps(2, -60, 0)).State.ActiveWorkspace);
-        Assert.Equal(WorkspaceId.Initial, Swipe(off, 3, Steps(2, -60, 0)).State.ActiveWorkspace);
+        Assert.Equal(new WorkspaceId("2"), Swipe(core, 3, Steps(2, -60, 0)).State.ActiveWorkspace);
     }
 
     [Fact]
-    public void DistanceAndCancelRatioSetTheThreshold()
+    public void DistanceSetsTheThreshold()
     {
-        var core = Twin(Horizontal + "gestures:workspace_swipe_distance = 100\ngestures:workspace_swipe_cancel_ratio = 0.2\n");
+        var core = Twin(Horizontal + "gestures:workspace_swipe_distance = 100\n");
 
-        var ended = Swipe(core, 3, Steps(3, -10, 0));
+        var ended = Swipe(core, 3, Steps(6, -10, 0));
 
         Assert.Equal(new WorkspaceId("2"), ended.State.ActiveWorkspace);
     }
@@ -260,15 +244,12 @@ public class GestureTests
     }
 
     [Fact]
-    public void SwipingPastTheLastWorkspaceCreatesOneUnlessCreateNewIsOff()
+    public void SwipingPastTheLastWorkspaceCreatesOne()
     {
         var core = Twin(Horizontal);
         core.Handle(new Dispatch("workspace", "2"));
-        var off = Twin(Horizontal + "gestures:workspace_swipe_create_new = false\n");
-        off.Handle(new Dispatch("workspace", "2"));
 
         Assert.Equal(new WorkspaceId("3"), Swipe(core, 3, Steps(20, -10, 0)).State.ActiveWorkspace);
-        Assert.Equal(new WorkspaceId("2"), Swipe(off, 3, Steps(20, -10, 0)).State.ActiveWorkspace);
     }
 
     [Fact]
@@ -286,42 +267,20 @@ public class GestureTests
     {
         var locked = Twin(Horizontal);
         locked.Handle(new Dispatch("workspace", "2"));
-        var free = Twin(Horizontal + "gestures:workspace_swipe_direction_lock = false\n");
-        free.Handle(new Dispatch("workspace", "2"));
         (double, double)[] steps = [(-20, 0), (200, 0)];
 
         Assert.Equal(new WorkspaceId("2"), Swipe(locked, 3, steps).State.ActiveWorkspace);
-        Assert.Equal(WorkspaceId.Initial, Swipe(free, 3, steps).State.ActiveWorkspace);
     }
 
     [Fact]
-    public void SwipeForeverKeepsSwitchingEachFullDistance()
+    public void ASwipeSkipsEmptyWorkspaces()
     {
-        var core = Load(Horizontal + "gestures:workspace_swipe_forever = true\n");
+        var core = Load(Horizontal);
         Open(core, 1, "1");
-        Open(core, 2, "2");
         Open(core, 3, "3");
         core.Handle(new Dispatch("workspace", "1"));
 
-        var ended = Swipe(core, 3, Steps(35, -20, 0));
-
-        Assert.Equal(new WorkspaceId("3"), ended.State.ActiveWorkspace);
-    }
-
-    [Fact]
-    public void UseRCountsEmptyWorkspaces()
-    {
-        var onMonitor = Load(Horizontal);
-        var relative = Load(Horizontal + "gestures:workspace_swipe_use_r = true\n");
-        foreach (var core in new[] { onMonitor, relative })
-        {
-            Open(core, 1, "1");
-            Open(core, 3, "3");
-            core.Handle(new Dispatch("workspace", "1"));
-        }
-
-        Assert.Equal(new WorkspaceId("3"), Swipe(onMonitor, 3, Steps(20, -10, 0)).State.ActiveWorkspace);
-        Assert.Equal(new WorkspaceId("2"), Swipe(relative, 3, Steps(20, -10, 0)).State.ActiveWorkspace);
+        Assert.Equal(new WorkspaceId("3"), Swipe(core, 3, Steps(20, -10, 0)).State.ActiveWorkspace);
     }
 
     [Fact]

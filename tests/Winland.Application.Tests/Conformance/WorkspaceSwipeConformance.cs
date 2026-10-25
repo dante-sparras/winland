@@ -16,44 +16,6 @@ namespace Winland.Application.Tests.Conformance;
 [Trait("Category", "Conformance")]
 public class WorkspaceSwipeConformance
 {
-    [Fact]
-    public void WorkspaceSwipeInvalidUpdateCleanup()
-    {
-        var swipe = Fixture.Run(bounds: true);
-
-        swipe.Begin();
-        swipe.Update(-90);
-        swipe.Preview(swipe.Left);
-        swipe.Update(180);
-        swipe.Preview(swipe.Right);
-
-        // The origin has Workspaces on both sides, but no Workspace after it by number.
-        swipe.Desk.Keyword("gestures:workspace_swipe_use_r", "true");
-        swipe.Update(10);
-        swipe.Cleaned();
-        swipe.End(false);
-        swipe.Cleaned();
-    }
-
-    [Fact]
-    public void WorkspaceSwipeInvalidEndCleanup()
-    {
-        var swipe = Fixture.Run(bounds: true);
-
-        swipe.Begin();
-        swipe.Update(-90);
-        swipe.Preview(swipe.Left);
-        swipe.Update(180);
-        swipe.Preview(swipe.Right);
-
-        // The reference ends the workspace swipe while its target by number is missing.
-        swipe.Desk.Keyword("gestures:workspace_swipe_use_r", "true");
-        swipe.End(false);
-        swipe.Cleaned();
-        swipe.End(false);
-        swipe.Cleaned();
-    }
-
     // The fixture's Workspaces are rendered before the swipe starts, which has no core form, so these parts run as
     // the ones without it.
     [Fact]
@@ -79,18 +41,9 @@ public class WorkspaceSwipeConformance
             swipe.Update(distance);
             swipe.Preview(swipe.Right);
             swipe.End(false);
-            swipe.Neutral(distance < 150 ? swipe.Origin : swipe.Right);
+            swipe.Neutral(swipe.Right);
             swipe.Baseline(swipe.Left, swipe.L);
         }
-
-        swipe = Fixture.Run(bounds: true);
-        swipe.Begin();
-        swipe.Update(-90);
-        swipe.Preview(swipe.Left);
-        swipe.Desk.Keyword("gestures:workspace_swipe_use_r", "true");
-        swipe.End(false);
-        swipe.Cleaned();
-        swipe.End(true);
     }
 
     private const string OriginOutput = "HYPRTEST-SWIPE-A";
@@ -106,12 +59,7 @@ public class WorkspaceSwipeConformance
         private const string Options = """
             gestures {
                 workspace_swipe_distance = 300
-                workspace_swipe_cancel_ratio = 0.5
-                workspace_swipe_min_speed_to_force = 0
-                workspace_swipe_direction_lock = false
-                workspace_swipe_forever = false
                 workspace_swipe_invert = false
-                workspace_swipe_create_new = true
             }
             gesturep = 9, horizontal, workspace
 
@@ -139,20 +87,10 @@ public class WorkspaceSwipeConformance
 
         internal Shot R { get; private set; }
 
-        /// <summary>
-        /// The reference's run: the swipe options and gesture, then the fixture. With <paramref name="bounds"/> the
-        /// origin is the largest Workspace id a command can name. m wraps to Workspace 1, and there is no Workspace
-        /// at the next number, so turning on r mid-swipe has nowhere to go.
-        /// </summary>
-        internal static Fixture Run(bool bounds = false, string extra = "")
+        /// <summary>The reference's run: the swipe options and gesture, then the fixture.</summary>
+        internal static Fixture Run()
         {
-            var swipe = bounds
-                ? new Fixture(
-                    new Desk(Options + "gestures:workspace_swipe_use_r = false\n" + Hold("1", "2147483646", "2147483647") + extra),
-                    "2147483646",
-                    "2147483647",
-                    "1")
-                : new Fixture(new Desk(Options + "gestures:workspace_swipe_use_r = true\n" + Hold("1", "9901", "9902", "9903") + extra), "9901", "9902", "9903");
+            var swipe = new Fixture(new Desk(Options + Hold("1", "9901", "9902", "9903")), "9901", "9902", "9903");
             swipe.Prepare();
             return swipe;
         }
@@ -163,7 +101,7 @@ public class WorkspaceSwipeConformance
         /// </summary>
         internal static Fixture RunOnOutputs()
         {
-            var desk = new Desk(Options + "gestures:workspace_swipe_use_r = true\n" + $"""
+            var desk = new Desk(Options + $"""
                 monitor = {OriginOutput}, 1920x1080@60, 20000x0, 1
                 monitor = {PeerOutput}, 1920x1080@60, 21920x0, 1
                 workspace = 2, monitor:{OriginOutput}, default:true, persistent:true

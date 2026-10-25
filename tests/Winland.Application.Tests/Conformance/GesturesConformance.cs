@@ -42,17 +42,10 @@ public class GesturesConformance
         Assert.False(HasWorkspace(desk, 2));
 
         desk.Keyword("gestures:workspace_swipe_invert", "1");
-        desk.Keyword("gestures:workspace_swipe_create_new", "0");
-
-        touchpad.Swipe("left", 3);
-        Assert.False(HasWorkspace(desk, 2));
-        Assert.True(HasWorkspace(desk, 1));
-
         touchpad.Alt(false);
 
         // workspace previous after a workspace gesture.
         desk.Keyword("gestures:workspace_swipe_invert", "0");
-        desk.Keyword("gestures:workspace_swipe_create_new", "1");
         desk.Ok("workspace", "3");
 
         // Workspace 5 is entered from 3, and remembers it.

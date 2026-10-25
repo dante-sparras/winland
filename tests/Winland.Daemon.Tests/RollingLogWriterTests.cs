@@ -26,35 +26,20 @@ public class RollingLogWriterTests
     }
 
     [Fact]
-    public void TheLogIsCopiedWithTheTimeToAFileAndStandardOutput()
+    public void TheLogIsCopiedToAFileWhenLogsAreEnabled()
     {
         var file = new StringWriter();
-        var standardOutput = new StringWriter();
-        using var writer = new RollingLogWriter(new StringWriter(), () => new DateTime(2026, 1, 1, 13, 4, 5, 6));
+        using var writer = new RollingLogWriter(new StringWriter());
 
-        writer.Copy(new DebugOptions { DisableLogs = false, DisableTime = false, EnableStdoutLogs = true, ColoredStdoutLogs = false }, () => file, standardOutput);
+        writer.Copy(new DebugOptions { DisableLogs = false }, () => file);
         writer.Write("one ");
         writer.WriteLine("line");
         writer.Write("two\nthree\n");
 
-        var expected = "[13:04:05.006] one line" + Environment.NewLine + "[13:04:05.006] two\n[13:04:05.006] three\n";
-        Assert.Equal(expected, file.ToString());
-        Assert.Equal(expected, standardOutput.ToString());
+        Assert.Equal("one line" + Environment.NewLine + "two\nthree\n", file.ToString());
 
-        writer.Copy(DebugOptions.Documented, () => throw new InvalidOperationException("not wanted"), standardOutput);
+        writer.Copy(DebugOptions.Documented, () => throw new InvalidOperationException("not wanted"));
         writer.WriteLine("quiet");
-        Assert.DoesNotContain("quiet", standardOutput.ToString(), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void AColoredStandardOutputDimsTheTime()
-    {
-        var standardOutput = new StringWriter();
-        using var writer = new RollingLogWriter(new StringWriter(new StringBuilder()), () => new DateTime(2026, 1, 1, 1, 2, 3));
-
-        writer.Copy(new DebugOptions { DisableLogs = false, DisableTime = false, EnableStdoutLogs = true }, () => null, standardOutput);
-        writer.Write("hi\n");
-
-        Assert.Equal("\u001b[90m[01:02:03.000] \u001b[0mhi\n", standardOutput.ToString());
+        Assert.DoesNotContain("quiet", file.ToString(), StringComparison.Ordinal);
     }
 }
