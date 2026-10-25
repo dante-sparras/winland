@@ -12,7 +12,7 @@ public static partial class CommandProtocol
     private static readonly Verb[] VerbList =
     [
         new("dispatch", "<name> [args]", (rest, _) => Dispatch(rest)),
-        new("clients", "", (rest, flags) => Bare(rest, new ClientsRequest(flags.HasFlag(CommandFlags.All)))),
+        new("clients", "", (rest, flags) => Bare(rest, new ClientsRequest())),
         new("workspaces", "", (rest, _) => Bare(rest, new WorkspacesRequest())),
         new("monitors", "[all]", (rest, _) => rest.Length == 0 ? new MonitorsRequest()
             : rest.Equals("all", StringComparison.OrdinalIgnoreCase) ? new MonitorsRequest(All: true)
@@ -23,12 +23,8 @@ public static partial class CommandProtocol
         new("events", "", (rest, _) => Bare(rest, new EventsRequest())),
         new("binds", "", (rest, _) => Bare(rest, new BindsRequest())),
         new("version", "", (rest, _) => Bare(rest, new VersionRequest())),
-        new("cursorpos", "", (rest, _) => Bare(rest, new CursorPosRequest())),
         new("configerrors", "", (rest, _) => Bare(rest, new ConfigErrorsRequest())),
         new("getoption", "<name>", (rest, _) => new GetOptionRequest(SplitOnce(rest).First)),
-        new("locked", "", (rest, _) => Bare(rest, new LockedRequest())),
-        new("layouts", "", (rest, _) => Bare(rest, new LayoutsRequest())),
-        new("animations", "", (rest, _) => Bare(rest, new AnimationsRequest())),
         new("kill", "", (rest, _) => Bare(rest, new ClickKillRequest())),
         new("keyword", "<name> <value>", (rest, _) =>
         {
@@ -125,7 +121,7 @@ public abstract record CommandRequest
 
 public sealed record DispatchRequest(string Name, string Arguments) : CommandRequest;
 
-public sealed record ClientsRequest(bool All = false) : CommandRequest;
+public sealed record ClientsRequest : CommandRequest;
 
 public sealed record WorkspacesRequest : CommandRequest;
 
@@ -144,18 +140,10 @@ public sealed record BindsRequest : CommandRequest;
 
 public sealed record VersionRequest : CommandRequest;
 
-public sealed record CursorPosRequest : CommandRequest;
-
 public sealed record ConfigErrorsRequest : CommandRequest;
 
 public sealed record GetOptionRequest(string Name) : CommandRequest;
 
-public sealed record LockedRequest : CommandRequest;
-
-public sealed record LayoutsRequest : CommandRequest;
-
-
-public sealed record AnimationsRequest : CommandRequest;
 
 public sealed record ClickKillRequest : CommandRequest;
 

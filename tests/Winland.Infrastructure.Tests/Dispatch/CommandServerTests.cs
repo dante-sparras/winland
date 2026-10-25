@@ -264,19 +264,15 @@ public class CommandServerTests
     }
 
     [Fact]
-    public void CursorAndBatchTravelThePipe()
+    public void BatchTravelsThePipe()
     {
         var core = new WindowManager();
         var name = PipeName();
         using var server = new CommandServer(core, name);
         server.Start();
 
-        using var cursor = JsonDocument.Parse(CommandClient.Transact("j/cursorpos", name));
-        Assert.Equal(JsonValueKind.Number, cursor.RootElement.GetProperty("x").ValueKind);
-        Assert.Equal(JsonValueKind.Number, cursor.RootElement.GetProperty("y").ValueKind);
-
-        var batch = CommandClient.Transact("[[BATCH]]layouts;locked", name);
-        Assert.Equal("[\"dwindle\",\"scrolling\"]\n\n\n{\"locked\":false}", batch);
+        var batch = CommandClient.Transact("[[BATCH]]binds;configerrors", name);
+        Assert.Equal("[]\n\n\n[]", batch);
     }
 
     private static string PipeName() => "winland-" + Guid.NewGuid().ToString("N");

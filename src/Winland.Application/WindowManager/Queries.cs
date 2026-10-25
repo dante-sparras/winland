@@ -19,12 +19,12 @@ public sealed partial class WindowManager
     // Each request's reply. A query answers with the current State and changes nothing.
     private CommandReply Reply(CommandRequest request)
     {
-        var reply = request switch
+        return request switch
         {
             DispatchRequest dispatch => DispatchReply(dispatch),
             ClientsRequest clients => Describe(state => Json(clients)
-                ? CommandProtocol.FormatClients(state, clients.All)
-                : Text(CommandProtocol.FormatClientsText(state, clients.All), "no open windows")),
+                ? CommandProtocol.FormatClients(state)
+                : Text(CommandProtocol.FormatClientsText(state), "no open windows")),
             WorkspacesRequest workspaces => Describe(state => Json(workspaces) ? CommandProtocol.FormatWorkspaces(state) : CommandProtocol.FormatWorkspacesText(state)),
             MonitorsRequest monitors => Describe(state => Json(monitors)
                 ? CommandProtocol.FormatMonitors(state, monitors.All)
@@ -39,12 +39,8 @@ public sealed partial class WindowManager
             ReloadRequest => ReloadCommand(),
             BindsRequest => Describe(_ => CommandProtocol.FormatBinds(_config.Binds.Binds)),
             VersionRequest => Answer(CommandProtocol.FormatVersion()),
-            CursorPosRequest cursor => Answer(CommandProtocol.FormatCursor(Cursor?.Read() ?? new Point(0, 0), Json(cursor))),
             ConfigErrorsRequest => Answer(CommandProtocol.FormatErrors(_configErrors)),
             GetOptionRequest option => Answer(OptionTable.Describe(option.Name, _config) ?? "no such option"),
-            LockedRequest => Answer(CommandProtocol.FormatLocked(SessionLock?.Locked == true)),
-            LayoutsRequest => Answer(CommandProtocol.FormatLayouts()),
-            AnimationsRequest animations => Answer(_config.Animations.Describe(Json(animations))),
             ClickKillRequest => ArmClickKill(),
             KeywordRequest keyword => ApplyKeyword(keyword),
             GetPropRequest prop => ReadProp(prop),
@@ -52,12 +48,6 @@ public sealed partial class WindowManager
             BatchRequest batch => RunBatch(batch.Payload, batch.Flags),
             _ => throw new InvalidOperationException("No handler for this command."),
         };
-
-        // A batch passes its flags to each of its commands, so it does not lay out again itself.
-        if (request.Flags.HasFlag(CommandFlags.Relayout) && request is not BatchRequest)
-            reply = reply with { Effect = Reflow(reply.Effect) };
-
-        return reply;
     }
 
     private CommandReply DispatchReply(DispatchRequest dispatch)
@@ -78,30 +68,6 @@ public sealed partial class WindowManager
     {
         var outcome = View([]);
         return new CommandReply(format(outcome.State), outcome);
-    }
-
-    // A keyword that changes the layout lays every Workspace out again. The result follows the keyword's own outcome.
-    private Outcome Reflow(Outcome current)
-    {
-        Outcome laid;
-        if (_monitors.Count > 0)
-            laid = SetMonitors(Reported());
-        else
-        {
-            IReadOnlyList<Placement> placements = [];
-            var active = ActiveId();
-            foreach (var desk in _workspaces)
-            {
-                Stamp(desk);
-                var placed = desk.Layout.Apply(desk.Options);
-                if (desk.Id == active)
-                    placements = placed;
-            }
-
-            laid = View(placements);
-        }
-
-        return current.Then(laid) with { Consumed = current.Consumed, Dispatcher = current.Dispatcher };
     }
 
     private void NoteConfigErrors(ConfigDocument? document)

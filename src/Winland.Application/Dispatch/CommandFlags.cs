@@ -5,8 +5,6 @@ public enum CommandFlags
 {
     None = 0,
     Json = 1 << 0,
-    Relayout = 1 << 1,
-    All = 1 << 2,
 }
 
 internal static class CommandFlagReader
@@ -32,8 +30,6 @@ internal static class CommandFlagReader
             flags |= text[i] switch
             {
                 'j' => CommandFlags.Json,
-                'r' => CommandFlags.Relayout,
-                'a' => CommandFlags.All,
                 _ => CommandFlags.None,
             };
         }

@@ -6,7 +6,7 @@ namespace Winland.Application;
 
 public static partial class CommandProtocol
 {
-    internal static string FormatClients(State state, bool includeUnmapped = false)
+    internal static string FormatClients(State state)
     {
         var indexed = Index(state);
         var views = new List<ClientJson>(state.Clients.Count);
@@ -19,7 +19,7 @@ public static partial class CommandProtocol
         for (var i = 0; i < ordered.Count; i++)
         {
             var client = ordered[i];
-            if (!includeUnmapped && client.Minimized)
+            if (client.Minimized)
                 continue;
 
             views.Add(ClientOf(client, state, indexed));

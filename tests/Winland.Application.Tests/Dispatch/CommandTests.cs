@@ -133,19 +133,6 @@ public class CommandTests
     }
 
     [Fact]
-    public void MinimizedClientIsReportedHidden()
-    {
-        var core = new WindowManager();
-        core.Handle(new WindowAppeared(new WindowId(7), new Rectangle(0, 0, 100, 100)));
-        core.Handle(new WindowMinimized(new WindowId(7)));
-
-        var client = Assert.Single(Json(core.Execute("ja/clients").Text).EnumerateArray());
-
-        Assert.True(client.GetProperty("hidden").GetBoolean());
-        Assert.False(client.GetProperty("mapped").GetBoolean());
-    }
-
-    [Fact]
     public void ClientWorkspaceFollowsTheStoredWorkspace()
     {
         var core = new WindowManager(ConfigParser.Parse("windowrule = workspace 2 silent, class:^(kitty)$\n"));

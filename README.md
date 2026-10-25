@@ -128,14 +128,10 @@ These talk to the running Winland.
 | `winland workspaces` | List the workspaces |
 | `winland activeworkspace` | Show the focused workspace |
 | `winland monitors [all]` | List the monitors. `all` includes disabled ones |
-| `winland layouts` | List the layouts |
 | `winland binds` | List the hotkeys |
-| `winland animations` | List the animations and their curves |
 | `winland configerrors` | List the config's warnings |
 | `winland getprop <window> <property>` | Show a window property |
 | `winland setprop <window> <property> <value>` | Set a window property |
-| `winland cursorpos` | Show the pointer position |
-| `winland locked` | Show whether the PC is locked |
 | `winland kill` | Click a window to end its program. Escape cancels |
 | `winland version` | Show the version |
 | `winland events` | Print every event as it happens, one per line |
@@ -144,8 +140,6 @@ These talk to the running Winland.
 | Flag | Does |
 | --- | --- |
 | `-j` | Answer in JSON |
-| `-r` | Lay the windows out again after the command |
-| `-a` | With `clients`, include every window |
 
 ## Credits
 

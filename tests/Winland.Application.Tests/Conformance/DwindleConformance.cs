@@ -68,9 +68,9 @@ public class DwindleConformance
     public void DwindleRotateSplit()
     {
         var desk = new Desk();
-        Assert.Equal("ok", desk.Send("r/keyword general:gaps_in 0"));
-        Assert.Equal("ok", desk.Send("r/keyword general:gaps_out 0"));
-        Assert.Equal("ok", desk.Send("r/keyword general:border_size 0"));
+        Assert.Equal("ok", desk.Send("keyword general:gaps_in 0"));
+        Assert.Equal("ok", desk.Send("keyword general:gaps_out 0"));
+        Assert.Equal("ok", desk.Send("keyword general:border_size 0"));
         desk.Spawn("a");
         desk.Spawn("b");
 
