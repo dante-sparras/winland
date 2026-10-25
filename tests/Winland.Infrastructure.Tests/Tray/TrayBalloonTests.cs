@@ -3,7 +3,7 @@ namespace Winland.Infrastructure.Tests;
 public class TrayBalloonTests
 {
     private static ConfigNotice Notice(int generation) =>
-        new("Winland: 1 config errors", @"C:\winland\winland.conf:1: Unsupported keyword 'blur'.", @"C:\winland\winland.conf", generation);
+        new("Winland: 1 config error", @"C:\winland\winland.conf:1: Unsupported keyword 'blur'.", @"C:\winland\winland.conf", generation);
 
     [Fact]
     public void AShownIconWithNoNoticeDrawsTheIconAndNoBalloon() =>

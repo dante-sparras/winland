@@ -28,6 +28,10 @@ public static partial class ConfigParser
             "windowrule",
         };
 
+        // The keywords a line can start with besides an Option, for the hint an unsupported keyword gets.
+        private static readonly string[] Keywords =
+            ["source", "unbind", "bind", "gesture", "monitor", "workspace", "animation", "bezier", "spring", .. KeptHandlers];
+
         private readonly List<Setting> _settings = [];
         private readonly List<BindDirective> _binds = [];
         private readonly List<TrackpadGesture> _gestures = [];
@@ -218,7 +222,7 @@ public static partial class ConfigParser
             var keyword = KeyedName.TryInline(lhs, out var inline) ? inline : Qualify(lhs);
             if (OptionTable.Find(keyword) is not IOption option)
             {
-                Warn(lineNumber, $"Unsupported keyword '{keyword}'.");
+                Warn(lineNumber, $"Unsupported keyword '{keyword}'.{DidYouMean.For(keyword, OptionTable.Names.Concat(Keywords))}");
                 return;
             }
 

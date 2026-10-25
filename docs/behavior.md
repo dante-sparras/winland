@@ -1,6 +1,6 @@
 # Behavior
 
-How Winland behaves. Terms are defined in [CONTEXT.md](../CONTEXT.md). An unknown keyword warns and is skipped. A value an Option cannot read warns `Invalid value '<value>' for <option>.` and the line is skipped, so the earlier value stays. A number outside an Option's range is clamped to it.
+How Winland behaves. Terms are defined in [CONTEXT.md](../CONTEXT.md). An unknown keyword warns and is skipped. When exactly one Option is within two edits of an unknown keyword, the warning ends `Did you mean '<option>'?`, and an unknown Dispatcher, window rule effect or window rule match field gets the same hint from the names Winland has. A value an Option cannot read warns `Invalid value '<value>' for <option>.` and the line is skipped, so the earlier value stays. A number outside an Option's range is clamped to it.
 
 ## Config files
 
@@ -353,7 +353,7 @@ An event that names a Workspace also names its Monitor, in the field just after 
 
 `kill` waits for a click: the next press of any mouse button ends the program of the Client under the pointer, emits `kill>>ADDRESS`, and goes to neither window, nor does its release. Escape gives up instead and goes no further. A click on no Client ends nothing. Either way the wait is over. The pointer keeps its shape while it waits.
 
-A config that is read or reloaded with warnings shows one notification: `Winland: N config errors`, then the first warning with its file and line. A later load replaces that notification, including a reload of the same errors. A load with none shows nothing and takes the previous notification away. `winland configerrors` and the event stream list every warning. `configerrors` writes each one as `file:line: message`, with the file the notification names, and `j/configerrors` writes `line N: message`. Clicking the notification opens the file the first warning names, in the program Windows opens that type with, or in Notepad when the type has none.
+A config that is read or reloaded with warnings shows one notification: `Winland: N config errors`, or `Winland: 1 config error`, then the first warning with its file and line. A later load replaces that notification, including a reload of the same errors. A load with none shows nothing and takes the previous notification away. `winland configerrors` and the event stream list every warning. `configerrors` writes each one as `file:line: message`, with the file the notification names, and `j/configerrors` writes `line N: message`. Clicking the notification opens the file the first warning names, in the program Windows opens that type with, or in Notepad when the type has none.
 
 A batch, `[[BATCH]]` or `winland --batch`, splits: at every `;`, brackets or not, and each command is trimmed. `\;` puts a `;` in a command and `\\` a backslash, and a backslash before anything else stays as it is. So a Windows display name in a batch is written `\\\\.\\DISPLAY1`, and a rule block with more than one rule `[float\; tile]`. The replies are joined by two empty lines, and a command left empty, as after a last `;`, replies as an unknown command does. Flags before the batch, such as `j/[[BATCH]]` or `winland -j --batch`, apply to each command it splits into.
 

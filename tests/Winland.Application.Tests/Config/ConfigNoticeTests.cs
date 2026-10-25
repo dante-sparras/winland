@@ -10,7 +10,7 @@ public class ConfigNoticeTests
         var notice = Load("blur = on\n");
 
         Assert.NotNull(notice);
-        Assert.Equal("Winland: 1 config errors", notice.Title);
+        Assert.Equal("Winland: 1 config error", notice.Title);
         Assert.Equal(@"C:\winland\winland.conf:1: Unsupported keyword 'blur'.", notice.Text);
         Assert.Equal(Path, notice.File);
         Assert.True(notice.Generation > 0);
@@ -69,7 +69,7 @@ public class ConfigNoticeTests
         var notice = Notice(core);
 
         Assert.NotNull(notice);
-        Assert.Equal("Winland: 1 config errors", notice.Title);
+        Assert.Equal("Winland: 1 config error", notice.Title);
         Assert.Equal("extra.conf:1: Unsupported keyword 'blur'.", notice.Text);
         Assert.Equal("extra.conf", notice.File);
     }
@@ -148,7 +148,7 @@ public class ConfigNoticeTests
         var notice = Notice(core);
 
         Assert.NotNull(notice);
-        Assert.Equal("Winland: 1 config errors", notice.Title);
+        Assert.Equal("Winland: 1 config error", notice.Title);
         Assert.False(notice.Informational);
     }
 
