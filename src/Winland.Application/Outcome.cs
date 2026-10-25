@@ -192,6 +192,21 @@ public sealed record Outcome(
         && GroupBars.Count == applied.GroupBars.Count
         && GroupBars.Zip(applied.GroupBars, (bar, last) => bar.SameAs(last)).All(same => same);
 
+    /// <summary>
+    /// What <see cref="IsEmptyAfter"/> compares a later outcome with: the parts a step rebuilds each time, without
+    /// the requests, which name windows that may since have closed.
+    /// </summary>
+    internal Outcome Lasting() =>
+        Empty(State) with
+        {
+            ResizeCursor = ResizeCursor,
+            Cursor = Cursor,
+            Tray = Tray,
+            ConfigNotice = ConfigNotice,
+            Decorations = Decorations,
+            GroupBars = GroupBars,
+        };
+
     /// <summary>An outcome that asks for nothing, which describes <paramref name="state"/>.</summary>
     internal static Outcome Empty(State state) => new([], state) { IsEmpty = true };
 

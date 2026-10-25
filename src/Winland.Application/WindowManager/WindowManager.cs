@@ -174,7 +174,7 @@ public sealed partial class WindowManager
             if (!loaded && outcome.IsEmptyAfter(_applied))
                 return Outcome.Empty(outcome.State) with { Order = outcome.Order };
 
-            _applied = loaded ? null : outcome;
+            _applied = loaded ? null : outcome.Lasting();
             Emit(outcome);
             return outcome;
         }
