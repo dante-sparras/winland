@@ -20,13 +20,13 @@ An ADR without a Status line is accepted and true against the code. `Status: Pro
 ## Config and names
 
 - [0002](0002-hyprland-compatibility-without-its-name.md): Winland keeps the option and Dispatcher names it started with; they are its own now.
-- [0008](0008-the-spec-is-a-pinned-hyprland-release.md): Winland's own `docs/behavior.md` is the spec; Hyprland is its origin, not its reference.
+- [0008](0008-winland-keeps-what-windows-users-need.md): `docs/behavior.md` is the spec; a thing stays only when the starter config uses it or a Windows user would ask for it, and a removed keyword is deleted outright.
 - [0010](0010-unsupported-keywords-warn-and-are-ignored.md): unknown and malformed lines warn and are skipped, and the rest of the config loads.
-- [0013](0013-config-is-line-based-or-lua.md): one line-based `winland.conf` in `%USERPROFILE%\.winland` that runs no code, written with defaults on first start.
+- [0013](0013-the-config-is-one-line-based-file-that-runs-no-code.md): one line-based `winland.conf` in `%USERPROFILE%\.winland` that runs no code, written with defaults on first start.
 
 ## Extending
 
-- [0011](0011-plugins-are-in-process-and-hash-approved.md): no plugins; scripts extend Winland over the IPC pipe as the normal user.
+- [0011](0011-winland-is-extended-through-its-pipe-not-plugins.md): no plugins; scripts extend Winland over the IPC pipe as the normal user.
 
 ## Reliability
 

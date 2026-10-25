@@ -9,8 +9,3 @@ StrykerOutput/
 
 # Local Claude Code session files, such as review notes.
 .claude/
-
-# Local reference checkouts, if present. Not part of this repo.
-docs/agents/omarchy/
-docs/agents/quickshell/
-docs/agents/hyprland/
