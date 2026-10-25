@@ -98,43 +98,6 @@ public static partial class ConfigParser
             }
         }
 
-        private void ApplyDirective(ConfigDirective directive, int lineNumber)
-        {
-            switch (directive.Kind)
-            {
-                case ConfigDirectiveKind.EndIf:
-                    if (_ifFailed.Count == 0)
-                        Warn(lineNumber, "Stray endif.");
-                    else
-                        _ifFailed.RemoveAt(_ifFailed.Count - 1);
-                    break;
-                case ConfigDirectiveKind.If:
-                    if (directive.Argument.Length == 0)
-                    {
-                        Warn(lineNumber, "Malformed conditional.");
-                        break;
-                    }
-
-                    var truthy = IsTruthy(directive.Argument);
-                    _ifFailed.Add(directive.Negated ? truthy : !truthy);
-                    break;
-                case ConfigDirectiveKind.NoError:
-                    _suppressWarnings = directive.Enabled;
-                    break;
-            }
-        }
-
-        private bool IsTruthy(string name)
-        {
-            var environment = Variable(name);
-            if (environment is not null)
-                return environment.Length > 0;
-
-            return _variables.TryGetValue(name, out var value) && value.Length > 0;
-        }
-
         private string? Variable(string name) => sourceReader?.Variable(name);
-
-        private bool Skipping => _ifFailed.Contains(true);
     }
 }

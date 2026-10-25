@@ -3,138 +3,16 @@ namespace Winland.Domain.Tests;
 public class ConfigSyntaxTests
 {
     [Fact]
-    public void ConditionalKeepsTheBranchWhoseVariableExists()
-    {
-        var text = """
-            $MY_VAR = 1
-            # hyprlang if MY_VAR
-            general:gaps_in = 5
-            # hyprlang endif
-            # hyprlang if !MY_VAR
-            general:gaps_out = 9
-            # hyprlang endif
-            """;
-
-        var document = ConfigParser.Parse(text);
-
-        Assert.Empty(document.Warnings);
-        Assert.Equal(new Setting("general:gaps_in", "5"), Assert.Single(document.Settings));
-    }
-
-    [Fact]
-    public void EmptyVariableIsFalseAndAMissingOneIsFalse()
-    {
-        var empty = ConfigParser.Parse("""
-            $MY_VAR =
-            # hyprlang if MY_VAR
-            general:gaps_in = 5
-            # hyprlang endif
-            # hyprlang if !MY_VAR
-            general:gaps_out = 9
-            # hyprlang endif
-            """);
-        var missing = ConfigParser.Parse("""
-            # hyprlang if MISSING
-            general:gaps_in = 5
-            # hyprlang endif
-            # hyprlang if !MISSING
-            general:gaps_out = 9
-            # hyprlang endif
-            """);
-
-        Assert.Empty(empty.Warnings);
-        Assert.Equal(new Setting("general:gaps_out", "9"), Assert.Single(empty.Settings));
-        Assert.Empty(missing.Warnings);
-        Assert.Equal(new Setting("general:gaps_out", "9"), Assert.Single(missing.Settings));
-    }
-
-    [Fact]
-    public void ZeroIsTruthyBecauseTheVariableIsNotEmpty()
-    {
-        var document = ConfigParser.Parse("""
-            $MY_VAR = 0
-            # hyprlang if MY_VAR
-            general:gaps_in = 5
-            # hyprlang endif
-            """);
-
-        Assert.Equal(new Setting("general:gaps_in", "5"), Assert.Single(document.Settings));
-    }
-
-    [Fact]
-    public void EnvironmentVariableFeedsTheConditional()
-    {
-        var source = new MemorySource(new Dictionary<string, string>(), new Dictionary<string, string> { ["WINLAND_IF"] = "set" });
-
-        var document = ConfigParser.Parse("""
-            # hyprlang if WINLAND_IF
-            general:gaps_in = 5
-            # hyprlang endif
-            # hyprlang if !WINLAND_IF
-            general:gaps_out = 9
-            # hyprlang endif
-            """, source);
-
-        Assert.Empty(document.Warnings);
-        Assert.Equal(new Setting("general:gaps_in", "5"), Assert.Single(document.Settings));
-    }
-
-    [Fact]
-    public void EnvironmentVariableWinsOverAConfigVariableInAConditional()
-    {
-        var source = new MemorySource(new Dictionary<string, string>(), new Dictionary<string, string> { ["WINLAND_IF"] = "" });
-
-        var document = ConfigParser.Parse("""
-            $WINLAND_IF = present
-            # hyprlang if WINLAND_IF
-            general:gaps_in = 5
-            # hyprlang endif
-            """, source);
-
-        Assert.Empty(document.Settings);
-    }
-
-    [Fact]
-    public void FailedConditionalStillClosesAndLaterLinesRun()
+    public void AnIfCommentIsOnlyAComment()
     {
         var document = ConfigParser.Parse("""
             # hyprlang if MISSING
-            general:gaps_in = 1
-            # hyprlang endif
-            general:gaps_out = 2
-            """);
-
-        Assert.Empty(document.Warnings);
-        Assert.Equal(new Setting("general:gaps_out", "2"), Assert.Single(document.Settings));
-    }
-
-    [Fact]
-    public void NestedConditionalRequiresEveryEnclosingTest()
-    {
-        var document = ConfigParser.Parse("""
-            $INNER = 1
-            # hyprlang if MISSING
-            # hyprlang if INNER
             general:gaps_in = 3
             # hyprlang endif
-            # hyprlang endif
-            general:gaps_out = 4
             """);
 
         Assert.Empty(document.Warnings);
-        Assert.Equal(new Setting("general:gaps_out", "4"), Assert.Single(document.Settings));
-    }
-
-    [Fact]
-    public void StrayEndifWarns()
-    {
-        var document = ConfigParser.Parse("""
-            # hyprlang endif
-            general:gaps_in = 1
-            """);
-
-        Assert.Equal(new ConfigWarning(1, "Stray endif."), Assert.Single(document.Warnings));
-        Assert.Equal(new Setting("general:gaps_in", "1"), Assert.Single(document.Settings));
+        Assert.Equal(new Setting("general:gaps_in", "3"), Assert.Single(document.Settings));
     }
 
     [Theory]

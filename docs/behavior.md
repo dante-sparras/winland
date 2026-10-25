@@ -66,19 +66,19 @@ A window rule sets a property with the effect of the same name: `border_size`, `
 
 ## Exec rule blocks
 
-A rule block on `exec`, `exec-once`, `execr`, `execr-once`, `exec-shutdown`, or the `exec` and `execr` dispatchers applies to the first window mapped by that process or a child of it. Every effect a window rule honors is honored there too, including `move`, `size`, `center`, `monitor` and `no_close_for`. Any other effect warns and is skipped. The command still launches. An unclosed rule block warns and does not launch. A known effect with a bad argument warns and does not launch.
+A rule block on `exec`, `exec-once`, `exec-shutdown`, or the `exec` dispatcher applies to the first window mapped by that process or a child of it. Every effect a window rule honors is honored there too, including `move`, `size`, `center`, `monitor` and `no_close_for`. Any other effect warns and is skipped. The command still launches. An unclosed rule block warns and does not launch. A known effect with a bad argument warns and does not launch.
 
 ## Launching
 
-`exec`, `exec-once` and `exec-shutdown` run the command through `cmd.exe /d /s /c "<command>"`, so cmd syntax such as `&&` and redirection works and every quote in the command is kept as written. `execr` and `execr-once` start the command line as a program, with no shell.
+`exec`, `exec-once` and `exec-shutdown` run the command through `cmd.exe /d /s /c "<command>"`, so cmd syntax such as `&&` and redirection works and every quote in the command is kept as written.
 
-A console program started by `execr` gets a console window of its own. One started through `exec` shares cmd's console, which has no window, the way a program started by `sh -c` has no terminal, so a background tool stays out of sight and its redirections and pipes work. To see a console program, start it with `execr` or inside a terminal, for example `exec = wt pwsh`.
+A console program started through `exec` shares cmd's console, which has no window, the way a program started by `sh -c` has no terminal, so a background tool stays out of sight and its redirections and pipes work. To see a console program, start it inside a terminal, for example `exec = wt pwsh`.
 
-Every program Winland starts runs as the normal user. An elevated Winland drops its administrator rights for the launch, so `exec`, `exec-once`, `execr`, `execr-once`, `exec-shutdown`, a bind's `exec` or `execr`, a workspace rule's `on-created-empty`, and a command on the pipe all start the program de-elevated. A program that needs administrator rights asks for them itself.
+Every program Winland starts runs as the normal user. An elevated Winland drops its administrator rights for the launch, so `exec`, `exec-once`, `exec-shutdown`, a bind's `exec`, and a command on the pipe all start the program de-elevated. A program that needs administrator rights asks for them itself.
 
 A window that opens while Winland runs opens on the focused Monitor, wherever its program put it, so a Windows Terminal window opens on the Monitor with the focus and not where Terminal's last window was. A window with an owner that is a Client, such as a dialog, opens on its owner's Monitor. A window that was already open when Winland started stays on the Monitor it is on. A window rule's `monitor` or `workspace`, and the Workspace below, win over this.
 
-A program `exec`, `execr` or a config `exec` line starts opens its window on the Workspace it was started on, without switching to it. That is the special workspace the focused Monitor shows, or its Workspace. `exec-once` and `exec-shutdown` start programs without it. Every process the program starts holds the same Workspace. The first window that opens uses it up, and it lapses after 10 seconds. A window rule's `workspace` wins over it, and a window that comes back after a restart keeps its own Workspace.
+A program `exec` or a config `exec` line starts opens its window on the Workspace it was started on, without switching to it. That is the special workspace the focused Monitor shows, or its Workspace. `exec-once` and `exec-shutdown` start programs without it. Every process the program starts holds the same Workspace. The first window that opens uses it up, and it lapses after 10 seconds. A window rule's `workspace` wins over it, and a window that comes back after a restart keeps its own Workspace.
 
 ## Window placement
 

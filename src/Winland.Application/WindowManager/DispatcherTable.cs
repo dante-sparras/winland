@@ -55,7 +55,6 @@ public sealed partial class WindowManager
         {
             // Programs and the daemon
             ["exec"] = new(static (m, n, a) => m.Exec(n, a)),
-            ["execr"] = new(static (m, n, a) => m.Exec(n, a)),
             ["exit"] = new(static (m, _, _) => m.ExitDaemon()),
             ["event"] = new(static (m, _, a) => m.EmitCustom(a)),
             ["dpms"] = new(static (m, _, a) => m.Dpms(a)),

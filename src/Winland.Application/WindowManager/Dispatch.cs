@@ -78,7 +78,7 @@ public sealed partial class WindowManager
 
     private Outcome Exec(string name, string arguments)
     {
-        var parsed = LaunchParser.Parse(arguments, raw: Is(name, "execr"));
+        var parsed = LaunchParser.Parse(arguments);
         if (parsed.Warnings.Count > 0)
         {
             var warnings = new List<StreamEvent>(parsed.Warnings.Count);

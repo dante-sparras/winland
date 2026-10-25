@@ -12,7 +12,6 @@ public static class Dispatchers
         new[]
         {
             "exec",
-            "execr",
             "killactive",
             "togglefloating",
             "movefocus",

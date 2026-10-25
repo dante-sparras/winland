@@ -15,7 +15,7 @@ public static partial class ConfigParser
     /// Every other line, an option or a rule, can be applied at once with <c>keyword</c>.
     /// </summary>
     public static bool AppliesLive(string keyword) =>
-        keyword is not ("exec" or "exec-once" or "execr" or "execr-once" or "exec-shutdown" or "source");
+        keyword is not ("exec" or "exec-once" or "exec-shutdown" or "source");
 
     private sealed partial class Parser(IConfigSource? sourceReader, KeyLayout layout)
     {
@@ -23,8 +23,6 @@ public static partial class ConfigParser
         {
             "exec",
             "exec-once",
-            "execr",
-            "execr-once",
             "exec-shutdown",
             "monitor",
             "windowrule",
@@ -40,7 +38,6 @@ public static partial class ConfigParser
         private readonly Dictionary<string, string> _variables = new(StringComparer.Ordinal);
         private readonly List<OpenCategory> _categories = [];
         private readonly HashSet<string> _openSources = new(StringComparer.OrdinalIgnoreCase);
-        private readonly List<bool> _ifFailed = [];
         private string? _source;
         private string? _rootFolder;
         private bool _suppressWarnings;
@@ -113,14 +110,11 @@ public static partial class ConfigParser
 
         private void ParseLine(int lineNumber, string raw)
         {
-            if (ConfigDirectives.TryParse(raw, out var directive))
+            if (ConfigDirectives.TryParseNoError(raw, out var suppress))
             {
-                ApplyDirective(directive, lineNumber);
+                _suppressWarnings = suppress;
                 return;
             }
-
-            if (Skipping)
-                return;
 
             var line = CutComment(raw);
             if (line.Length == 0)
@@ -211,7 +205,7 @@ public static partial class ConfigParser
                     RememberRule(rhs, lineNumber);
                 else if (IsLaunchKeyword(lhs))
                 {
-                    foreach (var warning in LaunchParser.Parse(rhs, raw: false).Warnings)
+                    foreach (var warning in LaunchParser.Parse(rhs).Warnings)
                         Warn(lineNumber, warning);
                 }
 
@@ -379,7 +373,7 @@ public static partial class ConfigParser
         }
 
         private static bool IsLaunchKeyword(string keyword) =>
-            keyword is "exec" or "exec-once" or "execr" or "execr-once" or "exec-shutdown";
+            keyword is "exec" or "exec-once" or "exec-shutdown";
 
         // True when the line has a '#' that starts a comment. "##" is an escaped '#'.
         private static bool HasComment(string line)

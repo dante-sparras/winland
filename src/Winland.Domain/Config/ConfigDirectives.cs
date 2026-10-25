@@ -2,9 +2,10 @@ namespace Winland.Domain;
 
 internal static class ConfigDirectives
 {
-    public static bool TryParse(string raw, out ConfigDirective directive)
+    /// <summary>Reads a <c># hyprlang noerror</c> comment, which turns warnings off or on for the lines after it.</summary>
+    public static bool TryParseNoError(string raw, out bool suppress)
     {
-        directive = default;
+        suppress = false;
         var line = raw.Trim();
         if (line.Length == 0 || line[0] != '#')
             return false;
@@ -22,44 +23,12 @@ internal static class ConfigDirectives
         if (hash >= 0)
             body = body[..hash].Trim();
 
-        var parts = body.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0)
+        var parts = body.Split([' ', '	'], StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0 || parts[0] != "noerror")
             return false;
 
-        if (parts[0] == "endif")
-        {
-            directive = new ConfigDirective(ConfigDirectiveKind.EndIf, "", false, false);
-            return true;
-        }
-
-        if (parts[0] == "if")
-        {
-            var argument = parts.Length > 1 ? parts[1] : "";
-            var negated = argument.Length > 0 && argument[0] == '!';
-            if (negated)
-                argument = argument[1..];
-
-            directive = new ConfigDirective(ConfigDirectiveKind.If, argument, negated, false);
-            return true;
-        }
-
-        if (parts[0] == "noerror")
-        {
-            var word = parts.Length > 1 ? parts[1] : "";
-            var enabled = word is "" or "true" or "yes" or "enable" or "enabled" or "set";
-            directive = new ConfigDirective(ConfigDirectiveKind.NoError, word, false, enabled);
-            return true;
-        }
-
-        return false;
+        var word = parts.Length > 1 ? parts[1] : "";
+        suppress = word is "" or "true" or "yes" or "enable" or "enabled" or "set";
+        return true;
     }
-}
-
-internal readonly record struct ConfigDirective(ConfigDirectiveKind Kind, string Argument, bool Negated, bool Enabled);
-
-internal enum ConfigDirectiveKind
-{
-    If,
-    EndIf,
-    NoError,
 }
