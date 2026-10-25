@@ -19,18 +19,18 @@ public sealed partial class WindowManager
     // The update that picks a workspace gesture starts the workspace swipe and is its first step.
     private Outcome UpdateSwipe(SwipeUpdated updated)
     {
-        var step = _swipeGesture.Update(updated, _config.Gestures, _keyState.Held);
+        var step = _swipeGesture.Update(updated, _config.Gestures);
         if (step.Picked)
             StartWorkspaceSwipe();
 
-        if (step.Along is not double along || _swipeGesture.Active is not { IsWorkspace: true } || _workspaceSwipe is not { } swipe)
+        if (step.Along is not double along || _swipeGesture.Active is null || _workspaceSwipe is not { } swipe)
             return View([]);
 
         return StepWorkspaceSwipe(swipe, swipe.Delta + (_config.Swipe.Invert ? -along : along));
     }
 
     private Outcome EndSwipe() =>
-        _swipeGesture.End() is { IsWorkspace: true } && _workspaceSwipe is { } swipe ? FinishWorkspaceSwipe(swipe) : View([]);
+        _swipeGesture.End() is not null && _workspaceSwipe is { } swipe ? FinishWorkspaceSwipe(swipe) : View([]);
 
     private void StartWorkspaceSwipe()
     {

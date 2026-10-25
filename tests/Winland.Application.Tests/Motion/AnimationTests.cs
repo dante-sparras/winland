@@ -59,16 +59,6 @@ public class AnimationTests
     }
 
     [Fact]
-    public void AGnomedWindowUnfoldsFromItsMiddle()
-    {
-        var core = Load("animation = windowsIn, 1, 4, default, gnomed");
-
-        var motion = Assert.Single(Appear(core, 1).Motions);
-
-        Assert.Equal(new Rectangle(0, 540, 1920, 0), motion.From);
-    }
-
-    [Fact]
     public void AWindowThatMakesRoomMovesFromItsOldRectangle()
     {
         var core = new WindowManager();
@@ -250,9 +240,6 @@ public class AnimationTests
         core.Execute("setprop address:0x1 animation popin 50%");
 
         Assert.Equal(new Rectangle(480, 270, 960, 540), Assert.Single(core.Handle(new Dispatch("killactive", "")).Motions).To);
-
-        core.Execute("setprop address:0x1 animation gnomed");
-        Assert.Equal(new Rectangle(0, 540, 1920, 0), Assert.Single(core.Handle(new Dispatch("killactive", "")).Motions).To);
 
         core.Execute("setprop address:0x1 animation unset");
         Assert.Equal(new Rectangle(957, 537, 5, 5), Assert.Single(core.Handle(new Dispatch("killactive", "")).Motions).To);

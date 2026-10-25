@@ -9,12 +9,12 @@ public class GestureTests
     [Fact]
     public void WorkspaceGestureParsesWithoutWarnings()
     {
-        var document = ConfigParser.Parse("gesture = 3, horizontal, mod: SUPER, scale: 1.5, workspace\n");
+        var document = ConfigParser.Parse("gesture = 3, horizontal, workspace\ngesture = 4, vertical, workspace\n");
 
         Assert.Empty(document.Warnings);
         Assert.Equal(
-            new TrackpadGesture(3, GestureDirection.Horizontal, Modifier.Super, 1.5, "workspace"),
-            Assert.Single(document.Gestures));
+            [new TrackpadGesture(3, GestureAxis.Horizontal), new TrackpadGesture(4, GestureAxis.Vertical)],
+            document.Gestures);
     }
 
     [Theory]
@@ -25,24 +25,19 @@ public class GestureTests
     [InlineData("gesture = 3, pinch, workspace", "Invalid direction: pinch.")]
     [InlineData("gesture = 3, pinchin, workspace", "Invalid direction: pinchin.")]
     [InlineData("gesture = 3, pinchout, workspace", "Invalid direction: pinchout.")]
-    [InlineData("gesture = 3, horizontal, scale: fast, workspace", "Invalid delta scale: fast.")]
     [InlineData("gestureq = 3, horizontal, workspace", "Invalid gesture flag 'q'.")]
-    [InlineData("gesture = 3, horizontal, unset", "Can't remove a non-existent gesture.")]
+    [InlineData("gesture = 3, swipe, workspace", "Invalid direction: swipe.")]
+    [InlineData("gesture = 3, left, workspace", "Invalid direction: left.")]
+    [InlineData("gesture = 3, d, workspace", "Invalid direction: d.")]
+    [InlineData("gesture = 3, horizontal, mod: SUPER, workspace", "A gesture is <fingers>, horizontal or vertical, workspace.")]
+    [InlineData("gesture = 3, horizontal, scale: 2, workspace", "A gesture is <fingers>, horizontal or vertical, workspace.")]
+    [InlineData("gesture = 3, horizontal, unset", "Invalid gesture: unset.")]
+    [InlineData("gesturep = 3, horizontal, workspace", "Invalid gesture flag 'p'.")]
     public void MalformedGestureWarnsAndIsSkipped(string line, string warning)
     {
         var document = ConfigParser.Parse(line + "\n");
 
         Assert.Empty(document.Gestures);
-        Assert.Equal(new ConfigWarning(1, warning), Assert.Single(document.Warnings));
-    }
-
-    [Theory]
-    [InlineData("gesturep = 3, horizontal, workspace", "Gesture flag 'p' is not honored.")]
-    public void UnhonoredGestureWarnsAndStillShadows(string line, string warning)
-    {
-        var document = ConfigParser.Parse(line + "\n");
-
-        Assert.Single(document.Gestures);
         Assert.Equal(new ConfigWarning(1, warning), Assert.Single(document.Warnings));
     }
 
@@ -59,7 +54,7 @@ public class GestureTests
     [InlineData("")]
     public void OtherGestureActionsWarnAndAreSkipped(string action)
     {
-        var document = ConfigParser.Parse($"gesture = 3, up, {action}\n");
+        var document = ConfigParser.Parse($"gesture = 3, horizontal, {action}\n");
 
         Assert.Empty(document.Gestures);
         Assert.Equal(new ConfigWarning(1, $"Invalid gesture: {action}."), Assert.Single(document.Warnings));
@@ -77,40 +72,6 @@ public class GestureTests
 
         Assert.Equal(GestureOptions.Documented, GestureOptions.From(document));
         Assert.Contains("Unsupported keyword", Assert.Single(document.Warnings).Message);
-    }
-
-    [Fact]
-    public void ASkippedGestureDoesNotShadow()
-    {
-        var document = ConfigParser.Parse("""
-            gesture = 3, swipe, close
-            gesture = 3, left, workspace
-            """);
-
-        Assert.Equal(
-            new TrackpadGesture(3, GestureDirection.Left, Modifier.None, 1, "workspace"),
-            Assert.Single(document.Gestures));
-        Assert.Equal(
-            [new ConfigWarning(1, "Invalid gesture: close.")],
-            document.Warnings);
-    }
-
-    [Fact]
-    public void ShadowedGestureWarnsAndUnsetRemovesTheMatch()
-    {
-        var document = ConfigParser.Parse("""
-            gesture = 3, swipe, workspace
-            gesture = 3, left, workspace
-            gesture = 3, swipe, unset
-            gesture = 3, left, workspace
-            """);
-
-        Assert.Equal(
-            new TrackpadGesture(3, GestureDirection.Left, Modifier.None, 1, "workspace"),
-            Assert.Single(document.Gestures));
-        Assert.Equal(
-            [new ConfigWarning(2, "Gesture will be overshadowed by a previous gesture. Previous SWIPE shadows new LEFT.")],
-            document.Warnings);
     }
 
     [Fact]
@@ -222,23 +183,10 @@ public class GestureTests
     }
 
     [Fact]
-    public void OneWayGestureMatchesOnlyItsDirection()
+    public void FingerCountMustMatch()
     {
-        var core = Twin("gesture = 3, left, workspace\n");
-        core.Handle(new Dispatch("workspace", "2"));
+        var core = Twin("gesture = 4, horizontal, workspace\n");
 
-        Assert.Equal(new WorkspaceId("2"), Swipe(core, 3, Steps(20, 10, 0)).State.ActiveWorkspace);
-        // Left reads the distance as leftward travel, so with the default invert it heads for the previous Workspace.
-        Assert.Equal(WorkspaceId.Initial, Swipe(core, 3, Steps(20, -10, 0)).State.ActiveWorkspace);
-    }
-
-    [Fact]
-    public void FingerCountAndModifiersMustMatch()
-    {
-        var core = Twin("gesture = 4, horizontal, mod: SUPER, workspace\n");
-
-        Assert.Equal(WorkspaceId.Initial, Swipe(core, 4, Steps(20, -10, 0)).State.ActiveWorkspace);
-        core.Handle(new KeyPressed("Super_L"));
         Assert.Equal(WorkspaceId.Initial, Swipe(core, 3, Steps(20, -10, 0)).State.ActiveWorkspace);
         Assert.Equal(new WorkspaceId("2"), Swipe(core, 4, Steps(20, -10, 0)).State.ActiveWorkspace);
     }
@@ -284,16 +232,6 @@ public class GestureTests
     }
 
     [Fact]
-    public void ScaleMultipliesTheDistance()
-    {
-        var core = Twin("gesture = 3, horizontal, scale: 2, workspace\n");
-
-        var ended = Swipe(core, 3, Steps(8, -10, 0));
-
-        Assert.Equal(new WorkspaceId("2"), ended.State.ActiveWorkspace);
-    }
-
-    [Fact]
     public void LockedSessionDoesNotSwipe()
     {
         var core = Twin(Horizontal);
@@ -302,15 +240,6 @@ public class GestureTests
         var ended = Swipe(core, 3, Steps(20, -10, 0));
 
         Assert.Equal(WorkspaceId.Initial, ended.State.ActiveWorkspace);
-    }
-
-    [Fact]
-    public void ANegativeScaleIsKeptAndATinyOneWarns()
-    {
-        var document = ConfigParser.Parse("gesture = 3, left, scale:-2, workspace\ngesture = 4, left, scale:0.05, workspace\n");
-
-        Assert.Equal(-2, Assert.Single(document.Gestures).Scale);
-        Assert.Single(document.Warnings);
     }
 
     [Fact]
