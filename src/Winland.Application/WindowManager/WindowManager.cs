@@ -149,12 +149,13 @@ public sealed partial class WindowManager
     private Outcome Step(Input? input, Func<Outcome> run)
     {
         var before = Capture();
+        var wasClient = input is WindowAppeared appeared && Find(appeared.Window) is not null;
         try
         {
             var outcome = run();
             CheckShownWorkspaces();
             if (input is not null)
-                Note(input);
+                Note(input, wasClient);
 
             outcome = Ordered(WithEvents(Decorate(outcome, before.State), before, input));
             Emit(outcome);

@@ -177,6 +177,24 @@ public class LaunchTests
     }
 
     [Fact]
+    public void AClientOfTheLaunchedProcessShownAgainLeavesItsRulesForTheNextWindow()
+    {
+        var core = new WindowManager();
+        var area = new Rectangle(0, 0, 800, 600);
+        core.Handle(new WindowAppeared(new WindowId(1), area) { ProcessId = 40 });
+        var launch = core.Handle(new Dispatch("exec", "[float] kitty")).Launch;
+        Assert.NotNull(launch);
+        core.NoteLaunched(40, launch);
+
+        core.Handle(new WindowRestored(new WindowId(1)));
+        core.Handle(new WindowClassChanged(new WindowId(1), WindowTraits.Normal.Class));
+        core.Handle(new WindowAppeared(new WindowId(1), area) { ProcessId = 40 });
+        var next = core.Handle(new WindowAppeared(new WindowId(2), area) { ProcessId = 40 });
+
+        Assert.True(Assert.Single(next.State.Clients, candidate => candidate.Window == new WindowId(2)).Floating);
+    }
+
+    [Fact]
     public void AChildProcessInheritsTheLaunchRulesUntilTheTimeout()
     {
         var core = new WindowManager();
