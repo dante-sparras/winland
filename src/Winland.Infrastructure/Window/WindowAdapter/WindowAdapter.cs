@@ -300,8 +300,8 @@ public sealed partial class WindowAdapter : IDisposable
                             RereadLimits(hwnd, window);
 
                         ReportResize(hwnd, window);
-                        PutBackIfDrifted(hwnd, window);
                         ReportFullscreen(hwnd, window);
+                        PutBackIfDrifted(hwnd, window);
                     }
 
                     _effects.Refit(window);
