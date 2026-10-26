@@ -79,11 +79,15 @@ internal sealed partial class DwindleLayout
                 break;
         }
 
+        // A grabbed corner moves its edge by the delta. resizeactive grows or shrinks the tile by it, so a tile after its
+        // split moves that split the other way.
         if (horizontalOuter is not null)
-            MoveEdge(horizontalOuter, horizontalInner, deltaX, horizontal: true);
+            MoveEdge(horizontalOuter, horizontalInner, none && IsSecond(horizontalOuter) ? -deltaX : deltaX, horizontal: true);
         if (verticalOuter is not null)
-            MoveEdge(verticalOuter, verticalInner, deltaY, horizontal: false);
+            MoveEdge(verticalOuter, verticalInner, none && IsSecond(verticalOuter) ? -deltaY : deltaY, horizontal: false);
     }
+
+    private static bool IsSecond(Node node) => ReferenceEquals(node.Parent?.Second, node);
 
     private void MoveEdge(Node outer, Node? inner, int delta, bool horizontal)
     {
