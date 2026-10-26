@@ -103,13 +103,6 @@ public class DefaultConfigTests
         SUPER ALT|4|changegroupactive|4|
         SUPER ALT|5|changegroupactive|5|
         SUPER ALT CTRL|W|closeall||
-        SUPER|C|sendshortcut|CTRL, C|
-        SUPER|V|sendshortcut|CTRL, V|
-        SUPER|X|sendshortcut|CTRL, X|
-        SUPER|A|sendshortcut|CTRL, A|
-        SUPER CTRL|V|sendshortcut|SUPER, V|
-        SUPER CTRL|X|sendshortcut|SUPER, X|
-        SUPER CTRL|A|sendshortcut|SUPER, A|
         SUPER|Return|exec|wt|
         SUPER SHIFT|Return|exec|start https://|
         SUPER SHIFT|B|exec|start https://|
