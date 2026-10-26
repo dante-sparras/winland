@@ -96,14 +96,19 @@ public class WindowEventTests
         Assert.False(core.Manages(window));
     }
 
-    // Claude's screen overlay is layered, click-through, topmost and never activated (0x08280028).
+    // Claude's screen overlay is layered, click-through, topmost and never activated (0x08280028). A WinUI tooltip,
+    // as Magpie shows over its buttons, is layered and never activated (0x08280000). A window that asks to be on the
+    // taskbar is an application window even when it is never activated.
     [Theory]
     [InlineData(0x08280028, true)]
     [InlineData(0x00080020, true)]
+    [InlineData(0x08280000, true)]
+    [InlineData(0x08000000, true)]
+    [InlineData(0x08040000, false)]
     [InlineData(0x00080000, false)]
     [InlineData(0x00000020, false)]
     [InlineData(0x00000100, false)]
-    public void ALayeredWindowInputPassesThroughIsAnOverlay(int extended, bool overlay)
+    public void AWindowThatCannotBeFocusedIsAnOverlay(int extended, bool overlay)
     {
         Assert.Equal(overlay, WindowAdapter.IsOverlay(extended));
     }
