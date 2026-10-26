@@ -210,10 +210,12 @@ public sealed partial class WindowAdapter : IDisposable
         uint idEventThread,
         uint dwmsEventTime)
     {
-        // A reorder names the parent whose children moved, so it is not a window event. Every tab bar is stacked again.
+        // A reorder names the parent whose children moved, so it is not a window event. Every tab bar is stacked again,
+        // and the floating Clients go back above a tile that was raised over them.
         if (@event == PInvoke.EVENT_OBJECT_REORDER)
         {
             GroupBarHost.Restack();
+            KeepFloatingAbove();
             return;
         }
 
