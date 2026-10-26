@@ -1,11 +1,13 @@
 using Windows.Win32;
 using Windows.Win32.Foundation;
+using Windows.Win32.Graphics.Gdi;
 using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winland.Infrastructure;
 
 // Winland has no minimize: a client's request to minimize is ignored. A client's request to maximize
-// is maximize mode 1. Windows carries both out before it tells anyone, so they are undone here.
+// is maximize mode 1. Windows carries both out before it tells anyone, so they are undone here. A client
+// that covers its monitor by itself asked for fullscreen mode 2.
 public sealed partial class WindowAdapter
 {
     /// <summary>Brings back a managed window the system just minimized.</summary>
@@ -49,6 +51,32 @@ public sealed partial class WindowAdapter
         Apply(outcome);
         _settling[window] = Environment.TickCount64 + SettleMilliseconds;
         return outcome;
+    }
+
+    // A browser that shows a video fullscreen drops its frame and covers its monitor, and puts both back when the video
+    // leaves. Each change is reported once. The window keeps its own frame: Winland would otherwise keep the frameless
+    // style as the one to put back. A window Winland is moving is somewhere on the way, not where it asked to be.
+    // Stryker disable once all : handles a window event, which needs a real window.
+    private void ReportFullscreen(HWND hwnd, WindowId window)
+    {
+        if (!_core.Manages(window) || _motions.Running(window) || PInvoke.IsIconic(hwnd) || !TryVisible(window, out var visible))
+            return;
+
+        var monitor = PInvoke.MonitorFromWindow(hwnd, MONITOR_FROM_FLAGS.MONITOR_DEFAULTTONULL);
+        var info = new MONITORINFO { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
+        if (monitor.IsNull || !PInvoke.GetMonitorInfo(monitor, ref info))
+            return;
+
+        var covers = visible == new Rectangle(info.rcMonitor.left, info.rcMonitor.top, info.rcMonitor.right - info.rcMonitor.left, info.rcMonitor.bottom - info.rcMonitor.top);
+        if (covers == _ownFullscreen.ContainsKey(window))
+            return;
+
+        if (covers)
+            _ownFullscreen[window] = 0;
+        else
+            _ownFullscreen.TryRemove(window, out _);
+
+        Apply(_core.Handle(new WindowFullscreenRequested(window, covers)));
     }
 
     // Electron windows restore a size of their own a moment after they leave the maximized state, which undoes

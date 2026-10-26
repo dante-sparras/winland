@@ -74,6 +74,9 @@ public sealed partial class WindowAdapter : IDisposable
     // Windows whose maximize request was just answered, and when they stop being watched for drifting off their tile.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, long> _settling = new();
 
+    // Windows that cover their monitor by their own doing, as a browser does for a video.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> _ownFullscreen = new();
+
     /// <param name="changed">Called after an outcome is applied, to say the recovery snapshot is out of date. <see cref="Capture"/> builds the new one.</param>
     public WindowAdapter(WindowManager core, Action? changed = null)
         : this(core, new Win32Desktop(), changed, null)
@@ -257,6 +260,7 @@ public sealed partial class WindowAdapter : IDisposable
                     _concealed.TryRemove(window, out _);
                     _disabled.TryRemove(window, out _);
                     _settling.TryRemove(window, out _);
+                    _ownFullscreen.TryRemove(window, out _);
                     _quick.Forget(window);
                     AbandonDrag(window);
                     ForgetLimits(window);
@@ -293,6 +297,7 @@ public sealed partial class WindowAdapter : IDisposable
 
                         ReportResize(hwnd, window);
                         PutBackIfDrifted(hwnd, window);
+                        ReportFullscreen(hwnd, window);
                     }
 
                     _effects.Refit(window);

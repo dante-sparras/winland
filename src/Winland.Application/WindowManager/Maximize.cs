@@ -42,6 +42,19 @@ public sealed partial class WindowManager
         return CommitFullscreen(window, next);
     }
 
+    // Windows has no fullscreen request, so a window that covers its monitor by itself asked for it. It is fullscreen
+    // mode 2 until it stops covering the monitor, which ends only that mode.
+    private Outcome FullscreenRequest(WindowFullscreenRequested requested)
+    {
+        if (WorkspaceContaining(requested.Window)?.ClientOf(requested.Window) is not Client client)
+            return View([]);
+
+        if (requested.Fullscreen == (client.Fullscreen == FullscreenMode.Fullscreen))
+            return View([]);
+
+        return CommitFullscreen(requested.Window, requested.Fullscreen ? FullscreenMode.Fullscreen : FullscreenMode.None);
+    }
+
     // A window that left the system's maximized state may restore a size of its own afterwards. It is put back
     // where its Layout holds it, with no motion: the window is already somewhere it should not be.
     private Outcome PutBack(WindowDrifted drifted)

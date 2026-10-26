@@ -113,6 +113,12 @@ public sealed record WindowSizeEnded(WindowId Window, Point Pointer, Rectangle? 
 /// <summary>An application asked to be maximized, or to leave it. That is maximize mode 1, toggled.</summary>
 public sealed record WindowMaximizeRequested(WindowId Window) : Event;
 
+/// <summary>
+/// A window came to cover its monitor by itself, as a browser does for a video, or stopped covering it. That is
+/// fullscreen mode 2.
+/// </summary>
+public sealed record WindowFullscreenRequested(WindowId Window, bool Fullscreen) : Event;
+
 /// <summary>A window's title changed.</summary>
 public sealed record WindowTitleChanged(WindowId Window, string Title) : Event;
 

@@ -203,6 +203,7 @@ public sealed partial class WindowManager
             GroupBarScrolled scrolled => ScrollGroupBar(scrolled),
             GroupTabClosed closed => View([], close: closed.Window),
             WindowMaximizeRequested requested => MaximizeRequest(requested.Window),
+            WindowFullscreenRequested requested => FullscreenRequest(requested),
             WindowDrifted drifted => PutBack(drifted),
             WindowSizeStarted sizing => BeginNativeSize(sizing),
             WindowSizeEnded sized => EndNativeSize(sized),
