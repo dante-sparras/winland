@@ -33,11 +33,11 @@ public class OutcomeThenTests
     public void TheTraitsOfBothAreKept()
     {
         var first = new Outcome([], Empty) { Traits = DispatcherTraits.WarpsToFocused };
-        var second = new Outcome([], Empty) { Traits = DispatcherTraits.InstantResize };
+        var second = new Outcome([], Empty) { Traits = DispatcherTraits.WarpsToEmptyMonitor };
 
-        Assert.Equal(DispatcherTraits.WarpsToFocused | DispatcherTraits.InstantResize, first.Then(second).Traits);
+        Assert.Equal(DispatcherTraits.WarpsToFocused | DispatcherTraits.WarpsToEmptyMonitor, first.Then(second).Traits);
         Assert.Equal(DispatcherTraits.WarpsToFocused, first.Then(new Outcome([], Empty)).Traits);
-        Assert.Equal(DispatcherTraits.InstantResize, new Outcome([], Empty).Then(second).Traits);
+        Assert.Equal(DispatcherTraits.WarpsToEmptyMonitor, new Outcome([], Empty).Then(second).Traits);
         Assert.Null(new Outcome([], Empty).Then(new Outcome([], Empty)).Traits);
     }
 

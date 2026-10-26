@@ -43,7 +43,7 @@ public sealed partial class WindowManager
 
         // A window the pointer drags follows it at once, and the windows its Layout moves to make room for it, when it
         // is lifted out or dropped, animate. A mouse resize moves every window at once.
-        if (_interaction is not (Gesture { Resize: true } or BorderDrag or NativeSize) && !InstantResize(outcome, change.Before))
+        if (_interaction is not (Gesture { Resize: true } or BorderDrag or NativeSize))
         {
             var held = (_interaction as Gesture)?.Window;
             foreach (var placement in outcome.Placements)
@@ -67,29 +67,6 @@ public sealed partial class WindowManager
 
         var mine = new HashSet<WindowId>(own.Select(motion => motion.Window));
         return outcome with { Motions = [.. own, .. planned.Where(motion => !mine.Contains(motion.Window))] };
-    }
-
-    // A dwindle tile resized by resizeactive, and the tiles that make room for it, move at once
-    // as Winland's dwindle resize warps them. Floating Clients animate.
-    private bool InstantResize(Outcome outcome, State before)
-    {
-        if (outcome.Traits?.HasFlag(DispatcherTraits.InstantResize) != true)
-            return false;
-
-        if (ActiveWindow() is not WindowId active)
-            return false;
-
-        foreach (var client in before.Clients)
-        {
-            if (client.Window != active)
-                continue;
-
-            return !client.Floating
-                && _workspaces.Find(client.Workspace) is LiveWorkspace desk
-                && desk.Layout is DwindleLayout;
-        }
-
-        return false;
     }
 
     // A window's own animation style, from setprop or a window rule, replaces the windowsIn or windowsOut style it opens
