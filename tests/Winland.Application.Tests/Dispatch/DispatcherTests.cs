@@ -180,8 +180,8 @@ public class DispatcherTests
 
         var wider = sideBySide.Handle(new Dispatch("resizeactive", "480 0"));
 
-        Assert.Equal(new Rectangle(0, 0, 1440, 1080), BoundsOf(wider, 1));
-        Assert.Equal(new Rectangle(1440, 0, 480, 1080), BoundsOf(wider, 2));
+        Assert.Equal(new Rectangle(0, 0, 480, 1080), BoundsOf(wider, 1));
+        Assert.Equal(new Rectangle(480, 0, 1440, 1080), BoundsOf(wider, 2));
 
         var stacked = new WindowManager();
         Appear(stacked, 1, Tall);
@@ -189,9 +189,9 @@ public class DispatcherTests
 
         var taller = stacked.Handle(new Dispatch("resizeactive", "0 480"));
 
-        Assert.Equal(new Rectangle(0, 0, 1080, 1440), BoundsOf(taller, 1));
-        Assert.Equal(new Rectangle(0, 1440, 1080, 480), BoundsOf(taller, 2));
-        Assert.Equal(new Rectangle(0, 0, 1080, 1440), BoundsOf(stacked.Handle(new Dispatch("resizeactive", "20 0")), 1));
+        Assert.Equal(new Rectangle(0, 0, 1080, 480), BoundsOf(taller, 1));
+        Assert.Equal(new Rectangle(0, 480, 1080, 1440), BoundsOf(taller, 2));
+        Assert.Equal(new Rectangle(0, 0, 1080, 480), BoundsOf(stacked.Handle(new Dispatch("resizeactive", "20 0")), 1));
     }
 
     [Fact]
@@ -220,8 +220,8 @@ public class DispatcherTests
         var outcome = Press(core, "H");
 
         Assert.True(outcome.Consumed);
-        Assert.Equal(new Rectangle(0, 0, 1440, 1080), BoundsOf(outcome, 1));
-        Assert.Equal(new Rectangle(1440, 0, 480, 1080), BoundsOf(outcome, 2));
+        Assert.Equal(new Rectangle(0, 0, 480, 1080), BoundsOf(outcome, 1));
+        Assert.Equal(new Rectangle(480, 0, 1440, 1080), BoundsOf(outcome, 2));
     }
 
     [Fact]

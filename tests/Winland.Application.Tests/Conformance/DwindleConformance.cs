@@ -36,6 +36,39 @@ public class DwindleConformance
         Assert.Equal(left, desk.Placed("a").X < desk.Placed("b").X);
     }
 
+    [Theory]
+    [InlineData("a", "-100 0", -100, 0)]
+    [InlineData("a", "100 0", 100, 0)]
+    [InlineData("b", "-100 0", -100, 0)]
+    [InlineData("b", "100 0", 100, 0)]
+    public void DwindleResizeActiveChangesTheActiveTilesOwnSize(string active, string delta, int width, int height)
+    {
+        var desk = new Desk();
+        desk.Spawn("a");
+        desk.Spawn("b");
+        desk.Ok("focuswindow", $"class:{active}");
+        var before = desk.Placed(active);
+
+        desk.Ok("resizeactive", delta);
+
+        var after = desk.Placed(active);
+        Assert.Equal((width, height), (after.Width - before.Width, after.Height - before.Height));
+    }
+
+    [Fact]
+    public void DwindleResizeActiveExactGivesASecondTileThatSize()
+    {
+        var desk = new Desk();
+        desk.Spawn("a");
+        desk.Spawn("b");
+        desk.Ok("focuswindow", "class:b");
+        var height = desk.Placed("b").Height;
+
+        desk.Ok("resizeactive", "exact 600 " + height);
+
+        Assert.Equal(600, desk.Placed("b").Width);
+    }
+
     [Fact]
     public void DwindleIssue13349()
     {
