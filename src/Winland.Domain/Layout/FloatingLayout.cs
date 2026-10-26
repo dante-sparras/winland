@@ -132,7 +132,7 @@ internal sealed class FloatingLayout : Layout, IDragOwner
     public IReadOnlyList<Placement> ResizeActive(WindowId window, string arguments) => _inner.ResizeActive(window, arguments);
 
     // There are no tiles to sink a Client into.
-    public IReadOnlyList<Placement> ToggleFloating(WindowId window)
+    public IReadOnlyList<Placement> ToggleFloating(WindowId window, Point? pointer = null)
     {
         _ = window;
         return [];

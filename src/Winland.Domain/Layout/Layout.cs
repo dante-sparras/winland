@@ -142,8 +142,8 @@ internal interface Layout
     /// <summary>Resizes the active Client.</summary>
     IReadOnlyList<Placement> ResizeActive(WindowId window, string arguments);
 
-    /// <summary>Toggles whether a Client floats.</summary>
-    IReadOnlyList<Placement> ToggleFloating(WindowId window);
+    /// <summary>Toggles whether a Client floats. A Client tiled again goes in at <paramref name="pointer"/>, as a new one does.</summary>
+    IReadOnlyList<Placement> ToggleFloating(WindowId window, Point? pointer = null);
 
     /// <summary>Exchanges two Clients' places. Layouts that cannot swap them change nothing.</summary>
     IReadOnlyList<Placement> Swap(WindowId active, WindowId other) => [];

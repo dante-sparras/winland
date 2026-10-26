@@ -141,7 +141,7 @@ internal sealed partial class DwindleLayout
         return [.. Placements(), new Placement(tiled, box)];
     }
 
-    public IReadOnlyList<Placement> ToggleFloating(WindowId window)
+    public IReadOnlyList<Placement> ToggleFloating(WindowId window, Point? pointer = null)
     {
         var id = new ClientId(window.Value);
         var index = IndexOf(id);
@@ -149,7 +149,7 @@ internal sealed partial class DwindleLayout
             return [];
 
         if (_floating.Contains(id))
-            return Tile(id, index);
+            return Tile(id, index, pointer);
 
         if (!_nodes.TryGetValue(id, out var node) || !InTree(node))
             return [];
@@ -366,7 +366,7 @@ internal sealed partial class DwindleLayout
         return Placements();
     }
 
-    private IReadOnlyList<Placement> Tile(ClientId id, int index)
+    private IReadOnlyList<Placement> Tile(ClientId id, int index, Point? pointer)
     {
         _floating.Sink(id);
         _clients[index] = _clients[index] with { Floating = false };
@@ -380,7 +380,7 @@ internal sealed partial class DwindleLayout
         }
         else
         {
-            Split(SplitTarget() ?? Leaf(_root), node, null);
+            Split(SplitTarget() ?? Leaf(_root), node, pointer);
         }
 
         _splitTarget = id;
