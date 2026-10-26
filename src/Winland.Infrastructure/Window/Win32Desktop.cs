@@ -13,6 +13,8 @@ internal sealed class Win32Desktop : IDesktop
     // HWND_TOP raises a window above every window that is not topmost. HWND_BOTTOM lowers it below all of them.
     private static readonly HWND Top = new(0);
     private static readonly HWND Bottom = new(1);
+    private static readonly HWND Topmost = new(-1);
+    private static readonly HWND NotTopmost = new(-2);
 
     private readonly Win32WindowStyles _styles = new();
     private readonly Win32WindowFrame _frames = new();
@@ -94,6 +96,17 @@ internal sealed class Win32Desktop : IDesktop
 
     public void RaiseAsync(WindowId window, bool top) => Restack(window, top, SET_WINDOW_POS_FLAGS.SWP_ASYNCWINDOWPOS);
 
+    public bool HoldOnTop(WindowId window)
+    {
+        if ((PInvoke.GetWindowLong(Handle(window), WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE) & (int)WINDOW_EX_STYLE.WS_EX_TOPMOST) != 0)
+            return false;
+
+        Band(window, Topmost);
+        return true;
+    }
+
+    public void LetGo(WindowId window) => Band(window, NotTopmost);
+
     public bool Foreground(WindowId window) => Winland.Infrastructure.Foreground.MoveTo(window);
 
     public void Close(WindowId window) => PInvoke.PostMessage(Handle(window), CloseMessage, default, default);
@@ -135,6 +148,16 @@ internal sealed class Win32Desktop : IDesktop
             0,
             0,
             SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | flags);
+
+    private static void Band(WindowId window, HWND after) =>
+        _ = PInvoke.SetWindowPos(
+            Handle(window),
+            after,
+            0,
+            0,
+            0,
+            0,
+            SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
 
     private static SHOW_WINDOW_CMD Command(ShowAs show) => show switch
     {

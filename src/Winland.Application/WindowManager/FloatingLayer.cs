@@ -28,12 +28,24 @@ public sealed partial class WindowManager
             return requests;
         }
 
-        foreach (var window in _stacking)
-        {
-            if (window != focused && Find(window) is { Floating: true, Minimized: false } && IsShownClient(window) && !_cover.IsBelow(window))
-                requests.Add(new ZOrderRequest(window, Top: true));
-        }
+        foreach (var window in FloatingOver(focused))
+            requests.Add(new ZOrderRequest(window, Top: true));
 
         return requests;
     }
+
+    /// <summary>
+    /// The floating Clients shown above <paramref name="window"/> while it is the active tile, bottom first. None when it
+    /// floats or is not a Client. A click raises a window that is already active, which Windows does not report as a
+    /// focus change, so the adapter asks this when the z-order changes.
+    /// </summary>
+    public IReadOnlyList<WindowId> FloatingAbove(WindowId window)
+    {
+        lock (_gate)
+            return Find(window) is { Floating: false } ? [.. FloatingOver(window)] : [];
+    }
+
+    private IEnumerable<WindowId> FloatingOver(WindowId focused) =>
+        _stacking.Where(window =>
+            window != focused && Find(window) is { Floating: true, Minimized: false } && IsShownClient(window) && !_cover.IsBelow(window));
 }

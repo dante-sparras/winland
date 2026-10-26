@@ -13,6 +13,7 @@ internal sealed class FakeDesktop(Func<double> clock) : IDesktop
     internal const int Inset = 8;
 
     private const uint LayeredStyle = 0x00080000;
+    private const uint TopmostStyle = 0x00000008;
     private readonly Dictionary<WindowId, FakeWindow> _windows = [];
 
     internal List<string> Calls { get; } = [];
@@ -205,6 +206,24 @@ internal sealed class FakeDesktop(Func<double> clock) : IDesktop
     public void Raise(WindowId window, bool top) => Log($"raise {Id(window)} {(top ? "top" : "bottom")}");
 
     public void RaiseAsync(WindowId window, bool top) => Log($"raise-async {Id(window)} {(top ? "top" : "bottom")}");
+
+    public bool HoldOnTop(WindowId window)
+    {
+        if (!_windows.TryGetValue(window, out var found) || (found.ExStyle & TopmostStyle) != 0)
+            return false;
+
+        found.ExStyle |= TopmostStyle;
+        Log($"hold {Id(window)}");
+        return true;
+    }
+
+    public void LetGo(WindowId window)
+    {
+        if (_windows.TryGetValue(window, out var found))
+            found.ExStyle &= ~TopmostStyle;
+
+        Log($"let-go {Id(window)}");
+    }
 
     public bool Foreground(WindowId window)
     {

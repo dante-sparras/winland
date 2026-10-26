@@ -77,9 +77,19 @@ public sealed partial class WindowAdapter : IDisposable
             Reveal(window);
 
         // The foreground moves first: Windows brings the window it focuses to the top, and the z-order requests then put
-        // the floating Clients back above it.
+        // the floating Clients back above it. Those are held among the topmost windows while it does, so the focused
+        // window never shows over them for a frame, and are let go above it.
         if (outcome.Focus is WindowId focus)
+        {
+            var held = outcome.ZOrder
+                .Where(request => request.Top && request.Window != focus && !_desktop.Hung(request.Window))
+                .Select(request => request.Window)
+                .Where(_desktop.HoldOnTop)
+                .ToList();
             _ = _desktop.Foreground(focus);
+            foreach (var window in held)
+                _desktop.LetGo(window);
+        }
 
         Restack(outcome.ZOrder);
 

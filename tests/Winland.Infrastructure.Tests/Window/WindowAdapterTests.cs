@@ -191,6 +191,40 @@ public class WindowAdapterTests
     }
 
     [Fact]
+    public void AFloatingWindowIsHeldOnTopWhileATileTakesTheFocus()
+    {
+        using var windows = new TestWindows();
+        windows.Open(1);
+        windows.Open(2);
+        windows.Dispatch("togglefloating");
+        windows.Desktop.Calls.Clear();
+
+        windows.Dispatch("focuswindow", "address:0x1");
+
+        var calls = windows.Desktop.Calls;
+        Assert.True(calls.IndexOf("hold 2") >= 0, string.Join(" | ", calls));
+        Assert.True(calls.IndexOf("hold 2") < calls.IndexOf("foreground 1"), string.Join(" | ", calls));
+        Assert.True(calls.IndexOf("foreground 1") < calls.IndexOf("let-go 2"), string.Join(" | ", calls));
+        Assert.Equal(0u, windows.Desktop[2].ExStyle & 0x8);
+    }
+
+    [Fact]
+    public void AWindowItsProgramKeepsOnTopStaysTopmost()
+    {
+        using var windows = new TestWindows();
+        windows.Open(1);
+        windows.Open(2);
+        windows.Dispatch("togglefloating");
+        windows.Desktop[2].ExStyle |= 0x8;
+        windows.Desktop.Calls.Clear();
+
+        windows.Dispatch("focuswindow", "address:0x1");
+
+        Assert.DoesNotContain("let-go 2", windows.Desktop.Calls);
+        Assert.Equal(0x8u, windows.Desktop[2].ExStyle & 0x8);
+    }
+
+    [Fact]
     public void AWindowClosedWithoutAMotionIsTransparentAsItGoesAndComesBackIfItStays()
     {
         using var windows = new TestWindows(reducedMotion: true);

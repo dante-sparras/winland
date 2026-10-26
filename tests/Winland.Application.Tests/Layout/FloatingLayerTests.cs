@@ -57,6 +57,21 @@ public class FloatingLayerTests
     }
 
     [Fact]
+    public void TheFloatingClientsAboveATileAreTheShownOnesBottomFirst()
+    {
+        var core = Desk();
+        Open(core, 1, "tile");
+        Open(core, 2, "float a");
+        Open(core, 3, "float b");
+        Open(core, 4, "float c");
+        core.Execute("dispatch movetoworkspacesilent 2,address:0x4");
+
+        Assert.Equal([new WindowId(2), new WindowId(3)], core.FloatingAbove(new WindowId(1)));
+        Assert.Empty(core.FloatingAbove(new WindowId(2)));
+        Assert.Empty(core.FloatingAbove(new WindowId(99)));
+    }
+
+    [Fact]
     public void AFloatingClientOnAHiddenWorkspaceIsLeftAlone()
     {
         var core = Desk();
