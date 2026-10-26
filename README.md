@@ -75,7 +75,7 @@ To install by hand, download `Winland-win-x64.zip` from [Releases](https://githu
 | Win+Alt+scroll wheel | Next / previous tab |
 | Win+Alt+1 … Win+Alt+5 | Go to tab 1 to 5 |
 
-### Apps and editing
+### Apps
 
 | Keys | Does |
 | --- | --- |
@@ -83,8 +83,6 @@ To install by hand, download `Winland-win-x64.zip` from [Releases](https://githu
 | Win+Shift+Enter or Win+Shift+B | Open your browser |
 | Win+Shift+F | Open File Explorer |
 | Win+Shift+N | Open Notepad |
-| Win+C / Win+V / Win+X / Win+A | Copy / paste / cut / select all |
-| Win+Ctrl+V / Win+Ctrl+X / Win+Ctrl+A | Clipboard history / Quick Link menu / Quick Settings |
 
 ## Stop and undo
 
