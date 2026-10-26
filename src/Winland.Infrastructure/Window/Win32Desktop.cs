@@ -96,6 +96,18 @@ internal sealed class Win32Desktop : IDesktop
 
     public void RaiseAsync(WindowId window, bool top) => Restack(window, top, SET_WINDOW_POS_FLAGS.SWP_ASYNCWINDOWPOS);
 
+    public unsafe bool Painted(WindowId window) => !PInvoke.GetUpdateRect(Handle(window), null, false);
+
+    public void Under(WindowId window, WindowId above) =>
+        _ = PInvoke.SetWindowPos(
+            Handle(window),
+            Handle(above),
+            0,
+            0,
+            0,
+            0,
+            SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
+
     public bool HoldOnTop(WindowId window)
     {
         if ((PInvoke.GetWindowLong(Handle(window), WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE) & (int)WINDOW_EX_STYLE.WS_EX_TOPMOST) != 0)

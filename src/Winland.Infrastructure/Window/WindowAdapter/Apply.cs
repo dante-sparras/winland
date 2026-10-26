@@ -37,8 +37,45 @@ public sealed partial class WindowAdapter : IDisposable
         // Once the exit cleanup began, nothing starts a motion that would change alpha or the border again.
         // The frame, effects and alpha refuse changes themselves once they were put back.
         var motions = _releasing ? [] : MotionsOf(outcome);
+
+        // A window hidden where another is shown, as a Group's member is when the next one takes its tab, is hidden only
+        // once the other is shown and has had a frame to paint, so the wallpaper never shows between them. The one shown
+        // goes just under it first, so it paints out of sight. One placed anywhere but where a shown window goes is
+        // hidden first, so its move is not seen.
+        var placed = new Dictionary<WindowId, Rectangle>();
+        foreach (var placement in outcome.Placements)
+        {
+            if (windows.TryGetValue(placement.Client, out var window))
+                placed[window] = placement.Bounds;
+        }
+
+        var shownAt = new Dictionary<Rectangle, WindowId>();
+        foreach (var window in outcome.Show)
+        {
+            if (placed.TryGetValue(window, out var bounds))
+                shownAt[bounds] = window;
+        }
+
+        var concealLater = new List<WindowId>();
+        var under = new List<(WindowId Window, WindowId Above)>();
         foreach (var window in outcome.Hide)
-            ConcealOrLeave(window, motions);
+        {
+            var at = placed.TryGetValue(window, out var bounds);
+            var replacing = at && shownAt.TryGetValue(bounds, out var shown) ? shown : (WindowId?)null;
+            if (outcome.Show.Count > 0 && !motions.ContainsKey(window) && (!at || replacing is not null))
+            {
+                concealLater.Add(window);
+                if (replacing is WindowId next && !_desktop.Hung(next) && !_desktop.Hung(window))
+                    under.Add((next, window));
+            }
+            else
+            {
+                ConcealOrLeave(window, motions);
+            }
+        }
+
+        foreach (var (window, above) in under)
+            _desktop.Under(window, above);
 
         if (current)
             DropClosedFrames(outcome.State.Clients);
@@ -75,6 +112,20 @@ public sealed partial class WindowAdapter : IDisposable
 
         foreach (var window in outcome.ShowMinimized)
             Reveal(window);
+
+        if (concealLater.Count > 0)
+        {
+            // A program paints a window shown again when it gets to it. A few frames are waited for at most. The paint
+            // is marked done as it begins, so the frames it draws in are waited for too.
+            for (var frame = 0; frame < PaintFrames && !under.TrueForAll(pair => _desktop.Painted(pair.Window)); frame++)
+                _desktop.Pace();
+
+            _desktop.Pace();
+            if (under.Count > 0)
+                _desktop.Pace();
+            foreach (var window in concealLater)
+                ConcealOrLeave(window, motions);
+        }
 
         // The foreground moves first: Windows brings the window it focuses to the top, and the z-order requests then put
         // the floating Clients back above it. Those are held among the topmost windows while it does, so the focused

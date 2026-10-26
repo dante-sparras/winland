@@ -73,6 +73,9 @@ public sealed partial class WindowAdapter : IDisposable
 
     private const long SettleMilliseconds = 1500;
 
+    // The frames a window shown in place of another is given to paint before the other is hidden.
+    private const int PaintFrames = 4;
+
     // Windows whose maximize request was just answered, and when they stop being watched for drifting off their tile.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, long> _settling = new();
 
