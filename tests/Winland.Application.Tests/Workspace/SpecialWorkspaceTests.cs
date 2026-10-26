@@ -41,6 +41,42 @@ public class SpecialWorkspaceTests
     }
 
     [Fact]
+    public void AnOpenedSpecialWorkspaceIsRaisedAboveTheNormalWorkspace()
+    {
+        var core = new WindowManager();
+        foreach (var window in new long[] { 1, 2, 3, 4 })
+            core.Handle(Appeared(window));
+        core.Handle(new WindowFocused(new WindowId(4), FocusCause.User));
+        core.Handle(new Dispatch("togglefloating", ""));
+        foreach (var window in new long[] { 2, 3, 4 })
+        {
+            core.Handle(new WindowFocused(new WindowId(window), FocusCause.User));
+            core.Handle(new Dispatch("movetoworkspacesilent", "special:scratch"));
+        }
+
+        var opened = core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
+
+        Assert.Equal(
+            [new ZOrderRequest(new WindowId(2), true), new ZOrderRequest(new WindowId(3), true), new ZOrderRequest(new WindowId(4), true)],
+            opened.ZOrder.Where(request => request.Window != new WindowId(1)));
+        Assert.Equal([new WindowId(1), new WindowId(2), new WindowId(3), new WindowId(4)], opened.State.Stacking);
+    }
+
+    [Theory]
+    [InlineData("special:scratch")]
+    [InlineData("2")]
+    public void ASilentMoveGivesTheKeyboardToTheWindowLeftFocused(string workspace)
+    {
+        var core = new WindowManager();
+        core.Handle(Appeared(1));
+        core.Handle(Appeared(2));
+
+        var moved = core.Handle(new Dispatch("movetoworkspacesilent", workspace));
+
+        Assert.Equal(new WindowId(1), moved.Focus);
+    }
+
+    [Fact]
     public void OneSpecialWorkspaceIsShownPerMonitor()
     {
         var core = new WindowManager();
