@@ -207,6 +207,10 @@ internal sealed class FakeDesktop(Func<double> clock) : IDesktop
 
     public void RaiseAsync(WindowId window, bool top) => Log($"raise-async {Id(window)} {(top ? "top" : "bottom")}");
 
+    public void Under(WindowId window, WindowId above) => Log($"under {Id(window)} {Id(above)}");
+
+    public bool Painted(WindowId window) => true;
+
     public bool HoldOnTop(WindowId window)
     {
         if (!_windows.TryGetValue(window, out var found) || (found.ExStyle & TopmostStyle) != 0)

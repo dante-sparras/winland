@@ -65,6 +65,12 @@ internal interface IDesktop : IWindowStyles, IWindowFrame, IDwmSurface
     /// <summary>Raises the window without waiting for it.</summary>
     void RaiseAsync(WindowId window, bool top);
 
+    /// <summary>Puts the window just below <paramref name="above"/>.</summary>
+    void Under(WindowId window, WindowId above);
+
+    /// <summary>True once the window has painted everything Windows asked it to.</summary>
+    bool Painted(WindowId window);
+
     /// <summary>Puts the window among the topmost ones. False, and nothing done, when it is topmost already.</summary>
     bool HoldOnTop(WindowId window);
 

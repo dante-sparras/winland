@@ -35,12 +35,34 @@ public class WindowAdapterTests
         var desktop = windows.Desktop;
         var order = new[]
         {
-            desktop.IndexOf("show 3 Hide"),
             desktop.IndexOf("bounds 1 "),
             desktop.IndexOf("close 9"),
             desktop.IndexOf("show 1 Show"),
+            desktop.IndexOf("show 3 Hide"),
             desktop.IndexOf("foreground 1"),
             desktop.IndexOf("raise 2 top"),
+        };
+        Assert.DoesNotContain(-1, order);
+        Assert.Equal(order.Order(), order);
+    }
+
+    [Fact]
+    public void AGroupsNextMemberIsShownUnderTheLastBeforeItIsHidden()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        var first = windows.Open(1);
+        windows.Dispatch("togglegroup", "");
+        var second = windows.Open(2);
+        windows.Desktop.Calls.Clear();
+
+        windows.Dispatch("changegroupactive", "b");
+
+        var desktop = windows.Desktop;
+        var order = new[]
+        {
+            desktop.IndexOf($"under {first.Value} {second.Value}"),
+            desktop.IndexOf($"show {first.Value} Show"),
+            desktop.IndexOf($"show {second.Value} Hide"),
         };
         Assert.DoesNotContain(-1, order);
         Assert.Equal(order.Order(), order);
