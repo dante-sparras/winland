@@ -31,9 +31,14 @@ public sealed partial class WindowAdapter
         // A window that opens maximized asked for it before it mapped, which the core ignores. A window that was
         // maximized before Winland started is adopted elsewhere, and stays maximized.
         appeared = appeared with { ShownMaximized = PInvoke.IsZoomed(hwnd), Opened = true };
+        var opened = !_core.Manages(window);
         var outcome = _core.Handle(appeared);
         NoteManaged(window, outcome, appeared);
         Apply(outcome);
+
+        // VLC sizes its window to the video a moment after it opens. A tile is put back for a short while, as after a maximize.
+        if (opened && outcome.State.Clients.Any(client => client.Window == window && !client.Floating))
+            _settling[window] = Environment.TickCount64 + SettleMilliseconds;
     }
 
     /// <summary>Takes a managed window out of the system's maximized state and asks the core to maximize it its own way.</summary>
@@ -80,8 +85,9 @@ public sealed partial class WindowAdapter
     }
 
     // Electron windows restore a size of their own a moment after they leave the maximized state, which undoes
-    // the placement made just before. For a short while after a maximize request, a frame that is not where
-    // the Layout holds the window is put back.
+    // the placement made just before. For a short while after a maximize request, or after a tile opens, a frame
+    // that is not where the Layout holds the window is put back. A window on its way somewhere, or one that went
+    // fullscreen by itself, is where it should be.
     private void PutBackIfDrifted(HWND hwnd, WindowId window)
     {
         if (!_settling.TryGetValue(window, out var until))
@@ -93,7 +99,8 @@ public sealed partial class WindowAdapter
             return;
         }
 
-        if (_moving == window || _sizing == window || PInvoke.IsIconic(hwnd) || !TryVisible(window, out var visible))
+        if (_moving == window || _sizing == window || _motions.Running(window) || _ownFullscreen.ContainsKey(window)
+            || PInvoke.IsIconic(hwnd) || !TryVisible(window, out var visible))
             return;
 
         Apply(_core.Handle(new WindowDrifted(window, visible)));
