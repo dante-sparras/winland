@@ -113,7 +113,21 @@ public sealed partial class WindowManager
             : _focus.Remembered(desk);
 
         Give(next, desk);
-        return View(desk.Layout.Visible(), show, hide, focus: next);
+        return View(desk.Layout.Visible(), show, hide, focus: next) with { ZOrder = RaiseSpecial(desk) };
+    }
+
+    // Windows leaves the normal Workspace's windows where they were, over the ones shown again. The special workspace's
+    // Clients are raised above them, its tiles first and its floating Clients after, in their stacking order.
+    private List<ZOrderRequest> RaiseSpecial(LiveWorkspace desk)
+    {
+        var shown = VisibleIds(desk.Id);
+        var raised = _stacking.Where(window => shown.Contains(window))
+            .OrderBy(window => desk.ClientOf(window) is { Floating: true })
+            .ToList();
+        foreach (var window in raised)
+            Stack(window);
+
+        return [.. raised.Select(window => new ZOrderRequest(window, Top: true))];
     }
 
     private Outcome CloseSpecial(MonitorId monitor)
@@ -195,7 +209,9 @@ public sealed partial class WindowManager
         else if (source.Layout.Clients.Count == 0)
             DropIfEmpty(source.Id);
 
-        if (_focus.Focused == window)
+        // Windows keeps the keyboard on the window the move hid, so the window left focused is given it.
+        var refocus = _focus.Focused == window;
+        if (refocus)
             Give(FocusState.AfterLeaving(source, revealed), source);
 
         var placed = new List<Placement>();
@@ -204,7 +220,7 @@ public sealed partial class WindowManager
         if (_workspaces.Shown.IsShown(destination.Id))
             placed.AddRange(destination.Layout.Visible());
 
-        return View(placed, revealed, hidden, consumed);
+        return View(placed, revealed, hidden, consumed, focus: refocus ? Kept() : null);
     }
 
     private void RehomeSpecials(LiveMonitor? home, List<LiveMonitor> enabled)

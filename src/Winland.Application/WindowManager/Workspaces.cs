@@ -152,7 +152,9 @@ public sealed partial class WindowManager
             }
         }
 
-        if (_focus.Focused == id)
+        // Windows keeps the keyboard on the window the move hid, so the window left focused is given it.
+        var refocus = _focus.Focused == id;
+        if (refocus)
             Give(FocusState.AfterLeaving(source, revealed), source);
 
         var placements = new List<Placement>();
@@ -161,7 +163,7 @@ public sealed partial class WindowManager
         if (_workspaces.Shown.IsShown(destination.Id))
             placements.AddRange(destination.Layout.Visible());
 
-        return View(placements, revealed, hidden, consumed);
+        return View(placements, revealed, hidden, consumed, focus: refocus ? Kept() : null);
 
         // The moved window was not in the destination's covered set, so Collect alone never shows it. When
         // it was hidden where it was, it is shown here unless the destination's Layout covers it.
