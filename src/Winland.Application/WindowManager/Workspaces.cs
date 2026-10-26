@@ -245,11 +245,14 @@ public sealed partial class WindowManager
         }
 
         DropIfEmpty(sourceId);
+
+        // Windows keeps the keyboard on the window the switch hid, so the window focused here is given it.
         return View(
             destination.Layout.Visible(),
             VisibleIds(target),
             Combine(hide, concealed),
-            consumed);
+            consumed,
+            focus: keepSpecial ? null : Kept());
     }
 
     private LiveMonitor? ShownElsewhere(WorkspaceId target)
