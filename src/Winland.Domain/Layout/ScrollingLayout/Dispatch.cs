@@ -109,7 +109,7 @@ internal sealed partial class ScrollingLayout
         return Placements();
     }
 
-    public IReadOnlyList<Placement> ToggleFloating(WindowId window)
+    public IReadOnlyList<Placement> ToggleFloating(WindowId window, Point? pointer = null)
     {
         var id = new ClientId(window.Value);
         var index = IndexOf(id);

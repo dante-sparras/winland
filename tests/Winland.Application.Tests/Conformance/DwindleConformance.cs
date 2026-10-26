@@ -20,6 +20,22 @@ public class DwindleConformance
         Assert.Equal("1200,900", desk.PlaceOf("c").Size);
     }
 
+    [Theory]
+    [InlineData(300, true)]
+    [InlineData(1600, false)]
+    public void DwindleRetileSplitsAtThePointer(int x, bool left)
+    {
+        var desk = new Desk();
+        desk.Spawn("a");
+        desk.Spawn("b");
+        desk.Ok("togglefloating", "class:a");
+        desk.MovePointer(x, 540);
+
+        desk.Ok("togglefloating", "class:a");
+
+        Assert.Equal(left, desk.Placed("a").X < desk.Placed("b").X);
+    }
+
     [Fact]
     public void DwindleIssue13349()
     {
