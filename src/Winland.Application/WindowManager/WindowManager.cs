@@ -186,6 +186,7 @@ public sealed partial class WindowManager
             _activated = null;
             _readdressed = null;
             _crossMonitorWarp = null;
+            _movedItself = null;
         }
     }
 

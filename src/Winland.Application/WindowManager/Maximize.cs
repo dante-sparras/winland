@@ -42,6 +42,9 @@ public sealed partial class WindowManager
         return CommitFullscreen(window, next);
     }
 
+    // The window that moved itself this step. It is already where it goes, so it is placed there at once.
+    private WindowId? _movedItself;
+
     // Windows has no fullscreen request, so a window that covers its monitor by itself asked for it. It is fullscreen
     // mode 2 until it stops covering the monitor, which ends only that mode.
     private Outcome FullscreenRequest(WindowFullscreenRequested requested)
@@ -52,6 +55,7 @@ public sealed partial class WindowManager
         if (requested.Fullscreen == (client.Fullscreen == FullscreenMode.Fullscreen))
             return View([]);
 
+        _movedItself = requested.Window;
         return CommitFullscreen(requested.Window, requested.Fullscreen ? FullscreenMode.Fullscreen : FullscreenMode.None);
     }
 

@@ -65,6 +65,22 @@ public class FullscreenFocusTests
     }
 
     [Fact]
+    public void AClientThatGoesFullscreenOrLeavesItByItselfIsPlacedWithoutAMotion()
+    {
+        var core = new WindowManager(ConfigParser.Parse("general:border_size = 0\nanimation = global, 1, 5, default\n"));
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        core.Handle(new WindowAppeared(new WindowId(2), Area));
+
+        var entered = core.Handle(new WindowFullscreenRequested(new WindowId(2), true));
+        var left = core.Handle(new WindowFullscreenRequested(new WindowId(2), false));
+
+        Assert.Contains(entered.Placements, placement => placement.Client == Client(entered, 2).Id);
+        Assert.Contains(left.Placements, placement => placement.Client == Client(left, 2).Id);
+        Assert.DoesNotContain(entered.Motions, motion => motion.Window == new WindowId(2) && motion.Move is not null);
+        Assert.DoesNotContain(left.Motions, motion => motion.Window == new WindowId(2) && motion.Move is not null);
+    }
+
+    [Fact]
     public void AWindowThatLeavesAFullscreenItNeverHadChangesNothing()
     {
         var core = Desk();
