@@ -289,6 +289,26 @@ public class MonitorWorkspaceTests
     }
 
     [Fact]
+    public void SwitchingWorkspaceGivesTheKeyboardToTheWindowItFocuses()
+    {
+        var core = new WindowManager();
+        var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
+        var right = Display(@"\\.\DISPLAY2", "Samsung", 1920, 0, 1280, 1024, 1);
+        core.Handle(new MonitorsChanged([left, right]));
+        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
+        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
+        core.Handle(new WindowAppeared(new WindowId(3), right.WorkArea));
+        core.Handle(new WindowFocused(new WindowId(3), FocusCause.User));
+        core.Handle(new Dispatch("movetoworkspacesilent", "2"));
+        core.Handle(new WindowFocused(new WindowId(2), FocusCause.User));
+
+        var outcome = core.Handle(new Dispatch("workspace", "2"));
+
+        Assert.Equal(outcome.State.ActiveWorkspace, Client(outcome, 3).Workspace);
+        Assert.Equal(new WindowId(3), outcome.Focus);
+    }
+
+    [Fact]
     public void WorkspaceNumberNamesTheFocusedMonitorsWorkspace()
     {
         var core = new WindowManager();
