@@ -186,6 +186,7 @@ public sealed partial class WindowManager
             _activated = null;
             _readdressed = null;
             _crossMonitorWarp = null;
+            _movedItself = null;
         }
     }
 
@@ -203,6 +204,7 @@ public sealed partial class WindowManager
             GroupBarScrolled scrolled => ScrollGroupBar(scrolled),
             GroupTabClosed closed => View([], close: closed.Window),
             WindowMaximizeRequested requested => MaximizeRequest(requested.Window),
+            WindowFullscreenRequested requested => FullscreenRequest(requested),
             WindowDrifted drifted => PutBack(drifted),
             WindowSizeStarted sizing => BeginNativeSize(sizing),
             WindowSizeEnded sized => EndNativeSize(sized),

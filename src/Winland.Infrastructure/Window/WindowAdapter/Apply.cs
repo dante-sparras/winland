@@ -56,7 +56,8 @@ public sealed partial class WindowAdapter : IDisposable
                 continue;
 
             var fills = borderless.Contains(window);
-            _borderless.Apply(window, fills);
+            if (!(fills && _ownFullscreen.ContainsKey(window)))
+                _borderless.Apply(window, fills);
             // A step of a drag moves the dragged window at once, and a window the drag moves out of its way animates.
             if (outcome.Live && !motions.ContainsKey(window))
                 PlaceLive(window, placement.Bounds, fills, motions);

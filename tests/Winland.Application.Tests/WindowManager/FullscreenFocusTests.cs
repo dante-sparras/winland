@@ -37,6 +37,62 @@ public class FullscreenFocusTests
     }
 
     [Fact]
+    public void AClientThatCoversItsMonitorByItselfOwnsThePointer()
+    {
+        var core = Desk();
+        Move(core, new Point(1500, 500), 1_000);
+
+        var covered = core.Handle(new WindowFullscreenRequested(new WindowId(2), true));
+        var over = Move(core, new Point(300, 500), 1_100);
+
+        Assert.Equal(FullscreenMode.Fullscreen, Client(covered, 2).Fullscreen);
+        Assert.Null(over.Focus);
+        Assert.Equal("\"address\":\"0x2\"", Address(core));
+    }
+
+    [Fact]
+    public void AClientThatLeavesItsOwnFullscreenGoesBackToItsTile()
+    {
+        var core = Desk();
+        Move(core, new Point(1500, 500), 1_000);
+        core.Handle(new WindowFullscreenRequested(new WindowId(2), true));
+
+        var left = core.Handle(new WindowFullscreenRequested(new WindowId(2), false));
+
+        Assert.Equal(FullscreenMode.None, Client(left, 2).Fullscreen);
+        Assert.Contains(left.Placements, placement => placement.Client == Client(left, 2).Id && placement.Bounds.Width < Area.Width);
+        Assert.Equal(new WindowId(1), Move(core, new Point(300, 500), 1_100).Focus);
+    }
+
+    [Fact]
+    public void AClientThatGoesFullscreenOrLeavesItByItselfIsPlacedWithoutAMotion()
+    {
+        var core = new WindowManager(ConfigParser.Parse("general:border_size = 0\nanimation = global, 1, 5, default\n"));
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        core.Handle(new WindowAppeared(new WindowId(2), Area));
+
+        var entered = core.Handle(new WindowFullscreenRequested(new WindowId(2), true));
+        var left = core.Handle(new WindowFullscreenRequested(new WindowId(2), false));
+
+        Assert.Contains(entered.Placements, placement => placement.Client == Client(entered, 2).Id);
+        Assert.Contains(left.Placements, placement => placement.Client == Client(left, 2).Id);
+        Assert.DoesNotContain(entered.Motions, motion => motion.Window == new WindowId(2) && motion.Move is not null);
+        Assert.DoesNotContain(left.Motions, motion => motion.Window == new WindowId(2) && motion.Move is not null);
+    }
+
+    [Fact]
+    public void AWindowThatLeavesAFullscreenItNeverHadChangesNothing()
+    {
+        var core = Desk();
+        core.Handle(new Dispatch("fullscreen", "1"));
+
+        var left = core.Handle(new WindowFullscreenRequested(new WindowId(2), false));
+
+        Assert.Equal(FullscreenMode.Maximized, Client(left, 2).Fullscreen);
+        Assert.Empty(left.Placements);
+    }
+
+    [Fact]
     public void WithNothingCoveringTheTilesStillFollowThePointer()
     {
         var core = Desk();
@@ -57,6 +113,9 @@ public class FullscreenFocusTests
 
     private static Outcome Move(WindowManager core, Point point, long time) =>
         core.Handle(new PointerMoved(point) { TimeMs = time });
+
+    private static Client Client(Outcome outcome, long window) =>
+        outcome.State.Clients.Single(client => client.Window == new WindowId(window));
 
     private static string Address(WindowManager core)
     {

@@ -18,6 +18,7 @@ public class StepScratchTests
             ["_activated"] = new List<WorkspaceId> { new("2") },
             ["_readdressed"] = new List<(WorkspaceId, WorkspaceId)> { (new WorkspaceId("2"), new WorkspaceId("3")) },
             ["_crossMonitorWarp"] = new WarpTo(new Point(5, 5)),
+            ["_movedItself"] = new WindowId(1),
         };
 
         foreach (var (name, value) in scratch)

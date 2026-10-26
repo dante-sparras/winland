@@ -48,7 +48,7 @@ public sealed partial class WindowManager
             var held = (_interaction as Gesture)?.Window;
             foreach (var placement in outcome.Placements)
             {
-                if (windows.TryGetValue(placement.Client, out var client) && client.Window != held)
+                if (windows.TryGetValue(placement.Client, out var client) && client.Window != held && client.Window != _movedItself)
                     plan.Place(client, placement.Bounds);
             }
         }
