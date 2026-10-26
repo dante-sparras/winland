@@ -255,9 +255,6 @@ public enum DispatcherTraits
 
     /// <summary>Puts the cursor in the middle of a Monitor it leaves with nothing to focus.</summary>
     WarpsToEmptyMonitor = 2,
-
-    /// <summary>A dwindle resize that moves the tiles at once.</summary>
-    InstantResize = 4,
 }
 
 /// <summary>

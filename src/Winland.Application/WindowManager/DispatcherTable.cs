@@ -57,7 +57,7 @@ public sealed partial class WindowManager
             ["pseudo"] = new(static (m, _, a) => m.PseudoWindow(a)),
             ["fullscreen"] = new(static (m, n, a) => m.FullscreenDispatcher(n, a), TakesWindow: true),
             ["maximize"] = new(static (m, n, a) => m.FullscreenDispatcher(n, a)),
-            ["resizeactive"] = new(static (m, n, a) => m.LayoutDispatch(n, a), Traits: DispatcherTraits.InstantResize),
+            ["resizeactive"] = new(static (m, n, a) => m.LayoutDispatch(n, a)),
             ["setprop"] = new(static (m, _, a) => m.SetPropDispatch(a)),
 
             // Layouts

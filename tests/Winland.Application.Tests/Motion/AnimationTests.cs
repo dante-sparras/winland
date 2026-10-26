@@ -77,7 +77,7 @@ public class AnimationTests
     }
 
     [Fact]
-    public void ResizingADwindleTileMovesAtOnce()
+    public void ResizingADwindleTileAnimatesItAndItsNeighbour()
     {
         var core = Load("");
         Appear(core, 1);
@@ -85,8 +85,7 @@ public class AnimationTests
 
         var resized = core.Handle(new Dispatch("resizeactive", "-100 0"));
 
-        Assert.NotEmpty(resized.Placements);
-        Assert.DoesNotContain(resized.Motions, motion => !motion.Warp && motion.Move is not null);
+        Assert.Equal(2, resized.Motions.Count(motion => !motion.Warp && motion.Move is not null));
     }
 
     [Fact]
