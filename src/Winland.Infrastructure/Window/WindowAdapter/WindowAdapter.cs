@@ -15,6 +15,8 @@ public sealed partial class WindowAdapter : IDisposable
     private const int DialogStyle = 0x00000001;
     private const int LayeredStyle = 0x00080000;
     private const int ClickThroughStyle = 0x00000020;
+    private const int NoActivateStyle = 0x08000000;
+    private const int AppWindowStyle = 0x00040000;
 
     private readonly Lock _showGate = new();
     private volatile bool _releasing;

@@ -50,7 +50,7 @@ The taskbar, the Start menu, Search and the other flyouts the shell opens from t
 
 By default the taskbar stays as Windows has it, and Clients tile in the work area, so the strip it reserved stays clear. `general:hide_taskbar` defaults to false. True hides the taskbars and sets them to auto-hide while Winland runs, so the work area takes in that strip. They are hidden again when the shell shows or recreates them. A clean exit shows them with the state they had before. A crash leaves a marker of that state in `%USERPROFILE%\.winland`, and the next start puts it back: with the option on, the taskbars are hidden again, and with it off they stay as Windows had them. Changing the option, on reload or with `keyword`, applies at once and the Clients are laid out again in the work area that leaves.
 
-A layered window that input passes through, such as a screen overlay an application draws over the desktop, is left unmanaged too: it cannot be clicked or focused, and Winland draws such surfaces as layers it never tiles. A window rule that forces adoption still adopts it.
+A layered window that input passes through, such as a screen overlay an application draws over the desktop, is left unmanaged too: it cannot be clicked or focused, and Winland draws such surfaces as layers it never tiles. So is a window that is never activated (`WS_EX_NOACTIVATE`), such as the tooltips and popups WinUI and Electron apps show over their windows, unless it asks for a taskbar button (`WS_EX_APPWINDOW`), as Windows' taskbar reads those two styles. A window rule that forces adoption still adopts it.
 
 ## Window rule matches
 
