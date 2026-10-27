@@ -60,6 +60,9 @@ public static class LogonTaskDefinition
             xml.WriteElementString("RunOnlyIfIdle", Namespace, "false");
             xml.WriteElementString("WakeToRun", Namespace, "false");
             xml.WriteElementString("ExecutionTimeLimit", Namespace, "PT0S");
+            // Task Scheduler's own default is 7, below normal, which every program Winland starts would inherit and
+            // which leaves the hooks and layout behind background work. 4 is normal priority.
+            xml.WriteElementString("Priority", Namespace, "4");
             xml.WriteEndElement();
 
             xml.WriteStartElement("Actions", Namespace);
