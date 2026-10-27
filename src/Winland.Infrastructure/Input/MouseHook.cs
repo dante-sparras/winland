@@ -32,6 +32,9 @@ public sealed class MouseHook : IDisposable
     private readonly HashSet<string> _passed = new(StringComparer.OrdinalIgnoreCase);
     private readonly DiscreteScroll _discreteWheel = new();
     private readonly HashSet<string> _killed = new(StringComparer.Ordinal);
+
+    // Buttons pressed on the ring around a tile, whose press and release go to the core to resize it.
+    private readonly HashSet<string> _bordered = new(StringComparer.OrdinalIgnoreCase);
     private bool _disposed;
 
     public MouseHook(WindowManager core, KeyboardHook keys)
@@ -177,6 +180,13 @@ public sealed class MouseHook : IDisposable
             return true;
         }
 
+        if (up && _bordered.Remove(button))
+        {
+            _ = _core.Decide(new PointerButtonReleased(button) { Position = position }, _keys.Session);
+            _keys.PostInput(new PointerButtonReleased(button) { Position = position });
+            return true;
+        }
+
         if (up)
         {
             var passed = _passed.Remove(button);
@@ -215,6 +225,14 @@ public sealed class MouseHook : IDisposable
 
                 _keys.PostDispatch(dispatch.Dispatcher, dispatch.Arguments, decision.Trigger);
             }
+        }
+        else if (!decision.Consumed && _keys.Drag.Current is null && _core.OnBorder(position))
+        {
+            // A press on a tile's ring resizes it. The core decides the press again with the drag in mind, and runs
+            // any bind on it there.
+            _bordered.Add(button);
+            _keys.PostInput(new PointerButtonPressed(button) { Position = position });
+            return true;
         }
         else
         {
