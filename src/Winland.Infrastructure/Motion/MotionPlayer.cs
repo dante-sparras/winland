@@ -215,7 +215,9 @@ internal sealed class MotionPlayer : IDisposable
                 _closing.Remove(window);
         }
 
-        foreach (var (frame, stamp) in frames)
+        // The frames in between go first, so a window coming to rest, which waits for its program, does not hold up
+        // the others' frames for this vblank.
+        foreach (var (frame, stamp) in frames.OrderBy(pair => pair.Item1.Done))
         {
             // A window that another thread is changing, as a new motion starts, skips this frame so it does not hold up
             // the others. Its last frame waits, so it always comes to rest.
@@ -424,10 +426,10 @@ internal sealed class MotionPlayer : IDisposable
             if (_stopped || Volatile.Read(ref _epoch) != epoch)
                 return;
 
-            if (more)
-                _target.Pace();
-            else
+            // A motion that wakes the thread showed its first frame already, so the next waits for the next vblank.
+            if (!more)
                 _wake.WaitOne();
+            _target.Pace();
         }
     }
 
