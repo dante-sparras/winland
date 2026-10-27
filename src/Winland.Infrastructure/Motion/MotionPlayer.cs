@@ -72,6 +72,24 @@ internal sealed class MotionPlayer : IDisposable
     /// <summary>The lock to hold while changing <paramref name="window"/> outside the player.</summary>
     internal Lock For(WindowId window) => _windows.GetOrAdd(window, _ => new Lock());
 
+    /// <summary>
+    /// The window is gone. What the player kept for it is dropped, so a long session that opens thousands of windows
+    /// does not keep them all. A window still moving keeps it until its motion ends.
+    /// </summary>
+    internal void Forget(WindowId window)
+    {
+        lock (_gate)
+        {
+            if (_animator.Running(window) || _closing.ContainsKey(window))
+                return;
+
+            _stamps.Remove(window);
+            _graces.Remove(window);
+        }
+
+        _windows.TryRemove(window, out _);
+    }
+
     internal bool Running(WindowId window)
     {
         lock (_gate)

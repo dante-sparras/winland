@@ -81,6 +81,19 @@ public sealed partial class WindowAdapter : IDisposable
             _opacity.ReleaseAdded(client.Window);
     }
 
+    /// <summary>
+    /// Closes every Client whose window is gone. A destroy event can be lost while the session is away, as when the
+    /// event queue overflows around a resume, and the Client would stay as an empty tile until the next start.
+    /// </summary>
+    public void DropGone()
+    {
+        foreach (var client in _core.Recovery().Clients)
+        {
+            if (!_desktop.Exists(client.Window))
+                Apply(_core.Handle(new WindowClosed(client.Window)));
+        }
+    }
+
     public void RevealHidden()
     {
         LandMotions();
