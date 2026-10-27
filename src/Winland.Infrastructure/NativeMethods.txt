@@ -217,3 +217,4 @@ SetWaitableTimer
 WaitForSingleObject
 CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
 GetUpdateRect
+GetDesktopWindow
