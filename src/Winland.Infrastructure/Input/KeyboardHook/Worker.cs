@@ -49,7 +49,7 @@ public sealed partial class KeyboardHook : IDisposable
 
             if (queued.Kind == QueuedKind.Move)
             {
-                var moved = new PointerMoved(queued.Position);
+                var moved = new PointerMoved(queued.Position) { Under = TopLevelUnder(queued.Position) };
                 if (queued.HasTime)
                     moved = moved with { TimeMs = queued.TimeMs };
 
@@ -69,6 +69,22 @@ public sealed partial class KeyboardHook : IDisposable
         {
             Console.Error.WriteLine(exception.Message);
         }
+    }
+
+    // Read here, off the hook thread. Winland's own windows, such as a Group's tab bar, are not another program's, and
+    // the desktop shows through a tile's cut corners.
+    private static WindowId? TopLevelUnder(Point position)
+    {
+        var under = PInvoke.WindowFromPoint(new System.Drawing.Point(position.X, position.Y));
+        if (under.IsNull)
+            return null;
+
+        var root = PInvoke.GetAncestor(under, Windows.Win32.UI.WindowsAndMessaging.GET_ANCESTOR_FLAGS.GA_ROOT);
+        if (root.IsNull || root == PInvoke.GetShellWindow() || WindowAdapter.ClassName(root) == "WorkerW")
+            return null;
+
+        _ = PInvoke.GetWindowThreadProcessId(root, out var process);
+        return process == (uint)Environment.ProcessId ? null : new WindowId(((nint)root).ToInt64());
     }
 
     private void StopWorker()

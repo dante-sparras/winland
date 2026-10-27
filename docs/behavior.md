@@ -154,7 +154,7 @@ A wheel turn over the ring around a window, not inside it, is the border and, wi
 
 A `device[name]` line, and every field inside a `device[name]` block, warns `Unsupported keyword` and is not applied. Nothing is stored for that device.
 
-`input:follow_mouse` defaults to 1. 0 leaves keyboard focus where it is when the pointer moves. 1 moves it to the Client under the pointer when the pointer moves. A move after the pointer has been still for half a second does not move it yet. 2 and 3 do not move keyboard focus when the pointer moves. 3 also keeps the focused Client when a click would take it. The names `disabled`, `follow`, `detached`, and `separate` are 0, 1, 2, and 3.
+`input:follow_mouse` defaults to 1. 0 leaves keyboard focus where it is when the pointer moves. 1 moves it to the Client under the pointer when the pointer moves. A move after the pointer has been still for half a second does not move it yet. A context menu, drop-down list or other window of another program that is over a Client is what the pointer is on, so it keeps the focus where it is. 2 and 3 do not move keyboard focus when the pointer moves. 3 also keeps the focused Client when a click would take it. The names `disabled`, `follow`, `detached`, and `separate` are 0, 1, 2, and 3.
 
 On a Workspace with a maximized or fullscreen Client, that Client owns the pointer. The tiles behind it take no focus when the pointer passes over them. A maximized Client takes the focus only where it is drawn, and a fullscreen one wherever the pointer is.
 
