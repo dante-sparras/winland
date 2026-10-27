@@ -265,7 +265,7 @@ internal sealed partial class ScrollingLayout : TiledLayout, Layout
         if (ColumnVisible(column, full: true))
             return;
 
-        if (pointer && VisibleLength(cell) < Viewport().Width * 0.4)
+        if (pointer && VisibleLength(cell) < cell.Logical.Width * 0.4)
             return;
 
         FitColumn(column);
@@ -329,8 +329,9 @@ internal sealed partial class ScrollingLayout : TiledLayout, Layout
         return new Rectangle(left, top, Math.Max(0, right - left), Math.Max(0, bottom - top));
     }
 
+    // Half a pixel rounds up on both sides of zero, so an edge keeps its rounding as it scrolls past the screen's edge.
     private static int Round(double value) =>
-        (int)Math.Round(value, MidpointRounding.AwayFromZero);
+        (int)Math.Floor(value + 0.5);
 
     private static string[] Tokens(string arguments) =>
         arguments.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);

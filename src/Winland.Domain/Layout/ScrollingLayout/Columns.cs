@@ -70,10 +70,12 @@ internal sealed partial class ScrollingLayout
         if (cell.Column is not Column column)
             return;
 
+        // A column that goes away at the end, or left of the view, takes its width off the camera, so the columns in
+        // view stay where they are.
         var alone = column.Cells.Count <= 1;
         var last = _columns.Count > 0 && ReferenceEquals(_columns[^1], column);
-        if (alone && last)
-            _offset -= PrimaryLength() * column.Width;
+        if (alone && (last || EndOf(column) <= _offset))
+            AdjustOffset(-PrimaryLength() * column.Width);
 
         column.Cells.Remove(cell);
         cell.Column = null;
@@ -96,6 +98,20 @@ internal sealed partial class ScrollingLayout
 
         foreach (var item in column.Cells)
             item.Size /= sum;
+    }
+
+    private double EndOf(Column column)
+    {
+        var primary = PrimaryLength();
+        var end = 0.0;
+        foreach (var each in _columns)
+        {
+            end += primary * each.Width;
+            if (ReferenceEquals(each, column))
+                break;
+        }
+
+        return end;
     }
 
     private void Recalculate()
