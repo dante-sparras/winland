@@ -62,6 +62,11 @@ public sealed partial class WindowManager
             return Restore(Kept());
         }
 
+        // The user's own change to a Client they cannot see, on a hidden Workspace, a closed special workspace or
+        // waiting in a Group, brings it into view as focuswindow would.
+        if (WorkspaceContaining(window) is { } home && (!_workspaces.Shown.IsShown(home.Id) || home.IsWaiting(window)))
+            return FocusClient(window);
+
         if (WorkspaceContaining(window) is { } desk
             && !desk.Id.IsSpecial
             && _workspaces.Shown.IsShown(desk.Id)

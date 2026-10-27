@@ -215,6 +215,18 @@ public class GroupTests
     }
 
     [Fact]
+    public void AHiddenMemberTheUserFocusesIsShown()
+    {
+        var core = Grouped();
+
+        var focused = core.Handle(new WindowFocused(First, FocusCause.User));
+
+        Assert.Contains(First, focused.Show);
+        Assert.Equal(First, Assert.Single(focused.GroupBars).Shown);
+        Assert.Equal(First, focused.Focus);
+    }
+
+    [Fact]
     public void HiddenMembersAreRecordedForRecovery()
     {
         var core = Grouped();
