@@ -5,6 +5,9 @@
     <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
     <AssemblyName>winland</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- A release is published for a runtime, and compiled ahead then, so neither a `winland dispatch` nor the first
+         key a session sees waits on the JIT. -->
+    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' != ''">true</PublishReadyToRun>
   </PropertyGroup>
 
   <ItemGroup>

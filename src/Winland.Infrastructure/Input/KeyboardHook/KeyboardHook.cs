@@ -96,10 +96,12 @@ public sealed partial class KeyboardHook : IDisposable
             return;
 
         _hookThread = PInvoke.GetCurrentThreadId();
+        // A bind waits on this thread. Under a build or a game it keeps ahead of the background work.
         _worker = new Thread(Pump)
         {
             IsBackground = true,
             Name = "Winland binds",
+            Priority = ThreadPriority.AboveNormal,
         };
         _worker.Start();
 

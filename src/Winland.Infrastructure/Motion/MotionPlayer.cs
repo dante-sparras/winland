@@ -400,7 +400,8 @@ internal sealed class MotionPlayer : IDisposable
             if (_thread is null && !_stopped)
             {
                 var epoch = _epoch;
-                _thread = new Thread(() => Run(epoch)) { IsBackground = true, Name = "Winland motions" };
+                // A frame missed under load is a visible hitch, so the motions keep ahead of background work.
+                _thread = new Thread(() => Run(epoch)) { IsBackground = true, Name = "Winland motions", Priority = ThreadPriority.AboveNormal };
                 _thread.Start();
             }
         }
