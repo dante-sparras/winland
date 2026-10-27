@@ -63,6 +63,13 @@ sealed class MemoryFileTree : IFileTree
             directories.Add(parent);
     }
 
+    public void DeleteFile(string path)
+    {
+        var full = Full(path);
+        files.Remove(full);
+        links.Remove(full);
+    }
+
     public void DeleteTree(string directory)
     {
         var root = Full(directory);

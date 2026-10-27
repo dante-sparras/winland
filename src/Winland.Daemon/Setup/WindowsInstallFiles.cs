@@ -78,6 +78,21 @@ sealed class WindowsInstallFiles : IFileTree
         }
     }
 
+    public void DeleteFile(string path)
+    {
+        if (!File.Exists(path))
+            return;
+
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception exception) when ((exception is IOException or UnauthorizedAccessException) && ImageDirectoryHolds(path))
+        {
+            MoveAside(path);
+        }
+    }
+
     public void DeleteTree(string directory)
     {
         if (!Directory.Exists(directory))
@@ -230,7 +245,8 @@ sealed class WindowsInstallFiles : IFileTree
             + "  }\r\n"
             + "}\r\n"
             + "Remove-Retired " + Quote(directory) + "\r\n"
-            + "Remove-Item -LiteralPath $PSCommandPath -Force\r\n";
+            + "Remove-Item -LiteralPath $PSCommandPath -Force\r\n"
+            + "Remove-Item -LiteralPath $PSScriptRoot -Force\r\n";
 
         StartCleanupScript(script);
     }
@@ -266,7 +282,8 @@ sealed class WindowsInstallFiles : IFileTree
             + "  } else { [IO.File]::Delete($Path) }\r\n"
             + "}\r\n"
             + "Remove-Tree " + Quote(directory) + "\r\n"
-            + "Remove-Item -LiteralPath $PSCommandPath -Force\r\n";
+            + "Remove-Item -LiteralPath $PSCommandPath -Force\r\n"
+            + "Remove-Item -LiteralPath $PSScriptRoot -Force\r\n";
 
         StartCleanupScript(script);
     }
