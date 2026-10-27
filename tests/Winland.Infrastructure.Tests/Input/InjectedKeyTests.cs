@@ -6,19 +6,25 @@ namespace Winland.Infrastructure.Tests;
 public class InjectedKeyTests
 {
     [Fact]
-    public void TheMenuTapIsATaggedLeftAlt()
+    public void TheMenuTapIsATaggedLeftAltAroundTheMaskKey()
     {
-        var inputs = Foreground.MenuTap();
+        var inputs = Foreground.MenuTap(altHeld: false);
 
-        Assert.Equal(2, inputs.Length);
+        Assert.Equal([0x12, KeyboardHook.MaskKey, KeyboardHook.MaskKey, 0x12], inputs.Select(input => (int)input.Anonymous.ki.wVk));
         Assert.All(inputs, input =>
         {
             Assert.Equal(KeyboardHook.InjectedTag, input.Anonymous.ki.dwExtraInfo);
-            Assert.Equal(0x12, (int)input.Anonymous.ki.wVk);
             // Extended would make it Right Alt, which is AltGr, with a fake Left Ctrl, on many layouts.
             Assert.False(input.Anonymous.ki.dwFlags.HasFlag(KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY));
         });
-        Assert.False(inputs[0].Anonymous.ki.dwFlags.HasFlag(KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP));
-        Assert.True(inputs[1].Anonymous.ki.dwFlags.HasFlag(KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP));
+        Assert.Equal([false, false, true, true], inputs.Select(input => input.Anonymous.ki.dwFlags.HasFlag(KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP)));
+    }
+
+    [Fact]
+    public void AnAltTheUserHoldsIsLeftDown()
+    {
+        var inputs = Foreground.MenuTap(altHeld: true);
+
+        Assert.All(inputs, input => Assert.Equal(KeyboardHook.MaskKey, (ushort)input.Anonymous.ki.wVk));
     }
 }

@@ -13,7 +13,6 @@ namespace Winland.Infrastructure;
 internal static class Foreground
 {
     private const byte MenuKey = 0x12;
-    private const uint AnyProcess = 0xFFFFFFFFu;
 
     private static readonly Lock Gate = new();
     private static WindowId? _expected;
@@ -42,11 +41,12 @@ internal static class Foreground
         if (PInvoke.GetForegroundWindow() == hwnd)
             return true;
 
-        Expect(window);
-        if (TrySet(hwnd))
-            return true;
+        // Giving the foreground waits on the window's thread, and on the old foreground window's, so a program that
+        // stopped answering would hold every bind behind it.
+        if (PInvoke.IsHungAppWindow(hwnd))
+            return false;
 
-        _ = PInvoke.AllowSetForegroundWindow(AnyProcess);
+        Expect(window);
         if (TrySet(hwnd))
             return true;
 
@@ -65,6 +65,17 @@ internal static class Foreground
         return false;
     }
 
+    /// <summary>
+    /// Gives the foreground to the desktop, when Winland hid the window that had it and focuses none, so Windows
+    /// does not pick a window of its own to activate.
+    /// </summary>
+    internal static void ToDesktop()
+    {
+        var shell = PInvoke.GetShellWindow();
+        if (!shell.IsNull && PInvoke.GetForegroundWindow() != shell)
+            _ = MoveTo(new WindowId((nint)shell));
+    }
+
     private static void Expect(WindowId window)
     {
         lock (Gate)
@@ -74,9 +85,9 @@ internal static class Foreground
         }
     }
 
+    // SetForegroundWindow brings the window to the top when it succeeds.
     private static bool TrySet(HWND hwnd)
     {
-        _ = PInvoke.BringWindowToTop(hwnd);
         _ = PInvoke.SetForegroundWindow(hwnd);
         return PInvoke.GetForegroundWindow() == hwnd;
     }
@@ -88,6 +99,10 @@ internal static class Foreground
         var currentThread = PInvoke.GetCurrentThreadId();
         if (foregroundThread == 0 || foregroundThread == currentThread)
             return TrySet(hwnd);
+
+        // Deactivating a hung foreground window would wait on it.
+        if (PInvoke.IsHungAppWindow(foreground))
+            return false;
 
         if (!PInvoke.AttachThreadInput(foregroundThread, currentThread, true))
             return false;
@@ -102,11 +117,22 @@ internal static class Foreground
         }
     }
 
-    private static void TapMenuKey() => KeyboardHook.Send(MenuTap());
+    private static void TapMenuKey() => KeyboardHook.Send(MenuTap(altHeld: PInvoke.GetAsyncKeyState(MenuKey) < 0));
 
     // Tagged, so Winland's own hook does not take it for the user's Alt. Not extended: an extended
-    // Alt is Right Alt, which is AltGr, with a fake Left Ctrl, on many layouts.
-    internal static INPUT[] MenuTap() => [KeyboardHook.Key(MenuKey, up: false), KeyboardHook.Key(MenuKey, up: true)];
+    // Alt is Right Alt, which is AltGr, with a fake Left Ctrl, on many layouts. The mask key between its edges
+    // keeps the Alt from opening the focused window's menu bar or Office's key tips. An Alt the user already
+    // holds unlocks the foreground itself, and is left down.
+    internal static INPUT[] MenuTap(bool altHeld) =>
+        altHeld
+            ? [KeyboardHook.Key(KeyboardHook.MaskKey, up: false), KeyboardHook.Key(KeyboardHook.MaskKey, up: true)]
+            :
+            [
+                KeyboardHook.Key(MenuKey, up: false),
+                KeyboardHook.Key(KeyboardHook.MaskKey, up: false),
+                KeyboardHook.Key(KeyboardHook.MaskKey, up: true),
+                KeyboardHook.Key(MenuKey, up: true),
+            ];
 
     private static unsafe void Flash(HWND hwnd)
     {
