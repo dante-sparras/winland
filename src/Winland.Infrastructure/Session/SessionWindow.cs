@@ -131,9 +131,12 @@ internal sealed class SessionWindow : IDisposable
             }
 
             // The process can be ended as soon as this returns, so the cleanup runs here, on the loop thread.
+            // The Restart Manager can end the session for this program alone, and the session goes on. With the
+            // windows put back, Winland stops instead of running on with nothing hidden.
             if (SessionNotices.EndsSession(message, (nuint)wParam))
             {
                 _onEnd?.Invoke();
+                PInvoke.PostQuitMessage(0);
                 return default;
             }
 

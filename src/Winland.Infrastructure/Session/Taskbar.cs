@@ -58,7 +58,11 @@ internal static class Taskbar
             var state = _savedState ?? (TryReadMarker(out var saved) ? saved : AlwaysOnTop);
             Show(state);
             _savedState = null;
-            TryDeleteMarker();
+
+            // With no taskbar to put back, as while Explorer restarts or the session logs off, the marker stays, so
+            // the next start still knows the state to give back.
+            if (!Primary().IsNull)
+                TryDeleteMarker();
         }
     }
 
@@ -156,11 +160,27 @@ internal static class Taskbar
     private static string MarkerPath =>
         MarkerFile(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 
+    // An elevated Winland writes here as an administrator, in a folder the user owns. A folder or marker turned into a
+    // link elsewhere is refused, and the marker is made new rather than written through, so a hard link to another
+    // file is never written.
     private static void WriteMarker(int state)
     {
         var path = MarkerPath;
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, state.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (Redirected(path))
+            return;
+
+        TryDeleteMarker();
+        using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        file.Write(System.Text.Encoding.ASCII.GetBytes(state.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+    }
+
+    private static bool Redirected(string path)
+    {
+        var folder = new DirectoryInfo(Path.GetDirectoryName(path)!);
+        var marker = new FileInfo(path);
+        return (folder.Exists && folder.Attributes.HasFlag(FileAttributes.ReparsePoint))
+            || (marker.Exists && marker.Attributes.HasFlag(FileAttributes.ReparsePoint));
     }
 
     private static bool TryReadMarker(out int state)
@@ -181,7 +201,8 @@ internal static class Taskbar
     {
         try
         {
-            File.Delete(MarkerPath);
+            if (!Redirected(MarkerPath))
+                File.Delete(MarkerPath);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

@@ -197,6 +197,15 @@ public sealed class WindowHost : IDisposable
                 }
             }),
             () => LogExists?.Invoke() ?? false);
+        // CancelKeyPress is raised off the message-loop thread, so PostQuitMessage would signal the wrong queue. It is
+        // taken before anything is hidden, so Ctrl+C while the session opens still ends in the cleanup.
+        ConsoleCancelEventHandler onCancel = (_, e) =>
+        {
+            e.Cancel = true;
+            _ = PInvoke.PostThreadMessage(thread, QuitMessage, default, default);
+        };
+
+        Console.CancelKeyPress += onCancel;
         try
         {
             Start();
@@ -206,39 +215,24 @@ public sealed class WindowHost : IDisposable
 
             OnSignal(shell);
 
-            // CancelKeyPress is raised off the message-loop thread, so PostQuitMessage
-            // would signal the wrong queue.
-            ConsoleCancelEventHandler onCancel = (_, e) =>
+            WindowAdapter.Pump(message =>
             {
-                e.Cancel = true;
-                _ = PInvoke.PostThreadMessage(thread, QuitMessage, default, default);
-            };
-
-            Console.CancelKeyPress += onCancel;
-            try
-            {
-                WindowAdapter.Pump(message =>
+                if (message.message == LoopInvoker.Message)
                 {
-                    if (message.message == LoopInvoker.Message)
-                    {
-                        _loop.Drain();
-                        return true;
-                    }
+                    _loop.Drain();
+                    return true;
+                }
 
-                    // The foreground layout is read again on the next key.
-                    if (message.message == KeyboardHook.InputLanguageMessage)
-                        _keys.ForgetLayout();
+                // The foreground layout is read again on the next key.
+                if (message.message == KeyboardHook.InputLanguageMessage)
+                    _keys.ForgetLayout();
 
-                    return false;
-                });
-            }
-            finally
-            {
-                Console.CancelKeyPress -= onCancel;
-            }
+                return false;
+            });
         }
         finally
         {
+            Console.CancelKeyPress -= onCancel;
             _loop.Detach();
             _loop.Drain();
             SessionHalt.Stop = null;
@@ -471,7 +465,10 @@ public sealed class WindowHost : IDisposable
             return;
 
         Remember(snapshot);
-        _onRecovery?.Invoke(snapshot);
+
+        // While the session is away its windows can look closed, so the state file keeps the last one from before.
+        if (_phase.Live)
+            _onRecovery?.Invoke(snapshot);
     }
 
     private void Remember(RecoverySnapshot snapshot)
