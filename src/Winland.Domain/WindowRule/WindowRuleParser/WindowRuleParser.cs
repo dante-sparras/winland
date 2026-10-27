@@ -5,8 +5,6 @@ namespace Winland.Domain;
 
 internal static partial class WindowRuleParser
 {
-    private static readonly TimeSpan MatchTimeout = TimeSpan.FromMilliseconds(250);
-
     // The effects TryParseEffect and its helpers read, for the hint a mistyped one gets. A test keeps every name parsing.
     internal static readonly string[] EffectNames =
     [
@@ -157,7 +155,7 @@ internal static partial class WindowRuleParser
         var limits = sizes.Floating(traits.MinSize, traits.MaxSize);
 
         return new WindowDecision(
-            adopt ?? Adopts(traits),
+            adopt is bool forced ? forced && Surface(traits) : Adopts(traits),
             floating ?? traits.Dialog,
             workspace,
             noInitialFocus ?? false,
@@ -511,7 +509,11 @@ internal static partial class WindowRuleParser
         var negative = pattern.StartsWith(NegativePrefix, StringComparison.Ordinal);
         try
         {
-            return Regex.IsMatch(text, Anchored(pattern, negative), RegexOptions.CultureInvariant, MatchTimeout) != negative;
+            return WholeMatch.Of(Body(pattern, negative)).IsMatch(text) != negative;
+        }
+        catch (ArgumentException)
+        {
+            return false;
         }
         catch (RegexMatchTimeoutException)
         {
@@ -523,7 +525,7 @@ internal static partial class WindowRuleParser
     {
         try
         {
-            _ = new Regex(Anchored(pattern, pattern.StartsWith(NegativePrefix, StringComparison.Ordinal)), RegexOptions.CultureInvariant, MatchTimeout);
+            _ = WholeMatch.Of(Body(pattern, pattern.StartsWith(NegativePrefix, StringComparison.Ordinal)));
             return true;
         }
         catch (ArgumentException)
@@ -532,17 +534,23 @@ internal static partial class WindowRuleParser
         }
     }
 
-    private static string Anchored(string pattern, bool negative) =>
-        $"\\A(?:{(negative ? pattern[NegativePrefix.Length..] : pattern)})\\z";
+    private static string Body(string pattern, bool negative) =>
+        negative ? pattern[NegativePrefix.Length..] : pattern;
 
     private static bool Adopts(WindowTraits traits) =>
-        traits.Visible
+        Surface(traits)
         && traits.Titled
-        && traits.TopLevel
         && !traits.Tool
-        && !traits.Tooltip
         && !traits.Taskbar
+        && !traits.ExclusiveFullscreen;
+
+    // What even a rule that forces adoption needs: a window someone can see and activate, not a tooltip, an
+    // untitled tool window such as a menu, or a no-activate popup a program shows over its own window.
+    private static bool Surface(WindowTraits traits) =>
+        traits.Visible
+        && traits.TopLevel
+        && (traits.Titled || !traits.Tool)
+        && !traits.Tooltip
         && !traits.Cloaked
-        && !traits.ExclusiveFullscreen
         && !traits.Overlay;
 }
