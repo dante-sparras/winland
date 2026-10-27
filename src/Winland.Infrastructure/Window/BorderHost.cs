@@ -344,10 +344,7 @@ internal static class BorderHost
                 }
 
                 if (box != _box)
-                {
-                    for (var i = 0; i < pieces.Length; i++)
-                        Move(i, box, pieces[i]);
-                }
+                    MoveAll(box, pieces);
             }
 
             _box = box;
@@ -438,6 +435,34 @@ internal static class BorderHost
 
             var blend = new BLENDFUNCTION { BlendOp = 0, SourceConstantAlpha = _alpha, AlphaFormat = 1 };
             _ = PInvoke.UpdateLayeredWindow(_pieces[index], HDC.Null, null, null, HDC.Null, null, new COLORREF(0), &blend, UPDATE_LAYERED_WINDOW_FLAGS.ULW_ALPHA);
+        }
+
+        // The pieces move together in one batch, so no frame shows the top moved and the sides not.
+        private void MoveAll(Rectangle box, Rectangle[] pieces)
+        {
+            var batch = PInvoke.BeginDeferWindowPos(pieces.Length);
+            for (var i = 0; i < pieces.Length && !batch.IsNull; i++)
+            {
+                if (_pieces[i].IsNull || pieces[i].Width <= 0 || pieces[i].Height <= 0)
+                    continue;
+
+                batch = PInvoke.DeferWindowPos(
+                    batch,
+                    _pieces[i],
+                    HWND.Null,
+                    box.X + pieces[i].X,
+                    box.Y + pieces[i].Y,
+                    0,
+                    0,
+                    SET_WINDOW_POS_FLAGS.SWP_NOSIZE | SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
+            }
+
+            if (!batch.IsNull && PInvoke.EndDeferWindowPos(batch))
+                return;
+
+            // A batch Windows could not make moves them one by one.
+            for (var i = 0; i < pieces.Length; i++)
+                Move(i, box, pieces[i]);
         }
 
         private void Move(int index, Rectangle box, Rectangle piece)
