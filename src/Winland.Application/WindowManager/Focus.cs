@@ -182,7 +182,7 @@ public sealed partial class WindowManager
     private WindowId? FocusAfter(LiveWorkspace desk, bool floating, Rectangle bounds, bool hadBounds)
     {
         if (floating)
-            return _focus.Recent(desk) ?? desk.LastVisible();
+            return _focus.Recent(desk) ?? LastAccepted(desk);
 
         if (desk.Layout.FocusAfterClose() is WindowId layout && Accepts(desk, layout))
             return layout;
@@ -217,6 +217,18 @@ public sealed partial class WindowManager
         }
 
         return best;
+    }
+
+    // The last Client in the Layout that may take the focus, so a no_focus window or one a modal shadows is passed over.
+    private WindowId? LastAccepted(LiveWorkspace desk)
+    {
+        for (var i = desk.Layout.Clients.Count - 1; i >= 0; i--)
+        {
+            if (Accepts(desk, desk.Layout.Clients[i].Window))
+                return desk.Layout.Clients[i].Window;
+        }
+
+        return null;
     }
 
     private bool Accepts(LiveWorkspace desk, WindowId window) =>

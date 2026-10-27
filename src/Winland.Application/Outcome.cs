@@ -143,8 +143,10 @@ public sealed record Outcome(
             Placements = Union(Placements, next.Placements, next.State),
             Focus = next.Focus ?? Focus,
             Closes = [.. Closes, .. next.Closes],
-            Show = [.. Show, .. next.Show],
-            Hide = [.. Hide, .. next.Hide],
+            // A window one step shows and the next hides, or the other way round, ends as the second leaves it, so it
+            // does not blink on the way.
+            Show = [.. Show.Where(window => !next.Hide.Contains(window)), .. next.Show],
+            Hide = [.. Hide.Where(window => !next.Show.Contains(window)), .. next.Hide],
             ShowMinimized = [.. ShowMinimized, .. next.ShowMinimized],
             Launches = [.. Launches, .. next.Launches],
             Events = [.. Events, .. next.Events],

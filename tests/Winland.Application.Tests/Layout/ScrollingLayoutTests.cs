@@ -516,6 +516,20 @@ public class ScrollingLayoutTests
         Assert.True(grown > smallest);
     }
 
+    [Fact]
+    public void AColumnScrolledOutOfViewThatShowsItselfIsHiddenAgain()
+    {
+        var core = Flat();
+        core.Handle(Appeared(1));
+        core.Handle(Appeared(2));
+        var third = core.Handle(Appeared(3));
+        Assert.Contains(Window(1), third.Hide);
+
+        var shown = core.Handle(Appeared(1));
+
+        Assert.Contains(Window(1), shown.Hide);
+    }
+
     private static WindowManager Flat() => Configured("""
         general:layout = scrolling
         general:gaps_in = 0
