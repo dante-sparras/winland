@@ -158,7 +158,13 @@ public sealed partial class WindowAdapter : IDisposable
         {
             // A program paints a window shown again when it gets to it. A few frames are waited for at most. The paint
             // is marked done as it begins, so the frames it draws in are waited for too.
-            for (var frame = 0; frame < PaintFrames && !under.TrueForAll(pair => _desktop.Painted(pair.Window)); frame++)
+            // The windows shown in place of the hidden ones are waited for too, so a Workspace switch does not show a
+            // stale or blank frame of a program slow to paint.
+            var painting = under.Select(pair => pair.Window)
+                .Concat(outcome.Show.Where(window => !_desktop.Hung(window)))
+                .Distinct()
+                .ToList();
+            for (var frame = 0; frame < PaintFrames && !painting.TrueForAll(_desktop.Painted); frame++)
                 _desktop.Pace();
 
             _desktop.Pace();
