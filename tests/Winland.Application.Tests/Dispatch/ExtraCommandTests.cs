@@ -27,6 +27,19 @@ public class ExtraCommandTests
     }
 
     [Fact]
+    public void AKeywordLineUsesTheConfigsVariablesAndCurves()
+    {
+        var core = new WindowManager(ConfigParser.Parse("""
+            $terminal = wezterm
+            bezier = snappy, 0.2, 0.9, 0.1, 1
+            """));
+
+        Assert.Equal("ok", core.Execute("keyword bind SUPER, T, exec, $terminal").Text);
+        Assert.Contains("wezterm", core.Execute("j/binds").Text, StringComparison.Ordinal);
+        Assert.Equal("ok", core.Execute("keyword animation windows, 1, 5, snappy").Text);
+    }
+
+    [Fact]
     public void BindsReportModifierBitsDescriptionsAndKeycodes()
     {
         var core = new WindowManager();

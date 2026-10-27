@@ -125,15 +125,18 @@ internal static class OptionValue
     {
         gaps = EdgeInsets.Zero;
         var parts = text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0)
+        if (parts.Length is 0 or > 4)
             return false;
 
-        var count = Math.Min(parts.Length, 4);
+        // A gap below zero would overlap the tiles, so it is clamped to zero as other numbers are clamped to their range.
+        var count = parts.Length;
         var values = new int[count];
         for (var i = 0; i < count; i++)
         {
             if (!int.TryParse(parts[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out values[i]))
                 return false;
+
+            values[i] = Math.Max(0, values[i]);
         }
 
         gaps = count switch
