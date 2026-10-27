@@ -22,10 +22,20 @@ public static class ProcessLauncher
         }
     }
 
+    // Whether this process is elevated does not change while it runs, so it is read once and not before every exec.
+    private static readonly Lazy<bool> Elevated = new(IsElevated);
+
+    // Enabled once, the first time a program is started without the elevation.
+    private static readonly Lazy<bool> Impersonating = new(() =>
+    {
+        EnablePrivilege("SeImpersonatePrivilege");
+        return true;
+    });
+
     public static int Launch(Launch launch)
     {
         ArgumentNullException.ThrowIfNull(launch);
-        if (!IsElevated())
+        if (!Elevated.Value)
             return Start(launch, token: null);
 
         return StartLimited(launch);
@@ -57,7 +67,7 @@ public static class ProcessLauncher
     // Stryker disable once all : needs an elevated process and a desktop shell, and unit tests have neither.
     private static unsafe int StartLimited(Launch launch)
     {
-        EnablePrivilege("SeImpersonatePrivilege");
+        _ = Impersonating.Value;
         var shell = PInvoke.GetShellWindow();
         if (shell.IsNull)
             throw new InvalidOperationException("The program was not started because the desktop shell is not available.");
@@ -107,12 +117,18 @@ public static class ProcessLauncher
         command.AsSpan().CopyTo(buffer);
         var characters = buffer.AsSpan();
         var directory = Directory(launch);
-        var flags = PROCESS_CREATION_FLAGS.CREATE_NEW_PROCESS_GROUP | PROCESS_CREATION_FLAGS.CREATE_NO_WINDOW;
+        // A program starts at normal priority, whatever priority Winland runs at, and in a process group of its
+        // own console's, so Ctrl+C still reaches the shells it opens.
+        var flags = PROCESS_CREATION_FLAGS.CREATE_NO_WINDOW | PROCESS_CREATION_FLAGS.NORMAL_PRIORITY_CLASS;
         void* environment = null;
         var ownsEnvironment = false;
+
+        // The user's own environment as Windows has it now, as Explorer gives a program it starts: a PATH changed
+        // since Winland started is the new one, and nothing of Winland's own, such as WINLAND_PIPE, is passed on.
+        using var own = token is null ? OwnToken() : null;
         try
         {
-            if (token is not null && PInvoke.CreateEnvironmentBlock(out environment, token, false))
+            if ((token ?? own) is { } source && PInvoke.CreateEnvironmentBlock(out environment, source, false))
             {
                 ownsEnvironment = true;
                 flags |= PROCESS_CREATION_FLAGS.CREATE_UNICODE_ENVIRONMENT;
@@ -285,6 +301,14 @@ public static class ProcessLauncher
 
         var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         return profile.Length == 0 ? Environment.CurrentDirectory : profile;
+    }
+
+    private static Microsoft.Win32.SafeHandles.SafeFileHandle? OwnToken()
+    {
+        using var self = System.Diagnostics.Process.GetCurrentProcess();
+        return PInvoke.OpenProcessToken(self.SafeHandle, TOKEN_ACCESS_MASK.TOKEN_QUERY | TOKEN_ACCESS_MASK.TOKEN_DUPLICATE, out var token)
+            ? token
+            : null;
     }
 
     private static bool IsElevated()

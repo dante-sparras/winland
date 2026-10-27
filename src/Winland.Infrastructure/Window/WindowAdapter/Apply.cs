@@ -162,13 +162,6 @@ public sealed partial class WindowAdapter : IDisposable
         if (!focusFirst)
             Front(outcome);
 
-        foreach (var launch in outcome.Launches)
-        {
-            var pid = ProcessLauncher.TryLaunch(launch);
-            if (pid is int id)
-                _core.NoteLaunched(id, launch);
-        }
-
         var rings = new Dictionary<WindowId, BorderRing>();
         lock (_paintGate)
         {
@@ -215,6 +208,14 @@ public sealed partial class WindowAdapter : IDisposable
 
         if (!_disposed)
             Publish();
+
+        // Starting a program can take a while, so it waits until the borders and bars of this step are drawn.
+        foreach (var launch in outcome.Launches)
+        {
+            var pid = ProcessLauncher.TryLaunch(launch);
+            if (pid is int id)
+                _core.NoteLaunched(id, launch);
+        }
 
         foreach (var kill in outcome.Kills)
             Kill(kill);
