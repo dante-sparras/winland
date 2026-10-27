@@ -32,8 +32,25 @@ internal sealed class ApplyOrder
         }
     }
 
+    /// <summary>
+    /// Whether an outcome newer than <paramref name="outcome"/> was admitted with a placement for
+    /// <paramref name="window"/> after this one was, so this one's placement, about to be made, would land last and win.
+    /// </summary>
+    internal bool Superseded(Outcome outcome, WindowId window)
+    {
+        ArgumentNullException.ThrowIfNull(outcome);
+        if (outcome.Order is not OutcomeOrder order)
+            return false;
+
+        lock (_gate)
+            return _cores.TryGetValue(order.WindowManager, out var ledger) && ledger.PlacedAfter(window, order.Sequence);
+    }
+
     private sealed class Ledger
     {
+        internal bool PlacedAfter(WindowId window, long sequence) =>
+            _placed.TryGetValue(window, out var placed) && placed > sequence;
+
         private readonly Dictionary<WindowId, long> _shown = [];
         private readonly Dictionary<WindowId, long> _placed = [];
         private readonly Dictionary<WindowId, long> _painted = [];
