@@ -119,16 +119,17 @@ public sealed class WindowHost : IDisposable
         FollowTaskbar();
         _windows.Start();
         _input.Start();
-        _touchpad.Start();
         _commands.Start();
     }
 
     // The hooks live on the input thread, apart from window events, so nothing the main thread
-    // waits on can delay system input. These three run there.
+    // waits on can delay system input. These three run there. So does the touchpad's window: reading a report takes
+    // microseconds, and a swipe or the fingers the mouse hook reads is then never late behind a busy main thread.
     private void StartHooks()
     {
         _keys.Start();
         _mouse.Start();
+        _touchpad.Start();
     }
 
     private bool ServiceHooks(uint message)
@@ -152,6 +153,7 @@ public sealed class WindowHost : IDisposable
 
     private void StopHooks()
     {
+        _touchpad.Dispose();
         _mouse.Dispose();
         _keys.Dispose();
     }
@@ -302,7 +304,6 @@ public sealed class WindowHost : IDisposable
         try
         {
             _commands.Dispose();
-            _touchpad.Dispose();
             _input.Dispose();
 
             // Already done on the input thread when it ran; here for a host that never started.
