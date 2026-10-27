@@ -154,8 +154,6 @@ static int Run(string? path, RollingLogWriter log)
     watcher.Watch(ConfigPaths.Watched(configPath, current.Sources));
     try
     {
-        LaunchConfigured(core, core.StartupLaunches(current));
-
         host.OnOpenFile = TrayFiles.Open;
         host.LogExists = () => logFile is not null && File.Exists(logFile);
         host.OnTray = command =>
@@ -177,10 +175,13 @@ static int Run(string? path, RollingLogWriter log)
             }
         };
 
+        // Programs the config starts wait until the shell is up and the Monitors, the recovered Clients and the
+        // windows already open are laid out, so they open on the Workspace the session shows.
         host.Run(prior, () =>
         {
             store.Arm();
             Persist(store, core.Recovery());
+            LaunchConfigured(core, core.StartupLaunches(current));
             Console.WriteLine("Winland is running.");
         });
         return 0;
@@ -204,13 +205,22 @@ static void Persist(RecoveryStore store, RecoverySnapshot snapshot)
 static void Stop(WindowHost host, RecoveryStore store, WindowManager core)
 {
     // The state file is kept, without the changes the cleanup puts back, so the next start puts every Client back
-    // on its Workspace and in its place.
-    var final = WindowIdentity.Annotate(core.Recovery());
-    host.RevealHidden();
-    host.ResetDecorations();
-    host.RestoreTaskbar();
-    SessionEffects.Restore();
-    store.Keep(final);
+    // on its Workspace and in its place. A core in a bad state, often what ended the run, can fail here. The windows
+    // are then put back as after a crash, which needs no core.
+    try
+    {
+        var final = WindowIdentity.Annotate(core.Recovery());
+        host.RevealHidden();
+        host.ResetDecorations();
+        host.RestoreTaskbar();
+        SessionEffects.Restore();
+        store.Keep(final);
+    }
+    catch (Exception exception) when (exception is not OutOfMemoryException)
+    {
+        Console.Error.WriteLine(exception.Message);
+        Salvage(host);
+    }
 }
 
 // An exception on another thread ends the process without Stop. This puts back what it can, and keeps the
