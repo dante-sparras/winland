@@ -21,9 +21,15 @@ internal sealed class WindowGroup(WindowId first)
 
     public int IndexOf(WindowId window) => _members.IndexOf(window);
 
-    /// <summary>The index after removing the member at <paramref name="index"/>, as Winland computes it.</summary>
+    /// <summary>
+    /// The index after removing the member at <paramref name="index"/>. A hidden member leaves the shown one
+    /// shown. When the shown member leaves, the one before it takes the tile, or the next one when it was first.
+    /// </summary>
     public int CurrentAfterRemoving(int index)
     {
+        if (index != Current)
+            return index < Current ? Current - 1 : Current;
+
         var current = Current;
         if ((current >= index && index != 0) || (current >= _members.Count - 1 && current > 0))
             current--;

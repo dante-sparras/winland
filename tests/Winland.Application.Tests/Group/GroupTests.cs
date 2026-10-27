@@ -175,6 +175,46 @@ public class GroupTests
     }
 
     [Fact]
+    public void ClosingAHiddenMemberBeforeTheShownOneKeepsTheShownOneShown()
+    {
+        var core = Grouped();
+        core.Handle(Appear(Third, "three"));
+        core.Execute("dispatch changegroupactive 2");
+
+        var closed = core.Handle(new WindowClosed(First));
+
+        Assert.Empty(closed.Show);
+        Assert.Empty(closed.Hide);
+        Assert.Equal([Second, Third], Assert.Single(closed.State.Groups));
+        Assert.Equal(Second, Assert.Single(closed.GroupBars).Shown);
+    }
+
+    [Fact]
+    public void ClosingAMinimizedShownMemberShowsTheNextOne()
+    {
+        var core = Grouped();
+        core.Handle(new WindowMinimized(Second));
+
+        var closed = core.Handle(new WindowClosed(Second));
+
+        Assert.Contains(First, closed.Show);
+        Assert.False(ClientOf(closed, First).Minimized);
+    }
+
+    [Fact]
+    public void FocusingAHiddenMemberWhileTheShownOneIsMinimizedShowsIt()
+    {
+        var core = Grouped();
+        core.Handle(new WindowMinimized(Second));
+
+        var focused = core.Execute("dispatch focuswindow address:0x1").Effect;
+
+        Assert.Contains(First, focused.Show);
+        Assert.False(ClientOf(focused, First).Minimized);
+        Assert.Equal(First, focused.Focus);
+    }
+
+    [Fact]
     public void HiddenMembersAreRecordedForRecovery()
     {
         var core = Grouped();
