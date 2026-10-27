@@ -50,6 +50,9 @@ public sealed record SwipeUpdated(int Fingers, double DeltaX, double DeltaY) : E
 {
     /// <summary>When the update happened, in milliseconds of a steady clock, or 0 when it is not known.</summary>
     public long TimeMs { get; init; }
+
+    /// <summary>How many of the touchpad's reports this update adds up, when several waited together.</summary>
+    public int Steps { get; init; } = 1;
 }
 
 /// <summary>The swipe ended. A cancelled swipe ended because the finger count changed, not because the fingers lifted.</summary>

@@ -9,15 +9,18 @@ internal sealed class InputQueue<T>
 {
     private readonly object _gate = new();
     private readonly Func<T, T, bool> _replaces;
+    private readonly Func<T, T, (bool Joined, T Item)>? _join;
     private List<T> _waiting = [];
     private List<T> _taken = [];
     private bool _completed;
 
     /// <param name="replaces">True when the second item, posted after the first, makes the first pointless.</param>
-    internal InputQueue(Func<T, T, bool> replaces)
+    /// <param name="join">The one item that does the work of both, when the two add up, such as two steps of a swipe.</param>
+    internal InputQueue(Func<T, T, bool> replaces, Func<T, T, (bool Joined, T Item)>? join = null)
     {
         ArgumentNullException.ThrowIfNull(replaces);
         _replaces = replaces;
+        _join = join;
     }
 
     /// <summary>Queues an item. False once the queue is completed.</summary>
@@ -30,6 +33,8 @@ internal sealed class InputQueue<T>
 
             if (_waiting.Count > 0 && _replaces(_waiting[^1], item))
                 _waiting[^1] = item;
+            else if (_waiting.Count > 0 && _join?.Invoke(_waiting[^1], item) is (true, var joined))
+                _waiting[^1] = joined;
             else
                 _waiting.Add(item);
 

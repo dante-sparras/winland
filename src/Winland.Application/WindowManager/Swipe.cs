@@ -26,7 +26,7 @@ public sealed partial class WindowManager
         if (step.Along is not double along || _swipeGesture.Active is null || _workspaceSwipe is not { } swipe)
             return View([]);
 
-        return StepWorkspaceSwipe(swipe, swipe.Delta + (_config.Swipe.Invert ? -along : along));
+        return StepWorkspaceSwipe(swipe, swipe.Delta + (_config.Swipe.Invert ? -along : along), Math.Max(1, updated.Steps));
     }
 
     private Outcome EndSwipe() =>
@@ -41,13 +41,15 @@ public sealed partial class WindowManager
         _workspaceSwipe = new WorkspaceSwipe(_workspaces.Shown.ActiveOn(monitor), monitor);
     }
 
-    private Outcome StepWorkspaceSwipe(WorkspaceSwipe swipe, double delta)
+    // An update that adds up several of the touchpad's reports counts as that many, so the average speed per report
+    // is the same however many waited together.
+    private Outcome StepWorkspaceSwipe(WorkspaceSwipe swipe, double delta, int steps)
     {
         var distance = Math.Max(1, _config.Swipe.Distance);
         var step = swipe.Delta - delta;
         swipe.Delta = delta;
-        swipe.AverageSpeed = ((swipe.AverageSpeed * swipe.SpeedPoints) + Math.Abs(step)) / (swipe.SpeedPoints + 1);
-        swipe.SpeedPoints++;
+        swipe.AverageSpeed = ((swipe.AverageSpeed * swipe.SpeedPoints) + Math.Abs(step)) / (swipe.SpeedPoints + steps);
+        swipe.SpeedPoints += steps;
 
         var (left, right) = Neighbours(swipe.Monitor);
         var begin = swipe.Begin;
