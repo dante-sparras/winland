@@ -122,6 +122,10 @@ public sealed partial class WindowAdapter : IDisposable
             if (!windows.TryGetValue(placement.Client, out var window))
                 continue;
 
+            // Outcomes are applied on several threads. One admitted later may have placed this window already.
+            if (_order.Superseded(outcome, window))
+                continue;
+
             var fills = borderless.Contains(window);
             if (!(fills && _ownFullscreen.ContainsKey(window)))
                 _borderless.Apply(window, fills);

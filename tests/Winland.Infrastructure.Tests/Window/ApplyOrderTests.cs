@@ -21,6 +21,19 @@ public class ApplyOrderTests
     }
 
     [Fact]
+    public void APlacementANewerOutcomeMadeSinceItWasAdmittedIsSkipped()
+    {
+        var order = new ApplyOrder();
+        var older = order.Admit(Decided(1) with { Placements = [new Placement(new ClientId(1), new Rectangle(0, 0, 10, 10))] }).Outcome;
+
+        Assert.False(order.Superseded(older, First));
+        order.Admit(Decided(2) with { Placements = [new Placement(new ClientId(1), new Rectangle(5, 5, 10, 10))] });
+
+        Assert.True(order.Superseded(older, First));
+        Assert.False(order.Superseded(older, Second));
+    }
+
+    [Fact]
     public void AnOlderHideDoesNotUndoANewerShow()
     {
         var order = new ApplyOrder();
