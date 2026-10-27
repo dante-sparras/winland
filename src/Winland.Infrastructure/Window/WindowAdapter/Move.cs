@@ -105,6 +105,9 @@ public sealed partial class WindowAdapter
         if (_moving == window)
         {
             _moving = null;
+            // Its limits were not read while it moved, and a Monitor with another scale may have changed them.
+            var hwnd = new HWND((nint)window.Value);
+            RereadLimits(hwnd, window);
             Apply(_core.Handle(new WindowMoveEnded(window, pointer, dropped)));
         }
         else if (_sizing == window)

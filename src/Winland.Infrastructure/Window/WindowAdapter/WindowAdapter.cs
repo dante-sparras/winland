@@ -215,16 +215,28 @@ public sealed partial class WindowAdapter : IDisposable
         uint idEventThread,
         uint dwmsEventTime)
     {
-        // A reorder names the parent whose children moved, so it is not a window event. Every tab bar is stacked again,
-        // and the floating Clients go back above a tile that was raised over them.
+        // A reorder names the parent whose children moved, so it is not a window event. Only the desktop's children are
+        // windows that can be Clients: then every tab bar is stacked again, and the floating Clients go back above a
+        // tile that was raised over them. Programs reorder their own child windows all the time.
         if (@event == PInvoke.EVENT_OBJECT_REORDER)
         {
-            GroupBarHost.Restack();
-            KeepFloatingAbove();
+            if (hwnd == PInvoke.GetDesktopWindow())
+            {
+                GroupBarHost.Restack();
+                KeepFloatingAbove();
+            }
+
             return;
         }
 
         if (idObject != 0 || idChild != 0 || hwnd.IsNull)
+            return;
+
+        // A child window is never a Client. Programs move, rename and show their child windows by the thousand, and
+        // reading each would hold up the next window that opens. Its destruction still goes on, in case it was one
+        // before a program made it a child.
+        if (@event != PInvoke.EVENT_OBJECT_DESTROY
+            && ((WINDOW_STYLE)PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE)).HasFlag(WINDOW_STYLE.WS_CHILD))
             return;
 
         Notice(@event, hwnd, dwmsEventTime);
@@ -299,11 +311,18 @@ public sealed partial class WindowAdapter : IDisposable
                         // A frame or a placement Winland sent arrives here too, often after Apply returned. Asking
                         // the window for its limits again would wait on a window that is busy taking it. A move the
                         // application made itself lands somewhere Winland did not put it, and is still read.
-                        if (!(TryOuter(window, out var now) && _quick.Ours(window, now)))
+                        // A window the user drags reads its limits once the drag ends, not on every step of it.
+                        // A frame of Winland's own is neither the window resizing itself nor asking for fullscreen.
+                        var ours = TryOuter(window, out var now) && _quick.Ours(window, now);
+                        if (!ours && _moving != window)
                             RereadLimits(hwnd, window);
 
-                        ReportResize(hwnd, window);
-                        ReportFullscreen(hwnd, window);
+                        if (!ours)
+                        {
+                            ReportResize(hwnd, window);
+                            ReportFullscreen(hwnd, window);
+                        }
+
                         PutBackIfDrifted(hwnd, window);
                     }
 

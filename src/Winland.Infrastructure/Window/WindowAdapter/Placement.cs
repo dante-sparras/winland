@@ -58,7 +58,8 @@ public sealed partial class WindowAdapter
     // Stryker disable once all : handles a window event, which needs a real window.
     private void ReportResize(HWND hwnd, WindowId window)
     {
-        if (!_core.AwaitsFirstResize(window) || !TryVisible(window, out var visible))
+        // The frames of an opening motion are Winland's own, not the window resizing itself.
+        if (_motions.Running(window) || !_core.AwaitsFirstResize(window) || !TryVisible(window, out var visible))
             return;
 
         Apply(_core.Handle(new WindowResized(window, visible)));
