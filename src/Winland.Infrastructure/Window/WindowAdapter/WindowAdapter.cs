@@ -488,7 +488,7 @@ public sealed partial class WindowAdapter : IDisposable
         var monitorRect = From(info.rcMonitor);
         // A Store app's frame belongs to ApplicationFrameHost. The Client's process is the app it hosts.
         long processId = identity.ProcessId;
-        var ancestors = ProcessFacts.Shared.For(identity.ProcessId).Ancestors;
+        var facts = ProcessFacts.Shared.For(identity.ProcessId);
         var (min, max) = LimitsOf(hwnd, window);
 
         var ownerWindow = PInvoke.GetWindow(hwnd, GET_WINDOW_CMD.GW_OWNER);
@@ -499,8 +499,8 @@ public sealed partial class WindowAdapter : IDisposable
             Disabled = Note(window, !PInvoke.IsWindowEnabled(hwnd)),
             Bounds = bounds,
             ProcessId = processId,
-            AncestorProcessIds = ancestors,
-            Executable = PackagedIdentity.ImagePath(identity.ProcessId),
+            AncestorProcessIds = facts.Ancestors,
+            Executable = facts.ImagePath,
             Traits = new WindowTraits(
                 Visible: PInvoke.IsWindowVisible(hwnd) && !identity.UnresolvedFrame,
                 Titled: title.Length > 0,

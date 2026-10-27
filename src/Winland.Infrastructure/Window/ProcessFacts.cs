@@ -13,25 +13,30 @@ internal sealed class ProcessFacts
 {
     private const int Limit = 512;
 
-    internal static readonly ProcessFacts Shared = new(StartTime, ExeOf, AncestorsOf);
+    internal static readonly ProcessFacts Shared = new(StartTime, PackagedIdentity.ImagePath, AncestorsOf);
 
     private readonly Func<uint, long> _started;
-    private readonly Func<uint, string> _exe;
+    private readonly Func<uint, string> _path;
     private readonly Func<uint, IReadOnlyList<int>> _ancestors;
     private readonly Lock _gate = new();
     private readonly Dictionary<uint, Facts> _known = [];
 
-    internal ProcessFacts(Func<uint, long> started, Func<uint, string> exe, Func<uint, IReadOnlyList<int>> ancestors)
+    internal ProcessFacts(Func<uint, long> started, Func<uint, string> path, Func<uint, IReadOnlyList<int>> ancestors)
     {
         ArgumentNullException.ThrowIfNull(started);
-        ArgumentNullException.ThrowIfNull(exe);
+        ArgumentNullException.ThrowIfNull(path);
         ArgumentNullException.ThrowIfNull(ancestors);
         _started = started;
-        _exe = exe;
+        _path = path;
         _ancestors = ancestors;
     }
 
-    internal readonly record struct Facts(long Started, string Exe, IReadOnlyList<int> Ancestors);
+    /// <summary>What Winland reads once per process: its start, the program's full path, and its ancestors.</summary>
+    internal readonly record struct Facts(long Started, string ImagePath, IReadOnlyList<int> Ancestors)
+    {
+        /// <summary>The program's file name.</summary>
+        public string Exe => ImagePath.Length == 0 ? "" : Path.GetFileName(ImagePath);
+    }
 
     internal Facts For(uint processId)
     {
@@ -45,7 +50,7 @@ internal sealed class ProcessFacts
                 return known;
         }
 
-        var facts = new Facts(started, _exe(processId), _ancestors(processId));
+        var facts = new Facts(started, _path(processId), _ancestors(processId));
         if (started == 0)
             return facts;
 
@@ -59,8 +64,6 @@ internal sealed class ProcessFacts
 
         return facts;
     }
-
-    private static string ExeOf(uint processId) => PackagedIdentity.ExeFile(processId);
 
     private static IReadOnlyList<int> AncestorsOf(uint processId) =>
         processId <= int.MaxValue ? ProcessLauncher.Ancestors((int)processId) : [];
