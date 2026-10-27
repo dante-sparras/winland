@@ -227,6 +227,17 @@ public class GroupTests
     }
 
     [Fact]
+    public void AHiddenMemberMovedToAnotherWorkspaceLeavesItsGroup()
+    {
+        var core = Grouped();
+
+        var moved = core.Execute("dispatch movetoworkspacesilent 2,address:0x1").Effect;
+
+        Assert.Equal([Second], Assert.Single(moved.State.Groups));
+        Assert.Equal(new WorkspaceId("2"), ClientOf(moved, First).Workspace);
+    }
+
+    [Fact]
     public void HiddenMembersAreRecordedForRecovery()
     {
         var core = Grouped();

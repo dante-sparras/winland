@@ -22,8 +22,9 @@ public sealed partial class WindowManager
         bool windowChosen = false,
         Point? focal = null)
     {
+        // A named Workspace that does not exist is an error, as it is for the workspace dispatcher.
         if (!WorkspaceAddress.TryResolve(argument, Context(), out var resolved))
-            return View([], consumed: consumed);
+            return View([], consumed: consumed) with { Error = WorkspaceAddress.IsNamed(argument) ? "error: no such workspace" : null };
 
         return MoveTo(resolved, silent, consumed, chosen, windowChosen, focal);
     }
@@ -58,7 +59,9 @@ public sealed partial class WindowManager
 
         var sourceCovered = source.Covered();
         var wasHidden = !_workspaces.Shown.IsShown(source.Id) || sourceCovered.Contains(id);
-        if (!source.Take(id, out var taken))
+        // A Group's hidden member leaves its Group and goes alone. A shown member takes its Group along.
+        var taken = default(Taken);
+        if (!(source.IsWaiting(id) ? TakeForGroup(source, id, out taken) : source.Take(id, out taken)))
             return View([], consumed: consumed);
 
         var destination = WorkspaceFor(target, target.IsSpecial ? FocusedId() : null);

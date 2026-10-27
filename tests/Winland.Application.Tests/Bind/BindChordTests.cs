@@ -126,7 +126,8 @@ public class BindChordTests
         Assert.True(first.Consumed);
         Assert.Equal(new WindowId(2), first.Close);
         Assert.Equal(new WorkspaceId("2"), first.State.ActiveWorkspace);
-        Assert.False(blocked.Consumed);
+        Assert.True(blocked.Consumed);
+        Assert.Equal(new WorkspaceId("2"), blocked.State.ActiveWorkspace);
         Assert.Equal(new WorkspaceId("2"), later.State.ActiveWorkspace);
     }
 

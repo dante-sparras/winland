@@ -240,11 +240,6 @@ public sealed partial class BindSession
         if (wheel.Key.Length == 0)
             return Passed();
 
-        if (_scrollSeen && wheel.TimeMs - _scrollAtMs < BindTable.ScrollDelay)
-            return Passed();
-
-        _scrollSeen = true;
-        _scrollAtMs = wheel.TimeMs;
         var pressing = new List<Bind>();
         foreach (var bind in Collect(table, wheel.Key, scanCode: 0, mouse: false, releasing: false))
         {
@@ -255,6 +250,13 @@ public sealed partial class BindSession
         if (pressing.Count == 0)
             return Passed();
 
+        // Binds wait a moment between notches, so one spin does not run them many times. A notch in that wait is
+        // still the bind's, and does not scroll the window under the pointer. Plain scrolling starts no wait.
+        if (_scrollSeen && wheel.TimeMs - _scrollAtMs < BindTable.ScrollDelay)
+            return Consumes(pressing) ? Caught() : Passed();
+
+        _scrollSeen = true;
+        _scrollAtMs = wheel.TimeMs;
         return MaskHeld(Ran(pressing, Consumes(pressing), trigger: null));
     }
 

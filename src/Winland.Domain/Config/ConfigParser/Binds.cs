@@ -29,6 +29,14 @@ public static partial class ConfigParser
                 return;
             }
 
+            // A $variable left after expansion was never defined, or defined below. Dropping it would bind the key
+            // to the modifiers that are left, such as Shift alone.
+            if (parts[0].Contains('$', StringComparison.Ordinal))
+            {
+                Warn(lineNumber, $"Undefined variable in modifiers '{parts[0].Trim()}'.");
+                return;
+            }
+
             if (!ModifierNames.TryParse(parts[0], out var modifiers, out var modifierError))
             {
                 Warn(lineNumber, modifierError);
@@ -39,6 +47,12 @@ public static partial class ConfigParser
             if (key.Length == 0)
             {
                 Warn(lineNumber, "Bind is missing a key.");
+                return;
+            }
+
+            if (!KeyNames.Matchable(parts[1], layout))
+            {
+                Warn(lineNumber, $"Unknown key '{parts[1]}'.");
                 return;
             }
 
@@ -54,8 +68,13 @@ public static partial class ConfigParser
             var arguments = !mouse && parts.Count > index + 1 ? parts[index + 1] : "";
             if (mouse)
             {
-                // A mouse bind has no argument field. Its action carries one, as in resizewindow 1.
+                // A mouse bind has no argument field. Its action carries one, as in resizewindow 1. Its action is a drag.
                 (dispatcher, arguments) = SplitAction(dispatcher);
+                if (dispatcher.Length > 0 && !Is(dispatcher, "movewindow") && !Is(dispatcher, "resizewindow"))
+                {
+                    Warn(lineNumber, "A bindm takes movewindow or resizewindow.");
+                    return;
+                }
             }
             else if (Is(dispatcher, "mouse"))
             {
