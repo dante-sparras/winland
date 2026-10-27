@@ -98,6 +98,8 @@ public sealed partial class WindowManager
     private Outcome EndGesture(Gesture gesture, Point pointer)
     {
         _interaction = null;
+        // The drag's cursor gives way to whatever the pointer is over once it drops.
+        NoteBorderCursor(pointer);
         // The Group under the pointer is found while the dragged window is still lifted.
         var drop = gesture.PickedUp && !gesture.Resize ? GroupDrop(gesture.Window, gesture.WasTiled, pointer) : null;
         if (drop is null && gesture.PickedUp && !gesture.Resize && DropOnMonitor(gesture, pointer) is { } carried)
@@ -354,7 +356,10 @@ public sealed partial class WindowManager
     private void ForgetDrag(WindowId window)
     {
         if (_interaction?.Window == window)
+        {
             _interaction = null;
+            _resizeCursor = null;
+        }
         if (_released?.Window == window)
             _released = null;
     }

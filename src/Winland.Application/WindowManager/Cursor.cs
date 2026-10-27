@@ -7,8 +7,11 @@ public sealed partial class WindowManager
 
     private Outcome FinishCursor(Captured before, Outcome outcome, Input? input)
     {
+        // A drag moves the pointer too, though the hook reports its steps as the drag's and not as pointer moves.
         if (input is PointerMoved moved)
             _pointer = moved.Position;
+        else if (input is PointerGesture gesture)
+            _pointer = gesture.Position;
 
         var monitorChanged = outcome.State.ActiveMonitor != before.State.ActiveMonitor;
         var warp = SwitchWarp(before, outcome);

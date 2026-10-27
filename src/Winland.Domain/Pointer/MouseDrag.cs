@@ -78,10 +78,11 @@ internal sealed class MouseDrag
 
             var resized = BorderPointer.Resize(grab.Start, grab.Pressed, pointer, grab.Left, grab.Top, grab.KeepRatio);
             floating.Set(grab.Id, resized);
-            return host.ShowFloating(grab.Id);
+            return Dragged(host.ShowFloating(grab.Id), grab.Id);
         }
 
-        if (!grab.WasFloating && !grab.Lifted)
+        var lifting = !grab.WasFloating && !grab.Lifted;
+        if (lifting)
         {
             if (!host.LiftTile(grab.Id, out var box))
                 return [];
@@ -92,10 +93,15 @@ internal sealed class MouseDrag
             grab.HotY = box.Height / 2;
         }
 
+        // The step that lifts a tile lays the others out without it. After that only the dragged Client moves.
         var next = new Rectangle(pointer.X - grab.HotX, pointer.Y - grab.HotY, grab.Start.Width, grab.Start.Height);
         floating.Set(grab.Id, next);
-        return host.ShowFloating(grab.Id);
+        var shown = host.ShowFloating(grab.Id);
+        return lifting ? shown : Dragged(shown, grab.Id);
     }
+
+    private static IReadOnlyList<Placement> Dragged(IReadOnlyList<Placement> placements, ClientId id) =>
+        [.. placements.Where(placement => placement.Client == id)];
 
     private IReadOnlyList<Placement> End(IMouseDragHost host, Point pointer)
     {
