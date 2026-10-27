@@ -5,7 +5,8 @@ namespace Winland.Application;
 
 public static class CommandClient
 {
-    public static string Transact(string command, string? pipeName = null, int timeoutMs = 2000)
+    /// <param name="connected">Runs once the pipe is connected, before the command is sent.</param>
+    public static string Transact(string command, string? pipeName = null, int timeoutMs = 2000, Action<NamedPipeClientStream>? connected = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(command);
         using var pipe = new NamedPipeClientStream(
@@ -22,10 +23,14 @@ public static class CommandClient
             throw new InvalidOperationException("Winland is not running.");
         }
 
+        connected?.Invoke(pipe);
         var outbound = Encoding.UTF8.GetBytes(command + "\n");
         pipe.Write(outbound);
         pipe.Flush();
-        return ReadReply(pipe);
+
+        // Read in blocks, not a call per byte. Nothing else reads this pipe.
+        using var buffered = new BufferedStream(pipe);
+        return ReadReply(buffered);
     }
 
     public static void Follow(string command, Action<string> onLine, string? pipeName = null, int timeoutMs = 2000, CancellationToken cancel = default)
@@ -62,9 +67,10 @@ public static class CommandClient
         var outbound = Encoding.UTF8.GetBytes(command + "\n");
         pipe.Write(outbound);
         pipe.Flush();
+        using var buffered = new BufferedStream(pipe);
         try
         {
-            while (!cancel.IsCancellationRequested && TryReadLine(pipe, out var line))
+            while (!cancel.IsCancellationRequested && TryReadLine(buffered, out var line))
                 onLine(line);
         }
         catch (Exception exception) when (cancel.IsCancellationRequested && exception is IOException or ObjectDisposedException or InvalidOperationException)
