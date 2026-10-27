@@ -267,7 +267,9 @@ internal sealed class Win32DwmSurface : IDwmSurface
 
     public bool TrySetRegion(WindowId window, IReadOnlyList<Point> outline)
     {
-        if (!TryWindow(window, out var hwnd))
+        // Setting a region waits on the window's thread. A program that stopped answering keeps its old corners, and
+        // the next size change cuts them again.
+        if (!TryWindow(window, out var hwnd) || PInvoke.IsHungAppWindow(hwnd))
             return false;
 
         if (outline.Count == 0)

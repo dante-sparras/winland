@@ -12,7 +12,7 @@ namespace Winland.Infrastructure;
 /// </summary>
 internal static class GroupBarHost
 {
-    private const string ClassName = "WinlandGroupBar";
+    private const string ClassName = DecorationStack.GroupBarClass;
     private const int ClassAlreadyExists = 1410;
     private const uint SyncMessage = 0x8000 + 0x47;
     private const uint StackMessage = 0x8000 + 0x48;
@@ -402,12 +402,14 @@ internal static class GroupBarHost
         public void Stack()
         {
             var shown = new HWND((nint)Spec.Shown.Value);
-            var above = PInvoke.GetWindow(shown, GET_WINDOW_CMD.GW_HWNDPREV);
+            var chain = new List<HWND>();
+            var above = DecorationStack.Above(shown, chain);
             var topmost = !above.IsNull && (PInvoke.GetWindowLong(above, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE) & TopmostStyle) != 0;
             var flags = SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_SHOWWINDOW;
 
-            // A bar already just above the window stays where it is. Raising it to the top would put it over a floating window.
-            if (above == Handle)
+            // A bar already among the decorations just above the window stays where it is. Raising it to the top would
+            // put it over a floating window.
+            if (chain.Contains(Handle))
                 flags |= SET_WINDOW_POS_FLAGS.SWP_NOZORDER;
 
             var after = above.IsNull || topmost ? new HWND(0) : above;

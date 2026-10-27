@@ -321,6 +321,11 @@ internal sealed class Win32WindowStyles : IWindowStyles
         if (previous == 0 && Marshal.GetLastPInvokeError() != 0)
             return false;
 
+        // Becoming layered needs no new frame: the alpha set next is what shows. Asking the window to answer a frame
+        // change there would redraw it once more, before it has an alpha. Leaving the layered style needs the repaint.
+        if ((exStyle & ~(uint)previous) == OpacityAdapter.LayeredStyle)
+            return true;
+
         _ = PInvoke.SetWindowPos(
             hwnd,
             HWND.Null,
