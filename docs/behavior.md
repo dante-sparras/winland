@@ -219,7 +219,7 @@ The `monitors` reply reports what Windows reports: the size, position, scale and
 
 A command for the running Winland, such as `winland dispatch` or `winland clients`, goes down the pipe and never asks for UAC or starts Winland. An argument `winland` does not know prints the usage and asks for no approval either.
 
-`winland` reads an argument that starts with `-` as a flag unless it is a number. A number may have a fraction and one trailing comma, so `winland dispatch splitratio -0.1` and `winland dispatch moveactive -50, 0` pass their numbers to the dispatcher.
+`winland` reads an argument that starts with `-` as a flag unless it is a number. A number may have a fraction and one trailing comma, so `winland dispatch splitratio -0.1` and `winland dispatch moveactive -50, 0` pass their numbers to the dispatcher. The words after `winland dispatch exec` or `execr` are a command line and are passed as they are, flags and all, and one with a space in it, such as a path the shell took the quotes off, is quoted again.
 
 In dwindle, `layoutmsg splitratio` changes the split of the focused Client's parent, by a delta or with `exact` to a value, clamped from 0.1 to 1.9. It answers `error: splitratio requires an arg` without a ratio, `error: cannot alter split ratio on no / single node` for a Client with no sibling, and `error: bad layoutmsg 'splitratio'` for a ratio that does not parse, in that order.
 
