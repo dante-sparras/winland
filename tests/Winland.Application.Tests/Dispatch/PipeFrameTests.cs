@@ -8,6 +8,7 @@ public class PipeFrameTests
     [InlineData("ok")]
     [InlineData("")]
     [InlineData("first\nsecond\n\nfourth")]
+    [InlineData("#42")]
     public void AFramedReplyReadsBackAsItWas(string reply)
     {
         using var stream = new MemoryStream(PipeFrame.Frame(reply));

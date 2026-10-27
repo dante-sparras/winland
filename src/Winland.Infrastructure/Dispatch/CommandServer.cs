@@ -11,6 +11,9 @@ public sealed class CommandServer : IDisposable
 {
     private const int SubscriberQueueCapacity = 256;
 
+    // Room for a burst of event lines, so a subscriber's writes do not each wait for its client to read.
+    private const uint OutBuffer = 64 * 1024;
+
     private readonly WindowManager _core;
     private readonly Action<Outcome> _apply;
     private readonly string _pipeName;
@@ -278,6 +281,15 @@ public sealed class CommandServer : IDisposable
             return;
         }
 
+        // A subscriber listens before its request runs, so no step that ends in between is lost to it.
+        Subscriber? subscriber = null;
+        if (CommandProtocol.Parse(command) is CommandParsed { Request: EventsRequest })
+        {
+            subscriber = new Subscriber(server);
+            lock (_subscribersGate)
+                _subscribers.Add(subscriber);
+        }
+
         CommandReply reply;
         try
         {
@@ -287,19 +299,27 @@ public sealed class CommandServer : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
+            if (subscriber is not null)
+                Drop(subscriber);
             Release(server);
             return;
         }
 
         if (reply.Stream)
         {
-            var subscriber = new Subscriber(server);
-            lock (_subscribersGate)
-                _subscribers.Add(subscriber);
+            if (subscriber is null)
+            {
+                subscriber = new Subscriber(server);
+                lock (_subscribersGate)
+                    _subscribers.Add(subscriber);
+            }
 
             await Follow(server, subscriber, stopping).ConfigureAwait(false);
             return;
         }
+
+        if (subscriber is not null)
+            Drop(subscriber);
 
         await Finish(server, reply.Text, stopping).ConfigureAwait(false);
     }
@@ -414,7 +434,12 @@ public sealed class CommandServer : IDisposable
         }
     }
 
-    private NamedPipeServerStream Open(bool first)
+    // The pipe's security is the same for every instance, so it is built once, not before each connection is served.
+    private RawSecurityDescriptor? _descriptor;
+
+    private NamedPipeServerStream Open(bool first) => Create(_descriptor ??= Descriptor(), first);
+
+    private static RawSecurityDescriptor Descriptor()
     {
         using var identity = WindowsIdentity.GetCurrent();
         var user = identity.User ?? throw new InvalidOperationException("The current user has no SID.");
@@ -422,10 +447,9 @@ public sealed class CommandServer : IDisposable
         // Setting the label afterwards is access denied (error 5) even with the
         // security privilege enabled. Creating the pipe with the label already
         // in its descriptor gives a medium client access to the elevated server.
-        var descriptor = elevated
+        return elevated
             ? DescriptorFor(user)
             : new RawSecurityDescriptor(SecurityFor(user).GetSecurityDescriptorSddlForm(AccessControlSections.Access));
-        return Create(descriptor, first);
     }
 
     // Both elevations create the pipe here, so both get the same flags: remote clients are
@@ -453,7 +477,7 @@ public sealed class CommandServer : IDisposable
                 Duplex | Overlapped | (first ? FirstInstance : 0),
                 RejectRemoteClients,
                 (uint)MaxInstances,
-                0,
+                OutBuffer,
                 0,
                 0,
                 ref security);
@@ -510,10 +534,26 @@ public sealed class CommandServer : IDisposable
 
         public ChannelReader<string> Reader => _channel.Reader;
 
+        // A subscriber that falls this far behind has lost its place. It is let go, so its client reconnects and asks
+        // for the state again, rather than going on with events missing.
         public void Enqueue(IReadOnlyList<string> lines)
         {
             if (Volatile.Read(ref _closed) != 0)
                 return;
+
+            if (_channel.Reader.Count + lines.Count > SubscriberQueueCapacity)
+            {
+                Complete();
+                try
+                {
+                    Pipe.Dispose();
+                }
+                catch (Exception exception) when (exception is IOException or ObjectDisposedException)
+                {
+                }
+
+                return;
+            }
 
             foreach (var line in lines)
             {

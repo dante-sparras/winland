@@ -16,7 +16,8 @@ public static class PipeFrame
     public static byte[] Frame(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        if (!text.Contains('\n'))
+        // A line that starts with # would read as a frame's header, so it is framed too.
+        if (!text.Contains('\n') && !text.StartsWith('#'))
             return Encoding.UTF8.GetBytes(text + "\n");
 
         var body = Encoding.UTF8.GetBytes(text);
