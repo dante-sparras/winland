@@ -23,8 +23,12 @@ public sealed partial class KeyboardHook : IDisposable
         // With no window under the pointer a key whose bind only drags goes on to the focused window, as the pinned
         // release lets the event through.
         var keyDrag = edge.Up ? null : KeyDrag(decision);
+        // Its repeats and release go on too, so the window never sees the key stuck down.
         if (keyDrag is not null && Drag.Current is null && MouseHook.OnlyDrag(decision) && !_core.HasDragTarget(CursorPoint()))
+        {
+            _session.ForgetCaught(edge.Name);
             return (true, decision);
+        }
 
         if (keyDrag is BindDispatch drag && Drag.Begin(edge.Name, drag.Dispatcher, drag.Arguments))
         {
