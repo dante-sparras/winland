@@ -14,8 +14,10 @@ public sealed partial class WindowAdapter
     internal void UndoMinimize(nint handle)
     {
         var hwnd = new HWND(handle);
+        // Put back without activating it, so Win+D or a game that minimizes itself when it loses focus does not
+        // take the focus as each window comes back.
         if (_core.Manages(new WindowId(handle)) && PInvoke.IsIconic(hwnd))
-            _ = PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_RESTORE);
+            _ = PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
     }
 
     private void AdoptShown(HWND hwnd, WindowId window)
@@ -51,6 +53,16 @@ public sealed partial class WindowAdapter
         var hwnd = new HWND(handle);
         if (PInvoke.IsZoomed(hwnd))
             _ = PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_RESTORE);
+
+        // A window that maximizes itself again just after Winland restored it, with no click or key from the user,
+        // would flip its maximize mode back and forth with every round. It is only put back where it was.
+        if (_settling.TryGetValue(window, out var until) && Environment.TickCount64 < until
+            && !InputClock.Recent(unchecked((uint)Environment.TickCount)) && TryVisible(window, out var landed))
+        {
+            var drifted = _core.Handle(new WindowDrifted(window, landed));
+            Apply(drifted);
+            return drifted;
+        }
 
         var outcome = _core.Handle(new WindowMaximizeRequested(window));
         Apply(outcome);
