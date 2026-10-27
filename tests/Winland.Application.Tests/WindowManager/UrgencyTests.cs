@@ -147,6 +147,19 @@ public class UrgencyTests
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
     }
 
+    [Fact]
+    public void AClientOnAHiddenWorkspaceTheUserFocusesBringsItsWorkspace()
+    {
+        var core = TwoClients();
+        core.Handle(new Dispatch("movetoworkspacesilent", "2,address:0x1"));
+
+        var outcome = core.Handle(new WindowFocused(new WindowId(1), FocusCause.User));
+
+        Assert.Equal(new WindowId(1), outcome.Focus);
+        Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
+        Assert.Contains(new WindowId(1), outcome.Show);
+    }
+
     private static WindowManager TwoClients()
     {
         var core = new WindowManager();
