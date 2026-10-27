@@ -37,6 +37,24 @@ public sealed partial class KeyboardHook : IDisposable
         _ => false,
     };
 
+    // Steps of one touchpad swipe add up, so a burst of them while the worker is busy is one step and not a backlog
+    // that leaves the slide behind the fingers.
+    private static (bool, Queued) Join(Queued waiting, Queued next)
+    {
+        if (waiting.Kind != QueuedKind.Input || next.Kind != QueuedKind.Input
+            || waiting.Event is not SwipeUpdated first || next.Event is not SwipeUpdated second
+            || first.Fingers != second.Fingers)
+            return (false, next);
+
+        var joined = second with
+        {
+            DeltaX = first.DeltaX + second.DeltaX,
+            DeltaY = first.DeltaY + second.DeltaY,
+            Steps = first.Steps + second.Steps,
+        };
+        return (true, next with { Event = joined });
+    }
+
     private void Perform(Queued queued)
     {
         try

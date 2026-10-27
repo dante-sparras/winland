@@ -16,6 +16,18 @@ public class InputQueueTests
         Assert.Equal(["move 3"], queue.Take());
     }
 
+    [Fact]
+    public void ItemsThatAddUpWaitAsOne()
+    {
+        var queue = new InputQueue<int>((_, _) => false, (waiting, next) => (waiting > 0 && next > 0, waiting + next));
+        queue.Post(1);
+        queue.Post(2);
+        queue.Post(-5);
+        queue.Post(3);
+
+        Assert.Equal([3, -5, 3], queue.Take());
+    }
+
     // A move never jumps ahead of a bind that was queued before it, and a bind is never dropped.
     [Fact]
     public void MovesAreKeptInOrderAroundOtherInput()

@@ -51,7 +51,7 @@ public sealed partial class KeyboardHook : IDisposable
     private readonly HOOKPROC _callback;
     // The callback must return before any dispatcher work, so it only posts here. Moves that pile
     // up while the worker is busy collapse into the newest, so they never delay a key bind.
-    private readonly InputQueue<Queued> _queued = new(Replaces);
+    private readonly InputQueue<Queued> _queued = new(Replaces, Join);
 
     private readonly object _timerGate = new();
     private HHOOK _hook;
@@ -181,7 +181,13 @@ public sealed partial class KeyboardHook : IDisposable
     }
 
     /// <summary>The input language changed. The layout is read again on the next key.</summary>
-    internal void ForgetLayout() => _layoutHandle = unchecked((nint)(-1));
+    internal void ForgetLayout()
+    {
+        _layoutsStale = true;
+        _layoutHandle = unchecked((nint)(-1));
+    }
+
+    private volatile bool _layoutsStale;
 
     /// <summary>
     /// True when input arrived that no hook saw. Windows removes a low-level hook without
@@ -257,7 +263,9 @@ public sealed partial class KeyboardHook : IDisposable
             if (KeyNames.PassesThrough(vk))
                 return Next(code, wParam, lParam);
 
-            var name = KeyNames.Name(vk, scan, extended, ActiveLayout(), TrackedModifiers());
+            // A release keeps the name its press had, though a bind may have focused a window with another layout
+            // in between, so the bind session finds the key it holds.
+            var name = KeyName(vk, extended, up, () => KeyNames.Name(vk, scan, extended, ActiveLayout(), TrackedModifiers()));
             var xkb = KeyNames.XkbCode(vk, scan, extended);
             if (!up)
                 SessionEffects.NoteKey();
@@ -311,7 +319,26 @@ public sealed partial class KeyboardHook : IDisposable
         return _layout.TryVirtualKey(key, out vk) && Down(vk);
     }
 
-    // The foreground thread's layout. Rebuilt only when that handle changes.
+    // The names keys were pressed with, by virtual key, the extended ones apart. The hook thread alone reads them.
+    private readonly string?[] _pressedNames = new string?[512];
+
+    private string KeyName(int vk, bool extended, bool up, Func<string> name)
+    {
+        var slot = (vk & 0xFF) | (extended ? 0x100 : 0);
+        if (up)
+        {
+            var pressed = _pressedNames[slot];
+            _pressedNames[slot] = null;
+            return pressed ?? name();
+        }
+
+        return _pressedNames[slot] = name();
+    }
+
+    // Each layout read so far, by its handle. Switching between programs with different layouts reads none again.
+    private readonly Dictionary<nint, KeyLayout> _layouts = [];
+
+    // The foreground thread's layout. Read once per handle.
     private KeyLayout ActiveLayout()
     {
         nint handle;
@@ -327,9 +354,23 @@ public sealed partial class KeyboardHook : IDisposable
         if (handle == _layoutHandle)
             return _layout;
 
+        if (_layoutsStale)
+        {
+            _layoutsStale = false;
+            _layouts.Clear();
+        }
+
+        if (_layouts.TryGetValue(handle, out var known))
+        {
+            _layout = known;
+            _layoutHandle = handle;
+            return _layout;
+        }
+
         try
         {
             var layout = KeyboardLayout.Read(handle);
+            _layouts[handle] = layout;
             _layout = layout;
             _layoutHandle = handle;
         }
