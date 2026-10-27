@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.System.Threading;
@@ -198,27 +197,17 @@ internal static class PackagedIdentity
             PROCESS_ACCESS_RIGHTS.PROCESS_QUERY_LIMITED_INFORMATION,
             false,
             processId);
-        if (process is not null && !process.IsInvalid)
-        {
-            Span<char> buffer = stackalloc char[1024];
-            var size = (uint)buffer.Length;
-            if (PInvoke.QueryFullProcessImageName(process, PROCESS_NAME_FORMAT.PROCESS_NAME_WIN32, buffer, ref size)
-                && size > 0
-                && size <= buffer.Length)
-            {
-                return new string(buffer[..(int)size]);
-            }
-        }
-
-        try
-        {
-            using var managed = Process.GetProcessById((int)processId);
-            return managed.MainModule?.FileName ?? "";
-        }
-        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
-        {
+        // Reading the main module needs more rights than this, so a process this cannot read has no path to give.
+        if (process is null || process.IsInvalid)
             return "";
-        }
+
+        Span<char> buffer = stackalloc char[1024];
+        var size = (uint)buffer.Length;
+        return PInvoke.QueryFullProcessImageName(process, PROCESS_NAME_FORMAT.PROCESS_NAME_WIN32, buffer, ref size)
+            && size > 0
+            && size <= buffer.Length
+                ? new string(buffer[..(int)size])
+                : "";
     }
 
     private static uint ProcessId(HWND hwnd)
