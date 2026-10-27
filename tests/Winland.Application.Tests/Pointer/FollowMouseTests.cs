@@ -53,6 +53,19 @@ public class FollowMouseTests
     }
 
     [Fact]
+    public void AMenuOverAnotherTileKeepsTheFocusWhereItIs()
+    {
+        var (core, laid) = Tiled();
+        Move(core, Center(laid, 2), 1_000);
+
+        var overMenu = core.Handle(new PointerMoved(Center(laid, 1)) { TimeMs = 1_100, Under = new WindowId(99) });
+        var offMenu = core.Handle(new PointerMoved(Center(laid, 1) with { X = Center(laid, 1).X + 40 }) { TimeMs = 1_200, Under = new WindowId(1) });
+
+        Assert.Null(overMenu.Focus);
+        Assert.Equal(new WindowId(1), offMenu.Focus);
+    }
+
+    [Fact]
     public void DisabledFollowLeavesTheFocusedClient()
     {
         var (core, laid) = Tiled("input:follow_mouse = disabled\n");

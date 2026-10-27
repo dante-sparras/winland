@@ -19,6 +19,12 @@ public sealed record KeyReleased(string Key) : Event
 public sealed record PointerMoved(Point Position) : Event
 {
     public long? TimeMs { get; init; }
+
+    /// <summary>
+    /// The top-level window of another program actually under the pointer, when it was read. A menu, drop-down list
+    /// or other popup over a tile is under the pointer in place of the tile.
+    /// </summary>
+    public WindowId? Under { get; init; }
 }
 
 public sealed record PointerButtonPressed(string Button) : Event

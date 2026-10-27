@@ -148,6 +148,11 @@ public sealed partial class WindowManager
         if (_focus.Focused is null && _focus.Unmanaged is not null && decision.Focus == _focus.BeforeUnmanaged)
             return null;
 
+        // A context menu or drop-down list over a tile is what the pointer is on. Focusing the tile under it would
+        // close the menu, which takes no focus from the window that opened it.
+        if (moved.Under is WindowId over && decision.Focus is WindowId target && over != target && Find(over) is null)
+            return null;
+
         return TakePointerFocus(decision.Focus);
     }
 
