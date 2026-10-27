@@ -195,7 +195,8 @@ public sealed partial class KeyboardHook : IDisposable
     /// </summary>
     internal bool Lost()
     {
-        if (_disposed || _hook.IsNull || _session.Inhibited)
+        // A touchpad gesture with no cursor movement is input no hook sees, and reinstalling would drop a drag.
+        if (_disposed || _hook.IsNull || _session.Inhibited || TouchpadFingers.Touched(Environment.TickCount64))
             return false;
 
         var info = new LASTINPUTINFO { cbSize = (uint)Marshal.SizeOf<LASTINPUTINFO>() };
