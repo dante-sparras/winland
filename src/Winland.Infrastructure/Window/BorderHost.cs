@@ -16,7 +16,7 @@ namespace Winland.Infrastructure;
 // Stryker disable once all : draws on the desktop; the ring's pixels are made and tested in BorderPainter.
 internal static class BorderHost
 {
-    private const string ClassName = "WinlandBorder";
+    private const string ClassName = DecorationStack.BorderClass;
     private const int ClassAlreadyExists = 1410;
     private const uint SyncMessage = 0x8000 + 0x4B;
     private const uint QuitMessage = 0x0012;
@@ -310,7 +310,7 @@ internal static class BorderHost
             var box = new Rectangle(frame.X - thickness, frame.Y - thickness, frame.Width + (2 * thickness), frame.Height + (2 * thickness));
             var drawn = Drawn;
             var pieces = BorderPainter.Pieces(box.Width, box.Height, drawn);
-            if (box.Width != _box.Width || box.Height != _box.Height || !drawn.Equals(_painted) || !_shown || _alpha != _paintedAlpha)
+            if (box.Width != _box.Width || box.Height != _box.Height || !drawn.Equals(_painted) || !_shown)
             {
                 for (var i = 0; i < pieces.Length; i++)
                     Paint(i, box, pieces[i], drawn);
@@ -318,10 +318,22 @@ internal static class BorderHost
                 _painted = drawn;
                 _paintedAlpha = _alpha;
             }
-            else if (box != _box)
+            else
             {
-                for (var i = 0; i < pieces.Length; i++)
-                    Move(i, box, pieces[i]);
+                // A fade or a move keeps the pictures the pieces already have.
+                if (_alpha != _paintedAlpha)
+                {
+                    for (var i = 0; i < pieces.Length; i++)
+                        Fade(i, pieces[i]);
+
+                    _paintedAlpha = _alpha;
+                }
+
+                if (box != _box)
+                {
+                    for (var i = 0; i < pieces.Length; i++)
+                        Move(i, box, pieces[i]);
+                }
             }
 
             _box = box;
@@ -393,7 +405,8 @@ internal static class BorderHost
                 var position = new System.Drawing.Point(box.X + piece.X, box.Y + piece.Y);
                 var blend = new BLENDFUNCTION { BlendOp = 0, SourceConstantAlpha = _alpha, AlphaFormat = 1 };
                 _ = PInvoke.UpdateLayeredWindow(hwnd, screen, &position, &size, memory, &origin, new COLORREF(0), &blend, UPDATE_LAYERED_WINDOW_FLAGS.ULW_ALPHA);
-                _ = PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
+                if (!PInvoke.IsWindowVisible(hwnd))
+                    _ = PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
                 _ = PInvoke.SelectObject(memory, old);
                 _ = PInvoke.DeleteObject(bitmap);
             }
@@ -402,6 +415,15 @@ internal static class BorderHost
                 _ = PInvoke.DeleteDC(memory);
                 _ = PInvoke.ReleaseDC(HWND.Null, screen);
             }
+        }
+
+        private unsafe void Fade(int index, Rectangle piece)
+        {
+            if (_pieces[index].IsNull || piece.Width <= 0 || piece.Height <= 0)
+                return;
+
+            var blend = new BLENDFUNCTION { BlendOp = 0, SourceConstantAlpha = _alpha, AlphaFormat = 1 };
+            _ = PInvoke.UpdateLayeredWindow(_pieces[index], HDC.Null, null, null, HDC.Null, null, new COLORREF(0), &blend, UPDATE_LAYERED_WINDOW_FLAGS.ULW_ALPHA);
         }
 
         private void Move(int index, Rectangle box, Rectangle piece)
@@ -419,15 +441,17 @@ internal static class BorderHost
                 SET_WINDOW_POS_FLAGS.SWP_NOSIZE | SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
         }
 
-        // Just above the window, so a window raised over it covers its border too. Pieces already there stay put.
+        // Just above the window, so a window raised over it covers its border too. Pieces already among the
+        // decorations right above it stay put, whatever order a tab bar took among them.
         private void Stack(HWND target)
         {
-            var above = PInvoke.GetWindow(target, GET_WINDOW_CMD.GW_HWNDPREV);
-            if (Array.IndexOf(_pieces, above) >= 0)
+            var chain = new List<HWND>();
+            var above = DecorationStack.Above(target, chain);
+            if (Array.TrueForAll(_pieces, piece => piece.IsNull || chain.Contains(piece)))
                 return;
 
             var topmost = (PInvoke.GetWindowLong(target, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE) & TopmostStyle) != 0;
-            var after = topmost ? new HWND(-1) : above.IsNull ? new HWND(0) : above;
+            var after = !above.IsNull ? above : topmost ? new HWND(-1) : new HWND(0);
             foreach (var piece in _pieces)
             {
                 if (piece.IsNull)
