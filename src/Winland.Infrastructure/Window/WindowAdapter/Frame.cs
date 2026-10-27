@@ -44,6 +44,19 @@ public sealed partial class WindowAdapter
         if (!Move(window, requested))
             return false;
 
+        // A window that moved onto a Monitor with another scale resized itself for that scale as it arrived, and its
+        // frame changed with it. It is measured again and placed once more, so its own resize is not taken for a
+        // size it refuses.
+        var arrived = _desktop.Dpi(window);
+        if (arrived != dpi)
+        {
+            dpi = arrived;
+            insets = InsetsFor(window, dpi);
+            requested = insets.OuterFor(target);
+            if (!Move(window, requested))
+                return false;
+        }
+
         if (!TryOuter(window, out var landedOuter) || !TryVisible(window, out var landedVisible))
         {
             Remember(window, dpi, insets);
