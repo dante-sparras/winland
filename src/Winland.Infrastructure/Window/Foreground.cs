@@ -42,8 +42,9 @@ internal static class Foreground
             return true;
 
         // Giving the foreground waits on the window's thread, and on the old foreground window's, so a program that
-        // stopped answering would hold every bind behind it.
-        if (PInvoke.IsHungAppWindow(hwnd))
+        // stopped answering would hold every bind behind it. A window another virtual desktop cloaks would take the
+        // user to that desktop.
+        if (PInvoke.IsHungAppWindow(hwnd) || WindowAdapter.IsCloaked(hwnd))
             return false;
 
         Expect(window);

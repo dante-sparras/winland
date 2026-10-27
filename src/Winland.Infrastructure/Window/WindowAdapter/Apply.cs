@@ -325,7 +325,7 @@ public sealed partial class WindowAdapter : IDisposable
         || ((extended & NoActivateStyle) != 0 && (extended & AppWindowStyle) == 0);
 
     // Stryker disable once all : asks DWM whether a real window is cloaked.
-    private static bool IsCloaked(HWND hwnd)
+    internal static bool IsCloaked(HWND hwnd)
     {
         Span<byte> value = stackalloc byte[sizeof(int)];
         var result = PInvoke.DwmGetWindowAttribute(hwnd, DWMWINDOWATTRIBUTE.DWMWA_CLOAKED, value);
