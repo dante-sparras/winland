@@ -14,6 +14,15 @@ internal sealed class SessionWindow : IDisposable
     private const uint CloseMessage = 0x0010;
     private const uint TimerMessage = 0x0113;
     private const nuint ShellTimer = 1;
+
+    // Docking, waking, a resolution change or a remote session sends a burst of display changes. One reflow follows
+    // the burst, a quarter of a second after the last of them.
+    private const nuint DisplayTimer = 2;
+    private const uint DisplaySettle = 250;
+
+    // SPI_SETWORKAREA, which a WM_SETTINGCHANGE names when the work area changed alone, as the taskbar starting or
+    // stopping to hide itself does.
+    private const nuint WorkAreaSetting = 0x2F;
     private const uint ShellTimerMilliseconds = 250;
 
     // HSHELL_FLASH: HSHELL_REDRAW with the high bit set, sent when a window flashes for attention.
@@ -137,6 +146,21 @@ internal sealed class SessionWindow : IDisposable
                 }
 
                 return default;
+            }
+
+            if (message == TimerMessage && (nuint)wParam == DisplayTimer)
+            {
+                _ = PInvoke.KillTimer(_hwnd, DisplayTimer);
+                _onSignal(SessionSignal.DisplayChanged);
+                return default;
+            }
+
+            if (message == SessionNotices.DisplayMessage
+                || (message == AccentNotices.SettingChange && (nuint)wParam == WorkAreaSetting))
+            {
+                _ = PInvoke.SetTimer(_hwnd, DisplayTimer, DisplaySettle, null);
+                if (message == SessionNotices.DisplayMessage)
+                    return PInvoke.DefWindowProc(hwnd, message, wParam, lParam);
             }
 
             if (message == SessionNotices.PowerMessage && (nuint)wParam == SessionNotices.PowerSettingChange)
