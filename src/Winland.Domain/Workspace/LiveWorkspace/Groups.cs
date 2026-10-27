@@ -88,6 +88,7 @@ internal sealed partial class LiveWorkspace
             return false;
         }
 
+        Unminimize(next);
         _waiting[shown] = Wait(shown, outgoing);
         group.ShowAt(index);
         if (Focus == shown)
@@ -127,6 +128,8 @@ internal sealed partial class LiveWorkspace
                 _waiting[next] = waiting;
                 return GroupExit.NotMember;
             }
+
+            Unminimize(next);
         }
         else
         {
@@ -134,13 +137,6 @@ internal sealed partial class LiveWorkspace
                 return GroupExit.NotMember;
 
             taken = leaving.Taken;
-            if (next != shown && _waiting.Remove(next, out var waiting))
-            {
-                if (Layout.Substitute(shown, next, waiting.Taken, out var outgoing))
-                    _waiting[shown] = Wait(shown, outgoing);
-                else
-                    _waiting[next] = waiting;
-            }
         }
 
         group.RemoveAt(index);
@@ -194,6 +190,16 @@ internal sealed partial class LiveWorkspace
             if (_waiting.Remove(member, out var waiting))
                 destination._waiting[member] = waiting with { Client = waiting.Client with { Workspace = destination.Id } };
         }
+    }
+
+    /// <summary>
+    /// A member that takes a minimized slot was only hidden, never minimized. It shows, so the slot is restored
+    /// in the Layout instead of keeping a window nothing would ever bring back.
+    /// </summary>
+    private void Unminimize(WindowId window)
+    {
+        if (ClientOf(window) is { Minimized: true })
+            Layout.Restore(window);
     }
 
     private Client? WaitingOf(WindowId window) =>
