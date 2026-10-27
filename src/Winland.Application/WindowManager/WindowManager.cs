@@ -36,6 +36,9 @@ public sealed partial class WindowManager
 
     public Func<ConfigRead>? ReadConfig { get; set; }
 
+    /// <summary>The keyboard layout a config is read in, for a <c>keyword</c> line. The United States layout without it.</summary>
+    public Func<KeyLayout>? KeyLayoutSource { get; set; }
+
     /// <summary>
     /// Whether saving the config reloads it. <c>misc:disable_autoreload</c> turns it off, and turning the option off
     /// again, with <c>keyword</c> or a reload by hand, turns it back on.

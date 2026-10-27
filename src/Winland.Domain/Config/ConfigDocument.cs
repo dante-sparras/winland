@@ -19,6 +19,9 @@ public sealed record ConfigDocument(
     /// <summary>The path the config was read from, when it was read from a file. A sourced warning names its own file.</summary>
     public string? Path { get; init; }
 
+    /// <summary>The <c>$variables</c> the config defined, which a later <c>keyword</c> line can use too.</summary>
+    public IReadOnlyDictionary<string, string> Variables { get; init; } = new Dictionary<string, string>(StringComparer.Ordinal);
+
     /// <summary>
     /// This document with <paramref name="live"/>'s lines applied, as <c>keyword</c> applies them. An option, a keyword
     /// with a category such as general:gaps_in, replaces its old value. A keyword that may repeat, such as monitor or
