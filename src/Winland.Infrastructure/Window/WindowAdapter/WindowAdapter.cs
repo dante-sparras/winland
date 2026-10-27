@@ -12,6 +12,7 @@ public sealed partial class WindowAdapter : IDisposable
     private const int CaptionStyle = 0x00C00000;
     private const int SizingStyle = 0x00040000;
     private const int ToolStyle = 0x00000080;
+    private const int TopmostStyle = 0x00000008;
     private const int DialogStyle = 0x00000001;
     private const int LayeredStyle = 0x00080000;
     private const int ClickThroughStyle = 0x00000020;
@@ -511,7 +512,7 @@ public sealed partial class WindowAdapter : IDisposable
                 Tooltip: className == "tooltips_class32",
                 Taskbar: className is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd" || ShellFlyouts.Is(identity.Exe, className),
                 Cloaked: IsCloaked(hwnd),
-                Dialog: className == "#32770" || (extended & DialogStyle) != 0,
+                Dialog: Dialogish(className, extended, ownerWindow),
                 Elevated: false,
                 Class: identity.Class,
                 Title: title,
@@ -524,6 +525,15 @@ public sealed partial class WindowAdapter : IDisposable
         };
         return true;
     }
+
+    // A window that opens floating unless a rule tiles it: a Win32 dialog, a window with a modal frame, one a visible
+    // window owns, such as a WPF, Qt or Electron dialog or settings window, and one that stays on top, such as a
+    // browser's picture in picture. A main window some frameworks give a hidden owner still tiles.
+    private static bool Dialogish(string className, int extended, HWND owner) =>
+        className == "#32770"
+        || (extended & DialogStyle) != 0
+        || (extended & TopmostStyle) != 0
+        || (!owner.IsNull && PInvoke.IsWindowVisible(owner));
 
     // The class window rules match: a Store frame's is its hosted app's once the frame hosts one.
     private static string RuleClass(HWND hwnd)
