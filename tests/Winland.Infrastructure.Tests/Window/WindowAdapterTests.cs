@@ -38,12 +38,29 @@ public class WindowAdapterTests
             desktop.IndexOf("bounds 1 "),
             desktop.IndexOf("close 9"),
             desktop.IndexOf("show 1 Show"),
-            desktop.IndexOf("show 3 Hide"),
             desktop.IndexOf("foreground 1"),
             desktop.IndexOf("raise 2 top"),
+            desktop.IndexOf("show 3 Hide"),
         };
         Assert.DoesNotContain(-1, order);
         Assert.Equal(order.Order(), order);
+    }
+
+    [Fact]
+    public void HidingTheForegroundWindowWithNothingFocusedGivesTheDesktopTheKeyboardFirst()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        var first = windows.Open(1);
+        windows.Desktop.ForegroundWindow = first;
+        var away = windows.Core.Handle(new Dispatch("workspace", "2"));
+        Assert.Null(away.Focus);
+        windows.Desktop.Calls.Clear();
+
+        windows.Apply(away);
+
+        var desktop = windows.Desktop;
+        Assert.True(desktop.IndexOf("foreground desktop") >= 0);
+        Assert.True(desktop.IndexOf("foreground desktop") < desktop.IndexOf("show 1 Hide"));
     }
 
     [Fact]

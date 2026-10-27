@@ -232,7 +232,18 @@ internal sealed class FakeDesktop(Func<double> clock) : IDesktop
     public bool Foreground(WindowId window)
     {
         Log($"foreground {Id(window)}");
+        ForegroundWindow = window;
         return true;
+    }
+
+    internal WindowId? ForegroundWindow { get; set; }
+
+    public bool IsForeground(WindowId window) => ForegroundWindow == window;
+
+    public void ForegroundDesktop()
+    {
+        Log("foreground desktop");
+        ForegroundWindow = null;
     }
 
     public void Close(WindowId window) => Log($"close {Id(window)}");

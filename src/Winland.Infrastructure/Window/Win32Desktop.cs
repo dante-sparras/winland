@@ -121,6 +121,10 @@ internal sealed class Win32Desktop : IDesktop
 
     public bool Foreground(WindowId window) => Winland.Infrastructure.Foreground.MoveTo(window);
 
+    public bool IsForeground(WindowId window) => PInvoke.GetForegroundWindow() == Handle(window);
+
+    public void ForegroundDesktop() => Winland.Infrastructure.Foreground.ToDesktop();
+
     public void Close(WindowId window) => PInvoke.PostMessage(Handle(window), CloseMessage, default, default);
 
     public void Pace()

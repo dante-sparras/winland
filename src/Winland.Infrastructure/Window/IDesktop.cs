@@ -80,6 +80,12 @@ internal interface IDesktop : IWindowStyles, IWindowFrame, IDwmSurface
     /// <summary>Gives the window the foreground, by whatever Windows takes. Returns whether it has it.</summary>
     bool Foreground(WindowId window);
 
+    /// <summary>Whether the window has the foreground.</summary>
+    bool IsForeground(WindowId window);
+
+    /// <summary>Gives the foreground to the desktop.</summary>
+    void ForegroundDesktop();
+
     /// <summary>Posts the window the message that asks it to close.</summary>
     void Close(WindowId window);
 

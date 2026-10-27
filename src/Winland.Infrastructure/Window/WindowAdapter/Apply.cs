@@ -25,6 +25,26 @@ public sealed partial class WindowAdapter : IDisposable
         }
     }
 
+    // The foreground moves first: Windows brings the window it focuses to the top, and the z-order requests then put
+    // the floating Clients back above it. Those are held among the topmost windows while it does, so the focused
+    // window never shows over them for a frame, and are let go above it.
+    private void Front(Outcome outcome)
+    {
+        if (outcome.Focus is WindowId focus)
+        {
+            var held = outcome.ZOrder
+                .Where(request => request.Top && request.Window != focus && !_desktop.Hung(request.Window))
+                .Select(request => request.Window)
+                .Where(_desktop.HoldOnTop)
+                .ToList();
+            _ = _desktop.Foreground(focus);
+            foreach (var window in held)
+                _desktop.LetGo(window);
+        }
+
+        Restack(outcome.ZOrder);
+    }
+
     // An outcome that is not current lost its stale parts in Order.Admit. The state every outcome carries
     // whole, the group bars, the input settings and the cursor behavior, is left to the newer outcome that
     // was already applied. Its one-off requests still run.
@@ -55,6 +75,11 @@ public sealed partial class WindowAdapter : IDisposable
             if (placed.TryGetValue(window, out var bounds))
                 shownAt[bounds] = window;
         }
+
+        // With nothing focused, hiding the window that has the keyboard would leave Windows to pick a window to
+        // activate, which Winland would take for the user's choice. The desktop takes the keyboard first.
+        if (outcome.Focus is null && outcome.Hide.Any(_desktop.IsForeground))
+            _desktop.ForegroundDesktop();
 
         var concealLater = new List<WindowId>();
         var under = new List<(WindowId Window, WindowId Above)>();
@@ -113,6 +138,13 @@ public sealed partial class WindowAdapter : IDisposable
         foreach (var window in outcome.ShowMinimized)
             Reveal(window);
 
+        // The window focused here takes the foreground before the windows it replaces are hidden, so Windows never
+        // hands the keyboard to a window of its own choosing in between. One that paints under a window it replaces
+        // waits until that window is hidden, so it is not raised over it unpainted.
+        var focusFirst = outcome.Focus is WindowId early && !under.Exists(pair => pair.Window == early);
+        if (focusFirst)
+            Front(outcome);
+
         if (concealLater.Count > 0)
         {
             // A program paints a window shown again when it gets to it. A few frames are waited for at most. The paint
@@ -127,22 +159,8 @@ public sealed partial class WindowAdapter : IDisposable
                 ConcealOrLeave(window, motions);
         }
 
-        // The foreground moves first: Windows brings the window it focuses to the top, and the z-order requests then put
-        // the floating Clients back above it. Those are held among the topmost windows while it does, so the focused
-        // window never shows over them for a frame, and are let go above it.
-        if (outcome.Focus is WindowId focus)
-        {
-            var held = outcome.ZOrder
-                .Where(request => request.Top && request.Window != focus && !_desktop.Hung(request.Window))
-                .Select(request => request.Window)
-                .Where(_desktop.HoldOnTop)
-                .ToList();
-            _ = _desktop.Foreground(focus);
-            foreach (var window in held)
-                _desktop.LetGo(window);
-        }
-
-        Restack(outcome.ZOrder);
+        if (!focusFirst)
+            Front(outcome);
 
         foreach (var launch in outcome.Launches)
         {
