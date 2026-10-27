@@ -116,7 +116,7 @@ While border resize is on, the outcome names the cursor for the edge under the p
 
 ## Mouse drag
 
-A mouse button that runs a bind is swallowed, so the window under the pointer does not get it. A wheel notch that runs a bind is swallowed too.
+A mouse button that runs a bind is swallowed, so the window under the pointer does not get it. A wheel notch that runs a bind is swallowed too. A wheel bind runs at most once every 300 milliseconds, so one spin does not run it many times, and a notch for it in between is swallowed without running it.
 
 A drag that picks up a fullscreen or maximized Client ends that mode first. A floating Client is then put under the pointer by its middle.
 
@@ -289,7 +289,7 @@ A release bind matches the modifiers its key went down under, so `bindr = SUPER,
 
 ## Sending keys
 
-`sendshortcut` takes modifiers, a key, and a window selector. It sends the key with exactly those modifiers down. A modifier the user holds that is not named is let go around the key and pressed again after it, if the user still holds it then. A `sendshortcut` bind presses the key on the press and releases it on the release. From the pipe it presses and releases at once. A number above 9 and `code:N` are keycodes, `mouse:272` to `mouse:276` are the left, right, middle, side and extra buttons, and anything else is a key name in the focused window's keyboard layout. An empty selector sends to the focused window. A bad argument answers `invalid args`, `invalid modifiers`, `invalid mouse button`, `invalid key`, `key not found`, or `window not found`, after the dispatcher name.
+`sendshortcut` takes modifiers, a key, and a window selector. It sends the key with exactly those modifiers down. A modifier the user holds that is not named is let go around the key and pressed again after it, if the user still holds it then. A `sendshortcut` bind presses the key on the press and releases it on the release. Windows does not repeat a key Winland sends, so a held `bind` sends it once, and a `binde` sends it again on each repeat. From the pipe it presses and releases at once. A number above 9 and `code:N` are keycodes, `mouse:272` to `mouse:276` are the left, right, middle, side and extra buttons, and anything else is a key name in the focused window's keyboard layout. An empty selector sends to the focused window. A bad argument answers `invalid args`, `invalid modifiers`, `invalid mouse button`, `invalid key`, `key not found`, or `window not found`, after the dispatcher name.
 
 A sent key is tagged, so Winland's own hooks let it through and it never runs a bind.
 

@@ -81,6 +81,9 @@ public sealed partial class WindowManager
 
         var workspace = arguments[..comma];
         var window = Select(arguments[(comma + 1)..], emptyMeansActive: false);
+        if (window is null)
+            return Rejected("error: window not found");
+
         return MoveTo(workspace, silent, consumed: false, window, windowChosen: true);
     }
 

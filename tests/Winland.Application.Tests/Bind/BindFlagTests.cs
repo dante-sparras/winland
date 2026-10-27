@@ -38,9 +38,28 @@ public class BindFlagTests
         Assert.Equal(new WindowId(1), core.Handle(new WheelTurned("mouse_down", 1_000)).Close);
 
         var blocked = core.Handle(new WheelTurned("mouse_down", 1_200));
-        Assert.False(blocked.Consumed);
+        Assert.True(blocked.Consumed);
+        Assert.Null(blocked.Close);
 
         Assert.Equal(new WindowId(1), core.Handle(new WheelTurned("mouse_down", 1_300)).Close);
+    }
+
+    [Fact]
+    public void AnUnknownKeyNameWarnsAndTheBindIsSkipped()
+    {
+        var parsed = ConfigParser.Parse("bind = SUPER, Retrun, killactive\nbind = SUPER, a&b, killactive\nbind = SUPER, Return, killactive\n");
+
+        Assert.Equal(["Unknown key 'Retrun'.", "Unknown key 'a&b'."], parsed.Warnings.Select(warning => warning.Message));
+        Assert.Single(parsed.Binds);
+    }
+
+    [Fact]
+    public void AnUndefinedVariableInTheModifiersWarnsAndTheBindIsSkipped()
+    {
+        var parsed = ConfigParser.Parse("bind = $mod SHIFT, Q, killactive" + Environment.NewLine);
+
+        Assert.Equal("Undefined variable in modifiers '$mod SHIFT'.", Assert.Single(parsed.Warnings).Message);
+        Assert.Empty(parsed.Binds);
     }
 
     [Fact]

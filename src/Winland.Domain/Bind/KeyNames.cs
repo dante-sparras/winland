@@ -109,6 +109,28 @@ public static class KeyNames
         return code > 0 ? $"code:{code}" : $"vk:{virtualKey}";
     }
 
+    /// <summary>
+    /// Whether a bind on <paramref name="configName"/> can ever run: a key the layout or Winland's tables know, a
+    /// <c>code:</c>, a mouse button or a wheel direction. A misspelt name, <c>catchall</c> and a chord of keys joined
+    /// with <c>&amp;</c> cannot.
+    /// </summary>
+    public static bool Matchable(string configName, KeyLayout layout)
+    {
+        ArgumentNullException.ThrowIfNull(configName);
+        ArgumentNullException.ThrowIfNull(layout);
+        if (configName.Length == 0 || configName.Equals("catchall", StringComparison.Ordinal) || configName.IndexOf('&') > 0)
+            return false;
+
+        if (configName.StartsWith("mouse:", StringComparison.OrdinalIgnoreCase))
+            return int.TryParse(configName.AsSpan("mouse:".Length), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out _);
+
+        return configName is "mouse_up" or "mouse_down" or "mouse_left" or "mouse_right"
+            || TryCode(configName, out _)
+            || TryKeysym(configName, layout, out _)
+            || TryVirtualKey(configName, out _, out _)
+            || TryAlias(configName, out _);
+    }
+
     public static string Resolve(string configName, KeyLayout layout)
     {
         ArgumentNullException.ThrowIfNull(configName);
