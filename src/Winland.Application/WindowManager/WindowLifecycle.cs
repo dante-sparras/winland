@@ -352,8 +352,10 @@ public sealed partial class WindowManager
 
         desk.Retitle(retitled.Window, retitled.Title);
 
-        // A rule that matches the title may now match or stop matching, so its rules are read again.
-        _renamed.Add(retitled.Window);
+        // A rule that matches the title may now match or stop matching, so its rules are read again. With no rule
+        // that reads a title, nothing can change.
+        if (_config.TitleRules || _props.Subject(retitled.Window)?.Followed.Any(rule => rule.TitlePattern is not null) == true)
+            _renamed.Add(retitled.Window);
         return View([]);
     }
 }

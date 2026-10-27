@@ -9,8 +9,6 @@ namespace Winland.Domain;
 /// </summary>
 internal static class WindowSelector
 {
-    private static readonly TimeSpan MatchTimeout = TimeSpan.FromMilliseconds(250);
-
     internal static WindowId? Find(string selector, WindowId? active, IReadOnlyList<Client> clients)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -140,19 +138,5 @@ internal static class WindowSelector
         return null;
     }
 
-    private static bool Matches(string text, string pattern)
-    {
-        try
-        {
-            return Regex.IsMatch(text, $"\\A(?:{pattern})\\z", RegexOptions.CultureInvariant, MatchTimeout);
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-        catch (RegexMatchTimeoutException)
-        {
-            return false;
-        }
-    }
+    private static bool Matches(string text, string pattern) => WholeMatch.IsMatch(pattern, text);
 }

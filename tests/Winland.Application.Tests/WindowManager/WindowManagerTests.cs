@@ -497,6 +497,25 @@ public class WindowManagerTests
     }
 
     [Fact]
+    public void AWorkspaceRuleForAProgramLeavesItsPopupsAlone()
+    {
+        var core = new WindowManager(ConfigParser.Parse("windowrule = workspace 2, exe:chrome.exe\n"));
+        var area = new Rectangle(0, 0, 1920, 1080);
+
+        var menu = core.Handle(new WindowAppeared(new WindowId(7), area)
+        {
+            Traits = WindowTraits.Normal with { Tool = true, Titled = false, Title = "", Exe = "chrome.exe" },
+        });
+        var popup = core.Handle(new WindowAppeared(new WindowId(8), area)
+        {
+            Traits = WindowTraits.Normal with { Overlay = true, Exe = "chrome.exe" },
+        });
+
+        Assert.Empty(menu.State.Clients);
+        Assert.Empty(popup.State.Clients);
+    }
+
+    [Fact]
     public void TileRuleTilesADialog()
     {
         var core = new WindowManager(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\nwindowrule = tile, class:^(dialog)$\n"));
