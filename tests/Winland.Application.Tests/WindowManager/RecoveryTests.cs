@@ -107,6 +107,18 @@ public class RecoveryTests
     }
 
     [Fact]
+    public void ASnapshotACleanExitLeftSaysSo()
+    {
+        var client = new RecoveredClient(new WindowId(7), WorkspaceId.Initial, MonitorId.Primary, true, "App", "App", 1);
+
+        Assert.True(RecoverySnapshot.TryParse(new RecoverySnapshot([client]) { Clean = true }.ToJson(), out var clean));
+        Assert.True(RecoverySnapshot.TryParse(new RecoverySnapshot([client]).ToJson(), out var crashed));
+
+        Assert.True(clean.Clean);
+        Assert.False(crashed.Clean);
+    }
+
+    [Fact]
     public void TheFrameAndRegionAWindowWasLeftWithRoundTrip()
     {
         var changed = new RecoveredClient(new WindowId(42), WorkspaceId.Initial, MonitorId.Primary, false, "App", "App", 1)

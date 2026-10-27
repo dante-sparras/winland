@@ -209,7 +209,7 @@ static void Stop(WindowHost host, RecoveryStore store, WindowManager core)
     // are then put back as after a crash, which needs no core.
     try
     {
-        var final = WindowIdentity.Annotate(core.Recovery());
+        var final = WindowIdentity.Annotate(core.Recovery()) with { Clean = true };
         host.RevealHidden();
         host.ResetDecorations();
         host.RestoreTaskbar();
