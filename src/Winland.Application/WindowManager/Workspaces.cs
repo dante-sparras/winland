@@ -219,7 +219,8 @@ public sealed partial class WindowManager
             if (focus is WindowId requested && ClientOn(target, requested) is not null)
                 Give(requested, FocusedWorkspace());
 
-            return View([], hide: concealed, consumed: consumed);
+            // Closing the special workspace hides the window that has the keyboard, so the window focused here takes it.
+            return View([], hide: concealed, consumed: consumed, focus: concealed.Length > 0 || focus is not null ? Kept() : null);
         }
 
         var keep = _focus.Focused is WindowId current
@@ -234,17 +235,13 @@ public sealed partial class WindowManager
         var destination = WorkspaceFor(target, monitor);
         CarryPinned(sourceId, destination);
         var hide = VisibleIds(sourceId);
-        var keepSpecial = _workspaces.Shown.SpecialOn(monitor) is not null && focus is null;
-        if (!keepSpecial)
-        {
-            Give(
-                focus is WindowId requestedFocus && ClientOn(target, requestedFocus) is not null
-                    ? requestedFocus
-                    : keep is WindowId pinnedFocus && ClientOn(target, pinnedFocus) is not null
-                        ? pinnedFocus
-                        : _focus.Remembered(destination),
-                destination);
-        }
+        Give(
+            focus is WindowId requestedFocus && ClientOn(target, requestedFocus) is not null
+                ? requestedFocus
+                : keep is WindowId pinnedFocus && ClientOn(target, pinnedFocus) is not null
+                    ? pinnedFocus
+                    : _focus.Remembered(destination),
+            destination);
 
         DropIfEmpty(sourceId);
 
@@ -254,7 +251,7 @@ public sealed partial class WindowManager
             VisibleIds(target),
             Combine(hide, concealed),
             consumed,
-            focus: keepSpecial ? null : Kept());
+            focus: Kept());
     }
 
     private LiveMonitor? ShownElsewhere(WorkspaceId target)
