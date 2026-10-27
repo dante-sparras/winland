@@ -12,6 +12,12 @@ public sealed class ConfigWatcher : IDisposable
     private Timer? _timer;
     private bool _disposed;
 
+    // What the watched files held when the last save reloaded them, so a save that changed nothing reloads nothing.
+    private string? _lastRead;
+
+    // A file an editor is still writing can refuse to be read for a moment.
+    private static readonly TimeSpan ReadRetry = TimeSpan.FromMilliseconds(100);
+
     public ConfigWatcher(Action reload, TimeSpan? debounce = null)
     {
         ArgumentNullException.ThrowIfNull(reload);
@@ -114,14 +120,29 @@ public sealed class ConfigWatcher : IDisposable
 
     private void OnChanged(object? sender, FileSystemEventArgs args)
     {
-        if (Interested(args.FullPath))
+        if (Interested(args.FullPath) || (args.ChangeType != WatcherChangeTypes.Changed && Sibling(args.FullPath)))
             Schedule();
     }
 
     private void OnRenamed(object? sender, RenamedEventArgs args)
     {
-        if (Interested(args.FullPath) || Interested(args.OldFullPath))
+        if (Interested(args.FullPath) || Interested(args.OldFullPath) || Sibling(args.FullPath) || Sibling(args.OldFullPath))
             Schedule();
+    }
+
+    // A file of the same kind as a watched one, appearing or going in a watched folder, may be one a glob source
+    // such as conf.d/*.conf takes in or loses.
+    private bool Sibling(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        var extension = Path.GetExtension(path);
+        if (extension.Length == 0)
+            return false;
+
+        lock (_gate)
+            return _paths.Any(watched => string.Equals(Path.GetExtension(watched), extension, StringComparison.OrdinalIgnoreCase));
     }
 
     private void OnError(object? sender, ErrorEventArgs args) => Schedule();
@@ -160,12 +181,31 @@ public sealed class ConfigWatcher : IDisposable
     private void Fire()
     {
         Action reload;
+        string[] paths;
         lock (_gate)
         {
             if (_disposed)
                 return;
 
             reload = _reload;
+            paths = [.. _paths];
+        }
+
+        // A file still being written is waited for once. A save that changed nothing, as Ctrl+S on an unchanged file
+        // or an editor that writes twice, does not run the config's exec lines again.
+        var read = Read(paths);
+        if (read is null)
+        {
+            Thread.Sleep(ReadRetry);
+            read = Read(paths);
+        }
+
+        lock (_gate)
+        {
+            if (read is not null && read == _lastRead)
+                return;
+
+            _lastRead = read;
         }
 
         try
@@ -176,6 +216,49 @@ public sealed class ConfigWatcher : IDisposable
         {
             _ = exception;
         }
+    }
+
+    // The text of every watched file, in a fixed order, or null when one could not be read. A file that is gone reads
+    // as gone.
+    private static string? Read(string[] paths)
+    {
+        Array.Sort(paths, StringComparer.OrdinalIgnoreCase);
+        var all = new System.Text.StringBuilder();
+        foreach (var path in paths)
+        {
+            all.Append(path).Append('\0');
+            try
+            {
+                all.Append(File.Exists(path) ? File.ReadAllText(path) : "\u0001gone").Append('\0');
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                return null;
+            }
+        }
+
+        // The files a glob source could take in, so one that appears or goes is a change.
+        foreach (var directory in Directories(new HashSet<string>(paths, StringComparer.OrdinalIgnoreCase)))
+        {
+            var extensions = paths.Select(path => Path.GetExtension(path) ?? "").Where(extension => extension.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase);
+            foreach (var extension in extensions)
+            {
+                string[] names;
+                try
+                {
+                    names = Directory.GetFiles(directory, "*" + extension);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    return null;
+                }
+
+                Array.Sort(names, StringComparer.OrdinalIgnoreCase);
+                all.AppendJoin('|', names).Append('\0');
+            }
+        }
+
+        return all.ToString();
     }
 
     private static void Release(List<FileSystemWatcher> watchers)

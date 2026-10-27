@@ -250,3 +250,41 @@ public class ConfigWatcherThrowTests : ConfigWatcherFacts
         Assert.True(WaitUntil(() => Volatile.Read(ref count) > first), "The watch stopped after a reload threw.");
     }
 }
+
+public class ConfigWatcherUnchangedTests : ConfigWatcherFacts
+{
+    [Fact]
+    public void ASaveThatChangedNothingReloadsNothing()
+    {
+        using var dir = Temp();
+        var config = Path.Combine(dir.Path, "winland.conf");
+        File.WriteAllText(config, "general:gaps_in = 0\n");
+        var count = 0;
+        using var watcher = new ConfigWatcher(() => Interlocked.Increment(ref count), Debounce);
+        watcher.Watch([config]);
+
+        File.WriteAllText(config, "general:gaps_in = 1\n");
+        Assert.True(WaitUntil(() => Volatile.Read(ref count) == 1));
+        File.WriteAllText(config, "general:gaps_in = 1\n");
+
+        Assert.Equal(1, Settled(ref count));
+    }
+}
+
+public class ConfigWatcherGlobTests : ConfigWatcherFacts
+{
+    [Fact]
+    public void ANewFileBesideAWatchedOneReloads()
+    {
+        using var dir = Temp();
+        var config = Path.Combine(dir.Path, "winland.conf");
+        File.WriteAllText(config, "general:gaps_in = 0\n");
+        var count = 0;
+        using var watcher = new ConfigWatcher(() => Interlocked.Increment(ref count), Debounce);
+        watcher.Watch([config]);
+
+        File.WriteAllText(Path.Combine(dir.Path, "extra.conf"), "general:gaps_out = 0\n");
+
+        Assert.True(WaitUntil(() => Volatile.Read(ref count) == 1));
+    }
+}
