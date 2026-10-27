@@ -341,7 +341,7 @@ A click on a tab focuses that member, and a click between tabs focuses the shown
 
 ## IPC pipe
 
-A client has 5 seconds after it connects to send its request line. One that sends nothing in that time is disconnected. After the reply the Daemon waits up to 30 seconds for the client to close. Each client is served on its own and an idle `events` subscriber holds no thread, so a slow or silent client never keeps another, or a bind, waiting.
+A client has 5 seconds after it connects to send its request line. One that sends nothing in that time is disconnected. After the reply the Daemon waits up to 30 seconds for the client to close. Each client is served on its own and an idle `events` subscriber holds no thread, so a slow or silent client never keeps another, or a bind, waiting. An `events` subscriber that falls 256 lines behind is disconnected, so it reconnects and reads the state again instead of going on with events missing.
 
 The pipe refuses clients on other machines. When another process already holds the pipe name, the Daemon fails to start and says so, instead of sharing the name with it.
 
