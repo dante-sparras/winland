@@ -281,6 +281,10 @@ internal sealed class OpacityAdapter
     private void Report(WindowId window, string reason)
     {
         var message = "Window 0x" + window.Value.ToString("x", CultureInfo.InvariantCulture) + " " + reason;
+
+        // Kept for tests to read. The newest are enough, so a long session does not keep every one.
+        if (_reports.Count >= 64)
+            _reports.RemoveAt(0);
         _reports.Add(message);
         Console.Error.WriteLine(message);
     }

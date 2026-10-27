@@ -451,6 +451,7 @@ public sealed class WindowHost : IDisposable
 
     private void RecoverSession()
     {
+        _windows.DropGone();
         ShellBars.Rehide();
         var snapshot = Recall();
         if (snapshot is not null)

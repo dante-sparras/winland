@@ -290,6 +290,8 @@ public sealed partial class WindowAdapter : IDisposable
                     Apply(_core.Handle(new WindowClosed(window)));
                     // A window held when it was created may never have been shown.
                     _opacity.Forget(window);
+                    BorderHost.Forget(window);
+                    _motions.Forget(window);
                     return;
                 case PInvoke.EVENT_OBJECT_LOCATIONCHANGE:
                     if (Decide(hwnd, window))

@@ -72,10 +72,24 @@ internal static class BorderHost
             if (_worker is null)
                 return;
 
+            // A Client with no border, on a hidden Workspace or fullscreen, has no tint to put back.
+            if (color is null && !Entries.ContainsKey(window) && _pending?.ContainsKey(window) != true)
+            {
+                Tints.Remove(window);
+                return;
+            }
+
             Tints[window] = color;
             Moved.Add(window);
             Post();
         }
+    }
+
+    /// <summary>The window is gone. A tint it held is dropped, so a window that gets its handle next starts without it.</summary>
+    internal static void Forget(WindowId window)
+    {
+        lock (Gate)
+            Tints.Remove(window);
     }
 
     /// <summary>Removes every border and ends the thread.</summary>

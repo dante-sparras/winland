@@ -7,8 +7,12 @@ namespace Winland.Daemon;
 /// </summary>
 sealed class RollingLogWriter(TextWriter inner) : TextWriter
 {
+    // The file starts over past this many characters, so a session of days does not fill the disk.
+    private const long Limit = 10 * 1024 * 1024;
+
     private readonly Lock _gate = new();
     private TextWriter? _file;
+    private long _written;
 
     public override Encoding Encoding => inner.Encoding;
 
@@ -27,9 +31,10 @@ sealed class RollingLogWriter(TextWriter inner) : TextWriter
                 _file?.Dispose();
                 _file = null;
             }
-            else
+            else if (_file is null)
             {
-                _file ??= openFile();
+                _file = openFile();
+                _written = 0;
             }
         }
     }
@@ -81,8 +86,18 @@ sealed class RollingLogWriter(TextWriter inner) : TextWriter
 
         lock (_gate)
         {
-            _file?.Write(text);
-            _file?.Flush();
+            if (_file is null)
+                return;
+
+            _written += text.Length;
+            if (_written > Limit && _file is StreamWriter { BaseStream: { CanSeek: true } stream })
+            {
+                _file.Flush();
+                stream.SetLength(0);
+                _written = text.Length;
+            }
+
+            _file.Write(text);
         }
     }
 }
