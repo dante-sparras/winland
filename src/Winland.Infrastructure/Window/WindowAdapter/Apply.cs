@@ -271,7 +271,9 @@ public sealed partial class WindowAdapter : IDisposable
 
     private void ShowConcealed(WindowId window)
     {
-        _concealed.TryRemove(window, out _);
+        // The show this causes comes back as a window event, which needs nothing read again: Winland knows the window.
+        if (_concealed.TryRemove(window, out _))
+            _revealed[window] = 0;
         ShowOrPost(window, _desktop.Minimized(window) ? ShowAs.ShowMinimized : ShowAs.Show);
     }
 

@@ -23,6 +23,7 @@ public sealed partial class WindowAdapter : IDisposable
 
     // The windows Winland hid, so an application hiding its own window can be told from it.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> _concealed = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> _revealed = new();
 
     // The windows the core was last told are disabled.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> _disabled = new();
@@ -277,6 +278,7 @@ public sealed partial class WindowAdapter : IDisposable
                     return;
                 case PInvoke.EVENT_OBJECT_DESTROY:
                     _concealed.TryRemove(window, out _);
+                    _revealed.TryRemove(window, out _);
                     _disabled.TryRemove(window, out _);
                     _settling.TryRemove(window, out _);
                     _ownFullscreen.TryRemove(window, out _);
@@ -353,6 +355,9 @@ public sealed partial class WindowAdapter : IDisposable
                 case PInvoke.EVENT_OBJECT_UNCLOAKED:
                 case PInvoke.EVENT_OBJECT_NAMECHANGE:
                 case PInvoke.EVENT_OBJECT_CREATE:
+                    if (@event == PInvoke.EVENT_OBJECT_SHOW && _revealed.TryRemove(window, out _))
+                        return;
+
                     var facts = new WindowFacts(
                         Minimized: PInvoke.IsIconic(hwnd),
                         Visible: PInvoke.IsWindowVisible(hwnd),
