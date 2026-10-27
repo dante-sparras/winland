@@ -215,6 +215,10 @@ internal static class WorkspaceAddress
                 break;
             }
 
+            // With the active Workspace outside the cycle, +1 lands on the first and -1 on the last.
+            if (current < 0 && remains < 0)
+                current = 0;
+
             current += remains;
             if (current >= size)
                 current %= size;
