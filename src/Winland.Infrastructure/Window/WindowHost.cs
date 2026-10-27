@@ -52,7 +52,8 @@ public sealed class WindowHost : IDisposable
         _touchpad = new TouchpadInput(_keys.PostInput);
         _core.SessionLock = _phase;
         _commands = new CommandServer(core, _windows.Apply, pipeName);
-        _commands.AfterCommand = FollowTaskbar;
+        // A command arrives on a pipe thread. The taskbar state is the loop thread's, as a reload's is.
+        _commands.AfterCommand = () => _loop.Post(FollowTaskbar);
         _taskbar = TaskbarControl.Current;
     }
 
