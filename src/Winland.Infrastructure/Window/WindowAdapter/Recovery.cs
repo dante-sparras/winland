@@ -23,6 +23,10 @@ public sealed partial class WindowAdapter : IDisposable
             if (recognized != WindowIdentity.Recognition.SameClient)
                 continue;
 
+            // A clean exit showed every hidden Client. One hidden again was hidden by its program, and stays so.
+            if (snapshot.Clean && client.Hidden && !_desktop.Shown(client.Window))
+                continue;
+
             // Nothing minimizes under Winland, so a window that is minimized now was minimized while it was away.
             // It does not rejoin, but one that was hidden is still shown again, minimized.
             if (_desktop.Minimized(client.Window))

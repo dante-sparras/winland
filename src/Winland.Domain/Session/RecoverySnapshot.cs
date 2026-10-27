@@ -11,6 +11,12 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
+    /// <summary>
+    /// The snapshot a clean exit left, after it showed every hidden Client. A hidden Client that is not shown at the
+    /// next start was hidden by its program since, as one closed to the tray is.
+    /// </summary>
+    public bool Clean { get; init; }
+
     public string ToJson()
     {
         var rows = new ClientBody[Clients.Count];
@@ -35,7 +41,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 client.Region);
         }
 
-        return JsonSerializer.Serialize(new FileBody(rows), Json);
+        return JsonSerializer.Serialize(new FileBody(rows, Clean ? true : null), Json);
     }
 
     public static bool TryParse(string? json, out RecoverySnapshot snapshot)
@@ -77,7 +83,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 });
             }
 
-            snapshot = new RecoverySnapshot(clients);
+            snapshot = new RecoverySnapshot(clients) { Clean = body.Clean == true };
             return true;
         }
         catch (JsonException)
@@ -89,7 +95,9 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
     private static FullscreenMode? Mode(int? value) =>
         value is int mode && Enum.IsDefined((FullscreenMode)mode) ? (FullscreenMode)mode : null;
 
-    private sealed record FileBody([property: JsonPropertyName("clients")] ClientBody?[]? Clients);
+    private sealed record FileBody(
+        [property: JsonPropertyName("clients")] ClientBody?[]? Clients,
+        [property: JsonPropertyName("clean")] bool? Clean = null);
 
     private sealed record ClientBody(
         [property: JsonPropertyName("window")] long Window,
