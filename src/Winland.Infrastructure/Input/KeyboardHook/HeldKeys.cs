@@ -24,6 +24,10 @@ public sealed partial class KeyboardHook : IDisposable
     {
         _session.Forget(IsDown);
 
+        // A drag whose button or key was let go on the lock screen is over, or the window would follow the cursor.
+        if (Drag.Current is BindDrag.Active dragging && !IsDown(dragging.Button) && Drag.Abandon() is BindDrag.Active drag)
+            PostGesture(drag.Dispatcher, drag.Arguments, CursorPoint(), PointerDragPhase.End, drag.Button);
+
         // A release the hook missed leaves its bit set. A key still held sets it again when it repeats.
         var held = Volatile.Read(ref _held);
         for (var i = 0; i < Modifiers.Length; i++)
