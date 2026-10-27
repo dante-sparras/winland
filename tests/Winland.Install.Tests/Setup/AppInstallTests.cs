@@ -75,6 +75,19 @@ public class AppInstallTests
     }
 
     [Fact]
+    public void AnUpgradeRemovesFilesTheNewReleaseDoesNotShip()
+    {
+        files.Seed(Path.Combine(Machine, "Dropped.Dependency.dll"), [7]);
+        files.Seed(Path.Combine(Machine, "winland.exe.winland-old"), [6]);
+
+        install.InstallMachine(Source, @"DESKTOP\dante", "0.2.0");
+
+        Assert.False(files.Exists(Path.Combine(Machine, "Dropped.Dependency.dll")));
+        Assert.True(files.Exists(Path.Combine(Machine, "winland.exe.winland-old")));
+        Assert.Equal([1], files.Read(Path.Combine(Machine, "winland.exe")));
+    }
+
+    [Fact]
     public void MachineInstallKeepsTheRestOfTheMachinePath()
     {
         registry.SetString(

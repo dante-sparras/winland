@@ -173,6 +173,15 @@ public sealed class AppInstall
         files.PrepareDirectory(plan.Destination);
         foreach (var file in plan.Files)
             files.Copy(Path.Combine(plan.SourceDirectory, file.RelativePath), Path.Combine(plan.Destination, file.RelativePath));
+
+        // A file an older release shipped and this one does not is removed, so libraries it dropped do not pile up.
+        // One set aside because it was in use goes on its own.
+        var shipped = new HashSet<string>(plan.Files.Select(file => file.RelativePath), StringComparer.OrdinalIgnoreCase);
+        foreach (var file in files.List(plan.Destination))
+        {
+            if (!shipped.Contains(file.RelativePath) && !file.RelativePath.Contains(".winland-old", StringComparison.OrdinalIgnoreCase))
+                files.DeleteFile(Path.Combine(plan.Destination, file.RelativePath));
+        }
     }
 
     private static void Require(IReadOnlyList<ListedFile> files, string name, string directory)

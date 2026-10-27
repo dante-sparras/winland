@@ -23,6 +23,9 @@ public interface IFileTree
 
     void Copy(string source, string destination);
 
+    /// <summary>Removes one file. A link is removed itself and its target left alone.</summary>
+    void DeleteFile(string path);
+
     void DeleteTree(string directory);
 }
 
