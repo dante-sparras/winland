@@ -346,6 +346,25 @@ public sealed partial class WindowManager
         }
     }
 
+    /// <summary>
+    /// Whether a press at <paramref name="pointer"/> grabs the ring around a tile that <c>general:resize_on_border</c>
+    /// resizes by. The hook asks before it lets a press through, so a core busy with a step answers no at once.
+    /// </summary>
+    public bool OnBorder(Point pointer)
+    {
+        if (!_gate.TryEnter())
+            return false;
+
+        try
+        {
+            return _interaction is null && ActiveOptions().ResizeOnBorder && TryBorderTarget(pointer, out _, out _, out _, out _);
+        }
+        finally
+        {
+            _gate.Exit();
+        }
+    }
+
     // A press whose only action is a drag, which with no window under the pointer Winland lets through.
     private static bool OnlyDrag(BindDecision match) => DispatchesOf(match).All(dispatch => dispatch.Dispatcher.Length == 0 || IsDragDispatcher(dispatch));
 

@@ -21,6 +21,23 @@ public class BorderResizeTests
         Assert.True(resized.Live);
     }
 
+    [Fact]
+    public void TheHookIsToldWhichPressesGrabARing()
+    {
+        var core = CoreWith("""
+            general:resize_on_border = true
+            general:border_size = 0
+            """);
+        Float(core, 1);
+
+        Assert.True(core.OnBorder(new Point(1280, 540)));
+        Assert.False(core.OnBorder(new Point(960, 540)));
+
+        var off = CoreWith("general:border_size = 0");
+        Float(off, 1);
+        Assert.False(off.OnBorder(new Point(1280, 540)));
+    }
+
     // Winland tests floating windows, with their grab rings, before the tiles under them.
     [Fact]
     public void AFloatingBorderOverATileResizesTheFloatingWindow()
