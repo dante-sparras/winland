@@ -92,7 +92,17 @@ public sealed partial class WindowManager
     {
         ArgumentNullException.ThrowIfNull(input);
         lock (_gate)
+        {
+            // Closing a program destroys many windows that were never Clients, such as its child windows. Each only
+            // needs what Winland noted about it forgotten, not a whole step.
+            if (input is WindowClosed closed && _applied is { } last && WorkspaceContaining(closed.Window) is null)
+            {
+                _windowState.Forget(closed.Window);
+                return Outcome.Empty(last.State);
+            }
+
             return Step(input, () => HandleInput(input));
+        }
     }
 
     public IReadOnlyList<Launch> StartupLaunches(ConfigDocument config)

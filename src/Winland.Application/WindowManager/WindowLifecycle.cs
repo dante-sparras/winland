@@ -91,9 +91,13 @@ public sealed partial class WindowManager
         }
 
         // A Client shown again changes nothing, and uses up no rules of a started program. One that showed itself
-        // while its Workspace is hidden is hidden again.
+        // while Winland keeps it hidden, on a hidden Workspace, waiting in a Group or scrolled out of view, is hidden again.
         if (Find(appeared.Window) is { } existing)
-            return _workspaces.Shown.IsShown(existing.Workspace) && !IsWaiting(appeared.Window) ? View([]) : View([], hide: [appeared.Window]);
+        {
+            var kept = _workspaces.Shown.IsShown(existing.Workspace)
+                && WorkspaceContaining(appeared.Window)?.Covered().Contains(appeared.Window) != true;
+            return kept ? View([]) : View([], hide: [appeared.Window]);
+        }
 
         var followed = processId > 0 ? _follow.Take(processId, Clock()) : [];
         var traits = appeared.Traits.WithInitialNames();
@@ -282,7 +286,7 @@ public sealed partial class WindowManager
         var outcome = Present(desk, covered, placements, focus: next, focusRevealed: reveal);
         if (wasActive && reveal && _focus.Focused == window)
         {
-            var fallback = desk.LastVisible();
+            var fallback = LastAccepted(desk);
             Give(fallback, desk);
             outcome = outcome with { Focus = fallback };
         }
