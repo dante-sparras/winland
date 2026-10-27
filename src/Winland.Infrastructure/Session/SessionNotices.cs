@@ -99,7 +99,8 @@ internal static class SessionNotices
                 return false;
             }
 
-            signal = value == 1 ? SessionSignal.DisplayOn : SessionSignal.DisplayOff;
+            // A dimmed screen is still on, so undimming it is not a wake that needs the windows put back.
+            signal = value == 0 ? SessionSignal.DisplayOff : SessionSignal.DisplayOn;
             return true;
         }
 

@@ -38,7 +38,7 @@ public class SessionNoticeTests
     {
         Assert.Equal(SessionSignal.DisplayOff, Display(SessionNotices.ConsoleDisplayState, 0));
         Assert.Equal(SessionSignal.DisplayOn, Display(SessionNotices.ConsoleDisplayState, 1));
-        Assert.Equal(SessionSignal.DisplayOff, Display(SessionNotices.ConsoleDisplayState, 2));
+        Assert.Equal(SessionSignal.DisplayOn, Display(SessionNotices.ConsoleDisplayState, 2));
         Assert.Equal(SessionSignal.DisplayOff, Display(SessionNotices.MonitorPowerOn, 0));
         Assert.Equal(SessionSignal.DisplayOn, Display(SessionNotices.MonitorPowerOn, 1));
         Assert.False(SessionNotices.TryDisplayPower(SessionNotices.ConsoleDisplayState, 3, out _));
