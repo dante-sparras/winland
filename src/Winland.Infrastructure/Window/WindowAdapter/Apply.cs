@@ -30,19 +30,24 @@ public sealed partial class WindowAdapter : IDisposable
     // window never shows over them for a frame, and are let go above it.
     private void Front(Outcome outcome)
     {
+        List<WindowId> held = [];
         if (outcome.Focus is WindowId focus)
         {
-            var held = outcome.ZOrder
+            held = outcome.ZOrder
                 .Where(request => request.Top && request.Window != focus && !_desktop.Hung(request.Window))
                 .Select(request => request.Window)
                 .Where(_desktop.HoldOnTop)
                 .ToList();
             _ = _desktop.Foreground(focus);
             foreach (var window in held)
+            {
                 _desktop.LetGo(window);
+                BorderHost.Follow(window);
+            }
         }
 
-        Restack(outcome.ZOrder);
+        // A window let go is above every window that is not topmost already, in the order asked, so it is not raised again.
+        Restack(held.Count == 0 ? outcome.ZOrder : [.. outcome.ZOrder.Where(request => !(request.Top && held.Contains(request.Window)))]);
     }
 
     // An outcome that is not current lost its stale parts in Order.Admit. The state every outcome carries

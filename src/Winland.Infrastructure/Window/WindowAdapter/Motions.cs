@@ -80,7 +80,11 @@ public sealed partial class WindowAdapter
             return;
         }
 
+        // A borderless window already on its rectangle is left alone, as a framed one is.
         var trails = TryOuter(window, out var before) && _quick.Trails(window, before);
+        if (!trails && before == bounds)
+            return;
+
         if (Move(window, bounds) && trails)
             SendQuick(window, bounds, keepSize: false);
     }

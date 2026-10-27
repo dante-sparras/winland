@@ -39,11 +39,14 @@ public class WindowAdapterTests
             desktop.IndexOf("close 9"),
             desktop.IndexOf("show 1 Show"),
             desktop.IndexOf("foreground 1"),
-            desktop.IndexOf("raise 2 top"),
+            desktop.IndexOf("let-go 2"),
             desktop.IndexOf("show 3 Hide"),
         };
         Assert.DoesNotContain(-1, order);
         Assert.Equal(order.Order(), order);
+
+        // Let go above the focused window, it is not raised a second time.
+        Assert.Equal(-1, desktop.IndexOf("raise 2 top"));
     }
 
     [Fact]
