@@ -214,6 +214,12 @@ public class ExtraCommandTests
         Assert.True(ControlInvocation.TryCreate(["dispatch", "resizeactive", "-20", "0"], out line, out events));
         Assert.Equal("dispatch resizeactive -20 0", line);
 
+        Assert.True(ControlInvocation.TryCreate(["dispatch", "exec", "wt", "-p", "pwsh"], out line, out events));
+        Assert.Equal("dispatch exec wt -p pwsh", line);
+
+        Assert.True(ControlInvocation.TryCreate(["dispatch", "exec", @"C:\Program Files\App\app.exe", "--flag"], out line, out events));
+        Assert.Equal(@"dispatch exec ""C:\Program Files\App\app.exe"" --flag", line);
+
         Assert.True(ControlInvocation.TryCreate(["setprop", "active", "float", "true"], out line, out events));
         Assert.Equal("setprop active float true", line);
 

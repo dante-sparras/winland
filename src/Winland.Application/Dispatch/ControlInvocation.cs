@@ -30,7 +30,9 @@ public static class ControlInvocation
                 break;
             }
 
-            if (!arg.StartsWith('-') || IsNumber(arg))
+            // The words after "dispatch exec" are a command line, so "dispatch exec wt -p pwsh" keeps "-p". Elsewhere a
+            // dash that is not a number is a flag, as the reference control tool reads it.
+            if (IsCommandLine(rest) || !arg.StartsWith('-') || IsNumber(arg))
             {
                 rest.Add(arg);
                 continue;
@@ -60,12 +62,33 @@ public static class ControlInvocation
             return true;
         }
 
-        if (rest.Count == 0 || CommandProtocol.Parse(prefix + string.Join(' ', rest)) is not CommandParsed parsed)
+        if (rest.Count == 0)
             return false;
 
-        line = prefix + string.Join(' ', rest);
+        var request = string.Join(' ', Quoted(rest));
+        if (CommandProtocol.Parse(prefix + request) is not CommandParsed parsed)
+            return false;
+
+        line = prefix + request;
         events = parsed.Request is EventsRequest;
         return true;
+    }
+
+    // The shell took the quotes off an argument with a space, such as a program under C:\Program Files. A command
+    // line exec runs gets them back, so the program's path stays one argument.
+    private static bool IsCommandLine(List<string> words) =>
+        words.Count >= 2 && words[0] == "dispatch" && words[1] is "exec" or "execr";
+
+    private static IEnumerable<string> Quoted(List<string> words)
+    {
+        var command = IsCommandLine(words);
+        for (var i = 0; i < words.Count; i++)
+        {
+            var word = words[i];
+            yield return command && i >= 2 && word.Contains(' ', StringComparison.Ordinal) && !word.Contains('"', StringComparison.Ordinal)
+                ? "\"" + word + "\""
+                : word;
+        }
     }
 
     // A negative number is an argument, not a flag: "-20", "-0.1", and "-50," as the
