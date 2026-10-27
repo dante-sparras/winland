@@ -154,6 +154,21 @@ public class DwindleConformance
     }
 
     [Fact]
+    public void DwindleMoveTowardTheEdgeItIsAtMovesNothing()
+    {
+        var desk = new Desk();
+        desk.Spawn("a");
+        desk.Spawn("b");
+        desk.Spawn("c");
+        var before = new[] { desk.Placed("a"), desk.Placed("b"), desk.Placed("c") };
+
+        desk.Ok("focuswindow", "class:a");
+        desk.Dispatch("movewindow", "l");
+
+        Assert.Equal(before, new[] { desk.Placed("a"), desk.Placed("b"), desk.Placed("c") });
+    }
+
+    [Fact]
     public void DwindleMoveAcrossToggledSplit()
     {
         var desk = new Desk();

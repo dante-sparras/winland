@@ -471,6 +471,51 @@ public class ScrollingLayoutTests
         Assert.Equal(Window(1), core.Execute("dispatch movefocus left").Effect.Focus);
     }
 
+    [Fact]
+    public void ScrollingMovesColumnsWithoutResizingThem()
+    {
+        var core = Flat();
+        for (var window = 1; window <= 5; window++)
+            core.Handle(Appeared(window));
+        core.Execute("dispatch layoutmsg colresize all 0.333");
+
+        var widths = new HashSet<int>();
+        for (var step = 0; step < 4; step++)
+        {
+            foreach (var placement in core.Execute("dispatch movefocus l").Effect.Placements)
+                widths.Add(placement.Bounds.Width);
+        }
+
+        Assert.Single(widths);
+    }
+
+    [Fact]
+    public void ClosingAColumnLeftOfTheViewLeavesTheColumnsInViewInPlace()
+    {
+        var layout = Tape();
+
+        var placed = layout.Remove(Window(1));
+
+        Assert.Equal(new Rectangle(0, 0, 500, 800), Box(placed, 2));
+        Assert.Equal(new Rectangle(500, 0, 500, 800), Box(placed, 3));
+    }
+
+    [Fact]
+    public void KeyboardResizeGrowsARowAtItsSmallestHeight()
+    {
+        var core = Flat();
+        core.Handle(Appeared(1));
+        core.Handle(Appeared(2));
+        core.Execute("dispatch movefocus l");
+        core.Execute("dispatch layoutmsg consume");
+        core.Execute("dispatch focuswindow address:0x2");
+        var smallest = BoundsOf(core.Execute("dispatch resizeactive 0 -2000").Effect, 2).Height;
+
+        var grown = BoundsOf(core.Execute("dispatch resizeactive 0 100").Effect, 2).Height;
+
+        Assert.True(grown > smallest);
+    }
+
     private static WindowManager Flat() => Configured("""
         general:layout = scrolling
         general:gaps_in = 0

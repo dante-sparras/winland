@@ -472,7 +472,7 @@ internal sealed partial class ScrollingLayout
         }
         else if (top && previous is not null)
         {
-            if ((previous.Size <= MinRow && toward <= 0) || (cell.Size <= MinRow && delta >= 0))
+            if ((previous.Size <= MinRow && toward <= 0) || (cell.Size <= MinRow && toward >= 0))
                 return;
 
             Trade(previous, cell, toward / usable);

@@ -61,7 +61,11 @@ internal sealed partial class DwindleLayout
         if (!_nodes.TryGetValue(id, out var node) || node.Parent is null || !InTree(node))
             return [];
 
+        // A tile already at the edge it moves toward stays where it is, instead of the tree being rebuilt around it.
         var focal = Focal(node.Box, direction);
+        if (LeafContaining(focal) is null)
+            return [];
+
         var towardSibling = TowardLeafSibling(node, direction);
         Detach(node);
         Refit();
