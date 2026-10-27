@@ -25,6 +25,24 @@ public class AnimatorTests
     }
 
     [Fact]
+    public void ASpringThatTakesOverAMovingWindowKeepsItsSpeed()
+    {
+        var spring = new SpringCurve(100, 20, 1);
+        var timing = new Timing(spring, spring.Milliseconds);
+        var animator = new Animator();
+        animator.Start(new Motion(Window, new Rectangle(1000, 0, 100, 100)) { From = new Rectangle(0, 0, 100, 100), Move = timing }, now: 0);
+        var before = Assert.Single(animator.Step(40)).Bounds!.Value.X;
+        var at = Assert.Single(animator.Step(50)).Bounds!.Value.X;
+
+        // The new goal is where the window already is, so only its speed can move it on.
+        animator.Start(new Motion(Window, new Rectangle(at, 0, 100, 100)) { Move = timing }, now: 50);
+        var after = Assert.Single(animator.Step(60)).Bounds!.Value.X;
+
+        Assert.True(at > before);
+        Assert.True(after > at);
+    }
+
+    [Fact]
     public void AFrameCarriesTheRectangleTheWindowRestsOn()
     {
         var animator = new Animator();
