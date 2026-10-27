@@ -16,6 +16,14 @@ internal sealed class Win32Desktop : IDesktop
     private static readonly HWND Topmost = new(-1);
     private static readonly HWND NotTopmost = new(-2);
 
+    // A program that took this long to answer a call that waits on it is handled as hung for a while: its next
+    // placements and z-order changes are posted, not waited for. One busy program then holds Winland up once, not on
+    // every step until Windows calls it hung after five seconds.
+    private const long SlowMilliseconds = 250;
+    private const long SlowForMilliseconds = 3000;
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, long> _slowUntil = new();
+
     private readonly Win32WindowStyles _styles = new();
     private readonly Win32WindowFrame _frames = new();
     private readonly Win32DwmSurface _surface = new();
@@ -46,7 +54,28 @@ internal sealed class Win32Desktop : IDesktop
 
     public bool Minimized(WindowId window) => PInvoke.IsIconic(Handle(window));
 
-    public bool Hung(WindowId window) => PInvoke.IsHungAppWindow(Handle(window));
+    public bool Hung(WindowId window)
+    {
+        if (PInvoke.IsHungAppWindow(Handle(window)))
+            return true;
+
+        if (!_slowUntil.TryGetValue(window, out var until))
+            return false;
+
+        if (Environment.TickCount64 < until)
+            return true;
+
+        _slowUntil.TryRemove(window, out _);
+        return false;
+    }
+
+    private void Timed(WindowId window, Action call)
+    {
+        var start = Environment.TickCount64;
+        call();
+        if (Environment.TickCount64 - start >= SlowMilliseconds)
+            _slowUntil[window] = Environment.TickCount64 + SlowForMilliseconds;
+    }
 
     public int Dpi(WindowId window) => (int)PInvoke.GetDpiForWindow(Handle(window));
 
@@ -85,14 +114,17 @@ internal sealed class Win32Desktop : IDesktop
         if (delivery == Delivery.PostKeepingSize)
             flags |= SET_WINDOW_POS_FLAGS.SWP_NOSIZE;
 
-        _ = PInvoke.SetWindowPos(Handle(window), HWND.Null, outer.X, outer.Y, outer.Width, outer.Height, flags);
+        if (delivery == Delivery.Wait)
+            Timed(window, () => PInvoke.SetWindowPos(Handle(window), HWND.Null, outer.X, outer.Y, outer.Width, outer.Height, flags));
+        else
+            _ = PInvoke.SetWindowPos(Handle(window), HWND.Null, outer.X, outer.Y, outer.Width, outer.Height, flags);
     }
 
-    public void Show(WindowId window, ShowAs show) => PInvoke.ShowWindow(Handle(window), Command(show));
+    public void Show(WindowId window, ShowAs show) => Timed(window, () => PInvoke.ShowWindow(Handle(window), Command(show)));
 
     public void ShowAsync(WindowId window, ShowAs show) => PInvoke.ShowWindowAsync(Handle(window), Command(show));
 
-    public void Raise(WindowId window, bool top) => Restack(window, top, 0);
+    public void Raise(WindowId window, bool top) => Timed(window, () => Restack(window, top, 0));
 
     public void RaiseAsync(WindowId window, bool top) => Restack(window, top, SET_WINDOW_POS_FLAGS.SWP_ASYNCWINDOWPOS);
 
