@@ -39,6 +39,13 @@ internal sealed class Win32KeyRelaySender : IKeyRelaySender
         }
 
         var previous = PInvoke.GetForegroundWindow();
+        var destination = relay.Target is WindowId requested ? new HWND((nint)requested.Value) : previous;
+        if (!UserAccess.CanSendTo(PackagedIdentity.OwnerProcess(destination)))
+        {
+            Console.Error.WriteLine("The key was not sent: the destination is elevated or its elevation could not be checked.");
+            return;
+        }
+
         var moved = false;
         if (relay.Target is WindowId target && target.Value != ((nint)previous).ToInt64())
         {
@@ -52,6 +59,14 @@ internal sealed class Win32KeyRelaySender : IKeyRelaySender
             }
 
             moved = true;
+        }
+
+        // SendInput uses the foreground at send time, which may have changed while focus was moving.
+        var foreground = PInvoke.GetForegroundWindow();
+        if (foreground != destination || !UserAccess.CanSendTo(PackagedIdentity.OwnerProcess(foreground)))
+        {
+            Console.Error.WriteLine("The key was not sent: the foreground changed before it could be sent.");
+            return;
         }
 
         KeyboardHook.Send([.. Build(relay, stroke, Down, KeyboardHook.Held)]);

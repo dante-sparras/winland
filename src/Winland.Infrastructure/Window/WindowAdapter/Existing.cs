@@ -11,22 +11,32 @@ public sealed partial class WindowAdapter
     internal void AdoptExisting(IEnumerable<nint> windows)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        var described = new List<WindowAppeared>();
         foreach (var handle in windows)
         {
-            var hwnd = new HWND(handle);
-            var window = new WindowId(handle);
             try
             {
-                if (!TryDescribe(hwnd, window, out var appeared))
-                    continue;
-
-                var outcome = _core.Handle(appeared);
-                NoteManaged(window, outcome, appeared);
-                Apply(outcome);
+                if (TryDescribe(new HWND(handle), new WindowId(handle), out var appeared))
+                    described.Add(appeared);
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
+                Console.Error.WriteLine(exception);
             }
+        }
+
+        // One step takes them all in, so each tile is placed once.
+        try
+        {
+            var outcome = _core.Adopt(described);
+            foreach (var appeared in described)
+                NoteManaged(appeared.Window, outcome, appeared);
+
+            Apply(outcome);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            Console.Error.WriteLine(exception);
         }
     }
 

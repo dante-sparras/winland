@@ -60,7 +60,9 @@ public sealed partial class WindowManager
     private Outcome NoteAccent(AccentChanged changed)
     {
         _accent = changed.Color;
-        _config = _config with { Decoration = _config.Decoration.WithAccent(_accent) };
+        _contrast = changed.Contrast;
+        _textScale = changed.TextScale;
+        _config = _config.WithSystemColors(_accent, _contrast);
         return View([]);
     }
 
@@ -75,7 +77,7 @@ public sealed partial class WindowManager
     private Outcome Apply(ConfigDocument document, bool loaded = true)
     {
         ArgumentNullException.ThrowIfNull(document);
-        Use(AppliedConfig.From(document, _accent));
+        Use(AppliedConfig.From(document, _accent, _contrast));
         if (loaded)
         {
             _loaded = document;
@@ -85,7 +87,11 @@ public sealed partial class WindowManager
         var active = FocusedWorkspace();
         var covered = active.Covered();
         foreach (var desk in _workspaces)
+        {
             MatchLayout(desk);
+            foreach (var client in desk.Layout.Clients.Concat(desk.WaitingClients))
+                _renamed.Add(client.Window);
+        }
         Outcome outcome;
         if (_monitors.Count == 0)
         {
@@ -178,7 +184,7 @@ public sealed partial class WindowManager
         var area = WorkArea(desk, _area);
         created.Apply(desk.Options);
         if (area.Width > 0 && area.Height > 0)
-            created.Fit(area);
+            created.Fit(area, screen is { Arranged.Enabled: true } ? screen.Bounds : default);
 
         var monitor = screen is { Arranged.Enabled: true } ? screen.Bounds : default;
         foreach (var (window, taken) in held)

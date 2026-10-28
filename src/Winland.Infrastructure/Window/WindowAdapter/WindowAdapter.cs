@@ -17,7 +17,6 @@ public sealed partial class WindowAdapter : IDisposable
     private const int LayeredStyle = 0x00080000;
     private const int ClickThroughStyle = 0x00000020;
     private const int NoActivateStyle = 0x08000000;
-    private const int AppWindowStyle = 0x00040000;
 
     private readonly Lock _showGate = new();
     private volatile bool _releasing;
@@ -55,14 +54,16 @@ public sealed partial class WindowAdapter : IDisposable
     private HWINEVENTHOOK _foreground;
     private HWINEVENTHOOK _moveSize;
     private volatile RecoverySnapshot? _published;
-    private bool _disposed;
+    private volatile bool _disposed;
 
-    private readonly HashSet<WindowId> _painted = [];
+    // Every window this decorated, with the decoration it shows when no motion holds any of it.
+    private readonly Dictionary<WindowId, Decoration?> _painted = [];
     private readonly OpacityAdapter _opacity;
     private readonly BorderlessFrame _borderless;
     private readonly DwmEffects _effects;
     private readonly Lock _paintGate = new();
-    private readonly ApplyOrder _order = new();
+    private readonly System.Collections.Concurrent.ConcurrentQueue<Outcome> _decided = new();
+    private readonly Lock _applyGate = new();
     private readonly Dictionary<WindowId, CachedFrame> _frames = [];
     private readonly Lock _frameGate = new();
     private readonly Func<double> _clock;
@@ -71,7 +72,8 @@ public sealed partial class WindowAdapter : IDisposable
     // Where Winland last asked each window to be, and the frames sent without waiting.
     private readonly QuickMove _quick = new();
 
-    private int _applying;
+    // The windows being placed now, waiting for each to take its rectangle.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> _placing = new();
 
     private const long SettleMilliseconds = 1500;
 
@@ -102,9 +104,10 @@ public sealed partial class WindowAdapter : IDisposable
         _clock = clock ?? PresentClock.Now;
         _opacity = new OpacityAdapter(desktop, desktop.Hung);
         _borderless = new BorderlessFrame(desktop, desktop.Hung);
-        _effects = new DwmEffects(desktop);
+        _effects = new DwmEffects(desktop, desktop.Hung);
         _motions = new MotionPlayer(new MotionTarget(this), _clock, threaded);
         _core.ReducedMotion = ReducedMotion;
+        _core.Decided = _decided.Enqueue;
         GroupBarHost.Dispatch = (name, arguments) =>
         {
             if (!_disposed)
@@ -200,12 +203,6 @@ public sealed partial class WindowAdapter : IDisposable
         Release();
         LandMotions();
         ClearDecorations();
-
-        // Nothing hooks window events any more, so an outcome applied after this changes windows again.
-        _releasing = false;
-        _borderless.Reopen();
-        _effects.Reopen();
-        _opacity.Reopen();
     }
 
     private void OnEvent(
@@ -218,12 +215,13 @@ public sealed partial class WindowAdapter : IDisposable
         uint dwmsEventTime)
     {
         // A reorder names the parent whose children moved, so it is not a window event. Only the desktop's children are
-        // windows that can be Clients: then every tab bar is stacked again, and the floating Clients go back above a
-        // tile that was raised over them. Programs reorder their own child windows all the time.
+        // windows that can be Clients: then every border and tab bar is stacked again, and the floating Clients go back
+        // above a tile that was raised over them. Programs reorder their own child windows all the time.
         if (@event == PInvoke.EVENT_OBJECT_REORDER)
         {
             if (hwnd == PInvoke.GetDesktopWindow())
             {
+                BorderHost.Restack();
                 GroupBarHost.Restack();
                 KeepFloatingAbove();
             }
@@ -295,6 +293,12 @@ public sealed partial class WindowAdapter : IDisposable
                     _motions.Forget(window);
                     return;
                 case PInvoke.EVENT_OBJECT_LOCATIONCHANGE:
+                    if (_declined.Fullscreen(window) && TryDescribe(hwnd, window, out var windowed) && !windowed.Traits.ExclusiveFullscreen)
+                    {
+                        AdoptShown(hwnd, window);
+                        return;
+                    }
+
                     if (Decide(hwnd, window))
                         return;
 
@@ -311,10 +315,10 @@ public sealed partial class WindowAdapter : IDisposable
                         return;
                     }
 
-                    if (Volatile.Read(ref _applying) == 0)
+                    if (!_placing.ContainsKey(window))
                     {
                         // A frame or a placement Winland sent arrives here too, often after Apply returned. Asking
-                        // the window for its limits again would wait on a window that is busy taking it. A move the
+                        // a window being placed for its limits again would wait on it while it is busy taking it. A move the
                         // application made itself lands somewhere Winland did not put it, and is still read.
                         // A window the user drags reads its limits once the drag ends, not on every step of it.
                         // A frame of Winland's own is neither the window resizing itself nor asking for fullscreen.
@@ -326,9 +330,8 @@ public sealed partial class WindowAdapter : IDisposable
                         {
                             ReportResize(hwnd, window);
                             ReportFullscreen(hwnd, window);
+                            PutBackIfDrifted(hwnd, window);
                         }
-
-                        PutBackIfDrifted(hwnd, window);
                     }
 
                     _effects.Refit(window);
@@ -376,7 +379,7 @@ public sealed partial class WindowAdapter : IDisposable
                         case VisibilityAction.Close:
                             AbandonDrag(window);
                             ForgetLimits(window);
-                            Apply(_core.Handle(new WindowClosed(window)));
+                            Apply(_core.Handle(new WindowClosed(window) { Cloaked = @event == PInvoke.EVENT_OBJECT_CLOAKED }));
                             break;
                         case VisibilityAction.Retitle:
                             Apply(_core.Handle(new WindowTitleChanged(window, WindowTitle(hwnd))));
@@ -409,6 +412,7 @@ public sealed partial class WindowAdapter : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
+            Console.Error.WriteLine(exception);
         }
     }
 
@@ -451,6 +455,19 @@ public sealed partial class WindowAdapter : IDisposable
             && PInvoke.GetWindowTextLength(hwnd) > 0;
     }
 
+    // Tooltips, menus and popups are shown all the time, and no window rule makes one of them a Client. They are told
+    // apart from their styles before their program and their size limits are read, which can wait on the window.
+    private static bool CanBeClient(HWND hwnd)
+    {
+        var style = PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE);
+        var extended = PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
+        return (style & ChildStyle) == 0
+            && !IsOverlay(extended)
+            && ((extended & ToolStyle) == 0 || PInvoke.GetWindowTextLength(hwnd) > 0)
+            && PInvoke.IsWindowVisible(hwnd)
+            && PInvoke.GetAncestor(hwnd, GET_ANCESTOR_FLAGS.GA_ROOT) == hwnd;
+    }
+
     // A window's state changes often, as it gains focus or is pressed, so only a change of enabled reaches the core.
     private void NoteEnabled(HWND hwnd, WindowId window)
     {
@@ -487,7 +504,8 @@ public sealed partial class WindowAdapter : IDisposable
         var identity = PackagedIdentity.Resolve(hwnd, className, ProcessFacts.Shared.For(owner).Exe);
         var topLevel = PInvoke.GetAncestor(hwnd, GET_ANCESTOR_FLAGS.GA_ROOT) == hwnd && (style & ChildStyle) == 0;
         Point? pointer = PInvoke.GetCursorPos(out var cursor) ? new Point(cursor.X, cursor.Y) : null;
-        var bounds = PInvoke.GetWindowRect(hwnd, out var rect) ? From(rect) : default;
+        var outer = PInvoke.GetWindowRect(hwnd, out var rect) ? From(rect) : default;
+        var bounds = TryVisible(window, out var visible) ? visible : outer;
         var monitorRect = From(info.rcMonitor);
         // A Store app's frame belongs to ApplicationFrameHost. The Client's process is the app it hosts.
         long processId = identity.ProcessId;
@@ -497,6 +515,7 @@ public sealed partial class WindowAdapter : IDisposable
         var ownerWindow = PInvoke.GetWindow(hwnd, GET_WINDOW_CMD.GW_OWNER);
         appeared = new WindowAppeared(window, From(info.rcWork))
         {
+            Foreground = PInvoke.GetForegroundWindow() == hwnd,
             Pointer = pointer,
             Owner = ownerWindow.IsNull ? null : new WindowId(((IntPtr)ownerWindow).ToInt64()),
             Disabled = Note(window, !PInvoke.IsWindowEnabled(hwnd)),
@@ -520,8 +539,10 @@ public sealed partial class WindowAdapter : IDisposable
                 Aumid: identity.Aumid,
                 MinSize: min,
                 MaxSize: max,
-                ExclusiveFullscreen: ExclusiveFullscreenWindow.Is((uint)style, bounds, monitorRect),
-                Overlay: IsOverlay(extended)),
+                ExclusiveFullscreen: ExclusiveFullscreenWindow.Is((uint)style, outer, monitorRect),
+                Overlay: IsOverlay(extended),
+                Resizable: (style & SizingStyle) != 0,
+                Topmost: (extended & TopmostStyle) != 0),
         };
         return true;
     }
@@ -529,11 +550,11 @@ public sealed partial class WindowAdapter : IDisposable
     // A window that opens floating unless a rule tiles it: a Win32 dialog, a window with a modal frame, one a visible
     // window owns, such as a WPF, Qt or Electron dialog or settings window, and one that stays on top, such as a
     // browser's picture in picture. A main window some frameworks give a hidden owner still tiles.
-    private static bool Dialogish(string className, int extended, HWND owner) =>
+    private bool Dialogish(string className, int extended, HWND owner) =>
         className == "#32770"
         || (extended & DialogStyle) != 0
         || (extended & TopmostStyle) != 0
-        || (!owner.IsNull && PInvoke.IsWindowVisible(owner));
+        || (!owner.IsNull && (PInvoke.IsWindowVisible(owner) || _concealed.ContainsKey(new WindowId((nint)owner))));
 
     // The class window rules match: a Store frame's is its hosted app's once the frame hosts one.
     private static string RuleClass(HWND hwnd)

@@ -28,21 +28,11 @@ public static class SessionEffects
         CursorShape.Show(outcome.ResizeCursor);
 
         if (outcome.Cursor is CursorBehavior behavior)
+        {
             Idle.Configure(behavior);
+            _timer?.Follow();
+        }
 
-        if (outcome.Warp is WarpTo warp)
-            Idle.Warp(warp.Position);
-
-        Relay(outcome);
-    }
-
-    /// <summary>
-    /// Carries out only the outcome's one-off requests: its cursor warp and its relayed keys. An older outcome
-    /// applied after a newer one keeps these and nothing else here; its warp is gone when a newer one warped.
-    /// </summary>
-    public static void ApplyOneOff(Outcome outcome)
-    {
-        ArgumentNullException.ThrowIfNull(outcome);
         if (outcome.Warp is WarpTo warp)
             Idle.Warp(warp.Position);
 

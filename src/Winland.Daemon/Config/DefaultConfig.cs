@@ -13,20 +13,25 @@ static class DefaultConfig
     public static string Text { get; } = Read();
 
     /// <summary>
-    /// Writes <see cref="Text"/> to <paramref name="path"/> when that file is absent.
-    /// An existing file is left as it is. Returns whether this call wrote the file.
+    /// Writes <see cref="Text"/> when the file is absent or empty. Returns whether this call wrote it.
     /// </summary>
-    public static bool WriteIfMissing(string path)
+    public static bool WriteIfMissing(string path) => UserAccess.Run(() => Write(path));
+
+    private static bool Write(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var full = Path.GetFullPath(path);
+        if (new FileInfo(full) is { Exists: true, Length: > 0 })
+            return false;
         var directory = Path.GetDirectoryName(full);
         if (!string.IsNullOrEmpty(directory))
             Directory.CreateDirectory(directory);
 
         try
         {
-            using var stream = new FileStream(full, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            using var stream = new FileStream(full, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
+            if (stream.Length != 0)
+                return false;
             using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
             writer.Write(Text);
             return true;

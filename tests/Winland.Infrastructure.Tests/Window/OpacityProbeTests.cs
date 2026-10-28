@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using static Winland.Infrastructure.Tests.ProbeNative;
 
 namespace Winland.Infrastructure.Tests;
 
@@ -47,7 +48,7 @@ public class OpacityProbeTests
         adapter.Apply(new WindowId(probe.Handle), 100);
 
         Assert.Equal(200, LayeredAlpha(probe.Handle));
-        Assert.Contains(adapter.Reports, report => report.Contains("left alone", StringComparison.Ordinal));
+        Assert.False(adapter.Owns(new WindowId(probe.Handle)));
     }
 
     private static uint ExStyle(nint window) => (uint)GetWindowLongPtr(window, ExStyleIndex);
@@ -64,7 +65,7 @@ public class OpacityProbeTests
         private const string ClassName = "WinlandOpacityProbe";
 
         private static readonly Lock Gate = new();
-        private static readonly WndProc Proc = WindowProc;
+        private static readonly ProbeNative.WndProc Proc = WindowProc;
         private static bool _registered;
 
         private Probe(nint handle) => Handle = handle;
@@ -77,15 +78,7 @@ public class OpacityProbeTests
             {
                 if (!_registered)
                 {
-                    var info = new WndClass
-                    {
-                        cbSize = Marshal.SizeOf<WndClass>(),
-                        lpfnWndProc = Marshal.GetFunctionPointerForDelegate(Proc),
-                        hInstance = GetModuleHandle(null),
-                        lpszClassName = ClassName,
-                    };
-                    if (RegisterClassEx(ref info) == 0 && Marshal.GetLastWin32Error() != 1410)
-                        throw new InvalidOperationException($"The probe class was not registered ({Marshal.GetLastWin32Error()}).");
+                    ProbeNative.Register(ClassName, Proc);
 
                     _registered = true;
                 }
@@ -102,7 +95,7 @@ public class OpacityProbeTests
                 80,
                 IntPtr.Zero,
                 IntPtr.Zero,
-                GetModuleHandle(null),
+                ProbeNative.Module,
                 IntPtr.Zero);
             if (handle == IntPtr.Zero)
                 throw new InvalidOperationException($"The probe window was not created ({Marshal.GetLastWin32Error()}).");
@@ -119,52 +112,6 @@ public class OpacityProbeTests
         private static IntPtr WindowProc(IntPtr hwnd, uint message, nint wParam, nint lParam) =>
             DefWindowProc(hwnd, message, wParam, lParam);
     }
-
-    private delegate IntPtr WndProc(IntPtr hwnd, uint message, nint wParam, nint lParam);
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct WndClass
-    {
-        public int cbSize;
-        public uint style;
-        public nint lpfnWndProc;
-        public int cbClsExtra;
-        public int cbWndExtra;
-        public IntPtr hInstance;
-        public IntPtr hIcon;
-        public IntPtr hCursor;
-        public IntPtr hbrBackground;
-        public string? lpszMenuName;
-        public string lpszClassName;
-        public IntPtr hIconSm;
-    }
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern ushort RegisterClassEx(ref WndClass lpwcx);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern IntPtr CreateWindowEx(
-        uint dwExStyle,
-        string lpClassName,
-        string lpWindowName,
-        uint dwStyle,
-        int x,
-        int y,
-        int nWidth,
-        int nHeight,
-        IntPtr hWndParent,
-        IntPtr hMenu,
-        IntPtr hInstance,
-        IntPtr lpParam);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool DestroyWindow(IntPtr hwnd);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern IntPtr DefWindowProc(IntPtr hwnd, uint message, nint wParam, nint lParam);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-    private static extern IntPtr GetModuleHandle(string? lpModuleName);
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
     private static extern nint GetWindowLongPtr(nint hwnd, int index);

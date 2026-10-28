@@ -79,7 +79,7 @@ internal sealed class Coalescer<T> : IDisposable
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                Console.Error.WriteLine(exception.Message);
+                Console.Error.WriteLine(exception);
             }
 
             Thread.Sleep(_gap);

@@ -1,8 +1,8 @@
 namespace Winland.Domain;
 
 /// <summary>
-/// A Client handed from one Workspace's Layout to another. A Layout leaves the fullscreen modes at none;
-/// <see cref="LiveWorkspace.Take"/> fills them in so the Client is fullscreen again where it lands.
+/// A Client handed from one Workspace's Layout to another. A Layout leaves the fullscreen mode at none;
+/// <see cref="LiveWorkspace.Take"/> fills it in so the Client is fullscreen again where it lands.
 /// </summary>
 internal readonly record struct Taken(
     bool Floating,
@@ -11,12 +11,11 @@ internal readonly record struct Taken(
     string Class = "",
     string Title = "",
     long ProcessId = 0,
-    string InitialClass = "",
-    string InitialTitle = "",
+    string? InitialClass = null,
+    string? InitialTitle = null,
     Size? MinSize = null,
     Size? MaxSize = null,
     double? ScrollingWidth = null,
     FullscreenMode Fullscreen = FullscreenMode.None,
-    FullscreenMode FullscreenClient = FullscreenMode.None,
     TiledLimits? TiledLimits = null,
     bool LayoutFullscreen = false);

@@ -50,7 +50,11 @@ public sealed record DecorationOptions
         Of("decoration:fullscreen_opacity", OptionValue.Single(0f, 1f), o => o.FullscreenOpacity, (o, v) => o with { FullscreenOpacity = v }),
     ]);
 
-    public static DecorationOptions From(ConfigDocument document) => Options.From(Documented, document);
+    /// <summary>The options <paramref name="document"/> sets, over the High Contrast colors while <paramref name="contrast"/> is on.</summary>
+    public static DecorationOptions From(ConfigDocument document, HighContrast? contrast = null) =>
+        Options.From(
+            contrast is HighContrast colors ? Documented with { ActiveBorder = colors.Highlight, InactiveBorder = colors.GrayText } : Documented,
+            document);
 
     private static Option<DecorationOptions> Of<T>(string name, OptionValue<T> value, Func<DecorationOptions, T> get, Func<DecorationOptions, T, DecorationOptions> set) =>
         Option<DecorationOptions>.Of(name, value, get, set);

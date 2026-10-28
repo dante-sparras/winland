@@ -5,7 +5,8 @@
 # Dot-sourcing defines the decisions and runs nothing. scripts/install.tests.ps1 does that.
 param(
     [ValidateSet('stable', 'dev')]
-    [string]$Channel = 'stable'
+    [string]$Channel = 'stable',
+    [switch]$NoTweaks
 )
 
 $script:ArchiveName = 'Winland-win-x64.zip'
@@ -68,7 +69,7 @@ function Get-FailureMessage([string[]]$Arguments, [int]$ExitCode, [string[]]$Out
         }
         return 'Administrator approval was declined. Nothing was installed. Run the command again to retry.'
     }
-    $last = @($Output | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Last 1)
+    $last = @($Output | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $_ -notmatch '^\s+at\s' } | Select-Object -Last 1)
     if ($last.Count -gt 0) { return ([string]$last[0]).Trim() }
     $shown = $Arguments -join ' '
     return "winland $shown stopped with exit code $ExitCode."
@@ -258,6 +259,27 @@ function Get-Download([string]$Url, [string]$Path) {
     }
 }
 
+function Get-RateLimitMessage($Response) {
+    if ($null -eq $Response) { return $null }
+    if ([int]$Response.StatusCode -notin @(403, 429)) { return $null }
+    try {
+        if (@($Response.Headers.GetValues('x-ratelimit-remaining')) -notcontains '0') { return $null }
+    } catch {
+        return $null
+    }
+    try {
+        $reset = @($Response.Headers.GetValues('x-ratelimit-reset'))
+        $seconds = 0L
+        if ($reset.Count -gt 0 -and [long]::TryParse([string]$reset[0], [ref]$seconds) -and $seconds -ge 0 -and $seconds -le 253402300799) {
+            $when = [DateTimeOffset]::FromUnixTimeSeconds($seconds).UtcDateTime.ToString('yyyy-MM-dd HH:mm:ss', [Globalization.CultureInfo]::InvariantCulture)
+            return "The GitHub API rate limit is used up. Try again after $when UTC."
+        }
+    } catch {
+        # An absent reset header still gets a rate-limit explanation.
+    }
+    return 'The GitHub API rate limit is used up. Try again later.'
+}
+
 function Get-ReleaseJson([string]$Url) {
     try {
         $headers = @{
@@ -267,6 +289,8 @@ function Get-ReleaseJson([string]$Url) {
         $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -Headers $headers
         return [string]$response.Content
     } catch {
+        $rateLimit = Get-RateLimitMessage (Get-PropertyValue $_.Exception 'Response')
+        if ($rateLimit) { throw $rateLimit }
         throw 'Could not read the newest release. Check the network and run the command again.'
     }
 }
@@ -284,7 +308,85 @@ function Update-Winland([string]$Executable, [string]$Channel) {
     }
 }
 
-function Install-Winland([string]$Channel, [string]$Temp) {
+# The elevated host receives this script in its command line, never from a user-writable .ps1 file.
+function Get-ProtectedInstallScript([string]$Zip, [string]$Hash, [string]$Account, [bool]$Logon, [bool]$Start) {
+    $body = @'
+$ErrorActionPreference = 'Stop'
+$folder = $null
+try {
+    $security = New-Object Security.AccessControl.DirectorySecurity
+    $security.SetAccessRuleProtection($true, $false)
+    $security.SetOwner((New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')))
+    $inherit = [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
+    foreach ($sid in @('S-1-5-18', 'S-1-5-32-544')) {
+        $identity = New-Object Security.Principal.SecurityIdentifier($sid)
+        $rule = New-Object Security.AccessControl.FileSystemAccessRule($identity, 'FullControl', $inherit, 'None', 'Allow')
+        $security.AddAccessRule($rule)
+    }
+    $users = New-Object Security.Principal.SecurityIdentifier('S-1-5-32-545')
+    $security.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule($users, 'ReadAndExecute', $inherit, 'None', 'Allow')))
+    $windows = [Environment]::GetFolderPath('Windows')
+    $folder = Join-Path (Join-Path $windows 'Temp') ('winland-install-' + [guid]::NewGuid().ToString('N'))
+    $directory = New-Object IO.DirectoryInfo($folder)
+    $directory.Create($security)
+    $zip = Join-Path $folder 'release.zip'
+    [IO.File]::Copy('__ZIP__', $zip)
+    if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash -ne '__HASH__') {
+        throw 'The release changed after its SHA-256 check. Nothing was installed.'
+    }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $package = Join-Path $folder 'package'
+    [IO.Compression.ZipFile]::ExtractToDirectory($zip, $package)
+    $executable = Join-Path (Join-Path $package 'winland') 'winland-launcher.exe'
+    if (-not (Test-Path -LiteralPath $executable)) { throw 'The release zip has no winland launcher.' }
+    $arguments = @('install', '__ACCOUNT__')
+    if (-not __LOGON__) { $arguments += '--no-logon' }
+    if (-not __START__) { $arguments += '--no-start' }
+    & $executable @arguments
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+} catch {
+    [Console]::Error.WriteLine($_.Exception.Message)
+    exit 1
+} finally {
+    if ($folder -and (Test-Path -LiteralPath $folder)) { Remove-Item -LiteralPath $folder -Recurse -Force }
+}
+exit 0
+'@
+    $logonText = '$false'
+    $startText = '$false'
+    if ($Logon) { $logonText = '$true' }
+    if ($Start) { $startText = '$true' }
+    return $body.Replace('__ZIP__', $Zip.Replace("'", "''")).Replace('__HASH__', $Hash.Replace("'", "''")).Replace('__ACCOUNT__', $Account.Replace("'", "''")).Replace('__LOGON__', $logonText).Replace('__START__', $startText)
+}
+
+function Install-ProtectedPackage([string]$Zip, [string]$Hash, [bool]$Logon, [bool]$Start) {
+    $account = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+    $body = Get-ProtectedInstallScript $Zip $Hash $account $Logon $Start
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($body))
+    $powershell = Join-Path ([Environment]::GetFolderPath('System')) 'WindowsPowerShell\v1.0\powershell.exe'
+    try {
+        $process = Start-Process -FilePath $powershell -ArgumentList @('-NoProfile', '-EncodedCommand', $encoded) -Verb RunAs -WindowStyle Hidden -Wait -PassThru
+    } catch {
+        if ($_.Exception.NativeErrorCode -eq 1223) { throw (Get-FailureMessage @('install') 1223 @()) }
+        throw
+    }
+    if ($process.ExitCode -ne 0) { throw (Get-FailureMessage @('install') $process.ExitCode @()) }
+}
+
+function Get-InstallChoices([bool]$ChangeSettings = $true) {
+    $logon = $true
+    $start = $true
+    if (Test-InstallPrompt) {
+        $logon = Read-YesNo 'Start Winland when you sign in?'
+        $start = Read-YesNo 'Start Winland now?'
+        if ($ChangeSettings) { $ChangeSettings = Read-YesNo 'Turn off Windows Snap and touchpad workspace swipes? Uninstall puts them back.' }
+    }
+    return [pscustomobject]@{ Logon = $logon
+        Start = $start
+        ChangeSettings = $ChangeSettings }
+}
+
+function Install-Winland([string]$Channel, [string]$Temp, [bool]$ChangeSettings = $true) {
     if ($Channel -eq 'dev') { Write-Step 'Looking up the dev release' } else { Write-Step 'Looking up the newest release' }
     $downloads = Get-ReleaseDownloads (Get-ReleaseJson (Get-ReleaseUrl $Channel)) ($Channel -eq 'dev')
     $versionPath = Join-Path $Temp $script:VersionName
@@ -292,12 +394,10 @@ function Install-Winland([string]$Channel, [string]$Temp) {
     $version = [string](Get-PropertyValue (Get-Content -LiteralPath $versionPath -Raw | ConvertFrom-Json) 'version')
     Write-Done "Winland $version"
 
-    $logon = $true
-    $start = $true
-    if (Test-InstallPrompt) {
-        $logon = Read-YesNo 'Start Winland when you sign in?'
-        $start = Read-YesNo 'Start Winland now?'
-    }
+    $choices = Get-InstallChoices $ChangeSettings
+    $logon = $choices.Logon
+    $start = $choices.Start
+    $ChangeSettings = $choices.ChangeSettings
     Write-Host ''
 
     Write-Step 'Downloading'
@@ -316,21 +416,14 @@ function Install-Winland([string]$Channel, [string]$Temp) {
     Write-Done
 
     Write-Step 'Installing'
-    $package = Join-Path $Temp 'package'
-    New-Item -ItemType Directory -Path $package | Out-Null
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($zip, $package)
-    $staged = Join-Path (Join-Path $package 'winland') 'winland.exe'
-    if (-not (Test-Path -LiteralPath $staged)) {
-        throw 'The release zip has no winland\winland.exe. Nothing was installed. Run the command again when the release is complete.'
-    }
-    Invoke-Winland $staged (Get-InstallArguments $logon $start) | Out-Null
+    Install-ProtectedPackage $zip $actual $logon $start
     $copy = Get-InstalledExecutable $false
     if (-not (Test-Path -LiteralPath $copy)) {
         throw 'Winland did not finish installing. Run the command again.'
     }
+    Invoke-Winland $copy @('install', '--winland-cleanup-user') | Out-Null
     # Unelevated, so these settings belong to the signed-in user and not to an administrator who approved UAC.
-    Invoke-Winland $copy (Get-TweakArguments (Test-PrecisionTouchpad)) | Out-Null
+    if ($ChangeSettings) { Invoke-Winland $copy (Get-TweakArguments (Test-PrecisionTouchpad)) | Out-Null }
     if ($Channel -eq 'dev') {
         # Saves the dev channel for winland update. The copy is that commit, so nothing is downloaded.
         Invoke-Winland $copy (Get-UpdateArguments 'dev') | Out-Null
@@ -345,7 +438,7 @@ function Install-Winland([string]$Channel, [string]$Temp) {
     foreach ($line in ($summary | Select-Object -Skip 1)) { Write-Host $line }
 }
 
-function Invoke-InstallScript([string]$Channel) {
+function Invoke-InstallScript([string]$Channel, [bool]$ChangeSettings = $true) {
     # These stay inside the function, so the terminal that ran irm | iex keeps its own settings.
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
@@ -362,7 +455,7 @@ function Invoke-InstallScript([string]$Channel) {
             Update-Winland $installed $Channel
         } else {
             New-Item -ItemType Directory -Path $temp | Out-Null
-            Install-Winland $Channel $temp
+            Install-Winland $Channel $temp $ChangeSettings
         }
     } catch {
         Write-Failure $_.Exception.Message
@@ -382,4 +475,4 @@ try {
 } catch {
     # This host already has a protocol that can reach the release.
 }
-Invoke-InstallScript $Channel
+Invoke-InstallScript $Channel (-not $NoTweaks)

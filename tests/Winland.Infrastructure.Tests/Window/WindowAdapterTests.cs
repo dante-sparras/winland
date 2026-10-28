@@ -9,6 +9,77 @@ public class WindowAdapterTests
         call.StartsWith($"bounds {window} ", StringComparison.Ordinal) && call.EndsWith(" Post", StringComparison.Ordinal);
 
     [Fact]
+    public void AWindowRevealedOnExitStaysShownWhenItsWorkspaceIsHiddenAgain()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        windows.Open(1);
+        windows.Dispatch("workspace", "2");
+        windows.Open(2);
+        windows.Dispatch("workspace", "1");
+        Assert.False(windows.Desktop[2].Shown);
+
+        windows.Adapter.RevealHidden();
+
+        Assert.True(windows.Desktop[2].Shown);
+        windows.Dispatch("workspace", "2");
+        Assert.True(windows.Desktop[1].Shown);
+        Assert.True(windows.Desktop[2].Shown);
+    }
+
+    // The pipe and the binds worker are not waited for at exit. What they apply after the cleanup hides nothing.
+    [Fact]
+    public void AnOutcomeAppliedAfterTheExitCleanupHidesNothing()
+    {
+        var windows = new TestWindows(reducedMotion: true);
+        windows.Open(1);
+        windows.Dispatch("workspace", "2");
+        windows.Open(2);
+        windows.Adapter.RevealHidden();
+        windows.Dispose();
+        windows.Desktop.Calls.Clear();
+
+        windows.Dispatch("workspace", "1");
+
+        Assert.True(windows.Desktop[1].Shown);
+        Assert.True(windows.Desktop[2].Shown);
+        Assert.Empty(windows.Desktop.Calls);
+    }
+
+    [Fact]
+    public void ADestroyedConcealedWindowIsForgottenBeforeItsHandleIsReused()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        windows.Open(1);
+        windows.Open(2);
+        windows.Dispatch("workspace", "2");
+        Assert.False(windows.Desktop[2].Shown);
+        windows.Desktop.Remove(2);
+
+        windows.Adapter.Notice(Windows.Win32.PInvoke.EVENT_OBJECT_DESTROY, (nint)2);
+        Assert.False(windows.Core.Manages(new WindowId(2)));
+        windows.Desktop.Add(2, TestWindows.Area);
+        windows.Desktop.Calls.Clear();
+        windows.Adapter.Salvage();
+
+        Assert.DoesNotContain(windows.Desktop.Calls, call => call.StartsWith("show 2 ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void DropGoneClosesOnlyClientsWhoseWindowsNoLongerExist()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        var first = windows.Open(1);
+        var second = windows.Open(2);
+        windows.Desktop.Remove(2);
+
+        windows.Adapter.DropGone();
+
+        Assert.True(windows.Core.Manages(first));
+        Assert.False(windows.Core.Manages(second));
+        Assert.Equal(first, Assert.Single(windows.Core.Recovery().Clients).Window);
+    }
+
+    [Fact]
     public void AnOutcomeIsCarriedOutInTheOrderOfItsParts()
     {
         using var windows = new TestWindows(reducedMotion: true);
@@ -25,7 +96,7 @@ public class WindowAdapterTests
         windows.Desktop[2].Visible = new Rectangle(100, 100, 300, 300);
         windows.Desktop.Calls.Clear();
 
-        windows.Apply(back with
+        windows.Adapter.ApplyCore(back with
         {
             Closes = [new WindowId(9)],
             Focus = first,
@@ -47,6 +118,44 @@ public class WindowAdapterTests
 
         // Let go above the focused window, it is not raised a second time.
         Assert.Equal(-1, desktop.IndexOf("raise 2 top"));
+    }
+
+    // A Workspace switch waits for the windows it shows to paint before it hides the others. A switch another thread
+    // decides meanwhile lands after it, so the older one cannot hide what the newer one showed.
+    [Fact]
+    public void AnOutcomeDecidedWhileAnotherWaitsToPaintLandsAfterIt()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        windows.Open(1);
+        windows.Dispatch("workspace", "2");
+        windows.Open(2);
+        Thread? other = null;
+        using var decided = new ManualResetEventSlim();
+        windows.Desktop.OnPace = () =>
+        {
+            if (other is not null)
+                return;
+
+            other = new Thread(() =>
+            {
+                var back = windows.Core.Handle(new Dispatch("workspace", "2"));
+                decided.Set();
+                windows.Adapter.Apply(back);
+            });
+            other.Start();
+            Assert.True(decided.Wait(TimeSpan.FromSeconds(5)));
+
+            // The other thread either applies its outcome now or waits for this one to finish.
+            var deadline = Environment.TickCount64 + 5000;
+            while ((other.ThreadState & (ThreadState.Stopped | ThreadState.WaitSleepJoin)) == 0 && Environment.TickCount64 < deadline)
+                Thread.Yield();
+        };
+
+        windows.Dispatch("workspace", "1");
+        Assert.True(other!.Join(TimeSpan.FromSeconds(5)));
+
+        Assert.True(windows.Desktop[2].Shown);
+        Assert.False(windows.Desktop[1].Shown);
     }
 
     [Fact]
@@ -104,6 +213,58 @@ public class WindowAdapterTests
         Assert.Equal(1, calls.Count(call => call == "attr 2 3=1"));
         Assert.True(calls.IndexOf("attr 1 3=1") < windows.Desktop.IndexOf("show 1 Hide"));
         Assert.True(calls.IndexOf("attr 2 3=1") < windows.Desktop.IndexOf("show 2 Hide"));
+    }
+
+    [Fact]
+    public void AWindowAWorkspaceSlidesInTakesItsFirstFrameBeforeItShows()
+    {
+        using var windows = new TestWindows(Fast);
+        windows.Open(1);
+        windows.Settle();
+        windows.Dispatch("workspace", "2");
+        windows.Settle();
+        windows.Desktop.Calls.Clear();
+
+        windows.Dispatch("workspace", "1");
+
+        var calls = windows.Desktop.Calls;
+        var first = calls.FindIndex(call => call.StartsWith("bounds 1 ", StringComparison.Ordinal));
+        Assert.EndsWith(" Wait", calls[first], StringComparison.Ordinal);
+        Assert.StartsWith("bounds 1 -", calls[first], StringComparison.Ordinal);
+        Assert.True(first < windows.Desktop.IndexOf("show 1 Show"));
+    }
+
+    [Fact]
+    public void AClientClosedAndOpenedAgainOnTheSameHandleIsPaintedAgain()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        windows.Open(1);
+        var second = windows.Open(2);
+        windows.Apply(windows.Core.Handle(new WindowClosed(second)));
+        Assert.Equal(0u, windows.Desktop[2].Attributes[3]);
+        windows.Desktop.Remove(2);
+
+        windows.Open(2);
+
+        Assert.Equal(1u, windows.Desktop[2].Attributes[3]);
+    }
+
+    [Fact]
+    public void TheClientsWhoseDecorationChangedArePaintedAgain()
+    {
+        using var windows = new TestWindows("decoration:inactive_opacity = 0.5\n", reducedMotion: true);
+        windows.Open(1);
+        windows.Open(2);
+        windows.Open(3);
+        Assert.Equal(0x80000u, windows.Desktop[1].ExStyle & 0x80000);
+        windows.Desktop.Calls.Clear();
+
+        windows.Dispatch("focuswindow", "address:0x1");
+
+        // An opaque window is no longer layered.
+        Assert.Equal(0u, windows.Desktop[1].ExStyle & 0x80000);
+        Assert.Equal(128, windows.Desktop[3].Alpha);
+        Assert.DoesNotContain(windows.Desktop.Calls, call => call.EndsWith(" 2", StringComparison.Ordinal) || call.Contains(" 2 ", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -227,7 +388,7 @@ public class WindowAdapterTests
         windows.Desktop[1].Hung = true;
         windows.Desktop.Calls.Clear();
 
-        windows.Apply(new Outcome([], new State([])) { ZOrder = [new ZOrderRequest(first, true), new ZOrderRequest(second, false)] });
+        windows.Adapter.ApplyCore(new Outcome([], new State([])) { ZOrder = [new ZOrderRequest(first, true), new ZOrderRequest(second, false)] });
 
         Assert.Equal(["raise-async 1 top", "raise 2 bottom"], windows.Desktop.Calls);
     }

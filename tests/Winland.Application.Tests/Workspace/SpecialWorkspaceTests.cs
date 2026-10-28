@@ -8,8 +8,8 @@ public class SpecialWorkspaceTests
     public void AClientCanBeSentToASpecialWorkspaceAndToggled()
     {
         var core = new WindowManager();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
 
         var moved = core.Handle(new Dispatch("movetoworkspace", "special:scratch"));
 
@@ -45,7 +45,7 @@ public class SpecialWorkspaceTests
     {
         var core = new WindowManager();
         foreach (var window in new long[] { 1, 2, 3, 4 })
-            core.Handle(Appeared(window));
+            core.Handle(Appeared(window, Area));
         core.Handle(new WindowFocused(new WindowId(4), FocusCause.User));
         core.Handle(new Dispatch("togglefloating", ""));
         foreach (var window in new long[] { 2, 3, 4 })
@@ -68,8 +68,8 @@ public class SpecialWorkspaceTests
     public void ASilentMoveGivesTheKeyboardToTheWindowLeftFocused(string workspace)
     {
         var core = new WindowManager();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
 
         var moved = core.Handle(new Dispatch("movetoworkspacesilent", workspace));
 
@@ -113,9 +113,9 @@ public class SpecialWorkspaceTests
             """));
         var display = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 800, 600);
         core.Handle(new MonitorsChanged([display]));
-        core.Handle(Appeared(1));
+        core.Handle(Appeared(1, Area));
 
-        var silent = core.Handle(Appeared(2, "quiet"));
+        var silent = core.Handle(Appeared(2, Area, windowClass: "quiet"));
         Assert.Equal(new WorkspaceId("special:scratch"), Client(silent, 2).Workspace);
         Assert.Null(silent.State.SpecialWorkspace);
         Assert.Contains(silent.Hide, window => window == new WindowId(2));
@@ -146,7 +146,7 @@ public class SpecialWorkspaceTests
             ],
             Lines(same));
 
-        var loud = core.Handle(Appeared(3, "loud"));
+        var loud = core.Handle(Appeared(3, Area, windowClass: "loud"));
         Assert.Equal(WorkspaceId.DefaultSpecial, Client(loud, 3).Workspace);
         Assert.Equal(WorkspaceId.DefaultSpecial, loud.State.SpecialWorkspace);
 
@@ -177,7 +177,7 @@ public class SpecialWorkspaceTests
     public void TheSpecialWorkspaceHidesWhenItsLastClientLeaves()
     {
         var core = new WindowManager();
-        core.Handle(Appeared(1));
+        core.Handle(Appeared(1, Area));
         core.Handle(new Dispatch("movetoworkspace", "special"));
         var closed = core.Handle(new WindowClosed(new WindowId(1)));
 
@@ -189,7 +189,7 @@ public class SpecialWorkspaceTests
     public void ChangingWorkspaceHidesTheSpecialWorkspace()
     {
         var core = new WindowManager();
-        core.Handle(Appeared(1));
+        core.Handle(Appeared(1, Area));
         core.Handle(new Dispatch("movetoworkspace", "special:scratch"));
         var changed = core.Handle(new Dispatch("workspace", "2"));
 
@@ -202,8 +202,8 @@ public class SpecialWorkspaceTests
     public void FallthroughKeepsTheSpecialWorkspaceOpenWhenFocusLeavesIt()
     {
         var core = new WindowManager();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
         core.Handle(new Dispatch("movetoworkspace", "special"));
 
         var closed = core.Handle(new Dispatch("focuswindow", "address:0x1"));
@@ -217,9 +217,9 @@ public class SpecialWorkspaceTests
     public void OpeningASpecialWorkspaceClearsTheUrgencyOfTheClientItFocuses()
     {
         var core = new WindowManager();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
-        core.Handle(Appeared(3));
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
+        core.Handle(Appeared(3, Area));
         core.Handle(new Dispatch("movetoworkspace", "special:scratch"));
         core.Handle(new Dispatch("togglespecialworkspace", "scratch"));
         core.Handle(new WindowFlashed(new WindowId(3)));
@@ -237,7 +237,7 @@ public class SpecialWorkspaceTests
     public void ASilentMoveDoesNotShowTheSpecialWorkspace()
     {
         var core = new WindowManager();
-        core.Handle(Appeared(1));
+        core.Handle(Appeared(1, Area));
         var moved = core.Handle(new Dispatch("movetoworkspacesilent", "special:scratch"));
 
         Assert.Null(moved.State.SpecialWorkspace);
@@ -245,11 +245,6 @@ public class SpecialWorkspaceTests
         Assert.Contains(moved.State.Hidden, client => client.Window == new WindowId(1));
         Assert.Equal(WorkspaceId.Initial, moved.State.ActiveWorkspace);
     }
-
-    private static WindowAppeared Appeared(long window, string? windowClass = null) => new(new WindowId(window), Area)
-    {
-        Traits = windowClass is null ? WindowTraits.Normal : WindowTraits.Normal with { Class = windowClass },
-    };
 
     private static MonitorSnapshot Screen(Outcome outcome, int id) =>
         Assert.Single(outcome.State.Screens, screen => screen.Id == new MonitorId(id));

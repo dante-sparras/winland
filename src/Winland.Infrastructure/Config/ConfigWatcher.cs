@@ -47,6 +47,7 @@ public sealed class ConfigWatcher : IDisposable
             }
 
             _paths = next;
+            _lastRead = Read([.. next]);
             previous = _watchers.ToList();
             _watchers.Clear();
             foreach (var directory in Directories(next))
@@ -202,7 +203,8 @@ public sealed class ConfigWatcher : IDisposable
 
         lock (_gate)
         {
-            if (read is not null && read == _lastRead)
+            // Disposed while the files were read: the exit has begun.
+            if (_disposed || (read is not null && read == _lastRead))
                 return;
 
             _lastRead = read;
@@ -214,7 +216,7 @@ public sealed class ConfigWatcher : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            _ = exception;
+            Console.Error.WriteLine(exception);
         }
     }
 

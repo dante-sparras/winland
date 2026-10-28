@@ -85,7 +85,7 @@ public sealed partial class WindowManager
             var warnings = new List<StreamEvent>(parsed.Warnings.Count);
             foreach (var warning in parsed.Warnings)
                 warnings.Add(new ConfigWarned(0, warning, null));
-            _configEvents = warnings;
+            (_configEvents ??= []).AddRange(warnings);
         }
 
         var launched = View([]);
@@ -115,7 +115,7 @@ public sealed partial class WindowManager
         else
         {
             message = true;
-            placements = Is(name, "layoutmsg") || Is(name, "layout")
+            placements = Is(name, "layoutmsg")
                 ? layout.LayoutMessage(active, arguments)
                 : layout.LayoutMessage(active, Join(name, arguments));
         }
@@ -123,7 +123,7 @@ public sealed partial class WindowManager
         if (message && layout.LayoutMessageError is string layoutError)
             return View(placements) with { Error = layoutError };
 
-        if (layout.LayoutMessageFocus is WindowId requested)
+        if (message && layout.LayoutMessageFocus is WindowId requested)
             focus = requested;
 
         if (focus is WindowId next && HasNoFocus(next))

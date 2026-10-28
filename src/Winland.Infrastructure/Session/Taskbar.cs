@@ -17,18 +17,15 @@ internal static class Taskbar
 
     internal static bool SessionHidden { get; private set; }
 
+    internal static bool Present() => !Primary().IsNull;
+
     public static void Hide()
     {
         lock (Gate)
         {
-            // A previous process may have exited without restoring the bars. Put them
-            // back before this run hides them, so a crash cannot leave them gone.
-            if (MarkerPresent())
-                Show(TryReadMarker(out var crashed) ? crashed : AlwaysOnTop);
-
-            var state = ReadState();
-            _savedState = state;
-            WriteMarker(state);
+            // With no taskbar yet, as while Explorer starts, there is no state to read. It is read once the bar appears.
+            if (_savedState is null && Present())
+                Save();
 
             // SW_HIDE takes the taskbar windows off the screen, but the shell still
             // reserves their strip in the work area. ABM_SETSTATE with ABS_AUTOHIDE
@@ -40,6 +37,42 @@ internal static class Taskbar
             SessionHidden = true;
             ConcealCore();
         }
+    }
+
+    // The shell can recreate the tray after sleep or a reconnect. Autohide has
+    // to be set again or the work area keeps the strip the new bar reserved.
+    // general:hide_taskbar is off until this run hides the bars. Setting auto-hide
+    // here would take that strip even though the config left the bars alone.
+    internal static void Rehide()
+    {
+        lock (Gate)
+        {
+            if (!SessionHidden)
+                return;
+
+            if (Present())
+            {
+                if (_savedState is null)
+                    Save();
+
+                SetState(AutoHide);
+            }
+
+            ConcealCore();
+        }
+    }
+
+    // A previous process may have exited without restoring the bars. They are put
+    // back before this run hides them, so a crash cannot leave them gone. Then the
+    // state to give back is read from the bar and kept in the marker.
+    private static void Save()
+    {
+        if (MarkerPresent())
+            Show(TryReadMarker(out var crashed) ? crashed : AlwaysOnTop);
+
+        var state = ReadState();
+        _savedState = state;
+        WriteMarker(state);
     }
 
     // The shell can mark the bars visible again while it applies the autohide
@@ -85,8 +118,7 @@ internal static class Taskbar
     private static int ReadState()
     {
         var data = NewData(Primary());
-        var state = Message(QueryStateMessage, ref data);
-        return state < 0 ? AlwaysOnTop : (int)state;
+        return (int)Message(QueryStateMessage, ref data);
     }
 
     private static void SetState(int state)
@@ -145,7 +177,7 @@ internal static class Taskbar
     {
         try
         {
-            return File.Exists(MarkerPath);
+            return UserAccess.Run(() => File.Exists(MarkerPath));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -166,10 +198,10 @@ internal static class Taskbar
     private static string MarkerPath =>
         MarkerFile(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), Environment.GetEnvironmentVariable("WINLAND_PIPE"));
 
-    // An elevated Winland writes here as an administrator, in a folder the user owns. A folder or marker turned into a
-    // link elsewhere is refused, and the marker is made new rather than written through, so a hard link to another
-    // file is never written.
-    private static void WriteMarker(int state)
+    // User-file operations use the shell's token, so a link swap cannot borrow administrator rights.
+    private static void WriteMarker(int state) => UserAccess.Run(() => WriteMarkerFile(state));
+
+    private static void WriteMarkerFile(int state)
     {
         var path = MarkerPath;
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -194,7 +226,7 @@ internal static class Taskbar
         state = AlwaysOnTop;
         try
         {
-            var text = File.ReadAllText(MarkerPath).Trim();
+            var text = UserAccess.Run(() => File.ReadAllText(MarkerPath)).Trim();
             return int.TryParse(text, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out state);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or DirectoryNotFoundException)
@@ -207,8 +239,11 @@ internal static class Taskbar
     {
         try
         {
-            if (!Redirected(MarkerPath))
-                File.Delete(MarkerPath);
+            UserAccess.Run(() =>
+            {
+                if (!Redirected(MarkerPath))
+                    File.Delete(MarkerPath);
+            });
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

@@ -13,14 +13,14 @@ public class FullscreenCoverTests
         Float(desk, 2);
         cover.Sync([desk], [Window(2)], _ => true);
 
-        desk.Layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen, FullscreenMode.Fullscreen);
+        desk.Layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen);
         var lowered = cover.Sync([desk], [Window(2)], _ => true);
 
         Assert.Equal([(Window(2), false)], lowered);
         Assert.True(cover.IsBelow(Window(2)));
         Assert.False(cover.AllowedOver(desk, desk.ClientOf(Window(2))!));
 
-        desk.Layout.SetFullscreen(Window(1), FullscreenMode.None, FullscreenMode.None);
+        desk.Layout.SetFullscreen(Window(1), FullscreenMode.None);
         var raised = cover.Sync([desk], [Window(2)], _ => true);
 
         Assert.Equal([(Window(2), true)], raised);
@@ -34,7 +34,7 @@ public class FullscreenCoverTests
         var desk = Desk();
         Tile(desk, 1);
         Float(desk, 2);
-        desk.Layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen, FullscreenMode.Fullscreen);
+        desk.Layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen);
 
         var requests = cover.Sync([desk], [Window(2)], _ => true);
 
@@ -50,7 +50,7 @@ public class FullscreenCoverTests
         Tile(desk, 1);
         Float(desk, 2);
         Float(desk, 3);
-        desk.Layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen, FullscreenMode.Fullscreen);
+        desk.Layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen);
         cover.Sync([desk], [], _ => true);
         cover.SetFlag(Window(2), true);
 
@@ -67,8 +67,8 @@ public class FullscreenCoverTests
         var desk = Desk();
         Tile(desk, 1);
         Float(desk, 2);
-        desk.Layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen, FullscreenMode.Fullscreen);
-        desk.Layout.SetFullscreen(Window(2), FullscreenMode.Fullscreen, FullscreenMode.Fullscreen);
+        desk.Layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen);
+        desk.Layout.SetFullscreen(Window(2), FullscreenMode.Fullscreen);
 
         Assert.Equal(Window(2), FullscreenCover.Covering(desk)?.Window);
     }
@@ -92,7 +92,7 @@ public class FullscreenCoverTests
         Tile(desk, 1);
         Float(desk, 2);
         cover.Sync([desk], [], _ => true);
-        desk.Layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen, FullscreenMode.Fullscreen);
+        desk.Layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen);
         cover.Sync([desk], [], _ => true);
         Assert.True(cover.IsBelow(Window(2)));
 
@@ -109,7 +109,7 @@ public class FullscreenCoverTests
         Float(desk, 1);
         Tile(desk, 2);
         Float(desk, 3);
-        desk.Layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen, FullscreenMode.Fullscreen);
+        desk.Layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen);
 
         var lowered = cover.Sync([desk], [], window => window == Window(3));
 
@@ -124,13 +124,13 @@ public class FullscreenCoverTests
     {
         var cover = new FullscreenCover(_ => false);
         var layout = new ScrollingLayout();
-        layout.Fit(Area);
+        layout.Fit(Area, Area);
         var desk = new LiveWorkspace(WorkspaceId.Initial, MonitorId.Primary, layout);
         Tile(desk, 1);
         Float(desk, 2);
         cover.Sync([desk], [], _ => true);
 
-        layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen, FullscreenMode.Fullscreen, layoutAware: true);
+        layout.SetFullscreen(Window(1), FullscreenMode.Fullscreen, layoutAware: true);
         cover.Sync([desk], [], _ => true);
         Assert.False(cover.Flag(Window(2)));
 
@@ -139,7 +139,7 @@ public class FullscreenCoverTests
         Assert.True(cover.Flag(Window(3)));
         Assert.False(cover.Flag(Window(2)));
 
-        layout.SetFullscreen(Window(1), FullscreenMode.None, FullscreenMode.None, layoutAware: true);
+        layout.SetFullscreen(Window(1), FullscreenMode.None, layoutAware: true);
         cover.Sync([desk], [], _ => true);
         Assert.True(cover.Flag(Window(2)));
         Assert.True(cover.Flag(Window(3)));
@@ -148,7 +148,7 @@ public class FullscreenCoverTests
     private static LiveWorkspace Desk()
     {
         var layout = new DwindleLayout();
-        layout.Fit(Area);
+        layout.Fit(Area, Area);
         return new LiveWorkspace(WorkspaceId.Initial, MonitorId.Primary, layout);
     }
 

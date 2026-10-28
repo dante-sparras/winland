@@ -44,6 +44,7 @@ internal sealed class TouchpadInput : IDisposable
     private readonly DeviceCache<Pad> _pads = new(device => Pad.Open(new HANDLE(device)), () => Environment.TickCount64, RetryMs);
     private HWND _hwnd;
     private bool _disposed;
+    private long _nextError = long.MinValue;
 
     internal TouchpadInput(Action<Input> post)
     {
@@ -101,7 +102,12 @@ internal sealed class TouchpadInput : IDisposable
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                Console.Error.WriteLine(exception.Message);
+                var now = Environment.TickCount64;
+                if (now >= active._nextError)
+                {
+                    active._nextError = now + 60_000;
+                    Console.Error.WriteLine(exception);
+                }
             }
         }
         else if (message == DeviceChangeMessage && active is { _disposed: false } && wParam.Value is DeviceArrived or DeviceRemoved)

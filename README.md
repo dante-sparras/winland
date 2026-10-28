@@ -4,11 +4,15 @@ A keyboard-driven tiling window manager for Windows 11.
 
 ## Install
 
+Winland requires Windows 11 x64 and one administrator approval, and tiles every open window as soon as it starts.
+
 Open PowerShell and run:
 
 ```powershell
 irm https://raw.githubusercontent.com/dante-sparras/winland/main/scripts/install.ps1 | iex
 ```
+
+The installer asks whether to start at sign-in, start now, and turn off Windows Snap and touchpad workspace swipes. Enter means yes. `winland uninstall` removes Winland and restores the Windows settings it changed. Your config stays unless you pass `--purge`.
 
 To install the dev release, built from `main` after every change, run:
 
@@ -16,7 +20,7 @@ To install the dev release, built from `main` after every change, run:
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/dante-sparras/winland/main/scripts/install.ps1))) -Channel dev
 ```
 
-To install by hand, download `Winland-win-x64.zip` from [Releases](https://github.com/dante-sparras/winland/releases), unzip it and run `winland\winland.exe install`.
+To install by hand, download `Winland-win-x64.zip` from [Releases](https://github.com/dante-sparras/winland/releases), unzip it and run `winland\winland.exe install`, then run `winland tweaks --off`. Add `--touchpad` to the tweaks command to turn off the three- and four-finger touchpad swipes too.
 
 ## Hotkeys
 
@@ -25,7 +29,6 @@ To install by hand, download `Winland-win-x64.zip` from [Releases](https://githu
 | Keys | Does |
 | --- | --- |
 | Win+Q or Win+W | Close the window |
-| Win+Ctrl+Alt+W | Close all windows |
 | Win+Arrows | Move focus |
 | Win+Shift+Arrows | Swap the window with its neighbor |
 | Win+T | Float or tile the window |
@@ -35,9 +38,10 @@ To install by hand, download `Winland-win-x64.zip` from [Releases](https://githu
 | Win+P | Show the window at its own size in its tile |
 | Win+J | Flip the split direction |
 | Win+K / Win+Alt+K | Next / previous layout |
-| Win+Minus / Win+Equal | Make the window narrower / wider |
+| Win+Alt+Minus / Win+Alt+Equal | Make the window narrower / wider by 25 pixels |
+| Win+Ctrl+Minus / Win+Ctrl+Equal | Make the window narrower / wider by 300 pixels |
 | Win+Shift+Minus / Win+Shift+Equal | Make the window shorter / taller |
-| Add Alt or Ctrl to a resize | Resize in small or big steps |
+| Add Alt or Ctrl to a height resize | Resize by 25 or 300 pixels |
 | Win+left drag | Move a window with the mouse |
 | Win+right drag | Resize a window with the mouse |
 
@@ -55,11 +59,13 @@ To install by hand, download `Winland-win-x64.zip` from [Releases](https://githu
 | Win+Alt+S or Win+Shift+\` | Move the window to the scratchpad |
 | Three-finger swipe sideways | Next / previous workspace |
 
+The backtick key uses its US keyboard position on other layouts too.
+
 ### Monitors
 
 | Keys | Does |
 | --- | --- |
-| Ctrl+Alt+Tab / Ctrl+Alt+Shift+Tab | Focus the next / previous monitor |
+| Ctrl+Alt+Shift+Tab | Focus the previous monitor |
 | Win+Shift+Ctrl+Arrows | Move the window to another monitor |
 | Win+Shift+Alt+Arrows | Move the whole workspace to another monitor |
 
@@ -96,10 +102,12 @@ Everything Winland keeps for you is in `%USERPROFILE%\.winland`.
 | File | What it is |
 | --- | --- |
 | `winland.conf` | Your config, with every hotkey above. Winland writes it the first time it starts, with comments, and reloads it whenever you save. Right-click the tray icon to open it |
-| `winland.log` | What Winland did and any errors. Only there when `debug:disable_logs = false` and Winland is not running as administrator, which it does by default. Right-click the tray icon to open it |
+| `winland.log` | Errors with local timestamps, for an unelevated run such as `winland install --user` with `debug:disable_logs = false`. The previous log is `winland.log.1`. Right-click the tray icon to open it |
 | `state.json` | The windows Winland hid and the workspace of each, so a crash brings them back |
 | `windows-settings.json` | The Windows settings the installer turned off, so uninstall can turn them back on |
 | `taskbar.marker` | Only there while `general:hide_taskbar` hides the taskbar, so a crash still brings it back |
+
+The default install runs as administrator and writes no log file. After a crash, open Event Viewer > Windows Logs > Application and find the .NET Runtime event 1026 for Winland at that time. Include that event's exception and stack trace, `winland version` and `winland configerrors` in a bug report. For an unelevated run with file logging enabled, also attach `winland.log` and `winland.log.1` if present.
 
 ## CLI
 

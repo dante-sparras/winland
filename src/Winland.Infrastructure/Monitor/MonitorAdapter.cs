@@ -13,10 +13,11 @@ public static class MonitorAdapter
         // -4 is per-monitor v2 awareness. The manifest asks for the same thing, and this call
         // covers a host that has not declared it yet. A second call fails, which is fine.
         _ = PInvoke.SetProcessDpiAwarenessContext((DPI_AWARENESS_CONTEXT)(nint)(-4));
-        return Enumerate(Panels());
+        return Enumerate(Panels(), Win32DisplayColorControl.Panels());
     }
 
-    private static unsafe List<Winland.Domain.Monitor> Enumerate(Dictionary<string, Panel> panels)
+    private static unsafe List<Winland.Domain.Monitor> Enumerate(Dictionary<string, Panel> panels,
+        Dictionary<string, Win32DisplayColorControl.Panel> lights)
     {
         var monitors = new List<Winland.Domain.Monitor>();
         PInvoke.EnumDisplayMonitors(
@@ -24,7 +25,7 @@ public static class MonitorAdapter
             null,
             (monitor, _, _, _) =>
             {
-                if (TryRead(monitor, panels, out var described))
+                if (TryRead(monitor, panels, lights, out var described))
                     monitors.Add(described);
                 return true;
             },
@@ -32,7 +33,8 @@ public static class MonitorAdapter
         return monitors;
     }
 
-    private static unsafe bool TryRead(HMONITOR monitor, Dictionary<string, Panel> panels, out Winland.Domain.Monitor described)
+    private static unsafe bool TryRead(HMONITOR monitor, Dictionary<string, Panel> panels,
+        Dictionary<string, Win32DisplayColorControl.Panel> lights, out Winland.Domain.Monitor described)
     {
         described = null!;
         var info = new MONITORINFOEXW();
@@ -62,7 +64,7 @@ public static class MonitorAdapter
             Model: panel.Model ?? "",
             Serial: panel.Serial ?? "",
             RefreshRate: panel.RefreshRate);
-        if (paneled && Win32DisplayColorControl.TryDescribe(name, panel.Adapter, panel.Target, out var color))
+        if (paneled && Win32DisplayColorControl.TryDescribe(name, panel.Adapter, panel.Target, lights, out var color))
         {
             described = described with
             {

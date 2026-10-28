@@ -17,6 +17,7 @@ public sealed partial class WindowManager
         _windowState.Track(_urgent);
         _windowState.Track(ForgetFocusMarks);
         _windowState.Track(_restored);
+        _windowState.Track(_restoredTiles);
         _windowState.Track(_mapPlaced);
         _windowState.Track(_pins.Unpin);
         _windowState.Track(_stacking);
@@ -24,5 +25,6 @@ public sealed partial class WindowManager
         _windowState.Track(ForgetDrag);
         _windowState.Track(ForgetOwner);
         _windowState.Track(_shownMaximized);
+        _windowState.Track(_putBacks);
     }
 }

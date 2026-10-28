@@ -15,7 +15,7 @@ public sealed partial class KeyboardHook : IDisposable
         _ = PInvoke.PostThreadMessage(_hookThread, message, default, default);
     }
 
-    private void Pump()
+    internal void Pump()
     {
         while (_queued.Take() is { Count: > 0 } batch)
         {
@@ -85,7 +85,7 @@ public sealed partial class KeyboardHook : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            Console.Error.WriteLine(exception.Message);
+            Console.Error.WriteLine(exception);
         }
     }
 

@@ -9,10 +9,10 @@ internal sealed partial class ScrollingLayout
     private readonly Dictionary<ClientId, double> _restoreWidths = [];
     private bool _syncing;
 
-    public IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode) =>
-        SetFullscreen(window, mode, clientMode, layoutAware: true);
+    public IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode) =>
+        SetFullscreen(window, mode, layoutAware: true);
 
-    public IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, bool layoutAware)
+    public IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, bool layoutAware)
     {
         var id = new ClientId(window.Value);
         var index = IndexOf(id);
@@ -21,7 +21,7 @@ internal sealed partial class ScrollingLayout
 
         var client = _clients[index];
         if (client.Floating || !layoutAware || CellFor(window) is not { Column: Column column } cell)
-            return DefaultFullscreen(window, client, mode, clientMode);
+            return DefaultFullscreen(window, client, mode);
 
         // A Client fullscreen the default way leaves that mode as the Layout takes it.
         var held = client.LayoutFullscreen ? client.Fullscreen : FullscreenMode.None;
@@ -45,10 +45,9 @@ internal sealed partial class ScrollingLayout
         _clients[index] = client with
         {
             Fullscreen = mode,
-            FullscreenClient = clientMode,
-            LayoutFullscreen = mode != FullscreenMode.None || clientMode != FullscreenMode.None,
+            LayoutFullscreen = mode != FullscreenMode.None,
         };
-        if (mode == FullscreenMode.None && clientMode == FullscreenMode.None && _restoreWidths.Remove(id, out var width))
+        if (mode == FullscreenMode.None && _restoreWidths.Remove(id, out var width))
             column.Width = width;
 
         if (held != mode)
@@ -66,13 +65,13 @@ internal sealed partial class ScrollingLayout
         return column.Cells.Count == 1 && TryStrip(column, out var start, out var size, out _) && Covers(start, size);
     }
 
-    private IReadOnlyList<Placement> DefaultFullscreen(WindowId window, Client client, FullscreenMode mode, FullscreenMode clientMode)
+    private IReadOnlyList<Placement> DefaultFullscreen(WindowId window, Client client, FullscreenMode mode)
     {
         var id = client.Id;
         if (client.LayoutFullscreen && _restoreWidths.Remove(id, out var width) && CellFor(window)?.Column is Column column)
             column.Width = width;
 
-        if (!FullscreenClients.Assign(_clients, window, mode, clientMode))
+        if (!FullscreenClients.Assign(_clients, window, mode))
             return [];
 
         if (client.LayoutFullscreen)
@@ -163,7 +162,7 @@ internal sealed partial class ScrollingLayout
                 }
                 else if (client.Fullscreen != FullscreenMode.None && column.Cells.Count != 1)
                 {
-                    _ = SetFullscreen(client.Window, FullscreenMode.None, FullscreenMode.None, layoutAware: true);
+                    _ = SetFullscreen(client.Window, FullscreenMode.None, layoutAware: true);
                 }
             }
         }

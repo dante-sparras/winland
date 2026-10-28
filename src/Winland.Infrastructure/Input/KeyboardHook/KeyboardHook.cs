@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
+using Windows.Win32.UI.Accessibility;
 using Windows.Win32.UI.Input.KeyboardAndMouse;
 using Windows.Win32.UI.WindowsAndMessaging;
 
@@ -38,10 +39,6 @@ public sealed partial class KeyboardHook : IDisposable
     // with it count too. Only the hook thread writes it; the key relay reads it on the bind worker.
     private static int _held;
 
-    // Every key the user physically holds, one bit per virtual key, as the hook saw them, a key a bind swallows too.
-    // Only the hook thread writes it.
-    private static readonly long[] _down = new long[4];
-
     // Modifiers a relay pressed and left down on purpose. Not stale.
     private static int _relayed;
 
@@ -49,12 +46,14 @@ public sealed partial class KeyboardHook : IDisposable
     private readonly Action<Outcome> _apply;
     private readonly BindSession _session;
     private readonly HOOKPROC _callback;
+    private readonly WINEVENTPROC _desktopCallback;
     // The callback must return before any dispatcher work, so it only posts here. Moves that pile
     // up while the worker is busy collapse into the newest, so they never delay a key bind.
     private readonly InputQueue<Queued> _queued = new(Replaces, Join);
 
     private readonly object _timerGate = new();
     private HHOOK _hook;
+    private HWINEVENTHOOK _desktopSwitch;
     private Thread? _worker;
     private Timer? _sweepTimer;
     private Timer? _watchTimer;
@@ -87,6 +86,7 @@ public sealed partial class KeyboardHook : IDisposable
         _apply = apply;
         _session = session;
         _callback = OnKeyboard;
+        _desktopCallback = (_, _, _, _, _, _, _) => Post(ReconcileMessage);
     }
 
     public void Start()
@@ -114,6 +114,17 @@ public sealed partial class KeyboardHook : IDisposable
         }
 
         InputClock.Watch();
+        _desktopSwitch = PInvoke.SetWinEventHook(
+            PInvoke.EVENT_SYSTEM_DESKTOPSWITCH,
+            PInvoke.EVENT_SYSTEM_DESKTOPSWITCH,
+            default(HMODULE),
+            _desktopCallback,
+            0,
+            0,
+            PInvoke.WINEVENT_OUTOFCONTEXT);
+        if (_desktopSwitch.IsNull)
+            throw new InvalidOperationException($"Desktop switches were not hooked ({Marshal.GetLastPInvokeError()}).");
+
         Saw();
         _startedAt = Environment.TickCount64;
         ArmSweep();
@@ -144,6 +155,12 @@ public sealed partial class KeyboardHook : IDisposable
 
         _watchTimer?.Dispose();
         _watchTimer = null;
+        if (!_desktopSwitch.IsNull)
+        {
+            _ = PInvoke.UnhookWinEvent(_desktopSwitch);
+            _desktopSwitch = default;
+        }
+
         if (!_hook.IsNull)
         {
             _ = PInvoke.UnhookWindowsHookEx(_hook);
@@ -156,8 +173,6 @@ public sealed partial class KeyboardHook : IDisposable
 
             // Nothing updates it once the hook is gone, so the relay must not trust it.
             Volatile.Write(ref _held, 0);
-            for (var i = 0; i < _down.Length; i++)
-                Volatile.Write(ref _down[i], 0);
         }
 
         DisarmSweep();
@@ -234,7 +249,7 @@ public sealed partial class KeyboardHook : IDisposable
 
     // The system drops this hook if the callback is slow. Decide from the published
     // table and return; a worker runs the dispatchers under the core lock.
-    private LRESULT OnKeyboard(int code, WPARAM wParam, LPARAM lParam)
+    private unsafe LRESULT OnKeyboard(int code, WPARAM wParam, LPARAM lParam)
     {
         if (code < 0 || _disposed)
             return Next(code, wParam, lParam);
@@ -242,7 +257,7 @@ public sealed partial class KeyboardHook : IDisposable
         try
         {
             Saw();
-            var info = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+            var info = *(KBDLLHOOKSTRUCT*)lParam.Value;
             if (info.dwExtraInfo == InjectedTag)
                 return Next(code, wParam, lParam);
 
@@ -253,8 +268,8 @@ public sealed partial class KeyboardHook : IDisposable
 
             NoteHeld(info.vkCode, up);
 
-            if (!up && !info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_INJECTED))
-                InputClock.NoteClickOrKey(info.time);
+            if (!up)
+                InputClock.NoteKey(info.time, vk, info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_INJECTED));
 
             // Escape gives up a click to kill, and goes no further.
             if (vk == EscapeKey && !up && _core.ClickKillArmed)
@@ -270,7 +285,7 @@ public sealed partial class KeyboardHook : IDisposable
             // in between, so the bind session finds the key it holds.
             var name = KeyName(vk, extended, up, () => KeyNames.Name(vk, scan, extended, ActiveLayout()));
             var xkb = KeyNames.XkbCode(vk, scan, extended);
-            if (!up)
+            if (!up && !info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_INJECTED) && !IsModifier(vk))
                 SessionEffects.NoteKey();
 
             var edge = new KeyEdge(vk, scan, extended, up, name, xkb);
@@ -279,6 +294,7 @@ public sealed partial class KeyboardHook : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
+            ThreadPool.QueueUserWorkItem(static error => Console.Error.WriteLine(error), exception, preferLocal: false);
         }
 
         return Next(code, wParam, lParam);
@@ -325,7 +341,7 @@ public sealed partial class KeyboardHook : IDisposable
     // The names keys were pressed with, by virtual key, the extended ones apart. The hook thread alone reads them.
     private readonly string?[] _pressedNames = new string?[512];
 
-    private string KeyName(int vk, bool extended, bool up, Func<string> name)
+    internal string KeyName(int vk, bool extended, bool up, Func<string> name)
     {
         var slot = (vk & 0xFF) | (extended ? 0x100 : 0);
         if (up)
@@ -335,8 +351,11 @@ public sealed partial class KeyboardHook : IDisposable
             return pressed ?? name();
         }
 
-        return _pressedNames[slot] = name();
+        return _pressedNames[slot] ??= name();
     }
+
+    private static bool IsModifier(int vk) =>
+        vk is 0x10 or 0x11 or 0x12 or 0x14 or 0x5B or 0x5C or 0x90 or >= 0xA0 and <= 0xA5;
 
     // Each layout read so far, by its handle. Switching between programs with different layouts reads none again.
     private readonly Dictionary<nint, KeyLayout> _layouts = [];

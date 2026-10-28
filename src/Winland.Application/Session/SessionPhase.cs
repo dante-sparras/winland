@@ -5,7 +5,7 @@ namespace Winland.Application;
 /// lay the Workspaces out again. The shell wait is bounded so a missing tray
 /// cannot block startup.
 /// </summary>
-public sealed class SessionPhase : ISessionLock
+public sealed class SessionPhase
 {
     // Long enough for the shell to create its tray after logon, and short enough
     // that a missing tray cannot hold the first layout.

@@ -78,23 +78,33 @@ public sealed record GroupBarStyle
 
     public bool GradientRoundOnlyEdges { get; init; } = true;
 
-    /// <summary>Multiplies the sizes, which the config gives in logical pixels, by a Monitor's scale.</summary>
-    public GroupBarStyle ScaledBy(double scale)
+    /// <summary>
+    /// Multiplies the sizes, which the config gives in logical pixels, by a Monitor's scale. The font and the title row
+    /// also grow by <paramref name="text"/>, the text size Windows' accessibility settings ask for.
+    /// </summary>
+    public GroupBarStyle ScaledBy(double scale, double text = 1)
     {
-        if (scale is <= 0 or >= 1000 || !double.IsFinite(scale) || scale == 1)
+        if (scale is <= 0 or >= 1000 || !double.IsFinite(scale))
+            scale = 1;
+        if (text is < 1 or > 10 || !double.IsFinite(text))
+            text = 1;
+        if (scale == 1 && text == 1)
             return this;
 
         int Scale(int value) => (int)Math.Round(value * scale, MidpointRounding.AwayFromZero);
+        int ScaleText(int value) => (int)Math.Round(value * scale * text, MidpointRounding.AwayFromZero);
         return this with
         {
-            FontSize = Scale(FontSize),
-            Height = Scale(Height),
+            FontSize = ScaleText(FontSize),
+            Height = ScaleText(Height),
             IndicatorHeight = Scale(IndicatorHeight),
             IndicatorGap = Scale(IndicatorGap),
             GapsOut = Scale(GapsOut),
             GapsIn = Scale(GapsIn),
             TextOffset = Scale(TextOffset),
             TextPadding = Scale(TextPadding),
+            Rounding = Scale(Rounding),
+            GradientRounding = Scale(GradientRounding),
         };
     }
 

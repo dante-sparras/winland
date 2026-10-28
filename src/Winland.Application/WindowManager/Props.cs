@@ -31,13 +31,13 @@ public sealed partial class WindowManager
     private string ReadProp(GetPropRequest request)
     {
         if (request.Selector.Length == 0 || request.Property.Length == 0)
-            return "not enough args";
+            return "error: not enough args";
 
         if (!TrySelect(request.Selector, out var client, out _))
-            return "window not found";
+            return "error: window not found";
 
         if (!WindowProps.TryKind(request.Property, out var kind))
-            return "prop not found";
+            return "error: prop not found";
 
         var key = request.Property;
         var value = PropValue(client.Window, key, kind);
@@ -80,7 +80,9 @@ public sealed partial class WindowManager
         var window = client.Window;
         var key = property;
         object? next;
-        switch (kind)
+        if (value.Equals("unset", StringComparison.OrdinalIgnoreCase))
+            next = null;
+        else switch (kind)
         {
             case PropKind.Size:
                 if (!ExpressionPair.TryParse(value, out var pair)

@@ -8,8 +8,20 @@ sealed class DaemonSession : IDaemonSession
 {
     public bool Stop()
     {
+        try
+        {
+            return StopCurrent();
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            throw new InvalidOperationException("Winland is running as another user. Quit it from its tray icon, then try again.", exception);
+        }
+    }
+
+    private static bool StopCurrent()
+    {
         var pipe = Pipe();
-        if (PipeServer.ProcessId(pipe ?? CommandProtocol.PipeName) is not int id)
+        if (PipeServer.ProcessId(pipe) is not int id)
             return false;
 
         Process daemon;
@@ -41,13 +53,24 @@ sealed class DaemonSession : IDaemonSession
 
     public void Start(string executable, IReadOnlyList<string> arguments)
     {
+        if (!arguments.Contains(ManualStartElevation.OptOutArgument, StringComparer.OrdinalIgnoreCase))
+        {
+            if (SchtasksCatalog.UseLauncher(executable))
+            {
+                SchtasksCatalog.Start();
+                return;
+            }
+        }
+
         // The shell starts the Daemon in a console of its own, hidden, so it shows no window and keeps running
         // after install exits. It inherits no handle, so a caller that reads install's output is not held open.
         // The parent is already elevated for a machine install, and the Daemon inherits that token,
         // so this does not ask for a second approval. A per-user install passes --no-elevate.
         var start = new ProcessStartInfo
         {
-            FileName = executable,
+            FileName = Elevation.IsElevated()
+                ? Path.Combine(Path.GetDirectoryName(executable)!, LogonTaskDefinition.LauncherName)
+                : executable,
             WorkingDirectory = Path.GetDirectoryName(executable) ?? Environment.CurrentDirectory,
             UseShellExecute = true,
             WindowStyle = ProcessWindowStyle.Hidden,

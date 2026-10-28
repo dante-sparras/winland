@@ -80,8 +80,7 @@ $lanes = @(
             # Real top-level windows: WinEvent hooks, the message loop, and the code that reads a window by
             # its handle for a drag, its limits, a minimize or maximize, and the windows already open. Only
             # the Desktop tests reach them, and the lane cannot run those (see Filter). The rest of the
-            # adapter acts on a FakeDesktop and stays in.
-            'WindowAdapter/WindowAdapter.cs'
+            # adapter acts on a FakeDesktop and stays in, including the destroy-event cleanup.
             'WindowAdapter/Move.cs'
             'WindowAdapter/Limits.cs'
             'WindowAdapter/Buttons.cs'
@@ -103,7 +102,6 @@ $lanes = @(
             # idle and last-input queries, and the console close handler.
             'MonitorAdapter.cs'
             'Taskbar.cs'
-            'ShellBars.cs'
             'Foreground.cs'
             'KeyboardLayout.cs'
             'IdleKeeper.cs'

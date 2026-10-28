@@ -28,7 +28,10 @@ public static class WindowIdentity
         return client.Hidden || title == client.Title ? Recognition.SameClient : Recognition.SameWindow;
     }
 
-    /// <summary>Records process, class and title of each Client that is still open. A window that is gone is left out.</summary>
+    /// <summary>
+    /// Records process, class and title of each Client that is still open, and process and class of each held window.
+    /// A window that is gone is left out.
+    /// </summary>
     public static RecoverySnapshot Annotate(RecoverySnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
@@ -46,7 +49,23 @@ public static class WindowIdentity
             });
         }
 
-        return snapshot with { Clients = clients };
+        var held = new List<HeldWindow>(snapshot.Held.Count);
+        foreach (var window in snapshot.Held)
+        {
+            if (TryRead(window.Window, out var processId, out var windowClass, out _))
+                held.Add(window with { Class = windowClass, ProcessId = processId });
+        }
+
+        return snapshot with { Clients = clients, Held = held };
+    }
+
+    /// <summary>Whether the window open now at a held window's handle is that window.</summary>
+    internal static bool Recognize(HeldWindow window)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+        return TryRead(window.Window, out var processId, out var windowClass, out _)
+            && processId == window.ProcessId
+            && windowClass == window.Class;
     }
 
     internal enum Recognition

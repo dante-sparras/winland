@@ -5,7 +5,7 @@ obj/
 TestResults/
 StrykerOutput/
 .firecrawl/
-.scratch/**/out/
+.scratch/
 
 # Local Claude Code session files, such as review notes. The installed skills are committed.
 .claude/*

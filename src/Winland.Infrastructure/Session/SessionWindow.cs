@@ -141,7 +141,7 @@ internal sealed class SessionWindow : IDisposable
 
             if (message == TimerMessage && (nuint)wParam == ShellTimer)
             {
-                if (ShellBars.Present())
+                if (Taskbar.Present())
                 {
                     _ = PInvoke.KillTimer(_hwnd, ShellTimer);
                     _onSignal(SessionSignal.ShellReady);
@@ -184,7 +184,7 @@ internal sealed class SessionWindow : IDisposable
             if (message == AccentNotices.SettingChange)
                 _onSettings?.Invoke();
 
-            if (AccentNotices.Changed(message, (nint)lParam))
+            if (AccentNotices.Changed(message))
                 _onAccent?.Invoke();
 
             if (SessionNotices.TryFromMessage(message, (nuint)wParam, out var signal))
@@ -192,7 +192,7 @@ internal sealed class SessionWindow : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            Console.Error.WriteLine(exception.Message);
+            Console.Error.WriteLine(exception);
         }
 
         return PInvoke.DefWindowProc(hwnd, message, wParam, lParam);

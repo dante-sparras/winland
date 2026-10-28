@@ -18,6 +18,8 @@ public sealed partial class WindowManager
     // One lookup for every Workspace's options, so they still compare equal.
     private readonly Func<ClientId, int?> _clientBorder;
     private BorderColor? _accent;
+    private HighContrast? _contrast;
+    private double _textScale = 1;
     private Rectangle _area;
     private readonly FocusState _focus;
     private readonly ClientProps _props = new();
@@ -25,14 +27,16 @@ public sealed partial class WindowManager
     private List<StreamEvent>? _noted;
     private readonly HashSet<WindowId> _concealedMinimized = [];
 
-    private static long Cores;
-    private readonly long _id = Interlocked.Increment(ref Cores);
-    private long _sequence;
-
     // The last outcome a step returned with something to apply. The next step is empty when it asks for nothing more.
     private Outcome? _applied;
 
     public event Action<Outcome>? Noticed;
+
+    /// <summary>
+    /// Called under the lock with each outcome a step decided that asks for something, so they are handed on in the
+    /// order they were decided. The adapter queues them here and applies them in that order.
+    /// </summary>
+    public Action<Outcome>? Decided { get; set; }
 
     public Func<ConfigRead>? ReadConfig { get; set; }
 
@@ -50,7 +54,7 @@ public sealed partial class WindowManager
 
     public ICursorPosition? Cursor { get; set; }
 
-    public ISessionLock? SessionLock { get; set; }
+    public SessionPhase? SessionLock { get; set; }
 
     public Action<ConfigDocument>? AfterReload { get; set; }
 
@@ -104,7 +108,40 @@ public sealed partial class WindowManager
                 return Outcome.Empty(last.State);
             }
 
+            // The pointer moves hundreds of times a second, and most moves change nothing a step would apply.
+            if (input is PointerMoved moved && _interaction is null && _applied is { } applied)
+            {
+                if (Glides(moved, applied, out var aim))
+                    return Outcome.Empty(applied.State);
+
+                return Step(input, () => View([], focus: Follow(moved, aim)));
+            }
+
             return Step(input, () => HandleInput(input));
+        }
+    }
+
+    /// <summary>
+    /// Takes in the windows that were open before Winland started, as one step, so each tile is placed once where it
+    /// ends up rather than again for every window after it.
+    /// </summary>
+    public Outcome Adopt(IReadOnlyList<WindowAppeared> windows)
+    {
+        ArgumentNullException.ThrowIfNull(windows);
+        lock (_gate)
+        {
+            return Step(null, () =>
+            {
+                var outcome = new Outcome([], Snapshot());
+                foreach (var appeared in windows)
+                {
+                    var wasClient = Find(appeared.Window) is not null;
+                    outcome = outcome.Then(AppearMaybeMaximized(appeared));
+                    Note(appeared, wasClient);
+                }
+
+                return outcome;
+            });
         }
     }
 
@@ -141,12 +178,12 @@ public sealed partial class WindowManager
         }
     }
 
-    internal void NoteProcess(int processId, int parentProcessId)
+    internal void NoteLineage(int processId, IReadOnlyList<int> ancestors)
     {
         lock (_gate)
         {
-            _follow.Note(processId, parentProcessId);
-            _initialWorkspaces.Note(processId, parentProcessId);
+            _follow.NoteLineage(processId, ancestors);
+            _initialWorkspaces.NoteLineage(processId, ancestors);
         }
     }
 
@@ -176,7 +213,7 @@ public sealed partial class WindowManager
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                _ = exception;
+                Console.Error.WriteLine(exception);
             }
         }
 
@@ -201,15 +238,16 @@ public sealed partial class WindowManager
             if (input is not null)
                 Note(input, wasClient);
 
-            outcome = Ordered(WithEvents(Decorate(outcome, before.State), before, input));
+            outcome = WithEvents(Decorate(outcome, before.State), before, input);
 
             // A step that loads a config is not remembered: its caller may not apply it, so the next step applies
             // everything again.
             var loaded = !ReferenceEquals(config, _config);
             if (!loaded && outcome.IsEmptyAfter(_applied))
-                return Outcome.Empty(outcome.State) with { Order = outcome.Order };
+                return Outcome.Empty(outcome.State);
 
             _applied = loaded ? null : outcome.Lasting();
+            Decided?.Invoke(outcome);
             Emit(outcome);
             return outcome;
         }
@@ -222,6 +260,7 @@ public sealed partial class WindowManager
             _readdressed = null;
             _crossMonitorWarp = null;
             _movedItself = null;
+            _restoring = null;
         }
     }
 
@@ -253,7 +292,7 @@ public sealed partial class WindowManager
             Dispatch dispatched => ExecuteTriggered(dispatched.Name, dispatched.Arguments, dispatched.Trigger),
             WindowFlashed flashed => Flash(flashed.Window),
             WindowFocused focused => Consider(focused),
-            WindowClosed closed => Close(closed.Window),
+            WindowClosed closed => Close(closed.Window, closed.Cloaked),
             WindowEnabledChanged changed => ChangeEnabled(changed),
             WindowLimitsChanged limits => ChangeLimits(limits),
             WindowMinimized minimized => Minimize(minimized.Window),
@@ -290,9 +329,6 @@ public sealed partial class WindowManager
     /// </summary>
     internal Func<long> Clock { get; set; } = static () => Environment.TickCount64;
 
-    // Called under the lock, so the sequence is the order in which the outcomes were decided.
-    private Outcome Ordered(Outcome outcome) => outcome with { Order = new OutcomeOrder(_id, ++_sequence) };
-
     private void Emit(Outcome outcome)
     {
         if (outcome.Events.Count == 0)
@@ -310,7 +346,7 @@ public sealed partial class WindowManager
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                _ = exception;
+                Console.Error.WriteLine(exception);
             }
         }
     }

@@ -1,1 +1,5 @@
 blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/dante-sparras/winland/security/advisories/new
+    about: Report vulnerabilities privately to the maintainer.

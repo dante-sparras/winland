@@ -135,7 +135,7 @@ internal sealed class FloatingClients
     }
 
     /// <summary>Resizes a floating Client about its center, by a delta or to an exact size, and keeps it on screen.</summary>
-    public IReadOnlyList<Placement> Resize(ClientId id, int x, int y, bool exact, OnScreen onScreen)
+    public IReadOnlyList<Placement> Resize(ClientId id, int x, int y, bool exact, OnScreen onScreen, SizeLimits limits)
     {
         if (!_boxes.TryGetValue(id, out var box))
             return [];
@@ -146,18 +146,18 @@ internal sealed class FloatingClients
         if (resized.Width < 1 || resized.Height < 1)
             return [];
 
-        resized = onScreen.Keep(resized);
+        resized = onScreen.Keep(limits.Clamp(resized));
         _boxes[id] = resized;
         return [new Placement(id, resized)];
     }
 
     /// <summary>Moves a floating Client to a rectangle of at least one pixel, kept on screen. False when it is not floating.</summary>
-    public bool Place(ClientId id, Rectangle bounds, OnScreen onScreen)
+    public bool Place(ClientId id, Rectangle bounds, OnScreen onScreen, SizeLimits limits)
     {
         if (!_boxes.ContainsKey(id) || bounds.Width < 1 || bounds.Height < 1)
             return false;
 
-        _boxes[id] = onScreen.Keep(bounds);
+        _boxes[id] = onScreen.Keep(limits.Clamp(bounds));
         return true;
     }
 

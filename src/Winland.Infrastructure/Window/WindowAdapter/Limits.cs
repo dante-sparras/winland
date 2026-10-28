@@ -72,12 +72,6 @@ public sealed partial class WindowAdapter : IDisposable
             _probed.Remove(window);
     }
 
-    private void RememberLimits(WindowId window, Size? min, Size? max)
-    {
-        lock (_limitGate)
-            _limits[window] = (min, max);
-    }
-
     private void ForgetLimits(WindowId window)
     {
         lock (_limitGate)

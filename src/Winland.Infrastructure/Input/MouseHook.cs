@@ -79,11 +79,18 @@ public sealed class MouseHook : IDisposable
 
         // A drag whose release was missed is over. The core is told, or the window would
         // keep following the cursor with no button held.
+        var position = PInvoke.GetCursorPos(out var point) ? new Point(point.X, point.Y) : _keys.Session.Pointer;
+        EndDrags(position);
+    }
+
+    internal void EndDrags(Point position)
+    {
         if (_keys.Drag.Abandon() is BindDrag.Active drag)
-        {
-            var position = PInvoke.GetCursorPos(out var point) ? new Point(point.X, point.Y) : _keys.Session.Pointer;
             _keys.PostGesture(drag.Dispatcher, drag.Arguments, position, PointerDragPhase.End, drag.Button);
-        }
+
+        foreach (var button in _bordered)
+            _keys.PostInput(new PointerButtonReleased(button) { Position = position, BindsHandled = true });
+        _bordered.Clear();
     }
 
     public void Dispose()
@@ -99,7 +106,7 @@ public sealed class MouseHook : IDisposable
         _hook = default;
     }
 
-    private LRESULT OnMouse(int code, WPARAM wParam, LPARAM lParam)
+    private unsafe LRESULT OnMouse(int code, WPARAM wParam, LPARAM lParam)
     {
         if (code < 0 || _disposed)
             return Next(code, wParam, lParam);
@@ -107,7 +114,7 @@ public sealed class MouseHook : IDisposable
         try
         {
             _keys.Saw();
-            var info = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+            var info = *(MSLLHOOKSTRUCT*)lParam.Value;
             if (info.dwExtraInfo == KeyboardHook.InjectedTag)
                 return Next(code, wParam, lParam);
 
@@ -122,7 +129,7 @@ public sealed class MouseHook : IDisposable
                 if (!up && source == PointerSource.Touch)
                     SessionEffects.NoteTouch();
 
-                if (!up && (info.flags & 0x1) == 0)
+                if (!up)
                     InputClock.NoteClickOrKey(info.time, ClickedWindow(info.pt));
 
                 return OnButton(button, up, position) ? new LRESULT(1) : Next(code, wParam, lParam);
@@ -133,6 +140,7 @@ public sealed class MouseHook : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
+            ThreadPool.QueueUserWorkItem(static error => Console.Error.WriteLine(error), exception, preferLocal: false);
         }
 
         return Next(code, wParam, lParam);
@@ -157,7 +165,6 @@ public sealed class MouseHook : IDisposable
 
     private LRESULT OnMove(int code, WPARAM wParam, LPARAM lParam, Point position, uint time, PointerSource source)
     {
-        _ = _core.Decide(new PointerMoved(position), _keys.Session);
         SessionEffects.NoteMove(position, source);
         if (_keys.Drag.Current is BindDrag.Active drag)
             _keys.PostGesture(drag.Dispatcher, drag.Arguments, position, PointerDragPhase.Move, drag.Button);
@@ -167,7 +174,7 @@ public sealed class MouseHook : IDisposable
         return Next(code, wParam, lParam);
     }
 
-    private bool OnButton(string button, bool up, Point position)
+    internal bool OnButton(string button, bool up, Point position)
     {
         // kill: the armed click goes to the core, not to the window, and so does its release.
         if (up && _killed.Remove(button))
@@ -182,13 +189,16 @@ public sealed class MouseHook : IDisposable
 
         if (up && _bordered.Remove(button))
         {
-            _ = _core.Decide(new PointerButtonReleased(button) { Position = position }, _keys.Session);
-            _keys.PostInput(new PointerButtonReleased(button) { Position = position });
+            _keys.Enqueue(_core.Decide(new PointerButtonReleased(button) { Position = position }, _keys.Session));
+            _keys.PostInput(new PointerButtonReleased(button) { Position = position, BindsHandled = true });
             return true;
         }
 
         if (up)
         {
+            if (button == "mouse:272" && _core.AwaitsDragRelease)
+                _keys.PostInput(new PointerButtonReleased(button) { Position = position });
+
             var passed = _passed.Remove(button);
             if (_keys.Drag.Release(button) is BindDrag.Active drag)
                 _keys.PostGesture(drag.Dispatcher, drag.Arguments, position, PointerDragPhase.End, button);
@@ -228,10 +238,10 @@ public sealed class MouseHook : IDisposable
         }
         else if (!decision.Consumed && _keys.Drag.Current is null && _core.OnBorder(position))
         {
-            // A press on a tile's ring resizes it. The core decides the press again with the drag in mind, and runs
-            // any bind on it there.
+            // A press on a tile's ring resizes it. Its bind was already decided here.
             _bordered.Add(button);
-            _keys.PostInput(new PointerButtonPressed(button) { Position = position });
+            _keys.Enqueue(decision);
+            _keys.PostInput(new PointerButtonPressed(button) { Position = position, BindsHandled = true });
             return true;
         }
         else

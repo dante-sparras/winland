@@ -11,6 +11,22 @@ public sealed partial class WindowManager
     // Where the system left the window it just moved. The motion that drops it into the Layout starts there.
     private (WindowId Window, Rectangle Bounds)? _released;
 
+    /// <summary>A newly shown window is being held under the pointer until the left button is released.</summary>
+    public bool AwaitsDragRelease => _interaction is NativeMove { Adopted: true };
+
+    private IReadOnlyList<Placement> OpenDragged(WindowAppeared appeared, LiveWorkspace desk, IReadOnlyList<Placement> placements)
+    {
+        if (!appeared.Dragging || _interaction is not null || desk.ClientOf(appeared.Window) is not { Floating: false })
+            return placements;
+
+        _ = BeginNativeMove(new WindowMoveStarted(appeared.Window, appeared.Pointer ?? default));
+        if (_interaction is NativeMove move)
+            move.Adopted = true;
+        _ = desk.Layout.PlaceFloating(appeared.Window, appeared.Bounds);
+        _movedItself = appeared.Window;
+        return [.. desk.Layout.Visible().Where(placement => placement.Client != new ClientId(appeared.Window.Value))];
+    }
+
     private Outcome BeginNativeMove(WindowMoveStarted started)
     {
         if (_interaction is not null)
@@ -43,13 +59,20 @@ public sealed partial class WindowManager
 
         _interaction = null;
         var drop = GroupDrop(ended.Window, wasTiled: !move.Floating, ended.Pointer);
+        if (!move.Floating)
+            _released = ended.Bounds is Rectangle released ? (ended.Window, released) : null;
+        if (ended.Bounds is Rectangle box
+            && MoveWithMonitor(ended.Window, box, !move.Floating, settle: true, ended.Pointer) is Outcome crossed)
+        {
+            return drop is { } target ? JoinDragged(ended.Window, target, consumed: false) : crossed with { Consumed = false };
+        }
+
         if (move.Floating)
         {
             var left = FollowNativeFloating(ended.Window, ended.Bounds);
             return drop is { } onto ? JoinDragged(ended.Window, onto, consumed: false) : left;
         }
 
-        _released = ended.Bounds is Rectangle frame ? (ended.Window, frame) : null;
         var layout = LayoutWorkspace(ended.Window).Layout;
         var dropped = layout.Drag(ended.Window, new PointerDrag(false, PointerDragPhase.End, ended.Pointer));
         if (drop is { } into)
@@ -86,5 +109,7 @@ public sealed partial class WindowManager
     private sealed class NativeMove(WindowId window, bool floating) : PointerInteraction(window)
     {
         public bool Floating { get; } = floating;
+
+        public bool Adopted { get; set; }
     }
 }

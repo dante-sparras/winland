@@ -24,7 +24,7 @@ internal static class InputInjector
         {
             if (_worker is null)
             {
-                _worker = new Thread(Run) { IsBackground = true, Name = "Winland input injector" };
+                _worker = new Thread(Run) { IsBackground = true, Name = "Winland input injector", Priority = ThreadPriority.Highest };
                 _worker.Start();
             }
         }
@@ -42,7 +42,7 @@ internal static class InputInjector
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                Console.Error.WriteLine(exception.Message);
+                Console.Error.WriteLine(exception);
             }
         }
     }

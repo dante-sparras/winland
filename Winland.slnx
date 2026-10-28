@@ -11,6 +11,7 @@
   </Folder>
   <Folder Name="/src/4 Presentation/">
     <Project Path="src/Winland.Daemon/Winland.Daemon.csproj" />
+    <Project Path="src/Winland.Launcher/Winland.Launcher.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Winland.Domain.Tests/Winland.Domain.Tests.csproj" />
@@ -19,6 +20,5 @@
     <Project Path="tests/Winland.Install.Tests/Winland.Install.Tests.csproj" />
     <Project Path="tests/Winland.Daemon.Tests/Winland.Daemon.Tests.csproj" />
     <Project Path="tests/Winland.Smoke.Tests/Winland.Smoke.Tests.csproj" />
-    <Project Path="tests/Winland.FocusThief/Winland.FocusThief.csproj" />
   </Folder>
 </Solution>

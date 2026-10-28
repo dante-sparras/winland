@@ -10,15 +10,20 @@ public sealed class ShellShortcutTests : IDisposable
             File.Delete(link);
     }
 
-    [Fact]
-    public void TheShortcutCarriesTheAppUserModelId()
+    [Theory]
+    [InlineData(@"C:\Program Files\Winland\winland.exe")]
+    [InlineData(@"C:\Program Files\Winland2\winland.exe")]
+    public void TheShortcutCarriesTheAppUserModelId(string target)
     {
         ShellShortcut.Write(
             link,
-            @"C:\Program Files\Winland\winland.exe",
+            target,
             "--no-elevate",
             "Winland.Winland");
 
-        Assert.Equal("Winland.Winland", ShellShortcut.ReadAppUserModelId(link));
+        // A shortcut is binary; its UTF-16 property value can start at an odd byte offset.
+        var bytes = File.ReadAllBytes(link);
+        var appUserModelId = System.Text.Encoding.Unicode.GetBytes("Winland.Winland");
+        Assert.True(bytes.AsSpan().IndexOf(appUserModelId) >= 0, "The shortcut must contain the AppUserModelID.");
     }
 }

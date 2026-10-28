@@ -18,7 +18,7 @@ public class ClickKillTests
         var killed = core.Handle(new ClickKillChosen(new Point(500, 500)));
 
         Assert.False(core.ClickKillArmed);
-        Assert.Equal(new KillRequest(42) { Window = new WindowId(7) }, killed.Kill);
+        Assert.Equal([new KillRequest(42) { Window = new WindowId(7) }], killed.Kills);
         Assert.Contains("kill>>7", CommandProtocol.FormatStream(killed.Events, killed.State));
     }
 
@@ -31,11 +31,11 @@ public class ClickKillTests
         core.Execute("dispatch togglefloating");
 
         core.Execute("kill");
-        Assert.Null(core.Handle(new ClickKillChosen(null)).Kill);
+        Assert.Empty(core.Handle(new ClickKillChosen(null)).Kills);
         Assert.False(core.ClickKillArmed);
 
         core.Execute("kill");
-        Assert.Null(core.Handle(new ClickKillChosen(new Point(1800, 1000))).Kill);
+        Assert.Empty(core.Handle(new ClickKillChosen(new Point(1800, 1000))).Kills);
         Assert.False(core.ClickKillArmed);
     }
 }

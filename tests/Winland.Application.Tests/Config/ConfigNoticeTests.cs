@@ -63,15 +63,15 @@ public class ConfigNoticeTests
     [Fact]
     public void ASourcedErrorNamesThatFile()
     {
-        var source = new MemorySource(new Dictionary<string, string> { ["extra.conf"] = "blur = on\n" });
+        var source = new MemorySource(new Dictionary<string, string> { [@"C:\winland\extra.conf"] = "blur = on\n" });
         var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("source = extra.conf\n", source, path: Path)));
         var notice = Notice(core);
 
         Assert.NotNull(notice);
         Assert.Equal("Winland: 1 config error", notice.Title);
-        Assert.Equal("extra.conf:1: Unsupported keyword 'blur'.", notice.Text);
-        Assert.Equal("extra.conf", notice.File);
+        Assert.Equal(@"C:\winland\extra.conf:1: Unsupported keyword 'blur'.", notice.Text);
+        Assert.Equal(@"C:\winland\extra.conf", notice.File);
     }
 
     [Fact]

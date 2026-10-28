@@ -9,8 +9,9 @@ public sealed class KeyLayout
     private readonly HashSet<int> _dead;
     private readonly Dictionary<int, string> _symbols;
     private readonly Dictionary<string, int> _bySymbol;
+    private readonly Dictionary<int, string> _byCode = [];
 
-    private KeyLayout(Dictionary<int, string> characters, HashSet<int> dead, bool hasAltGr)
+    private KeyLayout(Dictionary<int, string> characters, HashSet<int> dead, bool hasAltGr, IReadOnlyDictionary<int, int>? virtualKeysByCode = null)
     {
         _characters = characters;
         _dead = dead;
@@ -29,6 +30,15 @@ public sealed class KeyLayout
             _symbols[virtualKey] = symbol;
             _bySymbol[symbol] = virtualKey;
         }
+
+        if (virtualKeysByCode is not null)
+        {
+            foreach (var (code, virtualKey) in virtualKeysByCode)
+            {
+                if (_symbols.TryGetValue(virtualKey, out var symbol))
+                    _byCode[code] = symbol;
+            }
+        }
     }
 
     public bool HasAltGr { get; }
@@ -36,7 +46,8 @@ public sealed class KeyLayout
     public static KeyLayout From(
         IReadOnlyDictionary<int, string>? characters,
         bool hasAltGr = false,
-        IReadOnlyCollection<int>? deadKeys = null)
+        IReadOnlyCollection<int>? deadKeys = null,
+        IReadOnlyDictionary<int, int>? virtualKeysByCode = null)
     {
         var copy = new Dictionary<int, string>();
         if (characters is not null)
@@ -52,10 +63,12 @@ public sealed class KeyLayout
                 dead.Add(virtualKey);
         }
 
-        return new KeyLayout(copy, dead, hasAltGr);
+        return new KeyLayout(copy, dead, hasAltGr, virtualKeysByCode);
     }
 
     internal bool IsDead(int virtualKey) => _dead.Contains(virtualKey);
+
+    internal string? NameForCode(int code) => _byCode.GetValueOrDefault(code);
 
     internal bool TrySymbol(int virtualKey, out string symbol) =>
         _symbols.TryGetValue(virtualKey, out symbol!);

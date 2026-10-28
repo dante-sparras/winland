@@ -120,7 +120,7 @@ public class DwmEffectsTests
     // After the exit cleanup the process ends with the state file gone, so an outcome that arrives
     // late must not change a backdrop or a region again.
     [Fact]
-    public void AfterResettingAllNothingIsChangedUntilReopened()
+    public void AfterResettingAllNothingIsChanged()
     {
         var surface = new FakeSurface();
         surface.Backdrops[Window] = 2;
@@ -133,10 +133,6 @@ public class DwmEffectsTests
         Assert.Equal(2u, surface.Backdrops[Window]);
         Assert.Equal(0, surface.RegionWrites);
         Assert.False(effects.CutsCorners(Window));
-
-        effects.Reopen();
-        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
-        Assert.True(effects.CutsCorners(Window));
     }
 
     [Fact]
@@ -162,6 +158,28 @@ public class DwmEffectsTests
 
         restarted.Apply(Window, Decorated(region: new CornerRegion(10)));
         Assert.True(restarted.CutsCorners(Window));
+    }
+
+    // Taking a region off waits for the window. One whose program stopped answering keeps its cut, and the snapshot
+    // records it, so the next start takes it off.
+    [Fact]
+    public void AWindowThatStoppedAnsweringKeepsItsCutRecorded()
+    {
+        var surface = new FakeSurface();
+        surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
+        var stopped = false;
+        var effects = new DwmEffects(surface, _ => stopped);
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
+        stopped = true;
+
+        effects.ResetAll();
+
+        Assert.NotEmpty(surface.Regions[Window]);
+        var stamped = effects.Stamp(new RecoverySnapshot(
+        [
+            new RecoveredClient(Window, WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1),
+        ]));
+        Assert.True(Assert.Single(stamped.Clients).Region);
     }
 
     [Fact]
@@ -229,7 +247,7 @@ public class DwmEffectsTests
     }
 
     [Fact]
-    public void ResettingAllForgetsAWindowsOwnRegion()
+    public void ResettingAWindowForgetsItsOwnRegion()
     {
         var surface = new FakeSurface();
         surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
@@ -237,8 +255,7 @@ public class DwmEffectsTests
         var effects = new DwmEffects(surface);
         effects.Apply(Window, Decorated(region: new CornerRegion(10)));
 
-        effects.ResetAll();
-        effects.Reopen();
+        effects.Reset(Window);
         surface.Owned.Remove(Window);
         effects.Apply(Window, Decorated(region: new CornerRegion(10)));
 

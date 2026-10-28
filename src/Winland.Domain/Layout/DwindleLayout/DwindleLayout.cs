@@ -19,15 +19,17 @@ internal sealed partial class DwindleLayout : TiledLayout, Layout
         return Placements();
     }
 
-    public void Fit(Rectangle area)
+    public void Fit(Rectangle area, Rectangle monitor)
     {
         _area = area;
+        if (monitor.Width > 0 && monitor.Height > 0)
+            _monitor = monitor;
         Refit();
     }
 
-    public IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode)
+    public IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode)
     {
-        if (!FullscreenClients.Assign(_clients, window, mode, clientMode))
+        if (!FullscreenClients.Assign(_clients, window, mode))
             return [];
 
         if (!FullscreenClients.Covering(_clients))
@@ -88,14 +90,15 @@ internal sealed partial class DwindleLayout : TiledLayout, Layout
         string title = "",
         Rectangle monitor = default,
         long processId = 0,
-        string initialClass = "",
-        string initialTitle = "",
+        string? initialClass = null,
+        string? initialTitle = null,
         Size? minSize = null,
         Size? maxSize = null,
         TiledLimits? tiledLimits = null)
     {
         _area = area;
-        _monitor = monitor;
+        if (monitor.Width > 0 && monitor.Height > 0)
+            _monitor = monitor;
         var id = new ClientId(window.Value);
         if (_nodes.ContainsKey(id) || _suspended.ContainsKey(id) || _floating.Contains(id))
             return [];
@@ -269,8 +272,9 @@ internal sealed partial class DwindleLayout : TiledLayout, Layout
         if (node.First is null || node.Second is null)
             return;
 
-        if (!keepDirection && !_options.PreserveSplit)
+        if (!keepDirection && !node.KeepDirection && !_options.PreserveSplit)
             node.SplitTop = SplitsTop(node.Box);
+        node.KeepDirection = false;
 
         if (node.SplitTop)
         {
@@ -356,6 +360,8 @@ internal sealed partial class DwindleLayout : TiledLayout, Layout
         public double SplitRatio { get; set; } = 1;
 
         public bool SplitTop { get; set; }
+
+        public bool KeepDirection { get; set; }
     }
 
     private sealed record Sibling(Node Node, int Index, double SplitRatio, bool SplitTop);

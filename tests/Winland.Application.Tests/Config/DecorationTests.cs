@@ -79,13 +79,13 @@ public class DecorationTests
     {
         var core = Configured();
 
-        var first = core.Handle(Appeared(1));
+        var first = core.Handle(Appeared(1, Area));
         var only = For(first, 1);
         Assert.Equal(Active, only.Border);
         Assert.Equal(CornerPreference.Round, only.Corners);
         Assert.Empty(first.ResetDecorations);
 
-        var second = core.Handle(Appeared(2));
+        var second = core.Handle(Appeared(2, Area));
 
         Assert.Equal(Inactive, For(second, 1).Border);
         Assert.Equal(Active, For(second, 2).Border);
@@ -96,8 +96,8 @@ public class DecorationTests
     public void FocusChangeSwapsTheActiveBorder()
     {
         var core = Configured();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
 
         var outcome = core.Handle(new WindowFocused(new WindowId(1)));
 
@@ -110,8 +110,8 @@ public class DecorationTests
     public void ClosingAClientResetsThatWindowAndRecolorsTheSurvivor()
     {
         var core = Configured();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
 
         var outcome = core.Handle(new WindowClosed(new WindowId(2)));
 
@@ -124,7 +124,7 @@ public class DecorationTests
     public void WorkspaceSwitchRecolorsTheHiddenClientWithoutResettingIt()
     {
         var core = Configured();
-        core.Handle(Appeared(1));
+        core.Handle(Appeared(1, Area));
 
         var away = core.Execute("dispatch workspace 2").Effect;
 
@@ -141,8 +141,8 @@ public class DecorationTests
     public void ConfigReloadRecolorsEveryClient()
     {
         var core = Configured();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
 
         var reloaded = core.Handle(new Configure(ConfigParser.Parse("""
             general:col.active_border = rgba(00ff00ff)
@@ -168,8 +168,8 @@ public class DecorationTests
     public void ReloadCommandRecolorsClientsAfterTheConfigIsApplied()
     {
         var core = Configured();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
         var notified = false;
         core.ReadConfig = () => new ConfigRead(ConfigParser.Parse("""
             general:col.active_border = rgba(00ff00ff)
@@ -194,9 +194,9 @@ public class DecorationTests
     public void WorkspaceSwitchRedecoratesTheShownClient()
     {
         var core = Configured();
-        core.Handle(Appeared(1));
+        core.Handle(Appeared(1, Area));
         core.Execute("dispatch workspace 2");
-        core.Handle(Appeared(2));
+        core.Handle(Appeared(2, Area));
 
         var back = core.Execute("dispatch workspace 1").Effect;
 
@@ -275,8 +275,6 @@ public class DecorationTests
             """)));
         return core;
     }
-
-    private static WindowAppeared Appeared(long window) => new(new WindowId(window), Area);
 
     private static Monitor Display(string name, int x) =>
         new(name, name, x, 0, 800, 600, 1, true, new Rectangle(x, 0, 800, 600));

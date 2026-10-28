@@ -13,8 +13,8 @@ internal interface Layout
     /// <summary>Applies options and returns the placements of the tiled Clients this Layout is showing.</summary>
     IReadOnlyList<Placement> Apply(LayoutOptions options);
 
-    /// <summary>Fits this Layout to a Monitor's work area.</summary>
-    void Fit(Rectangle area);
+    /// <summary>Fits this Layout to a Monitor's work area and full bounds.</summary>
+    void Fit(Rectangle area, Rectangle monitor);
 
     /// <summary>Gives every Client the Workspace's new id, after a move to another Monitor.</summary>
     void Readdress(WorkspaceId workspace);
@@ -37,8 +37,8 @@ internal interface Layout
         string title = "",
         Rectangle monitor = default,
         long processId = 0,
-        string initialClass = "",
-        string initialTitle = "",
+        string? initialClass = null,
+        string? initialTitle = null,
         Size? minSize = null,
         Size? maxSize = null,
         TiledLimits? tiledLimits = null);
@@ -174,18 +174,18 @@ internal interface Layout
     }
 
     /// <summary>
-    /// Records a Client's fullscreen modes. Mode 0 is its layout slot.
+    /// Records a Client's fullscreen mode. Mode 0 is its layout slot.
     /// A covering mode replaces any other covering Client on this Workspace.
     /// </summary>
-    IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode);
+    IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode);
 
     /// <summary>
-    /// Records a Client's fullscreen modes. With <paramref name="layoutAware"/> a Layout that lays out its own
+    /// Records a Client's fullscreen mode. With <paramref name="layoutAware"/> a Layout that lays out its own
     /// fullscreen Clients takes this one, as Winland's scrolling Layout does, and marks it
     /// <see cref="Client.LayoutFullscreen"/>. Other Layouts ignore it.
     /// </summary>
-    IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode, bool layoutAware) =>
-        SetFullscreen(window, mode, clientMode);
+    IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, bool layoutAware) =>
+        SetFullscreen(window, mode);
 
     /// <summary>
     /// Whether this Client's fullscreen or maximized mode covers its Workspace now. A Client the Layout lays out

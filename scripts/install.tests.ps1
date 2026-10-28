@@ -52,9 +52,57 @@ Test-Case 'a no leaves out the logon start or the start now' {
     Assert-Equal ((Get-InstallArguments $false $false) -join ' ') 'install --no-logon --no-start'
 }
 
-Test-Case 'the settings are always turned off, and the swipes only with a precision touchpad' {
+Test-Case 'the chosen settings include swipes only with a precision touchpad' {
     Assert-Equal ((Get-TweakArguments $true) -join ' ') 'tweaks --off --touchpad'
     Assert-Equal ((Get-TweakArguments $false) -join ' ') 'tweaks --off'
+}
+
+Test-Case 'the third answer controls the Windows settings change' {
+    $asked = New-Object System.Collections.Generic.List[string]
+    function Test-InstallPrompt { return $true }
+    function Read-YesNo([string]$Question) {
+        $asked.Add($Question)
+        return ($asked.Count -lt 3)
+    }
+    $choices = Get-InstallChoices
+    Assert-Equal $asked.Count 3
+    Assert-True $choices.Logon
+    Assert-True $choices.Start
+    Assert-False $choices.ChangeSettings
+}
+
+Test-Case 'NoTweaks skips the settings question' {
+    $asked = New-Object System.Collections.Generic.List[string]
+    function Test-InstallPrompt { return $true }
+    function Read-YesNo([string]$Question) {
+        $asked.Add($Question)
+        return $true
+    }
+    $choices = Get-InstallChoices $false
+    Assert-Equal $asked.Count 2
+    Assert-False $choices.ChangeSettings
+}
+
+Test-Case 'a non-interactive install uses yes and honours NoTweaks' {
+    function Test-InstallPrompt { return $false }
+    Assert-True (Get-InstallChoices).ChangeSettings
+    Assert-False (Get-InstallChoices $false).ChangeSettings
+}
+
+Test-Case 'the protected install script safely carries paths and flags and parses in Windows PowerShell' {
+    $body = Get-ProtectedInstallScript "C:\it's\release.zip" ('ab' * 32) 'PC\user' $false $true
+    Assert-True ($body.Contains("[IO.File]::Copy('C:\it''s\release.zip', `$zip)"))
+    Assert-True ($body.Contains('if (-not $false)'))
+    Assert-True ($body.Contains('if (-not $true)'))
+    $errors = $null
+    $tokens = $null
+    [void][Management.Automation.Language.Parser]::ParseInput($body, [ref]$tokens, [ref]$errors)
+    Assert-Equal @($errors).Count 0
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($body))
+    $command = "`$body = [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('$encoded'))`n`$errors = `$null`n`$tokens = `$null`n[void][Management.Automation.Language.Parser]::ParseInput(`$body, [ref]`$tokens, [ref]`$errors)`nif (`$errors.Count) { exit 1 }"
+    $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    & $powershell -NoProfile -Command $command
+    Assert-Equal $LASTEXITCODE 0
 }
 
 Test-Case 'the dev channel reads the dev release and saves the channel' {
@@ -81,6 +129,18 @@ Test-Case 'a declined UAC prompt has its own message' {
 Test-Case 'another failure shows the last line winland printed' {
     Assert-Equal (Get-FailureMessage @('install') 1 @('first', 'Winland did not exit.', '')) 'Winland did not exit.'
     Assert-Equal (Get-FailureMessage @('install', '--no-start') 3 @()) 'winland install --no-start stopped with exit code 3.'
+    Assert-Equal (Get-FailureMessage @('install') 1 @('System.IO.IOException: disk full', '   at Winland.Copy()', '   at Winland.Main()')) 'System.IO.IOException: disk full'
+}
+
+Test-Case 'a rate limit reports the reset time' {
+    $headers = New-Object Net.WebHeaderCollection
+    $headers.Add('x-ratelimit-remaining', '0')
+    $headers.Add('x-ratelimit-reset', '1793145600')
+    $response = [pscustomobject]@{ StatusCode = 429
+        Headers = $headers }
+    Assert-Equal (Get-RateLimitMessage $response) 'The GitHub API rate limit is used up. Try again after 2026-10-28 00:00:00 UTC.'
+    $headers.Remove('x-ratelimit-remaining')
+    Assert-Equal (Get-RateLimitMessage $response) $null
 }
 
 Test-Case 'the summary says Winland is running only when it was started' {

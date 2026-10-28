@@ -52,11 +52,9 @@ public class EmptyStepTests
         [nameof(Outcome.ResizeCursor)] = (o => o with { ResizeCursor = null }, false),
         [nameof(Outcome.Error)] = (o => o with { Error = "error: no such workspace" }, false),
         [nameof(Outcome.Kills)] = (o => o with { Kills = [new KillRequest(7)] }, false),
-        [nameof(Outcome.Kill)] = (o => o with { Kill = new KillRequest(7) }, false),
         [nameof(Outcome.Exit)] = (o => o with { Exit = true }, false),
         [nameof(Outcome.Relays)] = (o => o with { Relays = [new KeyRelay(null, "a", KeyRelayPhase.Press)] }, false),
         [nameof(Outcome.ZOrder)] = (o => o with { ZOrder = [new ZOrderRequest(OneWindow, Top: true)] }, false),
-        [nameof(Outcome.Order)] = (o => o with { Order = new OutcomeOrder(1, 2) }, true),
         [nameof(Outcome.IsEmpty)] = (o => o with { IsEmpty = true }, true),
     };
 
@@ -104,7 +102,7 @@ public class EmptyStepTests
     [Fact]
     public void TheFirstStepIsNotEmpty()
     {
-        var core = new WindowManager(ConfigParser.Parse(Flat("")));
+        var core = new WindowManager(ConfigParser.Parse(FlatConfig("")));
 
         Assert.False(core.Handle(new PointerMoved(new Point(10, 10)) { TimeMs = 0 }).IsEmpty);
     }
@@ -120,6 +118,36 @@ public class EmptyStepTests
         Assert.True(moved.IsEmpty);
         Assert.Empty(moved.Placements);
         Assert.Equal(2, moved.State.Clients.Count);
+    }
+
+    [Fact]
+    public void AMoveThatChangesNothingRunsNoStep()
+    {
+        var (core, laid) = Tiled();
+        Outcome? decided = null;
+        core.Decided = outcome => decided = outcome;
+        Move(core, Center(laid, 2), 1_000);
+
+        var moved = Move(core, Center(laid, 2) with { X = Center(laid, 2).X + 10 }, 1_100);
+
+        // A step would describe a State of its own. A move that runs none hands back the last one decided.
+        Assert.True(moved.IsEmpty);
+        Assert.Same((decided ?? laid).State, moved.State);
+    }
+
+    [Fact]
+    public void AMoveWithoutAStepStillMovesThePointerAKeyDragStartsFrom()
+    {
+        var core = Configured("bind = SUPER, Z, mouse, movewindow");
+        core.Handle(new WindowAppeared(OneWindow, Area));
+        core.Handle(new Dispatch("togglefloating"));
+        core.Handle(new PointerMoved(new Point(700, 400)));
+
+        var moved = core.Handle(new PointerMoved(new Point(10, 10)));
+        core.Handle(new KeyPressed("Super_L"));
+
+        Assert.True(moved.IsEmpty);
+        Assert.False(core.Handle(new KeyPressed("z")).Consumed);
     }
 
     [Fact]
@@ -224,7 +252,7 @@ public class EmptyStepTests
     public void TheFirstStepAfterAConfigReloadIsNotEmpty()
     {
         var (core, laid) = Tiled();
-        var document = ConfigParser.Parse(Flat(""));
+        var document = ConfigParser.Parse(FlatConfig(""));
         core.ReadConfig = () => new ConfigRead(document);
         Move(core, Center(laid, 2), 1_000);
         Assert.True(Move(core, Center(laid, 2) with { X = Center(laid, 2).X + 10 }, 1_050).IsEmpty);
@@ -246,7 +274,7 @@ public class EmptyStepTests
         Move(core, Center(laid, 2), 1_000);
         Assert.True(Move(core, Center(laid, 2) with { X = Center(laid, 2).X + 10 }, 1_050).IsEmpty);
 
-        var configured = core.Handle(new Configure(ConfigParser.Parse(Flat(""))));
+        var configured = core.Handle(new Configure(ConfigParser.Parse(FlatConfig(""))));
         var after = Move(core, Center(laid, 2) with { X = Center(laid, 2).X + 20 }, 1_100);
 
         Assert.False(configured.IsEmpty);
@@ -255,13 +283,10 @@ public class EmptyStepTests
 
     private static (WindowManager WindowManager, Outcome Laid) Tiled()
     {
-        var core = new WindowManager(ConfigParser.Parse(Flat("")));
+        var core = new WindowManager(ConfigParser.Parse(FlatConfig("")));
         core.Handle(new WindowAppeared(OneWindow, Area));
         return (core, core.Handle(new WindowAppeared(new WindowId(2), Area)));
     }
-
-    private static string Flat(string extra) =>
-        "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 
     private static Outcome Move(WindowManager core, Point point, long time) =>
         core.Handle(new PointerMoved(point) { TimeMs = time });

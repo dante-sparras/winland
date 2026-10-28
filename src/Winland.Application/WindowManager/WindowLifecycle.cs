@@ -67,6 +67,8 @@ public sealed partial class WindowManager
         {
             case WindowAppeared appeared when !wasClient && WorkspaceContaining(appeared.Window) is { } appearedWorkspace
                 && _workspaces.Shown.IsShown(appearedWorkspace.Id)
+                && (!appeared.Traits.Topmost || appeared.Foreground)
+                && _restoring != appeared.Window
                 && !_awaitingMapFocus.Contains(appeared.Window):
                 var current = _workspaces.Shown.SpecialOn(appearedWorkspace.Monitor) ?? _workspaces.Shown.ActiveOn(appearedWorkspace.Monitor);
                 if (appearedWorkspace.Id == current)
@@ -85,17 +87,14 @@ public sealed partial class WindowManager
     {
         var processId = appeared.ProcessId is > 0 and <= int.MaxValue ? (int)appeared.ProcessId : 0;
         if (processId > 0)
-        {
-            _follow.NoteLineage(processId, appeared.AncestorProcessIds);
-            _initialWorkspaces.NoteLineage(processId, appeared.AncestorProcessIds);
-        }
+            NoteLineage(processId, appeared.AncestorProcessIds);
 
         // A Client shown again changes nothing, and uses up no rules of a started program. One that showed itself
         // while Winland keeps it hidden, on a hidden Workspace, waiting in a Group or scrolled out of view, is hidden again.
         if (Find(appeared.Window) is { } existing)
         {
-            var kept = _workspaces.Shown.IsShown(existing.Workspace)
-                && WorkspaceContaining(appeared.Window)?.Covered().Contains(appeared.Window) != true;
+            var home = WorkspaceContaining(appeared.Window)!;
+            var kept = !Concealed(home, existing) && !home.Covered().Contains(appeared.Window);
             return kept ? View([]) : View([], hide: [appeared.Window]);
         }
 
@@ -127,12 +126,18 @@ public sealed partial class WindowManager
             if (_initialWorkspaces.TryTake(processId, Clock(), out var origin) && rule.Id is null && origin != current)
                 rule = new WorkspaceAddress.Rule(origin, Silent: true);
         }
+        var owned = appeared.Owner is WindowId ownerWindow ? WorkspaceContaining(ownerWindow) : null;
+        if (restored is null && rule.Id is null && owned is not null)
+            rule = new WorkspaceAddress.Rule(owned.Id, Silent: true);
+
         var target = restored?.Workspace ?? rule.Id ?? current;
         ForgetRestored(appeared.Window);
         var ruledHere = restored is null && rule.Id is WorkspaceId ruled && !ruled.IsSpecial;
         var desk = WorkspaceFor(target, ruledHere ? null : target.IsSpecial ? FocusedId() : monitor);
         // WorkspaceFor may place the number on another Monitor. The Client keeps that Workspace.
         target = desk.Id;
+        if (restored is { Hidden: false } && !desk.Id.IsSpecial)
+            _restoredShown.Add(desk.Id);
         var area = WorkArea(desk, appeared.WorkArea);
         _area = area;
         decision = EvaluateSizeRules(appeared, decision, desk, area);
@@ -149,21 +154,32 @@ public sealed partial class WindowManager
             target,
             appeared.Traits.Class,
             appeared.Traits.Title,
-            FocusedMonitorBounds(),
+            MonitorById(desk.Monitor)?.Bounds ?? default,
             appeared.ProcessId,
             minSize: decision.MinSize,
             maxSize: decision.MaxSize,
             tiledLimits: RememberSizes(appeared.Window, decision.Sizes, appeared.Traits.MinSize, appeared.Traits.MaxSize));
+        if (restored is not null && appeared.Opened)
+        {
+            _restoring = appeared.Window;
+            var arranged = desk.Layout.Arrange(_restoredTiles);
+            if (arranged.Count > 0)
+                placements = arranged;
+            if (_restored.Count == 0)
+                _restoredTiles.Clear();
+        }
         if (decision.FullscreenRequest is { } fullscreen)
-            placements = desk.Layout.SetFullscreen(appeared.Window, fullscreen.Internal, fullscreen.Client);
+            placements = desk.Layout.SetFullscreen(appeared.Window, fullscreen.Mode);
         else
             placements = OpenUnderFullscreen(desk, appeared.Window, placements);
 
         var focused = restored is null ? ActiveWindow() : null;
-        if (GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, focused))
+        if (!appeared.Dragging && GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, focused))
             placements = desk.Layout.Visible();
 
-        NotePlaced(appeared.Window, desk, decision, restored is not null);
+        placements = OpenDragged(appeared, desk, placements);
+
+        NotePlaced(appeared.Window, desk, decision, restored is not null || traits.Topmost || appeared.Dragging);
         _props.Opened(appeared.Window, traits, followed, decision);
         RememberFocus(appeared.Window, decision);
         NoteOwner(appeared);
@@ -189,6 +205,9 @@ public sealed partial class WindowManager
 
         if (!_workspaces.Shown.IsShown(target))
         {
+            if (owned is not null)
+                MarkUrgent(appeared.Window);
+
             if (StaysVisible(desk, appeared.Window, minimized: false))
                 return Offering(View(placements, show: [appeared.Window]), restore);
 
@@ -219,9 +238,17 @@ public sealed partial class WindowManager
         return new TiledLimits(ownMin, ownMax);
     }
 
-    private Outcome Close(WindowId window)
+    private Outcome Close(WindowId window, bool cloaked = false)
     {
+        var remembered = cloaked ? RememberCloaked(window) : null;
+        var tile = _restoredTiles.GetValueOrDefault(window);
         _windowState.Forget(window);
+        if (remembered is not null)
+        {
+            _restored[window] = remembered;
+            if (remembered.Floating == false)
+                _restoredTiles[window] = tile;
+        }
         var desk = WorkspaceContaining(window);
         if (desk is null)
             return View([]);
@@ -247,8 +274,9 @@ public sealed partial class WindowManager
             DropIfEmpty(desk.Id);
             var normal = _workspaces.Find(_workspaces.Shown.ActiveOn(monitor));
             var specialFocus = normal is null ? null : _focus.Remembered(normal);
-            Give(specialFocus, normal);
-            return View(normal?.Layout.Visible() ?? [], focus: specialFocus);
+            if (wasActive)
+                Give(specialFocus, normal);
+            return View(normal?.Layout.Visible() ?? [], focus: wasActive ? specialFocus : null);
         }
 
         DropIfEmpty(desk.Id);

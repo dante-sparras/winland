@@ -5,6 +5,26 @@ public sealed partial class WindowManager
 {
     private readonly Dictionary<WindowId, RecoveredClient> _restored = [];
 
+    private WindowId? _restoring;
+
+    private RecoveredClient? RememberCloaked(WindowId window)
+    {
+        if (_restored.Count == 0)
+            _restoredTiles.Clear();
+
+        var snapshot = CaptureRecovery();
+        foreach (var client in snapshot.Clients)
+        {
+            if (client is { Floating: false, Bounds: Rectangle tile })
+                _restoredTiles.TryAdd(client.Window, tile);
+        }
+
+        var remembered = snapshot.Clients.FirstOrDefault(client => client.Window == window);
+        return remembered is { Floating: false } && _restoredTiles.TryGetValue(window, out var bounds)
+            ? remembered with { Bounds = bounds }
+            : remembered;
+    }
+
     // Where each tile a restart found was, until the tiles are arranged as they were.
     private readonly Dictionary<WindowId, Rectangle> _restoredTiles = [];
 
@@ -34,8 +54,6 @@ public sealed partial class WindowManager
                 _restored[client.Window] = client;
                 if (client is { Floating: false, Bounds: Rectangle tile })
                     _restoredTiles[client.Window] = tile;
-                if (!client.Hidden && !client.Workspace.IsSpecial)
-                    _restoredShown.Add(client.Workspace);
             }
         }
     }
@@ -123,8 +141,7 @@ public sealed partial class WindowManager
                 Floating: client.Floating,
                 Bounds: SlotOf(client),
                 Pinned: client.Pinned,
-                Fullscreen: client.Fullscreen,
-                FullscreenClient: client.FullscreenClient)
+                Fullscreen: client.Fullscreen)
             {
                 MonitorIdentity = identity,
             };
@@ -151,10 +168,9 @@ public sealed partial class WindowManager
         var fullscreen = decision.FullscreenRequest;
         if (restored.Fullscreen is FullscreenMode internalMode)
         {
-            var clientMode = restored.FullscreenClient ?? internalMode;
-            fullscreen = internalMode == FullscreenMode.None && clientMode == FullscreenMode.None
+            fullscreen = internalMode == FullscreenMode.None
                 ? null
-                : new FullscreenRule(internalMode, clientMode);
+                : new FullscreenRule(internalMode);
         }
 
         return decision with

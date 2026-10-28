@@ -8,6 +8,7 @@ public class CoalescerTests
         using var first = new ManualResetEventSlim();
         using var release = new ManualResetEventSlim();
         using var last = new ManualResetEventSlim();
+        using var drained = new ManualResetEventSlim();
         var handled = new List<string>();
         using var coalescer = new Coalescer<string>(value =>
         {
@@ -17,11 +18,13 @@ public class CoalescerTests
             if (value == "1")
             {
                 first.Set();
-                release.Wait();
+                release.Wait(TimeSpan.FromSeconds(5));
             }
 
             if (value == "4")
                 last.Set();
+            if (value == "done")
+                drained.Set();
         }, TimeSpan.Zero, "test coalescer");
 
         coalescer.Post("1");
@@ -32,8 +35,10 @@ public class CoalescerTests
         release.Set();
 
         Assert.True(last.Wait(TimeSpan.FromSeconds(5)));
+        coalescer.Post("done");
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(5)));
         lock (handled)
-            Assert.Equal(["1", "4"], handled);
+            Assert.Equal(["1", "4", "done"], handled);
     }
 
     // After each run the worker rests for the gap, and values posted meanwhile fold into the newest.
@@ -96,8 +101,8 @@ public class CoalescerTests
 
         coalescer.Dispose();
         coalescer.Post("late");
+        coalescer.Post("later");
         coalescer.Dispose();
-        Thread.Sleep(100);
 
         Assert.Equal(0, Volatile.Read(ref calls));
     }
@@ -115,7 +120,7 @@ public class CoalescerTests
     public void ThePosterDoesNotWaitForTheHandler()
     {
         using var release = new ManualResetEventSlim();
-        using var coalescer = new Coalescer<string>(_ => release.Wait(), TimeSpan.Zero, "test coalescer");
+        using var coalescer = new Coalescer<string>(_ => release.Wait(TimeSpan.FromSeconds(5)), TimeSpan.Zero, "test coalescer");
 
         var started = Environment.TickCount64;
         coalescer.Post("slow");

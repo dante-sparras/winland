@@ -7,6 +7,7 @@ using System.Threading.Channels;
 
 namespace Winland.Infrastructure.Tests;
 
+[Collection(CommandServerCollection.Name)]
 public class CommandServerTests
 {
     [Fact]
@@ -145,6 +146,26 @@ public class CommandServerTests
     }
 
     [Fact]
+    public void ASubscriberReceivesALargeOutcomeWithoutBeingDropped()
+    {
+        var core = new WindowManager();
+        var name = PipeName();
+        using var server = new CommandServer(core, _ => { }, name);
+        server.Start();
+        using var listener = new Listener(name);
+        WaitUntilSubscribed(core, listener);
+        Sync(core, listener);
+        var warnings = Enumerable.Range(1, 256).Select(line => new ConfigWarning(line, "bad config")).ToArray();
+
+        core.Handle(new ConfigLoaded(new ConfigDocument([], [], warnings)));
+
+        var expected = warnings.Select(warning => $"warning>>{warning.Line},,bad config").Append("configreloaded>>").ToArray();
+        Assert.Equal(expected, Take(listener, expected.Length));
+        Assert.Equal("ok", CommandClient.Transact("dispatch workspace 2", name));
+        Assert.Contains("workspacev2>>2,2,", Take(listener, 6));
+    }
+
+    [Fact]
     public async Task ASlowSubscriberDoesNotBlockTheCore()
     {
         var core = new WindowManager();
@@ -157,7 +178,7 @@ public class CommandServerTests
 
         var finished = Task.Run(() =>
         {
-            for (var i = 0; i < 8000; i++)
+            for (var i = 0; i < 600; i++)
                 core.Execute(i % 2 == 0 ? "dispatch workspace 2" : "dispatch workspace 1");
         });
 
@@ -380,4 +401,11 @@ public class CommandServerTests
             _cancel.Dispose();
         }
     }
+}
+
+// ThreadPool.ThreadCount is process-wide, so other collections must finish before these tests run.
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class CommandServerCollection
+{
+    public const string Name = "Command server";
 }

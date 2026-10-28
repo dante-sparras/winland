@@ -16,10 +16,6 @@ public static class WindowsFileHandles
 
     public const uint ReadControl = 0x00020000;
 
-    public const uint WriteDac = 0x00040000;
-
-    public const uint WriteOwner = 0x00080000;
-
     public const uint Delete = 0x00010000;
 
     public const uint GenericRead = 0x80000000;
@@ -32,7 +28,6 @@ public static class WindowsFileHandles
     private const uint OpenReparsePoint = 0x00200000;
     private const uint OwnerSecurity = 0x00000001;
     private const uint DaclSecurity = 0x00000004;
-    private const uint ProtectedDaclSecurity = 0x80000000;
     private const int FileRenameInformation = 10;
     private const int FileDispositionInfo = 4;
 
@@ -102,18 +97,6 @@ public static class WindowsFileHandles
             throw Failure(Marshal.GetLastPInvokeError(), "the open file");
 
         return descriptor;
-    }
-
-    /// <summary>
-    /// Writes the owner and a protected access list onto what the handle refers to. Children keep
-    /// the entries they have: nothing walks into the folder by name.
-    /// </summary>
-    public static void WriteSecurity(SafeFileHandle handle, byte[] descriptor)
-    {
-        ArgumentNullException.ThrowIfNull(handle);
-        ArgumentNullException.ThrowIfNull(descriptor);
-        if (!SetKernelObjectSecurity(handle, OwnerSecurity | DaclSecurity | ProtectedDaclSecurity, descriptor))
-            throw Failure(Marshal.GetLastPInvokeError(), "the open folder");
     }
 
     /// <summary>
@@ -234,10 +217,6 @@ public static class WindowsFileHandles
     [DllImport("advapi32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetKernelObjectSecurity(SafeFileHandle handle, uint requested, [Out] byte[]? descriptor, uint length, out uint needed);
-
-    [DllImport("advapi32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetKernelObjectSecurity(SafeFileHandle handle, uint information, byte[] descriptor);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

@@ -50,7 +50,7 @@ public sealed class CommandServer : IDisposable
         ArgumentNullException.ThrowIfNull(apply);
         _core = core;
         _apply = apply;
-        _pipeName = pipeName ?? CommandProtocol.PipeName;
+        _pipeName = pipeName ?? PipeServer.DefaultName;
         _core.Noticed += OnNoticed;
     }
 
@@ -277,7 +277,14 @@ public sealed class CommandServer : IDisposable
             stopping = _cancel.Token;
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(stopping);
             timeout.CancelAfter(RequestTimeout);
-            command = await PipeFrame.ReadLineAsync(server, PipeFrame.RequestLimit, timeout.Token).ConfigureAwait(false) ?? "";
+            var read = await PipeFrame.ReadLineAsync(server, PipeFrame.RequestLimit, timeout.Token).ConfigureAwait(false);
+            if (read is null)
+            {
+                Release(server);
+                return;
+            }
+
+            command = read;
         }
         catch (InvalidDataException)
         {
@@ -309,6 +316,7 @@ public sealed class CommandServer : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
+            Console.Error.WriteLine(exception);
             if (subscriber is not null)
                 Drop(subscriber);
             Release(server);
@@ -529,12 +537,7 @@ public sealed class CommandServer : IDisposable
 
     private sealed class Subscriber
     {
-        private readonly Channel<string> _channel = Channel.CreateBounded<string>(new BoundedChannelOptions(SubscriberQueueCapacity)
-        {
-            FullMode = BoundedChannelFullMode.DropOldest,
-            SingleReader = true,
-            SingleWriter = false,
-        });
+        private readonly Channel<string> _channel = Channel.CreateUnbounded<string>();
 
         private int _closed;
 
@@ -551,7 +554,7 @@ public sealed class CommandServer : IDisposable
             if (Volatile.Read(ref _closed) != 0)
                 return;
 
-            if (_channel.Reader.Count + lines.Count > SubscriberQueueCapacity)
+            if (_channel.Reader.Count >= SubscriberQueueCapacity)
             {
                 Complete();
                 try

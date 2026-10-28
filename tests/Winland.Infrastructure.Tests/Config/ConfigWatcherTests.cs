@@ -8,19 +8,8 @@ public abstract class ConfigWatcherFacts
     // even on a loaded machine, so "once" does not depend on how fast events arrive.
     protected static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(500);
 
-    protected static bool WaitUntil(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow.AddSeconds(30);
-        while (DateTime.UtcNow < deadline)
-        {
-            if (condition())
-                return true;
-
-            Thread.Sleep(20);
-        }
-
-        return condition();
-    }
+    protected static bool WaitUntil(Func<bool> condition) =>
+        SpinWait.SpinUntil(condition, TimeSpan.FromSeconds(30));
 
     // The count once it has stayed the same for three debounce periods, so a late
     // reload that a short fixed sleep would miss is counted.
@@ -89,6 +78,26 @@ public class ConfigWatcherTests : ConfigWatcherFacts
         Assert.Equal(
             ["warning>>1,,Unsupported keyword 'blur'.", "configreloaded>>"],
             CommandProtocol.FormatStream(reply.Effect.Events, reply.Effect.State));
+    }
+
+    // A save seen once the loop has stopped is not read, so the exit does not start the config's programs again.
+    [Fact]
+    public void ASaveWithNoLoopRunningIsNotRead()
+    {
+        var reads = 0;
+        var core = new WindowManager
+        {
+            ReadConfig = () =>
+            {
+                reads++;
+                return new ConfigRead(ConfigParser.Parse(""));
+            },
+        };
+        using var host = new WindowHost(core);
+
+        host.PostReload();
+
+        Assert.Equal(0, reads);
     }
 }
 
@@ -254,6 +263,21 @@ public class ConfigWatcherThrowTests : ConfigWatcherFacts
 public class ConfigWatcherUnchangedTests : ConfigWatcherFacts
 {
     [Fact]
+    public void TheFirstUnchangedSaveReloadsNothing()
+    {
+        using var dir = Temp();
+        var config = Path.Combine(dir.Path, "winland.conf");
+        File.WriteAllText(config, "general:gaps_in = 0\n");
+        var count = 0;
+        using var watcher = new ConfigWatcher(() => Interlocked.Increment(ref count), Debounce);
+        watcher.Watch([config]);
+
+        File.WriteAllText(config, "general:gaps_in = 0\n");
+
+        Assert.Equal(0, Settled(ref count));
+    }
+
+    [Fact]
     public void ASaveThatChangedNothingReloadsNothing()
     {
         using var dir = Temp();
@@ -273,6 +297,23 @@ public class ConfigWatcherUnchangedTests : ConfigWatcherFacts
 
 public class ConfigWatcherGlobTests : ConfigWatcherFacts
 {
+    [Fact]
+    public void TheFirstMatchOfAnEmptySourceGlobReloads()
+    {
+        using var dir = Temp();
+        var folder = Directory.CreateDirectory(Path.Combine(dir.Path, "conf.d")).FullName;
+        var config = Path.Combine(dir.Path, "winland.conf");
+        File.WriteAllText(config, "source = conf.d/*.conf\n");
+        var document = ConfigParser.Parse(File.ReadAllText(config), path: config);
+        var count = 0;
+        using var watcher = new ConfigWatcher(() => Interlocked.Increment(ref count), Debounce);
+        watcher.Watch([config, .. document.Sources]);
+
+        File.WriteAllText(Path.Combine(folder, "first.conf"), "general:gaps_in = 1\n");
+
+        Assert.True(WaitUntil(() => Volatile.Read(ref count) == 1));
+    }
+
     [Fact]
     public void ANewFileBesideAWatchedOneReloads()
     {

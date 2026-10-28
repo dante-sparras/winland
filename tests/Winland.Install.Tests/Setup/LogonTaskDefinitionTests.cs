@@ -29,7 +29,7 @@ public class LogonTaskDefinitionTests
         Assert.Equal("HighestAvailable", Child(principal, "RunLevel"));
 
         var command = root.Descendants().Single(element => element.Name.LocalName == "Command");
-        Assert.Equal(@"C:\Tools & Games\winland.exe", command.Value);
+        Assert.Equal(@"C:\Tools & Games\winland-launcher.exe", command.Value);
 
         Assert.Equal("Start Winland at logon.", Text(root, "Description"));
         Assert.Equal("IgnoreNew", Text(root, "MultipleInstancesPolicy"));

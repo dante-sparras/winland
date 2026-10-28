@@ -2,6 +2,8 @@ namespace Winland.Install.Tests;
 
 sealed class MemoryFileTree : IFileTree
 {
+    public Action<string>? BeforeCopy { get; set; }
+
     private readonly Dictionary<string, byte[]> files = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> links = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> directories = new(StringComparer.OrdinalIgnoreCase);
@@ -51,6 +53,7 @@ sealed class MemoryFileTree : IFileTree
 
     public void Copy(string source, string destination)
     {
+        BeforeCopy?.Invoke(source);
         var from = Full(source);
         if (links.Contains(from))
             throw new InvalidOperationException($"Refusing to install '{source}': it is a link.");

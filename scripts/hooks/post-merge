@@ -2,7 +2,7 @@
 # After a pull or merge updates main, delete local branches whose GitHub
 # head branch is gone.
 #
-# Pull requests land with Rebase and merge only, so the old commits are
+# Pull requests land with squash merges, so the old commits are
 # often not ancestors of main. `git branch -d` then keeps them. Delete a
 # branch only when its changes are already on main or on a release/* line.
 # Never delete main, master, or release/*. Leave a branch that is checked
@@ -47,6 +47,9 @@ landed() {
       return 0
     fi
   done
+  # A squash of several commits has no matching individual patch. Merging it
+  # again must leave main's tree unchanged, without conflicts.
+  [ "$(git merge-tree --write-tree HEAD "$branch" 2>/dev/null)" = "$(git rev-parse 'HEAD^{tree}')" ] && return 0
   return 1
 }
 

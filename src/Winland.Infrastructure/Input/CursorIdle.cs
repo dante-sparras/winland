@@ -107,6 +107,16 @@ public sealed class CursorIdle
         }
     }
 
+    /// <summary>Whether the cursor hides after a time without moving, so <see cref="Tick"/> has something to do.</summary>
+    public bool Watches
+    {
+        get
+        {
+            lock (_gate)
+                return _timeout > TimeSpan.Zero;
+        }
+    }
+
     public void Tick()
     {
         lock (_gate)
@@ -147,21 +157,43 @@ public sealed class CursorIdle
 
 public sealed class CursorIdleTimer : IDisposable
 {
+    private static readonly TimeSpan Period = TimeSpan.FromMilliseconds(200);
+
     private readonly CursorIdle _idle;
     private readonly Timer _timer;
+    private readonly Lock _gate = new();
+    private bool _running;
     private int _disposed;
 
     public CursorIdleTimer(CursorIdle idle)
     {
         ArgumentNullException.ThrowIfNull(idle);
         _idle = idle;
-        _timer = new Timer(OnTick, null, TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(200));
+        _timer = new Timer(OnTick);
+        Follow();
+    }
+
+    /// <summary>Ticks while the cursor hides after a time without moving, and stops when it no longer does.</summary>
+    public void Follow()
+    {
+        lock (_gate)
+        {
+            var watches = _idle.Watches;
+            if (watches == _running || Volatile.Read(ref _disposed) != 0)
+                return;
+
+            _running = watches;
+            _ = watches ? _timer.Change(Period, Period) : _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        }
     }
 
     public void Dispose()
     {
-        Volatile.Write(ref _disposed, 1);
-        _timer.Dispose();
+        lock (_gate)
+        {
+            Volatile.Write(ref _disposed, 1);
+            _timer.Dispose();
+        }
     }
 
     private void OnTick(object? state)

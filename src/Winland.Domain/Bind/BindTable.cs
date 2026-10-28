@@ -7,12 +7,15 @@ public sealed class BindTable
 {
     public static BindTable Empty { get; } = new([]);
 
-    private BindTable(Bind[] entries)
+    private BindTable(Bind[] entries, KeyLayout? layout = null)
     {
         Binds = Array.AsReadOnly(entries);
+        Layout = layout ?? KeyLayout.UnitedStates;
     }
 
     public IReadOnlyList<Bind> Binds { get; }
+
+    internal KeyLayout Layout { get; }
 
     /// <summary>Milliseconds after a wheel bind runs before the next wheel turn can run one.</summary>
     internal const int ScrollDelay = 300;
@@ -37,6 +40,6 @@ public sealed class BindTable
             }
         }
 
-        return new BindTable([.. binds]);
+        return new BindTable([.. binds], config.KeyLayout);
     }
 }

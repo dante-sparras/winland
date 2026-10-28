@@ -130,10 +130,10 @@ public class TrayIconTests
     {
         Assert.Equal(
             [
-                new TrayMenuItem(TrayCommand.Reload, "Reload"),
-                new TrayMenuItem(TrayCommand.EditConfig, "Edit config"),
-                new TrayMenuItem(TrayCommand.OpenLog, "Open log"),
-                new TrayMenuItem(TrayCommand.Quit, "Quit"),
+                new TrayMenuItem(TrayCommand.Reload, "&Reload"),
+                new TrayMenuItem(TrayCommand.EditConfig, "&Edit config"),
+                new TrayMenuItem(TrayCommand.OpenLog, "Open &log"),
+                new TrayMenuItem(TrayCommand.Quit, "&Quit"),
             ],
             TrayIcon.MenuFor(logExists: true));
     }
@@ -143,9 +143,9 @@ public class TrayIconTests
     {
         Assert.Equal(
             [
-                new TrayMenuItem(TrayCommand.Reload, "Reload"),
-                new TrayMenuItem(TrayCommand.EditConfig, "Edit config"),
-                new TrayMenuItem(TrayCommand.Quit, "Quit"),
+                new TrayMenuItem(TrayCommand.Reload, "&Reload"),
+                new TrayMenuItem(TrayCommand.EditConfig, "&Edit config"),
+                new TrayMenuItem(TrayCommand.Quit, "&Quit"),
             ],
             TrayIcon.MenuFor(logExists: false));
     }

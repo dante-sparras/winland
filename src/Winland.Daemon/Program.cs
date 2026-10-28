@@ -12,7 +12,13 @@ if (ControlInvocation.TryCreate(args, out var line, out var events))
 var log = new RollingLogWriter(Console.Error);
 Console.SetError(log);
 
-if (InstallCommand.Parse(args) is InstallCommand command)
+if (!InstallCommand.TryParse(args, out var maintenance, out var parseError))
+{
+    Console.Error.WriteLine(parseError);
+    return 2;
+}
+
+if (maintenance is InstallCommand command)
     return Guard(() => MaintenanceCommand.Run(args, command));
 
 var userInstall = InstallLocations.IsPerUserInstall(
@@ -22,11 +28,12 @@ switch (ManualStartElevation.Decide(
     Elevation.IsElevated(),
     Environment.GetEnvironmentVariable(ManualStartElevation.OptOutVariable),
     args,
-    userInstall))
+    userInstall,
+    limitedToken: UserAccess.HasLimitedToken()))
 {
     case ElevationChoice.Relaunch relaunch:
         // The relaunch puts the loop argument first. Arguments Winland cannot start with ask for no approval.
-        return IsStart([.. relaunch.Arguments.Skip(1)]) ? Elevation.Relaunch(relaunch.Arguments) : Usage();
+        return Guard(() => IsStart([.. relaunch.Arguments.Skip(1)]) ? Relaunch(relaunch.Arguments) : Usage());
     case ElevationChoice.Refuse refuse:
         Console.Error.WriteLine(refuse.Message);
         return 1;
@@ -40,29 +47,23 @@ switch (ManualStartElevation.Decide(
 if (!IsStart(args))
     return Usage();
 
-return Guard(() => Run(args.Length == 0 ? null : args[1], log));
+return Guard(() => Run(args.Length == 0 ? null : args[1], log), rethrow: true);
 
 static bool IsStart(string[] arguments) =>
     arguments.Length == 0 || (arguments.Length == 2 && arguments[0].Equals("--config", StringComparison.OrdinalIgnoreCase));
 
-static int Guard(Func<int> action)
+static int Relaunch(IReadOnlyList<string> arguments)
 {
-    try
+    using (var probe = InstanceLock.TryTake(InstanceLock.NameFor(PipeName() ?? CommandProtocol.PipeName)))
     {
-        return action();
+        if (probe is null)
+        {
+            Console.Error.WriteLine("Winland is already running in this session.");
+            return 1;
+        }
     }
-    catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
-    {
-        Console.Error.WriteLine(ex.Message);
-        return 1;
-    }
-    catch (Exception ex) when (ex is not OutOfMemoryException)
-    {
-        // An exception nothing catches ends the process without running finally blocks. Catching it here
-        // lets Run's finally show the hidden Clients and put the frames back first.
-        Console.Error.WriteLine(ex);
-        return 1;
-    }
+
+    return Elevation.Relaunch(arguments);
 }
 
 static void LaunchConfigured(WindowManager core, IEnumerable<Launch> launches)
@@ -77,7 +78,7 @@ static void LaunchConfigured(WindowManager core, IEnumerable<Launch> launches)
 
 static int Run(string? path, RollingLogWriter log)
 {
-    using var instance = InstanceLock.TryTake(InstanceLock.NameFor(PipeName() ?? CommandProtocol.PipeName));
+    using var instance = InstanceLock.TryTake(InstanceLock.NameFor(PipeName() ?? PipeServer.DefaultName));
     if (instance is null)
     {
         Console.Error.WriteLine("Winland is already running in this session.");
@@ -85,16 +86,22 @@ static int Run(string? path, RollingLogWriter log)
     }
 
     if (path is not null && !path.EndsWith(".conf", StringComparison.OrdinalIgnoreCase))
-        throw new InvalidOperationException($"--config takes a .conf file, not '{path}'.");
+    {
+        Console.Error.WriteLine($"--config takes a .conf file, not '{path}'.");
+        return 1;
+    }
 
     var configPath = path ?? ConfigPaths.Default(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-    // The default is written only when Winland was not given --config and the file is not there yet.
-    var firstStart = path is null && !File.Exists(configPath) && DefaultConfig.WriteIfMissing(configPath);
+    // The default is written only without --config, when the file is absent or empty.
+    var firstStart = path is null && DefaultConfig.WriteIfMissing(configPath);
     if (firstStart)
         Console.Error.WriteLine($"Wrote the default config to {configPath}.");
 
-    if (!File.Exists(configPath))
-        throw new InvalidOperationException($"Could not read config '{Path.GetFullPath(configPath)}'.");
+    if (!UserAccess.Run(() => File.Exists(configPath)))
+    {
+        Console.Error.WriteLine($"Could not read config '{Path.GetFullPath(configPath)}'.");
+        return 1;
+    }
 
     var current = ConfigFile.Read(configPath);
 
@@ -129,30 +136,41 @@ static int Run(string? path, RollingLogWriter log)
         SessionEffects.RestoreCursors();
     SessionEffects.InstallSystem();
     TaskbarControl.InstallSystem();
-    using var host = new WindowHost(core, snapshot => Persist(store, snapshot), PipeName());
+    // The host records each Client's process, class and title in the snapshot it hands on.
+    using var host = new WindowHost(core, store.Save, PipeName());
     // Log off and shut down clean up from WM_ENDSESSION, on the loop thread. Closing the console calls in from
     // a thread of its own, so the cleanup is handed to the loop thread there too.
-    host.SessionEnding = () => Stop(host, store, core);
-    using var exit = new ExitWatch(() => host.OnLoop(() => Stop(host, store, core)));
-    UnhandledExceptionEventHandler onCrash = (_, _) => Salvage(host);
+    // The cleanup runs once. Closing the console can run it on the console's thread while the loop is busy, and the
+    // loop then reaches it on its way out: that one waits for the first and does nothing.
+    var stopGate = new Lock();
+    var stopped = false;
+    void StopOnce()
+    {
+        lock (stopGate)
+        {
+            if (stopped)
+                return;
+
+            stopped = true;
+            Stop(host, store, core);
+        }
+    }
+
+    host.SessionEnding = StopOnce;
+    using var exit = new ExitWatch(() => host.OnLoop(StopOnce));
+    UnhandledExceptionEventHandler onCrash = (_, e) =>
+    {
+        Console.Error.WriteLine(e.ExceptionObject);
+        Salvage(host);
+    };
     AppDomain.CurrentDomain.UnhandledException += onCrash;
+    // The watcher calls from a thread of its own. The reload runs on the loop, as the tray's does.
     using var watching = new ConfigWatcher(() =>
     {
-        if (!core.ReloadsOnSave)
-            return;
-
-        // The watcher calls from a thread of its own. The reload runs on the loop, as the tray's and the pipe's do.
-        try
-        {
-            host.OnLoop(() => host.Reload());
-        }
-        catch (Exception exception) when (exception is ObjectDisposedException or InvalidOperationException or IOException)
-        {
-            Console.Error.WriteLine(exception.Message);
-        }
+        if (core.ReloadsOnSave)
+            host.PostReload();
     });
     watcher = watching;
-    watcher.Watch(ConfigPaths.Watched(configPath, current.Sources));
     try
     {
         host.OnOpenFile = TrayFiles.Open;
@@ -181,6 +199,8 @@ static int Run(string? path, RollingLogWriter log)
         host.Run(prior, () =>
         {
             store.Arm();
+            // Saves are read from now on, when the loop runs and can take the reload.
+            watching.Watch(ConfigPaths.Watched(configPath, current.Sources));
             Persist(store, core.Recovery());
             LaunchConfigured(core, core.StartupLaunches(current));
             Console.WriteLine("Winland is running.");
@@ -191,7 +211,7 @@ static int Run(string? path, RollingLogWriter log)
     {
         // A save of the config while the cleanup runs is not read.
         watching.Dispose();
-        Stop(host, store, core);
+        StopOnce();
         AppDomain.CurrentDomain.UnhandledException -= onCrash;
         LaunchConfigured(core, WindowManager.ShutdownLaunches(current));
 
@@ -212,16 +232,18 @@ static void Stop(WindowHost host, RecoveryStore store, WindowManager core)
     // are then put back as after a crash, which needs no core.
     try
     {
-        var final = WindowIdentity.Annotate(core.Recovery()) with { Clean = true };
+        var final = core.Recovery();
         host.RevealHidden();
         host.ResetDecorations();
         host.RestoreTaskbar();
         SessionEffects.Restore();
-        store.Keep(final);
+
+        // A window that stopped answering kept the frame or the layered style the cleanup could not take off.
+        store.Keep(WindowIdentity.Annotate(host.Stamp(final)) with { Clean = true });
     }
     catch (Exception exception) when (exception is not OutOfMemoryException)
     {
-        Console.Error.WriteLine(exception.Message);
+        Console.Error.WriteLine(exception);
         Salvage(host);
     }
 }
@@ -236,7 +258,7 @@ static void Salvage(WindowHost host)
     }
     catch (Exception exception) when (exception is not OutOfMemoryException)
     {
-        Console.Error.WriteLine(exception.Message);
+        Console.Error.WriteLine(exception);
     }
 
     try
@@ -245,7 +267,7 @@ static void Salvage(WindowHost host)
     }
     catch (Exception exception) when (exception is not OutOfMemoryException)
     {
-        Console.Error.WriteLine(exception.Message);
+        Console.Error.WriteLine(exception);
     }
 }
 
@@ -297,7 +319,7 @@ static int Usage()
 {
     Console.Error.WriteLine("usage: winland");
     Console.Error.WriteLine("       winland --config <path>");
-    Console.Error.WriteLine("       winland install [--user]");
+    Console.Error.WriteLine("       winland install [--user] [--no-logon] [--no-start]");
     Console.Error.WriteLine("       winland update [--channel <stable|dev>]");
     Console.Error.WriteLine("       winland uninstall [--purge]");
     Console.Error.WriteLine("       winland tweaks --off [--touchpad]");
@@ -307,7 +329,7 @@ static int Usage()
     return 2;
 }
 
-// debug:disable_logs false copies the log to winland.log beside the state file, which is written again at each start.
+// debug:disable_logs false copies the log beside the state file, keeping the previous log as winland.log.1.
 // An elevated Winland writes no file: a folder the user can change could send a write by name somewhere only
 // administrators may write.
 static void CopyLog(RollingLogWriter log, DebugOptions options, string? file)
@@ -327,12 +349,36 @@ static void CopyLog(RollingLogWriter log, DebugOptions options, string? file)
 
         try
         {
-            return new StreamWriter(new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete)) { AutoFlush = true };
+            return RollingLogWriter.OpenFile(file);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             Console.Error.WriteLine($"Could not open the log file '{file}': {exception.Message}");
             return null;
+        }
+    }
+}
+
+internal partial class Program
+{
+    internal static int Guard(Func<int> action, bool rethrow = false)
+    {
+        try
+        {
+            return action();
+        }
+        catch (Exception ex) when (!rethrow && ex is InvalidOperationException or ArgumentException)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            // Catching here lets Run's finally show the hidden Clients and put the frames back first.
+            Console.Error.WriteLine(ex);
+            if (rethrow)
+                throw;
+            return 1;
         }
     }
 }

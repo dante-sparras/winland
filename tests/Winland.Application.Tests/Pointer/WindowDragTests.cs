@@ -1,0 +1,150 @@
+namespace Winland.Application.Tests;
+
+/// <summary>Dragging a window with a bound mouse button, on a <see cref="TestDesktop"/>.</summary>
+public class WindowDragTests
+{
+    // The reference rebinds the left button to a drag with no modifier before its first window.
+    private const string DragOnLeftButton = """
+        unbind = SUPER, mouse:272
+        bindm = , mouse:272, movewindow
+        """;
+
+    [Fact]
+    public void DragTiledCentered()
+    {
+        var desk = new TestDesktop(DragOnLeftButton);
+        desk.Spawn("kitty");
+        Assert.Single(desk.Clients());
+        desk.Ok("focuswindow", "class:kitty");
+
+        // Grab well away from the center, so centering is observable.
+        var (grabX, grabY) = Grab(desk);
+        MoveCursor(desk, grabX, grabY);
+        Click(desk, pressed: true);
+        MoveCursor(desk, 700, 500);
+
+        // The grab point is ignored: the floating window is centered on the cursor.
+        var moved = Active(desk);
+        Assert.True(Nearly(moved.X + (moved.Width / 2), 700));
+        Assert.True(Nearly(moved.Y + (moved.Height / 2), 500));
+
+        Click(desk, pressed: false);
+    }
+
+    [Fact]
+    public void DragFullscreenCentered()
+    {
+        var desk = new TestDesktop(DragOnLeftButton);
+        desk.Spawn("kitty");
+        Assert.Single(desk.Clients());
+        desk.Ok("focuswindow", "class:kitty");
+        desk.Ok("togglefloating");
+        desk.Place("kitty", 100, 100, 600, 400);
+        desk.Ok("fullscreen", "0 set");
+
+        // Grab well away from the center, so centering is observable.
+        var (grabX, grabY) = Grab(desk);
+        MoveCursor(desk, grabX, grabY);
+        Click(desk, pressed: true);
+        MoveCursor(desk, 700, 500);
+
+        // The grab point is ignored: the restored window is centered on the cursor.
+        var moved = Active(desk);
+        Assert.Equal(0, TestDesktop.Fullscreen(desk.ActiveWindow()));
+        Assert.True(Nearly(moved.X + (moved.Width / 2), 700));
+        Assert.True(Nearly(moved.Y + (moved.Height / 2), 500));
+
+        Click(desk, pressed: false);
+    }
+
+    [Fact]
+    public void DragThresholdSurvivesScrollEvents()
+    {
+        var desk = new TestDesktop(DragOnLeftButton);
+        desk.Spawn("drag_threshold");
+        Assert.Single(desk.Clients());
+        desk.Ok("focuswindow", "class:drag_threshold");
+        desk.Ok("togglefloating");
+        desk.Place("drag_threshold", 200, 200, 300, 200);
+
+        foreach (var threshold in new[] { 0, 40 })
+        {
+            desk.Keyword("binds:drag_threshold", threshold.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            desk.Place("drag_threshold", 200, 200, 300, 200);
+            MoveCursor(desk, 350, 300);
+            Click(desk, pressed: true);
+            ExpectDragState(desk, active: true, reached: threshold == 0);
+
+            if (threshold > 0)
+            {
+                // Motion below the threshold does not pick up the window.
+                MoveCursor(desk, 360, 300);
+                ExpectDragState(desk, active: true, reached: false);
+                Assert.True(Nearly(Active(desk).X, 200));
+            }
+
+            MoveCursor(desk, 410, 300);
+            ExpectDragState(desk, active: true, reached: true);
+            var before = Active(desk);
+
+            // Scroll events do not end the drag.
+            Scroll(desk, 120);
+            ExpectDragState(desk, active: true, reached: true);
+            Scroll(desk, -120);
+            ExpectDragState(desk, active: true, reached: true);
+
+            // A small move follows at once, without crossing the threshold again.
+            MoveCursor(desk, 420, 300);
+            var after = Active(desk);
+            Assert.True(Nearly(after.X, before.X + 10));
+            Assert.True(Nearly(after.Y, before.Y));
+
+            Click(desk, pressed: false);
+            ExpectDragState(desk, active: false, reached: false);
+
+            // A new drag starts with its own threshold, not the last drag's.
+            Click(desk, pressed: true);
+            ExpectDragState(desk, active: true, reached: threshold == 0);
+            Click(desk, pressed: false);
+            ExpectDragState(desk, active: false, reached: false);
+        }
+    }
+
+    private static Rectangle Active(TestDesktop desk) => desk.Placed(desk.ActiveId());
+
+    // Three quarters across and down the active window.
+    private static (int X, int Y) Grab(TestDesktop desk)
+    {
+        var bounds = Active(desk);
+        return (bounds.X + (bounds.Width * 3 / 4), bounds.Y + (bounds.Height * 3 / 4));
+    }
+
+    private static void MoveCursor(TestDesktop desk, int x, int y)
+    {
+        desk.MovePointer(x, y);
+    }
+
+    // The test plugin's click: the left button, where the pointer is.
+    private static void Click(TestDesktop desk, bool pressed)
+    {
+        if (pressed)
+            desk.Handle(new PointerButtonPressed("mouse:272") { Position = desk.Pointer });
+        else
+            desk.Handle(new PointerButtonReleased("mouse:272") { Position = desk.Pointer });
+    }
+
+    // The test plugin's scroll: a positive delta turns the wheel down.
+    private static void Scroll(TestDesktop desk, int delta) =>
+        desk.Handle(new WheelTurned(delta > 0 ? "mouse_down" : "mouse_up", Environment.TickCount64));
+
+    // The test plugin reads the drag controller: whether a drag holds a window, and whether it has picked it up.
+    private static void ExpectDragState(TestDesktop desk, bool active, bool reached)
+    {
+        var interaction = typeof(WindowManager).GetField("_interaction", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(desk.WindowManager);
+        var gesture = interaction?.GetType().Name == "Gesture" ? interaction : null;
+        var pickedUp = gesture is not null && (bool)gesture.GetType().GetProperty("PickedUp")!.GetValue(gesture)!;
+        Assert.Equal((active, reached), (gesture is not null, pickedUp));
+    }
+
+    private static bool Nearly(int a, int b, int tolerance = 4) => Math.Abs(a - b) <= tolerance;
+}

@@ -44,7 +44,7 @@ public sealed partial class WindowManager
             ConfigErrorsRequest errors => Json(errors)
                 ? CommandProtocol.FormatErrors(_loaded?.Warnings ?? [])
                 : Text(CommandProtocol.FormatErrorsText(_loaded?.Warnings ?? [], _loaded?.Path), "no config errors"),
-            GetOptionRequest option => OptionTable.Describe(option.Name, _config) ?? "no such option",
+            GetOptionRequest option => OptionTable.Describe(option.Name, _config) ?? "error: no such option",
             GetPropRequest prop => ReadProp(prop),
             _ => null,
         };
@@ -124,7 +124,10 @@ public sealed partial class WindowManager
         Outcome? effect = null;
         for (var i = 0; i < commands.Count; i++)
         {
-            var reply = ExecuteLine(commands[i], flags);
+            var parsed = CommandProtocol.Parse(commands[i]);
+            var reply = parsed is CommandParsed { Request: BatchRequest }
+                ? Answer("error: nested batch")
+                : ExecuteLine(parsed, flags);
             parts[i] = reply.Text;
             effect = effect is null ? reply.Effect : effect.Then(reply.Effect);
         }
@@ -147,7 +150,7 @@ public sealed partial class WindowManager
 
         foreach (var candidate in _workspaces)
         {
-            foreach (var item in candidate.Layout.Clients)
+            foreach (var item in candidate.Layout.Clients.Concat(candidate.WaitingClients))
             {
                 if (item.Window != id)
                     continue;

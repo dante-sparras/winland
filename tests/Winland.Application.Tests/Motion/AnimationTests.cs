@@ -99,7 +99,7 @@ public class AnimationTests
         Appear(core, 2);
         HoldSuper(core);
 
-        var outcome = Press(core, "2");
+        var outcome = Tap(core, "2");
 
         Assert.Equal([new WindowId(1), new WindowId(2)], outcome.Hide);
         var first = Assert.Single(outcome.Motions, motion => motion.Window == new WindowId(1));
@@ -111,6 +111,37 @@ public class AnimationTests
         var second = Assert.Single(outcome.Motions, motion => motion.Window == new WindowId(2));
         Assert.Equal(Right with { X = 960 - 1920 }, second.To);
         Assert.Equal(Right, second.Rest);
+    }
+
+    [Fact]
+    public void AWindowSlidingOutKeepsItsBorderUntilItHides()
+    {
+        var core = Load("""
+            general:border_size = 2
+            bind = SUPER, 1, workspace, 1
+            bind = SUPER, 2, workspace, 2
+            """);
+        Appear(core, 1);
+        HoldSuper(core);
+
+        var away = Tap(core, "2");
+
+        Assert.Equal(MotionEnd.Hide, Assert.Single(away.Motions).End);
+        Assert.NotNull(Assert.Single(away.Decorations).Ring);
+    }
+
+    [Fact]
+    public void AWindowHiddenWithoutMotionLosesItsBorderAtOnce()
+    {
+        var core = Load("""
+            general:border_size = 2
+            animations:enabled = false
+            bind = SUPER, 2, workspace, 2
+            """);
+        Appear(core, 1);
+        HoldSuper(core);
+
+        Assert.Null(Assert.Single(Tap(core, "2").Decorations).Ring);
     }
 
     [Fact]
@@ -152,10 +183,10 @@ public class AnimationTests
         Appear(core, 1);
         Appear(core, 2);
         HoldSuper(core);
-        Press(core, "2");
+        Tap(core, "2");
         Appear(core, 3);
 
-        var back = Press(core, "1");
+        var back = Tap(core, "1");
 
         Assert.Equal(Left, BoundsOf(back, 1));
         Assert.Equal([new WindowId(1), new WindowId(2)], back.Show);
@@ -180,7 +211,7 @@ public class AnimationTests
         Appear(core, 1);
         HoldSuper(core);
 
-        var motion = Assert.Single(Press(core, "2").Motions);
+        var motion = Assert.Single(Tap(core, "2").Motions);
 
         Assert.Equal(Area, motion.To);
         Assert.Null(motion.Move);
@@ -199,7 +230,7 @@ public class AnimationTests
         Appear(core, 1);
         HoldSuper(core);
 
-        var motion = Assert.Single(Press(core, "2").Motions);
+        var motion = Assert.Single(Tap(core, "2").Motions);
 
         Assert.Equal(Area with { X = -384 }, motion.To);
         Assert.Equal(0, motion.FadeTo);
@@ -215,7 +246,7 @@ public class AnimationTests
         Appear(core, 1);
         HoldSuper(core);
 
-        var motion = Assert.Single(Press(core, "2").Motions);
+        var motion = Assert.Single(Tap(core, "2").Motions);
 
         Assert.Equal(Area with { Y = -1080 }, motion.To);
     }
@@ -267,6 +298,7 @@ public class AnimationTests
     public void AnimationsOffPlansNoMotion()
     {
         var core = Load("""
+            general:border_size = 2
             animations:enabled = false
             bind = SUPER, 2, workspace, 2
             """);
@@ -274,7 +306,7 @@ public class AnimationTests
         Assert.Empty(Appear(core, 2).Motions);
         HoldSuper(core);
 
-        var outcome = Press(core, "2");
+        var outcome = Tap(core, "2");
 
         Assert.Equal(2, outcome.Hide.Count);
         Assert.Empty(outcome.Motions);
@@ -405,10 +437,10 @@ public class AnimationTests
         Appear(core, 2);
         HoldSuper(core);
         var animator = new Animator();
-        Play(animator, Press(core, "2"), now: 0);
+        Play(animator, Tap(core, "2"), now: 0);
         animator.Step(400);
 
-        Play(animator, Press(core, "1"), now: 400);
+        Play(animator, Tap(core, "1"), now: 400);
         var landed = animator.Step(400 + Default.Milliseconds);
 
         Assert.All(landed, frame => Assert.True(frame.Done));
@@ -454,15 +486,5 @@ public class AnimationTests
         return core;
     }
 
-    private static Outcome Appear(WindowManager core, long window) =>
-        core.Handle(new WindowAppeared(new WindowId(window), Area));
-
     private static void HoldSuper(WindowManager core) => core.Handle(new KeyPressed("Super_L"));
-
-    private static Outcome Press(WindowManager core, string key)
-    {
-        var outcome = core.Handle(new KeyPressed(key));
-        core.Handle(new KeyReleased(key));
-        return outcome;
-    }
 }

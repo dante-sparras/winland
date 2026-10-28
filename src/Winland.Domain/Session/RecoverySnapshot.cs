@@ -17,6 +17,9 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
     /// </summary>
     public bool Clean { get; init; }
 
+    /// <summary>The windows held transparent that are no Clients, so a start after a crash makes them opaque again.</summary>
+    public IReadOnlyList<HeldWindow> Held { get; init; } = [];
+
     public string ToJson()
     {
         var rows = new ClientBody[Clients.Count];
@@ -36,12 +39,14 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 BoundsBody.From(client.Bounds),
                 client.Pinned,
                 client.Fullscreen is FullscreenMode internalMode ? (int)internalMode : null,
-                client.FullscreenClient is FullscreenMode clientMode ? (int)clientMode : null,
                 client.FrameStyle,
                 client.Region);
         }
 
-        return JsonSerializer.Serialize(new FileBody(rows, Clean ? true : null), Json);
+        var held = Held.Count == 0
+            ? null
+            : Held.Select(window => new HeldBody(window.Window.Value, window.Class, window.ProcessId)).ToArray();
+        return JsonSerializer.Serialize(new FileBody(rows, Clean ? true : null, held), Json);
     }
 
     public static bool TryParse(string? json, out RecoverySnapshot snapshot)
@@ -74,8 +79,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                     row.Floating,
                     row.Bounds?.ToRectangle(),
                     row.Pinned,
-                    Mode(row.Fullscreen),
-                    Mode(row.FullscreenClient))
+                    Mode(row.Fullscreen))
                 {
                     FrameStyle = row.FrameStyle,
                     Region = row.Region,
@@ -83,7 +87,14 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 });
             }
 
-            snapshot = new RecoverySnapshot(clients) { Clean = body.Clean == true };
+            var held = new List<HeldWindow>();
+            foreach (var row in body.Held ?? [])
+            {
+                if (row is not null && row.Window != 0)
+                    held.Add(new HeldWindow(new WindowId(row.Window), row.WindowClass ?? "", row.Process));
+            }
+
+            snapshot = new RecoverySnapshot(clients) { Clean = body.Clean == true, Held = held };
             return true;
         }
         catch (JsonException)
@@ -97,7 +108,13 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
 
     private sealed record FileBody(
         [property: JsonPropertyName("clients")] ClientBody?[]? Clients,
-        [property: JsonPropertyName("clean")] bool? Clean = null);
+        [property: JsonPropertyName("clean")] bool? Clean = null,
+        [property: JsonPropertyName("held")] HeldBody?[]? Held = null);
+
+    private sealed record HeldBody(
+        [property: JsonPropertyName("window")] long Window,
+        [property: JsonPropertyName("class")] string? WindowClass,
+        [property: JsonPropertyName("process")] long Process);
 
     private sealed record ClientBody(
         [property: JsonPropertyName("window")] long Window,
@@ -112,7 +129,6 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
         [property: JsonPropertyName("bounds")] BoundsBody? Bounds = null,
         [property: JsonPropertyName("pinned")] bool? Pinned = null,
         [property: JsonPropertyName("fullscreen")] int? Fullscreen = null,
-        [property: JsonPropertyName("fullscreenClient")] int? FullscreenClient = null,
         [property: JsonPropertyName("frameStyle")] uint? FrameStyle = null,
         [property: JsonPropertyName("region")] bool Region = false);
 

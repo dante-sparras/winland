@@ -10,7 +10,7 @@ public class BlurShadowRoundingTests
         var core = new WindowManager();
         core.Handle(new Configure(ConfigParser.Parse("")));
 
-        var decoration = For(core.Handle(Appeared(1)), 1);
+        var decoration = For(core.Handle(Appeared(1, Area)), 1);
 
         Assert.True(decoration.Blur);
         Assert.Equal(CornerPreference.Round, decoration.Corners);
@@ -34,9 +34,9 @@ public class BlurShadowRoundingTests
             """);
         var core = new WindowManager();
         core.Handle(new Configure(document));
-        core.Handle(Appeared(1));
+        core.Handle(Appeared(1, Area));
 
-        var off = For(core.Handle(Appeared(2)), 1);
+        var off = For(core.Handle(Appeared(2, Area)), 1);
 
         Assert.Equal(
             [
@@ -149,8 +149,6 @@ public class BlurShadowRoundingTests
 
         Assert.Contains("\"int\":10", core.Execute("getoption binds:drag_threshold").Text, StringComparison.Ordinal);
     }
-
-    private static WindowAppeared Appeared(long window) => new(new WindowId(window), Area);
 
     private static Decoration For(Outcome outcome, long window)
     {

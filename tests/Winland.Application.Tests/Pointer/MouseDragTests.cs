@@ -698,20 +698,6 @@ public class MouseDragTests
         return core;
     }
 
-    private static WindowManager Flat(string binds)
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse(
-            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + binds)));
-        return core;
-    }
-
-    private static Outcome Appear(WindowManager core, long window) =>
-        core.Handle(new WindowAppeared(new WindowId(window), Wide));
-
-    private static void Press(WindowManager core, string key) =>
-        core.Handle(new KeyPressed(key));
-
     private static MonitorSnapshot Screen(Outcome outcome, int id) =>
         Assert.Single(outcome.State.Screens, screen => screen.Id == new MonitorId(id));
 

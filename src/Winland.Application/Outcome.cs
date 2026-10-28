@@ -103,12 +103,6 @@ public sealed record Outcome(
     /// <summary>Terminate these Clients' processes, in order. The adapter performs it; tests pass a stand-in.</summary>
     public IReadOnlyList<KillRequest> Kills { get; init; } = [];
 
-    /// <summary>The first kill request, or null. Setting it replaces <see cref="Kills"/> with that one request.</summary>
-    public KillRequest? Kill
-    {
-        get => Kills.Count > 0 ? Kills[0] : null;
-        init => Kills = value is KillRequest kill ? [kill] : [];
-    }
 
     /// <summary>Stop the daemon after the command reply is written.</summary>
     public bool Exit { get; init; }
@@ -119,12 +113,9 @@ public sealed record Outcome(
     /// <summary>Clients to raise above or lower below the other windows, in order.</summary>
     public IReadOnlyList<ZOrderRequest> ZOrder { get; init; } = [];
 
-    /// <summary>Where this outcome falls among the ones its WindowManager produced. Null for an outcome made outside a WindowManager.</summary>
-    public OutcomeOrder? Order { get; init; }
-
     /// <summary>
     /// True when the step asked for nothing the adapter has not already done, so the adapter returns at once. Its
-    /// <see cref="State"/> and <see cref="Order"/> are still the step's, and every other property is unset.
+    /// <see cref="State"/> is still the step's, and every other property is unset.
     /// </summary>
     public bool IsEmpty { get; init; }
 
@@ -258,12 +249,6 @@ public enum DispatcherTraits
     /// <summary>Puts the cursor in the middle of a Monitor it leaves with nothing to focus.</summary>
     WarpsToEmptyMonitor = 2,
 }
-
-/// <summary>
-/// The WindowManager that produced an outcome and its place in that WindowManager's sequence, taken under the WindowManager's lock. Outcomes
-/// are applied on several threads after the lock is released, so the adapter uses this to tell an older one.
-/// </summary>
-public readonly record struct OutcomeOrder(long WindowManager, long Sequence);
 
 /// <summary>A request to end the process that owns a Client. The adapter reads the owner of <see cref="Window"/> again when it acts.</summary>
 public readonly record struct KillRequest(long ProcessId)

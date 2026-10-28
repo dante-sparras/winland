@@ -1,5 +1,6 @@
 namespace Winland.Infrastructure.Tests;
 
+[Collection("Console")]
 public class MotionPlayerTests
 {
     private static readonly WindowId Window = new(7);
@@ -21,6 +22,73 @@ public class MotionPlayerTests
         Assert.False(player.Tick());
 
         Assert.Equal(["move 0", "move 50", "place 100"], target.Calls);
+    }
+
+    // Every outcome paints every Client, and the clock asks DWM for its frame timing.
+    [Fact]
+    public void PaintingAWindowWithNoMotionReadsNoClock()
+    {
+        var reads = 0;
+        using var player = new MotionPlayer(new RecordingTarget(), () => ++reads, threaded: false);
+
+        var hold = player.Paint(Window, 128, new BorderColor(255, 1, 2, 3));
+
+        Assert.Equal(default, hold);
+        Assert.Equal(0, reads);
+    }
+
+    // Land gives up on a motion thread that does not come back in time, as one waiting on a window that stopped
+    // answering. The frames that thread still had are dropped, so none shows after the windows came to rest.
+    [Fact]
+    public void AFrameLeftWhenTheMotionsLandIsNotShown()
+    {
+        var target = new RecordingTarget();
+        var clock = new Clock();
+        using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+        player.Begin(new Motion(Window, Goal) { From = Start, Move = Linear });
+        player.Begin(new Motion(new WindowId(8), Goal) { From = Start, Move = Linear });
+        target.OnMove = window =>
+        {
+            target.OnMove = null;
+            player.Land();
+        };
+        clock.Now = 50;
+
+        player.Tick();
+
+        Assert.Equal(["move 0", "move 0", "move 50", "place 100", "place 100"], target.Calls.Where(call => call.StartsWith("move", StringComparison.Ordinal) || call.StartsWith("place", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void RepeatedFrameFailuresAreLoggedOnceAndOtherWindowsStillMove()
+    {
+        var target = new RecordingTarget();
+        var clock = new Clock();
+        using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+        player.Begin(new Motion(Window, Goal) { From = Start, Move = Linear });
+        player.Begin(new Motion(new WindowId(8), Goal) { From = Start, Move = Linear });
+        target.Broken = Window;
+        var stderr = Console.Error;
+        using var log = new StringWriter();
+        Console.SetError(log);
+        try
+        {
+            for (var frame = 1; frame <= 50; frame++)
+            {
+                clock.Now = frame;
+                player.Tick();
+            }
+
+            Assert.Contains("System.InvalidOperationException: frame failed", log.ToString(), StringComparison.Ordinal);
+            // The whole exception is logged, stack included. A frame name is not checked: the JIT can inline it.
+            Assert.Contains("   at ", log.ToString(), StringComparison.Ordinal);
+            Assert.Equal(2, log.ToString().Split("frame failed", StringSplitOptions.None).Length);
+            Assert.Contains("move 50", target.Calls);
+        }
+        finally
+        {
+            Console.SetError(stderr);
+        }
     }
 
     [Fact]
@@ -459,19 +527,8 @@ public class MotionPlayerTests
         Assert.True(target.Paced > 0);
     }
 
-    private static bool WaitUntil(Func<bool> condition)
-    {
-        var deadline = Environment.TickCount64 + 10_000;
-        while (Environment.TickCount64 < deadline)
-        {
-            if (condition())
-                return true;
-
-            Thread.Sleep(10);
-        }
-
-        return condition();
-    }
+    private static bool WaitUntil(Func<bool> condition) =>
+        SpinWait.SpinUntil(condition, TimeSpan.FromSeconds(10));
 
     private sealed class Clock
     {
@@ -537,6 +594,8 @@ public class MotionPlayerTests
 
         public WindowId? Frozen { get; init; }
 
+        public WindowId? Broken { get; set; }
+
         public bool Hung(WindowId window) => window == Frozen;
 
         public List<Rectangle> Goals { get; } = [];
@@ -545,9 +604,16 @@ public class MotionPlayerTests
 
         public void Move(WindowId window, Rectangle bounds, Rectangle goal)
         {
+            if (window == Broken)
+                throw new InvalidOperationException("frame failed");
+
             Goals.Add(goal);
             Add($"move {bounds.X}");
+            OnMove?.Invoke(window);
         }
+
+        /// <summary>Runs after each in-between frame, as another thread could while the frames of one tick go out.</summary>
+        public Action<WindowId>? OnMove { get; set; }
 
         public void Release(WindowId window) => Released.Add(window);
 

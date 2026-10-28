@@ -19,6 +19,9 @@ public sealed record ConfigDocument(
     /// <summary>The path the config was read from, when it was read from a file. A sourced warning names its own file.</summary>
     public string? Path { get; init; }
 
+    /// <summary>The keyboard layout the bind names were resolved in.</summary>
+    public KeyLayout KeyLayout { get; init; } = KeyLayout.UnitedStates;
+
     /// <summary>The <c>$variables</c> the config defined, which a later <c>keyword</c> line can use too.</summary>
     public IReadOnlyDictionary<string, string> Variables { get; init; } = new Dictionary<string, string>(StringComparer.Ordinal);
 

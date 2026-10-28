@@ -1,4 +1,4 @@
-# Builds this checkout and runs it as the Winland of this computer, in place of the one that is running.
+# Builds this checkout and runs it as the Winland of this session, in place of the one that is running.
 #   pwsh -NoProfile -File scripts/run.ps1                 build, stop the running winland, start the new build
 #   pwsh -NoProfile -File scripts/run.ps1 -Elevated       start it with administrator rights, which asks for one UAC approval
 #   pwsh -NoProfile -File scripts/run.ps1 -Stop           stop the running winland and start nothing
@@ -35,13 +35,22 @@ function Resolve-DotnetRoot {
     throw 'Could not find a .NET install to set DOTNET_ROOT.'
 }
 
-# Every winland on this computer is the one to replace, whatever build it is. With WINLAND_PIPE set this is a
-# second copy on a pipe of its own, so only the builds this script started are touched.
+# An empty pipe marker means the session's default, without depending on its actual name.
+# Unmarked dev builds are left alone because their pipe cannot be identified safely.
 function Get-Winland {
     $found = @(Get-CimInstance Win32_Process -Filter "Name = 'winland.exe'" -ErrorAction SilentlyContinue)
-    if ($env:WINLAND_PIPE) {
-        $found = @($found | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($dev, [StringComparison]::OrdinalIgnoreCase) })
-    }
+    $pipe = if ([string]::IsNullOrWhiteSpace($env:WINLAND_PIPE)) { '' } else { $env:WINLAND_PIPE }
+    $session = (Get-Process -Id $PID).SessionId
+    $found = @($found | Where-Object {
+        if (-not $_.ExecutablePath) { return $false }
+        if (-not $pipe -and $_.SessionId -ne $session) { return $false }
+        if ($_.ExecutablePath.StartsWith($dev + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+            $folder = Split-Path (Split-Path $_.ExecutablePath -Parent) -Parent
+            $marker = Join-Path $folder 'pipe'
+            return (Test-Path -LiteralPath $marker) -and [IO.File]::ReadAllText($marker) -eq $pipe
+        }
+        return -not $pipe
+    })
     @($found | ForEach-Object { Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue } | Where-Object { $_ })
 }
 
@@ -103,6 +112,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $exe = Join-Path $build 'winland/winland.exe'
+[IO.File]::WriteAllText((Join-Path $build 'pipe'), $(if ([string]::IsNullOrWhiteSpace($env:WINLAND_PIPE)) { '' } else { $env:WINLAND_PIPE }))
 Stop-Winland $exe
 
 $stdout = Join-Path $build 'winland.out.log'
@@ -142,8 +152,15 @@ if (-not $ready) {
     throw 'The new winland did not come up.'
 }
 
-# Older builds are left for a later run, since a folder in use cannot be removed.
-Get-ChildItem -Path $dev -Directory | Where-Object { $_.Name -ne $stamp } | Sort-Object Name -Descending |
+# Keep the pipe records of other copies, including live builds in another session.
+$pipe = if ([string]::IsNullOrWhiteSpace($env:WINLAND_PIPE)) { '' } else { $env:WINLAND_PIPE }
+$active = @(Get-CimInstance Win32_Process -Filter "Name = 'winland.exe'" -ErrorAction SilentlyContinue |
+    Where-Object ExecutablePath | ForEach-Object { Split-Path (Split-Path $_.ExecutablePath -Parent) -Parent })
+Get-ChildItem -Path $dev -Directory | Where-Object {
+    $marker = Join-Path $_.FullName 'pipe'
+    $_.Name -ne $stamp -and $_.FullName -notin $active -and
+        (Test-Path -LiteralPath $marker) -and [IO.File]::ReadAllText($marker) -eq $pipe
+} | Sort-Object Name -Descending |
     Select-Object -Skip ($keep - 1) | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
 
 Write-Output "winland is running from $exe"

@@ -177,7 +177,7 @@ public class LayoutOptionTests
     [Fact]
     public void PreserveSplitKeepsTheDirectionWhenTheContainerChangesShape()
     {
-        var core = Configured(Flat("""
+        var core = Configured(FlatConfig("""
             dwindle:preserve_split = yes
             """));
         core.Handle(Appeared(1, Wide));
@@ -193,7 +193,7 @@ public class LayoutOptionTests
     [Fact]
     public void PreservedSplitSurvivesMinimizeAndRestore()
     {
-        var core = Configured(Flat("""
+        var core = Configured(FlatConfig("""
             dwindle:preserve_split = true
             """));
         core.Handle(Appeared(1, Wide));
@@ -211,7 +211,7 @@ public class LayoutOptionTests
     [Fact]
     public void PreselectOverridesTheNextSplitDirectionWhilePreserveKeepsIt()
     {
-        var core = Configured(Flat("""
+        var core = Configured(FlatConfig("""
             dwindle:preserve_split = true
             """));
         core.Handle(Appeared(1, Tall));
@@ -226,7 +226,7 @@ public class LayoutOptionTests
     [Fact]
     public void ANonDirectionClearsPreselect()
     {
-        var core = Configured(Flat(""));
+        var core = Configured(FlatConfig(""));
         core.Handle(Appeared(1, Tall));
         core.Handle(new Preselect("l"));
         core.Handle(new Preselect("x"));
@@ -240,7 +240,7 @@ public class LayoutOptionTests
     [Fact]
     public void AnotherLayoutNameStillTilesWithDwindle()
     {
-        var core = Configured(Flat("""
+        var core = Configured(FlatConfig("""
             general:layout = floating
             """));
         core.Handle(Appeared(1, Wide));
@@ -277,8 +277,8 @@ public class LayoutOptionTests
     [InlineData("scrolling")]
     public void ALoneTileIsPaddedToTheAspectRatio(string layout)
     {
-        var plain = Configured(Flat($"general:layout = {layout}\n"));
-        var ruled = Configured(Flat($"general:layout = {layout}\nlayout:single_window_aspect_ratio = 4 3\n"));
+        var plain = Configured(FlatConfig($"general:layout = {layout}\n"));
+        var ruled = Configured(FlatConfig($"general:layout = {layout}\nlayout:single_window_aspect_ratio = 4 3\n"));
 
         var before = BoundsOf(plain.Handle(Appeared(1, Wide)), 1);
         var after = BoundsOf(ruled.Handle(Appeared(1, Wide)), 1);
@@ -290,7 +290,7 @@ public class LayoutOptionTests
     [Fact]
     public void PaddingWithinTheToleranceIsNotAdded()
     {
-        var core = Configured(Flat("layout:single_window_aspect_ratio = 19 10\n"));
+        var core = Configured(FlatConfig("layout:single_window_aspect_ratio = 19 10\n"));
 
         Assert.Equal(new Rectangle(0, 0, 1920, 1080), BoundsOf(core.Handle(Appeared(1, Wide)), 1));
     }
@@ -298,21 +298,11 @@ public class LayoutOptionTests
     [Fact]
     public void TwoTilesAreNotPadded()
     {
-        var core = Configured(Flat("layout:single_window_aspect_ratio = 4 3\n"));
+        var core = Configured(FlatConfig("layout:single_window_aspect_ratio = 4 3\n"));
         Assert.Equal(new Rectangle(240, 0, 1440, 1080), BoundsOf(core.Handle(Appeared(1, Wide)), 1));
 
         var split = core.Handle(Appeared(2, Wide));
 
         Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(split, 1));
     }
-
-    private static string Flat(string extra) =>
-        "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
-
-    private static WindowAppeared Appeared(long window, Rectangle area, Point? pointer = null, Rectangle bounds = default) =>
-        new WindowAppeared(new WindowId(window), area)
-        {
-            Pointer = pointer,
-            Bounds = bounds,
-        };
 }

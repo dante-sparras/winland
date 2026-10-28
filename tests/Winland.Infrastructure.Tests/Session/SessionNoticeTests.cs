@@ -8,7 +8,7 @@ public class SessionNoticeTests
     {
         Assert.True(SessionNotices.EndsSession(SessionNotices.EndSessionMessage, 1));
         Assert.False(SessionNotices.EndsSession(SessionNotices.EndSessionMessage, 0));
-        Assert.False(SessionNotices.EndsSession(SessionNotices.QueryEndSessionMessage, 1));
+        Assert.False(SessionNotices.EndsSession(0x0011, 1));
     }
 
     [Fact]
@@ -46,13 +46,6 @@ public class SessionNoticeTests
         Assert.False(SessionNotices.TryDisplayPower(Guid.Empty, 1, out _));
     }
 
-    [Fact]
-    public void ADisplayChangeMessageAsksForAReflow()
-    {
-        Assert.True(SessionNotices.TryFromMessage(SessionNotices.DisplayMessage, 0, out var signal));
-        Assert.Equal(SessionSignal.DisplayChanged, signal);
-    }
-
     private static SessionSignal Power(nuint code)
     {
         Assert.True(SessionNotices.TryPower(code, out var signal));
@@ -69,5 +62,19 @@ public class SessionNoticeTests
     {
         Assert.True(SessionNotices.TryDisplayPower(setting, value, out var signal));
         return signal;
+    }
+
+    // Started inside a Remote Desktop session, Winland lays the Workspaces out again when the user moves back to the console.
+    [Fact]
+    public void ASessionStartedRemotelyRecoversWhenTheConsoleConnects()
+    {
+        var phase = new SessionPhase();
+        foreach (var signal in SessionNotices.AtStart(remote: true))
+            phase.Notice(signal);
+
+        Assert.Equal(SessionEffect.LayOut, phase.Notice(SessionSignal.ShellReady));
+        Assert.Equal(SessionEffect.None, phase.Notice(SessionSignal.RemoteDisconnected));
+        Assert.Equal(SessionEffect.Recover, phase.Notice(SessionSignal.ConsoleConnected));
+        Assert.Empty(SessionNotices.AtStart(remote: false));
     }
 }

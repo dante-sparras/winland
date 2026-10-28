@@ -2,7 +2,7 @@ namespace Winland.Domain;
 
 /// <summary>
 /// What the core recorded about one Client for the next start. <see cref="Floating"/>, <see cref="Bounds"/>,
-/// <see cref="Pinned"/> and the fullscreen modes are null in a snapshot written before they were recorded,
+/// <see cref="Pinned"/> and the fullscreen mode are null in a snapshot written before they were recorded,
 /// and the window rules decide them then.
 /// </summary>
 public sealed record RecoveredClient(
@@ -17,8 +17,7 @@ public sealed record RecoveredClient(
     bool? Floating = null,
     Rectangle? Bounds = null,
     bool? Pinned = null,
-    FullscreenMode? Fullscreen = null,
-    FullscreenMode? FullscreenClient = null)
+    FullscreenMode? Fullscreen = null)
 {
     /// <summary>The style the window had before fullscreen mode 2 dropped its frame. Null when the frame is its own.</summary>
     public uint? FrameStyle { get; init; }

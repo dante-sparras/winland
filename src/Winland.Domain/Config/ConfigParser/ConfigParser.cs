@@ -64,6 +64,8 @@ public static partial class ConfigParser
         private string? _source;
         private string? _rootFolder;
         private bool _suppressWarnings;
+        private bool _inSubmap;
+        private bool _warnedSubmaps;
 
         // The variables and curves of a config read before.
         public void Know(ConfigDocument context)
@@ -100,6 +102,7 @@ public static partial class ConfigParser
                 Sources = [.. _sources],
                 Gestures = [.. _gestures],
                 Path = path,
+                KeyLayout = layout,
                 Variables = new Dictionary<string, string>(_variables, StringComparer.Ordinal),
             };
         }
@@ -204,6 +207,18 @@ public static partial class ConfigParser
                 return;
             }
 
+            if (lhs == "submap")
+            {
+                _inSubmap = rhs != "reset";
+                if (_inSubmap && !_warnedSubmaps)
+                {
+                    Warn(lineNumber, "Submaps are not supported. Their binds are skipped until submap = reset.");
+                    _warnedSubmaps = true;
+                }
+
+                return;
+            }
+
             if (lhs == "unbind")
             {
                 HandleUnbind(rhs, lineNumber);
@@ -218,7 +233,8 @@ public static partial class ConfigParser
 
             if (lhs.StartsWith("bind", StringComparison.Ordinal) && !lhs.Contains(':'))
             {
-                HandleBind(lhs, rhs, lineNumber);
+                if (!_inSubmap)
+                    HandleBind(lhs, rhs, lineNumber);
                 return;
             }
 
@@ -238,6 +254,9 @@ public static partial class ConfigParser
 
             if (TryAnimationLine(lhs, rhs, lineNumber))
                 return;
+
+            if (lhs == "windowrulev2")
+                lhs = "windowrule";
 
             if (KeptHandlers.Contains(lhs))
             {
@@ -319,6 +338,7 @@ public static partial class ConfigParser
 
         private bool TryExpand(ref string text)
         {
+            const int maximumLength = 64 * 1024;
             for (var iteration = 0; iteration < 100; iteration++)
             {
                 var any = false;
@@ -327,6 +347,14 @@ public static partial class ConfigParser
                     var token = "$" + variable.Key;
                     if (text.IndexOf(token, StringComparison.Ordinal) < 0)
                         continue;
+
+                    var length = (long)text.Length;
+                    for (var index = text.IndexOf(token, StringComparison.Ordinal); index >= 0; index = text.IndexOf(token, index + token.Length, StringComparison.Ordinal))
+                    {
+                        length += variable.Value.Length - token.Length;
+                        if (length > maximumLength)
+                            return false;
+                    }
 
                     text = text.Replace(token, variable.Value, StringComparison.Ordinal);
                     any = true;
@@ -419,6 +447,9 @@ public static partial class ConfigParser
         // True when the line has a '#' that starts a comment. "##" is an escaped '#'.
         private static bool HasComment(string line)
         {
+            if (line.TrimStart().StartsWith('#'))
+                return true;
+
             for (var i = 0; i < line.Length; i++)
             {
                 if (line[i] != '#')

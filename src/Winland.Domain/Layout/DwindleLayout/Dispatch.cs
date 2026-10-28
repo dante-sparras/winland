@@ -81,10 +81,7 @@ internal sealed partial class DwindleLayout
             return Placements();
         }
 
-        if (towardSibling)
-            _preselect = direction;
-
-        Split(opening, node, focal);
+        Split(opening, node, focal, towardSibling ? direction : PendingSplit.None);
         _splitTarget = id;
         return Placements();
     }
@@ -164,7 +161,7 @@ internal sealed partial class DwindleLayout
         if (_splitTarget == id)
             _splitTarget = sibling is null ? null : Leaf(sibling.Node).Id;
 
-        var floated = _floating.Around(id, tile, _options.FloatingOnScreen(_area));
+        var floated = FloatingLimits(id).Clamp(_floating.Around(id, tile, _options.FloatingOnScreen(_area)));
         _floating.Set(id, floated);
         _clients[index] = _clients[index] with { Floating = true };
         Refit();

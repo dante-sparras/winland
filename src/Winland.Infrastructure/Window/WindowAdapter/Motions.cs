@@ -74,21 +74,30 @@ public sealed partial class WindowAdapter
         }
     }
 
+    // Called under the window's lock, so one placement of a window is under way at a time.
     private void PlaceFrame(WindowId window, Rectangle bounds, bool borderless)
     {
-        if (!borderless)
+        _placing[window] = 0;
+        try
         {
-            Place(window, bounds);
-            return;
+            if (!borderless)
+            {
+                Place(window, bounds);
+                return;
+            }
+
+            // A borderless window already on its rectangle is left alone, as a framed one is.
+            var trails = TryOuter(window, out var before) && _quick.Trails(window, before);
+            if (!trails && before == bounds)
+                return;
+
+            if (Move(window, bounds) && trails)
+                SendQuick(window, bounds, keepSize: false);
         }
-
-        // A borderless window already on its rectangle is left alone, as a framed one is.
-        var trails = TryOuter(window, out var before) && _quick.Trails(window, before);
-        if (!trails && before == bounds)
-            return;
-
-        if (Move(window, bounds) && trails)
-            SendQuick(window, bounds, keepSize: false);
+        finally
+        {
+            _placing.TryRemove(window, out _);
+        }
     }
 
     private void BeginRest(Dictionary<WindowId, Motion> motions)
@@ -121,11 +130,20 @@ public sealed partial class WindowAdapter
     private void DropMotion(WindowId window) => _motions.Drop(window);
 
     // Every step asks, so the setting is read once and again after Windows broadcasts a change to the settings.
-    private static readonly CachedSetting ReducedMotionSetting = new(ReadReducedMotion);
+    private static readonly Lock SettingsGate = new();
+    private static bool? _reducedMotion;
 
-    private static bool ReducedMotion() => ReducedMotionSetting.Value;
+    private static bool ReducedMotion()
+    {
+        lock (SettingsGate)
+            return _reducedMotion ??= ReadReducedMotion();
+    }
 
-    internal static void ForgetSettings() => ReducedMotionSetting.Forget();
+    internal static void ForgetSettings()
+    {
+        lock (SettingsGate)
+            _reducedMotion = null;
+    }
 
     // Stryker disable once all : asks Windows for the animation setting.
     private static unsafe bool ReadReducedMotion()
@@ -139,9 +157,18 @@ public sealed partial class WindowAdapter
     {
         public bool Hung(WindowId window) => adapter._desktop.Hung(window);
 
-        // An in-between frame does not wait for the window, so one that repaints slowly holds up no other.
+        // An in-between frame does not wait for the window, so one that repaints slowly holds up no other. A window
+        // not shown yet, as one a Workspace brings in, is waited for: it is shown right after its first frame, and
+        // would take a posted frame only after it showed where it was hidden. A hidden window does not paint, so it is quick.
         public void Move(WindowId window, Rectangle bounds, Rectangle content)
         {
+            GroupBarHost.Moves(window, true);
+            if (!adapter._desktop.Shown(window))
+            {
+                adapter.PlaceFrame(window, bounds, adapter._borderless.Owns(window));
+                return;
+            }
+
             if (!adapter.StandFor(window, bounds, content))
                 adapter.QuickPlace(window, bounds, adapter._borderless.Owns(window));
         }
@@ -150,21 +177,15 @@ public sealed partial class WindowAdapter
         {
             adapter.PlaceAsync(window, bounds, adapter._borderless.Owns(window));
             adapter.EndStandIn(window, null);
+            GroupBarHost.Moves(window, false);
         }
 
         public void Place(WindowId window, Rectangle bounds)
         {
-            Interlocked.Increment(ref adapter._applying);
-            try
-            {
-                // A fullscreen window has no frame, so it is placed by its outer rectangle, as every placement of it is.
-                adapter.PlaceFrame(window, bounds, adapter._borderless.Owns(window));
-                adapter.EndStandIn(window, null);
-            }
-            finally
-            {
-                Interlocked.Decrement(ref adapter._applying);
-            }
+            // A fullscreen window has no frame, so it is placed by its outer rectangle, as every placement of it is.
+            adapter.PlaceFrame(window, bounds, adapter._borderless.Owns(window));
+            adapter.EndStandIn(window, null);
+            GroupBarHost.Moves(window, false);
         }
 
         public void Alpha(WindowId window, byte alpha)
@@ -189,11 +210,13 @@ public sealed partial class WindowAdapter
         {
             adapter.Conceal(window);
             adapter.EndStandIn(window, null);
+            GroupBarHost.Moves(window, false);
         }
 
         public void Release(WindowId window)
         {
             adapter.EndStandIn(window, null);
+            GroupBarHost.Moves(window, false);
             MotionAlpha.Set(window, null);
         }
 

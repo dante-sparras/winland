@@ -32,6 +32,8 @@ public static class ProcessLauncher
         return true;
     });
 
+    internal static void PrepareImpersonation() => _ = Impersonating.Value;
+
     public static int Launch(Launch launch)
     {
         ArgumentNullException.ThrowIfNull(launch);
@@ -68,46 +70,8 @@ public static class ProcessLauncher
     private static unsafe int StartLimited(Launch launch)
     {
         _ = Impersonating.Value;
-        var shell = PInvoke.GetShellWindow();
-        if (shell.IsNull)
-            throw new InvalidOperationException("The program was not started because the desktop shell is not available.");
-
-        _ = PInvoke.GetWindowThreadProcessId(shell, out var pid);
-        if (pid == 0)
-            throw new InvalidOperationException("The program was not started because the desktop shell is not available.");
-
-        using var process = PInvoke.OpenProcess_SafeHandle(
-            PROCESS_ACCESS_RIGHTS.PROCESS_QUERY_LIMITED_INFORMATION,
-            false,
-            pid);
-        if (process is null || process.IsInvalid)
-            throw Fail();
-
-        if (!PInvoke.OpenProcessToken(
-                process,
-                TOKEN_ACCESS_MASK.TOKEN_DUPLICATE | TOKEN_ACCESS_MASK.TOKEN_QUERY,
-                out var token))
-            throw Fail();
-
-        using (token)
-        {
-            var access = TOKEN_ACCESS_MASK.TOKEN_ASSIGN_PRIMARY
-                | TOKEN_ACCESS_MASK.TOKEN_QUERY
-                | TOKEN_ACCESS_MASK.TOKEN_DUPLICATE
-                | TOKEN_ACCESS_MASK.TOKEN_ADJUST_DEFAULT
-                | TOKEN_ACCESS_MASK.TOKEN_ADJUST_SESSIONID;
-            if (!PInvoke.DuplicateTokenEx(
-                    token,
-                    access,
-                    null,
-                    SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation,
-                    TOKEN_TYPE.TokenPrimary,
-                    out var primary))
-                throw Fail();
-
-            using (primary)
-                return Start(launch, primary);
-        }
+        using var primary = UserAccess.ShellToken();
+        return Start(launch, primary);
     }
 
     private static unsafe int Start(Launch launch, Microsoft.Win32.SafeHandles.SafeFileHandle? token)

@@ -63,7 +63,11 @@ sealed class RecoveryStore
             }
 
             var json = Encoding.UTF8.GetString(bytes, 0, read);
-            return RecoverySnapshot.TryParse(json, out var snapshot) ? snapshot : null;
+            if (RecoverySnapshot.TryParse(json, out var snapshot))
+                return snapshot;
+
+            Console.Error.WriteLine($"Could not read '{_path}': invalid recovery data.");
+            return null;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

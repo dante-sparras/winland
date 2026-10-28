@@ -45,7 +45,7 @@ public sealed partial class WindowManager
 
     private Outcome PressPointer(PointerButtonPressed pressed)
     {
-        var match = _keyState.Decide(_config.Binds, pressed);
+        var match = pressed.BindsHandled ? new BindDecision(false, null) : _keyState.Decide(_config.Binds, pressed);
 
         // A drag already running keeps the pointer. A second drag button does not start another one.
         if (_interaction is null && TryDragHit(match, out var drag) && (TabUnder(drag, pressed.Position) ?? DragTarget(pressed.Position)) is WindowId target)
@@ -77,6 +77,9 @@ public sealed partial class WindowManager
 
     private Outcome ReleasePointer(PointerButtonReleased released)
     {
+        if (released.Button == "mouse:272" && _interaction is NativeMove { Adopted: true } move)
+            return EndNativeMove(new WindowMoveEnded(move.Window, released.Position, null));
+
         Outcome? ended = null;
         if (_interaction is BorderDrag border && border.Button.Equals(released.Button, StringComparison.OrdinalIgnoreCase))
         {
@@ -89,7 +92,7 @@ public sealed partial class WindowManager
         }
 
         NoteBorderCursor(released.Position);
-        var ran = RunBind(_keyState.Decide(_config.Binds, released));
+        var ran = released.BindsHandled ? View([]) : RunBind(_keyState.Decide(_config.Binds, released));
         if (ended is null)
             return ran;
 
@@ -113,21 +116,55 @@ public sealed partial class WindowManager
             return MoveGesture(gesture, moved.Position);
         }
 
-        return View([], focus: Follow(moved));
+        return View([], focus: Follow(moved, Track(moved)));
     }
 
-    private WindowId? Follow(PointerMoved moved)
+    // A pointer move with no drag notes where the pointer is outside a step. It takes one only when it would focus a
+    // window or a Monitor, or change the resize cursor.
+    private bool Glides(PointerMoved moved, Outcome last, out PointerAim aim)
+    {
+        _ = _keyState.Decide(_config.Binds, moved);
+        NoteBorderCursor(moved.Position);
+        aim = Track(moved);
+        if (aim.Monitor || aim.Focus is not null || _resizeCursor != last.ResizeCursor)
+            return false;
+
+        _pointer = moved.Position;
+        return true;
+    }
+
+    // What a pointer move asks for once it is noted: the focused Monitor to change, or the window it would focus.
+    private readonly record struct PointerAim(double Traveled, bool Monitor, WindowId? Focus);
+
+    private PointerAim Track(PointerMoved moved)
     {
         var now = When(moved.TimeMs);
         if (_pointer is Point held && held == moved.Position)
         {
             _lastMoveAt = now;
-            return null;
+            return default;
         }
 
         var traveled = Advance(moved.Position, now);
-        FocusMonitorAt(moved.Position);
 
+        // Focusing another Monitor changes the focused window, so the window to focus is chosen after it.
+        if (MonitorAt(moved.Position) is { } screen && screen.Id != FocusedId())
+            return new PointerAim(traveled, true, null);
+
+        return new PointerAim(traveled, false, Choose(moved, traveled));
+    }
+
+    private WindowId? Follow(PointerMoved moved, PointerAim aim)
+    {
+        if (!aim.Monitor)
+            return TakePointerFocus(aim.Focus);
+
+        FocusMonitorAt(moved.Position);
+        return TakePointerFocus(Choose(moved, aim.Traveled));
+    }
+
+    private WindowId? Choose(PointerMoved moved, double traveled)
+    {
         if (_keyState.ButtonsHeld)
             return null;
 
@@ -153,7 +190,7 @@ public sealed partial class WindowManager
         if (moved.Under is WindowId over && decision.Focus is WindowId target && over != target && Find(over) is null)
             return null;
 
-        return TakePointerFocus(decision.Focus);
+        return decision.Focus;
     }
 
     private WindowId? TakePointerFocus(WindowId? window)

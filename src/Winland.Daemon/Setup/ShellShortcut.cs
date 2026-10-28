@@ -69,33 +69,6 @@ static class ShellShortcut
         }
     }
 
-    public static string ReadAppUserModelId(string linkPath)
-    {
-        var link = (IShellLinkW)new CShellLink();
-        try
-        {
-            ((IPersistFile)link).Load(linkPath, 0);
-            var store = (IPropertyStore)link;
-            var key = AppUserModelId;
-            store.GetValue(ref key, out var variant);
-            try
-            {
-                if (variant.VariantType != 31 || variant.Pointer == IntPtr.Zero)
-                    return "";
-
-                return Marshal.PtrToStringUni(variant.Pointer) ?? "";
-            }
-            finally
-            {
-                _ = PropVariantClear(ref variant);
-            }
-        }
-        finally
-        {
-            _ = Marshal.ReleaseComObject(link);
-        }
-    }
-
     [DllImport("ole32.dll")]
     private static extern int PropVariantClear(ref PropVariant variant);
 

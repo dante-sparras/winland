@@ -218,7 +218,7 @@ public sealed partial class BindSession
                 if (held.Equals(excluded, StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                if (Eligible(bind, held, ScanCodeOf(held), mouse: false, releasing: true))
+                if (Eligible(table, bind, held, ScanCodeOf(held), mouse: false, releasing: true))
                 {
                     _shadowed.Add(bind);
                     break;

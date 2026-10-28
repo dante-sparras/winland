@@ -51,13 +51,6 @@ public sealed partial class BindSession
             return _scanCodes.TryGetValue(key, out var code) ? code : 0;
     }
 
-    /// <summary>The modifiers <paramref name="key"/> went down under, or none when it is not held.</summary>
-    public Modifier PressedUnderOf(string key)
-    {
-        lock (_gate)
-            return _pressedUnder.TryGetValue(key, out var under) ? under : default;
-    }
-
     /// <summary>Forgets that <paramref name="key"/> was caught, when the hook gives its press back to the OS.</summary>
     public void ForgetCaught(string key)
     {

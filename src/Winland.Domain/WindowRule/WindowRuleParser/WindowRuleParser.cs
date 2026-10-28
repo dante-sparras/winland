@@ -21,6 +21,12 @@ internal static partial class WindowRuleParser
     internal static bool TryParse(string value, out WindowRule? rule, out string error)
     {
         rule = null;
+        if (value.Split(',').Any(field => field.TrimStart().StartsWith("match:", StringComparison.Ordinal)))
+        {
+            error = "The match: rule syntax is not supported. Use Winland's form, for example windowrule = float on, class:kitty.";
+            return false;
+        }
+
         var comma = value.IndexOf(',');
         if (comma <= 0 || comma == value.Length - 1)
         {
@@ -86,6 +92,9 @@ internal static partial class WindowRuleParser
         foreach (var rule in rules)
         {
             if (!Matches(rule, traits))
+                continue;
+
+            if (!rule.Enabled && rule.Effect is WindowRuleEffect.Float or WindowRuleEffect.Tile or WindowRuleEffect.Ignore)
                 continue;
 
             if (rule.Effect == WindowRuleEffect.Prop && rule.Props is not null)
@@ -156,7 +165,7 @@ internal static partial class WindowRuleParser
 
         return new WindowDecision(
             adopt is bool forced ? forced && Surface(traits) : Adopts(traits),
-            floating ?? traits.Dialog,
+            floating ?? (traits.Dialog || !traits.Resizable || traits.Topmost),
             workspace,
             noInitialFocus ?? false,
             noFocus ?? false,
@@ -166,7 +175,7 @@ internal static partial class WindowRuleParser
             opacity,
             opaque ?? false,
             RequestedFullscreen(fullscreen, maximize),
-            pin ?? false,
+            pin ?? traits.Topmost,
             placement,
             sizes,
             props,
@@ -302,7 +311,7 @@ internal static partial class WindowRuleParser
                 if (enabled)
                 {
                     var mode = name == "fullscreen" ? FullscreenMode.Fullscreen : FullscreenMode.Maximized;
-                    fullscreen = new FullscreenRule(mode, mode);
+                    fullscreen = new FullscreenRule(mode);
                 }
 
                 error = "";
@@ -325,7 +334,8 @@ internal static partial class WindowRuleParser
                 return false;
         }
 
-        if (effect is WindowRuleEffect.NoInitialFocus or WindowRuleEffect.NoFocus or WindowRuleEffect.Opaque or WindowRuleEffect.Pin)
+        if (effect is WindowRuleEffect.Float or WindowRuleEffect.Tile or WindowRuleEffect.Ignore
+            or WindowRuleEffect.NoInitialFocus or WindowRuleEffect.NoFocus or WindowRuleEffect.Opaque or WindowRuleEffect.Pin)
         {
             if (argument is null)
             {
@@ -392,10 +402,10 @@ internal static partial class WindowRuleParser
     private static FullscreenRule? RequestedFullscreen(bool? fullscreen, bool? maximize)
     {
         if (maximize == true)
-            return new FullscreenRule(FullscreenMode.Maximized, FullscreenMode.Maximized);
+            return new FullscreenRule(FullscreenMode.Maximized);
 
         if (fullscreen == true)
-            return new FullscreenRule(FullscreenMode.Fullscreen, FullscreenMode.Fullscreen);
+            return new FullscreenRule(FullscreenMode.Fullscreen);
 
         return null;
     }
@@ -522,14 +532,14 @@ internal static partial class WindowRuleParser
         && Matches(rule.TitlePattern, traits.Title)
         && Matches(rule.InitialTitlePattern, traits.InitialTitle ?? traits.Title)
         && Matches(rule.InitialClassPattern, traits.InitialClass ?? traits.Class)
-        && Matches(rule.ExePattern, traits.Exe)
+        && Matches(rule.ExePattern, traits.Exe, ignoreCase: true)
         && Matches(rule.AumidPattern, traits.Aumid);
 
     // Winland matches a rule's pattern against the whole field, and a
     // "negative:" prefix passes only when the rest of the pattern does not match.
     private const string NegativePrefix = "negative:";
 
-    private static bool Matches(string? pattern, string text)
+    private static bool Matches(string? pattern, string text, bool ignoreCase = false)
     {
         if (pattern is null)
             return true;
@@ -537,7 +547,8 @@ internal static partial class WindowRuleParser
         var negative = pattern.StartsWith(NegativePrefix, StringComparison.Ordinal);
         try
         {
-            return WholeMatch.Of(Body(pattern, negative)).IsMatch(text) != negative;
+            var body = Body(pattern, negative);
+            return WholeMatch.Of(ignoreCase ? $"(?i:{body})" : body).IsMatch(text) != negative;
         }
         catch (ArgumentException)
         {

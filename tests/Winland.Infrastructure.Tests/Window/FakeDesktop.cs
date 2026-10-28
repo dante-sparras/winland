@@ -197,7 +197,11 @@ internal sealed class FakeDesktop(Func<double> clock) : IDesktop
             found.PaintedAt = clock() + PaintTime;
 
         Log($"bounds {Id(window)} {Text(outer)} {delivery}");
+        OnSetBounds?.Invoke(window);
     }
+
+    /// <summary>Runs after a window is given bounds, as a window event about another window could arrive then.</summary>
+    internal Action<WindowId>? OnSetBounds { get; set; }
 
     public void Show(WindowId window, ShowAs show) => Change(window, show, "show");
 
@@ -248,9 +252,10 @@ internal sealed class FakeDesktop(Func<double> clock) : IDesktop
 
     public void Close(WindowId window) => Log($"close {Id(window)}");
 
-    public void Pace()
-    {
-    }
+    /// <summary>Runs each time the adapter waits for the next frame, as another thread could while it does.</summary>
+    internal Action? OnPace { get; set; }
+
+    public void Pace() => OnPace?.Invoke();
 
     public IStandInSurface? OpenStandIn(WindowId window)
     {

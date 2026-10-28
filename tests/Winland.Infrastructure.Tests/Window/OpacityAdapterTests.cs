@@ -1,5 +1,6 @@
 namespace Winland.Infrastructure.Tests;
 
+[Collection("Console")]
 public class OpacityAdapterTests
 {
     [Fact]
@@ -20,15 +21,30 @@ public class OpacityAdapterTests
         Assert.Equal(1, styles.Writes);
         Assert.True(adapter.Owns(window));
 
-        styles.ExStyle[window] = OpacityAdapter.LayeredStyle;
         adapter.Apply(window, 64);
-        Assert.Equal(OpacityAdapter.LayeredStyle, styles.ExStyle[window]);
+        Assert.Equal(OpacityAdapter.LayeredStyle | 0x80, styles.ExStyle[window]);
         Assert.Equal(64, styles.Alpha[window]);
         Assert.Equal(1, styles.Writes);
 
         adapter.Reset(window);
         Assert.Equal(0x80u, styles.ExStyle[window]);
         Assert.False(adapter.Owns(window));
+    }
+
+    // Only the layered style is Winland's. A style the program set meanwhile, such as always on top, stays.
+    [Fact]
+    public void ResetTakesOffOnlyTheLayeredStyle()
+    {
+        var styles = new FakeStyles();
+        var window = new WindowId(42);
+        styles.ExStyle[window] = 0x80;
+        var adapter = new OpacityAdapter(styles);
+        adapter.Apply(window, 128);
+        styles.ExStyle[window] |= 0x8;
+
+        adapter.Reset(window);
+
+        Assert.Equal(0x88u, styles.ExStyle[window]);
     }
 
     [Fact]
@@ -56,34 +72,24 @@ public class OpacityAdapterTests
         styles.ColorKey.Add(window);
         var adapter = new OpacityAdapter(styles);
 
-        adapter.Apply(window, 10);
-        adapter.Apply(window, 10);
+        var stderr = Console.Error;
+        using var log = new StringWriter();
+        Console.SetError(log);
+        try
+        {
+            adapter.Apply(window, 10);
+            adapter.Apply(window, 10);
+            Assert.Equal("Window 0x2a was already layered and was left alone." + Environment.NewLine, log.ToString());
+        }
+        finally
+        {
+            Console.SetError(stderr);
+        }
 
         Assert.Equal(200, styles.Alpha[window]);
         Assert.Equal(0, styles.Writes);
         Assert.Equal(0, styles.AlphaWrites);
         Assert.False(adapter.Owns(window));
-        var report = Assert.Single(adapter.Reports);
-        Assert.Equal("Window 0x2a was already layered and was left alone.", report);
-    }
-
-    [Fact]
-    public void AWindowThatRefusedTheVeilIsKnownToRefuseIt()
-    {
-        var styles = new FakeStyles();
-        var window = new WindowId(42);
-        var other = new WindowId(43);
-        styles.ExStyle[window] = OpacityAdapter.LayeredStyle;
-        styles.Alpha[window] = 200;
-        var adapter = new OpacityAdapter(styles);
-        Assert.False(adapter.Refuses(window));
-
-        Assert.False(adapter.Veil(window));
-
-        Assert.True(adapter.Refuses(window));
-        Assert.False(adapter.Refuses(other));
-        adapter.Reset(window);
-        Assert.False(adapter.Refuses(window));
     }
 
     [Fact]
@@ -104,7 +110,6 @@ public class OpacityAdapterTests
         Assert.Equal(0u, styles.ExStyle[window]);
         Assert.False(adapter.Owns(window));
         Assert.True(adapter.Failed(window));
-        Assert.Equal("Window 0x3 could not be layered.", Assert.Single(adapter.Reports));
     }
 
     [Fact]
@@ -126,6 +131,56 @@ public class OpacityAdapterTests
         var restarted = new OpacityAdapter(styles);
         restarted.ReleaseAdded(window);
         Assert.Equal(0x80u, styles.ExStyle[window]);
+    }
+
+    // A style write waits for the window. One whose program stopped answering is given full alpha, which does not wait,
+    // and stays layered and recorded, so the next start takes the style off.
+    [Fact]
+    public void ResetAllLeavesAWindowThatStoppedAnsweringOpaqueAndRecorded()
+    {
+        var styles = new FakeStyles();
+        var window = new WindowId(5);
+        styles.ExStyle[window] = 0x80;
+        var stopped = false;
+        var adapter = new OpacityAdapter(styles, _ => stopped);
+        adapter.Apply(window, 128);
+        stopped = true;
+        var writes = styles.Writes;
+
+        adapter.ResetAll();
+
+        Assert.Equal(writes, styles.Writes);
+        Assert.Equal(255, styles.Alpha[window]);
+        var clean = new RecoverySnapshot(
+        [
+            new RecoveredClient(window, WorkspaceId.Initial, MonitorId.Primary, false, "Notepad", "Notes", 10),
+        ]) { Clean = true };
+        var stamped = adapter.Stamp(clean);
+        Assert.True(Assert.Single(stamped.Clients).Layered);
+        Assert.True(stamped.Clean);
+    }
+
+    // A window created hidden is made transparent until it is shown, and is no Client meanwhile. The snapshot records it
+    // apart, so a start after the process was ended takes the style off.
+    [Fact]
+    public void StampRecordsAHeldWindowThatIsNoClient()
+    {
+        var styles = new FakeStyles();
+        var client = new WindowId(5);
+        var held = new WindowId(6);
+        styles.ExStyle[client] = 0x80;
+        styles.ExStyle[held] = 0x80;
+        var adapter = new OpacityAdapter(styles);
+        adapter.Apply(client, 128);
+        adapter.Apply(held, 0);
+
+        var stamped = adapter.Stamp(new RecoverySnapshot(
+        [
+            new RecoveredClient(client, WorkspaceId.Initial, MonitorId.Primary, false, "Notepad", "Notes", 10),
+        ]));
+
+        Assert.Equal([held], stamped.Held.Select(window => window.Window));
+        Assert.True(Assert.Single(stamped.Clients).Layered);
     }
 
     [Fact]
@@ -151,7 +206,7 @@ public class OpacityAdapterTests
     // The exit cleanup resets every window, and then the process ends with the state file gone. An
     // outcome or a motion that arrives after that must not make a window layered again.
     [Fact]
-    public void AfterResetAllNoWindowIsMadeLayeredUntilReopened()
+    public void AfterResetAllNoWindowIsMadeLayered()
     {
         var styles = new FakeStyles();
         var window = new WindowId(3);
@@ -163,10 +218,6 @@ public class OpacityAdapterTests
 
         Assert.Equal(0x80u, styles.ExStyle[window]);
         Assert.False(adapter.Owns(window));
-
-        adapter.Reopen();
-        adapter.Apply(window, 128);
-        Assert.True(adapter.Owns(window));
     }
 
     [Fact]
@@ -182,7 +233,6 @@ public class OpacityAdapterTests
         Assert.False(adapter.Owns(window));
         Assert.True(adapter.Failed(window));
         Assert.Equal(0, styles.AlphaWrites);
-        Assert.Equal("Window 0x4 could not be layered.", Assert.Single(adapter.Reports));
     }
 
     // A reset, as when a window opens again, lets a window that failed or was left alone be tried again.

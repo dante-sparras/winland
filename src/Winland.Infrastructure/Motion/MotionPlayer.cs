@@ -60,6 +60,7 @@ internal sealed class MotionPlayer : IDisposable
     private Thread? _thread;
     private volatile bool _stopped;
     private int _epoch;
+    private long _nextError = long.MinValue;
 
     internal MotionPlayer(IMotionTarget target, Func<double>? clock = null, bool threaded = true)
     {
@@ -181,7 +182,7 @@ internal sealed class MotionPlayer : IDisposable
         // A window asked to close stays transparent while it goes.
         lock (_gate)
         {
-            var hold = _animator.Paint(window, alpha, border, _clock());
+            var hold = _animator.Running(window) ? _animator.Paint(window, alpha, border, _clock()) : default;
             return _closing.ContainsKey(window) ? hold with { Alpha = true } : hold;
         }
     }
@@ -261,7 +262,7 @@ internal sealed class MotionPlayer : IDisposable
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
                 // One window that fails does not cost the others their frames.
-                Console.Error.WriteLine(exception.Message);
+                Report(exception);
             }
             finally
             {
@@ -313,6 +314,13 @@ internal sealed class MotionPlayer : IDisposable
             frames = _animator.Land();
             closing = [.. _closing.Select(pair => (pair.Key, pair.Value))];
             _closing.Clear();
+
+            // The thread may not have come back in time, as one waiting on a window that stopped answering. The frames
+            // it still has fail their check, so none of them shows after the windows came to rest.
+            foreach (var frame in frames)
+                Touch(frame.Window);
+            foreach (var (window, _) in closing)
+                Touch(window);
         }
 
         // A window that was leaving stays shown here; revealing hidden Clients on exit shows it anyway.
@@ -439,6 +447,16 @@ internal sealed class MotionPlayer : IDisposable
         _wake.Set();
     }
 
+    private void Report(Exception exception)
+    {
+        var now = Environment.TickCount64;
+        if (now < _nextError)
+            return;
+
+        _nextError = now + 60_000;
+        Console.Error.WriteLine(exception);
+    }
+
     private void Run(int epoch)
     {
         while (!_stopped && Volatile.Read(ref _epoch) == epoch)
@@ -450,7 +468,7 @@ internal sealed class MotionPlayer : IDisposable
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                Console.Error.WriteLine(exception.Message);
+                Report(exception);
                 more = false;
             }
 

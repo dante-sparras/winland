@@ -48,6 +48,7 @@ EVENT_OBJECT_UNCLOAKED
 EVENT_SYSTEM_MINIMIZESTART
 EVENT_SYSTEM_MINIMIZEEND
 EVENT_SYSTEM_FOREGROUND
+EVENT_SYSTEM_DESKTOPSWITCH
 WINEVENT_OUTOFCONTEXT
 WINEVENT_SKIPOWNPROCESS
 SetWindowsHookEx
@@ -60,6 +61,8 @@ PostThreadMessage
 PostMessage
 PeekMessage
 OpenProcessToken
+GetTokenInformation
+TOKEN_ELEVATION_TYPE
 LookupPrivilegeValue
 AdjustTokenPrivileges
 SetKernelObjectSecurity
@@ -113,6 +116,8 @@ GetKeyboardLayout
 ToUnicodeEx
 GetKeyState
 GetSystemMetrics
+GetSysColor
+HIGHCONTRASTW
 SetCursorPos
 SwapMouseButton
 SystemParametersInfo
@@ -177,6 +182,7 @@ UnloadKeyboardLayout
 DisplayConfigSetDeviceInfo
 WindowFromPoint
 MapVirtualKey
+MapVirtualKeyEx
 LASTINPUTINFO
 HWND_TOPMOST
 IsWindowEnabled
@@ -222,3 +228,4 @@ BeginDeferWindowPos
 DeferWindowPos
 EndDeferWindowPos
 WM_CLOSE
+SetWindowText

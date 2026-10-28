@@ -7,7 +7,10 @@ public static class ConfigValueSyntax
 {
     public static bool TryParseBool(string text, out bool value)
     {
-        if (Is(text, "true") || Is(text, "yes") || Is(text, "on") || text == "1")
+        if (text.StartsWith("true", StringComparison.OrdinalIgnoreCase)
+            || text.StartsWith("yes", StringComparison.OrdinalIgnoreCase)
+            || text.StartsWith("on", StringComparison.OrdinalIgnoreCase)
+            || text == "1")
         {
             value = true;
             return true;

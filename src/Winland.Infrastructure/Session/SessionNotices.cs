@@ -16,7 +16,6 @@ internal static class SessionNotices
     internal const nuint ResumeAutomatic = 0x0012;
     internal const nuint PowerSettingChange = 0x8013;
 
-    internal const uint QueryEndSessionMessage = 0x0011;
     internal const uint EndSessionMessage = 0x0016;
 
     /// <summary>
@@ -25,14 +24,15 @@ internal static class SessionNotices
     /// </summary>
     internal static bool EndsSession(uint message, nuint wParam) => message == EndSessionMessage && wParam != 0;
 
+    /// <summary>
+    /// What the session already is when Winland starts. One started inside a Remote Desktop session has no console
+    /// connected, so the console connecting again later is a change to lay out for.
+    /// </summary>
+    internal static SessionSignal[] AtStart(bool remote) =>
+        remote ? [SessionSignal.ConsoleDisconnected, SessionSignal.RemoteConnected] : [];
+
     internal static bool TryFromMessage(uint message, nuint wParam, out SessionSignal signal)
     {
-        if (message == DisplayMessage)
-        {
-            signal = SessionSignal.DisplayChanged;
-            return true;
-        }
-
         if (message == PowerMessage)
             return TryPower(wParam, out signal);
 
