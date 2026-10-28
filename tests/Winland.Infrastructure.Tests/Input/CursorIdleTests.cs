@@ -173,6 +173,22 @@ public partial class CursorIdleTests
         Assert.False(cursor.Hidden);
     }
 
+    [Fact]
+    public void TheTimerStartsOnceAnIdleTimeIsSet()
+    {
+        var clock = new ManualClock();
+        var cursor = new FakeCursor();
+        var idle = new CursorIdle(cursor, clock);
+        using var timer = new CursorIdleTimer(idle);
+        Assert.False(idle.Watches);
+
+        idle.Configure(new CursorBehavior(false, 1));
+        timer.Follow();
+        clock.Now += TimeSpan.FromSeconds(2);
+
+        Assert.True(SpinWait.SpinUntil(() => cursor.Hidden, TimeSpan.FromSeconds(10)));
+    }
+
     private sealed class ManualClock : IClock
     {
         public DateTimeOffset Now { get; set; } = new(2026, 10, 15, 8, 0, 0, TimeSpan.Zero);
