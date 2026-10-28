@@ -34,6 +34,8 @@ dotnet tool restore
 
 Before opening a PR, run the checks CI runs: `pwsh -NoProfile -File scripts/check.ps1`, then `pwsh -NoProfile -File scripts/test.ps1`.
 
+The Daemon and CLI use the pipe `\\.\pipe\winland-<SessionId>` for their Windows session. Set `WINLAND_PIPE` to use a different name for both. The run script replaces Winland only in its own session. With `WINLAND_PIPE` set, it limits that to builds it started under `%LOCALAPPDATA%\winland-dev`.
+
 ## Git hooks
 
 The hooks are tracked in `scripts/hooks`, and git runs them from there. `pwsh scripts/dev.ps1` sets `core.hooksPath` to `scripts/hooks` once per clone. A checkout that still points `core.hooksPath` at `.git/hooks` is fixed by running it again.
@@ -57,7 +59,7 @@ Every lane except Mutation is a step in one Windows job, because each job pays i
 | Mutation | One job per mutation run, then a score gate. | Only when CI is dispatched by hand with **Release run** on. |
 
 - A test project that fails runs once more on the same build. If it passes the second time, `scripts/test.ps1` names the flaky tests in a `FLAKY:` line, and CI adds a warning and a job summary line. A flaky test is a bug. Fix it in its own pull request, usually by waiting for a condition instead of a fixed time.
-- The unit tests that open real windows are in one xunit collection (`DesktopCollection` in `tests/Winland.Infrastructure.Tests`) that runs alone. The ones a running Winland would disturb skip while its pipe `\\.\pipe\winland` exists, so run them with the daemon stopped.
+- The unit tests that open real windows are in one xunit collection (`DesktopCollection` in `tests/Winland.Infrastructure.Tests`) that runs alone. Stop the Daemon before running them, since it can adopt the windows they open.
 - Smoke tests run only when someone dispatches the `Smoke tests` workflow by hand. `scripts/smoke.ps1` runs them locally. It sets `WINLAND_SMOKE=1`, without which every smoke test skips itself.
 - The Workflows workflow runs zizmor and actionlint when `.github/` changes. PR Title checks the pull request title, and Branch Name checks the branch name as a reminder only.
 

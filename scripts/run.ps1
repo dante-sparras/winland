@@ -1,4 +1,4 @@
-# Builds this checkout and runs it as the Winland of this computer, in place of the one that is running.
+# Builds this checkout and runs it as the Winland of this session, in place of the one that is running.
 #   pwsh -NoProfile -File scripts/run.ps1                 build, stop the running winland, start the new build
 #   pwsh -NoProfile -File scripts/run.ps1 -Elevated       start it with administrator rights, which asks for one UAC approval
 #   pwsh -NoProfile -File scripts/run.ps1 -Stop           stop the running winland and start nothing
@@ -35,10 +35,11 @@ function Resolve-DotnetRoot {
     throw 'Could not find a .NET install to set DOTNET_ROOT.'
 }
 
-# Every winland on this computer is the one to replace, whatever build it is. With WINLAND_PIPE set this is a
+# Every winland in this session is the one to replace, whatever build it is. With WINLAND_PIPE set this is a
 # second copy on a pipe of its own, so only the builds this script started are touched.
 function Get-Winland {
-    $found = @(Get-CimInstance Win32_Process -Filter "Name = 'winland.exe'" -ErrorAction SilentlyContinue)
+    $session = (Get-Process -Id $PID).SessionId
+    $found = @(Get-CimInstance Win32_Process -Filter "Name = 'winland.exe' AND SessionId = $session" -ErrorAction SilentlyContinue)
     if ($env:WINLAND_PIPE) {
         $found = @($found | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($dev, [StringComparison]::OrdinalIgnoreCase) })
     }

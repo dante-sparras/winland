@@ -67,10 +67,10 @@ public static class PipeFrame
     /// One framed reply. Empty when the stream ends first. A frame longer than <see cref="ReplyLimit"/> throws
     /// <see cref="InvalidDataException"/>, and one the stream ends inside throws <see cref="EndOfStreamException"/>.
     /// </summary>
-    public static string ReadReply(Stream stream)
+    public static string ReadReply(Stream stream, CancellationToken cancel = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        if (ReadLineAsync(stream, ReplyLimit).GetAwaiter().GetResult() is not string first)
+        if (ReadLineAsync(stream, ReplyLimit, cancel).GetAwaiter().GetResult() is not string first)
             return "";
 
         if (first.Length <= 1
@@ -87,7 +87,7 @@ public static class PipeFrame
         var got = 0;
         while (got < length)
         {
-            var read = stream.Read(buffer, got, length - got);
+            var read = stream.ReadAsync(buffer.AsMemory(got, length - got), cancel).AsTask().GetAwaiter().GetResult();
             if (read == 0)
                 throw new EndOfStreamException("The reply was cut short.");
 

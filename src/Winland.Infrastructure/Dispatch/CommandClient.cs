@@ -1,45 +1,17 @@
 using System.IO.Pipes;
 using System.Text;
 
-namespace Winland.Application;
+namespace Winland.Infrastructure;
 
 public static class CommandClient
 {
     /// <param name="connected">Runs once the pipe is connected, before the command is sent.</param>
-    public static string Transact(string command, string? pipeName = null, int timeoutMs = 2000, Action<NamedPipeClientStream>? connected = null)
+    public static string Transact(string command, string? pipeName = null, int timeoutMs = 2000, Action<NamedPipeClientStream>? connected = null, int replyTimeoutMs = 10_000)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(command);
         using var pipe = new NamedPipeClientStream(
             ".",
-            pipeName ?? CommandProtocol.PipeName,
-            PipeDirection.InOut);
-
-        try
-        {
-            pipe.Connect(timeoutMs);
-        }
-        catch (TimeoutException)
-        {
-            throw new InvalidOperationException("Winland is not running.");
-        }
-
-        connected?.Invoke(pipe);
-        var outbound = Encoding.UTF8.GetBytes(command + "\n");
-        pipe.Write(outbound);
-        pipe.Flush();
-
-        // Read in blocks, not a call per byte. Nothing else reads this pipe.
-        using var buffered = new BufferedStream(pipe);
-        return ReadReply(buffered);
-    }
-
-    public static void Follow(string command, Action<string> onLine, string? pipeName = null, int timeoutMs = 2000, CancellationToken cancel = default)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(command);
-        ArgumentNullException.ThrowIfNull(onLine);
-        using var pipe = new NamedPipeClientStream(
-            ".",
-            pipeName ?? CommandProtocol.PipeName,
+            pipeName ?? PipeServer.DefaultName,
             PipeDirection.InOut,
             PipeOptions.Asynchronous);
 
@@ -52,6 +24,45 @@ public static class CommandClient
             throw new InvalidOperationException("Winland is not running.");
         }
 
+        PipeServer.VerifyServer(pipe);
+        connected?.Invoke(pipe);
+        using var timeout = new CancellationTokenSource(replyTimeoutMs);
+        try
+        {
+            var outbound = Encoding.UTF8.GetBytes(command + "\n");
+            pipe.WriteAsync(outbound, timeout.Token).AsTask().GetAwaiter().GetResult();
+            pipe.FlushAsync(timeout.Token).GetAwaiter().GetResult();
+
+            // Read in blocks, not a call per byte. Nothing else reads this pipe.
+            using var buffered = new BufferedStream(pipe);
+            return ReadReply(buffered, timeout.Token);
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+        {
+            throw new InvalidOperationException("Winland is not answering.");
+        }
+    }
+
+    public static void Follow(string command, Action<string> onLine, string? pipeName = null, int timeoutMs = 2000, CancellationToken cancel = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(command);
+        ArgumentNullException.ThrowIfNull(onLine);
+        using var pipe = new NamedPipeClientStream(
+            ".",
+            pipeName ?? PipeServer.DefaultName,
+            PipeDirection.InOut,
+            PipeOptions.Asynchronous);
+
+        try
+        {
+            pipe.Connect(timeoutMs);
+        }
+        catch (TimeoutException)
+        {
+            throw new InvalidOperationException("Winland is not running.");
+        }
+
+        PipeServer.VerifyServer(pipe);
         using var registration = cancel.Register(static state =>
         {
             var stream = (NamedPipeClientStream)state!;
@@ -78,11 +89,11 @@ public static class CommandClient
         }
     }
 
-    private static string ReadReply(Stream stream)
+    private static string ReadReply(Stream stream, CancellationToken cancel)
     {
         try
         {
-            return PipeFrame.ReadReply(stream);
+            return PipeFrame.ReadReply(stream, cancel);
         }
         catch (InvalidDataException)
         {
