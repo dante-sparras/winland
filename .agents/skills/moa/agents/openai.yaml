@@ -1,0 +1,5 @@
+interface:
+  display_name: "Mixture of Agents"
+  short_description: "Ask several agents, aggregate one answer"
+policy:
+  allow_implicit_invocation: false

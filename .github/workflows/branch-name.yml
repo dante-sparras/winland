@@ -1,0 +1,33 @@
+name: Branch Name
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+  branch-name:
+    name: branch-name
+    # A guide, not a merge gate: the ruleset doesn't require it. Fork branches are skipped.
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check branch name
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          types='feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert'
+          if [[ "$BRANCH" =~ ^($types)/[a-z0-9][a-z0-9._-]*$ ]]; then
+            echo "Branch \"$BRANCH\" follows <type>/<short-description>."
+            exit 0
+          fi
+          # Branches created by Dependabot, release-please, GitHub's Revert button, and coding agents.
+          if [[ "$BRANCH" == dependabot/* || "$BRANCH" == release-please--* || "$BRANCH" =~ ^revert-[0-9]+- \
+            || "$BRANCH" =~ ^(claude|codex|copilot|cursor|grok)/ ]]; then
+            echo "Branch \"$BRANCH\" is created by automation."
+            exit 0
+          fi
+          echo "::error::Branch \"$BRANCH\" must be named <type>/<short-description> in lowercase, such as fix/duplicate-orders. Allowed types: ${types//|/, }. Rename the branch and open a new PR; see the Branch name section of CONTRIBUTING.md."
+          exit 1

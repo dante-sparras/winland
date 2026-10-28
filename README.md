@@ -148,3 +148,11 @@ These talk to the running Winland.
 ## Credits
 
 Winland began from [Hyprland](https://github.com/hyprwm/Hyprland), and its default binds come from [Omarchy](https://github.com/basecamp/omarchy). Every option is documented in [docs/behavior.md](docs/behavior.md).
+
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or PR. The [development runbook](docs/development.md) covers prerequisites, first checkout, and commands.
+
+## License
+
+[MIT](LICENSE)

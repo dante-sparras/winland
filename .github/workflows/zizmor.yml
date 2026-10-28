@@ -1,0 +1,43 @@
+name: Workflows
+
+on:
+  pull_request:
+    paths:
+      - ".github/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/**"
+
+permissions:
+  contents: read
+
+jobs:
+  zizmor:
+    # Audits .github/ for unpinned actions, risky triggers, leaked credentials, and template injection.
+    # A finding that is safe on purpose gets a `# zizmor: ignore[<audit>]` comment explaining why.
+    name: zizmor
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
+        with:
+          # Report findings in the job log and on the PR diff; uploading to the Security tab needs code
+          # scanning, which private repos on a free plan don't have.
+          advanced-security: false
+          annotations: true
+
+  actionlint:
+    # Catches broken expressions, typos, and shell errors in .github/workflows/.
+    name: actionlint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
