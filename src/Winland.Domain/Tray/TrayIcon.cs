@@ -18,13 +18,13 @@ public sealed record TrayIcon(bool Shown, string Number)
     {
         List<TrayMenuItem> menu =
         [
-            new(TrayCommand.Reload, "Reload"),
-            new(TrayCommand.EditConfig, "Edit config"),
+            new(TrayCommand.Reload, "&Reload"),
+            new(TrayCommand.EditConfig, "&Edit config"),
         ];
         if (logExists)
-            menu.Add(new(TrayCommand.OpenLog, "Open log"));
+            menu.Add(new(TrayCommand.OpenLog, "Open &log"));
 
-        menu.Add(new(TrayCommand.Quit, "Quit"));
+        menu.Add(new(TrayCommand.Quit, "&Quit"));
         return menu;
     }
 
@@ -52,7 +52,7 @@ public sealed record TrayIcon(bool Shown, string Number)
     }
 }
 
-/// <summary>A menu row: the command it runs and the words the menu shows.</summary>
+/// <summary>A menu row: the command it runs and the words the menu shows. The letter after <c>&amp;</c> is its access key.</summary>
 public readonly record struct TrayMenuItem(TrayCommand Command, string Label);
 
 /// <summary>One command on the notification-area icon's menu.</summary>
