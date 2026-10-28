@@ -253,8 +253,8 @@ public sealed partial class KeyboardHook : IDisposable
 
             NoteHeld(info.vkCode, up);
 
-            if (!up && !info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_INJECTED))
-                InputClock.NoteClickOrKey(info.time);
+            if (!up)
+                InputClock.NoteKey(info.time, vk, info.flags.HasFlag(KBDLLHOOKSTRUCT_FLAGS.LLKHF_INJECTED));
 
             // Escape gives up a click to kill, and goes no further.
             if (vk == EscapeKey && !up && _core.ClickKillArmed)

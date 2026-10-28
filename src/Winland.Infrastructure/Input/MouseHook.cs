@@ -122,7 +122,7 @@ public sealed class MouseHook : IDisposable
                 if (!up && source == PointerSource.Touch)
                     SessionEffects.NoteTouch();
 
-                if (!up && (info.flags & 0x1) == 0)
+                if (!up)
                     InputClock.NoteClickOrKey(info.time, ClickedWindow(info.pt));
 
                 return OnButton(button, up, position) ? new LRESULT(1) : Next(code, wParam, lParam);
