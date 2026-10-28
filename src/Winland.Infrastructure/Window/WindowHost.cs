@@ -186,7 +186,7 @@ public sealed class WindowHost : IDisposable
                 }
                 catch (Exception exception) when (exception is not OutOfMemoryException)
                 {
-                    Console.Error.WriteLine(exception.Message);
+                    Console.Error.WriteLine(exception);
                 }
             }),
             path => _loop.Post(() =>
@@ -197,7 +197,7 @@ public sealed class WindowHost : IDisposable
                 }
                 catch (Exception exception) when (exception is not OutOfMemoryException)
                 {
-                    Console.Error.WriteLine(exception.Message);
+                    Console.Error.WriteLine(exception);
                 }
             }),
             () => LogExists?.Invoke() ?? false);

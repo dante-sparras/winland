@@ -1,5 +1,6 @@
 namespace Winland.Infrastructure.Tests;
 
+[Collection("Console")]
 public class MotionPlayerTests
 {
     private static readonly WindowId Window = new(7);
@@ -21,6 +22,37 @@ public class MotionPlayerTests
         Assert.False(player.Tick());
 
         Assert.Equal(["move 0", "move 50", "place 100"], target.Calls);
+    }
+
+    [Fact]
+    public void RepeatedFrameFailuresAreLoggedOnceAndOtherWindowsStillMove()
+    {
+        var target = new RecordingTarget();
+        var clock = new Clock();
+        using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+        player.Begin(new Motion(Window, Goal) { From = Start, Move = Linear });
+        player.Begin(new Motion(new WindowId(8), Goal) { From = Start, Move = Linear });
+        target.Broken = Window;
+        var stderr = Console.Error;
+        using var log = new StringWriter();
+        Console.SetError(log);
+        try
+        {
+            for (var frame = 1; frame <= 50; frame++)
+            {
+                clock.Now = frame;
+                player.Tick();
+            }
+
+            Assert.Contains("System.InvalidOperationException: frame failed", log.ToString(), StringComparison.Ordinal);
+            Assert.Contains("RecordingTarget.Move", log.ToString(), StringComparison.Ordinal);
+            Assert.Equal(2, log.ToString().Split("frame failed", StringSplitOptions.None).Length);
+            Assert.Contains("move 50", target.Calls);
+        }
+        finally
+        {
+            Console.SetError(stderr);
+        }
     }
 
     [Fact]
@@ -537,6 +569,8 @@ public class MotionPlayerTests
 
         public WindowId? Frozen { get; init; }
 
+        public WindowId? Broken { get; set; }
+
         public bool Hung(WindowId window) => window == Frozen;
 
         public List<Rectangle> Goals { get; } = [];
@@ -545,6 +579,9 @@ public class MotionPlayerTests
 
         public void Move(WindowId window, Rectangle bounds, Rectangle goal)
         {
+            if (window == Broken)
+                throw new InvalidOperationException("frame failed");
+
             Goals.Add(goal);
             Add($"move {bounds.X}");
         }

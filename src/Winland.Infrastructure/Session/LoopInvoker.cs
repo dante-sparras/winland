@@ -34,7 +34,7 @@ internal sealed class LoopInvoker
             return;
         }
 
-        var once = new Once(action);
+        var once = new Once(action, posted: true);
         _queue.Enqueue(once);
         if (!PInvoke.PostThreadMessage(thread, Message, default, default))
             once.Run();
@@ -80,7 +80,7 @@ internal sealed class LoopInvoker
         once.Rethrow();
     }
 
-    private sealed class Once(Action action)
+    private sealed class Once(Action action, bool posted = false)
     {
         private readonly TaskCompletionSource _done = new();
         private int _claimed;
@@ -98,7 +98,10 @@ internal sealed class LoopInvoker
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                _error = exception;
+                if (posted)
+                    Console.Error.WriteLine(exception);
+                else
+                    _error = exception;
             }
             finally
             {

@@ -409,6 +409,7 @@ public sealed partial class WindowAdapter : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
+            Console.Error.WriteLine(exception);
         }
     }
 

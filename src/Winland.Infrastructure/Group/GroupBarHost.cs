@@ -209,7 +209,7 @@ internal static class GroupBarHost
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                Console.Error.WriteLine(exception.Message);
+                Console.Error.WriteLine(exception);
             }
         }
 
@@ -300,7 +300,16 @@ internal static class GroupBarHost
             case MiddleUpMessage:
                 var closed = bar.Spec.TabAt(x, y);
                 if (bar.Spec.Style.MiddleClickClose && closed >= 0 && bar.Pressed == (x, y))
-                    Close?.Invoke(bar.Spec.Tabs[closed].Window);
+                {
+                    try
+                    {
+                        Close?.Invoke(bar.Spec.Tabs[closed].Window);
+                    }
+                    catch (Exception exception) when (exception is not OutOfMemoryException)
+                    {
+                        Console.Error.WriteLine(exception);
+                    }
+                }
                 bar.Pressed = null;
                 return default;
             case WheelMessage when bar.Spec.Style.Scrolling:
@@ -311,7 +320,7 @@ internal static class GroupBarHost
                 }
                 catch (Exception exception) when (exception is not OutOfMemoryException)
                 {
-                    Console.Error.WriteLine(exception.Message);
+                    Console.Error.WriteLine(exception);
                 }
 
                 return default;
@@ -328,7 +337,7 @@ internal static class GroupBarHost
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            Console.Error.WriteLine(exception.Message);
+            Console.Error.WriteLine(exception);
         }
     }
 

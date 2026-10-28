@@ -176,7 +176,7 @@ public sealed partial class WindowManager
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                _ = exception;
+                Console.Error.WriteLine(exception);
             }
         }
 
@@ -310,7 +310,7 @@ public sealed partial class WindowManager
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                _ = exception;
+                Console.Error.WriteLine(exception);
             }
         }
     }

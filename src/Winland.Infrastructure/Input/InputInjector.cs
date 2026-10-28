@@ -42,7 +42,7 @@ internal static class InputInjector
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                Console.Error.WriteLine(exception.Message);
+                Console.Error.WriteLine(exception);
             }
         }
     }
