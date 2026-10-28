@@ -6,20 +6,15 @@ namespace Winland.Domain;
 /// </summary>
 /// <remarks>
 /// A channel always ends exactly on its goal. A motion that replaces a running one starts from the value
-/// shown at that moment. Each change to a window's motion raises its generation, so a frame computed
-/// before the change can be recognised and dropped.
+/// shown at that moment.
 /// </remarks>
 public sealed class Animator
 {
     private readonly Dictionary<WindowId, Entry> _entries = [];
-    private long _generation;
 
     public int Count => _entries.Count;
 
     public bool Running(WindowId window) => _entries.ContainsKey(window);
-
-    /// <summary>The current generation of the window's motion, or 0 when it has none.</summary>
-    public long Generation(WindowId window) => _entries.TryGetValue(window, out var entry) ? entry.Generation : 0;
 
     public void Start(Motion motion, double now)
     {
@@ -30,7 +25,6 @@ public sealed class Animator
             _entries.Add(motion.Window, entry);
         }
 
-        entry.Generation = ++_generation;
         if (motion.Move is Timing move)
         {
             var old = motion.Warp ? null : entry.Geometry;
@@ -117,7 +111,6 @@ public sealed class Animator
         entry.Geometry = null;
         entry.Goal = bounds;
         entry.Rest = bounds;
-        entry.Generation = ++_generation;
         return false;
     }
 
@@ -212,7 +205,7 @@ public sealed class Animator
         if (entry.Border is Track color)
             border = final || color.Finished(now) ? entry.BorderGoal : OkLab.To(color.Value(now));
 
-        return new Frame(window, entry.Generation) { Bounds = bounds, Goal = goal, Content = goal is null ? null : entry.Rest, Alpha = alpha, Border = border };
+        return new Frame(window) { Bounds = bounds, Goal = goal, Content = goal is null ? null : entry.Rest, Alpha = alpha, Border = border };
     }
 
     private static bool Running(Track? track, double now) => track is not null && !track.Finished(now);
@@ -230,8 +223,6 @@ public sealed class Animator
 
     private sealed class Entry
     {
-        public long Generation { get; set; }
-
         public Track? Geometry { get; set; }
 
         public Rectangle Goal { get; set; }

@@ -2,10 +2,12 @@ namespace Winland.Domain;
 
 /// <summary>
 /// Held keys, caught keys, and inhibit for one input thread.
-/// Keyboard and pointer events for that thread share one session.
+/// Keyboard and pointer events for that thread share one session. The hook decides each event on it and the core
+/// decides the same event again on its worker, so every change to the held state takes the session's lock.
 /// </summary>
 public sealed partial class BindSession
 {
+    private readonly Lock _gate = new();
     private readonly HashSet<string> _downKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _downButtons = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _caughtKeys = new(StringComparer.OrdinalIgnoreCase);
@@ -43,11 +45,23 @@ public sealed partial class BindSession
 
     public void Inhibit(bool inhibited) => _inhibited = inhibited;
 
-    internal int ScanCodeOf(string key) => _scanCodes.TryGetValue(key, out var code) ? code : 0;
+    internal int ScanCodeOf(string key)
+    {
+        lock (_gate)
+            return _scanCodes.TryGetValue(key, out var code) ? code : 0;
+    }
 
     /// <summary>The modifiers <paramref name="key"/> went down under, or none when it is not held.</summary>
-    public Modifier PressedUnderOf(string key) => _pressedUnder.TryGetValue(key, out var under) ? under : default;
+    public Modifier PressedUnderOf(string key)
+    {
+        lock (_gate)
+            return _pressedUnder.TryGetValue(key, out var under) ? under : default;
+    }
 
     /// <summary>Forgets that <paramref name="key"/> was caught, when the hook gives its press back to the OS.</summary>
-    public void ForgetCaught(string key) => _caughtKeys.Remove(key);
+    public void ForgetCaught(string key)
+    {
+        lock (_gate)
+            _caughtKeys.Remove(key);
+    }
 }

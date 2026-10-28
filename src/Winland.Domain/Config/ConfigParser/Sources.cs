@@ -54,7 +54,9 @@ public static partial class ConfigParser
 
             var depth = _categories.Count;
             var previous = _source;
+            var floor = _floor;
             _source = path;
+            _floor = depth;
             try
             {
                 ParseLines(text);
@@ -62,6 +64,7 @@ public static partial class ConfigParser
             finally
             {
                 _source = previous;
+                _floor = floor;
                 _openSources.Remove(key);
             }
 

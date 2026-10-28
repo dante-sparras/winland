@@ -99,7 +99,7 @@ public sealed partial class WindowManager
             return kept ? View([]) : View([], hide: [appeared.Window]);
         }
 
-        var followed = processId > 0 ? _follow.Take(processId, Clock()) : [];
+        var followed = _follow.TryTake(processId, Clock(), out var rules) ? rules : [];
         var traits = appeared.Traits.WithInitialNames();
         var decision = WindowRuleParser.Decide(traits, JoinRules(_config.WindowRules, followed));
         if (!decision.Adopt)
@@ -124,8 +124,7 @@ public sealed partial class WindowManager
         // still wins, and a window that comes back after a restart keeps its own.
         if (restored is null && processId > 0)
         {
-            var started = _initialWorkspaces.Take(processId, Clock());
-            if (rule.Id is null && started is WorkspaceId origin && origin != current)
+            if (_initialWorkspaces.TryTake(processId, Clock(), out var origin) && rule.Id is null && origin != current)
                 rule = new WorkspaceAddress.Rule(origin, Silent: true);
         }
         var target = restored?.Workspace ?? rule.Id ?? current;

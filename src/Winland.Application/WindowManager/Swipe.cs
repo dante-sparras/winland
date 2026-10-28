@@ -50,6 +50,11 @@ public sealed partial class WindowManager
         swipe.Delta = delta;
         swipe.AverageSpeed = ((swipe.AverageSpeed * swipe.SpeedPoints) + Math.Abs(step)) / (swipe.SpeedPoints + steps);
         swipe.SpeedPoints += steps;
+        if (SwipeOvertaken(swipe))
+        {
+            _workspaceSwipe = null;
+            return ReturnSwipe(swipe);
+        }
 
         var (left, right) = Neighbours(swipe.Monitor);
         var begin = swipe.Begin;
@@ -79,6 +84,10 @@ public sealed partial class WindowManager
         return PreviewSwipe(swipe, target);
     }
 
+    // A swipe whose Workspace stopped being shown, by a bind or a Monitor change, or that a lock caught, goes back.
+    private bool SwipeOvertaken(WorkspaceSwipe swipe) =>
+        _workspaces.Shown.ActiveOn(swipe.Monitor) != swipe.Begin || SessionLock?.Locked == true || _keyState.Inhibited;
+
     private Outcome FinishWorkspaceSwipe(WorkspaceSwipe swipe)
     {
         var distance = Math.Max(1, _config.Swipe.Distance);
@@ -90,6 +99,8 @@ public sealed partial class WindowManager
             right = Resolve("r+1", swipe.Monitor);
 
         _workspaceSwipe = null;
+        if (SwipeOvertaken(swipe))
+            return ReturnSwipe(swipe);
 
         var magnitude = Math.Abs(swipe.Delta);
         var slow = swipe.AverageSpeed < MinSpeedToForce;

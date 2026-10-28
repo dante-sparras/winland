@@ -341,6 +341,26 @@ public class AppInstallTests
         Assert.Equal(@"C:\Tools", Text(RegistryRoot.User, InstallLocations.PathValue, InstallLocations.UserPathKey));
     }
 
+    [Fact]
+    public void AUserInstallIsRefusedWhileTheMachineInstallIsThere()
+    {
+        install.InstallMachine(Source, @"DESKTOP\dante", "0.1.0");
+
+        Assert.Throws<InvalidOperationException>(() => install.InstallForUser(Source, "0.1.0"));
+        Assert.False(files.Exists(Path.Combine(User, "winland.exe")));
+    }
+
+    [Fact]
+    public void ASettingsRecordThatFailsStillLetsUninstallFinish()
+    {
+        var failing = new AppInstall(Layout(), tasks, files, registry, shortcuts, session, new WatchingRestore(() => throw new IOException("bad record")));
+        install.InstallMachine(Source, @"DESKTOP\dante", "0.1.0");
+
+        Assert.Throws<InvalidOperationException>(() => failing.Uninstall(purge: false, machine: true));
+        Assert.False(files.DirectoryExists(Machine));
+        Assert.False(tasks.Contains("Winland"));
+    }
+
     private sealed class WatchingRestore(Action onRestore) : IDesktopRestore
     {
         public void Restore() => onRestore();

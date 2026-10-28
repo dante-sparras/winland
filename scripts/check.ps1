@@ -174,19 +174,10 @@ try {
 
     if ((Test-MarkdownLinks $root $tracked) -gt 0) { $failed = 1 }
 
-    $solutions = @()
-    $solutions += @(Get-ChildItem -Path $root -Filter *.slnx -File -ErrorAction SilentlyContinue)
-    if ($solutions.Count -eq 0) {
-        $solutions += @(Get-ChildItem -Path $root -Filter *.sln -File -ErrorAction SilentlyContinue)
-    }
-    if ($solutions.Count -eq 0) {
-        Write-Output 'No solution to build.'
-    }
-    foreach ($solution in $solutions) {
-        Write-Output "dotnet build $($solution.FullName)"
-        dotnet build $solution.FullName --configuration Release --nologo
-        if ($LASTEXITCODE -ne 0) { $failed = 1 }
-    }
+    $solution = Join-Path $root 'Winland.slnx'
+    Write-Output "dotnet build $solution"
+    dotnet build $solution --configuration Release --nologo
+    if ($LASTEXITCODE -ne 0) { $failed = 1 }
 
     # The tests run from the checked commit's own scripts/test.ps1. A failed lint skips them.
     if ($Test -and $failed -eq 0) {

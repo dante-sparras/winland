@@ -137,21 +137,6 @@ public class AnimatorTests
     }
 
     [Fact]
-    public void EachChangeRaisesTheGeneration()
-    {
-        var animator = new Animator();
-        animator.Start(new Motion(Window, new Rectangle(100, 0, 100, 100)) { Move = Linear }, now: 0);
-        var first = animator.Generation(Window);
-
-        animator.Start(new Motion(Window, new Rectangle(0, 0, 100, 100)) { Move = Linear }, now: 10);
-        var second = animator.Generation(Window);
-        Assert.False(animator.Settle(Window, new Rectangle(5, 5, 5, 5)));
-
-        Assert.True(second > first);
-        Assert.True(animator.Generation(Window) > second);
-    }
-
-    [Fact]
     public void APlacementOnTheSameGoalLeavesTheMotionRunning()
     {
         var animator = new Animator();

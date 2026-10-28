@@ -83,12 +83,12 @@ internal sealed partial class DwindleLayout : IMouseDragHost, IDragOwner
             _root = node;
             _splitTarget = id;
             Refit();
-            return Placements();
+            return FloatIfShort(id, node);
         }
 
         Split(target, node, pointer);
         _splitTarget = id;
-        return Placements();
+        return FloatIfShort(id, node);
     }
 
     IReadOnlyList<Placement> IMouseDragHost.ShowFloating(ClientId id) => WithFloating(id);

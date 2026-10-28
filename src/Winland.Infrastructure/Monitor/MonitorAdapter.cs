@@ -46,7 +46,7 @@ public static class MonitorAdapter
 
         var dpi = PInvoke.GetDpiForMonitor(monitor, MONITOR_DPI_TYPE.MDT_EFFECTIVE_DPI, out var dpiX, out _);
         var scale = dpi.Succeeded && dpiX > 0 ? dpiX / 96.0 : 1;
-        panels.TryGetValue(name, out var panel);
+        var paneled = panels.TryGetValue(name, out var panel);
         var bounds = From(info.monitorInfo.rcMonitor);
         described = new Winland.Domain.Monitor(
             name,
@@ -62,7 +62,7 @@ public static class MonitorAdapter
             Model: panel.Model ?? "",
             Serial: panel.Serial ?? "",
             RefreshRate: panel.RefreshRate);
-        if (Win32DisplayColorControl.TryDescribe(name, out var color))
+        if (paneled && Win32DisplayColorControl.TryDescribe(name, panel.Adapter, panel.Target, out var color))
         {
             described = described with
             {
@@ -83,7 +83,8 @@ public static class MonitorAdapter
         return true;
     }
 
-    private readonly record struct Panel(string Description, string Make, string Model, string Serial, double RefreshRate);
+    // Adapter and Target name the panel to display config, which reads its color switches.
+    private readonly record struct Panel(string Description, string Make, string Model, string Serial, double RefreshRate, LUID Adapter, uint Target);
 
     private static Dictionary<string, Panel> Panels()
     {
@@ -100,52 +101,17 @@ public static class MonitorAdapter
             var target = ReadTarget(path);
             var parsed = Winland.Domain.Edid.Parse(MonitorEdid.Read(target.DevicePath) ?? []);
             var make = parsed.Make.Length > 0 ? parsed.Make : target.Make;
-            panels[source] = new Panel(target.Description, make, parsed.Model, parsed.Serial, Rate(path.targetInfo.refreshRate));
+            panels[source] = new Panel(
+                target.Description,
+                make,
+                parsed.Model,
+                parsed.Serial,
+                Rate(path.targetInfo.refreshRate),
+                path.targetInfo.adapterId,
+                path.targetInfo.id);
         }
 
         return panels;
-    }
-
-    /// <summary>The display-config source of a display, by its device name.</summary>
-    internal static bool TrySource(string device, out LUID adapter, out uint source)
-    {
-        adapter = default;
-        source = 0;
-        if (!TryPaths(out var paths))
-            return false;
-
-        foreach (var path in paths)
-        {
-            if (!string.Equals(SourceName(path), device, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            adapter = path.sourceInfo.adapterId;
-            source = path.sourceInfo.id;
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>The display-config target of a display, the panel its source shows on, by its device name.</summary>
-    internal static bool TryTarget(string device, out LUID adapter, out uint target)
-    {
-        adapter = default;
-        target = 0;
-        if (!TryPaths(out var paths))
-            return false;
-
-        foreach (var path in paths)
-        {
-            if (!string.Equals(SourceName(path), device, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            adapter = path.targetInfo.adapterId;
-            target = path.targetInfo.id;
-            return true;
-        }
-
-        return false;
     }
 
     private static bool TryPaths(out DISPLAYCONFIG_PATH_INFO[] paths) => TryConfig(out paths, out _);

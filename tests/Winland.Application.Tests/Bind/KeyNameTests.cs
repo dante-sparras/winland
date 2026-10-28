@@ -7,11 +7,11 @@ public class KeyNameTests
     {
         var german = German();
 
-        Assert.Equal("adiaeresis", KeyNames.Name(0xDE, 0x28, false, german, default));
-        Assert.Equal("odiaeresis", KeyNames.Name(0xBA, 0x27, false, german, default));
-        Assert.Equal("udiaeresis", KeyNames.Name(0xDB, 0x1A, false, german, default));
-        Assert.Equal("ssharp", KeyNames.Name(0xBD, 0x0C, false, german, default));
-        Assert.Equal("Q", KeyNames.Name(0x51, 0x10, false, german, default));
+        Assert.Equal("adiaeresis", KeyNames.Name(0xDE, 0x28, false, german));
+        Assert.Equal("odiaeresis", KeyNames.Name(0xBA, 0x27, false, german));
+        Assert.Equal("udiaeresis", KeyNames.Name(0xDB, 0x1A, false, german));
+        Assert.Equal("ssharp", KeyNames.Name(0xBD, 0x0C, false, german));
+        Assert.Equal("Q", KeyNames.Name(0x51, 0x10, false, german));
     }
 
     [Theory]
@@ -67,11 +67,11 @@ public class KeyNameTests
     {
         var layout = KeyLayout.UnitedStates;
 
-        Assert.Equal("Q", KeyNames.Name(0x51, 0x10, false, layout, default));
-        Assert.Equal("slash", KeyNames.Name(0xBF, 0x35, false, layout, default));
-        Assert.Equal("period", KeyNames.Name(0xBE, 0x34, false, layout, default));
-        Assert.Equal("comma", KeyNames.Name(0xBC, 0x33, false, layout, default));
-        Assert.Equal("bracketleft", KeyNames.Name(0xDB, 0x1A, false, layout, default));
+        Assert.Equal("Q", KeyNames.Name(0x51, 0x10, false, layout));
+        Assert.Equal("slash", KeyNames.Name(0xBF, 0x35, false, layout));
+        Assert.Equal("period", KeyNames.Name(0xBE, 0x34, false, layout));
+        Assert.Equal("comma", KeyNames.Name(0xBC, 0x33, false, layout));
+        Assert.Equal("bracketleft", KeyNames.Name(0xDB, 0x1A, false, layout));
         Assert.Equal("Q", KeyNames.Resolve("Q", layout));
         Assert.Equal("slash", KeyNames.Resolve("slash", layout));
         Assert.Equal("bracketleft", KeyNames.Resolve("bracketleft", layout));
@@ -98,8 +98,8 @@ public class KeyNameTests
         });
 
         Assert.Equal("slash", KeyNames.Resolve("slash", layout));
-        Assert.Equal("numbersign", KeyNames.Name(0xBF, 0x35, false, layout, default));
-        Assert.Equal("slash", KeyNames.Name(0xBD, 0x0C, false, layout, default));
+        Assert.Equal("numbersign", KeyNames.Name(0xBF, 0x35, false, layout));
+        Assert.Equal("slash", KeyNames.Name(0xBD, 0x0C, false, layout));
     }
 
     [Fact]
@@ -107,18 +107,8 @@ public class KeyNameTests
     {
         var german = German();
 
-        Assert.Equal("equal", KeyNames.Name(0xBB, 0x0D, false, german, default));
-        Assert.Equal("grave", KeyNames.Name(0xC0, 0x29, false, german, default));
-    }
-
-    [Fact]
-    public void LatchedShiftDoesNotChangeTheUnshiftedName()
-    {
-        var shifted = new KeyModifierState(Shift: true, Control: false, Alt: false, Super: false);
-
-        Assert.Equal("Q", KeyNames.Name(0x51, 0x10, false, KeyLayout.UnitedStates, shifted));
-        Assert.Equal("1", KeyNames.Name(0x31, 0x02, false, KeyLayout.UnitedStates, shifted));
-        Assert.Equal("adiaeresis", KeyNames.Name(0xDE, 0x28, false, German(), shifted));
+        Assert.Equal("equal", KeyNames.Name(0xBB, 0x0D, false, german));
+        Assert.Equal("grave", KeyNames.Name(0xC0, 0x29, false, german));
     }
 
     [Fact]
@@ -126,17 +116,17 @@ public class KeyNameTests
     {
         var german = German();
 
-        Assert.Equal("", KeyNames.Name(0xA2, 0x21D, false, german, default));
-        Assert.Equal("", KeyNames.Name(0xA2, 0x1D, true, german, default));
-        Assert.Equal("Control_L", KeyNames.Name(0xA2, 0x1D, false, german, default));
-        Assert.Equal("Control_R", KeyNames.Name(0xA3, 0x1D, true, german, default));
+        Assert.Equal("", KeyNames.Name(0xA2, 0x21D, false, german));
+        Assert.Equal("", KeyNames.Name(0xA2, 0x1D, true, german));
+        Assert.Equal("Control_L", KeyNames.Name(0xA2, 0x1D, false, german));
+        Assert.Equal("Control_R", KeyNames.Name(0xA3, 0x1D, true, german));
     }
 
     [Fact]
     public void RightAltIsLevel3ShiftOnlyWhenTheLayoutHasAltGr()
     {
-        Assert.Equal("ISO_Level3_Shift", KeyNames.Name(0xA5, 0x38, true, German(), default));
-        Assert.Equal("Alt_R", KeyNames.Name(0xA5, 0x38, true, KeyLayout.UnitedStates, default));
+        Assert.Equal("ISO_Level3_Shift", KeyNames.Name(0xA5, 0x38, true, German()));
+        Assert.Equal("Alt_R", KeyNames.Name(0xA5, 0x38, true, KeyLayout.UnitedStates));
     }
 
     [Fact]
@@ -146,8 +136,8 @@ public class KeyNameTests
         var core = Load("bind = CTRL ALT, Q, killactive\n", german);
         Appear(core);
 
-        Press(core, KeyNames.Name(0xA2, 0x21D, false, german, default));
-        Press(core, KeyNames.Name(0xA5, 0x38, true, german, default));
+        Press(core, KeyNames.Name(0xA2, 0x21D, false, german));
+        Press(core, KeyNames.Name(0xA5, 0x38, true, german));
 
         AssertPassed(Press(core, "Q"));
     }
@@ -168,8 +158,8 @@ public class KeyNameTests
     {
         Assert.True(KeyNames.PassesThrough(0xE5));
         Assert.True(KeyNames.PassesThrough(0xE7));
-        Assert.Equal("", KeyNames.Name(0xE5, 0, false, KeyLayout.UnitedStates, default));
-        Assert.Equal("", KeyNames.Name(0xE7, 0, false, KeyLayout.UnitedStates, default));
+        Assert.Equal("", KeyNames.Name(0xE5, 0, false, KeyLayout.UnitedStates));
+        Assert.Equal("", KeyNames.Name(0xE7, 0, false, KeyLayout.UnitedStates));
         Assert.False(KeyNames.PassesThrough(0x51));
     }
 
@@ -293,7 +283,7 @@ public class KeyNameTests
         Appear(core);
         Press(core, "Super_L");
 
-        var name = KeyNames.Name(0xBA, 0x27, false, german, default);
+        var name = KeyNames.Name(0xBA, 0x27, false, german);
         AssertRan(Press(core, name));
     }
 

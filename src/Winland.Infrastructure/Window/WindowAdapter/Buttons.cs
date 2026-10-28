@@ -16,8 +16,14 @@ public sealed partial class WindowAdapter
         var hwnd = new HWND(handle);
         // Put back without activating it, so Win+D or a game that minimizes itself when it loses focus does not
         // take the focus as each window comes back.
-        if (_core.Manages(new WindowId(handle)) && PInvoke.IsIconic(hwnd))
-            _ = PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
+        // A hung program is posted the command, so it does not hold up the thread that hears every window event.
+        var window = new WindowId(handle);
+        if (_core.Manages(window) && PInvoke.IsIconic(hwnd))
+        {
+            _ = _desktop.Hung(window)
+                ? PInvoke.ShowWindowAsync(hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE)
+                : PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
+        }
     }
 
     private void AdoptShown(HWND hwnd, WindowId window)
@@ -52,7 +58,7 @@ public sealed partial class WindowAdapter
 
         var hwnd = new HWND(handle);
         if (PInvoke.IsZoomed(hwnd))
-            _ = PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_RESTORE);
+            _ = _desktop.Hung(window) ? PInvoke.ShowWindowAsync(hwnd, SHOW_WINDOW_CMD.SW_RESTORE) : PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_RESTORE);
 
         // A window that maximizes itself again just after Winland restored it, with no click or key from the user,
         // would flip its maximize mode back and forth with every round. It is only put back where it was.

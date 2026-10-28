@@ -48,6 +48,7 @@ public sealed partial class WindowManager
         var show = new List<WindowId>();
         var hide = new List<WindowId>();
         var focused = FocusedId();
+        var window = _focus.Focused;
         foreach (var workspace in _restoredShown)
         {
             if (_workspaces.Find(workspace) is null || _workspaces.Shown.IsShown(workspace))
@@ -59,7 +60,11 @@ public sealed partial class WindowManager
             hide.AddRange(switched.Hide);
         }
 
+        // Each switch gives the focus to the Workspace's remembered window, which after a restart is none, so the
+        // window that had the focus takes it back.
         Focus(focused);
+        if (window is WindowId kept && WorkspaceContaining(kept) is { } home && _workspaces.Shown.IsShown(home.Id))
+            _focus.Take(kept, home);
         _restoredShown.Clear();
         foreach (var desk in _workspaces)
         {

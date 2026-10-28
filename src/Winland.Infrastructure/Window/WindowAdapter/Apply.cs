@@ -122,18 +122,22 @@ public sealed partial class WindowAdapter : IDisposable
             if (!windows.TryGetValue(placement.Client, out var window))
                 continue;
 
-            // Outcomes are applied on several threads. One admitted later may have placed this window already.
-            if (_order.Superseded(outcome, window))
-                continue;
+            // Outcomes are applied on several threads. One admitted later may have placed this window already. The
+            // check and the placement hold the window's lock together, so a newer one cannot place in between.
+            lock (_motions.For(window))
+            {
+                if (_order.Superseded(outcome, window))
+                    continue;
 
-            var fills = borderless.Contains(window);
-            if (!(fills && _ownFullscreen.ContainsKey(window)))
-                _borderless.Apply(window, fills);
-            // A step of a drag moves the dragged window at once, and a window the drag moves out of its way animates.
-            if (outcome.Live && !motions.ContainsKey(window))
-                PlaceLive(window, placement.Bounds, fills, motions);
-            else
-                PlaceMoving(window, placement.Bounds, fills, motions);
+                var fills = borderless.Contains(window);
+                if (!(fills && _ownFullscreen.ContainsKey(window)))
+                    _borderless.Apply(window, fills);
+                // A step of a drag moves the dragged window at once, and a window the drag moves out of its way animates.
+                if (outcome.Live && !motions.ContainsKey(window))
+                    PlaceLive(window, placement.Bounds, fills, motions);
+                else
+                    PlaceMoving(window, placement.Bounds, fills, motions);
+            }
         }
 
         foreach (var closing in outcome.Closes)
@@ -288,7 +292,8 @@ public sealed partial class WindowAdapter : IDisposable
     private void ShowConcealed(WindowId window)
     {
         // The show this causes comes back as a window event, which needs nothing read again: Winland knows the window.
-        if (_concealed.TryRemove(window, out _))
+        // A window that already showed itself raises no event, so it is not marked, and its next show is read.
+        if (_concealed.TryRemove(window, out _) && !_desktop.Shown(window))
             _revealed[window] = 0;
         ShowOrPost(window, _desktop.Minimized(window) ? ShowAs.ShowMinimized : ShowAs.Show);
     }

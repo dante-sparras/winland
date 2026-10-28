@@ -99,18 +99,25 @@ sealed class RecoveryStore
         }
     }
 
-    /// <summary>Writes the last snapshot of a clean exit, and nothing after it.</summary>
+    /// <summary>
+    /// Writes the last snapshot of a clean exit, and nothing after it. A run that quits before it was armed, before
+    /// it laid anything out, leaves the file of the run before it alone.
+    /// </summary>
     public void Keep(RecoverySnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         var json = snapshot.ToJson();
         lock (_gate)
         {
+            var armed = _armed;
             if (_closed)
                 return;
 
             _closed = true;
             _armed = false;
+            if (!armed)
+                return;
+
             try
             {
                 WriteAtomic(json);

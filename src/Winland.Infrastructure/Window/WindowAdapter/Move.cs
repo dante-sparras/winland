@@ -135,7 +135,6 @@ public sealed partial class WindowAdapter
     {
         nuint hit = 0;
         var packed = (nint)(((cursor.Y & 0xFFFF) << 16) | (cursor.X & 0xFFFF));
-        Marshal.SetLastPInvokeError(0);
         var sent = PInvoke.SendMessageTimeout(
             hwnd,
             PInvoke.WM_NCHITTEST,
@@ -144,6 +143,6 @@ public sealed partial class WindowAdapter
             SEND_MESSAGE_TIMEOUT_FLAGS.SMTO_ABORTIFHUNG | SEND_MESSAGE_TIMEOUT_FLAGS.SMTO_BLOCK | SEND_MESSAGE_TIMEOUT_FLAGS.SMTO_ERRORONEXIT,
             HitTestTimeoutMs,
             &hit);
-        return SizingGrab.Classify(sent == 0 && Marshal.GetLastPInvokeError() != 0 ? null : (int)hit);
+        return SizingGrab.Classify(sent == 0 ? null : (int)hit);
     }
 }

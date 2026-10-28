@@ -54,9 +54,10 @@ function Get-TweakArguments([bool]$PrecisionTouchpad) {
     return $arguments
 }
 
+# The channel is always named, so the stable one-liner also takes an install on dev back to stable.
 function Get-UpdateArguments([string]$Channel) {
     if ($Channel -eq 'dev') { return @('update', '--channel', 'dev') }
-    return @('update')
+    return @('update', '--channel', 'stable')
 }
 
 function Get-FailureMessage([string[]]$Arguments, [int]$ExitCode, [string[]]$Output) {

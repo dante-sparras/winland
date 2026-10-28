@@ -3,11 +3,10 @@ namespace Winland.Application;
 /// <summary>Switching Workspaces, moving windows between them, and the history <c>workspace previous</c> reads.</summary>
 public sealed partial class WindowManager
 {
-    // A floating Client keeps its place relative to the Monitor when it moves onto a Workspace on another Monitor,
-    //.
+    // A floating Client keeps its place relative to the Monitor when it moves onto a Workspace on another Monitor.
     private Taken OntoMonitor(Taken taken, MonitorId from, MonitorId to)
     {
-        if (!taken.Floating || from == to || MonitorById(from) is not { Effective.Enabled: true } source || MonitorById(to) is not { Effective.Enabled: true } destination)
+        if (!taken.Floating || from == to || MonitorById(from) is not { Arranged.Enabled: true } source || MonitorById(to) is not { Arranged.Enabled: true } destination)
             return taken;
 
         var bounds = taken.Bounds;
@@ -63,6 +62,9 @@ public sealed partial class WindowManager
         var taken = default(Taken);
         if (!(source.IsWaiting(id) ? TakeForGroup(source, id, out taken) : source.Take(id, out taken)))
             return View([], consumed: consumed);
+
+        // A dispatcher that moves a dragged window to another Workspace ends the drag, and its release drops nothing.
+        ForgetDrag(id);
 
         var destination = WorkspaceFor(target, target.IsSpecial ? FocusedId() : null);
         var elsewhere = target.IsSpecial ? null : ShownElsewhere(target);
@@ -210,7 +212,7 @@ public sealed partial class WindowManager
         }
 
         // A Workspace that lives on another Monitor, but is not the one that Monitor shows, is shown there.
-        if (_workspaces.Find(target) is { } located && MonitorById(located.Monitor) is { Effective.Enabled: true } home && home.Id != FocusedId())
+        if (_workspaces.Find(target) is { } located && MonitorById(located.Monitor) is { Arranged.Enabled: true } home && home.Id != FocusedId())
             Focus(home.Id);
 
         var monitor = FocusedId();
@@ -264,7 +266,7 @@ public sealed partial class WindowManager
             return null;
 
         var owner = MonitorById(desk.Monitor);
-        if (owner is null || !owner.Effective.Enabled || _workspaces.Shown.Shown(owner.Id) != target || owner.Id == FocusedId())
+        if (owner is null || !owner.Arranged.Enabled || _workspaces.Shown.Shown(owner.Id) != target || owner.Id == FocusedId())
             return null;
 
         return owner;
@@ -362,7 +364,7 @@ public sealed partial class WindowManager
         if (rename is not WorkspaceRename (var from, var to))
             return;
 
-        _initialWorkspaces.Readdress(from, to);
+        _initialWorkspaces.Update(workspace => workspace == from ? to : workspace);
         (_readdressed ??= []).Add((from, to));
     }
 

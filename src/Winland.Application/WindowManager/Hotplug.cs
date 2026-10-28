@@ -15,7 +15,7 @@ public sealed partial class WindowManager
         var wasEnabled = new List<LiveMonitor>(previous.Length);
         foreach (var screen in previous)
         {
-            if (screen.Effective.Enabled)
+            if (screen.Arranged.Enabled)
                 wasEnabled.Add(screen);
         }
 
@@ -38,12 +38,12 @@ public sealed partial class WindowManager
 
         // While no Monitor is enabled Winland keeps the Workspaces on a FALLBACK Monitor, and gives them back
         // when one comes back.
-        if (next.Count > 0 && !next.Exists(screen => screen.Effective.Enabled))
+        if (next.Count > 0 && !next.Exists(screen => screen.Arranged.Enabled))
             next.Add(FindNamed(previous, FallbackName) ?? new LiveMonitor(NextMonitorId(previous, next), Fallback, Fallback));
 
         _monitors.Clear();
         _monitors.AddRange(next);
-        _workspaces.Shown.SetLive(next.Select(screen => screen.Id), next.Where(screen => screen.Effective.Enabled).Select(screen => screen.Id));
+        _workspaces.Shown.SetLive(next.Select(screen => screen.Id), next.Where(screen => screen.Arranged.Enabled).Select(screen => screen.Id));
 
         var enabled = EnabledMonitors();
         LiveMonitor? home = null;
@@ -176,7 +176,7 @@ public sealed partial class WindowManager
 
         foreach (var screen in _monitors)
         {
-            if (!screen.Effective.Enabled && _workspaces.Shown.Shown(screen.Id) is null)
+            if (!screen.Arranged.Enabled && _workspaces.Shown.Shown(screen.Id) is null)
                 _workspaces.Shown.Show(screen.Id, WorkspaceId.Initial);
         }
     }
@@ -191,18 +191,18 @@ public sealed partial class WindowManager
     {
         Stamp(desk);
         var screen = MonitorById(desk.Monitor);
-        if (screen is not { Effective.Enabled: true })
+        if (screen is not { Arranged.Enabled: true })
             return;
 
         desk.Layout.Apply(desk.Options);
-        desk.Layout.Fit(screen.Effective.WorkArea);
+        desk.Layout.Fit(screen.Arranged.WorkArea);
     }
 
     private void EnsureFocus(LiveMonitor? home)
     {
         foreach (var screen in _monitors)
         {
-            if (screen.Focused && screen.Effective.Enabled)
+            if (screen.Focused && screen.Arranged.Enabled)
                 return;
         }
 
@@ -214,7 +214,7 @@ public sealed partial class WindowManager
         var found = false;
         foreach (var screen in _monitors)
         {
-            var focused = screen.Id == id && screen.Effective.Enabled;
+            var focused = screen.Id == id && screen.Arranged.Enabled;
             screen.Focused = focused;
             if (focused)
                 found = true;
@@ -224,7 +224,7 @@ public sealed partial class WindowManager
         {
             foreach (var screen in _monitors)
             {
-                if (!screen.Effective.Enabled)
+                if (!screen.Arranged.Enabled)
                     continue;
 
                 screen.Focused = true;
@@ -275,7 +275,7 @@ public sealed partial class WindowManager
     {
         foreach (var screen in _monitors)
         {
-            if (screen.Effective.Enabled && predicate(screen))
+            if (screen.Arranged.Enabled && predicate(screen))
                 return screen;
         }
 
@@ -335,7 +335,7 @@ public sealed partial class WindowManager
         var enabled = new List<LiveMonitor>();
         foreach (var screen in _monitors)
         {
-            if (screen.Effective.Enabled)
+            if (screen.Arranged.Enabled)
                 enabled.Add(screen);
         }
 

@@ -51,7 +51,7 @@ public sealed partial class WindowManager
     private Rectangle PlaceOnMap(WindowAppeared appeared, WindowDecision decision, LiveWorkspace desk, Rectangle area)
     {
         var placement = decision.Placement;
-        var monitor = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Bounds : area;
+        var monitor = MonitorById(desk.Monitor) is { Arranged.Enabled: true } screen ? screen.Bounds : area;
         var desired = appeared.Bounds;
         var sized = desired.Width > 2 && desired.Height > 2;
         var width = sized || !decision.Floating ? desired.Width : DefaultFloatWidth;
@@ -110,7 +110,7 @@ public sealed partial class WindowManager
         if (decision.MinSizeExpression is null && decision.MaxSizeExpression is null)
             return decision;
 
-        var monitor = MonitorById(desk.Monitor) is { Effective.Enabled: true } screen ? screen.Bounds : area;
+        var monitor = MonitorById(desk.Monitor) is { Arranged.Enabled: true } screen ? screen.Bounds : area;
         var pointer = appeared.Pointer ?? Cursor?.Read() ?? new Point(monitor.X + (monitor.Width / 2), monitor.Y + (monitor.Height / 2));
         var variables = Variables(monitor, appeared.Bounds, pointer);
         Size? Read(ExpressionPair? expression) =>

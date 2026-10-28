@@ -268,7 +268,7 @@ public sealed partial class KeyboardHook : IDisposable
 
             // A release keeps the name its press had, though a bind may have focused a window with another layout
             // in between, so the bind session finds the key it holds.
-            var name = KeyName(vk, extended, up, () => KeyNames.Name(vk, scan, extended, ActiveLayout(), TrackedModifiers()));
+            var name = KeyName(vk, extended, up, () => KeyNames.Name(vk, scan, extended, ActiveLayout()));
             var xkb = KeyNames.XkbCode(vk, scan, extended);
             if (!up)
                 SessionEffects.NoteKey();
@@ -382,16 +382,6 @@ public sealed partial class KeyboardHook : IDisposable
         }
 
         return _layout;
-    }
-
-    private KeyModifierState TrackedModifiers()
-    {
-        var held = _session.Held;
-        return new KeyModifierState(
-            (held & Modifier.Shift) != 0,
-            (held & Modifier.Ctrl) != 0,
-            (held & Modifier.Alt) != 0,
-            (held & Modifier.Super) != 0);
     }
 
     private void ArmSweep()

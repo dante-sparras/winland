@@ -1,4 +1,4 @@
-# Mutation-test the unit test projects, one lane per project under test. Passes when none exist yet.
+# Mutation-test the unit test projects, one lane per project under test. Fails when none exist.
 # The score gate is thresholds.break in stryker-config.json, applied to each lane's whole score.
 # A long lane runs in shards, each mutating a share of the project's files. Stryker does not gate a
 # run; the gate adds up a lane's shards and checks the lane, so a shard cannot pass or fail on its own.
@@ -6,7 +6,7 @@
 #   pwsh -NoProfile -File scripts/mutate.ps1                     every run, one after another, then the gate
 #   pwsh -NoProfile -File scripts/mutate.ps1 -Project Daemon     one lane, every shard of it, then the gate
 #   pwsh -NoProfile -File scripts/mutate.ps1 -List               every run's name as JSON, for the CI matrix
-#   pwsh -NoProfile -File scripts/mutate.ps1 -Run Core-2         one run and no gate, as a CI job runs it
+#   pwsh -NoProfile -File scripts/mutate.ps1 -Run Domain-2       one run and no gate, as a CI job runs it
 #   pwsh -NoProfile -File scripts/mutate.ps1 -Gate <folder>      gate the run summaries under a folder
 param(
     [string[]]$Project,
@@ -192,19 +192,11 @@ if ($Gate) {
 }
 
 $tests = Join-Path $root 'tests'
-$projects = @()
-if (Test-Path $tests) {
-    $projects = @(Get-ChildItem -Path $tests -Filter *.csproj -Recurse -File | Where-Object {
-        $_.Name -like '*.Tests.csproj' -and $_.Name -notlike '*.Smoke.Tests.csproj'
-    })
-}
+$projects = @(Get-ChildItem -Path $tests -Filter *.csproj -Recurse -File | Where-Object {
+    $_.Name -like '*.Tests.csproj' -and $_.Name -notlike '*.Smoke.Tests.csproj'
+})
 if ($projects.Count -eq 0) {
-    if ($List) {
-        Write-Output '[]'
-        exit 0
-    }
-    Write-Output 'No unit test project under tests/. Stryker runs when one is added.'
-    exit 0
+    throw 'No unit test project under tests/.'
 }
 
 # A test project without a lane would never be mutation-tested, and a lane without its project

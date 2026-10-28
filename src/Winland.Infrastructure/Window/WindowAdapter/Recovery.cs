@@ -96,6 +96,10 @@ public sealed partial class WindowAdapter : IDisposable
 
     public void RevealHidden()
     {
+        // Releasing comes first, so an outcome applied on another thread meanwhile starts no motion after they landed.
+        lock (_showGate)
+            _releasing = true;
+
         LandMotions();
         var hidden = new List<WindowId>();
         foreach (var client in _core.Recovery().Clients)
@@ -106,7 +110,6 @@ public sealed partial class WindowAdapter : IDisposable
 
         lock (_showGate)
         {
-            _releasing = true;
             foreach (var window in hidden)
             {
                 if (_desktop.Exists(window))

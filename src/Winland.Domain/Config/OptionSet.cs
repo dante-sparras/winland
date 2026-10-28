@@ -23,8 +23,4 @@ internal sealed class OptionSet<TOptions>
 
         return options;
     }
-
-    /// <summary><paramref name="options"/> with one Option set, or null when there is no such Option or the value does not read.</summary>
-    public TOptions? Apply(TOptions options, string name, string text) =>
-        _byName.TryGetValue(name, out var option) ? option.Apply(options, text) : null;
 }

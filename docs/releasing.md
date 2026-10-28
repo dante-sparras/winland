@@ -8,7 +8,7 @@ The release version is the newest published, non-prerelease GitHub release whose
 
 ## Order
 
-1. `release` pushes an annotated tag `rc.<N>-vX.Y.Z`. The message is a JSON claim: commit, attempt, version, autopublish, and the time. A new claim sets autopublish to false. The workflow ignores that field.
+1. `release` pushes an annotated tag `rc.<N>-vX.Y.Z`. The message is a JSON claim: commit, attempt, version, and the time. A claim from an older release may also carry `autopublish`, which is ignored.
 2. It opens one draft release on that tag. The notes run from the previous published `vX.Y.Z` to this commit. An `rc.*` tag is not that previous release. The first release has no previous `vX.Y.Z`, so the notes start at the beginning of the history. A warning block sits at the top and the bottom of the body.
 3. It dispatches **Stable Release** from `main` with that tag.
 4. The workflow checks the claim, checks that the commit is on `origin/main`, and checks that the draft exists.

@@ -18,10 +18,22 @@ internal sealed partial class DwindleLayout
         if (!_nodes.TryGetValue(id, out var node) || !InTree(node))
             return [];
 
-        if (maxSize is { } limit && (limit.Width < node.Box.Width || limit.Height < node.Box.Height))
+        if (Short(maxSize, node))
             return FloatShort(id, index, node, minSize, maxSize);
 
         Refit();
+        return Placements();
+    }
+
+    private static bool Short(Size? max, Node node) =>
+        max is { } limit && (limit.Width < node.Box.Width || limit.Height < node.Box.Height);
+
+    // A Client tiled again, by a toggle or a drop, floats instead when its maximum cannot fill the tile it got.
+    private IReadOnlyList<Placement> FloatIfShort(ClientId id, Node node)
+    {
+        if (_limits.TryGetValue(id, out var limits) && Short(limits.Max, node))
+            return FloatShort(id, IndexOf(id), node, limits.Min, limits.Max);
+
         return Placements();
     }
 

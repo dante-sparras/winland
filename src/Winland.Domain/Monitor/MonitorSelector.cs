@@ -41,7 +41,7 @@ internal static class MonitorSelector
 
         foreach (var monitor in monitors)
         {
-            if (monitor.Name.Equals(text, StringComparison.Ordinal))
+            if (monitor.Name.Equals(text, StringComparison.OrdinalIgnoreCase))
                 return monitor;
         }
 
@@ -139,9 +139,6 @@ internal static class MonitorSelector
 
     private static MonitorTarget? ById(IReadOnlyList<MonitorTarget> monitors, int id)
     {
-        if (id < 0 || id >= monitors.Count)
-            return null;
-
         foreach (var monitor in monitors)
         {
             if (monitor.Id.Value == id)

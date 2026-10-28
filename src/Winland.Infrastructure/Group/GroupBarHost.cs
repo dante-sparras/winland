@@ -200,7 +200,7 @@ internal static class GroupBarHost
 
                 if (message.hwnd.IsNull && message.message == TimerMessage)
                 {
-                    Refresh(force: false);
+                    Refresh();
                     continue;
                 }
 
@@ -269,11 +269,11 @@ internal static class GroupBarHost
     }
 
     // Titles are read live, so a title that changes after the window opened shows up within a second.
-    private static void Refresh(bool force)
+    private static void Refresh()
     {
         foreach (var bar in Bars.Values)
         {
-            if (force || bar.TitlesChanged())
+            if (bar.TitlesChanged())
                 bar.Render();
         }
     }
@@ -320,17 +320,6 @@ internal static class GroupBarHost
         return PInvoke.DefWindowProc(hwnd, message, wParam, lParam);
     }
 
-    private static int IndexOf(GroupBar spec, WindowId window)
-    {
-        for (var i = 0; i < spec.Tabs.Count; i++)
-        {
-            if (spec.Tabs[i].Window == window)
-                return i;
-        }
-
-        return -1;
-    }
-
     private static void Run(string dispatcher, WindowId window)
     {
         try
@@ -352,7 +341,7 @@ internal static class GroupBarHost
         {
             var info = new WNDCLASSEXW
             {
-                cbSize = 80,
+                cbSize = (uint)Marshal.SizeOf<WNDCLASSEXW>(),
                 lpfnWndProc = Proc,
                 hInstance = instance,
                 lpszClassName = name,

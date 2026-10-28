@@ -9,16 +9,14 @@ public class DecorationTests
     private static readonly BorderColor Inactive = new(0x80, 0x00, 0x22, 0x33);
 
     [Theory]
-    [InlineData("rgba(33ccffee)", 0x33, 0xCC, 0xFF, 0xEE, false)]
-    [InlineData("RGBA(33CCFFEE)", 0x33, 0xCC, 0xFF, 0xEE, false)]
-    [InlineData("0xee33ccff", 0x33, 0xCC, 0xFF, 0xEE, false)]
-    [InlineData("rgb(112233)", 0x11, 0x22, 0x33, 0xFF, false)]
-    public void OneBorderColorIsParsed(string text, byte r, byte g, byte b, byte a, bool gradient)
+    [InlineData("rgba(33ccffee)", 0x33, 0xCC, 0xFF, 0xEE)]
+    [InlineData("RGBA(33CCFFEE)", 0x33, 0xCC, 0xFF, 0xEE)]
+    [InlineData("0xee33ccff", 0x33, 0xCC, 0xFF, 0xEE)]
+    [InlineData("rgb(112233)", 0x11, 0x22, 0x33, 0xFF)]
+    public void OneBorderColorIsParsed(string text, byte r, byte g, byte b, byte a)
     {
-        Assert.Equal(!gradient, BorderColor.TryParse(text, out var color, out var parsedGradient));
-        Assert.Equal(gradient, parsedGradient);
-        if (!gradient)
-            Assert.Equal(new BorderColor(a, r, g, b), color);
+        Assert.True(BorderColor.TryParse(text, out var color));
+        Assert.Equal(new BorderColor(a, r, g, b), color);
     }
 
     [Theory]
@@ -30,7 +28,7 @@ public class DecorationTests
     [InlineData("0x112233")]
     public void MalformedBorderColorIsRejected(string text)
     {
-        Assert.False(BorderColor.TryParse(text, out _, out _));
+        Assert.False(BorderColor.TryParse(text, out _));
     }
 
     [Fact]

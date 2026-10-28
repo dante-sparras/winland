@@ -11,7 +11,7 @@ internal static partial class WorkspaceRules
 
         for (var i = 0; i < rules.Count; i++)
         {
-            if (rules[i].WorkspaceString == rule.WorkspaceString)
+            if (rules[i].WorkspaceString == rule.WorkspaceString && rules[i].Monitor == rule.Monitor)
             {
                 rules[i] = rules[i].Merge(rule);
                 return;
@@ -51,9 +51,7 @@ internal static partial class WorkspaceRules
             if (field.Length == 0)
                 continue;
 
-            if (!Apply(rule, field, warnings, out rule, out var failed))
-                fatal = true;
-            else if (failed)
+            if (!Apply(rule, field, warnings, out rule))
                 fatal = true;
         }
 
@@ -110,15 +108,14 @@ internal static partial class WorkspaceRules
         return true;
     }
 
-    private static bool Apply(WorkspaceRule rule, string field, List<string> warnings, out WorkspaceRule updated, out bool failed)
+    private static bool Apply(WorkspaceRule rule, string field, List<string> warnings, out WorkspaceRule updated)
     {
         updated = rule;
-        failed = false;
         if (Take(field, "gapsin:", out var gapsIn))
-            return TryGaps(rule, gapsIn, warnings, static (current, gaps) => current with { GapsIn = gaps }, out updated, out failed);
+            return TryGaps(rule, gapsIn, warnings, static (current, gaps) => current with { GapsIn = gaps }, out updated);
 
         if (Take(field, "gapsout:", out var gapsOut))
-            return TryGaps(rule, gapsOut, warnings, static (current, gaps) => current with { GapsOut = gaps }, out updated, out failed);
+            return TryGaps(rule, gapsOut, warnings, static (current, gaps) => current with { GapsOut = gaps }, out updated);
 
         if (Take(field, "monitor:", out var monitor))
         {
@@ -127,10 +124,10 @@ internal static partial class WorkspaceRules
         }
 
         if (Take(field, "default:", out var defaultValue))
-            return TryFlag(rule, defaultValue, warnings, static (current, value) => current with { Default = value }, out updated, out failed);
+            return TryFlag(rule, defaultValue, warnings, static (current, value) => current with { Default = value }, out updated);
 
         if (Take(field, "persistent:", out var persistent))
-            return TryFlag(rule, persistent, warnings, static (current, value) => current with { Persistent = value }, out updated, out failed);
+            return TryFlag(rule, persistent, warnings, static (current, value) => current with { Persistent = value }, out updated);
 
         if (Take(field, "layout:", out var layout))
         {
@@ -148,49 +145,22 @@ internal static partial class WorkspaceRules
         return true;
     }
 
+    // Gaps read as general:gaps_in and general:gaps_out do, one to four edges, none below zero.
     private static bool TryGaps(
         WorkspaceRule rule,
         string text,
         List<string> warnings,
         Func<WorkspaceRule, EdgeInsets, WorkspaceRule> apply,
-        out WorkspaceRule updated,
-        out bool failed)
+        out WorkspaceRule updated)
     {
         updated = rule;
-        failed = false;
-        var parts = text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0 || !TryInset(parts, out var gaps))
+        if (!OptionValue.Gaps.Read(text, out var gaps))
         {
             warnings.Add("Error parsing workspace rule gaps: " + text.Trim());
-            failed = true;
             return false;
         }
 
-        if (parts.Length > 4)
-            warnings.Add("Too many arguments provided for gaps.");
-
         updated = apply(rule, gaps);
-        return true;
-    }
-
-    private static bool TryInset(string[] parts, out EdgeInsets gaps)
-    {
-        gaps = EdgeInsets.Zero;
-        var count = Math.Min(parts.Length, 4);
-        var values = new int[count];
-        for (var i = 0; i < count; i++)
-        {
-            if (!int.TryParse(parts[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out values[i]))
-                return false;
-        }
-
-        gaps = count switch
-        {
-            1 => EdgeInsets.Uniform(values[0]),
-            2 => new EdgeInsets(values[0], values[1], values[0], values[1]),
-            3 => new EdgeInsets(values[0], values[1], values[2], values[1]),
-            _ => new EdgeInsets(values[0], values[1], values[2], values[3]),
-        };
         return true;
     }
 
@@ -199,15 +169,12 @@ internal static partial class WorkspaceRules
         string text,
         List<string> warnings,
         Func<WorkspaceRule, bool, WorkspaceRule> apply,
-        out WorkspaceRule updated,
-        out bool failed)
+        out WorkspaceRule updated)
     {
         updated = rule;
-        failed = false;
         if (!TryBool(text, out var value))
         {
             warnings.Add("Failed parsing a workspace rule");
-            failed = true;
             return false;
         }
 

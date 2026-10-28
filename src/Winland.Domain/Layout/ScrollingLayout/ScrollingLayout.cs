@@ -82,8 +82,6 @@ internal sealed partial class ScrollingLayout : TiledLayout, Layout
         TiledLimits? tiledLimits = null)
     {
         _ = pointer;
-        _ = minSize;
-        _ = maxSize;
         _area = area;
         if (monitor.Width > 0 && monitor.Height > 0)
             _monitor = monitor;
@@ -155,7 +153,7 @@ internal sealed partial class ScrollingLayout : TiledLayout, Layout
         var cellIndex = column.Cells.IndexOf(cell);
         SetMinimized(id, true);
         RemoveCell(cell);
-        _suspended[id] = new Suspension(column, columnIndex, cellIndex, cell.Size);
+        _suspended[id] = new Suspension(column, columnIndex, cellIndex);
         Recalculate();
         return Placements();
     }
@@ -177,15 +175,13 @@ internal sealed partial class ScrollingLayout : TiledLayout, Layout
             return [];
 
         SetMinimized(id, false);
-        var cell = new Cell(id) { Size = suspension.Size };
+        var cell = new Cell(id);
         _cells[id] = cell;
         var column = suspension.Column;
         if (_columns.Contains(column))
             AddCell(column, cell, Math.Max(0, suspension.CellIndex) - 1);
         else
         {
-            if (column.Cells.Count == 0)
-                cell.Size = 1;
             AddCell(column, cell);
             var index = Math.Clamp(suspension.ColumnIndex, 0, _columns.Count);
             _columns.Insert(index, column);
@@ -374,14 +370,12 @@ internal sealed partial class ScrollingLayout : TiledLayout, Layout
         public Rectangle Logical { get; set; }
     }
 
-    private sealed class Suspension(Column column, int columnIndex, int cellIndex, double size)
+    private sealed class Suspension(Column column, int columnIndex, int cellIndex)
     {
         public Column Column { get; } = column;
 
         public int ColumnIndex { get; } = columnIndex;
 
         public int CellIndex { get; } = cellIndex;
-
-        public double Size { get; } = size;
     }
 }

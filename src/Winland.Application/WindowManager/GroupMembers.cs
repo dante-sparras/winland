@@ -51,7 +51,13 @@ public sealed partial class WindowManager
             desk.Layout.SetFullscreen(group.Shown, FullscreenMode.None, FullscreenMode.None);
 
         if (!wasShown || !_workspaces.Shown.IsShown(desk.Id))
+        {
+            // A focused member closing on a hidden Workspace leaves no window focused, as any other close does.
+            if (wasActive)
+                Give(null, null);
+
             return View([]);
+        }
 
         WindowId? focus = null;
         if (wasActive)

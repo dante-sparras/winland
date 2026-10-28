@@ -37,7 +37,7 @@ public sealed partial class WindowManager
     // Winland: by the offset between the Monitors when its middle is on another one, else to the middle.
     private void BringFloatingOnto(LiveWorkspace desk, MonitorId monitor)
     {
-        if (MonitorById(monitor) is not { Effective.Enabled: true } screen)
+        if (MonitorById(monitor) is not { Arranged.Enabled: true } screen)
             return;
 
         var here = screen.Bounds;
@@ -53,7 +53,7 @@ public sealed partial class WindowManager
             Rectangle? holder = null;
             foreach (var other in _monitors)
             {
-                if (other.Effective.Enabled && Holds(other.Bounds, middle))
+                if (other.Arranged.Enabled && Holds(other.Bounds, middle))
                     holder = other.Bounds;
             }
 

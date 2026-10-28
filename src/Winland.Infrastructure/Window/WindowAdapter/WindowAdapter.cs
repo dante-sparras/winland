@@ -100,8 +100,8 @@ public sealed partial class WindowAdapter : IDisposable
         _core = core;
         _desktop = desktop;
         _clock = clock ?? PresentClock.Now;
-        _opacity = new OpacityAdapter(desktop);
-        _borderless = new BorderlessFrame(desktop);
+        _opacity = new OpacityAdapter(desktop, desktop.Hung);
+        _borderless = new BorderlessFrame(desktop, desktop.Hung);
         _effects = new DwmEffects(desktop);
         _motions = new MotionPlayer(new MotionTarget(this), _clock, threaded);
         _core.ReducedMotion = ReducedMotion;

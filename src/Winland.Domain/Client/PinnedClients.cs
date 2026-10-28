@@ -15,10 +15,8 @@ internal sealed class PinnedClients
         _pinned.Add(window);
     }
 
+    /// <summary>Unpins a Client, or forgets one that closed or became tiled.</summary>
     public void Unpin(WindowId window) => _pinned.Remove(window);
-
-    /// <summary>Forgets a Client that closed or became tiled.</summary>
-    public void Forget(WindowId window) => _pinned.Remove(window);
 
     /// <summary>
     /// Pins a Client that opens when a rule pins it or its owner is Pinned, as long as it is floating.

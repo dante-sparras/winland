@@ -1,6 +1,6 @@
 namespace Winland.Domain;
 
-/// <summary>Matches a key or pointer button against a bind table. Takes no lock.</summary>
+/// <summary>Matches a key or pointer button against a bind table, under the session's lock.</summary>
 public sealed partial class BindSession
 {
     private static readonly Dictionary<string, Modifier> ModifierKeys = new(StringComparer.OrdinalIgnoreCase)
@@ -24,7 +24,12 @@ public sealed partial class BindSession
     {
         ArgumentNullException.ThrowIfNull(table);
         ArgumentNullException.ThrowIfNull(input);
-        return input switch
+        lock (_gate)
+            return Match(table, input);
+    }
+
+    private BindDecision Match(BindTable table, Input input) =>
+        input switch
         {
             KeyPressed pressed => Shadow(table, OnPress(table, pressed.Key, pressed.ScanCode, mouse: false), pressed.Key),
             KeyReleased released => Shadow(table, OnRelease(table, released.Key, released.ScanCode, mouse: false), excluded: null),
@@ -34,12 +39,17 @@ public sealed partial class BindSession
             WheelTurned wheel => OnWheel(table, wheel),
             _ => throw new ArgumentOutOfRangeException(nameof(input), input, "No handler for this input."),
         };
-    }
 
     /// <summary>Drops held keys whose release the session missed, such as one on the lock screen.</summary>
     public void Forget(Func<string, bool> stillDown)
     {
         ArgumentNullException.ThrowIfNull(stillDown);
+        lock (_gate)
+            ForgetMissed(stillDown);
+    }
+
+    private void ForgetMissed(Func<string, bool> stillDown)
+    {
         Drop(_downKeys, _caughtKeys, _passedKeys, stillDown);
         Drop(_downButtons, _caughtButtons, _passedButtons, stillDown);
         _buttonsHeld = _downButtons.Count;

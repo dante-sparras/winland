@@ -33,9 +33,8 @@ internal static class WindowLimits
         max = null;
         var info = new MinMaxInfo();
         nuint result = 0;
-        // The window procedure returns 0 for this message, which is also the failure
-        // return. A cleared last-error distinguishes a timeout from that 0.
-        Marshal.SetLastPInvokeError(0);
+        // SendMessageTimeout returns nonzero whenever the window answered, whatever it answered. A hung window it gave
+        // up on can leave the last error clear, so 0 alone is the failure.
         var sent = PInvoke.SendMessageTimeout(
             hwnd,
             PInvoke.WM_GETMINMAXINFO,
@@ -44,7 +43,7 @@ internal static class WindowLimits
             SEND_MESSAGE_TIMEOUT_FLAGS.SMTO_ABORTIFHUNG | SEND_MESSAGE_TIMEOUT_FLAGS.SMTO_BLOCK | SEND_MESSAGE_TIMEOUT_FLAGS.SMTO_ERRORONEXIT,
             TrackTimeoutMs,
             &result);
-        if (sent == 0 && Marshal.GetLastPInvokeError() != 0)
+        if (sent == 0)
             return false;
 
         min = new Size(info.MinTrackX, info.MinTrackY);

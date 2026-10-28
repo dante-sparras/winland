@@ -21,23 +21,6 @@ public sealed partial class WindowManager
         return CommitFullscreen(window, next, parsed.LayoutAware);
     }
 
-    private static Client? FindClient(Outcome outcome, WindowId window)
-    {
-        foreach (var candidate in outcome.State.Clients)
-        {
-            if (candidate.Window == window)
-                return candidate;
-        }
-
-        foreach (var candidate in outcome.State.Hidden)
-        {
-            if (candidate.Window == window)
-                return candidate;
-        }
-
-        return null;
-    }
-
     private Outcome CommitFullscreen(WindowId window, FullscreenMode mode, bool layoutAware = true)
     {
         var desk = WorkspaceContaining(window);
@@ -134,7 +117,7 @@ public sealed partial class WindowManager
     {
         var work = WorkArea(desk, _area);
         var screen = MonitorById(desk.Monitor);
-        if (screen is not { Effective: { Enabled: true } monitor })
+        if (screen is not { Arranged: { Enabled: true } monitor })
             return FullscreenGeometry.Cover(FullscreenMode.Fullscreen, work, default);
 
         var bounds = new Rectangle(monitor.X, monitor.Y, monitor.Width, monitor.Height);

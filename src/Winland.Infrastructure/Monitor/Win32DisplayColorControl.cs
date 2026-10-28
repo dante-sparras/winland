@@ -16,10 +16,11 @@ internal static class Win32DisplayColorControl
     private const int GetAdvancedColorInfo = 9;
     private const int GetAdvancedColorInfo2 = 15;
 
-    internal static bool TryDescribe(string device, out DisplayColorReading reading)
+    /// <summary>Reads the switches of the panel display config names by its adapter and target.</summary>
+    internal static bool TryDescribe(string device, LUID adapter, uint target, out DisplayColorReading reading)
     {
         reading = default;
-        if (device.Length == 0 || !MonitorAdapter.TryTarget(device, out var adapter, out var target))
+        if (device.Length == 0)
             return false;
 
         var split = TryRead2(adapter, target, out reading);

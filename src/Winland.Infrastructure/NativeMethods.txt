@@ -221,3 +221,4 @@ GetDesktopWindow
 BeginDeferWindowPos
 DeferWindowPos
 EndDeferWindowPos
+WM_CLOSE

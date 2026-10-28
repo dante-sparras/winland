@@ -3,7 +3,7 @@ namespace Winland.Domain;
 /// <summary>
 /// What one window shows at one moment of its motion. A null part is not animating and is left alone.
 /// </summary>
-public sealed record Frame(WindowId Window, long Generation)
+public sealed record Frame(WindowId Window)
 {
     public Rectangle? Bounds { get; init; }
 

@@ -141,7 +141,7 @@ internal sealed partial class ScrollingLayout
     }
 
     // A held tile that shares its column, after a consume or a move, leaves fullscreen. One
-    // that floats or leaves the tape is no longer the Layout's to hold.
+    // that floats or leaves the tape is no longer the Layout's to hold, but a minimized one is still held.
     private void SyncFullscreen()
     {
         if (_syncing)
@@ -153,7 +153,7 @@ internal sealed partial class ScrollingLayout
             for (var i = 0; i < _clients.Count; i++)
             {
                 var client = _clients[i];
-                if (!client.LayoutFullscreen)
+                if (!client.LayoutFullscreen || _suspended.ContainsKey(client.Id))
                     continue;
 
                 if (client.Floating || CellFor(client.Window) is not { Column: Column column })

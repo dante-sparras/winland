@@ -18,7 +18,7 @@ public sealed partial class WindowManager
         _windowState.Track(ForgetFocusMarks);
         _windowState.Track(_restored);
         _windowState.Track(_mapPlaced);
-        _windowState.Track(_pins.Forget);
+        _windowState.Track(_pins.Unpin);
         _windowState.Track(_stacking);
         _windowState.Track(_cover.Forget);
         _windowState.Track(ForgetDrag);

@@ -70,11 +70,8 @@ public sealed class CursorIdle
     }
 
     /// <summary>Moves the cursor. A hidden cursor stays hidden: only the mouse shows it again.</summary>
-    public void Warp(Point position)
-    {
-        lock (_gate)
-            _cursor.Warp(position);
-    }
+    // Not under the lock: the move it makes reaches the mouse hook at once, which takes the lock in Moved.
+    public void Warp(Point position) => _cursor.Warp(position);
 
     public void Moved()
     {

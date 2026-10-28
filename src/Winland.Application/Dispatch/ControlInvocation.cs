@@ -21,21 +21,28 @@ public static class ControlInvocation
         var flags = "";
         string? batch = null;
         var rest = new List<string>();
+
+        // The request is one line, so an argument with a line break in it would be cut there.
+        if (args.Any(arg => arg.Contains('\n', StringComparison.Ordinal) || arg.Contains('\r', StringComparison.Ordinal)))
+            return false;
+
         for (var i = 0; i < args.Length; i++)
         {
             var arg = args[i];
-            if (arg == "--")
-            {
-                rest.AddRange(args.Skip(i + 1));
-                break;
-            }
 
-            // The words after "dispatch exec" are a command line, so "dispatch exec wt -p pwsh" keeps "-p". Elsewhere a
-            // dash that is not a number is a flag, as the reference control tool reads it.
+            // The words after "dispatch exec" are a command line, so "dispatch exec wt -p pwsh" keeps "-p" and
+            // "dispatch exec wsl -- ls" keeps "--". Elsewhere a dash that is not a number is a flag, as the reference
+            // control tool reads it.
             if (IsCommandLine(rest) || !arg.StartsWith('-') || IsNumber(arg))
             {
                 rest.Add(arg);
                 continue;
+            }
+
+            if (arg == "--")
+            {
+                rest.AddRange(args.Skip(i + 1));
+                break;
             }
 
             if (arg is "-j")
@@ -69,23 +76,31 @@ public static class ControlInvocation
         if (CommandProtocol.Parse(prefix + request) is not CommandParsed parsed)
             return false;
 
-        line = prefix + request;
+        // The Event stream is plain text, so events takes no flag.
         events = parsed.Request is EventsRequest;
+        if (events && prefix.Length > 0)
+            return false;
+
+        line = prefix + request;
         return true;
     }
 
-    // The shell took the quotes off an argument with a space, such as a program under C:\Program Files. A command
-    // line exec runs gets them back, so the program's path stays one argument.
     private static bool IsCommandLine(List<string> words) =>
-        words.Count >= 2 && words[0] == "dispatch" && words[1] is "exec" or "execr";
+        words.Count >= 2
+        && words[0].Equals("dispatch", StringComparison.OrdinalIgnoreCase)
+        && words[1].Equals("exec", StringComparison.OrdinalIgnoreCase);
 
+    // The shell took the quotes off an argument with a space, such as a program under C:\Program Files. When the
+    // command line exec runs is several words, such a word gets them back, so the program's path stays one argument.
+    // A command line given as one word, such as "notepad C:\a b.txt" or "[float] notepad", is already whole.
     private static IEnumerable<string> Quoted(List<string> words)
     {
-        var command = IsCommandLine(words);
+        var command = IsCommandLine(words) && words.Count > 3;
         for (var i = 0; i < words.Count; i++)
         {
             var word = words[i];
-            yield return command && i >= 2 && word.Contains(' ', StringComparison.Ordinal) && !word.Contains('"', StringComparison.Ordinal)
+            yield return command && i >= 2 && word.Contains(' ', StringComparison.Ordinal)
+                && !word.Contains('"', StringComparison.Ordinal) && !word.StartsWith('[')
                 ? "\"" + word + "\""
                 : word;
         }

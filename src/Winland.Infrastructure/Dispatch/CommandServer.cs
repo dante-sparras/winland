@@ -65,10 +65,20 @@ public sealed class CommandServer : IDisposable
         return security;
     }
 
+    /// <summary>
+    /// The pipe of an elevated Winland. The user's medium-integrity programs may talk to it, but only an elevated
+    /// process may add an instance, so one of them cannot serve the elevated Winland's clients in its place.
+    /// </summary>
     public static RawSecurityDescriptor DescriptorFor(SecurityIdentifier user)
     {
         ArgumentNullException.ThrowIfNull(user);
-        var access = SecurityFor(user).GetSecurityDescriptorSddlForm(AccessControlSections.Access);
+        var security = new PipeSecurity();
+        security.AddAccessRule(new PipeAccessRule(user, PipeAccessRights.ReadWrite, AccessControlType.Allow));
+        security.AddAccessRule(new PipeAccessRule(
+            new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null),
+            PipeAccessRights.CreateNewInstance,
+            AccessControlType.Allow));
+        var access = security.GetSecurityDescriptorSddlForm(AccessControlSections.Access);
         return new RawSecurityDescriptor(access + "S:(ML;;NW;;;S-1-16-8192)");
     }
 

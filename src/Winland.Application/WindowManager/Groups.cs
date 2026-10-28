@@ -169,11 +169,12 @@ public sealed partial class WindowManager
             return View([]);
 
         var covered = there.Covered();
+        var sourceCovered = desk.Covered();
         if (!TakeForGroup(desk, window, out var taken))
             return View([]);
 
         var position = target.Current + 1;
-        there.Join(target, window, taken, position);
+        there.Join(target, window, OntoMonitor(taken, desk.Monitor, there.Monitor), position);
         there.Show(target, position);
         Restamp(desk, []);
         Restamp(there, []);
@@ -182,9 +183,14 @@ public sealed partial class WindowManager
         Give(window, there);
         (_extraEvents ??= []).Add(new ClientIntoGroup(window));
         var outcome = Present(there, covered, there.Layout.Visible(), focus: window);
-        return _workspaces.Find(desk.Id) is LiveWorkspace left && _workspaces.Shown.IsShown(left.Id)
-            ? outcome with { Placements = [.. left.Layout.Placed(), .. outcome.Placements] }
-            : outcome;
+        if (_workspaces.Find(desk.Id) is not LiveWorkspace left || !_workspaces.Shown.IsShown(left.Id))
+            return outcome;
+
+        // The member that takes the window's place in its own Group is shown on the Workspace it left.
+        var show = new List<WindowId>(outcome.Show);
+        var hide = new List<WindowId>(outcome.Hide);
+        left.Collect(sourceCovered, show, hide);
+        return outcome with { Placements = [.. left.Layout.Placed(), .. outcome.Placements], Show = show, Hide = hide };
     }
 
     // Takes a window out of its own Group, or its tile, so it can join another Group.

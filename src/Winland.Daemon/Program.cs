@@ -141,9 +141,10 @@ static int Run(string? path, RollingLogWriter log)
         if (!core.ReloadsOnSave)
             return;
 
+        // The watcher calls from a thread of its own. The reload runs on the loop, as the tray's and the pipe's do.
         try
         {
-            host.Reload();
+            host.OnLoop(() => host.Reload());
         }
         catch (Exception exception) when (exception is ObjectDisposedException or InvalidOperationException or IOException)
         {
@@ -188,6 +189,8 @@ static int Run(string? path, RollingLogWriter log)
     }
     finally
     {
+        // A save of the config while the cleanup runs is not read.
+        watching.Dispose();
         Stop(host, store, core);
         AppDomain.CurrentDomain.UnhandledException -= onCrash;
         LaunchConfigured(core, WindowManager.ShutdownLaunches(current));

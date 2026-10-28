@@ -8,7 +8,6 @@ namespace Winland.Infrastructure;
 // Stryker disable once all : each member calls Windows on a real window.
 internal sealed class Win32Desktop : IDesktop
 {
-    private const uint CloseMessage = 0x0010;
 
     // HWND_TOP raises a window above every window that is not topmost. HWND_BOTTOM lowers it below all of them.
     private static readonly HWND Top = new(0);
@@ -73,8 +72,18 @@ internal sealed class Win32Desktop : IDesktop
     {
         var start = Environment.TickCount64;
         call();
-        if (Environment.TickCount64 - start >= SlowMilliseconds)
-            _slowUntil[window] = Environment.TickCount64 + SlowForMilliseconds;
+        var now = Environment.TickCount64;
+        if (now - start < SlowMilliseconds)
+            return;
+
+        // A slow window that closed is not asked about again, so marks that ran out are dropped here.
+        foreach (var (slow, until) in _slowUntil)
+        {
+            if (now >= until)
+                _slowUntil.TryRemove(slow, out _);
+        }
+
+        _slowUntil[window] = now + SlowForMilliseconds;
     }
 
     public int Dpi(WindowId window) => (int)PInvoke.GetDpiForWindow(Handle(window));
@@ -157,7 +166,7 @@ internal sealed class Win32Desktop : IDesktop
 
     public void ForegroundDesktop() => Winland.Infrastructure.Foreground.ToDesktop();
 
-    public void Close(WindowId window) => PInvoke.PostMessage(Handle(window), CloseMessage, default, default);
+    public void Close(WindowId window) => PInvoke.PostMessage(Handle(window), PInvoke.WM_CLOSE, default, default);
 
     public void Pace()
     {

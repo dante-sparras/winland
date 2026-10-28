@@ -7,15 +7,6 @@ namespace Winland.Domain;
 /// </summary>
 public sealed record BorderRing(BorderColor Color, int Thickness, int Radius, byte Alpha)
 {
-    public bool Equals(BorderRing? other) =>
-        other is not null
-        && Color == other.Color
-        && Thickness == other.Thickness
-        && Radius == other.Radius
-        && Alpha == other.Alpha;
-
-    public override int GetHashCode() => HashCode.Combine(Color, Thickness, Radius, Alpha);
-
     /// <summary>
     /// The outer corner radius: the inner radius plus the thickness. A square window has square outer corners too.
     /// </summary>

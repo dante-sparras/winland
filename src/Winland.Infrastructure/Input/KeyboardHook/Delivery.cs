@@ -30,9 +30,12 @@ public sealed partial class KeyboardHook : IDisposable
             return (true, decision);
         }
 
-        if (keyDrag is BindDispatch drag && Drag.Begin(edge.Name, drag.Dispatcher, drag.Arguments))
+        // A drag that cannot start, because another one is under way, is not run as a plain dispatcher either.
+        if (keyDrag is BindDispatch drag)
         {
-            PostGesture(drag.Dispatcher, drag.Arguments, CursorPoint(), PointerDragPhase.Begin, edge.Name);
+            if (Drag.Begin(edge.Name, drag.Dispatcher, drag.Arguments))
+                PostGesture(drag.Dispatcher, drag.Arguments, CursorPoint(), PointerDragPhase.Begin, edge.Name);
+
             foreach (var dispatch in decision.Dispatches)
             {
                 if (dispatch.Dispatcher.Length > 0 && !dispatch.Drag)

@@ -258,6 +258,11 @@ internal sealed class MotionPlayer : IDisposable
                 else if (!_target.Hung(frame.Window))
                     Show(frame);
             }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                // One window that fails does not cost the others their frames.
+                Console.Error.WriteLine(exception.Message);
+            }
             finally
             {
                 window.Exit();
@@ -268,16 +273,21 @@ internal sealed class MotionPlayer : IDisposable
         {
             lock (For(window))
             {
+                // A window placed again while it was closing is where its newer outcome put it, but nothing else gives
+                // it back the alpha the close took, unless a newer motion is running for it.
+                bool placedSince;
                 lock (_gate)
                 {
-                    if (Stamp(window) != closing.Stamp)
+                    placedSince = Stamp(window) != closing.Stamp;
+                    if (placedSince && _animator.Running(window))
                         continue;
                 }
 
                 // The window refused to close, so it goes back where its Layout put it.
                 if (_target.Shown(window))
                 {
-                    Place(window, closing.Rest);
+                    if (!placedSince)
+                        Place(window, closing.Rest);
                     _target.Alpha(window, closing.Alpha);
                 }
             }
@@ -381,17 +391,19 @@ internal sealed class MotionPlayer : IDisposable
                 _target.Alpha(frame.Window, frame.RestAlpha);
                 return;
             case MotionEnd.Close:
+                // The window counts as closing before its last alpha is set, so its border follows that alpha.
+                if (!_stopped)
+                {
+                    lock (_gate)
+                    {
+                        var grace = _graces.Remove(frame.Window, out var own) ? own : CloseGrace.TotalMilliseconds;
+                        _closing[frame.Window] = new Closing(_clock() + grace, frame.Rest, frame.RestAlpha, Stamp(frame.Window));
+                    }
+                }
+
                 if (frame.Alpha is byte faded)
                     _target.Alpha(frame.Window, faded);
                 _target.Close(frame.Window);
-                if (_stopped)
-                    return;
-
-                lock (_gate)
-                {
-                    var grace = _graces.Remove(frame.Window, out var own) ? own : CloseGrace.TotalMilliseconds;
-                    _closing[frame.Window] = new Closing(_clock() + grace, frame.Rest, frame.RestAlpha, Stamp(frame.Window));
-                }
                 return;
             default:
                 if (frame.Bounds is Rectangle bounds)

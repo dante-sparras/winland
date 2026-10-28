@@ -61,7 +61,7 @@ public sealed partial class KeyboardHook : IDisposable
         {
             if (queued.Kind == QueuedKind.Gesture)
             {
-                Apply(_core.Handle(new PointerGesture(queued.Dispatcher, queued.Position, queued.Phase, queued.Button) { Arguments = queued.Arguments }));
+                _apply(_core.Handle(new PointerGesture(queued.Dispatcher, queued.Position, queued.Phase, queued.Button) { Arguments = queued.Arguments }));
                 return;
             }
 
@@ -71,17 +71,17 @@ public sealed partial class KeyboardHook : IDisposable
                 if (queued.HasTime)
                     moved = moved with { TimeMs = queued.TimeMs };
 
-                Apply(_core.Handle(moved));
+                _apply(_core.Handle(moved));
                 return;
             }
 
             if (queued.Kind == QueuedKind.Input && queued.Event is { } input)
             {
-                Apply(_core.Handle(input));
+                _apply(_core.Handle(input));
                 return;
             }
 
-            Apply(_core.Handle(new Dispatch(queued.Dispatcher, queued.Arguments) { Trigger = queued.Trigger }));
+            _apply(_core.Handle(new Dispatch(queued.Dispatcher, queued.Arguments) { Trigger = queued.Trigger }));
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -111,9 +111,6 @@ public sealed partial class KeyboardHook : IDisposable
         _worker?.Join(TimeSpan.FromSeconds(2));
         _worker = null;
     }
-
-    // The adapter asks the window to close, after its close animation when it has one.
-    private void Apply(Outcome outcome) => _apply(outcome);
 
     private LRESULT Next(int code, WPARAM wParam, LPARAM lParam) =>
         PInvoke.CallNextHookEx(_hook, code, wParam, lParam);

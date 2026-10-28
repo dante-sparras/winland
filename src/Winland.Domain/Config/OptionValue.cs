@@ -23,7 +23,7 @@ internal static class OptionValue
 
     internal static OptionValue<BorderColor> Color { get; } = new(
         "str",
-        (string text, out BorderColor value) => BorderColor.TryParse(text.Trim(), out value, out _),
+        (string text, out BorderColor value) => BorderColor.TryParse(text.Trim(), out value),
         value => Quote(Hex(value)));
 
     /// <summary>Every color a gradient lists. Its angle is read and not kept.</summary>

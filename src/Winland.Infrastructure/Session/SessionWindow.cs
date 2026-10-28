@@ -11,7 +11,6 @@ internal sealed class SessionWindow : IDisposable
     internal const string ClassName = "WinlandSessionHost";
 
     private const int ClassAlreadyExists = 1410;
-    private const uint CloseMessage = 0x0010;
     private const uint TimerMessage = 0x0113;
     private const nuint ShellTimer = 1;
 
@@ -124,7 +123,7 @@ internal sealed class SessionWindow : IDisposable
     {
         try
         {
-            if (message == CloseMessage)
+            if (message == PInvoke.WM_CLOSE)
             {
                 PInvoke.PostQuitMessage(0);
                 return default;
@@ -259,7 +258,7 @@ internal sealed class SessionWindow : IDisposable
         {
             var info = new WNDCLASSEXW
             {
-                cbSize = 80,
+                cbSize = (uint)Marshal.SizeOf<WNDCLASSEXW>(),
                 lpfnWndProc = Proc,
                 hInstance = instance,
                 lpszClassName = name,

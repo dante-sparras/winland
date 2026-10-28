@@ -99,14 +99,15 @@ public class WorkspaceRuleTests
         var document = ConfigParser.Parse("""
             workspace = , gapsin:1
             workspace = 1, default:maybe, monitor:DP-1
-            workspace = 4, gapsin:1 2 3 4 5
+            workspace = 3, gapsin:1 2 3 4 5
+            workspace = 4, gapsin:1 2 3 4
             """);
 
         Assert.Equal(
             [
                 new ConfigWarning(1, "Malformed workspace rule."),
                 new ConfigWarning(2, "Failed parsing a workspace rule"),
-                new ConfigWarning(3, "Too many arguments provided for gaps."),
+                new ConfigWarning(3, "Error parsing workspace rule gaps: 1 2 3 4 5"),
             ],
             document.Warnings);
         var rule = Assert.Single(document.WorkspaceRules);
@@ -119,16 +120,35 @@ public class WorkspaceRuleTests
     {
         var document = ConfigParser.Parse("""
             workspace = 1, gapsin:5, default:false
-            workspace = 1, gapsout:8, default:true, monitor:DP-1
+            workspace = 1, gapsin:6
             workspace = 2, persistent:true
             """);
 
         Assert.Equal(2, document.WorkspaceRules.Count);
-        Assert.Equal("DP-1", document.WorkspaceRules[0].Monitor);
-        Assert.True(document.WorkspaceRules[0].Default);
-        Assert.Equal(EdgeInsets.Uniform(5), document.WorkspaceRules[0].GapsIn);
-        Assert.Equal(EdgeInsets.Uniform(8), document.WorkspaceRules[0].GapsOut);
+        Assert.False(document.WorkspaceRules[0].Default);
+        Assert.Equal(EdgeInsets.Uniform(6), document.WorkspaceRules[0].GapsIn);
         Assert.Equal("2", document.WorkspaceRules[1].WorkspaceString);
+    }
+
+    // A rule narrowed to one Monitor does not take away the rule every Monitor has, and both apply on that Monitor.
+    [Fact]
+    public void ARuleForOneMonitorAddsToTheRuleForEvery()
+    {
+        var document = ConfigParser.Parse("""
+            workspace = 1, gapsin:5, default:false
+            workspace = 1, gapsout:8, default:true, monitor:DP-1
+            """);
+        var dp1 = new Monitor("DP-1", "DP-1", 0, 0, 1920, 1080, 1, true, new Rectangle(0, 0, 1920, 1080));
+        var other = new Monitor("DP-2", "DP-2", 1920, 0, 1920, 1080, 1, true, new Rectangle(1920, 0, 1920, 1080));
+
+        Assert.Equal(2, document.WorkspaceRules.Count);
+        var narrowed = WorkspaceRules.For(document.WorkspaceRules, new WorkspaceId("1"), dp1);
+        Assert.True(narrowed!.Default);
+        Assert.Equal(EdgeInsets.Uniform(5), narrowed.GapsIn);
+        Assert.Equal(EdgeInsets.Uniform(8), narrowed.GapsOut);
+        var general = WorkspaceRules.For(document.WorkspaceRules, new WorkspaceId("1"), other);
+        Assert.False(general!.Default);
+        Assert.Null(general.GapsOut);
     }
 
     [Fact]

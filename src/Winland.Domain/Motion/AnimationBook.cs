@@ -49,10 +49,6 @@ internal sealed class AnimationBook
 
     private readonly Dictionary<string, SpringCurve> _springs = new(StringComparer.Ordinal);
 
-    // The nodes an animation line set, and the curves in the order they were added.
-    private readonly HashSet<string> _overridden = new(StringComparer.Ordinal);
-    private readonly List<string> _curveOrder = ["default", "linear"];
-
     internal static bool Exists(string node) => Parents.ContainsKey(node);
 
     internal bool TryCurve(string name, out Easing curve)
@@ -106,8 +102,6 @@ internal sealed class AnimationBook
             return "Bezier has too many arguments.";
 
         var curveName = Arg(args, 0);
-        if (!_curves.ContainsKey(curveName))
-            _curveOrder.Add(curveName);
         _curves[curveName] = new Winland.Domain.Bezier(points[0], points[1], points[2], points[3]);
         return null;
     }
@@ -150,7 +144,6 @@ internal sealed class AnimationBook
         if (!Exists(name))
             return $"Animation '{name}' does not exist.";
 
-        _overridden.Add(name);
         if (!IsOn(Arg(args, 1)))
         {
             _set[name] = new AnimationLeaf(false, 1, "default", "");

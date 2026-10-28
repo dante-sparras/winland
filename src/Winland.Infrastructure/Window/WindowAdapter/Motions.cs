@@ -42,7 +42,9 @@ public sealed partial class WindowAdapter
                 if (motion.FadeFrom == 0 && (motion.Warp || !_motions.Running(window)))
                     PlaceFrame(window, motion.From ?? bounds, borderless);
 
-                if (_motions.Begin(motion) && motion.Move is not null)
+                // A fade or a border change with no move of its own leaves a move still running toward this rectangle
+                // to the player, as a placement with no motion does.
+                if (_motions.Begin(motion) && (motion.Move is not null || _motions.Settle(window, bounds)))
                     return;
 
                 PlaceFrame(window, bounds, borderless);

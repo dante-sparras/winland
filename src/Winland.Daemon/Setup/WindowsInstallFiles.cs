@@ -39,6 +39,7 @@ sealed class WindowsInstallFiles : IFileTree
     {
         var handle = WindowsFileHandles.Open(source, WindowsFileHandles.GenericRead, FileShare.Read, followReparse: false);
         var owned = true;
+        string? aside = null;
         try
         {
             if (WindowsFileHandles.Attributes(handle).HasFlag(FileAttributes.ReparsePoint))
@@ -62,14 +63,32 @@ sealed class WindowsInstallFiles : IFileTree
                 {
                     // Windows will not delete the executable this process is running, or a library it has
                     // loaded. It will rename them, and the new file can then take the old name.
-                    MoveAside(destination);
+                    aside = MoveAside(destination);
                 }
             }
 
             using var input = new FileStream(handle, FileAccess.Read);
             owned = false;
-            using var output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-            input.CopyTo(output);
+            try
+            {
+                using var output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                input.CopyTo(output);
+            }
+            catch when (aside is not null)
+            {
+                // A copy that fails, as on a full disk, puts the file it set aside back, so the install is not left
+                // without the executable that runs it. The retirement only removes names marked .winland-old.
+                try
+                {
+                    File.Delete(destination);
+                    File.Move(aside, destination);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                }
+
+                throw;
+            }
         }
         finally
         {
@@ -191,7 +210,7 @@ sealed class WindowsInstallFiles : IFileTree
         return imageDirectory;
     }
 
-    private void MoveAside(string destination)
+    private string MoveAside(string destination)
     {
         var aside = destination + ".winland-old";
         if (File.Exists(aside) || Directory.Exists(aside))
@@ -221,6 +240,8 @@ sealed class WindowsInstallFiles : IFileTree
         var directory = ImageDirectory();
         if (directory is not null)
             ScheduleRetirement(directory);
+
+        return aside;
     }
 
     private void ScheduleRetirement(string directory)
@@ -308,7 +329,8 @@ sealed class WindowsInstallFiles : IFileTree
         using var process = Process.Start(new ProcessStartInfo
         {
             FileName = powershell,
-            ArgumentList = { "-NoProfile", "-File", path },
+            // The default policy on a client, Restricted, refuses a script file. This one is written here and run once.
+            ArgumentList = { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", path },
             UseShellExecute = false,
             CreateNoWindow = true,
         });

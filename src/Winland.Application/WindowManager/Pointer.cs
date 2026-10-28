@@ -263,7 +263,7 @@ public sealed partial class WindowManager
 
     private double ScaleOf(Point point)
     {
-        var scale = MonitorAt(point)?.Effective.Scale ?? 1;
+        var scale = MonitorAt(point)?.Arranged.Scale ?? 1;
         return scale is > 0 and < 1000 && double.IsFinite(scale) ? scale : 1;
     }
 
@@ -360,7 +360,9 @@ public sealed partial class WindowManager
         bounds = default;
         floating = false;
         side = BorderSide.None;
-        var options = ActiveOptions();
+
+        // The ring is as wide as the Monitor under the pointer scales it, which is where the windows it searches are.
+        var options = MonitorAt(pointer) is { Arranged.Enabled: true } screen ? _config.Layout.ScaledBy(screen.Arranged.Scale) : ActiveOptions();
         return TryRingTarget(pointer, options, BorderPointer.Reach(options), out window, out bounds, out floating, out side);
     }
 
@@ -454,8 +456,8 @@ public sealed partial class WindowManager
     private LayoutOptions ActiveOptions()
     {
         var screen = MonitorById(FocusedWorkspace().Monitor);
-        if (screen is { Effective.Enabled: true })
-            return _config.Layout.ScaledBy(screen.Effective.Scale);
+        if (screen is { Arranged.Enabled: true })
+            return _config.Layout.ScaledBy(screen.Arranged.Scale);
 
         return _config.Layout;
     }

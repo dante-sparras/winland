@@ -56,10 +56,9 @@ public sealed partial class WindowManager
         return false;
     }
 
-    // The window after or before this one on its Workspace in the order they opened, wrapping around, as the
-    // Winland cycles. A hidden Group member, a minimized window and one with nofocus are passed over.
-    // The next window on the Workspace in the order the windows opened, as Winland's window cycle walks
-    // them. floating, when given, takes only floating windows or only tiles.
+    // The window after or before this one on its Workspace in the order they opened, wrapping around, as Winland's
+    // window cycle walks them. A minimized window and one with nofocus are passed over, and a hidden Group member is
+    // not in the Layout to begin with. floating, when given, takes only floating windows or only tiles.
     private WindowId? CycleFrom(LiveWorkspace desk, WindowId current, bool previous, bool? floating = null)
     {
         var clients = desk.Layout.Clients;
@@ -79,7 +78,7 @@ public sealed partial class WindowManager
                 ? (start - step + clients.Count) % clients.Count
                 : (start + step) % clients.Count;
             var client = clients[index];
-            if (client.Minimized || HasNoFocus(client.Window) || desk.GroupOf(client.Window) is WindowGroup group && group.Shown != client.Window)
+            if (client.Minimized || HasNoFocus(client.Window))
                 continue;
 
             if (floating is bool wanted && client.Floating != wanted)
@@ -171,25 +170,24 @@ public sealed partial class WindowManager
         var origin = MonitorById(desk.Monitor);
         var wasActive = origin is not null && _workspaces.Shown.Shown(origin.Id) == desk.Id;
         var follow = wasActive && origin is { Focused: true };
-        var dx = destination.Effective.X - (origin?.Effective.X ?? destination.Effective.X);
-        var dy = destination.Effective.Y - (origin?.Effective.Y ?? destination.Effective.Y);
+        var dx = destination.Arranged.X - (origin?.Arranged.X ?? destination.Arranged.X);
+        var dy = destination.Arranged.Y - (origin?.Arranged.Y ?? destination.Arranged.Y);
         if (wasActive && origin is not null)
             Plug(origin, desk);
 
         desk.Layout.NudgeFloating(dx, dy);
-        if (desk.Id.IsSpecial)
-            desk.Monitor = destination.Id;
-        else
-        {
-            Readdressed(_workspaces.MoveTo(desk, destination.Id));
-        }
-
+        Readdressed(_workspaces.MoveTo(desk, destination.Id));
         Refit(desk);
 
         WindowId? focus = null;
         if (follow)
         {
+            // The Workspace the destination showed until now goes, when nothing keeps it.
+            var displaced = _workspaces.Shown.Shown(destination.Id);
             _workspaces.Shown.Show(destination.Id, desk.Id);
+            if (displaced is WorkspaceId gone && gone != desk.Id)
+                DropIfEmpty(gone);
+
             var next = _focus.Remembered(desk);
             Focus(destination.Id);
             Give(next, desk);
@@ -234,7 +232,7 @@ public sealed partial class WindowManager
         LiveWorkspace? replacement = null;
         foreach (var other in _workspaces)
         {
-            if (other.Id == leaving.Id || other.Monitor != origin.Id)
+            if (other.Id == leaving.Id || other.Id.IsSpecial || other.Monitor != origin.Id)
                 continue;
 
             replacement = other;
@@ -279,7 +277,7 @@ public sealed partial class WindowManager
     // space then no longer keep two tiles on neighbouring Monitors apart. A floating box is left as it is.
     private Rectangle Ideal(LiveWorkspace desk, WindowId window, Rectangle box)
     {
-        if (desk.ClientOf(window) is not Client client || MonitorById(desk.Monitor) is not { Effective.Enabled: true } screen)
+        if (desk.ClientOf(window) is not Client client || MonitorById(desk.Monitor) is not { Arranged.Enabled: true } screen)
             return box;
         // A fullscreen Client covers its Monitor, floating or not.
         if (desk.IsCovering(client))
@@ -288,7 +286,7 @@ public sealed partial class WindowManager
             return box;
 
         var border = desk.Options.BorderSize;
-        var work = desk.Options.GapsOut.Apply(screen.Effective.WorkArea);
+        var work = desk.Options.GapsOut.Apply(screen.Arranged.WorkArea);
         var monitor = screen.Bounds;
         var left = box.X - border;
         var top = box.Y - border;
@@ -311,7 +309,7 @@ public sealed partial class WindowManager
         var targets = new List<MonitorTarget>();
         foreach (var screen in _monitors)
         {
-            if (screen.Effective.Enabled)
+            if (screen.Arranged.Enabled)
                 targets.Add(Target(screen));
         }
 
@@ -320,12 +318,12 @@ public sealed partial class WindowManager
 
     private static MonitorTarget Target(LiveMonitor screen)
     {
-        var monitor = screen.Effective;
+        var monitor = screen.Arranged;
         return new MonitorTarget(screen.Id, monitor.Name, monitor.Description, monitor.X, monitor.Y, monitor.Width, monitor.Height);
     }
 
     private static MonitorTarget? TargetOf(LiveMonitor? screen) =>
-        screen is { Effective.Enabled: true } enabled ? Target(enabled) : null;
+        screen is { Arranged.Enabled: true } enabled ? Target(enabled) : null;
 
     private LiveMonitor? MonitorOf(MonitorTarget? target)
     {
@@ -333,26 +331,26 @@ public sealed partial class WindowManager
             return null;
 
         var screen = MonitorById(found.Id);
-        return screen is { Effective.Enabled: true } ? screen : null;
+        return screen is { Arranged.Enabled: true } ? screen : null;
     }
 
     private LiveMonitor? MonitorHolding(LiveWorkspace desk)
     {
         var screen = MonitorById(desk.Monitor);
-        return screen is { Effective.Enabled: true } ? screen : null;
+        return screen is { Arranged.Enabled: true } ? screen : null;
     }
 
     private LiveMonitor? FocusedMonitor()
     {
         foreach (var screen in _monitors)
         {
-            if (screen.Focused && screen.Effective.Enabled)
+            if (screen.Focused && screen.Arranged.Enabled)
                 return screen;
         }
 
         foreach (var screen in _monitors)
         {
-            if (screen.Effective.Enabled)
+            if (screen.Arranged.Enabled)
                 return screen;
         }
 
@@ -387,8 +385,6 @@ public sealed partial class WindowManager
 
         return (show.ToArray(), hide.ToArray());
     }
-
-
 
     private static bool TryMonitorArgument(string arguments, out string monitor, out bool silent)
     {

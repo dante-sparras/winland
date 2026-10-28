@@ -84,35 +84,31 @@ Test-Case 'a malformed attempt is not outstanding' {
 }
 
 Test-Case 'claim round trip' {
-    $text = ConvertTo-ClaimJson $sha 2 '0.1.0' $true 1790000000
-    Assert-Equal $text ('{"commit":"' + $sha + '","attempt":2,"version":"0.1.0","autopublish":true,"epoch":1790000000}')
+    $text = ConvertTo-ClaimJson $sha 2 '0.1.0' 1790000000
+    Assert-Equal $text ('{"commit":"' + $sha + '","attempt":2,"version":"0.1.0","epoch":1790000000}')
     $claim = ConvertFrom-ClaimJson $text
     Assert-Equal $claim.Commit $sha
     Assert-Equal $claim.Attempt 2
     Assert-Equal $claim.Version '0.1.0'
-    Assert-Equal $claim.Autopublish $true
     Assert-Equal $claim.Epoch 1790000000
 }
-Test-Case 'claim round trip, autopublish false' {
-    $claim = ConvertFrom-ClaimJson (ConvertTo-ClaimJson $sha 1 '1.0.0' $false 0)
-    Assert-Equal $claim.Autopublish $false
+Test-Case 'claim parse ignores the autopublish of an older claim' {
+    $claim = ConvertFrom-ClaimJson ('{"commit":"' + $sha + '","attempt":1,"version":"1.0.0","autopublish":false,"epoch":0}')
+    Assert-Equal $claim.Version '1.0.0'
 }
 Test-Case 'claim parse ignores a signature after the message' {
-    $text = (ConvertTo-ClaimJson $sha 1 '0.1.0' $false 5) + "`n-----BEGIN SSH SIGNATURE-----`nabc`n-----END SSH SIGNATURE-----"
+    $text = (ConvertTo-ClaimJson $sha 1 '0.1.0' 5) + "`n-----BEGIN SSH SIGNATURE-----`nabc`n-----END SSH SIGNATURE-----"
     Assert-Equal (ConvertFrom-ClaimJson $text).Version '0.1.0'
 }
 Test-Case 'claim parse rejects text' { Assert-Throws { ConvertFrom-ClaimJson 'release 0.1.0' } }
 Test-Case 'claim parse rejects a missing field' {
-    Assert-Throws { ConvertFrom-ClaimJson ('{"commit":"' + $sha + '","attempt":1,"version":"0.1.0","epoch":1}') }
+    Assert-Throws { ConvertFrom-ClaimJson ('{"commit":"' + $sha + '","attempt":1,"version":"0.1.0"}') }
 }
 Test-Case 'claim parse rejects a short commit' {
     Assert-Throws { ConvertFrom-ClaimJson '{"commit":"abc","attempt":1,"version":"0.1.0","autopublish":false,"epoch":1}' }
 }
 Test-Case 'claim parse rejects attempt 0' {
     Assert-Throws { ConvertFrom-ClaimJson ('{"commit":"' + $sha + '","attempt":0,"version":"0.1.0","autopublish":false,"epoch":1}') }
-}
-Test-Case 'claim parse rejects a text autopublish' {
-    Assert-Throws { ConvertFrom-ClaimJson ('{"commit":"' + $sha + '","attempt":1,"version":"0.1.0","autopublish":"yes","epoch":1}') }
 }
 Test-Case 'claim parse rejects a bad version' {
     Assert-Throws { ConvertFrom-ClaimJson ('{"commit":"' + $sha + '","attempt":1,"version":"0.1","autopublish":false,"epoch":1}') }
@@ -235,7 +231,7 @@ Test-Case 'publish names the tag on every update, since a draft forgets it other
     $updates = New-Object System.Collections.Generic.List[hashtable]
     $body = "$script:WarningBegin`nwarning`n$script:WarningEnd`n`nnotes`n"
     function Get-RemoteTags($Context) { @{ 'rc.1-v0.1.0' = [pscustomobject]@{ Name = 'rc.1-v0.1.0'; Commit = $sha; Annotated = $true } } }
-    function Get-TagClaim($Context, $Tag) { [pscustomobject]@{ Commit = $sha; Attempt = 1; Version = '0.1.0'; Autopublish = $false; Epoch = 0 } }
+    function Get-TagClaim($Context, $Tag) { [pscustomobject]@{ Commit = $sha; Attempt = 1; Version = '0.1.0'; Epoch = 0 } }
     function Find-AttemptRelease($Context, $Attempt) {
         [pscustomobject]@{ draft = $true; prerelease = $false; tag_name = 'rc.1-v0.1.0'; id = 7; body = $body
             assets = @('Winland-win-x64.zip', 'version.json', 'SHA256SUMS' | ForEach-Object { [pscustomobject]@{ name = $_; state = 'uploaded' } }) }
