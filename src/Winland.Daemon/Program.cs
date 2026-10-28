@@ -139,8 +139,24 @@ static int Run(string? path, RollingLogWriter log)
     using var host = new WindowHost(core, snapshot => Persist(store, snapshot), PipeName());
     // Log off and shut down clean up from WM_ENDSESSION, on the loop thread. Closing the console calls in from
     // a thread of its own, so the cleanup is handed to the loop thread there too.
-    host.SessionEnding = () => Stop(host, store, core);
-    using var exit = new ExitWatch(() => host.OnLoop(() => Stop(host, store, core)));
+    // The cleanup runs once. Closing the console can run it on the console's thread while the loop is busy, and the
+    // loop then reaches it on its way out: that one waits for the first and does nothing.
+    var stopGate = new Lock();
+    var stopped = false;
+    void StopOnce()
+    {
+        lock (stopGate)
+        {
+            if (stopped)
+                return;
+
+            stopped = true;
+            Stop(host, store, core);
+        }
+    }
+
+    host.SessionEnding = StopOnce;
+    using var exit = new ExitWatch(() => host.OnLoop(StopOnce));
     UnhandledExceptionEventHandler onCrash = (_, e) =>
     {
         Console.Error.WriteLine(e.ExceptionObject);
@@ -194,7 +210,7 @@ static int Run(string? path, RollingLogWriter log)
     {
         // A save of the config while the cleanup runs is not read.
         watching.Dispose();
-        Stop(host, store, core);
+        StopOnce();
         AppDomain.CurrentDomain.UnhandledException -= onCrash;
         LaunchConfigured(core, WindowManager.ShutdownLaunches(current));
 
