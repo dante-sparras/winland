@@ -12,7 +12,13 @@ if (ControlInvocation.TryCreate(args, out var line, out var events))
 var log = new RollingLogWriter(Console.Error);
 Console.SetError(log);
 
-if (InstallCommand.Parse(args) is InstallCommand command)
+if (!InstallCommand.TryParse(args, out var maintenance, out var parseError))
+{
+    Console.Error.WriteLine(parseError);
+    return 2;
+}
+
+if (maintenance is InstallCommand command)
     return Guard(() => MaintenanceCommand.Run(args, command));
 
 var userInstall = InstallLocations.IsPerUserInstall(
@@ -22,11 +28,12 @@ switch (ManualStartElevation.Decide(
     Elevation.IsElevated(),
     Environment.GetEnvironmentVariable(ManualStartElevation.OptOutVariable),
     args,
-    userInstall))
+    userInstall,
+    limitedToken: UserAccess.HasLimitedToken()))
 {
     case ElevationChoice.Relaunch relaunch:
         // The relaunch puts the loop argument first. Arguments Winland cannot start with ask for no approval.
-        return IsStart([.. relaunch.Arguments.Skip(1)]) ? Elevation.Relaunch(relaunch.Arguments) : Usage();
+        return Guard(() => IsStart([.. relaunch.Arguments.Skip(1)]) ? Relaunch(relaunch.Arguments) : Usage());
     case ElevationChoice.Refuse refuse:
         Console.Error.WriteLine(refuse.Message);
         return 1;
@@ -44,6 +51,20 @@ return Guard(() => Run(args.Length == 0 ? null : args[1], log), rethrow: true);
 
 static bool IsStart(string[] arguments) =>
     arguments.Length == 0 || (arguments.Length == 2 && arguments[0].Equals("--config", StringComparison.OrdinalIgnoreCase));
+
+static int Relaunch(IReadOnlyList<string> arguments)
+{
+    using (var probe = InstanceLock.TryTake(InstanceLock.NameFor(PipeName() ?? CommandProtocol.PipeName)))
+    {
+        if (probe is null)
+        {
+            Console.Error.WriteLine("Winland is already running in this session.");
+            return 1;
+        }
+    }
+
+    return Elevation.Relaunch(arguments);
+}
 
 static void LaunchConfigured(WindowManager core, IEnumerable<Launch> launches)
 {
@@ -71,12 +92,12 @@ static int Run(string? path, RollingLogWriter log)
     }
 
     var configPath = path ?? ConfigPaths.Default(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-    // The default is written only when Winland was not given --config and the file is not there yet.
-    var firstStart = path is null && !File.Exists(configPath) && DefaultConfig.WriteIfMissing(configPath);
+    // The default is written only without --config, when the file is absent or empty.
+    var firstStart = path is null && DefaultConfig.WriteIfMissing(configPath);
     if (firstStart)
         Console.Error.WriteLine($"Wrote the default config to {configPath}.");
 
-    if (!File.Exists(configPath))
+    if (!UserAccess.Run(() => File.Exists(configPath)))
     {
         Console.Error.WriteLine($"Could not read config '{Path.GetFullPath(configPath)}'.");
         return 1;
@@ -287,7 +308,7 @@ static int Usage()
 {
     Console.Error.WriteLine("usage: winland");
     Console.Error.WriteLine("       winland --config <path>");
-    Console.Error.WriteLine("       winland install [--user]");
+    Console.Error.WriteLine("       winland install [--user] [--no-logon] [--no-start]");
     Console.Error.WriteLine("       winland update [--channel <stable|dev>]");
     Console.Error.WriteLine("       winland uninstall [--purge]");
     Console.Error.WriteLine("       winland tweaks --off [--touchpad]");

@@ -195,6 +195,24 @@ public class GitHubReleaseTests
     }
 
     [Fact]
+    public void AnExhaustedRateLimitNamesItsResetTime()
+    {
+        var handler = new RecordingHandler(_ =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.Forbidden);
+            response.Headers.Add("x-ratelimit-remaining", "0");
+            response.Headers.Add("x-ratelimit-reset", "1793145600");
+            return response;
+        });
+        using var http = new HttpClient(handler);
+
+        var error = Assert.Throws<InvalidOperationException>(() => new GitHubReleaseFeed(http).Latest(UpdateChannel.Stable));
+
+        Assert.Contains("GitHub API rate limit is used up", error.Message, StringComparison.Ordinal);
+        Assert.Contains("2026-10-28 00:00:00 UTC", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AMissingDevReleaseIsRefused()
     {
         var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.NotFound));

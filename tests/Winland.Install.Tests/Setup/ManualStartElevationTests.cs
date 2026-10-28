@@ -3,6 +3,14 @@ namespace Winland.Install.Tests;
 public class ManualStartElevationTests
 {
     [Fact]
+    public void AStandardUserContinuesWithoutAskingForAnotherAccountsCredentials()
+    {
+        var choice = ManualStartElevation.Decide(false, null, [], limitedToken: false);
+
+        Assert.IsType<ElevationChoice.Continue>(choice);
+    }
+
+    [Fact]
     public void UnelevatedStartRelaunchesOnceWithTheSameArgumentsAndALoopGuard()
     {
         var choice = ManualStartElevation.Decide(

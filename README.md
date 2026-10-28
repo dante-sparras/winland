@@ -4,11 +4,15 @@ A keyboard-driven tiling window manager for Windows 11.
 
 ## Install
 
+Winland requires Windows 11 x64 and one administrator approval, and tiles every open window as soon as it starts.
+
 Open PowerShell and run:
 
 ```powershell
 irm https://raw.githubusercontent.com/dante-sparras/winland/main/scripts/install.ps1 | iex
 ```
+
+The installer asks whether to start at sign-in, start now, and turn off Windows Snap and touchpad workspace swipes. Enter means yes. `winland uninstall` removes Winland and restores the Windows settings it changed. Your config stays unless you pass `--purge`.
 
 To install the dev release, built from `main` after every change, run:
 
@@ -16,7 +20,7 @@ To install the dev release, built from `main` after every change, run:
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/dante-sparras/winland/main/scripts/install.ps1))) -Channel dev
 ```
 
-To install by hand, download `Winland-win-x64.zip` from [Releases](https://github.com/dante-sparras/winland/releases), unzip it and run `winland\winland.exe install`.
+To install by hand, download `Winland-win-x64.zip` from [Releases](https://github.com/dante-sparras/winland/releases), unzip it and run `winland\winland.exe install`, then run `winland tweaks --off`. Add `--touchpad` to the tweaks command to turn off the three- and four-finger touchpad swipes too.
 
 ## Hotkeys
 

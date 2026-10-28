@@ -61,8 +61,8 @@ public sealed class AppInstall
         ArgumentException.ThrowIfNullOrWhiteSpace(version);
 
         var plan = Plan(executable, layout.MachineDirectory);
-        session.Stop();
-        Apply(plan);
+        Require(plan.Files, LogonTaskDefinition.LauncherName, plan.SourceDirectory);
+        ApplyStopped(plan, perUser: false);
         var installed = plan.InstalledExecutable;
         // The task starts this copy, never the folder install was run from. That folder is one the user can write.
         if (logon)
@@ -72,7 +72,6 @@ public sealed class AppInstall
         Place(installed, layout.CommonPrograms, arguments: "");
         RegisterUninstall(RegistryRoot.Machine, installed, layout.MachineDirectory, version);
         SetPath(RegistryRoot.Machine, InstallLocations.MachinePathKey, layout.MachineDirectory);
-        RemoveUser();
         if (start)
             session.Start(installed, []);
     }
@@ -90,8 +89,7 @@ public sealed class AppInstall
             throw new InvalidOperationException("Winland is already installed for this PC. Run winland uninstall first to install it for you only.");
 
         var plan = Plan(executable, layout.UserDirectory);
-        session.Stop();
-        Apply(plan);
+        ApplyStopped(plan, perUser: true);
         var installed = plan.InstalledExecutable;
         // No scheduled task. The Run key starts this copy unelevated, and a start from the folder never asks for UAC.
         var command = Quote(installed) + " " + ManualStartElevation.OptOutArgument;
@@ -118,8 +116,7 @@ public sealed class AppInstall
         ArgumentException.ThrowIfNullOrWhiteSpace(version);
 
         var plan = Plan(sourceExecutable, destination);
-        var running = session.Stop();
-        Apply(plan);
+        var running = ApplyStopped(plan, perUser);
         var installed = plan.InstalledExecutable;
         var root = perUser ? RegistryRoot.User : RegistryRoot.Machine;
         RegisterUninstall(root, installed, destination, version);
@@ -131,6 +128,12 @@ public sealed class AppInstall
     public void Uninstall(bool purge, bool machine)
     {
         session.Stop();
+        if (machine)
+        {
+            RemoveMachine();
+            return;
+        }
+
         // The record lives in the folder --purge deletes, so put the settings back first. A record that cannot be
         // read still lets the rest of Winland go, and is reported once it has.
         Exception? unrestored = null;
@@ -143,9 +146,6 @@ public sealed class AppInstall
             unrestored = exception;
         }
 
-        if (machine)
-            RemoveMachine();
-
         RemoveUser();
         if (purge)
         {
@@ -156,6 +156,9 @@ public sealed class AppInstall
         if (unrestored is not null)
             throw new InvalidOperationException("Winland is uninstalled, but the Windows settings it turned off were not put back: " + unrestored.Message, unrestored);
     }
+
+    /// <summary>Called by the original, unelevated installer after the machine install succeeds.</summary>
+    public void RemoveUserInstall() => RemoveUser();
 
     private sealed class NoDesktopRestore : IDesktopRestore
     {
@@ -189,7 +192,9 @@ public sealed class AppInstall
             return;
 
         files.PrepareDirectory(plan.Destination);
-        foreach (var file in plan.Files)
+        // Keep the entry point and then the build stamp until every other file has copied successfully.
+        foreach (var file in plan.Files.OrderBy(file => file.RelativePath.Equals("Winland.Domain.dll", StringComparison.OrdinalIgnoreCase) ? 2
+                     : file.RelativePath.Equals(InstallLocations.ExecutableName, StringComparison.OrdinalIgnoreCase) ? 1 : 0))
             files.Copy(Path.Combine(plan.SourceDirectory, file.RelativePath), Path.Combine(plan.Destination, file.RelativePath));
 
         // A file an older release shipped and this one does not is removed, so libraries it dropped do not pile up.
@@ -199,6 +204,33 @@ public sealed class AppInstall
         {
             if (!shipped.Contains(file.RelativePath) && !file.RelativePath.Contains(".winland-old", StringComparison.OrdinalIgnoreCase))
                 files.DeleteFile(Path.Combine(plan.Destination, file.RelativePath));
+        }
+    }
+
+    private bool ApplyStopped(CopyPlan plan, bool perUser)
+    {
+        var existed = files.Exists(plan.InstalledExecutable);
+        var running = session.Stop();
+        try
+        {
+            Apply(plan);
+            return running;
+        }
+        catch
+        {
+            if (running && existed)
+            {
+                try
+                {
+                    session.Start(plan.InstalledExecutable, perUser ? [ManualStartElevation.OptOutArgument] : []);
+                }
+                catch (Exception exception) when (exception is not OutOfMemoryException)
+                {
+                    Console.Error.WriteLine("Could not restart the previous Winland: " + exception.Message);
+                }
+            }
+
+            throw;
         }
     }
 

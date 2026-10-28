@@ -145,7 +145,7 @@ internal static class Taskbar
     {
         try
         {
-            return File.Exists(MarkerPath);
+            return UserAccess.Run(() => File.Exists(MarkerPath));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -166,10 +166,10 @@ internal static class Taskbar
     private static string MarkerPath =>
         MarkerFile(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), Environment.GetEnvironmentVariable("WINLAND_PIPE"));
 
-    // An elevated Winland writes here as an administrator, in a folder the user owns. A folder or marker turned into a
-    // link elsewhere is refused, and the marker is made new rather than written through, so a hard link to another
-    // file is never written.
-    private static void WriteMarker(int state)
+    // User-file operations use the shell's token, so a link swap cannot borrow administrator rights.
+    private static void WriteMarker(int state) => UserAccess.Run(() => WriteMarkerFile(state));
+
+    private static void WriteMarkerFile(int state)
     {
         var path = MarkerPath;
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -194,7 +194,7 @@ internal static class Taskbar
         state = AlwaysOnTop;
         try
         {
-            var text = File.ReadAllText(MarkerPath).Trim();
+            var text = UserAccess.Run(() => File.ReadAllText(MarkerPath)).Trim();
             return int.TryParse(text, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out state);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or DirectoryNotFoundException)
@@ -207,8 +207,11 @@ internal static class Taskbar
     {
         try
         {
-            if (!Redirected(MarkerPath))
-                File.Delete(MarkerPath);
+            UserAccess.Run(() =>
+            {
+                if (!Redirected(MarkerPath))
+                    File.Delete(MarkerPath);
+            });
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

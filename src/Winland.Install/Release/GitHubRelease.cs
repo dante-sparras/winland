@@ -199,6 +199,22 @@ public sealed class GitHubReleaseFeed : IReleaseFeed
         using (response)
         {
             var code = (int)response.StatusCode;
+            if (code is 403 or 429
+                && response.Headers.TryGetValues("x-ratelimit-remaining", out var remaining)
+                && remaining.Contains("0"))
+            {
+                var reset = "Try again later.";
+                if (response.Headers.TryGetValues("x-ratelimit-reset", out var values)
+                    && long.TryParse(values.FirstOrDefault(), System.Globalization.CultureInfo.InvariantCulture, out var seconds)
+                    && seconds is >= 0 and <= 253402300799)
+                {
+                    reset = "Try again after " + DateTimeOffset.FromUnixTimeSeconds(seconds)
+                        .ToString("yyyy-MM-dd HH:mm:ss 'UTC'", System.Globalization.CultureInfo.InvariantCulture) + ".";
+                }
+
+                throw new InvalidOperationException("The GitHub API rate limit is used up. " + reset);
+            }
+
             if (code == 404 && github)
             {
                 throw new InvalidOperationException(url == ReleaseAssets.DevUrl
