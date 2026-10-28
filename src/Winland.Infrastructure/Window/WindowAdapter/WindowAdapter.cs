@@ -17,7 +17,6 @@ public sealed partial class WindowAdapter : IDisposable
     private const int LayeredStyle = 0x00080000;
     private const int ClickThroughStyle = 0x00000020;
     private const int NoActivateStyle = 0x08000000;
-    private const int AppWindowStyle = 0x00040000;
 
     private readonly Lock _showGate = new();
     private volatile bool _releasing;
@@ -487,7 +486,8 @@ public sealed partial class WindowAdapter : IDisposable
         var identity = PackagedIdentity.Resolve(hwnd, className, ProcessFacts.Shared.For(owner).Exe);
         var topLevel = PInvoke.GetAncestor(hwnd, GET_ANCESTOR_FLAGS.GA_ROOT) == hwnd && (style & ChildStyle) == 0;
         Point? pointer = PInvoke.GetCursorPos(out var cursor) ? new Point(cursor.X, cursor.Y) : null;
-        var bounds = PInvoke.GetWindowRect(hwnd, out var rect) ? From(rect) : default;
+        var outer = PInvoke.GetWindowRect(hwnd, out var rect) ? From(rect) : default;
+        var bounds = TryVisible(window, out var visible) ? visible : outer;
         var monitorRect = From(info.rcMonitor);
         // A Store app's frame belongs to ApplicationFrameHost. The Client's process is the app it hosts.
         long processId = identity.ProcessId;
@@ -497,6 +497,7 @@ public sealed partial class WindowAdapter : IDisposable
         var ownerWindow = PInvoke.GetWindow(hwnd, GET_WINDOW_CMD.GW_OWNER);
         appeared = new WindowAppeared(window, From(info.rcWork))
         {
+            Foreground = PInvoke.GetForegroundWindow() == hwnd,
             Pointer = pointer,
             Owner = ownerWindow.IsNull ? null : new WindowId(((IntPtr)ownerWindow).ToInt64()),
             Disabled = Note(window, !PInvoke.IsWindowEnabled(hwnd)),
@@ -520,8 +521,10 @@ public sealed partial class WindowAdapter : IDisposable
                 Aumid: identity.Aumid,
                 MinSize: min,
                 MaxSize: max,
-                ExclusiveFullscreen: ExclusiveFullscreenWindow.Is((uint)style, bounds, monitorRect),
-                Overlay: IsOverlay(extended)),
+                ExclusiveFullscreen: ExclusiveFullscreenWindow.Is((uint)style, outer, monitorRect),
+                Overlay: IsOverlay(extended),
+                Resizable: (style & SizingStyle) != 0,
+                Topmost: (extended & TopmostStyle) != 0),
         };
         return true;
     }
@@ -529,11 +532,11 @@ public sealed partial class WindowAdapter : IDisposable
     // A window that opens floating unless a rule tiles it: a Win32 dialog, a window with a modal frame, one a visible
     // window owns, such as a WPF, Qt or Electron dialog or settings window, and one that stays on top, such as a
     // browser's picture in picture. A main window some frameworks give a hidden owner still tiles.
-    private static bool Dialogish(string className, int extended, HWND owner) =>
+    private bool Dialogish(string className, int extended, HWND owner) =>
         className == "#32770"
         || (extended & DialogStyle) != 0
         || (extended & TopmostStyle) != 0
-        || (!owner.IsNull && PInvoke.IsWindowVisible(owner));
+        || (!owner.IsNull && (PInvoke.IsWindowVisible(owner) || _concealed.ContainsKey(new WindowId((nint)owner))));
 
     // The class window rules match: a Store frame's is its hosted app's once the frame hosts one.
     private static string RuleClass(HWND hwnd)

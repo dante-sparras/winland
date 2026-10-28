@@ -67,6 +67,7 @@ public sealed partial class WindowManager
         {
             case WindowAppeared appeared when !wasClient && WorkspaceContaining(appeared.Window) is { } appearedWorkspace
                 && _workspaces.Shown.IsShown(appearedWorkspace.Id)
+                && (!appeared.Traits.Topmost || appeared.Foreground)
                 && !_awaitingMapFocus.Contains(appeared.Window):
                 var current = _workspaces.Shown.SpecialOn(appearedWorkspace.Monitor) ?? _workspaces.Shown.ActiveOn(appearedWorkspace.Monitor);
                 if (appearedWorkspace.Id == current)
@@ -127,6 +128,10 @@ public sealed partial class WindowManager
             if (_initialWorkspaces.TryTake(processId, Clock(), out var origin) && rule.Id is null && origin != current)
                 rule = new WorkspaceAddress.Rule(origin, Silent: true);
         }
+        var owned = appeared.Owner is WindowId ownerWindow ? WorkspaceContaining(ownerWindow) : null;
+        if (restored is null && rule.Id is null && owned is not null)
+            rule = new WorkspaceAddress.Rule(owned.Id, Silent: true);
+
         var target = restored?.Workspace ?? rule.Id ?? current;
         ForgetRestored(appeared.Window);
         var ruledHere = restored is null && rule.Id is WorkspaceId ruled && !ruled.IsSpecial;
@@ -163,7 +168,7 @@ public sealed partial class WindowManager
         if (GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, focused))
             placements = desk.Layout.Visible();
 
-        NotePlaced(appeared.Window, desk, decision, restored is not null);
+        NotePlaced(appeared.Window, desk, decision, restored is not null || traits.Topmost);
         _props.Opened(appeared.Window, traits, followed, decision);
         RememberFocus(appeared.Window, decision);
         NoteOwner(appeared);
@@ -189,6 +194,9 @@ public sealed partial class WindowManager
 
         if (!_workspaces.Shown.IsShown(target))
         {
+            if (owned is not null)
+                MarkUrgent(appeared.Window);
+
             if (StaysVisible(desk, appeared.Window, minimized: false))
                 return Offering(View(placements, show: [appeared.Window]), restore);
 

@@ -206,6 +206,9 @@ public sealed record WindowAppeared(WindowId Window, Rectangle WorkArea) : Event
     /// </summary>
     public bool Opened { get; init; }
 
+    /// <summary>The window already has Windows' foreground when it is offered for adoption.</summary>
+    public bool Foreground { get; init; }
+
     /// <summary>Windows has disabled the window, as it does the owner of an open modal dialog.</summary>
     public bool Disabled { get; init; }
 

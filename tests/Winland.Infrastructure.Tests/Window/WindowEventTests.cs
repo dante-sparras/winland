@@ -97,14 +97,14 @@ public class WindowEventTests
     }
 
     // Claude's screen overlay is layered, click-through, topmost and never activated (0x08280028). A WinUI tooltip,
-    // as Magpie shows over its buttons, is layered and never activated (0x08280000). A window that asks to be on the
-    // taskbar is an application window even when it is never activated.
+    // as Magpie shows over its buttons, is layered and never activated (0x08280000). Asking for a taskbar button
+    // does not make a no-activate window safe to focus or hide.
     [Theory]
     [InlineData(0x08280028, true)]
     [InlineData(0x00080020, true)]
     [InlineData(0x08280000, true)]
     [InlineData(0x08000000, true)]
-    [InlineData(0x08040000, false)]
+    [InlineData(0x08040000, true)]
     [InlineData(0x00080000, false)]
     [InlineData(0x00000020, false)]
     [InlineData(0x00000100, false)]

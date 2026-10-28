@@ -338,11 +338,11 @@ public sealed partial class WindowAdapter : IDisposable
 
     // A layered window input passes through, such as a screen overlay, cannot be clicked or focused, so
     // it is never a Client. Neither is a window that is never activated, such as a tooltip or a popup a WinUI or
-    // Electron app shows over its own window, unless it asks for a taskbar button as Windows' taskbar reads it.
+    // Electron app shows over its own window, including one that asks for a taskbar button.
     // Winland draws such surfaces as layers, which it never tiles.
     internal static bool IsOverlay(int extended) =>
         ((extended & LayeredStyle) != 0 && (extended & ClickThroughStyle) != 0)
-        || ((extended & NoActivateStyle) != 0 && (extended & AppWindowStyle) == 0);
+        || (extended & NoActivateStyle) != 0;
 
     // Stryker disable once all : asks DWM whether a real window is cloaked.
     internal static bool IsCloaked(HWND hwnd)

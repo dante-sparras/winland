@@ -156,7 +156,7 @@ internal static partial class WindowRuleParser
 
         return new WindowDecision(
             adopt is bool forced ? forced && Surface(traits) : Adopts(traits),
-            floating ?? traits.Dialog,
+            floating ?? (traits.Dialog || !traits.Resizable || traits.Topmost),
             workspace,
             noInitialFocus ?? false,
             noFocus ?? false,
@@ -166,7 +166,7 @@ internal static partial class WindowRuleParser
             opacity,
             opaque ?? false,
             RequestedFullscreen(fullscreen, maximize),
-            pin ?? false,
+            pin ?? traits.Topmost,
             placement,
             sizes,
             props,
