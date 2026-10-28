@@ -25,17 +25,8 @@ internal sealed class WindowGroup(WindowId first)
     /// The index after removing the member at <paramref name="index"/>. A hidden member leaves the shown one
     /// shown. When the shown member leaves, the one before it takes the tile, or the next one when it was first.
     /// </summary>
-    public int CurrentAfterRemoving(int index)
-    {
-        if (index != Current)
-            return index < Current ? Current - 1 : Current;
-
-        var current = Current;
-        if ((current >= index && index != 0) || (current >= _members.Count - 1 && current > 0))
-            current--;
-
-        return current;
-    }
+    public int CurrentAfterRemoving(int index) =>
+        index == Current ? Math.Max(0, Current - 1) : index < Current ? Current - 1 : Current;
 
     /// <summary>Adds <paramref name="window"/> at <paramref name="position"/>, clamped to the Group. The shown member stays shown.</summary>
     public void Insert(int position, WindowId window)
@@ -61,9 +52,6 @@ internal sealed class WindowGroup(WindowId first)
         _members.RemoveAt(index);
         Current = current;
     }
-
-    /// <summary>Puts <paramref name="window"/> in the place of the member at <paramref name="index"/>.</summary>
-    public void Replace(int index, WindowId window) => _members[index] = window;
 
     /// <summary>Swaps the shown member with the one at <paramref name="index"/>, which stays shown in its new place.</summary>
     public void MoveShownTo(int index)

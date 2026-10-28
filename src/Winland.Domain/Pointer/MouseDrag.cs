@@ -77,7 +77,7 @@ internal sealed class MouseDrag
                 return host.ResizeTile(grab.Id, dx, dy, (grab.Left, grab.Top));
 
             var resized = BorderPointer.Resize(grab.Start, grab.Pressed, pointer, grab.Left, grab.Top, grab.KeepRatio);
-            floating.Set(grab.Id, resized);
+            floating.Set(grab.Id, host.FloatingLimits(grab.Id).Clamp(resized));
             return Dragged(host.ShowFloating(grab.Id), grab.Id);
         }
 
@@ -154,6 +154,8 @@ internal sealed class MouseDrag
 internal interface IMouseDragHost
 {
     FloatingClients Floating { get; }
+
+    SizeLimits FloatingLimits(ClientId id);
 
     /// <summary>The rectangle a drag of this Client starts from. False when it cannot be dragged.</summary>
     bool TryDragBounds(ClientId id, out Rectangle bounds, out bool floating);

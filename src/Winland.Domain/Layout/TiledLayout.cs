@@ -40,6 +40,8 @@ internal abstract class TiledLayout
 
     public void NudgeFloating(int dx, int dy) => _floating.Nudge(dx, dy);
 
+    public SizeLimits FloatingLimits(ClientId id) => _limits.TryGetValue(id, out var limits) ? new SizeLimits(limits.Min, limits.Max) : default;
+
     /// <summary>The tiled placements, which each Layout works out.</summary>
     public abstract IReadOnlyList<Placement> Placed();
 

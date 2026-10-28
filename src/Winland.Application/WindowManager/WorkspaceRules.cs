@@ -29,7 +29,7 @@ public sealed partial class WindowManager
         {
             Stamp(desk);
             layout.Apply(desk.Options);
-            layout.Fit(screen.Arranged.WorkArea);
+            layout.Fit(screen.Arranged.WorkArea, screen.Bounds);
         }
         else
         {
@@ -74,6 +74,8 @@ public sealed partial class WindowManager
         var rule = RuleFor(desk);
         desk.Persistent = PersistentBy(desk, rule);
         desk.Options = OptionsFor(desk, rule);
+        if (desk.Layout is ScrollingLayout scrolling)
+            scrolling.OtherMonitors = [.. _monitors.Where(screen => screen.Arranged.Enabled && screen.Id != desk.Monitor).Select(screen => screen.Bounds)];
     }
 
     // A persistent rule keeps a normal Workspace. A special workspace is never kept.

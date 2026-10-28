@@ -36,7 +36,6 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                 BoundsBody.From(client.Bounds),
                 client.Pinned,
                 client.Fullscreen is FullscreenMode internalMode ? (int)internalMode : null,
-                client.FullscreenClient is FullscreenMode clientMode ? (int)clientMode : null,
                 client.FrameStyle,
                 client.Region);
         }
@@ -74,8 +73,7 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
                     row.Floating,
                     row.Bounds?.ToRectangle(),
                     row.Pinned,
-                    Mode(row.Fullscreen),
-                    Mode(row.FullscreenClient))
+                    Mode(row.Fullscreen))
                 {
                     FrameStyle = row.FrameStyle,
                     Region = row.Region,
@@ -112,7 +110,6 @@ public sealed record RecoverySnapshot(IReadOnlyList<RecoveredClient> Clients)
         [property: JsonPropertyName("bounds")] BoundsBody? Bounds = null,
         [property: JsonPropertyName("pinned")] bool? Pinned = null,
         [property: JsonPropertyName("fullscreen")] int? Fullscreen = null,
-        [property: JsonPropertyName("fullscreenClient")] int? FullscreenClient = null,
         [property: JsonPropertyName("frameStyle")] uint? FrameStyle = null,
         [property: JsonPropertyName("region")] bool Region = false);
 

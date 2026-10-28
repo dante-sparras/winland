@@ -30,6 +30,12 @@ internal sealed class FullscreenCover(Func<WindowId, bool> isPinned)
         _flags.Remove(window);
         _seen.Remove(window);
         _below.Remove(window);
+        foreach (var state in _scrolling.Values)
+        {
+            state.Hidden.Remove(window);
+            if (state.Last == window)
+                state.Last = null;
+        }
     }
 
     /// <summary>

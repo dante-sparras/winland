@@ -102,7 +102,7 @@ internal sealed class FocusState(Func<WindowId, bool> canTake)
         ArgumentNullException.ThrowIfNull(desk);
         foreach (var window in _history)
         {
-            if (desk.ClientOf(window) is { Minimized: false } && canTake(window))
+            if (desk.ClientOf(window) is { Minimized: false } && !desk.IsWaiting(window) && canTake(window))
                 return window;
         }
 

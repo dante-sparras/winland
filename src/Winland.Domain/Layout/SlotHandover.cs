@@ -33,8 +33,8 @@ internal static class SlotHandover
             Class = incoming.Class,
             Title = incoming.Title,
             ProcessId = incoming.ProcessId,
-            InitialClass = incoming.InitialClass.Length == 0 ? incoming.Class : incoming.InitialClass,
-            InitialTitle = incoming.InitialTitle.Length == 0 ? incoming.Title : incoming.InitialTitle,
+            InitialClass = incoming.InitialClass ?? incoming.Class,
+            InitialTitle = incoming.InitialTitle ?? incoming.Title,
         };
 
     public static void Move<TValue>(Dictionary<ClientId, TValue> map, ClientId from, ClientId to)

@@ -175,7 +175,7 @@ internal sealed partial class DwindleLayout
                 return 0;
 
             var want = horizontal ? min.Width : min.Height;
-            var chrome = Chrome(node.Box);
+            var chrome = Chrome(id, node.Box);
             return AtLeast(0, want, horizontal ? chrome.Horizontal : chrome.Vertical);
         }
 
@@ -192,7 +192,7 @@ internal sealed partial class DwindleLayout
         return along ? (int)sum : Math.Max(first, second);
     }
 
-    private (int Horizontal, int Vertical) Chrome(Rectangle box)
+    private (int Horizontal, int Vertical) Chrome(ClientId id, Rectangle box)
     {
         var area = TilingArea();
         var gaps = _options.GapsIn;
@@ -200,7 +200,7 @@ internal sealed partial class DwindleLayout
         var top = box.Y == area.Y ? 0 : gaps.Top;
         var right = box.X + box.Width == area.X + area.Width ? 0 : gaps.Right;
         var bottom = box.Y + box.Height == area.Y + area.Height ? 0 : gaps.Bottom;
-        var border = _options.BorderSize;
+        var border = _options.BorderFor(id);
         return (left + right + (border * 2), top + bottom + (border * 2));
     }
 

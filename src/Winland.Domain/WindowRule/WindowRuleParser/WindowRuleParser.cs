@@ -302,7 +302,7 @@ internal static partial class WindowRuleParser
                 if (enabled)
                 {
                     var mode = name == "fullscreen" ? FullscreenMode.Fullscreen : FullscreenMode.Maximized;
-                    fullscreen = new FullscreenRule(mode, mode);
+                    fullscreen = new FullscreenRule(mode);
                 }
 
                 error = "";
@@ -392,10 +392,10 @@ internal static partial class WindowRuleParser
     private static FullscreenRule? RequestedFullscreen(bool? fullscreen, bool? maximize)
     {
         if (maximize == true)
-            return new FullscreenRule(FullscreenMode.Maximized, FullscreenMode.Maximized);
+            return new FullscreenRule(FullscreenMode.Maximized);
 
         if (fullscreen == true)
-            return new FullscreenRule(FullscreenMode.Fullscreen, FullscreenMode.Fullscreen);
+            return new FullscreenRule(FullscreenMode.Fullscreen);
 
         return null;
     }

@@ -18,7 +18,7 @@ internal sealed class FloatingLayout : Layout, IDragOwner
 
     public IReadOnlyList<Placement> Apply(LayoutOptions options) => _inner.Apply(options);
 
-    public void Fit(Rectangle area) => _inner.Fit(area);
+    public void Fit(Rectangle area, Rectangle monitor) => _inner.Fit(area, monitor);
 
     public void Readdress(WorkspaceId workspace) => _inner.Readdress(workspace);
 
@@ -43,8 +43,8 @@ internal sealed class FloatingLayout : Layout, IDragOwner
         string title = "",
         Rectangle monitor = default,
         long processId = 0,
-        string initialClass = "",
-        string initialTitle = "",
+        string? initialClass = null,
+        string? initialTitle = null,
         Size? minSize = null,
         Size? maxSize = null,
         TiledLimits? tiledLimits = null)
@@ -150,8 +150,8 @@ internal sealed class FloatingLayout : Layout, IDragOwner
 
     public IReadOnlyList<Placement> Drag(WindowId window, PointerDrag drag) => _inner.Drag(window, drag);
 
-    public IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode, FullscreenMode clientMode) =>
-        _inner.SetFullscreen(window, mode, clientMode);
+    public IReadOnlyList<Placement> SetFullscreen(WindowId window, FullscreenMode mode) =>
+        _inner.SetFullscreen(window, mode);
 
     public IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds) => _inner.PlaceFloating(window, bounds);
 }
