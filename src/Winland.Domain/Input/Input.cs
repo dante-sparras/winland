@@ -157,8 +157,18 @@ public sealed record WindowLimitsChanged(WindowId Window, Size? MinSize, Size? M
 /// </summary>
 public sealed record MonitorsChanged(IReadOnlyList<Monitor> Monitors) : Event;
 
-/// <summary>The Windows accent. The active border follows it unless the config set <c>general:col.active_border</c>.</summary>
-public sealed record AccentChanged(BorderColor Color) : Event;
+/// <summary>
+/// The Windows accent, read again with the High Contrast colors and the text size. The active border follows the accent
+/// unless the config set <c>general:col.active_border</c>.
+/// </summary>
+public sealed record AccentChanged(BorderColor Color) : Event
+{
+    /// <summary>The High Contrast theme's colors, or null when no High Contrast theme is on.</summary>
+    public HighContrast? Contrast { get; init; }
+
+    /// <summary>Windows' text size, from Settings, Accessibility, Text size. 1 is 100 percent.</summary>
+    public double TextScale { get; init; } = 1;
+}
 
 /// <summary>The Clients a restart found in the state file have been adopted again, so their tiles can be arranged as they were.</summary>
 public sealed record RestoredAdopted : Event;

@@ -60,7 +60,9 @@ public sealed partial class WindowManager
     private Outcome NoteAccent(AccentChanged changed)
     {
         _accent = changed.Color;
-        _config = _config with { Decoration = _config.Decoration.WithAccent(_accent) };
+        _contrast = changed.Contrast;
+        _textScale = changed.TextScale;
+        _config = _config.WithSystemColors(_accent, _contrast);
         return View([]);
     }
 
@@ -75,7 +77,7 @@ public sealed partial class WindowManager
     private Outcome Apply(ConfigDocument document, bool loaded = true)
     {
         ArgumentNullException.ThrowIfNull(document);
-        Use(AppliedConfig.From(document, _accent));
+        Use(AppliedConfig.From(document, _accent, _contrast));
         if (loaded)
         {
             _loaded = document;

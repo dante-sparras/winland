@@ -113,6 +113,8 @@ GetKeyboardLayout
 ToUnicodeEx
 GetKeyState
 GetSystemMetrics
+GetSysColor
+HIGHCONTRASTW
 SetCursorPos
 SwapMouseButton
 SystemParametersInfo

@@ -18,6 +18,8 @@ public sealed partial class WindowManager
     // One lookup for every Workspace's options, so they still compare equal.
     private readonly Func<ClientId, int?> _clientBorder;
     private BorderColor? _accent;
+    private HighContrast? _contrast;
+    private double _textScale = 1;
     private Rectangle _area;
     private readonly FocusState _focus;
     private readonly ClientProps _props = new();
