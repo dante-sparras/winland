@@ -454,6 +454,19 @@ public sealed partial class WindowAdapter : IDisposable
             && PInvoke.GetWindowTextLength(hwnd) > 0;
     }
 
+    // Tooltips, menus and popups are shown all the time, and no window rule makes one of them a Client. They are told
+    // apart from their styles before their program and their size limits are read, which can wait on the window.
+    private static bool CanBeClient(HWND hwnd)
+    {
+        var style = PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE);
+        var extended = PInvoke.GetWindowLong(hwnd, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
+        return (style & ChildStyle) == 0
+            && !IsOverlay(extended)
+            && ((extended & ToolStyle) == 0 || PInvoke.GetWindowTextLength(hwnd) > 0)
+            && PInvoke.IsWindowVisible(hwnd)
+            && PInvoke.GetAncestor(hwnd, GET_ANCESTOR_FLAGS.GA_ROOT) == hwnd;
+    }
+
     // A window's state changes often, as it gains focus or is pressed, so only a change of enabled reaches the core.
     private void NoteEnabled(HWND hwnd, WindowId window)
     {

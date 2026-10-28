@@ -72,14 +72,33 @@ public class AppWindowTests
         Assert.True(PInvoke.IsWindowVisible(window.Handle));
     }
 
+    // A tool window is adopted when it has a title and a rule asks for it. One without a title, such as a menu, never is.
+    [DesktopFact]
+    public void AShownToolWindowWithATitleIsAdoptedByARule() => ShowToolWindow("Winland tool window probe", adopted: true);
+
+    [DesktopFact]
+    public void AShownToolWindowWithoutATitleIsNotAdoptedByARule() => ShowToolWindow("", adopted: false);
+
+    private static void ShowToolWindow(string title, bool adopted)
+    {
+        using var window = new Probe(extended: WINDOW_EX_STYLE.WS_EX_TOOLWINDOW, title: title);
+        var core = new WindowManager(ConfigParser.Parse("general:border_size = 0\nwindowrule = float, class:.*"));
+        using var adapter = new WindowAdapter(core);
+        core.ReducedMotion = () => true;
+
+        adapter.Notice(PInvoke.EVENT_OBJECT_SHOW, (nint)window.Handle);
+
+        Assert.Equal(adopted, core.Manages(window.Id));
+    }
+
     private sealed class Probe : IDisposable
     {
-        public unsafe Probe(bool resizable = true, HWND owner = default, WINDOW_EX_STYLE extended = 0)
+        public unsafe Probe(bool resizable = true, HWND owner = default, WINDOW_EX_STYLE extended = 0, string title = "Winland app compatibility probe")
         {
             var style = WINDOW_STYLE.WS_OVERLAPPEDWINDOW;
             if (!resizable)
                 style &= ~WINDOW_STYLE.WS_THICKFRAME;
-            Handle = PInvoke.CreateWindowEx(extended, "STATIC", "Winland app compatibility probe", style,
+            Handle = PInvoke.CreateWindowEx(extended, "STATIC", title, style,
                 100, 100, 450, 300, owner, null, null, null);
             Assert.False(Handle.IsNull);
             PInvoke.ShowWindow(Handle, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
