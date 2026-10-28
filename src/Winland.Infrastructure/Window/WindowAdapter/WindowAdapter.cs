@@ -375,7 +375,7 @@ public sealed partial class WindowAdapter : IDisposable
                         case VisibilityAction.Close:
                             AbandonDrag(window);
                             ForgetLimits(window);
-                            Apply(_core.Handle(new WindowClosed(window)));
+                            Apply(_core.Handle(new WindowClosed(window) { Cloaked = @event == PInvoke.EVENT_OBJECT_CLOAKED }));
                             break;
                         case VisibilityAction.Retitle:
                             Apply(_core.Handle(new WindowTitleChanged(window, WindowTitle(hwnd))));

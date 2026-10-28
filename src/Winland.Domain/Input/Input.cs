@@ -62,7 +62,11 @@ public sealed record SwipeEnded(bool Cancelled = false) : Event
     public long TimeMs { get; init; }
 }
 
-public sealed record WindowClosed(WindowId Window) : Event;
+public sealed record WindowClosed(WindowId Window) : Event
+{
+    /// <summary>A virtual desktop switch cloaked the window. Its placement is kept until it is offered again.</summary>
+    public bool Cloaked { get; init; }
+}
 
 public sealed record WindowFocused(WindowId Window, FocusCause Cause = FocusCause.User) : Event
 {

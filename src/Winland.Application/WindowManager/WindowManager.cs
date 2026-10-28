@@ -222,6 +222,7 @@ public sealed partial class WindowManager
             _readdressed = null;
             _crossMonitorWarp = null;
             _movedItself = null;
+            _restoring = null;
         }
     }
 
@@ -253,7 +254,7 @@ public sealed partial class WindowManager
             Dispatch dispatched => ExecuteTriggered(dispatched.Name, dispatched.Arguments, dispatched.Trigger),
             WindowFlashed flashed => Flash(flashed.Window),
             WindowFocused focused => Consider(focused),
-            WindowClosed closed => Close(closed.Window),
+            WindowClosed closed => Close(closed.Window, closed.Cloaked),
             WindowEnabledChanged changed => ChangeEnabled(changed),
             WindowLimitsChanged limits => ChangeLimits(limits),
             WindowMinimized minimized => Minimize(minimized.Window),

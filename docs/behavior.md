@@ -96,7 +96,7 @@ A Client that opens floating is kept on screen, also one a `move` rule places. S
 
 A Client that comes back after a restart keeps the rectangle it had, whether it floated, its pin and its fullscreen modes, as the recovery file recorded them, before the window rules. Each Monitor shows the Workspace it showed, and a dwindle Workspace's tiles are arranged as they were: every split cuts its box in two, so the rectangles the tiles had give each split's direction and ratio again. A Workspace with a tile that did not come back, or whose rectangles do not make such a tree, keeps the order the tiles came back in. A recovery file written before these were recorded leaves them to the rules.
 
-A Client whose application hides it, without minimizing it, stops being a Client, as an unmapped window does in Winland, and it is adopted again when the application shows it. The windows Winland hides itself, for a Workspace it does not show, stay Clients.
+A Client whose application hides it, including a minimized window sent to the notification area, stops being a Client, as an unmapped window does in Winland, and it is adopted again when the application shows it. The windows Winland hides itself, for a Workspace it does not show, stay Clients.
 
 `size` and `move` take two expressions, x then y, split at the first whitespace, so an expression cannot contain a space. An expression is numbers, `+ - * / ^`, parentheses, a unary minus, the constants `_pi` and `_e`, the one-argument functions `abs`, `sqrt`, `sign`, `rint`, `exp`, `ln`, `log`, `log2`, `log10`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `sinh`, `cosh` and `tanh`, and the variables `monitor_w`, `monitor_h`, `window_x`, `window_y`, `window_w`, `window_h`, `cursor_x` and `cursor_y`. Positions are local to the Monitor the Client opens on. Numbers are physical pixels, like `min_size`. A `min_size` or `max_size` rule also takes two expressions, read when the window opens. A size below 1 leaves that limit unset. A rule that is not two expressions, or uses a name that is not listed, warns with its line number and is skipped. So does an expression nested more than 256 levels deep in parentheses, signs, exponents and functions. A `%` is not part of an expression, so `50%` warns. A value that cannot be computed, such as a division by zero, leaves the Client where it would open without the rule.
 
@@ -371,7 +371,7 @@ With no window, `clients` replies `no open windows` and `activewindow` replies `
 
 ## Virtual desktops
 
-Winland's Workspaces are not Windows virtual desktops. A shown Client that a virtual desktop switch cloaks stops being a Client, and it is adopted again when it is uncloaked. A Client Winland has hidden stays a Client on its Workspace while it is cloaked, so it comes back when its Workspace is shown.
+Winland's Workspaces are not Windows virtual desktops. A shown Client that a virtual desktop switch cloaks stops being a Client, keeping its Workspace, rectangle, floating state, pin and fullscreen modes for silent adoption when it is uncloaked. Tiles return to their former arrangement. A Client Winland has hidden stays a Client on its Workspace while it is cloaked, so it comes back when its Workspace is shown.
 
 ## Notification area
 

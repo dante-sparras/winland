@@ -18,7 +18,7 @@ public sealed partial class WindowAdapter
         // take the focus as each window comes back.
         // A hung program is posted the command, so it does not hold up the thread that hears every window event.
         var window = new WindowId(handle);
-        if (_core.Manages(window) && PInvoke.IsIconic(hwnd))
+        if (_core.Manages(window) && PInvoke.IsWindowVisible(hwnd) && PInvoke.IsIconic(hwnd))
         {
             _ = _desktop.Hung(window)
                 ? PInvoke.ShowWindowAsync(hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE)

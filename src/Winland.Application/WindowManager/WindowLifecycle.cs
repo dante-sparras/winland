@@ -68,6 +68,7 @@ public sealed partial class WindowManager
             case WindowAppeared appeared when !wasClient && WorkspaceContaining(appeared.Window) is { } appearedWorkspace
                 && _workspaces.Shown.IsShown(appearedWorkspace.Id)
                 && (!appeared.Traits.Topmost || appeared.Foreground)
+                && _restoring != appeared.Window
                 && !_awaitingMapFocus.Contains(appeared.Window):
                 var current = _workspaces.Shown.SpecialOn(appearedWorkspace.Monitor) ?? _workspaces.Shown.ActiveOn(appearedWorkspace.Monitor);
                 if (appearedWorkspace.Id == current)
@@ -159,6 +160,13 @@ public sealed partial class WindowManager
             minSize: decision.MinSize,
             maxSize: decision.MaxSize,
             tiledLimits: RememberSizes(appeared.Window, decision.Sizes, appeared.Traits.MinSize, appeared.Traits.MaxSize));
+        if (restored is not null && appeared.Opened)
+        {
+            _restoring = appeared.Window;
+            placements = desk.Layout.Arrange(_restoredTiles);
+            if (_restored.Count == 0)
+                _restoredTiles.Clear();
+        }
         if (decision.FullscreenRequest is { } fullscreen)
             placements = desk.Layout.SetFullscreen(appeared.Window, fullscreen.Internal, fullscreen.Client);
         else
@@ -227,9 +235,17 @@ public sealed partial class WindowManager
         return new TiledLimits(ownMin, ownMax);
     }
 
-    private Outcome Close(WindowId window)
+    private Outcome Close(WindowId window, bool cloaked = false)
     {
+        var remembered = cloaked ? RememberCloaked(window) : null;
+        var tile = _restoredTiles.GetValueOrDefault(window);
         _windowState.Forget(window);
+        if (remembered is not null)
+        {
+            _restored[window] = remembered;
+            if (remembered.Floating == false)
+                _restoredTiles[window] = tile;
+        }
         var desk = WorkspaceContaining(window);
         if (desk is null)
             return View([]);
