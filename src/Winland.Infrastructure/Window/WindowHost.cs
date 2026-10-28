@@ -15,6 +15,9 @@ public sealed class WindowHost : IDisposable
     private readonly TouchpadInput _touchpad;
     private readonly CommandServer _commands;
     private readonly SessionPhase _phase = new();
+
+    // How many times the session went away: locked, suspended, disconnected or with its display off.
+    private int _absences;
     private readonly Lock _memory = new();
     private readonly Queue<SessionSignal> _pending = new();
     private readonly LoopInvoker _loop = new();
@@ -427,7 +430,11 @@ public sealed class WindowHost : IDisposable
         {
             while (_pending.Count > 0)
             {
+                var wasLive = _phase.Live;
                 var effect = _phase.Notice(_pending.Dequeue());
+                if (wasLive && !_phase.Live)
+                    Interlocked.Increment(ref _absences);
+
                 if (!_started)
                 {
                     if (effect != SessionEffect.None)
@@ -509,25 +516,30 @@ public sealed class WindowHost : IDisposable
 
     private void Save()
     {
+        // Read before the snapshot is built, so one built while the session was away, or that it went away during,
+        // is told apart from one built while it was there throughout.
+        var absences = Volatile.Read(ref _absences);
+        var live = _phase.Live;
         if (_windows.Capture() is not RecoverySnapshot snapshot)
             return;
 
-        Remember(snapshot);
-
         // While the session is away its windows can look closed, so the state file keeps the last one from before.
-        if (_phase.Live)
+        if (Remember(snapshot, live, absences))
             _onRecovery?.Invoke(snapshot);
     }
 
-    private void Remember(RecoverySnapshot snapshot)
+    // While the session is away its windows can look closed, so the snapshot from before is kept. Each Client's
+    // process, class and title are recorded while it is alive, so a reused window is not taken for one that left.
+    private bool Remember(RecoverySnapshot snapshot, bool live, int absences)
     {
-        // While the session is away its windows can look closed, so the snapshot from before is kept. Each Client's
-        // process, class and title are recorded while it is alive, so a reused window is not taken for one that left.
         var captured = WindowIdentity.Annotate(snapshot);
         lock (_memory)
         {
-            if (_clients is null || _phase.Live)
+            var present = live && _phase.Live && Volatile.Read(ref _absences) == absences;
+            if (_clients is null || present)
                 _clients = captured;
+
+            return present;
         }
     }
 
