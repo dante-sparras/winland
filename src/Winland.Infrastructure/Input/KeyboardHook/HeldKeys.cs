@@ -23,6 +23,11 @@ public sealed partial class KeyboardHook : IDisposable
     private void Reconcile()
     {
         _session.Forget(IsDown);
+        for (var slot = 0; slot < _pressedNames.Length; slot++)
+        {
+            if (!Down(slot & 0xFF))
+                _pressedNames[slot] = null;
+        }
 
         // A drag whose button or key was let go on the lock screen is over, or the window would follow the cursor.
         if (Drag.Current is BindDrag.Active dragging && !IsDown(dragging.Button) && Drag.Abandon() is BindDrag.Active drag)
@@ -104,24 +109,8 @@ public sealed partial class KeyboardHook : IDisposable
             Interlocked.And(ref _relayed, ~bit);
     }
 
-    /// <summary>Whether the user holds the key with this virtual key code, as the running hook saw it.</summary>
-    public static bool IsDown(int virtualKey)
-    {
-        if (virtualKey is < 0 or > 255)
-            return false;
-
-        return (Volatile.Read(ref _down[virtualKey >> 6]) & (1L << (virtualKey & 63))) != 0;
-    }
-
     private static void NoteHeld(uint vk, bool up)
     {
-        if (vk <= 255)
-        {
-            var word = Volatile.Read(ref _down[vk >> 6]);
-            var mask = 1L << (int)(vk & 63);
-            Volatile.Write(ref _down[vk >> 6], up ? word & ~mask : word | mask);
-        }
-
         var bit = ModifierBit((int)vk);
         if (bit == 0)
             return;
@@ -152,6 +141,9 @@ public sealed partial class KeyboardHook : IDisposable
 
     internal static INPUT Key(ushort vk, bool up, ushort scan = 0, bool extended = false)
     {
+        if (scan == 0)
+            scan = (ushort)PInvoke.MapVirtualKey(vk, MAP_VIRTUAL_KEY_TYPE.MAPVK_VK_TO_VSC);
+
         var flags = up ? KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP : 0;
         if (extended || vk is 0x5B or 0x5C or 0xA3 or 0xA5 or 0x90)
             flags |= KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY;

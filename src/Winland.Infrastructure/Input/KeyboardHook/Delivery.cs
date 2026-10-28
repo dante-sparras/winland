@@ -33,6 +33,9 @@ public sealed partial class KeyboardHook : IDisposable
         // A drag that cannot start, because another one is under way, is not run as a plain dispatcher either.
         if (keyDrag is BindDispatch drag)
         {
+            if (decision.Mask)
+                Mask();
+
             if (Drag.Begin(edge.Name, drag.Dispatcher, drag.Arguments))
                 PostGesture(drag.Dispatcher, drag.Arguments, CursorPoint(), PointerDragPhase.Begin, edge.Name);
 

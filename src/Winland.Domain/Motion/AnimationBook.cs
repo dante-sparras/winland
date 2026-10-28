@@ -142,7 +142,7 @@ internal sealed class AnimationBook
         var args = Split(value);
         var name = Arg(args, 0);
         if (!Exists(name))
-            return $"Animation '{name}' does not exist.";
+            return $"Animation '{name}' is not one Winland draws.";
 
         if (!IsOn(Arg(args, 1)))
         {

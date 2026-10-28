@@ -12,12 +12,13 @@ public static partial class ConfigParser
                 return;
             }
 
-            path = SourcePath.Expand(path, Variable);
+            path = SourceKey(SourcePath.Expand(path, Variable));
             if (SourcePath.HasGlob(path))
             {
                 var matches = sourceReader?.Match(path) ?? [];
                 if (matches.Count == 0)
                 {
+                    _sources.Add(path);
                     Warn(lineNumber, $"Could not read source '{path}'.");
                     return;
                 }
@@ -55,7 +56,7 @@ public static partial class ConfigParser
             var depth = _categories.Count;
             var previous = _source;
             var floor = _floor;
-            _source = path;
+            _source = key;
             _floor = depth;
             try
             {
@@ -72,10 +73,11 @@ public static partial class ConfigParser
         }
 
         // Windows paths are compared without case, after a relative path is joined to the
-        // config's folder and the result is normalized, so one file has one key however it is named.
+        // current file's folder and the result is normalized, so one file has one key however it is named.
         private string SourceKey(string path)
         {
-            var joined = Path.IsPathFullyQualified(path) || _rootFolder is null ? path : Path.Join(_rootFolder, path);
+            var folder = _source is null ? _rootFolder : Path.GetDirectoryName(_source);
+            var joined = Path.IsPathFullyQualified(path) || string.IsNullOrEmpty(folder) ? path : Path.Join(folder, path);
             if (!Path.IsPathFullyQualified(joined))
                 return joined.Replace('/', '\\');
 

@@ -45,7 +45,7 @@ public sealed partial class WindowManager
 
     private Outcome PressPointer(PointerButtonPressed pressed)
     {
-        var match = _keyState.Decide(_config.Binds, pressed);
+        var match = pressed.BindsHandled ? new BindDecision(false, null) : _keyState.Decide(_config.Binds, pressed);
 
         // A drag already running keeps the pointer. A second drag button does not start another one.
         if (_interaction is null && TryDragHit(match, out var drag) && (TabUnder(drag, pressed.Position) ?? DragTarget(pressed.Position)) is WindowId target)
@@ -89,7 +89,7 @@ public sealed partial class WindowManager
         }
 
         NoteBorderCursor(released.Position);
-        var ran = RunBind(_keyState.Decide(_config.Binds, released));
+        var ran = released.BindsHandled ? View([]) : RunBind(_keyState.Decide(_config.Binds, released));
         if (ended is null)
             return ran;
 

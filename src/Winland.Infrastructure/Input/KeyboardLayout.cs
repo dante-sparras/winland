@@ -51,7 +51,16 @@ public static class KeyboardLayout
                 characters[virtualKey] = new string(buffer[..count]);
         }
 
-        return KeyLayout.From(characters, HasAltGr(layout, characters), dead);
+        var virtualKeysByCode = new Dictionary<int, int>();
+        for (var virtualKey = 1; virtualKey < 256; virtualKey++)
+        {
+            var scan = PInvoke.MapVirtualKeyEx((uint)virtualKey, MAP_VIRTUAL_KEY_TYPE.MAPVK_VK_TO_VSC_EX, layout);
+            var code = KeyNames.XkbCode(virtualKey, (int)(scan & 0xFF), (scan & 0xFF00) == 0xE000);
+            if (code > 0)
+                virtualKeysByCode[code] = virtualKey;
+        }
+
+        return KeyLayout.From(characters, HasAltGr(layout, characters), dead, virtualKeysByCode);
     }
 
     private static bool HasAltGr(HKL layout, Dictionary<int, string> unshifted)

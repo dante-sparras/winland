@@ -55,7 +55,11 @@ internal static class ModifierNames
                 modifiers |= modifier;
         }
 
-        if (modifiers == Modifier.None)
+        var remainder = upper;
+        foreach (var (name, _) in Names.OrderByDescending(entry => entry.Name.Length))
+            remainder = remainder.Replace(name, "", StringComparison.Ordinal);
+
+        if (modifiers == Modifier.None || remainder.Any(char.IsLetter))
         {
             error = $"Invalid modifier '{text.Trim()}'.";
             return false;

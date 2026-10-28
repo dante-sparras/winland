@@ -25,7 +25,6 @@ To install by hand, download `Winland-win-x64.zip` from [Releases](https://githu
 | Keys | Does |
 | --- | --- |
 | Win+Q or Win+W | Close the window |
-| Win+Ctrl+Alt+W | Close all windows |
 | Win+Arrows | Move focus |
 | Win+Shift+Arrows | Swap the window with its neighbor |
 | Win+T | Float or tile the window |
@@ -35,9 +34,10 @@ To install by hand, download `Winland-win-x64.zip` from [Releases](https://githu
 | Win+P | Show the window at its own size in its tile |
 | Win+J | Flip the split direction |
 | Win+K / Win+Alt+K | Next / previous layout |
-| Win+Minus / Win+Equal | Make the window narrower / wider |
+| Win+Alt+Minus / Win+Alt+Equal | Make the window narrower / wider by 25 pixels |
+| Win+Ctrl+Minus / Win+Ctrl+Equal | Make the window narrower / wider by 300 pixels |
 | Win+Shift+Minus / Win+Shift+Equal | Make the window shorter / taller |
-| Add Alt or Ctrl to a resize | Resize in small or big steps |
+| Add Alt or Ctrl to a height resize | Resize by 25 or 300 pixels |
 | Win+left drag | Move a window with the mouse |
 | Win+right drag | Resize a window with the mouse |
 
@@ -55,11 +55,13 @@ To install by hand, download `Winland-win-x64.zip` from [Releases](https://githu
 | Win+Alt+S or Win+Shift+\` | Move the window to the scratchpad |
 | Three-finger swipe sideways | Next / previous workspace |
 
+The backtick key uses its US keyboard position on other layouts too.
+
 ### Monitors
 
 | Keys | Does |
 | --- | --- |
-| Ctrl+Alt+Tab / Ctrl+Alt+Shift+Tab | Focus the next / previous monitor |
+| Ctrl+Alt+Shift+Tab | Focus the previous monitor |
 | Win+Shift+Ctrl+Arrows | Move the window to another monitor |
 | Win+Shift+Alt+Arrows | Move the whole workspace to another monitor |
 

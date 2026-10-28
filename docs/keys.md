@@ -4,7 +4,7 @@ How Winland names keys: the XKB keycode, the Windows scan code and the evdev cod
 
 ## Winland notes
 
-`code:N` is the XKB keycode, which is the evdev keycode plus 8. It names a physical key, so it does not follow the active layout. A bare number above 9 in a bind is the same keycode, so `bind = SUPER, 36, exec, kitty` is `code:36`. `0` to `9` are the digit keys. A config is resolved when it is read. Character names such as `├ñ` and `adiaeresis` follow the layout that is active when the key is pressed. A virtual-key alias such as `bracketleft` is resolved against the layout active when the config is read.
+`code:N` is the XKB keycode, which is the evdev keycode plus 8. It names a physical key, so it does not follow the active layout. A bare number above 9 in a bind is the same keycode, so `bind = SUPER, 36, exec, kitty` is `code:36`. `0` to `9` are the digit keys. A config is resolved when it is read. Character names such as `ä` and `adiaeresis` follow the layout that is active when the key is pressed. A virtual-key alias such as `bracketleft` is resolved against the layout active when the config is read. Named binds also match the physical key in that config layout after the foreground layout changes.
 
 Windows scan codes below are set 1. Extended means the extended-key flag. Pause uses the same scan as num lock; the virtual key tells them apart. The synthetic left control of an AltGr press (scan `0x21D`, or left control with the extended flag) is not a key in this table.
 
@@ -21,6 +21,8 @@ Windows scan codes below are set 1. Extended means the extended-key flag. Pause 
 | 8 | 0x09 | no | 9 | 17 |
 | 9 | 0x0A | no | 10 | 18 |
 | 0 | 0x0B | no | 11 | 19 |
+| minus | 0x0C | no | 12 | 20 |
+| equal | 0x0D | no | 13 | 21 |
 | Q | 0x10 | no | 16 | 24 |
 | W | 0x11 | no | 17 | 25 |
 | E | 0x12 | no | 18 | 26 |
@@ -31,6 +33,8 @@ Windows scan codes below are set 1. Extended means the extended-key flag. Pause 
 | I | 0x17 | no | 23 | 31 |
 | O | 0x18 | no | 24 | 32 |
 | P | 0x19 | no | 25 | 33 |
+| bracketleft | 0x1A | no | 26 | 34 |
+| bracketright | 0x1B | no | 27 | 35 |
 | A | 0x1E | no | 30 | 38 |
 | S | 0x1F | no | 31 | 39 |
 | D | 0x20 | no | 32 | 40 |
@@ -40,6 +44,10 @@ Windows scan codes below are set 1. Extended means the extended-key flag. Pause 
 | J | 0x24 | no | 36 | 44 |
 | K | 0x25 | no | 37 | 45 |
 | L | 0x26 | no | 38 | 46 |
+| semicolon | 0x27 | no | 39 | 47 |
+| apostrophe | 0x28 | no | 40 | 48 |
+| grave | 0x29 | no | 41 | 49 |
+| backslash | 0x2B | no | 43 | 51 |
 | Z | 0x2C | no | 44 | 52 |
 | X | 0x2D | no | 45 | 53 |
 | C | 0x2E | no | 46 | 54 |
@@ -47,6 +55,9 @@ Windows scan codes below are set 1. Extended means the extended-key flag. Pause 
 | B | 0x30 | no | 48 | 56 |
 | N | 0x31 | no | 49 | 57 |
 | M | 0x32 | no | 50 | 58 |
+| comma | 0x33 | no | 51 | 59 |
+| period | 0x34 | no | 52 | 60 |
+| slash | 0x35 | no | 53 | 61 |
 | F1 | 0x3B | no | 59 | 67 |
 | F2 | 0x3C | no | 60 | 68 |
 | F3 | 0x3D | no | 61 | 69 |
@@ -67,6 +78,7 @@ Windows scan codes below are set 1. Extended means the extended-key flag. Pause 
 | Shift_R | 0x36 | no | 54 | 62 |
 | Control_L | 0x1D | no | 29 | 37 |
 | Alt_L | 0x38 | no | 56 | 64 |
+| Caps_Lock | 0x3A | no | 58 | 66 |
 | KP_0 | 0x52 | no | 82 | 90 |
 | KP_1 | 0x4F | no | 79 | 87 |
 | KP_2 | 0x50 | no | 80 | 88 |
@@ -104,3 +116,5 @@ Windows scan codes below are set 1. Extended means the extended-key flag. Pause 
 | Super_R | 0x5C | yes | 126 | 134 |
 
 F13 through F24 have no single set-1 scan code in this table. Enter is `code:36`. `code:28` is the T position, not Enter.
+
+Media keys such as `XF86AudioRaiseVolume`, `XF86AudioLowerVolume` and `XF86AudioMute` can be bound by name. They have no `code:` value.
