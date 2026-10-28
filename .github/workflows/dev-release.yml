@@ -7,7 +7,8 @@
 name: Dev Release
 
 on:
-  workflow_run:
+  # Safe: the job runs only for a successful CI push to main in this repo, and it checks the commit is on origin/main.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows: ["CI"]
     types: [completed]
     branches: [main]
