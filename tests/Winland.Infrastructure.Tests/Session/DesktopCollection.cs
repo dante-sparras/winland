@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Winland.Infrastructure.Tests;
 
 /// <summary>
@@ -15,7 +17,7 @@ public sealed class DesktopCollection
 
 /// <summary>
 /// A test that a running daemon would disturb: it adopts the windows the test opens, tiles them,
-/// and restores them when they are minimized. The test skips while the daemon's pipe exists,
+/// and restores them when they are minimized. The test skips while any Winland process exists,
 /// and runs where no daemon is running, as in CI.
 /// </summary>
 public class DesktopFactAttribute : FactAttribute
@@ -23,19 +25,20 @@ public class DesktopFactAttribute : FactAttribute
     public DesktopFactAttribute()
     {
         if (DaemonRunning())
-            Skip = @"A Winland daemon is running (\\.\pipe\winland exists). It adopts and restores the windows this test opens. Stop it to run the test.";
+            Skip = "A Winland process is running. It adopts and restores the windows this test opens. Stop it to run the test.";
     }
 
-    // Listing the pipes does not connect to one, so the running daemon sees nothing.
     private static bool DaemonRunning()
     {
+        var running = Process.GetProcessesByName("winland");
         try
         {
-            return Directory.EnumerateFiles(@"\\.\pipe\").Any(path => string.Equals(Path.GetFileName(path), CommandProtocol.PipeName, StringComparison.OrdinalIgnoreCase));
+            return running.Length > 0;
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        finally
         {
-            return false;
+            foreach (var process in running)
+                process.Dispose();
         }
     }
 }

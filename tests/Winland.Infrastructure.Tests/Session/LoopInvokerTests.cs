@@ -148,5 +148,5 @@ public class LoopInvokerTests
         Assert.Equal(1, runs);
     }
 
-    private static bool Peek() => Winland.Infrastructure.Tests.Desktop.Peek(out _);
+    private static bool Peek() => ProbeNative.PeekMessage(out _, 0, 0, 0, 1);
 }

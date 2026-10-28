@@ -9,10 +9,53 @@ public class ExitCleanupTests
     private const int StyleIndex = -16;
 
     [DesktopFact]
+    public void AClientHiddenAfterACleanExitStaysHiddenAndDoesNotRejoin()
+    {
+        using var probe = new LimitProbe();
+        probe.Open();
+        _ = ProbeNative.ShowWindow(probe.Anchor, 0);
+        var window = new WindowId(probe.Anchor.ToInt64());
+        var left = new RecoveredClient(window, WorkspaceId.Initial, MonitorId.Primary, true,
+            "WinlandLimitProbe", "WinlandLimitProbe", Environment.ProcessId);
+        var core = new WindowManager();
+        using var adapter = new WindowAdapter(core);
+
+        adapter.Recover(new RecoverySnapshot([left]) { Clean = true });
+
+        Assert.False(IsWindowVisible(probe.Anchor));
+        Assert.False(core.Manages(window));
+    }
+
+    [DesktopFact]
+    public void AClientMinimizedWhileWinlandWasAwayDoesNotRejoin()
+    {
+        using var probe = new LimitProbe();
+        probe.Open();
+        _ = ProbeNative.ShowWindow(probe.Anchor, 6);
+        var window = new WindowId(probe.Anchor.ToInt64());
+        foreach (var hidden in new[] { false, true })
+        {
+            if (hidden)
+                _ = ProbeNative.ShowWindow(probe.Anchor, 0);
+
+            var left = new RecoveredClient(window, WorkspaceId.Initial, MonitorId.Primary, hidden,
+                "WinlandLimitProbe", "WinlandLimitProbe", Environment.ProcessId);
+            var core = new WindowManager();
+            using var adapter = new WindowAdapter(core);
+
+            adapter.Recover(new RecoverySnapshot([left]));
+
+            Assert.True(ProbeNative.IsIconic(probe.Anchor));
+            Assert.True(IsWindowVisible(probe.Anchor));
+            Assert.False(core.Manages(window));
+        }
+    }
+
+    [DesktopFact]
     public void ARestartPutsBackTheFrameACrashedRunLeftStripped()
     {
         _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));
-        using var probe = new LimitProbeTests.LimitProbe();
+        using var probe = new LimitProbe();
         probe.Open();
         try
         {
@@ -47,7 +90,7 @@ public class ExitCleanupTests
     public void ARestartShowsAHiddenClientWhoseTitleChanged()
     {
         _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));
-        using var probe = new LimitProbeTests.LimitProbe();
+        using var probe = new LimitProbe();
         probe.Open();
         try
         {

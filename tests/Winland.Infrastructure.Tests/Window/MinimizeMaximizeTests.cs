@@ -12,7 +12,7 @@ public class MinimizeMaximizeTests
     public void AMinimizedWindowIsRestoredAndAMaximizedOneBecomesMaximizeMode()
     {
         _ = ProbeNative.SetProcessDpiAwarenessContext(new IntPtr(-4));
-        using var probe = new LimitProbeTests.LimitProbe();
+        using var probe = new LimitProbe();
         probe.Open();
         try
         {

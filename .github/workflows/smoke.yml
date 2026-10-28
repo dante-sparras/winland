@@ -1,5 +1,5 @@
 # Manual only. Run it from the Actions tab or with: gh workflow run smoke.yml
-# The smoke tests start real windows and send real input (SendInput, SetForegroundWindow).
+# The smoke tests start a daemon and real windows, then send commands through its CLI.
 # Nobody knows yet whether a hosted Windows runner has a desktop that allows that.
 # scripts/smoke.ps1 sets WINLAND_SMOKE=1, which the smoke facts need to run at all.
 # A test that finds no desktop skips itself, and a project whose every test skipped

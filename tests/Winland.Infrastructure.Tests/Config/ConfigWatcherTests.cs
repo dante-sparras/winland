@@ -8,19 +8,8 @@ public abstract class ConfigWatcherFacts
     // even on a loaded machine, so "once" does not depend on how fast events arrive.
     protected static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(500);
 
-    protected static bool WaitUntil(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow.AddSeconds(30);
-        while (DateTime.UtcNow < deadline)
-        {
-            if (condition())
-                return true;
-
-            Thread.Sleep(20);
-        }
-
-        return condition();
-    }
+    protected static bool WaitUntil(Func<bool> condition) =>
+        SpinWait.SpinUntil(condition, TimeSpan.FromSeconds(30));
 
     // The count once it has stayed the same for three debounce periods, so a late
     // reload that a short fixed sleep would miss is counted.

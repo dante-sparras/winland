@@ -24,6 +24,21 @@ public sealed class SmokeFactAttribute : FactAttribute
             return;
         }
 
+        var running = Process.GetProcessesByName("winland");
+        try
+        {
+            if (running.Length > 0)
+            {
+                Skip = "A Winland process is running. Stop it before running the smoke tests.";
+                return;
+            }
+        }
+        finally
+        {
+            foreach (var process in running)
+                process.Dispose();
+        }
+
         if (DesktopSession.SkipReason() is string reason)
             Skip = reason;
     }

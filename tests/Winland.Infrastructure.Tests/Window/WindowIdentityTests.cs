@@ -29,7 +29,7 @@ public class WindowIdentityTests
     [DesktopFact]
     public void AClosedClientIsLeftOutAndTheOthersAreStillRecorded()
     {
-        using var probe = new LimitProbeTests.LimitProbe();
+        using var probe = new LimitProbe();
         probe.Open();
         try
         {

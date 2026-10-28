@@ -459,19 +459,8 @@ public class MotionPlayerTests
         Assert.True(target.Paced > 0);
     }
 
-    private static bool WaitUntil(Func<bool> condition)
-    {
-        var deadline = Environment.TickCount64 + 10_000;
-        while (Environment.TickCount64 < deadline)
-        {
-            if (condition())
-                return true;
-
-            Thread.Sleep(10);
-        }
-
-        return condition();
-    }
+    private static bool WaitUntil(Func<bool> condition) =>
+        SpinWait.SpinUntil(condition, TimeSpan.FromSeconds(10));
 
     private sealed class Clock
     {

@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using static Winland.Infrastructure.Tests.ProbeNative;
 
 namespace Winland.Infrastructure.Tests;
 
@@ -146,17 +147,8 @@ public class SwitcherListingTests
 
         private static IntPtr Create()
         {
-            var module = GetModuleHandle(null);
-            var info = new WndClassEx
-            {
-                cbSize = Marshal.SizeOf<WndClassEx>(),
-                lpfnWndProc = Marshal.GetFunctionPointerForDelegate(ProbeProc.Proc),
-                hInstance = module,
-                hbrBackground = 6,
-                lpszClassName = "WinlandSwitcherProbe",
-            };
-            if (RegisterClassEx(ref info) == 0 && Marshal.GetLastWin32Error() != 1410)
-                throw new InvalidOperationException("The probe class was not registered.");
+            var module = ProbeNative.Module;
+            ProbeNative.Register("WinlandSwitcherProbe", ProbeProc.Proc);
 
             var handle = CreateWindowEx(
                 0x40000,
@@ -181,7 +173,7 @@ public class SwitcherListingTests
 
     private static class ProbeProc
     {
-        internal static readonly WndProc Proc = WindowProc;
+        internal static readonly ProbeNative.WndProc Proc = WindowProc;
 
         private static IntPtr WindowProc(IntPtr window, uint message, IntPtr wParam, IntPtr lParam)
         {
@@ -195,74 +187,13 @@ public class SwitcherListingTests
         }
     }
 
-    private delegate IntPtr WndProc(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
-
     private delegate bool EnumWindowsProc(IntPtr window, IntPtr parameter);
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct WndClassEx
-    {
-        public int cbSize;
-        public uint style;
-        public IntPtr lpfnWndProc;
-        public int cbClsExtra;
-        public int cbWndExtra;
-        public IntPtr hInstance;
-        public IntPtr hIcon;
-        public IntPtr hCursor;
-        public nint hbrBackground;
-        public string? lpszMenuName;
-        public string lpszClassName;
-        public IntPtr hIconSm;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Msg
-    {
-        public IntPtr hwnd;
-        public uint message;
-        public IntPtr wParam;
-        public IntPtr lParam;
-        public uint time;
-        public int x;
-        public int y;
-    }
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern ushort RegisterClassEx(ref WndClassEx info);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern IntPtr CreateWindowEx(int exStyle, string className, string windowName, int style, int x, int y, int width, int height, IntPtr parent, IntPtr menu, IntPtr instance, IntPtr param);
-
-    [DllImport("user32.dll")]
-    private static extern bool ShowWindow(IntPtr window, int command);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr DefWindowProc(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("user32.dll")]
-    private static extern int GetMessage(out Msg message, IntPtr window, uint min, uint max);
-
-    [DllImport("user32.dll")]
-    private static extern bool TranslateMessage(ref Msg message);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr DispatchMessage(ref Msg message);
 
     [DllImport("user32.dll")]
     private static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll")]
-    private static extern void PostQuitMessage(int code);
-
-    [DllImport("user32.dll")]
     private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr parameter);
-
-    [DllImport("user32.dll")]
-    private static extern bool IsWindowVisible(IntPtr window);
-
-    [DllImport("user32.dll")]
-    private static extern bool IsIconic(IntPtr window);
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetAncestor(IntPtr window, int flags);
@@ -275,9 +206,6 @@ public class SwitcherListingTests
 
     [DllImport("user32.dll")]
     private static extern bool SetWindowPos(IntPtr window, IntPtr insertAfter, int x, int y, int width, int height, uint flags);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-    private static extern IntPtr GetModuleHandle(string? name);
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmGetWindowAttribute(IntPtr window, int attribute, ref int value, int size);
