@@ -1,15 +1,15 @@
 using System.Text.Json;
 
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
 /// <summary>
-/// The reference test harness's desktop, rebuilt on the core: two 1920x1080 monitors side by side, its config,
-/// workspace 1 focused and the pointer in the middle of the first monitor. A conformance test drives it with the
-/// same commands the reference case sends over its socket, and checks the same replies.
+/// A desktop around a core that answers as the Windows adapter does: one 1920x1080 Monitor, a shared config,
+/// Workspace 1 focused and the pointer in the middle of the Monitor. A test drives it with pipe lines and input
+/// events, and reads the replies.
 /// </summary>
-internal sealed class Desk : IDisposable
+internal sealed class TestDesktop
 {
-    /// <summary>The reference harness's config, in the line-based syntax. Options Winland does not read are left out.</summary>
+    /// <summary>The config every desktop starts with.</summary>
     internal const string Config = """
         general {
             gaps_in = 5
@@ -43,10 +43,10 @@ internal sealed class Desk : IDisposable
         windowrule = size 200 200, class:^(wr_kitty)$
         """;
 
-    /// <summary>Where the reference harness's one monitor, HEADLESS-2, is.</summary>
+    /// <summary>Where the desktop's one Monitor, HEADLESS-2, is.</summary>
     internal static readonly Rectangle First = new(0, 0, 1920, 1080);
 
-    /// <summary>Where a monitor a case creates goes: to the right of HEADLESS-2, as the reference's auto-right rule puts it.</summary>
+    /// <summary>Where a second Monitor a test plugs in goes: to the right of HEADLESS-2.</summary>
     internal static readonly Rectangle Second = new(1920, 0, 1920, 1080);
 
     private readonly Dictionary<string, WindowId> _windows = new(StringComparer.Ordinal);
@@ -57,14 +57,11 @@ internal sealed class Desk : IDisposable
     private readonly List<Monitor> _monitors = [];
     private State _state = new([]);
 
-    // The desk's own state is changed under this.
-    private readonly Lock _gate = new();
-
     /// <summary>
-    /// Builds the desktop. <paramref name="extra"/> is config after the reference config: the options a case sets
+    /// Builds the desktop. <paramref name="extra"/> is config after <see cref="Config"/>: the options a test sets
     /// before its first window opens. <c>reload</c> reads the same text again.
     /// </summary>
-    internal Desk(string extra = "")
+    internal TestDesktop(string extra = "")
     {
         var text = Config + "\n" + extra;
         WindowManager = new WindowManager { Cursor = new PointerReader(this) };
@@ -75,17 +72,13 @@ internal sealed class Desk : IDisposable
         Handle(new PointerMoved(Pointer));
     }
 
-    public void Dispose()
-    {
-    }
-
     internal WindowManager WindowManager { get; }
 
     /// <summary>Where the pointer is. It follows the warps the core asks for, as the system cursor does.</summary>
     internal Point Pointer { get; private set; }
 
     /// <summary>
-    /// Opens a window with this class on the focused monitor, where the reference harness opens kitty, and returns
+    /// Opens a window with this class in the middle of the focused Monitor, and returns
     /// its id. Each window has a process of its own. A second window with the same class takes over the name.
     /// </summary>
     internal WindowId Spawn(string windowClass, string title = "", WindowTraits? traits = null, bool shownMaximized = false, WindowId? owner = null)
@@ -107,10 +100,10 @@ internal sealed class Desk : IDisposable
 
     internal WindowId Window(string windowClass) => _windows[windowClass];
 
-    /// <summary>Closes the window as its application would, as the reference harness kills kitty.</summary>
+    /// <summary>Closes the window as its application would.</summary>
     internal void Close(string windowClass) => Handle(new WindowClosed(_windows[windowClass]));
 
-    /// <summary>Closes every window as its application would, as the reference harness kills all its windows.</summary>
+    /// <summary>Closes every window as its application would.</summary>
     internal void CloseAll()
     {
         foreach (var client in Clients())
@@ -157,10 +150,10 @@ internal sealed class Desk : IDisposable
         Handle(new PointerButtonReleased(button) { Position = Pointer });
     }
 
-    /// <summary>Plugs in a monitor, as the reference's <c>output create headless NAME</c> does.</summary>
+    /// <summary>Plugs in a Monitor at these bounds, with no reserved area.</summary>
     internal void AddMonitor(string name, Rectangle bounds)
     {
-        _monitors.Add(Monitor(name, bounds));
+        _monitors.Add(Display(name, name, bounds));
         Handle(new MonitorsChanged([.. _monitors]));
     }
 
@@ -173,7 +166,7 @@ internal sealed class Desk : IDisposable
         Handle(new MonitorsChanged([.. _monitors]));
     }
 
-    /// <summary>Unplugs a monitor, as the reference's <c>output remove NAME</c> does.</summary>
+    /// <summary>Unplugs a Monitor.</summary>
     internal void RemoveMonitor(string name)
     {
         _monitors.RemoveAll(monitor => monitor.Name == name);
@@ -186,29 +179,19 @@ internal sealed class Desk : IDisposable
     /// </summary>
     internal Outcome Handle(Input input)
     {
-        Outcome outcome;
-        lock (_gate)
-        {
-            outcome = WindowManager.Handle(input);
-            Follow(outcome);
-        }
-
+        var outcome = WindowManager.Handle(input);
+        Follow(outcome);
         return outcome;
     }
 
     /// <summary>
     /// Sends one pipe line, such as <c>dispatch focuswindow class:a</c> or <c>keyword general:gaps_in 0</c>.
     /// </summary>
-    internal string Send(string line) => Execute(line);
-
-    private string Execute(string line)
+    internal string Send(string line)
     {
-        lock (_gate)
-        {
-            var reply = WindowManager.Execute(line);
-            Follow(reply.Effect);
-            return reply.Text;
-        }
+        var reply = WindowManager.Execute(line);
+        Follow(reply.Effect);
+        return reply.Text;
     }
 
     private void Follow(Outcome outcome, WindowId? echoed = null)
@@ -222,8 +205,8 @@ internal sealed class Desk : IDisposable
     }
 
     /// <summary>
-    /// Where the window was last placed: the frame Winland moves it to, inside its border. The reference
-    /// replies report this as <c>at</c> and <c>size</c>.
+    /// Where the window was last placed: the frame Winland moves it to, inside its border. The replies report this
+    /// as <c>at</c> and <c>size</c>.
     /// </summary>
     internal Rectangle Placed(string windowClass) => Placed(_windows[windowClass]);
 
@@ -250,10 +233,10 @@ internal sealed class Desk : IDisposable
 
     internal JsonElement[] Workspaces() => [.. Json(Send("j/workspaces")).EnumerateArray()];
 
-    /// <summary>The <c>at</c> of a client, written as the reference text reply writes it: <c>x,y</c>.</summary>
+    /// <summary>The <c>at</c> of a client, written as <c>x,y</c>.</summary>
     internal static string At(JsonElement client) => Pair(client.GetProperty("at"));
 
-    /// <summary>The <c>size</c> of a client, written as the reference text reply writes it: <c>w,h</c>.</summary>
+    /// <summary>The <c>size</c> of a client, written as <c>w,h</c>.</summary>
     internal static string SizeOf(JsonElement client) => Pair(client.GetProperty("size"));
 
     internal static string ClassOf(JsonElement client) => client.GetProperty("class").GetString() ?? "";
@@ -270,24 +253,24 @@ internal sealed class Desk : IDisposable
     internal static int WorkspaceId(JsonElement client) =>
         client.GetProperty("workspace").TryGetProperty("id", out var id) ? id.GetInt32() : 0;
 
-    /// <summary>The active window's class, as the reference checks <c>class: name</c>.</summary>
+    /// <summary>The active window's class.</summary>
     internal string ActiveClass() => ClassOf(ActiveWindow());
 
-    /// <summary>The active window's frame, written as the reference writes <c>at: x,y</c> and <c>size: w,h</c>.</summary>
+    /// <summary>The active window's frame, written as <c>x,y</c> and <c>w,h</c>.</summary>
     internal (string At, string Size) ActivePlace()
     {
         var bounds = Placed(ActiveId());
         return ($"{bounds.X},{bounds.Y}", $"{bounds.Width},{bounds.Height}");
     }
 
-    /// <summary>A window's frame, written as the reference writes <c>at: x,y</c> and <c>size: w,h</c>.</summary>
+    /// <summary>A window's frame, written as <c>x,y</c> and <c>w,h</c>.</summary>
     internal (string At, string Size) PlaceOf(string windowClass)
     {
         var bounds = Placed(windowClass);
         return ($"{bounds.X},{bounds.Y}", $"{bounds.Width},{bounds.Height}");
     }
 
-    /// <summary>Checks the active window's place, as the reference checks <c>at: x,y</c> and <c>size: w,h</c>.</summary>
+    /// <summary>Checks the active window's place.</summary>
     internal void ExpectActive(string at, string size) => Assert.Equal((at, size), ActivePlace());
 
     internal WindowId ActiveId() => IdOf(ActiveWindow());
@@ -328,11 +311,7 @@ internal sealed class Desk : IDisposable
     private static string Pair(JsonElement pair) =>
         $"{pair[0].GetInt32()},{pair[1].GetInt32()}";
 
-    /// <summary>A headless monitor at these bounds, with no reserved area.</summary>
-    internal static Monitor Monitor(string name, Rectangle bounds) =>
-        new(name, name, bounds.X, bounds.Y, bounds.Width, bounds.Height, 1, true, bounds);
-
-    private sealed class PointerReader(Desk desk) : ICursorPosition
+    private sealed class PointerReader(TestDesktop desk) : ICursorPosition
     {
         public Point Read() => desk.Pointer;
     }

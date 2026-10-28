@@ -1,19 +1,15 @@
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
 /// <summary>
-/// Winland's interactive move and resize case. Its client asks to be moved and resized while a button is
-/// held, as a title bar or a border drag does. On Windows the system moves and sizes the window itself and Winland
-/// hears the drag start, the pointer move and the drag end. The checks of what the client hears, the pointer leaving
-/// it and no motion during the move, are left out. A stale serial and a bad resize edge start no drag on Windows, so
-/// those steps only press and release the button.
+/// A window moved and sized by the system while a button is held, as a title bar or a border drag does. Winland hears
+/// the drag start, the pointer move and the drag end. A button press with no drag moves nothing.
 /// </summary>
-[Trait("Category", "Conformance")]
-public class XdgInteractiveConformance
+public class NativeDragTests
 {
     [Fact]
-    public void XdgInteractive()
+    public void NativeMoveAndResizeFollowThePointer()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         var client = desk.Spawn("xdg-interactive");
         var pid = desk.Client("xdg-interactive").GetProperty("pid").GetInt64();
         desk.Ok("setprop", $"pid:{pid} no_anim 1");
@@ -38,7 +34,7 @@ public class XdgInteractiveConformance
 
         // xdg_toplevel.resize right
         SetClientGeometry(desk, pid, new Rectangle(400, 300, 500, 400));
-        Assert.True(Desk.Floating(desk.ActiveWindow()));
+        Assert.True(TestDesktop.Floating(desk.ActiveWindow()));
         var startResize = ActiveGeometry(desk);
         desk.MovePointer(startResize.X + 250, startResize.Y + 200);
         Press(desk);
@@ -75,10 +71,10 @@ public class XdgInteractiveConformance
         Assert.NotEqual("", desk.Send("clients"));
     }
 
-    private static void SetClientGeometry(Desk desk, long pid, Rectangle geometry)
+    private static void SetClientGeometry(TestDesktop desk, long pid, Rectangle geometry)
     {
         desk.Ok("focuswindow", $"pid:{pid}");
-        if (!Desk.Floating(desk.ActiveWindow()))
+        if (!TestDesktop.Floating(desk.ActiveWindow()))
             desk.Ok("togglefloating", $"pid:{pid}");
 
         desk.Place(desk.ActiveId(), geometry.X, geometry.Y, geometry.Width, geometry.Height);
@@ -87,7 +83,7 @@ public class XdgInteractiveConformance
     }
 
     // The active window's at and size, as the reference reads them from activewindow.
-    private static Rectangle ActiveGeometry(Desk desk)
+    private static Rectangle ActiveGeometry(TestDesktop desk)
     {
         var active = desk.ActiveWindow();
         var at = active.GetProperty("at");
@@ -95,10 +91,10 @@ public class XdgInteractiveConformance
         return new Rectangle(at[0].GetInt32(), at[1].GetInt32(), size[0].GetInt32(), size[1].GetInt32());
     }
 
-    private static void Press(Desk desk) =>
+    private static void Press(TestDesktop desk) =>
         desk.Handle(new PointerButtonPressed("mouse:272") { Position = desk.Pointer });
 
-    private static void Release(Desk desk) =>
+    private static void Release(TestDesktop desk) =>
         desk.Handle(new PointerButtonReleased("mouse:272") { Position = desk.Pointer });
 
     private static void Near(int expected, int actual, int delta) =>

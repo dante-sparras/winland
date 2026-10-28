@@ -1,13 +1,11 @@
 using System.Text;
 
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
 /// <summary>
-/// Winland's keybind cases. The reference injects key, wheel and button events through its test plugin;
-/// here they are core input events. A command the reference runs from a bind shows up as a Launch.
+/// A release bind on a modifier, and the binds that shadow it. A command a bind runs shows up as a Launch.
 /// </summary>
-[Trait("Category", "Conformance")]
-public class KeybindsConformance
+public class ModifierReleaseBindTests
 {
     // The binds and submaps of the reference config, in the line-based syntax.
     internal const string ConfigBinds = """
@@ -80,7 +78,7 @@ public class KeybindsConformance
     [Fact]
     public void ModifierReleaseBindShadowing()
     {
-        var desk = new Desk(ConfigBinds);
+        var desk = new TestDesktop(ConfigBinds);
         var keys = new Keyboard(desk);
         string Counts() => $"{keys.Count("alt-release")}:{keys.Count("alt-p")}";
 
@@ -109,7 +107,7 @@ public class KeybindsConformance
     /// go first. The keyboard repeats the last key held as the system would, and a long press elapses when the
     /// adapter's timer would. Time only passes in <see cref="Wait"/>.
     /// </summary>
-    private sealed class Keyboard(Desk desk)
+    private sealed class Keyboard(TestDesktop desk)
     {
         private static readonly (Modifier Modifier, string Key)[] Pressed =
         [

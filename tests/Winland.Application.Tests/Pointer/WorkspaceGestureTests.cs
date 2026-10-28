@@ -1,22 +1,19 @@
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
-/// <summary>
-/// Workspace swipe cases. One swipe is 300 pixels along one axis in a single update.
-/// </summary>
-[Trait("Category", "Conformance")]
-public class GesturesConformance
+/// <summary>Workspace swipe gestures. One swipe is 300 pixels along one axis in a single update.</summary>
+public class WorkspaceGestureTests
 {
     private const string ConfigGestures = """
         gesture = 3, horizontal, workspace
         """;
 
     private static string Config(string extra = "") =>
-        KeybindsConformance.ConfigBinds + "\n" + ConfigGestures + "\n" + extra;
+        ModifierReleaseBindTests.ConfigBinds + "\n" + ConfigGestures + "\n" + extra;
 
     [Fact]
     public void Gestures()
     {
-        var desk = new Desk(Config());
+        var desk = new TestDesktop(Config());
         var touchpad = new Touchpad(desk);
         desk.Spawn("a");
         Assert.Single(desk.Clients());
@@ -64,11 +61,11 @@ public class GesturesConformance
         desk.Ok("workspace", "1");
     }
 
-    private static bool HasWorkspace(Desk desk, int id) =>
+    private static bool HasWorkspace(TestDesktop desk, int id) =>
         desk.Workspaces().Any(workspace => workspace.GetProperty("id").GetInt32() == id && workspace.GetProperty("name").GetString() == $"{id}");
 
     /// <summary>One swipe of 300 pixels along an axis, in a single update.</summary>
-    private sealed class Touchpad(Desk desk)
+    private sealed class Touchpad(TestDesktop desk)
     {
         internal void Swipe(string direction, int fingers)
         {

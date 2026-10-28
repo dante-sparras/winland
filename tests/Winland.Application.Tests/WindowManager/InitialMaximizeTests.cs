@@ -1,12 +1,10 @@
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
 /// <summary>
-/// Winland's initial maximize cases. Its client asks to be maximized before the window first shows, once
-/// before its first commit and once before it maps. On Windows both are a window shown maximized, which Winland
-/// finds in the system's maximized state the first time the window moves, and takes as a maximize request.
+/// A window shown maximized before it first shows. Winland finds the system's maximized state the first time the window
+/// moves, and takes it as a maximize request.
 /// </summary>
-[Trait("Category", "Conformance")]
-public class XdgInitialMaximizeConformance
+public class InitialMaximizeTests
 {
     [Fact]
     public void XdgMaximizeBeforeInitialCommitIsIgnored() => InitialMaximizeIsIgnored();
@@ -16,14 +14,14 @@ public class XdgInitialMaximizeConformance
 
     private static void InitialMaximizeIsIgnored()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         var window = desk.Spawn("xdg-initial-maximize", shownMaximized: true);
         desk.Handle(new WindowMaximizeRequested(window));
 
         var client = Assert.Single(desk.Clients());
-        Assert.Equal("xdg-initial-maximize", Desk.ClassOf(client));
+        Assert.Equal("xdg-initial-maximize", TestDesktop.ClassOf(client));
         Assert.True(client.GetProperty("mapped").GetBoolean());
-        Assert.Equal(0, Desk.Fullscreen(client));
-        Assert.Equal(0, Desk.FullscreenClient(client));
+        Assert.Equal(0, TestDesktop.Fullscreen(client));
+        Assert.Equal(0, TestDesktop.FullscreenClient(client));
     }
 }

@@ -1,8 +1,7 @@
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
-/// <summary>Winland's drag cases. Each test is named after its case, and sends the same commands.</summary>
-[Trait("Category", "Conformance")]
-public class DragConformance
+/// <summary>Dragging a window with a bound mouse button, on a <see cref="TestDesktop"/>.</summary>
+public class WindowDragTests
 {
     // The reference rebinds the left button to a drag with no modifier before its first window.
     private const string DragOnLeftButton = """
@@ -13,7 +12,7 @@ public class DragConformance
     [Fact]
     public void DragTiledCentered()
     {
-        var desk = new Desk(DragOnLeftButton);
+        var desk = new TestDesktop(DragOnLeftButton);
         desk.Spawn("kitty");
         Assert.Single(desk.Clients());
         desk.Ok("focuswindow", "class:kitty");
@@ -35,7 +34,7 @@ public class DragConformance
     [Fact]
     public void DragFullscreenCentered()
     {
-        var desk = new Desk(DragOnLeftButton);
+        var desk = new TestDesktop(DragOnLeftButton);
         desk.Spawn("kitty");
         Assert.Single(desk.Clients());
         desk.Ok("focuswindow", "class:kitty");
@@ -51,7 +50,7 @@ public class DragConformance
 
         // The grab point is ignored: the restored window is centered on the cursor.
         var moved = Active(desk);
-        Assert.Equal(0, Desk.Fullscreen(desk.ActiveWindow()));
+        Assert.Equal(0, TestDesktop.Fullscreen(desk.ActiveWindow()));
         Assert.True(Nearly(moved.X + (moved.Width / 2), 700));
         Assert.True(Nearly(moved.Y + (moved.Height / 2), 500));
 
@@ -61,7 +60,7 @@ public class DragConformance
     [Fact]
     public void DragThresholdSurvivesScrollEvents()
     {
-        var desk = new Desk(DragOnLeftButton);
+        var desk = new TestDesktop(DragOnLeftButton);
         desk.Spawn("drag_threshold");
         Assert.Single(desk.Clients());
         desk.Ok("focuswindow", "class:drag_threshold");
@@ -111,22 +110,22 @@ public class DragConformance
         }
     }
 
-    private static Rectangle Active(Desk desk) => desk.Placed(desk.ActiveId());
+    private static Rectangle Active(TestDesktop desk) => desk.Placed(desk.ActiveId());
 
     // Three quarters across and down the active window.
-    private static (int X, int Y) Grab(Desk desk)
+    private static (int X, int Y) Grab(TestDesktop desk)
     {
         var bounds = Active(desk);
         return (bounds.X + (bounds.Width * 3 / 4), bounds.Y + (bounds.Height * 3 / 4));
     }
 
-    private static void MoveCursor(Desk desk, int x, int y)
+    private static void MoveCursor(TestDesktop desk, int x, int y)
     {
         desk.MovePointer(x, y);
     }
 
     // The test plugin's click: the left button, where the pointer is.
-    private static void Click(Desk desk, bool pressed)
+    private static void Click(TestDesktop desk, bool pressed)
     {
         if (pressed)
             desk.Handle(new PointerButtonPressed("mouse:272") { Position = desk.Pointer });
@@ -135,11 +134,11 @@ public class DragConformance
     }
 
     // The test plugin's scroll: a positive delta turns the wheel down.
-    private static void Scroll(Desk desk, int delta) =>
+    private static void Scroll(TestDesktop desk, int delta) =>
         desk.Handle(new WheelTurned(delta > 0 ? "mouse_down" : "mouse_up", Environment.TickCount64));
 
     // The test plugin reads the drag controller: whether a drag holds a window, and whether it has picked it up.
-    private static void ExpectDragState(Desk desk, bool active, bool reached)
+    private static void ExpectDragState(TestDesktop desk, bool active, bool reached)
     {
         var interaction = typeof(WindowManager).GetField("_interaction", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(desk.WindowManager);
         var gesture = interaction?.GetType().Name == "Gesture" ? interaction : null;

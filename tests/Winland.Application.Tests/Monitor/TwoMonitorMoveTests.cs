@@ -1,13 +1,12 @@
 using System.Text.Json;
 
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
 /// <summary>
-/// Winland's refactor_state cases. Each test is named after its case, and sends the same commands.
-/// Each case keeps the harness's HEADLESS-2 at 0,0 as its left monitor and creates a right one at 1920,0.
+/// Moving windows and focus between two Monitors.
+/// Each test keeps HEADLESS-2 at 0,0 as its left Monitor and plugs in a right one at 1920,0.
 /// </summary>
-[Trait("Category", "Conformance")]
-public class RefactorStateConformance
+public class TwoMonitorMoveTests
 {
     private const string Left = "HEADLESS-2";
 
@@ -16,7 +15,7 @@ public class RefactorStateConformance
     [Fact]
     public void WorkspacePlacementActiveMove()
     {
-        var desk = Prepare(new Desk());
+        var desk = Prepare(new TestDesktop());
 
         desk.Ok("focusmonitor", Left);
         desk.Ok("workspace", "270");
@@ -42,7 +41,7 @@ public class RefactorStateConformance
     [Fact]
     public void WorkspacePlacementWindowState()
     {
-        var desk = Prepare(new Desk());
+        var desk = Prepare(new TestDesktop());
         desk.Ok("focusmonitor", Left);
         desk.Ok("workspace", "280");
 
@@ -61,8 +60,8 @@ public class RefactorStateConformance
 
         desk.Ok("focusmonitor", Left);
         var pinned = desk.Client("workspace_move_pinned");
-        Assert.True(Desk.Pinned(pinned));
-        Assert.True(Desk.Floating(pinned));
+        Assert.True(TestDesktop.Pinned(pinned));
+        Assert.True(TestDesktop.Floating(pinned));
         Assert.True(pinned.GetProperty("visible").GetBoolean());
 
         desk.Ok("focusmonitor", Right);
@@ -72,14 +71,14 @@ public class RefactorStateConformance
 
         desk.Ok("focuswindow", "class:workspace_move_fullscreen");
         Assert.Equal("workspace_move_fullscreen", desk.ActiveClass());
-        Assert.Equal(2, Desk.Fullscreen(desk.ActiveWindow()));
+        Assert.Equal(2, TestDesktop.Fullscreen(desk.ActiveWindow()));
         desk.ExpectActive("1920,0", "1920,1080");
     }
 
     [Fact]
     public void GlobalWindowMoveState()
     {
-        var desk = Prepare(new Desk());
+        var desk = Prepare(new TestDesktop());
 
         desk.Ok("focusmonitor", Right);
         desk.Ok("workspace", "291");
@@ -93,7 +92,7 @@ public class RefactorStateConformance
 
         desk.Ok("focusmonitor", Right);
         desk.Ok("focuswindow", "class:global_move_fullscreen");
-        Assert.Equal(2, Desk.Fullscreen(desk.ActiveWindow()));
+        Assert.Equal(2, TestDesktop.Fullscreen(desk.ActiveWindow()));
 
         desk.Ok("workspace", "294");
 
@@ -122,7 +121,7 @@ public class RefactorStateConformance
     public void PointerNoWarpsFocusesMonitorOnly()
     {
         // The case sets cursor:no_warps before any window opens.
-        var desk = Prepare(new Desk("""
+        var desk = Prepare(new TestDesktop("""
             cursor {
                 no_warps = true
             }
@@ -145,13 +144,13 @@ public class RefactorStateConformance
     }
 
     // The reference creates the right monitor, as output create headless does, at 1920,0.
-    private static Desk Prepare(Desk desk)
+    private static TestDesktop Prepare(TestDesktop desk)
     {
-        desk.AddMonitor(Right, Desk.Second);
+        desk.AddMonitor(Right, TestDesktop.Second);
         return desk;
     }
 
-    private static void ExpectActiveWorkspace(Desk desk, int id, string monitor)
+    private static void ExpectActiveWorkspace(TestDesktop desk, int id, string monitor)
     {
         var active = desk.ActiveWorkspace();
         Assert.Equal(id, active.GetProperty("id").GetInt32());
@@ -159,5 +158,5 @@ public class RefactorStateConformance
     }
 
     // The cursor position, written as the reference's text reply writes it: "x, y".
-    private static string CursorPos(Desk desk) => $"{desk.Pointer.X}, {desk.Pointer.Y}";
+    private static string CursorPos(TestDesktop desk) => $"{desk.Pointer.X}, {desk.Pointer.Y}";
 }

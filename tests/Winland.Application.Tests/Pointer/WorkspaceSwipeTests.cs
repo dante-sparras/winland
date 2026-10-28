@@ -1,20 +1,14 @@
 using System.Text.Json;
 
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
 /// <summary>
-/// Winland's workspace swipe cases. Each test is named after its case, and sends the same swipes in the
-/// same order. The reference drives a nine-finger horizontal workspace gesture through its test plugin; here each
-/// step is a core swipe event, and the plugin's cancel is the swipe ending as cancelled. The plugin's fixture holds
-/// three empty Workspaces on the focused Monitor and shows the middle one, and holds the Workspace shown before it;
-/// here persistent workspace rules hold them.
-/// The reference also reads each Workspace's alpha, render offset and render hold, and the swipe's session, through
-/// its test plugin. A test checks what the replies show: which Workspaces exist, which one each Monitor shows, and on
-/// which Monitor each is. A case whose other checks all read render state is not ported, because the replies alone
-/// would make a partial case pass.
+/// A nine-finger horizontal workspace swipe, step by step, and a swipe ending as cancelled. The fixture holds three
+/// empty persistent Workspaces on the focused Monitor and shows the middle one, and holds the Workspace shown before
+/// it. A test checks what the replies show: which Workspaces exist, which one each Monitor shows, and on which
+/// Monitor each is.
 /// </summary>
-[Trait("Category", "Conformance")]
-public class WorkspaceSwipeConformance
+public class WorkspaceSwipeTests
 {
     // The fixture's Workspaces are rendered before the swipe starts, which has no core form, so these parts run as
     // the ones without it.
@@ -65,15 +59,15 @@ public class WorkspaceSwipeConformance
 
             """;
 
-        private Fixture(Desk desk, string left, string origin, string right)
+        private Fixture(TestDesktop desk, string left, string origin, string right)
         {
-            Desk = desk;
+            TestDesktop = desk;
             Left = left;
             Origin = origin;
             Right = right;
         }
 
-        internal Desk Desk { get; }
+        internal TestDesktop TestDesktop { get; }
 
         internal string Left { get; }
 
@@ -90,7 +84,7 @@ public class WorkspaceSwipeConformance
         /// <summary>The reference's run: the swipe options and gesture, then the fixture.</summary>
         internal static Fixture Run()
         {
-            var swipe = new Fixture(new Desk(Options + Hold("1", "9901", "9902", "9903")), "9901", "9902", "9903");
+            var swipe = new Fixture(new TestDesktop(Options + Hold("1", "9901", "9902", "9903")), "9901", "9902", "9903");
             swipe.Prepare();
             return swipe;
         }
@@ -101,7 +95,7 @@ public class WorkspaceSwipeConformance
         /// </summary>
         internal static Fixture RunOnOutputs()
         {
-            var desk = new Desk(Options + $"""
+            var desk = new TestDesktop(Options + $"""
                 monitor = {OriginOutput}, 1920x1080@60, 20000x0, 1
                 monitor = {PeerOutput}, 1920x1080@60, 21920x0, 1
                 workspace = 2, monitor:{OriginOutput}, default:true, persistent:true
@@ -123,23 +117,23 @@ public class WorkspaceSwipeConformance
         private static string Hold(params string[] workspaces) =>
             string.Concat(workspaces.Select(workspace => $"workspace = {workspace}, persistent:true\n"));
 
-        internal void Begin() => Desk.Handle(new SwipeBegan(9));
+        internal void Begin() => TestDesktop.Handle(new SwipeBegan(9));
 
-        internal void Update(double delta) => Desk.Handle(new SwipeUpdated(9, delta, 0));
+        internal void Update(double delta) => TestDesktop.Handle(new SwipeUpdated(9, delta, 0));
 
-        internal void End(bool cancelled) => Desk.Handle(new SwipeEnded(cancelled));
+        internal void End(bool cancelled) => TestDesktop.Handle(new SwipeEnded(cancelled));
 
         /// <summary>The test plugin's cancel. The core's form of it is the swipe ending as cancelled.</summary>
-        internal void Cancel() => Desk.Handle(new SwipeEnded(Cancelled: true));
+        internal void Cancel() => TestDesktop.Handle(new SwipeEnded(Cancelled: true));
 
         internal Shot Snapshot(string name)
         {
-            var workspace = Desk.Workspaces().FirstOrDefault(each => each.GetProperty("name").GetString() == name);
+            var workspace = TestDesktop.Workspaces().FirstOrDefault(each => each.GetProperty("name").GetString() == name);
             if (workspace.ValueKind == JsonValueKind.Undefined)
                 return new Shot(false, false, "");
 
             var monitor = workspace.GetProperty("monitor").GetString() ?? "";
-            using var monitors = JsonDocument.Parse(Desk.Send("j/monitors"));
+            using var monitors = JsonDocument.Parse(TestDesktop.Send("j/monitors"));
             var active = monitors.RootElement.EnumerateArray().Any(each =>
                 each.GetProperty("name").GetString() == monitor
                 && each.GetProperty("activeWorkspace").GetProperty("name").GetString() == name);
@@ -167,7 +161,7 @@ public class WorkspaceSwipeConformance
 
         private void Prepare()
         {
-            Desk.Ok("workspace", Origin);
+            TestDesktop.Ok("workspace", Origin);
             L = Snapshot(Left);
             O = Snapshot(Origin);
             R = Snapshot(Right);
