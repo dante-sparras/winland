@@ -108,6 +108,15 @@ public sealed partial class WindowManager
                 return Outcome.Empty(last.State);
             }
 
+            // The pointer moves hundreds of times a second, and most moves change nothing a step would apply.
+            if (input is PointerMoved moved && _interaction is null && _applied is { } applied)
+            {
+                if (Glides(moved, applied, out var aim))
+                    return Outcome.Empty(applied.State);
+
+                return Step(input, () => View([], focus: Follow(moved, aim)));
+            }
+
             return Step(input, () => HandleInput(input));
         }
     }
