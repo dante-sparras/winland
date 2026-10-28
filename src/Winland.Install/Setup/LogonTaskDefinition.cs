@@ -8,6 +8,8 @@ public static class LogonTaskDefinition
 {
     public const string TaskName = "Winland";
 
+    public const string LauncherName = "winland-launcher.exe";
+
     private const string Namespace = "http://schemas.microsoft.com/windows/2004/02/mit/task";
 
     public static LogonTask Build(string executable, string user)
@@ -68,7 +70,7 @@ public static class LogonTaskDefinition
             xml.WriteStartElement("Actions", Namespace);
             xml.WriteAttributeString("Context", "Author");
             xml.WriteStartElement("Exec", Namespace);
-            xml.WriteElementString("Command", Namespace, executable);
+            xml.WriteElementString("Command", Namespace, Path.Combine(Path.GetDirectoryName(executable)!, LauncherName));
             xml.WriteEndElement();
             xml.WriteEndElement();
 

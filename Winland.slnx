@@ -11,6 +11,7 @@
   </Folder>
   <Folder Name="/src/4 Presentation/">
     <Project Path="src/Winland.Daemon/Winland.Daemon.csproj" />
+    <Project Path="src/Winland.Launcher/Winland.Launcher.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Winland.Domain.Tests/Winland.Domain.Tests.csproj" />

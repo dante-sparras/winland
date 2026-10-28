@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using System.Xml.Linq;
 using Winland.Install;
 
 namespace Winland.Daemon;
@@ -12,6 +13,31 @@ sealed class SchtasksCatalog : ITaskCatalog
     public void Create(LogonTask task) => Register(task, update: false);
 
     public void Replace(LogonTask task) => Register(task, update: true);
+
+    public static void Start()
+    {
+        var result = Run(["/run", "/tn", LogonTaskDefinition.TaskName]);
+        if (result.ExitCode != 0)
+            throw Failed("Could not start the logon task.", result);
+    }
+
+    // Updates also migrate a task installed before the native launcher was introduced.
+    public static bool UseLauncher(string executable)
+    {
+        var result = Run(["/query", "/tn", LogonTaskDefinition.TaskName, "/xml"]);
+        if (result.ExitCode != 0)
+            return false;
+        var xml = XDocument.Parse(result.Output);
+        var command = xml.Descendants().Single(element => element.Name.LocalName == "Command");
+        var launcher = Path.Combine(Path.GetDirectoryName(executable)!, LogonTaskDefinition.LauncherName);
+        if (!command.Value.Equals(launcher, StringComparison.OrdinalIgnoreCase))
+        {
+            command.Value = launcher;
+            Register(new LogonTask(LogonTaskDefinition.TaskName, launcher, "", xml.ToString()), update: true);
+        }
+
+        return true;
+    }
 
     public void Delete(string taskName)
     {
