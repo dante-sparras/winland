@@ -14,11 +14,23 @@ internal static class ShellFlyouts
         "SearchApp.exe",
         "ShellExperienceHost.exe",
         "ShellHost.exe",
+        "TextInputHost.exe",
+        "Widgets.exe",
+        "LockApp.exe",
+    ];
+
+    // Explorer's own popups: a XAML popup such as a taskbar button's preview, the notification area's overflow, and
+    // the input switcher.
+    private static readonly string[] ExplorerClasses =
+    [
+        "Xaml_WindowedPopupClass",
+        "TopLevelWindowForOverflowXamlIsland",
+        "Shell_InputSwitchTopLevelWindow",
     ];
 
     internal static bool Is(string exe, string className)
     {
-        if (className == "Xaml_WindowedPopupClass" && exe.Equals("explorer.exe", StringComparison.OrdinalIgnoreCase))
+        if (exe.Equals("explorer.exe", StringComparison.OrdinalIgnoreCase) && ExplorerClasses.Contains(className, StringComparer.Ordinal))
             return true;
 
         foreach (var host in Hosts)
