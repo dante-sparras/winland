@@ -199,8 +199,11 @@ public sealed partial class WindowAdapter : IDisposable
                     if (!windows.TryGetValue(decoration.Client, out var window))
                         continue;
 
-                    Paint(window, decoration);
-                    _painted.Add(window);
+                    // Every outcome decorates every Client. One with no motion, painted with this decoration and nothing
+                    // held since it last became a Client, already shows it.
+                    if (!_painted.TryGetValue(window, out var last) || !decoration.Equals(last) || !_dwmPainted.ContainsKey(window) || _motions.Running(window))
+                        _painted[window] = Paint(window, decoration) ? decoration : null;
+
                     if (decoration.Ring is BorderRing ring)
                         rings[window] = ring;
                 }

@@ -182,7 +182,7 @@ internal sealed class MotionPlayer : IDisposable
         // A window asked to close stays transparent while it goes.
         lock (_gate)
         {
-            var hold = _animator.Paint(window, alpha, border, _clock());
+            var hold = _animator.Running(window) ? _animator.Paint(window, alpha, border, _clock()) : default;
             return _closing.ContainsKey(window) ? hold with { Alpha = true } : hold;
         }
     }

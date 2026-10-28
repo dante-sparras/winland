@@ -56,7 +56,8 @@ public sealed partial class WindowAdapter : IDisposable
     private volatile RecoverySnapshot? _published;
     private volatile bool _disposed;
 
-    private readonly HashSet<WindowId> _painted = [];
+    // Every window this decorated, with the decoration it shows when no motion holds any of it.
+    private readonly Dictionary<WindowId, Decoration?> _painted = [];
     private readonly OpacityAdapter _opacity;
     private readonly BorderlessFrame _borderless;
     private readonly DwmEffects _effects;
