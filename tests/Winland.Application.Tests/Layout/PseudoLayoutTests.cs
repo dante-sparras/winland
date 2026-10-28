@@ -9,8 +9,8 @@ public class PseudoLayoutTests
     [InlineData("scrolling")]
     public void PseudotileCentersTheClientsOwnSizeAndTogglesOff(string layout)
     {
-        var core = Configured(Flat($"general:layout = {layout}\n"));
-        core.Handle(Appeared(1, new Rectangle(0, 0, 800, 600)));
+        var core = Configured(FlatConfig($"general:layout = {layout}\n"));
+        core.Handle(Appeared(1, bounds: new Rectangle(0, 0, 800, 600)));
 
         var on = core.Handle(new Pseudo(new WindowId(1)));
         var off = core.Handle(new Pseudo(new WindowId(1)));
@@ -24,7 +24,7 @@ public class PseudoLayoutTests
     [InlineData("scrolling")]
     public void PseudotileUsesTheDefaultSizeWhenTheClientHasNone(string layout)
     {
-        var core = Configured(Flat($"general:layout = {layout}\n"));
+        var core = Configured(FlatConfig($"general:layout = {layout}\n"));
         core.Handle(Appeared(1));
 
         var outcome = core.Handle(new Pseudo(new WindowId(1)));
@@ -37,9 +37,9 @@ public class PseudoLayoutTests
     [InlineData("scrolling")]
     public void PseudotileScalesDownToFitTheTileAndLeavesTheOther(string layout)
     {
-        var core = Configured(Flat($"general:layout = {layout}\nmaster:mfact = 0.5\n"));
+        var core = Configured(FlatConfig($"general:layout = {layout}\nmaster:mfact = 0.5\n"));
         core.Handle(Appeared(1));
-        core.Handle(Appeared(2, new Rectangle(0, 0, 1280, 720)));
+        core.Handle(Appeared(2, bounds: new Rectangle(0, 0, 1280, 720)));
 
         var outcome = core.Handle(new Pseudo(new WindowId(2)));
 
@@ -50,8 +50,8 @@ public class PseudoLayoutTests
     [Fact]
     public void PseudotileScalesDownToFitAMonocleTile()
     {
-        var core = Configured(Flat("general:layout = monocle\n"));
-        core.Handle(Appeared(1, new Rectangle(0, 0, 1000, 4000)));
+        var core = Configured(FlatConfig("general:layout = monocle\n"));
+        core.Handle(Appeared(1, bounds: new Rectangle(0, 0, 1000, 4000)));
 
         var outcome = core.Handle(new Pseudo(new WindowId(1)));
 
@@ -69,16 +69,10 @@ public class PseudoLayoutTests
             general:border_size = 2
             general:layout = {layout}
             """);
-        core.Handle(Appeared(1, new Rectangle(0, 0, 800, 600)));
+        core.Handle(Appeared(1, bounds: new Rectangle(0, 0, 800, 600)));
 
         var outcome = core.Handle(new Pseudo(new WindowId(1)));
 
         Assert.Equal(new Rectangle(562, 242, 796, 596), BoundsOf(outcome, 1));
     }
-
-    private static string Flat(string extra) =>
-        "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
-
-    private static WindowAppeared Appeared(long window, Rectangle bounds = default) =>
-        new(new WindowId(window), Wide) { Bounds = bounds };
 }

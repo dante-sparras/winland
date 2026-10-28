@@ -1,15 +1,14 @@
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
-/// <summary>Winland's exec case. A program the core starts is a Launch in its outcome.</summary>
-[Trait("Category", "Conformance")]
-public class ExecConformance
+/// <summary>The <c>exec</c> Dispatcher. A program the core starts is a Launch in its outcome.</summary>
+public class ExecTests
 {
     // The reference finds the sleep it started and checks that the compositor is its parent and reaps it. Starting
     // the process belongs to the Windows adapter, so the claim the core can make is that exec starts the command.
     [Fact]
     public void ProcessSpawning()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
 
         var reply = desk.WindowManager.Execute("dispatch exec sleep 1");
 

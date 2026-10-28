@@ -1,13 +1,12 @@
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
-/// <summary>Winland's dwindle cases. Each test is named after its case, and sends the same commands.</summary>
-[Trait("Category", "Conformance")]
-public class DwindleConformance
+/// <summary>The dwindle Layout, driven through pipe lines on a <see cref="TestDesktop"/>.</summary>
+public class DwindleLayoutTests
 {
     [Fact]
     public void DwindleFloatClamp()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         foreach (var name in new[] { "a", "b", "c" })
             desk.Spawn(name);
 
@@ -25,7 +24,7 @@ public class DwindleConformance
     [InlineData(1600, false)]
     public void DwindleRetileSplitsAtThePointer(int x, bool left)
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("a");
         desk.Spawn("b");
         desk.Ok("togglefloating", "class:a");
@@ -43,7 +42,7 @@ public class DwindleConformance
     [InlineData("b", "100 0", 100, 0)]
     public void DwindleResizeActiveChangesTheActiveTilesOwnSize(string active, string delta, int width, int height)
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("a");
         desk.Spawn("b");
         desk.Ok("focuswindow", $"class:{active}");
@@ -58,7 +57,7 @@ public class DwindleConformance
     [Fact]
     public void DwindleResizeActiveExactGivesASecondTileThatSize()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("a");
         desk.Spawn("b");
         desk.Ok("focuswindow", "class:b");
@@ -72,7 +71,7 @@ public class DwindleConformance
     [Fact]
     public void DwindleIssue13349()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         foreach (var name in new[] { "a", "b", "c" })
             desk.Spawn(name);
 
@@ -89,7 +88,7 @@ public class DwindleConformance
     [Fact]
     public void DwindleSplit()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("a");
 
         Assert.NotEqual("ok", desk.Dispatch("layoutmsg", "swapsplit"));
@@ -116,7 +115,7 @@ public class DwindleConformance
     [Fact]
     public void DwindleRotateSplit()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         Assert.Equal("ok", desk.Send("keyword general:gaps_in 0"));
         Assert.Equal("ok", desk.Send("keyword general:gaps_out 0"));
         Assert.Equal("ok", desk.Send("keyword general:border_size 0"));
@@ -156,7 +155,7 @@ public class DwindleConformance
     [Fact]
     public void DwindleMoveTowardTheEdgeItIsAtMovesNothing()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("a");
         desk.Spawn("b");
         desk.Spawn("c");
@@ -171,7 +170,7 @@ public class DwindleConformance
     [Fact]
     public void DwindleMoveAcrossToggledSplit()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("a");
         desk.Spawn("b");
         desk.Ok("layoutmsg", "togglesplit");
@@ -186,7 +185,7 @@ public class DwindleConformance
     [Fact]
     public void DwindleFullscreenMaximiseDispatchers()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Keyword("general:layout", "dwindle");
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
@@ -208,7 +207,7 @@ public class DwindleConformance
     [Fact]
     public void DwindleTestFsFocusUnderFSWindow()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         foreach (var name in new[] { "one", "two", "three" })
             desk.Spawn(name);
 
@@ -219,13 +218,13 @@ public class DwindleConformance
 
         desk.Spawn("erstarrwashere");
         Assert.Equal("erstarrwashere", desk.ActiveClass());
-        Assert.Equal(0, Desk.Fullscreen(desk.ActiveWindow()));
+        Assert.Equal(0, TestDesktop.Fullscreen(desk.ActiveWindow()));
     }
 
     [Fact]
     public void DwindleNewWindowTakesOverFullscreen()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("kitty_A");
         desk.Ok("fullscreen", "0");
         ExpectFullscreen(desk, 2, 2);
@@ -239,7 +238,7 @@ public class DwindleConformance
     [Fact]
     public void DwindleExitWindowDoesNotRetainFullscreen()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
 
@@ -253,7 +252,7 @@ public class DwindleConformance
     [Fact]
     public void DwindleFullscreenNonInterference()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         string[] names = ["red", "crimson", "blue", "cyan", "azure", "green"];
         foreach (var name in names)
             desk.Spawn(name);
@@ -268,7 +267,7 @@ public class DwindleConformance
     [Fact]
     public void DefaultHandledFsfocusInDirection()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("normal1");
         desk.Spawn("fs");
         desk.Spawn("normal2");
@@ -289,43 +288,43 @@ public class DwindleConformance
     {
         foreach (var mode in new[] { "0", "1" })
         {
-            var desk = new Desk("windowrule = float, class:^(kitty_floated)$\n");
+            var desk = new TestDesktop("windowrule = float, class:^(kitty_floated)$\n");
             desk.Ok("workspace", "1");
             desk.Spawn("kitty_tiled");
 
             desk.Ok("fullscreen", mode + " set");
             Assert.Equal("kitty_tiled", desk.ActiveClass());
-            Assert.False(Desk.Floating(desk.ActiveWindow()));
+            Assert.False(TestDesktop.Floating(desk.ActiveWindow()));
             ExpectFullscreen(desk, mode == "0" ? 2 : 1, mode == "0" ? 2 : 1);
 
             desk.Spawn("kitty_floated");
             Assert.Equal("kitty_floated", desk.ActiveClass());
-            Assert.True(Desk.Floating(desk.ActiveWindow()));
+            Assert.True(TestDesktop.Floating(desk.ActiveWindow()));
             ExpectFullscreen(desk, 0, 0);
 
             desk.Ok("workspace", "2");
             desk.Ok("workspace", "1");
             Assert.Equal("kitty_floated", desk.ActiveClass());
-            Assert.True(Desk.Floating(desk.ActiveWindow()));
+            Assert.True(TestDesktop.Floating(desk.ActiveWindow()));
             ExpectFullscreen(desk, 0, 0);
         }
     }
 
-    private static void ExpectAny(Desk desk, string at, string size)
+    private static void ExpectAny(TestDesktop desk, string at, string size)
     {
-        var places = desk.Clients().Select(client => desk.PlaceOf(Desk.ClassOf(client))).ToList();
+        var places = desk.Clients().Select(client => desk.PlaceOf(TestDesktop.ClassOf(client))).ToList();
         Assert.Contains(places, place => place.At == at);
         Assert.Contains(places, place => place.Size == size);
     }
 
-    private static void ExpectFullscreen(Desk desk, int fullscreen, int fullscreenClient)
+    private static void ExpectFullscreen(TestDesktop desk, int fullscreen, int fullscreenClient)
     {
         var active = desk.ActiveWindow();
-        Assert.Equal(fullscreen, Desk.Fullscreen(active));
-        Assert.Equal(fullscreenClient, Desk.FullscreenClient(active));
+        Assert.Equal(fullscreen, TestDesktop.Fullscreen(active));
+        Assert.Equal(fullscreenClient, TestDesktop.FullscreenClient(active));
     }
 
-    private static void ExpectUnmovedByMaximize(Desk desk, string[] names)
+    private static void ExpectUnmovedByMaximize(TestDesktop desk, string[] names)
     {
         var before = names.ToDictionary(name => name, desk.PlaceOf);
         desk.Ok("focuswindow", "class:red");

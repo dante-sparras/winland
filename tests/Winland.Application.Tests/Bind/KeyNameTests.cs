@@ -134,7 +134,7 @@ public class KeyNameTests
     {
         var german = German();
         var core = Load("bind = CTRL ALT, Q, killactive\n", german);
-        Appear(core);
+        Appear(core, 1, new Rectangle(0, 0, 800, 600));
 
         Press(core, KeyNames.Name(0xA2, 0x21D, false, german));
         Press(core, KeyNames.Name(0xA5, 0x38, true, german));
@@ -146,7 +146,7 @@ public class KeyNameTests
     public void RealCtrlAltStillRunsACtrlAltBind()
     {
         var core = Load("bind = CTRL ALT, Q, killactive\n", KeyLayout.UnitedStates);
-        Appear(core);
+        Appear(core, 1, new Rectangle(0, 0, 800, 600));
         Press(core, "Control_L");
         Press(core, "Alt_L");
 
@@ -220,7 +220,7 @@ public class KeyNameTests
     public void CodeBindUsesTheXkbNumber()
     {
         var core = Load("bind = SUPER, code:36, killactive\n", KeyLayout.UnitedStates);
-        Appear(core);
+        Appear(core, 1, new Rectangle(0, 0, 800, 600));
         Press(core, "Super_L");
 
         AssertPassed(Press(core, "Return"));
@@ -232,7 +232,7 @@ public class KeyNameTests
     public void ABareNumberAboveNineBindsThatKeycode()
     {
         var core = Load("bind = SUPER, 36, killactive\n", KeyLayout.UnitedStates);
-        Appear(core);
+        Appear(core, 1, new Rectangle(0, 0, 800, 600));
         Press(core, "Super_L");
 
         AssertRan(Press(core, "Return", 36));
@@ -280,7 +280,7 @@ public class KeyNameTests
     {
         var german = German();
         var core = Load("bind = SUPER, odiaeresis, killactive\n", german);
-        Appear(core);
+        Appear(core, 1, new Rectangle(0, 0, 800, 600));
         Press(core, "Super_L");
 
         var name = KeyNames.Name(0xBA, 0x27, false, german);
@@ -309,12 +309,6 @@ public class KeyNameTests
         core.Handle(new ConfigLoaded(ConfigParser.Parse(text, layout: layout)));
         return core;
     }
-
-    private static void Appear(WindowManager core) =>
-        core.Handle(new WindowAppeared(new WindowId(1), new Rectangle(0, 0, 800, 600)));
-
-    private static Outcome Press(WindowManager core, string key, int scanCode = 0) =>
-        core.Handle(new KeyPressed(key) { ScanCode = scanCode });
 
     private static void AssertPassed(Outcome outcome)
     {

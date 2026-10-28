@@ -1,15 +1,14 @@
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
-/// <summary>Winland's layout cases. Each test is named after its case, and sends the same commands.</summary>
-[Trait("Category", "Conformance")]
-public class LayoutConformance
+/// <summary>Layout options and changing the Layout, driven through pipe lines on a <see cref="TestDesktop"/>.</summary>
+public class LayoutChangeTests
 {
     private const string MonitorNotHonored = "error: Monitor settings other than a reserved area are not honored.";
 
     [Fact]
     public void SingleWindowAspectRatio()
     {
-        var desk = new Desk("layout:single_window_aspect_ratio = 1 1\n");
+        var desk = new TestDesktop("layout:single_window_aspect_ratio = 1 1\n");
         desk.Spawn("a");
         desk.ExpectActive("442,22", "1036,1036");
 
@@ -25,7 +24,7 @@ public class LayoutConformance
     [Fact]
     public void CrashOnGeomUpdate()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("a");
         desk.Spawn("a");
         desk.Spawn("a");
@@ -38,9 +37,9 @@ public class LayoutConformance
     [Fact]
     public void LayoutRefreshDuringMonitorTeardown()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
 
-        desk.AddMonitor("HEADLESS-5", Desk.Second);
+        desk.AddMonitor("HEADLESS-5", TestDesktop.Second);
 
         Assert.Equal(MonitorNotHonored, desk.Send("keyword monitor HEADLESS-2,1920x1080@60,0x0,1"));
         Assert.Equal(MonitorNotHonored, desk.Send("keyword monitor HEADLESS-5,1920x1080@60,1920x0,1"));
@@ -63,7 +62,7 @@ public class LayoutConformance
     [Fact]
     public void PosPreserve()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("kitty");
 
         desk.Ok("togglefloating", "class:kitty");
@@ -92,7 +91,7 @@ public class LayoutConformance
     [Fact]
     public void FocusPreservedLayoutChange()
     {
-        var desk = new Desk("general:layout = dwindle\n");
+        var desk = new TestDesktop("general:layout = dwindle\n");
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
         desk.Spawn("kitty_C");

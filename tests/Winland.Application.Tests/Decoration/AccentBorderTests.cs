@@ -12,7 +12,7 @@ public class AccentBorderTests
     public void AnEmptyConfigFollowsTheAccentAndASetColorOverridesIt()
     {
         var core = Configured("");
-        var opened = core.Handle(Appeared(1));
+        var opened = core.Handle(Appeared(1, Area));
         Assert.Equal(new BorderColor(0xFF, 0xFF, 0xFF, 0xFF), Border(opened, 1));
         Assert.Equal(
             "{\"option\":\"general:col.active_border\",\"str\":\"0xFFFFFFFF\",\"set\":false}",
@@ -49,7 +49,7 @@ public class AccentBorderTests
     public void AGradientDoesNotOverrideTheAccent()
     {
         var core = Configured("general:col.active_border = rgba(ff00ffff) 90deg\n");
-        core.Handle(Appeared(1));
+        core.Handle(Appeared(1, Area));
 
         var followed = core.Handle(new AccentChanged(Accent));
 
@@ -61,8 +61,8 @@ public class AccentBorderTests
     public void AnInactiveClientKeepsTheDimBorder()
     {
         var core = Configured("");
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
         var followed = core.Handle(new AccentChanged(Accent));
 
         var borders = new[] { Border(followed, 1), Border(followed, 2) };
@@ -77,8 +77,8 @@ public class AccentBorderTests
     public void HighContrastColorsReplaceTheUnsetBorderAndTabColorsUntilItEnds()
     {
         var core = Configured("");
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
         core.Execute("dispatch togglegroup");
 
         var contrasted = core.Handle(new AccentChanged(Accent) { Contrast = Contrast });
@@ -96,8 +96,8 @@ public class AccentBorderTests
     public void AConfiguredColorWinsOverHighContrast()
     {
         var core = Configured("general:col.inactive_border = rgba(aabbccff)\ngroup:groupbar:text_color = rgba(aabbccff)\n");
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
         core.Execute("dispatch togglegroup");
 
         var contrasted = core.Handle(new AccentChanged(Accent) { Contrast = Contrast });
@@ -110,7 +110,7 @@ public class AccentBorderTests
     public void TheTextSizeGrowsTheTabFontAndTitleRow()
     {
         var core = Configured("");
-        core.Handle(Appeared(1));
+        core.Handle(Appeared(1, Area));
         core.Execute("dispatch togglegroup");
         var plain = Assert.Single(core.Execute("dispatch resizewindow").Effect.GroupBars).Style;
 
@@ -120,8 +120,6 @@ public class AccentBorderTests
         Assert.Equal((12, 21), (larger.FontSize, larger.Height));
         Assert.Equal(plain.IndicatorHeight, larger.IndicatorHeight);
     }
-
-    private static WindowAppeared Appeared(long window) => new(new WindowId(window), Area);
 
     private static BorderColor Border(Outcome outcome, long window)
     {

@@ -73,13 +73,4 @@ public class BindFlagTests
 
         Assert.Equal(new WindowId(1), outcome.Close);
     }
-
-    private static void Appear(WindowManager core, long window) =>
-        core.Handle(new WindowAppeared(new WindowId(window), new Rectangle(0, 0, 1920, 1080)));
-
-    private static Outcome Press(WindowManager core, string key) =>
-        core.Handle(new KeyPressed(key));
-
-    private static Outcome Release(WindowManager core, string key) =>
-        core.Handle(new KeyReleased(key));
 }

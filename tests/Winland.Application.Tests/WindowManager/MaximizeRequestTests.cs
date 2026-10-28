@@ -92,14 +92,4 @@ public class MaximizeRequestTests
 
         Assert.Empty(drifted.Placements);
     }
-
-    private static WindowManager Flat()
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse("general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n")));
-        return core;
-    }
-
-    private static Outcome Appear(WindowManager core, long window) =>
-        core.Handle(new WindowAppeared(new WindowId(window), Wide));
 }

@@ -1,20 +1,18 @@
 using System.Text.Json;
 
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
 /// <summary>
-/// Winland's child window case. Its client opens a parent toplevel and then a child toplevel that names
-/// the parent. On Windows that child is an owned window, which the system reports as a dialog.
+/// An owned window, which the system reports as a dialog that names its owner, on a <see cref="TestDesktop"/>.
 /// </summary>
-[Trait("Category", "Conformance")]
-public class ChildWindowConformance
+public class OwnedWindowTests
 {
     private static readonly WindowTraits Child = WindowTraits.Normal with { Dialog = true };
 
     [Fact]
-    public void ChildWindow()
+    public void OwnedWindowFloatsAndStaysOutOfGroups()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         var parent = desk.Spawn("child-test-parent");
 
         desk.Ok("togglefloating", "class:child-test-parent");
@@ -24,7 +22,7 @@ public class ChildWindowConformance
         desk.Spawn("child-test-child", traits: Child, owner: parent);
         desk.Ok("focuswindow", "class:child-test-child");
         Assert.Equal(2, desk.Clients().Length);
-        Assert.Equal(2, desk.Clients().Count(Desk.Pinned));
+        Assert.Equal(2, desk.Clients().Count(TestDesktop.Pinned));
 
         Assert.Equal("ok", desk.Send("reload"));
         desk.Close("child-test-child");

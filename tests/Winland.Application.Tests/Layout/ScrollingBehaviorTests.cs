@@ -1,18 +1,17 @@
 using System.Globalization;
 using System.Text.Json;
 
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
-/// <summary>Winland's scrolling cases. Each test is named after its case, and sends the same commands.</summary>
-[Trait("Category", "Conformance")]
-public class ScrollConformance
+/// <summary>The scrolling Layout, driven through pipe lines on a <see cref="TestDesktop"/>.</summary>
+public class ScrollingBehaviorTests
 {
     private const string Scrolling = "general:layout = scrolling\n";
 
     [Fact]
     public void ScrollFocusCycling()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         foreach (var name in new[] { "a", "b", "c", "d" })
             desk.Spawn(name);
 
@@ -36,7 +35,7 @@ public class ScrollConformance
     [Fact]
     public void ScrollFocusWrapping()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         foreach (var name in new[] { "a", "b", "c", "d" })
             desk.Spawn(name);
 
@@ -51,7 +50,7 @@ public class ScrollConformance
     [Fact]
     public void ScrollSwapcolWrapping()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         string[] names = ["a", "b", "c", "d"];
         foreach (var name in names)
             desk.Spawn(name);
@@ -74,7 +73,7 @@ public class ScrollConformance
     [Fact]
     public void ScrollWindowRule()
     {
-        var desk = new Desk(Scrolling + "windowrule = scrolling_width 0.1, class:^(kitty_scroll)$\n");
+        var desk = new TestDesktop(Scrolling + "windowrule = scrolling_width 0.1, class:^(kitty_scroll)$\n");
         desk.Spawn("kitty_scroll");
         desk.Spawn("kitty_scroll");
 
@@ -85,7 +84,7 @@ public class ScrollConformance
     [Fact]
     public void ScrollLAYOUTHANDLEDFullscreen()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         foreach (var name in new[] { "kitty_scroll_A", "kitty_scroll_B", "kitty_scroll_C" })
             desk.Spawn(name);
 
@@ -109,7 +108,7 @@ public class ScrollConformance
     [Fact]
     public void ScrollLAYOUTHANDLEDMaximized()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         foreach (var name in new[] { "kitty_scroll_A", "kitty_scroll_B", "kitty_scroll_C" })
             desk.Spawn(name);
 
@@ -117,7 +116,7 @@ public class ScrollConformance
         desk.Ok("fullscreen", "1");
         Assert.Equal("1866,1036", desk.ActivePlace().Size);
         Assert.Equal("kitty_scroll_B", desk.ActiveClass());
-        Assert.Equal(1, Desk.Fullscreen(desk.ActiveWindow()));
+        Assert.Equal(1, TestDesktop.Fullscreen(desk.ActiveWindow()));
 
         desk.Ok("layoutmsg", "focus l");
         Assert.Equal("kitty_scroll_A", desk.ActiveClass());
@@ -129,13 +128,13 @@ public class ScrollConformance
         desk.Ok("layoutmsg", "focus l");
         Assert.Equal("1866,1036", desk.ActivePlace().Size);
         Assert.Equal("kitty_scroll_B", desk.ActiveClass());
-        Assert.Equal(1, Desk.Fullscreen(desk.ActiveWindow()));
+        Assert.Equal(1, TestDesktop.Fullscreen(desk.ActiveWindow()));
     }
 
     [Fact]
     public void ScrollLAYOUTHANDLEDFloatingWindowHiding()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         desk.Spawn("under");
         desk.Ok("togglefloating", "class:under");
 
@@ -197,7 +196,7 @@ public class ScrollConformance
     [Fact]
     public void ScrollLAYOUTHANDLEDFocusInDirectionFocusFollowFocusTrue()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         desk.Spawn("normal1");
         desk.Spawn("fs");
         desk.Spawn("normal2");
@@ -220,7 +219,7 @@ public class ScrollConformance
     [Fact]
     public void ScrollDEFAULTHANDLEDFullscreenMaximiseDispatchers()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
 
@@ -241,7 +240,7 @@ public class ScrollConformance
     [Fact]
     public void ScrollDEFAULTHANDLEDTestFsFocusUnderFSWindow()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         foreach (var name in new[] { "one", "two", "three" })
             desk.Spawn(name);
 
@@ -252,13 +251,13 @@ public class ScrollConformance
 
         desk.Spawn("erstarrwashere");
         Assert.Equal("erstarrwashere", desk.ActiveClass());
-        Assert.Equal(0, Desk.Fullscreen(desk.ActiveWindow()));
+        Assert.Equal(0, TestDesktop.Fullscreen(desk.ActiveWindow()));
     }
 
     [Fact]
     public void ScrollDEFAULTHANDLEDNewWindowTakesOverFullscreen()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         desk.Spawn("kitty_A");
         desk.Ok("fullscreen", "0 default");
         ExpectActiveFullscreen(desk, "kitty_A", 2);
@@ -270,7 +269,7 @@ public class ScrollConformance
     [Fact]
     public void ScrollDEFAULTHANDLEDExitWindowDoesNotRetainFullscreen()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
 
@@ -284,7 +283,7 @@ public class ScrollConformance
     [Fact]
     public void ScrollDEFAULTHANDLEDFullscreenNonInterference()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         string[] names = ["red", "crimson", "blue", "cyan", "azure", "green"];
         foreach (var name in names)
             desk.Spawn(name);
@@ -303,7 +302,7 @@ public class ScrollConformance
     [Fact]
     public void TestScrollingViewBehaviourDispatchFocusWindowFollowFocustrue()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         desk.Spawn("a");
         desk.Ok("layoutmsg", "colresize 0.8");
         desk.Spawn("b");
@@ -316,7 +315,7 @@ public class ScrollConformance
     [Fact]
     public void TestScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue()
     {
-        var desk = new Desk(Scrolling + "");
+        var desk = new TestDesktop(Scrolling + "");
         desk.Spawn("a");
         desk.Ok("layoutmsg", "colresize 0.8");
         desk.Spawn("b");
@@ -333,7 +332,7 @@ public class ScrollConformance
     [Fact]
     public void TestScrollingViewBehaviourMoveFocusFollowFocusTrue()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         desk.Spawn("a");
         desk.Ok("layoutmsg", "colresize 0.8");
         desk.Spawn("b");
@@ -346,7 +345,7 @@ public class ScrollConformance
     [Fact]
     public void TestScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue()
     {
-        var desk = new Desk(Scrolling + "binds:movefocus_cycles_groupfirst = true\n");
+        var desk = new TestDesktop(Scrolling + "binds:movefocus_cycles_groupfirst = true\n");
         desk.Spawn("a");
         desk.Ok("togglegroup");
         desk.Ok("layoutmsg", "colresize 0.8");
@@ -363,7 +362,7 @@ public class ScrollConformance
     [Fact]
     public void TestScrollInhibitor()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         desk.Spawn("a");
         desk.Ok("layoutmsg", "colresize 0.8");
         desk.Spawn("b");
@@ -377,7 +376,7 @@ public class ScrollConformance
     [Fact]
     public void LayoutmsgFitIntoView()
     {
-        var desk = new Desk(Scrolling);
+        var desk = new TestDesktop(Scrolling);
         desk.Spawn("a");
         desk.Ok("layoutmsg", "colresize 0.8");
         desk.Spawn("b");
@@ -391,7 +390,7 @@ public class ScrollConformance
     [Fact]
     public void LayoutRuleExpand()
     {
-        var desk = new Desk(Scrolling + """
+        var desk = new TestDesktop(Scrolling + """
             general:gaps_in = 0
             general:border_size = 0
             general:gaps_out = 0
@@ -415,8 +414,8 @@ public class ScrollConformance
     [Fact]
     public void ProperFocusBehvaior()
     {
-        var desk = new Desk(Scrolling);
-        desk.AddMonitor("HEADLESS-3", Desk.Second);
+        var desk = new TestDesktop(Scrolling);
+        desk.AddMonitor("HEADLESS-3", TestDesktop.Second);
 
         desk.Ok("focusmonitor", "HEADLESS-2");
         desk.Spawn("a");
@@ -451,7 +450,7 @@ public class ScrollConformance
     // Shared by the layout handled and default handled cases. The default handled one asks for the default fullscreen.
     private static void FloatingOntopFullscreenWorkspaceFocusRetention(string handler)
     {
-        var desk = new Desk(Scrolling + "windowrule = float, class:^(kitty_floated)$\n");
+        var desk = new TestDesktop(Scrolling + "windowrule = float, class:^(kitty_floated)$\n");
         desk.Ok("workspace", "1");
 
         foreach (var mode in new[] { "0", "1" })
@@ -460,18 +459,18 @@ public class ScrollConformance
             desk.Spawn("kitty_tiled");
             desk.Ok("fullscreen", mode + " set" + handler);
             Assert.Equal("kitty_tiled", desk.ActiveClass());
-            Assert.False(Desk.Floating(desk.ActiveWindow()));
+            Assert.False(TestDesktop.Floating(desk.ActiveWindow()));
             ExpectFullscreen(desk, expected, expected);
 
             desk.Spawn("kitty_floated");
             Assert.Equal("kitty_floated", desk.ActiveClass());
-            Assert.True(Desk.Floating(desk.ActiveWindow()));
+            Assert.True(TestDesktop.Floating(desk.ActiveWindow()));
             ExpectFullscreen(desk, 0, 0);
 
             desk.Ok("workspace", "2");
             desk.Ok("workspace", "1");
             Assert.Equal("kitty_floated", desk.ActiveClass());
-            Assert.True(Desk.Floating(desk.ActiveWindow()));
+            Assert.True(TestDesktop.Floating(desk.ActiveWindow()));
             ExpectFullscreen(desk, 0, 0);
 
             CloseAll(desk);
@@ -479,7 +478,7 @@ public class ScrollConformance
         }
     }
 
-    private static void CloseAll(Desk desk)
+    private static void CloseAll(TestDesktop desk)
     {
         foreach (var client in desk.Clients())
         {
@@ -488,47 +487,47 @@ public class ScrollConformance
         }
     }
 
-    private static int ActiveX(Desk desk) => X(desk.ActivePlace().At);
+    private static int ActiveX(TestDesktop desk) => X(desk.ActivePlace().At);
 
     private static int X(string pair) => int.Parse(pair[..pair.IndexOf(',', StringComparison.Ordinal)], CultureInfo.InvariantCulture);
 
-    private static void ExpectActive(Desk desk, string windowClass, string at, string size)
+    private static void ExpectActive(TestDesktop desk, string windowClass, string at, string size)
     {
         Assert.Equal(windowClass, desk.ActiveClass());
         desk.ExpectActive(at, size);
     }
 
-    private static void ExpectPlace(Desk desk, string windowClass, string at, string size) =>
+    private static void ExpectPlace(TestDesktop desk, string windowClass, string at, string size) =>
         Assert.Equal((at, size), desk.PlaceOf(windowClass));
 
-    private static void ExpectFullscreen(Desk desk, int fullscreen, int fullscreenClient)
+    private static void ExpectFullscreen(TestDesktop desk, int fullscreen, int fullscreenClient)
     {
         var active = desk.ActiveWindow();
-        Assert.Equal(fullscreen, Desk.Fullscreen(active));
-        Assert.Equal(fullscreenClient, Desk.FullscreenClient(active));
+        Assert.Equal(fullscreen, TestDesktop.Fullscreen(active));
+        Assert.Equal(fullscreenClient, TestDesktop.FullscreenClient(active));
     }
 
-    private static void ExpectActiveFullscreen(Desk desk, string windowClass, int mode)
+    private static void ExpectActiveFullscreen(TestDesktop desk, string windowClass, int mode)
     {
         Assert.Equal(windowClass, desk.ActiveClass());
         ExpectFullscreen(desk, mode, mode);
     }
 
     // The fields the reference reads from a client block. A null field is one the reference does not check there.
-    private static void ExpectClient(Desk desk, string windowClass, bool floating, bool acceptsInput, int fullscreen, bool? over = null, bool? visible = null)
+    private static void ExpectClient(TestDesktop desk, string windowClass, bool floating, bool acceptsInput, int fullscreen, bool? over = null, bool? visible = null)
     {
         var client = desk.Client(windowClass);
-        Assert.Equal(floating, Desk.Floating(client));
+        Assert.Equal(floating, TestDesktop.Floating(client));
         if (over is bool allowed)
             Assert.Equal(allowed, client.GetProperty("allowedOverFullscreen").GetBoolean());
         if (visible is bool shown)
             Assert.Equal(shown, client.GetProperty("visible").GetBoolean());
         Assert.Equal(acceptsInput, client.GetProperty("acceptsInput").GetBoolean());
-        Assert.Equal(fullscreen, Desk.Fullscreen(client));
-        Assert.Equal(fullscreen, Desk.FullscreenClient(client));
+        Assert.Equal(fullscreen, TestDesktop.Fullscreen(client));
+        Assert.Equal(fullscreen, TestDesktop.FullscreenClient(client));
     }
 
-    private static void ExpectUnmovedByMaximize(Desk desk, string[] names)
+    private static void ExpectUnmovedByMaximize(TestDesktop desk, string[] names)
     {
         var before = new Dictionary<string, (string At, string Size)>(StringComparer.Ordinal);
         foreach (var name in names)

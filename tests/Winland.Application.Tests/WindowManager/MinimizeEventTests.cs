@@ -1,17 +1,14 @@
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
 /// <summary>
-/// Winland's foreign toplevel case. A taskbar asks to minimize a window and to restore it, and a handler
-/// records each minimize event. On Windows the taskbar does that itself, and Winland hears the window minimized and
-/// restored. The reference records each minimize. Here the stream's <c>minimized</c> events do.
+/// The <c>minimized</c> events. On Windows the taskbar minimizes and restores a window itself, and Winland hears it.
 /// </summary>
-[Trait("Category", "Conformance")]
-public class WlrForeignToplevelConformance
+public class MinimizeEventTests
 {
     [Fact]
-    public void WlrForeignToplevelMinimizeEvents()
+    public void MinimizeAndRestoreAreMinimizedEvents()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         var events = new List<string>();
         var kitty = desk.Spawn("hyprtester-wlr-minimize");
         var pid = desk.Client("hyprtester-wlr-minimize").GetProperty("pid").GetInt64();

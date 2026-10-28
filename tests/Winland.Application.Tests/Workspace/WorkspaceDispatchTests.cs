@@ -1,17 +1,16 @@
 using System.Globalization;
 using System.Text.Json;
 
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
 /// <summary>Winland's workspace cases. Each test is named after its case, and sends the same commands.</summary>
-[Trait("Category", "Conformance")]
-public class WorkspacesConformance
+public class WorkspaceDispatchTests
 {
     [Fact]
     public void WorkspacesCombined()
     {
-        var desk = new Desk("workspace = 966, persistent:true\n");
-        ReloadsReferenceConfig(desk);
+        var desk = new TestDesktop("workspace = 966, persistent:true\n");
+        desk.ReloadWithoutExtra();
 
         Assert.Contains("966 (966)", Labels(desk));
         Assert.Equal("ok", desk.Send("reload"));
@@ -55,7 +54,7 @@ public class WorkspacesConformance
         desk.Ok("workspace", "1");
 
         // Each Monitor shows its own Workspace 1. The new one does not take a number from this Monitor.
-        desk.AddMonitor("HEADLESS-3", Desk.Second);
+        desk.AddMonitor("HEADLESS-3", TestDesktop.Second);
         var monitors = Monitors(desk);
         Assert.Equal(2, monitors.Count(monitor => ShownOn(monitor) == "1 (1)"));
         Assert.Contains("HEADLESS-3", monitors.Select(NameOf));
@@ -92,7 +91,7 @@ public class WorkspacesConformance
         Assert.Equal(2, Monitors(desk).Count(monitor => SpecialOn(monitor).Length == 0));
 
         desk.Ok("workspace", "1");
-        KillAll(desk);
+        desk.CloseAll();
 
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
@@ -118,7 +117,7 @@ public class WorkspacesConformance
         desk.Ok("movefocus", "r");
         Assert.Equal("kitty_D", desk.ActiveClass());
 
-        KillAll(desk);
+        desk.CloseAll();
 
         MultimonBaf(desk);
         MultimonFocus(desk);
@@ -135,7 +134,7 @@ public class WorkspacesConformance
     [Fact]
     public void WorkspaceSwitchUnfocusesWindowFromOldWorkspace()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("a");
         for (var followMouse = 0; followMouse <= 3; followMouse++)
         {
@@ -152,7 +151,7 @@ public class WorkspacesConformance
         }
     }
 
-    private static void MultimonBaf(Desk desk)
+    private static void MultimonBaf(TestDesktop desk)
     {
         desk.Keyword("binds:workspace_back_and_forth", "0");
 
@@ -189,10 +188,10 @@ public class WorkspacesConformance
         desk.Ok("workspace", "6");
         ExpectActive(desk, "2 (2)", "HEADLESS-2");
 
-        KillAll(desk);
+        desk.CloseAll();
     }
 
-    private static void MultimonFocus(Desk desk)
+    private static void MultimonFocus(TestDesktop desk)
     {
         desk.Keyword("input:follow_mouse", "0");
         desk.Ok("focusmonitor", "HEADLESS-3");
@@ -230,10 +229,10 @@ public class WorkspacesConformance
         desk.Ok("movefocus", "l");
 
         Assert.Equal("ok", desk.Send("reload"));
-        KillAll(desk);
+        desk.CloseAll();
     }
 
-    private static void WorkspaceHistoryMultiMon(Desk desk)
+    private static void WorkspaceHistoryMultiMon(TestDesktop desk)
     {
         desk.Ok("focusmonitor", "HEADLESS-2");
         desk.Ok("workspace", "10");
@@ -251,10 +250,10 @@ public class WorkspacesConformance
         desk.Ok("workspace", "previous_per_monitor");
         Assert.Equal("10 (10)", ActiveLabel(desk));
 
-        KillAll(desk);
+        desk.CloseAll();
     }
 
-    private static void SpecialWorkspaceFullscreen(Desk desk)
+    private static void SpecialWorkspaceFullscreen(TestDesktop desk)
     {
         desk.Dispatch("workspace", "1");
         Assert.Empty(desk.Clients());
@@ -265,7 +264,7 @@ public class WorkspacesConformance
         Assert.Equal("special:test_fs_special", WorkspaceNameOf(desk.ActiveWindow()));
 
         desk.Ok("fullscreen", "0");
-        Assert.Equal(2, Desk.Fullscreen(desk.ActiveWindow()));
+        Assert.Equal(2, TestDesktop.Fullscreen(desk.ActiveWindow()));
         Assert.Contains("special:test_fs_special", Monitors(desk).Select(SpecialOn));
 
         // The special workspace is hidden before a window opens on the regular one.
@@ -275,7 +274,7 @@ public class WorkspacesConformance
 
         desk.Ok("fullscreen", "0");
         Assert.Equal("kitty_regular", desk.ActiveClass());
-        Assert.Equal(2, Desk.Fullscreen(desk.ActiveWindow()));
+        Assert.Equal(2, TestDesktop.Fullscreen(desk.ActiveWindow()));
 
         desk.Ok("togglespecialworkspace", "test_fs_special");
         desk.Ok("focuswindow", "class:kitty_special");
@@ -284,14 +283,14 @@ public class WorkspacesConformance
         desk.Ok("togglespecialworkspace", "test_fs_special");
         desk.Ok("focuswindow", "class:kitty_regular");
         Assert.Equal("kitty_regular", desk.ActiveClass());
-        Assert.Equal(2, Desk.Fullscreen(desk.ActiveWindow()));
+        Assert.Equal(2, TestDesktop.Fullscreen(desk.ActiveWindow()));
         Assert.Contains("", Monitors(desk).Select(SpecialOn));
 
-        KillAll(desk);
+        desk.CloseAll();
         Assert.Equal("ok", desk.Send("reload"));
     }
 
-    private static void AsymmetricGaps(Desk desk)
+    private static void AsymmetricGaps(TestDesktop desk)
     {
         Assert.Empty(desk.Clients());
         desk.Dispatch("workspace", "1");
@@ -311,28 +310,24 @@ public class WorkspacesConformance
         desk.Ok("focuswindow", "class:gaps_kitty_B");
         Assert.Equal("0,540", desk.ActivePlace().At);
 
-        KillAll(desk);
+        desk.CloseAll();
         Assert.Empty(desk.Clients());
 
-        KillAll(desk);
+        desk.CloseAll();
     }
 
-    // The reference adds its rules over the socket, so reload drops them and reads only the reference config.
-    private static void ReloadsReferenceConfig(Desk desk) =>
-        desk.WindowManager.ReadConfig = () => new ConfigRead(ConfigParser.Parse(Desk.Config));
+    private static int X(TestDesktop desk) => desk.Placed(desk.ActiveId()).X;
 
-    private static int X(Desk desk) => desk.Placed(desk.ActiveId()).X;
-
-    private static void ExpectActive(Desk desk, string label, string monitor)
+    private static void ExpectActive(TestDesktop desk, string label, string monitor)
     {
         var active = desk.ActiveWorkspace();
         Assert.Equal(label, Label(active));
         Assert.Equal(monitor, active.GetProperty("monitor").GetString());
     }
 
-    private static string ActiveLabel(Desk desk) => Label(desk.ActiveWorkspace());
+    private static string ActiveLabel(TestDesktop desk) => Label(desk.ActiveWorkspace());
 
-    private static string[] Labels(Desk desk) => [.. desk.Workspaces().Select(Label)];
+    private static string[] Labels(TestDesktop desk) => [.. desk.Workspaces().Select(Label)];
 
     // A Workspace as the reference reply writes it, `ADDRESS (NAME)`: its address, then its display name.
     private static string Label(JsonElement workspace) =>
@@ -341,7 +336,7 @@ public class WorkspacesConformance
     private static string WorkspaceNameOf(JsonElement client) =>
         client.GetProperty("workspace").GetProperty("name").GetString() ?? "";
 
-    private static JsonElement[] Monitors(Desk desk)
+    private static JsonElement[] Monitors(TestDesktop desk)
     {
         using var document = JsonDocument.Parse(desk.Send("j/monitors"));
         return [.. document.RootElement.Clone().EnumerateArray()];
@@ -358,13 +353,4 @@ public class WorkspacesConformance
 
     private static string SpecialOn(JsonElement monitor) => monitor.GetProperty("specialWorkspace").GetProperty("name").GetString() ?? "";
 
-    // Closes every window, as the reference harness kills every kitty.
-    private static void KillAll(Desk desk)
-    {
-        foreach (var client in desk.Clients())
-        {
-            var address = client.GetProperty("address").GetString() ?? "";
-            desk.Handle(new WindowClosed(new WindowId(Convert.ToInt64(address[2..], 16))));
-        }
-    }
 }

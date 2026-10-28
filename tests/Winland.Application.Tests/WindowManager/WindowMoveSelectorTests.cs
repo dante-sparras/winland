@@ -4,8 +4,6 @@ public class WindowMoveSelectorTests
 {
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);
 
-    private static readonly Rectangle Left = new(0, 0, 1920, 1080);
-
     private static readonly Rectangle Right = new(1920, 0, 1920, 1080);
 
     [Fact]
@@ -205,17 +203,6 @@ public class WindowMoveSelectorTests
         for (var window = 1; window <= count; window++)
             core.Handle(new WindowAppeared(new WindowId(window), Area));
 
-        return core;
-    }
-
-    private static WindowManager TwoMonitors(string? config = null)
-    {
-        var core = config is null ? new WindowManager() : new WindowManager(ConfigParser.Parse(config));
-        var left = Display(@"\\.\DISPLAY1", "Dell", Left);
-        var right = Display(@"\\.\DISPLAY2", "Samsung", Right);
-        core.Handle(new MonitorsChanged([left, right]));
-        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
-        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
         return core;
     }
 }

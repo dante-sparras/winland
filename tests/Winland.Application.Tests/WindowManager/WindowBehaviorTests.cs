@@ -1,16 +1,17 @@
 using System.Globalization;
 using System.Text.Json;
 
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
-/// <summary>Winland's window cases. Each test is named after its case, and sends the same commands.</summary>
-[Trait("Category", "Conformance")]
-public class WindowConformance
+/// <summary>
+/// Windows, driven through pipe lines on a <see cref="TestDesktop"/>: swapping, fullscreen, pins, rules, exec rules and floating moves.
+/// </summary>
+public class WindowBehaviorTests
 {
     [Fact]
     public void SwapWindow()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Ok("workspace", "2");
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
@@ -52,7 +53,7 @@ public class WindowConformance
     [Fact]
     public void WindowFocusOnFullscreenConflict()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
 
@@ -82,7 +83,7 @@ public class WindowConformance
     [Fact]
     public void FocusFloatingOrTilingUnderFullscreen()
     {
-        var desk = new Desk("""
+        var desk = new TestDesktop("""
             misc:focus_on_activate = true
             """);
         desk.Spawn("kitty_a");
@@ -98,35 +99,35 @@ public class WindowConformance
 
         desk.Ok("focuswindow", "floating");
         Assert.Contains("kitty_b", desk.ActiveClass(), StringComparison.Ordinal);
-        Assert.Equal(2, Desk.Fullscreen(desk.Client("kitty_a")));
-        Assert.Equal(2, Desk.FullscreenClient(desk.Client("kitty_a")));
+        Assert.Equal(2, TestDesktop.Fullscreen(desk.Client("kitty_a")));
+        Assert.Equal(2, TestDesktop.FullscreenClient(desk.Client("kitty_a")));
 
         // A tile under a fullscreen floating window.
         desk.Ok("fullscreen", "0 set");
         desk.Ok("focuswindow", "tiled");
         Assert.Contains("kitty_a", desk.ActiveClass(), StringComparison.Ordinal);
-        Assert.Equal(0, Desk.Fullscreen(desk.Client("kitty_b")));
+        Assert.Equal(0, TestDesktop.Fullscreen(desk.Client("kitty_b")));
     }
 
     [Fact]
     public void WindowMaximizeSize()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("kitty_A");
 
         Assert.Equal(("22,22", "1876,1036"), desk.PlaceOf("kitty_A"));
-        Assert.Equal(0, Desk.Fullscreen(desk.Client("kitty_A")));
+        Assert.Equal(0, TestDesktop.Fullscreen(desk.Client("kitty_A")));
 
         desk.Ok("fullscreen", "1");
 
         Assert.Equal(("22,22", "1876,1036"), desk.PlaceOf("kitty_A"));
-        Assert.Equal(1, Desk.Fullscreen(desk.Client("kitty_A")));
+        Assert.Equal(1, TestDesktop.Fullscreen(desk.Client("kitty_A")));
     }
 
     [Fact]
     public void GroupFallbackFocus()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("kitty_A");
         desk.Ok("togglegroup");
         desk.Spawn("kitty_B");
@@ -146,7 +147,7 @@ public class WindowConformance
     [Fact]
     public void WindowRuleFocusOnActivate()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("kitty_default");
 
         // focus_on_activate off on the rule wins.
@@ -177,7 +178,7 @@ public class WindowConformance
     [Fact]
     public void PinnedWorkspacesValid()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Dispatch("workspace", "1337");
         desk.Spawn("kitty");
 
@@ -185,46 +186,46 @@ public class WindowConformance
         desk.Ok("pin", "class:kitty");
 
         var active = desk.ActiveWindow();
-        Assert.Equal(1337, Desk.WorkspaceId(active));
-        Assert.True(Desk.Pinned(active));
+        Assert.Equal(1337, TestDesktop.WorkspaceId(active));
+        Assert.True(TestDesktop.Pinned(active));
 
         desk.Dispatch("workspace", "1338");
 
         active = desk.ActiveWindow();
-        Assert.Equal(1338, Desk.WorkspaceId(active));
-        Assert.True(Desk.Pinned(active));
+        Assert.Equal(1338, TestDesktop.WorkspaceId(active));
+        Assert.True(TestDesktop.Pinned(active));
 
         desk.Ok("togglefloating", "class:kitty");
 
         active = desk.ActiveWindow();
-        Assert.Equal(1338, Desk.WorkspaceId(active));
-        Assert.False(Desk.Pinned(active));
+        Assert.Equal(1338, TestDesktop.WorkspaceId(active));
+        Assert.False(TestDesktop.Pinned(active));
     }
 
     [Fact]
     public void WindowruleWorkspaceEmpty()
     {
-        var desk = new Desk("""
+        var desk = new TestDesktop("""
             windowrule = workspace empty, class:kitty_A
             windowrule = workspace emptyn, class:kitty_B
             """);
 
         desk.Dispatch("workspace", "3");
         desk.Spawn("kitty");
-        Assert.Equal(3, Desk.WorkspaceId(desk.ActiveWindow()));
+        Assert.Equal(3, TestDesktop.WorkspaceId(desk.ActiveWindow()));
 
         desk.Spawn("kitty_A");
-        Assert.Equal(1, Desk.WorkspaceId(desk.ActiveWindow()));
+        Assert.Equal(1, TestDesktop.WorkspaceId(desk.ActiveWindow()));
 
         desk.Dispatch("workspace", "3");
         desk.Spawn("kitty_B");
-        Assert.Equal(4, Desk.WorkspaceId(desk.ActiveWindow()));
+        Assert.Equal(4, TestDesktop.WorkspaceId(desk.ActiveWindow()));
     }
 
     [Fact]
     public void Issue14038()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("kitty_14038");
 
         desk.Ok("movetoworkspacesilent", "special:a,class:kitty_14038");
@@ -236,8 +237,8 @@ public class WindowConformance
     [Fact]
     public void Issue14134()
     {
-        var desk = new Desk();
-        desk.AddMonitor("HEADLESS-4", Desk.Second);
+        var desk = new TestDesktop();
+        desk.AddMonitor("HEADLESS-4", TestDesktop.Second);
         desk.Ok("focusmonitor", "HEADLESS-4");
 
         desk.Spawn("kitty_14134");
@@ -259,7 +260,7 @@ public class WindowConformance
     [Fact]
     public void ExactWindowSelectors()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
 
@@ -285,7 +286,7 @@ public class WindowConformance
     [Fact]
     public void CycleNextTiled()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         foreach (var name in new[] { "a", "b", "c", "d" })
             desk.Spawn(name);
 
@@ -307,7 +308,7 @@ public class WindowConformance
     [Fact]
     public void CycleNextFloating()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         foreach (var name in new[] { "a", "b", "c", "d" })
             desk.Spawn(name);
 
@@ -327,15 +328,15 @@ public class WindowConformance
     [Fact]
     public void ExecRulesWorkspaceOverride()
     {
-        var desk = new Desk("windowrule = workspace 2, class:kitty_exec_override\n");
+        var desk = new TestDesktop("windowrule = workspace 2, class:kitty_exec_override\n");
 
         Launch(desk, "[workspace 3] kitty --class kitty_exec_override", pid: Pid(1));
         ExpectProcess(desk.Spawn("kitty_exec_override"), Pid(1));
         Assert.Single(desk.Clients());
 
         var active = desk.ActiveWindow();
-        Assert.Equal("kitty_exec_override", Desk.ClassOf(active));
-        Assert.Equal(3, Desk.WorkspaceId(active));
+        Assert.Equal("kitty_exec_override", TestDesktop.ClassOf(active));
+        Assert.Equal(3, TestDesktop.WorkspaceId(active));
 
         CloseAll(desk);
     }
@@ -343,7 +344,7 @@ public class WindowConformance
     [Fact]
     public void ExecRulesTagMutation()
     {
-        var desk = new Desk("""
+        var desk = new TestDesktop("""
             windowrule = workspace 2, class:kitty_tag_mutate
             windowrule = tag test_tag, class:kitty_tag_mutate
             """);
@@ -353,8 +354,8 @@ public class WindowConformance
         Assert.Single(desk.Clients());
 
         var active = desk.ActiveWindow();
-        Assert.Equal("kitty_tag_mutate", Desk.ClassOf(active));
-        Assert.Equal(3, Desk.WorkspaceId(active));
+        Assert.Equal("kitty_tag_mutate", TestDesktop.ClassOf(active));
+        Assert.Equal(3, TestDesktop.WorkspaceId(active));
 
         CloseAll(desk);
     }
@@ -362,7 +363,7 @@ public class WindowConformance
     [Fact]
     public void ExecRulesDescendantProcess()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
 
         // The shell is the launched process, and kitty is its child.
         Launch(desk, "[workspace 2 silent] kitty --class kitty_exec_workspace & wait", pid: 4001);
@@ -374,8 +375,8 @@ public class WindowConformance
         desk.Ok("focuswindow", "class:kitty_exec_workspace");
 
         var active = desk.ActiveWindow();
-        Assert.Equal("kitty_exec_workspace", Desk.ClassOf(active));
-        Assert.Equal(2, Desk.WorkspaceId(active));
+        Assert.Equal("kitty_exec_workspace", TestDesktop.ClassOf(active));
+        Assert.Equal(2, TestDesktop.WorkspaceId(active));
 
         // The options in the rule block follow the command's own rules.
         Launch(desk, "[workspace 3; border_size 7; workspace special:exec_rules silent; no_initial_focus; no_focus] kitty --class kitty_exec_special & wait", pid: 4101);
@@ -387,14 +388,14 @@ public class WindowConformance
         Assert.Contains("7", desk.Send("getprop class:kitty_exec_special border_size"), StringComparison.Ordinal);
 
         active = desk.ActiveWindow();
-        Assert.Equal("kitty_exec_workspace", Desk.ClassOf(active));
-        Assert.Equal(2, Desk.WorkspaceId(active));
+        Assert.Equal("kitty_exec_workspace", TestDesktop.ClassOf(active));
+        Assert.Equal(2, TestDesktop.WorkspaceId(active));
 
         Assert.Equal("ok", desk.Send("setprop class:kitty_exec_special no_focus false"));
         desk.Ok("focuswindow", "class:kitty_exec_special");
 
         active = desk.ActiveWindow();
-        Assert.Equal("kitty_exec_special", Desk.ClassOf(active));
+        Assert.Equal("kitty_exec_special", TestDesktop.ClassOf(active));
         Assert.Equal("special:exec_rules", WorkspaceName(active));
 
         CloseAll(desk);
@@ -403,7 +404,7 @@ public class WindowConformance
     [Fact]
     public void ExecRulesPendingIsolation()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
 
         // Both launches are pending before either window opens.
         Launch(desk, "[workspace 2 silent] sleep 1 && kitty --class kitty_exec_first", pid: 5001);
@@ -417,8 +418,8 @@ public class WindowConformance
         desk.Ok("focuswindow", "class:kitty_exec_first");
 
         var active = desk.ActiveWindow();
-        Assert.Equal("kitty_exec_first", Desk.ClassOf(active));
-        Assert.Equal(2, Desk.WorkspaceId(active));
+        Assert.Equal("kitty_exec_first", TestDesktop.ClassOf(active));
+        Assert.Equal(2, TestDesktop.WorkspaceId(active));
 
         Started(desk, window: 2, parent: 5101);
         ExpectProcess(desk.Spawn("kitty_exec_second"), Pid(2));
@@ -431,7 +432,7 @@ public class WindowConformance
         desk.Ok("focuswindow", "class:kitty_exec_second");
 
         active = desk.ActiveWindow();
-        Assert.Equal("kitty_exec_second", Desk.ClassOf(active));
+        Assert.Equal("kitty_exec_second", TestDesktop.ClassOf(active));
         Assert.Equal("special:exec_rules_pending", WorkspaceName(active));
 
         CloseAll(desk);
@@ -440,13 +441,13 @@ public class WindowConformance
     [Fact]
     public void PinnedRetainsPositionOnWorkspaceChange()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("a");
 
         desk.Ok("workspace", "1");
         desk.Ok("togglefloating");
         desk.Ok("pin");
-        Assert.Contains(desk.Clients(), Desk.Pinned);
+        Assert.Contains(desk.Clients(), TestDesktop.Pinned);
 
         desk.MoveTo(desk.ActiveId(), 500, 300);
 
@@ -456,15 +457,15 @@ public class WindowConformance
         desk.Ok("workspace", "1");
         Assert.Contains(desk.Workspaces(), workspace => workspace.GetProperty("id").GetInt32() == 1);
 
-        Assert.Contains(desk.Clients(), Desk.Pinned);
+        Assert.Contains(desk.Clients(), TestDesktop.Pinned);
         Assert.Equal("500,300", desk.PlaceOf("a").At);
     }
 
     [Fact]
     public void Monitorrule()
     {
-        var desk = new Desk("windowrule = monitor HEADLESS-3, class:monitor_kitty\n");
-        desk.AddMonitor("HEADLESS-3", Desk.Second);
+        var desk = new TestDesktop("windowrule = monitor HEADLESS-3, class:monitor_kitty\n");
+        desk.AddMonitor("HEADLESS-3", TestDesktop.Second);
         var third = MonitorId(desk, "HEADLESS-3");
 
         desk.Ok("focusmonitor", "HEADLESS-2");
@@ -487,7 +488,7 @@ public class WindowConformance
     [Fact]
     public void MouseResize()
     {
-        var desk = new Desk("windowrule = float, class:kitty\n");
+        var desk = new TestDesktop("windowrule = float, class:kitty\n");
         desk.Spawn("kitty");
         Assert.Single(desk.Clients());
         desk.Ok("focuswindow", "class:kitty");
@@ -510,7 +511,7 @@ public class WindowConformance
     [Fact]
     public void GetFullscreenHandler()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         Assert.Equal("ok", desk.Send("keyword general:layout dwindle"));
 
         desk.Spawn("cat");
@@ -546,7 +547,7 @@ public class WindowConformance
     [Fact]
     public void FloatingForceOnscreen()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("a");
         desk.Ok("togglefloating");
         // Fully on screen.
@@ -565,7 +566,7 @@ public class WindowConformance
     [Fact]
     public void SpecialWorkspacePinnedWindowUnmapFallback()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         CloseAll(desk);
         Assert.Empty(desk.Clients());
 
@@ -594,7 +595,7 @@ public class WindowConformance
     [Fact]
     public void WindowRuleBorderColors()
     {
-        var desk = new Desk("""
+        var desk = new TestDesktop("""
             general:col.active_border = rgba(00ff00ff)
             general:col.inactive_border = rgba(ff0000ff)
             windowrule = border_color rgba(ffff00ff) rgba(000000ff), class:border_color_kitty
@@ -619,7 +620,7 @@ public class WindowConformance
     [Fact]
     public void FloatingMoveExpression()
     {
-        var desk = new Desk("""
+        var desk = new TestDesktop("""
             windowrule = float, class:kitty_floatingmove
             windowrule = size 800 600, class:kitty_floatingmove
             windowrule = move (monitor_w-window_w-10) (monitor_h-window_h-10), class:kitty_floatingmove
@@ -629,9 +630,9 @@ public class WindowConformance
         Assert.Single(desk.Clients());
 
         // The active monitor is the first: 1920x1080 at 0,0.
-        var expected = $"{Desk.First.X + Desk.First.Width - 800 - 10},{Desk.First.Y + Desk.First.Height - 600 - 10}";
+        var expected = $"{TestDesktop.First.X + TestDesktop.First.Width - 800 - 10},{TestDesktop.First.Y + TestDesktop.First.Height - 600 - 10}";
 
-        Assert.True(Desk.Floating(desk.ActiveWindow()));
+        Assert.True(TestDesktop.Floating(desk.ActiveWindow()));
         desk.ExpectActive(expected, "800,600");
 
         CloseAll(desk);
@@ -642,54 +643,54 @@ public class WindowConformance
     private static string WorkspaceName(JsonElement client) =>
         client.GetProperty("workspace").GetProperty("name").GetString() ?? "";
 
-    private static string Handler(Desk desk) => desk.ActiveWindow().GetProperty("fullscreenHandler").GetString() ?? "";
+    private static string Handler(TestDesktop desk) => desk.ActiveWindow().GetProperty("fullscreenHandler").GetString() ?? "";
 
     private static WindowId IdOf(JsonElement client) => new(Convert.ToInt64(Address(client)[2..], 16));
 
-    private static (string At, string Size) Place(Desk desk, WindowId window)
+    private static (string At, string Size) Place(TestDesktop desk, WindowId window)
     {
         var bounds = desk.Placed(window);
         return ($"{bounds.X},{bounds.Y}", $"{bounds.Width},{bounds.Height}");
     }
 
     // The active window's class and fullscreen mode, as the reference's isActiveWindow checks them.
-    private static void ExpectFocused(Desk desk, string windowClass, int fullscreen)
+    private static void ExpectFocused(TestDesktop desk, string windowClass, int fullscreen)
     {
         var active = desk.ActiveWindow();
-        Assert.Equal(windowClass, Desk.ClassOf(active));
-        Assert.Equal(fullscreen, Desk.Fullscreen(active));
+        Assert.Equal(windowClass, TestDesktop.ClassOf(active));
+        Assert.Equal(fullscreen, TestDesktop.Fullscreen(active));
     }
 
     // The window asks for the foreground by itself, as kitty does when the reference removes its file.
     // The test plugin activates with a fresh serial: on Windows, a window taking the foreground right after a click in
     // the focused Client of another program.
-    private static void Activate(Desk desk, WindowId window) =>
+    private static void Activate(TestDesktop desk, WindowId window) =>
         desk.Handle(new WindowFocused(window, FocusCause.User) { Clicked = desk.ActiveId() });
 
     // The test plugin's click with a button held down, and with it let go, where the pointer is.
-    private static void Press(Desk desk, string button) =>
+    private static void Press(TestDesktop desk, string button) =>
         desk.Handle(new PointerButtonPressed(button) { Position = desk.Pointer });
 
-    private static void Release(Desk desk, string button) =>
+    private static void Release(TestDesktop desk, string button) =>
         desk.Handle(new PointerButtonReleased(button) { Position = desk.Pointer });
 
-    private static void CloseAll(Desk desk)
+    private static void CloseAll(TestDesktop desk)
     {
         foreach (var client in desk.Clients())
             desk.Handle(new WindowClosed(IdOf(client)));
     }
 
-    // The process of the nth window a Desk opens.
+    // The process of the nth window a TestDesktop opens.
     private static int Pid(int window) => 1000 + window;
 
     // Checks that the window is the one the launch counted on, so its process is the one the launch recorded.
     private static void ExpectProcess(WindowId window, int pid) => Assert.Equal(pid, 1000 + window.Value);
 
     // A launched shell starts the process of the nth window, as the adapter notes a new process and its parent.
-    private static void Started(Desk desk, int window, int parent) => desk.WindowManager.NoteLineage(Pid(window), [parent]);
+    private static void Started(TestDesktop desk, int window, int parent) => desk.WindowManager.NoteLineage(Pid(window), [parent]);
 
     // Runs exec and records the process it starts, as the adapter does.
-    private static void Launch(Desk desk, string arguments, int pid)
+    private static void Launch(TestDesktop desk, string arguments, int pid)
     {
         var outcome = desk.Handle(new Dispatch("exec", arguments));
         Assert.Null(outcome.Error);
@@ -697,7 +698,7 @@ public class WindowConformance
             desk.WindowManager.NoteLaunched(pid, launch);
     }
 
-    private static int MonitorId(Desk desk, string name)
+    private static int MonitorId(TestDesktop desk, string name)
     {
         using var document = JsonDocument.Parse(desk.Send("j/monitors"));
         return document.RootElement.EnumerateArray()
@@ -706,7 +707,7 @@ public class WindowConformance
     }
 
     // Reloads, unbinds the button and puts the window back, as the reference's RESET_WINDOW does.
-    private static void ResetWindow(Desk desk)
+    private static void ResetWindow(TestDesktop desk)
     {
         Assert.Equal("ok", desk.Send("reload"));
         Assert.Equal("ok", desk.Send("keyword unbind , mouse:273"));
@@ -722,7 +723,7 @@ public class WindowConformance
         Assert.InRange(int.Parse(parts[1], CultureInfo.InvariantCulture), height - delta, height + delta);
     }
 
-    private static void ExpectSideBySide(Desk desk, WindowId first, WindowId second)
+    private static void ExpectSideBySide(TestDesktop desk, WindowId first, WindowId second)
     {
         var places = new[] { Place(desk, first), Place(desk, second) };
         Assert.All(places, place => Assert.Equal("931,1036", place.Size));
@@ -730,7 +731,7 @@ public class WindowConformance
         Assert.Contains(places, place => place.At == "967,22");
     }
 
-    private static void ExpectContentProps(Desk desk)
+    private static void ExpectContentProps(TestDesktop desk)
     {
         Assert.Contains("10", desk.Send("getprop active border_size"), StringComparison.Ordinal);
         Assert.Contains("0.5", desk.Send("getprop active opacity"), StringComparison.Ordinal);

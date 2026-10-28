@@ -1,15 +1,14 @@
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
-/// <summary>Winland's state case. The test is named after its case, and sends the same commands.</summary>
-[Trait("Category", "Conformance")]
-public class StateConformance
+/// <summary>The FALLBACK Monitor that holds the Workspaces while no Monitor is enabled.</summary>
+public class FallbackMonitorTests
 {
     private const string MonitorNotHonored = "error: Monitor settings other than a reserved area are not honored.";
 
     [Fact]
-    public void State()
+    public void DisabledMonitorsHandTheirWorkspacesToFallback()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
 
         desk.Ok("focusmonitor", "HEADLESS-2");
         desk.Ok("workspace", "9");
@@ -39,6 +38,6 @@ public class StateConformance
         Assert.Equal("HEADLESS-2", MonitorOf(desk, 9));
     }
 
-    private static string? MonitorOf(Desk desk, int workspace) =>
+    private static string? MonitorOf(TestDesktop desk, int workspace) =>
         desk.Workspaces().Single(item => item.GetProperty("id").GetInt32() == workspace).GetProperty("monitor").GetString();
 }

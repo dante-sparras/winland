@@ -154,7 +154,7 @@ public class WorkspaceRuleTests
     [Fact]
     public void InnerAndOuterGapsReplaceTheGeneralValuesOnThatWorkspace()
     {
-        var core = Configured(Flat("""
+        var core = Configured(FlatConfig("""
             workspace = 2, gapsin:10, gapsout:20
             """));
 
@@ -173,7 +173,7 @@ public class WorkspaceRuleTests
     [Fact]
     public void AMonitorFilterDoesNotMoveTheWorkspace()
     {
-        var core = Configured(Flat("""
+        var core = Configured(FlatConfig("""
             workspace = 4, monitor:\\.\DISPLAY2, default:true
             """));
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
@@ -198,7 +198,7 @@ public class WorkspaceRuleTests
     [Fact]
     public void ADescriptionSelectorFiltersTheWorkspaceRule()
     {
-        var core = Configured(Flat("""
+        var core = Configured(FlatConfig("""
             workspace = 4, monitor:desc:Samsung, default:true
             """));
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
@@ -213,7 +213,7 @@ public class WorkspaceRuleTests
     [Fact]
     public void DefaultSelectsTheWorkspaceWhenAMonitorHasNone()
     {
-        var core = Configured(Flat("""
+        var core = Configured(FlatConfig("""
             workspace = 4, monitor:\\.\DISPLAY2, default:true
             """));
         var left = Display(@"\\.\DISPLAY1", "Dell", 0, 0, 1920, 1080, 1);
@@ -230,7 +230,7 @@ public class WorkspaceRuleTests
     [Fact]
     public void APersistentWorkspaceStaysWhenItIsEmpty()
     {
-        var core = Configured(Flat("""
+        var core = Configured(FlatConfig("""
             workspace = 9, persistent:true
             """));
         core.Handle(new MonitorsChanged([Display("DP-1", "One", 0, 0, 1920, 1080, 1)]));
@@ -249,12 +249,6 @@ public class WorkspaceRuleTests
         Assert.DoesNotContain(home.State.Workspaces, workspace => workspace.Id == new WorkspaceId("8"));
     }
 
-
-    private static string Flat(string extra) =>
-        "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
-
-    private static WindowAppeared Appeared(long window, Rectangle area, Point? pointer = null) =>
-        new WindowAppeared(new WindowId(window), area) { Pointer = pointer };
 
     private static Workspace Workspace(Outcome outcome, string name) =>
         Assert.Single(outcome.State.Workspaces, workspace => workspace.Id.Name == name);

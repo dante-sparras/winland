@@ -1,18 +1,14 @@
 using System.Text.Json;
 
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
-/// <summary>
-/// Winland's cases for its control requests. Each test is named after its case, and sends the same
-/// requests. A text reply there and a JSON reply here that carry the same value are the same check.
-/// </summary>
-[Trait("Category", "Conformance")]
-public class ControlConformance
+/// <summary>The control requests: <c>getprop</c>, JSON errors, option descriptions and the binds reply.</summary>
+public class ControlRequestTests
 {
     [Fact]
-    public void HyprctlGetprop()
+    public void GetpropReadsAndSetpropWrites()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Spawn("kitty");
 
         ExpectProp(desk, "animation", "(unset)", """{"animation": ""}""");
@@ -58,18 +54,18 @@ public class ControlConformance
     }
 
     [Fact]
-    public void HyprctlJsonErrors()
+    public void JsonErrors()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
 
         Assert.Equal(JsonValueKind.Object, Json(desk.Send("getoption general:border_size")).ValueKind);
         Assert.Equal("error: no such option", desk.Send("getoption no:such"));
     }
 
     [Fact]
-    public void HyprctlDescriptionsCurrentValues()
+    public void DescriptionsShowCurrentValues()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         ExpectConfigured(desk);
 
         desk.Keyword("general:border_size", "7");
@@ -85,10 +81,10 @@ public class ControlConformance
     }
 
     [Fact]
-    public void HyprctlBindsJson()
+    public void BindsJson()
     {
         const string description = "hyprctl binds JSON regression";
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Keyword("bindled", $"SUPER, F12, {description}, exec, true");
 
         var binds = Json(desk.Send("j/binds")).EnumerateArray().ToArray();
@@ -103,16 +99,16 @@ public class ControlConformance
         Assert.Equal("ok", desk.Send("keyword unbind SUPER, F12"));
     }
 
-    private static void SetProp(Desk desk, string prop, string value) =>
+    private static void SetProp(TestDesktop desk, string prop, string value) =>
         desk.Dispatch("setprop", $"class:kitty {prop} {value}");
 
-    private static void ExpectProp(Desk desk, string prop, string text, string json)
+    private static void ExpectProp(TestDesktop desk, string prop, string text, string json)
     {
         Assert.Equal(text, desk.Send($"getprop class:kitty {prop}"));
         Assert.Equal(Compact(json), Compact(desk.Send($"j/getprop class:kitty {prop}")));
     }
 
-    private static void ExpectConfigured(Desk desk)
+    private static void ExpectConfigured(TestDesktop desk)
     {
         Assert.Equal("""{"option":"general:border_size","int":2,"set":true}""", desk.Send("getoption general:border_size"));
         Assert.Equal("""{"option":"dwindle:preserve_split","bool":true,"set":true}""", desk.Send("getoption dwindle:preserve_split"));

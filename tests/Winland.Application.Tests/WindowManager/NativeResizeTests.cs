@@ -165,15 +165,4 @@ public class NativeResizeTests
         Assert.Equal(new Rectangle(960, 0, 960, 640), BoundsOf(ended, 2));
         Assert.Equal(new Rectangle(960, 640, 960, 440), BoundsOf(ended, 3));
     }
-
-    private static WindowManager Flat(string extra)
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse(
-            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra)));
-        return core;
-    }
-
-    private static Outcome Appear(WindowManager core, long window) =>
-        core.Handle(new WindowAppeared(new WindowId(window), Wide));
 }

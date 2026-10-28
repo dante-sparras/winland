@@ -1,8 +1,7 @@
-namespace Winland.Application.Tests.Conformance;
+namespace Winland.Application.Tests;
 
-/// <summary>Winland's focus cases. Each test is named after its case, and sends the same commands.</summary>
-[Trait("Category", "Conformance")]
-public class FocusConformance
+/// <summary>Focus when a window moves away or the user switches Workspace or Monitor.</summary>
+public class FocusAcrossWorkspacesTests
 {
     // The reference's text reply says Invalid when no window is active. The JSON reply is an empty object.
     private const string NoWindow = "{}";
@@ -11,8 +10,8 @@ public class FocusConformance
     public void CrossMonitorFullscreenFocus()
     {
         // A monitor right of the first. Each Monitor has its own Workspaces.
-        var desk = new Desk();
-        desk.AddMonitor("HYPRTEST-2", Desk.Second);
+        var desk = new TestDesktop();
+        desk.AddMonitor("HYPRTEST-2", TestDesktop.Second);
 
         // One window on the left monitor.
         desk.Ok("workspace", "1");
@@ -46,7 +45,7 @@ public class FocusConformance
     [Fact]
     public void SilentMoveLastTiledWindowUnfocusesWindow()
     {
-        var desk = new Desk();
+        var desk = new TestDesktop();
         desk.Ok("workspace", "1");
         Assert.Empty(desk.Clients());
 
@@ -54,9 +53,9 @@ public class FocusConformance
         Assert.Single(desk.Clients());
 
         var active = desk.ActiveWindow();
-        Assert.Equal("silent_move_last_tiled", Desk.ClassOf(active));
-        Assert.Equal(1, Desk.WorkspaceId(active));
-        Assert.False(Desk.Floating(active));
+        Assert.Equal("silent_move_last_tiled", TestDesktop.ClassOf(active));
+        Assert.Equal(1, TestDesktop.WorkspaceId(active));
+        Assert.False(TestDesktop.Floating(active));
 
         desk.Ok("movetoworkspacesilent", "2");
 
@@ -66,15 +65,15 @@ public class FocusConformance
         Assert.Single(desk.Clients());
 
         var client = desk.Client("silent_move_last_tiled");
-        Assert.Equal(2, Desk.WorkspaceId(client));
+        Assert.Equal(2, TestDesktop.WorkspaceId(client));
     }
 
     [Fact]
     public void CrossMonitorEmptyWorkspaceUnfocusesWindow()
     {
         const string TestOutput = "HYPRTEST-UNFOCUS";
-        var desk = new Desk();
-        desk.AddMonitor(TestOutput, Desk.Second);
+        var desk = new TestDesktop();
+        desk.AddMonitor(TestOutput, TestDesktop.Second);
 
         desk.Ok("focusmonitor", "HEADLESS-2");
         desk.Ok("workspace", "1");

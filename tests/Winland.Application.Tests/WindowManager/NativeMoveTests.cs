@@ -219,15 +219,4 @@ public class NativeMoveTests
         Assert.False(moved.Consumed);
         Assert.Equal(bounds, Client(moved, 1).Bounds);
     }
-
-    private static WindowManager Flat(string extra)
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse(
-            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra)));
-        return core;
-    }
-
-    private static Outcome Appear(WindowManager core, long window) =>
-        core.Handle(new WindowAppeared(new WindowId(window), Wide));
 }
