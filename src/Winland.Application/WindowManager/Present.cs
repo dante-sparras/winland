@@ -21,6 +21,7 @@ public sealed partial class WindowManager
         var active = ActiveWindow();
         var hidden = new HashSet<WindowId>(outcome.State.Hidden.Select(client => client.Window));
         var decorations = new List<Decoration>(outcome.State.Clients.Count);
+        var leaving = new Dictionary<WindowId, BorderRing>();
         foreach (var client in outcome.State.Clients)
         {
             var borderless = client.Fullscreen == FullscreenMode.Fullscreen;
@@ -34,6 +35,9 @@ public sealed partial class WindowManager
                 choice.Opaque);
             var shape = borderless ? CornerChoice.Square : corners;
             var noBlur = _props.Own(client.Window, WindowProp.NoBlur) == true;
+            var ring = borderless ? null : RingFor(client, client.Window == active, shape, alpha);
+            if (ring is not null && hidden.Contains(client.Window))
+                leaving[client.Window] = ring;
             decorations.Add(new Decoration(
                 client.Id,
                 border,
@@ -44,7 +48,7 @@ public sealed partial class WindowManager
                 Region = shape.Region,
                 Opacity = alpha,
                 Blur = _config.Decoration.Blur && !noBlur,
-                Ring = borderless || hidden.Contains(client.Window) ? null : RingFor(client, client.Window == active, shape, alpha),
+                Ring = hidden.Contains(client.Window) ? null : ring,
             });
         }
 
@@ -61,10 +65,31 @@ public sealed partial class WindowManager
                 ResetDecorations = change.Closed,
             },
             change);
+        outcome = KeepLeavingRings(outcome, leaving);
         return outcome with
         {
             Tray = TrayIcon.For(_config.Session.ShowTray, outcome.State.ActiveWorkspace),
             ConfigNotice = _notice,
+        };
+    }
+
+    // A window that slides or fades out of sight keeps its border until its motion hides it, so the border goes with it.
+    private static Outcome KeepLeavingRings(Outcome outcome, Dictionary<WindowId, BorderRing> leaving)
+    {
+        if (leaving.Count == 0 || !outcome.Motions.Any(motion => motion.End == MotionEnd.Hide))
+            return outcome;
+
+        var hiding = new HashSet<WindowId>(outcome.Motions.Where(motion => motion.End == MotionEnd.Hide).Select(motion => motion.Window));
+        var windows = new Dictionary<ClientId, WindowId>(outcome.State.Clients.Count);
+        foreach (var client in outcome.State.Clients)
+            windows[client.Id] = client.Window;
+
+        return outcome with
+        {
+            Decorations = [.. outcome.Decorations.Select(decoration =>
+                windows.TryGetValue(decoration.Client, out var window) && hiding.Contains(window) && leaving.TryGetValue(window, out var ring)
+                    ? decoration with { Ring = ring }
+                    : decoration)],
         };
     }
 

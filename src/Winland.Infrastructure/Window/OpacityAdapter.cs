@@ -279,9 +279,12 @@ internal sealed class OpacityAdapter
         _styles.TryWriteExStyle(window, chrome.ExStyle & ~LayeredStyle);
     }
 
+    // Only the layered style is Winland's. The rest is read again, so a style the program set meanwhile, such as always
+    // on top, stays.
     private void Restore(WindowId window, Original original)
     {
-        _styles.TryWriteExStyle(window, original.ExStyle);
+        if (_styles.TryRead(window, out var now))
+            _styles.TryWriteExStyle(window, (now.ExStyle & ~LayeredStyle) | (original.ExStyle & LayeredStyle));
         if ((original.ExStyle & LayeredStyle) != 0)
             _styles.TrySetAlpha(window, original.Alpha);
     }

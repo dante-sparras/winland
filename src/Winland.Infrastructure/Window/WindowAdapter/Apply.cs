@@ -158,8 +158,20 @@ public sealed partial class WindowAdapter : IDisposable
         if (focusFirst)
             Front(outcome);
 
+        var rings = new Dictionary<WindowId, BorderRing>();
+        foreach (var decoration in outcome.Decorations)
+        {
+            if (decoration.Ring is BorderRing ring && windows.TryGetValue(decoration.Client, out var window))
+                rings[window] = ring;
+        }
+
         if (concealLater.Count > 0)
         {
+            // The windows shown get their borders while they paint, and the windows they replace keep theirs until they
+            // are hidden.
+            if (!_releasing)
+                BorderHost.Update(rings, concealLater);
+
             // A program paints a window shown again when it gets to it. A few frames are waited for at most. The paint
             // is marked done as it begins, so the frames it draws in are waited for too.
             // The windows shown in place of the hidden ones are waited for too, so a Workspace switch does not show a
@@ -181,7 +193,6 @@ public sealed partial class WindowAdapter : IDisposable
         if (!focusFirst)
             Front(outcome);
 
-        var rings = new Dictionary<WindowId, BorderRing>();
         lock (_paintGate)
         {
             if (!_releasing)
@@ -201,8 +212,6 @@ public sealed partial class WindowAdapter : IDisposable
 
                     Paint(window, decoration);
                     _painted.Add(window);
-                    if (decoration.Ring is BorderRing ring)
-                        rings[window] = ring;
                 }
 
                 // A window that is no longer a Client is painted afresh if it becomes one again.

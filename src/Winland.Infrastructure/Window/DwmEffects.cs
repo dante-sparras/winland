@@ -25,6 +25,7 @@ internal interface IDwmSurface
 /// The backdrop and corner region of each Client. Each attribute is changed only when the
 /// decoration asks for something other than what the window has, and is put back on reset.
 /// A window that already has a region of its own keeps it, and its corners are not cut.
+/// A window whose program stopped answering keeps its cut on reset, and stays recorded for the next start.
 /// DWM's own shadow is left as Windows draws it.
 /// </summary>
 internal sealed class DwmEffects
@@ -35,16 +36,18 @@ internal sealed class DwmEffects
     internal const uint BlurBackdrop = 3;
 
     private readonly IDwmSurface _surface;
+    private readonly Func<WindowId, bool> _hung;
     private readonly Dictionary<WindowId, Backdrop> _backdrops = [];
     private readonly Dictionary<WindowId, Cut> _regions = [];
     private readonly HashSet<WindowId> _foreignRegions = [];
     private readonly Lock _gate = new();
     private bool _closed;
 
-    internal DwmEffects(IDwmSurface surface)
+    internal DwmEffects(IDwmSurface surface, Func<WindowId, bool>? hung = null)
     {
         ArgumentNullException.ThrowIfNull(surface);
         _surface = surface;
+        _hung = hung ?? (static _ => false);
     }
 
     internal bool CutsCorners(WindowId window)
@@ -84,7 +87,10 @@ internal sealed class DwmEffects
         {
             if (_backdrops.Remove(window, out var backdrop))
                 _surface.TrySetBackdrop(window, backdrop.Original);
-            ClearRegion(window);
+            if (_regions.ContainsKey(window) && _hung(window))
+                Console.Error.WriteLine($"Window 0x{window.Value:x} is not answering. Its corners are put back at the next start.");
+            else
+                ClearRegion(window);
             _foreignRegions.Remove(window);
         }
     }

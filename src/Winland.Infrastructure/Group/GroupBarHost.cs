@@ -34,6 +34,13 @@ internal static class GroupBarHost
 
     // The shown windows that have a bar, read by any thread so a z-order change of another window costs one lookup.
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> WithBars = new();
+
+    // The windows a motion is moving now. A bar is drawn where its window rests, so it hides until the window lands there.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> Moving = new();
+
+    // The timer that reads the titles again, on the bar thread.
+    [ThreadStatic]
+    private static nuint _timer;
     private static IReadOnlyList<GroupBar> _pending = [];
     private static bool _posted;
     private static uint _thread;
@@ -98,6 +105,13 @@ internal static class GroupBarHost
             _ = PInvoke.PostThreadMessage(thread, StackMessage, new WPARAM((nuint)window.Value), default);
     }
 
+    /// <summary>A motion started or stopped moving the window. The bar of the Group it shows hides while it moves.</summary>
+    internal static void Moves(WindowId window, bool moving)
+    {
+        if (moving ? Moving.TryAdd(window, 0) : Moving.TryRemove(window, out _))
+            Follow(window);
+    }
+
     /// <summary>
     /// Some window changed its place in the z-order. Windows says which parent's children moved, not which window, so every
     /// bar goes just above its shown window again.
@@ -130,6 +144,7 @@ internal static class GroupBarHost
             _posted = false;
         }
 
+        Moving.Clear();
         if (worker is null)
             return;
 
@@ -172,7 +187,6 @@ internal static class GroupBarHost
             _posted = true;
             _ = PInvoke.PostThreadMessage(_thread, SyncMessage, default, default);
         }
-        var timer = PInvoke.SetTimer(HWND.Null, 0, TitlePeriodMilliseconds, null);
         while (PInvoke.GetMessage(out var message, default, 0, 0) > 0)
         {
             try
@@ -213,9 +227,7 @@ internal static class GroupBarHost
             }
         }
 
-        if (timer != 0)
-            _ = PInvoke.KillTimer(HWND.Null, timer);
-
+        Poll(false);
         foreach (var bar in Bars.Values)
             bar.Dispose();
 
@@ -265,6 +277,25 @@ internal static class GroupBarHost
             Bars.Remove(shown);
             ByHandle.Remove(bar.Handle);
             bar.Dispose();
+        }
+
+        Poll(Bars.Count > 0);
+    }
+
+    // The titles are read again every second while there is a bar to show them.
+    private static void Poll(bool on)
+    {
+        if (on == (_timer != 0))
+            return;
+
+        if (on)
+        {
+            _timer = PInvoke.SetTimer(HWND.Null, 0, TitlePeriodMilliseconds, null);
+        }
+        else
+        {
+            _ = PInvoke.KillTimer(HWND.Null, _timer);
+            _timer = 0;
         }
     }
 
@@ -400,6 +431,12 @@ internal static class GroupBarHost
         // Just above the shown window, so a floating window over the tile still covers the bar.
         public void Stack()
         {
+            if (Moving.ContainsKey(Spec.Shown))
+            {
+                _ = PInvoke.ShowWindow(Handle, SHOW_WINDOW_CMD.SW_HIDE);
+                return;
+            }
+
             var shown = new HWND((nint)Spec.Shown.Value);
             var chain = new List<HWND>();
             var above = DecorationStack.Above(shown, chain);

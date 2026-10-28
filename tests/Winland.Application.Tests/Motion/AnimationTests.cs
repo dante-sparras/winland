@@ -114,6 +114,37 @@ public class AnimationTests
     }
 
     [Fact]
+    public void AWindowSlidingOutKeepsItsBorderUntilItHides()
+    {
+        var core = Load("""
+            general:border_size = 2
+            bind = SUPER, 1, workspace, 1
+            bind = SUPER, 2, workspace, 2
+            """);
+        Appear(core, 1);
+        HoldSuper(core);
+
+        var away = Tap(core, "2");
+
+        Assert.Equal(MotionEnd.Hide, Assert.Single(away.Motions).End);
+        Assert.NotNull(Assert.Single(away.Decorations).Ring);
+    }
+
+    [Fact]
+    public void AWindowHiddenWithoutMotionLosesItsBorderAtOnce()
+    {
+        var core = Load("""
+            general:border_size = 2
+            animations:enabled = false
+            bind = SUPER, 2, workspace, 2
+            """);
+        Appear(core, 1);
+        HoldSuper(core);
+
+        Assert.Null(Assert.Single(Tap(core, "2").Decorations).Ring);
+    }
+
+    [Fact]
     public void AClientGoingIntoFullscreenMovesFromItsTileToTheMonitor()
     {
         var core = Load("");
@@ -267,6 +298,7 @@ public class AnimationTests
     public void AnimationsOffPlansNoMotion()
     {
         var core = Load("""
+            general:border_size = 2
             animations:enabled = false
             bind = SUPER, 2, workspace, 2
             """);

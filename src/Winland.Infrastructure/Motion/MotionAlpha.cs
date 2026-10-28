@@ -11,7 +11,8 @@ internal static class MotionAlpha
 {
     private static readonly ConcurrentDictionary<WindowId, byte> Levels = new();
 
-    internal static byte Of(WindowId window) => Levels.TryGetValue(window, out var alpha) ? alpha : (byte)255;
+    /// <summary>The alpha a running motion gives the window, or false when none does.</summary>
+    internal static bool TryGet(WindowId window, out byte alpha) => Levels.TryGetValue(window, out alpha);
 
     /// <summary>Sets the alpha, or takes it away when the motion is over. The decorations draw again when it changed.</summary>
     internal static void Set(WindowId window, byte? alpha)
