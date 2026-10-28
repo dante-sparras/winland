@@ -155,6 +155,26 @@ public class WindowEventTests
         Assert.Equal(overlay, WindowAdapter.IsOverlay(extended));
     }
 
+    // A window of this process's own class of the same name stands in for the secondary taskbar. It is never shown.
+    [Theory]
+    [InlineData("Shell_SecondaryTrayWnd", true)]
+    [InlineData("Shell_SecondaryTrayWndProbe", false)]
+    [InlineData("Shell_Secondary", false)]
+    public void TheTaskbarIsKnownByItsClass(string className, bool taskbar)
+    {
+        ProbeNative.Register(className, ProbeNative.DefWindowProc);
+        var hwnd = ProbeNative.CreateWindowEx(0, className, "", 0, 0, 0, 10, 10, 0, 0, ProbeNative.Module, 0);
+        Assert.NotEqual(0, hwnd);
+        try
+        {
+            Assert.Equal(taskbar, WindowAdapter.IsShellTaskbar(new Windows.Win32.Foundation.HWND(hwnd)));
+        }
+        finally
+        {
+            ProbeNative.DestroyWindow(hwnd);
+        }
+    }
+
     // Winland hides the Clients of a Workspace it does not show, and the system reports that hide too.
     [Fact]
     public void AClientWinlandHidStaysAClient()

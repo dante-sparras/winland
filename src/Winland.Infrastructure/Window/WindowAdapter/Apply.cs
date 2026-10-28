@@ -321,10 +321,12 @@ public sealed partial class WindowAdapter : IDisposable
     }
 
     // Stryker disable once all : reads a real window's class.
-    private static bool IsShellTaskbar(HWND hwnd)
+    // Every window event asks, so the class is compared where it was read rather than copied out.
+    internal static bool IsShellTaskbar(HWND hwnd)
     {
-        var name = ClassName(hwnd);
-        return name is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd";
+        Span<char> buffer = stackalloc char[32];
+        var name = buffer[..Math.Max(PInvoke.GetClassName(hwnd, buffer), 0)];
+        return name.SequenceEqual("Shell_TrayWnd") || name.SequenceEqual("Shell_SecondaryTrayWnd");
     }
 
     // Stryker disable once all : reads a real window's class.
