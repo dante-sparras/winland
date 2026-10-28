@@ -247,6 +247,9 @@ public sealed class WindowHost : IDisposable
             if (shell == SessionSignal.ShellTimedOut)
                 session.WatchForShell();
 
+            foreach (var signal in SessionNotices.AtStart(PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_REMOTESESSION) != 0))
+                OnSignal(signal);
+
             OnSignal(shell);
 
             WindowAdapter.Pump(message =>

@@ -63,4 +63,18 @@ public class SessionNoticeTests
         Assert.True(SessionNotices.TryDisplayPower(setting, value, out var signal));
         return signal;
     }
+
+    // Started inside a Remote Desktop session, Winland lays the Workspaces out again when the user moves back to the console.
+    [Fact]
+    public void ASessionStartedRemotelyRecoversWhenTheConsoleConnects()
+    {
+        var phase = new SessionPhase();
+        foreach (var signal in SessionNotices.AtStart(remote: true))
+            phase.Notice(signal);
+
+        Assert.Equal(SessionEffect.LayOut, phase.Notice(SessionSignal.ShellReady));
+        Assert.Equal(SessionEffect.None, phase.Notice(SessionSignal.RemoteDisconnected));
+        Assert.Equal(SessionEffect.Recover, phase.Notice(SessionSignal.ConsoleConnected));
+        Assert.Empty(SessionNotices.AtStart(remote: false));
+    }
 }
