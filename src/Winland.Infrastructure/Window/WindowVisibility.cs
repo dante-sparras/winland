@@ -12,8 +12,8 @@ internal static class WindowVisibility
     {
         // A minimize Winland did not ask for is taken back. An application that hides its own window unmaps it, and
         // it is adopted again when shown. One Winland hid, or one shown again before this event arrives, stays.
-        PInvoke.EVENT_OBJECT_HIDE when facts.Minimized => VisibilityAction.UndoMinimize,
         PInvoke.EVENT_OBJECT_HIDE when !facts.Concealed && !facts.Visible && facts.Managed => VisibilityAction.Close,
+        PInvoke.EVENT_OBJECT_HIDE when facts.Minimized && facts.Visible => VisibilityAction.UndoMinimize,
         PInvoke.EVENT_OBJECT_HIDE => VisibilityAction.None,
 
         // A virtual desktop switch cloaks hidden Clients too. A hidden window is not adopted again when it is

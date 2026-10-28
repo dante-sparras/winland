@@ -30,7 +30,7 @@ public sealed class WindowHost : IDisposable
     private SessionEffect _deferred = SessionEffect.None;
     private bool _started;
     private bool _opened;
-    private BorderColor? _accent;
+    private AccentChanged? _accent;
     private bool _draining;
     private bool _ownsTaskbar;
 
@@ -359,27 +359,33 @@ public sealed class WindowHost : IDisposable
         return SessionSignal.ShellTimedOut;
     }
 
-    /// <summary>Reads the Windows accent and tells the core, unless this read failed or matches the last one.</summary>
+    /// <summary>
+    /// Reads the Windows accent, the High Contrast colors and the text size, and tells the core, unless this read failed
+    /// or matches the last one.
+    /// </summary>
     internal void NoteAccent()
     {
         if (_disposed)
             return;
 
-        BorderColor? next;
+        AccentChanged next;
         try
         {
-            next = SystemAccent.Read();
+            if (SystemAccent.Read() is not BorderColor color)
+                return;
+
+            next = new AccentChanged(color) { Contrast = SystemAccent.Contrast(), TextScale = SystemAccent.TextScale() };
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
             return;
         }
 
-        if (next is not BorderColor color || color == _accent)
+        if (next == _accent)
             return;
 
-        _accent = color;
-        _windows.Apply(_core.Handle(new AccentChanged(color)));
+        _accent = next;
+        _windows.Apply(_core.Handle(next));
     }
 
     private void OnSignal(SessionSignal signal)

@@ -31,6 +31,10 @@ internal static class GroupBarPainter
         return titles;
     }
 
+    /// <summary>The bar window's own title, which a screen reader reads: every tab's title, the shown one marked.</summary>
+    internal static string Name(GroupBar bar, IReadOnlyList<string> titles) =>
+        string.Join(", ", bar.Tabs.Select((tab, i) => (i < titles.Count ? titles[i] : tab.Title) + (tab.Window == bar.Shown ? " (shown)" : "")));
+
     internal static unsafe void Paint(HWND hwnd, GroupBar bar, IReadOnlyList<string> titles)
     {
         var width = bar.Bounds.Width;

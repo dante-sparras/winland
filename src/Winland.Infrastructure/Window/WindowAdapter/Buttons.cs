@@ -18,7 +18,7 @@ public sealed partial class WindowAdapter
         // take the focus as each window comes back.
         // A hung program is posted the command, so it does not hold up the thread that hears every window event.
         var window = new WindowId(handle);
-        if (_core.Manages(window) && PInvoke.IsIconic(hwnd))
+        if (_core.Manages(window) && PInvoke.IsWindowVisible(hwnd) && PInvoke.IsIconic(hwnd))
         {
             _ = _desktop.Hung(window)
                 ? PInvoke.ShowWindowAsync(hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE)
@@ -38,7 +38,14 @@ public sealed partial class WindowAdapter
 
         // A window that opens maximized asked for it before it mapped, which the core ignores. A window that was
         // maximized before Winland started is adopted elsewhere, and stays maximized.
-        appeared = appeared with { ShownMaximized = PInvoke.IsZoomed(hwnd), Opened = true };
+        appeared = appeared with
+        {
+            ShownMaximized = PInvoke.IsZoomed(hwnd),
+            Opened = true,
+            Dragging = PInvoke.GetAsyncKeyState(1) < 0 && appeared.Pointer is Point pointer
+                && pointer.X >= appeared.Bounds.X && pointer.X < appeared.Bounds.X + appeared.Bounds.Width
+                && pointer.Y >= appeared.Bounds.Y && pointer.Y < appeared.Bounds.Y + appeared.Bounds.Height,
+        };
         var opened = !_core.Manages(window);
         var outcome = _core.Handle(appeared);
         NoteManaged(window, outcome, appeared);
@@ -102,25 +109,18 @@ public sealed partial class WindowAdapter
         Apply(_core.Handle(new WindowFullscreenRequested(window, covers)));
     }
 
-    // Electron windows restore a size of their own a moment after they leave the maximized state, which undoes
-    // the placement made just before. For a short while after a maximize request, or after a tile opens, a frame
-    // that is not where the Layout holds the window is put back. A window on its way somewhere, or one that went
-    // fullscreen by itself, is where it should be.
+    // A tiled window can change its own size long after it opened. Floats are only put back just after a maximize.
+    // A window being dragged or animated, or one that went fullscreen itself, is where it should be.
     private void PutBackIfDrifted(HWND hwnd, WindowId window)
     {
-        if (!_settling.TryGetValue(window, out var until))
-            return;
-
-        if (Environment.TickCount64 > until)
-        {
-            _ = _settling.TryRemove(window, out _);
-            return;
-        }
+        var settling = _settling.TryGetValue(window, out var until) && Environment.TickCount64 <= until;
+        if (!settling)
+            _settling.TryRemove(window, out _);
 
         if (_moving == window || _sizing == window || _motions.Running(window) || _ownFullscreen.ContainsKey(window)
             || PInvoke.IsIconic(hwnd) || !TryVisible(window, out var visible))
             return;
 
-        Apply(_core.Handle(new WindowDrifted(window, visible)));
+        Apply(_core.Handle(new WindowDrifted(window, visible) { TiledOnly = !settling }));
     }
 }

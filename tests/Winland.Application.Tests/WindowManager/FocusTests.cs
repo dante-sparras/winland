@@ -196,16 +196,15 @@ public class FocusTests
     }
 
     [Fact]
-    public void AnUnknownWindowStealingFocusIsSentBack()
+    public void AnUnknownWindowTakingFocusIsLeftToWindows()
     {
         var core = new WindowManager();
         core.Handle(new WindowAppeared(new WindowId(1), Area));
 
         var stolen = core.Handle(new WindowFocused(new WindowId(99), FocusCause.Activated));
 
-        Assert.Equal(new WindowId(1), stolen.Focus);
-        Assert.Empty(stolen.Events);
-        Assert.Equal(new WindowId(1), Active(core));
+        Assert.Null(stolen.Focus);
+        Assert.Null(Active(core));
     }
 
     [Fact]

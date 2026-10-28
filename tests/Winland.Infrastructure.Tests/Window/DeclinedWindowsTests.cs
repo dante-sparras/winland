@@ -5,6 +5,20 @@ public class DeclinedWindowsTests
     private static readonly WindowId Player = new(1);
     private static readonly WindowTraits Declined = WindowTraits.Normal with { Class = "Player", Title = "Song" };
 
+    [Fact]
+    public void OnlyAWindowDeclinedWhileFullscreenNeedsAnotherOfferOnAMove()
+    {
+        var declined = new DeclinedWindows();
+        declined.Note(Player, Declined with { ExclusiveFullscreen = true }, revision: 1);
+        Assert.True(declined.Fullscreen(Player));
+
+        declined.Note(Player, Declined, revision: 1);
+        Assert.False(declined.Fullscreen(Player));
+        declined.Note(Player, Declined with { ExclusiveFullscreen = true }, revision: 1);
+        declined.Forget(Player);
+        Assert.False(declined.Fullscreen(Player));
+    }
+
     private static bool Unchanged(DeclinedWindows declined, bool titleRules = false, int revision = 1, string current = "Player") =>
         declined.Unchanged(Player, titleRules, revision, () => current);
 

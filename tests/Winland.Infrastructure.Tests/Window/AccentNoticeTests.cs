@@ -1,28 +1,14 @@
-using System.Runtime.InteropServices;
-
 namespace Winland.Infrastructure.Tests;
 
 public class AccentNoticeTests
 {
     [Fact]
-    public void ColorizationAndTheImmersiveColorSetAskForANewAccent()
+    public void ColorizationSystemColorsAndSettingsAskForANewAccent()
     {
-        Assert.True(AccentNotices.Changed(AccentNotices.ColorizationChanged, 0));
-
-        var immersive = Marshal.StringToHGlobalUni("ImmersiveColorSet");
-        var other = Marshal.StringToHGlobalUni("Policy");
-        try
-        {
-            Assert.True(AccentNotices.Changed(AccentNotices.SettingChange, immersive));
-            Assert.False(AccentNotices.Changed(AccentNotices.SettingChange, other));
-            Assert.False(AccentNotices.Changed(AccentNotices.SettingChange, 0));
-            Assert.False(AccentNotices.Changed(0x0010, immersive));
-        }
-        finally
-        {
-            Marshal.FreeHGlobal(immersive);
-            Marshal.FreeHGlobal(other);
-        }
+        Assert.True(AccentNotices.Changed(AccentNotices.ColorizationChanged));
+        Assert.True(AccentNotices.Changed(AccentNotices.SystemColorChange));
+        Assert.True(AccentNotices.Changed(AccentNotices.SettingChange));
+        Assert.False(AccentNotices.Changed(0x0010));
     }
 
     [Fact]

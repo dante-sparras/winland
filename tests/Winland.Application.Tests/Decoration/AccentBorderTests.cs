@@ -70,6 +70,57 @@ public class AccentBorderTests
         Assert.Contains(new BorderColor(0xFF, 0x40, 0x40, 0x40), borders);
     }
 
+    private static readonly HighContrast Contrast = new(
+        new BorderColor(0xFF, 0x1A, 0xEB, 0xFF), new BorderColor(0xFF, 0xFF, 0xFF, 0xFF), new BorderColor(0xFF, 0x3F, 0xF2, 0x3F));
+
+    [Fact]
+    public void HighContrastColorsReplaceTheUnsetBorderAndTabColorsUntilItEnds()
+    {
+        var core = Configured("");
+        core.Handle(Appeared(1));
+        core.Handle(Appeared(2));
+        core.Execute("dispatch togglegroup");
+
+        var contrasted = core.Handle(new AccentChanged(Accent) { Contrast = Contrast });
+        var borders = new[] { Border(contrasted, 1), Border(contrasted, 2) };
+        Assert.Contains(Contrast.Highlight, borders);
+        Assert.Contains(Contrast.GrayText, borders);
+        var style = Assert.Single(core.Execute("dispatch resizewindow").Effect.GroupBars).Style;
+        Assert.Equal((Contrast.Text, Contrast.Highlight, Contrast.GrayText), (style.TextColor, style.Active, style.Inactive));
+
+        var ended = core.Handle(new AccentChanged(Accent));
+        Assert.Contains(new BorderColor(0xFF, 0x40, 0x40, 0x40), new[] { Border(ended, 1), Border(ended, 2) });
+    }
+
+    [Fact]
+    public void AConfiguredColorWinsOverHighContrast()
+    {
+        var core = Configured("general:col.inactive_border = rgba(aabbccff)\ngroup:groupbar:text_color = rgba(aabbccff)\n");
+        core.Handle(Appeared(1));
+        core.Handle(Appeared(2));
+        core.Execute("dispatch togglegroup");
+
+        var contrasted = core.Handle(new AccentChanged(Accent) { Contrast = Contrast });
+
+        Assert.Contains(Chosen, new[] { Border(contrasted, 1), Border(contrasted, 2) });
+        Assert.Equal(Chosen, Assert.Single(core.Execute("dispatch resizewindow").Effect.GroupBars).Style.TextColor);
+    }
+
+    [Fact]
+    public void TheTextSizeGrowsTheTabFontAndTitleRow()
+    {
+        var core = Configured("");
+        core.Handle(Appeared(1));
+        core.Execute("dispatch togglegroup");
+        var plain = Assert.Single(core.Execute("dispatch resizewindow").Effect.GroupBars).Style;
+
+        core.Handle(new AccentChanged(Accent) { TextScale = 1.5 });
+        var larger = Assert.Single(core.Execute("dispatch resizewindow").Effect.GroupBars).Style;
+
+        Assert.Equal((12, 21), (larger.FontSize, larger.Height));
+        Assert.Equal(plain.IndicatorHeight, larger.IndicatorHeight);
+    }
+
     private static WindowAppeared Appeared(long window) => new(new WindowId(window), Area);
 
     private static BorderColor Border(Outcome outcome, long window)

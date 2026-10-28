@@ -129,7 +129,7 @@ public sealed class MouseHook : IDisposable
                 if (!up && source == PointerSource.Touch)
                     SessionEffects.NoteTouch();
 
-                if (!up && (info.flags & 0x1) == 0)
+                if (!up)
                     InputClock.NoteClickOrKey(info.time, ClickedWindow(info.pt));
 
                 return OnButton(button, up, position) ? new LRESULT(1) : Next(code, wParam, lParam);
@@ -196,6 +196,9 @@ public sealed class MouseHook : IDisposable
 
         if (up)
         {
+            if (button == "mouse:272" && _core.AwaitsDragRelease)
+                _keys.PostInput(new PointerButtonReleased(button) { Position = position });
+
             var passed = _passed.Remove(button);
             if (_keys.Drag.Release(button) is BindDrag.Active drag)
                 _keys.PostGesture(drag.Dispatcher, drag.Arguments, position, PointerDragPhase.End, button);

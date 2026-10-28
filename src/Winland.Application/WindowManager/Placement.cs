@@ -73,6 +73,10 @@ public sealed partial class WindowManager
         {
             placed = new Rectangle(monitor.X + Pixels(x), monitor.Y + Pixels(y), width, height);
         }
+        else if (decision.Floating && appeared.Traits.Topmost && !placement.Center)
+        {
+            placed = desired with { Width = width, Height = height };
+        }
         else if (decision.Floating && OwnerBounds(appeared) is Rectangle owner)
         {
             // A window with an owner opens over the middle of its owner, as Winland opens one with a parent.

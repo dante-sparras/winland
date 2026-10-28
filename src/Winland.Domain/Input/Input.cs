@@ -68,7 +68,11 @@ public sealed record SwipeEnded(bool Cancelled = false) : Event
     public long TimeMs { get; init; }
 }
 
-public sealed record WindowClosed(WindowId Window) : Event;
+public sealed record WindowClosed(WindowId Window) : Event
+{
+    /// <summary>A virtual desktop switch cloaked the window. Its placement is kept until it is offered again.</summary>
+    public bool Cloaked { get; init; }
+}
 
 public sealed record WindowFocused(WindowId Window, FocusCause Cause = FocusCause.User) : Event
 {
@@ -99,7 +103,10 @@ public sealed record WindowResized(WindowId Window, Rectangle Bounds) : Event;
 /// A Client's frame is not where its Layout put it, soon after the core changed it. Electron windows restore their
 /// own bounds just after they leave the system's maximized state. <see cref="Bounds"/> is the visible frame.
 /// </summary>
-public sealed record WindowDrifted(WindowId Window, Rectangle Bounds) : Event;
+public sealed record WindowDrifted(WindowId Window, Rectangle Bounds) : Event
+{
+    public bool TiledOnly { get; init; }
+}
 
 /// <summary>The system began moving a window by its title bar. <see cref="Pointer"/> is where the pointer is.</summary>
 public sealed record WindowMoveStarted(WindowId Window, Point Pointer) : Event;
@@ -156,8 +163,18 @@ public sealed record WindowLimitsChanged(WindowId Window, Size? MinSize, Size? M
 /// </summary>
 public sealed record MonitorsChanged(IReadOnlyList<Monitor> Monitors) : Event;
 
-/// <summary>The Windows accent. The active border follows it unless the config set <c>general:col.active_border</c>.</summary>
-public sealed record AccentChanged(BorderColor Color) : Event;
+/// <summary>
+/// The Windows accent, read again with the High Contrast colors and the text size. The active border follows the accent
+/// unless the config set <c>general:col.active_border</c>.
+/// </summary>
+public sealed record AccentChanged(BorderColor Color) : Event
+{
+    /// <summary>The High Contrast theme's colors, or null when no High Contrast theme is on.</summary>
+    public HighContrast? Contrast { get; init; }
+
+    /// <summary>Windows' text size, from Settings, Accessibility, Text size. 1 is 100 percent.</summary>
+    public double TextScale { get; init; } = 1;
+}
 
 /// <summary>The Clients a restart found in the state file have been adopted again, so their tiles can be arranged as they were.</summary>
 public sealed record RestoredAdopted : Event;
@@ -211,6 +228,12 @@ public sealed record WindowAppeared(WindowId Window, Rectangle WorkArea) : Event
     /// that was already open when Winland started, which stays on the Monitor it is on.
     /// </summary>
     public bool Opened { get; init; }
+
+    /// <summary>The window already has Windows' foreground when it is offered for adoption.</summary>
+    public bool Foreground { get; init; }
+
+    /// <summary>The left button is held inside the new window, as when a tab is dragged out of another window.</summary>
+    public bool Dragging { get; init; }
 
     /// <summary>Windows has disabled the window, as it does the owner of an open modal dialog.</summary>
     public bool Disabled { get; init; }

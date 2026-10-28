@@ -47,8 +47,11 @@ public sealed record AppliedConfig
 
     public GestureOptions Swipe { get; init; } = GestureOptions.Documented;
 
-    /// <summary>Reads every option <paramref name="document"/> sets. <paramref name="accent"/> is the system accent color.</summary>
-    public static AppliedConfig From(ConfigDocument document, BorderColor? accent)
+    /// <summary>
+    /// Reads every option <paramref name="document"/> sets. <paramref name="accent"/> is the system accent color, and
+    /// <paramref name="contrast"/> the High Contrast colors while a High Contrast theme is on.
+    /// </summary>
+    public static AppliedConfig From(ConfigDocument document, BorderColor? accent, HighContrast? contrast = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         return new AppliedConfig
@@ -59,8 +62,8 @@ public sealed record AppliedConfig
             BindOptions = BindOptions.From(document),
             Layout = LayoutOptions.From(document),
             Scrolling = ScrollingOptions.From(document),
-            Decoration = DecorationOptions.From(document).WithAccent(accent),
-            Groups = GroupOptions.From(document),
+            Decoration = Decorated(document, accent, contrast),
+            Groups = GroupOptions.From(document, contrast),
             Session = SessionOptions.From(document),
             Debug = DebugOptions.From(document),
             Animations = AnimationOptions.From(document),
@@ -68,5 +71,18 @@ public sealed record AppliedConfig
             Input = InputOptions.From(document),
             Swipe = GestureOptions.From(document),
         };
+    }
+
+    /// <summary>This config under another accent and High Contrast state. Only the colors they stand in for change.</summary>
+    public AppliedConfig WithSystemColors(BorderColor? accent, HighContrast? contrast)
+    {
+        var document = Document ?? ConfigDocument.Empty;
+        return this with { Decoration = Decorated(document, accent, contrast), Groups = GroupOptions.From(document, contrast) };
+    }
+
+    private static DecorationOptions Decorated(ConfigDocument document, BorderColor? accent, HighContrast? contrast)
+    {
+        var decoration = DecorationOptions.From(document, contrast);
+        return contrast is null ? decoration.WithAccent(accent) : decoration;
     }
 }

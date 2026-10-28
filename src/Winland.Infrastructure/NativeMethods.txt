@@ -116,6 +116,8 @@ GetKeyboardLayout
 ToUnicodeEx
 GetKeyState
 GetSystemMetrics
+GetSysColor
+HIGHCONTRASTW
 SetCursorPos
 SwapMouseButton
 SystemParametersInfo
@@ -226,3 +228,4 @@ BeginDeferWindowPos
 DeferWindowPos
 EndDeferWindowPos
 WM_CLOSE
+SetWindowText

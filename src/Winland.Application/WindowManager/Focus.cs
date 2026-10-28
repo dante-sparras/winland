@@ -31,9 +31,6 @@ public sealed partial class WindowManager
 
         if (Find(window) is null)
         {
-            if (focused.Cause == FocusCause.Activated)
-                return Restore(Kept());
-
             _focus.UnmanagedTook(window);
             Foreground(window);
             return View([]);

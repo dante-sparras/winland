@@ -394,6 +394,7 @@ internal static class GroupBarHost
         {
             _titles = GroupBarPainter.Titles(Spec);
             GroupBarPainter.Paint(Handle, Spec, _titles);
+            _ = PInvoke.SetWindowText(Handle, GroupBarPainter.Name(Spec, _titles));
         }
 
         // Just above the shown window, so a floating window over the tile still covers the bar.

@@ -74,7 +74,16 @@ public sealed record GroupOptions
         OfBar("gradient_round_only_edges", OptionValue.Bool, b => b.GradientRoundOnlyEdges, (b, v) => b with { GradientRoundOnlyEdges = v }),
     ]);
 
-    public static GroupOptions From(ConfigDocument document) => Options.From(Documented, document);
+    /// <summary>The options <paramref name="document"/> sets, over the High Contrast colors while <paramref name="contrast"/> is on.</summary>
+    public static GroupOptions From(ConfigDocument document, HighContrast? contrast = null) =>
+        Options.From(contrast is HighContrast colors ? InContrast(colors) : Documented, document);
+
+    private static GroupOptions InContrast(HighContrast colors) => Documented with
+    {
+        ActiveBorder = colors.Highlight,
+        InactiveBorder = colors.GrayText,
+        Bar = Documented.Bar with { TextColor = colors.Text, Active = colors.Highlight, Inactive = colors.GrayText },
+    };
 
     private static Option<GroupOptions> Of<T>(string name, OptionValue<T> value, Func<GroupOptions, T> get, Func<GroupOptions, T, GroupOptions> set) =>
         Option<GroupOptions>.Of(name, value, get, set);

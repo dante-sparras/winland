@@ -18,6 +18,8 @@ public sealed partial class WindowManager
     // One lookup for every Workspace's options, so they still compare equal.
     private readonly Func<ClientId, int?> _clientBorder;
     private BorderColor? _accent;
+    private HighContrast? _contrast;
+    private double _textScale = 1;
     private Rectangle _area;
     private readonly FocusState _focus;
     private readonly ClientProps _props = new();
@@ -222,6 +224,7 @@ public sealed partial class WindowManager
             _readdressed = null;
             _crossMonitorWarp = null;
             _movedItself = null;
+            _restoring = null;
         }
     }
 
@@ -253,7 +256,7 @@ public sealed partial class WindowManager
             Dispatch dispatched => ExecuteTriggered(dispatched.Name, dispatched.Arguments, dispatched.Trigger),
             WindowFlashed flashed => Flash(flashed.Window),
             WindowFocused focused => Consider(focused),
-            WindowClosed closed => Close(closed.Window),
+            WindowClosed closed => Close(closed.Window, closed.Cloaked),
             WindowEnabledChanged changed => ChangeEnabled(changed),
             WindowLimitsChanged limits => ChangeLimits(limits),
             WindowMinimized minimized => Minimize(minimized.Window),

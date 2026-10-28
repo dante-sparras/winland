@@ -184,7 +184,7 @@ internal sealed class SessionWindow : IDisposable
             if (message == AccentNotices.SettingChange)
                 _onSettings?.Invoke();
 
-            if (AccentNotices.Changed(message, (nint)lParam))
+            if (AccentNotices.Changed(message))
                 _onAccent?.Invoke();
 
             if (SessionNotices.TryFromMessage(message, (nuint)wParam, out var signal))

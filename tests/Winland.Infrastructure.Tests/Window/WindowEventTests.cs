@@ -7,6 +7,20 @@ public class WindowEventTests
 {
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);
 
+    [Fact]
+    public void AClientThatMovesItselfAfterOpeningIsPutBackOnItsTile()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        var window = windows.Open(0x7021);
+        var tile = windows.Desktop[window.Value].Visible;
+        windows.Advance(5000);
+        windows.Desktop[window.Value].Visible = new Rectangle(50, 60, 1000, 700);
+
+        windows.Adapter.Notice(Events.EVENT_OBJECT_LOCATIONCHANGE, (nint)window.Value);
+
+        Assert.Equal(tile, windows.Desktop[window.Value].Visible);
+    }
+
     // The events the adapter reads. A hook range that holds any other object event delivers it across processes for nothing.
     [Fact]
     public void TheObjectEventHooksHoldTheEventsTheAdapterReadsAndNoOthers()
@@ -97,14 +111,14 @@ public class WindowEventTests
     }
 
     // Claude's screen overlay is layered, click-through, topmost and never activated (0x08280028). A WinUI tooltip,
-    // as Magpie shows over its buttons, is layered and never activated (0x08280000). A window that asks to be on the
-    // taskbar is an application window even when it is never activated.
+    // as Magpie shows over its buttons, is layered and never activated (0x08280000). Asking for a taskbar button
+    // does not make a no-activate window safe to focus or hide.
     [Theory]
     [InlineData(0x08280028, true)]
     [InlineData(0x00080020, true)]
     [InlineData(0x08280000, true)]
     [InlineData(0x08000000, true)]
-    [InlineData(0x08040000, false)]
+    [InlineData(0x08040000, true)]
     [InlineData(0x00080000, false)]
     [InlineData(0x00000020, false)]
     [InlineData(0x00000100, false)]

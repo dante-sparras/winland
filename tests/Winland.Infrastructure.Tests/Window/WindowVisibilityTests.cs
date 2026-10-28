@@ -13,6 +13,15 @@ public class WindowVisibilityTests
     }
 
     [Fact]
+    public void AMinimizedClientHiddenToTheTrayStopsBeingAClient()
+    {
+        var tray = ShownClient with { Minimized = true, Visible = false };
+
+        Assert.Equal(VisibilityAction.Close, WindowVisibility.Decide(Events.EVENT_OBJECT_HIDE, tray));
+        Assert.Equal(VisibilityAction.None, WindowVisibility.Decide(Events.EVENT_OBJECT_HIDE, tray with { Concealed = true }));
+    }
+
+    [Fact]
     public void AClientItsApplicationHidesStopsBeingAClientUnlessWinlandHidIt()
     {
         var hidden = ShownClient with { Visible = false };

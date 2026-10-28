@@ -5,6 +5,26 @@ public sealed partial class WindowManager
 {
     private readonly Dictionary<WindowId, RecoveredClient> _restored = [];
 
+    private WindowId? _restoring;
+
+    private RecoveredClient? RememberCloaked(WindowId window)
+    {
+        if (_restored.Count == 0)
+            _restoredTiles.Clear();
+
+        var snapshot = CaptureRecovery();
+        foreach (var client in snapshot.Clients)
+        {
+            if (client is { Floating: false, Bounds: Rectangle tile })
+                _restoredTiles.TryAdd(client.Window, tile);
+        }
+
+        var remembered = snapshot.Clients.FirstOrDefault(client => client.Window == window);
+        return remembered is { Floating: false } && _restoredTiles.TryGetValue(window, out var bounds)
+            ? remembered with { Bounds = bounds }
+            : remembered;
+    }
+
     // Where each tile a restart found was, until the tiles are arranged as they were.
     private readonly Dictionary<WindowId, Rectangle> _restoredTiles = [];
 

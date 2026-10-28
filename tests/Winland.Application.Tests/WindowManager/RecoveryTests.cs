@@ -6,6 +6,38 @@ public class RecoveryTests
 {
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CloakedClientsReturnSilentlyToTheirWorkspaceAndRectangles(bool floating)
+    {
+        var core = new WindowManager();
+        WindowAppeared Window(long id) => new(new WindowId(id), Area)
+        {
+            Opened = true,
+            Bounds = new Rectangle(120, 130, 400, 300),
+            Traits = WindowTraits.Normal with { Dialog = floating },
+        };
+        core.Handle(Window(1));
+        core.Handle(Window(2));
+        var before = core.Recovery().Clients.ToDictionary(client => client.Window, client => client.Bounds);
+        core.Handle(new WindowClosed(new WindowId(1)) { Cloaked = true });
+        core.Handle(new WindowClosed(new WindowId(2)) { Cloaked = true });
+        core.Handle(new Dispatch("workspace", "2"));
+        core.Handle(new WindowAppeared(new WindowId(3), Area));
+
+        core.Handle(Window(2));
+        var returned = core.Handle(Window(1));
+
+        Assert.Equal(new WorkspaceId("2"), returned.State.ActiveWorkspace);
+        foreach (var client in core.Recovery().Clients.Where(client => client.Window.Value != 3))
+        {
+            Assert.Equal(new WorkspaceId("1"), client.Workspace);
+            Assert.Equal(before[client.Window], client.Bounds);
+        }
+        Assert.Equal(new WindowId(3), core.Handle(new Dispatch("killactive")).Close);
+    }
+
     [Fact]
     public void RecoveryRecordsEachClientsWorkspaceMonitorAndWhetherItIsHidden()
     {

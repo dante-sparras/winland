@@ -22,6 +22,13 @@ internal static class InputClock
 
     internal static void Watch() => Volatile.Write(ref _watching, 1);
 
+    internal static void NoteKey(uint time, int key, bool injected)
+    {
+        // Assistive input counts too. An injected modifier alone must not grant an activation serial.
+        if (!injected || key is not (0x10 or 0x11 or 0x12 or 0x5B or 0x5C or >= 0xA0 and <= 0xA5))
+            NoteClickOrKey(time);
+    }
+
     internal static void NoteClickOrKey(uint time, nint clicked = 0)
     {
         Volatile.Write(ref _clicked, clicked);

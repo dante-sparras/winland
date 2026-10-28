@@ -4,6 +4,16 @@ public class GroupBarPainterTests
 {
     private static readonly BorderColor Orange = new(0xFF, 0xFF, 0x80, 0x40);
 
+    // A screen reader reads the bar window's title, so it lists the tabs and marks the shown one.
+    [Fact]
+    public void TheBarIsNamedByItsTabsWithTheShownOneMarked()
+    {
+        var bar = new GroupBar(new WindowId(2), new Rectangle(0, 0, 100, 20),
+            [new GroupTab(new WindowId(1), "one", false), new GroupTab(new WindowId(2), "two", true)], GroupBarStyle.Documented);
+
+        Assert.Equal("one, Two live (shown)", GroupBarPainter.Name(bar, ["one", "Two live"]));
+    }
+
     // Where the mask is white the title's color covers the pixel. Where it is black the strip keeps what it had.
     [Fact]
     public void FullCoverageTakesTheTitleColorAndNoCoverageLeavesTheStrip()
