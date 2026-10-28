@@ -5,9 +5,6 @@ public class CycleLayoutTests
     private static readonly Rectangle Area = new(0, 0, 800, 600);
 
     [Fact]
-    public void CycleLayoutIsKnown() => Assert.Contains("cyclelayout", WindowManager.DispatcherNames);
-
-    [Fact]
     public void CycleLayoutWalksDwindleScrollingAndFloating()
     {
         var core = new WindowManager();

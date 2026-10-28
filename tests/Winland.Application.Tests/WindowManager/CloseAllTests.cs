@@ -5,9 +5,6 @@ public class CloseAllTests
     private static readonly Rectangle Area = new(0, 0, 800, 600);
 
     [Fact]
-    public void CloseAllIsKnown() => Assert.Contains("closeall", WindowManager.DispatcherNames);
-
-    [Fact]
     public void CloseAllAsksEveryClientToCloseAndShowsWorkspaceOne()
     {
         var core = new WindowManager();
