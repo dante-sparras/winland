@@ -28,6 +28,9 @@ public sealed partial class WindowAdapter
 
     private void AdoptShown(HWND hwnd, WindowId window)
     {
+        if (!_core.Manages(window) && !CanBeClient(hwnd))
+            return;
+
         if (!TryDescribe(hwnd, window, out var appeared))
             return;
 

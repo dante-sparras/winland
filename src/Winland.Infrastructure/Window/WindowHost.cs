@@ -531,13 +531,14 @@ public sealed class WindowHost : IDisposable
             return;
 
         // While the session is away its windows can look closed, so the state file keeps the last one from before.
-        if (Remember(snapshot, live, absences))
-            _onRecovery?.Invoke(snapshot);
+        if (Remember(snapshot, live, absences) is { } captured)
+            _onRecovery?.Invoke(captured);
     }
 
     // While the session is away its windows can look closed, so the snapshot from before is kept. Each Client's
     // process, class and title are recorded while it is alive, so a reused window is not taken for one that left.
-    private bool Remember(RecoverySnapshot snapshot, bool live, int absences)
+    // Returns the snapshot with them recorded when it was taken while the session was there.
+    private RecoverySnapshot? Remember(RecoverySnapshot snapshot, bool live, int absences)
     {
         var captured = WindowIdentity.Annotate(snapshot);
         lock (_memory)
@@ -546,7 +547,7 @@ public sealed class WindowHost : IDisposable
             if (_clients is null || present)
                 _clients = captured;
 
-            return present;
+            return present ? captured : null;
         }
     }
 

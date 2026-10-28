@@ -121,6 +121,36 @@ public class EmptyStepTests
     }
 
     [Fact]
+    public void AMoveThatChangesNothingRunsNoStep()
+    {
+        var (core, laid) = Tiled();
+        Outcome? decided = null;
+        core.Decided = outcome => decided = outcome;
+        Move(core, Center(laid, 2), 1_000);
+
+        var moved = Move(core, Center(laid, 2) with { X = Center(laid, 2).X + 10 }, 1_100);
+
+        // A step would describe a State of its own. A move that runs none hands back the last one decided.
+        Assert.True(moved.IsEmpty);
+        Assert.Same((decided ?? laid).State, moved.State);
+    }
+
+    [Fact]
+    public void AMoveWithoutAStepStillMovesThePointerAKeyDragStartsFrom()
+    {
+        var core = Configured("bind = SUPER, Z, mouse, movewindow");
+        core.Handle(new WindowAppeared(OneWindow, Area));
+        core.Handle(new Dispatch("togglefloating"));
+        core.Handle(new PointerMoved(new Point(700, 400)));
+
+        var moved = core.Handle(new PointerMoved(new Point(10, 10)));
+        core.Handle(new KeyPressed("Super_L"));
+
+        Assert.True(moved.IsEmpty);
+        Assert.False(core.Handle(new KeyPressed("z")).Consumed);
+    }
+
+    [Fact]
     public void AMoveThatChangesTheFocusIsNotEmpty()
     {
         var (core, laid) = Tiled();

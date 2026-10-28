@@ -210,7 +210,7 @@ public sealed partial class WindowAdapter
         WindowId[] painted;
         lock (_paintGate)
         {
-            painted = [.. _painted];
+            painted = [.. _painted.Keys];
             _painted.Clear();
         }
 
@@ -224,8 +224,9 @@ public sealed partial class WindowAdapter
 
     // DWMWA_BORDER_COLOR is a COLORREF, 0x00BBGGRR. The alpha byte is not used.
     // DWMWA_COLOR_DEFAULT and DWMWCP_DEFAULT put the frame back to the system choice.
-    // A running motion owns the alpha and border it animates, and moves them toward this decoration.
-    private void Paint(WindowId window, Decoration decoration)
+    // A running motion owns the alpha and border it animates, and moves them toward this decoration. Returns whether
+    // the window shows the decoration as given, with neither held by a motion.
+    private bool Paint(WindowId window, Decoration decoration)
     {
         lock (_motions.For(window))
         {
@@ -255,6 +256,8 @@ public sealed partial class WindowAdapter
             _effects.Apply(window, decoration);
             if (!held.Alpha)
                 _opacity.Apply(window, decoration.Alpha);
+
+            return held == default;
         }
     }
 

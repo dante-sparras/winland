@@ -28,7 +28,10 @@ public static class SessionEffects
         CursorShape.Show(outcome.ResizeCursor);
 
         if (outcome.Cursor is CursorBehavior behavior)
+        {
             Idle.Configure(behavior);
+            _timer?.Follow();
+        }
 
         if (outcome.Warp is WarpTo warp)
             Idle.Warp(warp.Position);

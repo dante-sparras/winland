@@ -210,8 +210,10 @@ public sealed partial class WindowAdapter : IDisposable
                     if (!windows.TryGetValue(decoration.Client, out var window))
                         continue;
 
-                    Paint(window, decoration);
-                    _painted.Add(window);
+                    // Every outcome decorates every Client. One with no motion, painted with this decoration and nothing
+                    // held since it last became a Client, already shows it.
+                    if (!_painted.TryGetValue(window, out var last) || !decoration.Equals(last) || !_dwmPainted.ContainsKey(window) || _motions.Running(window))
+                        _painted[window] = Paint(window, decoration) ? decoration : null;
                 }
 
                 // A window that is no longer a Client is painted afresh if it becomes one again.
@@ -327,10 +329,12 @@ public sealed partial class WindowAdapter : IDisposable
     }
 
     // Stryker disable once all : reads a real window's class.
-    private static bool IsShellTaskbar(HWND hwnd)
+    // Every window event asks, so the class is compared where it was read rather than copied out.
+    internal static bool IsShellTaskbar(HWND hwnd)
     {
-        var name = ClassName(hwnd);
-        return name is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd";
+        Span<char> buffer = stackalloc char[32];
+        var name = buffer[..Math.Max(PInvoke.GetClassName(hwnd, buffer), 0)];
+        return name.SequenceEqual("Shell_TrayWnd") || name.SequenceEqual("Shell_SecondaryTrayWnd");
     }
 
     // Stryker disable once all : reads a real window's class.

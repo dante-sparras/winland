@@ -235,6 +235,39 @@ public class WindowAdapterTests
     }
 
     [Fact]
+    public void AClientClosedAndOpenedAgainOnTheSameHandleIsPaintedAgain()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        windows.Open(1);
+        var second = windows.Open(2);
+        windows.Apply(windows.Core.Handle(new WindowClosed(second)));
+        Assert.Equal(0u, windows.Desktop[2].Attributes[3]);
+        windows.Desktop.Remove(2);
+
+        windows.Open(2);
+
+        Assert.Equal(1u, windows.Desktop[2].Attributes[3]);
+    }
+
+    [Fact]
+    public void TheClientsWhoseDecorationChangedArePaintedAgain()
+    {
+        using var windows = new TestWindows("decoration:inactive_opacity = 0.5\n", reducedMotion: true);
+        windows.Open(1);
+        windows.Open(2);
+        windows.Open(3);
+        Assert.Equal(0x80000u, windows.Desktop[1].ExStyle & 0x80000);
+        windows.Desktop.Calls.Clear();
+
+        windows.Dispatch("focuswindow", "address:0x1");
+
+        // An opaque window is no longer layered.
+        Assert.Equal(0u, windows.Desktop[1].ExStyle & 0x80000);
+        Assert.Equal(128, windows.Desktop[3].Alpha);
+        Assert.DoesNotContain(windows.Desktop.Calls, call => call.EndsWith(" 2", StringComparison.Ordinal) || call.Contains(" 2 ", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void TransitionsAreTurnedOnAgainWhenADecorationIsReset()
     {
         using var windows = new TestWindows(reducedMotion: true);

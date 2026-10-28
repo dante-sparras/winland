@@ -136,7 +136,8 @@ static int Run(string? path, RollingLogWriter log)
         SessionEffects.RestoreCursors();
     SessionEffects.InstallSystem();
     TaskbarControl.InstallSystem();
-    using var host = new WindowHost(core, snapshot => Persist(store, snapshot), PipeName());
+    // The host records each Client's process, class and title in the snapshot it hands on.
+    using var host = new WindowHost(core, store.Save, PipeName());
     // Log off and shut down clean up from WM_ENDSESSION, on the loop thread. Closing the console calls in from
     // a thread of its own, so the cleanup is handed to the loop thread there too.
     // The cleanup runs once. Closing the console can run it on the console's thread while the loop is busy, and the

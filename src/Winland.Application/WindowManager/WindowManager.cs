@@ -108,7 +108,40 @@ public sealed partial class WindowManager
                 return Outcome.Empty(last.State);
             }
 
+            // The pointer moves hundreds of times a second, and most moves change nothing a step would apply.
+            if (input is PointerMoved moved && _interaction is null && _applied is { } applied)
+            {
+                if (Glides(moved, applied, out var aim))
+                    return Outcome.Empty(applied.State);
+
+                return Step(input, () => View([], focus: Follow(moved, aim)));
+            }
+
             return Step(input, () => HandleInput(input));
+        }
+    }
+
+    /// <summary>
+    /// Takes in the windows that were open before Winland started, as one step, so each tile is placed once where it
+    /// ends up rather than again for every window after it.
+    /// </summary>
+    public Outcome Adopt(IReadOnlyList<WindowAppeared> windows)
+    {
+        ArgumentNullException.ThrowIfNull(windows);
+        lock (_gate)
+        {
+            return Step(null, () =>
+            {
+                var outcome = new Outcome([], Snapshot());
+                foreach (var appeared in windows)
+                {
+                    var wasClient = Find(appeared.Window) is not null;
+                    outcome = outcome.Then(AppearMaybeMaximized(appeared));
+                    Note(appeared, wasClient);
+                }
+
+                return outcome;
+            });
         }
     }
 

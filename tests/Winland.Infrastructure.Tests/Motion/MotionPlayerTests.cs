@@ -24,6 +24,19 @@ public class MotionPlayerTests
         Assert.Equal(["move 0", "move 50", "place 100"], target.Calls);
     }
 
+    // Every outcome paints every Client, and the clock asks DWM for its frame timing.
+    [Fact]
+    public void PaintingAWindowWithNoMotionReadsNoClock()
+    {
+        var reads = 0;
+        using var player = new MotionPlayer(new RecordingTarget(), () => ++reads, threaded: false);
+
+        var hold = player.Paint(Window, 128, new BorderColor(255, 1, 2, 3));
+
+        Assert.Equal(default, hold);
+        Assert.Equal(0, reads);
+    }
+
     // Land gives up on a motion thread that does not come back in time, as one waiting on a window that stopped
     // answering. The frames that thread still had are dropped, so none shows after the windows came to rest.
     [Fact]
