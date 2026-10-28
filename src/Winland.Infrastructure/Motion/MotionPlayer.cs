@@ -314,6 +314,13 @@ internal sealed class MotionPlayer : IDisposable
             frames = _animator.Land();
             closing = [.. _closing.Select(pair => (pair.Key, pair.Value))];
             _closing.Clear();
+
+            // The thread may not have come back in time, as one waiting on a window that stopped answering. The frames
+            // it still has fail their check, so none of them shows after the windows came to rest.
+            foreach (var frame in frames)
+                Touch(frame.Window);
+            foreach (var (window, _) in closing)
+                Touch(window);
         }
 
         // A window that was leaving stays shown here; revealing hidden Clients on exit shows it anyway.
