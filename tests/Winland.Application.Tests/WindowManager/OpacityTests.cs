@@ -84,10 +84,10 @@ public class OpacityTests
             decoration:inactive_opacity = 0.4
             """);
 
-        var first = core.Handle(Appeared(1));
+        var first = core.Handle(Appeared(1, Area));
         Assert.Equal(204, Alpha(first, 1));
 
-        var second = core.Handle(Appeared(2));
+        var second = core.Handle(Appeared(2, Area));
         Assert.Equal(102, Alpha(second, 1));
         Assert.Equal(204, Alpha(second, 2));
 
@@ -104,7 +104,7 @@ public class OpacityTests
             windowrule = opacity 0.5, class:^(kitty)$
             windowrule = opacity 0.8, class:^(kitty)$
             """);
-        var both = multiplied.Handle(Appeared(1, "kitty"));
+        var both = multiplied.Handle(Appeared(1, Area, windowClass: "kitty"));
         Assert.Equal(102, Alpha(both, 1));
 
         var replaced = multiplied.Handle(new Configure(ConfigParser.Parse("""
@@ -121,12 +121,12 @@ public class OpacityTests
             decoration:active_opacity = 1
             windowrule = opacity 0.8, class:^(kitty)$
             """);
-        var first = core.Handle(Appeared(1, "kitty"));
+        var first = core.Handle(Appeared(1, Area, windowClass: "kitty"));
         Assert.Equal(204, Alpha(first, 1));
         core.Handle(new WindowClosed(new WindowId(1)));
         core.Handle(new Configure(ConfigParser.Parse("decoration:active_opacity = 0.5\n")));
 
-        var appeared = core.Handle(Appeared(1, "kitty"));
+        var appeared = core.Handle(Appeared(1, Area, windowClass: "kitty"));
 
         Assert.Equal(128, Alpha(appeared, 1));
     }
@@ -139,8 +139,8 @@ public class OpacityTests
             windowrule = opacity 0.5, class:^(kitty)$
             windowrule = opaque, class:^(kitty)$
             """);
-        core.Handle(Appeared(1, "kitty"));
-        var outcome = core.Handle(Appeared(2, "other"));
+        core.Handle(Appeared(1, Area, windowClass: "kitty"));
+        var outcome = core.Handle(Appeared(2, Area, windowClass: "other"));
 
         Assert.Equal(255, Alpha(outcome, 1));
         Assert.Equal(255, Alpha(outcome, 2));
@@ -208,11 +208,6 @@ public class OpacityTests
         core.Handle(new Configure(ConfigParser.Parse(text)));
         return core;
     }
-
-    private static WindowAppeared Appeared(long window, string? windowClass = null) => new(new WindowId(window), Area)
-    {
-        Traits = windowClass is null ? WindowTraits.Normal : WindowTraits.Normal with { Class = windowClass },
-    };
 
     private static byte Alpha(Outcome outcome, long window)
     {

@@ -548,14 +548,6 @@ public class DispatcherTests
         return core;
     }
 
-    private static WindowManager Flat(string extra)
-    {
-        var core = new WindowManager();
-        core.Handle(new Configure(ConfigParser.Parse(
-            "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra)));
-        return core;
-    }
-
     // A loaded config applies its gaps and borders like a reload, and these rectangles have none.
     private const string Gapless = "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n";
 
@@ -575,10 +567,4 @@ public class DispatcherTests
             Bounds = new Rectangle(x, y, 200, 200),
             Traits = WindowTraits.Normal with { Class = "box" },
         };
-
-    private static Outcome Appear(WindowManager core, long window, Rectangle? area = null) =>
-        core.Handle(new WindowAppeared(new WindowId(window), area ?? Wide));
-
-    private static Outcome Press(WindowManager core, string key) =>
-        core.Handle(new KeyPressed(key));
 }

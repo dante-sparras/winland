@@ -225,10 +225,4 @@ public class BorderResizeTests
         Appear(core, window);
         core.Handle(new Dispatch("togglefloating"));
     }
-
-    private static void Appear(WindowManager core, long window) =>
-        core.Handle(new WindowAppeared(new WindowId(window), Wide));
-
-    private static void Press(WindowManager core, string key) =>
-        core.Handle(new KeyPressed(key));
 }

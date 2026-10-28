@@ -194,7 +194,7 @@ public class FollowMouseTests
     [Fact]
     public void HoverOnAMonitorWithAnOpenSpecialWorkspaceReachesItsTiles()
     {
-        var core = new WindowManager(ConfigParser.Parse(Flat("")));
+        var core = new WindowManager(ConfigParser.Parse(FlatConfig("")));
         var left = Display(@"\\.\DISPLAY1", 0, 1920, 1080);
         var right = Display(@"\\.\DISPLAY2", 1920, 1920, 1080);
         core.Handle(new MonitorsChanged([left, right]));
@@ -212,25 +212,22 @@ public class FollowMouseTests
 
     private static (WindowManager WindowManager, Outcome Laid) Tiled(string extra = "")
     {
-        var core = new WindowManager(ConfigParser.Parse(Flat(extra)));
+        var core = new WindowManager(ConfigParser.Parse(FlatConfig(extra)));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         return (core, core.Handle(new WindowAppeared(new WindowId(2), Area)));
     }
 
     private static WindowManager TiledThree(string extra)
     {
-        var core = new WindowManager(ConfigParser.Parse(Flat(extra)));
+        var core = new WindowManager(ConfigParser.Parse(FlatConfig(extra)));
         core.Handle(new WindowAppeared(new WindowId(1), Area));
         core.Handle(new WindowAppeared(new WindowId(2), Area));
         core.Handle(new WindowAppeared(new WindowId(3), Area));
         return core;
     }
 
-    private static string Flat(string extra) =>
-        "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
-
     private static WindowManager Floats(string extra) =>
-        new(ConfigParser.Parse(Flat(extra) + "windowrule = float, class:^(box)$\nwindowrule = move window_x window_y, class:^(box)$\n"));
+        new(ConfigParser.Parse(FlatConfig(extra) + "windowrule = float, class:^(box)$\nwindowrule = move window_x window_y, class:^(box)$\n"));
 
     private static WindowAppeared Box(long window, int x, int y, int width = 100, int height = 100) =>
         new(new WindowId(window), Area)

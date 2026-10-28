@@ -349,17 +349,6 @@ public class MonitorDispatchTests
         Assert.Null(moved.Error);
     }
 
-    private static WindowManager TwoMonitors(string? config = null)
-    {
-        var core = config is null ? new WindowManager() : new WindowManager(ConfigParser.Parse(config));
-        var left = Display(@"\\.\DISPLAY1", "Dell", Left);
-        var right = Display(@"\\.\DISPLAY2", "Samsung", Right);
-        core.Handle(new MonitorsChanged([left, right]));
-        core.Handle(new WindowAppeared(new WindowId(1), left.WorkArea));
-        core.Handle(new WindowAppeared(new WindowId(2), right.WorkArea));
-        return core;
-    }
-
     private static WindowManager Gapped(string? config = null)
     {
         var text = config ?? """

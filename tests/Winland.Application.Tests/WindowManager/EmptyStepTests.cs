@@ -103,7 +103,7 @@ public class EmptyStepTests
     [Fact]
     public void TheFirstStepIsNotEmpty()
     {
-        var core = new WindowManager(ConfigParser.Parse(Flat("")));
+        var core = new WindowManager(ConfigParser.Parse(FlatConfig("")));
 
         Assert.False(core.Handle(new PointerMoved(new Point(10, 10)) { TimeMs = 0 }).IsEmpty);
     }
@@ -223,7 +223,7 @@ public class EmptyStepTests
     public void TheFirstStepAfterAConfigReloadIsNotEmpty()
     {
         var (core, laid) = Tiled();
-        var document = ConfigParser.Parse(Flat(""));
+        var document = ConfigParser.Parse(FlatConfig(""));
         core.ReadConfig = () => new ConfigRead(document);
         Move(core, Center(laid, 2), 1_000);
         Assert.True(Move(core, Center(laid, 2) with { X = Center(laid, 2).X + 10 }, 1_050).IsEmpty);
@@ -245,7 +245,7 @@ public class EmptyStepTests
         Move(core, Center(laid, 2), 1_000);
         Assert.True(Move(core, Center(laid, 2) with { X = Center(laid, 2).X + 10 }, 1_050).IsEmpty);
 
-        var configured = core.Handle(new Configure(ConfigParser.Parse(Flat(""))));
+        var configured = core.Handle(new Configure(ConfigParser.Parse(FlatConfig(""))));
         var after = Move(core, Center(laid, 2) with { X = Center(laid, 2).X + 20 }, 1_100);
 
         Assert.False(configured.IsEmpty);
@@ -254,13 +254,10 @@ public class EmptyStepTests
 
     private static (WindowManager WindowManager, Outcome Laid) Tiled()
     {
-        var core = new WindowManager(ConfigParser.Parse(Flat("")));
+        var core = new WindowManager(ConfigParser.Parse(FlatConfig("")));
         core.Handle(new WindowAppeared(OneWindow, Area));
         return (core, core.Handle(new WindowAppeared(new WindowId(2), Area)));
     }
-
-    private static string Flat(string extra) =>
-        "general:gaps_in = 0\ngeneral:gaps_out = 0\ngeneral:border_size = 0\n" + extra;
 
     private static Outcome Move(WindowManager core, Point point, long time) =>
         core.Handle(new PointerMoved(point) { TimeMs = time });

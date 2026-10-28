@@ -318,9 +318,9 @@ public class ScrollingLayoutTests
             general:gaps_out = 0
             general:border_size = 0
             """);
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
-        var outcome = core.Handle(Appeared(3));
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
+        var outcome = core.Handle(Appeared(3, Area));
 
         Assert.Equal([Window(1)], outcome.Hide);
         Assert.DoesNotContain(outcome.Placements, placement => placement.Client == Client(outcome, 1).Id);
@@ -337,10 +337,10 @@ public class ScrollingLayoutTests
     [Fact]
     public void ConcealedColumnIsHiddenAndReturnsWhenScrolledBack()
     {
-        var core = Flat();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
-        var third = core.Handle(Appeared(3));
+        var core = Scrolling();
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
+        var third = core.Handle(Appeared(3, Area));
 
         Assert.Equal([Window(1)], third.Hide);
         Assert.Empty(third.Show);
@@ -364,10 +364,10 @@ public class ScrollingLayoutTests
     [Fact]
     public void APartlyVisibleColumnStaysShownOnItsTapeRectangle()
     {
-        var core = Flat();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
-        core.Handle(Appeared(3));
+        var core = Scrolling();
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
+        core.Handle(Appeared(3, Area));
 
         var moved = core.Handle(new Dispatch("layoutmsg", "move +100"));
 
@@ -381,10 +381,10 @@ public class ScrollingLayoutTests
     [Fact]
     public void ReturningToTheWorkspaceShowsOnlyOverlappingColumns()
     {
-        var core = Flat();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
-        var third = core.Handle(Appeared(3));
+        var core = Scrolling();
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
+        var third = core.Handle(Appeared(3, Area));
         Assert.Equal([Window(1)], third.Hide);
         core.Handle(new Dispatch("workspace", "2"));
 
@@ -408,7 +408,7 @@ public class ScrollingLayoutTests
             general:border_size = 0
             windowrule = scrolling_width 0.25, class:^(app)$
             """);
-        core.Handle(Appeared(1));
+        core.Handle(Appeared(1, Area));
 
         var outcome = core.Handle(new WindowAppeared(Window(2), Area)
         {
@@ -437,6 +437,8 @@ public class ScrollingLayoutTests
         return layout;
     }
 
+    private static WindowManager Scrolling() => Flat("general:layout = scrolling\n");
+
     private static WindowId Window(long id) => new(id);
 
     private static Rectangle Box(IReadOnlyList<Placement> placements, long window)
@@ -448,10 +450,10 @@ public class ScrollingLayoutTests
     [Fact]
     public void FocusThatScrollsTheStripPlacesTheWindows()
     {
-        var core = Flat();
-        core.Handle(Appeared(1));
+        var core = Scrolling();
+        core.Handle(Appeared(1, Area));
         core.Execute("dispatch layoutmsg colresize 0.8");
-        var opened = core.Handle(Appeared(2));
+        var opened = core.Handle(Appeared(2, Area));
         Assert.True(BoundsOf(opened, 1).X < 0);
 
         var focused = core.Execute("dispatch movefocus l").Effect;
@@ -463,9 +465,9 @@ public class ScrollingLayoutTests
     [Fact]
     public void MoveFocusReadsTheWholeDirectionWord()
     {
-        var core = Flat();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
+        var core = Scrolling();
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
 
         Assert.Null(core.Execute("dispatch movefocus leftover").Effect.Focus);
         Assert.Equal(Window(1), core.Execute("dispatch movefocus left").Effect.Focus);
@@ -474,9 +476,9 @@ public class ScrollingLayoutTests
     [Fact]
     public void ScrollingMovesColumnsWithoutResizingThem()
     {
-        var core = Flat();
+        var core = Scrolling();
         for (var window = 1; window <= 5; window++)
-            core.Handle(Appeared(window));
+            core.Handle(Appeared(window, Area));
         core.Execute("dispatch layoutmsg colresize all 0.333");
 
         var widths = new HashSet<int>();
@@ -503,9 +505,9 @@ public class ScrollingLayoutTests
     [Fact]
     public void KeyboardResizeGrowsARowAtItsSmallestHeight()
     {
-        var core = Flat();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
+        var core = Scrolling();
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
         core.Execute("dispatch movefocus l");
         core.Execute("dispatch layoutmsg consume");
         core.Execute("dispatch focuswindow address:0x2");
@@ -519,33 +521,14 @@ public class ScrollingLayoutTests
     [Fact]
     public void AColumnScrolledOutOfViewThatShowsItselfIsHiddenAgain()
     {
-        var core = Flat();
-        core.Handle(Appeared(1));
-        core.Handle(Appeared(2));
-        var third = core.Handle(Appeared(3));
+        var core = Scrolling();
+        core.Handle(Appeared(1, Area));
+        core.Handle(Appeared(2, Area));
+        var third = core.Handle(Appeared(3, Area));
         Assert.Contains(Window(1), third.Hide);
 
-        var shown = core.Handle(Appeared(1));
+        var shown = core.Handle(Appeared(1, Area));
 
         Assert.Contains(Window(1), shown.Hide);
-    }
-
-    private static WindowManager Flat() => Configured("""
-        general:layout = scrolling
-        general:gaps_in = 0
-        general:gaps_out = 0
-        general:border_size = 0
-        """);
-
-    private static Client Client(Outcome outcome, long window) =>
-        Assert.Single(outcome.State.Clients, candidate => candidate.Window == Window(window));
-
-    private static WindowAppeared Appeared(long window) => new(Window(window), Area);
-
-    private static Rectangle BoundsOf(Outcome outcome, long window)
-    {
-        var client = Assert.Single(outcome.State.Clients, candidate => candidate.Window == Window(window));
-        var placement = Assert.Single(outcome.Placements, candidate => candidate.Client == client.Id);
-        return placement.Bounds;
     }
 }

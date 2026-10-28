@@ -114,9 +114,6 @@ public class FullscreenFocusTests
     private static Outcome Move(WindowManager core, Point point, long time) =>
         core.Handle(new PointerMoved(point) { TimeMs = time });
 
-    private static Client Client(Outcome outcome, long window) =>
-        outcome.State.Clients.Single(client => client.Window == new WindowId(window));
-
     private static string Address(WindowManager core)
     {
         var text = core.Execute("j/activewindow").Text;

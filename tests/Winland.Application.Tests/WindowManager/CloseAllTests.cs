@@ -11,11 +11,11 @@ public class CloseAllTests
     public void CloseAllAsksEveryClientToCloseAndShowsWorkspaceOne()
     {
         var core = new WindowManager();
-        core.Handle(Appeared(1));
+        core.Handle(Appeared(1, Area));
         core.Handle(new Dispatch("workspace", "2"));
-        core.Handle(Appeared(3));
+        core.Handle(Appeared(3, Area));
         core.Handle(new Dispatch("workspace", "1"));
-        core.Handle(Appeared(2));
+        core.Handle(Appeared(2, Area));
         core.Handle(new Dispatch("movetoworkspace", "special:scratch"));
 
         var closed = core.Handle(new Dispatch("closeall", ""));
@@ -50,11 +50,6 @@ public class CloseAllTests
         Assert.Contains(closed.Closes, window => window == new WindowId(1));
         Assert.Contains(closed.Closes, window => window == new WindowId(2));
     }
-
-    private static WindowAppeared Appeared(long window, string? windowClass = null) => new(new WindowId(window), Area)
-    {
-        Traits = windowClass is null ? WindowTraits.Normal : WindowTraits.Normal with { Class = windowClass },
-    };
 
     private static Workspace Workspace(Outcome outcome, WorkspaceId id) =>
         Assert.Single(outcome.State.Workspaces, workspace => workspace.Id == id);

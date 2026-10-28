@@ -15,7 +15,7 @@ public class WorkspaceTests
         Appear(core, 2);
         HoldSuper(core);
 
-        var outcome = Press(core, "2");
+        var outcome = Tap(core, "2");
 
         Assert.True(outcome.Consumed);
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
@@ -38,14 +38,14 @@ public class WorkspaceTests
         Appear(core, 1);
         Appear(core, 2);
         HoldSuper(core);
-        Press(core, "2");
+        Tap(core, "2");
         var opened = Appear(core, 3);
 
         Assert.Equal(new WorkspaceId("2"), opened.State.ActiveWorkspace);
         Assert.Equal(Area, BoundsOf(opened, 3));
         Assert.Contains(opened.State.Hidden, client => client.Window == new WindowId(1));
 
-        var back = Press(core, "1");
+        var back = Tap(core, "1");
 
         Assert.Equal(new WorkspaceId("1"), back.State.ActiveWorkspace);
         Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(back, 1));
@@ -64,7 +64,7 @@ public class WorkspaceTests
         HoldSuper(core);
         core.Handle(new KeyPressed("Shift_L"));
 
-        var outcome = Press(core, "2");
+        var outcome = Tap(core, "2");
 
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
         Assert.Equal(Area, BoundsOf(outcome, 2));
@@ -84,7 +84,7 @@ public class WorkspaceTests
         HoldSuper(core);
         core.Handle(new KeyPressed("Alt_L"));
 
-        var outcome = Press(core, "2");
+        var outcome = Tap(core, "2");
 
         Assert.Equal(WorkspaceId.Initial, outcome.State.ActiveWorkspace);
         Assert.Equal(Area, BoundsOf(outcome, 1));
@@ -102,7 +102,7 @@ public class WorkspaceTests
             """);
         Appear(core, 1);
         HoldSuper(core);
-        Press(core, "2");
+        Tap(core, "2");
 
         var outcome = Appear(core, 4);
 
@@ -123,20 +123,20 @@ public class WorkspaceTests
         Appear(core, 1);
         HoldSuper(core);
 
-        var next = Press(core, "O");
+        var next = Tap(core, "O");
         Assert.Equal(new WorkspaceId("2"), next.State.ActiveWorkspace);
         Assert.Equal([new WindowId(1)], next.Hide);
 
-        var third = Press(core, "O");
+        var third = Tap(core, "O");
         Assert.Equal(new WorkspaceId("3"), third.State.ActiveWorkspace);
 
-        var back = Press(core, "I");
+        var back = Tap(core, "I");
         Assert.Equal(new WorkspaceId("2"), back.State.ActiveWorkspace);
 
-        var previous = Press(core, "P");
+        var previous = Tap(core, "P");
         Assert.Equal(new WorkspaceId("3"), previous.State.ActiveWorkspace);
 
-        var home = Press(core, "1");
+        var home = Tap(core, "1");
         Assert.Equal(new WorkspaceId("1"), home.State.ActiveWorkspace);
         Assert.Equal([new WindowId(1)], home.Show);
     }
@@ -153,18 +153,18 @@ public class WorkspaceTests
         Appear(core, 1);
         HoldSuper(core);
         core.Handle(new KeyPressed("Shift_L"));
-        Press(core, "3");
+        Tap(core, "3");
         core.Handle(new KeyReleased("Shift_L"));
 
-        var stepped = Press(core, "R");
+        var stepped = Tap(core, "R");
 
         Assert.Equal(new WorkspaceId("2"), stepped.State.ActiveWorkspace);
         Assert.Contains(stepped.State.Hidden, client => client.Window == new WindowId(1) && client.Workspace == new WorkspaceId("3"));
 
-        var home = Press(core, "P");
+        var home = Tap(core, "P");
         Assert.Equal(new WorkspaceId("1"), home.State.ActiveWorkspace);
 
-        var cycled = Press(core, "M");
+        var cycled = Tap(core, "M");
         Assert.Equal(new WorkspaceId("3"), cycled.State.ActiveWorkspace);
         Assert.Equal([new WindowId(1)], cycled.Show);
     }
@@ -176,7 +176,7 @@ public class WorkspaceTests
         Appear(core, 1);
         HoldSuper(core);
 
-        var outcome = Press(core, "E");
+        var outcome = Tap(core, "E");
 
         Assert.Equal(new WorkspaceId("2"), outcome.State.ActiveWorkspace);
         Assert.Contains(outcome.State.Hidden, client => client.Window == new WindowId(1));
@@ -193,10 +193,10 @@ public class WorkspaceTests
         Appear(core, 2);
         core.Handle(new WindowMinimized(new WindowId(2)));
         HoldSuper(core);
-        var away = Press(core, "2");
+        var away = Tap(core, "2");
         Assert.Contains(away.Hide, window => window == new WindowId(2));
 
-        var back = Press(core, "1");
+        var back = Tap(core, "1");
 
         Assert.Equal([new WindowId(1)], back.Show);
         Assert.DoesNotContain(back.Show, window => window == new WindowId(2));
@@ -284,7 +284,7 @@ public class WorkspaceTests
         Appear(core, 4);
         HoldSuper(core);
 
-        var focused = Press(core, "H");
+        var focused = Tap(core, "H");
 
         Assert.True(focused.Consumed);
         Assert.Equal(new WindowId(3), focused.Focus);
@@ -316,7 +316,7 @@ public class WorkspaceTests
         Appear(core, 3);
         HoldSuper(core);
 
-        var floating = Press(core, "Space");
+        var floating = Tap(core, "Space");
 
         Assert.True(floating.Consumed);
         Assert.Equal(new WorkspaceId("2"), floating.State.ActiveWorkspace);
@@ -344,11 +344,11 @@ public class WorkspaceTests
         Appear(core, 1);
         HoldSuper(core);
 
-        var zero = Press(core, "Z");
+        var zero = Tap(core, "Z");
         Assert.Equal(WorkspaceId.Initial, zero.State.ActiveWorkspace);
         Assert.Empty(zero.Hide);
 
-        var blank = Press(core, "N");
+        var blank = Tap(core, "N");
         Assert.Equal(WorkspaceId.Initial, blank.State.ActiveWorkspace);
         Assert.Contains(blank.State.Clients, client => client.Window == new WindowId(1));
     }
@@ -488,15 +488,5 @@ public class WorkspaceTests
         return core;
     }
 
-    private static Outcome Appear(WindowManager core, long window) =>
-        core.Handle(new WindowAppeared(new WindowId(window), Area));
-
     private static void HoldSuper(WindowManager core) => core.Handle(new KeyPressed("Super_L"));
-
-    private static Outcome Press(WindowManager core, string key)
-    {
-        var outcome = core.Handle(new KeyPressed(key));
-        core.Handle(new KeyReleased(key));
-        return outcome;
-    }
 }
