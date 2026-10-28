@@ -284,10 +284,11 @@ public sealed class WindowHost : IDisposable
         _windows.RevealHidden();
     }
 
-    /// <summary>What a crash can still put back: hidden Clients, frames, effects, alpha and the taskbar.</summary>
+    /// <summary>What a crash can still put back: hidden Clients, frames, effects, alpha, the tray icon and the taskbar.</summary>
     public void Salvage()
     {
         _windows.Salvage();
+        TrayHost.Salvage();
         RestoreTaskbar();
     }
 
