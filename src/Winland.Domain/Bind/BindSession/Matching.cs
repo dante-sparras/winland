@@ -8,16 +8,16 @@ public sealed partial class BindSession
         var matches = new List<Bind>();
         foreach (var bind in table.Binds)
         {
-            if (Include(bind, key, scanCode, mouse, releasing))
+            if (Include(table, bind, key, scanCode, mouse, releasing))
                 matches.Add(bind);
         }
 
         return matches;
     }
 
-    private bool Include(Bind bind, string key, int scanCode, bool mouse, bool releasing)
+    private bool Include(BindTable table, Bind bind, string key, int scanCode, bool mouse, bool releasing)
     {
-        if (!Eligible(bind, key, scanCode, mouse, releasing))
+        if (!Eligible(table, bind, key, scanCode, mouse, releasing))
             return false;
 
         if (releasing)
@@ -32,13 +32,13 @@ public sealed partial class BindSession
     }
 
     // Mouse, modifiers, the key and the locked flag.
-    private bool Eligible(Bind bind, string key, int scanCode, bool mouse, bool releasing)
+    private bool Eligible(BindTable table, Bind bind, string key, int scanCode, bool mouse, bool releasing)
     {
         if (IsMouseBind(bind) != mouse)
             return false;
         if (!ModifiersMatch(bind, key, mouse, releasing))
             return false;
-        if (!KeyEquals(bind.Key, key, scanCode))
+        if (!KeyEquals(bind.Key, key, scanCode, table.Layout))
             return false;
         if (Inhibited && !bind.Flags.HasFlag(BindFlag.Locked))
             return false;
@@ -113,12 +113,15 @@ public sealed partial class BindSession
         return Held & ~modifier;
     }
 
-    // A bound key matches by name, or by scan code when it is written as code:N.
-    private static bool KeyEquals(string bound, string key, int scanCode)
+    // A bound key matches either layout's name, or its scan code when written as code:N.
+    private static bool KeyEquals(string bound, string key, int scanCode, KeyLayout layout)
     {
         if (bound.Length == 0)
             return false;
         if (bound.Equals(key, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (bound.Equals(layout.NameForCode(scanCode), StringComparison.OrdinalIgnoreCase))
             return true;
 
         return scanCode > 0 && bound.Equals($"code:{scanCode}", StringComparison.OrdinalIgnoreCase);
