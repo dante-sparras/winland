@@ -11,6 +11,7 @@ internal sealed partial class ScrollingLayout
 
         SlotHandover.Move(_cells, from, to);
         SlotHandover.Move(_suspended, from, to);
+        SlotHandover.Move(_restoreWidths, from, to);
         _widths.Remove(current);
         if (_focus == current)
             _focus = next;

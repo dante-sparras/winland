@@ -37,7 +37,7 @@ internal static partial class WindowRuleParser
         string? initialClassPattern = null;
         string? exePattern = null;
         string? aumidPattern = null;
-        foreach (var part in value[(comma + 1)..].Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        foreach (var part in SplitFields(value[(comma + 1)..]))
         {
             if (!TryParseMatch(part, ref classPattern, ref titlePattern, ref initialTitlePattern, ref initialClassPattern, ref exePattern, ref aumidPattern, out error))
                 return false;
@@ -361,6 +361,13 @@ internal static partial class WindowRuleParser
             ? []
             : text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
         var fractions = new float[tokens.Length];
+        if (tokens.Length == 0)
+        {
+            rule = default;
+            error = "Malformed window rule.";
+            return false;
+        }
+
         for (var i = 0; i < tokens.Length; i++)
         {
             if (tokens.Length > 2
@@ -375,7 +382,6 @@ internal static partial class WindowRuleParser
 
         rule = fractions.Length switch
         {
-            0 => new OpacityRule(1f, 1f, 1f),
             1 => new OpacityRule(fractions[0], fractions[0], fractions[0]),
             _ => new OpacityRule(fractions[0], fractions[1], 1f),
         };
@@ -488,6 +494,28 @@ internal static partial class WindowRuleParser
         error = "";
         return true;
     }
+
+    // The match fields, split at each comma that starts a new field, so a pattern such as title:a{1,2} keeps its comma.
+    // An empty piece, from a trailing or doubled comma, is dropped.
+    private static List<string> SplitFields(string text)
+    {
+        var fields = new List<string>();
+        foreach (var piece in text.Split(','))
+        {
+            if (piece.Trim().Length == 0)
+                continue;
+
+            if (fields.Count > 0 && !FieldStart().IsMatch(piece))
+                fields[^1] += "," + piece;
+            else
+                fields.Add(piece);
+        }
+
+        return fields.Select(field => field.Trim()).Where(field => field.Length > 0).ToList();
+    }
+
+    [GeneratedRegex(@"\A\s*[A-Za-z_]+:")]
+    private static partial Regex FieldStart();
 
     private static bool Matches(WindowRule rule, WindowTraits traits) =>
         Matches(rule.ClassPattern, traits.Class)

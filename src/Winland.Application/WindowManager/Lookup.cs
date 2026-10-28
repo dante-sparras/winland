@@ -13,7 +13,7 @@ public sealed partial class WindowManager
         var seen = new HashSet<WorkspaceId>();
         foreach (var screen in _monitors)
         {
-            if (screen.Effective.Enabled && _workspaces.Shown.Shown(screen.Id) is WorkspaceId shown && !seen.Add(shown))
+            if (screen.Arranged.Enabled && _workspaces.Shown.Shown(screen.Id) is WorkspaceId shown && !seen.Add(shown))
                 throw new InvalidOperationException($"Workspace {shown} is shown on two Monitors.");
         }
     }
@@ -22,7 +22,7 @@ public sealed partial class WindowManager
     {
         foreach (var screen in _monitors)
         {
-            if (screen.Focused && screen.Effective.Enabled)
+            if (screen.Focused && screen.Arranged.Enabled)
                 return screen.Id;
         }
 
@@ -31,7 +31,7 @@ public sealed partial class WindowManager
 
         foreach (var screen in _monitors)
         {
-            if (screen.Effective.Enabled)
+            if (screen.Arranged.Enabled)
                 return screen.Id;
         }
 
@@ -70,7 +70,7 @@ public sealed partial class WindowManager
 
     private Rectangle FocusedMonitorBounds()
     {
-        if (_monitors.Count == 0 || MonitorById(FocusedId()) is not { Effective.Enabled: true } monitor)
+        if (_monitors.Count == 0 || MonitorById(FocusedId()) is not { Arranged.Enabled: true } monitor)
             return default;
 
         return monitor.Bounds;
@@ -79,8 +79,8 @@ public sealed partial class WindowManager
     private Rectangle WorkArea(LiveWorkspace desk, Rectangle fallback)
     {
         var screen = MonitorById(desk.Monitor);
-        if (screen is { Effective.Enabled: true })
-            return screen.Effective.WorkArea;
+        if (screen is { Arranged.Enabled: true })
+            return screen.Arranged.WorkArea;
 
         return fallback;
     }

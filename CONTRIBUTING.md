@@ -159,7 +159,7 @@ The Lint lane also checks links in tracked markdown files. A relative link or im
 pwsh -NoProfile -File scripts/mutate.ps1                  # every run, then the gate
 pwsh -NoProfile -File scripts/mutate.ps1 -Project Daemon  # one lane, then the gate
 pwsh -NoProfile -File scripts/mutate.ps1 -List            # the run names CI makes jobs from
-pwsh -NoProfile -File scripts/mutate.ps1 -Run Core-2      # one run and no gate, as a CI job runs it
+pwsh -NoProfile -File scripts/mutate.ps1 -Run Domain-2    # one run and no gate, as a CI job runs it
 pwsh -NoProfile -File scripts/mutate.ps1 -Gate <folder>   # gate the run summaries under a folder
 ```
 

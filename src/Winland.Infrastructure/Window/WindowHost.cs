@@ -33,6 +33,9 @@ public sealed class WindowHost : IDisposable
     private BorderColor? _accent;
     private bool _draining;
     private bool _ownsTaskbar;
+
+    // Set once the exit begins, so a reload or a command still on its way does not hide the taskbar again.
+    private volatile bool _taskbarReleased;
     private bool _markerSeen;
     private bool _disposed;
     private ITaskbarSession _taskbar = NullTaskbarSession.Instance;
@@ -97,6 +100,7 @@ public sealed class WindowHost : IDisposable
         return reply.Text;
     }
 
+    /// <summary>Reads the config again. The taskbar it follows is the loop thread's, so call it there.</summary>
     public CommandReply Reload()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -239,7 +243,12 @@ public sealed class WindowHost : IDisposable
         }
     }
 
-    public void RevealHidden() => _windows.RevealHidden();
+    /// <summary>Begins the exit: shows every hidden Client, and from now on only the exit itself changes the taskbar.</summary>
+    public void RevealHidden()
+    {
+        _taskbarReleased = true;
+        _windows.RevealHidden();
+    }
 
     /// <summary>What a crash can still put back: hidden Clients, frames, effects, alpha and the taskbar.</summary>
     public void Salvage()
@@ -254,6 +263,7 @@ public sealed class WindowHost : IDisposable
 
     public void RestoreTaskbar()
     {
+        _taskbarReleased = true;
         if (!_ownsTaskbar)
             return;
 
@@ -265,6 +275,9 @@ public sealed class WindowHost : IDisposable
     // is open, because hiding or restoring the bars changes the work area.
     private void FollowTaskbar()
     {
+        if (_taskbarReleased)
+            return;
+
         var choice = TaskbarPolicy.Decide(_core.HideTaskbar, _ownsTaskbar, PendingMarker(), _opened);
         if (choice.Hide)
         {
@@ -474,8 +487,9 @@ public sealed class WindowHost : IDisposable
 
     private void Remember(RecoverySnapshot snapshot)
     {
-        // While the session is away its windows can look closed, so the snapshot from before is kept.
-        var captured = SessionRecovery.Capture(snapshot);
+        // While the session is away its windows can look closed, so the snapshot from before is kept. Each Client's
+        // process, class and title are recorded while it is alive, so a reused window is not taken for one that left.
+        var captured = WindowIdentity.Annotate(snapshot);
         lock (_memory)
         {
             if (_clients is null || _phase.Live)

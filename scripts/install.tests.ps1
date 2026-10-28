@@ -60,7 +60,7 @@ Test-Case 'the settings are always turned off, and the swipes only with a precis
 Test-Case 'the dev channel reads the dev release and saves the channel' {
     Assert-Equal (Get-ReleaseUrl 'stable') 'https://api.github.com/repos/dante-sparras/winland/releases/latest'
     Assert-Equal (Get-ReleaseUrl 'dev') 'https://api.github.com/repos/dante-sparras/winland/releases/tags/dev'
-    Assert-Equal ((Get-UpdateArguments 'stable') -join ' ') 'update'
+    Assert-Equal ((Get-UpdateArguments 'stable') -join ' ') 'update --channel stable'
     Assert-Equal ((Get-UpdateArguments 'dev') -join ' ') 'update --channel dev'
 }
 

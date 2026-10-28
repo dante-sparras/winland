@@ -61,11 +61,10 @@ jobs:
           fi
           commit="$(git rev-parse "${TAG}^{commit}")"
           message="$(git for-each-ref --format='%(contents)' "refs/tags/${TAG}")"
-          printf '%s' "$message" | jq -e '.commit and .attempt and .version and (.autopublish | type == "boolean") and .epoch' >/dev/null
+          printf '%s' "$message" | jq -e '.commit and .attempt and .version and .epoch' >/dev/null
           claim_commit="$(printf '%s' "$message" | jq -r '.commit')"
           claim_attempt="$(printf '%s' "$message" | jq -r '.attempt')"
           claim_version="$(printf '%s' "$message" | jq -r '.version')"
-          autopublish="$(printf '%s' "$message" | jq -r '.autopublish')"
           expect="rc.${claim_attempt}-v${claim_version}"
           if [ "$TAG" != "$expect" ] || [ "$claim_commit" != "$commit" ]; then
             echo "::error::the claim does not match $TAG ($commit)"
@@ -87,7 +86,6 @@ jobs:
             echo "commit=$commit"
             echo "version=$claim_version"
             echo "draft_id=$draft_id"
-            echo "claim autopublish=$autopublish (ignored; this workflow does not publish)"
           } >> "$GITHUB_OUTPUT"
 
   ci:

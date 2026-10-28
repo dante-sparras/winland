@@ -53,7 +53,7 @@ public sealed partial class WindowManager
         var covered = desk.Covered();
         var placements = desk.Layout.ToggleFloating(id, _pointer);
         // Only a floating Client is pinned, including one whose pin a fullscreen mode holds.
-        _pins.Forget(id);
+        _pins.Unpin(id);
 
         // A window that floats is raised, and so allowed over a fullscreen one.
         if (!client.Floating)

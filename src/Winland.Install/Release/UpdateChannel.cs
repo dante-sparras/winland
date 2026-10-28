@@ -11,8 +11,8 @@ public enum UpdateChannel
 }
 
 /// <summary>
-/// The channel saved in <c>%USERPROFILE%\.winland\channel</c>. The installer does not write this file,
-/// so a new install stays on stable until <c>winland update --channel</c> chooses one.
+/// The channel saved in <c>%USERPROFILE%\.winland\channel</c>. A plain install leaves it unset, which means stable.
+/// <c>install.ps1 -Channel dev</c> runs <c>winland update --channel dev</c>, which saves dev.
 /// </summary>
 public static class UpdateChannelFile
 {

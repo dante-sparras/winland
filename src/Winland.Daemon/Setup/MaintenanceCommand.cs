@@ -40,6 +40,7 @@ static class MaintenanceCommand
                 Console.WriteLine(Installed("Winland is installed for this user", user.Logon, user.Start));
                 return 0;
             case InstallCommand.Remove remove:
+                TaskbarControl.RecoverHidden();
                 app.Uninstall(remove.Purge, machine: Elevation.IsElevated());
                 Console.WriteLine(remove.Purge
                     ? "Winland is uninstalled, and its config, logs and state are removed."
@@ -70,9 +71,6 @@ static class MaintenanceCommand
     {
         var saved = new FileSettingsText(UpdateChannelFile.PathFor(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
-        if (requested is UpdateChannel chosen)
-            saved.Write(UpdateChannelFile.Text(chosen));
-
         var channel = UpdateChannelFile.Choose(requested, saved.Read());
         var executable = Environment.ProcessPath
             ?? throw new InvalidOperationException("The executable path is not available.");
@@ -98,6 +96,7 @@ static class MaintenanceCommand
                 Console.Error.WriteLine("Winland is not installed. Run winland install.");
                 return 1;
             case UpdateResult.Current:
+                Remember();
                 Console.WriteLine("Winland is up to date.");
                 return 0;
             case UpdateResult.NeedsAdministrator:
@@ -106,10 +105,18 @@ static class MaintenanceCommand
                 Console.Error.WriteLine("Refusing the update: the SHA-256 of Winland-win-x64.zip does not match SHA256SUMS.");
                 return 1;
             case UpdateResult.Updated updated:
+                Remember();
                 Console.WriteLine("Winland is updated to " + updated.Version + ".");
                 return 0;
             default:
                 throw new InvalidOperationException("Unexpected update result.");
+        }
+
+        // A channel asked for is kept only once the update on it went through, so a failed one changes nothing.
+        void Remember()
+        {
+            if (requested is UpdateChannel chosen)
+                saved.Write(UpdateChannelFile.Text(chosen));
         }
     }
 

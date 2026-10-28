@@ -5,8 +5,8 @@ public sealed partial class WindowManager
 {
     private readonly WorkspaceSet _workspaces = new();
     private readonly List<LiveMonitor> _monitors = [];
-    private readonly PidFollowSet _follow = new();
-    private readonly InitialWorkspaces _initialWorkspaces = new();
+    private readonly ProcessFamilies<IReadOnlyList<WindowRule>> _follow = new();
+    private readonly ProcessFamilies<WorkspaceId> _initialWorkspaces = new();
     private readonly BindSession _keyState = new();
 
     // Pipe requests arrive on another thread than binds and window events.
@@ -131,8 +131,9 @@ public sealed partial class WindowManager
 
         lock (_gate)
         {
+            // A rule block follows the started program for a minute.
             if (launch.Rules.Count > 0)
-                _follow.Track(processId, launch.Rules, Clock());
+                _follow.Track(processId, launch.Rules, Clock() + 60_000);
 
             // A started program has ten seconds to open its window.
             if (launch.InitialWorkspace is WorkspaceId workspace)
@@ -152,6 +153,8 @@ public sealed partial class WindowManager
     public CommandReply Execute(string? line)
     {
         var parsed = CommandProtocol.Parse(line);
+        CommandReply result;
+        ConfigDocument? reloaded;
         lock (_gate)
         {
             // A query reads the State and changes nothing, so it runs no step and has nothing to apply.
@@ -160,9 +163,28 @@ public sealed partial class WindowManager
 
             var reply = default(CommandReply);
             var outcome = Step(null, () => (reply = ExecuteLine(parsed)).Effect);
-            return reply with { Effect = outcome };
+            result = reply with { Effect = outcome };
+            reloaded = _reloaded;
+            _reloaded = null;
         }
+
+        if (reloaded is not null)
+        {
+            try
+            {
+                AfterReload?.Invoke(reloaded);
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                _ = exception;
+            }
+        }
+
+        return result;
     }
+
+    // The config a reload in this Execute put in force, for AfterReload once the lock is released.
+    private ConfigDocument? _reloaded;
 
     // Every input and every command runs as one step: the change, then the rules matched again, the fullscreen
     // hiding, the decorations and the Motions, and only then the events and the cursor, so they describe the

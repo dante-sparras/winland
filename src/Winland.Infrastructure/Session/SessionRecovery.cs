@@ -6,10 +6,6 @@ namespace Winland.Infrastructure;
 
 internal static class SessionRecovery
 {
-    // Record process, class and title while the Client is alive. Recover matches
-    // those later, so a reused window is not treated as the Client that left.
-    internal static RecoverySnapshot Capture(RecoverySnapshot snapshot) => WindowIdentity.Annotate(snapshot);
-
     // Show a visible Client before Recover reads it. A session switch can leave
     // it hidden, and a hidden window is not adopted again.
     internal static void Restore(WindowAdapter windows, RecoverySnapshot snapshot)

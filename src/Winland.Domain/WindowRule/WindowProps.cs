@@ -84,29 +84,7 @@ internal static class WindowProps
     {
         color = default;
         var tokens = text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-        return tokens.Length == 1 && BorderColor.TryParse(tokens[0], out color, out _);
-    }
-
-    /// <summary>
-    /// Winland's integer reading: hexadecimal after <c>0x</c>, 1 for text starting with <c>true</c>, <c>on</c>
-    /// or <c>yes</c>, 0 for <c>false</c>, <c>off</c> or <c>no</c>, and otherwise a whole number.
-    /// </summary>
-    public static bool TryInteger(string text, out long value)
-    {
-        value = 0;
-        if (text.StartsWith("0x", StringComparison.Ordinal))
-            return long.TryParse(text[2..], NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out value);
-
-        if (text.StartsWith("true", StringComparison.Ordinal) || text.StartsWith("on", StringComparison.Ordinal) || text.StartsWith("yes", StringComparison.Ordinal))
-        {
-            value = 1;
-            return true;
-        }
-
-        if (text.StartsWith("false", StringComparison.Ordinal) || text.StartsWith("off", StringComparison.Ordinal) || text.StartsWith("no", StringComparison.Ordinal))
-            return true;
-
-        return long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out value);
+        return tokens.Length == 1 && BorderColor.TryParse(tokens[0], out color);
     }
 
     public static bool TryFloat(string text, out float value) =>

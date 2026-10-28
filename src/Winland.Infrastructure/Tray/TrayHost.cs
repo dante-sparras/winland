@@ -156,6 +156,14 @@ internal static class TrayHost
         catch (InvalidOperationException exception)
         {
             Console.Error.WriteLine(exception.Message);
+
+            // The next update starts the tray again.
+            lock (Gate)
+            {
+                if (ReferenceEquals(_worker, Thread.CurrentThread))
+                    _worker = null;
+            }
+
             return;
         }
 
@@ -584,6 +592,14 @@ internal static class TrayHost
                 hwnd,
                 null);
             _ = PInvoke.PostMessage(hwnd, 0, default, default);
+
+            // The menu's modal loop drops thread messages, so an update posted while it was open is carried out now.
+            bool posted;
+            lock (Gate)
+                posted = _posted;
+            if (posted)
+                Sync();
+
             var id = chosen.Value;
             if (id < 1 || id > items.Count)
                 return;
@@ -609,7 +625,7 @@ internal static class TrayHost
         {
             var info = new WNDCLASSEXW
             {
-                cbSize = 80,
+                cbSize = (uint)Marshal.SizeOf<WNDCLASSEXW>(),
                 lpfnWndProc = Proc,
                 hInstance = instance,
                 lpszClassName = name,

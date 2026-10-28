@@ -105,14 +105,6 @@ public sealed record LayoutOptions
     /// </summary>
     internal static OnScreen NewFloatingOnScreen(Rectangle area) => new(area, 0);
 
-    // A workspace rule's layoutopt sets a dwindle Option for that Workspace.
-    internal static bool TryOverrideDwindle(LayoutOptions options, string key, string value, out LayoutOptions updated)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        updated = Options.Apply(options, "dwindle:" + key, value) ?? options;
-        return !ReferenceEquals(updated, options);
-    }
-
     /// <summary>Multiplies the gaps and borders, which the config gives in logical pixels, by a Monitor's scale.</summary>
     internal LayoutOptions ScaledBy(double scale)
     {

@@ -36,8 +36,6 @@ internal sealed partial class DwindleLayout : TiledLayout, Layout
         return Visible();
     }
 
-    public IReadOnlyList<Placement> Current() => Placements();
-
     public bool TryBounds(WindowId window, out Rectangle bounds)
     {
         var id = new ClientId(window.Value);

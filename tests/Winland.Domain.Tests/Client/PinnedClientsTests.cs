@@ -17,17 +17,6 @@ public class PinnedClientsTests
         Assert.False(pins.IsPinned(Window));
     }
 
-    [Fact]
-    public void ForgettingAClientTakesItsPin()
-    {
-        var pins = new PinnedClients();
-        pins.Pin(Window);
-
-        pins.Forget(Window);
-
-        Assert.False(pins.IsPinned(Window));
-    }
-
     [Theory]
     [InlineData(true, true, false, true)]
     [InlineData(true, false, true, true)]

@@ -37,9 +37,8 @@ public sealed partial class WindowManager
     private IReadOnlyList<Placement> BeginGesture(WindowId window, BindDispatch drag, string button, Point pointer)
     {
         var desk = LayoutWorkspace(window);
-        var layout = desk.Layout;
         Give(window, desk);
-        var gesture = new Gesture(window, button, IsResize(drag.Dispatcher), drag.Dispatcher, pointer)
+        var gesture = new Gesture(window, button, IsResize(drag.Dispatcher), pointer)
         {
             Cursor = DragCursor(desk, window, IsResize(drag.Dispatcher), pointer),
             WasTiled = LayoutWorkspace(window).ClientOf(window) is { Floating: false },
@@ -53,19 +52,21 @@ public sealed partial class WindowManager
     }
 
     // A Client picked up while fullscreen or maximized leaves that mode first. A floating one
-    // is then put under the pointer by its middle. The drag starts from there.
+    // is then put under the pointer by its middle. The drag starts from there, and a resize's cursor shows the corner
+    // the Layout grabs from there.
     private IReadOnlyList<Placement> PickUp(WindowId window, Gesture gesture, Point pointer)
     {
         var desk = LayoutWorkspace(window);
-        if (desk.ClientOf(window) is not { Fullscreen: not FullscreenMode.None } client)
-            return desk.Layout.Drag(window, gesture.Step(PointerDragPhase.Begin, pointer));
-
-        var placements = new List<Placement>(Restamp(desk, EndFullscreen(desk, window)));
-        if (client.Floating && desk.Layout.TryBounds(window, out var restored))
+        var placements = new List<Placement>();
+        if (desk.ClientOf(window) is { Fullscreen: not FullscreenMode.None } client)
         {
-            placements.AddRange(desk.Layout.PlaceFloating(window, restored with { X = pointer.X - (restored.Width / 2), Y = pointer.Y - (restored.Height / 2) }));
+            placements.AddRange(Restamp(desk, EndFullscreen(desk, window)));
+            if (client.Floating && desk.Layout.TryBounds(window, out var restored))
+                placements.AddRange(desk.Layout.PlaceFloating(window, restored with { X = pointer.X - (restored.Width / 2), Y = pointer.Y - (restored.Height / 2) }));
         }
 
+        gesture.Cursor = DragCursor(desk, window, gesture.Resize, pointer);
+        NoteBorderCursor(pointer);
         placements.AddRange(desk.Layout.Drag(window, gesture.Step(PointerDragPhase.Begin, pointer)));
         return placements;
     }
@@ -142,7 +143,7 @@ public sealed partial class WindowManager
 
         foreach (var bar in GroupBars(Snapshot()))
         {
-            if (!Inside(bar.Bounds, pointer))
+            if (!BorderPointer.Contains(bar.Bounds, pointer))
                 continue;
 
             var index = bar.TabAt(pointer.X - bar.Bounds.X, pointer.Y - bar.Bounds.Y);
@@ -188,7 +189,7 @@ public sealed partial class WindowManager
         }
 
         var tileBack = settle && gesture.WasTiled;
-        var monitor = MonitorById(target.Monitor) is { Effective.Enabled: true } destination ? destination.Bounds : default;
+        var monitor = MonitorById(target.Monitor) is { Arranged.Enabled: true } destination ? destination.Bounds : default;
         target.Receive(window, taken with { Floating = !tileBack, Bounds = box }, WorkArea(target, _area), monitor, pointer: tileBack ? pointer : null);
         CarryGroup(source, target, window);
         gesture.MovedWorkspace = true;
@@ -250,7 +251,7 @@ public sealed partial class WindowManager
         var own = from.GroupOf(dragged);
         foreach (var bar in GroupBars(Snapshot()))
         {
-            if (bar.Shown == dragged || !Inside(bar.Bounds, pointer))
+            if (bar.Shown == dragged || !BorderPointer.Contains(bar.Bounds, pointer))
                 continue;
 
             if (WorkspaceContaining(bar.Shown) is not LiveWorkspace there || there.GroupOf(bar.Shown) is not WindowGroup target)
@@ -368,9 +369,6 @@ public sealed partial class WindowManager
     // A press whose only action is a drag, which with no window under the pointer Winland lets through.
     private static bool OnlyDrag(BindDecision match) => DispatchesOf(match).All(dispatch => dispatch.Dispatcher.Length == 0 || IsDragDispatcher(dispatch));
 
-    private static bool Inside(Rectangle box, Point point) =>
-        point.X >= box.X && point.X < box.X + box.Width && point.Y >= box.Y && point.Y < box.Y + box.Height;
-
     // A window that closes ends any drag that holds it, as Winland ends its drag target on unmap.
     private void ForgetDrag(WindowId window)
     {
@@ -442,14 +440,12 @@ public sealed partial class WindowManager
     private static bool IsResize(string dispatcher) =>
         Is(dispatcher, "resizewindow");
 
-    private sealed class Gesture(WindowId window, string button, bool resize, string dispatcher, Point origin)
+    private sealed class Gesture(WindowId window, string button, bool resize, Point origin)
         : PointerInteraction(window)
     {
         public string Button { get; } = button;
 
         public bool Resize { get; } = resize;
-
-        public string Dispatcher { get; } = dispatcher;
 
         public Point Origin { get; } = origin;
 
@@ -463,7 +459,7 @@ public sealed partial class WindowManager
         public bool MovedWorkspace { get; set; }
 
         /// <summary>The pointer shape while the drag holds the window.</summary>
-        public string Cursor { get; init; } = "grabbing";
+        public string Cursor { get; set; } = "grabbing";
 
         public PointerDrag Step(PointerDragPhase phase, Point pointer) => new(Resize, phase, pointer, KeepRatio);
     }

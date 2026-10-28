@@ -52,17 +52,9 @@ public sealed partial class WindowManager
             return new CommandReply(message, View([]));
         }
 
-        var outcome = Apply(document);
-        try
-        {
-            AfterReload?.Invoke(document);
-        }
-        catch (Exception exception) when (exception is not OutOfMemoryException)
-        {
-            _ = exception;
-        }
-
-        return new CommandReply("ok", outcome);
+        // AfterReload watches files and starts programs, so it runs once Execute has let go of the lock.
+        _reloaded = document;
+        return new CommandReply("ok", Apply(document));
     }
 
     private Outcome NoteAccent(AccentChanged changed)
@@ -188,7 +180,7 @@ public sealed partial class WindowManager
         if (area.Width > 0 && area.Height > 0)
             created.Fit(area);
 
-        var monitor = screen is { Effective.Enabled: true } ? screen.Bounds : default;
+        var monitor = screen is { Arranged.Enabled: true } ? screen.Bounds : default;
         foreach (var (window, taken) in held)
             desk.Receive(window, taken, area, monitor);
 

@@ -15,15 +15,4 @@ internal static class DwindleMessages
     public const string SplitRatio = "splitratio";
 
     public static IReadOnlyList<string> Names { get; } = [ToggleSplit, SwapSplit, RotateSplit, SplitRatio];
-
-    public static bool Contains(string name)
-    {
-        foreach (var message in Names)
-        {
-            if (OrdinalText.Is(name, message))
-                return true;
-        }
-
-        return false;
-    }
 }

@@ -389,7 +389,7 @@ internal sealed partial class DwindleLayout
 
         _splitTarget = id;
         Refit();
-        return Placements();
+        return FloatIfShort(id, node);
     }
 
     private IReadOnlyList<Placement> MoveFloating(ClientId id, PendingSplit direction) =>

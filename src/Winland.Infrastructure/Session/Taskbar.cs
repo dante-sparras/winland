@@ -153,12 +153,18 @@ internal static class Taskbar
         }
     }
 
-    // The same %USERPROFILE%\.winland folder as the config and the state file.
-    internal static string MarkerFile(string userProfile) =>
-        Path.Combine(userProfile, ".winland", "taskbar.marker");
+    // The same %USERPROFILE%\.winland folder as the config and the state file. A Winland on a pipe of its own, set by
+    // WINLAND_PIPE, keeps a marker of its own, so it never puts back a taskbar another Winland hid.
+    internal static string MarkerFile(string userProfile, string? pipe = null)
+    {
+        var name = string.IsNullOrWhiteSpace(pipe)
+            ? "taskbar.marker"
+            : $"taskbar.{string.Join('_', pipe.Split(Path.GetInvalidFileNameChars()))}.marker";
+        return Path.Combine(userProfile, ".winland", name);
+    }
 
     private static string MarkerPath =>
-        MarkerFile(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        MarkerFile(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), Environment.GetEnvironmentVariable("WINLAND_PIPE"));
 
     // An elevated Winland writes here as an administrator, in a folder the user owns. A folder or marker turned into a
     // link elsewhere is refused, and the marker is made new rather than written through, so a hard link to another

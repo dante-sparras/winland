@@ -56,7 +56,7 @@ internal sealed partial class ScrollingLayout
                 return [];
 
             foreach (var item in _columns)
-                item.Width = width;
+                item.Width = Math.Clamp(width, ScrollingOptions.MinColumnWidth, ScrollingOptions.MaxColumnWidth);
             Recalculate();
             return Placements();
         }
@@ -250,7 +250,7 @@ internal sealed partial class ScrollingLayout
             }
 
             var last = column.Cells[^1];
-            Expel(last, Next(column) is null ? null : index);
+            Expel(last, index);
         }
         else if (Is(name, "consume"))
         {

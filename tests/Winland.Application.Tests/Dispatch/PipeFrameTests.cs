@@ -25,6 +25,22 @@ public class PipeFrameTests
     }
 
     [Fact]
+    public void AReplyCutShortIsAnError()
+    {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("#10\nabc"));
+
+        Assert.Throws<EndOfStreamException>(() => PipeFrame.ReadReply(stream));
+    }
+
+    [Fact]
+    public void AReplyOverTheLimitIsAnError()
+    {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes($"#{PipeFrame.ReplyLimit + 1}\nabc"));
+
+        Assert.Throws<InvalidDataException>(() => PipeFrame.ReadReply(stream));
+    }
+
+    [Fact]
     public async Task ALineDropsItsCarriageReturn()
     {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("clients\r\nnext\n"));

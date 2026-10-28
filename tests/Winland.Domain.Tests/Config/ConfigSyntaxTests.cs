@@ -117,6 +117,17 @@ public class ConfigSyntaxTests
     }
 
     [Fact]
+    public void AStrayBraceInASourcedFileDoesNotCloseTheCategoryAroundIt()
+    {
+        var source = new MemorySource(new Dictionary<string, string> { ["a.conf"] = "}\n" });
+
+        var document = ConfigParser.Parse("general {\nsource = a.conf\ngaps_in = 7\n}\n", source);
+
+        Assert.Contains(new Setting("general:gaps_in", "7"), document.Settings);
+        Assert.Contains(document.Warnings, warning => warning.Source == "a.conf");
+    }
+
+    [Fact]
     public void SourceGlobReadsEachMatch()
     {
         var source = new MemorySource(new Dictionary<string, string>

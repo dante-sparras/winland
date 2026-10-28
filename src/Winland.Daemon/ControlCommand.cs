@@ -25,7 +25,9 @@ static class ControlCommand
             }
 
             Console.WriteLine(reply);
-            return 0;
+
+            // A batch joins its replies with blank lines, and fails when any of its commands did.
+            return reply.Split("\n\n\n").Any(part => part.StartsWith("error:", StringComparison.Ordinal)) ? 1 : 0;
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
@@ -50,7 +52,12 @@ static class ControlCommand
                 Console.WriteLine(line);
                 Console.Out.Flush();
             }, pipeName, cancel: cancel.Token);
-            return 0;
+            if (cancel.IsCancellationRequested)
+                return 0;
+
+            // Winland exited, or dropped this reader for falling too far behind, so a supervisor knows to reconnect.
+            Console.Error.WriteLine("error: events stream ended");
+            return 1;
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
         {

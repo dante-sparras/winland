@@ -15,8 +15,6 @@ public class WindowStateTests
             windowrule = float, class:^(stick)$
             windowrule = pin, class:^(stick)$
             windowrule = opacity 0.8, class:^(stick)$
-            windowrule = no_close_for 60000, class:^(stick)$
-            windowrule = group deny, class:^(stick)$
             windowrule = no_initial_focus, class:^(quiet)$
             """));
         core.Restore(new RecoverySnapshot(

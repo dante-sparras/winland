@@ -258,8 +258,6 @@ public sealed partial class WindowAdapter
         }
     }
 
-    private static uint ColorRef(BorderColor color) => (uint)(color.R | (color.G << 8) | (color.B << 16));
-
     private void ForgetDwmPainted(IEnumerable<WindowId> clients)
     {
         if (_dwmPainted.IsEmpty)

@@ -21,6 +21,9 @@ internal static class WholeMatch
         if (Built.TryGetValue(pattern, out var regex))
             return regex;
 
+        // The pattern is read alone first, so one that closes a group it never opened, such as a)|(b, cannot escape
+        // the anchors.
+        _ = new Regex(pattern, RegexOptions.CultureInvariant);
         regex = Build($"\\A(?:{pattern})\\z");
         if (Built.Count >= Limit)
             Built.Clear();

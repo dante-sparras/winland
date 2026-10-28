@@ -14,7 +14,14 @@ internal static partial class WindowRuleParser
         error = "";
         if (WindowProps.IsRuleEffect(name, PropKind.Bool))
         {
-            props = new Dictionary<string, object>(StringComparer.Ordinal) { [name] = argument is null || WindowProps.Truthy(argument) };
+            var enabled = true;
+            if (argument is not null && !TryParseEnabled(argument, out enabled))
+            {
+                error = "Malformed window rule.";
+                return false;
+            }
+
+            props = new Dictionary<string, object>(StringComparer.Ordinal) { [name] = enabled };
             return true;
         }
 
@@ -75,7 +82,7 @@ internal static partial class WindowRuleParser
             }
         }
 
-        if (!BorderColor.TryParse(tokens[0], out var active, out _))
+        if (!BorderColor.TryParse(tokens[0], out var active))
         {
             error = $"border_color rule \"{argument}\" has invalid color \"{tokens[0]}\"";
             return false;
@@ -84,7 +91,7 @@ internal static partial class WindowRuleParser
         var values = new Dictionary<string, object>(StringComparer.Ordinal) { ["active_border_color"] = active };
         if (tokens.Length == 2)
         {
-            if (!BorderColor.TryParse(tokens[1], out var inactive, out _))
+            if (!BorderColor.TryParse(tokens[1], out var inactive))
             {
                 error = $"border_color rule \"{argument}\" has invalid color \"{tokens[1]}\"";
                 return false;

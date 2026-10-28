@@ -64,7 +64,7 @@ public static partial class CommandProtocol
             BuildStamp.Dirty,
             "",
             "",
-            BuildStamp.Tag,
+            "",
             "",
             []));
 

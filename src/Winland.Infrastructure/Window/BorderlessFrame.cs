@@ -31,14 +31,18 @@ internal static class BorderlessStyle
 internal sealed class BorderlessFrame
 {
     private readonly IWindowFrame _frames;
+    private readonly Func<WindowId, bool> _hung;
     private readonly Dictionary<WindowId, uint> _original = [];
     private readonly Lock _gate = new();
     private bool _closed;
 
-    internal BorderlessFrame(IWindowFrame frames)
+    /// <param name="hung">Whether a window's program has stopped answering. Its frame is not dropped then, since the
+    /// write would wait for it.</param>
+    internal BorderlessFrame(IWindowFrame frames, Func<WindowId, bool>? hung = null)
     {
         ArgumentNullException.ThrowIfNull(frames);
         _frames = frames;
+        _hung = hung ?? (static _ => false);
     }
 
     internal bool Owns(WindowId window)
@@ -58,7 +62,7 @@ internal sealed class BorderlessFrame
                 return;
             }
 
-            if (_closed || _original.ContainsKey(window))
+            if (_closed || _original.ContainsKey(window) || _hung(window))
                 return;
 
             if (!_frames.TryReadStyle(window, out var style))

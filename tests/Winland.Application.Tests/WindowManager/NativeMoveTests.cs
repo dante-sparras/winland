@@ -213,7 +213,11 @@ public class NativeMoveTests
         core.Handle(new WindowMoveStarted(new WindowId(1), new Point(bounds.X + 10, bounds.Y + 10)));
 
         var pressed = core.Handle(new PointerButtonPressed("mouse:272") { Position = new Point(bounds.X + bounds.Width + 5, bounds.Y + 50) });
+        var moved = core.Handle(new PointerMoved(new Point(bounds.X + bounds.Width + 40, bounds.Y + 60)));
 
+        Assert.False(pressed.Consumed);
+        Assert.False(moved.Consumed);
+        Assert.Equal(bounds, Client(moved, 1).Bounds);
     }
 
     private static WindowManager Flat(string extra)

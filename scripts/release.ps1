@@ -1,7 +1,6 @@
 # Cuts, publishes, and abandons stable releases. Tags are the source of truth for versions.
 # The committed version is 0.0.0. See docs/releasing.md.
 #   pwsh -NoProfile -File scripts/release.ps1 release [-Commit <sha>] [-Bump patch|minor|major] [-Remote origin] [-DryRun]
-# -Autopublish is rejected. The Stable Release workflow uploads the draft and stops.
 #   pwsh -NoProfile -File scripts/release.ps1 publish [-Version X.Y.Z] [-Remote origin] [-DryRun]
 #   pwsh -NoProfile -File scripts/release.ps1 abandon <attempt-tag> [-Remote origin] [-DryRun]
 #   pwsh -NoProfile -File scripts/release.ps1 status
@@ -17,7 +16,6 @@ param(
     [string]$Commit,
     [ValidateSet('patch', 'minor', 'major')]
     [string]$Bump = 'patch',
-    [switch]$Autopublish,
     [string]$Version,
     [string]$Remote = 'origin',
     [switch]$DryRun,
@@ -149,13 +147,12 @@ function Get-OutstandingAttempts([string[]]$Refs) {
 }
 
 # The claim is the message of the attempt tag.
-function ConvertTo-ClaimJson([string]$Commit, [int]$Attempt, [string]$Version, [bool]$Autopublish, [long]$Epoch) {
+function ConvertTo-ClaimJson([string]$Commit, [int]$Attempt, [string]$Version, [long]$Epoch) {
     return ([ordered]@{
-            commit      = $Commit
-            attempt     = $Attempt
-            version     = $Version
-            autopublish = $Autopublish
-            epoch       = $Epoch
+            commit  = $Commit
+            attempt = $Attempt
+            version = $Version
+            epoch   = $Epoch
         } | ConvertTo-Json -Compress)
 }
 
@@ -169,21 +166,20 @@ function ConvertFrom-ClaimJson([string]$Text) {
     }
     if ($claim -isnot [pscustomobject]) { throw "The tag message is not a release claim: $json" }
     $names = @($claim.PSObject.Properties.Name)
-    foreach ($required in 'commit', 'attempt', 'version', 'autopublish', 'epoch') {
+    # Claims cut before autopublish was dropped still carry it, and it is ignored.
+    foreach ($required in 'commit', 'attempt', 'version', 'epoch') {
         if ($names -cnotcontains $required) { throw "The release claim has no '$required': $json" }
     }
     if ($claim.commit -isnot [string] -or $claim.commit -cnotmatch '^[0-9a-f]{40}$') { throw "The release claim has an invalid commit: $json" }
     if ($claim.attempt -isnot [long] -and $claim.attempt -isnot [int]) { throw "The release claim has an invalid attempt: $json" }
     if ($claim.attempt -lt 1) { throw "The release claim has an invalid attempt: $json" }
     if ($claim.version -isnot [string] -or -not (Get-StableVersion "v$($claim.version)")) { throw "The release claim has an invalid version: $json" }
-    if ($claim.autopublish -isnot [bool]) { throw "The release claim has an invalid autopublish: $json" }
     if (($claim.epoch -isnot [long] -and $claim.epoch -isnot [int]) -or $claim.epoch -lt 0) { throw "The release claim has an invalid epoch: $json" }
     return [pscustomobject]@{
-        Commit      = $claim.commit
-        Attempt     = [int]$claim.attempt
-        Version     = $claim.version
-        Autopublish = [bool]$claim.autopublish
-        Epoch       = [long]$claim.epoch
+        Commit  = $claim.commit
+        Attempt = [int]$claim.attempt
+        Version = $claim.version
+        Epoch   = [long]$claim.epoch
     }
 }
 
@@ -536,7 +532,7 @@ function Invoke-Release($Context) {
     $attempt = Get-NextAttempt $next @($tags.Keys)
     $ref = New-AttemptRef $next $attempt
     $epoch = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
-    $claim = ConvertTo-ClaimJson $sha $attempt $next $false $epoch
+    $claim = ConvertTo-ClaimJson $sha $attempt $next $epoch
 
     Write-Step "Release $next (attempt $attempt) of $sha from $(if ($published) { "published $($published.Version)" } else { 'nothing published' }), -Bump $Bump."
     if (-not $published -and $Bump -ne 'minor') {
@@ -630,7 +626,7 @@ function Invoke-Publish($Context) {
         }
         Write-Step "$final already points at $($claim.Commit)."
     } else {
-        $receipt = ConvertTo-ClaimJson $claim.Commit $claim.Attempt $claim.Version $claim.Autopublish $claim.Epoch
+        $receipt = ConvertTo-ClaimJson $claim.Commit $claim.Attempt $claim.Version $claim.Epoch
         Invoke-Mutation "push the annotated receipt tag $final on $($claim.Commit)" {
             New-RemoteTag $Context $final $claim.Commit $receipt
         } | Out-Null
@@ -708,9 +704,6 @@ foreach ($name in @('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_PREFIX'))
     Remove-Item "Env:$name" -ErrorAction SilentlyContinue
 }
 
-if ($Autopublish) {
-    throw "-Autopublish is not accepted. The Stable Release workflow uploads the draft and stops. When the run is green, publish with './scripts/release.ps1 publish -Version X.Y.Z'. Do not press Publish in the GitHub UI."
-}
 if (-not $Command) {
     throw 'Usage: release.ps1 release|publish|abandon|status. See the header of this file and docs/releasing.md.'
 }

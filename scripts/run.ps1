@@ -79,6 +79,17 @@ if ($Stop) {
     return
 }
 
+# The config is checked before anything is published or stopped, so a bad path leaves the running winland alone.
+$arguments = @()
+if (-not $Elevated) { $arguments += '--no-elevate' }
+if ($Config) {
+    if (-not $Config.EndsWith('.conf', [StringComparison]::OrdinalIgnoreCase)) {
+        throw "--config takes a .conf file, not '$Config'."
+    }
+
+    $arguments += @('--config', (Resolve-Path -LiteralPath $Config).Path)
+}
+
 $stamp = [DateTime]::Now.ToString('yyyyMMdd-HHmmss')
 $build = Join-Path $dev $stamp
 New-Item -ItemType Directory -Force -Path $build | Out-Null
@@ -93,16 +104,6 @@ if ($LASTEXITCODE -ne 0) {
 
 $exe = Join-Path $build 'winland/winland.exe'
 Stop-Winland $exe
-
-$arguments = @()
-if (-not $Elevated) { $arguments += '--no-elevate' }
-if ($Config) {
-    if (-not $Config.EndsWith('.conf', [StringComparison]::OrdinalIgnoreCase)) {
-        throw "--config takes a .conf file, not '$Config'."
-    }
-
-    $arguments += @('--config', (Resolve-Path -LiteralPath $Config).Path)
-}
 
 $stdout = Join-Path $build 'winland.out.log'
 $stderr = Join-Path $build 'winland.err.log'

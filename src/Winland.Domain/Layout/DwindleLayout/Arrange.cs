@@ -40,11 +40,15 @@ internal sealed partial class DwindleLayout
         return Placements();
     }
 
-    // Each split's ratio puts it where it was, in the box the tree gives the node, from the top down.
+    // Each split's ratio puts it where it was, in the box the tree gives the node, from the top down. The children
+    // learn their parent here, once the whole cut has held, so a cut that fails leaves the live tree as it was.
     private static void Ratio(Node node, Dictionary<Node, int> splits)
     {
         if (node.First is null || node.Second is null)
             return;
+
+        node.First.Parent = node;
+        node.Second.Parent = node;
 
         var start = node.SplitTop ? node.Box.Y : node.Box.X;
         var size = node.SplitTop ? node.Box.Height : node.Box.Width;
@@ -70,11 +74,7 @@ internal sealed partial class DwindleLayout
     private static Node? Cut(List<(Node Node, Rectangle Box)> tiles, Dictionary<Node, int> splits)
     {
         if (tiles.Count == 1)
-        {
-            tiles[0].Node.First = null;
-            tiles[0].Node.Second = null;
             return tiles[0].Node;
-        }
 
         foreach (var top in new[] { false, true })
         {
@@ -94,8 +94,6 @@ internal sealed partial class DwindleLayout
                 // The split falls in the middle of the gap between the two sides.
                 var node = new Node { First = firstNode, Second = secondNode, SplitTop = top };
                 splits[node] = (int)Math.Round((firstEnd + secondStart) / 2.0);
-                firstNode.Parent = node;
-                secondNode.Parent = node;
                 return node;
             }
         }

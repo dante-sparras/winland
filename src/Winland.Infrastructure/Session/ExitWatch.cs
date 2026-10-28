@@ -10,8 +10,6 @@ namespace Winland.Infrastructure;
 public sealed partial class ExitWatch : IDisposable
 {
     private const uint CloseEvent = 2;
-    private const uint LogoffEvent = 5;
-    private const uint ShutdownEvent = 6;
 
     private static Action? Exit;
 
@@ -47,7 +45,7 @@ public sealed partial class ExitWatch : IDisposable
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
     private static int HandleConsole(uint control)
     {
-        if (control is not (CloseEvent or LogoffEvent or ShutdownEvent))
+        if (control != CloseEvent)
             return 0;
 
         var exit = Exit;

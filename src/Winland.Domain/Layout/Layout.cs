@@ -173,9 +173,6 @@ internal interface Layout
     {
     }
 
-    /// <summary>The Client to focus after a close, when this Layout chooses one.</summary>
-    WindowId? FocusAfterClose() => null;
-
     /// <summary>
     /// Records a Client's fullscreen modes. Mode 0 is its layout slot.
     /// A covering mode replaces any other covering Client on this Workspace.

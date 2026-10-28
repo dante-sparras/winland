@@ -26,6 +26,7 @@ internal sealed class OpacityAdapter
     internal const uint LayeredStyle = 0x00080000;
 
     private readonly IWindowStyles _styles;
+    private readonly Func<WindowId, bool> _hung;
     private readonly Dictionary<WindowId, Original> _owned = [];
     private readonly HashSet<WindowId> _failed = [];
     private readonly HashSet<WindowId> _leftAlone = [];
@@ -35,10 +36,13 @@ internal sealed class OpacityAdapter
     private readonly Lock _gate = new();
     private bool _closed;
 
-    internal OpacityAdapter(IWindowStyles styles)
+    /// <param name="hung">Whether a window's program has stopped answering. A style write waits for the window, so
+    /// one that would block is put off until the program answers again.</param>
+    internal OpacityAdapter(IWindowStyles styles, Func<WindowId, bool>? hung = null)
     {
         ArgumentNullException.ThrowIfNull(styles);
         _styles = styles;
+        _hung = hung ?? (static _ => false);
     }
 
     internal IReadOnlyList<string> Reports => _reports;
@@ -125,6 +129,10 @@ internal sealed class OpacityAdapter
 
         if (_owned.TryGetValue(window, out var owned))
         {
+            // A hung window keeps its layered style at full alpha, which needs no answer from it.
+            if (alpha == 255 && _hung(window))
+                return _styles.TrySetAlpha(window, alpha);
+
             if (alpha == 255)
             {
                 Restore(window, owned);
@@ -157,6 +165,9 @@ internal sealed class OpacityAdapter
 
         if (alpha == 255)
             return true;
+
+        if (_hung(window))
+            return false;
 
         var updated = chrome.ExStyle | LayeredStyle;
         _owned[window] = new Original(chrome.ExStyle, chrome.Alpha);

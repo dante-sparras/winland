@@ -1,4 +1,4 @@
-# Run unit test projects under tests/. Passes when none exist yet.
+# Run unit test projects under tests/. Fails when none exist.
 # Smoke projects stay off this lane. A release run does not execute them either.
 # scripts/*.tests.ps1 run first when they exist.
 #   pwsh -NoProfile -File scripts/test.ps1            builds once, then runs every project at the same time
@@ -15,31 +15,20 @@ foreach ($scriptTest in $scriptTests) {
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 $tests = Join-Path $root 'tests'
-if (-not (Test-Path $tests)) {
-    Write-Output 'No tests directory. The test lane passes until a project exists under tests/.'
-    exit 0
-}
 $projects = @(Get-ChildItem -Path $tests -Filter *.csproj -Recurse -File | Where-Object {
     $_.Name -like '*.Tests.csproj' -and $_.Name -notlike '*.Smoke.Tests.csproj'
 } | Sort-Object FullName)
 if ($projects.Count -eq 0) {
-    Write-Output 'No unit test project under tests/. The test lane passes until one is added.'
-    exit 0
+    throw 'No unit test project under tests/.'
 }
 
 # Building once first lets the projects run side by side: each one only runs its tests, and none rebuilds the
-# projects they share. Without a solution each project is built in turn.
+# projects they share.
 if (-not $NoBuild) {
-    $solutions = @(Get-ChildItem -Path $root -Filter *.slnx -File -ErrorAction SilentlyContinue)
-    if ($solutions.Count -eq 0) {
-        $solutions = @(Get-ChildItem -Path $root -Filter *.sln -File -ErrorAction SilentlyContinue)
-    }
-    $targets = if ($solutions.Count -gt 0) { $solutions } else { $projects }
-    foreach ($target in $targets) {
-        Write-Output "dotnet build $($target.FullName)"
-        dotnet build $target.FullName --configuration Release --nologo
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    }
+    $solution = Join-Path $root 'Winland.slnx'
+    Write-Output "dotnet build $solution"
+    dotnet build $solution --configuration Release --nologo
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
 # Each project's output is printed whole once it finishes, so the logs do not interleave.

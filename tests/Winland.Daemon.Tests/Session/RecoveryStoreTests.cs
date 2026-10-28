@@ -38,6 +38,20 @@ public sealed class RecoveryStoreTests : IDisposable
         Assert.Equal(2, Assert.Single(new RecoveryStore(path).Read()!.Clients).Window.Value);
     }
 
+    // A run that quits before it laid anything out leaves the file of the run before it for the next start.
+    [Fact]
+    public void AnExitBeforeArmingKeepsThePreviousFile()
+    {
+        var path = Path.Combine(_root, "state.json");
+        var previous = new RecoveryStore(path);
+        previous.Arm();
+        previous.Save(Snapshot(1));
+
+        new RecoveryStore(path).Keep(Snapshot(2));
+
+        Assert.Equal(1, Assert.Single(new RecoveryStore(path).Read()!.Clients).Window.Value);
+    }
+
     [Fact]
     public void ASecondSaveReplacesTheFirst()
     {

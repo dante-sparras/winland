@@ -27,7 +27,7 @@ public sealed class SlowWindowTests : IDisposable
 
     // An in-between frame of a motion must not hold up the frame of every other window.
     [Fact]
-    public void AFrameDoesNotWaitForTheWindowAndTheWindowStillGetsThere()
+    public async Task AFrameDoesNotWaitForTheWindowAndTheWindowStillGetsThere()
     {
         var window = new WindowId(_window.Handle.ToInt64());
 
@@ -36,12 +36,20 @@ public sealed class SlowWindowTests : IDisposable
         _adapter.QuickPlace(window, warm, borderless: true);
         Assert.True(SpinWait.SpinUntil(() => _window.Outer == warm, TimeSpan.FromSeconds(3)), $"the window is at {_window.Outer}");
 
+        // The window cannot take the move until the gate opens, so a placement that waited for it would not return.
         var target = new Rectangle(300, 260, 520, 410);
-        var watch = Stopwatch.StartNew();
-        _adapter.QuickPlace(window, target, borderless: true);
-        var took = watch.ElapsedMilliseconds;
+        SlowWindow.Gate.Reset();
+        try
+        {
+            var placing = Task.Run(() => _adapter.QuickPlace(window, target, borderless: true));
+            Assert.Same(placing, await Task.WhenAny(placing, Task.Delay(TimeSpan.FromSeconds(5))));
+            Assert.NotEqual(target, _window.Outer);
+        }
+        finally
+        {
+            SlowWindow.Gate.Set();
+        }
 
-        Assert.True(took < Delay / 2, $"took {took} ms");
         Assert.True(SpinWait.SpinUntil(() => _window.Outer == target, TimeSpan.FromSeconds(3)), $"the window is at {_window.Outer}");
     }
 
@@ -58,6 +66,9 @@ public sealed class SlowWindowTests : IDisposable
         private const string ClassName = "WinlandSlowWindow";
 
         private static readonly ProbeNative.WndProc Proc = WindowProc;
+
+        /// <summary>Closed, the window holds each move until it opens.</summary>
+        public static readonly ManualResetEventSlim Gate = new(true);
 
         private readonly ManualResetEventSlim _ready = new(false);
         private readonly Thread _thread;
@@ -95,7 +106,10 @@ public sealed class SlowWindowTests : IDisposable
         private static IntPtr WindowProc(IntPtr hwnd, uint message, nint wParam, nint lParam)
         {
             if (message == PositionChanging)
+            {
+                Gate.Wait(TimeSpan.FromSeconds(10));
                 Thread.Sleep(Delay);
+            }
 
             return ProbeNative.DefWindowProc(hwnd, message, wParam, lParam);
         }

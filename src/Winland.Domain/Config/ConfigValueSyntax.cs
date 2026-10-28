@@ -23,15 +23,6 @@ public static class ConfigValueSyntax
         return false;
     }
 
-    public static bool TryParseNamedInt(string text, IReadOnlyDictionary<string, int> names, out int value)
-    {
-        ArgumentNullException.ThrowIfNull(names);
-        if (names.TryGetValue(text, out value))
-            return true;
-
-        return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-    }
-
     public static bool TryParseVec2(string text, out Vec2 value)
     {
         value = default;

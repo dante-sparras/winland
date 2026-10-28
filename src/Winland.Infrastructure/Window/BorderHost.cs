@@ -260,7 +260,7 @@ internal static class BorderHost
         {
             var info = new WNDCLASSEXW
             {
-                cbSize = 80,
+                cbSize = (uint)Marshal.SizeOf<WNDCLASSEXW>(),
                 lpfnWndProc = Proc,
                 hInstance = instance,
                 lpszClassName = name,

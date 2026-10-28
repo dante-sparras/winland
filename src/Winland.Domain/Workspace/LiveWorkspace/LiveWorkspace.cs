@@ -17,7 +17,7 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
     {
         Layout.Retitle(window, title);
         if (_waiting.TryGetValue(window, out var waiting))
-            _waiting[window] = waiting with { Client = waiting.Client with { Title = title } };
+            _waiting[window] = Wait(window, waiting.Taken with { Title = title });
     }
 
     /// <summary>Gives the Client, shown or waiting in a Group, its window's new class.</summary>
@@ -25,7 +25,7 @@ internal sealed partial class LiveWorkspace(WorkspaceId id, MonitorId monitor, L
     {
         Layout.Reclass(window, windowClass);
         if (_waiting.TryGetValue(window, out var waiting))
-            _waiting[window] = waiting with { Client = waiting.Client with { Class = windowClass } };
+            _waiting[window] = Wait(window, waiting.Taken with { Class = windowClass });
     }
 
     /// <summary>Takes a new id, with every Client and waiting Group member, as a move to another Monitor does.</summary>

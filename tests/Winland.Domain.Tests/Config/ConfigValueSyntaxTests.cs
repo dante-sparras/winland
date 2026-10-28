@@ -29,25 +29,6 @@ public class ConfigValueSyntaxTests
         Assert.False(ConfigValueSyntax.TryParseBool(text, out _));
     }
 
-    [Fact]
-    public void NamedIntsAcceptTheNameOrANumber()
-    {
-        var names = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["follow_mouse"] = 0,
-            ["left"] = 1,
-            ["right"] = 2,
-        };
-
-        Assert.True(ConfigValueSyntax.TryParseNamedInt("left", names, out var named));
-        Assert.Equal(1, named);
-        Assert.True(ConfigValueSyntax.TryParseNamedInt("RIGHT", names, out var upper));
-        Assert.Equal(2, upper);
-        Assert.True(ConfigValueSyntax.TryParseNamedInt("4", names, out var number));
-        Assert.Equal(4, number);
-        Assert.False(ConfigValueSyntax.TryParseNamedInt("middle", names, out _));
-    }
-
     [Theory]
     [InlineData("10 20", 10, 20)]
     [InlineData("1.5 -2", 1.5, -2)]

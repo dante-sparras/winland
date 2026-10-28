@@ -34,6 +34,11 @@ public class CommandServerTests
         Assert.True(rule.PipeAccessRights.HasFlag(PipeAccessRights.WriteData));
 
         var descriptor = CommandServer.DescriptorFor(user);
+        var aces = descriptor.DiscretionaryAcl!.Cast<CommonAce>().ToList();
+        var userAce = Assert.Single(aces, ace => ace.SecurityIdentifier == user);
+        Assert.Equal(0, userAce.AccessMask & (int)PipeAccessRights.CreateNewInstance);
+        var admins = Assert.Single(aces, ace => ace.SecurityIdentifier.IsWellKnown(WellKnownSidType.BuiltinAdministratorsSid));
+        Assert.NotEqual(0, admins.AccessMask & (int)PipeAccessRights.CreateNewInstance);
         Assert.NotNull(descriptor.SystemAcl);
         var label = Assert.IsType<CustomAce>(Assert.Single(descriptor.SystemAcl.Cast<GenericAce>()));
         var opaque = label.GetOpaque();

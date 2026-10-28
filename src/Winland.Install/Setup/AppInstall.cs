@@ -84,6 +84,11 @@ public sealed class AppInstall
         ArgumentException.ThrowIfNullOrWhiteSpace(executable);
         ArgumentException.ThrowIfNullOrWhiteSpace(version);
 
+        // Both would start at logon and manage the same windows. Install for this PC removes the per-user copy, so
+        // the per-user install refuses rather than leave two.
+        if (MachinePresent())
+            throw new InvalidOperationException("Winland is already installed for this PC. Run winland uninstall first to install it for you only.");
+
         var plan = Plan(executable, layout.UserDirectory);
         session.Stop();
         Apply(plan);
@@ -126,17 +131,30 @@ public sealed class AppInstall
     public void Uninstall(bool purge, bool machine)
     {
         session.Stop();
-        // The record lives in the folder --purge deletes, so put the settings back first.
-        desktop.Restore();
+        // The record lives in the folder --purge deletes, so put the settings back first. A record that cannot be
+        // read still lets the rest of Winland go, and is reported once it has.
+        Exception? unrestored = null;
+        try
+        {
+            desktop.Restore();
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            unrestored = exception;
+        }
+
         if (machine)
             RemoveMachine();
 
         RemoveUser();
-        if (!purge)
-            return;
+        if (purge)
+        {
+            files.DeleteTree(layout.ConfigDirectory);
+            files.DeleteTree(layout.StateDirectory);
+        }
 
-        files.DeleteTree(layout.ConfigDirectory);
-        files.DeleteTree(layout.StateDirectory);
+        if (unrestored is not null)
+            throw new InvalidOperationException("Winland is uninstalled, but the Windows settings it turned off were not put back: " + unrestored.Message, unrestored);
     }
 
     private sealed class NoDesktopRestore : IDesktopRestore

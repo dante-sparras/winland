@@ -13,7 +13,7 @@ public sealed partial class WindowManager
             return existing;
 
         var owner = id.IsSpecial ? monitor ?? FocusedId() : new MonitorId(id.Monitor);
-        var hinted = WorkspaceRules.For(_config.WorkspaceRules, id, MonitorById(owner)?.Effective);
+        var hinted = WorkspaceRules.For(_config.WorkspaceRules, id, MonitorById(owner)?.Arranged);
         var layout = LayoutFactory.Create(_config.Document, hinted?.Layout);
         layout.Configure(_config.Scrolling);
         RankFocus(layout);
@@ -25,11 +25,11 @@ public sealed partial class WindowManager
         MatchLayout(desk);
         layout = desk.Layout;
         var screen = MonitorById(desk.Monitor);
-        if (screen is { Effective.Enabled: true })
+        if (screen is { Arranged.Enabled: true })
         {
             Stamp(desk);
             layout.Apply(desk.Options);
-            layout.Fit(screen.Effective.WorkArea);
+            layout.Fit(screen.Arranged.WorkArea);
         }
         else
         {
@@ -42,7 +42,7 @@ public sealed partial class WindowManager
     private bool TryDefault(LiveMonitor screen, out WorkspaceId id)
     {
         id = default;
-        var text = WorkspaceRules.DefaultWorkspace(_config.WorkspaceRules, screen.Effective);
+        var text = WorkspaceRules.DefaultWorkspace(_config.WorkspaceRules, screen.Arranged);
         return text is not null && WorkspaceRules.TryConcrete(text, screen.Id, out id);
     }
 
@@ -55,7 +55,7 @@ public sealed partial class WindowManager
 
             foreach (var screen in EnabledMonitors())
             {
-                if (rule.Monitor.Length > 0 && !MonitorRules.Matches(screen.Effective, rule.Monitor))
+                if (rule.Monitor.Length > 0 && !MonitorRules.Matches(screen.Arranged, rule.Monitor))
                     continue;
 
                 if (!WorkspaceRules.TryConcrete(rule.WorkspaceString, screen.Id, out var id) || _workspaces.Find(id) is not null)
@@ -81,12 +81,12 @@ public sealed partial class WindowManager
         rule?.Persistent == true && !desk.Id.IsSpecial;
 
     private WorkspaceRule? RuleFor(LiveWorkspace desk) =>
-        WorkspaceRules.For(_config.WorkspaceRules, desk.Id, MonitorById(desk.Monitor)?.Effective);
+        WorkspaceRules.For(_config.WorkspaceRules, desk.Id, MonitorById(desk.Monitor)?.Arranged);
 
     private LayoutOptions OptionsFor(LiveWorkspace desk, WorkspaceRule? rule)
     {
         var screen = MonitorById(desk.Monitor);
-        var scale = screen is { Effective.Enabled: true } ? screen.Effective.Scale : 1;
+        var scale = screen is { Arranged.Enabled: true } ? screen.Arranged.Scale : 1;
         var options = _config.Layout with { ClientBorder = _clientBorder };
         if (rule is not null)
         {

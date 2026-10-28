@@ -80,11 +80,10 @@ public static class KeyNames
 
     public static bool PassesThrough(int virtualKey) => virtualKey is 0xE5 or 0xE7;
 
-    public static string Name(int virtualKey, int scanCode, bool extended, KeyLayout layout, KeyModifierState modifiers)
+    /// <summary>The key's unshifted name. It does not follow the modifiers held or latched lock state.</summary>
+    public static string Name(int virtualKey, int scanCode, bool extended, KeyLayout layout)
     {
         ArgumentNullException.ThrowIfNull(layout);
-        // The unshifted symbol does not follow shift, and this never reads latched lock state.
-        _ = modifiers;
 
         if (PassesThrough(virtualKey) || IsSyntheticAltGrControl(virtualKey, scanCode, extended))
             return "";
@@ -156,7 +155,7 @@ public static class KeyNames
             return symbol;
 
         if (TryVirtualKey(configName, out var virtualKey, out var extended))
-            return Name(virtualKey, 0, extended, layout, default);
+            return Name(virtualKey, 0, extended, layout);
 
         if (TryAlias(configName, out var alias))
             return alias;
@@ -482,6 +481,3 @@ public static class KeyNames
         return keys;
     }
 }
-
-/// <summary>Modifiers the caller is tracking. Latched lock state is not an input.</summary>
-public readonly record struct KeyModifierState(bool Shift, bool Control, bool Alt, bool Super);

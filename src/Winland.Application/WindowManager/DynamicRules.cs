@@ -19,7 +19,8 @@ public sealed partial class WindowManager
         foreach (var desk in _workspaces)
         {
             var changed = false;
-            foreach (var client in desk.Layout.Clients)
+            // A Group member that waits behind the shown one is matched too, so it shows with its new rules.
+            foreach (var client in desk.Layout.Clients.Concat(desk.WaitingClients))
             {
                 if (!_renamed.Contains(client.Window) || _props.Subject(client.Window) is not { } kept)
                     continue;

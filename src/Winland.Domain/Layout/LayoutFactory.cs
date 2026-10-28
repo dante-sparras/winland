@@ -6,11 +6,6 @@ internal static class LayoutFactory
     internal static IReadOnlyList<string> Names { get; } = ["dwindle", "scrolling"];
 
     /// <summary>
-    /// Creates the Layout for a Workspace. A missing config uses dwindle.
-    /// </summary>
-    public static Layout Create(ConfigDocument? config) => Create(config, null);
-
-    /// <summary>
     /// Creates the Layout for a Workspace whose rule may name one, as Winland picks it: the rule's
     /// <c>layout</c>, or else <c>general:layout</c>. A name that is no Layout uses dwindle.
     /// </summary>

@@ -77,6 +77,11 @@ internal static class DirectionalNeighbor
             var x = Middle(box.X, box.Width) - Middle(origin.X, origin.Width);
             var y = Middle(box.Y, box.Height) - Middle(origin.Y, origin.Height);
             var distance = Math.Sqrt((x * x) + (y * y));
+
+            // A window centred on the origin lies in no direction.
+            if (distance == 0)
+                continue;
+
             var angle = Math.Acos(((x * dirX) + (y * dirY)) / distance);
             if (angle > Math.PI / 2)
                 continue;

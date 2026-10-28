@@ -63,7 +63,10 @@ public static class PipeFrame
         return Encoding.UTF8.GetString(body.GetBuffer().AsSpan(0, (int)body.Length));
     }
 
-    /// <summary>One framed reply. Empty when the stream ends first.</summary>
+    /// <summary>
+    /// One framed reply. Empty when the stream ends first. A frame longer than <see cref="ReplyLimit"/> throws
+    /// <see cref="InvalidDataException"/>, and one the stream ends inside throws <see cref="EndOfStreamException"/>.
+    /// </summary>
     public static string ReadReply(Stream stream)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -72,11 +75,13 @@ public static class PipeFrame
 
         if (first.Length <= 1
             || first[0] != '#'
-            || !int.TryParse(first.AsSpan(1), NumberStyles.None, CultureInfo.InvariantCulture, out var length)
-            || length > ReplyLimit)
+            || !int.TryParse(first.AsSpan(1), NumberStyles.None, CultureInfo.InvariantCulture, out var length))
         {
             return first;
         }
+
+        if (length > ReplyLimit)
+            throw new InvalidDataException("The reply is too large.");
 
         var buffer = new byte[length];
         var got = 0;
@@ -84,7 +89,7 @@ public static class PipeFrame
         {
             var read = stream.Read(buffer, got, length - got);
             if (read == 0)
-                break;
+                throw new EndOfStreamException("The reply was cut short.");
 
             got += read;
         }

@@ -5,6 +5,7 @@ public class PseudoLayoutTests
     private static readonly Rectangle Wide = new(0, 0, 1920, 1080);
 
     [Theory]
+    [InlineData("dwindle")]
     [InlineData("scrolling")]
     public void PseudotileCentersTheClientsOwnSizeAndTogglesOff(string layout)
     {
@@ -19,6 +20,7 @@ public class PseudoLayoutTests
     }
 
     [Theory]
+    [InlineData("dwindle")]
     [InlineData("scrolling")]
     public void PseudotileUsesTheDefaultSizeWhenTheClientHasNone(string layout)
     {
@@ -31,6 +33,7 @@ public class PseudoLayoutTests
     }
 
     [Theory]
+    [InlineData("dwindle")]
     [InlineData("scrolling")]
     public void PseudotileScalesDownToFitTheTileAndLeavesTheOther(string layout)
     {
@@ -56,6 +59,7 @@ public class PseudoLayoutTests
     }
 
     [Theory]
+    [InlineData("dwindle")]
     [InlineData("scrolling")]
     public void PseudotileLosesItsBorderAfterItIsCentered(string layout)
     {

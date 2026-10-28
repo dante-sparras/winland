@@ -39,7 +39,5 @@ public static class BuildStamp
 
     public static string Commit { get; }
 
-    public static string Tag { get; } = "";
-
     public static bool Dirty { get; }
 }

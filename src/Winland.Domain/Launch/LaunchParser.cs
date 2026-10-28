@@ -14,10 +14,7 @@ internal static class LaunchParser
                 return new LaunchParse(null, ["Unclosed rule block."]);
 
             if (!TryParseRules(text[1..end], out rules, warnings))
-            {
-                text = text[(end + 1)..].TrimStart();
                 return new LaunchParse(null, warnings);
-            }
 
             text = text[(end + 1)..].TrimStart();
         }

@@ -71,7 +71,7 @@ public class ExtraCommandTests
         var version = Json(core.Execute("j/version").Text);
         Assert.Equal(BuildStamp.Version, version.GetProperty("version").GetString());
         Assert.Equal(BuildStamp.Commit, version.GetProperty("commit").GetString());
-        Assert.Equal(BuildStamp.Tag, version.GetProperty("tag").GetString());
+        Assert.Equal("", version.GetProperty("tag").GetString());
         Assert.Equal(JsonValueKind.Array, version.GetProperty("flags").ValueKind);
         Assert.StartsWith("{\"branch\":", core.Execute("j/version").Text, StringComparison.Ordinal);
     }
@@ -220,11 +220,24 @@ public class ExtraCommandTests
         Assert.True(ControlInvocation.TryCreate(["dispatch", "exec", @"C:\Program Files\App\app.exe", "--flag"], out line, out events));
         Assert.Equal(@"dispatch exec ""C:\Program Files\App\app.exe"" --flag", line);
 
+        Assert.True(ControlInvocation.TryCreate(["dispatch", "exec", @"notepad C:\a b.txt"], out line, out events));
+        Assert.Equal(@"dispatch exec notepad C:\a b.txt", line);
+
+        Assert.True(ControlInvocation.TryCreate(["dispatch", "exec", "[float; size 800 600] notepad", "x y"], out line, out events));
+        Assert.Equal(@"dispatch exec [float; size 800 600] notepad ""x y""", line);
+
+        Assert.True(ControlInvocation.TryCreate(["dispatch", "exec", "wsl", "--", "ls"], out line, out events));
+        Assert.Equal("dispatch exec wsl -- ls", line);
+
+        Assert.True(ControlInvocation.TryCreate(["dispatch", "EXEC", "wt", "-p", "pwsh"], out line, out events));
+        Assert.Equal("dispatch EXEC wt -p pwsh", line);
+
         Assert.True(ControlInvocation.TryCreate(["setprop", "active", "float", "true"], out line, out events));
         Assert.Equal("setprop active float true", line);
 
         Assert.True(ControlInvocation.TryCreate(["events"], out line, out events));
         Assert.True(events);
+        Assert.False(ControlInvocation.TryCreate(["-j", "events"], out _, out _));
         Assert.False(ControlInvocation.TryCreate(["nope"], out _, out _));
         Assert.False(ControlInvocation.TryCreate(["-r", "clients"], out _, out _));
         Assert.False(ControlInvocation.TryCreate(["-a", "clients"], out _, out _));

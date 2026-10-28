@@ -1,4 +1,4 @@
-# Run smoke test projects under tests/. Passes when none exist yet.
+# Run smoke test projects under tests/. Fails when none exist.
 # These start real windows and send real input. scripts/test.ps1 and CI skip them on purpose.
 # Results go to TestResults/ at the repo root, which is gitignored.
 # A project whose every test skipped fails the run, so a green run means the tests ran.
@@ -6,14 +6,9 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $tests = Join-Path $root 'tests'
-if (-not (Test-Path $tests)) {
-    Write-Output 'No tests directory. The smoke lane passes until a project exists under tests/.'
-    exit 0
-}
 $projects = @(Get-ChildItem -Path $tests -Filter *.Smoke.Tests.csproj -Recurse -File)
 if ($projects.Count -eq 0) {
-    Write-Output 'No smoke test project under tests/. The smoke lane passes until one is added.'
-    exit 0
+    throw 'No smoke test project under tests/.'
 }
 # The smoke facts skip themselves unless this is set, so a plain dotnet test stays harmless.
 $env:WINLAND_SMOKE = '1'

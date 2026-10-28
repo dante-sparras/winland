@@ -37,9 +37,9 @@ internal static class BorderPointer
     public static BorderSide Side(Rectangle window, Point pointer, int corner)
     {
         var top = pointer.Y < window.Y + corner;
-        var bottom = pointer.Y > window.Y + window.Height - corner;
+        var bottom = pointer.Y >= window.Y + window.Height - corner;
         var left = pointer.X < window.X + corner;
-        var right = pointer.X > window.X + window.Width - corner;
+        var right = pointer.X >= window.X + window.Width - corner;
         if (top)
         {
             if (left)

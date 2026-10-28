@@ -67,17 +67,22 @@ public class CoalescerTests
     [Fact]
     public void AHandlerThatThrowsDoesNotStopTheWorker()
     {
+        using var threw = new ManualResetEventSlim();
         using var handled = new ManualResetEventSlim();
         using var coalescer = new Coalescer<string>(value =>
         {
             if (value == "bad")
+            {
+                threw.Set();
                 throw new InvalidOperationException("The value could not be handled.");
+            }
 
             handled.Set();
         }, TimeSpan.Zero, "test coalescer");
 
+        // "good" is posted only once "bad" threw, so it cannot replace "bad" before the handler sees it.
         coalescer.Post("bad");
-        Thread.Sleep(100);
+        Assert.True(threw.Wait(TimeSpan.FromSeconds(5)));
         coalescer.Post("good");
 
         Assert.True(handled.Wait(TimeSpan.FromSeconds(5)));

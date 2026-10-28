@@ -16,8 +16,6 @@ internal static class StandInHost
     private const string StandInClass = "WinlandStandIn";
     private const int ClassAlreadyExists = 1410;
     private const uint CreateMessage = 0x8000 + 0x48;
-    private const uint CreateLayerMessage = 0x8000 + 0x49;
-    private const uint CloseMessage = 0x0010;
     private const uint QuitMessage = 0x0012;
     private const uint MouseActivateMessage = 0x0021;
     private const int NoActivate = 3;
@@ -46,31 +44,11 @@ internal static class StandInHost
         return new HWND((nint)PInvoke.SendMessage(host, CreateMessage, default, default).Value);
     }
 
-    /// <summary>
-    /// A new hidden click-through layered window, for a stand-in that draws its own pixels, or a null handle when none could be made.
-    /// </summary>
-    internal static HWND CreateLayer()
-    {
-        HWND host;
-        lock (Gate)
-        {
-            if (_worker is null)
-                Start();
-
-            host = _host;
-        }
-
-        if (host.IsNull)
-            return HWND.Null;
-
-        return new HWND((nint)PInvoke.SendMessage(host, CreateLayerMessage, default, default).Value);
-    }
-
     /// <summary>Destroys a stand-in window on the thread that owns it.</summary>
     internal static void Close(HWND standIn)
     {
         if (!standIn.IsNull)
-            _ = PInvoke.SendMessage(standIn, CloseMessage, default, default);
+            _ = PInvoke.SendMessage(standIn, PInvoke.WM_CLOSE, default, default);
     }
 
     /// <summary>Ends the thread, and with it every stand-in window.</summary>
@@ -106,7 +84,10 @@ internal static class StandInHost
             Name = "Winland stand-ins",
         };
         _worker.Start();
-        _ = ready.Wait(TimeSpan.FromSeconds(2));
+
+        // A thread that got ready with no host window failed, so the next stand-in starts one again.
+        if (ready.Wait(TimeSpan.FromSeconds(2)) && _host.IsNull)
+            _worker = null;
     }
 
     private static void Run(ManualResetEventSlim ready)
@@ -144,9 +125,6 @@ internal static class StandInHost
         if (message == CreateMessage)
             return new LRESULT((nint)CreateStandIn());
 
-        if (message == CreateLayerMessage)
-            return new LRESULT((nint)CreateLayerWindow());
-
         if (message == MouseActivateMessage)
             return new LRESULT(NoActivate);
 
@@ -172,21 +150,6 @@ internal static class StandInHost
             null,
             null);
 
-    private static unsafe HWND CreateLayerWindow() =>
-        PInvoke.CreateWindowEx(
-            WINDOW_EX_STYLE.WS_EX_LAYERED | WINDOW_EX_STYLE.WS_EX_TRANSPARENT | WINDOW_EX_STYLE.WS_EX_TOOLWINDOW | WINDOW_EX_STYLE.WS_EX_NOACTIVATE,
-            StandInClass,
-            "",
-            WINDOW_STYLE.WS_POPUP,
-            0,
-            0,
-            0,
-            0,
-            HWND.Null,
-            null,
-            null,
-            null);
-
     private static unsafe void Register(string name)
     {
         var module = PInvoke.GetModuleHandle((string?)null);
@@ -196,7 +159,7 @@ internal static class StandInHost
         {
             var info = new WNDCLASSEXW
             {
-                cbSize = 80,
+                cbSize = (uint)Marshal.SizeOf<WNDCLASSEXW>(),
                 lpfnWndProc = Proc,
                 hInstance = instance,
                 lpszClassName = className,

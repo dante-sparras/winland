@@ -57,6 +57,9 @@ public static partial class ConfigParser
         private readonly List<string> _sources = [];
         private readonly Dictionary<string, string> _variables = new(StringComparer.Ordinal);
         private readonly List<OpenCategory> _categories = [];
+
+        // How many categories were open when the file being read began. A } there cannot close one of them.
+        private int _floor;
         private readonly HashSet<string> _openSources = new(StringComparer.OrdinalIgnoreCase);
         private string? _source;
         private string? _rootFolder;
@@ -273,7 +276,7 @@ public static partial class ConfigParser
         {
             if (line.Contains('}'))
             {
-                if (line != "}" || _categories.Count == 0)
+                if (line != "}" || _categories.Count <= _floor)
                 {
                     Warn(lineNumber, "Malformed line.");
                     return;

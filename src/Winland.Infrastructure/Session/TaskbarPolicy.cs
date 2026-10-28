@@ -44,6 +44,16 @@ public static class TaskbarControl
     internal static ITaskbarSession Current { get; set; } = NullTaskbarSession.Instance;
 
     public static void InstallSystem() => Current = LiveTaskbarSession.Instance;
+
+    /// <summary>
+    /// Shows the taskbar a Winland that was killed left hidden, from its crash marker. Uninstall runs this before it
+    /// removes the folder the marker is in, so nothing is left that could put the taskbar back.
+    /// </summary>
+    public static void RecoverHidden()
+    {
+        if (Taskbar.MarkerPresent())
+            Taskbar.Restore();
+    }
 }
 
 internal sealed class NullTaskbarSession : ITaskbarSession

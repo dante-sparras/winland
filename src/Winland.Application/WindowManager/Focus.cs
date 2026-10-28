@@ -184,9 +184,6 @@ public sealed partial class WindowManager
         if (floating)
             return _focus.Recent(desk) ?? LastAccepted(desk);
 
-        if (desk.Layout.FocusAfterClose() is WindowId layout && Accepts(desk, layout))
-            return layout;
-
         // The nearest tile wins. A float is taken only when no tile is left.
         var centre = new Point(bounds.X + (bounds.Width / 2), bounds.Y + (bounds.Height / 2));
         if (hadBounds && (Closest(desk, centre, tiledOnly: true) ?? Closest(desk, centre, tiledOnly: false)) is WindowId near)
