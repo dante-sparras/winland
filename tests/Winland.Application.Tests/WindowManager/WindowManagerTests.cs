@@ -17,20 +17,17 @@ public class WindowManagerTests
     }
 
     [Fact]
-    public void EveryOutcomeIsNumberedInTheOrderTheCoreDecidedIt()
+    public void EveryOutcomeThatAsksForSomethingIsHandedOnInTheOrderTheCoreDecidedIt()
     {
         var core = new WindowManager();
-        var other = new WindowManager();
+        var decided = new List<Outcome>();
+        core.Decided = decided.Add;
 
-        var first = core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 1920, 1080))).Order!.Value;
-        var second = core.Handle(new Dispatch("workspace", "2")).Order!.Value;
-        var third = core.Execute("dispatch workspace 1").Effect.Order!.Value;
-        var elsewhere = other.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 1920, 1080))).Order!.Value;
+        var first = core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 1920, 1080)));
+        var second = core.Handle(new Dispatch("workspace", "2"));
+        var third = core.Execute("dispatch workspace 1").Effect;
 
-        Assert.Equal(first.WindowManager, second.WindowManager);
-        Assert.Equal(first.WindowManager, third.WindowManager);
-        Assert.True(first.Sequence < second.Sequence && second.Sequence < third.Sequence);
-        Assert.NotEqual(first.WindowManager, elsewhere.WindowManager);
+        Assert.Equal([first, second, third], decided);
     }
 
     [Fact]

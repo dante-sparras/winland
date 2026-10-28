@@ -61,7 +61,8 @@ public sealed partial class WindowAdapter : IDisposable
     private readonly BorderlessFrame _borderless;
     private readonly DwmEffects _effects;
     private readonly Lock _paintGate = new();
-    private readonly ApplyOrder _order = new();
+    private readonly System.Collections.Concurrent.ConcurrentQueue<Outcome> _decided = new();
+    private readonly Lock _applyGate = new();
     private readonly Dictionary<WindowId, CachedFrame> _frames = [];
     private readonly Lock _frameGate = new();
     private readonly Func<double> _clock;
@@ -104,6 +105,7 @@ public sealed partial class WindowAdapter : IDisposable
         _effects = new DwmEffects(desktop);
         _motions = new MotionPlayer(new MotionTarget(this), _clock, threaded);
         _core.ReducedMotion = ReducedMotion;
+        _core.Decided = _decided.Enqueue;
         GroupBarHost.Dispatch = (name, arguments) =>
         {
             if (!_disposed)

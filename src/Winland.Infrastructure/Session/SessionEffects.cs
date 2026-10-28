@@ -36,19 +36,6 @@ public static class SessionEffects
         Relay(outcome);
     }
 
-    /// <summary>
-    /// Carries out only the outcome's one-off requests: its cursor warp and its relayed keys. An older outcome
-    /// applied after a newer one keeps these and nothing else here; its warp is gone when a newer one warped.
-    /// </summary>
-    public static void ApplyOneOff(Outcome outcome)
-    {
-        ArgumentNullException.ThrowIfNull(outcome);
-        if (outcome.Warp is WarpTo warp)
-            Idle.Warp(warp.Position);
-
-        Relay(outcome);
-    }
-
     private static void Relay(Outcome outcome)
     {
         if (_relay is not IKeyRelaySender relay)

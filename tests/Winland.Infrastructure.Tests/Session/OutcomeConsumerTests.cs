@@ -37,7 +37,6 @@ public class OutcomeConsumerTests
             nameof(Outcome.Exit), // WindowAdapter.ApplyCore
             nameof(Outcome.Relays), // SessionEffects
             nameof(Outcome.ZOrder), // WindowAdapter.ApplyCore
-            nameof(Outcome.Order), // WindowAdapter.Apply through ApplyOrder
             nameof(Outcome.IsEmpty), // WindowAdapter.Apply
         ];
 

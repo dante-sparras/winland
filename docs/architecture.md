@@ -20,7 +20,7 @@ The Daemon also holds the Windows adapters for install, elevation and the state 
 
 1. A hook in `Infrastructure/Input` sees a key or the mouse. `WindowManager.Decide` matches binds on the hook thread without the lock, so the hook can swallow the key at once.
 2. The decision, a window event from `Infrastructure/Window/WindowHost.cs`, or a pipe command from `Infrastructure/Dispatch/CommandServer.cs` goes to `WindowManager.Handle` or `WindowManager.Execute`. Each runs as one step under one lock, except a pipe query, which only reads the State under it.
-3. The step returns an `Outcome`: placements, focus, windows to show and hide, launches, events. `WindowAdapter.Apply` in `Infrastructure/Window/WindowAdapter` carries it out on the desktop through `IDesktop`, which `Win32Desktop` implements with the Win32 calls. A step that asks for nothing the last applied `Outcome` did not already ask for returns an empty one, and `Apply` skips it.
+3. The step returns an `Outcome`: placements, focus, windows to show and hide, launches, events. `WindowAdapter.Apply` in `Infrastructure/Window/WindowAdapter` carries it out on the desktop through `IDesktop`, which `Win32Desktop` implements with the Win32 calls. A step that asks for nothing the last applied `Outcome` did not already ask for returns an empty one, and `Apply` skips it. The core queues each `Outcome` as it decides it, under its lock. Whichever thread applies next carries out every queued one in that order, so an older `Outcome` never lands after a newer one.
 
 Nothing in Domain or Application calls Win32. A test drives `WindowManager` with inputs and reads the `Outcome`.
 

@@ -248,9 +248,10 @@ internal sealed class FakeDesktop(Func<double> clock) : IDesktop
 
     public void Close(WindowId window) => Log($"close {Id(window)}");
 
-    public void Pace()
-    {
-    }
+    /// <summary>Runs each time the adapter waits for the next frame, as another thread could while it does.</summary>
+    internal Action? OnPace { get; set; }
+
+    public void Pace() => OnPace?.Invoke();
 
     public IStandInSurface? OpenStandIn(WindowId window)
     {
