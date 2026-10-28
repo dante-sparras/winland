@@ -8,7 +8,7 @@ public class SessionNoticeTests
     {
         Assert.True(SessionNotices.EndsSession(SessionNotices.EndSessionMessage, 1));
         Assert.False(SessionNotices.EndsSession(SessionNotices.EndSessionMessage, 0));
-        Assert.False(SessionNotices.EndsSession(SessionNotices.QueryEndSessionMessage, 1));
+        Assert.False(SessionNotices.EndsSession(0x0011, 1));
     }
 
     [Fact]
@@ -44,13 +44,6 @@ public class SessionNoticeTests
         Assert.False(SessionNotices.TryDisplayPower(SessionNotices.ConsoleDisplayState, 3, out _));
         Assert.False(SessionNotices.TryDisplayPower(SessionNotices.MonitorPowerOn, 2, out _));
         Assert.False(SessionNotices.TryDisplayPower(Guid.Empty, 1, out _));
-    }
-
-    [Fact]
-    public void ADisplayChangeMessageAsksForAReflow()
-    {
-        Assert.True(SessionNotices.TryFromMessage(SessionNotices.DisplayMessage, 0, out var signal));
-        Assert.Equal(SessionSignal.DisplayChanged, signal);
     }
 
     private static SessionSignal Power(nuint code)

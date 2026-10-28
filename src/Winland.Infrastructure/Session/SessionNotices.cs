@@ -16,7 +16,6 @@ internal static class SessionNotices
     internal const nuint ResumeAutomatic = 0x0012;
     internal const nuint PowerSettingChange = 0x8013;
 
-    internal const uint QueryEndSessionMessage = 0x0011;
     internal const uint EndSessionMessage = 0x0016;
 
     /// <summary>
@@ -27,12 +26,6 @@ internal static class SessionNotices
 
     internal static bool TryFromMessage(uint message, nuint wParam, out SessionSignal signal)
     {
-        if (message == DisplayMessage)
-        {
-            signal = SessionSignal.DisplayChanged;
-            return true;
-        }
-
         if (message == PowerMessage)
             return TryPower(wParam, out signal);
 

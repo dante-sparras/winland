@@ -47,7 +47,7 @@ public class OpacityProbeTests
         adapter.Apply(new WindowId(probe.Handle), 100);
 
         Assert.Equal(200, LayeredAlpha(probe.Handle));
-        Assert.Contains(adapter.Reports, report => report.Contains("left alone", StringComparison.Ordinal));
+        Assert.False(adapter.Owns(new WindowId(probe.Handle)));
     }
 
     private static uint ExStyle(nint window) => (uint)GetWindowLongPtr(window, ExStyleIndex);
