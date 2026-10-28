@@ -21,15 +21,30 @@ public class OpacityAdapterTests
         Assert.Equal(1, styles.Writes);
         Assert.True(adapter.Owns(window));
 
-        styles.ExStyle[window] = OpacityAdapter.LayeredStyle;
         adapter.Apply(window, 64);
-        Assert.Equal(OpacityAdapter.LayeredStyle, styles.ExStyle[window]);
+        Assert.Equal(OpacityAdapter.LayeredStyle | 0x80, styles.ExStyle[window]);
         Assert.Equal(64, styles.Alpha[window]);
         Assert.Equal(1, styles.Writes);
 
         adapter.Reset(window);
         Assert.Equal(0x80u, styles.ExStyle[window]);
         Assert.False(adapter.Owns(window));
+    }
+
+    // Only the layered style is Winland's. A style the program set meanwhile, such as always on top, stays.
+    [Fact]
+    public void ResetTakesOffOnlyTheLayeredStyle()
+    {
+        var styles = new FakeStyles();
+        var window = new WindowId(42);
+        styles.ExStyle[window] = 0x80;
+        var adapter = new OpacityAdapter(styles);
+        adapter.Apply(window, 128);
+        styles.ExStyle[window] |= 0x8;
+
+        adapter.Reset(window);
+
+        Assert.Equal(0x88u, styles.ExStyle[window]);
     }
 
     [Fact]
