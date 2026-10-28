@@ -118,6 +118,33 @@ public class OpacityAdapterTests
         Assert.Equal(0x80u, styles.ExStyle[window]);
     }
 
+    // A style write waits for the window. One whose program stopped answering is given full alpha, which does not wait,
+    // and stays layered and recorded, so the next start takes the style off.
+    [Fact]
+    public void ResetAllLeavesAWindowThatStoppedAnsweringOpaqueAndRecorded()
+    {
+        var styles = new FakeStyles();
+        var window = new WindowId(5);
+        styles.ExStyle[window] = 0x80;
+        var stopped = false;
+        var adapter = new OpacityAdapter(styles, _ => stopped);
+        adapter.Apply(window, 128);
+        stopped = true;
+        var writes = styles.Writes;
+
+        adapter.ResetAll();
+
+        Assert.Equal(writes, styles.Writes);
+        Assert.Equal(255, styles.Alpha[window]);
+        var clean = new RecoverySnapshot(
+        [
+            new RecoveredClient(window, WorkspaceId.Initial, MonitorId.Primary, false, "Notepad", "Notes", 10),
+        ]) { Clean = true };
+        var stamped = adapter.Stamp(clean);
+        Assert.True(Assert.Single(stamped.Clients).Layered);
+        Assert.True(stamped.Clean);
+    }
+
     [Fact]
     public void ResetAllRestoresEveryOwnedWindow()
     {

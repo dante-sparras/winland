@@ -178,12 +178,23 @@ internal sealed class OpacityAdapter
         return false;
     }
 
+    /// <summary>
+    /// Gives the window back the style and alpha it had. One whose program stopped answering would hold this up, so it
+    /// is only made opaque, which does not wait, and stays owned: the exit's snapshot records it for the next start.
+    /// </summary>
     internal void Reset(WindowId window)
     {
         lock (_gate)
         {
-            if (_owned.Remove(window, out var original))
+            if (_owned.TryGetValue(window, out var original) && _hung(window))
+            {
+                _styles.TrySetAlpha(window, 255);
+                Report(window, "is not answering. It stays layered until the next start.");
+            }
+            else if (_owned.Remove(window))
+            {
                 Restore(window, original);
+            }
 
             _failed.Remove(window);
             _leftAlone.Remove(window);
@@ -240,7 +251,7 @@ internal sealed class OpacityAdapter
                 changed |= client.Layered != layered;
             }
 
-            return changed ? new RecoverySnapshot(clients) : snapshot;
+            return changed ? snapshot with { Clients = clients } : snapshot;
         }
     }
 

@@ -296,6 +296,9 @@ public sealed class WindowHost : IDisposable
 
     public void ResetDecorations() => _windows.ResetDecorations();
 
+    /// <summary>Records on each Client what this run changed and has not put back, so the next start does.</summary>
+    public RecoverySnapshot Stamp(RecoverySnapshot snapshot) => _windows.Stamp(snapshot);
+
     public void RestoreTaskbar()
     {
         _taskbarReleased = true;

@@ -26,6 +26,10 @@ internal static class BorderlessStyle
     internal const uint Frame = Caption | ThickFrame | Border | DialogFrame;
 
     internal static uint Strip(uint style) => (style & ~Frame) | Popup;
+
+    // Strip changes only the frame and popup bits. The rest, such as whether the window is visible, disabled,
+    // minimized or maximized, is the window's own and may have changed since.
+    internal static uint Restore(uint current, uint original) => (current & ~(Frame | Popup)) | (original & (Frame | Popup));
 }
 
 internal sealed class BorderlessFrame
@@ -58,7 +62,7 @@ internal sealed class BorderlessFrame
             if (!borderless)
             {
                 if (_original.Remove(window, out var original))
-                    _frames.TryWriteStyle(window, original);
+                    WriteBack(window, original);
                 return;
             }
 
@@ -106,13 +110,21 @@ internal sealed class BorderlessFrame
         lock (_gate)
         {
             _original.Remove(window);
-            _frames.TryWriteStyle(window, style);
+            WriteBack(window, style);
         }
+    }
+
+    private void WriteBack(WindowId window, uint original)
+    {
+        if (_frames.TryReadStyle(window, out var current))
+            _frames.TryWriteStyle(window, BorderlessStyle.Restore(current, original));
     }
 
     /// <summary>
     /// Puts back the frame of every window this dropped it from, for the exit cleanup. No frame is dropped
-    /// after that: an outcome that arrives late would leave it dropped for good.
+    /// after that: an outcome that arrives late would leave it dropped for good. A window whose program stopped
+    /// answering would hold up the exit, so it keeps the dropped frame, and <see cref="Stamp"/> still records it for the
+    /// next start.
     /// </summary>
     internal void ReleaseAll()
     {
@@ -124,7 +136,12 @@ internal sealed class BorderlessFrame
         }
 
         foreach (var window in windows)
-            Release(window);
+        {
+            if (_hung(window))
+                Console.Error.WriteLine($"Window 0x{window.Value:x} is not answering. Its frame is put back at the next start.");
+            else
+                Release(window);
+        }
     }
 }
 

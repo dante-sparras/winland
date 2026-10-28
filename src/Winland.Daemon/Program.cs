@@ -215,12 +215,14 @@ static void Stop(WindowHost host, RecoveryStore store, WindowManager core)
     // are then put back as after a crash, which needs no core.
     try
     {
-        var final = WindowIdentity.Annotate(core.Recovery()) with { Clean = true };
+        var final = core.Recovery();
         host.RevealHidden();
         host.ResetDecorations();
         host.RestoreTaskbar();
         SessionEffects.Restore();
-        store.Keep(final);
+
+        // A window that stopped answering kept the frame or the layered style the cleanup could not take off.
+        store.Keep(WindowIdentity.Annotate(host.Stamp(final)) with { Clean = true });
     }
     catch (Exception exception) when (exception is not OutOfMemoryException)
     {

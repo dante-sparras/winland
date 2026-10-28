@@ -165,7 +165,8 @@ public sealed partial class WindowAdapter : IDisposable
         PutBackFrames();
     }
 
-    // What this run changed on each Client's window, so a restart after a crash can put it back.
-    private RecoverySnapshot Stamp(RecoverySnapshot snapshot) =>
+    // What this run changed on each Client's window, so a restart after a crash can put it back. After the exit cleanup,
+    // what it could not put back, on a window that stopped answering.
+    internal RecoverySnapshot Stamp(RecoverySnapshot snapshot) =>
         _effects.Stamp(_borderless.Stamp(_opacity.Stamp(snapshot)));
 }
