@@ -27,6 +27,7 @@ public class AppInstallTests
     {
         install = new AppInstall(Layout(), tasks, files, registry, shortcuts, session);
         files.Seed(Source, [1]);
+        files.Seed(Path.Combine(Path.GetDirectoryName(Source)!, LogonTaskDefinition.LauncherName), [3]);
         files.Seed(@"C:\Users\me\Downloads\Winland\winland\winland.dll", [2]);
         files.Seed(@"C:\Users\me\Downloads\Winland\winland\Winland.Domain.dll", [5]);
         files.Seed(Path.Combine(Config, "winland.conf"), [9]);
@@ -66,8 +67,8 @@ public class AppInstallTests
         Assert.Equal(Machine, Text(RegistryRoot.Machine, InstallLocations.PathValue, InstallLocations.MachinePathKey));
         Assert.True(registry.Values[(RegistryRoot.Machine, InstallLocations.MachinePathKey, InstallLocations.PathValue)].Expandable);
 
-        Assert.False(files.Exists(Path.Combine(User, "winland.exe")));
-        Assert.Null(registry.GetString(RegistryRoot.User, InstallLocations.RunKey, InstallLocations.RunValue));
+        Assert.True(files.Exists(Path.Combine(User, "winland.exe")));
+        Assert.Equal("old", registry.GetString(RegistryRoot.User, InstallLocations.RunKey, InstallLocations.RunValue));
         Assert.Equal([9], files.Read(Path.Combine(Config, "winland.conf")));
         Assert.Equal(["stop", "start"], session.Operations);
         Assert.Equal(Path.Combine(Machine, "winland.exe"), session.Started);
@@ -160,6 +161,26 @@ public class AppInstallTests
         Assert.Null(registry.GetString(RegistryRoot.User, InstallLocations.RunKey, InstallLocations.RunValue));
         Assert.Equal([1], files.Read(Path.Combine(User, "winland.exe")));
         Assert.Equal(["stop"], session.Operations);
+    }
+
+    [Fact]
+    public void AFailedReplaceKeepsThePreviousBuildStampAndRestartsWinland()
+    {
+        files.Seed(Path.Combine(Machine, "winland.exe"), [8]);
+        files.Seed(Path.Combine(Machine, "Winland.Domain.dll"), [9]);
+        files.BeforeCopy = source =>
+        {
+            if (Path.GetFileName(source) == "winland.dll")
+                throw new IOException("disk full");
+        };
+
+        Assert.Throws<IOException>(() => install.ReplaceInstalled(Source, Machine, perUser: false, "0.2.0"));
+
+        Assert.Equal([8], files.Read(Path.Combine(Machine, "winland.exe")));
+        Assert.Equal([9], files.Read(Path.Combine(Machine, "Winland.Domain.dll")));
+        Assert.Equal(["stop", "start"], session.Operations);
+        Assert.Equal(Path.Combine(Machine, "winland.exe"), session.Started);
+        Assert.Null(Text(RegistryRoot.Machine, "DisplayVersion"));
     }
 
     [Fact]
@@ -264,6 +285,26 @@ public class AppInstallTests
     }
 
     [Fact]
+    public void MachineUninstallLeavesUserFilesAndSettingsForTheUnelevatedCaller()
+    {
+        var restored = false;
+        var watched = new AppInstall(Layout(), tasks, files, registry, shortcuts, session, new WatchingRestore(() => restored = true));
+        files.Seed(Path.Combine(User, "winland.exe"), [8]);
+
+        watched.Uninstall(purge: true, machine: true);
+
+        Assert.False(restored);
+        Assert.True(files.Exists(Path.Combine(User, "winland.exe")));
+        Assert.True(files.Exists(Path.Combine(Config, "winland.conf")));
+
+        watched.Uninstall(purge: true, machine: false);
+
+        Assert.True(restored);
+        Assert.False(files.DirectoryExists(User));
+        Assert.False(files.DirectoryExists(Config));
+    }
+
+    [Fact]
     public void UninstallRemovesTheInstallAndKeepsTheConfig()
     {
         install.InstallMachine(Source, @"DESKTOP\dante", "0.1.0");
@@ -356,7 +397,8 @@ public class AppInstallTests
         var failing = new AppInstall(Layout(), tasks, files, registry, shortcuts, session, new WatchingRestore(() => throw new IOException("bad record")));
         install.InstallMachine(Source, @"DESKTOP\dante", "0.1.0");
 
-        Assert.Throws<InvalidOperationException>(() => failing.Uninstall(purge: false, machine: true));
+        failing.Uninstall(purge: false, machine: true);
+        Assert.Throws<InvalidOperationException>(() => failing.Uninstall(purge: false, machine: false));
         Assert.False(files.DirectoryExists(Machine));
         Assert.False(tasks.Contains("Winland"));
     }

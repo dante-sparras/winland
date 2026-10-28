@@ -14,7 +14,8 @@ public static class ManualStartElevation
         bool isElevated,
         string? optOutVariable,
         IReadOnlyList<string> arguments,
-        bool userInstall = false)
+        bool userInstall = false,
+        bool limitedToken = true)
     {
         ArgumentNullException.ThrowIfNull(arguments);
 
@@ -27,6 +28,9 @@ public static class ManualStartElevation
         // is still not elevated, relaunching again would ask for approval forever.
         if (arguments.Any(IsLoopArgument))
             return new ElevationChoice.Refuse("Winland could not restart with administrator rights.");
+
+        if (!limitedToken)
+            return new ElevationChoice.Continue(kept);
 
         return new ElevationChoice.Relaunch([LoopArgument, .. kept]);
     }

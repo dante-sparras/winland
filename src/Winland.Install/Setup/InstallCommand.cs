@@ -21,6 +21,9 @@ public abstract record InstallCommand
     /// <summary>The per-user install. It asks for no UAC approval.</summary>
     public sealed record ForUser(bool Logon = true, bool Start = true) : InstallCommand;
 
+    // The bootstrap has no unelevated winland parent. It completes user cleanup through the installed copy.
+    public sealed record UserCleanup : InstallCommand;
+
     public sealed record Remove(bool Purge) : InstallCommand;
 
     /// <summary>
@@ -38,6 +41,22 @@ public abstract record InstallCommand
     public sealed record Tweaks(bool Touchpad) : InstallCommand;
 
     /// <summary>Null when the arguments are not an install, an update, a tweak or an uninstall.</summary>
+    public static bool TryParse(IReadOnlyList<string> args, out InstallCommand? command, out string? error)
+    {
+        try
+        {
+            command = Parse(args);
+            error = null;
+            return true;
+        }
+        catch (ArgumentException exception)
+        {
+            command = null;
+            error = exception.Message;
+            return false;
+        }
+    }
+
     public static InstallCommand? Parse(IReadOnlyList<string> args)
     {
         ArgumentNullException.ThrowIfNull(args);
@@ -70,7 +89,11 @@ public abstract record InstallCommand
             return null;
 
         if (Is(args[0], "install"))
+        {
+            if (args.Count == 2 && Is(args[1], "--winland-cleanup-user"))
+                return new UserCleanup();
             return ParseInstall(args);
+        }
 
         if (args.Count == 1)
             return new Remove(false);

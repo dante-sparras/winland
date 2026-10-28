@@ -6,6 +6,7 @@
 - PowerShell 7 (`pwsh`)
 - Git
 - The .NET SDK version pinned in `global.json` (10.0.401, or a later feature band)
+- Publishing a release also needs Visual Studio 2022 or later with Desktop development with C++, for the NativeAOT launcher. Ordinary builds and unit tests do not need the C++ toolchain.
 
 ## First checkout
 
@@ -81,6 +82,12 @@ pwsh -NoProfile -File scripts/mutate.ps1 -Gate <folder>   # gate the run summari
 - A new unit test project fails `scripts/mutate.ps1` until it has a lane.
 
 ## Releasing
+
+`src/Winland.Launcher/` holds the small NativeAOT executable used by elevated starts. Publishing `src/Winland.Daemon` for a runtime also publishes this launcher into the same output folder. It removes the `DOTNET_`, `CORECLR_`, `COMPlus_`, `COR_` and `COREHOST_` environment variables before starting the managed daemon, including startup hooks, profiler paths, alternate JITs, dependency paths and trace-file paths.
+
+The bootstrap completes per-user cleanup through the internal `winland install --winland-cleanup-user` argument after the elevated install succeeds. It refuses to run elevated. Run install and uninstall from a normal terminal so user cleanup and Windows-setting restoration happen under the invoking account.
+
+The install script accepts `-NoTweaks` to leave Snap and touchpad swipes alone, including with redirected input. Without it, non-interactive installs use yes for all three questions.
 
 release-please keeps a release PR open that collects the changes merged into `main`, with the next version and its changelog. Merging that PR tags the release, and a job builds and uploads `Winland-win-x64.zip`, `version.json`, and `SHA256SUMS` before publishing it. See [releasing.md](releasing.md).
 

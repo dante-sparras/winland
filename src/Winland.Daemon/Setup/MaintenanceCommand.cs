@@ -17,7 +17,19 @@ static class MaintenanceCommand
         if (needsAdministrator && !Elevation.IsElevated())
         {
             var relay = command is InstallCommand.Machine { Account: null } machine ? machine.Relay(CurrentUser()) : args;
-            return Elevation.Relaunch(relay);
+            var result = Elevation.Relaunch(relay);
+            if (result == 0)
+            {
+                if (command is InstallCommand.Machine)
+                    Maintenance().RemoveUserInstall();
+                else if (command is InstallCommand.Remove remove)
+                {
+                    TaskbarControl.RecoverHidden();
+                    Maintenance().Uninstall(remove.Purge, machine: false);
+                }
+            }
+
+            return result;
         }
 
         return Perform(command);
@@ -30,17 +42,26 @@ static class MaintenanceCommand
         var app = Maintenance();
         switch (command)
         {
+            case InstallCommand.UserCleanup:
+                if (Elevation.IsElevated())
+                    throw new InvalidOperationException("User cleanup must run from a normal terminal.");
+                app.RemoveUserInstall();
+                return 0;
             case InstallCommand.Machine machine:
                 var account = string.IsNullOrWhiteSpace(machine.Account) ? CurrentUser() : machine.Account;
-                app.InstallMachine(executable, account, BuildStamp.Version, machine.Logon, machine.Start);
-                Console.WriteLine(Installed("Winland is installed", machine.Logon, machine.Start));
+                var start = machine.Start && account.Equals(CurrentUser(), StringComparison.OrdinalIgnoreCase);
+                app.InstallMachine(executable, account, BuildStamp.Version, machine.Logon, start);
+                Console.WriteLine(Installed("Winland is installed", machine.Logon, start));
+                if (machine.Start && !start)
+                    Console.WriteLine("Start Winland from the signed-in user's Start menu.");
                 return 0;
             case InstallCommand.ForUser user:
                 app.InstallForUser(executable, BuildStamp.Version, user.Logon, user.Start);
                 Console.WriteLine(Installed("Winland is installed for this user", user.Logon, user.Start));
                 return 0;
             case InstallCommand.Remove remove:
-                TaskbarControl.RecoverHidden();
+                if (!Elevation.IsElevated())
+                    TaskbarControl.RecoverHidden();
                 app.Uninstall(remove.Purge, machine: Elevation.IsElevated());
                 Console.WriteLine(remove.Purge
                     ? "Winland is uninstalled, and its config, logs and state are removed."
@@ -71,7 +92,7 @@ static class MaintenanceCommand
     {
         var saved = new FileSettingsText(UpdateChannelFile.PathFor(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
-        var channel = UpdateChannelFile.Choose(requested, saved.Read());
+        var channel = UpdateChannelFile.Choose(requested, Elevation.IsElevated() ? null : saved.Read());
         var executable = Environment.ProcessPath
             ?? throw new InvalidOperationException("The executable path is not available.");
         var layout = Layout();
@@ -100,11 +121,16 @@ static class MaintenanceCommand
                 Console.WriteLine("Winland is up to date.");
                 return 0;
             case UpdateResult.NeedsAdministrator:
-                return Elevation.Relaunch(["update", "--channel", channel == UpdateChannel.Dev ? "dev" : "stable"]);
+                var resultCode = Elevation.Relaunch(["update", "--channel", channel == UpdateChannel.Dev ? "dev" : "stable"]);
+                if (resultCode == 0)
+                    Remember();
+                return resultCode;
             case UpdateResult.Rejected:
-                Console.Error.WriteLine("Refusing the update: the SHA-256 of Winland-win-x64.zip does not match SHA256SUMS.");
+                Console.Error.WriteLine("Refusing the update: the SHA-256 of Winland-win-x64.zip does not match SHA256SUMS. The release may still be uploading. Try again in a minute.");
                 return 1;
             case UpdateResult.Updated updated:
+                if (Elevation.IsElevated())
+                    _ = SchtasksCatalog.UseLauncher(executable);
                 Remember();
                 Console.WriteLine("Winland is updated to " + updated.Version + ".");
                 return 0;
@@ -115,7 +141,7 @@ static class MaintenanceCommand
         // A channel asked for is kept only once the update on it went through, so a failed one changes nothing.
         void Remember()
         {
-            if (requested is UpdateChannel chosen)
+            if (!Elevation.IsElevated() && requested is UpdateChannel chosen)
                 saved.Write(UpdateChannelFile.Text(chosen));
         }
     }
