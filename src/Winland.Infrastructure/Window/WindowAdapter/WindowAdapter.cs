@@ -294,6 +294,12 @@ public sealed partial class WindowAdapter : IDisposable
                     _motions.Forget(window);
                     return;
                 case PInvoke.EVENT_OBJECT_LOCATIONCHANGE:
+                    if (_declined.Fullscreen(window) && TryDescribe(hwnd, window, out var windowed) && !windowed.Traits.ExclusiveFullscreen)
+                    {
+                        AdoptShown(hwnd, window);
+                        return;
+                    }
+
                     if (Decide(hwnd, window))
                         return;
 
@@ -325,9 +331,8 @@ public sealed partial class WindowAdapter : IDisposable
                         {
                             ReportResize(hwnd, window);
                             ReportFullscreen(hwnd, window);
+                            PutBackIfDrifted(hwnd, window);
                         }
-
-                        PutBackIfDrifted(hwnd, window);
                     }
 
                     _effects.Refit(window);

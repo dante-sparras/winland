@@ -7,6 +7,20 @@ public class WindowEventTests
 {
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);
 
+    [Fact]
+    public void AClientThatMovesItselfAfterOpeningIsPutBackOnItsTile()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        var window = windows.Open(0x7021);
+        var tile = windows.Desktop[window.Value].Visible;
+        windows.Advance(5000);
+        windows.Desktop[window.Value].Visible = new Rectangle(50, 60, 1000, 700);
+
+        windows.Adapter.Notice(Events.EVENT_OBJECT_LOCATIONCHANGE, (nint)window.Value);
+
+        Assert.Equal(tile, windows.Desktop[window.Value].Visible);
+    }
+
     // The events the adapter reads. A hook range that holds any other object event delivers it across processes for nothing.
     [Fact]
     public void TheObjectEventHooksHoldTheEventsTheAdapterReadsAndNoOthers()

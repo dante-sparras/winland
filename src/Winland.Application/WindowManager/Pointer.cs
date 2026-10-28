@@ -77,6 +77,9 @@ public sealed partial class WindowManager
 
     private Outcome ReleasePointer(PointerButtonReleased released)
     {
+        if (released.Button == "mouse:272" && _interaction is NativeMove { Adopted: true } move)
+            return EndNativeMove(new WindowMoveEnded(move.Window, released.Position, null));
+
         Outcome? ended = null;
         if (_interaction is BorderDrag border && border.Button.Equals(released.Button, StringComparison.OrdinalIgnoreCase))
         {

@@ -189,6 +189,9 @@ public sealed class MouseHook : IDisposable
 
         if (up)
         {
+            if (button == "mouse:272" && _core.AwaitsDragRelease)
+                _keys.PostInput(new PointerButtonReleased(button) { Position = position });
+
             var passed = _passed.Remove(button);
             if (_keys.Drag.Release(button) is BindDrag.Active drag)
                 _keys.PostGesture(drag.Dispatcher, drag.Arguments, position, PointerDragPhase.End, button);

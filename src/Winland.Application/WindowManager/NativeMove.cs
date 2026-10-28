@@ -11,6 +11,22 @@ public sealed partial class WindowManager
     // Where the system left the window it just moved. The motion that drops it into the Layout starts there.
     private (WindowId Window, Rectangle Bounds)? _released;
 
+    /// <summary>A newly shown window is being held under the pointer until the left button is released.</summary>
+    public bool AwaitsDragRelease => _interaction is NativeMove { Adopted: true };
+
+    private IReadOnlyList<Placement> OpenDragged(WindowAppeared appeared, LiveWorkspace desk, IReadOnlyList<Placement> placements)
+    {
+        if (!appeared.Dragging || _interaction is not null || desk.ClientOf(appeared.Window) is not { Floating: false })
+            return placements;
+
+        _ = BeginNativeMove(new WindowMoveStarted(appeared.Window, appeared.Pointer ?? default));
+        if (_interaction is NativeMove move)
+            move.Adopted = true;
+        _ = desk.Layout.PlaceFloating(appeared.Window, appeared.Bounds);
+        _movedItself = appeared.Window;
+        return [.. desk.Layout.Visible().Where(placement => placement.Client != new ClientId(appeared.Window.Value))];
+    }
+
     private Outcome BeginNativeMove(WindowMoveStarted started)
     {
         if (_interaction is not null)
@@ -86,5 +102,7 @@ public sealed partial class WindowManager
     private sealed class NativeMove(WindowId window, bool floating) : PointerInteraction(window)
     {
         public bool Floating { get; } = floating;
+
+        public bool Adopted { get; set; }
     }
 }

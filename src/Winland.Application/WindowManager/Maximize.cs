@@ -45,6 +45,8 @@ public sealed partial class WindowManager
     // The window that moved itself this step. It is already where it goes, so it is placed there at once.
     private WindowId? _movedItself;
 
+    private readonly Dictionary<WindowId, (long Since, int Count)> _putBacks = [];
+
     // Windows has no fullscreen request, so a window that covers its monitor by itself asked for it. It is fullscreen
     // mode 2 until it stops covering the monitor, which ends only that mode.
     private Outcome FullscreenRequest(WindowFullscreenRequested requested)
@@ -65,11 +67,34 @@ public sealed partial class WindowManager
     {
         if (WorkspaceContaining(drifted.Window) is not LiveWorkspace desk
             || desk.ClientOf(drifted.Window) is not { Minimized: false } client
+            || (drifted.TiledOnly && client.Floating)
+            || _interaction?.Window == drifted.Window
             || !_workspaces.Shown.IsShown(desk.Id)
             || !desk.Layout.TryBounds(drifted.Window, out var slot))
             return View([]);
 
         var bounds = PlacedBounds(client, desk, slot);
+        if (bounds == drifted.Bounds)
+            return View([]);
+
+        if (!client.Floating)
+        {
+            var now = Clock();
+            var recent = _putBacks.GetValueOrDefault(drifted.Window);
+            if (now - recent.Since >= 1000)
+                recent = (now, 0);
+            if (recent.Count >= 3)
+            {
+                bounds = new Rectangle(bounds.X + ((bounds.Width - drifted.Bounds.Width) / 2),
+                    bounds.Y + ((bounds.Height - drifted.Bounds.Height) / 2), drifted.Bounds.Width, drifted.Bounds.Height);
+            }
+            else
+            {
+                _putBacks[drifted.Window] = (recent.Since, recent.Count + 1);
+            }
+        }
+
+        _movedItself = drifted.Window;
         return bounds == drifted.Bounds ? View([]) : View([new Placement(client.Id, bounds)]);
     }
 }

@@ -163,7 +163,9 @@ public sealed partial class WindowManager
         if (restored is not null && appeared.Opened)
         {
             _restoring = appeared.Window;
-            placements = desk.Layout.Arrange(_restoredTiles);
+            var arranged = desk.Layout.Arrange(_restoredTiles);
+            if (arranged.Count > 0)
+                placements = arranged;
             if (_restored.Count == 0)
                 _restoredTiles.Clear();
         }
@@ -173,10 +175,12 @@ public sealed partial class WindowManager
             placements = OpenUnderFullscreen(desk, appeared.Window, placements);
 
         var focused = restored is null ? ActiveWindow() : null;
-        if (GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, focused))
+        if (!appeared.Dragging && GroupOnOpen(desk, appeared.Window, decision, appeared.Traits.Dialog, focused))
             placements = desk.Layout.Visible();
 
-        NotePlaced(appeared.Window, desk, decision, restored is not null || traits.Topmost);
+        placements = OpenDragged(appeared, desk, placements);
+
+        NotePlaced(appeared.Window, desk, decision, restored is not null || traits.Topmost || appeared.Dragging);
         _props.Opened(appeared.Window, traits, followed, decision);
         RememberFocus(appeared.Window, decision);
         NoteOwner(appeared);

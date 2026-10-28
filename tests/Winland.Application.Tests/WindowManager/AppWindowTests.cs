@@ -4,6 +4,50 @@ public class AppWindowTests
 {
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);
 
+    [Theory]
+    [InlineData("dwindle")]
+    [InlineData("scrolling")]
+    public void AWindowAdoptedUnderADragKeepsItsFrameUntilTheButtonIsReleased(string layout)
+    {
+        var core = new WindowManager(ConfigParser.Parse($"general:layout = {layout}"));
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        var bounds = new Rectangle(200, 250, 500, 350);
+        var opened = core.Handle(new WindowAppeared(new WindowId(2), Area)
+        {
+            Opened = true,
+            Dragging = true,
+            Pointer = new Point(250, 260),
+            Bounds = bounds,
+        });
+
+        var dragged = Assert.Single(opened.State.Clients, client => client.Window == new WindowId(2));
+        Assert.True(dragged.Floating);
+        Assert.Equal(bounds, dragged.Bounds);
+        Assert.DoesNotContain(opened.Placements, placement => placement.Client == dragged.Id);
+        Assert.DoesNotContain(opened.Motions, motion => motion.Window == dragged.Window);
+
+        var dropped = core.Handle(new PointerButtonReleased("mouse:272") { Position = new Point(1500, 500) });
+        Assert.False(Assert.Single(dropped.State.Clients, client => client.Window == dragged.Window).Floating);
+    }
+
+    [Fact]
+    public void AGridSnappingTileIsPutBackThreeTimesThenCenteredWithoutResizing()
+    {
+        long now = 0;
+        var core = new WindowManager { Clock = () => now };
+        core.Handle(new WindowAppeared(new WindowId(1), Area));
+        var smaller = new Rectangle(10, 20, 1900, 1000);
+        for (var i = 0; i < 3; i++)
+            Assert.Equal(Area, Assert.Single(core.Handle(new WindowDrifted(new WindowId(1), smaller)).Placements).Bounds);
+
+        var centered = core.Handle(new WindowDrifted(new WindowId(1), smaller));
+        var box = Assert.Single(centered.Placements).Bounds;
+        Assert.Equal(new Rectangle(10, 40, 1900, 1000), box);
+        Assert.Empty(core.Handle(new WindowDrifted(new WindowId(1), box)).Placements);
+        now = 1000;
+        Assert.Equal(Area, Assert.Single(core.Handle(new WindowDrifted(new WindowId(1), box)).Placements).Bounds);
+    }
+
     [Fact]
     public void AWindowWithoutASizingFrameFloatsUnlessARuleTilesIt()
     {

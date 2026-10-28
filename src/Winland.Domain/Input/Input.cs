@@ -97,7 +97,10 @@ public sealed record WindowResized(WindowId Window, Rectangle Bounds) : Event;
 /// A Client's frame is not where its Layout put it, soon after the core changed it. Electron windows restore their
 /// own bounds just after they leave the system's maximized state. <see cref="Bounds"/> is the visible frame.
 /// </summary>
-public sealed record WindowDrifted(WindowId Window, Rectangle Bounds) : Event;
+public sealed record WindowDrifted(WindowId Window, Rectangle Bounds) : Event
+{
+    public bool TiledOnly { get; init; }
+}
 
 /// <summary>The system began moving a window by its title bar. <see cref="Pointer"/> is where the pointer is.</summary>
 public sealed record WindowMoveStarted(WindowId Window, Point Pointer) : Event;
@@ -212,6 +215,9 @@ public sealed record WindowAppeared(WindowId Window, Rectangle WorkArea) : Event
 
     /// <summary>The window already has Windows' foreground when it is offered for adoption.</summary>
     public bool Foreground { get; init; }
+
+    /// <summary>The left button is held inside the new window, as when a tab is dragged out of another window.</summary>
+    public bool Dragging { get; init; }
 
     /// <summary>Windows has disabled the window, as it does the owner of an open modal dialog.</summary>
     public bool Disabled { get; init; }
