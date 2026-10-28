@@ -34,6 +34,9 @@ public sealed class WindowHost : IDisposable
     private bool _draining;
     private bool _ownsTaskbar;
 
+    // True while the loop runs. Cleared before it detaches, so what runs after that, here or on another thread, sees it.
+    private volatile bool _looping;
+
     // Set once the exit begins, so a reload or a command still on its way does not hide the taskbar again.
     private volatile bool _taskbarReleased;
     private bool _markerSeen;
@@ -55,8 +58,13 @@ public sealed class WindowHost : IDisposable
         _touchpad = new TouchpadInput(_keys.PostInput);
         _core.SessionLock = _phase;
         _commands = new CommandServer(core, _windows.Apply, pipeName);
-        // A command arrives on a pipe thread. The taskbar state is the loop thread's, as a reload's is.
-        _commands.AfterCommand = () => _loop.Post(FollowTaskbar);
+        // A command arrives on a pipe thread. The taskbar state is the loop thread's, as a reload's is, and once the
+        // loop stopped the exit owns the taskbar.
+        _commands.AfterCommand = () => _loop.Post(() =>
+        {
+            if (_looping)
+                FollowTaskbar();
+        });
         _taskbar = TaskbarControl.Current;
     }
 
@@ -109,6 +117,17 @@ public sealed class WindowHost : IDisposable
         FollowTaskbar();
         return reply;
     }
+
+    /// <summary>
+    /// Reads the config again on the loop thread, once it takes its next message, and returns without waiting. A save
+    /// the config watcher sees after the loop stopped is not read: the exit has begun, and a reload would start the
+    /// config's programs again.
+    /// </summary>
+    public void PostReload() => _loop.Post(() =>
+    {
+        if (_looping)
+            Reload();
+    });
 
     public void Start()
     {
@@ -182,6 +201,7 @@ public sealed class WindowHost : IDisposable
         var shell = WaitForShell();
         var thread = PInvoke.GetCurrentThreadId();
         SessionHalt.Stop = () => _ = PInvoke.PostThreadMessage(thread, QuitMessage, default, default);
+        _looping = true;
         _loop.Attach(thread);
         // Armed only once the loop can take a click. Applying an outcome from a test must not add an icon.
         TrayHost.Start(
@@ -244,6 +264,7 @@ public sealed class WindowHost : IDisposable
         finally
         {
             Console.CancelKeyPress -= onCancel;
+            _looping = false;
             _loop.Detach();
             _loop.Drain();
             SessionHalt.Stop = null;

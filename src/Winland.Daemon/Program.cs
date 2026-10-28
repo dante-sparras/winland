@@ -147,23 +147,13 @@ static int Run(string? path, RollingLogWriter log)
         Salvage(host);
     };
     AppDomain.CurrentDomain.UnhandledException += onCrash;
+    // The watcher calls from a thread of its own. The reload runs on the loop, as the tray's does.
     using var watching = new ConfigWatcher(() =>
     {
-        if (!core.ReloadsOnSave)
-            return;
-
-        // The watcher calls from a thread of its own. The reload runs on the loop, as the tray's and the pipe's do.
-        try
-        {
-            host.OnLoop(() => host.Reload());
-        }
-        catch (Exception exception) when (exception is ObjectDisposedException or InvalidOperationException or IOException)
-        {
-            Console.Error.WriteLine(exception);
-        }
+        if (core.ReloadsOnSave)
+            host.PostReload();
     });
     watcher = watching;
-    watcher.Watch(ConfigPaths.Watched(configPath, current.Sources));
     try
     {
         host.OnOpenFile = TrayFiles.Open;
@@ -192,6 +182,8 @@ static int Run(string? path, RollingLogWriter log)
         host.Run(prior, () =>
         {
             store.Arm();
+            // Saves are read from now on, when the loop runs and can take the reload.
+            watching.Watch(ConfigPaths.Watched(configPath, current.Sources));
             Persist(store, core.Recovery());
             LaunchConfigured(core, core.StartupLaunches(current));
             Console.WriteLine("Winland is running.");

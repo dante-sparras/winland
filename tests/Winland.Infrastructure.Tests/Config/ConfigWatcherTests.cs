@@ -79,6 +79,26 @@ public class ConfigWatcherTests : ConfigWatcherFacts
             ["warning>>1,,Unsupported keyword 'blur'.", "configreloaded>>"],
             CommandProtocol.FormatStream(reply.Effect.Events, reply.Effect.State));
     }
+
+    // A save seen once the loop has stopped is not read, so the exit does not start the config's programs again.
+    [Fact]
+    public void ASaveWithNoLoopRunningIsNotRead()
+    {
+        var reads = 0;
+        var core = new WindowManager
+        {
+            ReadConfig = () =>
+            {
+                reads++;
+                return new ConfigRead(ConfigParser.Parse(""));
+            },
+        };
+        using var host = new WindowHost(core);
+
+        host.PostReload();
+
+        Assert.Equal(0, reads);
+    }
 }
 
 public class ConfigWatcherRenameTests : ConfigWatcherFacts
