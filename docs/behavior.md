@@ -293,7 +293,7 @@ Focusing a tiled Client on a Workspace where another Client is fullscreen or max
 
 A focused fullscreen or maximized Client that closes passes its mode to nothing. Neither the Client that takes the focus nor the Group member that takes its place takes the mode.
 
-When Winland starts, it adopts the windows that are already open. When a Client is minimized, by its button, `Win+Down`, `Win+M` or a double click, Winland restores it at once and the Client keeps its place. A window that is already minimized when Winland starts is not adopted until it is restored, and a minimized window is not put back into the Layout when Winland restarts.
+When Winland starts, it adopts the windows that are already open together, so each goes straight to its tile. When a Client is minimized, by its button, `Win+Down`, `Win+M` or a double click, Winland restores it at once and the Client keeps its place. A window that is already minimized when Winland starts is not adopted until it is restored, and a minimized window is not put back into the Layout when Winland restarts.
 
 A Client's maximize request is maximize mode 1: its maximize button, `Win+Up` or a double click on the title bar maximizes it, and asking again leaves it. It acts on that Client, whichever window has focus. The system's own maximized state is undone, so the Client fills the work area as `fullscreen 1` does. A window that opens maximized while Winland runs asked for it before it mapped, which Winland ignores, so it is tiled like any other window. Its maximize button works as usual afterwards. A window that was maximized before Winland started is adopted maximized.
 

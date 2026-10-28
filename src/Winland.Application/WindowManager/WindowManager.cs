@@ -121,6 +121,30 @@ public sealed partial class WindowManager
         }
     }
 
+    /// <summary>
+    /// Takes in the windows that were open before Winland started, as one step, so each tile is placed once where it
+    /// ends up rather than again for every window after it.
+    /// </summary>
+    public Outcome Adopt(IReadOnlyList<WindowAppeared> windows)
+    {
+        ArgumentNullException.ThrowIfNull(windows);
+        lock (_gate)
+        {
+            return Step(null, () =>
+            {
+                var outcome = new Outcome([], Snapshot());
+                foreach (var appeared in windows)
+                {
+                    var wasClient = Find(appeared.Window) is not null;
+                    outcome = outcome.Then(AppearMaybeMaximized(appeared));
+                    Note(appeared, wasClient);
+                }
+
+                return outcome;
+            });
+        }
+    }
+
     public IReadOnlyList<Launch> StartupLaunches(ConfigDocument config)
     {
         lock (_gate)
