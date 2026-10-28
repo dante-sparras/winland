@@ -91,7 +91,7 @@ internal sealed class DwmEffects
 
     /// <summary>
     /// Puts back the backdrop and region of every window this changed, for the exit cleanup. Nothing
-    /// is changed after that until <see cref="Reopen"/>: an outcome that arrives late would stay for good.
+    /// is changed after that: an outcome that arrives late would stay for good.
     /// </summary>
     internal void ResetAll()
     {
@@ -106,13 +106,6 @@ internal sealed class DwmEffects
 
         foreach (var window in windows)
             Reset(window);
-    }
-
-    /// <summary>Applies effects again, for a later run in the same process.</summary>
-    internal void Reopen()
-    {
-        lock (_gate)
-            _closed = false;
     }
 
     /// <summary>Marks each Client whose region is the corner outline this cut, so a crash does not leave it for good.</summary>

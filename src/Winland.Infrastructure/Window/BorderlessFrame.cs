@@ -112,7 +112,7 @@ internal sealed class BorderlessFrame
 
     /// <summary>
     /// Puts back the frame of every window this dropped it from, for the exit cleanup. No frame is dropped
-    /// after that until <see cref="Reopen"/>: an outcome that arrives late would leave it dropped for good.
+    /// after that: an outcome that arrives late would leave it dropped for good.
     /// </summary>
     internal void ReleaseAll()
     {
@@ -125,13 +125,6 @@ internal sealed class BorderlessFrame
 
         foreach (var window in windows)
             Release(window);
-    }
-
-    /// <summary>Drops frames again, for a later run in the same process.</summary>
-    internal void Reopen()
-    {
-        lock (_gate)
-            _closed = false;
     }
 }
 

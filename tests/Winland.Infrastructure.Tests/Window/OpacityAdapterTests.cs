@@ -141,7 +141,7 @@ public class OpacityAdapterTests
     // The exit cleanup resets every window, and then the process ends with the state file gone. An
     // outcome or a motion that arrives after that must not make a window layered again.
     [Fact]
-    public void AfterResetAllNoWindowIsMadeLayeredUntilReopened()
+    public void AfterResetAllNoWindowIsMadeLayered()
     {
         var styles = new FakeStyles();
         var window = new WindowId(3);
@@ -153,10 +153,6 @@ public class OpacityAdapterTests
 
         Assert.Equal(0x80u, styles.ExStyle[window]);
         Assert.False(adapter.Owns(window));
-
-        adapter.Reopen();
-        adapter.Apply(window, 128);
-        Assert.True(adapter.Owns(window));
     }
 
     [Fact]

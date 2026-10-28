@@ -26,6 +26,25 @@ public class WindowAdapterTests
         Assert.True(windows.Desktop[2].Shown);
     }
 
+    // The pipe and the binds worker are not waited for at exit. What they apply after the cleanup hides nothing.
+    [Fact]
+    public void AnOutcomeAppliedAfterTheExitCleanupHidesNothing()
+    {
+        var windows = new TestWindows(reducedMotion: true);
+        windows.Open(1);
+        windows.Dispatch("workspace", "2");
+        windows.Open(2);
+        windows.Adapter.RevealHidden();
+        windows.Dispose();
+        windows.Desktop.Calls.Clear();
+
+        windows.Dispatch("workspace", "1");
+
+        Assert.True(windows.Desktop[1].Shown);
+        Assert.True(windows.Desktop[2].Shown);
+        Assert.Empty(windows.Desktop.Calls);
+    }
+
     [Fact]
     public void ADestroyedConcealedWindowIsForgottenBeforeItsHandleIsReused()
     {

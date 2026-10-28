@@ -15,8 +15,9 @@ public sealed partial class WindowAdapter : IDisposable
     {
         ArgumentNullException.ThrowIfNull(outcome);
 
-        // The step asked for nothing the last outcome did not already do, so the core queued nothing.
-        if (outcome.IsEmpty)
+        // The step asked for nothing the last outcome did not already do, so the core queued nothing. Once the exit
+        // cleanup is done, a command or a bind still on its way changes no window.
+        if (outcome.IsEmpty || _disposed)
             return;
 
         // A window event can arrive while this thread waits on a window in the middle of an outcome. The one it decides

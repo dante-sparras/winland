@@ -54,7 +54,7 @@ public sealed partial class WindowAdapter : IDisposable
     private HWINEVENTHOOK _foreground;
     private HWINEVENTHOOK _moveSize;
     private volatile RecoverySnapshot? _published;
-    private bool _disposed;
+    private volatile bool _disposed;
 
     private readonly HashSet<WindowId> _painted = [];
     private readonly OpacityAdapter _opacity;
@@ -201,12 +201,6 @@ public sealed partial class WindowAdapter : IDisposable
         Release();
         LandMotions();
         ClearDecorations();
-
-        // Nothing hooks window events any more, so an outcome applied after this changes windows again.
-        _releasing = false;
-        _borderless.Reopen();
-        _effects.Reopen();
-        _opacity.Reopen();
     }
 
     private void OnEvent(
