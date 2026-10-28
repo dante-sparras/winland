@@ -13,6 +13,8 @@ public class ConfigValueSyntaxTests
     [InlineData("0", false)]
     [InlineData("YES", true)]
     [InlineData("Off", false)]
+    [InlineData("yes, please :)", true)]
+    [InlineData("trueish", true)]
     public void BoolWordsParse(string text, bool expected)
     {
         Assert.True(ConfigValueSyntax.TryParseBool(text, out var value));
@@ -22,7 +24,6 @@ public class ConfigValueSyntaxTests
     [Theory]
     [InlineData("")]
     [InlineData("2")]
-    [InlineData("trueish")]
     [InlineData("nope")]
     public void OtherBoolTextIsRejected(string text)
     {

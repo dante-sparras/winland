@@ -2,6 +2,115 @@ namespace Winland.Domain.Tests;
 
 public class ConfigSyntaxTests
 {
+    [Theory]
+    [InlineData("layers")]
+    [InlineData("layersIn")]
+    [InlineData("layersOut")]
+    [InlineData("fadeLayersIn")]
+    [InlineData("fadeLayersOut")]
+    [InlineData("zoomFactor")]
+    public void AnimationNodesWinlandDoesNotDrawExplainThat(string name)
+    {
+        var document = ConfigParser.Parse($"animation = {name}, 1, 3, default\n");
+
+        Assert.Equal($"Animation '{name}' is not one Winland draws.", Assert.Single(document.Warnings).Message);
+    }
+
+    [Fact]
+    public void AnimationOptionsAcceptABooleanPrefix()
+    {
+        var document = ConfigParser.Parse("animations {\nenabled = yes, please :)\n}\n");
+
+        Assert.Empty(document.Warnings);
+        Assert.True(AnimationOptions.From(document).Enabled);
+    }
+
+    [Fact]
+    public void AnEscapedHashAtTheStartStillCommentsOutATrailingBackslash()
+    {
+        var document = ConfigParser.Parse("  ## path\\\ngeneral:gaps_in = 4\n");
+
+        Assert.Empty(document.Warnings);
+        Assert.Equal(new Setting("general:gaps_in", "4"), Assert.Single(document.Settings));
+    }
+
+    [Fact]
+    public void SubmapBindsAreSkippedUntilResetWithOneWarning()
+    {
+        var document = ConfigParser.Parse("submap = resize\nbind = , H, movefocus, l\nbind = , L, movefocus, r\nsubmap = other\nbind = , Q, exit\nsubmap = reset\nbind = SUPER, Q, killactive\n");
+
+        Assert.Contains("submaps", Assert.Single(document.Warnings).Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("killactive", Assert.IsType<Bind>(Assert.Single(document.Binds)).Dispatcher);
+    }
+
+    [Theory]
+    [InlineData("SUPER SHFT")]
+    [InlineData("SUPERunknown")]
+    public void UnrecognisedLettersInModifiersDropTheBind(string modifiers)
+    {
+        var document = ConfigParser.Parse($"bind = {modifiers}, Q, killactive\n");
+
+        Assert.Single(document.Warnings);
+        Assert.Empty(document.Binds);
+    }
+
+    [Theory]
+    [InlineData("SUPER_SHIFT")]
+    [InlineData("SUPER+SHIFT")]
+    [InlineData("SUPER SHIFT")]
+    [InlineData("CONTROLALT")]
+    public void ModifierNamesStillAllowSeparatorsAndConcatenation(string modifiers)
+    {
+        var document = ConfigParser.Parse($"bind = {modifiers}, Q, killactive\n");
+
+        Assert.Empty(document.Warnings);
+        Assert.Single(document.Binds);
+    }
+
+    [Theory]
+    [InlineData("t")]
+    [InlineData("i")]
+    [InlineData("s")]
+    [InlineData("o")]
+    [InlineData("c")]
+    [InlineData("g")]
+    [InlineData("u")]
+    public void UnsupportedBindFlagsSayTheyAreNotSupported(string flag)
+    {
+        var document = ConfigParser.Parse($"bind{flag} = SUPER, Q, killactive\n");
+
+        Assert.Contains("not supported", Assert.Single(document.Warnings).Message);
+        Assert.Empty(document.Binds);
+    }
+
+    [Fact]
+    public void TheBypassBindFlagIsAcceptedWithoutChangingTheBind()
+    {
+        var document = ConfigParser.Parse("bindp = SUPER, Q, killactive\n");
+
+        Assert.Empty(document.Warnings);
+        Assert.Equal(BindFlag.None, Assert.IsType<Bind>(Assert.Single(document.Binds)).Flags);
+    }
+
+    [Fact]
+    public void VariableExpansionThatExceeds64KWarnsAndSkipsTheLine()
+    {
+        var document = ConfigParser.Parse($"$large = {new string('x', 32768)}\nexec = $large$large$large\ngeneral:gaps_in = 4\n");
+
+        Assert.Single(document.Warnings);
+        Assert.DoesNotContain(document.Settings, setting => setting.Keyword == "exec");
+        Assert.Contains(new Setting("general:gaps_in", "4"), document.Settings);
+    }
+
+    [Fact]
+    public void ADoublingVariableWarnsWithoutExhaustingMemory()
+    {
+        var document = ConfigParser.Parse("$a = $a$a\nexec = $a\ngeneral:gaps_in = 4\n");
+
+        Assert.Single(document.Warnings);
+        Assert.Equal(new Setting("general:gaps_in", "4"), Assert.Single(document.Settings));
+    }
+
     [Fact]
     public void AnIfCommentIsOnlyAComment()
     {
@@ -94,7 +203,7 @@ public class ConfigSyntaxTests
         var source = new MemorySource(
             new Dictionary<string, string>
             {
-                [@"C:\winland-home/colors.conf"] = "general:gaps_in = 4\n",
+                [@"C:\winland-home\colors.conf"] = "general:gaps_in = 4\n",
                 ["colors.conf"] = "general:gaps_out = 8\n",
             },
             new Dictionary<string, string>
@@ -113,7 +222,7 @@ public class ConfigSyntaxTests
                 new Setting("general:gaps_out", "8"),
             },
             document.Settings);
-        Assert.Equal([@"C:\winland-home/colors.conf", "colors.conf"], document.Sources);
+        Assert.Equal([@"C:\winland-home\colors.conf", "colors.conf"], document.Sources);
     }
 
     [Fact]
@@ -176,12 +285,12 @@ public class ConfigSyntaxTests
         var root = $"bind = SUPER, Q, killactive\nsource = {named}\n";
         var source = new MemorySource(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            [named] = root,
+            [Path.GetFullPath(Path.Combine(@"C:\cfg", named))] = root,
         });
 
         var document = ConfigParser.Parse(root, source, path: @"C:\cfg\winland.conf");
 
-        Assert.Equal(new ConfigWarning(2, $"Source '{named}' includes itself."), Assert.Single(document.Warnings));
+        Assert.Equal(new ConfigWarning(2, $"Source '{Path.GetFullPath(Path.Combine(@"C:\cfg", named))}' includes itself."), Assert.Single(document.Warnings));
         Assert.Single(document.Binds);
     }
 
@@ -207,6 +316,23 @@ public class ConfigSyntaxTests
 
         Assert.Equal(new ConfigWarning(1, "Could not read source '*.missing'."), Assert.Single(document.Warnings));
         Assert.Equal(new Setting("general:gaps_in", "2"), Assert.Single(document.Settings));
+        Assert.Equal(["*.missing"], document.Sources);
+    }
+
+    [Fact]
+    public void NestedSourcesResolveAgainstTheirOwnFileAndWarningsNameItsFullPath()
+    {
+        var source = new MemorySource(new Dictionary<string, string>
+        {
+            [@"C:\cfg\parts\extra.conf"] = "source = colors.conf\n",
+            [@"C:\cfg\parts\colors.conf"] = "general:gaps_in = 4\nunknown = 1\n",
+        });
+
+        var document = ConfigParser.Parse("source = parts/extra.conf\n", source, path: @"C:\cfg\winland.conf");
+
+        Assert.Equal(new Setting("general:gaps_in", "4"), Assert.Single(document.Settings));
+        Assert.Equal(@"C:\cfg\parts\colors.conf", Assert.Single(document.Warnings).Source);
+        Assert.Equal([@"C:\cfg\parts\extra.conf", @"C:\cfg\parts\colors.conf"], document.Sources);
     }
 
     [Fact]

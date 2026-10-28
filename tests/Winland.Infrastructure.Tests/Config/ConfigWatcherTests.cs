@@ -254,6 +254,21 @@ public class ConfigWatcherThrowTests : ConfigWatcherFacts
 public class ConfigWatcherUnchangedTests : ConfigWatcherFacts
 {
     [Fact]
+    public void TheFirstUnchangedSaveReloadsNothing()
+    {
+        using var dir = Temp();
+        var config = Path.Combine(dir.Path, "winland.conf");
+        File.WriteAllText(config, "general:gaps_in = 0\n");
+        var count = 0;
+        using var watcher = new ConfigWatcher(() => Interlocked.Increment(ref count), Debounce);
+        watcher.Watch([config]);
+
+        File.WriteAllText(config, "general:gaps_in = 0\n");
+
+        Assert.Equal(0, Settled(ref count));
+    }
+
+    [Fact]
     public void ASaveThatChangedNothingReloadsNothing()
     {
         using var dir = Temp();
@@ -273,6 +288,23 @@ public class ConfigWatcherUnchangedTests : ConfigWatcherFacts
 
 public class ConfigWatcherGlobTests : ConfigWatcherFacts
 {
+    [Fact]
+    public void TheFirstMatchOfAnEmptySourceGlobReloads()
+    {
+        using var dir = Temp();
+        var folder = Directory.CreateDirectory(Path.Combine(dir.Path, "conf.d")).FullName;
+        var config = Path.Combine(dir.Path, "winland.conf");
+        File.WriteAllText(config, "source = conf.d/*.conf\n");
+        var document = ConfigParser.Parse(File.ReadAllText(config), path: config);
+        var count = 0;
+        using var watcher = new ConfigWatcher(() => Interlocked.Increment(ref count), Debounce);
+        watcher.Watch([config, .. document.Sources]);
+
+        File.WriteAllText(Path.Combine(folder, "first.conf"), "general:gaps_in = 1\n");
+
+        Assert.True(WaitUntil(() => Volatile.Read(ref count) == 1));
+    }
+
     [Fact]
     public void ANewFileBesideAWatchedOneReloads()
     {

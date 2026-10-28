@@ -138,7 +138,7 @@ public class AnimationConfigTests
         Assert.Equal(
             [
                 new ConfigWarning(1, "Curve 'later' does not exist."),
-                new ConfigWarning(3, "Animation 'wobble' does not exist."),
+                new ConfigWarning(3, "Animation 'wobble' is not one Winland draws."),
                 new ConfigWarning(4, "Animation speed '0' is not valid."),
                 new ConfigWarning(5, "Animation speed 'fast' is not valid."),
                 new ConfigWarning(6, "Style 'popin' is not valid for animation 'workspaces'."),
@@ -146,8 +146,8 @@ public class AnimationConfigTests
                 new ConfigWarning(8, "Bezier needs four points."),
                 new ConfigWarning(9, "Bezier point 'a' is not a number."),
                 new ConfigWarning(10, "Bezier has too many arguments."),
-                new ConfigWarning(11, "Animation 'layers' does not exist."),
-                new ConfigWarning(12, "Animation 'fadeDpms' does not exist."),
+                new ConfigWarning(11, "Animation 'layers' is not one Winland draws."),
+                new ConfigWarning(12, "Animation 'fadeDpms' is not one Winland draws."),
                 new ConfigWarning(13, "Style 'gnomed' is not valid for animation 'windowsIn'."),
                 new ConfigWarning(14, "Style 'gnome' is not valid for animation 'windowsIn'."),
             ],
@@ -159,7 +159,7 @@ public class AnimationConfigTests
     {
         var document = ConfigParser.Parse("animation = monitorAdded, 1, 3, default\n");
 
-        Assert.Equal(new ConfigWarning(1, "Animation 'monitorAdded' does not exist."), Assert.Single(document.Warnings));
+        Assert.Equal(new ConfigWarning(1, "Animation 'monitorAdded' is not one Winland draws."), Assert.Single(document.Warnings));
     }
 
     [Fact]

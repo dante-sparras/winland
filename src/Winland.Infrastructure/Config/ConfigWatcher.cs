@@ -47,6 +47,7 @@ public sealed class ConfigWatcher : IDisposable
             }
 
             _paths = next;
+            _lastRead = Read([.. next]);
             previous = _watchers.ToList();
             _watchers.Clear();
             foreach (var directory in Directories(next))

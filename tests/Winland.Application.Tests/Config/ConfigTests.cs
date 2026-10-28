@@ -683,7 +683,7 @@ public class ConfigTests
         Assert.Equal(
             new[]
             {
-                new ConfigWarning(1, "Invalid bind flag 'z'."),
+                new ConfigWarning(1, "Bind flag 'z' is not supported."),
                 new ConfigWarning(2, "Bind has too few arguments."),
                 new ConfigWarning(3, "Bind flags conflict."),
                 new ConfigWarning(4, "Invalid modifier 'FOO'."),
