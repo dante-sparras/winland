@@ -233,6 +233,10 @@ internal sealed class OpacityAdapter
             Reset(window);
     }
 
+    /// <summary>
+    /// Marks each Client this made layered, and records the other windows it made layered, the ones held transparent
+    /// while they were created hidden, so a crash does not leave them so.
+    /// </summary>
     internal RecoverySnapshot Stamp(RecoverySnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
@@ -243,13 +247,18 @@ internal sealed class OpacityAdapter
 
             var clients = new RecoveredClient[snapshot.Clients.Count];
             var changed = false;
+            var others = new HashSet<WindowId>(_owned.Keys);
             for (var i = 0; i < snapshot.Clients.Count; i++)
             {
                 var client = snapshot.Clients[i];
                 var layered = _owned.ContainsKey(client.Window);
                 clients[i] = client.Layered == layered ? client : client with { Layered = layered };
                 changed |= client.Layered != layered;
+                others.Remove(client.Window);
             }
+
+            if (others.Count > 0)
+                return snapshot with { Clients = clients, Held = [.. others.Select(window => new HeldWindow(window, "", 0))] };
 
             return changed ? snapshot with { Clients = clients } : snapshot;
         }

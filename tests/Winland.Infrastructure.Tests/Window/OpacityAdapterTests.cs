@@ -145,6 +145,29 @@ public class OpacityAdapterTests
         Assert.True(stamped.Clean);
     }
 
+    // A window created hidden is made transparent until it is shown, and is no Client meanwhile. The snapshot records it
+    // apart, so a start after the process was ended takes the style off.
+    [Fact]
+    public void StampRecordsAHeldWindowThatIsNoClient()
+    {
+        var styles = new FakeStyles();
+        var client = new WindowId(5);
+        var held = new WindowId(6);
+        styles.ExStyle[client] = 0x80;
+        styles.ExStyle[held] = 0x80;
+        var adapter = new OpacityAdapter(styles);
+        adapter.Apply(client, 128);
+        adapter.Apply(held, 0);
+
+        var stamped = adapter.Stamp(new RecoverySnapshot(
+        [
+            new RecoveredClient(client, WorkspaceId.Initial, MonitorId.Primary, false, "Notepad", "Notes", 10),
+        ]));
+
+        Assert.Equal([held], stamped.Held.Select(window => window.Window));
+        Assert.True(Assert.Single(stamped.Clients).Layered);
+    }
+
     [Fact]
     public void ResetAllRestoresEveryOwnedWindow()
     {

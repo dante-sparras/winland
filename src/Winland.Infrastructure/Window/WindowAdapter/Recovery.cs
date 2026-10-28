@@ -9,7 +9,18 @@ public sealed partial class WindowAdapter : IDisposable
     public void Recover(RecoverySnapshot? snapshot)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (snapshot is null || snapshot.Clients.Count == 0)
+        if (snapshot is null)
+            return;
+
+        // A window held transparent when the previous run died would stay so when its program shows it. One this run
+        // holds, as after a session change, is still waiting to be shown.
+        foreach (var held in snapshot.Held)
+        {
+            if (!_opacity.Owns(held.Window) && WindowIdentity.Recognize(held))
+                _opacity.ReleaseAdded(held.Window);
+        }
+
+        if (snapshot.Clients.Count == 0)
             return;
 
         var kept = new List<RecoveredClient>(snapshot.Clients.Count);
