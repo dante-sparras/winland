@@ -6,6 +6,8 @@ An ADR states one standing decision and why, in the present tense, and is true a
 
 An ADR without a Status line is accepted and true against the code. `Status: Proposed` marks a decision that is not built yet and points at the issue that builds it, and the index marks it `(proposed)`. A Proposed ADR is not evidence of how Winland behaves. Remove the Status line when the work lands.
 
+ADR 0012 described the former plugin manager. It was deleted in commit `a21396d1` when ADR 0011 replaced that decision. Its number stays retired.
+
 ## Architecture
 
 - [0001](0001-winland-runs-on-top-of-explorer-and-dwm.md): a background process on Explorer and DWM, no shell replacement, no injection.

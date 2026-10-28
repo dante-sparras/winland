@@ -50,14 +50,11 @@ A keyboard-driven tiling window manager for Windows 11. It manages windows on to
 
 ### Running a build on this computer
 
-`pwsh -NoProfile -File scripts/run.ps1` publishes this checkout, asks the running winland to exit (which puts every window back), and starts the new build in its place in about ten seconds. Use it for every start and stop, in place of `dotnet run`, `Stop-Process` or a hand-built `winland dispatch` call.
+Before starting, stopping or isolating a dev build, read [Run a dev build](docs/development.md#run-a-dev-build) for the commands, config, environment, logs and recovery steps.
 
-- A running winland takes over every window on the desktop, including the user's. Start it only when the user asked to see a change, and stop it when you are done.
-- To test without touching the user's windows, set `WINLAND_PIPE` and `WINLAND_STATE` to names of your own, then pass `-Config` a file that ignores every window (`windowrule = ignore, class:.*`) and tiles only your test windows. With `WINLAND_PIPE` set, the script replaces only the copies it started. Rule patterns match the whole string, so `^foo` matches only `foo`.
-- `-Stop` stops winland cleanly. When `general:hide_taskbar` hid the taskbar, that shows it again. A forced stop leaves it hidden; recover by running the script and then `-Stop`.
-- `-Config <file>` reads that `.conf` file in place of `%USERPROFILE%\.winland\winland.conf`.
-- The build starts without administrator rights, so it cannot place the windows of elevated programs. `-Elevated` waits for a UAC approval, which an agent cannot give.
-- Each build goes in its own folder under `%LOCALAPPDATA%\winland-dev`, with its output in `winland.out.log` and `winland.err.log`. A build that fails to publish leaves the running winland alone. Piping the script's output is safe.
+- A running Winland takes over the user's windows. Start it only when the user asked to see a change, and stop it when you are done.
+- Use `scripts/run.ps1` for every start and stop. For isolated tests, give it your own `WINLAND_PIPE`, `WINLAND_STATE` and a `-Config` that ignores every window except your test windows.
+- `-Elevated` waits for UAC approval, which an agent cannot give.
 
 ## Agent skills
 

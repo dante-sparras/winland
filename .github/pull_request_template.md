@@ -16,7 +16,8 @@ explain why they are needed for the same fix. Split independent fixes. -->
 
 ## Scope and approval
 
-<!-- Link the issue that agreed on the direction and scope.
+<!-- Link the maintainer comment that approved the direction and scope, or the
+triaged issue for a substantial bug fix.
 For a very small, focused fix of an obvious bug, explain why it needs no prior
 issue. -->
 

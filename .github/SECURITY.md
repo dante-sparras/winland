@@ -1,6 +1,6 @@
 # Security policy
 
-Security fixes go into the latest release, or into `main` when the project doesn't publish releases.
+Security fixes go into `main` and are published in the latest stable release and the rolling dev release. Older releases are not maintained.
 
 Report security vulnerabilities in Winland through GitHub's
 [private vulnerability reporting](https://github.com/dante-sparras/winland/security/advisories/new).
