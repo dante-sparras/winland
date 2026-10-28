@@ -103,6 +103,8 @@ public sealed record GroupBarStyle
             GapsIn = Scale(GapsIn),
             TextOffset = Scale(TextOffset),
             TextPadding = Scale(TextPadding),
+            Rounding = Scale(Rounding),
+            GradientRounding = Scale(GradientRounding),
         };
     }
 
