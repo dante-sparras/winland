@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -16,24 +17,33 @@ static class ControlCommand
         try
         {
             var reply = CommandClient.Transact(line, pipeName, connected: LendForeground);
-
-            // A reply with nothing in it means the server failed before it could answer.
-            if (reply.Length == 0 || reply.StartsWith("error:", StringComparison.Ordinal))
-            {
-                Console.Error.WriteLine(reply.Length == 0 ? "error: no reply" : reply);
-                return 1;
-            }
-
-            Console.WriteLine(reply);
-
-            // A batch joins its replies with blank lines, and fails when any of its commands did.
-            return reply.Split("\n\n\n").Any(part => part.StartsWith("error:", StringComparison.Ordinal)) ? 1 : 0;
+            return WriteReply(line, reply);
         }
-        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or Win32Exception)
         {
             Console.Error.WriteLine(exception.Message);
             return 1;
         }
+    }
+
+    internal static int WriteReply(string line, string reply)
+    {
+        if (CommandProtocol.Parse(line) is CommandParsed { Request: BatchRequest })
+        {
+            Console.WriteLine(reply);
+            return reply.Split("\n\n\n", StringSplitOptions.TrimEntries).Any(part => part.StartsWith("error:", StringComparison.Ordinal)) ? 1 : 0;
+        }
+
+        // A reply with nothing in it means the server failed before it could answer.
+        if (reply.Length == 0 || reply.StartsWith("error:", StringComparison.Ordinal))
+        {
+            Console.Error.WriteLine(reply.Length == 0 ? "error: no reply" : reply);
+            return 1;
+        }
+
+        Console.WriteLine(reply);
+
+        return 0;
     }
 
     private static int FollowEvents(string? pipeName)
@@ -59,7 +69,7 @@ static class ControlCommand
             Console.Error.WriteLine("error: events stream ended");
             return 1;
         }
-        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or Win32Exception)
         {
             Console.Error.WriteLine(exception.Message);
             return 1;
