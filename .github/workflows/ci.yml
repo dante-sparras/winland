@@ -1,6 +1,6 @@
 # Shared by Winoma, Winshell, and Winland. Keep the copies identical.
 # One pull-request entry point. mutation.yml is workflow_call only.
-# Branch protection requires only the job name "All required checks pass (v1)".
+# Branch protection requires "All required checks pass (v1)" and the separate pr-title job.
 # When a required step or job is added, bump (v1) here and in
 # .github/rulesets/protect-main.json in the same change. A green check on a
 # commit stays green forever, so the new name is what makes an old green stop counting.
@@ -11,7 +11,7 @@
 # work they do. CI runs on pull requests and on the push a merge makes to main. The push run
 # also fills the NuGet cache, because a pull request can only read caches its own branch or
 # the default branch saved. A release run tests the exact commit it ships.
-# Mutation testing is the slow lane. It runs when CI is dispatched with release=true.
+# Mutation testing is the slow lane. It runs when CI is called or dispatched with release=true.
 
 name: CI
 
@@ -41,11 +41,11 @@ permissions:
 # A newer run of a pull request or of main cancels the older one, so only the newest commit is built and
 # released as dev. A run started by hand or by a release has a group of its own, and no push cancels it.
 concurrency:
-  group: ci-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+  group: ci-${{ inputs.release || false }}-${{ inputs.ref || github.ref }}-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ !inputs.release && (github.event_name == 'pull_request' || github.event_name == 'push') }}
 
 jobs:
-  # The ruleset names this check and no other.
+  # The ruleset names this check and the separate pr-title job.
   check:
     name: All required checks pass (v1)
     runs-on: windows-latest
@@ -125,15 +125,17 @@ jobs:
           }
           $files = @(git diff --name-only --no-renames "origin/$($env:BASE_REF)...$($env:HEAD_SHA)")
           if ($LASTEXITCODE -ne 0) { throw "git diff failed with $LASTEXITCODE" }
-          $docs = '^(.*\.md|docs/.*|\.github/ISSUE_TEMPLATE/.*|\.github/PULL_REQUEST_TEMPLATE\.md|\.github/rulesets/.*|\.gitignore|\.gitattributes|LICENSE.*)$'
+          $docs = '^(.*\.md|docs/.*|\.github/ISSUE_TEMPLATE/.*|\.github/pull_request_template\.md|\.github/rulesets/.*|\.gitignore|\.gitattributes|LICENSE.*)$'
           $code = @($files | Where-Object { $_ -and $_ -cnotmatch $docs })
           $test = if ($code.Count -gt 0) { 'true' } else { 'false' }
           "test=$test" >> $env:GITHUB_OUTPUT
           Write-Output "test lane: $test"
       - name: Run lint
         shell: pwsh
+        env:
+          TEST: ${{ steps.classify.outputs.test }}
         run: |
-          ./scripts/check.ps1
+          ./scripts/check.ps1 -SkipBuild:($env:TEST -eq 'false')
           exit $LASTEXITCODE
       # actionlint is pinned by version and SHA-256. To upgrade, take both from the
       # release's actionlint_<version>_checksums.txt (windows_amd64 zip).

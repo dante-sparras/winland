@@ -27,7 +27,6 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 45
     env:
-      GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
       RELEASE_COMMIT: ${{ github.event.workflow_run.head_sha }}
     steps:
@@ -42,6 +41,8 @@ jobs:
       - name: Keep the newest dev build
         id: keep
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $false
@@ -77,9 +78,12 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Publish, zip, and checksum
+      - name: Look up the dev version
+        id: version
         if: steps.keep.outputs.publish == 'true'
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $false
@@ -134,41 +138,28 @@ jobs:
           }
           Write-Output "Dev version $display at $sha."
 
-          # -p:Version omits +metadata. The SDK appends +<SourceRevisionId> for BuildStamp's commit.
-          # version.json records the full dev version, including the short sha, and the full commit.
-          $daemon = Join-Path $env:RUNNER_TEMP 'pub-daemon'
-          $stage = Join-Path $env:RUNNER_TEMP 'stage'
-          dotnet publish (Join-Path $env:GITHUB_WORKSPACE 'src\Winland.Daemon\Winland.Daemon.csproj') -c Release -r win-x64 --self-contained true "-p:Version=$nuget" "-p:SourceRevisionId=$sha" -p:ContinuousIntegrationBuild=true -o $daemon
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          New-Item -ItemType Directory -Force -Path (Join-Path $stage 'winland') | Out-Null
-          Copy-Item (Join-Path $daemon '*') (Join-Path $stage 'winland') -Recurse
-          $date = [DateTimeOffset]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssK')
-          $json = '{"commit":"' + $sha + '","date":"' + $date + '","version":"' + $display + '"}' + "`n"
-          $jsonPath = Join-Path $env:RUNNER_TEMP 'version.json'
-          [System.IO.File]::WriteAllText($jsonPath, $json)
-          Copy-Item $jsonPath (Join-Path $stage 'version.json')
-          $zip = Join-Path $env:RUNNER_TEMP 'Winland-win-x64.zip'
-          & tar -a -c -f $zip -C $stage .
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $dist = Join-Path $env:RUNNER_TEMP 'dist'
-          New-Item -ItemType Directory -Force -Path $dist | Out-Null
-          Copy-Item $zip (Join-Path $dist 'Winland-win-x64.zip')
-          Copy-Item $jsonPath (Join-Path $dist 'version.json')
-          $sums = foreach ($name in @('Winland-win-x64.zip', 'version.json')) {
-            $hash = (Get-FileHash -Algorithm SHA256 (Join-Path $dist $name)).Hash.ToLowerInvariant()
-            "$hash  $name"
-          }
-          [System.IO.File]::WriteAllText((Join-Path $dist 'SHA256SUMS'), (($sums -join "`n") + "`n"))
+          "version=$nuget" >> $env:GITHUB_OUTPUT
+          "display=$display" >> $env:GITHUB_OUTPUT
+
+      - name: Publish, zip, and checksum
+        if: steps.keep.outputs.publish == 'true'
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DISPLAY_VERSION: ${{ steps.version.outputs.display }}
+        run: ./scripts/package.ps1 -Version $env:VERSION -DisplayVersion $env:DISPLAY_VERSION -Commit $env:RELEASE_COMMIT -OutputDirectory (Join-Path $env:RUNNER_TEMP 'package')
 
       - name: Publish the dev prerelease
         if: steps.keep.outputs.publish == 'true'
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $false
           $sha = $env:RELEASE_COMMIT
           $repo = $env:REPO
-          $dist = Join-Path $env:RUNNER_TEMP 'dist'
+          $dist = Join-Path $env:RUNNER_TEMP 'package/dist'
           $published = Get-Content -Raw (Join-Path $dist 'version.json') | ConvertFrom-Json
           if ($published.commit -ne $sha) { throw "version.json names $($published.commit), not $sha." }
           $display = [string]$published.version

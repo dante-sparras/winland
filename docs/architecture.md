@@ -1,6 +1,6 @@
 # Architecture
 
-Where things are, and the path an input takes. The rules behind the layout are in [ADR 0005](adr/0005-clean-architecture-in-four-layers.md); the words are in [GLOSSARY.md](../GLOSSARY.md).
+Where things are, and the path an input takes. The rules behind the layout are in [ADR 0005](adr/0005-clean-architecture-in-four-layers.md). The words are in [GLOSSARY.md](../GLOSSARY.md).
 
 ## Layers
 
@@ -13,6 +13,8 @@ Each project references only the layers above it in this list. A test in each la
 | `src/Winland.Infrastructure` | Win32: hooks, window placement, monitors, the tray, the IPC pipe server. |
 | `src/Winland.Install` | Install, update and release files. |
 | `src/Winland.Daemon` | `winland.exe`: reads the config and wires the rest together in `Program.cs`. `ControlCommand` sends one command down the pipe. |
+
+The Daemon also holds the Windows adapters for install, elevation and the state file.
 
 ## How an input flows
 

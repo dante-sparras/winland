@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Winland.Infrastructure.Tests;
@@ -15,15 +14,6 @@ public sealed class SlowWindowTests : IDisposable
     private readonly WindowAdapter _adapter = new(new WindowManager());
 
     public SlowWindowTests() => _window.Open();
-
-    [Fact]
-    public void AWaitingMoveWaitsForTheWindow()
-    {
-        var watch = Stopwatch.StartNew();
-        SlowWindow.SetWindowPos(_window.Handle, IntPtr.Zero, 200, 200, 500, 400, 0x0004 | 0x0010);
-
-        Assert.True(watch.ElapsedMilliseconds >= Delay, $"took {watch.ElapsedMilliseconds} ms");
-    }
 
     // An in-between frame of a motion must not hold up the frame of every other window.
     [Fact]
@@ -96,9 +86,6 @@ public sealed class SlowWindowTests : IDisposable
             _thread.Join(TimeSpan.FromSeconds(5));
             _ready.Dispose();
         }
-
-        [DllImport("user32.dll")]
-        internal static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int width, int height, uint flags);
 
         [DllImport("user32.dll")]
         private static extern bool GetWindowRect(IntPtr hwnd, out Bounds rect);

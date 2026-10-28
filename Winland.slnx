@@ -19,6 +19,5 @@
     <Project Path="tests/Winland.Install.Tests/Winland.Install.Tests.csproj" />
     <Project Path="tests/Winland.Daemon.Tests/Winland.Daemon.Tests.csproj" />
     <Project Path="tests/Winland.Smoke.Tests/Winland.Smoke.Tests.csproj" />
-    <Project Path="tests/Winland.FocusThief/Winland.FocusThief.csproj" />
   </Folder>
 </Solution>

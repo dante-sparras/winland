@@ -163,10 +163,7 @@ public partial class CursorIdleTests
         clock.Now += TimeSpan.FromSeconds(2);
 
         var timer = new CursorIdleTimer(idle);
-        var deadline = Environment.TickCount64 + 10_000;
-        while (!cursor.Hidden && Environment.TickCount64 < deadline)
-            Thread.Sleep(20);
-        var hidden = cursor.Hidden;
+        var hidden = SpinWait.SpinUntil(() => cursor.Hidden, TimeSpan.FromSeconds(10));
         timer.Dispose();
         idle.Moved();
         clock.Now += TimeSpan.FromSeconds(2);

@@ -4,10 +4,12 @@
 #   pwsh -NoProfile -File scripts/check.ps1 -Ref <sha> -Test   also runs scripts/test.ps1 on that commit
 param(
     [string]$Ref,
-    [switch]$Test
+    [switch]$Test,
+    [switch]$SkipBuild
 )
 
 $ErrorActionPreference = 'Stop'
+if ($SkipBuild -and $Test) { throw '-SkipBuild cannot be combined with -Test.' }
 
 # A hook exports GIT_DIR. Clear it so git commands in this script use the checkout.
 foreach ($name in @('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_PREFIX')) {
@@ -174,21 +176,19 @@ try {
 
     if ((Test-MarkdownLinks $root $tracked) -gt 0) { $failed = 1 }
 
-    $solution = Join-Path $root 'Winland.slnx'
-    Write-Output "dotnet build $solution"
-    dotnet build $solution --configuration Release --nologo
-    if ($LASTEXITCODE -ne 0) { $failed = 1 }
+    if (-not $SkipBuild) {
+        $solution = Join-Path $root 'Winland.slnx'
+        Write-Output "dotnet build $solution"
+        dotnet build $solution --configuration Release --nologo
+        if ($LASTEXITCODE -ne 0) { $failed = 1 }
+    }
 
     # The tests run from the checked commit's own scripts/test.ps1. A failed lint skips them.
     if ($Test -and $failed -eq 0) {
         $testScript = Join-Path $root 'scripts/test.ps1'
         Write-Output "pwsh $testScript"
         # The solution was just built above in Release, so the tests run on that build.
-        if ($solutions.Count -gt 0) {
-            pwsh -NoProfile -File $testScript -NoBuild
-        } else {
-            pwsh -NoProfile -File $testScript
-        }
+        pwsh -NoProfile -File $testScript -NoBuild
         if ($LASTEXITCODE -ne 0) { $failed = 1 }
     }
 } finally {

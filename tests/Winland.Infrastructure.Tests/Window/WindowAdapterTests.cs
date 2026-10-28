@@ -9,6 +9,58 @@ public class WindowAdapterTests
         call.StartsWith($"bounds {window} ", StringComparison.Ordinal) && call.EndsWith(" Post", StringComparison.Ordinal);
 
     [Fact]
+    public void AWindowRevealedOnExitStaysShownWhenItsWorkspaceIsHiddenAgain()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        windows.Open(1);
+        windows.Dispatch("workspace", "2");
+        windows.Open(2);
+        windows.Dispatch("workspace", "1");
+        Assert.False(windows.Desktop[2].Shown);
+
+        windows.Adapter.RevealHidden();
+
+        Assert.True(windows.Desktop[2].Shown);
+        windows.Dispatch("workspace", "2");
+        Assert.True(windows.Desktop[1].Shown);
+        Assert.True(windows.Desktop[2].Shown);
+    }
+
+    [Fact]
+    public void ADestroyedConcealedWindowIsForgottenBeforeItsHandleIsReused()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        windows.Open(1);
+        windows.Open(2);
+        windows.Dispatch("workspace", "2");
+        Assert.False(windows.Desktop[2].Shown);
+        windows.Desktop.Remove(2);
+
+        windows.Adapter.Notice(Windows.Win32.PInvoke.EVENT_OBJECT_DESTROY, (nint)2);
+        Assert.False(windows.Core.Manages(new WindowId(2)));
+        windows.Desktop.Add(2, TestWindows.Area);
+        windows.Desktop.Calls.Clear();
+        windows.Adapter.Salvage();
+
+        Assert.DoesNotContain(windows.Desktop.Calls, call => call.StartsWith("show 2 ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void DropGoneClosesOnlyClientsWhoseWindowsNoLongerExist()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        var first = windows.Open(1);
+        var second = windows.Open(2);
+        windows.Desktop.Remove(2);
+
+        windows.Adapter.DropGone();
+
+        Assert.True(windows.Core.Manages(first));
+        Assert.False(windows.Core.Manages(second));
+        Assert.Equal(first, Assert.Single(windows.Core.Recovery().Clients).Window);
+    }
+
+    [Fact]
     public void AnOutcomeIsCarriedOutInTheOrderOfItsParts()
     {
         using var windows = new TestWindows(reducedMotion: true);

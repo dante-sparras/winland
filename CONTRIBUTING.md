@@ -7,7 +7,7 @@
 - **Search first.** Someone may already have reported it, or be working on it.
 - **Found a vulnerability?** Don't open an issue; follow [SECURITY.md](.github/SECURITY.md).
 
-Before you build a feature or change how something behaves, open a feature request and wait for the maintainer to agree in it. Link that issue in your PR. A small fix for an obvious bug needs no prior issue; just explain the bug in the PR.
+Before you build a feature or change how something behaves, open a feature request and wait for a maintainer comment approving the direction and scope. Link that approval comment in your PR. A small fix for an obvious bug needs no prior issue. Just explain the bug in the PR.
 
 ## Set up
 
@@ -57,14 +57,14 @@ Fill in the PR template:
 
 - **Problem**: what's wrong or missing, and how to reproduce it.
 - **Change**: how your PR solves it.
-- **Scope and approval**: the issue it comes from, if any.
+- **Scope and approval**: the maintainer's approval comment for a feature or behavior change, or the triaged issue for a substantial bug fix. A small fix for an obvious bug explains why it needs no prior issue.
 - **Verification**: how you checked that it works, and what you saw. Name the tests or manual steps you ran, and anything you couldn't check. "Tests pass" on its own isn't enough. For visible changes, add before/after screenshots, or a short recording when motion matters. Attach them to the PR; don't commit them to the repo.
 
 If an AI agent did the work, end the description with the model and the tool you used, such as "Claude Opus 5.5 in Claude Code".
 
 ## Review and merge
 
-- Every change reaches `main` through a PR, and the required checks (`All required checks pass (v1)`) must pass first.
+- Every change reaches `main` through a PR, and the required checks (`All required checks pass (v1)` and `pr-title`) must pass first.
 - PRs are squash-merged. Your PR title becomes the commit message on `main`, so make it readable on its own.
 - Releases are cut from those commits, so your PR title is also your line in the changelog.
 - A PR that doesn't follow this guide may be closed with a note saying what's missing. Fix it and ask for another look, or open a new PR.

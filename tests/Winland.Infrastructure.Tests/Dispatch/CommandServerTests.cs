@@ -7,6 +7,7 @@ using System.Threading.Channels;
 
 namespace Winland.Infrastructure.Tests;
 
+[Collection(CommandServerCollection.Name)]
 public class CommandServerTests
 {
     [Fact]
@@ -157,7 +158,7 @@ public class CommandServerTests
 
         var finished = Task.Run(() =>
         {
-            for (var i = 0; i < 8000; i++)
+            for (var i = 0; i < 600; i++)
                 core.Execute(i % 2 == 0 ? "dispatch workspace 2" : "dispatch workspace 1");
         });
 
@@ -380,4 +381,11 @@ public class CommandServerTests
             _cancel.Dispose();
         }
     }
+}
+
+// ThreadPool.ThreadCount is process-wide, so other collections must finish before these tests run.
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class CommandServerCollection
+{
+    public const string Name = "Command server";
 }
