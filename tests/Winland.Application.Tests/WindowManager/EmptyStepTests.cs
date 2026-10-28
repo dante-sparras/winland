@@ -52,7 +52,6 @@ public class EmptyStepTests
         [nameof(Outcome.ResizeCursor)] = (o => o with { ResizeCursor = null }, false),
         [nameof(Outcome.Error)] = (o => o with { Error = "error: no such workspace" }, false),
         [nameof(Outcome.Kills)] = (o => o with { Kills = [new KillRequest(7)] }, false),
-        [nameof(Outcome.Kill)] = (o => o with { Kill = new KillRequest(7) }, false),
         [nameof(Outcome.Exit)] = (o => o with { Exit = true }, false),
         [nameof(Outcome.Relays)] = (o => o with { Relays = [new KeyRelay(null, "a", KeyRelayPhase.Press)] }, false),
         [nameof(Outcome.ZOrder)] = (o => o with { ZOrder = [new ZOrderRequest(OneWindow, Top: true)] }, false),

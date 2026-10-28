@@ -81,11 +81,11 @@ public class ApplyOrderTests
         order.Admit(Decided(2) with { Show = [First] });
         var launch = new Launch("app", null);
 
-        var admitted = order.Admit(Decided(1) with { Close = First, Launch = launch, Kill = new KillRequest(7) });
+        var admitted = order.Admit(Decided(1) with { Close = First, Launch = launch, Kills = [new KillRequest(7)] });
 
         Assert.Equal(First, admitted.Outcome.Close);
         Assert.Same(launch, admitted.Outcome.Launch);
-        Assert.Equal(new KillRequest(7), admitted.Outcome.Kill);
+        Assert.Equal([new KillRequest(7)], admitted.Outcome.Kills);
     }
 
     // Z-order requests are one-off requests. An older one loses only the windows a

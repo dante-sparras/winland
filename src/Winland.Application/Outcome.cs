@@ -103,12 +103,6 @@ public sealed record Outcome(
     /// <summary>Terminate these Clients' processes, in order. The adapter performs it; tests pass a stand-in.</summary>
     public IReadOnlyList<KillRequest> Kills { get; init; } = [];
 
-    /// <summary>The first kill request, or null. Setting it replaces <see cref="Kills"/> with that one request.</summary>
-    public KillRequest? Kill
-    {
-        get => Kills.Count > 0 ? Kills[0] : null;
-        init => Kills = value is KillRequest kill ? [kill] : [];
-    }
 
     /// <summary>Stop the daemon after the command reply is written.</summary>
     public bool Exit { get; init; }

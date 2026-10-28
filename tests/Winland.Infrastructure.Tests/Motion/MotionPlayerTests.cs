@@ -45,7 +45,8 @@ public class MotionPlayerTests
             }
 
             Assert.Contains("System.InvalidOperationException: frame failed", log.ToString(), StringComparison.Ordinal);
-            Assert.Contains("RecordingTarget.Move", log.ToString(), StringComparison.Ordinal);
+            // The whole exception is logged, stack included. A frame name is not checked: the JIT can inline it.
+            Assert.Contains("   at ", log.ToString(), StringComparison.Ordinal);
             Assert.Equal(2, log.ToString().Split("frame failed", StringSplitOptions.None).Length);
             Assert.Contains("move 50", target.Calls);
         }

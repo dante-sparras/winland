@@ -31,6 +31,6 @@ public sealed partial class WindowManager
             return View([]);
 
         (_extraEvents ??= []).Add(new ClientKilled(window));
-        return View([]) with { Kill = new KillRequest(client.ProcessId) { Window = window } };
+        return View([]) with { Kills = [new KillRequest(client.ProcessId) { Window = window }] };
     }
 }
