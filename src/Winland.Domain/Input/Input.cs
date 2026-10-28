@@ -30,11 +30,17 @@ public sealed record PointerMoved(Point Position) : Event
 public sealed record PointerButtonPressed(string Button) : Event
 {
     public Point Position { get; init; }
+
+    /// <summary>The hook already queued this edge's binds.</summary>
+    public bool BindsHandled { get; init; }
 }
 
 public sealed record PointerButtonReleased(string Button) : Event
 {
     public Point Position { get; init; }
+
+    /// <summary>The hook already queued this edge's binds.</summary>
+    public bool BindsHandled { get; init; }
 }
 
 /// <summary>One notch of the wheel. <paramref name="Key"/> is mouse_up, mouse_down, mouse_left, or mouse_right.</summary>

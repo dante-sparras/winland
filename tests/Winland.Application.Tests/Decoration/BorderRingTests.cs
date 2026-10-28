@@ -97,6 +97,6 @@ public class BorderRingTests
     {
         var document = ConfigParser.Parse("animation = borderangle, 1, 10, linear, loop\n");
 
-        Assert.Contains(document.Warnings, warning => warning.Message == "Animation 'borderangle' does not exist.");
+        Assert.Contains(document.Warnings, warning => warning.Message == "Animation 'borderangle' is not one Winland draws.");
     }
 }
