@@ -2,7 +2,9 @@ namespace Winland.Daemon;
 
 sealed class FileConfigSource(string directory) : IConfigSource
 {
-    public string? Read(string path)
+    public string? Read(string path) => UserAccess.Run(() => ReadFile(path));
+
+    private string? ReadFile(string path)
     {
         var full = Path.IsPathRooted(path) ? path : Path.Combine(directory, path);
         try
@@ -20,7 +22,9 @@ sealed class FileConfigSource(string directory) : IConfigSource
 
     public string? Variable(string name) => Environment.GetEnvironmentVariable(name);
 
-    public IReadOnlyList<string> Match(string pattern)
+    public IReadOnlyList<string> Match(string pattern) => UserAccess.Run(() => MatchFiles(pattern));
+
+    private IReadOnlyList<string> MatchFiles(string pattern)
     {
         var full = Path.IsPathRooted(pattern) ? pattern : Path.Combine(directory, pattern);
         var (root, depth) = Plan(full);

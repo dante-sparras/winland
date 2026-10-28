@@ -60,6 +60,8 @@ PostThreadMessage
 PostMessage
 PeekMessage
 OpenProcessToken
+GetTokenInformation
+TOKEN_ELEVATION_TYPE
 LookupPrivilegeValue
 AdjustTokenPrivileges
 SetKernelObjectSecurity

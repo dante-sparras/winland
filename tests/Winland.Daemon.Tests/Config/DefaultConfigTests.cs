@@ -144,6 +144,10 @@ public class DefaultConfigTests
             Assert.True(DefaultConfig.WriteIfMissing(path));
             Assert.Equal(DefaultConfig.Text, File.ReadAllText(path));
 
+            File.WriteAllText(path, "");
+            Assert.True(DefaultConfig.WriteIfMissing(path));
+            Assert.Equal(DefaultConfig.Text, File.ReadAllText(path));
+
             File.WriteAllText(path, "bind = SUPER, Q, killactive\n");
             Assert.False(DefaultConfig.WriteIfMissing(path));
             Assert.Equal("bind = SUPER, Q, killactive\n", File.ReadAllText(path));
