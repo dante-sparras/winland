@@ -1,0 +1,42 @@
+name: PR Title
+
+on:
+  # pull_request_target runs on fork PRs without waiting for a maintainer's approval, so the required
+  # check reports on every PR. The job reads only the title and never checks out PR code.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  pr-title:
+    # The ruleset requires this job by name. Rename it there too if you rename it here.
+    name: pr-title
+    # GitHub's Revert button titles PRs `Revert "<original title>"` on a `revert-<n>-…` branch. A skipped
+    # job still satisfies the required check.
+    if: ${{ !(startsWith(github.event.pull_request.title, 'Revert "') && startsWith(github.head_ref, 'revert-')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # Reads only the PR title; never check out or run PR code in this pull_request_target job.
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            The subject "{subject}" in "{title}" must start with a lowercase letter.
+            Example: "fix(api): retries no longer duplicate orders".

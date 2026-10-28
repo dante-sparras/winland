@@ -1,0 +1,104 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+  # Lets you re-run it, for example after adding the release token.
+  workflow_dispatch:
+
+permissions: {}
+
+# Two quick merges queue up instead of racing to update the same release PR.
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # tags and GitHub releases
+      issues: write # labels on the release PR
+      pull-requests: write # opens and updates the release PR
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      # PRs opened with GITHUB_TOKEN do not trigger CI, so required checks never run on the release
+      # PR. RELEASE_PLEASE_TOKEN (a fine-grained PAT) fixes that; without it, close and reopen the
+      # release PR to trigger its checks.
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # release-please makes the release a draft and creates its tag. This job builds the tagged commit,
+  # uploads the files install.ps1 and winland update download, and only then publishes, so the newest
+  # published release always has its zip.
+  publish:
+    name: Build and publish the release
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # uploads the assets and publishes the draft
+    env:
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+      RELEASE_VERSION: ${{ needs.release-please.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Publish, zip, and checksum
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = $env:RELEASE_VERSION
+          if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw "Bad version '$version'." }
+          $commit = (git rev-parse HEAD).Trim()
+          if ($commit -notmatch '^[0-9a-f]{40}$') { throw "Bad commit '$commit'." }
+          $daemon = Join-Path $env:RUNNER_TEMP 'pub-daemon'
+          $stage = Join-Path $env:RUNNER_TEMP 'stage'
+          dotnet publish (Join-Path $env:GITHUB_WORKSPACE 'src\Winland.Daemon\Winland.Daemon.csproj') -c Release -r win-x64 --self-contained true "-p:Version=$version" -p:ContinuousIntegrationBuild=true -o $daemon
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force -Path (Join-Path $stage 'winland') | Out-Null
+          Copy-Item (Join-Path $daemon '*') (Join-Path $stage 'winland') -Recurse
+          $date = [DateTimeOffset]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssK')
+          $json = '{"commit":"' + $commit + '","date":"' + $date + '","version":"' + $version + '"}' + "`n"
+          $jsonPath = Join-Path $env:RUNNER_TEMP 'version.json'
+          [System.IO.File]::WriteAllText($jsonPath, $json)
+          Copy-Item $jsonPath (Join-Path $stage 'version.json')
+          $zip = Join-Path $env:RUNNER_TEMP 'Winland-win-x64.zip'
+          & tar -a -c -f $zip -C $stage .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $dist = Join-Path $env:RUNNER_TEMP 'dist'
+          New-Item -ItemType Directory -Force -Path $dist | Out-Null
+          Copy-Item $zip (Join-Path $dist 'Winland-win-x64.zip')
+          Copy-Item $jsonPath (Join-Path $dist 'version.json')
+          $sums = foreach ($name in @('Winland-win-x64.zip', 'version.json')) {
+            $hash = (Get-FileHash -Algorithm SHA256 (Join-Path $dist $name)).Hash.ToLowerInvariant()
+            "$hash  $name"
+          }
+          [System.IO.File]::WriteAllText((Join-Path $dist 'SHA256SUMS'), (($sums -join "`n") + "`n"))
+      - name: Upload the assets and publish
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dist = Join-Path $env:RUNNER_TEMP 'dist'
+          gh release upload $env:TAG (Join-Path $dist 'Winland-win-x64.zip') (Join-Path $dist 'version.json') (Join-Path $dist 'SHA256SUMS') --repo $env:REPO --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release edit $env:TAG --repo $env:REPO --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

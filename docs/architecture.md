@@ -1,6 +1,6 @@
 # Architecture
 
-Where things are, and the path an input takes. The rules behind the layout are in [ADR 0005](adr/0005-clean-architecture-in-four-layers.md); the words are in [CONTEXT.md](../CONTEXT.md).
+Where things are, and the path an input takes. The rules behind the layout are in [ADR 0005](adr/0005-clean-architecture-in-four-layers.md); the words are in [GLOSSARY.md](../GLOSSARY.md).
 
 ## Layers
 

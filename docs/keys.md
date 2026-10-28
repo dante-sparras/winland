@@ -1,6 +1,6 @@
 # Keys
 
-How Winland names keys: the XKB keycode, the Windows scan code and the evdev code of each key a bind can name. Honored behavior is in [behavior.md](behavior.md), and terms are defined in [CONTEXT.md](../CONTEXT.md).
+How Winland names keys: the XKB keycode, the Windows scan code and the evdev code of each key a bind can name. Honored behavior is in [behavior.md](behavior.md), and terms are defined in [GLOSSARY.md](../GLOSSARY.md).
 
 ## Winland notes
 

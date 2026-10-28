@@ -1,1 +1,6 @@
 scripts/hooks/* text eol=lf
+# Installed agent skills are third-party: hide them from language stats and collapse them in PR diffs.
+.agents/skills/** linguist-vendored linguist-generated
+.claude/skills/** linguist-vendored linguist-generated
+# release-please writes the changelog.
+CHANGELOG.md linguist-generated

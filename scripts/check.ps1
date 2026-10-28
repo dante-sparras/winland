@@ -50,7 +50,7 @@ function Test-MarkdownLinks([string]$Root, [string[]]$Tracked) {
     }
 
     # A file that docs/agents/domain.md says may be missing is not an error in AGENTS.md.
-    $optional = @('CONTEXT.md', 'docs/adr', 'docs/adr/README.md')
+    $optional = @('GLOSSARY.md', 'docs/adr', 'docs/adr/README.md')
     $pathExtensions = '\.(md|ps1|json|yml|yaml|props|slnx|csproj)$'
 
     $linkCount = 0

@@ -1,39 +1,19 @@
 # Releasing
 
-The committed version is `0.0.0`. A build without `-p:Version` is `0.0.0-dev`. Do not bump a version file.
+Stable releases are cut by release-please (`.github/workflows/release-please.yml`). The version and the changelog come from the Conventional Commit titles on `main`.
 
-The release version is the newest published, non-prerelease GitHub release whose tag is exactly `vMAJOR.MINOR.PATCH`, bumped at cut time. With no such release the base is `0.0.0`. The first release is cut with `-Bump minor` and is `0.1.0`.
-
-`scripts/release.ps1` cuts, publishes, abandons, and prints status. `.github/workflows/stable-release.yml` admits the claim, runs release CI, builds the artifact, and uploads it to the draft. It does not publish. A **Run workflow** from the GitHub UI cannot ship a stable release.
+The committed version is `0.0.0`, and a build without `-p:Version` is `0.0.0-dev`. Do not bump a version file. The last released version is in `.release-please-manifest.json`, which release-please updates.
 
 ## Order
 
-1. `release` pushes an annotated tag `rc.<N>-vX.Y.Z`. The message is a JSON claim: commit, attempt, version, and the time. A claim from an older release may also carry `autopublish`, which is ignored.
-2. It opens one draft release on that tag. The notes run from the previous published `vX.Y.Z` to this commit. An `rc.*` tag is not that previous release. The first release has no previous `vX.Y.Z`, so the notes start at the beginning of the history. A warning block sits at the top and the bottom of the body.
-3. It dispatches **Stable Release** from `main` with that tag.
-4. The workflow checks the claim, checks that the commit is on `origin/main`, and checks that the draft exists.
-5. It runs CI for that commit: the lint and every unit test. Mutation testing is not part of a release. Then it builds the artifact.
-6. It uploads `Winland-win-x64.zip`, `version.json`, and `SHA256SUMS` to the draft.
-7. It stops. The draft stays a draft. `scripts/release.ps1 publish` creates the annotated tag `vX.Y.Z` on the same commit, points the release at that tag, strips the warnings, and publishes.
+1. Every push to `main` updates one open release PR, titled `chore(main): release X.Y.Z`. It bumps `.release-please-manifest.json` and adds the release's section to `CHANGELOG.md`. A `fix` is a patch, a `feat` is a minor version, and `!` is a breaking change. Before `1.0.0` a breaking change bumps the minor version.
+2. CI runs on the release PR like on any other, because release-please opens it with `RELEASE_PLEASE_TOKEN`.
+3. Merging the release PR makes a draft release and creates the tag `vX.Y.Z` on the merge commit.
+4. The **Build and publish the release** job checks out that tag, publishes `Winland.Daemon` with `-p:Version=X.Y.Z`, uploads the assets to the draft, and publishes it as the latest release.
 
-Do not press Publish in the GitHub UI. That skips the receipt tag.
+Do not publish the draft in the GitHub UI. A release published before its assets are uploaded has no zip, and `install.ps1` and `winland update` fail on it. If the job fails, re-run it. The upload replaces any asset already there.
 
-Exactly one attempt may be outstanding. An attempt is outstanding when its `rc.*` tag has neither a final `vX.Y.Z` nor an `abandoned-rc.<N>-vX.Y.Z` marker. `release` refuses while one is outstanding and prints the workflow run, when one exists, and the `abandon` command.
-
-## Commands
-
-```powershell
-pwsh -NoProfile -File scripts/release.ps1 status
-pwsh -NoProfile -File scripts/release.ps1 release -Bump minor
-pwsh -NoProfile -File scripts/release.ps1 publish -Version 0.1.0
-pwsh -NoProfile -File scripts/release.ps1 abandon rc.1-v0.1.0
-```
-
-`-Bump` is `patch` (the default), `minor`, or `major`. `-Commit` selects a commit that is already on `origin/main` and that descends from the newest published tag. `-DryRun` prints every mutation and performs none.
-
-`publish` is idempotent. After a partial failure, run it again. It reads each step before repeating it.
-
-`status` prints the newest published version, any outstanding attempt, and the next version for each bump.
+To choose the version, add `Release-As: X.Y.Z` to the end of a squash commit message on `main`.
 
 ## What a release contains
 
@@ -49,28 +29,14 @@ The zip has one directory. `winland/` is `Winland.Daemon` published self-contain
 
 The `v0.1.2` zip was one flat self-contained folder of the old host (`winland.exe`, `Winland.Host.exe`, `Winland.Watch.exe`) plus `version.json`. Those projects are gone. The `version.json` fields are the same.
 
+## Dev releases
+
+`.github/workflows/dev-release.yml` publishes one rolling prerelease on the tag `dev` after CI passes on each push to `main`. Its version is the newest published `vX.Y.Z` with `-dev.<commits since>` added, such as `0.4.0-dev.12+a886990`. Immutable releases stay off, because that workflow moves the `dev` tag and replaces its assets.
+
 ## Tags
 
-`.github/rulesets/protect-release-tags.json` blocks creation, update, and deletion of `v*`, `rc.*`, and `abandoned-rc.*` except for a repository admin (role id 5) and the GitHub Actions app (integration id 15368). `scripts/release.ps1 publish` creates the receipt tag as the maintainer, who is an admin. Apply that bypass on the live ruleset. Editing the file does not change the live rule.
+`.github/rulesets/protect-release-tags.json` blocks creating, moving, or deleting `v*` tags except for a repository admin (role id 5) and the GitHub Actions app (integration id 15368). release-please creates the tag with `RELEASE_PLEASE_TOKEN`, a fine-grained token of the maintainer, who is an admin. Editing the file does not change the live rule.
 
-A tag pushed by `GITHUB_TOKEN` does not start a workflow. This flow does not use a tag trigger.
+## The release token
 
-## A patch without the rest of `main`
-
-Use a `release/*` branch only when `X.Y.(Z+1)` must ship without every commit on `main`.
-
-1. The branch ruleset already covers `release/*`. Pull-request CI runs. A push to `release/*` does not.
-2. Cut the branch from the published tag:
-
-   ```bash
-   git fetch origin tag v1.4.1
-   git switch -c release/1.4.2 v1.4.1
-   git push -u origin release/1.4.2
-   ```
-
-3. One fix per pull request into `release/1.4.2`. Do not merge `main` into it.
-4. Merge `release/1.4.2` into `main`. The patch commit is then on `origin/main` and does not contain later `main` commits.
-5. Cut that commit: `scripts/release.ps1 release -Commit <patch sha>`. The workflow still starts from `main` and checks out the claim commit.
-6. Leave the release branch until you no longer need another patch from it. Deletion is an admin action.
-
-Check the tag, not the branch name, to see what shipped.
+`RELEASE_PLEASE_TOKEN` is a fine-grained personal access token for this repo only, with Contents, Pull requests, and Issues set to read and write. Store it with `gh secret set RELEASE_PLEASE_TOKEN --repo dante-sparras/winland`. It expires. When it has, release-please falls back to the built-in token, and the release PR's checks do not start until you close and reopen it.

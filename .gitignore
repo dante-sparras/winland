@@ -7,5 +7,31 @@ StrykerOutput/
 .firecrawl/
 .scratch/**/out/
 
-# Local Claude Code session files, such as review notes.
-.claude/
+# Local Claude Code session files, such as review notes. The installed skills are committed.
+.claude/*
+!.claude/skills/
+
+# Baseline
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Personal agent settings
+CLAUDE.local.md
+AGENTS.override.md

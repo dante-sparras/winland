@@ -1,39 +1,54 @@
-# Dependabot opens one pull request a month for NuGet packages and the .NET SDK
-# in global.json, and one a week for GitHub Actions. Minor and patch bumps of
-# packages and actions are grouped. A major bump arrives as its own pull request.
-# Actions are pinned to a full commit SHA.
-# CVE-only security updates are a repository setting.
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
+    # Wait a week before proposing a new release, so a compromised one is usually caught first.
+    cooldown:
+      default-days: 7
     commit-message:
-      prefix: chore(actions)
+      prefix: chore
       include: scope
+    # Group minor and patch updates; each major update gets its own PR, so one breaking change can't
+    # hold back the rest.
     groups:
-      actions-minor-patch:
-        update-types: [minor, patch]
+      actions:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
   - package-ecosystem: nuget
     directory: /
     schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
+      interval: weekly
+    cooldown:
+      default-days: 7
     commit-message:
-      prefix: chore(deps)
+      prefix: chore
       include: scope
-    labels: [dependencies]
     groups:
-      nuget-minor-patch:
-        update-types: [minor, patch]
+      nuget:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+  # The .NET SDK pinned in global.json.
   - package-ecosystem: dotnet-sdk
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
+    cooldown:
+      default-days: 7
     commit-message:
-      prefix: chore(deps)
+      prefix: chore
       include: scope
-    labels: [dependencies]
+    groups:
+      dotnet-sdk:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch

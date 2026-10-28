@@ -167,6 +167,6 @@ jobs:
   mutation:
     name: Mutation testing
     if: inputs.release == true
-    uses: ./.github/workflows/mutation.yml
+    uses: ./.github/workflows/mutation.yml # zizmor: ignore[self-repository]
     with:
       ref: ${{ inputs.ref }}

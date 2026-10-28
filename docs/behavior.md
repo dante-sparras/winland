@@ -1,6 +1,6 @@
 # Behavior
 
-How Winland behaves. Terms are defined in [CONTEXT.md](../CONTEXT.md). An unknown keyword warns and is skipped. When exactly one Option is within two edits of an unknown keyword, the warning ends `Did you mean '<option>'?`, and an unknown Dispatcher, window rule effect or window rule match field gets the same hint from the names Winland has. A value an Option cannot read warns `Invalid value '<value>' for <option>.` and the line is skipped, so the earlier value stays. A number outside an Option's range is clamped to it.
+How Winland behaves. Terms are defined in [GLOSSARY.md](../GLOSSARY.md). An unknown keyword warns and is skipped. When exactly one Option is within two edits of an unknown keyword, the warning ends `Did you mean '<option>'?`, and an unknown Dispatcher, window rule effect or window rule match field gets the same hint from the names Winland has. A value an Option cannot read warns `Invalid value '<value>' for <option>.` and the line is skipped, so the earlier value stays. A number outside an Option's range is clamped to it.
 
 ## Config files
 
