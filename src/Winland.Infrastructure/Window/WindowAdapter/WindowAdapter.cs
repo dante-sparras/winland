@@ -214,12 +214,13 @@ public sealed partial class WindowAdapter : IDisposable
         uint dwmsEventTime)
     {
         // A reorder names the parent whose children moved, so it is not a window event. Only the desktop's children are
-        // windows that can be Clients: then every tab bar is stacked again, and the floating Clients go back above a
-        // tile that was raised over them. Programs reorder their own child windows all the time.
+        // windows that can be Clients: then every border and tab bar is stacked again, and the floating Clients go back
+        // above a tile that was raised over them. Programs reorder their own child windows all the time.
         if (@event == PInvoke.EVENT_OBJECT_REORDER)
         {
             if (hwnd == PInvoke.GetDesktopWindow())
             {
+                BorderHost.Restack();
                 GroupBarHost.Restack();
                 KeepFloatingAbove();
             }
