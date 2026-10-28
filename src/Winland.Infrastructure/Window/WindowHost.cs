@@ -170,8 +170,15 @@ public sealed class WindowHost : IDisposable
         _whenReady = whenReady;
 
         // A message-only window does not receive power broadcasts. This hidden
-        // top-level window does, and it is the target for session notifications.
-        using var session = new SessionWindow(OnSignal, OnFlash, () => SessionEnding?.Invoke(), NoteAccent, WindowAdapter.ForgetSettings);
+        // top-level window does, and it is the target for session notifications. Windows sends it these while the
+        // loop may be waiting on another program in the middle of a step, so each is handed to the loop and its step
+        // starts at the top of the loop. The end of the session cannot wait: the process can end once it returns.
+        using var session = new SessionWindow(
+            signal => _loop.Post(() => OnSignal(signal)),
+            window => _loop.Post(() => OnFlash(window)),
+            () => SessionEnding?.Invoke(),
+            () => _loop.Post(NoteAccent),
+            WindowAdapter.ForgetSettings);
         var shell = WaitForShell();
         var thread = PInvoke.GetCurrentThreadId();
         SessionHalt.Stop = () => _ = PInvoke.PostThreadMessage(thread, QuitMessage, default, default);
