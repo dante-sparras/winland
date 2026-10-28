@@ -85,17 +85,14 @@ public sealed partial class WindowManager
     {
         var processId = appeared.ProcessId is > 0 and <= int.MaxValue ? (int)appeared.ProcessId : 0;
         if (processId > 0)
-        {
-            _follow.NoteLineage(processId, appeared.AncestorProcessIds);
-            _initialWorkspaces.NoteLineage(processId, appeared.AncestorProcessIds);
-        }
+            NoteLineage(processId, appeared.AncestorProcessIds);
 
         // A Client shown again changes nothing, and uses up no rules of a started program. One that showed itself
         // while Winland keeps it hidden, on a hidden Workspace, waiting in a Group or scrolled out of view, is hidden again.
         if (Find(appeared.Window) is { } existing)
         {
-            var kept = _workspaces.Shown.IsShown(existing.Workspace)
-                && WorkspaceContaining(appeared.Window)?.Covered().Contains(appeared.Window) != true;
+            var home = WorkspaceContaining(appeared.Window)!;
+            var kept = !Concealed(home, existing) && !home.Covered().Contains(appeared.Window);
             return kept ? View([]) : View([], hide: [appeared.Window]);
         }
 
@@ -133,6 +130,8 @@ public sealed partial class WindowManager
         var desk = WorkspaceFor(target, ruledHere ? null : target.IsSpecial ? FocusedId() : monitor);
         // WorkspaceFor may place the number on another Monitor. The Client keeps that Workspace.
         target = desk.Id;
+        if (restored is { Hidden: false } && !desk.Id.IsSpecial)
+            _restoredShown.Add(desk.Id);
         var area = WorkArea(desk, appeared.WorkArea);
         _area = area;
         decision = EvaluateSizeRules(appeared, decision, desk, area);
@@ -149,13 +148,13 @@ public sealed partial class WindowManager
             target,
             appeared.Traits.Class,
             appeared.Traits.Title,
-            FocusedMonitorBounds(),
+            MonitorById(desk.Monitor)?.Bounds ?? default,
             appeared.ProcessId,
             minSize: decision.MinSize,
             maxSize: decision.MaxSize,
             tiledLimits: RememberSizes(appeared.Window, decision.Sizes, appeared.Traits.MinSize, appeared.Traits.MaxSize));
         if (decision.FullscreenRequest is { } fullscreen)
-            placements = desk.Layout.SetFullscreen(appeared.Window, fullscreen.Internal, fullscreen.Client);
+            placements = desk.Layout.SetFullscreen(appeared.Window, fullscreen.Mode);
         else
             placements = OpenUnderFullscreen(desk, appeared.Window, placements);
 
@@ -247,8 +246,9 @@ public sealed partial class WindowManager
             DropIfEmpty(desk.Id);
             var normal = _workspaces.Find(_workspaces.Shown.ActiveOn(monitor));
             var specialFocus = normal is null ? null : _focus.Remembered(normal);
-            Give(specialFocus, normal);
-            return View(normal?.Layout.Visible() ?? [], focus: specialFocus);
+            if (wasActive)
+                Give(specialFocus, normal);
+            return View(normal?.Layout.Visible() ?? [], focus: wasActive ? specialFocus : null);
         }
 
         DropIfEmpty(desk.Id);

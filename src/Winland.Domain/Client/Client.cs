@@ -2,6 +2,9 @@ using System.Globalization;
 
 namespace Winland.Domain;
 
+/// <param name="Pinned">Filled in snapshots. Layout records do not carry the pin.</param>
+/// <param name="AllowedOverFullscreen">Filled in snapshots from FullscreenCover.</param>
+/// <param name="BelowFullscreen">Filled in snapshots from FullscreenCover.</param>
 public sealed record Client(
     ClientId Id,
     WindowId Window,
@@ -15,11 +18,14 @@ public sealed record Client(
     string InitialTitle = "",
     Rectangle Bounds = default,
     FullscreenMode Fullscreen = FullscreenMode.None,
-    FullscreenMode FullscreenClient = FullscreenMode.None,
     bool Pinned = false,
     bool LayoutFullscreen = false,
     bool AllowedOverFullscreen = true,
-    bool BelowFullscreen = false);
+    bool BelowFullscreen = false)
+{
+    /// <summary>The query's client mode is always the fullscreen mode.</summary>
+    public FullscreenMode FullscreenClient => Fullscreen;
+}
 
 public readonly record struct WindowId(long Value)
 {

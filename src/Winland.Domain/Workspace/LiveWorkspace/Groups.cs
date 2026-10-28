@@ -146,38 +146,6 @@ internal sealed partial class LiveWorkspace
         return GroupExit.Detached;
     }
 
-    /// <summary>
-    /// Puts <paramref name="next"/>, a window in no Layout, in the place of <paramref name="current"/> in its
-    /// Group. When <paramref name="current"/> is shown, <paramref name="next"/> takes its tile. False when
-    /// <paramref name="current"/> is not a member.
-    /// </summary>
-    public bool ReplaceMember(WindowGroup group, WindowId current, WindowId next, Taken incoming)
-    {
-        var index = group.IndexOf(current);
-        if (index < 0 || group.Contains(next))
-            return false;
-
-        if (index == group.Current)
-        {
-            if (!Layout.Substitute(current, next, incoming, out _))
-                return false;
-        }
-        else
-        {
-            if (!_waiting.Remove(current))
-                return false;
-
-            var floating = ClientOf(group.Shown)?.Floating ?? incoming.Floating;
-            _waiting[next] = Wait(next, incoming with { Floating = floating });
-        }
-
-        group.Replace(index, next);
-        if (Focus == current)
-            Focus = next;
-
-        return true;
-    }
-
     /// <summary>Moves a Group's record and waiting members to <paramref name="destination"/>. Its shown member moves on its own.</summary>
     public void HandGroup(WindowGroup group, LiveWorkspace destination)
     {
@@ -215,8 +183,8 @@ internal sealed partial class LiveWorkspace
                 Class: taken.Class,
                 Title: taken.Title,
                 ProcessId: taken.ProcessId,
-                InitialClass: taken.InitialClass.Length == 0 ? taken.Class : taken.InitialClass,
-                InitialTitle: taken.InitialTitle.Length == 0 ? taken.Title : taken.InitialTitle,
+                InitialClass: taken.InitialClass ?? taken.Class,
+                InitialTitle: taken.InitialTitle ?? taken.Title,
                 Bounds: taken.Bounds),
             taken with { Minimized = false });
 

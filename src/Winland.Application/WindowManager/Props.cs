@@ -80,7 +80,9 @@ public sealed partial class WindowManager
         var window = client.Window;
         var key = property;
         object? next;
-        switch (kind)
+        if (value.Equals("unset", StringComparison.OrdinalIgnoreCase))
+            next = null;
+        else switch (kind)
         {
             case PropKind.Size:
                 if (!ExpressionPair.TryParse(value, out var pair)

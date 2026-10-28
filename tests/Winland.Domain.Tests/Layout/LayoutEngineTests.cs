@@ -450,7 +450,7 @@ public class LayoutEngineTests
             _ => new DwindleLayout(),
         };
         layout.Apply(options);
-        layout.Fit(Area);
+        layout.Fit(Area, Area);
         return layout;
     }
 

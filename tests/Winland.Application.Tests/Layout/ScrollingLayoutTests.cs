@@ -168,7 +168,7 @@ public class ScrollingLayoutTests
         var layout = Open();
         layout.Add(Window(1), Area, null, false, default, WorkspaceId.Initial, monitor: Area);
 
-        layout.Fit(new Rectangle(1920, 0, 1000, 800));
+        layout.Fit(new Rectangle(1920, 0, 1000, 800), new Rectangle(1920, 0, 1000, 800));
         var shown = layout.Visible();
 
         Assert.Equal(new Rectangle(1920, 0, 1000, 800), Box(shown, 1));
@@ -424,7 +424,7 @@ public class ScrollingLayoutTests
     {
         var layout = new ScrollingLayout();
         layout.Apply(LayoutOptions.Unconfigured);
-        layout.Fit(area);
+        layout.Fit(area, area);
         return layout;
     }
 

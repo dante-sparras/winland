@@ -48,7 +48,7 @@ public sealed partial class WindowManager
         // The member that takes the slot does not inherit the closed member's mode, which
         // ends that mode before the window leaves its Group.
         if (wasShown && mode != FullscreenMode.None && desk.ClientOf(group.Shown) is { Fullscreen: not FullscreenMode.None })
-            desk.Layout.SetFullscreen(group.Shown, FullscreenMode.None, FullscreenMode.None);
+            desk.Layout.SetFullscreen(group.Shown, FullscreenMode.None);
 
         if (!wasShown || !_workspaces.Shown.IsShown(desk.Id))
         {

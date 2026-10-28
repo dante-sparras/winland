@@ -13,7 +13,7 @@ internal sealed partial class DwindleLayout : IMouseDragHost, IDragOwner
     public IReadOnlyList<Placement> PlaceFloating(WindowId window, Rectangle bounds)
     {
         var id = new ClientId(window.Value);
-        return _floating.Place(id, bounds, _options.FloatingOnScreen(_area)) ? WithFloating(id) : [];
+        return _floating.Place(id, bounds, _options.FloatingOnScreen(_area), FloatingLimits(id)) ? WithFloating(id) : [];
     }
 
     bool IMouseDragHost.TryDragBounds(ClientId id, out Rectangle bounds, out bool floating)

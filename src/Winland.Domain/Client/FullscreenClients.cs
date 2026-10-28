@@ -2,7 +2,7 @@ namespace Winland.Domain;
 
 internal static class FullscreenClients
 {
-    internal static bool Assign(List<Client> clients, WindowId window, FullscreenMode mode, FullscreenMode clientMode)
+    internal static bool Assign(List<Client> clients, WindowId window, FullscreenMode mode)
     {
         var index = clients.FindIndex(client => client.Window == window);
         if (index < 0)
@@ -19,7 +19,6 @@ internal static class FullscreenClients
                 clients[i] = clients[i] with
                 {
                     Fullscreen = FullscreenMode.None,
-                    FullscreenClient = FullscreenMode.None,
                 };
             }
         }
@@ -27,7 +26,6 @@ internal static class FullscreenClients
         clients[index] = clients[index] with
         {
             Fullscreen = mode,
-            FullscreenClient = clientMode,
             LayoutFullscreen = false,
         };
         return true;

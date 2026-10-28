@@ -164,9 +164,19 @@ public sealed partial class WindowManager
 
     private Outcome? MoveWithMonitor(Gesture gesture, bool settle, Point pointer)
     {
-        var window = gesture.Window;
+        if (!LayoutWorkspace(gesture.Window).Layout.TryBounds(gesture.Window, out var box))
+            return null;
+
+        var moved = MoveWithMonitor(gesture.Window, box, gesture.WasTiled, settle, pointer);
+        if (moved is not null)
+            gesture.MovedWorkspace = true;
+        return moved;
+    }
+
+    private Outcome? MoveWithMonitor(WindowId window, Rectangle box, bool wasTiled, bool settle, Point pointer)
+    {
         var source = LayoutWorkspace(window);
-        if (source.ClientOf(window) is not { Floating: true } || !source.Layout.TryBounds(window, out var box))
+        if (source.ClientOf(window) is not { Floating: true })
             return null;
 
         var middle = new Point(box.X + (box.Width / 2), box.Y + (box.Height / 2));
@@ -188,11 +198,10 @@ public sealed partial class WindowManager
             return null;
         }
 
-        var tileBack = settle && gesture.WasTiled;
+        var tileBack = settle && wasTiled;
         var monitor = MonitorById(target.Monitor) is { Arranged.Enabled: true } destination ? destination.Bounds : default;
         target.Receive(window, taken with { Floating = !tileBack, Bounds = box }, WorkArea(target, _area), monitor, pointer: tileBack ? pointer : null);
         CarryGroup(source, target, window);
-        gesture.MovedWorkspace = true;
         FocusState.Remember(target, window);
         if (settle)
             Give(window, target);

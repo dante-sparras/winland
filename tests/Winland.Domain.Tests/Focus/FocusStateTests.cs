@@ -131,11 +131,24 @@ public class FocusStateTests
     private static LiveWorkspace Desk(params long[] windows)
     {
         var layout = new DwindleLayout();
-        layout.Fit(Area);
+        layout.Fit(Area, Area);
         foreach (var window in windows)
             layout.Add(Window(window), Area, null, false, new Rectangle(0, 0, 400, 300), WorkspaceId.Initial, "app", "title", monitor: Area);
 
         return new LiveWorkspace(WorkspaceId.Initial, MonitorId.Primary, layout);
+    }
+
+    [Fact]
+    public void RecentSkipsAGroupMemberThatIsWaitingHidden()
+    {
+        var focus = new FocusState(_ => true);
+        var desk = Desk(1);
+        var group = desk.StartGroup(Window(1));
+        desk.Join(group, Window(2), new Taken(false, false, Area), 1);
+        focus.Confirm(Window(1));
+        focus.Confirm(Window(2));
+
+        Assert.Equal(Window(1), focus.Recent(desk));
     }
 
     private static WindowId Window(long id) => new(id);

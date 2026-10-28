@@ -171,7 +171,7 @@ public class WorkspaceSetTests
     private static LiveWorkspace Add(WorkspaceSet set, WorkspaceId id, int windows = 0)
     {
         var layout = new DwindleLayout();
-        layout.Fit(Area);
+        layout.Fit(Area, Area);
         for (var i = 0; i < windows; i++)
             layout.Add(new WindowId(Interlocked.Increment(ref _nextWindow)), Area, null, false, new Rectangle(0, 0, 400, 300), id, "app", "title", monitor: Area);
 

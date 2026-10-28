@@ -31,5 +31,5 @@ internal readonly record struct MapPlacement(
     bool Center = false,
     string? Monitor = null);
 
-/// <summary>Internal and client modes from a <c>fullscreen</c> or <c>maximize</c> rule. The client mode is stored, not sent to the window.</summary>
-public readonly record struct FullscreenRule(FullscreenMode Internal, FullscreenMode Client);
+/// <summary>The fullscreen mode requested by a <c>fullscreen</c> or <c>maximize</c> rule.</summary>
+public readonly record struct FullscreenRule(FullscreenMode Mode);

@@ -202,7 +202,7 @@ public class LaunchTests
         var launch = core.Handle(new Dispatch("exec", "[tile] tool")).Launch;
         Assert.NotNull(launch);
         core.NoteLaunched(10, launch);
-        core.NoteProcess(20, 10);
+        core.NoteLineage(20, [10]);
 
         var child = core.Handle(new WindowAppeared(new WindowId(1), area)
         {

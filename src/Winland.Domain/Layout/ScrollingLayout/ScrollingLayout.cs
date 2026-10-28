@@ -5,7 +5,7 @@ namespace Winland.Domain;
 /// <summary>
 /// Columns on a tape. The viewport shows a slice of the tape.
 /// A column whose box misses the viewport is left out of the placements, so the caller conceals it.
-/// A column that only partly overlaps keeps its full tape rectangle and hangs off the edge.
+/// A partly visible column keeps its tape rectangle unless that would cover another Monitor.
 /// </summary>
 internal sealed partial class ScrollingLayout : TiledLayout, Layout
 {
@@ -27,6 +27,8 @@ internal sealed partial class ScrollingLayout : TiledLayout, Layout
     private bool _dragging;
 
     public bool FollowsMonitorWhenUnmoved => true;
+
+    public IReadOnlyList<Rectangle> OtherMonitors { get; set; } = [];
 
     public string? LayoutMessageError { get; private set; }
 
@@ -53,14 +55,11 @@ internal sealed partial class ScrollingLayout : TiledLayout, Layout
         return Placements();
     }
 
-    public void Fit(Rectangle area)
+    public void Fit(Rectangle area, Rectangle monitor)
     {
-        // A new work area means the workspace moved or its monitor changed, so the
-        // monitor rectangle from the last Add is stale. Cull against the work area
-        // until the next Add brings the current monitor.
-        if (area != _area)
-            _monitor = default;
         _area = area;
+        if (monitor.Width > 0 && monitor.Height > 0)
+            _monitor = monitor;
         Recalculate();
     }
 
@@ -75,8 +74,8 @@ internal sealed partial class ScrollingLayout : TiledLayout, Layout
         string title = "",
         Rectangle monitor = default,
         long processId = 0,
-        string initialClass = "",
-        string initialTitle = "",
+        string? initialClass = null,
+        string? initialTitle = null,
         Size? minSize = null,
         Size? maxSize = null,
         TiledLimits? tiledLimits = null)
@@ -292,6 +291,9 @@ internal sealed partial class ScrollingLayout : TiledLayout, Layout
 
             var box = cell.Logical;
             if (!Intersects(box, view))
+                continue;
+
+            if (OtherMonitors.Any(other => Intersects(box, other)))
                 continue;
 
             placements.Add(new Placement(client.Id, box));

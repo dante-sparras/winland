@@ -12,8 +12,8 @@ internal static class ClientAdoption
         string title,
         bool floating,
         long processId,
-        string initialClass,
-        string initialTitle) =>
+        string? initialClass,
+        string? initialTitle) =>
         new(
             id,
             window,
@@ -22,6 +22,6 @@ internal static class ClientAdoption
             Class: windowClass,
             Title: title,
             ProcessId: processId,
-            InitialClass: initialClass.Length == 0 ? windowClass : initialClass,
-            InitialTitle: initialTitle.Length == 0 ? title : initialTitle);
+            InitialClass: initialClass ?? windowClass,
+            InitialTitle: initialTitle ?? title);
 }

@@ -38,7 +38,7 @@ public sealed partial class WindowManager
 
         // While no Monitor is enabled Winland keeps the Workspaces on a FALLBACK Monitor, and gives them back
         // when one comes back.
-        if (next.Count > 0 && !next.Exists(screen => screen.Arranged.Enabled))
+        if (!next.Exists(screen => screen.Arranged.Enabled))
             next.Add(FindNamed(previous, FallbackName) ?? new LiveMonitor(NextMonitorId(previous, next), Fallback, Fallback));
 
         _monitors.Clear();
@@ -76,7 +76,7 @@ public sealed partial class WindowManager
         foreach (var screen in enabled)
         {
             if (!HeldBy(wasEnabled, screen.Id))
-                Return(screen);
+                Return(screen, wasEnabled);
         }
 
         foreach (var screen in wasEnabled)
@@ -102,11 +102,26 @@ public sealed partial class WindowManager
     }
 
     // A Monitor is known again by its identity, or by its Windows name when it has no model and serial.
-    private void Depart(LiveMonitor screen, LiveMonitor? host) =>
-        Readdressed(_workspaces.Depart(screen.Id, ReturnKey(screen.Reported), host?.Id));
-
-    private void Return(LiveMonitor screen)
+    private void Depart(LiveMonitor screen, LiveMonitor? host)
     {
+        if (host is not null)
+        {
+            foreach (var desk in _workspaces.Where(desk => desk.Monitor == screen.Id && !desk.Id.IsSpecial))
+                desk.Layout.NudgeFloating(host.Arranged.X - screen.Arranged.X, host.Arranged.Y - screen.Arranged.Y);
+        }
+
+        Readdressed(_workspaces.Depart(screen.Id, ReturnKey(screen.Reported), host?.Id));
+    }
+
+    private void Return(LiveMonitor screen, IReadOnlyList<LiveMonitor> previous)
+    {
+        foreach (var desk in _workspaces.Where(desk => string.Equals(desk.HomeIdentity, ReturnKey(screen.Reported), StringComparison.OrdinalIgnoreCase)))
+        {
+            var host = MonitorById(desk.Monitor) ?? previous.FirstOrDefault(item => item.Id == desk.Monitor);
+            if (host is not null)
+                desk.Layout.NudgeFloating(screen.Arranged.X - host.Arranged.X, screen.Arranged.Y - host.Arranged.Y);
+        }
+
         Readdressed(_workspaces.Return(screen.Id, ReturnKey(screen.Reported), out var shownNumber));
         if (shownNumber is not long number)
             return;
@@ -195,7 +210,7 @@ public sealed partial class WindowManager
             return;
 
         desk.Layout.Apply(desk.Options);
-        desk.Layout.Fit(screen.Arranged.WorkArea);
+        desk.Layout.Fit(screen.Arranged.WorkArea, screen.Bounds);
     }
 
     private void EnsureFocus(LiveMonitor? home)

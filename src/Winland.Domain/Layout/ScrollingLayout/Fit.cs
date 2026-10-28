@@ -76,13 +76,10 @@ internal sealed partial class ScrollingLayout
     private void Expand(Column current)
     {
         var others = 0.0;
-        Column? used = null;
         foreach (var column in _columns)
         {
             if (!ReferenceEquals(column, current) && ColumnVisible(column, full: false))
                 others += column.Width;
-            else
-                used = column;
         }
 
         var remaining = Math.Clamp(1 - others, 0, 1);
@@ -91,7 +88,7 @@ internal sealed partial class ScrollingLayout
 
         current.Width = remaining;
         SetOffset(0);
-        FitColumn(used);
+        FitColumn(current);
     }
 
     private bool FitRange(Cell cell, bool toEnd)

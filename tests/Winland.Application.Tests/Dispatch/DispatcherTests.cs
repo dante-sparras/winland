@@ -332,7 +332,7 @@ public class DispatcherTests
         Assert.Equal(new Rectangle(0, 0, 1920, 540), BoundsOf(clockwise, 1));
         Assert.Equal(new Rectangle(0, 540, 1920, 540), BoundsOf(clockwise, 2));
 
-        var back = core.Handle(new Dispatch("layout", "rotatesplit -90"));
+        var back = core.Handle(new Dispatch("layoutmsg", "rotatesplit -90"));
 
         Assert.Equal(new Rectangle(0, 0, 960, 1080), BoundsOf(back, 1));
         Assert.Equal(new Rectangle(960, 0, 960, 1080), BoundsOf(back, 2));

@@ -55,19 +55,30 @@ public class WindowStateTests
         core.Handle(new Dispatch("workspace", "1"));
         core.Handle(new Dispatch("focuswindow", "address:0x8"));
         core.Handle(new Dispatch("fullscreen", "0"));
+        core.Handle(new Configure(ConfigParser.Parse("general:layout = scrolling\nwindowrule = float, class:stick")));
+        core.Handle(new WindowAppeared(new WindowId(14), Area) { Traits = WindowTraits.Normal with { Dialog = true } });
+        core.Handle(new Dispatch("focuswindow", "address:0x8"));
+        core.Handle(new Dispatch("fullscreen", "0"));
+        core.Handle(new Dispatch("fullscreen", "0 set"));
         core.Handle(new PointerMoved(new Point(100, 100)) { TimeMs = 1_000 });
         core.Handle(new PointerMoved(new Point(1800, 900)) { TimeMs = 1_100 });
         core.Handle(new WindowMoveStarted(new WindowId(1), new Point(100, 100)));
         core.Handle(new WindowFocused(new WindowId(77), FocusCause.User));
 
         // Window 7, the dialog of the closed owner 6, stays open.
-        WindowId[] closed = [new(1), new(2), new(3), new(5), new(4), new(6), new(8), new(10), new(11), new(12), new(13), new(9), new(77)];
+        WindowId[] closed = [new(1), new(2), new(3), new(5), new(4), new(6), new(14), new(8), new(10), new(11), new(12), new(13), new(9), new(77)];
         var held = Leftovers(core, closed);
         var empty = Stores.Where(store => !held.Any(path => path.StartsWith(store, StringComparison.Ordinal))).ToList();
         Assert.True(empty.Count == 0, "The scenario never put a closed window in " + string.Join(", ", empty) + ". It held: " + string.Join(", ", held));
 
+        var forgotten = new List<WindowId>();
         foreach (var window in closed)
+        {
             core.Handle(new WindowClosed(window));
+            forgotten.Add(window);
+            var left = Leftovers(core, [.. forgotten]);
+            Assert.True(left.Count == 0, "Per-window state kept a closed window: " + string.Join(", ", left));
+        }
 
         var kept = Leftovers(core, closed);
         Assert.True(kept.Count == 0, "Per-window state kept a closed window: " + string.Join(", ", kept));
@@ -78,7 +89,7 @@ public class WindowStateTests
     private static readonly string[] Stores =
     [
         "_props._entries", "_awaitingMapFocus", "_urgent", "_focus._history", "_focus.Unmanaged", "_restored", "_pins", "_stacking",
-        "_cover._flags", "_interaction", "_owners", "_disabled", "_shownMaximized", "_lastMouse", "_mapPlaced",
+        "_cover._flags", "_cover._scrolling", "_interaction", "_owners", "_disabled", "_shownMaximized", "_lastMouse", "_mapPlaced",
         "_workspaces._all[].Focus", "_workspaces._all[]._groups", "_workspaces._all[]._waiting",
     ];
 

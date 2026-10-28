@@ -12,7 +12,7 @@ internal sealed partial class DwindleLayout
             return [];
 
         if (_floating.Contains(id))
-            return _floating.Resize(id, x, y, exact, _options.FloatingOnScreen(_area));
+            return _floating.Resize(id, x, y, exact, _options.FloatingOnScreen(_area), FloatingLimits(id));
 
         if (!_nodes.TryGetValue(id, out var node) || !InTree(node) || node.Parent is null)
             return [];
