@@ -157,9 +157,17 @@ public sealed partial class WindowAdapter
     {
         public bool Hung(WindowId window) => adapter._desktop.Hung(window);
 
-        // An in-between frame does not wait for the window, so one that repaints slowly holds up no other.
+        // An in-between frame does not wait for the window, so one that repaints slowly holds up no other. A window
+        // not shown yet, as one a Workspace brings in, is waited for: it is shown right after its first frame, and
+        // would take a posted frame only after it showed where it was hidden. A hidden window does not paint, so it is quick.
         public void Move(WindowId window, Rectangle bounds, Rectangle content)
         {
+            if (!adapter._desktop.Shown(window))
+            {
+                adapter.PlaceFrame(window, bounds, adapter._borderless.Owns(window));
+                return;
+            }
+
             if (!adapter.StandFor(window, bounds, content))
                 adapter.QuickPlace(window, bounds, adapter._borderless.Owns(window));
         }

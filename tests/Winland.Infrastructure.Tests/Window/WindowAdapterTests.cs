@@ -216,6 +216,25 @@ public class WindowAdapterTests
     }
 
     [Fact]
+    public void AWindowAWorkspaceSlidesInTakesItsFirstFrameBeforeItShows()
+    {
+        using var windows = new TestWindows(Fast);
+        windows.Open(1);
+        windows.Settle();
+        windows.Dispatch("workspace", "2");
+        windows.Settle();
+        windows.Desktop.Calls.Clear();
+
+        windows.Dispatch("workspace", "1");
+
+        var calls = windows.Desktop.Calls;
+        var first = calls.FindIndex(call => call.StartsWith("bounds 1 ", StringComparison.Ordinal));
+        Assert.EndsWith(" Wait", calls[first], StringComparison.Ordinal);
+        Assert.StartsWith("bounds 1 -", calls[first], StringComparison.Ordinal);
+        Assert.True(first < windows.Desktop.IndexOf("show 1 Show"));
+    }
+
+    [Fact]
     public void TransitionsAreTurnedOnAgainWhenADecorationIsReset()
     {
         using var windows = new TestWindows(reducedMotion: true);
