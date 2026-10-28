@@ -160,6 +160,28 @@ public class DwmEffectsTests
         Assert.True(restarted.CutsCorners(Window));
     }
 
+    // Taking a region off waits for the window. One whose program stopped answering keeps its cut, and the snapshot
+    // records it, so the next start takes it off.
+    [Fact]
+    public void AWindowThatStoppedAnsweringKeepsItsCutRecorded()
+    {
+        var surface = new FakeSurface();
+        surface.Frames[Window] = (new Rectangle(0, 0, 200, 200), new Rectangle(0, 0, 200, 200));
+        var stopped = false;
+        var effects = new DwmEffects(surface, _ => stopped);
+        effects.Apply(Window, Decorated(region: new CornerRegion(10)));
+        stopped = true;
+
+        effects.ResetAll();
+
+        Assert.NotEmpty(surface.Regions[Window]);
+        var stamped = effects.Stamp(new RecoverySnapshot(
+        [
+            new RecoveredClient(Window, WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1),
+        ]));
+        Assert.True(Assert.Single(stamped.Clients).Region);
+    }
+
     [Fact]
     public void TheRegionIsShiftedByTheInvisibleFrameOnEachSide()
     {
