@@ -43,13 +43,20 @@ public sealed partial class WindowManager
 
         _interaction = null;
         var drop = GroupDrop(ended.Window, wasTiled: !move.Floating, ended.Pointer);
+        if (!move.Floating)
+            _released = ended.Bounds is Rectangle released ? (ended.Window, released) : null;
+        if (ended.Bounds is Rectangle box
+            && MoveWithMonitor(ended.Window, box, !move.Floating, settle: true, ended.Pointer) is Outcome crossed)
+        {
+            return drop is { } target ? JoinDragged(ended.Window, target, consumed: false) : crossed with { Consumed = false };
+        }
+
         if (move.Floating)
         {
             var left = FollowNativeFloating(ended.Window, ended.Bounds);
             return drop is { } onto ? JoinDragged(ended.Window, onto, consumed: false) : left;
         }
 
-        _released = ended.Bounds is Rectangle frame ? (ended.Window, frame) : null;
         var layout = LayoutWorkspace(ended.Window).Layout;
         var dropped = layout.Drag(ended.Window, new PointerDrag(false, PointerDragPhase.End, ended.Pointer));
         if (drop is { } into)

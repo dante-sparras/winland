@@ -10,9 +10,9 @@ public sealed partial class WindowManager
 
     private Outcome MoveFocusDirection(string arguments)
     {
-        var desk = FocusedWorkspace();
-        var covered = desk.Covered();
         var active = ActiveWindow();
+        var desk = active is WindowId owned && WorkspaceContaining(owned) is LiveWorkspace own ? own : FocusedWorkspace();
+        var covered = desk.Covered();
         if (!Sides.TryParse(FirstToken(arguments), out var direction))
             return View([]);
 
@@ -59,7 +59,7 @@ public sealed partial class WindowManager
     // The window after or before this one on its Workspace in the order they opened, wrapping around, as Winland's
     // window cycle walks them. A minimized window and one with nofocus are passed over, and a hidden Group member is
     // not in the Layout to begin with. floating, when given, takes only floating windows or only tiles.
-    private WindowId? CycleFrom(LiveWorkspace desk, WindowId current, bool previous, bool? floating = null)
+    private WindowId? CycleFrom(LiveWorkspace desk, WindowId? current, bool previous, bool? floating = null)
     {
         var clients = desk.Layout.Clients;
         var start = -1;
@@ -69,12 +69,9 @@ public sealed partial class WindowManager
                 start = i;
         }
 
-        if (start < 0)
-            return null;
-
-        for (var step = 1; step < clients.Count; step++)
+        for (var step = 1; step <= (start < 0 ? clients.Count : clients.Count - 1); step++)
         {
-            var index = previous
+            var index = start < 0 ? step - 1 : previous
                 ? (start - step + clients.Count) % clients.Count
                 : (start + step) % clients.Count;
             var client = clients[index];

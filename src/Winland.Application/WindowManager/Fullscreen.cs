@@ -45,12 +45,12 @@ public sealed partial class WindowManager
         if (desk.ClientOf(window) is null || _pins.IsPinned(window))
             return null;
 
-        return desk.Layout.SetFullscreen(window, mode, mode, layoutAware);
+        return desk.Layout.SetFullscreen(window, mode, layoutAware);
     }
 
     // Ends a Client's fullscreen or maximized mode.
     private static IReadOnlyList<Placement> EndFullscreen(LiveWorkspace desk, WindowId window) =>
-        desk.Layout.SetFullscreen(window, FullscreenMode.None, FullscreenMode.None);
+        desk.Layout.SetFullscreen(window, FullscreenMode.None);
 
     // Reads the Workspace's options again. The Layout's placements when the options changed, with the given ones for the
     // Clients those leave out, such as a floating one, or the ones given.

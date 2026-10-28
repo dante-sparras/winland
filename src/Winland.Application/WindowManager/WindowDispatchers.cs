@@ -17,7 +17,7 @@ public sealed partial class WindowManager
             return Rejected("error: no such window");
 
         // A window shadowed by a modal refuses the focus, though its Workspace is still shown.
-        if (ShadowedByModal(id))
+        if (HasNoFocus(id))
         {
             return _workspaces.Shown.IsShown(desk.Id)
                 ? View([])
@@ -75,7 +75,7 @@ public sealed partial class WindowManager
 
     private Outcome MoveWindowToWorkspace(string arguments, bool silent)
     {
-        var comma = arguments.LastIndexOf(',');
+        var comma = arguments.IndexOf(',');
         if (comma < 0)
             return MoveTo(arguments, silent, consumed: false);
 
@@ -171,7 +171,7 @@ public sealed partial class WindowManager
 
         // The focus stays on a shown Workspace: the window that came onto the focused one takes it there.
         WindowId? focus = null;
-        if (_focus.Focused == current && !awayShown)
+        if (_focus.Focused == current)
         {
             Give(other, home);
             focus = other;

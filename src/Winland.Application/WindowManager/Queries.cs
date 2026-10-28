@@ -147,7 +147,7 @@ public sealed partial class WindowManager
 
         foreach (var candidate in _workspaces)
         {
-            foreach (var item in candidate.Layout.Clients)
+            foreach (var item in candidate.Layout.Clients.Concat(candidate.WaitingClients))
             {
                 if (item.Window != id)
                     continue;

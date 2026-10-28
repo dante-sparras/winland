@@ -26,20 +26,14 @@ public sealed partial class WindowManager
                 floating = true;
         }
 
-        // With nothing focused, the first window on the focused Monitor's Workspace takes focus.
+        bool? only = tiled != floating ? floating : null;
         if (ActiveWindow() is not WindowId current || WorkspaceContaining(current) is not LiveWorkspace desk)
         {
-            var shown = FocusedWorkspace();
-            foreach (var client in shown.Layout.Clients)
-            {
-                if (!client.Minimized)
-                    return FocusClient(client.Window);
-            }
-
-            return View([]);
+            return CycleFrom(CurrentWorkspace(), null, previous, only) is WindowId first
+                ? FocusClient(first)
+                : View([]);
         }
 
-        bool? only = tiled != floating ? floating : null;
         return CycleFrom(desk, current, previous, only) is WindowId next
             ? FocusClient(next)
             : View([]);

@@ -154,6 +154,8 @@ public class MonitorWorkspaceTests
         Assert.Contains(gone.State.Hidden, client => client.Window == new WindowId(2));
         Assert.Contains(gone.State.Hidden, client => client.Window == new WindowId(3));
         Assert.True(Client(gone, 4).Pinned);
+        Assert.InRange(Client(gone, 4).Bounds.X, left.X, left.X + left.Width - Client(gone, 4).Bounds.Width);
+        Assert.InRange(Client(gone, 4).Bounds.Y, left.Y, left.Y + left.Height - Client(gone, 4).Bounds.Height);
         Assert.DoesNotContain(gone.State.Hidden, client => client.Window == new WindowId(4));
         Assert.DoesNotContain(gone.State.Hidden, client => client.Window == new WindowId(1));
 
@@ -164,6 +166,7 @@ public class MonitorWorkspaceTests
         Assert.Single(back.State.Hidden, client => client.Window == new WindowId(2));
         var returned = Assert.Single(back.State.Screens, candidate => candidate.Monitor.Name == right.Name);
         Assert.Equal(WorkspaceId.FromNumber(1, returned.Id), Client(back, 2).Workspace);
+        Assert.InRange(Client(back, 4).Bounds.X, right.X, right.X + right.Width - Client(back, 4).Bounds.Width);
     }
 
     [Fact]
