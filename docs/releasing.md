@@ -9,7 +9,8 @@ The committed version is `0.0.0`, and a build without `-p:Version` is `0.0.0-dev
 1. Every push to `main` updates one open release PR, titled `chore(main): release X.Y.Z`. It bumps `.release-please-manifest.json` and adds the release's section to `CHANGELOG.md`. A `fix` is a patch, a `feat` is a minor version, and `!` is a breaking change. Before `1.0.0` a breaking change bumps the minor version.
 2. CI runs on the release PR like on any other, because release-please opens it with `RELEASE_PLEASE_TOKEN`.
 3. Merging the release PR makes a draft release and creates the tag `vX.Y.Z` on the merge commit.
-4. The **Build and publish the release** job checks out that tag, publishes `Winland.Daemon` with `-p:Version=X.Y.Z`, uploads the assets to the draft, and publishes it as the latest release.
+4. CI checks that tag with the release lane, including the mutation score gate. A failure leaves the release as a draft.
+5. After CI passes, the **Build and publish the release** job checks out that tag, packages `Winland.Daemon` with `-p:Version=X.Y.Z`, uploads the assets to the draft, and publishes it as the latest release.
 
 Do not publish the draft in the GitHub UI. A release published before its assets are uploaded has no zip, and `install.ps1` and `winland update` fail on it. If the job fails, re-run it. The upload replaces any asset already there.
 

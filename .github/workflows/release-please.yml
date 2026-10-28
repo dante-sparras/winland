@@ -37,12 +37,22 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # release-please makes the release a draft and creates its tag. This job builds the tagged commit,
+  ci:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml # zizmor: ignore[self-repository]
+    with:
+      release: true
+      ref: ${{ needs.release-please.outputs.tag_name }}
+
+  # release-please makes the release a draft and creates its tag. After CI passes, this job builds the tagged commit,
   # uploads the files install.ps1 and winland update download, and only then publishes, so the newest
   # published release always has its zip.
   publish:
     name: Build and publish the release
-    needs: release-please
+    needs: [release-please, ci]
     if: needs.release-please.outputs.release_created == 'true'
     runs-on: windows-latest
     timeout-minutes: 30
@@ -62,34 +72,7 @@ jobs:
       - name: Publish, zip, and checksum
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
-          $version = $env:RELEASE_VERSION
-          if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw "Bad version '$version'." }
-          $commit = (git rev-parse HEAD).Trim()
-          if ($commit -notmatch '^[0-9a-f]{40}$') { throw "Bad commit '$commit'." }
-          $daemon = Join-Path $env:RUNNER_TEMP 'pub-daemon'
-          $stage = Join-Path $env:RUNNER_TEMP 'stage'
-          dotnet publish (Join-Path $env:GITHUB_WORKSPACE 'src\Winland.Daemon\Winland.Daemon.csproj') -c Release -r win-x64 --self-contained true "-p:Version=$version" -p:ContinuousIntegrationBuild=true -o $daemon
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          New-Item -ItemType Directory -Force -Path (Join-Path $stage 'winland') | Out-Null
-          Copy-Item (Join-Path $daemon '*') (Join-Path $stage 'winland') -Recurse
-          $date = [DateTimeOffset]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssK')
-          $json = '{"commit":"' + $commit + '","date":"' + $date + '","version":"' + $version + '"}' + "`n"
-          $jsonPath = Join-Path $env:RUNNER_TEMP 'version.json'
-          [System.IO.File]::WriteAllText($jsonPath, $json)
-          Copy-Item $jsonPath (Join-Path $stage 'version.json')
-          $zip = Join-Path $env:RUNNER_TEMP 'Winland-win-x64.zip'
-          & tar -a -c -f $zip -C $stage .
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $dist = Join-Path $env:RUNNER_TEMP 'dist'
-          New-Item -ItemType Directory -Force -Path $dist | Out-Null
-          Copy-Item $zip (Join-Path $dist 'Winland-win-x64.zip')
-          Copy-Item $jsonPath (Join-Path $dist 'version.json')
-          $sums = foreach ($name in @('Winland-win-x64.zip', 'version.json')) {
-            $hash = (Get-FileHash -Algorithm SHA256 (Join-Path $dist $name)).Hash.ToLowerInvariant()
-            "$hash  $name"
-          }
-          [System.IO.File]::WriteAllText((Join-Path $dist 'SHA256SUMS'), (($sums -join "`n") + "`n"))
+          ./scripts/package.ps1 -Version $env:RELEASE_VERSION -Commit (git rev-parse HEAD).Trim() -OutputDirectory (Join-Path $env:RUNNER_TEMP 'package')
       - name: Upload the assets and publish
         shell: pwsh
         env:
@@ -97,7 +80,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $dist = Join-Path $env:RUNNER_TEMP 'dist'
+          $dist = Join-Path $env:RUNNER_TEMP 'package/dist'
           gh release upload $env:TAG (Join-Path $dist 'Winland-win-x64.zip') (Join-Path $dist 'version.json') (Join-Path $dist 'SHA256SUMS') --repo $env:REPO --clobber
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           gh release edit $env:TAG --repo $env:REPO --draft=false --latest
