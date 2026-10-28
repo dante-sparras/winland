@@ -5,6 +5,14 @@ namespace Winland.Infrastructure.Tests;
 public class PipeServerTests
 {
     [Fact]
+    public void TheDefaultPipeNameBelongsToTheCurrentSession()
+    {
+        using var process = System.Diagnostics.Process.GetCurrentProcess();
+
+        Assert.Equal("winland-" + process.SessionId.ToString(System.Globalization.CultureInfo.InvariantCulture), PipeServer.DefaultName);
+    }
+
+    [Fact]
     public void NothingAnsweringIsNoProcess()
     {
         var missing = "winland-missing-" + Guid.NewGuid().ToString("N");

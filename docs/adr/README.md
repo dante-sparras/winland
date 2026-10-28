@@ -15,7 +15,7 @@ ADR 0012 described the former plugin manager. It was deleted in commit `a21396d1
 - [0004](0004-winland-runs-elevated.md): Winland runs elevated by default, to control elevated windows, and can run as the normal user.
 - [0005](0005-clean-architecture-in-four-layers.md): four layers, Domain, Application, Infrastructure and presentation, each referencing only the layers inside it.
 - [0006](0006-startup-through-a-scheduled-task.md): `winland install` copies itself under Program Files and registers an elevated logon task; `--user` uses the Run key, unelevated.
-- [0007](0007-elevation-does-not-leak-to-launched-programs-or-ipc.md): launched programs are always de-elevated, the pipe is limited to the current user, and the config is an ordinary user file.
+- [0007](0007-elevation-does-not-leak-to-launched-programs-or-ipc.md): launched programs are always de-elevated, the pipe defaults to one name per session and verifies the server's user and session, and the config is an ordinary user file.
 - [0014](0014-winland-manages-windows-and-leaves-the-desktop-to-windows.md): Winland manages windows and leaves settings, notifications, effects and the taskbar to Windows. The installer may turn off Snap and touchpad swipes, with consent.
 - [0015](0015-install-and-update-from-published-releases.md): one PowerShell line installs the newest release, and `winland update` follows the stable or the dev channel.
 - [0016](0016-per-window-state-stays-with-the-code-that-uses-it.md): what Winland knows about a window stays in the module that uses it, with no single record per Client; a guard test checks that closing a window leaves nothing behind.

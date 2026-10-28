@@ -81,12 +81,12 @@ public static partial class CommandProtocol
     private static void AppendClient(StringBuilder text, ClientJson client)
     {
         var grouped = client.Grouped.Length == 0 ? "0" : string.Join(',', client.Grouped.Select(Bare));
-        text.Append(CultureInfo.InvariantCulture, $"Window {Bare(client.Address)} -> {client.Title}:\n")
+        text.Append(CultureInfo.InvariantCulture, $"Window {Bare(client.Address)} -> {Clean(client.Title)}:\n")
             .Append(CultureInfo.InvariantCulture, $"\tmapped: {Bit(client.Mapped)}\n\thidden: {Bit(client.Hidden)}\n\tvisible: {Bit(client.Visible)}\n")
             .Append(CultureInfo.InvariantCulture, $"\tacceptsInput: {Bit(client.AcceptsInput)}\n\tat: {client.At[0]},{client.At[1]}\n\tsize: {client.Size[0]},{client.Size[1]}\n")
             .Append(CultureInfo.InvariantCulture, $"\tworkspace: {client.Workspace.Address} ({client.Workspace.Name}) on monitor {client.Workspace.Monitor}\n\tfloating: {Bit(client.Floating)}\n")
-            .Append(CultureInfo.InvariantCulture, $"\tmonitor: {client.Monitor}\n\tclass: {client.Class}\n\ttitle: {client.Title}\n")
-            .Append(CultureInfo.InvariantCulture, $"\tinitialClass: {client.InitialClass}\n\tinitialTitle: {client.InitialTitle}\n\tpid: {client.Pid}\n")
+            .Append(CultureInfo.InvariantCulture, $"\tmonitor: {client.Monitor}\n\tclass: {Clean(client.Class)}\n\ttitle: {Clean(client.Title)}\n")
+            .Append(CultureInfo.InvariantCulture, $"\tinitialClass: {Clean(client.InitialClass)}\n\tinitialTitle: {Clean(client.InitialTitle)}\n\tpid: {client.Pid}\n")
             .Append(CultureInfo.InvariantCulture, $"\tpinned: {Bit(client.Pinned)}\n")
             .Append(CultureInfo.InvariantCulture, $"\tfullscreen: {client.Fullscreen}\n\tfullscreenClient: {client.FullscreenClient}\n\tfullscreenHandler: {client.FullscreenHandler}\n")
             .Append(CultureInfo.InvariantCulture, $"\tallowedOverFullscreen: {Bit(client.AllowedOverFullscreen)}\n\tgrouped: {grouped}\n")
@@ -96,7 +96,7 @@ public static partial class CommandProtocol
     private static void AppendWorkspace(StringBuilder text, WorkspaceEntryJson workspace) =>
         text.Append(CultureInfo.InvariantCulture, $"workspace {workspace.Address} ({workspace.Name}) on monitor {workspace.Monitor}:\n")
             .Append(CultureInfo.InvariantCulture, $"\tmonitorID: {workspace.MonitorId}\n\twindows: {workspace.Windows}\n\thasfullscreen: {Bit(workspace.HasFullscreen)}\n")
-            .Append(CultureInfo.InvariantCulture, $"\tlastwindow: {workspace.LastWindow}\n\tlastwindowtitle: {workspace.LastWindowTitle}\n")
+            .Append(CultureInfo.InvariantCulture, $"\tlastwindow: {workspace.LastWindow}\n\tlastwindowtitle: {Clean(workspace.LastWindowTitle)}\n")
             .Append(CultureInfo.InvariantCulture, $"\tispersistent: {Bit(workspace.IsPersistent)}\n\ttiledLayout: {workspace.TiledLayout}\n\n");
 
     private static void AppendMonitor(StringBuilder text, MonitorJson monitor)

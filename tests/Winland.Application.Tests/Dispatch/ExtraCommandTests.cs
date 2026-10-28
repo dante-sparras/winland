@@ -99,7 +99,7 @@ public class ExtraCommandTests
         Assert.Equal("{\"option\":\"general:border_size\",\"int\":2,\"set\":false}", core.Execute("getoption general:border_size").Text);
         Assert.Equal("{\"option\":\"dwindle:preserve_split\",\"bool\":false,\"set\":false}", core.Execute("getoption dwindle:preserve_split").Text);
         Assert.Equal("{\"option\":\"general:gaps_in\",\"css\":\"4 4 4 4\",\"set\":false}", core.Execute("getoption general:gaps_in").Text);
-        Assert.Equal("no such option", core.Execute("getoption no:such").Text);
+        Assert.Equal("error: no such option", core.Execute("getoption no:such").Text);
 
         Assert.Equal("ok", core.Execute("keyword general:border_size 4").Text);
         Assert.Equal("{\"option\":\"general:border_size\",\"int\":4,\"set\":true}", core.Execute("getoption general:border_size").Text);
@@ -138,16 +138,38 @@ public class ExtraCommandTests
         core.Handle(new WindowAppeared(new WindowId(42), new Rectangle(0, 0, 200, 100)));
 
         Assert.Equal("ok", core.Execute("kill").Text);
-        Assert.Equal("not enough args", core.Execute("getprop").Text);
-        Assert.Equal("window not found", core.Execute("getprop missing opacity").Text);
+        Assert.Equal("error: not enough args", core.Execute("getprop").Text);
+        Assert.Equal("error: window not found", core.Execute("getprop missing opacity").Text);
         Assert.Equal("1", core.Execute("getprop active opacity").Text);
         Assert.Equal("{\"opacity\": 1}", core.Execute("j/getprop 0x2a opacity").Text);
-        Assert.Equal("prop not found", core.Execute("getprop active float").Text);
+        Assert.Equal("error: prop not found", core.Execute("getprop active float").Text);
         Assert.Equal("error: invalid prop name", core.Execute("setprop active float true").Text);
 
         Assert.Equal("ok", core.Execute("setprop active opacity 0.5").Text);
         Assert.Equal("0.5", core.Execute("getprop active opacity").Text);
         Assert.Equal("error: invalid opacity", core.Execute("setprop active opacity sideways").Text);
+    }
+
+    [Fact]
+    public void ABatchRejectsNestedBatchesAndContinuesWithTheNextCommand()
+    {
+        var core = new WindowManager();
+
+        var reply = core.Execute("[[BATCH]]j/[[BATCH]]dispatch exec should-not-run;j/clients");
+
+        Assert.Equal("error: nested batch\n\n\n[]", reply.Text);
+        Assert.Empty(reply.Effect.Launches);
+    }
+
+    [Fact]
+    public void DeeplyNestedBatchesAreRejectedWithoutRecursing()
+    {
+        var line = string.Concat(Enumerable.Repeat("[[BATCH]]", 6000)) + "dispatch exec should-not-run";
+
+        var reply = new WindowManager().Execute(line);
+
+        Assert.Equal("error: nested batch", reply.Text);
+        Assert.Empty(reply.Effect.Launches);
     }
 
     [Fact]

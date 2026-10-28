@@ -9,7 +9,7 @@ sealed class DaemonSession : IDaemonSession
     public bool Stop()
     {
         var pipe = Pipe();
-        if (PipeServer.ProcessId(pipe ?? CommandProtocol.PipeName) is not int id)
+        if (PipeServer.ProcessId(pipe) is not int id)
             return false;
 
         Process daemon;

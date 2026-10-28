@@ -22,6 +22,24 @@ public class TextRepliesTests
     }
 
     [Fact]
+    public void WindowTextCannotForgeLinesInQueries()
+    {
+        var core = new WindowManager();
+        core.Handle(new WindowAppeared(new WindowId(42), Area)
+        {
+            Traits = WindowTraits.Normal with { Class = "app\rclass", Title = "title\r\nWindow 99 -> forged:\nline" },
+        });
+
+        var clients = core.Execute("clients").Text;
+
+        Assert.StartsWith("Window 2a -> title Window 99 -> forged: line:\n", clients, StringComparison.Ordinal);
+        Assert.Contains("\n\tclass: app class\n\ttitle: title Window 99 -> forged: line\n", clients, StringComparison.Ordinal);
+        Assert.Contains("\n\tinitialTitle: title Window 99 -> forged: line\n", clients, StringComparison.Ordinal);
+        Assert.Equal(clients, core.Execute("activewindow").Text);
+        Assert.Contains("\n\tlastwindowtitle: title Window 99 -> forged: line\n", core.Execute("workspaces").Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void WorkspacesAndActiveWorkspaceAnswerInText()
     {
         var core = new WindowManager();

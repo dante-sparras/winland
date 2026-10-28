@@ -187,7 +187,7 @@ public class PinTests
         var core = Floating();
         core.Execute("dispatch pin");
 
-        Assert.Equal("prop not found", core.Execute("getprop active pin").Text);
+        Assert.Equal("error: prop not found", core.Execute("getprop active pin").Text);
         Assert.Equal("error: invalid prop name", core.Execute("setprop active pin false").Text);
     }
 

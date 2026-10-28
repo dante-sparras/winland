@@ -77,7 +77,7 @@ static void LaunchConfigured(WindowManager core, IEnumerable<Launch> launches)
 
 static int Run(string? path, RollingLogWriter log)
 {
-    using var instance = InstanceLock.TryTake(InstanceLock.NameFor(PipeName() ?? CommandProtocol.PipeName));
+    using var instance = InstanceLock.TryTake(InstanceLock.NameFor(PipeName() ?? PipeServer.DefaultName));
     if (instance is null)
     {
         Console.Error.WriteLine("Winland is already running in this session.");

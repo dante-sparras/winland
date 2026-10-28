@@ -32,13 +32,13 @@ public sealed partial class WindowManager
         var fields = arguments.Split(',', parts, StringSplitOptions.TrimEntries);
         if (fields.Length < parts - 1)
         {
-            error = name + ": invalid args";
+            error = "error: " + name + ": invalid args";
             return false;
         }
 
         if (!ModifierNames.TryParse(fields[0], out var modifiers, out _))
         {
-            error = name + ": invalid modifiers";
+            error = "error: " + name + ": invalid modifiers";
             return false;
         }
 
@@ -51,7 +51,7 @@ public sealed partial class WindowManager
         {
             if (Select(selector, emptyMeansActive: false) is not WindowId found)
             {
-                error = name + ": window not found";
+                error = "error: " + name + ": window not found";
                 return false;
             }
 
@@ -79,7 +79,7 @@ public sealed partial class WindowManager
         {
             if (button < KeyStrokes.FirstMouseButton)
             {
-                error = name + ": invalid mouse button";
+                error = "error: " + name + ": invalid mouse button";
                 return false;
             }
 
@@ -93,7 +93,7 @@ public sealed partial class WindowManager
             return true;
         }
 
-        error = text.Length == 0 || Is(text, "code:0") ? name + ": invalid key" : name + ": key not found";
+        error = "error: " + name + (text.Length == 0 || Is(text, "code:0") ? ": invalid key" : ": key not found");
         return false;
     }
 

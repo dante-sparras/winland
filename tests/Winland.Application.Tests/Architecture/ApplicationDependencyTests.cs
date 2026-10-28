@@ -9,5 +9,6 @@ public class ApplicationDependencyTests
         var references = typeof(WindowManager).Assembly.GetReferencedAssemblies().Select(name => name.Name!);
 
         Assert.All(references, name => Assert.True(name.StartsWith("System", StringComparison.Ordinal) || name == "Winland.Domain", name));
+        Assert.DoesNotContain("System.IO.Pipes", references);
     }
 }

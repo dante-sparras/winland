@@ -59,12 +59,12 @@ public class PassTests
     }
 
     [Theory]
-    [InlineData("SUPER", "sendshortcut: invalid args")]
-    [InlineData("SUPER, mouse:100,", "sendshortcut: invalid mouse button")]
-    [InlineData("SUPER, NoSuchKey,", "sendshortcut: key not found")]
-    [InlineData("SUPER, , ", "sendshortcut: invalid key")]
-    [InlineData("HYPER, c,", "sendshortcut: invalid modifiers")]
-    [InlineData("SUPER, c, class:^(nothing)$", "sendshortcut: window not found")]
+    [InlineData("SUPER", "error: sendshortcut: invalid args")]
+    [InlineData("SUPER, mouse:100,", "error: sendshortcut: invalid mouse button")]
+    [InlineData("SUPER, NoSuchKey,", "error: sendshortcut: key not found")]
+    [InlineData("SUPER, , ", "error: sendshortcut: invalid key")]
+    [InlineData("HYPER, c,", "error: sendshortcut: invalid modifiers")]
+    [InlineData("SUPER, c, class:^(nothing)$", "error: sendshortcut: window not found")]
     public void SendShortcutRejectsBadArguments(string arguments, string error)
     {
         var core = WithObs("");

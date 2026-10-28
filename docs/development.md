@@ -82,6 +82,8 @@ Before opening a PR, run the checks CI runs: `pwsh -NoProfile -File scripts/chec
 
 Warnings fail the build. `Directory.Build.props` enables `TreatWarningsAsErrors`, recommended analyzers with `AnalysisMode`, and the configured code style warnings with `EnforceCodeStyleInBuild`.
 
+The Daemon and CLI use the pipe `\\.\pipe\winland-<SessionId>` for their Windows session. Set `WINLAND_PIPE` to use a different name for both. The run script replaces Winland only in its own session. With `WINLAND_PIPE` set, it limits that to builds it started under `%LOCALAPPDATA%\winland-dev`.
+
 ## Git hooks
 
 The hooks are tracked in `scripts/hooks`, and git runs them from there. `pwsh scripts/dev.ps1` sets `core.hooksPath` to `scripts/hooks` once per clone. A checkout that still points `core.hooksPath` at `.git/hooks` is fixed by running it again.

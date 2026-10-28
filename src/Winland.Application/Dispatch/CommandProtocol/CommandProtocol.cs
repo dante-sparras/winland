@@ -3,6 +3,7 @@ namespace Winland.Application;
 /// <summary>The pipe's requests: every verb, how its line reads, and the request it makes.</summary>
 public static partial class CommandProtocol
 {
+    // Infrastructure adds the Windows session id to this base name.
     public const string PipeName = "winland";
 
     private const string Unknown = "error: unknown request";

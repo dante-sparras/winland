@@ -51,10 +51,10 @@ public class ControlConformance
         SetProp(desk, "rounding", "4");
         ExpectProp(desk, "rounding", "4", """{"rounding": 4}""");
 
-        Assert.Equal("not enough args", desk.Send("getprop"));
-        Assert.Equal("not enough args", desk.Send("getprop class:kitty"));
-        Assert.Equal("window not found", desk.Send("getprop class:nonexistantclass animation"));
-        Assert.Equal("prop not found", desk.Send("getprop class:kitty nonexistantprop"));
+        Assert.Equal("error: not enough args", desk.Send("getprop"));
+        Assert.Equal("error: not enough args", desk.Send("getprop class:kitty"));
+        Assert.Equal("error: window not found", desk.Send("getprop class:nonexistantclass animation"));
+        Assert.Equal("error: prop not found", desk.Send("getprop class:kitty nonexistantprop"));
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class ControlConformance
         var desk = new Desk();
 
         Assert.Equal(JsonValueKind.Object, Json(desk.Send("getoption general:border_size")).ValueKind);
-        Assert.Equal("no such option", desk.Send("getoption no:such"));
+        Assert.Equal("error: no such option", desk.Send("getoption no:such"));
     }
 
     [Fact]
