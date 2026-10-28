@@ -15,7 +15,7 @@ public class PersistentWorkspaceTests
             workspace = 8, monitor:HEADLESS-PERSISTENT-TEST, persistent:true
             workspace = special:PERSIST-SPECIAL, persistent:true
             """);
-        ReloadsReferenceConfig(desk);
+        desk.ReloadWithoutExtra();
         desk.Dispatch("workspace", "1");
 
         Assert.DoesNotContain("special:PERSIST-SPECIAL (special:PERSIST-SPECIAL)", Labels(desk));
@@ -77,10 +77,6 @@ public class PersistentWorkspaceTests
         desk.RemoveMonitor("HEADLESS-LIFECYCLE-OWNERSHIP");
         Assert.DoesNotContain("HEADLESS-LIFECYCLE-OWNERSHIP", MonitorNames(desk));
     }
-
-    // The reference adds its rules over the socket, so reload drops them and reads only the reference config.
-    private static void ReloadsReferenceConfig(TestDesktop desk) =>
-        desk.WindowManager.ReadConfig = () => new ConfigRead(ConfigParser.Parse(TestDesktop.Config));
 
     private static string[] Labels(TestDesktop desk) => [.. desk.Workspaces().Select(Label)];
 

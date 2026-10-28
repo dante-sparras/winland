@@ -10,7 +10,7 @@ public class WorkspaceDispatchTests
     public void WorkspacesCombined()
     {
         var desk = new TestDesktop("workspace = 966, persistent:true\n");
-        ReloadsReferenceConfig(desk);
+        desk.ReloadWithoutExtra();
 
         Assert.Contains("966 (966)", Labels(desk));
         Assert.Equal("ok", desk.Send("reload"));
@@ -91,7 +91,7 @@ public class WorkspaceDispatchTests
         Assert.Equal(2, Monitors(desk).Count(monitor => SpecialOn(monitor).Length == 0));
 
         desk.Ok("workspace", "1");
-        KillAll(desk);
+        desk.CloseAll();
 
         desk.Spawn("kitty_A");
         desk.Spawn("kitty_B");
@@ -117,7 +117,7 @@ public class WorkspaceDispatchTests
         desk.Ok("movefocus", "r");
         Assert.Equal("kitty_D", desk.ActiveClass());
 
-        KillAll(desk);
+        desk.CloseAll();
 
         MultimonBaf(desk);
         MultimonFocus(desk);
@@ -188,7 +188,7 @@ public class WorkspaceDispatchTests
         desk.Ok("workspace", "6");
         ExpectActive(desk, "2 (2)", "HEADLESS-2");
 
-        KillAll(desk);
+        desk.CloseAll();
     }
 
     private static void MultimonFocus(TestDesktop desk)
@@ -229,7 +229,7 @@ public class WorkspaceDispatchTests
         desk.Ok("movefocus", "l");
 
         Assert.Equal("ok", desk.Send("reload"));
-        KillAll(desk);
+        desk.CloseAll();
     }
 
     private static void WorkspaceHistoryMultiMon(TestDesktop desk)
@@ -250,7 +250,7 @@ public class WorkspaceDispatchTests
         desk.Ok("workspace", "previous_per_monitor");
         Assert.Equal("10 (10)", ActiveLabel(desk));
 
-        KillAll(desk);
+        desk.CloseAll();
     }
 
     private static void SpecialWorkspaceFullscreen(TestDesktop desk)
@@ -286,7 +286,7 @@ public class WorkspaceDispatchTests
         Assert.Equal(2, TestDesktop.Fullscreen(desk.ActiveWindow()));
         Assert.Contains("", Monitors(desk).Select(SpecialOn));
 
-        KillAll(desk);
+        desk.CloseAll();
         Assert.Equal("ok", desk.Send("reload"));
     }
 
@@ -310,15 +310,11 @@ public class WorkspaceDispatchTests
         desk.Ok("focuswindow", "class:gaps_kitty_B");
         Assert.Equal("0,540", desk.ActivePlace().At);
 
-        KillAll(desk);
+        desk.CloseAll();
         Assert.Empty(desk.Clients());
 
-        KillAll(desk);
+        desk.CloseAll();
     }
-
-    // The reference adds its rules over the socket, so reload drops them and reads only the reference config.
-    private static void ReloadsReferenceConfig(TestDesktop desk) =>
-        desk.WindowManager.ReadConfig = () => new ConfigRead(ConfigParser.Parse(TestDesktop.Config));
 
     private static int X(TestDesktop desk) => desk.Placed(desk.ActiveId()).X;
 
@@ -357,13 +353,4 @@ public class WorkspaceDispatchTests
 
     private static string SpecialOn(JsonElement monitor) => monitor.GetProperty("specialWorkspace").GetProperty("name").GetString() ?? "";
 
-    // Closes every window, as the reference harness kills every kitty.
-    private static void KillAll(TestDesktop desk)
-    {
-        foreach (var client in desk.Clients())
-        {
-            var address = client.GetProperty("address").GetString() ?? "";
-            desk.Handle(new WindowClosed(new WindowId(Convert.ToInt64(address[2..], 16))));
-        }
-    }
 }

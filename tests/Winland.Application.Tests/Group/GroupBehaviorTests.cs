@@ -29,7 +29,7 @@ public class GroupBehaviorTests
         Assert.Equal("931,1015", desk.ActivePlace().Size);
         Assert.Equal(0, TestDesktop.Fullscreen(desk.ActiveWindow()));
 
-        KillAll(desk);
+        desk.CloseAll();
         desk.Spawn("a");
         Assert.Single(desk.Clients());
         Assert.Equal(1, CountAt(desk, "22,22"));
@@ -43,7 +43,7 @@ public class GroupBehaviorTests
         desk.Keyword("group:groupbar:enabled", "0");
         Assert.Equal(("22,22", "1876,1036"), desk.PlaceOf("a"));
 
-        KillAll(desk);
+        desk.CloseAll();
         desk.Spawn("a");
         desk.Ok("togglegroup");
         Assert.Equal(("22,22", "1876,1036"), desk.PlaceOf("a"));
@@ -217,15 +217,6 @@ public class GroupBehaviorTests
 
     private static int Grouped(JsonElement client) => client.GetProperty("grouped").GetArrayLength();
 
-    // Closes every window, as the reference harness kills every kitty.
-    private static void KillAll(TestDesktop desk)
-    {
-        foreach (var client in desk.Clients())
-        {
-            var address = client.GetProperty("address").GetString() ?? "";
-            desk.Handle(new WindowClosed(new WindowId(Convert.ToInt64(address[2..], 16))));
-        }
-    }
 
     private static void ExpectFullscreen(TestDesktop desk, int fullscreen, int fullscreenClient)
     {

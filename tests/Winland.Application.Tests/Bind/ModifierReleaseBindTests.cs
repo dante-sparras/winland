@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace Winland.Application.Tests;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace Winland.Application.Tests;
 /// </summary>
 public class ModifierReleaseBindTests
 {
-    // The binds and submaps of the reference config, in the line-based syntax.
+    // A full set of binds and submaps, so the binds a test adds must work alongside them.
     internal const string ConfigBinds = """
         bind = SUPER, Q, exec, kitty
         bind = SUPER, C, killactive
@@ -102,10 +100,8 @@ public class ModifierReleaseBindTests
     }
 
     /// <summary>
-    /// The reference test plugin's keyboard, wheel and button, on the core. A key is sent with the modifiers the
-    /// reference sets for it: a modifier it names that no key holds is pressed first, and one no longer named is let
-    /// go first. The keyboard repeats the last key held as the system would, and a long press elapses when the
-    /// adapter's timer would. Time only passes in <see cref="Wait"/>.
+    /// A keyboard on the desktop that counts the commands binds run. A key is sent with the modifiers the test names
+    /// for it: a named modifier that no key holds is pressed first, and one no longer named is let go first.
     /// </summary>
     private sealed class Keyboard(TestDesktop desk)
     {
@@ -132,73 +128,12 @@ public class ModifierReleaseBindTests
         private readonly HashSet<string> _held = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _synthetic = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<string> _launches = [];
-        private readonly List<WindowId> _windows = [];
-        private readonly StringBuilder _typed = new();
-        private long _now = 1_000;
-        private string? _repeating;
-        private long _nextRepeat;
-
-        internal int RepeatDelay { get; set; } = 600;
-
-        internal int RepeatRate { get; set; } = 25;
-
-        /// <summary>What reached the window opened last: keys no bind consumed, and keys a bind sent on.</summary>
-        internal string Typed => _typed.ToString();
-
-        internal void Spawn(string windowClass)
-        {
-            _windows.Add(desk.Spawn(windowClass));
-            _typed.Clear();
-        }
-
-        internal void KillAll()
-        {
-            foreach (var window in _windows)
-                Feed(new WindowClosed(window), fresh: false);
-            _windows.Clear();
-        }
 
         internal Outcome Key(bool pressed, Modifier modifiers, string key)
         {
             Hold(modifiers);
             return pressed ? Press(key) : Release(key);
         }
-
-        /// <summary>Presses and releases a key under the same modifiers, as the reference's submap test does.</summary>
-        internal void Tap(string key, Modifier modifiers = Modifier.None)
-        {
-            Key(true, modifiers, key);
-            Key(false, modifiers, key);
-        }
-
-        internal void Scroll(int delta) =>
-            Feed(new WheelTurned(delta > 0 ? "mouse_down" : "mouse_up", _now), fresh: false);
-
-        internal void Click(bool pressed, string button) =>
-            Feed(pressed ? new PointerButtonPressed(button) { Position = desk.Pointer } : new PointerButtonReleased(button) { Position = desk.Pointer }, fresh: false);
-
-        internal void Wait(int milliseconds)
-        {
-            var end = _now + milliseconds;
-            while (true)
-            {
-                if (_repeating is null || RepeatRate <= 0 || _nextRepeat >= end)
-                    break;
-
-                _now = _nextRepeat;
-                _nextRepeat += 1000 / RepeatRate;
-                Feed(new KeyPressed(_repeating), fresh: false);
-            }
-
-            _now = end;
-        }
-
-        /// <summary>Whether the command ran since it was last taken, and forgets that it did.</summary>
-        internal bool Take(string command) => _launches.RemoveAll(line => line == command) > 0;
-
-        internal bool Seen(string command) => _launches.Contains(command);
-
-        internal void Clear(string command) => _launches.RemoveAll(line => line == command);
 
         internal int Count(string command) => _launches.Count(line => line == command);
 
@@ -226,38 +161,20 @@ public class ModifierReleaseBindTests
         private Outcome Press(string key)
         {
             _held.Add(key);
-            if (!ModifierKeys.ContainsKey(key))
-            {
-                _repeating = key;
-                _nextRepeat = _now + RepeatDelay;
-            }
-
-            return Feed(new KeyPressed(key), fresh: true);
+            return Feed(new KeyPressed(key));
         }
 
         private Outcome Release(string key)
         {
             _held.Remove(key);
-            if (string.Equals(_repeating, key, StringComparison.OrdinalIgnoreCase))
-                _repeating = null;
-
-            return Feed(new KeyReleased(key), fresh: false);
+            return Feed(new KeyReleased(key));
         }
 
-        private Outcome Feed(Input input, bool fresh)
+        private Outcome Feed(Input input)
         {
             var outcome = desk.Handle(input);
             foreach (var launch in outcome.Launches)
                 _launches.Add(launch.CommandLine);
-
-            if (input is KeyPressed { Key: var key } && !outcome.Consumed && key.Length == 1)
-                _typed.Append(_held.Contains("Shift_L") || _held.Contains("Shift_R") ? key.ToUpperInvariant() : key.ToLowerInvariant());
-
-            foreach (var relay in outcome.Relays)
-            {
-                if (relay.Phase != KeyRelayPhase.Release)
-                    _typed.Append(relay.Key.Equals("return", StringComparison.OrdinalIgnoreCase) ? "\n" : relay.Key);
-            }
 
             return outcome;
         }

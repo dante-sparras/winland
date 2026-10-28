@@ -74,6 +74,10 @@ internal sealed class TestDesktop
 
     internal WindowManager WindowManager { get; }
 
+    /// <summary>Makes <c>reload</c> read <see cref="Config"/> alone, and drop the options the test built the desktop with.</summary>
+    internal void ReloadWithoutExtra() =>
+        WindowManager.ReadConfig = () => new ConfigRead(ConfigParser.Parse(Config));
+
     /// <summary>Where the pointer is. It follows the warps the core asks for, as the system cursor does.</summary>
     internal Point Pointer { get; private set; }
 
