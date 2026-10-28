@@ -16,8 +16,12 @@ internal static class Win32DisplayColorControl
     private const int GetAdvancedColorInfo = 9;
     private const int GetAdvancedColorInfo2 = 15;
 
-    /// <summary>Reads the switches of the panel display config names by its adapter and target.</summary>
-    internal static bool TryDescribe(string device, LUID adapter, uint target, out DisplayColorReading reading)
+    /// <summary>
+    /// Reads the switches of the panel display config names by its adapter and target. <paramref name="panels"/> is
+    /// what <see cref="Panels"/> read for this pass.
+    /// </summary>
+    internal static bool TryDescribe(string device, LUID adapter, uint target, IReadOnlyDictionary<string, Panel> panels,
+        out DisplayColorReading reading)
     {
         reading = default;
         if (device.Length == 0)
@@ -27,9 +31,22 @@ internal static class Win32DisplayColorControl
         if (!split && !TryRead1(adapter, target, out reading))
             return false;
 
-        ApplyPanel(device, ref reading);
+        if (panels.TryGetValue(device, out var panel))
+        {
+            reading = reading with
+            {
+                MinLuminance = panel.Min,
+                MaxLuminance = panel.Max,
+                MaxAvgLuminance = panel.Average,
+                Chroma = panel.Chroma,
+            };
+        }
+
         return true;
     }
+
+    /// <summary>A panel's mastering luminance, and whether it reports its color primaries.</summary>
+    internal readonly record struct Panel(float Min, float Max, float Average, bool Chroma);
 
     private static unsafe bool TryRead2(LUID adapter, uint target, out DisplayColorReading reading)
     {
@@ -75,32 +92,18 @@ internal static class Win32DisplayColorControl
         return true;
     }
 
-    // Mastering luminance and color primaries. A failure leaves the luminance unknown and chroma unset.
-    private static void ApplyPanel(string device, ref DisplayColorReading reading)
+    /// <summary>
+    /// Every panel DXGI lists, keyed by its device name, read with one factory for a whole Monitor read. A failure
+    /// leaves out the panels not read yet, whose luminance stays unknown.
+    /// </summary>
+    internal static Dictionary<string, Panel> Panels()
     {
-        if (!TryPanel(device, out var min, out var max, out var average, out var chroma))
-            return;
-
-        reading = reading with
-        {
-            MinLuminance = min,
-            MaxLuminance = max,
-            MaxAvgLuminance = average,
-            Chroma = chroma,
-        };
-    }
-
-    private static bool TryPanel(string device, out float min, out float max, out float average, out bool chroma)
-    {
-        min = -1;
-        max = -1;
-        average = -1;
-        chroma = false;
+        var panels = new Dictionary<string, Panel>(StringComparer.OrdinalIgnoreCase);
         IDXGIFactory1? factory = null;
         try
         {
             if (PInvoke.CreateDXGIFactory1(out factory).Failed || factory is null)
-                return false;
+                return panels;
 
             for (uint adapterIndex = 0; ; adapterIndex++)
             {
@@ -122,17 +125,14 @@ internal static class Win32DisplayColorControl
                                 continue;
 
                             var described = detailed.GetDesc1();
-                            if (!device.Equals(PanelName(described.DeviceName), StringComparison.OrdinalIgnoreCase))
-                                continue;
-
-                            min = described.MinLuminance;
-                            max = described.MaxLuminance;
-                            average = described.MaxFullFrameLuminance;
-                            chroma = Primary(described.RedPrimary)
-                                || Primary(described.GreenPrimary)
-                                || Primary(described.BluePrimary)
-                                || Primary(described.WhitePoint);
-                            return true;
+                            panels[PanelName(described.DeviceName)] = new Panel(
+                                described.MinLuminance,
+                                described.MaxLuminance,
+                                described.MaxFullFrameLuminance,
+                                Primary(described.RedPrimary)
+                                    || Primary(described.GreenPrimary)
+                                    || Primary(described.BluePrimary)
+                                    || Primary(described.WhitePoint));
                         }
                         finally
                         {
@@ -148,14 +148,13 @@ internal static class Win32DisplayColorControl
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            return false;
         }
         finally
         {
             Release(factory);
         }
 
-        return false;
+        return panels;
     }
 
     private static void Release(object? com)
