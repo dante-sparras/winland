@@ -16,9 +16,14 @@ public sealed partial class WindowAdapter
         var hwnd = new HWND(handle);
         // Put back without activating it, so Win+D or a game that minimizes itself when it loses focus does not
         // take the focus as each window comes back.
-        // Posted, so a hung program does not hold up the thread that hears every window event.
-        if (_core.Manages(new WindowId(handle)) && PInvoke.IsIconic(hwnd))
-            _ = PInvoke.ShowWindowAsync(hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
+        // A hung program is posted the command, so it does not hold up the thread that hears every window event.
+        var window = new WindowId(handle);
+        if (_core.Manages(window) && PInvoke.IsIconic(hwnd))
+        {
+            _ = _desktop.Hung(window)
+                ? PInvoke.ShowWindowAsync(hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE)
+                : PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
+        }
     }
 
     private void AdoptShown(HWND hwnd, WindowId window)
