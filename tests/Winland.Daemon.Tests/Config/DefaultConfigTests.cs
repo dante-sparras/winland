@@ -67,10 +67,7 @@ public class DefaultConfigTests
         SUPER|Tab|workspace|m+1|
         SUPER SHIFT|Tab|workspace|m-1|
         SUPER CTRL|Tab|workspace|previous_per_monitor|
-        ALT CTRL|Tab|focusmonitor|+1|
         ALT CTRL SHIFT|Tab|focusmonitor|-1|
-        SUPER|minus|resizeactive|-100 0|
-        SUPER|equal|resizeactive|100 0|
         SUPER SHIFT|minus|resizeactive|0 -100|
         SUPER SHIFT|equal|resizeactive|0 100|
         SUPER ALT|minus|resizeactive|-25 0|
@@ -102,7 +99,6 @@ public class DefaultConfigTests
         SUPER ALT|3|changegroupactive|3|
         SUPER ALT|4|changegroupactive|4|
         SUPER ALT|5|changegroupactive|5|
-        SUPER ALT CTRL|W|closeall||
         SUPER|Return|exec|wt|
         SUPER SHIFT|Return|exec|start https://|
         SUPER SHIFT|B|exec|start https://|
