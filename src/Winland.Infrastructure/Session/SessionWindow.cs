@@ -141,7 +141,7 @@ internal sealed class SessionWindow : IDisposable
 
             if (message == TimerMessage && (nuint)wParam == ShellTimer)
             {
-                if (ShellBars.Present())
+                if (Taskbar.Present())
                 {
                     _ = PInvoke.KillTimer(_hwnd, ShellTimer);
                     _onSignal(SessionSignal.ShellReady);

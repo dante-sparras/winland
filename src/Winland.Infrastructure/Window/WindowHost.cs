@@ -361,7 +361,7 @@ public sealed class WindowHost : IDisposable
 
     private static SessionSignal WaitForShell()
     {
-        if (ShellBars.Present())
+        if (Taskbar.Present())
         {
             Console.Error.WriteLine("The shell is ready.");
             return SessionSignal.ShellReady;
@@ -372,7 +372,7 @@ public sealed class WindowHost : IDisposable
         while (Environment.TickCount64 < deadline)
         {
             PumpPending();
-            if (ShellBars.Present())
+            if (Taskbar.Present())
             {
                 Console.Error.WriteLine("The shell is ready.");
                 return SessionSignal.ShellReady;
@@ -382,7 +382,7 @@ public sealed class WindowHost : IDisposable
         }
 
         PumpPending();
-        if (ShellBars.Present())
+        if (Taskbar.Present())
         {
             Console.Error.WriteLine("The shell is ready.");
             return SessionSignal.ShellReady;
@@ -491,7 +491,7 @@ public sealed class WindowHost : IDisposable
             return;
 
         _opened = true;
-        ShellBars.Rehide();
+        Taskbar.Rehide();
         ApplyMonitors();
         _windows.Recover(_recovered);
         _windows.AdoptExisting();
@@ -502,14 +502,14 @@ public sealed class WindowHost : IDisposable
 
     private void Reflow()
     {
-        ShellBars.Rehide();
+        Taskbar.Rehide();
         ApplyMonitors();
     }
 
     private void RecoverSession()
     {
         _windows.DropGone();
-        ShellBars.Rehide();
+        Taskbar.Rehide();
         var snapshot = Recall();
         if (snapshot is not null)
             SessionRecovery.Restore(_windows, snapshot);

@@ -17,18 +17,15 @@ internal static class Taskbar
 
     internal static bool SessionHidden { get; private set; }
 
+    internal static bool Present() => !Primary().IsNull;
+
     public static void Hide()
     {
         lock (Gate)
         {
-            // A previous process may have exited without restoring the bars. Put them
-            // back before this run hides them, so a crash cannot leave them gone.
-            if (MarkerPresent())
-                Show(TryReadMarker(out var crashed) ? crashed : AlwaysOnTop);
-
-            var state = ReadState();
-            _savedState = state;
-            WriteMarker(state);
+            // With no taskbar yet, as while Explorer starts, there is no state to read. It is read once the bar appears.
+            if (_savedState is null && Present())
+                Save();
 
             // SW_HIDE takes the taskbar windows off the screen, but the shell still
             // reserves their strip in the work area. ABM_SETSTATE with ABS_AUTOHIDE
@@ -40,6 +37,42 @@ internal static class Taskbar
             SessionHidden = true;
             ConcealCore();
         }
+    }
+
+    // The shell can recreate the tray after sleep or a reconnect. Autohide has
+    // to be set again or the work area keeps the strip the new bar reserved.
+    // general:hide_taskbar is off until this run hides the bars. Setting auto-hide
+    // here would take that strip even though the config left the bars alone.
+    internal static void Rehide()
+    {
+        lock (Gate)
+        {
+            if (!SessionHidden)
+                return;
+
+            if (Present())
+            {
+                if (_savedState is null)
+                    Save();
+
+                SetState(AutoHide);
+            }
+
+            ConcealCore();
+        }
+    }
+
+    // A previous process may have exited without restoring the bars. They are put
+    // back before this run hides them, so a crash cannot leave them gone. Then the
+    // state to give back is read from the bar and kept in the marker.
+    private static void Save()
+    {
+        if (MarkerPresent())
+            Show(TryReadMarker(out var crashed) ? crashed : AlwaysOnTop);
+
+        var state = ReadState();
+        _savedState = state;
+        WriteMarker(state);
     }
 
     // The shell can mark the bars visible again while it applies the autohide
@@ -85,8 +118,7 @@ internal static class Taskbar
     private static int ReadState()
     {
         var data = NewData(Primary());
-        var state = Message(QueryStateMessage, ref data);
-        return state < 0 ? AlwaysOnTop : (int)state;
+        return (int)Message(QueryStateMessage, ref data);
     }
 
     private static void SetState(int state)
