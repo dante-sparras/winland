@@ -50,7 +50,7 @@ public sealed partial class WindowManager
 
     public ICursorPosition? Cursor { get; set; }
 
-    public ISessionLock? SessionLock { get; set; }
+    public SessionPhase? SessionLock { get; set; }
 
     public Action<ConfigDocument>? AfterReload { get; set; }
 
@@ -141,12 +141,12 @@ public sealed partial class WindowManager
         }
     }
 
-    internal void NoteProcess(int processId, int parentProcessId)
+    internal void NoteLineage(int processId, IReadOnlyList<int> ancestors)
     {
         lock (_gate)
         {
-            _follow.Note(processId, parentProcessId);
-            _initialWorkspaces.Note(processId, parentProcessId);
+            _follow.NoteLineage(processId, ancestors);
+            _initialWorkspaces.NoteLineage(processId, ancestors);
         }
     }
 

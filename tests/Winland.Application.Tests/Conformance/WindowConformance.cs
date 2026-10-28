@@ -686,7 +686,7 @@ public class WindowConformance
     private static void ExpectProcess(WindowId window, int pid) => Assert.Equal(pid, 1000 + window.Value);
 
     // A launched shell starts the process of the nth window, as the adapter notes a new process and its parent.
-    private static void Started(Desk desk, int window, int parent) => desk.WindowManager.NoteProcess(Pid(window), parent);
+    private static void Started(Desk desk, int window, int parent) => desk.WindowManager.NoteLineage(Pid(window), [parent]);
 
     // Runs exec and records the process it starts, as the adapter does.
     private static void Launch(Desk desk, string arguments, int pid)
