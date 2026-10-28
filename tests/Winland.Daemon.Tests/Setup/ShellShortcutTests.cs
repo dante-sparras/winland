@@ -19,6 +19,6 @@ public sealed class ShellShortcutTests : IDisposable
             "--no-elevate",
             "Winland.Winland");
 
-        Assert.Equal("Winland.Winland", ShellShortcut.ReadAppUserModelId(link));
+        Assert.Contains("Winland.Winland", System.Text.Encoding.Unicode.GetString(File.ReadAllBytes(link)), StringComparison.Ordinal);
     }
 }

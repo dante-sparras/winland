@@ -192,7 +192,7 @@ internal sealed class SessionWindow : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            Console.Error.WriteLine(exception.Message);
+            Console.Error.WriteLine(exception);
         }
 
         return PInvoke.DefWindowProc(hwnd, message, wParam, lParam);

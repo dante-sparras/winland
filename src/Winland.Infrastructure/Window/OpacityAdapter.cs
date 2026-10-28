@@ -32,7 +32,6 @@ internal sealed class OpacityAdapter
     private readonly HashSet<WindowId> _leftAlone = [];
     private readonly Dictionary<WindowId, byte> _alphas = [];
     private readonly Dictionary<WindowId, byte> _veiled = [];
-    private readonly List<string> _reports = [];
     private readonly Lock _gate = new();
     private bool _closed;
 
@@ -44,8 +43,6 @@ internal sealed class OpacityAdapter
         _styles = styles;
         _hung = hung ?? (static _ => false);
     }
-
-    internal IReadOnlyList<string> Reports => _reports;
 
     internal bool Owns(WindowId window)
     {
@@ -71,13 +68,6 @@ internal sealed class OpacityAdapter
 
             Set(window, alpha);
         }
-    }
-
-    /// <summary>Whether the window was found to be one that cannot be made transparent, so <see cref="Veil"/> would fail.</summary>
-    internal bool Refuses(WindowId window)
-    {
-        lock (_gate)
-            return _failed.Contains(window) || _leftAlone.Contains(window);
     }
 
     /// <summary>The alpha the window was last given, which a veiled window shows once it is unveiled.</summary>
@@ -289,14 +279,10 @@ internal sealed class OpacityAdapter
         Report(window, "could not be layered.");
     }
 
-    private void Report(WindowId window, string reason)
+    private static void Report(WindowId window, string reason)
     {
         var message = "Window 0x" + window.Value.ToString("x", CultureInfo.InvariantCulture) + " " + reason;
 
-        // Kept for tests to read. The newest are enough, so a long session does not keep every one.
-        if (_reports.Count >= 64)
-            _reports.RemoveAt(0);
-        _reports.Add(message);
         Console.Error.WriteLine(message);
     }
 

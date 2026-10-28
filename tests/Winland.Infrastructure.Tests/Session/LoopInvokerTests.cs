@@ -1,5 +1,6 @@
 namespace Winland.Infrastructure.Tests;
 
+[Collection("Console")]
 public class LoopInvokerTests
 {
     private const uint Quit = 0x0012;
@@ -146,6 +147,43 @@ public class LoopInvokerTests
         invoker.Invoke(() => runs++, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
 
         Assert.Equal(1, runs);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void APostedFailureIsLoggedOnceAndDoesNotStopTheQueue(bool missingLoop)
+    {
+        var invoker = new LoopInvoker();
+        _ = Peek();
+        invoker.Attach(missingLoop ? uint.MaxValue : ProbeNative.GetCurrentThreadId());
+        var stderr = Console.Error;
+        using var log = new StringWriter();
+        Console.SetError(log);
+        try
+        {
+            var poster = new Thread(() => invoker.Post(() => throw new InvalidOperationException("posted failed")));
+            poster.Start();
+            Assert.True(poster.Join(TimeSpan.FromSeconds(5)));
+            if (!missingLoop)
+                Assert.Empty(log.ToString());
+
+            invoker.Drain();
+            invoker.Drain();
+
+            Assert.Contains("System.InvalidOperationException: posted failed", log.ToString(), StringComparison.Ordinal);
+            Assert.Contains(nameof(APostedFailureIsLoggedOnceAndDoesNotStopTheQueue), log.ToString(), StringComparison.Ordinal);
+            Assert.Equal(2, log.ToString().Split("posted failed", StringSplitOptions.None).Length);
+            var runs = 0;
+            invoker.Detach();
+            invoker.Post(() => runs++);
+            Assert.Equal(1, runs);
+        }
+        finally
+        {
+            Console.SetError(stderr);
+            invoker.Detach();
+        }
     }
 
     private static bool Peek() => ProbeNative.PeekMessage(out _, 0, 0, 0, 1);

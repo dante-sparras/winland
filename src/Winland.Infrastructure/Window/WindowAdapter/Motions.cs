@@ -121,11 +121,20 @@ public sealed partial class WindowAdapter
     private void DropMotion(WindowId window) => _motions.Drop(window);
 
     // Every step asks, so the setting is read once and again after Windows broadcasts a change to the settings.
-    private static readonly CachedSetting ReducedMotionSetting = new(ReadReducedMotion);
+    private static readonly Lock SettingsGate = new();
+    private static bool? _reducedMotion;
 
-    private static bool ReducedMotion() => ReducedMotionSetting.Value;
+    private static bool ReducedMotion()
+    {
+        lock (SettingsGate)
+            return _reducedMotion ??= ReadReducedMotion();
+    }
 
-    internal static void ForgetSettings() => ReducedMotionSetting.Forget();
+    internal static void ForgetSettings()
+    {
+        lock (SettingsGate)
+            _reducedMotion = null;
+    }
 
     // Stryker disable once all : asks Windows for the animation setting.
     private static unsafe bool ReadReducedMotion()

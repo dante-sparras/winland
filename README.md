@@ -96,10 +96,12 @@ Everything Winland keeps for you is in `%USERPROFILE%\.winland`.
 | File | What it is |
 | --- | --- |
 | `winland.conf` | Your config, with every hotkey above. Winland writes it the first time it starts, with comments, and reloads it whenever you save. Right-click the tray icon to open it |
-| `winland.log` | What Winland did and any errors. Only there when `debug:disable_logs = false` and Winland is not running as administrator, which it does by default. Right-click the tray icon to open it |
+| `winland.log` | Errors with local timestamps, for an unelevated run such as `winland install --user` with `debug:disable_logs = false`. The previous log is `winland.log.1`. Right-click the tray icon to open it |
 | `state.json` | The windows Winland hid and the workspace of each, so a crash brings them back |
 | `windows-settings.json` | The Windows settings the installer turned off, so uninstall can turn them back on |
 | `taskbar.marker` | Only there while `general:hide_taskbar` hides the taskbar, so a crash still brings it back |
+
+The default install runs as administrator and writes no log file. After a crash, open Event Viewer > Windows Logs > Application and find the .NET Runtime event 1026 for Winland at that time. Include that event's exception and stack trace, `winland version` and `winland configerrors` in a bug report. For an unelevated run with file logging enabled, also attach `winland.log` and `winland.log.1` if present.
 
 ## CLI
 

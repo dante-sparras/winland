@@ -214,7 +214,7 @@ public sealed class ConfigWatcher : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            _ = exception;
+            Console.Error.WriteLine(exception);
         }
     }
 

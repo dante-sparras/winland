@@ -133,6 +133,7 @@ public sealed class MouseHook : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
+            ThreadPool.QueueUserWorkItem(static error => Console.Error.WriteLine(error), exception, preferLocal: false);
         }
 
         return Next(code, wParam, lParam);

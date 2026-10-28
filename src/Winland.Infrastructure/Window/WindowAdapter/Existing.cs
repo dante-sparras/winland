@@ -26,6 +26,7 @@ public sealed partial class WindowAdapter
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
+                Console.Error.WriteLine(exception);
             }
         }
     }

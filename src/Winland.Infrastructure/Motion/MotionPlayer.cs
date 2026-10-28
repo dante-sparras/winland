@@ -60,6 +60,7 @@ internal sealed class MotionPlayer : IDisposable
     private Thread? _thread;
     private volatile bool _stopped;
     private int _epoch;
+    private long _nextError = long.MinValue;
 
     internal MotionPlayer(IMotionTarget target, Func<double>? clock = null, bool threaded = true)
     {
@@ -261,7 +262,7 @@ internal sealed class MotionPlayer : IDisposable
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
                 // One window that fails does not cost the others their frames.
-                Console.Error.WriteLine(exception.Message);
+                Report(exception);
             }
             finally
             {
@@ -439,6 +440,16 @@ internal sealed class MotionPlayer : IDisposable
         _wake.Set();
     }
 
+    private void Report(Exception exception)
+    {
+        var now = Environment.TickCount64;
+        if (now < _nextError)
+            return;
+
+        _nextError = now + 60_000;
+        Console.Error.WriteLine(exception);
+    }
+
     private void Run(int epoch)
     {
         while (!_stopped && Volatile.Read(ref _epoch) == epoch)
@@ -450,7 +461,7 @@ internal sealed class MotionPlayer : IDisposable
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                Console.Error.WriteLine(exception.Message);
+                Report(exception);
                 more = false;
             }
 

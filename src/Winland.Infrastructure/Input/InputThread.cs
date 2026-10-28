@@ -125,7 +125,7 @@ internal sealed class InputThread : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            Console.Error.WriteLine(exception.Message);
+            Console.Error.WriteLine(exception);
             return true;
         }
     }
@@ -138,7 +138,7 @@ internal sealed class InputThread : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            Console.Error.WriteLine(exception.Message);
+            Console.Error.WriteLine(exception);
         }
     }
 }

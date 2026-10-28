@@ -279,6 +279,7 @@ public sealed partial class KeyboardHook : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
+            ThreadPool.QueueUserWorkItem(static error => Console.Error.WriteLine(error), exception, preferLocal: false);
         }
 
         return Next(code, wParam, lParam);

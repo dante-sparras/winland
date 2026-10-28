@@ -192,7 +192,7 @@ internal static class TrayHost
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                Console.Error.WriteLine(exception.Message);
+                Console.Error.WriteLine(exception);
             }
         }
 

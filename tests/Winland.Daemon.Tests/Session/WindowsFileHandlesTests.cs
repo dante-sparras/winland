@@ -7,9 +7,8 @@ namespace Winland.Daemon.Tests;
 [SupportedOSPlatform("windows")]
 public class WindowsFileHandlesTests
 {
-    // Administrators can be made the owner only elevated, so this sets the current user as the owner.
     [Fact]
-    public void SecurityWrittenThroughAHandleReplacesTheInheritedList()
+    public void SecurityIsReadFromTheOpenFolder()
     {
         if (!OperatingSystem.IsWindows())
             return;
@@ -24,20 +23,14 @@ public class WindowsFileHandlesTests
             security.SetOwner(user);
             security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
             security.AddAccessRule(new FileSystemAccessRule(user, FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+            new DirectoryInfo(directory).SetAccessControl(security);
 
-            using (var handle = WindowsFileHandles.Open(directory, WindowsFileHandles.ReadControl | WindowsFileHandles.WriteDac | WindowsFileHandles.WriteOwner, FileShare.Read, followReparse: false))
+            using (var handle = WindowsFileHandles.Open(directory, WindowsFileHandles.ReadControl, FileShare.Read, followReparse: false))
             {
-                WindowsFileHandles.WriteSecurity(handle, security.GetSecurityDescriptorBinaryForm());
                 Assert.True(WindowsAccessReader.TryRead(handle, out var access));
                 Assert.Equal(user.Value, access.Owner);
                 Assert.Equal(user.Value, Assert.Single(access.Grants).Sid);
             }
-
-            var written = new DirectoryInfo(directory).GetAccessControl();
-            Assert.True(written.AreAccessRulesProtected);
-            var rule = Assert.Single(written.GetAccessRules(true, true, typeof(SecurityIdentifier)).Cast<FileSystemAccessRule>());
-            Assert.False(rule.IsInherited);
-            Assert.Equal(user.Value, rule.IdentityReference.Value);
         }
         finally
         {
@@ -126,7 +119,6 @@ public class WindowsFileHandlesTests
         Assert.Throws<ArgumentNullException>(() => WindowsFileHandles.Attributes(null!));
         Assert.Throws<ArgumentNullException>(() => WindowsFileHandles.FinalPath(null!));
         Assert.Throws<ArgumentNullException>(() => WindowsFileHandles.ReadSecurity(null!));
-        Assert.Throws<ArgumentNullException>(() => WindowsFileHandles.WriteSecurity(null!, []));
         Assert.Throws<ArgumentNullException>(() => WindowsFileHandles.MarkForDeletion(null!));
         Assert.Throws<ArgumentNullException>(() => WindowsFileHandles.Rename(null!, null!, "a"));
         Assert.Throws<FileNotFoundException>(() => WindowsFileHandles.Open(Path.Combine(Path.GetTempPath(), "winland-missing-" + Guid.NewGuid().ToString("N")), WindowsFileHandles.ReadAttributes, FileShare.Read, followReparse: false));

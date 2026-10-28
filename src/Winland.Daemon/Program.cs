@@ -40,30 +40,10 @@ switch (ManualStartElevation.Decide(
 if (!IsStart(args))
     return Usage();
 
-return Guard(() => Run(args.Length == 0 ? null : args[1], log));
+return Guard(() => Run(args.Length == 0 ? null : args[1], log), rethrow: true);
 
 static bool IsStart(string[] arguments) =>
     arguments.Length == 0 || (arguments.Length == 2 && arguments[0].Equals("--config", StringComparison.OrdinalIgnoreCase));
-
-static int Guard(Func<int> action)
-{
-    try
-    {
-        return action();
-    }
-    catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
-    {
-        Console.Error.WriteLine(ex.Message);
-        return 1;
-    }
-    catch (Exception ex) when (ex is not OutOfMemoryException)
-    {
-        // An exception nothing catches ends the process without running finally blocks. Catching it here
-        // lets Run's finally show the hidden Clients and put the frames back first.
-        Console.Error.WriteLine(ex);
-        return 1;
-    }
-}
 
 static void LaunchConfigured(WindowManager core, IEnumerable<Launch> launches)
 {
@@ -85,7 +65,10 @@ static int Run(string? path, RollingLogWriter log)
     }
 
     if (path is not null && !path.EndsWith(".conf", StringComparison.OrdinalIgnoreCase))
-        throw new InvalidOperationException($"--config takes a .conf file, not '{path}'.");
+    {
+        Console.Error.WriteLine($"--config takes a .conf file, not '{path}'.");
+        return 1;
+    }
 
     var configPath = path ?? ConfigPaths.Default(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
     // The default is written only when Winland was not given --config and the file is not there yet.
@@ -94,7 +77,10 @@ static int Run(string? path, RollingLogWriter log)
         Console.Error.WriteLine($"Wrote the default config to {configPath}.");
 
     if (!File.Exists(configPath))
-        throw new InvalidOperationException($"Could not read config '{Path.GetFullPath(configPath)}'.");
+    {
+        Console.Error.WriteLine($"Could not read config '{Path.GetFullPath(configPath)}'.");
+        return 1;
+    }
 
     var current = ConfigFile.Read(configPath);
 
@@ -134,7 +120,11 @@ static int Run(string? path, RollingLogWriter log)
     // a thread of its own, so the cleanup is handed to the loop thread there too.
     host.SessionEnding = () => Stop(host, store, core);
     using var exit = new ExitWatch(() => host.OnLoop(() => Stop(host, store, core)));
-    UnhandledExceptionEventHandler onCrash = (_, _) => Salvage(host);
+    UnhandledExceptionEventHandler onCrash = (_, e) =>
+    {
+        Console.Error.WriteLine(e.ExceptionObject);
+        Salvage(host);
+    };
     AppDomain.CurrentDomain.UnhandledException += onCrash;
     using var watching = new ConfigWatcher(() =>
     {
@@ -148,7 +138,7 @@ static int Run(string? path, RollingLogWriter log)
         }
         catch (Exception exception) when (exception is ObjectDisposedException or InvalidOperationException or IOException)
         {
-            Console.Error.WriteLine(exception.Message);
+            Console.Error.WriteLine(exception);
         }
     });
     watcher = watching;
@@ -221,7 +211,7 @@ static void Stop(WindowHost host, RecoveryStore store, WindowManager core)
     }
     catch (Exception exception) when (exception is not OutOfMemoryException)
     {
-        Console.Error.WriteLine(exception.Message);
+        Console.Error.WriteLine(exception);
         Salvage(host);
     }
 }
@@ -236,7 +226,7 @@ static void Salvage(WindowHost host)
     }
     catch (Exception exception) when (exception is not OutOfMemoryException)
     {
-        Console.Error.WriteLine(exception.Message);
+        Console.Error.WriteLine(exception);
     }
 
     try
@@ -245,7 +235,7 @@ static void Salvage(WindowHost host)
     }
     catch (Exception exception) when (exception is not OutOfMemoryException)
     {
-        Console.Error.WriteLine(exception.Message);
+        Console.Error.WriteLine(exception);
     }
 }
 
@@ -307,7 +297,7 @@ static int Usage()
     return 2;
 }
 
-// debug:disable_logs false copies the log to winland.log beside the state file, which is written again at each start.
+// debug:disable_logs false copies the log beside the state file, keeping the previous log as winland.log.1.
 // An elevated Winland writes no file: a folder the user can change could send a write by name somewhere only
 // administrators may write.
 static void CopyLog(RollingLogWriter log, DebugOptions options, string? file)
@@ -327,12 +317,36 @@ static void CopyLog(RollingLogWriter log, DebugOptions options, string? file)
 
         try
         {
-            return new StreamWriter(new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete)) { AutoFlush = true };
+            return RollingLogWriter.OpenFile(file);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             Console.Error.WriteLine($"Could not open the log file '{file}': {exception.Message}");
             return null;
+        }
+    }
+}
+
+internal partial class Program
+{
+    internal static int Guard(Func<int> action, bool rethrow = false)
+    {
+        try
+        {
+            return action();
+        }
+        catch (Exception ex) when (!rethrow && ex is InvalidOperationException or ArgumentException)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            // Catching here lets Run's finally show the hidden Clients and put the frames back first.
+            Console.Error.WriteLine(ex);
+            if (rethrow)
+                throw;
+            return 1;
         }
     }
 }

@@ -1,5 +1,6 @@
 namespace Winland.Daemon.Tests;
 
+[Collection("Console")]
 public sealed class RecoveryStoreTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "winland-state-" + Guid.NewGuid().ToString("N"));
@@ -170,13 +171,22 @@ public sealed class RecoveryStoreTests : IDisposable
     {
         var path = Path.Combine(_root, "state.json");
         var store = new RecoveryStore(path);
+        var stderr = Console.Error;
+        using var log = new StringWriter();
+        Console.SetError(log);
+        try
+        {
+            Assert.Null(store.Read());
+            Assert.Empty(log.ToString());
+            File.WriteAllText(path, "{ not json");
 
-        var missing = store.Read();
-        File.WriteAllText(path, "{ not json");
-        var damaged = store.Read();
-
-        Assert.Null(missing);
-        Assert.Null(damaged);
+            Assert.Null(store.Read());
+            Assert.Equal($"Could not read '{path}': invalid recovery data.{Environment.NewLine}", log.ToString());
+        }
+        finally
+        {
+            Console.SetError(stderr);
+        }
     }
 
     // A file where the folder should be is never used, and saving there does not throw.

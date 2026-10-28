@@ -1,5 +1,6 @@
 namespace Winland.Infrastructure.Tests;
 
+[Collection("Console")]
 public class OpacityAdapterTests
 {
     [Fact]
@@ -56,34 +57,24 @@ public class OpacityAdapterTests
         styles.ColorKey.Add(window);
         var adapter = new OpacityAdapter(styles);
 
-        adapter.Apply(window, 10);
-        adapter.Apply(window, 10);
+        var stderr = Console.Error;
+        using var log = new StringWriter();
+        Console.SetError(log);
+        try
+        {
+            adapter.Apply(window, 10);
+            adapter.Apply(window, 10);
+            Assert.Equal("Window 0x2a was already layered and was left alone." + Environment.NewLine, log.ToString());
+        }
+        finally
+        {
+            Console.SetError(stderr);
+        }
 
         Assert.Equal(200, styles.Alpha[window]);
         Assert.Equal(0, styles.Writes);
         Assert.Equal(0, styles.AlphaWrites);
         Assert.False(adapter.Owns(window));
-        var report = Assert.Single(adapter.Reports);
-        Assert.Equal("Window 0x2a was already layered and was left alone.", report);
-    }
-
-    [Fact]
-    public void AWindowThatRefusedTheVeilIsKnownToRefuseIt()
-    {
-        var styles = new FakeStyles();
-        var window = new WindowId(42);
-        var other = new WindowId(43);
-        styles.ExStyle[window] = OpacityAdapter.LayeredStyle;
-        styles.Alpha[window] = 200;
-        var adapter = new OpacityAdapter(styles);
-        Assert.False(adapter.Refuses(window));
-
-        Assert.False(adapter.Veil(window));
-
-        Assert.True(adapter.Refuses(window));
-        Assert.False(adapter.Refuses(other));
-        adapter.Reset(window);
-        Assert.False(adapter.Refuses(window));
     }
 
     [Fact]
@@ -104,7 +95,6 @@ public class OpacityAdapterTests
         Assert.Equal(0u, styles.ExStyle[window]);
         Assert.False(adapter.Owns(window));
         Assert.True(adapter.Failed(window));
-        Assert.Equal("Window 0x3 could not be layered.", Assert.Single(adapter.Reports));
     }
 
     [Fact]
@@ -182,7 +172,6 @@ public class OpacityAdapterTests
         Assert.False(adapter.Owns(window));
         Assert.True(adapter.Failed(window));
         Assert.Equal(0, styles.AlphaWrites);
-        Assert.Equal("Window 0x4 could not be layered.", Assert.Single(adapter.Reports));
     }
 
     // A reset, as when a window opens again, lets a window that failed or was left alone be tried again.
