@@ -71,7 +71,8 @@ public sealed partial class WindowAdapter : IDisposable
     // Where Winland last asked each window to be, and the frames sent without waiting.
     private readonly QuickMove _quick = new();
 
-    private int _applying;
+    // The windows being placed now, waiting for each to take its rectangle.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> _placing = new();
 
     private const long SettleMilliseconds = 1500;
 
@@ -312,10 +313,10 @@ public sealed partial class WindowAdapter : IDisposable
                         return;
                     }
 
-                    if (Volatile.Read(ref _applying) == 0)
+                    if (!_placing.ContainsKey(window))
                     {
                         // A frame or a placement Winland sent arrives here too, often after Apply returned. Asking
-                        // the window for its limits again would wait on a window that is busy taking it. A move the
+                        // a window being placed for its limits again would wait on it while it is busy taking it. A move the
                         // application made itself lands somewhere Winland did not put it, and is still read.
                         // A window the user drags reads its limits once the drag ends, not on every step of it.
                         // A frame of Winland's own is neither the window resizing itself nor asking for fullscreen.

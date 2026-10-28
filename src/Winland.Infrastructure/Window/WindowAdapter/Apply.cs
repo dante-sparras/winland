@@ -27,16 +27,8 @@ public sealed partial class WindowAdapter : IDisposable
 
         lock (_applyGate)
         {
-            Interlocked.Increment(ref _applying);
-            try
-            {
-                while (_decided.TryDequeue(out var next))
-                    ApplyCore(next);
-            }
-            finally
-            {
-                Interlocked.Decrement(ref _applying);
-            }
+            while (_decided.TryDequeue(out var next))
+                ApplyCore(next);
         }
     }
 

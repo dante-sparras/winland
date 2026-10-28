@@ -21,6 +21,34 @@ public class WindowEventTests
         Assert.Equal(tile, windows.Desktop[window.Value].Visible);
     }
 
+    // Only the window being placed is busy taking its placement. Another window that moved itself meanwhile is still
+    // read, and put back.
+    [Fact]
+    public void AWindowThatMovesItselfWhileAnotherIsPlacedIsPutBack()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        var floating = windows.Open(0x7021);
+        var tiled = windows.Open(0x7022);
+        windows.Dispatch("focuswindow", "address:0x7021");
+        windows.Dispatch("togglefloating");
+        var tile = windows.Desktop[tiled.Value].Visible;
+        windows.Advance(5000);
+        windows.Desktop[tiled.Value].Visible = new Rectangle(50, 60, 1000, 700);
+        windows.Desktop.OnSetBounds = window =>
+        {
+            if (window != floating)
+                return;
+
+            windows.Desktop.OnSetBounds = null;
+            windows.Adapter.Notice(Events.EVENT_OBJECT_LOCATIONCHANGE, (nint)tiled.Value);
+        };
+
+        windows.Dispatch("resizeactive", "10 10");
+
+        Assert.Null(windows.Desktop.OnSetBounds);
+        Assert.Equal(tile, windows.Desktop[tiled.Value].Visible);
+    }
+
     // The events the adapter reads. A hook range that holds any other object event delivers it across processes for nothing.
     [Fact]
     public void TheObjectEventHooksHoldTheEventsTheAdapterReadsAndNoOthers()

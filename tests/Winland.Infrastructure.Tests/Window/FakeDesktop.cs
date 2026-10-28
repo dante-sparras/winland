@@ -197,7 +197,11 @@ internal sealed class FakeDesktop(Func<double> clock) : IDesktop
             found.PaintedAt = clock() + PaintTime;
 
         Log($"bounds {Id(window)} {Text(outer)} {delivery}");
+        OnSetBounds?.Invoke(window);
     }
+
+    /// <summary>Runs after a window is given bounds, as a window event about another window could arrive then.</summary>
+    internal Action<WindowId>? OnSetBounds { get; set; }
 
     public void Show(WindowId window, ShowAs show) => Change(window, show, "show");
 
