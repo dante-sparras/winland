@@ -203,7 +203,8 @@ public sealed class ConfigWatcher : IDisposable
 
         lock (_gate)
         {
-            if (read is not null && read == _lastRead)
+            // Disposed while the files were read: the exit has begun.
+            if (_disposed || (read is not null && read == _lastRead))
                 return;
 
             _lastRead = read;

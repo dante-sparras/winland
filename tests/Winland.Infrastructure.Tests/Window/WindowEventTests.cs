@@ -21,6 +21,34 @@ public class WindowEventTests
         Assert.Equal(tile, windows.Desktop[window.Value].Visible);
     }
 
+    // Only the window being placed is busy taking its placement. Another window that moved itself meanwhile is still
+    // read, and put back.
+    [Fact]
+    public void AWindowThatMovesItselfWhileAnotherIsPlacedIsPutBack()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        var floating = windows.Open(0x7021);
+        var tiled = windows.Open(0x7022);
+        windows.Dispatch("focuswindow", "address:0x7021");
+        windows.Dispatch("togglefloating");
+        var tile = windows.Desktop[tiled.Value].Visible;
+        windows.Advance(5000);
+        windows.Desktop[tiled.Value].Visible = new Rectangle(50, 60, 1000, 700);
+        windows.Desktop.OnSetBounds = window =>
+        {
+            if (window != floating)
+                return;
+
+            windows.Desktop.OnSetBounds = null;
+            windows.Adapter.Notice(Events.EVENT_OBJECT_LOCATIONCHANGE, (nint)tiled.Value);
+        };
+
+        windows.Dispatch("resizeactive", "10 10");
+
+        Assert.Null(windows.Desktop.OnSetBounds);
+        Assert.Equal(tile, windows.Desktop[tiled.Value].Visible);
+    }
+
     // The events the adapter reads. A hook range that holds any other object event delivers it across processes for nothing.
     [Fact]
     public void TheObjectEventHooksHoldTheEventsTheAdapterReadsAndNoOthers()
@@ -59,8 +87,7 @@ public class WindowEventTests
         Assert.True(adapter.StartDrag(next, sizing: true, new Point(10, 10)));
     }
 
-    // Each outcome the core decides is numbered. The id is not a window, so the title read is empty, and the
-    // sequence still moves by one because the name change was given to the core.
+    // The id is not a window, so the title read is empty, which the core takes for the window's new title.
     [Fact]
     public void AClientsTitleChangeGoesToTheCore()
     {
@@ -68,12 +95,13 @@ public class WindowEventTests
         using var adapter = new WindowAdapter(core);
         core.ReducedMotion = () => true;
         var window = new WindowId(0x7009);
-        var before = core.Handle(new WindowAppeared(window, Area) { Traits = WindowTraits.Normal }).Order!.Value.Sequence;
+        adapter.Apply(core.Handle(new WindowAppeared(window, Area) { Traits = WindowTraits.Normal with { Title = "before" } }));
+        var decided = new List<Outcome>();
+        core.Decided = decided.Add;
 
         adapter.Notice(Events.EVENT_OBJECT_NAMECHANGE, (nint)window.Value);
 
-        var after = core.Handle(new Dispatch("workspace", "1")).Order!.Value.Sequence;
-        Assert.Equal(before + 2, after);
+        Assert.Equal("", Assert.Single(decided).State.Clients.Single().Title);
     }
 
     // Switching virtual desktops cloaks every window on the old one, hidden Clients too. A hidden

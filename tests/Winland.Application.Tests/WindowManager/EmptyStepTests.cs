@@ -55,7 +55,6 @@ public class EmptyStepTests
         [nameof(Outcome.Exit)] = (o => o with { Exit = true }, false),
         [nameof(Outcome.Relays)] = (o => o with { Relays = [new KeyRelay(null, "a", KeyRelayPhase.Press)] }, false),
         [nameof(Outcome.ZOrder)] = (o => o with { ZOrder = [new ZOrderRequest(OneWindow, Top: true)] }, false),
-        [nameof(Outcome.Order)] = (o => o with { Order = new OutcomeOrder(1, 2) }, true),
         [nameof(Outcome.IsEmpty)] = (o => o with { IsEmpty = true }, true),
     };
 

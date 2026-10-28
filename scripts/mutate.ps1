@@ -102,7 +102,6 @@ $lanes = @(
             # idle and last-input queries, and the console close handler.
             'MonitorAdapter.cs'
             'Taskbar.cs'
-            'ShellBars.cs'
             'Foreground.cs'
             'KeyboardLayout.cs'
             'IdleKeeper.cs'

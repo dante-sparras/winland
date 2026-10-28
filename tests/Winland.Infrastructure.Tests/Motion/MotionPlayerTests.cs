@@ -24,6 +24,28 @@ public class MotionPlayerTests
         Assert.Equal(["move 0", "move 50", "place 100"], target.Calls);
     }
 
+    // Land gives up on a motion thread that does not come back in time, as one waiting on a window that stopped
+    // answering. The frames that thread still had are dropped, so none shows after the windows came to rest.
+    [Fact]
+    public void AFrameLeftWhenTheMotionsLandIsNotShown()
+    {
+        var target = new RecordingTarget();
+        var clock = new Clock();
+        using var player = new MotionPlayer(target, () => clock.Now, threaded: false);
+        player.Begin(new Motion(Window, Goal) { From = Start, Move = Linear });
+        player.Begin(new Motion(new WindowId(8), Goal) { From = Start, Move = Linear });
+        target.OnMove = window =>
+        {
+            target.OnMove = null;
+            player.Land();
+        };
+        clock.Now = 50;
+
+        player.Tick();
+
+        Assert.Equal(["move 0", "move 0", "move 50", "place 100", "place 100"], target.Calls.Where(call => call.StartsWith("move", StringComparison.Ordinal) || call.StartsWith("place", StringComparison.Ordinal)));
+    }
+
     [Fact]
     public void RepeatedFrameFailuresAreLoggedOnceAndOtherWindowsStillMove()
     {
@@ -574,7 +596,11 @@ public class MotionPlayerTests
 
             Goals.Add(goal);
             Add($"move {bounds.X}");
+            OnMove?.Invoke(window);
         }
+
+        /// <summary>Runs after each in-between frame, as another thread could while the frames of one tick go out.</summary>
+        public Action<WindowId>? OnMove { get; set; }
 
         public void Release(WindowId window) => Released.Add(window);
 

@@ -26,6 +26,25 @@ public class WindowAdapterTests
         Assert.True(windows.Desktop[2].Shown);
     }
 
+    // The pipe and the binds worker are not waited for at exit. What they apply after the cleanup hides nothing.
+    [Fact]
+    public void AnOutcomeAppliedAfterTheExitCleanupHidesNothing()
+    {
+        var windows = new TestWindows(reducedMotion: true);
+        windows.Open(1);
+        windows.Dispatch("workspace", "2");
+        windows.Open(2);
+        windows.Adapter.RevealHidden();
+        windows.Dispose();
+        windows.Desktop.Calls.Clear();
+
+        windows.Dispatch("workspace", "1");
+
+        Assert.True(windows.Desktop[1].Shown);
+        Assert.True(windows.Desktop[2].Shown);
+        Assert.Empty(windows.Desktop.Calls);
+    }
+
     [Fact]
     public void ADestroyedConcealedWindowIsForgottenBeforeItsHandleIsReused()
     {
@@ -77,7 +96,7 @@ public class WindowAdapterTests
         windows.Desktop[2].Visible = new Rectangle(100, 100, 300, 300);
         windows.Desktop.Calls.Clear();
 
-        windows.Apply(back with
+        windows.Adapter.ApplyCore(back with
         {
             Closes = [new WindowId(9)],
             Focus = first,
@@ -99,6 +118,44 @@ public class WindowAdapterTests
 
         // Let go above the focused window, it is not raised a second time.
         Assert.Equal(-1, desktop.IndexOf("raise 2 top"));
+    }
+
+    // A Workspace switch waits for the windows it shows to paint before it hides the others. A switch another thread
+    // decides meanwhile lands after it, so the older one cannot hide what the newer one showed.
+    [Fact]
+    public void AnOutcomeDecidedWhileAnotherWaitsToPaintLandsAfterIt()
+    {
+        using var windows = new TestWindows(reducedMotion: true);
+        windows.Open(1);
+        windows.Dispatch("workspace", "2");
+        windows.Open(2);
+        Thread? other = null;
+        using var decided = new ManualResetEventSlim();
+        windows.Desktop.OnPace = () =>
+        {
+            if (other is not null)
+                return;
+
+            other = new Thread(() =>
+            {
+                var back = windows.Core.Handle(new Dispatch("workspace", "2"));
+                decided.Set();
+                windows.Adapter.Apply(back);
+            });
+            other.Start();
+            Assert.True(decided.Wait(TimeSpan.FromSeconds(5)));
+
+            // The other thread either applies its outcome now or waits for this one to finish.
+            var deadline = Environment.TickCount64 + 5000;
+            while ((other.ThreadState & (ThreadState.Stopped | ThreadState.WaitSleepJoin)) == 0 && Environment.TickCount64 < deadline)
+                Thread.Yield();
+        };
+
+        windows.Dispatch("workspace", "1");
+        Assert.True(other!.Join(TimeSpan.FromSeconds(5)));
+
+        Assert.True(windows.Desktop[2].Shown);
+        Assert.False(windows.Desktop[1].Shown);
     }
 
     [Fact]
@@ -279,7 +336,7 @@ public class WindowAdapterTests
         windows.Desktop[1].Hung = true;
         windows.Desktop.Calls.Clear();
 
-        windows.Apply(new Outcome([], new State([])) { ZOrder = [new ZOrderRequest(first, true), new ZOrderRequest(second, false)] });
+        windows.Adapter.ApplyCore(new Outcome([], new State([])) { ZOrder = [new ZOrderRequest(first, true), new ZOrderRequest(second, false)] });
 
         Assert.Equal(["raise-async 1 top", "raise 2 bottom"], windows.Desktop.Calls);
     }

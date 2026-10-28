@@ -54,14 +54,15 @@ public sealed partial class WindowAdapter : IDisposable
     private HWINEVENTHOOK _foreground;
     private HWINEVENTHOOK _moveSize;
     private volatile RecoverySnapshot? _published;
-    private bool _disposed;
+    private volatile bool _disposed;
 
     private readonly HashSet<WindowId> _painted = [];
     private readonly OpacityAdapter _opacity;
     private readonly BorderlessFrame _borderless;
     private readonly DwmEffects _effects;
     private readonly Lock _paintGate = new();
-    private readonly ApplyOrder _order = new();
+    private readonly System.Collections.Concurrent.ConcurrentQueue<Outcome> _decided = new();
+    private readonly Lock _applyGate = new();
     private readonly Dictionary<WindowId, CachedFrame> _frames = [];
     private readonly Lock _frameGate = new();
     private readonly Func<double> _clock;
@@ -70,7 +71,8 @@ public sealed partial class WindowAdapter : IDisposable
     // Where Winland last asked each window to be, and the frames sent without waiting.
     private readonly QuickMove _quick = new();
 
-    private int _applying;
+    // The windows being placed now, waiting for each to take its rectangle.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<WindowId, byte> _placing = new();
 
     private const long SettleMilliseconds = 1500;
 
@@ -104,6 +106,7 @@ public sealed partial class WindowAdapter : IDisposable
         _effects = new DwmEffects(desktop);
         _motions = new MotionPlayer(new MotionTarget(this), _clock, threaded);
         _core.ReducedMotion = ReducedMotion;
+        _core.Decided = _decided.Enqueue;
         GroupBarHost.Dispatch = (name, arguments) =>
         {
             if (!_disposed)
@@ -199,12 +202,6 @@ public sealed partial class WindowAdapter : IDisposable
         Release();
         LandMotions();
         ClearDecorations();
-
-        // Nothing hooks window events any more, so an outcome applied after this changes windows again.
-        _releasing = false;
-        _borderless.Reopen();
-        _effects.Reopen();
-        _opacity.Reopen();
     }
 
     private void OnEvent(
@@ -316,10 +313,10 @@ public sealed partial class WindowAdapter : IDisposable
                         return;
                     }
 
-                    if (Volatile.Read(ref _applying) == 0)
+                    if (!_placing.ContainsKey(window))
                     {
                         // A frame or a placement Winland sent arrives here too, often after Apply returned. Asking
-                        // the window for its limits again would wait on a window that is busy taking it. A move the
+                        // a window being placed for its limits again would wait on it while it is busy taking it. A move the
                         // application made itself lands somewhere Winland did not put it, and is still read.
                         // A window the user drags reads its limits once the drag ends, not on every step of it.
                         // A frame of Winland's own is neither the window resizing itself nor asking for fullscreen.

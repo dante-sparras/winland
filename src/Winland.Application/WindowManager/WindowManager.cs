@@ -27,14 +27,16 @@ public sealed partial class WindowManager
     private List<StreamEvent>? _noted;
     private readonly HashSet<WindowId> _concealedMinimized = [];
 
-    private static long Cores;
-    private readonly long _id = Interlocked.Increment(ref Cores);
-    private long _sequence;
-
     // The last outcome a step returned with something to apply. The next step is empty when it asks for nothing more.
     private Outcome? _applied;
 
     public event Action<Outcome>? Noticed;
+
+    /// <summary>
+    /// Called under the lock with each outcome a step decided that asks for something, so they are handed on in the
+    /// order they were decided. The adapter queues them here and applies them in that order.
+    /// </summary>
+    public Action<Outcome>? Decided { get; set; }
 
     public Func<ConfigRead>? ReadConfig { get; set; }
 
@@ -203,15 +205,16 @@ public sealed partial class WindowManager
             if (input is not null)
                 Note(input, wasClient);
 
-            outcome = Ordered(WithEvents(Decorate(outcome, before.State), before, input));
+            outcome = WithEvents(Decorate(outcome, before.State), before, input);
 
             // A step that loads a config is not remembered: its caller may not apply it, so the next step applies
             // everything again.
             var loaded = !ReferenceEquals(config, _config);
             if (!loaded && outcome.IsEmptyAfter(_applied))
-                return Outcome.Empty(outcome.State) with { Order = outcome.Order };
+                return Outcome.Empty(outcome.State);
 
             _applied = loaded ? null : outcome.Lasting();
+            Decided?.Invoke(outcome);
             Emit(outcome);
             return outcome;
         }
@@ -292,9 +295,6 @@ public sealed partial class WindowManager
     /// Tests set it; the default is the system tick count.
     /// </summary>
     internal Func<long> Clock { get; set; } = static () => Environment.TickCount64;
-
-    // Called under the lock, so the sequence is the order in which the outcomes were decided.
-    private Outcome Ordered(Outcome outcome) => outcome with { Order = new OutcomeOrder(_id, ++_sequence) };
 
     private void Emit(Outcome outcome)
     {

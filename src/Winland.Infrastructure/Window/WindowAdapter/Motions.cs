@@ -74,21 +74,30 @@ public sealed partial class WindowAdapter
         }
     }
 
+    // Called under the window's lock, so one placement of a window is under way at a time.
     private void PlaceFrame(WindowId window, Rectangle bounds, bool borderless)
     {
-        if (!borderless)
+        _placing[window] = 0;
+        try
         {
-            Place(window, bounds);
-            return;
+            if (!borderless)
+            {
+                Place(window, bounds);
+                return;
+            }
+
+            // A borderless window already on its rectangle is left alone, as a framed one is.
+            var trails = TryOuter(window, out var before) && _quick.Trails(window, before);
+            if (!trails && before == bounds)
+                return;
+
+            if (Move(window, bounds) && trails)
+                SendQuick(window, bounds, keepSize: false);
         }
-
-        // A borderless window already on its rectangle is left alone, as a framed one is.
-        var trails = TryOuter(window, out var before) && _quick.Trails(window, before);
-        if (!trails && before == bounds)
-            return;
-
-        if (Move(window, bounds) && trails)
-            SendQuick(window, bounds, keepSize: false);
+        finally
+        {
+            _placing.TryRemove(window, out _);
+        }
     }
 
     private void BeginRest(Dictionary<WindowId, Motion> motions)
@@ -163,17 +172,9 @@ public sealed partial class WindowAdapter
 
         public void Place(WindowId window, Rectangle bounds)
         {
-            Interlocked.Increment(ref adapter._applying);
-            try
-            {
-                // A fullscreen window has no frame, so it is placed by its outer rectangle, as every placement of it is.
-                adapter.PlaceFrame(window, bounds, adapter._borderless.Owns(window));
-                adapter.EndStandIn(window, null);
-            }
-            finally
-            {
-                Interlocked.Decrement(ref adapter._applying);
-            }
+            // A fullscreen window has no frame, so it is placed by its outer rectangle, as every placement of it is.
+            adapter.PlaceFrame(window, bounds, adapter._borderless.Owns(window));
+            adapter.EndStandIn(window, null);
         }
 
         public void Alpha(WindowId window, byte alpha)

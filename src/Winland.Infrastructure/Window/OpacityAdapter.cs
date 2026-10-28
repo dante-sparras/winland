@@ -178,12 +178,23 @@ internal sealed class OpacityAdapter
         return false;
     }
 
+    /// <summary>
+    /// Gives the window back the style and alpha it had. One whose program stopped answering would hold this up, so it
+    /// is only made opaque, which does not wait, and stays owned: the exit's snapshot records it for the next start.
+    /// </summary>
     internal void Reset(WindowId window)
     {
         lock (_gate)
         {
-            if (_owned.Remove(window, out var original))
+            if (_owned.TryGetValue(window, out var original) && _hung(window))
+            {
+                _styles.TrySetAlpha(window, 255);
+                Report(window, "is not answering. It stays layered until the next start.");
+            }
+            else if (_owned.Remove(window))
+            {
                 Restore(window, original);
+            }
 
             _failed.Remove(window);
             _leftAlone.Remove(window);
@@ -206,8 +217,8 @@ internal sealed class OpacityAdapter
     }
 
     /// <summary>
-    /// Restores every window this made layered, for the exit cleanup. No window is made layered after that
-    /// until <see cref="Reopen"/>: an outcome or a motion that arrives late would leave it so for good.
+    /// Restores every window this made layered, for the exit cleanup. No window is made layered after that:
+    /// an outcome or a motion that arrives late would leave it so for good.
     /// </summary>
     internal void ResetAll()
     {
@@ -222,13 +233,10 @@ internal sealed class OpacityAdapter
             Reset(window);
     }
 
-    /// <summary>Makes windows layered again, for a later run in the same process.</summary>
-    internal void Reopen()
-    {
-        lock (_gate)
-            _closed = false;
-    }
-
+    /// <summary>
+    /// Marks each Client this made layered, and records the other windows it made layered, the ones held transparent
+    /// while they were created hidden, so a crash does not leave them so.
+    /// </summary>
     internal RecoverySnapshot Stamp(RecoverySnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
@@ -239,15 +247,20 @@ internal sealed class OpacityAdapter
 
             var clients = new RecoveredClient[snapshot.Clients.Count];
             var changed = false;
+            var others = new HashSet<WindowId>(_owned.Keys);
             for (var i = 0; i < snapshot.Clients.Count; i++)
             {
                 var client = snapshot.Clients[i];
                 var layered = _owned.ContainsKey(client.Window);
                 clients[i] = client.Layered == layered ? client : client with { Layered = layered };
                 changed |= client.Layered != layered;
+                others.Remove(client.Window);
             }
 
-            return changed ? new RecoverySnapshot(clients) : snapshot;
+            if (others.Count > 0)
+                return snapshot with { Clients = clients, Held = [.. others.Select(window => new HeldWindow(window, "", 0))] };
+
+            return changed ? snapshot with { Clients = clients } : snapshot;
         }
     }
 

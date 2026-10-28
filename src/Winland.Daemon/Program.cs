@@ -139,31 +139,37 @@ static int Run(string? path, RollingLogWriter log)
     using var host = new WindowHost(core, snapshot => Persist(store, snapshot), PipeName());
     // Log off and shut down clean up from WM_ENDSESSION, on the loop thread. Closing the console calls in from
     // a thread of its own, so the cleanup is handed to the loop thread there too.
-    host.SessionEnding = () => Stop(host, store, core);
-    using var exit = new ExitWatch(() => host.OnLoop(() => Stop(host, store, core)));
+    // The cleanup runs once. Closing the console can run it on the console's thread while the loop is busy, and the
+    // loop then reaches it on its way out: that one waits for the first and does nothing.
+    var stopGate = new Lock();
+    var stopped = false;
+    void StopOnce()
+    {
+        lock (stopGate)
+        {
+            if (stopped)
+                return;
+
+            stopped = true;
+            Stop(host, store, core);
+        }
+    }
+
+    host.SessionEnding = StopOnce;
+    using var exit = new ExitWatch(() => host.OnLoop(StopOnce));
     UnhandledExceptionEventHandler onCrash = (_, e) =>
     {
         Console.Error.WriteLine(e.ExceptionObject);
         Salvage(host);
     };
     AppDomain.CurrentDomain.UnhandledException += onCrash;
+    // The watcher calls from a thread of its own. The reload runs on the loop, as the tray's does.
     using var watching = new ConfigWatcher(() =>
     {
-        if (!core.ReloadsOnSave)
-            return;
-
-        // The watcher calls from a thread of its own. The reload runs on the loop, as the tray's and the pipe's do.
-        try
-        {
-            host.OnLoop(() => host.Reload());
-        }
-        catch (Exception exception) when (exception is ObjectDisposedException or InvalidOperationException or IOException)
-        {
-            Console.Error.WriteLine(exception);
-        }
+        if (core.ReloadsOnSave)
+            host.PostReload();
     });
     watcher = watching;
-    watcher.Watch(ConfigPaths.Watched(configPath, current.Sources));
     try
     {
         host.OnOpenFile = TrayFiles.Open;
@@ -192,6 +198,8 @@ static int Run(string? path, RollingLogWriter log)
         host.Run(prior, () =>
         {
             store.Arm();
+            // Saves are read from now on, when the loop runs and can take the reload.
+            watching.Watch(ConfigPaths.Watched(configPath, current.Sources));
             Persist(store, core.Recovery());
             LaunchConfigured(core, core.StartupLaunches(current));
             Console.WriteLine("Winland is running.");
@@ -202,7 +210,7 @@ static int Run(string? path, RollingLogWriter log)
     {
         // A save of the config while the cleanup runs is not read.
         watching.Dispose();
-        Stop(host, store, core);
+        StopOnce();
         AppDomain.CurrentDomain.UnhandledException -= onCrash;
         LaunchConfigured(core, WindowManager.ShutdownLaunches(current));
 
@@ -223,12 +231,14 @@ static void Stop(WindowHost host, RecoveryStore store, WindowManager core)
     // are then put back as after a crash, which needs no core.
     try
     {
-        var final = WindowIdentity.Annotate(core.Recovery()) with { Clean = true };
+        var final = core.Recovery();
         host.RevealHidden();
         host.ResetDecorations();
         host.RestoreTaskbar();
         SessionEffects.Restore();
-        store.Keep(final);
+
+        // A window that stopped answering kept the frame or the layered style the cleanup could not take off.
+        store.Keep(WindowIdentity.Annotate(host.Stamp(final)) with { Clean = true });
     }
     catch (Exception exception) when (exception is not OutOfMemoryException)
     {

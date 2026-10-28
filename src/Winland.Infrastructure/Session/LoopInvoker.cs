@@ -22,13 +22,15 @@ internal sealed class LoopInvoker
     /// <summary>
     /// Queues <paramref name="action"/> on the loop thread and returns without waiting. A click on the
     /// notification-area icon arrives on that icon's thread, and waiting here would stall its menu: the loop
-    /// cannot drain this queue while the click is still inside it. On the loop thread, or with no loop, it runs here.
+    /// cannot drain this queue while the click is still inside it. On the loop thread it waits for the loop's next
+    /// message too, because Windows sends the loop's windows messages while it waits on another program in the middle
+    /// of a step. With no loop it runs here.
     /// </summary>
     internal void Post(Action action)
     {
         ArgumentNullException.ThrowIfNull(action);
         var thread = Volatile.Read(ref _thread);
-        if (thread == 0 || thread == PInvoke.GetCurrentThreadId())
+        if (thread == 0)
         {
             action();
             return;
@@ -36,7 +38,10 @@ internal sealed class LoopInvoker
 
         var once = new Once(action, posted: true);
         _queue.Enqueue(once);
-        if (!PInvoke.PostThreadMessage(thread, Message, default, default))
+
+        // The loop may have detached and drained for the last time since the thread was read. It then never reads
+        // the message, so the action runs here, unless that last drain took it.
+        if (!PInvoke.PostThreadMessage(thread, Message, default, default) || Volatile.Read(ref _thread) == 0)
             once.Run();
     }
 

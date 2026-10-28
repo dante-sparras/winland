@@ -145,6 +145,20 @@ internal static class TrayHost
         _ = worker.Join(TimeSpan.FromSeconds(2));
     }
 
+    /// <summary>
+    /// Takes the icon down for a crash, from any thread. The icon's thread may be gone, so it is not asked to. The
+    /// shell would otherwise keep the icon until the pointer passes over it.
+    /// </summary>
+    internal static void Salvage()
+    {
+        var window = _window;
+        if (window.IsNull)
+            return;
+
+        var data = Blank(window);
+        _ = Tell(NOTIFY_ICON_MESSAGE.NIM_DELETE, ref data);
+    }
+
     private static void Run()
     {
         _ = PInvoke.PeekMessage(out _, default, 0, 0, PEEK_MESSAGE_REMOVE_TYPE.PM_NOREMOVE);
@@ -464,6 +478,11 @@ internal static class TrayHost
 
         if (message == TrayMessages.Callback)
             OnClick(hwnd, wParam, lParam);
+
+        // taskkill without /F closes each of Winland's windows. The session window ends the run, and this one stays
+        // until then, so the exit can still take its icon down.
+        if (message == PInvoke.WM_CLOSE)
+            return default;
 
         return PInvoke.DefWindowProc(hwnd, message, wParam, lParam);
     }

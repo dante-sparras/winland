@@ -24,6 +24,53 @@ public class BorderlessFrameTests
         Assert.False(borderless.Owns(window));
     }
 
+    // Only the frame and popup bits are the ones mode 2 changed. A window shown, hidden, disabled for a modal dialog or
+    // maximized meanwhile keeps that.
+    [Fact]
+    public void LeavingPutsBackOnlyTheFrameAndKeepsWhatChangedSince()
+    {
+        const uint Visible = 0x10000000;
+        const uint Disabled = 0x08000000;
+        var frames = new FakeFrames();
+        var window = new WindowId(9);
+        var crashed = new WindowId(10);
+        frames.Style[window] = 0x00CF0000 | Visible;
+        frames.Style[crashed] = BorderlessStyle.Strip(0x00CF0000) | Disabled;
+        var borderless = new BorderlessFrame(frames);
+        borderless.Apply(window, true);
+        frames.Style[window] = (frames.Style[window] & ~Visible) | Disabled;
+
+        borderless.Apply(window, false);
+        borderless.PutBack(crashed, 0x00CF0000 | Visible);
+
+        Assert.Equal(0x00CF0000u | Disabled, frames.Style[window]);
+        Assert.Equal(0x00CF0000u | Disabled, frames.Style[crashed]);
+    }
+
+    // A style write waits for the window. One whose program stopped answering keeps its frame dropped at exit, and the
+    // snapshot records it, so the next start puts it back.
+    [Fact]
+    public void ReleasingAllSkipsAWindowThatStoppedAnsweringAndKeepsItForTheNextStart()
+    {
+        var frames = new FakeFrames();
+        var hung = new WindowId(4);
+        var answering = new WindowId(5);
+        frames.Style[hung] = 0x00CF0000;
+        frames.Style[answering] = 0x00CF0000;
+        var stopped = false;
+        var borderless = new BorderlessFrame(frames, window => stopped && window == hung);
+        borderless.Apply(hung, true);
+        borderless.Apply(answering, true);
+        stopped = true;
+
+        borderless.ReleaseAll();
+
+        Assert.Equal(BorderlessStyle.Strip(0x00CF0000), frames.Style[hung]);
+        Assert.Equal(0x00CF0000u, frames.Style[answering]);
+        var snapshot = borderless.Stamp(new RecoverySnapshot([Client(hung), Client(answering)]));
+        Assert.Equal([0x00CF0000u, null], snapshot.Clients.Select(client => client.FrameStyle));
+    }
+
     [Fact]
     public void AWindowThatCannotChangeStyleIsNotRemembered()
     {
@@ -61,7 +108,7 @@ public class BorderlessFrameTests
     // The exit cleanup puts every frame back, and then the process ends with the state file gone. An
     // outcome from the hook worker or the pipe that arrives after that must not drop a frame again.
     [Fact]
-    public void AfterReleasingAllNoFrameIsDroppedUntilReopened()
+    public void AfterReleasingAllNoFrameIsDropped()
     {
         var frames = new FakeFrames();
         var window = new WindowId(8);
@@ -73,10 +120,6 @@ public class BorderlessFrameTests
 
         Assert.Equal(0x00CF0000u, frames.Style[window]);
         Assert.False(borderless.Owns(window));
-
-        borderless.Reopen();
-        borderless.Apply(window, true);
-        Assert.True(borderless.Owns(window));
     }
 
     [Fact]
@@ -160,7 +203,9 @@ public class BorderlessFrameTests
 
         Assert.False(borderless.Owns(window));
         Assert.Equal(writes, frames.Writes);
-        Assert.Equal(0x00C00000u, frames.Style[window]);
+
+        // The recorded frame, with the system menu and the minimize and maximize boxes the window has now.
+        Assert.Equal(0x00CB0000u, frames.Style[window]);
     }
 
     [Fact]
@@ -190,6 +235,9 @@ public class BorderlessFrameTests
         Assert.Throws<ArgumentNullException>(() => borderless.Stamp(null!));
         Assert.Throws<ArgumentNullException>(() => new BorderlessFrame(null!));
     }
+
+    private static RecoveredClient Client(WindowId window) =>
+        new(window, WorkspaceId.Initial, MonitorId.Primary, false, "", "", 1);
 
     private sealed class FakeFrames : IWindowFrame
     {

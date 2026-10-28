@@ -149,6 +149,32 @@ public class LoopInvokerTests
         Assert.Equal(1, runs);
     }
 
+    // Windows sends the loop's own windows messages while it waits on another program in the middle of a step. What
+    // such a message posts runs once the loop takes its next message, not inside that step.
+    [Fact]
+    public void AnActionPostedOnTheLoopThreadWaitsForTheLoop()
+    {
+        var invoker = new LoopInvoker();
+        _ = Peek();
+        invoker.Attach(ProbeNative.GetCurrentThreadId());
+        try
+        {
+            var runs = 0;
+            invoker.Post(() => runs++);
+            Assert.Equal(0, runs);
+
+            invoker.Drain();
+            Assert.Equal(1, runs);
+        }
+        finally
+        {
+            invoker.Detach();
+            while (Peek())
+            {
+            }
+        }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

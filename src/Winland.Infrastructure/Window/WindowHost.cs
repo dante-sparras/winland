@@ -15,6 +15,9 @@ public sealed class WindowHost : IDisposable
     private readonly TouchpadInput _touchpad;
     private readonly CommandServer _commands;
     private readonly SessionPhase _phase = new();
+
+    // How many times the session went away: locked, suspended, disconnected or with its display off.
+    private int _absences;
     private readonly Lock _memory = new();
     private readonly Queue<SessionSignal> _pending = new();
     private readonly LoopInvoker _loop = new();
@@ -33,6 +36,9 @@ public sealed class WindowHost : IDisposable
     private AccentChanged? _accent;
     private bool _draining;
     private bool _ownsTaskbar;
+
+    // True while the loop runs. Cleared before it detaches, so what runs after that, here or on another thread, sees it.
+    private volatile bool _looping;
 
     // Set once the exit begins, so a reload or a command still on its way does not hide the taskbar again.
     private volatile bool _taskbarReleased;
@@ -55,8 +61,13 @@ public sealed class WindowHost : IDisposable
         _touchpad = new TouchpadInput(_keys.PostInput);
         _core.SessionLock = _phase;
         _commands = new CommandServer(core, _windows.Apply, pipeName);
-        // A command arrives on a pipe thread. The taskbar state is the loop thread's, as a reload's is.
-        _commands.AfterCommand = () => _loop.Post(FollowTaskbar);
+        // A command arrives on a pipe thread. The taskbar state is the loop thread's, as a reload's is, and once the
+        // loop stopped the exit owns the taskbar.
+        _commands.AfterCommand = () => _loop.Post(() =>
+        {
+            if (_looping)
+                FollowTaskbar();
+        });
         _taskbar = TaskbarControl.Current;
     }
 
@@ -109,6 +120,17 @@ public sealed class WindowHost : IDisposable
         FollowTaskbar();
         return reply;
     }
+
+    /// <summary>
+    /// Reads the config again on the loop thread, once it takes its next message, and returns without waiting. A save
+    /// the config watcher sees after the loop stopped is not read: the exit has begun, and a reload would start the
+    /// config's programs again.
+    /// </summary>
+    public void PostReload() => _loop.Post(() =>
+    {
+        if (_looping)
+            Reload();
+    });
 
     public void Start()
     {
@@ -170,11 +192,19 @@ public sealed class WindowHost : IDisposable
         _whenReady = whenReady;
 
         // A message-only window does not receive power broadcasts. This hidden
-        // top-level window does, and it is the target for session notifications.
-        using var session = new SessionWindow(OnSignal, OnFlash, () => SessionEnding?.Invoke(), NoteAccent, WindowAdapter.ForgetSettings);
+        // top-level window does, and it is the target for session notifications. Windows sends it these while the
+        // loop may be waiting on another program in the middle of a step, so each is handed to the loop and its step
+        // starts at the top of the loop. The end of the session cannot wait: the process can end once it returns.
+        using var session = new SessionWindow(
+            signal => _loop.Post(() => OnSignal(signal)),
+            window => _loop.Post(() => OnFlash(window)),
+            () => SessionEnding?.Invoke(),
+            () => _loop.Post(NoteAccent),
+            WindowAdapter.ForgetSettings);
         var shell = WaitForShell();
         var thread = PInvoke.GetCurrentThreadId();
         SessionHalt.Stop = () => _ = PInvoke.PostThreadMessage(thread, QuitMessage, default, default);
+        _looping = true;
         _loop.Attach(thread);
         // Armed only once the loop can take a click. Applying an outcome from a test must not add an icon.
         TrayHost.Start(
@@ -217,6 +247,9 @@ public sealed class WindowHost : IDisposable
             if (shell == SessionSignal.ShellTimedOut)
                 session.WatchForShell();
 
+            foreach (var signal in SessionNotices.AtStart(PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_REMOTESESSION) != 0))
+                OnSignal(signal);
+
             OnSignal(shell);
 
             WindowAdapter.Pump(message =>
@@ -237,6 +270,7 @@ public sealed class WindowHost : IDisposable
         finally
         {
             Console.CancelKeyPress -= onCancel;
+            _looping = false;
             _loop.Detach();
             _loop.Drain();
             SessionHalt.Stop = null;
@@ -250,16 +284,20 @@ public sealed class WindowHost : IDisposable
         _windows.RevealHidden();
     }
 
-    /// <summary>What a crash can still put back: hidden Clients, frames, effects, alpha and the taskbar.</summary>
+    /// <summary>What a crash can still put back: hidden Clients, frames, effects, alpha, the tray icon and the taskbar.</summary>
     public void Salvage()
     {
         _windows.Salvage();
+        TrayHost.Salvage();
         RestoreTaskbar();
     }
 
     private void OnFlash(WindowId window) => _windows.Apply(_core.Handle(new WindowFlashed(window)));
 
     public void ResetDecorations() => _windows.ResetDecorations();
+
+    /// <summary>Records on each Client what this run changed and has not put back, so the next start does.</summary>
+    public RecoverySnapshot Stamp(RecoverySnapshot snapshot) => _windows.Stamp(snapshot);
 
     public void RestoreTaskbar()
     {
@@ -327,7 +365,7 @@ public sealed class WindowHost : IDisposable
 
     private static SessionSignal WaitForShell()
     {
-        if (ShellBars.Present())
+        if (Taskbar.Present())
         {
             Console.Error.WriteLine("The shell is ready.");
             return SessionSignal.ShellReady;
@@ -338,7 +376,7 @@ public sealed class WindowHost : IDisposable
         while (Environment.TickCount64 < deadline)
         {
             PumpPending();
-            if (ShellBars.Present())
+            if (Taskbar.Present())
             {
                 Console.Error.WriteLine("The shell is ready.");
                 return SessionSignal.ShellReady;
@@ -348,7 +386,7 @@ public sealed class WindowHost : IDisposable
         }
 
         PumpPending();
-        if (ShellBars.Present())
+        if (Taskbar.Present())
         {
             Console.Error.WriteLine("The shell is ready.");
             return SessionSignal.ShellReady;
@@ -399,7 +437,11 @@ public sealed class WindowHost : IDisposable
         {
             while (_pending.Count > 0)
             {
+                var wasLive = _phase.Live;
                 var effect = _phase.Notice(_pending.Dequeue());
+                if (wasLive && !_phase.Live)
+                    Interlocked.Increment(ref _absences);
+
                 if (!_started)
                 {
                     if (effect != SessionEffect.None)
@@ -453,7 +495,7 @@ public sealed class WindowHost : IDisposable
             return;
 
         _opened = true;
-        ShellBars.Rehide();
+        Taskbar.Rehide();
         ApplyMonitors();
         _windows.Recover(_recovered);
         _windows.AdoptExisting();
@@ -464,14 +506,14 @@ public sealed class WindowHost : IDisposable
 
     private void Reflow()
     {
-        ShellBars.Rehide();
+        Taskbar.Rehide();
         ApplyMonitors();
     }
 
     private void RecoverSession()
     {
         _windows.DropGone();
-        ShellBars.Rehide();
+        Taskbar.Rehide();
         var snapshot = Recall();
         if (snapshot is not null)
             SessionRecovery.Restore(_windows, snapshot);
@@ -481,25 +523,30 @@ public sealed class WindowHost : IDisposable
 
     private void Save()
     {
+        // Read before the snapshot is built, so one built while the session was away, or that it went away during,
+        // is told apart from one built while it was there throughout.
+        var absences = Volatile.Read(ref _absences);
+        var live = _phase.Live;
         if (_windows.Capture() is not RecoverySnapshot snapshot)
             return;
 
-        Remember(snapshot);
-
         // While the session is away its windows can look closed, so the state file keeps the last one from before.
-        if (_phase.Live)
+        if (Remember(snapshot, live, absences))
             _onRecovery?.Invoke(snapshot);
     }
 
-    private void Remember(RecoverySnapshot snapshot)
+    // While the session is away its windows can look closed, so the snapshot from before is kept. Each Client's
+    // process, class and title are recorded while it is alive, so a reused window is not taken for one that left.
+    private bool Remember(RecoverySnapshot snapshot, bool live, int absences)
     {
-        // While the session is away its windows can look closed, so the snapshot from before is kept. Each Client's
-        // process, class and title are recorded while it is alive, so a reused window is not taken for one that left.
         var captured = WindowIdentity.Annotate(snapshot);
         lock (_memory)
         {
-            if (_clients is null || _phase.Live)
+            var present = live && _phase.Live && Volatile.Read(ref _absences) == absences;
+            if (_clients is null || present)
                 _clients = captured;
+
+            return present;
         }
     }
 

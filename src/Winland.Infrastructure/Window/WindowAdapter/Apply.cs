@@ -7,21 +7,28 @@ namespace Winland.Infrastructure;
 /// <summary>Carries out an Outcome: placements, focus, z-order, hiding and showing, closing and killing.</summary>
 public sealed partial class WindowAdapter : IDisposable
 {
+    // Outcomes are decided under the core's lock and applied after it is released, on the loop thread, the pipe threads,
+    // the binds worker and the group bar thread. The core queues each one as it decides it, and whichever thread applies
+    // next carries out every queued one in that order, so an older outcome never lands after a newer one. The caller's
+    // own is among them, so it has been applied when this returns.
     internal void Apply(Outcome outcome)
     {
-        // The step asked for nothing the last outcome did not already do, so no window, border, bar or snapshot is touched.
-        if (outcome.IsEmpty)
+        ArgumentNullException.ThrowIfNull(outcome);
+
+        // The step asked for nothing the last outcome did not already do, so the core queued nothing. Once the exit
+        // cleanup is done, a command or a bind still on its way changes no window.
+        if (outcome.IsEmpty || _disposed)
             return;
 
-        var admitted = _order.Admit(outcome);
-        Interlocked.Increment(ref _applying);
-        try
+        // A window event can arrive while this thread waits on a window in the middle of an outcome. The one it decides
+        // is queued behind the outcome being applied, and the loop below applies it next.
+        if (_applyGate.IsHeldByCurrentThread)
+            return;
+
+        lock (_applyGate)
         {
-            ApplyCore(admitted.Outcome, admitted.Current);
-        }
-        finally
-        {
-            Interlocked.Decrement(ref _applying);
+            while (_decided.TryDequeue(out var next))
+                ApplyCore(next);
         }
     }
 
@@ -50,10 +57,8 @@ public sealed partial class WindowAdapter : IDisposable
         Restack(held.Count == 0 ? outcome.ZOrder : [.. outcome.ZOrder.Where(request => !(request.Top && held.Contains(request.Window)))]);
     }
 
-    // An outcome that is not current lost its stale parts in Order.Admit. The state every outcome carries
-    // whole, the group bars, the input settings and the cursor behavior, is left to the newer outcome that
-    // was already applied. Its one-off requests still run.
-    private void ApplyCore(Outcome outcome, bool current)
+    // Carries out one outcome. Apply calls it for each queued one in turn, and a test calls it with an outcome it built.
+    internal void ApplyCore(Outcome outcome)
     {
         var windows = new Dictionary<ClientId, WindowId>(outcome.State.Clients.Count);
         foreach (var client in outcome.State.Clients)
@@ -107,8 +112,7 @@ public sealed partial class WindowAdapter : IDisposable
         foreach (var (window, above) in under)
             _desktop.Under(window, above);
 
-        if (current)
-            DropClosedFrames(outcome.State.Clients);
+        DropClosedFrames(outcome.State.Clients);
 
         var borderless = new HashSet<WindowId>();
         foreach (var client in outcome.State.Clients)
@@ -122,13 +126,9 @@ public sealed partial class WindowAdapter : IDisposable
             if (!windows.TryGetValue(placement.Client, out var window))
                 continue;
 
-            // Outcomes are applied on several threads. One admitted later may have placed this window already. The
-            // check and the placement hold the window's lock together, so a newer one cannot place in between.
+            // The window's lock keeps a motion's frame from landing in the middle of the placement.
             lock (_motions.For(window))
             {
-                if (_order.Superseded(outcome, window))
-                    continue;
-
                 var fills = borderless.Contains(window);
                 if (!(fills && _ownFullscreen.ContainsKey(window)))
                     _borderless.Apply(window, fills);
@@ -206,12 +206,11 @@ public sealed partial class WindowAdapter : IDisposable
                 }
 
                 // A window that is no longer a Client is painted afresh if it becomes one again.
-                if (current)
-                    ForgetDwmPainted(windows.Values);
+                ForgetDwmPainted(windows.Values);
             }
         }
 
-        if (!_releasing && current)
+        if (!_releasing)
         {
             if (outcome.Decorations.Count > 0 || outcome.ResetDecorations.Count > 0)
                 BorderHost.Update(rings);
@@ -220,10 +219,7 @@ public sealed partial class WindowAdapter : IDisposable
             TrayHost.Update(outcome.Tray, outcome.ConfigNotice);
         }
 
-        if (current)
-            SessionEffects.Apply(outcome);
-        else
-            SessionEffects.ApplyOneOff(outcome);
+        SessionEffects.Apply(outcome);
 
         if (!_disposed)
             Publish();
