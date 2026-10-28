@@ -224,3 +224,4 @@ BeginDeferWindowPos
 DeferWindowPos
 EndDeferWindowPos
 WM_CLOSE
+SetWindowText
