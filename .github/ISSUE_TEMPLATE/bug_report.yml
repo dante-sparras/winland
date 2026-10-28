@@ -72,8 +72,8 @@ body:
     id: version
     attributes:
       label: Version or commit
-      description: Release version, commit SHA, or branch name if known.
-      placeholder: "main @ abc1234"
+      description: Paste the output of winland version. For a local build, also include its commit SHA.
+      placeholder: "winland version output"
 
   - type: input
     id: environment
@@ -82,10 +82,21 @@ body:
       description: OS, runtime and tool versions, and anything else relevant.
 
   - type: textarea
+    id: configerrors
+    attributes:
+      label: Config errors
+      description: Paste the output of winland configerrors while Winland is running.
+      render: shell
+
+  - type: textarea
     id: logs
     attributes:
       label: Logs or stack traces
-      description: Paste the most relevant output only. Redact secrets.
+      description: >-
+        The default elevated install writes no log file. For a crash, open Event Viewer > Windows Logs > Application
+        and copy the .NET Runtime event 1026 for Winland, including its time, exception and stack trace.
+        An unelevated run such as winland install --user writes winland.log when debug:disable_logs = false.
+        Attach that file and winland.log.1 if present. Redact secrets.
       render: shell
 
   - type: upload
