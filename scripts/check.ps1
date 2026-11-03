@@ -106,7 +106,7 @@ function Test-MarkdownLinks([string]$Root, [string[]]$Tracked) {
                 $candidate = $span.Groups[1].Value
                 if ($candidate -match '[\s<>*$|{}()=]' -or $candidate -match '^[A-Za-z][A-Za-z0-9+.-]*:') { continue }
                 if (-not ($candidate.Contains('/') -or $candidate -match $pathExtensions)) { continue }
-                if ($candidate -match '^dante-sparras/[^/]+$') { continue }
+                if ($candidate -match '^(dante-sparras|enpaze)/[^/]+$') { continue }
                 $path = $candidate.TrimEnd('/')
                 if ($path.StartsWith('./')) { $path = $path.Substring(2) }
                 if ($path -in $optional) { continue }

@@ -5,11 +5,11 @@ namespace Winland.Install.Tests;
 
 public class GitHubReleaseTests
 {
-    private const string ZipUrl = "https://github.com/dante-sparras/winland/releases/download/v0.1.0/Winland-win-x64.zip";
+    private const string ZipUrl = "https://github.com/enpaze/winland/releases/download/v0.1.0/Winland-win-x64.zip";
 
-    private const string SumsUrl = "https://github.com/dante-sparras/winland/releases/download/v0.1.0/SHA256SUMS";
+    private const string SumsUrl = "https://github.com/enpaze/winland/releases/download/v0.1.0/SHA256SUMS";
 
-    private const string VersionUrl = "https://github.com/dante-sparras/winland/releases/download/v0.1.0/version.json";
+    private const string VersionUrl = "https://github.com/enpaze/winland/releases/download/v0.1.0/version.json";
 
     [Fact]
     public void TheReleaseJsonNamesTheThreeAssets()
@@ -35,7 +35,7 @@ public class GitHubReleaseTests
     [Fact]
     public void AnHttpDownloadIsRefused()
     {
-        var json = ReleaseJson(zip: "http://github.com/dante-sparras/winland/releases/download/v0.1.0/Winland-win-x64.zip");
+        var json = ReleaseJson(zip: "http://github.com/enpaze/winland/releases/download/v0.1.0/Winland-win-x64.zip");
 
         var error = Assert.Throws<InvalidOperationException>(() => GitHubReleaseParser.ReadRelease(json));
 

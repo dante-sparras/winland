@@ -40,4 +40,4 @@ The `v0.1.2` zip was one flat self-contained folder of the old host (`winland.ex
 
 ## The release token
 
-`RELEASE_PLEASE_TOKEN` is a fine-grained personal access token for this repo only, with Contents, Pull requests, and Issues set to read and write. Store it with `gh secret set RELEASE_PLEASE_TOKEN --repo dante-sparras/winland`. It expires. When it has, release-please falls back to the built-in token, and the release PR's checks do not start until you close and reopen it.
+`RELEASE_PLEASE_TOKEN` is a fine-grained personal access token for this repo only, with Contents, Pull requests, and Issues set to read and write. Store it with `gh secret set RELEASE_PLEASE_TOKEN --repo enpaze/winland`. It expires. When it has, release-please falls back to the built-in token, and the release PR's checks do not start until you close and reopen it.
