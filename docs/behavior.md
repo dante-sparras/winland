@@ -395,6 +395,8 @@ With no window, `clients` replies `no open windows` and `activewindow` replies `
 
 `binds` answers one config line per bind, such as `bindle = SUPER, minus, resizeactive, -40 0`, that the config reads back as the same bind. `version` answers one line, such as `winland 0.0.0 (a1b2c3d)`, and `configerrors` one `file:line: message` per warning. With nothing to list they reply `no binds` and `no config errors`. With `j/` they reply in JSON, which is `[]` when empty.
 
+`files` answers the config Winland read, as `config: PATH`, and the log it writes now, as `log: PATH`, each a full path. The config is the one `--config` named, or `winland.conf` in `.winland`. The log is `none` while Winland writes none: with `debug:disable_logs` true, when it runs elevated, or when the file could not be opened. With `j/` it replies `{"config": PATH, "log": PATH}`, with `null` for none. A shell that draws Winland's notification-area menu reads it to open the same files as Winland's Edit config and Open log.
+
 `getoption NAME` answers one Option Winland reads, with the value Winland applied. The reply is a JSON object with `option`, the value under its type (`int`, `bool`, `float`, `str`, `vec2`, `css` or `gradient`) and `set`, true when a line the config applied set that Option. A color is a `str` in the form `0xAARRGGBB`, and the value is always one the config reads. An unknown name answers `error: no such option`.
 
 ## Virtual desktops

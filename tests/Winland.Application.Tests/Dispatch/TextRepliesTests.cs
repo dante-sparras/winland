@@ -1,6 +1,6 @@
 namespace Winland.Application.Tests;
 
-/// <summary>The text Winland answers clients, activewindow, workspaces, activeworkspace, monitors, binds, version and configerrors with without j/.</summary>
+/// <summary>The text Winland answers clients, activewindow, workspaces, activeworkspace, monitors, binds, version, configerrors and files with without j/.</summary>
 public class TextRepliesTests
 {
     private static readonly Rectangle Area = new(0, 0, 1920, 1080);
@@ -172,5 +172,26 @@ public class TextRepliesTests
             core.Execute("j/configerrors").Text);
         Assert.Equal("ok", core.Execute("keyword general:border_size 4").Text);
         Assert.StartsWith(path + ":1:", core.Execute("configerrors").Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FilesAnswerTheConfigReadAndTheLogWritten()
+    {
+        const string path = @"C:\winland\work.conf";
+        const string log = @"C:\winland\state\winland.log";
+        var core = new WindowManager();
+        Assert.Equal("config: none\nlog: none", core.Execute("files").Text);
+        Assert.Equal("""{"config":null,"log":null}""", core.Execute("j/files").Text);
+
+        string? writing = log;
+        core.LogFile = () => writing;
+        core.Handle(new Configure(new ConfigDocument([], [], []) { Path = path }));
+
+        Assert.Equal("config: " + path + "\nlog: " + log, core.Execute("files").Text);
+        Assert.Equal("""{"config":"C:\\winland\\work.conf","log":"C:\\winland\\state\\winland.log"}""", core.Execute("j/files").Text);
+
+        // debug:disable_logs true, or an elevated Winland: no log is written, and none is reported.
+        writing = null;
+        Assert.Equal("""{"config":"C:\\winland\\work.conf","log":null}""", core.Execute("j/files").Text);
     }
 }

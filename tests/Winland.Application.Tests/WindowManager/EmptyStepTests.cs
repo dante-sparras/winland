@@ -210,6 +210,7 @@ public class EmptyStepTests
     [InlineData("binds")]
     [InlineData("version")]
     [InlineData("configerrors")]
+    [InlineData("files")]
     [InlineData("getoption general:gaps_in")]
     [InlineData("getprop address:0x1 opacity")]
     public void AQueryAnswersAndChangesNothing(string query)

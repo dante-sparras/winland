@@ -44,6 +44,9 @@ public sealed partial class WindowManager
             ConfigErrorsRequest errors => Json(errors)
                 ? CommandProtocol.FormatErrors(_loaded?.Warnings ?? [])
                 : Text(CommandProtocol.FormatErrorsText(_loaded?.Warnings ?? [], _loaded?.Path), "no config errors"),
+            FilesRequest files => Json(files)
+                ? CommandProtocol.FormatFiles(_loaded?.Path, LogFile?.Invoke())
+                : CommandProtocol.FormatFilesText(_loaded?.Path, LogFile?.Invoke()),
             GetOptionRequest option => OptionTable.Describe(option.Name, _config) ?? "error: no such option",
             GetPropRequest prop => ReadProp(prop),
             _ => null,

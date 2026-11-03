@@ -142,6 +142,7 @@ These talk to the running Winland.
 | `winland monitors [all]` | List the monitors. `all` includes disabled ones |
 | `winland binds` | List the hotkeys, one config line each |
 | `winland configerrors` | List the config's warnings, each with its file and line |
+| `winland files` | Show the config Winland read and the log it writes |
 | `winland getprop <window> <property>` | Show a window property |
 | `winland setprop <window> <property> <value>` | Set a window property |
 | `winland kill` | Click a window to end its program. Escape cancels |

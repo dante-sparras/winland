@@ -25,6 +25,7 @@ public static partial class CommandProtocol
         new("binds", "", (rest, _) => Bare(rest, new BindsRequest())),
         new("version", "", (rest, _) => Bare(rest, new VersionRequest())),
         new("configerrors", "", (rest, _) => Bare(rest, new ConfigErrorsRequest())),
+        new("files", "", (rest, _) => Bare(rest, new FilesRequest())),
         new("getoption", "<name>", (rest, _) => new GetOptionRequest(SplitOnce(rest).First)),
         new("kill", "", (rest, _) => Bare(rest, new ClickKillRequest())),
         new("keyword", "<name> <value>", (rest, _) =>
@@ -142,6 +143,8 @@ public sealed record BindsRequest : CommandRequest;
 public sealed record VersionRequest : CommandRequest;
 
 public sealed record ConfigErrorsRequest : CommandRequest;
+
+public sealed record FilesRequest : CommandRequest;
 
 public sealed record GetOptionRequest(string Name) : CommandRequest;
 

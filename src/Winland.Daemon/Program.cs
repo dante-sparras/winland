@@ -114,6 +114,7 @@ static int Run(string? path, RollingLogWriter log)
     var core = new WindowManager { Cursor = new SystemCursor(), FirstStart = firstStart };
     core.ReadConfig = () => ConfigFile.TryRead(configPath);
     core.KeyLayoutSource = KeyboardLayout.Active;
+    core.LogFile = () => log.FilePath;
     ConfigWatcher? watcher = null;
     string? logFile = null;
     core.AfterReload = document =>

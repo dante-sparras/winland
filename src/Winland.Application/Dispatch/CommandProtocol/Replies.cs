@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace Winland.Application;
 
-/// <summary>The replies to the smaller requests: binds, version, the cursor, config errors, and how a batch splits.</summary>
+/// <summary>The replies to the smaller requests: binds, version, the cursor, config errors, files, and how a batch splits.</summary>
 public static partial class CommandProtocol
 {
     public static IReadOnlyList<string> SplitBatch(string payload)
@@ -106,6 +106,13 @@ public static partial class CommandProtocol
         return string.Join('\n', lines);
     }
 
+    /// <summary>The config Winland read and the log it writes, as full paths. Either is null when there is none.</summary>
+    public static string FormatFiles(string? config, string? log) =>
+        JsonSerializer.Serialize(new FilesJson(config, log), Relaxed);
+
+    public static string FormatFilesText(string? config, string? log) =>
+        "config: " + (config ?? "none") + "\nlog: " + (log ?? "none");
+
     internal static int ModMask(Modifier modifiers)
     {
         var mask = 0;
@@ -175,6 +182,10 @@ public static partial class CommandProtocol
         [property: JsonPropertyName("description")] string Description,
         [property: JsonPropertyName("dispatcher")] string Dispatcher,
         [property: JsonPropertyName("arg")] string Arg);
+
+    private sealed record FilesJson(
+        [property: JsonPropertyName("config")] string? Config,
+        [property: JsonPropertyName("log")] string? Log);
 
     private sealed record VersionJson(
         [property: JsonPropertyName("branch")] string Branch,
