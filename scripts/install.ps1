@@ -1,7 +1,7 @@
 # One-line install for Windows PowerShell 5.1 and PowerShell 7.
-#   irm https://raw.githubusercontent.com/dante-sparras/winland/main/scripts/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/enpaze/winland/main/scripts/install.ps1 | iex
 # The dev channel, built from main:
-#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/dante-sparras/winland/main/scripts/install.ps1))) -Channel dev
+#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/enpaze/winland/main/scripts/install.ps1))) -Channel dev
 # Dot-sourcing defines the decisions and runs nothing. scripts/install.tests.ps1 does that.
 param(
     [ValidateSet('stable', 'dev')]
@@ -12,7 +12,7 @@ param(
 $script:ArchiveName = 'Winland-win-x64.zip'
 $script:ChecksumsName = 'SHA256SUMS'
 $script:VersionName = 'version.json'
-$script:ReleasesUrl = 'https://api.github.com/repos/dante-sparras/winland/releases'
+$script:ReleasesUrl = 'https://api.github.com/repos/enpaze/winland/releases'
 $script:StepOpen = $false
 
 function Get-Banner {
@@ -88,7 +88,7 @@ function Get-SummaryLines([string]$Version, [string]$Folder, [string]$Config, [b
         $lines.Add('    Start      Winland in the Start menu, or run winland')
     }
     $lines.Add('    Quit       right-click the Winland icon in the notification area (behind ^ if hidden), then Quit')
-    $lines.Add('    Keys       https://github.com/dante-sparras/winland#hotkeys, or the config')
+    $lines.Add('    Keys       https://github.com/enpaze/winland#hotkeys, or the config')
     $lines.Add('    Undo       winland uninstall, which also turns back on the Snap and swipes the install turned off')
     return @($lines.ToArray())
 }

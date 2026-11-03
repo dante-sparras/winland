@@ -12,9 +12,9 @@ public class ReleaseUpdateTests
 
     private const string Config = @"C:\Users\me\AppData\Roaming\winland";
 
-    private const string ArchiveUrl = "https://github.com/dante-sparras/winland/releases/download/v0.2.0/Winland-win-x64.zip";
+    private const string ArchiveUrl = "https://github.com/enpaze/winland/releases/download/v0.2.0/Winland-win-x64.zip";
 
-    private const string SumsUrl = "https://github.com/dante-sparras/winland/releases/download/v0.2.0/SHA256SUMS";
+    private const string SumsUrl = "https://github.com/enpaze/winland/releases/download/v0.2.0/SHA256SUMS";
 
     private static readonly byte[] Archive = "published-zip"u8.ToArray();
 

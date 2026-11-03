@@ -1,5 +1,5 @@
 # Shared by Winoma, Winshell, and Winland. Keep the copies identical.
-# One pull-request entry point. mutation.yml is workflow_call only.
+# One pull-request and merge-queue entry point. mutation.yml is workflow_call only.
 # Branch protection requires "All required checks pass (v1)" and the separate pr-title job.
 # When a required step or job is added, bump (v1) here and in
 # .github/rulesets/protect-main.json in the same change. A green check on a
@@ -8,15 +8,17 @@
 #
 # Every check is a step in one Windows job. A net10.0-windows project does not build on
 # Ubuntu, and each job pays its own setup, so small separate jobs cost more time than the
-# work they do. CI runs on pull requests and on the push a merge makes to main. The push run
-# also fills the NuGet cache, because a pull request can only read caches its own branch or
-# the default branch saved. A release run tests the exact commit it ships.
+# work they do. CI runs on pull requests, on merge groups in the merge queue, and on the push a
+# merge makes to main. The push run also fills the NuGet cache, because a pull request can only
+# read caches its own branch or the default branch saved. A release run tests the exact commit
+# it ships.
 # Mutation testing is the slow lane. It runs when CI is called or dispatched with release=true.
 
 name: CI
 
 on:
   pull_request:
+  merge_group:
   push:
     branches: [main]
   workflow_dispatch:
@@ -109,7 +111,8 @@ jobs:
       # Any other changed file turns them on, so a new kind of file is tested by default.
       # An empty diff turns them off. --no-renames lists the old path of a rename too,
       # so moving a code file into docs/ still counts as a code change.
-      # Manual and release runs fail open so a bad classification cannot weaken a release.
+      # Merge-queue, push, manual and release runs fail open, so a bad classification cannot weaken
+      # what lands on main or a release.
       - name: Classify the diff
         id: classify
         shell: pwsh

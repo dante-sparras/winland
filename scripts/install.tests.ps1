@@ -106,8 +106,8 @@ Test-Case 'the protected install script safely carries paths and flags and parse
 }
 
 Test-Case 'the dev channel reads the dev release and saves the channel' {
-    Assert-Equal (Get-ReleaseUrl 'stable') 'https://api.github.com/repos/dante-sparras/winland/releases/latest'
-    Assert-Equal (Get-ReleaseUrl 'dev') 'https://api.github.com/repos/dante-sparras/winland/releases/tags/dev'
+    Assert-Equal (Get-ReleaseUrl 'stable') 'https://api.github.com/repos/enpaze/winland/releases/latest'
+    Assert-Equal (Get-ReleaseUrl 'dev') 'https://api.github.com/repos/enpaze/winland/releases/tags/dev'
     Assert-Equal ((Get-UpdateArguments 'stable') -join ' ') 'update --channel stable'
     Assert-Equal ((Get-UpdateArguments 'dev') -join ' ') 'update --channel dev'
 }
@@ -160,7 +160,7 @@ Test-Case 'the summary says Winland is running only when it was started' {
 Test-Case 'the summary says how to quit, where the keys are and how to undo' {
     $lines = @(Get-SummaryLines '0.2.1' 'C:\Program Files\Winland' 'C:\Users\me\.winland\winland.conf' $true)
     Assert-Equal $lines[3] '    Quit       right-click the Winland icon in the notification area (behind ^ if hidden), then Quit'
-    Assert-Equal $lines[4] '    Keys       https://github.com/dante-sparras/winland#hotkeys, or the config'
+    Assert-Equal $lines[4] '    Keys       https://github.com/enpaze/winland#hotkeys, or the config'
     Assert-Equal $lines[5] '    Undo       winland uninstall, which also turns back on the Snap and swipes the install turned off'
 }
 
@@ -192,18 +192,18 @@ $releaseJson = @'
   "draft": false,
   "prerelease": false,
   "assets": [
-    {"name": "version.json", "browser_download_url": "https://github.com/dante-sparras/winland/releases/download/v0.1.0/version.json"},
-    {"name": "Winland-win-x64.zip", "browser_download_url": "https://github.com/dante-sparras/winland/releases/download/v0.1.0/Winland-win-x64.zip"},
-    {"name": "SHA256SUMS", "browser_download_url": "https://github.com/dante-sparras/winland/releases/download/v0.1.0/SHA256SUMS"}
+    {"name": "version.json", "browser_download_url": "https://github.com/enpaze/winland/releases/download/v0.1.0/version.json"},
+    {"name": "Winland-win-x64.zip", "browser_download_url": "https://github.com/enpaze/winland/releases/download/v0.1.0/Winland-win-x64.zip"},
+    {"name": "SHA256SUMS", "browser_download_url": "https://github.com/enpaze/winland/releases/download/v0.1.0/SHA256SUMS"}
   ]
 }
 '@
 
 Test-Case 'the release names the zip, the checksums and the version' {
     $downloads = Get-ReleaseDownloads $releaseJson
-    Assert-Equal $downloads.Archive 'https://github.com/dante-sparras/winland/releases/download/v0.1.0/Winland-win-x64.zip'
-    Assert-Equal $downloads.Sums 'https://github.com/dante-sparras/winland/releases/download/v0.1.0/SHA256SUMS'
-    Assert-Equal $downloads.Version 'https://github.com/dante-sparras/winland/releases/download/v0.1.0/version.json'
+    Assert-Equal $downloads.Archive 'https://github.com/enpaze/winland/releases/download/v0.1.0/Winland-win-x64.zip'
+    Assert-Equal $downloads.Sums 'https://github.com/enpaze/winland/releases/download/v0.1.0/SHA256SUMS'
+    Assert-Equal $downloads.Version 'https://github.com/enpaze/winland/releases/download/v0.1.0/version.json'
 }
 
 Test-Case 'a draft release is refused' {
@@ -214,7 +214,7 @@ Test-Case 'a draft release is refused' {
 Test-Case 'a prerelease is refused on stable and read on dev' {
     $dev = $releaseJson -replace '"prerelease": false', '"prerelease": true'
     Assert-Throws { Get-ReleaseDownloads $dev }
-    Assert-Equal (Get-ReleaseDownloads $dev $true).Archive 'https://github.com/dante-sparras/winland/releases/download/v0.1.0/Winland-win-x64.zip'
+    Assert-Equal (Get-ReleaseDownloads $dev $true).Archive 'https://github.com/enpaze/winland/releases/download/v0.1.0/Winland-win-x64.zip'
 }
 
 Test-Case 'a release without the zip or the version is refused' {

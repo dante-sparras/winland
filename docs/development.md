@@ -13,7 +13,7 @@ Optional: GitHub CLI (`gh`) for issues and releases, and Node.js for `npx skills
 ## First checkout
 
 ```sh
-git clone https://github.com/dante-sparras/winland.git
+git clone https://github.com/enpaze/winland.git
 cd winland
 pwsh scripts/dev.ps1
 dotnet tool restore
@@ -96,7 +96,7 @@ The hooks are tracked in `scripts/hooks`, and git runs them from there. `pwsh sc
 
 ## CI
 
-Pull requests run `.github/workflows/ci.yml`, and so does the push a merge makes to `main`. The push run also fills the NuGet cache, which a pull request can read only when its own branch or the default branch saved it. A newer run of the same pull request, or of `main`, cancels the older one. Release runs have a separate concurrency group. The ruleset requires **All required checks pass (v1)** and **pr-title**. To change what the combined CI check covers, change `ci.yml` and `.github/rulesets/protect-main.json` in the same pull request, and bump the `(v1)`.
+Pull requests run `.github/workflows/ci.yml`, and so do merge groups in the merge queue and the push a merge makes to `main`. The push run also fills the NuGet cache, which a pull request can read only when its own branch or the default branch saved it. A newer run of the same pull request, or of `main`, cancels the older one. Release runs have a separate concurrency group. The ruleset requires **All required checks pass (v1)** and **pr-title**. `pr-title.yml` also runs on merge groups and passes there, because the title was checked on the pull request. To change what the combined CI check covers, change `ci.yml` and `.github/rulesets/protect-main.json` in the same pull request, and bump the `(v1)`.
 
 Every lane except Mutation is a step in one Windows job, because each job pays its own setup.
 

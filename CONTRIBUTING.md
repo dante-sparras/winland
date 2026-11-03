@@ -2,8 +2,8 @@
 
 ## Before you start
 
-- **Found a bug?** [Open an issue](https://github.com/dante-sparras/winland/issues/new/choose).
-- **Have an idea?** [Open a feature request](https://github.com/dante-sparras/winland/issues/new?template=feature_request.yml).
+- **Found a bug?** [Open an issue](https://github.com/enpaze/winland/issues/new/choose).
+- **Have an idea?** [Open a feature request](https://github.com/enpaze/winland/issues/new?template=feature_request.yml).
 - **Search first.** Someone may already have reported it, or be working on it.
 - **Found a vulnerability?** Don't open an issue; follow [SECURITY.md](.github/SECURITY.md).
 

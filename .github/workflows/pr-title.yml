@@ -5,6 +5,8 @@ on:
   # check reports on every PR. The job reads only the title and never checks out PR code.
   pull_request_target: # zizmor: ignore[dangerous-triggers]
     types: [opened, edited, synchronize, reopened]
+  # The ruleset requires this check, so the merge queue waits for it on each merge group.
+  merge_group:
 
 permissions:
   pull-requests: read
@@ -19,8 +21,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
+      # A merge group has no title to read. Its PR passed this check before it joined the queue.
+      - if: github.event_name == 'merge_group'
+        run: echo "The PR title was checked before the PR joined the merge queue."
       # Reads only the PR title; never check out or run PR code in this pull_request_target job.
-      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+      - if: github.event_name != 'merge_group'
+        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

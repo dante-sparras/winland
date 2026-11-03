@@ -60,7 +60,7 @@ Before starting, stopping or isolating a dev build, read [Run a dev build](docs/
 
 ### Issue tracker
 
-GitHub Issues on dante-sparras/winland, through `gh`. An issue labelled `ready-for-agent` is specified well enough to fix without asking. See `docs/agents/issue-tracker.md`.
+GitHub Issues on enpaze/winland, through `gh`. An issue labelled `ready-for-agent` is specified well enough to fix without asking. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
