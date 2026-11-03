@@ -134,6 +134,32 @@ public class RollingLogWriterTests
         }
     }
 
+    [Fact]
+    public void TheFilePathIsTheFileTheLogIsCopiedToNow()
+    {
+        var root = Directory.CreateTempSubdirectory("winland-log-");
+        var path = Path.Combine(root.FullName, "winland.log");
+        try
+        {
+            using var writer = new RollingLogWriter(TextWriter.Null);
+            Assert.Null(writer.FilePath);
+
+            // An elevated Winland opens no file, so it reports none.
+            writer.Copy(new DebugOptions { DisableLogs = false }, () => null);
+            Assert.Null(writer.FilePath);
+
+            writer.Copy(new DebugOptions { DisableLogs = false }, () => RollingLogWriter.OpenFile(path));
+            Assert.Equal(path, writer.FilePath);
+
+            writer.Copy(DebugOptions.Documented, () => throw new InvalidOperationException("not wanted"));
+            Assert.Null(writer.FilePath);
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
     private sealed class FullDiskWriter : StringWriter
     {
         internal bool Disposed { get; private set; }

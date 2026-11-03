@@ -17,6 +17,16 @@ sealed class RollingLogWriter(TextWriter inner) : TextWriter
 
     public override Encoding Encoding => inner.Encoding;
 
+    /// <summary>The full path of the file the log is copied to, or null while it is copied to none.</summary>
+    public string? FilePath
+    {
+        get
+        {
+            lock (_gate)
+                return _file is StreamWriter { BaseStream: FileStream stream } ? stream.Name : null;
+        }
+    }
+
     internal static StreamWriter OpenFile(string path)
     {
         if (File.Exists(path))

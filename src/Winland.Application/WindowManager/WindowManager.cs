@@ -40,6 +40,9 @@ public sealed partial class WindowManager
 
     public Func<ConfigRead>? ReadConfig { get; set; }
 
+    /// <summary>The full path of the log file Winland writes now, or null while it writes none. <c>files</c> reports it.</summary>
+    public Func<string?>? LogFile { get; set; }
+
     /// <summary>The keyboard layout a config is read in, for a <c>keyword</c> line. The United States layout without it.</summary>
     public Func<KeyLayout>? KeyLayoutSource { get; set; }
 
